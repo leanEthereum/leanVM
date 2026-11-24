@@ -9,7 +9,7 @@ module
 
 import LeanVM.Protocol.Compile.SpecRules.Basic
 public import LeanVM.Parameters.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 import LeanVM.Protocol.Field
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
@@ -71,6 +71,15 @@ theorem grindingBits_discount (N : ℕ) :
           ENNReal.div_eq_inv_mul, ENNReal.mul_inv (by simp) (by simp),
           mul_comm ((2 : ENNReal) ^ 3)⁻¹, mul_assoc, ENNReal.inv_mul_cancel (by simp) (by simp),
           mul_one, ENNReal.inv_pow]
+
+/-- A message whose error is at most `8 / |E|` grinds no bits. -/
+theorem grindingBits_eq_zero_of_le {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
+  unfold grindingBits
+  split_ifs with h
+  · rfl
+  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
+    simp only [securityBits]
+    omega
 
 /-! ## A follower that starts with a challenge -/
 

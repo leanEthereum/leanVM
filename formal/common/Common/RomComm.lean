@@ -2,6 +2,7 @@ module
 
 public import Common.Prob
 public import Common.Defs
+import VCVio.OracleComp.QueryTracking.RandomOracle.CachePartial
 
 @[expose] public section
 
@@ -15,11 +16,9 @@ sampled random oracle), a hash query whose answer is not used can be moved anywh
 for random oracles: the random function is fixed from the start, and *when* a point is first
 queried does not matter.
 
-Consequences used by the indifferentiability proof:
-
-* discarded queries can be postponed to the end of a run, where their answers are fresh
-  (`run_queries_bind_evalDistEq`);
-* a query at a point that is already cached changes nothing (`run_bind_query_of_cached`).
+Consequences used by the indifferentiability proof: any two steps of the random oracle model
+commute (`romStep_romStep_comm`), a query commutes with any computation that does not use its
+answer (`run_query_bind_comm`), and so do two independent computations (`run_bind_bind_comm`).
 -/
 
 open OracleComp OracleSpec MeasureTheory
@@ -69,25 +68,30 @@ theorem le_of_mem_support_roStep (t : ι) (c : hs.QueryCache) {z : hs.Range t ×
     subst hz
     exact ⟨le_rfl, h⟩
 
+/-- **One step of the random-oracle model** keeps the cache or caches one fresh answer. -/
+theorem romImpl_step (t : (unifSpec + hs).Domain) (c : hs.QueryCache) {z}
+    (hz : z ∈ support ((hs.romImpl t).run c)) :
+    z.2 = c ∨ ∃ s u, t = .inr s ∧ c s = none ∧ z.2 = c.cacheQuery s u := by
+  rcases t with n | s
+  · rw [roSim.run_apply_inl] at hz
+    simp only [support_map, Set.mem_image] at hz
+    obtain ⟨_, -, rfl⟩ := hz
+    exact Or.inl rfl
+  · rw [romImpl_inr_run] at hz
+    rcases h : c s with _ | v
+    · rw [roStep_of_none h] at hz
+      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
+      obtain ⟨u, -, rfl⟩ := hz
+      exact Or.inr ⟨s, u, rfl, h, rfl⟩
+    · rw [roStep_of_some h] at hz
+      simp only [support_pure, Set.mem_singleton_iff] at hz
+      subst hz
+      exact Or.inl rfl
+
 /-- A random-oracle-model run only adds cached answers. -/
 theorem le_of_mem_support_run (oa : OracleComp (unifSpec + hs) α) (c : hs.QueryCache)
-    {z : α × hs.QueryCache} (hz : z ∈ support ((simulateQ hs.romImpl oa).run c)) : c ≤ z.2 := by
-  induction oa using OracleComp.inductionOn generalizing c with
-  | pure a =>
-    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz; exact le_rfl
-  | query_bind t k ih =>
-    simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
-      OracleQuery.cont_query, id_map, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨w, hw, hz⟩ := hz
-    refine le_trans ?_ (ih w.1 w.2 hz)
-    rcases t with n | t
-    · rw [roSim.run_apply_inl] at hw
-      simp only [support_map, Set.mem_image] at hw
-      obtain ⟨u, -, rfl⟩ := hw
-      exact le_rfl
-    · rw [romImpl_inr_run] at hw
-      exact (le_of_mem_support_roStep t c hw).1
+    {z : α × hs.QueryCache} (hz : z ∈ support ((simulateQ hs.romImpl oa).run c)) : c ≤ z.2 :=
+  le_snd_of_mem_support_run_unifFwdImpl_add_withCaching uniformSampleImpl oa hz
 
 theorem roStep_cacheQuery_self (s : ι) (c : hs.QueryCache) (u : hs.Range s) :
     roStep s (c.cacheQuery s u) = pure (u, c.cacheQuery s u) :=

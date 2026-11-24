@@ -19,9 +19,6 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section RestH
@@ -53,13 +50,8 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
         lam Lmax 0 total := by
   set start := DebtState.start initial known (D := HashInput) (R := HashOutput) (ι := Coordinate) with hstart
   set b0 := baselineW total with hb0def
-  have hb0 : b0 ≠ ⊤ := baselineW_ne_top total
-  have htotal1 : (total : ℝ) + 1 < spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
-  have htotal2 : (total : ℝ) ≤ spaceReal := by
-    have : (0 : ℝ) ≤ total := Nat.cast_nonneg _
-    linarith
+  have htotal1 : (total : ℝ) + 1 < spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
+  have htotal2 : (total : ℝ) ≤ spaceReal := by linarith [(Nat.cast_nonneg total : (0 : ℝ) ≤ total)]
   -- the weighted FORS potential
   have hgood := goodHWH_advProgH parameter data total wbar b0 Fail Lmax tg initial model hparse hkind hdigest hfail hfair
     le_rfl M [] hnr total start [] [] 0 [] (start_prepared initial known)
@@ -75,44 +67,10 @@ theorem rest_boundH (hcompat : Compatible tg model) (htrunc : UniformTruncation 
     saturationW_start tg initial model hcompat htrunc total htotal1 b0
       (baselineW_payment total htotal2) (advProgH parameter data M [])
       (honestOkFrom_advProgH parameter data tg initial model hgoodS M []) known
-  set W := wflag tg initial model (advProgH parameter data M []) total start with hW
-  set E := ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-    weight tg initial out.2 with hEdef
-  have hE : E ≤ 1 :=
-    le_trans (tsum_le_tsum fun out => mul_le_of_le_one_right' (weight_le_one tg initial out.2))
-      (OracleComp.tsum_prEvent_le_one _)
-  have hcompl : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-      (1 - weight tg initial out.2) = 1 - E := by
-    have hsum : ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        (1 - weight tg initial out.2) + E = 1 := by
-      rw [hEdef, ← tsum_add]
-      calc _ = ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] :=
-            tsum_congr fun out => by
-              rw [← mul_add, tsub_add_cancel_of_le (weight_le_one tg initial out.2), mul_one]
-        _ = 1 := OracleComp.tsum_prEvent_eq_one _
-    exact ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top ENNReal.one_ne_top hE) hsum
-  have hle : budget 0 total + b0 * W ≤ 1 := le_trans hsat hE
-  have hW1 : b0 * W ≤ 1 - budget 0 total := ENNReal.le_sub_of_add_le_left ENNReal.ofReal_ne_top hle
-  rw [OracleComp.prEvent_bind_eq_tsum]
-  calc _ ≤ ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-        ((1 - weight tg initial out.2) + weight tg initial out.2 * finalValue parameter data tg initial [] out) :=
-        tsum_le_tsum fun out => mul_le_mul_right (hit_or_cover_le parameter data tg initial out) _
-    _ = (1 - E) + ∑' out, Pr{let x ← interp tg initial model (advProgH parameter data M []) total start}[x = out] *
-          (weight tg initial out.2 * finalValue parameter data tg initial [] out) := by
-        rw [← hcompl, ← tsum_add]
-        exact tsum_congr fun out => mul_add _ _ _
-    _ ≤ (1 - (budget 0 total + b0 * W)) +
-          (potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total + b0 * W) :=
-        add_le_add (tsub_le_tsub_left hsat _) hgood
-    _ = (1 - budget 0 total) + potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total := by
-        rw [tsub_add_eq_tsub_tsub,
-          add_comm (potH parameter data total wbar b0 Fail tg initial Lmax start [] [] [] 0 total) (b0 * W),
-          ← add_assoc, tsub_add_cancel_of_le hW1]
-    _ ≤ _ := by
-        refine le_trans (add_le_add le_rfl (potH_start_le parameter data total wbar b0 Fail tg initial Lmax start total))
-          (le_of_eq ?_)
-        rw [hValueH_start]
-        ring
+  refine le_trans (hit_or_cover_le_of_saturation parameter data tg initial model total b0 _ _ _ start hsat hgood) ?_
+  refine le_trans (add_le_add le_rfl (potH_start_le parameter data total wbar b0 Fail tg initial Lmax start total)) (le_of_eq ?_)
+  rw [hValueH_start]
+  ring
 
 end RestH
 
@@ -123,7 +81,6 @@ open HiddenBridge Completeness SeedModel _root_.FORS.Security.Graph Assembly Red
 attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSampleable highsSampleable
   remainingSampleable
 
-set_option maxRecDepth 100000 in
 /-- **One sample, weighted baseline, one heavy message.** -/
 theorem sample_boundH (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (hq : q < 2 ^ 256)
@@ -157,56 +114,18 @@ theorem sample_boundH (hb : 0 < keptHeight topLayer) (adversary : Adversary) (hn
         (q - keygenCost) + failMass Fail) + signatureLimit * failMass Fail) + lam Lmax 0 (q - keygenCost) := by
   set param := truncateHash parameterOutput with hparam
   set data := sampleData parameterOutput fixed highs remaining steps with hdata
-  set known := knownOf param fixed with hknown
   set model := sampleModel parameterOutput highs with hmodel
-  set start : State := DebtState.start prepared.2 known with hstart
   have hparse : ∀ p call, model.parse (pblk param data p call) = none := fun p call =>
     hcompat.digestParse _ (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).2
-  refine le_trans (stopped_le_interp hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg) ?_
-  -- a correct guess or a bad cache is a decided hit
-  refine le_trans (prEvent_mono_of_support _ _ (fun r => Hit tg prepared.2 r.1 r.2.2 ∨ CoverOf param data r.2)
-    fun x hx hp => ?_) ?_
-  · rw [mem_support_bind_iff] at hx
-    obtain ⟨out, hout, hx⟩ := hx
-    rw [support_map] at hx
-    obtain ⟨table, htab, rfl⟩ := hx
-    have hext := interp_extends tg prepared.2 model _ q start out hout
-    have hag : Agrees out.2.known table := by
-      unfold completion at htab
-      rw [support_map] at htab
-      obtain ⟨t, _, rfl⟩ := htab
-      exact fun c v hc => completion_known _ c v hc t
-    have hag0 : Agrees known table := fun c v hc => hag c v (hext.2.1 c v hc)
-    rcases hp with hg | hbad | ⟨outcome, hres, hfc⟩
-    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
-        (fun i o hi => hext.1 i o hi) hag (Or.inl hg))
-    · exact Or.inl (hhit table ((agrees_iff_extending known table).1 hag0) out.2
-        (fun i o hi => hext.1 i o hi) hag (Or.inr hbad))
-    · exact Or.inr ⟨outcome, hres, hfc⟩
-  -- the keygen tick
-  unfold costGameXH
-  by_cases hK : keygenCost ≤ q
-  · rw [interp_tick_bind tg prepared.2 model _ _ q start hK, bind_map_left]
-    refine le_trans (le_of_eq ?_) (rest_boundH param data wbar Fail tg prepared.2 model hcompat htrunc hparse
+  exact sample_le_of_rest hb adversary q hq parameterOutput fixed highs remaining steps prepared hprepared tg hhit _
+    fun _ => rest_boundH param data wbar Fail tg prepared.2 model hcompat htrunc hparse
       (fun p call => (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).1)
       (fun p call => (hmsg _ (msgInput_digestInput param data.root p.1 p.2 call)).2)
       (fun p call => hclean _ (msgInput_digestInput param data.root p.1 p.2 call)) hfail (q - keygenCost) htotal Lmax hfair
       (signerReadsGood_large parameterOutput highs prepared tg hmsg fixed remaining steps hprepared)
       ((internalize adversary).main ⟨data.root, param⟩)
-      (noRepeat_internalize_adversary adversary hnr _) known)
-    rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.prEvent_bind_eq_tsum]
-    refine tsum_congr fun out => ?_
-    rw [prEvent_map, prEvent_map]
-    rfl
-  · rw [interp_tick_bind_abort tg prepared.2 model _ _ q start hK, pure_bind]
-    refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun x hx hp => ?_) bot_le
-    rw [support_map] at hx
-    obtain ⟨table, _, rfl⟩ := hx
-    rcases hp with hh | ⟨outcome, hres, _⟩
-    · exact not_hit_start tg prepared.2 known table hh
-    · cases hres
+      (noRepeat_internalize_adversary adversary hnr _) (knownOf param fixed)
 
-set_option maxRecDepth 100000 in
 /-- **Large budgets from the seed-free win, weighted baseline, one heavy message.** The seed-free
 win is at most the weighted saturation budget, `q - keygenCost` times the one-coin excess forecast
 with one spare slot at the baseline `baselineW (q - keygenCost)`, and the failing share of the
@@ -264,7 +183,6 @@ theorem large_seedFree_boundH (hb : 0 < keptHeight topLayer) (adversary : Advers
   exact tsum_bound_le _ _ A C _ fun prepared hprepared =>
     hsample parameterOutput fixed highs remaining prepared hprepared
 
-set_option maxRecDepth 100000 in
 /-- **Large budgets, weighted baseline, one heavy message, honest-reading game.** For an adversary
 making at most `qA` hash queries and a verifier making at most `V`, at the budget
 `q = keygenHashCost + qA + V`: if the heavy route's hypotheses hold at `q`, the forging advantage is at
@@ -295,42 +213,11 @@ theorem forgeAdvantage_le_largeHH (hb : 0 < keptHeight topLayer) (adversary : Ad
   have hF := AdvCount.forgeAdvantage_le_seedFree adversary qA V hqA hV _ (by rw [← hqdef]; exact hmain)
   rw [← hqdef] at hF
   refine le_trans hF (le_trans (add_le_add le_rfl (mul_le_mul_left (by norm_num : (2 : ℝ≥0∞) ≤ 3) _)) ?_)
-  have hE := expectedFail_le
   -- the negligible terms fit in the slack
   have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
       lam Lmax 0 q' ≤ ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 := by
-    have h256 : 3 * ((q : ℝ≥0∞) / 2 ^ 256) ≤ (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-      rw [div_two_pow, hsum, mul_left_comm]
-      refine mul_le_mul' le_rfl ?_
-      rw [show (256 : ℕ) = 55 + 201 by norm_num, pow_add, ← mul_assoc]
-      calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 55 * (2 : ℝ≥0∞)⁻¹ ^ 201 ≤ 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-            refine mul_le_mul' ?_ le_rfl
-            rw [show (55 : ℕ) = 2 + 53 by norm_num, pow_add, ← mul_assoc]
-            calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 53 ≤ 1 * 1 := by
-                  refine mul_le_mul' ?_ (pow_le_one₀ (by norm_num) (by norm_num))
-                  rw [← ENNReal.inv_pow, ← div_eq_mul_inv, ENNReal.div_le_iff (by norm_num) (by norm_num), one_mul]
-                  norm_num
-              _ = 1 := one_mul 1
-        _ = _ := one_mul _
-    have hnat : ((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1 ≤
-        2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) := by
-      have hK1 : 1 ≤ keygenCost := by
-        have := Nat.two_pow_pos (keptHeight topLayer)
-        unfold keygenCost Prefix.keygenHashCost
-        omega
-      have h : (q' + signatureLimit) + (q' + keygenCost) + 1 ≤ 2 * (q' + keygenCost + signatureLimit) := by omega
-      have h' : (((q' + signatureLimit) + (q' + keygenCost) + 1 : ℕ) : ℝ≥0∞) ≤
-          ((2 * (q' + keygenCost + signatureLimit) : ℕ) : ℝ≥0∞) := by exact_mod_cast h
-      push_cast at h' ⊢
-      exact h'
-    calc _ ≤ ((q' : ℝ≥0∞) + signatureLimit) * (2 : ℝ≥0∞)⁻¹ ^ 201 +
-          (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 + 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
-          add_le_add (add_le_add (mul_le_mul' le_rfl hE) h256) (by rw [one_mul]; exact hlam)
-      _ = (((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-          ring
-      _ ≤ (2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 :=
-          mul_le_mul' hnat le_rfl
-      _ = _ := by rw [mul_comm (2 : ℝ≥0∞), mul_assoc, two_mul_inv_pow_succ]
+    rw [← hsum]
+    exact large_slack_le q' _ hlam
   calc _ ≤ (((1 - budget 0 q') + (q' : ℝ≥0∞) * startExcessH wbar (baselineW q') q' +
             lam Lmax 0 q') +
           ((q' : ℕ) + signatureLimit) * expectedFail) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := le_rfl

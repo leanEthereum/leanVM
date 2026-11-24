@@ -17,12 +17,14 @@ public import LeanVM.Guest.Exact.Kids
 /-!
 # `verify_sub`, every node exact
 
-`vsPsRE`: `vsPsR`'s predicates, each tree also exact on the memory. `vs_kidsDepBPRE`: `vs_kidsDepBPR` by trees of them:
+`vsPsRE`: `vsPsR`'s predicates, each tree also exact on the memory. `vs_kidsDepBPRE`: the callees within their bounds by trees of them:
 `g_power_of_word` (`gpw_exactOk`) and the callees without a computed hint in their subtrees (`certify_placement`, the
 squeeze's arms, `opening_message__L1_L1`, `verify_bus_gkr`, `ring_switch_target`) exact on every valid tree, the two
 `log2_ceil_in_the_exponent`s and the bus grind's arm by their E forms, `verify_tables`,
 `verify_keccak` (`VkCompleteAtBKE`), `open_stacked` and the terminal given. `verify_sub_completeBTGE`:
-`verify_sub_completeBTG` by a tree also exact (`flatShape_every_sites`, `verify_sub`'s own computed hints pinned but
+on an honest child, `verify_sub` is complete within the bound at its stack log and rate by a node of `vsTsAny`
+(`completeAt_flatDepRBPR` with `vs_obligations` and `vs_kidsDepBPRE`), its valuation the honest one, its own buffers
+held (`vsQn`), exact at every node (`flatShape_every_sites`, `verify_sub`'s own computed hints pinned but
 its two inlined grinds' windows, exact on the honest valuation by `gcInlineO_exact_of_good`),
 its buffers `vsSizes` of its bus depth (`vs_allocs_events`, its validity's buffers by `CompleteAtDTBR.monoVB`).
 -/
@@ -349,7 +351,7 @@ theorem vs_allocs_events {σ : Val} (hdo : ∀ s ∈ vsCPre, DispOk σ s)
   exact (flat_parts σ _ vs_cflat).2.1.trans hsz
 
 /-- **`verify_sub` is complete on an honest child within its own bound, exact at every node**, generic in what its
-`certify_placement`, `verify_tables` and `open_stacked` callees' trees satisfy: `verify_sub_completeBTG`, given
+`certify_placement`, `verify_tables` and `open_stacked` callees' trees satisfy, given
 `verify_tables`', `verify_keccak`'s, `open_stacked`'s and the terminal's trees exact. -/
 theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) {Bvk κ : ℕ}
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtBKE fs cert κ Bvk) {seed : Digest} {c : Child}

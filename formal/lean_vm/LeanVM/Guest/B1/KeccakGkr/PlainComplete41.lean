@@ -16,7 +16,6 @@ import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L4_L1»
 
 As `plain60_complete`, with one scalar `w` waiting, its rate cells the arguments `5`, `6`
 (`PlainCellsOk`): the first round's `KECCAK` reads them (`plain_core_sq1`).
-`keccak_plain_rounds_complete : keccak_plain_rounds_complete_Spec`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

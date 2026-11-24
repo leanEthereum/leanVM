@@ -89,9 +89,9 @@ theorem batchingGame_eq_withHash (A : OracleComp RandomPermutationOracles (Unit 
 
 /-- **`BatchingSound`, from the experiment with the two calls.** -/
 theorem batchingSound_of_withHash (h : BatchingSoundWithHash) : BatchingSound := by
-  intro M bytecode hb hM A QA hA hQA hQV
+  intro M bytecode hb hM A QA hA hQV
   rw [batchingGame_eq_withHash, prEvent_map]
-  exact h M bytecode hb hM A QA hA hQA hQV
+  exact h M bytecode hb hM A QA hA hQV
 
 end Batch
 

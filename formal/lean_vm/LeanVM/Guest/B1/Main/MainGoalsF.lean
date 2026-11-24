@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsF
 
-  `main`'s callees on an honest run, the first ones: the loops writing the hinted claims
-  (`main_loop0`, `main_loop1`) and the statement's digest; the claim lists' cells and bytes (their
-  digests in `MainGoalsFCl`).
+  `main`'s first callees on an honest run: the loops writing the hinted claims (`main_loop0`,
+  `main_loop1`), the claim lists' cells and bytes, and `main`'s honest buffers.
 -/
 
 module
@@ -21,14 +20,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s first callees on an honest run
 
-* `mainGoalL1`, `mainGoalL2`: the loops are atoms and a heap hint, so they hold on every memory
-  (`loopF_complete` at an explicit valuation of each block) and place nothing (`mfLoop_pure`);
+* `mfL1_rel`, `mfL2_rel`: the loops are atoms and a heap hint, so they hold on every memory
+  (`loopF_complete` at an explicit valuation of each block);
 * the claim tables' cells' (`claimCells`) bytes are the bytes the Spec's list digest hashes (`mf_xmss_digest`, `mf_sphincs_digest`);
-* `mf_reads`, `mf_region`: buffer `i` of `hLmain` holds `hOwn`'s list `i`;
-* `mainGoalSt`: the deferred claim's `24` cells (`NodeRelation`'s shape on a bytecode of `2^23` words)
-  hash, with the seed, the claim lists' digests and the published DA digest, to the statement's
-  digest
-  (`statementDigest_of_parts`).
+* `mf_reads`: buffer `i` of `hLmain` holds `hOwn`'s list `i`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -188,33 +183,6 @@ theorem mf_mem {i : ℕ} (hi : i < 10) :
 theorem mf_reads {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {i : ℕ} (hi : i < 10) :
     ReadsAt rd (gen ^ mfB fs fp seed s w i) ((hOwn seed s w).getD i []) :=
   Da.reads_of_memL (memL_append.mp h).1 (mf_mem fs fp seed s w hi)
-
-theorem mf_region {i : ℕ} (hi : i < 10) {k : ℕ} (hk : k < ((hOwn seed s w).getD i []).length) :
-    RegionL (hLmain fs fp seed s w) (mfB fs fp seed s w i + k) := by
-  obtain ⟨q, hq, h⟩ := Da.regionL_of_mem (mf_mem fs fp seed s w hi) hk
-  exact ⟨q, List.mem_append_left _ hq, h⟩
-
-/-! ## The goals -/
-
-theorem mainGoalL1 : MainGoalL1 fs cert fp seed s w := fun hne =>
-  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 20
-
-theorem mainGoalL2 : MainGoalL2 fs cert fp seed s w := fun hne =>
-  completeAt_of_rel_pureD mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 20
-
-/-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
-`2^23` words making the deferred claim `24` cells. -/
-theorem mainGoalSt {bytecode : List K} (hR : NodeRelation bytecode seed s w)
-    (hbl : bytecode.length = 2 ^ bytecodeVars) : MainGoalSt fs cert fp seed s w := by
-  have hlen : s.deferredClaim.cells.length = 24 := by
-    have h1 : s.deferredClaim.bytecodePoint.length = Nat.log2 bytecode.length := hR.hasBytecodeShape
-    rw [hbl, Nat.log2_two_pow] at h1
-    simp [DeferredBytecodeClaim.cells, h1, bytecodeVars]
-  refine statement_completeAt fs cert fun rd h => ?_
-  have h9 := mf_reads fs fp seed s w h (i := 9) (by omega)
-  exact ⟨s.deferredClaim.cells, hlen, h9, congrArg digestCells (statementDigest_of_parts
-    (digestBytes_eq_cells _) (digestBytes_eq_cells _) (digestBytes_eq_cells _)
-    (digestBytes_eq_cells _) rfl)⟩
 
 end
 end LeanVM.Guest.B1.Main

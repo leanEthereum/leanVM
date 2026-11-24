@@ -21,17 +21,16 @@ import LeanVM.Guest.Value.FieldBits
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed
 
-* `asg_completeAtB`: `assert_small_g_power` is a leaf: on `g^e`, `e < 2^36`, and the exponent
+* `assert_small_g_power` is a leaf: on `g^e`, `e < 2^36`, and the exponent
   table (`log2Lin sqE`, the `236` words of `exponent_tables`) it returns, within its frame. Its
   range checks read the memory below `2^4` (`asg_rc_low`), its shares the table (`asg_shares`).
-* `lce_completeAtB`: `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
+* `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
   a run of its frame (read by no instruction), range checks `L` and `L - fl` below `34` (the memory
   below `2^6`), reads `g^(2^L)` (and above the floor `g^(2^(L-1))`) from the table and calls
   `assert_small_g_power` once (`L = fl`) or twice: on `g^N` and the table it returns `g^L`,
   `L = max fl (log2Ceil N)`, within `fs f + 2 · fs "assert_small_g_power"` words. Its walk
   (`lc_walk`) takes the check above the floor as the valuation says.
-* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`), of which
-  `asg_completeAtB`, `lce_completeAtB` are corollaries. `assert_small_g_power`'s digits (`asgHint`) are its honest
+* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`). `assert_small_g_power`'s digits (`asgHint`) are its honest
   valuation's (`asg_holds_ofD`); `log2_ceil_in_the_exponent`'s bits (`lcSites`) are its frame's words (`lcBits`, `N`'s
   bits) and its `⌈log₂⌉` theirs (`bitsNat_bits`, `clog2_eq_log2Ceil`); every other computed hint of
   either body is pinned locally (none is: `asg_sites`, `lc_sites`).
@@ -127,11 +126,7 @@ theorem loadAddrs_app (σ : Val) (a b : List Ev) :
 /-- The shares `assert_small_g_power` reads, from the exponent table. -/
 theorem asg_shares {rd : Reader} {q : E} (ht : ExpTables rd q) (e : ℕ) :
     ∀ j < 9, LoadHolds rd (q * gen ^ (e / 16 ^ j % 16)) (34 + 16 * j)
-      (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun j hj ↦ by
-  rw [loadHolds_mul_gen_pow]
-  have := ht.2.1 j hj (e / 16 ^ j % 16) (Nat.mod_lt _ (by decide))
-  rwa [show sizeBits + 16 * j + e / 16 ^ j % 16 = e / 16 ^ j % 16 + (34 + 16 * j) by
-    simp only [sizeBits]; omega] at this
+      (gen ^ (e / 16 ^ j % 16 * 16 ^ j)) := fun _ hj ↦ asg_load ht hj (Nat.mod_lt _ (by decide))
 
 /-- A digit's range check against `g^15` on a memory defined below `2^κ`, `4 ≤ κ`. -/
 theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ rd) {n : ℕ}
@@ -181,7 +176,7 @@ theorem asgHint_exact {rd : Reader} {σ : Val} {e : ℕ} (he : e < 2 ^ 36) (e0 :
     show 2 ^ (4 * j) = 16 ^ j by rw [pow_mul]; rfl]
   rfl
 
-/-- **`assert_small_g_power`, placed, bounded and exact**: `asg_completeAtB` by a tree popping nothing, every node
+/-- **`assert_small_g_power`, placed, bounded and exact**: within its frame, by a tree popping nothing, every node
 exact on the memory. -/
 theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^ 36) :
     CompleteAtDTBR fs cert κ "assert_small_g_power" (log2Lin sqE)
@@ -225,14 +220,6 @@ theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 
     exact regionL_log2Lin (by omega) (by omega)
   · rw [List.mem_singleton.mp ha]
     exact asgHint_exact he e0 ed
-
-/-- **`assert_small_g_power`, placed and bounded**: on `g^e`, `e < 2^36`, and the exponent table, a
-leaf within its frame. -/
-theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^ 36) :
-    CompleteAtB fs cert κ "assert_small_g_power" (log2Lin sqE)
-      [gen ^ e, ofK (Parameters.addressOfIndex sqE)] (Returns []) (fs "assert_small_g_power") :=
-  ((asg_completeAtBE (fs := fs) (cert := cert) κ hκ4 sqE e he).toDTB (T' := fun _ => True)
-    fun _ _ _ => trivial).toCompleteAtB
 
 /-! ## `log2_ceil_in_the_exponent`'s walk -/
 
@@ -579,17 +566,6 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
   rw [hal] at h
   obtain ⟨t, ht, -, hE⟩ := h
   exact ⟨t, by simpa using ht, hE⟩
-
-/-- **`log2_ceil_in_the_exponent` at the floor `fl`, placed** (`lce_completeAtBE` without exactness). -/
-theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
-    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")])
-    (hb : fn.body = lcBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
-    (N sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
-    CompleteAtB fs cert κ name (log2Lin sqE) [gen ^ N, ofK (Parameters.addressOfIndex sqE)]
-      (Returns [gen ^ max fl (log2Ceil N)])
-      (fs name + 2 * fs "assert_small_g_power") :=
-  ((lce_completeAtBE (fs := fs) (cert := cert) fl hfl hf hp hb hl κ hκ6 N sqE hN hL).toDTB (T' := fun _ => True)
-    fun _ _ _ => trivial).toCompleteAtB
 
 end
 end LeanVM.Guest.B1

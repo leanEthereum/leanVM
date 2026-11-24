@@ -1,11 +1,8 @@
 module
 
-public import FORS.LargeBudget.WeightedPotential
-public import FORS.LazyRun.Expose
-public import FORS.CoverPotential.StartValue
-public import FORS.Reduction.SeedElimination
-public import FORS.CoverPotential.FairCoin
 public import FORS.Classification.Targeting
+public import FORS.LazyRun.PreparedRun
+public import FORS.LargeBudget.SurvivalWeight
 
 @[expose] public section
 
@@ -23,10 +20,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### The weighted baseline as a rational threshold -/

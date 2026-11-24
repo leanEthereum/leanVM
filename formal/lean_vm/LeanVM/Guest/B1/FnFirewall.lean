@@ -27,31 +27,22 @@ import LeanVM.Guest.B1.Sig.Frame
 import LeanVM.Guest.B1.Sig.FwdComplete
 import LeanVM.Guest.B1.Sig.InterfaceP
 import LeanVM.Guest.B1.Sig.KMsgComplete
-import LeanVM.Guest.B1.Sig.KSeqComplete
 import LeanVM.Guest.B1.Sig.KeccakMsg
 import LeanVM.Guest.B1.Sig.Merkle
 import LeanVM.Guest.B1.Sig.MerkleComplete
 import LeanVM.Guest.B1.Sig.SeqComplete
 import LeanVM.Guest.B1.Sig.Shapes
 import LeanVM.Guest.B1.Sig.Shifts
-import LeanVM.Guest.B1.Sig.SpWotsArms
-import LeanVM.Guest.B1.Sig.SpWotsCheck
-import LeanVM.Guest.B1.Sig.SpWotsComplete
-import LeanVM.Guest.B1.Sig.SpWotsCompleteR
 import LeanVM.Guest.B1.Sig.SpWotsCompleteStmt
-import LeanVM.Guest.B1.Sig.SpWotsData
-import LeanVM.Guest.B1.Sig.SpWotsData0
-import LeanVM.Guest.B1.Sig.SpWotsData1
-import LeanVM.Guest.B1.Sig.SpWotsGroupComplete
 import LeanVM.Guest.B1.Sig.SpWotsGroups
 import LeanVM.Guest.B1.Sig.SpWotsLayout
-import LeanVM.Guest.B1.Sig.SpWotsRen0
-import LeanVM.Guest.B1.Sig.SpWotsRen1
-import LeanVM.Guest.B1.Sig.SpWotsRen2
-import LeanVM.Guest.B1.Sig.SpWotsRen3
-import LeanVM.Guest.B1.Sig.SpWotsRenDefs
+import LeanVM.Guest.B1.Sig.SpWotsLinks
+import LeanVM.Guest.B1.Sig.SpWotsLinks0
+import LeanVM.Guest.B1.Sig.SpWotsLinks1
+import LeanVM.Guest.B1.Sig.SpWotsLinks2
+import LeanVM.Guest.B1.Sig.SpWotsLinksAll
+import LeanVM.Guest.B1.Sig.SpWotsRef
 import LeanVM.Guest.B1.Sig.SpWotsSound
-import LeanVM.Guest.B1.Sig.SpWotsStepComplete
 import LeanVM.Guest.B1.Sig.SpWotsT
 import LeanVM.Guest.B1.Sig.SphincsAdrs
 import LeanVM.Guest.B1.Sig.SphincsBottomComplete
@@ -106,7 +97,6 @@ import LeanVM.Guest.B1.Sig.XmssBound
 import LeanVM.Guest.B1.Sig.XmssCore
 import LeanVM.Guest.B1.Sig.XmssGroups
 import LeanVM.Guest.B1.Sig.XmssLayer
-import LeanVM.Guest.B1.Sig.XmssLoop2
 import LeanVM.Guest.B1.Sig.XmssScheme
 import LeanVM.Guest.B1.Sig.XmssSegArms
 import LeanVM.Guest.B1.Sig.XmssSegCodeC
@@ -162,6 +152,7 @@ import LeanVM.Guest.B1.Sig.XmssT
 import LeanVM.Guest.B1.Sig.XmssWindows
 
 import LeanVM.Guest.B1.Merkle.CapLinks
+import LeanVM.Guest.B1.Merkle.CapMaps
 import LeanVM.Guest.B1.Merkle.CapRef
 import LeanVM.Guest.B1.Merkle.Climb
 import LeanVM.Guest.B1.Merkle.Meaning
@@ -310,7 +301,6 @@ import LeanVM.Guest.B1.Da.DualMath
 import LeanVM.Guest.B1.Main.FramesP
 import LeanVM.Guest.B1.Main.IterK
 import LeanVM.Guest.B1.Main.Plan
-import LeanVM.Guest.B1.Main.RelAtW
 import LeanVM.Guest.B1.Terminal.Blocks
 import LeanVM.Guest.B1.Terminal.Claims
 import LeanVM.Guest.B1.Terminal.EqMath
@@ -339,7 +329,10 @@ import LeanVM.Guest.B1.Common.Phase
 import LeanVM.Guest.B1.Common.Run
 import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Bits.Templates
+import LeanVM.Guest.Ref.Elab
+import LeanVM.Guest.Ref.Keccak
 import LeanVM.Guest.Ref.Link
+import LeanVM.Guest.Ref.Verified
 
 /-! **B1's per-function proofs read their own function's core module alone.** A proof stated for
 every program that finds its function (`Finds`, `CoreFind.lean`), or a check of one function's
@@ -374,6 +367,7 @@ open Lean Elab Command in
   -- single modules (not their numbered siblings), and the functions whose core modules each may read
   let single : List (Name × List Name) := [
     (`LeanVM.Guest.B1.Merkle.CapRef, []),
+    (`LeanVM.Guest.B1.Merkle.CapMaps, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
     (`LeanVM.Guest.B1.Merkle.Meaning, []),
@@ -514,7 +508,6 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Main.FramesP, []),
     (`LeanVM.Guest.B1.Main.IterK, []),
     (`LeanVM.Guest.B1.Main.Plan, []),
-    (`LeanVM.Guest.B1.Main.RelAtW, []),
     (`LeanVM.Guest.B1.Terminal.Blocks, []),
     (`LeanVM.Guest.B1.Terminal.Claims, []),
     (`LeanVM.Guest.B1.Terminal.EqMath, []),
@@ -544,7 +537,10 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Common.Sponge, []),
     (`LeanVM.Guest.B1.Bits.Templates, []),
     (`LeanVM.Guest.Ref.Lang, []),
-    (`LeanVM.Guest.Ref.Link, [])]
+    (`LeanVM.Guest.Ref.Elab, []),
+    (`LeanVM.Guest.Ref.Keccak, []),
+    (`LeanVM.Guest.Ref.Link, []),
+    (`LeanVM.Guest.Ref.Verified, [])]
   let families : List (Name × Option (List Name) × List Name) := [
     (Q ++ `GPowerP, some [`g_power_of_word], []),
     (Q ++ `MeaningP, some [], []),

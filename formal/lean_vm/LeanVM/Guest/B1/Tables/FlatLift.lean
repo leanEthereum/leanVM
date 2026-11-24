@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.VtC.Agree
 public import LeanVM.Guest.B1.Fwd.FlatIte
@@ -23,14 +23,15 @@ the checker, its range checks' reads (`aux`) used by nothing else (`deadS`), its
 `kids` placing nothing (`Program.PureIn`) with short dispatch lists. `F.σ rd w args`: the honest
 valuation, `Fwd.ev` on the memory `rd` and the oracle `w` from `args`.
 
-`flat_completeAt`: `F` is `CompleteAtD` on the caller's words `Lin` when, at every frame pointer,
+`F` is complete on the caller's words `Lin` (`flat_completeAtTBR`, `FlatLiftT`) when, at every frame pointer,
 its own buffers' words `own fp` (the allocator's sizes `sizes` from `fp + fs F.name`) and an oracle
 `w fp` make the honest valuation satisfy every statement (`VSH`, calls by relations loading from
 the layout `flatL`) on every memory defined below `2^κ` holding `Lin` and the buffers, its loads
 inside listed buffers of that layout (`LoadsInBuf`), its allocations the allocator's, its returns
 `rets`. The callees are placed from their relations (`Lift.completeAtD_of_relIn`); their
 arguments and returns are the same on every such memory, the evaluations agreeing off the range
-checks' reads (`FlatFn.agree`, `ev_agree`), so they are fixed from one such memory.
+checks' reads (`FlatFn.agree`, `ev_agree`), so they are fixed from one such memory
+(`FlatFn.fixCalls`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -320,181 +321,158 @@ where
       | dispatch x fs a r => exact holdsList_tail ss hst.2 h.2
       | _ => simp [straightB] at hst
 
-variable {fs : String → ℕ} {cert : String → V → ℕ}
+/-! ## The body on one memory -/
 
-set_option maxRecDepth 20000 in
-/-- **A flat function is complete, placed**, from its honest valuation on every memory holding its
-layout, its calls by relations loading from that layout, and the callees placed from those. -/
-theorem flat_completeAt (F : FlatFn) {κ : ℕ} (Lin : Layout) (args rets : List E)
-    (hl : args.length = F.k)
-    (sizes : List ℕ) (own : ℕ → List (List E))
-    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
-    (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
-    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧
-      ∀ i < q.2, RegionL (flatL F.name Lin sizes own fs fp) (b + i))
-    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp))) rd
-        (F.σ rd (w fp) args) s) ∧
-      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL ∧
-      (F.pre.filterMap Main.Stmt.allocSz).map
-        (fun x => x.2.elim id fun s => logG (F.σ rd (w fp) args s)) = sizes ∧
-      ((F.pre.filterMap Main.Stmt.allocSz).map Prod.fst).map (F.σ rd (w fp) args) =
-        (bases (fp + fs F.name) sizes).map (fun b => ofK (addressOfIndex b)) ∧
-      F.rets.map (F.σ rd (w fp) args) = rets) :
-    CompleteAtD fs cert κ F.name Lin args (Returns rets) := by
-  have hf := F.hf
-  have hp := F.hp
-  have hb' := F.hb
-  -- the canonical memory and its callees
+/-- **The honest valuation satisfies the body** on a memory where it satisfies every statement:
+its parameters are the arguments, its dispatches name callees, and the body's relation holds. -/
+theorem FlatFn.holds (F : FlatFn) {rd : Reader} {w : ℕ → E} {args rets : List E} {R : ℕ → Prop}
+    (hl : args.length = F.k) (hv : ∀ s ∈ F.pre, VSH (coreProgram.RelIn rd R) rd (F.σ rd w args) s)
+    (hrt : F.rets.map (F.σ rd w args) = rets) :
+    F.fn.params.map (F.σ rd w args) = args ∧ (∀ s ∈ F.pre, DispOk (F.σ rd w args) s) ∧
+      Stmt.HoldsList (coreProgram.Rel rd) rd (F.σ rd w args) F.fn.body False (fun r => r = rets) := by
+  have hvR : ∀ s ∈ F.pre, VSH (coreProgram.Rel rd) rd (F.σ rd w args) s := fun s hs ↦
+    vsh_mono (fun _ _ _ h ↦ Program.RelIn.rel h) (hv s hs)
+  refine ⟨by rw [F.hp, List.map_map]; exact F.params hl, fun s hs ↦ ?_, ?_⟩
+  · have hok := List.all_eq_true.mp F.hcall s hs
+    cases s with
+    | dispatch x fs' a r =>
+      simp only [callOk, Bool.and_eq_true, decide_eq_true_eq] at hok
+      obtain ⟨j, hj, hxj, -⟩ := hvR _ hs
+      exact ⟨j, hj, by omega, hxj⟩
+    | _ => exact True.intro
+  · rw [F.hb, holdsList_append]
+    exact holdsList_of_vsh F.pre F.hiteOk hvR hrt
+
+/-- The walk's loads, inside listed buffers of `L ++ L'`, read inside `L` or `L'`. -/
+theorem FlatFn.loads_in (F : FlatFn) {σ : Val} {bufs : List (E × ℕ)} {L L' : Layout}
+    (hbufs : ∀ q ∈ bufs, ∃ b, q.1 = ofK (addressOfIndex b) ∧ ∀ i < q.2, RegionL (L ++ L') (b + i))
+    (hld : LoadsInBuf σ bufs F.evL) :
+    ∀ q ∈ F.pre.flatMap (loadsEv σ), ∃ i, (σ q.1).limb 0 * addressOfIndex q.2 = addressOfIndex i ∧
+      (RegionL L i ∨ RegionL L' i) := fun q hq ↦
+  let ⟨d, hd⟩ := F.loadsEv_mem hq
+  let ⟨i, hi, hr⟩ := inBuf_region hbufs (hld d q.1 q.2 hd)
+  ⟨i, hi, regionL_append hr⟩
+
+theorem kidOf_region {σ : Val} {L L' : Layout} {cs : List Call} {k : Kid}
+    (hk : k ∈ cs.map (kidOf σ (L ++ L'))) {i : ℕ} (hi : RegionL k.Lin i) : RegionL L i ∨ RegionL L' i := by
+  obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
+  exact regionL_append hi
+
+theorem kidOf_memL {σ : Val} {L L' : Layout} {cs : List Call} {k : Kid} {rd : Reader}
+    (hk : k ∈ cs.map (kidOf σ (L ++ L'))) (h : MemL rd L) (h' : MemL rd L') : MemL rd k.Lin := by
+  obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
+  exact Main.memL_append.mpr ⟨h, h'⟩
+
+/-! ## The calls, fixed across memories -/
+
+/-- **A flat function's calls are the same on every memory** holding a layout `L fp` that its loads
+stay inside: one valuation `σS fp`, the honest one on some such memory, gives every call's
+arguments and returns on each, and each entered call's relation holds at them on each. -/
+theorem FlatFn.fixCalls (F : FlatFn) {κ : ℕ} {args : List E} (hl : args.length = F.k)
+    (L : ℕ → Layout) (w : ℕ → ℕ → E) (bufs : ℕ → List (E × ℕ))
+    (hbufs : ∀ fp, ∀ q ∈ bufs fp, ∃ b, q.1 = ofK (addressOfIndex b) ∧ ∀ i < q.2, RegionL (L fp) (b + i))
+    (hrun : ∀ fp rd, LowDef κ rd → MemL rd (L fp) →
+      (∀ s ∈ F.pre, VSH (coreProgram.RelIn rd (RegionL (L fp))) rd (F.σ rd (w fp) args) s) ∧
+      LoadsInBuf (F.σ rd (w fp) args) (bufs fp) F.evL) :
+    ∃ σS : ℕ → Val, ∀ fp rd, LowDef κ rd → MemL rd (L fp) →
+      flatCalls F.pre (F.σ rd (w fp) args) = flatCalls F.pre (σS fp) ∧
+      (∀ c ∈ flatCalls F.pre (σS fp), ∀ v ∈ c.args ++ c.rets, F.σ rd (w fp) args v = σS fp v) ∧
+      ∀ c ∈ flatCalls F.pre (σS fp), c.taken = true → c.f ∈ F.kids ∧
+        ∀ rd', LowDef κ rd' → MemL rd' (L fp) →
+          coreProgram.RelIn rd' (RegionL (L fp)) c.f (c.args.map (σS fp)) (c.rets.map (σS fp)) := by
   classical
-  obtain ⟨rdS, hS⟩ : ∃ rdS : ℕ → Reader, ∀ fp, (∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp)) →
-      LowDef κ (rdS fp) ∧ MemL (rdS fp) (flatL F.name Lin sizes own fs fp) :=
-    ⟨fun fp ↦ if h : ∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp) then h.choose else fun _ ↦ none,
+  -- one memory holding the layout, where there is one
+  obtain ⟨rdS, hS⟩ : ∃ rdS : ℕ → Reader, ∀ fp, (∃ rd, LowDef κ rd ∧ MemL rd (L fp)) →
+      LowDef κ (rdS fp) ∧ MemL (rdS fp) (L fp) :=
+    ⟨fun fp ↦ if h : ∃ rd, LowDef κ rd ∧ MemL rd (L fp) then h.choose else fun _ ↦ none,
       fun fp h ↦ by simp only [h, ↓reduceDIte]; exact h.choose_spec⟩
-  generalize hσS : (fun fp ↦ F.σ (rdS fp) (w fp) args) = σS
+  refine ⟨fun fp ↦ F.σ (rdS fp) (w fp) args, fun fp rd0 hl0 hL0 ↦ ?_⟩
+  beta_reduce
+  obtain ⟨hlS, hLS⟩ := hS fp ⟨rd0, hl0, hL0⟩
   -- the valuations agree at a call's values
-  have hag : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ s ∈ F.pre, callB s = true →
-      ∀ v ∈ s.vals, F.σ rd (w fp) args v = σS fp v := by
-    intro fp rd hlow hL s hs hc v hv
-    obtain ⟨-, hld, -⟩ := hrun fp rd hlow hL
-    rw [← hσS]
-    exact F.agree hl hL (hS fp ⟨rd, hlow, hL⟩).2 (hbufs fp) hld (F.call_vals hs hc v hv)
-  have hmap : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) → ∀ s ∈ F.pre, callB s = true →
-      ∀ l : List V, (∀ v ∈ l, v ∈ s.vals) → l.map (F.σ rd (w fp) args) = l.map (σS fp) :=
-    fun fp rd hlow hL s hs hc l hl' ↦
-      List.map_congr_left fun v hv ↦ hag fp rd hlow hL s hs hc v (hl' v hv)
-  -- the calls are the same on every memory
-  have hcs : ∀ fp rd, LowDef κ rd → MemL rd (flatL F.name Lin sizes own fs fp) →
-      (F.pre.filterMap (Stmt.callSF (F.σ rd (w fp) args))).map (Main.mkCall (F.σ rd (w fp) args)) =
-        (F.pre.filterMap (Stmt.callSF (σS fp))).map (Main.mkCall (σS fp)) := by
-    intro fp rd hlow hL
+  have hag : ∀ rd, LowDef κ rd → MemL rd (L fp) → ∀ s ∈ F.pre, callB s = true → ∀ v ∈ s.vals,
+      F.σ rd (w fp) args v = F.σ (rdS fp) (w fp) args v := fun rd hlow hL s hs hc v hv ↦
+    F.agree hl hL hLS (hbufs fp) (hrun fp rd hlow hL).2 (F.call_vals hs hc v hv)
+  have hvS := (hrun fp (rdS fp) hlS hLS).1
+  generalize F.σ (rdS fp) (w fp) args = σS at hag hvS
+  have hmap : ∀ rd, LowDef κ rd → MemL rd (L fp) → ∀ s ∈ F.pre, callB s = true → ∀ l : List V,
+      (∀ v ∈ l, v ∈ s.vals) → l.map (F.σ rd (w fp) args) = l.map σS :=
+    fun rd hlow hL s hs hc l hl' ↦ List.map_congr_left fun v hv ↦ hag rd hlow hL s hs hc v (hl' v hv)
+  have hagc : ∀ rd, LowDef κ rd → MemL rd (L fp) →
+      ∀ c ∈ flatCalls F.pre σS, ∀ v ∈ c.args ++ c.rets, F.σ rd (w fp) args v = σS v := by
+    intro rd hlow hL c hc v hv
+    obtain ⟨t, ht', rfl⟩ := List.mem_map.mp hc
+    obtain ⟨s, hs, hst⟩ := List.mem_filterMap.mp ht'
+    cases s with
+    | call f a r =>
+      simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
+      subst hst
+      exact hag rd hlow hL _ hs rfl v (by simpa [Main.mkCall, Stmt.vals] using hv)
+    | callIf cnd f a =>
+      simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
+      subst hst
+      exact hag rd hlow hL _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
+    | dispatch x fs' a r =>
+      simp only [Stmt.callSF, Option.some.injEq] at hst
+      subst hst
+      exact hag rd hlow hL _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
+    | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
+  refine ⟨?_, hagc rd0 hl0 hL0, fun c hc ht ↦ ?_⟩
+  · unfold flatCalls
     rw [List.map_filterMap, List.map_filterMap]
     refine List.filterMap_congr fun s hs ↦ ?_
     cases s with
     | call f a r => simp only [Stmt.callSF, Main.Stmt.callS, Option.map_some, Main.mkCall]
     | callIf c f a =>
       simp only [Stmt.callSF, Main.Stmt.callS, Option.map_some, Main.mkCall]
-      rw [hag fp rd hlow hL _ hs rfl c (by simp [Stmt.vals])]
+      rw [hag rd0 hl0 hL0 _ hs rfl c (by simp [Stmt.vals])]
     | dispatch x fs' a r =>
       simp only [Stmt.callSF, Option.map_some, Main.mkCall]
-      rw [hag fp rd hlow hL _ hs rfl x (by simp [Stmt.vals])]
+      rw [hag rd0 hl0 hL0 _ hs rfl x (by simp [Stmt.vals])]
     | _ => simp only [Stmt.callSF, Main.Stmt.callS, Option.map_none]
-  refine completeAt_flatD (fs := fs) (cert := cert) hf F.hloop κ Lin args rets hb' F.hflat
-    F.haddrs sizes own hown
-    (fun fp ↦ ((F.pre.filterMap (Stmt.callSF (σS fp))).map (Main.mkCall (σS fp))).map
-      (kidOf (σS fp) (flatL F.name Lin sizes own fs fp))) ?hkc ?hkr ?hkm ?hσ
-  case hkr =>
-    intro fp k hk _ i hi
-    obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
-    exact regionL_append hi
-  case hkm =>
-    intro fp rd hB hLin k hk
-    obtain ⟨c, -, rfl⟩ := List.mem_map.mp hk
-    exact Main.memL_append.mpr ⟨hLin, hB⟩
-  case hkc =>
-    intro fp k hk ht
-    obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hk
-    by_cases hex : ∃ rd, LowDef κ rd ∧ MemL rd (flatL F.name Lin sizes own fs fp)
-    swap
-    · intro fp'
-      refine ⟨0, [], c.rets.map (σS fp), [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-        fun rd hlow hL ↦ absurd ⟨rd, hlow, by simpa [kidOf] using hL⟩ hex⟩
-    obtain ⟨hlS, hLS⟩ := hS fp hex
-    have hvS : ∀ s ∈ F.pre, VSH (coreProgram.RelIn (rdS fp) (RegionL (flatL F.name Lin sizes own fs fp))) (rdS fp) (σS fp) s := by
-      rw [← hσS]; exact (hrun fp (rdS fp) hlS hLS).1
-    obtain ⟨t, ht', rfl⟩ := List.mem_map.mp hc
-    obtain ⟨s, hs, hst⟩ := List.mem_filterMap.mp ht'
-    have hok := List.all_eq_true.mp F.hcall s hs
-    cases s with
-    | call f a r =>
-      simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
-      subst hst
-      simp only [Main.mkCall, kidOf]
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa [callOk] using hok)
-        fun rd hlow hL ↦ ?_
-      have h : coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) f (a.map (F.σ rd (w fp) args))
-          (r.map (F.σ rd (w fp) args)) := (hrun fp rd hlow hL).1 _ hs
-      rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
-        hmap fp rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
-    | callIf cnd f a =>
-      simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
-      subst hst
-      simp only [Main.mkCall, kidOf, decide_eq_true_eq, List.map_nil] at ht ⊢
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa [callOk] using hok)
-        fun rd hlow hL ↦ ?_
-      have h : IsInK (F.σ rd (w fp) args cnd) ∧ (F.σ rd (w fp) args cnd ≠ 0 →
-          coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) f (a.map (F.σ rd (w fp) args)) []) :=
-        (hrun fp rd hlow hL).1 _ hs
-      have e := hag fp rd hlow hL _ hs rfl cnd (by simp [Stmt.vals])
-      have h2 := h.2 (by rw [e]; exact ht)
-      rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv])] at h2
-    | dispatch x fs' a r =>
-      simp only [Stmt.callSF, Option.some.injEq] at hst
-      subst hst
-      simp only [callOk, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hok
-      obtain ⟨j, hj, hxj, -⟩ := hvS _ hs
-      have hlog : logG (σS fp x) = j := by rw [hxj]; exact logG_spec (by omega)
-      simp only [Main.mkCall, kidOf, hlog, List.getD_eq_getElem _ _ hj]
-      refine Lift.completeAtD_of_relIn F.hpure (by simpa using hok.1 _ (List.getElem_mem hj))
-        fun rd hlow hL ↦ ?_
-      obtain ⟨j', hj', hxj', h⟩ := ((hrun fp rd hlow hL).1 _ hs :
-        ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (addressOfIndex j') ∧
-          coreProgram.RelIn rd (RegionL (flatL F.name Lin sizes own fs fp)) fs'[j'] (a.map (F.σ rd (w fp) args))
-            (r.map (F.σ rd (w fp) args)))
-      have e := hag fp rd hlow hL _ hs rfl x (by simp [Stmt.vals])
-      have hjj : j' = j := by
-        have := congrArg logG (hxj'.symm.trans (e.trans hxj))
-        rwa [logG_spec (by omega), logG_spec (by omega)] at this
-      subst hjj
-      rwa [hmap fp rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
-        hmap fp rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
-    | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-  case hσ =>
-    intro fp outs ho rd hlow hB hLin
-    have hL : MemL rd (flatL F.name Lin sizes own fs fp) := Main.memL_append.mpr ⟨hLin, hB⟩
-    obtain ⟨hv, hld, hsz, hbs, hrt⟩ := hrun fp rd hlow hL
-    have hvR : ∀ s ∈ F.pre, VSH (coreProgram.Rel rd) rd (F.σ rd (w fp) args) s := fun s hs ↦
-      vsh_mono (fun _ _ _ h ↦ Program.RelIn.rel h) (hv s hs)
-    have hpar := F.params (rd := rd) (w := w fp) hl
-    have hag' := hag fp rd hlow hL
-    have hcs' := hcs fp rd hlow hL
-    beta_reduce at ho
-    generalize F.σ rd (w fp) args = σ at hv hld hsz hbs hrt hvR hpar hag' hcs'
-    refine ⟨σ, by rw [hp, List.map_map]; exact hpar, fun s hs ↦ ?_, ?_, hsz, hbs, ?_, ?_⟩
-    · have hok := List.all_eq_true.mp F.hcall s hs
-      cases s with
-      | dispatch x fs' a r =>
-        simp only [callOk, Bool.and_eq_true, decide_eq_true_eq] at hok
-        obtain ⟨j, hj, hxj, -⟩ := hvR _ hs
-        exact ⟨j, hj, by omega, hxj⟩
-      | _ => exact True.intro
-    · rw [hb', holdsList_append]
-      exact holdsList_of_vsh F.pre F.hiteOk hvR hrt
-    · rw [hcs']
-      apply callsMatch_kids (σS := σS fp) (L := flatL F.name Lin sizes own fs fp)
-      rotate_left
-      · exact ho
-      intro c hc v hv
-      obtain ⟨t, ht', rfl⟩ := List.mem_map.mp hc
-      obtain ⟨s, hs, hst⟩ := List.mem_filterMap.mp ht'
-      cases s with
-      | call f a r =>
-        simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
-        subst hst
-        exact hag' _ hs rfl v (by simpa [Main.mkCall, Stmt.vals] using hv)
-      | callIf cnd f a =>
-        simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
-        subst hst
-        exact hag' _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
-      | dispatch x fs' a r =>
-        simp only [Stmt.callSF, Option.some.injEq] at hst
-        subst hst
-        exact hag' _ hs rfl v (by simp_all [Main.mkCall, Stmt.vals])
-      | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-    · intro q hq
-      obtain ⟨d, hd⟩ := F.loadsEv_mem hq
-      obtain ⟨i, hi, hr⟩ := inBuf_region (hbufs fp) (hld d q.1 q.2 hd)
-      exact ⟨i, hi, regionL_append hr⟩
+  -- each entered callee's relation
+  obtain ⟨t, ht', rfl⟩ := List.mem_map.mp hc
+  obtain ⟨s, hs, hst⟩ := List.mem_filterMap.mp ht'
+  have hok := List.all_eq_true.mp F.hcall s hs
+  cases s with
+  | call f a r =>
+    simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
+    subst hst
+    simp only [Main.mkCall]
+    refine ⟨by simpa [callOk] using hok, fun rd hlow hL ↦ ?_⟩
+    have h : coreProgram.RelIn rd (RegionL (L fp)) f (a.map (F.σ rd (w fp) args))
+        (r.map (F.σ rd (w fp) args)) := (hrun fp rd hlow hL).1 _ hs
+    rwa [hmap rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
+      hmap rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
+  | callIf cnd f a =>
+    simp only [Stmt.callSF, Main.Stmt.callS, Option.some.injEq] at hst
+    subst hst
+    simp only [Main.mkCall, decide_eq_true_eq, List.map_nil] at ht ⊢
+    refine ⟨by simpa [callOk] using hok, fun rd hlow hL ↦ ?_⟩
+    have h : IsInK (F.σ rd (w fp) args cnd) ∧ (F.σ rd (w fp) args cnd ≠ 0 →
+        coreProgram.RelIn rd (RegionL (L fp)) f (a.map (F.σ rd (w fp) args)) []) :=
+      (hrun fp rd hlow hL).1 _ hs
+    have h2 := h.2 (by rw [hag rd hlow hL _ hs rfl cnd (by simp [Stmt.vals])]; exact ht)
+    rwa [hmap rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv])] at h2
+  | dispatch x fs' a r =>
+    simp only [Stmt.callSF, Option.some.injEq] at hst
+    subst hst
+    simp only [callOk, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hok
+    obtain ⟨j, hj, hxj, -⟩ := hvS _ hs
+    have hlog : logG (σS x) = j := by rw [hxj]; exact logG_spec (by omega)
+    simp only [Main.mkCall, hlog, List.getD_eq_getElem _ _ hj]
+    refine ⟨by simpa using hok.1 _ (List.getElem_mem hj), fun rd hlow hL ↦ ?_⟩
+    obtain ⟨j', hj', hxj', h⟩ := ((hrun fp rd hlow hL).1 _ hs :
+      ∃ (j' : ℕ) (h : j' < fs'.length), F.σ rd (w fp) args x = ofK (addressOfIndex j') ∧
+        coreProgram.RelIn rd (RegionL (L fp)) fs'[j'] (a.map (F.σ rd (w fp) args))
+          (r.map (F.σ rd (w fp) args)))
+    have hjj : j' = j := by
+      have := congrArg logG (hxj'.symm.trans ((hag rd hlow hL _ hs rfl x (by simp [Stmt.vals])).trans hxj))
+      rwa [logG_spec (by omega), logG_spec (by omega)] at this
+    subst hjj
+    rwa [hmap rd hlow hL _ hs rfl a (fun v hv ↦ by simp [Stmt.vals, hv]),
+      hmap rd hlow hL _ hs rfl r (fun v hv ↦ by simp [Stmt.vals, hv])] at h
+  | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
 
 end
 end LeanVM.Guest.B1.Tables

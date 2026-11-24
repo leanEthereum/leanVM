@@ -4,9 +4,8 @@ Per module of alignment checks `align.py` writes, each function's `Bridge.allocC
 plumbing, body, code and advice, by `decide +kernel`; per link module of `Guest/Checked`, each function's
 `Bridge.AllocJ` (`Bridge.allocJ_of`, reusing the `Checked` and `ProgAl` link equations); and the assembly over every
 function (`AllocChk/All.lean`). The check is mirrored here (`chk`), so that a function failing it fails here, naming
-why. Run after `progal.py`; `--check` writes nothing and fails when a file is stale.
-
-    python3 -I scripts/bridge-cert/alloc.py [--check]
+why. `checks.py` writes them, a hash pack's and a link module's checks in one module with the other checks'
+(`Bridge/Chk/`).
 """
 import os, re, sys, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -480,7 +479,8 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
     return sorted(cs), sorted(bad)
 
 
-def run(check):
+def gen():
+    """The files, and the paths this check owns on disk."""
     ctxs, lk = progal.contexts(), progal.links()
     n = max(lk) + 1
     fns, adv, cores, bund = align.functions(), data.advice(), data.core_texts(), data.bundles()
@@ -667,11 +667,5 @@ end
 
 end LeanVM.Guest.Bridge.AllocChk
 ''')
-    existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules')
-    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
-
-
-if __name__ == '__main__':
-    run('--check' in sys.argv[1:])
+    return data.quiet(files), set(glob.glob(os.path.join(OUT, '*.lean')))

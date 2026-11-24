@@ -39,14 +39,6 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} {S : Li
 def glPreKeys : List (ℕ × ℕ × ℕ) :=
   (List.range 6).map (fun k ↦ (16 + k, 15, k)) ++ (List.range 4).map (fun k ↦ (40 + k, 15, 6 + k))
 
-theorem glPre_atoms : ∀ s ∈ glPre, ∃ a, s = .atom a := by
-  intro s hs
-  have : glPre.all (fun s ↦ match s with | .atom _ => true | _ => false) = true := by decide
-  have h := List.all_eq_true.mp this s hs
-  cases s with
-  | atom a => exact ⟨a, rfl⟩
-  | _ => simp at h
-
 /-- **The prefix, completely.** -/
 theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     (hk : ∀ k ∈ glPreKeys, some k ∉ S.map loadKey) {layers rounds pts : E} {j o : ℕ} (ho : o < 2)

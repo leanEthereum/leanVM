@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.Main.CompleteE
 /-!
 # Tree-predicate forms with `Every`
 
-The tree-predicate forms carry any predicate through their composition (`kidsFromInT_of_kidsDT`,
-`kidsFromInT_of_kidsDTB`, `kidsFromInT_of_kidsDTBR`), and `RelAtInT.every_of_walk` puts a node satisfying `Every Q` on
+The tree-predicate forms carry any predicate through their composition (`kidsFromInT_of_kidsDTB`,
+`kidsFromInT_of_kidsDTBR`), and `RelAtInT.every_of_walk` puts a node satisfying `Every Q` on
 its callees' trees satisfying `T ∧ Every Q`. At a callee all of whose valid trees satisfy it, `andEvery` adds it:
 on every memory (`EveryAll`) for the forms whose predicate does not read the memory, on the memory served (`EveryOn`)
 for the others. `everyAll_exact`: a function passing `exactFree` is exact on every memory. `completeAt_leafBE`: a leaf
@@ -44,29 +44,6 @@ theorem everyAll_exact (hg : ExactFreeG f) : EveryAll k f Lin args fun rd => Exa
 theorem EveryAll.everyOn (h : EveryAll k f Lin args Q) : EveryOn k f Lin args Q :=
   fun rd hl hm t rets hn hv => h rd hl hm t rets hn hv rd
 
-theorem CompleteAtDT.andEvery {T : Tree → Prop} (h : CompleteAtDT fs cert k f Lin args Out T)
-    (hQ : EveryAll k f Lin args Q) :
-    CompleteAtDT fs cert k f Lin args Out fun t => T t ∧ ∀ rd, t.Every (Q rd) := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm =>
-    let ⟨t, ht, hT⟩ := hr rd hl hm
-    ⟨t, ht, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets ht.1 ht.2.1⟩⟩
-
-theorem CompleteAtL.andEvery {T : Tree → Prop} {Bd : ℕ → Prop} (h : CompleteAtL fs cert k f Lin args Out T Bd)
-    (hQ : EveryAll k f Lin args Q) :
-    CompleteAtL fs cert k f Lin args Out (fun t => T t ∧ ∀ rd, t.Every (Q rd)) Bd :=
-  let ⟨B, hB⟩ := h
-  ⟨B, fun fp c hc =>
-    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := hB fp c hc
-    ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
-      let ⟨t, ht, hT⟩ := hr rd hl hm
-      ⟨t, ht, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets ht.1 ht.2.1⟩⟩⟩
-
-theorem CompleteAtDTB.andEvery {T : Tree → Prop} {B : ℕ} (h : CompleteAtDTB fs cert k f Lin args Out T B)
-    (hQ : EveryAll k f Lin args Q) :
-    CompleteAtDTB fs cert k f Lin args Out (fun t => T t ∧ ∀ rd, t.Every (Q rd)) B :=
-  h.and_valid_on fun rd hl hm t rets hn hv _ => hQ rd hl hm t rets hn hv
-
 theorem CompleteAtDTBR.andEvery {T : Reader → Tree → Prop} {B : ℕ}
     (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hQ : EveryOn k f Lin args Q) :
     CompleteAtDTBR fs cert k f Lin args Out (fun rd t => T rd t ∧ t.Every (Q rd)) B := fun fp =>
@@ -75,28 +52,9 @@ theorem CompleteAtDTBR.andEvery {T : Reader → Tree → Prop} {B : ℕ}
     let ⟨t, ht, hT⟩ := hr rd hl hm
     ⟨t, ht, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets ht.1 ht.2.1⟩⟩
 
-theorem CompleteAtLR.andEvery {T : Reader → Tree → Prop} {Bd : ℕ → Prop}
-    (h : CompleteAtLR fs cert k f Lin args Out T Bd) (hQ : EveryOn k f Lin args Q) :
-    CompleteAtLR fs cert k f Lin args Out (fun rd t => T rd t ∧ t.Every (Q rd)) Bd :=
-  let ⟨B, hB⟩ := h
-  ⟨B, fun fp c hc =>
-    let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := hB fp c hc
-    ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
-      let ⟨t, ht, hT⟩ := hr rd hl hm
-      ⟨t, ht, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets ht.1 ht.2.1⟩⟩⟩
-
-/-- **A bounded callee with its pops and `Every (Q rd)`**: the `E` form's predicate as one of the memory. -/
-theorem CompleteAtDTBR.withPopsEvery {T : Reader → Tree → Prop} {B : ℕ} {ps : Reader → List Pop}
-    (h : CompleteAtDTBR fs cert k f Lin args Out T B)
-    (hp : ∀ rd, LowDef k rd → MemL rd Lin → ∀ t rets, t.Valid coreProgram rd args rets → T rd t →
-      t.pops coreProgram rd = ps rd) (hQ : EveryOn k f Lin args Q) :
-    CompleteAtDTBR fs cert k f Lin args Out
-      (fun rd t => (T rd t ∧ t.pops coreProgram rd = ps rd) ∧ t.Every (Q rd)) B :=
-  (h.withPops hp).andEvery hQ
-
 /-! ## Leaves -/
 
-/-- **A leaf with its pops and `Every (Q rd)`**: `completeAt_leafB`, its path popping `ps rd` and its valuation
+/-- **A leaf with its pops and `Every (Q rd)`**: a leaf within its budget, its path popping `ps rd` and its valuation
 satisfying `Q rd f`. -/
 theorem completeAt_leafBE {fn : Fn} (hf : coreProgram.find? f = some fn) (hl : coreProgram.loop f = false)
     (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ) (ps : Reader → List Pop)

@@ -1,8 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.Reduction
-public import XmssSecurity.Proof.Seeded.BudgetTransfer
+public import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
 
 @[expose] public section
 
@@ -19,8 +18,6 @@ open OracleComp OracleSpec ENNReal
 namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 theorem run_progCache (seed : MasterSeed) (d : Derivations) :
     (simulateQ randomOracle (honestRun d).withQueryLog).run (progCache seed d) =

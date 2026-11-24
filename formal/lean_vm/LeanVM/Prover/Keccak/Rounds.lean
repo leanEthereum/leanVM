@@ -13,12 +13,12 @@ public import LeanVM.Prover.Keccak.Tables
 /-!
 # Rounds
 
-* `corr_sumcheckBy_lt`: `corr_sumcheckBy` with the invariant asked of the rounds still to come
-  only (`pre.length < n`), the rounds counted;
+* `corr_sumcheckBy_lt`: the stateful sumcheck makes the specification's moves, the invariant asked
+  of the rounds still to come only (`pre.length < n`), the rounds counted;
 * `corr_sampleN`: the challenges drawn have the length asked;
 * `OpenInv`: an opening's state lists, per pair, two folded tables of affine families `F z`,
   `G z`; `polyEval_openRound`: its round polynomial is
-  `scale · Σ_z Σ_u F z (pre ++ x :: u)·G z (pre ++ x :: u)`; `openInv_fold`, `openInv_full`.
+  `scale · Σ_z Σ_u F z (pre ++ x :: u)·G z (pre ++ x :: u)`; `openInv_fold`.
 -/
 
 namespace LeanVM.Prover.KeccakGkr

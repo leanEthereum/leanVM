@@ -12,6 +12,7 @@ public import LeanVM.Prover.Sumcheck
 public import LeanVM.Prover.Mle
 public import Statement.Prover.Keccak
 public import LeanVM.Protocol.Keccak.Complete
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Tables
@@ -81,8 +82,6 @@ def Affine (F : List E → E) : Prop :=
   ∀ pre post x, F (pre ++ x :: post) =
     F (pre ++ 0 :: post) + x * (F (pre ++ 0 :: post) + F (pre ++ 1 :: post))
 
-theorem one_add_one_E : (1 : E) + 1 = 0 := CharTwo.add_self_eq_zero 1
-
 /-- **A multilinear extension is affine** in each coordinate. -/
 theorem affine_mle (N : ℕ) (f : ℕ → E) : Affine fun p ↦ ∑ w ∈ range N, eqAt p w * f w := by
   intro pre post x
@@ -92,7 +91,7 @@ theorem affine_mle (N : ℕ) (f : ℕ → E) : Affine fun p ↦ ∑ w ∈ range 
   simp only [eqAt_append, eqAt_cons]
   split_ifs
   · ring
-  · rw [show (1 : E) + 1 = 0 from one_add_one_E]; ring
+  · rw [CharTwo.add_self_eq_zero (1 : E)]; ring
 
 /-- `t` lists `F` at `acc` followed by each point of the remaining cube of `n - |acc|`
 coordinates. -/
@@ -253,7 +252,7 @@ theorem byteSums_getD (v : ℕ → E) {b : ℕ} (hb : b < 256) :
 /-- **A word's bits against the weights `v(64·l + ·)`**, by eight byte tables. -/
 theorem wordDot_laneTabs (v : ℕ → E) (l word : ℕ) :
     wordDot (laneTabs v l) word = ∑ b ∈ range 64, if word.testBit b then v (64 * l + b) else 0 := by
-  rw [wordDot, sumRange_eq, show 64 = 8 * 8 from rfl, sum_range_mul]
+  rw [wordDot, sumRange_eq, show 64 = 8 * 8 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun k hk ↦ ?_
   have hk' := Finset.mem_range.1 hk
   rw [laneTabs, array_getD_ofFn_lt _ hk', byteSums_getD _ (Nat.mod_lt _ (by norm_num))]

@@ -55,14 +55,15 @@ def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
     (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
     w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * x) 0 == 0
 
-/-- Every raw signature of a kind verifies, and every claim of the kind is a raw signature's or in
-a child's list, each by name. -/
+/-- Every raw signature of a kind verifies, and every claim of the kind is held as often as it is
+declared, by raw signatures or in the children's lists (the sub-multiset, by counts), each by name. -/
 def held {α W : Type} [BEq α] (children : List Child) (kind : String) (claims : List α)
-    (raws : List (α × W)) (verifies : α → W → Bool) (inChild : Child → α → Bool) :
+    (raws : List (α × W)) (verifies : α → W → Bool) (listOf : Child → List α) :
     List (String × Bool) :=
   raws.zipIdx.map (fun ((claim, σ), i) => (s!"{kind} raw signature {i} verifies", verifies claim σ)) ++
-    claims.zipIdx.map fun (claim, i) => (s!"{kind} claim {i} held",
-      raws.any (·.1 == claim) || children.any (inChild · claim))
+    claims.zipIdx.map fun (claim, i) => (s!"{kind} claim {i} held as often as declared",
+      claims.count claim ≤ (raws.map (·.1)).count claim +
+        (children.map fun ch => (listOf ch).count claim).sum)
 
 def digestEq (a b : Digest) : Bool := a.toList == b.toList
 
@@ -78,10 +79,10 @@ def nodeRel (c : Case) : List (String × Bool) :=
         ch.freshClaim ch.proof)]) ++
   held w.children "leanXMSS" s.claims.xmss w.xmssSignatures (fun cl σ
       => LeanXmss.verifyWithKeccak cl.1 cl.2 σ)
-    (fun ch cl => ch.statement.claims.xmss.any (· == cl)) ++
+    (·.statement.claims.xmss) ++
   held w.children "leanSPHINCS" s.claims.sphincs w.sphincsSignatures (fun cl σ
       => Sphincs.verifyWithKeccak cl.1 cl.2 σ)
-    (fun ch cl => ch.statement.claims.sphincs.any (· == cl)) ++
+    (·.statement.claims.sphincs) ++
   (match w.daMatrix with
     | some (cl, m) =>
       [("the DA digest is the directly checked claim's", digestEq s.claims.daDigest
@@ -98,10 +99,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
 
 /-- `Limits`' parts, each by name. -/
 def limits (c : Case) : List (String × Bool) :=
-  let s := c.statement
   let w := c.witness
-  let rawX := w.xmssSignatures
-  let rawS := w.sphincsSignatures
   w.children.zipIdx.flatMap (fun (ch, i) => ([(s!"child {i}'s stack log is at least {minChildStackLog}",
         match announcedLayoutAndRate bytecode ch.proof.stream with
         | some (layout, _) => decide (minChildStackLog ≤ layout.stackLog)
@@ -109,13 +107,7 @@ def limits (c : Case) : List (String × Bool) :=
       (s!"child {i}'s stream is at most {childStreamCap} scalars", ch.proof.stream.length ≤ childStreamCap),
       (s!"child {i}'s lists are below 2^16", ch.statement.claims.xmss.length < 2 ^ 16 &&
         ch.statement.claims.sphincs.length < 2 ^ 16)] : List (String × Bool))) ++
-  ([("leanXMSS claims held as often as declared", s.claims.xmss.all fun x =>
-      s.claims.xmss.count x ≤ (rawX.map (·.1)).count x +
-        (w.children.map fun ch => ch.statement.claims.xmss.count x).sum),
-    ("leanSPHINCS claims held as often as declared", s.claims.sphincs.all fun x =>
-      s.claims.sphincs.count x ≤ (rawS.map (·.1)).count x +
-        (w.children.map fun ch => ch.statement.claims.sphincs.count x).sum),
-    ("at most 16 children", w.children.length ≤ 16),
+  ([("at most 16 children", w.children.length ≤ 16),
     ("the coverage table below 2^16", coverageSlots w < 2 ^ 16)] :
     List (String × Bool))
 

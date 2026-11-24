@@ -8,8 +8,8 @@ public import Common.Indiff.Bound
 # Indifferentiability of the sponge from a random oracle
 
 **Theorem** (`indifferentiability`). Let `D` be a distinguisher that makes at most `q` calls to
-the permutation in all — its own forward and inverse queries, and the sponge's calls for its
-hash queries, `|pad m|` per message `m` (`queryCost`). For every event `p` of its output,
+the permutation in all (its own forward and inverse queries, and the sponge's calls for its
+hash queries, `|pad m|` per message `m`: `queryCost`). For every event `p` of its output,
 
   `|Pr[D^{sponge^π, π, π⁻¹} ∈ p] − Pr[D^{H, S^H} ∈ p]|`
   `  ≤ q · q / |S| + (q (2q + 1) + q (q + 1)) / |C|`

@@ -1,6 +1,8 @@
 module
 
 public import FORS.SmallBudget.Linear.Step
+public import FORS.Classification.Targeting
+public import FORS.SmallBudget.Linear.Payments
 
 @[expose] public section
 
@@ -18,9 +20,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 namespace Ctx

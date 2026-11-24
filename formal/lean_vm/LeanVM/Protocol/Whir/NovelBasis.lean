@@ -38,7 +38,7 @@ The claims of `def:enc` and §B.2, for `κ + R ≤ 64`:
 * `range_msgPoly`: the `X_j`, `j < 2^κ`, span exactly the polynomials of degree `< 2^κ`;
 * `range_enc`: the range of `Enc_{κ,R}` is ArkLib's `ReedSolomon.code (domain κ R h) (2^κ)`;
 * `enc_injective`: `Enc_{κ,R}` is injective;
-* `enc_ofK`, `isInK_enc_ofK`: a `K`-valued message gives a `K`-valued word.
+* `enc_ofK`: a `K`-valued message gives a `K`-valued word.
 
 The rate `2^-R` is `2^κ / |D_{κ,R}|`; §B.2 assumes `R ≥ 1` (`def:enc` allows `R ≥ 0`), which none
 of the statements here needs.
@@ -173,7 +173,7 @@ def domain (κ R : ℕ) (h : κ + R ≤ 64) : Fin (2 ^ (κ + R)) ↪ E where
   inj' := by
     intro a b hab
     have hle : 2 ^ (κ + R) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) h
-    exact Fin.ext (ofBits_injOn (show (a : ℕ) < 2 ^ 64 from lt_of_lt_of_le a.isLt hle)
+    exact Fin.ext (K.ofBits_injOn (show (a : ℕ) < 2 ^ 64 from lt_of_lt_of_le a.isLt hle)
       (show (b : ℕ) < 2 ^ 64 from lt_of_lt_of_le b.isLt hle) (ofK_injective hab))
 
 /-- `Enc_{κ,R}(g) = (Σ_u g(u)·X_⟨u⟩(x_v))_{v < 2^(κ+R)}`. -/

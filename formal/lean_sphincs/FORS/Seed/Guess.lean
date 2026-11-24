@@ -1,6 +1,7 @@
 module
 
 public import FORS.Scheme.Domains
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 @[expose] public section
 
@@ -18,7 +19,6 @@ namespace FORS.Security.SeedGuess
 variable [Params]
 
 attribute [local instance] Classical.propDecidable
-set_option maxRecDepth 10000
 
 /-- This complete byte input names the given master seed: a derivation of it, or a hash of
 `leanSPHINCS || seed || d` (`PK.seed` at `d = 0`, `SK.prf` at `d = 1`). -/

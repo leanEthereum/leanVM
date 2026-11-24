@@ -4,11 +4,18 @@ public import XmssSecurity.Proof.Seeded.StoppedRun
 
 @[expose] public section
 
+/-!
+# Changing the cache outside the bad inputs
+
+Two caches that agree outside the bad inputs (`AgreeOutside`) give the same run stopped before the
+first bad hash query (`run'_stopBefore_eq`). So an event's probability from one cache is at most its
+probability from the other plus the probability that the stopped run from the other stops
+(`probEvent_cache_change_le`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
-
-set_option backward.isDefEq.respectTransparency false
 
 def hashBad (bad : HashInput → Prop) : OracleWorld.Domain → Prop
   | .inl _ => False

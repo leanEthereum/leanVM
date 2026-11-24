@@ -12,14 +12,14 @@ numbers, with the axioms each depends on.
 
 open LeanVM.Semantics LeanVM
 
-example {A : RandomPermutationAdversary} {Q : ℕ} (hA : Common.QueryCostAtMost A Common.permutationCallCost Q)
-    (hQ : Q ≤ 2 ^ 128) :
+example {A : RandomPermutationAdversary} {Q : ℕ}
+    (hA : Common.QueryCostAtMost A Common.permutationCallCost Q) :
     Pr{let z ← knowledgeSoundnessExperiment A}[z.accepted = true ∧
       ¬ ∃ t, transcriptExtractor z.program z.input z.transcript z.proof = some t ∧
         ValidExecution z.program z.input t] ≤
       (Q + 2 ^ 14 : ENNReal) * (2 : ENNReal)⁻¹ ^ 125 +
         5 * (Q + 2 ^ 14 : ENNReal) ^ 2 * (2 : ENNReal)⁻¹ ^ 256 :=
-  knowledgeSoundness_holds A Q hA hQ
+  knowledgeSoundness_holds A Q hA
 
 /-- The numbers: `13708 · 2^30` permutation calls of the verifier, the transfer's `q² / 2^508`. -/
 example (q : ℕ) : rpmError q = (q ^ 2 : ENNReal) / 2 ^ 508 := rfl

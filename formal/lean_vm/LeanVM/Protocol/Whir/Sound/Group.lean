@@ -16,13 +16,11 @@ The calculus bounds a move-free fragment jointly (`Spec.ofNoMove`). This module 
 
 * `NoMoves`: a program whose every node is a sample, an opening, a return or a rejection, closed
   under `bind`; `NoMoves.not_isMove` discharges the hypothesis of `Spec.ofNoMove`.
-* `retExp_sampleQueriesAux_restrict`: the positions `sample_queries` returns are below
-  `2^depth` (chunks are reduced modulo `2^depth`), so an expectation over them only sees such
-  position lists.
+* `retExp_sampleQueriesAux_restrict_len`: the positions `sample_queries` returns are below
+  `2^depth` (chunks are reduced modulo `2^depth`) and as many as requested, so an expectation
+  over them only sees such position lists.
 * `queryFrag depth t i`: the query group `sample_queries`, `λ`, opening of commitment `i`, as one
-  fragment returning `(positions, λ, rows)`; `retExp_queryFrag_le`: if, for every in-range
-  position list, the average over `λ` of a function of the opened rows is at most
-  `allIn S qs + ε`, the expectation over the group is at most `(|S| / 2^depth)^t + ε`.
+  fragment returning `(positions, λ, rows)`.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -149,57 +147,6 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
 def queryFrag (depth t i : ℕ) : VerifierProgram (List ℕ × E × List (List K)) :=
   sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
     VerifierProgram.ret (qs, lam, words)
-
-/-- **The query group's expectation.** For a function `F` of the group's values, if every
-in-range position list has `avg_λ F(qs, λ, W(qs)) ≤ allIn S qs + ε` (the rows read from the
-word `W` of commitment `i`), the expectation over the group is at most
-`(|S ∩ [0, 2^depth)| / 2^depth)^t + ε`. -/
-theorem retExp_queryFrag_le (depth t i : ℕ) (h1 : 1 ≤ depth) (h128 : depth ≤ 128)
-    (h₀ : List Ev) {wd : ℕ} {W : Word} (hc : (commits h₀)[i]? = some (depth, wd, W))
-    (F : List ℕ × E × List (List K) → ENNReal) (S : ℕ → Prop) [DecidablePred S] (ε : ENNReal)
-    (hF : ∀ qs : List ℕ, (∀ q ∈ qs, q < 2 ^ depth) → qs.length = t →
-      (Fintype.card E : ENNReal)⁻¹ * ∑ lam : E, F (qs, lam, qs.map W) ≤ allIn S qs + ε) :
-    retExp (fun a _ ↦ F a) h₀ [] (queryFrag depth t i) ≤
-      ((univ.filter fun j : Fin (2 ^ depth) ↦ S j).card / 2 ^ depth : ENNReal) ^ t + ε := by
-  unfold queryFrag
-  simp only [bind_eq]
-  rw [retExp_bind]
-  -- The inner expectation depends on the history only through its commitments.
-  have hin : ∀ qs h, retExp (fun a _ ↦ F a) h []
-      ((sampleChallenge.bind fun lam ↦ (queryOpenings i qs).bind fun words ↦ VerifierProgram.ret (qs, lam, words))) =
-      (Fintype.card E : ENNReal)⁻¹ * ∑ lam : E,
-        (match answer h i qs with
-          | some rows => F (qs, lam, rows)
-          | none => 0) := by
-    intro qs h
-    rw [retExp_bind, retExp_sampleE]
-    congr 1
-    refine Finset.sum_congr rfl fun lam _ ↦ ?_
-    rw [retExp_bind, retExp_queryP, List.append_nil, List.append_nil, answer_append_sample]
-    cases answer h i qs <;> simp [retExp]
-  simp only [hin]
-  -- Its value along the run is that at `h₀`.
-  have hcom := retExp_commits (fun qs cs ↦ (Fintype.card E : ENNReal)⁻¹ * ∑ lam : E,
-      (match (cs[i]?.map fun c ↦ qs.map fun p ↦ c.2.2 (p % 2 ^ c.1)) with
-        | some rows => F (qs, lam, rows)
-        | none => 0)) (sampleQueries depth t) h₀ []
-  simp only [answer] at hcom ⊢
-  rw [hcom, List.append_nil, sampleQueries,
-    retExp_sampleQueriesAux_restrict_len depth h1 h128 _ t t le_rfl]
-  calc _ ≤ retExp (fun qs _ ↦ allIn S qs + ε) h₀ [] (sampleQueriesAux depth t t) := by
-        refine retExp_mono (fun qs _ ↦ ?_) _ _ _
-        split_ifs with hr
-        · simp only [hc, Option.map_some]
-          have hmap : (qs.map fun p ↦ W (p % 2 ^ depth)) = qs.map W :=
-            List.map_congr_left fun q hq ↦ by rw [Nat.mod_eq_of_lt (hr.1 q hq)]
-          rw [hmap]
-          exact hF qs hr.1 hr.2
-        · exact zero_le
-    _ ≤ retExp (fun qs _ ↦ allIn S qs) h₀ [] (sampleQueriesAux depth t t) + ε :=
-        retExp_le_add (fun _ _ ↦ le_rfl) _ _ _
-    _ ≤ _ := by
-        gcongr
-        exact retExp_sampleQueries_le depth t h1 h128 S h₀ []
 
 end
 end LeanVM.Protocol.Whir.Sound

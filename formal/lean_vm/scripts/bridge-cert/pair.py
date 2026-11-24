@@ -4,9 +4,8 @@ Per module of alignment checks `align.py` writes (`Bridge/Align/*.lean`, `Bridge
 function's `Bridge.pairChk` over its pack data and its hint-only cells, by `decide +kernel`;
 per link module of `Guest/Checked`, each function's check over `Bridge.ctxOf` with its advice's entry
 (`Bridge.pairJ_of`, reusing the `Checked` and `ProgAl` link equations); and the assembly over every function
-(`PairChk/All.lean`). Run after `progal.py`; `--check` writes nothing and fails when a file is stale.
-
-    python3 -I scripts/bridge-cert/pair.py [--check]
+(`PairChk/All.lean`). `checks.py` writes them, a hash pack's and a link module's checks in one module with the other
+checks' (`Bridge/Chk/`).
 """
 import os, re, sys, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +34,8 @@ def pack_imports(ctx_mod):
     return sorted(re.findall(r'^public import (LeanVM\.Guest\.Pack\.\S+)$', open(path, encoding='utf-8').read(), re.M))
 
 
-def run(check):
+def gen():
+    """The files, and the paths this check owns on disk."""
     ctxs, lk = progal.contexts(), progal.links()
     n = max(lk) + 1
     files = {}
@@ -115,11 +115,5 @@ end
 
 end LeanVM.Guest.Bridge.PairChk
 ''')
-    existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the computed hints of {len(lk)} functions over {len(groups)} link modules')
-    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
-
-
-if __name__ == '__main__':
-    run('--check' in sys.argv[1:])
+    return data.quiet(files), set(glob.glob(os.path.join(OUT, '*.lean')))

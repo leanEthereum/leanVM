@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Main.AggL25CChk
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop0»
+import LeanVM.ToMathlib.List
 
 /-!
 # A child's absorption, completely
@@ -168,7 +169,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       rw [e]; exact hnext' i (by omega)
     all_goals
       have hwj : 48 + j < l25S.words.length := by rw [hwl, hnb]; omega
-      have hpc := pack_cells (hpw _ (getD_mem (d := default) hwj)) hg'
+      have hpc := pack_cells (hpw _ (List.getD_mem (d := default) hwj)) hg'
       have hr := Keccak.rateCell_scalar ((l25S.blk σ (13 - 1)).map (·, dsObserve)) j
         (by simp [DupSpec.blk]; omega)
       have hbj : ((l25S.blk σ (13 - 1)).map (·, dsObserve))[j]'(by simp [DupSpec.blk]; omega) =

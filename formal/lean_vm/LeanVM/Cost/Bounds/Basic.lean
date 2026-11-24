@@ -32,8 +32,8 @@ of a callee composes because it is a theorem about `machineCost P j …` for eve
 holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
 from the caller's.
 
-Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; products
-of sizes as atoms (`affine_mul_le`); the recurrence solvers (`le_of_halving` for a binary search,
+Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; the
+recurrence solvers (`le_of_halving` for a binary search,
 `le_of_doubling` for a binary tree); the bounds of the library's polymorphic functions
 (`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure, and of an
 on-demand `List.map` by its recurrence (`listMap_le`).
@@ -236,17 +236,6 @@ macro_rules
 
 allow_unused_tactic LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
 
-/-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
-bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/
-theorem affine_mul_le (a b D n C : ℕ) (h : n ≤ C) : (a * D + b) * n ≤ a * (D * C) + b * C := by
-  have := Nat.mul_le_mul_left (a * D + b) h
-  nlinarith
-
-theorem affine_mul_le' (a b c D n C : ℕ) (h : n ≤ C) :
-    (a * D + b + c) * n ≤ a * (D * C) + (b + c) * C := by
-  have := affine_mul_le a (b + c) D n C h
-  rwa [Nat.add_assoc]
-
 /-! ## Recurrence solvers -/
 
 theorem log2_half {n : ℕ} (h : 2 ≤ n) : Nat.log2 (n / 2) + 1 = Nat.log2 n := by
@@ -367,25 +356,6 @@ theorem listMap_le (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineVal
     rw [hs]
     have h1 := ih fun a ha ↦ hB a (by simp [ha])
     have h2 := hB x (by simp)
-    simp only [List.length_cons]
-    nlinarith
-
-/-- **`List.foldl`, an invariant indexed by the elements left** (an accumulator growing along
-the fold): `I k acc` with `k` elements left. -/
-theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
-    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : ℕ → α → Prop)
-    (L : List β)
-    (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) :
-    ∀ (l : List β) (init : α), (∀ b ∈ l, b ∈ L) → I l.length init →
-      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 11) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
-  | cons b l ih =>
-    intro init hL hi
-    rw [listFoldl.costEq_cons P hP f fVal hf]
-    obtain ⟨hI', h2⟩ := hI l.length init hi b (hL b (by simp))
-    have h1 := ih (f init b) (fun c hc ↦ hL c (by simp [hc])) hI'
     simp only [List.length_cons]
     nlinarith
 

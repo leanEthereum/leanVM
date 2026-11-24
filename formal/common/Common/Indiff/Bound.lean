@@ -10,10 +10,10 @@ public import Common.Indiff.Perm
 In the visible game without path queries, followed by the end phase (`visRun P iv false`),
 both collisions are unlikely:
 
-* a **visible collision** needs a fresh simulator draw — a uniform state, or the value of a fresh
-  rooted path, whose capacity is a fresh uniform draw from the path oracle — to land on one of
+* a **visible collision** needs a fresh simulator draw (a uniform state, or the value of a fresh
+  rooted path, whose capacity is a fresh uniform draw from the path oracle) to land on one of
   the at most `2q + 1` visible capacities: at most `(2q + 1) / |C|` per permutation query
-  (`prEvent_vis_bad_le`);
+  (`prEvent_visF_bad_le`);
 * a **hidden collision** needs one of the hidden paths' values, all drawn fresh in the end phase,
   to land on a visible capacity or on another hidden value's capacity (`prEvent_coll_endPhase`).
 
@@ -431,9 +431,9 @@ theorem prEvent_visRun_le {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg 
   refine (prEvent_bind_le_prEvent_add_of_support _ _ (fun z ↦ z.2.1.2.2 = true) _
     (ε := (q * (q + 1) : ℕ) / (Fintype.card C : ℝ≥0∞)) fun z hz hzb ↦ ?_).trans ?_
   · -- the hidden collisions in the end phase
-    have hV := inv_of_mem_support_run (spec' := unifSpec) (visF P iv)
-      (fun s ↦ VStruct P iv s.1.1 s.2) (fun t s hs z hz ↦ vStruct_visF P iv t s hs hz) D hinit
-      z hz
+    have hV := simulateQ_run_preserves_inv_of_query (spec' := unifSpec) (visF P iv)
+      (fun s ↦ VStruct P iv s.1.1 s.2) (fun t s hs z hz ↦ vStruct_visF P iv t s hs hz) D _
+      hinit z hz
     have hsize := size_le_of_mem_support_run (spec' := unifSpec) (visF P iv)
       (fun s ↦ VStruct P iv s.1.1 s.2) (queryCost (Dg := Dg) P) (fun s ↦ vsize P s.1)
       (fun t s hs z hz ↦ vStruct_visF P iv t s hs hz) (fun t s _ z hz ↦ vsize_visF P iv t s hz)

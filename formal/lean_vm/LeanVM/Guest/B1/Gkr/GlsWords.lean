@@ -18,6 +18,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.ToMathlib.List
 
 /-!
 # The radix-four layers' words
@@ -71,18 +72,9 @@ def glsKL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) : ℕ :=
   ((List.range 2).flatMap fun o ↦ (List.range 4).flatMap fun n ↦
     (List.range 4).map fun r ↦ glsB fs Kg o n r).foldl max 0
 
-theorem gw_foldl_max_ge : ∀ (l : List ℕ) (a : ℕ), a ≤ l.foldl max a ∧ ∀ x ∈ l, x ≤ l.foldl max a
-  | [], _ => ⟨le_rfl, fun _ h => by simp at h⟩
-  | y :: l, a => by
-    obtain ⟨h1, h2⟩ := gw_foldl_max_ge l (max a y)
-    refine ⟨le_trans (le_max_left a y) h1, fun x hx => ?_⟩
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact le_trans (le_max_right a x) h1
-    · exact h2 x hx
-
 theorem glsB_le_KL (fs : String → ℕ) (Kg : ℕ → ℕ → ℕ) {o n r : ℕ} (ho : o < 2) (hn : n ≤ 3)
     (hr : r < 4) : glsB fs Kg o n r ≤ glsKL fs Kg :=
-  (gw_foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
+  (List.foldl_max_ge _ 0).2 _ (List.mem_flatMap.2 ⟨o, List.mem_range.2 ho, List.mem_flatMap.2
     ⟨n, List.mem_range.2 (by omega), List.mem_map.2 ⟨r, List.mem_range.2 hr, rfl⟩⟩⟩)
 
 /-! ## A flat node -/
@@ -131,11 +123,6 @@ theorem gwChk_sound {b : List Stmt} {vr : List V} {cs : List (Option V × String
   have := tbStmtsEqb_sound he
   simp only [List.cons.injEq, and_true] at this
   rwa [← this]
-
-theorem gw_kidsT_true : ∀ (cs : List Call) (ks : List Tree), KidsT cs (cs.map fun _ _ ↦ True) ks
-  | [], _ => trivial
-  | _ :: _, [] => trivial
-  | _ :: cs, _ :: ks => ⟨fun _ ↦ trivial, gw_kidsT_true cs ks⟩
 
 variable {fs : String → ℕ}
 
@@ -201,13 +188,6 @@ theorem gw_node {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre
   have := gw_kids_total _ Ws ks hk hb.2 hW
   rw [Tree.total, List.sum_nil]
   omega
-
-theorem gw_pow_add_eq_zero {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) :
-    gen ^ a + gen ^ b = 0 ↔ a = b := by
-  constructor
-  · intro h
-    exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h)
-  · rintro rfl; exact e_add_self _
 
 theorem gw_f2_map {α β : Type} {R : α → β → Prop} {F : ℕ → α} {G : ℕ → β} :
     ∀ (l : List ℕ), (∀ p ∈ l, R (F p) (G p)) → List.Forall₂ R (l.map F) (l.map G)

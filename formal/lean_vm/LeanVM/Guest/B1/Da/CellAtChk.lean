@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.Cell
+public import LeanVM.Guest.B1.Da.Padding
 public import LeanVM.Guest.B1.Da.VecCChk
 public import LeanVM.Guest.B1.Tables.FlatAt
 import LeanVM.Guest.ValRef

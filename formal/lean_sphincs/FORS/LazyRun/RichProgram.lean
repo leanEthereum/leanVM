@@ -15,8 +15,6 @@ variable [Params]
 
 open HiddenCost GraphView Concrete
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 section Generic

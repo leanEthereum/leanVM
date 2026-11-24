@@ -13,6 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Front.BusSpec
 public import LeanVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith
 import LeanVM.Protocol.Verifier
+import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
 # The grand-product walk on doom
@@ -132,15 +133,6 @@ end State
 
 /-! ## A step's grinds are of zero bits -/
 
-/-- A grind for a numerator at most `8` is of zero bits. -/
-theorem grindingBits_eq_zero {n : ℕ} (hn : n ≤ 8) : grindingBits n = 0 := by
-  unfold grindingBits
-  split_ifs with h
-  · rfl
-  · have : Nat.log2 (n - 1) < 3 := (Nat.log2_lt (by omega)).2 (by omega)
-    simp only [securityBits]
-    omega
-
 /-- A grind of zero bits is no step. -/
 theorem grindProofOfWork_zero : VerifierProgram.grindProofOfWork 0 = .ret () := rfl
 
@@ -167,8 +159,9 @@ or, on the last layer, `2 · step`, at most `4`; every one of them is of zero bi
 theorem gkrStep_eq_core {step : ℕ} (hs : step ≤ 2) (last : Bool) (s : GkrState) :
     gkrStep step last s = gkrStepCore step s := by
   unfold gkrStep gkrStepCore
-  rw [grindingBits_eq_zero (show nTrees - 1 ≤ 8 by decide),
-    grindingBits_eq_zero (show (if last = true then 2 * step else step) ≤ 8 by split <;> omega),
+  rw [grindingBits_eq_zero_of_le (show nTrees - 1 ≤ 8 by decide),
+    grindingBits_eq_zero_of_le
+      (show (if last = true then 2 * step else step) ≤ 8 by split <;> omega),
     grindProofOfWork_zero]
   simp only [VerifierProgram.bind_eq, VerifierProgram.ret_bind]
 

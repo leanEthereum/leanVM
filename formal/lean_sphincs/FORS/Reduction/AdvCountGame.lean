@@ -2,7 +2,6 @@ module
 
 public import FORS.Reduction.CostProgram
 public import FORS.GraphView.HonestGame
-public import FORS.Reduction.PreparedSample
 import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section
@@ -22,7 +21,6 @@ variable [Params]
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView Internalize Det Short
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 
 /-! ### Two writers in either order -/
 

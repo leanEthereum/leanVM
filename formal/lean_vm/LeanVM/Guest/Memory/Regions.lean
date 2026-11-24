@@ -27,19 +27,18 @@ controls. So completeness records where its loads read, compositionally:
 * `RelAtInC P fs cert rd R D fp c B n f args rets`: the same of a loop's iterations from one on,
   their frames (`B` words) from `fp`, the rest (`n` words) from `c`.
 
-**Composition** (`relAtIn_of_walk`, `relAtIn_of_walk_loop`): the callees by `KidsFromIn`, one
+**Composition** (`relAtIn_of_walk`): the callees by `KidsFromIn`, one
 after another from the end of the caller's `HeapBuf`s, each in a region within the caller's region,
 its own data (`ownData`) and the data earlier callees claimed; the caller's own loads in its own
 data, its region or what its callees claimed. A loop helper's iteration at `(fp, c)` puts its
-tail call at `(fp + fs f, c')`, `c'` past its other callees (`RelAtInC`), and a loop entered
-fresh at `fp` is `RelAtInC` at `(fp, fp + B)` (`RelAtInC.relAtIn`).
+tail call at `(fp + fs f, c')`, `c'` past its other callees (`RelAtInC`).
 
 **Pure subtrees.** A subtree with no `HeapBuf` and no `frameAddr` has no data, so its loads read
 its region only, wherever it is placed. `Program.RelIn P rd R` is `Program.Rel` by a tree whose
-loads all read `R`, proved along a path by `relIn_of_walk`; `relAtIn_of_relIn_pure` places it
-anywhere, and `relIn_of_rel_noLoads` gives it for free to a call-closed set without loads.
+loads all read `R`, proved along a path by `relIn_of_walk`; such loads are in `R` and the
+subtree's data wherever it is placed (`loadsIn_of_loadsR`).
 
-**At the root** (`loads_classified`): if `main`'s tree is `LoadsIn R` at word `0`, every load
+**At the root** (`loads_insts`): if `main`'s tree is `LoadsIn R` at word `0`, every load
 reads an instance's `HeapBuf`, a cell of an instance's run, or `R` (static data outside every
 frame), which is what the honest memory's discharge needs of loads.
 -/
@@ -123,7 +122,7 @@ def RelAtInC (rd : Reader) (R D : ℕ → Prop) (fp c B n : ℕ) (f : String) (a
     t.block fs P.loop = B ∧ t.total fs = B + n ∧ t.LoadsIn P fs cert R (fp, c) ∧
     ∀ i, D i → t.Data P fs cert (fp, c) i
 
-/-- **The callees of the frames `cs` sets up**, as `KidsFrom`, each loading from a region within
+/-- **The callees of the frames `cs` sets up**, one after another, each loading from a region within
 `R` and the data `Dacc` earlier callees claimed, claiming data `Dk` for the later ones; `Dend`
 within all claimed. -/
 def KidsFromIn (rd : Reader) (σ : Val) (R : ℕ → Prop) :
@@ -136,25 +135,6 @@ def KidsFromIn (rd : Reader) (σ : Val) (R : ℕ → Prop) :
       KidsFromIn rd σ R (fun i => Dacc i ∨ (c.taken = true ∧ Dk i)) cs (b + m) n' Dend
 
 variable {P fs cert}
-
-theorem RelAtIn.relAt {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E}
-    (h : RelAtIn P fs cert rd R D fp n f args rets) : RelAt P fs cert rd fp n f args rets :=
-  let ⟨t, hn, hv, hb, hp, ht, _⟩ := h
-  ⟨t, hn, hv, hb, hp, ht⟩
-
-/-- **A loop entered fresh**: its frames at `fp`, the rest right after them. -/
-theorem RelAtInC.relAtIn {rd : Reader} {R D : ℕ → Prop} {fp B n : ℕ} {f : String}
-    {args rets : List E} (h : RelAtInC P fs cert rd R D fp (fp + B) B n f args rets) :
-    RelAtIn P fs cert rd R D fp (B + n) f args rets := by
-  obtain ⟨t, hn, hv, hb, hp, hB, ht, hl, hd⟩ := h
-  subst hB
-  exact ⟨t, hn, hv, hb, hp, ht, hl, hd⟩
-
-theorem RelAtInC.dmono {rd : Reader} {R D D' : ℕ → Prop} {fp c B n : ℕ} {f : String}
-    {args rets : List E} (h : RelAtInC P fs cert rd R D fp c B n f args rets)
-    (hD : ∀ i, D' i → D i) : RelAtInC P fs cert rd R D' fp c B n f args rets :=
-  let ⟨t, hn, hv, hb, hp, hB, ht, hl, hd⟩ := h
-  ⟨t, hn, hv, hb, hp, hB, ht, hl, fun i hi => hd i (hD i hi)⟩
 
 /-! ## Unfolding -/
 
@@ -396,95 +376,6 @@ theorem relAtIn_of_walk (hP : P.Wf) {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
     · exact Or.inl h
     · exact (hkd i h).elim (fun h => h.elim) fun h => Or.inr h
 
-/-- **Composition with regions**, a loop iteration at `(fp, c)`: its `HeapBuf`s from `c`, its other
-callees after them, `N` words, then its tail call's iterations at `(fp + fs f, c + bufs + N)`,
-loading from its region, its own data and its other callees' claims, and claiming `Dt`. -/
-theorem relAtIn_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt m N : ℕ} {f : String}
-    {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {ct : Call}
-    (hf : P.find? f = some fn) (hl : P.loop f = true) (hp : fn.params.map σ = args)
-    (hw : walk σ fn.body = .ret es vs) (hr : vs.map σ = rets) (hes : ∀ e ∈ es, e.Holds rd σ)
-    (hc : calls es = cs ++ [ct])
-    (htail : if ct.taken then
-        RelAtInC P fs cert rd Rt Dt (fp + fs f) (c + (allocs σ es).sum + N) Bt m ct.f
-          (ct.args.map σ) (ct.rets.map σ)
-      else Bt = fs (tailKey ct.f) ∧ m = 0)
-    (hbuf : (allocDsts es).map σ = (bases c (allocs σ es)).map fun b => ofK (addressOfIndex b))
-    (haddr : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + cert f q.2)))
-    (hk : KidsFromIn P fs cert rd σ (fun i => R i ∨ ownData cert fp c f (allocs σ es) es i)
-      (fun _ => False) cs (c + (allocs σ es).sum) N Dk)
-    (hRt : ∀ i, Rt i → R i ∨ ownData cert fp c f (allocs σ es) es i ∨ Dk i)
-    (hload : ∀ A ∈ loadAddrs σ es, ∃ i, A = addressOfIndex i ∧
-      (ownData cert fp c f (allocs σ es) es i ∨ R i ∨ Dk i ∨ (ct.taken = true ∧ Dt i)))
-    (hD : ∀ i, D i → ownData cert fp c f (allocs σ es) es i ∨ Dk i ∨ (ct.taken = true ∧ Dt i)) :
-    RelAtInC P fs cert rd R D fp c (fs f + Bt) ((allocs σ es).sum + N + m) f args rets := by
-  have htk := takes_of_calls hP (List.mem_of_find?_eq_some hf) hw
-  rw [hc] at htk
-  obtain ⟨ks, hkv, hkb, hkp, hks, hkd, hkl⟩ := kids_of_kidsFromIn _ _ _ _ _ _
-    (fun c' hc' => htk c' (List.mem_append_left _ hc')) hk
-  obtain ⟨k, hkv', hkb', hkp', hkB, hkt, hkl', hkd'⟩ :=
-    kid_ofInC (htk ct (List.mem_append_right _ List.mem_cons_self)) htail
-  have hns : (ks ++ [k]).map (Tree.sz fs P.loop) = ks.map (Tree.sz fs P.loop) ++ [(Bt + m, Bt)] := by
-    rw [List.map_append, List.map_singleton, Tree.sz, hkt, hkB]
-  have hkpos : kidPos fs P.loop (fp, c) f (allocs σ es) ((ks ++ [k]).map (Tree.sz fs P.loop)) =
-      basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop)) ++
-        [(fp + fs f, c + (allocs σ es).sum + N)] := by
-    rw [hns, kidPos_loop hl, map_sz_fst, hks]
-  have hlen : (basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop))).length = ks.length := by
-    rw [length_basesC, List.length_map]
-  have hdata : ∀ i, (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i ↔
-      ownData cert fp c f (allocs σ es) es i ∨
-        Tree.DataKids P fs cert (basesC (c + (allocs σ es).sum) (ks.map (Tree.sz fs P.loop))) ks i ∨
-        k.Data P fs cert (fp + fs f, c + (allocs σ es).sum + N) i := by
-    intro i
-    rw [data_node, events_node hf hw, hkpos, dataKids_append hlen, dataKids_cons]
-    simp only [not_dataKids_nil, or_false]
-  refine ⟨.node f σ (allocs σ es) (ks ++ [k]), rfl,
-    ⟨fn, hf, hp, es, vs, hw, hr, hes, by rw [hc]; exact kidsValid_append hkv hkv'⟩, ?_, ?_, ?_, ?_,
-    ?_, ?_⟩
-  · rw [Tree.BufsOk, events_node hf hw]
-    refine ⟨rfl, bufsOkKids_append hkb ?_⟩
-    rw [Tree.BufsOkKids, Tree.BufsOkKids]
-    exact ⟨hkb', trivial⟩
-  · rw [placed_node, events_node hf hw, NodeAt, hkpos]
-    refine ⟨⟨hbuf, haddr⟩, placedKids_append hlen hkp ?_⟩
-    rw [placedKids_cons]
-    exact ⟨hkp', placedKids_nil⟩
-  · rw [block_node, hns]
-    simp [nodeBlock, hl, lastBlock]
-  · rw [total_node, totalKids_eq_sum, List.map_append, List.sum_append, hks]
-    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hkt]
-    omega
-  · have hDk : ∀ i, Dk i → (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
-      fun i h => (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    have hDt : ∀ i, ct.taken = true ∧ Dt i →
-        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
-      fun i h => (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
-    have hown : ∀ i, ownData cert fp c f (allocs σ es) es i →
-        (Tree.node f σ (allocs σ es) (ks ++ [k])).Data P fs cert (fp, c) i :=
-      fun i h => (hdata i).mpr (Or.inl h)
-    rw [loadsIn_node, events_node hf hw, hkpos]
-    refine ⟨fun A hA => ?_, loadsInKids_append hlen ?_ ?_⟩
-    · obtain ⟨i, hi, h⟩ := hload A hA
-      refine ⟨i, hi, ?_⟩
-      rcases h with h | h | h | h
-      · exact Or.inl (hown i h)
-      · exact Or.inr h
-      · exact Or.inl (hDk i h)
-      · exact Or.inl (hDt i h)
-    · exact hkl _ (fun i hi => hi.elim Or.inr fun h => Or.inl (hown i h)) (fun _ h => h.elim)
-        (fun i hi => Or.inl ((hdata i).mpr (Or.inr (Or.inl hi))))
-    · rw [loadsInKids_cons]
-      refine ⟨loadsIn_mono k _ (fun i hi => ?_) hkl', loadsInKids_nil⟩
-      rcases hRt i hi with h | h | h
-      · exact Or.inr h
-      · exact Or.inl (hown i h)
-      · exact Or.inl (hDk i h)
-  · intro i hi
-    rcases hD i hi with h | h | h
-    · exact (hdata i).mpr (Or.inl h)
-    · exact (hkd i h).elim (fun h => h.elim) fun h => (hdata i).mpr (Or.inr (Or.inl h))
-    · exact (hdata i).mpr (Or.inr (Or.inr (hkd' h.1 i h.2)))
-
 end Compose
 
 /-! ## Loads by region only -/
@@ -608,43 +499,6 @@ def Stmt.quietArms (S : List String) : List (List Stmt) → Bool
   | a :: as => Stmt.quietList S a && Stmt.quietArms S as
 end
 
-/-- **A call-closed set of quiet functions**: no `HeapBuf` hint, `frameAddr` or load. -/
-def _root_.LeanVM.Guest.Core.Program.QuietIn (P : Core.Program) (S : List String) : Prop :=
-  ∀ g ∈ S, ∀ fn, P.find? g = some fn → Stmt.quietList S fn.body = true
-
-mutual
-theorem quiet_pure : ∀ (s : Stmt), Stmt.quiet S s = true → Stmt.pure S s = true
-  | .atom a, h => by
-      simp only [Stmt.quiet, atomQuiet, Bool.and_eq_true] at h
-      exact h.1
-  | .ite _ z n, h => by
-      simp only [Stmt.quiet, Stmt.pure, Bool.and_eq_true] at h ⊢
-      exact ⟨quietList_pure z h.1, quietList_pure n h.2⟩
-  | .match_ _ arms, h => by
-      simp only [Stmt.quiet, Stmt.pure] at h ⊢
-      exact quietArms_pure arms h
-  | .call .., h => h
-  | .callIf .., h => h
-  | .dispatch .., h => h
-  | .ret _, _ => rfl
-
-theorem quietList_pure : ∀ (ss : List Stmt), Stmt.quietList S ss = true → Stmt.pureList S ss = true
-  | [], _ => rfl
-  | s :: ss, h => by
-      simp only [Stmt.quietList, Stmt.pureList, Bool.and_eq_true] at h ⊢
-      exact ⟨quiet_pure s h.1, quietList_pure ss h.2⟩
-
-theorem quietArms_pure : ∀ (arms : List (List Stmt)), Stmt.quietArms S arms = true →
-    Stmt.pureArms S arms = true
-  | [], _ => rfl
-  | a :: as, h => by
-      simp only [Stmt.quietArms, Stmt.pureArms, Bool.and_eq_true] at h ⊢
-      exact ⟨quietList_pure a h.1, quietArms_pure as h.2⟩
-end
-
-theorem _root_.LeanVM.Guest.Core.Program.QuietIn.pureIn (h : P.QuietIn S) : P.PureIn S :=
-  fun g hg fn hf => quietList_pure fn.body (h g hg fn hf)
-
 /-- An event with a quiet atom. -/
 def Ev.quiet : Ev → Prop
   | .atom a => atomQuiet a = true
@@ -708,45 +562,6 @@ theorem walkArms_quiet (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ), Stmt.q
       split_ifs
       · exact walk_quiet a h.1
       · exact walkArms_quiet x as (j + 1) h.2
-end
-
-theorem loadAddrs_quiet {es : List Ev} (h : ∀ e ∈ es, e.quiet) : loadAddrs σ es = [] := by
-  refine List.filterMap_eq_nil_iff.mpr fun e he => ?_
-  have := h e he
-  rcases e with ⟨_ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _⟩ | _ | _ | _ <;>
-    first | rfl | simp [Ev.quiet, atomQuiet, atomUnplaced] at this
-
-mutual
-/-- A valid tree of a function of a quiet set loads nothing. -/
-theorem loadsR_of_quiet (hS : P.QuietIn S) (R : ℕ → Prop) : ∀ (t : Tree) {args rets : List E},
-    t.Valid P rd args rets → t.name ∈ S → t.LoadsR P R
-  | .node f σ bufs kids, _, _, ⟨fn, hf, _, es, vs, hw, _, _, hk⟩, hn => by
-      have hq : ∀ e ∈ es, e.quiet := by
-        have := walk_quiet (σ := σ) fn.body (hS f hn fn hf)
-        rwa [hw] at this
-      rw [Tree.LoadsR, events_node hf hw, loadAddrs_quiet hq]
-      refine ⟨fun _ h => (List.not_mem_nil h).elim, loadsRKids_of_quiet hS R kids σ (calls es) hk ?_⟩
-      exact calls_pure fun e he => by
-        have := hq e he
-        have hp := walk_pure (σ := σ) fn.body (quietList_pure fn.body (hS f hn fn hf))
-        rw [hw] at hp
-        exact hp e he
-  | .phantom .., _, _, h, _ => h.elim
-
-/-- `loadsR_of_quiet` for the callees. -/
-theorem loadsRKids_of_quiet (hS : P.QuietIn S) (R : ℕ → Prop) : ∀ (ks : List Tree) (σ : Val)
-    (cs : List Call), Tree.KidsValid P rd σ cs ks → (∀ c ∈ cs, c.f ∈ S) → Tree.LoadsRKids P R ks
-  | [], _, _, _, _ => by rw [Tree.LoadsRKids]; trivial
-  | k :: ks, σ, c :: cs, ⟨hn, hc, hks⟩, hS' => by
-      rw [Tree.LoadsRKids]
-      refine ⟨?_, loadsRKids_of_quiet hS R ks σ cs hks fun c' h => hS' c' (List.mem_cons_of_mem _ h)⟩
-      by_cases ht : c.taken = true
-      · rw [ite_eq_left ht] at hc
-        exact loadsR_of_quiet hS R k hc (hn ▸ hS' c List.mem_cons_self)
-      · rw [ite_eq_right ht] at hc
-        obtain ⟨⟨f, σ', rfl⟩, -⟩ := hc
-        rw [Tree.LoadsR]; trivial
-  | _ :: _, _, [], h, _ => h.elim
 end
 
 end Pure

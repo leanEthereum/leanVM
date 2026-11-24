@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.MainAtR
 /-!
 # `main` on an honest run, its callees' predicates of the memory
 
-`MainPredsR`: a predicate of the memory for each of `main`'s callees after `exponent_tables`; `mTsR`: aligned with `mKids`. `MainGoalsTBR`: each callee within its bound (`mBs`) by trees of its predicate (`CompleteAtDTBR`); `mainKidsDTBR`: `KidsDTBR`. `main_honest_relAtInTBR`: `main_honest_relAtInTB` with them.
+`MainPredsR`: a predicate of the memory for each of `main`'s callees after `exponent_tables`; `mTsR`: aligned with `mKids`. `MainGoalsTBR`: each callee within its bound (`mBs`) by trees of its predicate (`CompleteAtDTBR`); `mainKidsDTBR`: `KidsDTBR`. `main_honest_relAtInTBR`: `main_relAtInTBR` on the honest run, with them.
 
 `MainPops`: the entries of the callees that pop any; `MainPreds.withPops p q`: `p`'s predicates (none on the static loops) with the trees popping `q`'s entries, the children's loop's stream by stream (`verify_sub`'s are known so).
 -/

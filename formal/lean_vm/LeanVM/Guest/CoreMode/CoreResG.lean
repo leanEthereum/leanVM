@@ -83,7 +83,7 @@ theorem gwR_setG {κ : ℕ} {img : MemoryImage κ} {Cf : CFun} {σ : Val} (h : g
   exact Option.some.inj h2
 
 /-- **The caller's cells linked** (`CFun.gl`), of a family: none, or those of a callee of `anyLink` (a read of
-its caller's entries table, `Res.LinkDefs`): the caller's cell `2` its entries parameter, cell `5` its bound
+its caller's entries table, `Fam/LinkDefs.lean`): the caller's cell `2` its entries parameter, cell `5` its bound
 parameter times `g`, with no ghost slot, or for a loop the same and its caller's frame address its one ghost slot
 (`alGl`); for a ghost family specialization its function's (`mlGl`); for a stream-cursor loop its caller's
 stream and frame (`stGl`); for a frame loop over its caller's table its caller's entries, bound and frame (`cmGl`); or

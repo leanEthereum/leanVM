@@ -23,8 +23,8 @@ duplicate slot. With `made := R ++ Cs.flatten` and `slots` the slots in taking o
 * `plan_cover`: if every claim is made at least as often as it is declared, every slot of the
   table is taken (`plan_perm`: the slots are a permutation of the table's indices, whose number
   is the number of claims made);
-* `plan_children`: the per-child segments of the slots;
-* the two regions of a node under `DeployedLimits` (`xPlan_*`, `sPlan_*`), `planSlots` as the
+* `plan_child`, `plan_children_lengths`: the per-child segments of the slots;
+* the two regions of a node under `SignatureClaimsHeld` (`xPlan_*`, `sPlan_*`), `planSlots` as the
   two tables' sizes (`coverage_eq`), the number of claims made (`coverage_made`), so
   `coverageSlots` (`planSlots_eq`), and the raw signatures within their regions (`xRaw_le`,
   `sRaw_le`).
@@ -535,27 +535,28 @@ theorem made_count {α : Type} [BEq α] {R : List α} {Cs : List (List α)} (x :
 
 variable {bytecode : List K} {s w}
 
-theorem xPlan_held (hl : DeployedLimits s w) : ∀ x, s.claims.xmss.count x ≤
+theorem xPlan_held (held : SignatureClaimsHeld s w) : ∀ x, s.claims.xmss.count x ≤
     (made (w.xmssSignatures.map (·.1)) (w.children.map (·.statement.claims.xmss))).count x :=
-  fun x => by rw [made_count, List.map_map]; exact hl.xmssClaimsHeldWithMultiplicity x
+  fun x => by rw [made_count, List.map_map]; exact held.xmss_count_le x
 
-theorem sPlan_held (hl : DeployedLimits s w) : ∀ x, s.claims.sphincs.count x ≤
+theorem sPlan_held (held : SignatureClaimsHeld s w) : ∀ x, s.claims.sphincs.count x ≤
     (made (w.sphincsSignatures.map (·.1))
       (w.children.map (·.statement.claims.sphincs))).count x :=
-  fun x => by rw [made_count, List.map_map]; exact hl.sphincsClaimsHeldWithMultiplicity x
+  fun x => by rw [made_count, List.map_map]; exact held.sphincs_count_le x
 
-/-- **Under `Limits`, the coverage table has one slot per claim made**, raw or by a child. -/
-theorem coverage_made (hl : DeployedLimits s w) : planSlots s w =
+/-- **Under `SignatureClaimsHeld`, the coverage table has one slot per claim made**, raw or by a
+child. -/
+theorem coverage_made (held : SignatureClaimsHeld s w) : planSlots s w =
     (made (w.xmssSignatures.map (·.1)) (w.children.map (·.statement.claims.xmss))).length +
     (made (w.sphincsSignatures.map (·.1))
       (w.children.map (·.statement.claims.sphincs))).length := by
-  rw [coverage_eq, xPlan, sPlan, plan_table_length _ _ _ (xPlan_held hl),
-    plan_table_length _ _ _ (sPlan_held hl)]
+  rw [coverage_eq, xPlan, sPlan, plan_table_length _ _ _ (xPlan_held held),
+    plan_table_length _ _ _ (sPlan_held held)]
 
-/-- **Under `DeployedLimits`, the honest run's coverage table is `coverageSlots`**: one slot per
-claim made. -/
-theorem planSlots_eq (hl : DeployedLimits s w) : planSlots s w = coverageSlots w := by
-  rw [coverage_made hl]
+/-- **Under `SignatureClaimsHeld`, the honest run's coverage table is `coverageSlots`**: one slot
+per claim made. -/
+theorem planSlots_eq (held : SignatureClaimsHeld s w) : planSlots s w = coverageSlots w := by
+  rw [coverage_made held]
   simp only [made, coverageSlots, List.length_append, List.length_map, List.length_flatten,
     List.map_map, List.sum_map_add]
   simp only [Function.comp_def]
@@ -564,22 +565,22 @@ theorem planSlots_eq (hl : DeployedLimits s w) : planSlots s w = coverageSlots w
 /-- The honest run's coverage table below `2^23`. -/
 theorem _root_.LeanVM.Guest.GuestLimits.planSlotsBelow2Pow23 (hl : GuestLimits s w) :
     planSlots s w < 2 ^ 23 := by
-  rw [planSlots_eq hl.toDeployedLimits]; exact hl.coverageSlotsBelow2Pow23
+  rw [planSlots_eq hl.signatureClaimsHeld]; exact hl.coverageSlotsBelow2Pow23
 
 /-- **The raw leanXMSS signatures are at most the leanXMSS region's slots.** -/
-theorem xRaw_le (hl : DeployedLimits s w) :
+theorem xRaw_le (held : SignatureClaimsHeld s w) :
     w.xmssSignatures.length ≤ s.claims.xmss.length + (xPlan s w).duplicates.length := by
   have h := plan_table_length s.claims.xmss (w.xmssSignatures.map (·.1))
-    (w.children.map (·.statement.claims.xmss)) (xPlan_held hl)
+    (w.children.map (·.statement.claims.xmss)) (xPlan_held held)
   simp only [List.length_append, made, List.length_map] at h
   simp only [xPlan]
   omega
 
 /-- **The raw leanSPHINCS signatures are at most the leanSPHINCS region's slots.** -/
-theorem sRaw_le (hl : DeployedLimits s w) :
+theorem sRaw_le (held : SignatureClaimsHeld s w) :
     w.sphincsSignatures.length ≤ s.claims.sphincs.length + (sPlan s w).duplicates.length := by
   have h := plan_table_length s.claims.sphincs (w.sphincsSignatures.map (·.1))
-    (w.children.map (·.statement.claims.sphincs)) (sPlan_held hl)
+    (w.children.map (·.statement.claims.sphincs)) (sPlan_held held)
   simp only [List.length_append, made, List.length_map] at h
   simp only [sPlan]
   omega

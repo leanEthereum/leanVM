@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.ChainOraclePresampling
 
 @[expose] public section
 
+/-!
+# An accepting verification caches its chain steps
+
+If `Concrete.verify` accepts and a cache above its final one decodes the signature's digest to
+`encoding`, that cache holds every chain step verification walks from the signature's chain values
+(`verify_true_chain_query_cached_as_in_largerCache`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Concrete.CacheReplay
@@ -73,9 +81,9 @@ theorem verify_true_chain_query_cached_as_in_largerCache
           chain digestCache endpointsCache largerCache endpoints hendpoints
           (hendpointsResultLe.trans hle)
       unfold Concrete.recoverChain at hchain
-      exact chainWalk_query_cached_in_largerCache publicKey.parameter leafIndex chain
+      exact keyChainWalk_query_cached_in_largerCache publicKey.parameter (.inl leafIndex) chain
         (encoding chain).val (chainLength - 1 - (encoding chain).val)
         (signature.chainValue chain) offset hoffset (by omega) beforeCache afterCache
-        largerCache value hchain hchainLe
+        largerCache value (by rwa [Concrete.keyChainWalk_inl]) hchainLe
 
 end XmssSecurity.Concrete.CacheReplay

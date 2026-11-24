@@ -27,24 +27,12 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-! ## The deployed limits -/
 
-/-- **The deployed limits**, where `NodeRelation` admits witnesses the guest program cannot run, and
-the node's fixed capacities, within which its run fits `2^30` committed words. Implied by these
-and `NodeRelation`, and so not limits of their own: a child's stack log at
-most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked directly
-(`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`, and the
-declared claims at most the claims held. -/
+/-- **The deployed limits**: the node's fixed capacities, within which its run fits `2^30`
+committed words. Implied by these and `NodeRelation`, and so not limits of their own: a child's
+stack log at most `30` and rate in `[1, 4]` (`readAnnouncedSizes`), at most one blob matrix checked
+directly (`NodeWitness.daMatrix`), the bus depth at most `32`, the tables' heights at most `30`, and
+the declared claims at most the claims held (`SignatureClaimsHeld`). -/
 structure DeployedLimits (statement : NodeStatement) (witness : NodeWitness) : Prop where
-  /-- A claim declared `n` times is held `n` times (`List.Subperm`: a sub-multiset), by raw
-  signatures or by entries of the children's lists, each used once: each coverage slot is written
-  once and the declared claims have one slot each (`main` in `lean_ethereum.py`; a child's list
-  by hinted indices, `child_claims`, or by strictly increasing hinted gaps, every claim of the
-  list writing one mark, `child_claims_mono`; the count of written slots, `main`), where
-  `NodeRelation` lets two equal claims share one holder. -/
-  claimsHeldWithMultiplicity :
-    statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
-      (witness.children.map (·.statement.claims.xmss)).flatten) ∧
-    statement.claims.sphincs.Subperm (witness.sphincsSignatures.map (·.1) ++
-      (witness.children.map (·.statement.claims.sphincs)).flatten)
   /-- At most `MAX_RECURSIONS` children (`Batch.maxRecursions`, `lean_ethereum.py`). -/
   atMostSixteenChildren : witness.children.length ≤ Batch.maxRecursions
   /-- At most `2^17` claims in the children's lists, in all. -/
@@ -216,14 +204,14 @@ a bound `M ≤ 2^64 - 1` on the children's count: an adversary of `QA` queries t
 outputs a proof; the probability that the batching's verifier over `π` (Keccak-256 the sponge over
 `π`) accepts it while its stream begins with fewer than `M` children of the bytecode's shapes one
 of whose claims is false is at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`,
-for `QA ≤ 2^128` and the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the
-adversary's private coins are free. This is the batching run outside the circuit, with
-Keccak-f[1600] = `π`; it does not compose with the in-circuit statements (`statement.tex`). -/
+for the program's query bound `QV = batchingQueryBound bytecode M ≤ 2^96`; the adversary's private
+coins are free. This is the batching run outside the circuit, with Keccak-f[1600] = `π`; it does
+not compose with the in-circuit statements (`statement.tex`). -/
 def BatchingSound : Prop :=
   ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
     M ≤ 2 ^ 64 - 1 →
     ∀ (adversary : OracleComp Common.RandomPermutationOracles (Unit × Proof)) (QA : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost QA → QA ≤ 2 ^ 128 →
+    Common.QueryCostAtMost adversary Common.permutationCallCost QA →
     batchingQueryBound bytecode M ≤ 2 ^ 96 →
     Pr{let outcome ← Common.runWithRandomPermutation (do
          let output ← adversary

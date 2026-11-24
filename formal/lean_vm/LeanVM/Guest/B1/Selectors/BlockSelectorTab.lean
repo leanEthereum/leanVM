@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«block_selector_tab__L»
 
 /-!
-# `block_selector_tab` (TRIAGE G #49)
+# `block_selector_tab`
 
 `block_selector_tab(digits, eq_tab, g_tab, n)` reads, for each nibble `j` of the
 `n` bits (the last `n - 4j` wide, `w`), its hinted digit `d = g^u` at `digits`, range-checks

@@ -3,7 +3,7 @@
 
   The verifier, the honest prover and the random-permutation experiments with Keccak-256 a call of
   its own, beside the permutation: the form the proofs reason in. The statement's are over the
-  permutation alone (`Statement/LeanVmVerifier.lean`, `Statement/LeanVm.lean`), Keccak-256 the
+  permutation alone (`Statement/Verifier/`, `Statement/LeanVm.lean`), Keccak-256 the
   sponge over it; `LeanVM.Protocol.WithHashBridge` proves them these with the sponge for the hash.
 -/
 

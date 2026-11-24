@@ -713,8 +713,8 @@ theorem mem_channel_sound (h : SatisfiedBy prog input w) :
 
 /-- The same for the bytecode pair, in the strong form: every pulled entry is the public
 program's at the pulled counter (from `SatisfiedBy.bytecode_rows`), which implies the
-pull's guarantee, that it decodes, and is what `constraintSoundness` joins to `execute` by
-`execute_of_step`. -/
+pull's guarantee, that it decodes, and is what `opRecs_step` joins to `execute` by
+`step_of_fetch_eq_some`. -/
 theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →

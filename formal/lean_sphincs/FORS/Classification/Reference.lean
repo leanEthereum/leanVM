@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Secrets
-public import FORS.Classification.Signature
 
 @[expose] public section
 
@@ -17,8 +16,6 @@ namespace FORS.Security.ReferenceChoice
 variable [Params]
 open Concrete Completeness Prefix
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local irreducible] firstEncoding encodingAttemptLimit Seeded.forsKey
 
 def dummyWord : Encoding := fun _ => ⟨2, by decide⟩

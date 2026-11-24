@@ -1,11 +1,9 @@
 module
 
+public import FORS.Scheme.Domains
 public import FORS.Statement
 public import FORS.Scheme.Correctness
-public import FORS.Scheme.RandomOracle
-public import FORS.Scheme.Search
 public import FORS.Classification.Tree
-public import FORS.Scheme.Domains
 
 @[expose] public section
 
@@ -26,7 +24,6 @@ variable [Params]
 open Completeness
 
 attribute [local instance] Classical.propDecidable
-set_option backward.isDefEq.respectTransparency false
 
 def Bad (targets : HashInput → Finset Digest) (cache : QueryCache HashSpec) : Prop :=
   ∃ input answer, cache input = some answer ∧ truncateHash answer ∈ targets input

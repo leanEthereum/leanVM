@@ -18,7 +18,7 @@ proved on the restriction of a memory to the regions a function's honest words l
 relation loading from those regions (`relIn_of_rel_supp`). A pure function's valid tree reads what
 its memory holds (`eqns_read_pure`), so its relation on such a reader is placed anywhere, of one
 size, on every memory extending it (`relAtIn_uniform_of_supp`). Also the `filterMap`s of events
-over appends (`calls_append`, `allocs_append`, ...) and `mem_calls_taken`.
+over appends (`calls_append`, `allocs_append`, ...).
 -/
 
 namespace LeanVM.Guest.Memory

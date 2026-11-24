@@ -7,13 +7,13 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import LeanVM.Guest.Value.Tower
 
 /-!
 # A query's fold, algebraically
 
-`foldRow` (`Statement/LeanVmVerifier.lean`) folds adjacent lanes `(f, g)` to `g + t·f`,
+`foldRow` (`Statement/Verifier/Whir.lean`) folds adjacent lanes `(f, g)` to `g + t·f`,
 `t = α + β·x`. The guest (`opening_query`) folds the same way round by round, so its round `j`'s
 outputs are the Spec's lanes after `j + 1` rounds, and its last lane is the Spec's
 (`guestFold_eq`, `guestFold_value`).

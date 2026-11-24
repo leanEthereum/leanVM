@@ -45,10 +45,7 @@ theorem bgs_lt : ∀ j < 9, bgs j < bgs (j + 1) := by decide +kernel
 theorem bgsC_lt : ∀ j < 6, bgsC j < bgsC (j + 1) := by decide +kernel
 
 theorem bgs_zero : bgs 0 = 0 := rfl
-theorem bgs_nine : bgs 9 = 54 := rfl
 theorem bgsC_zero : bgsC 0 = 0 := rfl
-theorem bgsC_six : bgsC 6 = 45 := rfl
-
 theorem runHeads_keysP : (Hints.runHeads (Hints.runGroups 0 none keysP)).length = 9 ∧
     (Hints.runHeads (Hints.runGroups 9 none keysP)).length = 9 := by decide +kernel
 

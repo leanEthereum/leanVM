@@ -110,8 +110,6 @@ theorem kBytes_eq (a : K) : K.toBytes a = leBytes (kToNat a) 8 := by
 /-- The number a cell's two low limbs hold. -/
 def cellNat (x : E) : Nat := kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)
 
-theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := (a.toBitVec).isLt
-
 theorem cellNat_lt (x : E) : cellNat x < 2 ^ 128 := by
   have h0 := kToNat_lt (x.limb 0)
   have h1 := kToNat_lt (x.limb 1)
@@ -258,20 +256,10 @@ theorem cellNat_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat128 n) = 
   have := Nat.mod_add_div n (2 ^ 64)
   omega
 
-theorem cellBytes_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat128 n) = leBytes n 16 := by
-  rw [cellBytes_eq_leBytes, cellNat_eOfNat128 h]
-
 /-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs`): `lo`, `hi`
 from bit 32, the type and step byte from bit 56; its high eight bytes are zero. -/
 def tweakNat (f : LeanXmss.TweakFields) : Nat :=
   f.lo.toNat + 2 ^ 32 * f.hi.toNat + 2 ^ 56 * (f.step ++ f.tag).toNat
-
-theorem tweakNat_lt (f : LeanXmss.TweakFields) : tweakNat f < 2 ^ 64 := by
-  have h1 := f.lo.isLt
-  have h2 := f.hi.isLt
-  have h3 := (f.step ++ f.tag).isLt
-  unfold tweakNat
-  omega
 
 /-- **An address's bytes are those of its packed number.** -/
 theorem addressBytes_eq (f : LeanXmss.TweakFields) :

@@ -19,7 +19,7 @@ function's own valuation `σ` and the frame map `V`, reading words only. `open_s
 per level, read off the frames of its `level_queries` dispatches' `opening_queries` calls and the
 caps' cells; it is defined with the template of the body (`Whir/Witness.lean`).
 
-`OpenOutW` is `OpenOut` at given words and openings. `open_stacked_sound_w_SpecP P osW`: in the
+`OpenOutW`: what a call establishes, at given words and openings. `open_stacked_sound_w_SpecP P osW`: in the
 program `P` (`InterfaceAt.lean`: at `coreProgram`), under a call
 relation `C ≤ Rel` unfolding at `V`, a valuation `σ` holding the size's body on the arguments
 `rateSel r :: fs ++ [target, root0, root1, cur, tabs]`, the window tables at `tabs`, gives
@@ -33,9 +33,9 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-! ## `OpenOut` at given words and openings -/
+/-! ## What a call establishes, at given words and openings -/
 
-/-- **`OpenOut` at the words `xs` and the openings `os`.** -/
+/-- **What a call establishes, at the words `xs` and the openings `os`.** -/
 def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur : E)
     (rets : List E) (xs : List E) (os : List (List Opening)) : Prop :=
   ∃ (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
@@ -45,12 +45,6 @@ def OpenOutW (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cu
     ∃ pt pt1 : E, rets = [w.target, pt, pt1, w.inner, w.residual] ∧
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
       ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
-
-theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E} {target cur : E}
-    {rets xs : List E} {os : List (List Opening)} (h : OpenOutW rd μ r root fs target cur rets xs os) :
-    OpenOut rd μ r root fs target cur rets := by
-  obtain ⟨w, s', roots', h1, h2, h3, h4⟩ := h
-  exact ⟨xs, os, w, s', roots', h1, h2, h3, h4⟩
 
 /-! ## The statement -/
 

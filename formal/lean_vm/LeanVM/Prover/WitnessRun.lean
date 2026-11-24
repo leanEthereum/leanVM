@@ -20,7 +20,7 @@ public import Statement.LeanVm
 `stepsFrom_eq`: the run through the indices is `run`, its steps those of the states the run
 passes through (`stepOf`). `runSteps_eq`: the run of a trace that ends in the final state gives the
 steps of its first `t.steps` states, whose skeletons are the run's (`runSkels_eq_steps`), and
-`opCount` counts them as `Execution.opcodeCount` does (`opCount_runSteps`). `checkTrace_iff`: the
+`opCount` counts them as `Execution.opcodeCount` does (`opCount_traceSteps`). `checkTrace_iff`: the
 check is a valid execution within the cap.
 -/
 

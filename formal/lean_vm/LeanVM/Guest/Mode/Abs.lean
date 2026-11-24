@@ -614,8 +614,6 @@ noncomputable def stepHints (A : Abs) : List Hint → Option Abs
   | [] => some A
   | h :: hs => (stepHint A h).bind (stepHints · hs)
 
-/-! ## Cases on an exponent -/
-
 /-! ## Calls -/
 
 /-- An exponent read off the entry cells `es`: a constant, or an entry cell's. -/

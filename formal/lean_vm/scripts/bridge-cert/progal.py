@@ -1,6 +1,6 @@
 """The deployed guest's alignment by index (`LeanVM/Guest/Bridge/ProgAlData.lean`, `ProgAl/*.lean`).
 
-Reads each function's alignment context off the checks `align.py` writes (`Bridge/Align/*.lean`,
+Reads each function's alignment context off the contexts `align.py` writes (`Bridge/Align/*.lean`,
 `Bridge/AlignCtx/*/Ctx.lean`): its hint-only cells and its callees with their entries. Writes them as
 tables by compiled index (`Bridge.alignExtras`, `Bridge.alignCallees`, the callees by index), and per link
 module of `Guest/Checked` (whose `code`, `core`, `cert` and `plumbEq` equations it reuses) each function's
@@ -26,7 +26,7 @@ CTX1 = re.compile(r'def Fn\.«([^»]+)»\.alignCtx : Bridge\.AlignCtx := Bridge\
 
 
 def contexts():
-    """Each function's hint-only cells, callees by name and the module proving its check."""
+    """Each function's hint-only cells, callees by name and the module of its context."""
     out = {}
     for p in sorted(glob.glob(os.path.join(BR, 'Align', '*.lean'))):
         mod = f'LeanVM.Guest.Bridge.Align.«{os.path.basename(p)[:-5]}»'
@@ -37,6 +37,12 @@ def contexts():
         for m in CTX.finditer(open(p, encoding='utf-8').read()):
             out[m.group(1)] = (m.group(2), m.group(4), f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ok')
     return out
+
+
+def align_ok(ctx_mod):
+    """The module proving the check of the functions whose context `ctx_mod` holds: `core-mode/pair.py`'s, from their
+    pairings, by the bridge's pack (a function with a context of its own apart)."""
+    return 'LeanVM.Guest.CoreMode.AlignOk.«' + ctx_mod.split('.Align.«')[-1].split('.AlignCtx.«')[-1].split('»')[0] + '»'
 
 
 def links():
@@ -133,9 +139,7 @@ end LeanVM.Guest.Bridge
     for mod, js in sorted(groups.items()):
         # the tables' entries (`Tab*`, what the core route's data reads) apart from the alignment checks
         tmod = 'Tab' + mod[len('Link'):]
-        imps = {f'LeanVM.Guest.Bridge.ProgAl.{tmod}'} | {ctxs[lk[j][0]][2] for j in js}
-        # a long function's pass, checked in windows from the core route's pairing states (`core-mode/pair.py`)
-        imps |= {f'LeanVM.Guest.CoreMode.AlignOk.«{lk[j][0]}»' for j in js if '.AlignCtx.«' in ctxs[lk[j][0]][2]}
+        imps = {f'LeanVM.Guest.Bridge.ProgAl.{tmod}'} | {align_ok(ctxs[lk[j][0]][2]) for j in js}
         body, tbody = [], []
         # the glue naming the callees' entries (`Fn.«k».entry`)
         glue = sorted({PACK[c] for j in js for c in re.findall(r'Fn\.«([^»]+)»\.entry', ctxs[lk[j][0]][1])})
@@ -210,7 +214,7 @@ end
 end LeanVM.Guest.Bridge.ProgAl
 ''')
     existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
+    stale = genfiles.sync(data.quiet(files), existing, check)
     print(f'bridge-cert: the alignment of {len(lk)} functions over {len(groups)} link modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)
 

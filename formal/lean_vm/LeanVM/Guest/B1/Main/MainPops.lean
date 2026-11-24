@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 
 * `Stmt.popS`, `spliceS`: a straight block's skeleton of entries, a witness hint's or a frame's callee's, and its entries with the callees' spliced in; `splice_straight`: a straight block's events splice as its skeleton;
 * `mBlocks_popS`: `main`'s blocks' skeletons, by the kernel;
-* `mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst`: `main`'s entries, its callees' given; `main_pops`: a node of `main` at a valuation with `main`'s honest values pops them.
+* `mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst`: `main`'s entries, its callees' given; `mPath_popS`: the skeleton of `main`'s path at a valuation with its honest values.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -179,13 +179,6 @@ theorem main_spliceS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : M
   by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0 <;>
     simp only [a, b, ↓reduceIte, List.cons_append, List.nil_append, List.append_nil,
       spliceS, List.headD_cons, List.tail_cons, w1, w2, w3, w4]
-
-/-- **`main`'s node pops its entries**, at a valuation with `main`'s honest values, its callees popping theirs. -/
-theorem main_pops {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m) {bufs : List ℕ}
-    {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
-    (hk : Tree.popsKids coreProgram rd ks = mainKidPops m pe px ps p0 p1 p2 p3 pd p5 pa pst) :
-    (Memory.Tree.node "main" σ bufs ks).pops coreProgram rd = mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
-  rw [Tree.pops_node find_main (walk_main σ), splice_mEvs, hk, main_spliceS hnd hnc hv]
 
 end
 end LeanVM.Guest.B1.Main

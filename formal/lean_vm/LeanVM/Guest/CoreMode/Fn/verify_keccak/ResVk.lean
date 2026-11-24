@@ -8,7 +8,9 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStL
-public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 

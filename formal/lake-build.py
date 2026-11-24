@@ -204,12 +204,18 @@ def header_imports(path: Path) -> list[str]:
 
 
 def source_files(pkg: Path) -> dict[tuple[str, ...], list[str]]:
-    """The imports of each file of the package and of its path dependencies, by its path's parts (a dependency's
-    from its parent, so `Statement/X.lean` is `Statement.X`)."""
+    """The imports of each file of the package and of its path dependencies, theirs included, by its path's parts (a
+    dependency's from its parent, so `Statement/X.lean` is `Statement.X`)."""
     files = {}
-    deps = [Path(r["path"]) for r in tomllib.loads((pkg / "lakefile.toml").read_text(encoding="utf-8")).get("require", [])
-            if "path" in r] if (pkg / "lakefile.toml").exists() else []
-    for src, base in [(pkg, pkg), *(((pkg / d).resolve(), (pkg / d).resolve().parent) for d in deps)]:
+    deps, todo = [], [pkg.resolve()]
+    while todo:
+        config = todo.pop() / "lakefile.toml"
+        for r in tomllib.loads(config.read_text(encoding="utf-8")).get("require", []) if config.exists() else []:
+            dep = (config.parent / r["path"]).resolve() if "path" in r else None
+            if dep and dep != pkg.resolve() and dep not in deps:
+                deps.append(dep)
+                todo.append(dep)
+    for src, base in [(pkg, pkg), *((d, d.parent) for d in deps)]:
         for root, dirs, names in os.walk(src):
             dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("target", "node_modules")]
             for name in names:

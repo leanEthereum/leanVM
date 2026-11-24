@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 `vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2335`), packing and copy.
 `vt_evals_fs`: from the last round's sponge, the 153 words absorbed leave the sponge whose
-capacity permutation `j` reads; `vt_evals`: the public input's challenge `rm` is the squeeze after
+capacity permutation `j` reads; `vt_pi` (`Vt/Pi.lean`): the public input's challenge `rm` is the squeeze after
 them, the returned capacity the sponge after it.
 -/
 

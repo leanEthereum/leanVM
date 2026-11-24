@@ -20,10 +20,6 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 `do let bus ← verifyBusBalance computedBytecodeValue layout; tablePhase layout bus`, from the commitment's doom
 (`Seam.commit` on the candidates) to the table seam on the wire (`TablePost`). It needs the table phase's
 identities (`TableFid`) for every read of the right shape.
-
-`commitDoom_hdoom`: at the verifier's layout, the commitment's doom (`CommitDoom`) is the bus
-phase's: at the sizes the layout was built from (`verifierLayout_injective`), no candidate of the
-committed word, as an oracle of the leanISA instance (`candsOf`), satisfies `M3Holds`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -90,16 +86,6 @@ open LeanVM.Protocol.LeanIsa
 
 variable (prog : LeanIsaProgram) (s : Sizes) (input' : PublicInput)
 
-/-- The candidates of a committed word as oracles of the instance. -/
-def candsOf (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
-    Set (∀ i, TheOracle (leanIsaInstance prog s) i) :=
-  (fun q ↦ fun _ ↦ q) '' EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W
-
-/-- The candidates of the history's first commitment, read on the layout's stack. -/
-def candsL (ρ : ℕ) (A : ℕ → ℕ → ℕ) (h : List Ev) : Set (Column (verifierLayout prog s).stackLog) :=
-  {q | ∃ W, firstWord h = some W ∧
-    toI prog s q ∈ EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W}
-
 /-- Every opcode table has a push block, at its row count. -/
 theorem exists_pushBlock (s : Sizes) (t : Fin 6) :
     ∃ b ∈ Complete.pushBlocks s, b.owner = t.val ∧ b.rows = s.rows t := by
@@ -134,15 +120,6 @@ theorem verifierLayout_injective {s s' : Sizes}
   have : r = r' := funext hr
   subst this
   rfl
-
-/-- **The commitment's doom is the bus phase's**: at the sizes the layout was built from, no
-candidate oracle satisfies `M3Holds`. -/
-theorem commitDoom_hdoom (A : ℕ → ℕ → ℕ) (ρ : ℕ) (h : List Ev)
-    (hD : CommitDoom prog input' A (verifierLayout prog s, ρ) h) :
-    HDoom (candsOf prog s ρ A) (Seam.commit (leanIsaInstance prog s)) input' h := by
-  obtain ⟨s', W, hs, hW, hq⟩ := hD
-  obtain rfl := verifierLayout_injective prog hs.symm
-  exact ⟨W, hW, by rintro _ ⟨q, hq', rfl⟩ hin; exact hq q hq' hin⟩
 
 end LeanIsa
 

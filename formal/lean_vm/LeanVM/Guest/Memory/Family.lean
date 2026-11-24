@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.StaticVec
 public import LeanVM.Guest.Memory.Walk
 public import LeanVM.Guest.Memory.GuestCallees
 public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.CoreNames
 
 /-!
 # Certificate families
@@ -20,11 +21,12 @@ A family gives each function of the guest's core IR, by index, a certificate and
 The kernel checks it in ranges of functions, walking the function list once per range
 (`RangeOk`: `walkOk` over `(coreProgram.drop a).take n`), never indexing it; ranges join
 (`RangeOk.append`) into the whole program. A call site names its callee: `calleeIdx j g` finds it
-among function `j`'s callees by index (`Data.calleesJ`), its name read off `Data.nameT`, both
-generated (`Memory/GuestCallees`) and checked once (`FamilySound.calleeIdx_spec`), so no check
-encodes a name. `lookV` and `lookS`, `omLookS` look the certificates and weights up by it; the
-checks of a vector family (`chkV`, the instruction counts by opcode) and of a scalar one
-(`chkS`, the words) are `chkFnV` and `chkFn` with them.
+among function `j`'s callees by index (`Data.calleesJ`), comparing its name's encoding (`encS`) with
+theirs (`Data.encT`), both generated (`Memory/GuestCallees`) and checked once (`calleeIdx_spec`,
+`Memory/CalleeIdx.lean`): the kernel compares numbers where it would decode strings. `lookV` and
+`lookS`, `omLookS` look the certificates and weights up by it; the checks of a vector family
+(`chkV`, the instruction counts by opcode) and of a scalar one (`chkS`, the words) are `chkFnV` and
+`chkFn` with them.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -37,9 +39,13 @@ open LeanVM.Guest.Core LeanVM.Guest
 def RangeOk (chk : ℕ → Fn → Bool) (a n : ℕ) : Prop :=
   walkOk chk a ((coreProgram.drop a).take n) = true
 
+/-- The index of function `j`'s callee whose name encodes to `e`. -/
+def calleeIdxE (j e : ℕ) : Option ℕ :=
+  (Data.calleesJ j).find? fun k => (Data.encT.find k).any (Nat.beq · e)
+
 /-- The index of function `j`'s callee `g`. -/
 def calleeIdx (j : ℕ) (g : String) : Option ℕ :=
-  (Data.calleesJ j).find? fun k => decide (Data.nameT.find k = some g)
+  calleeIdxE j (encS g)
 
 /-- A vector family's certificates of function `j`'s callees, by name. -/
 def lookV (cert : ℕ → CertV) (j : ℕ) (g : String) : CertV :=

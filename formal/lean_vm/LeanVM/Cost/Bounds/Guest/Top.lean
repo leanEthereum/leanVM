@@ -134,8 +134,8 @@ theorem nodeWitnessOf_cost (hP : Includes P Decoder.nodeWitnessOfC.costDeps) (c 
 
 /-- **The counts the witness reads off `main`'s valuation `σ` bounded** (`K`, `N`, `X` at most
 `2^34`): at most `K` children, each region at most `N` slots, at most `X` declared claims and
-`X` raw signatures of each scheme. Every `σ` meets it at `2^34` (`gLogD_lt`); a valid run at `16`, `65535`, `65535`
-(`Bounds/Guest/Valid.lean`). -/
+`X` raw signatures of each scheme. Every `σ` meets it at `2^34` (`gLogD_lt`); a valid run at `16`,
+`2^κ`, `2^κ` (`valid_counts`, `Bounds/Guest/Valid.lean`). -/
 structure CountsWithin (D : DiscreteLogTables) (σ : Val) (K N X : ℕ) : Prop where
   kidsBound : K ≤ 2 ^ 34
   slotsBound : N ≤ 2 ^ 34
@@ -301,7 +301,7 @@ prices, the signatures' readers' `WX`, `WS` given. -/
 
 /-- **The guest decoder's witness** (`decWitNC`), the logarithm's tables `D` and the readers'
 tables `Tb` given, the leanSPHINCS reader `wS` of price at most `WS`, `da_verify`'s witness at its
-frame at most `DW` (`dvWitN_cost` at `S = F + 9`), the counts within `K N X`, each child's cursor
+frame at most `DW` (`dvWitN_cost_maxRows` at `S = F + 9`), the counts within `K N X`, each child's cursor
 length (at `verify_sub`'s frame of its arguments, `subArgsK`) at most `L`: at most
 `decWitNPrice G R S F C L DW WS K N X`. -/
 theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabsOK Tb)

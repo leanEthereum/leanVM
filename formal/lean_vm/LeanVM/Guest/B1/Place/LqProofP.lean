@@ -18,11 +18,11 @@ public import LeanVM.Guest.B1.Opening.CapPlacedE
 /-!
 # `level_queries`, placed with its pops
 
-`LqProof`'s proof with `kidsFromInP_of_kidsD` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
+`LqProof`'s proof with `kidsFromInP_of_kidsEP` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtEP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
 
-* `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
-* `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);
-* `lq_placedEP`, `level_queries_completeAtEP`, `level_queries_completeAtP`: every entry of `lqTable`.
+* `LqAtEP`: `level_queries` at an entry of `lqTable`, placed, popping `lqCapE` then `oqPops` of its `q` queries, by a
+  tree of exactly `lqN` words (`toE`);
+* `lq_placedEP`, `level_queries_completeAtEP`: every entry of `lqTable`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -35,27 +35,8 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
-/-- **`level_queries` at an entry of `lqTable`, placed, with its pops**: `LqAtD`, its tree popping the honest cap
-and flags (`lqCapE`), then its `q` queries' rows and walks' children (`oqPops`). -/
-def LqAtDP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  let s := lqOqS base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s cd rounds hsv qs rows sibs q →
-    LqCaps s cd q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtDP fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
-        lam ^ q])
-      (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
-
-/-- **`LqAtDP` by a tree of exactly `lqN` words.** -/
+/-- **`level_queries` at an entry of `lqTable`, placed, popping `lqCapE` then `oqPops` of its `q` queries, by a tree
+of exactly `lqN` words.** -/
 def LqAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
   let s := lqOqS base folds leaf d cd mu nhs hbits fin
@@ -77,12 +58,6 @@ def LqAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name 
 section
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String}
   {q base folds leaf d cd mu nhs hbits fin : ℕ}
-
-theorem LqAtEP.toDP (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
-    LqAtDP fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
-  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg hmem ↦
-    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg
-      hmem).toDP
 
 theorem LqAtEP.toE (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
     LqAtE fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
@@ -473,13 +448,6 @@ theorem level_queries_completeAtEP (fs : String → ℕ) (cert : String → V �
   intro e he
   obtain ⟨hoq, hQ, hN, hodd, hcd1, hcd8, hK, hpw⟩ := lqTable_facts e he
   exact lq_placedEP fs cert (lqTable_ok e he) (oq_mem_of_entry hoq) hQ hN hodd hcd1 hcd8 hK hpw
-
-/-- **`level_queries` is complete placed with its pops at every specialization.** -/
-theorem level_queries_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    ∀ e ∈ lqTable,
-      LqAtDP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
-        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 :=
-  fun e he ↦ (level_queries_completeAtEP fs cert κ e he).toDP
 
 end
 end LeanVM.Guest.B1

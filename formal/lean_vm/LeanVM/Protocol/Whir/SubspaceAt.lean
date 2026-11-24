@@ -6,7 +6,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import LeanVM.Protocol.Whir.Subspace
 
 /-!

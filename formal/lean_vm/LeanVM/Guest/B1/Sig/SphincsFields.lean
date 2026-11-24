@@ -204,7 +204,7 @@ theorem pw_eq {s : Nat} (hs : s < 128) : pw s = coordBasis s := by
   · rw [Nat.div_eq_of_lt (Nat.pow_lt_pow_right (by norm_num) h)]
   · obtain ⟨t, rfl⟩ : ∃ t, s = 64 + t := ⟨s - 64, by omega⟩
     rw [show 64 + t - 64 = t by omega, pow_add, Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64),
-      ← ofBits_mod (2 ^ 64 * 2 ^ t), Nat.mul_mod_right]
+      ← K.ofBits_mod (2 ^ 64 * 2 ^ t), Nat.mul_mod_right]
 
 /-- **A word times `2^s`**: below the limb's top, the bit pattern `2^s · v`. -/
 theorem pw_mul {s v : Nat} (hs : s < 128) (h : 2 ^ (s % 64) * v < 2 ^ 64) :
@@ -473,7 +473,7 @@ theorem mdPlaces_limbs (i0 : Nat) : ∀ n, mdPlaces i0 n =
     E.ofLimbs (mdPlacesLimb i0 0 n) (mdPlacesLimb i0 1 n)
   | 0 => by
       show (0 : E) = E.ofLimbs 0 0
-      rw [← word_zero, word, ofBits_zero]
+      rw [← word_zero, word, K.ofBits_zero]
   | n + 1 => by
       rw [mdPlaces_succ, mdPlaces_limbs i0 n, mdPlace_limbs, ofLimbs_add]
       rfl

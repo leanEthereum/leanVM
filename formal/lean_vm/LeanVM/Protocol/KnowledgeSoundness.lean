@@ -37,9 +37,9 @@ def transcriptExtractor : StraightLineExtractor := Extraction.AS.transcriptExtra
 /-- An extractor that returns whatever a knowledge-sound extractor returns is knowledge sound. -/
 theorem KnowledgeSoundness.of_imp {E₁ E₂ : StraightLineExtractor}
     (h : ∀ prog input T proof t, E₁ prog input T proof = some t → E₂ prog input T proof = some t)
-    (h₁ : KnowledgeSoundness E₁) : KnowledgeSoundness E₂ := fun A Q hQ hcap ↦
+    (h₁ : KnowledgeSoundness E₁) : KnowledgeSoundness E₂ := fun A Q hQ ↦
   (prEvent_mono _ _ _ fun _ ho ↦ ⟨ho.1, fun ⟨t, ht, hv⟩ ↦ ho.2 ⟨t, h _ _ _ _ _ ht, hv⟩⟩).trans
-    (h₁ A Q hQ hcap)
+    (h₁ A Q hQ)
 
 /-- **Knowledge soundness holds** (in the random-permutation model), for `transcriptExtractor`. -/
 theorem knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor :=

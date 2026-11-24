@@ -120,8 +120,8 @@ end M3Instance
 
 /-! ## Seam statements -/
 
-/-- What the bus phase hands on, in the shape of leanVM's `BusVerify`: the point `ζ` the bus
-phase ended at, the forms it built per side (push, pull, count) and sumcheck table, their
+/-- What the bus phase hands on, in the shape of the Rust verifier's `BusResult`: the point `ζ`
+the bus phase ended at, the forms it built per side (push, pull, count) and sumcheck table, their
 totals per side, and the boundary columns' claims. -/
 structure BusOut (I : M3Instance) where
   /-- The point, on the sumcheck tables' variables. -/

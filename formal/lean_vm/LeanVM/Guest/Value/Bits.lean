@@ -15,7 +15,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 /-!
 # Bits, counts and logs
 
-A count `n` is the g-power `gen ^ n` (`Statement/LeanVmVerifier.lean`'s `gpow`), an
+A count `n` is the g-power `gen ^ n` (`Statement/Verifier/Multilinear.lean`'s `gpow`), an
 integer word its bit pattern `eOfNat n`. The guest moves between the two with hinted bits
 (`hint_decompose_bits`, `hint_decompose_bits_exponent`, `zkDSL.md` §Hints), which it pins by
 booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruction:
@@ -25,14 +25,10 @@ booleanity (`b * b == b`, or the write-once `bits[i] = b * b`) and a reconstruct
 * `prod_bitE_gen_pow`: `Π (1 + b_j·(g^(2^j) + 1))` is `g` to the bits' integer
   (`g_power_of_word`; `log2_ceil_in_the_exponent`; `column_selector`, a nibble at a time),
   and `gen_pow_inj` (the order of `g`, `Parameters.Generator`) makes that integer the exponent
-  (`bits_of_exponent`, for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`,
-  and `bits_of_exponent_shift` for bits pinned in the exponent and weighed over the coordinate
-  basis;
-* `rangeCheck_sound`: the ISA's range check in the exponent (`zkDSL.md` §Range checks) means
-  `x = g^e` with `e < k` (`LogLt`), and `gen_pow_div_eq` reads a range-checked quotient
-  `log(a / b) < k` as `a = b + c`;
+  (for `hint_decompose_bits_exponent`); together, `g_power_of_word_spec`, for bits pinned in the
+  exponent and weighed over the coordinate basis;
 * `log2Ceil_certified` and `verify_log2_ceil_sound`: `verify_log2_ceil`'s two bounds
-  pin its hinted log to `max floor (log2Ceil W)` (`Statement/LeanVmVerifier.lean`, `log2Ceil`).
+  pin its hinted log to `max floor (log2Ceil W)` (`Statement/Verifier/Multilinear.lean`, `log2Ceil`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -220,11 +216,6 @@ theorem g_power_of_word_spec {n : ℕ} (hn : n ≤ 63) {b : ℕ → E} (hb : ∀
   rw [hbits j hj]
   cases N.testBit j <;> simp [bitE]
 
-/-! ## The range check in the exponent -/
-
-/-- `assert log(x) < k` (`zkDSL.md` §Range checks): `x` is `g^e` with `e < k`. -/
-def LogLt (x : E) (k : ℕ) : Prop := ∃ e < k, x = gen ^ e
-
 /-! ## `log2Ceil`, certified by its two bounds (`verify_log2_ceil`) -/
 
 theorem log2Ceil_le_iff {W L : ℕ} : log2Ceil W ≤ L ↔ W ≤ 2 ^ L := by
@@ -267,7 +258,7 @@ log `L < 64` range-checked above `floor`, the guest's two products
 `high · low = 0` and `high · (W + 2^L) = 0`, and, unless `L` is the floor (or zero),
 `(low' + W)·(W + 2^(L-1)) ≠ 0`, pin `L` to `max floor (log2Ceil W)`. Here
 `low = E(W mod 2^L)` and `low' = E(W mod 2^(L-1))` are the guest's prefix sums `psum_buf[g^L]`,
-`psum_buf[g^(L-1)]` (`bitsVal_mod`), and `high = low + E(W)`. -/
+`psum_buf[g^(L-1)]`, and `high = low + E(W)`. -/
 theorem verify_log2_ceil_sound {W L floor : ℕ} (hW : W < 2 ^ 64) (hL : L < 64) (hfl : floor ≤ L)
     (h2 : (eOfNat (W % 2 ^ L) + eOfNat W) * (eOfNat W + eOfNat (2 ^ L)) = 0)
     (h3 : L ≠ floor → L ≠ 0 →

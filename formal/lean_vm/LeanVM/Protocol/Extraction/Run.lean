@@ -15,19 +15,18 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The halting search, proved
 
-* `gLogIn_powIndex`, `gLogC_eq`: on at most `2^63` words (`κ < 64`), the index lookup is `addressIndex?`
+* `gLogIn_powIndex`: on at most `2^63` words (`κ < 64`), the index lookup is `addressIndex?`
   (the powers `g^i`, `i < 2^κ < 2^64 − 1`, are distinct, and so are their lanes).
-* `stepIn_powIndex`, `stepC_eq`, `runC_eq`: the step and the run through the indices are `step`
-  and `run`.
+* `stepIn_powIndex`: the step through the indices is `step`.
 * `haltLoop_eq_some_iff`: the search from `r` returns `m` exactly when the run reaches the final
   state from `r` in `m − n ≤ fuel` steps.
 * `run_final_unique`: a run reaches the final state after at most one number of steps (it halts
   there). `haltingRun_eq_some_iff`: so `haltingRun` returns that number.
 * **`haltingRunC_eq_haltingRun`**: when every halting run fits the cap, the capped search is
-  `haltingRun`. `haltingRunC_sound`: what the capped search returns, `haltingRun` returns.
-* `boundaryOK_iff`: the Boolean boundary is `HoldsPublicInput`. **`candidateExecution_valid`**,
-  **`candidateExecutionIn_valid`**: what a stack's execution is, is a valid execution, for every
-  stack and every layout.
+  `haltingRun`. `haltingRunC_eq_some_iff`: the capped search returns the halting run of at most
+  `cap` steps.
+* `boundaryOK_iff`: the Boolean boundary is `HoldsPublicInput`. **`candidateExecution_valid`**:
+  what a stack's execution is, is a valid execution, for every stack and every layout.
 * `run_injective`: a halting run never repeats a state (from the repeat it would reach the final
   state before its end, and halt there).
 
@@ -284,15 +283,6 @@ theorem candidateExecution_valid {prog : LeanIsaProgram} {input : PublicInput} {
     exact lt_of_le_of_lt h2 (by norm_num)
   obtain ⟨n, rfl, -, hn⟩ := (haltingRunC_eq_some_iff hκ).mp hr
   exact ⟨hB, hn⟩
-
-/-- **A stack's execution, with the extractor's indices, is valid**: with the indices of the
-memory's and the bytecode's address spaces, it is `candidateExecution`. -/
-theorem candidateExecutionIn_valid {prog : LeanIsaProgram} {input : PublicInput}
-    {layout : Verifier.Layout} {μ : ℕ} {q : Vector K (2 ^ μ)} {t : Execution prog}
-    (h : candidateExecutionIn (powIndex layout.logMemory) (powIndex prog.logSize) prog input
-      layout q = some t) :
-    ValidExecution prog input t :=
-  candidateExecution_valid h
 
 /-! ## 5. A halting run never repeats a state -/
 

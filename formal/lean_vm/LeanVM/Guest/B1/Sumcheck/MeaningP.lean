@@ -25,7 +25,7 @@ return words, the Fiat-Shamir sponge as the guest carries it (`Fs`, `B1/Common/S
 
 Each round's `fs_grind_squeeze` grinds `ROUND3_GRIND_BITS`, `ROUND5_GRIND_BITS`,
 `ROUND2_GRIND_BITS` bits, all zero as deployed (`grindingBits` of a degree at most `8`): its
-challenge is a plain squeeze (`Fs.grindSqueeze_zero`), and the window table `tabs` each takes is
+challenge is a plain squeeze (`Fs.grindSqueeze`), and the window table `tabs` each takes is
 not read.
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7`) holds a

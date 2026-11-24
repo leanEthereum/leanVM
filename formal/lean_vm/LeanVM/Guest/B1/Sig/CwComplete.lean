@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.Shifts
 * `hintKeep_complete`: a hint completes keeping the valuation;
 * `rangeS_complete`: a range check of `g^k`, `k < K ≤ n`, completes on a memory of `n` words;
 * `holdsArms_of`, `match_complete`: a dispatch completes by its arm;
-* `groupT_complete`: a group of digits `k`, its arm's starts kept.
+* `groupD_complete`: a group of digits `k`, its arm's starts kept.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -160,19 +160,6 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
     (armStart_mem W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
       (armB W first n fold prodIn encIn b k) ht) (.n j) (by rw [← ej]; exact List.mem_singleton_self _),
     he4'.apply (Or.inr (by omega))]
-
-/-- **A group completes**, its digits `k` hinted. -/
-theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
-    (hc : GoodStable B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
-    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hB : B ≤ b) (hpi : NBv B prodIn)
-    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (σ : Val) (hg : good σ)
-    (hb : σ (.n b) = ofK (addressOfIndex k)) :
-    Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
-      (fun σ' => σ' (.n b) = ofK (addressOfIndex k) ∧
-        ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) :=
-  (groupD_complete (pre := []) hW hc hn hk hm le_rfl (by omega) rfl hpi hei (hpw _) σ
-    (fun σ' he _ => hc _ _ (fun j hj => (he.agree j (by omega))) hg) hb).mono le_rfl le_rfl
-    (fun _ h => ⟨h.1, h.2.1⟩)
 
 end
 end LeanVM.Guest.B1.Sig

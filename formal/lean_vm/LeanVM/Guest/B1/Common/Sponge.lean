@@ -15,7 +15,7 @@ import LeanVM.Protocol.WithHash
 /-!
 # The sponge the guest carries
 
-The verifier's transcript (`Statement/LeanVmVerifier.lean`, `Sponge`, `absorb`, `squeeze`, `duplex`) is a
+The verifier's transcript (`Statement/Verifier/Transcript.lean`, `Sponge`, `absorb`, `squeeze`, `duplex`) is a
 duplex over Keccak-f[1600]: a state of 25 lanes and up to four waiting scalars, each with a tag.
 The guest (`guests/lean_ethereum.py`, G below, its Fiat-Shamir section)
 carries between permutations only the capacity, the cells `8..12` of the last permutation's
@@ -38,7 +38,7 @@ waiting scalars:
 * `Fs.nonceState s n`, `Fs.grindSqueeze s bits n`, `Fs.GrindOk s bits n`: a grind of `bits` then
   a challenge (`fs_grind_squeeze`): the permutation that absorbs the nonce `n`, its challenge and
   capacity, and its proof of work passing (`runsTo_grindSample`, `Common/Run.lean`);
-* `runId`: the deployed reading of a Spec program (`Compile.run` at `keccak256`, `keccakF`);
+* `runId`: the deployed reading of a Spec program (`Compile.run` at `keccak256`, `keccakF1600`);
 * `RunsTo p s xs a s'`: from any sponge the guest carries as `s`, the Spec program `p` reads
   exactly the stream words `xs`, returns `a` and leaves a sponge the guest carries as `s'`, on any
   rest of the stream, openings and roots; `RunsToG` ends, and `RunsFromG` starts, at a ground
@@ -102,9 +102,6 @@ def squeezeN : ℕ → Fs → List E × Fs
   | 0, s => ([], s)
   | n + 1, s => ((s.squeeze.1 :: (squeezeN n s.squeeze.2).1), (squeezeN n s.squeeze.2).2)
 
-/-- The cells a `KECCAK` can read: five capacity cells, at most four waiting. -/
-def Ok (s : Fs) : Prop := s.cap.length = 5 ∧ s.pend.length ≤ rateScalars
-
 /-- The Spec's sponge `sp` is the one the guest carries as `s`: no grind's challenge waits. -/
 def Carries (s : Fs) (sp : Sponge) : Prop :=
   capOf sp.state = s.cap ∧ sp.pending = s.pend ∧ sp.ground = none
@@ -128,8 +125,6 @@ def grindSqueeze (s : Fs) (bits : ℕ) (n : E) : E × Fs :=
 zero (`powOk`), or there is no grind. -/
 def GrindOk (s : Fs) (bits : ℕ) (n : E) : Prop :=
   bits = 0 ∨ powOk bits (Keccak.lane (s.nonceState n) 2) = true
-
-theorem grindSqueeze_zero (s : Fs) (n : E) : s.grindSqueeze 0 n = s.squeeze := rfl
 
 theorem grindSqueeze_pos (s : Fs) {bits : ℕ} (h : bits ≠ 0) (n : E) :
     s.grindSqueeze bits n = (challengeOf (s.nonceState n), ⟨capOf (s.nonceState n), []⟩) := by

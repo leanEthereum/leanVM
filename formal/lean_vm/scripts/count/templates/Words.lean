@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Count.Static
 public import LeanVM.Guest.Memory.GuestCalleesOk
+import LeanVM.Guest.Memory.CalleeIdx
 
 /-!
 # Words by name
@@ -19,7 +20,7 @@ run's one phantom frame apart (`wSKt_totalLeOn`), and `wSK f` with that frame ch
 iteration (`0` otherwise). `wOkB j f` (`wOkK j f`) checks that core function `j` is `f` and its certificate is a
 constant (a loop's per iteration); then `wSB_totalLe` (`wSK_totalLeOn`) bounds `f`'s words.
 `wNameIdx f` is the core index of function `f`, by its name's `encS` (`wNameT`) and checked
-against `Data.nameT`, and `wIdx f` the same or `0`, for the checks that range over names; a loop
+against `Data.encT`, and `wIdx f` the same or `0`, for the checks that range over names; a loop
 helper is named by `idx%` (`Guest/CoreRef.lean`).
 -/
 
@@ -59,12 +60,16 @@ def certLoopB : Cert → Bool
   | .loop endc pre b _ => endc.isNone && pre.isEmpty && b.cs.isEmpty
   | _ => false
 
-/-- Core function `j` is `f`. -/
-def wNameB (j : ℕ) (f : String) : Bool := Nat.blt j NFNS && decide (Data.nameT.find j = some f)
+/-- Core function `j` is `f`, by the name's encoding. -/
+def wNameB (j : ℕ) (f : String) : Bool := Nat.blt j NFNS && (Data.encT.find j).any (Nat.beq · (encS f))
 
 theorem wNameB_spec {j : ℕ} {f : String} (h : wNameB j f = true) : (coreProgram[j]?).map Fn.name = some f := by
-  simp only [wNameB, Bool.and_eq_true, Nat.blt_eq, decide_eq_true_eq] at h
-  exact Data.nameT_spec (by rw [coreProgram_length]; exact h.1) h.2
+  simp only [wNameB, Bool.and_eq_true, Nat.blt_eq] at h
+  have hk : j < coreProgram.length := by rw [coreProgram_length]; exact h.1
+  rcases he : Data.encT.find j with _ | e
+  · simp [he] at h
+  · have hb : e = encS f := Nat.eq_of_beq_eq_true (by simpa [he] using h.2)
+    rw [List.getElem?_eq_getElem hk, Option.map_some, encS_inj ((Data.encT_spec hk he).trans hb)]
 
 /-- Core function `j` is `f`, its words certificate constant. -/
 noncomputable def wOkB (j : ℕ) (f : String) : Bool := wNameB j f && certConstB (wcertJ j)

@@ -34,7 +34,7 @@ syntax "fa%[" term,* "]" : term
 
 macro_rules
   | `(fa%[$hs,*]) => do
-    -- the names resolved where the term is written (`Mode/CertDefs.lean`'s), not here
+    -- the names resolved where the term is written (`CoreMode/CertDefs.lean`'s), not here
     let cons := Lean.mkIdent `LeanVM.Guest.Mode.fa_cons
     let mut t ← `($(Lean.mkIdent `LeanVM.Guest.Mode.fa_nil))
     for h in hs.getElems.reverse do t ← `($cons $h $t)

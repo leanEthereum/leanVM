@@ -1,7 +1,7 @@
 import Statement.Data.Bytecode
 import LeanVM.Guest.Code
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.ExpandLemmas
+import LeanVM.Guest.Expand
 import LeanVM.Guest.Interp
 import LeanVMTests.Guest.Programs
 

@@ -921,7 +921,7 @@ theorem allAnyPos_all {α β : Type} {p : α → β → Bool} {gs : List α} {hs
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
-points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `hp1s`);
+points `h`'s cells; a run of constant bounds over its caller's cells too, `h`'s over its ghost slots, `rngLIs`);
 each guarantee of `h` one of `G`'s (cells or points over the arguments and returned words, runs `G`'s or its
 loop's, or one of them extended by its next point, `rngXExt`; a run at a cell's word one of `G`'s over one pointer base,
 `rngQIn`; a pointer fact one such of constant bounds gives, `hpRunIn`); each returned word's monomial of `h` one `G` promises
@@ -1132,13 +1132,6 @@ noncomputable def retVOk (Cf : CFun) (G : Mode.Sig) : Bool :=
 
 /-! ## The shape -/
 
-/-- A straight-line body: atoms and returns. -/
-def straight (body : List Stmt) : Bool :=
-  body.all fun s ↦ match s with
-    | .atom _ => true
-    | .ret _ => true
-    | _ => false
-
 /-- A statement the core route takes: an atom, a branch, a `match`, a return, a call or a conditional
 call. -/
 def ctrlOk : Stmt → Bool
@@ -1272,9 +1265,45 @@ def trieNil {α : Type} : Exec.Trie α → Bool
   | .nil => true
   | _ => false
 
-/-- No callee's signature at an offset of the function past its entry. -/
-def sigsOut {α : Type} (sigs : Exec.Trie α) (entry len : ℕ) : Bool :=
-  (List.range len).all fun o ↦ Nat.beq o 0 || (sigs.get (entry + o)).isNone
+/-- Every key of a trie holding a value passes `p`: by the recursor, over the trie's nodes (the key of
+the left child of key `m` is `2m + 1`, of the right `2m + 2`). -/
+noncomputable def keysAll {α : Type} (t : Exec.Trie α) : (ℕ → Bool) → Bool :=
+  Exec.Trie.rec (motive := fun _ ↦ (ℕ → Bool) → Bool) (fun _ ↦ true)
+    (fun v _ _ al ar p ↦ (v.isNone || p 0) && al (fun m ↦ p (2 * m + 1)) && ar (fun m ↦ p (2 * m + 2))) t
+
+theorem keysAll_get {α : Type} : ∀ {t : Exec.Trie α} {p : ℕ → Bool} {n : ℕ} {v : α}, keysAll t p = true →
+    t.get n = some v → p n = true
+  | .nil, _, _, _, _, h => by simp at h
+  | .node w l r, p, n, v, hk, h => by
+    have hk' : (w.isNone || p 0) = true ∧ keysAll l (fun m ↦ p (2 * m + 1)) = true ∧
+        keysAll r (fun m ↦ p (2 * m + 2)) = true := by
+      simpa [keysAll, Bool.and_eq_true, and_assoc] using hk
+    rw [Exec.Trie.get_node] at h
+    split at h
+    · rename_i h0
+      subst h0 h
+      simpa using hk'.1
+    · split at h
+      · rename_i _ h1
+        have := keysAll_get hk'.2.1 h
+        rwa [show 2 * (n / 2) + 1 = n by omega] at this
+      · rename_i h0 h1
+        have := keysAll_get hk'.2.2 h
+        rwa [show 2 * (n / 2 - 1) + 2 = n by omega] at this
+
+/-- No callee's signature at an offset of the function past its entry: no key of `sigs` in
+`(entry, entry + len)`. -/
+noncomputable def sigsOut {α : Type} (sigs : Exec.Trie α) (entry len : ℕ) : Bool :=
+  keysAll sigs fun t ↦ Nat.ble t entry || Nat.ble (entry + len) t
+
+theorem sigsOut_get {α : Type} {sigs : Exec.Trie α} {entry len o : ℕ} (h : sigsOut sigs entry len = true)
+    (ho : o < len) : (Nat.beq o 0 || (sigs.get (entry + o)).isNone) = true := by
+  rcases hg : sigs.get (entry + o) with _ | v
+  · simp
+  · have := keysAll_get h hg
+    simp only [Bool.or_eq_true, Nat.ble_eq] at this
+    obtain rfl : o = 0 := by omega
+    rfl
 
 /-- `main`'s code before its halting pc (any other function: no condition). -/
 def mainOk (Cf : CFun) : Bool :=

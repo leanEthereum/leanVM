@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.Vt.FormsPad
 
 For the row counts `rows` (six of them) and a bytecode of `2^23` words, `layoutOf`'s bytecode
 log-size is `19`, its heights are `vtHt rows`, and each side's blocks are the tables' flushes in
-table order, each at its table's height and row count (`vt_layout_push`, …). The sides' sizes are
+table order, each at its table's height and row count (`vt_layout_blocks`). The sides' sizes are
 the guest's `vtSizesP` (push and pull) and `vtSizesC` (count).
 -/
 

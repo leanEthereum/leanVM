@@ -4,6 +4,19 @@ public import XmssSecurity.Proof.ExpectedQueryCount
 
 @[expose] public section
 
+/-!
+# Potentials along a simulated run
+
+For a stateful oracle implementation, `expectedSimulatedCost` is the expected total of a
+state-dependent per-query cost along a run and `expectedFinal` the expectation of a potential `f` at
+the final state. A potential that each query raises in expectation by at most (at least) the cost,
+on states satisfying an invariant, ends at most (at least) `f s` plus the expected cost
+(`expectedFinal_le`, `expectedFinal_ge`). `const_mul_probEvent_le_expectedFinal` bounds the
+probability of a final event by the potential, and `expectedSimulatedCost_indicator` reads an
+indicator cost as an expected query count. The adversary phase's potentials (`Scan/Phase.lean`)
+go through these.
+-/
+
 open OracleSpec OracleComp ENNReal
 
 namespace XmssSecurity
@@ -164,7 +177,7 @@ theorem expectedSimulatedCost_indicator (predicate : spec.Domain → Prop)
   induction computation using OracleComp.inductionOn generalizing s with
   | pure value => simp
   | query_bind input next ih =>
-      simp only [expectedSimulatedCost_query_bind, expectedSimulatedQueryCount_query_bind, ih]
+      simp only [expectedSimulatedCost_query_bind, expectedSimulatedQueryCount_query_bind_tsum, ih]
 
 theorem const_mul_probEvent_le_expectedFinal (f : σ → ℝ≥0∞) (E : σ → Prop) (c : ℝ≥0∞)
     (hf : ∀ s, E s → c ≤ f s) (computation : OracleComp spec α) (s : σ) :

@@ -137,9 +137,6 @@ theorem sphincsClaimOf_cost (hP : Includes P Decoder.sphincsClaimOfC.costDeps) (
 
 /-! ## The memory's cells -/
 
-theorem length_readCells (rd : Reader) (p : E) (n : ℕ) : (readCells rd p n).length = n := by
-  simp [readCells]
-
 section Reader
 
 variable {rd : Reader} {rdV : MachineValue}

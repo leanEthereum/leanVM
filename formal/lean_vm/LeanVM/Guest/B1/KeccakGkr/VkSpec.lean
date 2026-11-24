@@ -14,7 +14,7 @@ import LeanVM.Protocol.Keccak.Rounds
 # `verify_keccak`'s specification on the carried sponge
 
 * `runsTo_sumcheck3`: `sumcheck v 3 (replicate n none)` is `plainRun` (`keccak_plain_rounds`);
-* `runsTo_keccakLayers`: the layers, one after the other;
+* `runsTo_keccakLayers_nil`, `runsTo_keccakLayers_cons`: the layers, one after the other;
 * `vk_runsTo`: `verifyKeccak` runs, reading the committed outputs' value, the layers' words, the
   three openings' rounds, the word and the slices, once its two checks hold.
 -/
@@ -44,7 +44,7 @@ theorem runsTo_sumcheck3 :
         (runsTo_ret _ _)
       have h3 := h0.bind (f := fun constant ↦ VerifierProgram.readScalars 1 >>= fun tail ↦
         (pure (constant :: (v + sumE tail) :: tail) : VerifierProgram (List E))) h2
-      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, grindingBits_le_eight,
+      simpa (disch := omega) [sumcheckRoundPoly, Fs.absorbAll, Tables.grindingBits_le_eight,
         VerifierProgram.grindProofOfWork] using h3
     set q := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze with hq
     have hs := runsTo_sampleE ((s.absorb c0 dsObserve).absorb c2 dsObserve)

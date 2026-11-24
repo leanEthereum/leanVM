@@ -1,27 +1,25 @@
 module
 
-public import XmssSecurity.Proof.QueryPresence
-public import XmssSecurity.Proof.StatementLemmas
-public import XmssSecurity.Proof.ChainTableUniformity
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.RandomOraclePresampling
-public import XmssSecurity.Proof.HiddenValue
 public import XmssSecurity.Proof.UniformFiniteTable
-public import XmssSecurity.Proof.HonestKeygenRun
 public import XmssSecurity.Proof.TopKeygenFacts
+public import XmssSecurity.Proof.ChainHiddenTable
+public import XmssSecurity.Proof.ChainTrajectory
 
 @[expose] public section
 
 /-!
 # Presampling the chains of key generation
 
-Key generation walks every chain of both layers, so its run equals the run that first computes every
-chain trajectory and then runs key generation from the warmed cache.
+Key generation walks every chain of both layers from its start (`CoversKeyChains`), so a run of it
+equals in distribution the run that first computes one chain's trajectory and then runs key
+generation from the warmed cache (`evalDist_run_eq_chainTrajectory_then`), and likewise for the
+same chain of each key in a list (`evalDist_run_eq_fixedSeedTrajectories_then`). Key generation's
+cache holds each honest chain step's input and no other at its address (`Concrete.keygen_cache_has_chainInput`,
+`Concrete.keygen_cache_chainInput_eq_none_of_ne`).
 -/
 
 open OracleComp OracleSpec ENNReal
-open OracleComp.ProgramLogic
-open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.Concrete.CacheReplay
 
@@ -89,52 +87,6 @@ theorem keyChainWalk_query_cached_in_largerCache
         rw [hprevious]
         exact hle hcached
 
-theorem chainWalk_query_cached_in_largerCache
-    (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (position steps : Nat) (value : Digest) (offset : Nat)
-    (hoffset : offset < steps)
-    (hposition : position + offset < chainLength - 1)
-    (initialCache resultCache largerCache : QueryCache HashSpec) (digest : Digest)
-    (hmem : (digest, resultCache) ∈ support
-      ((simulateQ randomOracle
-        (Concrete.chainWalk parameter leafIndex chain position steps value :
-          OracleComp HashSpec Digest)).run initialCache))
-    (hle : resultCache ≤ largerCache) :
-    ∃ output, largerCache
-      (Concrete.CacheView.chainInput parameter leafIndex chain
-        ⟨position + offset, hposition⟩
-        (Wots.walk (Concrete.CacheView.chainStep largerCache parameter leafIndex chain)
-          position offset value)) = some output := by
-  induction steps generalizing offset initialCache resultCache digest with
-  | zero => omega
-  | succ steps ih =>
-      rw [Concrete.chainWalk, simulateQ_bind, StateT.run_bind,
-        mem_support_bind_iff] at hmem
-      obtain ⟨⟨previous, middleCache⟩, hprefix, hrest⟩ := hmem
-      have hmiddleLe : middleCache ≤ resultCache :=
-        randomOracle_cache_le
-          (if hlast : position + steps < chainLength - 1 then
-            Concrete.chainHash parameter leafIndex chain ⟨position + steps, hlast⟩ previous
-          else pure 0 : OracleComp HashSpec Digest)
-          middleCache (digest, resultCache) hrest
-      by_cases hbefore : offset < steps
-      · exact ih offset hbefore hposition initialCache middleCache previous hprefix
-          (hmiddleLe.trans hle)
-      · have hoffsetEq : offset = steps := by omega
-        subst offset
-        simp only [hposition, ↓reduceDIte] at hrest
-        obtain ⟨output, hcached, _⟩ := tweakableHash_query_cached parameter
-          (.chain leafIndex chain ⟨position + steps, hposition⟩)
-          (Concrete.digestBytes previous) middleCache resultCache digest hrest
-        have hprevious := eval_answerFn_largerCache_eq_of_mem_support
-          (Concrete.chainWalk parameter leafIndex chain position steps value :
-            OracleComp HashSpec Digest)
-          initialCache middleCache largerCache previous hprefix (hmiddleLe.trans hle)
-        rw [eval_chainWalk] at hprevious
-        refine ⟨output, ?_⟩
-        rw [hprevious]
-        exact hle hcached
-
 theorem sequenceFin_component_support_in_largerCache {n : Nat}
     (computation : Fin n → OracleComp HashSpec α) (target : Fin n)
     (initialCache resultCache largerCache : QueryCache HashSpec) (values : Fin n → α)
@@ -166,27 +118,6 @@ theorem sequenceFin_component_support_in_largerCache {n : Nat}
         cases hfinal
         exact ih (fun index => computation index.succ) tailTarget headCache resultCache
           largerCache tail htail hle
-
-/-- A prefix of a chain walk runs inside the walk's run. -/
-theorem RunsBelow.keyChainWalk_prefix {parameter : PublicParameter} {key : ChainKey}
-    {chain : ChainIndex} {position : Nat} {value : Digest} {cache : QueryCache HashSpec}
-    {steps : Nat} (prefixSteps : Nat) (hprefix : prefixSteps ≤ steps)
-    (hrun : RunsBelow (Concrete.keyChainWalk parameter key chain position steps value :
-      OracleComp HashSpec Digest) cache) :
-    RunsBelow (Concrete.keyChainWalk parameter key chain position prefixSteps value :
-      OracleComp HashSpec Digest) cache := by
-  induction steps with
-  | zero =>
-      obtain rfl : prefixSteps = 0 := by omega
-      exact hrun
-  | succ steps ih =>
-      by_cases hsame : prefixSteps = steps + 1
-      · subst hsame
-        exact hrun
-      obtain ⟨beforeCache, afterCache, digest, hmem, hafter⟩ := hrun
-      rw [Concrete.keyChainWalk] at hmem
-      obtain ⟨previous, middleCache, hprevious, _, hmiddleLe⟩ := runsBelow_bind_left hmem
-      exact ih (by omega) ⟨beforeCache, middleCache, previous, hprevious, hmiddleLe.trans hafter⟩
 
 /-- A chain walk that ran below a cache has its every step's input cached there. -/
 theorem RunsBelow.keyChainInput_cached
@@ -381,7 +312,6 @@ theorem keygenChainValueTable_seedsMatch
   intro key
   simp [keygenChainValueTable]
 
-set_option maxRecDepth 10000 in
 theorem Concrete.keygenChainValueTable_edgesMatch
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeygen : keyResult ∈ support
@@ -555,8 +485,8 @@ theorem evalDist_run_eq_chainTrajectory_then {α : Type} (parameter : PublicPara
             (simulateQ randomOracle
               (Concrete.chainTrajectory parameter key chain 0 steps
                 (start key chain))).run initialCache) >>= fun chainResult =>
-          (simulateQ randomOracle computation).run chainResult.2) := by
-      exact (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
+          (simulateQ randomOracle computation).run chainResult.2) :=
+      (evalDist_chainTrajectory_run_cache_eq_keyChainWalk_run_cache parameter key chain 0
         steps (start key chain) initialCache).symm.bind_left _
     _ = _ := by
       simp [map_eq_bind_pure_comp, bind_assoc]
@@ -593,8 +523,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_cons
           parameter start chain steps first.2 keys
         return (first.1 :: rest.1, rest.2)) := rfl
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :
@@ -640,8 +568,6 @@ theorem Concrete.fixedSeedChainTrajectoriesFromCache_support_info
                 (start key chain)) cache first.2 rest.2 first.1 hfirst hfirstCacheLe
           · exact hpairs
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_replay_in_largerCache
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :

@@ -7,14 +7,13 @@ public import Statement.RandomPermutation
 /-!
 # The sponge over byte states
 
-The definitions the proofs of the random-permutation model are written in (formerly part of
-`Statement/RandomPermutation.lean`): the sponge over a permutation of a state `(Dg × E) × C`
-(digest part, rest of the rate, capacity) with a padding and its decoder (`spongeWith`,
-`Padding`); the Keccak state as `200` bytes, `32 + 104 + 64` (`KState`, byte `8i + k` byte `k`
-of lane `i`), its blocks and Keccak-256's padding (`keccakPadding`); the real world of the
-indifferentiability game (`realGame`), the model's oracles on byte states (`KSpecB`,
-`permCallsB`, `runKB`); and the simulator's bookkeeping replayed from a transcript of
-permutation queries (`pathsOf`). The statement's own model is on lanes (`KState` of
+The definitions the proofs of the random-permutation model are written in: the sponge over a
+permutation of a state `(Dg × E) × C` (digest part, rest of the rate, capacity) with a padding and
+its decoder (`spongeWith`, `Padding`); the Keccak state as `200` bytes, `32 + 104 + 64` (`KState`,
+byte `8i + k` byte `k` of lane `i`), its blocks and Keccak-256's padding (`keccakPadding`); the real
+world of the indifferentiability game (`realGame`), the model's oracles on byte states (`KSpecB`,
+`permCallsB`, `runKB`); and the simulator's bookkeeping replayed from a transcript of permutation
+queries (`pathsOf`). The statement's own model is on lanes (`KState` of
 `Statement/RandomPermutation.lean`); `Common/Lanes.lean` relates the two.
 -/
 
@@ -241,8 +240,8 @@ def uInt8EquivFin : UInt8 ≃ Fin 256 where
 
 namespace SufCma
 
-/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`
-(`digestBitVec_extract`); the statement's schemes read Keccak-256's digest so
+/-- **The digest bytes as a bit vector**, little endian: byte `i` is bits `8 i … 8 i + 7`;
+the statement's schemes read Keccak-256's digest so
 (`HashSig.OverPermutation.keccakHash`, `digestBytesEquivBitVec_apply`). -/
 def digestBytesEquivBitVec : DigestBytes ≃ BitVec 256 :=
   (arrayVectorEquivFin UInt8 32).trans <|

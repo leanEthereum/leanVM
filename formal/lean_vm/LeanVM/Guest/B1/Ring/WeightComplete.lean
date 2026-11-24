@@ -16,13 +16,12 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 
 /-!
-# `ring_switch_weight`, placed (TRIAGE G #66)
+# `ring_switch_weight`, placed
 
 On the caller's words, `n < 64` coordinates `zs` at `g^bz`, `ps` (the point's `1 + r'`) at `g^bp`,
-the 64 coefficients `cs` at `g^bc`, `ring_switch_weight` is complete at every frame pointer
-(`rsw_completeAt`): its one callee, `rs_eq_run`, is complete, placed, its chain returned
-(`rs_completeAt`, `RsOut`), and `ring_switch_weight` reads that chain's last row
-(`completeAt_flatG`, the callee's returned buffer), returning
+the 64 coefficients `cs` at `g^bc`, `ring_switch_weight` is complete at every frame pointer:
+its one callee, `rs_eq_run`, is complete, placed, its chain returned (`RsOut`), and
+`ring_switch_weight` reads that chain's last row (`completeAt_flatGB`, the callee's returned buffer), returning
 `ringWeight zs (ps.map (1 + ·)) cs` (`ringWeight_eq`, `rwProd_eq_ringRow`).
 -/
 
@@ -258,7 +257,7 @@ def rswKid (bz bp count : ℕ) (zs ps : List E) : KidG :=
     fun _ ↦ [(bz, zs), (bp, ps)], fun _ ↦ RsOut zs ps count⟩
 
 /-- **`ring_switch_weight`'s honest valuation, placed**: on a memory holding the caller's words and
-the chain `rs_eq_run` returned, what `completeAt_flatG` asks. -/
+the chain `rs_eq_run` returned, what `completeAt_flatGB` asks. -/
 theorem rsw_hσ {bz bp bc count : ℕ} {zs ps cs : List E} (hz : zs.length = count)
     (hp : ps.length = count) (hc : cs.length = 64) (fps : List ℕ) (outs : List (List E × Main.Layout))
     (hl : fps.length = 1) (ho : OutsOk (atAllG [] [rswKid bz bp count zs ps] fps) outs) (rd : Reader)
@@ -340,29 +339,6 @@ theorem rsw_hσ {bz bp bc count : ℕ} {zs ps cs : List E} (hz : zs.length = cou
       omega
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- **`ring_switch_weight` is complete, placed**: on the coordinates, the point and the
-coefficients, at every frame pointer, returning `ringWeight`, `rs_eq_run`'s chain its callee's
-(`rs_completeAt`). -/
-theorem rsw_completeAt (κ : ℕ) {bz bp bc count : ℕ} {zs ps cs : List E} (hcount : count < 64)
-    (hz : zs.length = count) (hp : ps.length = count) (hc : cs.length = 64) :
-    CompleteAtD fs cert κ "ring_switch_weight" [(bz, zs), (bp, ps), (bc, cs)]
-      [ofK (addressOfIndex bz), ofK (addressOfIndex bp), ofK (addressOfIndex bc), gen ^ count]
-      (Returns [ringWeight zs (ps.map (1 + ·)) cs]) := by
-  refine completeAt_flatG (fs := fs) (cert := cert) find_rsw rsw_not_loop κ _ _ _ rsw_body' rsw_flat
-    rsw_addrs rsw_noLoadIte [] (fun _ _ ↦ []) (fun _ _ ↦ .nil)
-    (fun _ ↦ [rswKid bz bp count zs ps]) ?_ ?_
-  · intro fp k hk _ ps'
-    rw [List.mem_singleton] at hk
-    subst hk
-    exact (rs_completeAt κ hcount hz hp).toF
-  · intro fp fps outs hl _ ho rd _ _ hLin hto
-    obtain ⟨h1, h2, σ, h3, h4, h5, h6, h7⟩ := rsw_hσ hz hp hc fps outs hl ho rd hLin hto
-    refine ⟨h1, regionsOk_mono (fun i h ↦ Or.inl h) h2, σ, h3, h4, h5, by rw [rsw_allocs]; rfl,
-      by rw [rsw_allocs]; rfl, h6, fun q hq ↦ ?_⟩
-    obtain ⟨i, hi, h | h⟩ := h7 q hq
-    · exact ⟨i, hi, Or.inl h⟩
-    · exact ⟨i, hi, Or.inr (Or.inr h)⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

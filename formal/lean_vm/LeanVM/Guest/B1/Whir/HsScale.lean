@@ -17,9 +17,8 @@ public import LeanVM.Guest.B1.Opening.NovelEval
 * `ofBits_hsScale_norm`: where the tables hold the roots (`vanishOk v (μ + 1)`) and the fold
   agrees with `hsScaleM`, `hsScale v bits c init` is `init · hsNorm μ bits c`;
 * `hsScale_mid` (`osHsMid`): a mid level's normalizer is `W_μ(β_μ)⁻¹ · hsNorm μ highBits c`,
-  `μ = logCols`, and `highBits ≤ μ + 1` (`hsMid_bits`);
-* `hsScale_final` (`osHsFinal`): the final lane's is `hsNorm yrLog (yrLog + 1) c`, and the final
-  level's tables hold `yrLog + 1` roots (`hsFinal_vanishOk`).
+  `μ = logCols`;
+* `hsScale_final` (`osHsFinal`): the final lane's is `hsNorm yrLog (yrLog + 1) c`.
 
 With `NovelEval.residual_high_eq` and `NovelEval.novelSum_eq_novelEval` these turn the guest's
 `novel_eval` into the verifier's `novelEval`.
@@ -57,13 +56,6 @@ theorem hsScaleOk_mid {m l : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) : 
   simp only [hsScaleOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at h
   exact h.1 l hl
 
-/-- A mid level's high bits are at most `logCols + 1`. -/
-theorem hsMid_bits {m l : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) :
-    (osLv m l).highBits ≤ (osLv m l).logCols + 1 := by
-  have h := hsScaleOk_mid hm hl
-  simp only [hsMidOk, Bool.and_eq_true, decide_eq_true_eq] at h
-  exact h.1
-
 /-- **A mid level's normalizer** (`osHsMid`): `W_μ(β_μ)⁻¹ · hsNorm μ highBits c`, `μ = logCols`. -/
 theorem hsScale_mid {m l c : ℕ} (hm : m < ligNSizes) (hl : l < osNLevels m) (hc : c < (osLv m l).folds) :
     K.ofBits (hsScale (osLv m l).vanish (osLv m l).highBits c
@@ -83,13 +75,6 @@ theorem hsScaleOk_fin {m : ℕ} (hm : m < ligNSizes) : hsFinOk m (osLvFin m) = t
   have h := hsScale_all m hm
   simp only [hsScaleOk, Bool.and_eq_true] at h
   exact h.2
-
-/-- The final level's tables hold `yrLog + 1` roots. -/
-theorem hsFinal_vanishOk {m : ℕ} (hm : m < ligNSizes) :
-    vanishOk (osLvFin m).vanish ((osCfg m).yrLog + 1) = true := by
-  have h := hsScaleOk_fin hm
-  simp only [hsFinOk, Bool.and_eq_true] at h
-  exact h.1
 
 /-- **The final lane's normalizer** (`osHsFinal`): `hsNorm yrLog (yrLog + 1) c`. -/
 theorem hsScale_final {m c : ℕ} (hm : m < ligNSizes) (hc : c < (osCfg m).yrLen + (osLvFin m).folds) :

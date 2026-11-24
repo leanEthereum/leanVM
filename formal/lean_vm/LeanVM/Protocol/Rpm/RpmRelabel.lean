@@ -20,10 +20,10 @@ A uniformly random permutation of the lane states, read on bytes through `stateE
 uniformly random permutation of the byte states: the lazily sampled permutation on lanes
 (`Common.lazyRandomPermutation` at `KState`) is the one on bytes (at `Common.KState`) with its edges read
 on lanes (`lazyPerm_relabel`, `Common/Lanes.lean`). With Keccak-256 over the permutation on lanes being `common`'s sponge
-over it (`keccak256With_rpm`), the experiment `rpmExperiment` (`Statement/LeanVm.lean`) of a
+over it (`keccak256With_rpm`), the experiment `knowledgeSoundnessExperiment` (`Statement/LeanVm.lean`) of a
 deterministic adversary (`detExperiment`, `Coins.lean`) is the real world `Common.realGame2` of the
-transfer game `game` (`detExperiment_evalDistEq`), and so is the
-completeness experiment (`rpmCompleteness_evalDistEq`).
+transfer game `game` (`detExperiment_evalDistEq`), and so is an
+honest computation such as the completeness experiment (`rpmHonest_evalDistEq`).
 -/
 
 namespace LeanVM.Rpm

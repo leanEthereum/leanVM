@@ -1,9 +1,17 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingEventProbability
 public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
 
 @[expose] public section
+
+/-!
+# The unified bad event
+
+`WinningUnifiedBadEventOccurs` is a winning encoding event, a winning chain event whose value was
+revealed, a structural collision (`WinningStructuralCollisionOccurs`) or a top guess. Every
+consistent winning outcome has one (`winning_outcome_has_unifiedBadEvent`): a chain event splits on
+whether its value was revealed, a top event on whether it is a guess.
+-/
 
 open OracleComp OracleSpec
 

@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.Bridge.Program
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 
@@ -18,8 +17,6 @@ open OracleComp OracleSpec
 namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 /-! ## The model key over a table -/
 

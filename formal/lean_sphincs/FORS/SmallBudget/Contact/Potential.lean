@@ -1,6 +1,9 @@
 module
 
 public import FORS.SmallBudget.Contact.Weights
+public import FORS.SmallBudget.Contact.PaidPotential
+public import FORS.SmallBudget.Contact.RevealRate
+public import FORS.SmallBudget.Contact.NearWitness
 
 @[expose] public section
 
@@ -28,10 +31,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open PotentialA
 open FORS.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### Capped expectations -/

@@ -1,14 +1,21 @@
 module
 
-public import XmssSecurity.Proof.Seeded.Erasure
+public import XmssSecurity.Proof.IdealStatement
 
 @[expose] public section
+
+/-!
+# The signer with a table of randomizer bases
+
+`tableSign` reads a request's randomizer base from a table of hash outputs (`RandomizerOutputs`)
+instead of deriving it, then tries `signingAttemptLimit` consecutive randomizers from that base
+against the precomputed key (`tableSignFrom`), and returns `none` unless `Concrete.topSignedAt`
+holds. `tableScheme` is the scheme with this signer, key generation and verification unchanged.
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
-
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable def signRequestEquiv : SignRequest ≃ (LeafIndex × Message) where
   toFun request := (request.leafIndex, request.message)

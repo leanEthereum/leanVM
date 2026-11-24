@@ -14,8 +14,7 @@ public import LeanVM.Guest.Budget.Bounded
 
 `kidsDTB_map`: callees `kf i`, `i ∈ l`, each entered and complete within `B i` by a tree of `True`.
 `kidsBoundL_map`: their bound is `Σ B i`. `callsMatch_map`: their frames match calls `cf i` whose
-arguments are theirs and whose results are none. `regionsOk_map`: each reads within `R`.
-`memL_lins_map`: what they read.
+arguments are theirs and whose results are none.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -67,21 +66,6 @@ theorem outsOk_length (kf : ι → Kid) : ∀ (l : List ι) (outs : List (List E
   | _ :: l, _ :: os, ⟨_, h⟩ => by simp [outsOk_length kf l os h]
   | [], _ :: _, h => h.elim
   | _ :: _, [], h => h.elim
-
-theorem regionsOk_map {R : ℕ → Prop} (kf : ι → Kid) :
-    ∀ (l : List ι) (Dacc : ℕ → Prop) (outs : List (List E × Layout)),
-      (∀ i ∈ l, ∀ j, RegionL (kf i).Lin j → R j) → RegionsOk R Dacc (l.map kf) outs
-  | [], _, _, _ => trivial
-  | _ :: _, _, [], _ => trivial
-  | i :: l, _, _ :: os, h => ⟨fun _ j hj => Or.inl (h i List.mem_cons_self j hj),
-      regionsOk_map kf l _ os fun k hk => h k (List.mem_cons_of_mem _ hk)⟩
-
-theorem memL_lins_map {rd : Reader} (kf : ι → Kid) (l : List ι)
-    (h : ∀ i ∈ l, MemL rd (kf i).Lin) : MemL rd (Kid.lins (l.map kf)) := by
-  intro q hq
-  simp only [Kid.lins, List.flatMap_map, List.mem_flatMap] at hq
-  obtain ⟨i, hi, hq⟩ := hq
-  exact h i hi q hq
 
 end
 end LeanVM.Guest.B1.Da

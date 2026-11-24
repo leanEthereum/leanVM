@@ -8,7 +8,7 @@
 module
 
 import LeanVM.Protocol.Compile.Prog
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
 public import VCVio.OracleComp.Constructions.SampleableType

@@ -1,7 +1,5 @@
 module
 
-public import FORS.LazyRun.FixedRun
-public import FORS.Classification.Reference
 public import FORS.Classification.Hidden
 public import FORS.ScanSigner.FairShare
 
@@ -417,17 +415,13 @@ theorem accepted_full_classification (f : QueryImpl HashSpec Id) (pk : PublicKey
 
 end FORS.Security.SignatureWitness
 
-
 namespace FORS.Security.HiddenBridge
 
 variable [Params]
 
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
-
 
 /-- The structural reference table of a consistent preparation. -/
 noncomputable def graphTable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -557,6 +551,40 @@ theorem rootsMatch_hit (index : Index) (roots : ForsKey) (h : Fors.RootsMatch f 
     rw [Completeness.eval_forsPublicKey] at hroots
     exact hroots
 
+/-- The domain of a FORS node above level `level` of the path of a leaf. -/
+theorem forsDomain_succ (index : Index) (κ : FTree) (leaf : FLeaf) (level : ℕ) (hlevel : level < forsHeight) :
+    Fors.forsDomain index κ (level + 1) (leaf.val / 2 ^ (level + 1)) =
+      HashDomain.forsNode index κ ⟨level, hlevel⟩
+        ⟨leaf.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt leaf.isLt⟩ := by
+  rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
+  congr 2
+  exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt leaf.isLt)
+
+include hconsistent in
+/-- A FORS node match hits at the node's input. -/
+theorem nodeMatch_hit (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening) (κ : FTree)
+    (level : ℕ) (hlevel : level < forsHeight)
+    (h : Fors.NodeMatch f parameter index κ seed (leaves κ) (opening κ).secret (opening κ).path level) :
+    truncateHash (f (merkleInput f parameter (Fors.forsDomain index κ) (leaves κ).val
+        (Fors.extendPath (opening κ).path) (Fors.leafValue f parameter index κ (leaves κ) (opening κ).secret) level)) ∈
+      targets parameter (graphTable f parameter seed labels)
+        (merkleInput f parameter (Fors.forsDomain index κ) (leaves κ).val
+          (Fors.extendPath (opening κ).path) (Fors.leafValue f parameter index κ (leaves κ) (opening κ).secret) level) := by
+  obtain ⟨-, hneq, hout⟩ := h
+  have hcanon : Fors.leafValue f parameter index κ (leaves κ)
+      (Completeness.forsSecretValue f parameter index κ seed (leaves κ)) =
+        Completeness.forsLeafValue f parameter index κ seed (leaves κ) := by
+    rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
+  have hl1 : level + 1 ≤ forsHeight := hlevel
+  rw [hcanon] at hneq hout
+  refine active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
+    ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩) trivial _
+    ⟨_, by simp only [merkleInput]; rw [forsDomain_succ index κ (leaves κ) level hlevel]; rfl⟩ ?_ ?_
+  · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
+    exact hneq
+  · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
+    exact hout
+
 include hconsistent in
 theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : FTree → TreeOpening)
     (h : Fors.Exception f parameter index seed leaves opening) :
@@ -568,7 +596,7 @@ theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : 
       (Completeness.forsSecretValue f parameter index κ seed leaf) =
         Completeness.forsLeafValue f parameter index κ seed leaf := fun κ leaf => by
     rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
-  rcases h with ⟨κ, hne, heq⟩ | ⟨κ, level, hlevel, -, hneq, hout⟩ | hroots
+  rcases h with ⟨κ, hne, heq⟩ | ⟨κ, level, hlevel, hm⟩ | hroots
   · refine ⟨_, queriedInputs_mono_bind_left f _ _ (Fors.leafInput_mem f parameter index leaves opening κ),
       active_hit f parameter seed labels (.fleaf index κ (leaves κ)) trivial _ ?_ ?_,
       ForsSigner.not_msg_tweakable _ _ _ (by rw [bytesLE_length]; omega)⟩
@@ -578,35 +606,25 @@ theorem forsException_hit (index : Index) (leaves : FTree → FLeaf) (opening : 
     · rw [fleaf_value f parameter seed labels hconsistent, ← hcanon, ← heq]
       simp only [Fors.leafValue, forsLeafHash, Completeness.eval_tweakableHash]
       rfl
-  · have hl1 : level + 1 ≤ forsHeight := hlevel
-    rw [hcanon] at hneq hout
-    refine ⟨_, queriedInputs_mono_bind_left f _ _
+  · exact ⟨_, queriedInputs_mono_bind_left f _ _
         (Fors.nodeInput_mem f parameter index leaves opening κ level hlevel),
-      active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
-        ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩)
-        trivial _ ?_ ?_ ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
-    · have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
-          HashDomain.forsNode index κ ⟨level, by omega⟩
-            ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩ := by
-        rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
-        congr 2
-        exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
-      exact ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩
-    · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
-      exact hneq
-    · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
-      exact hout
+      nodeMatch_hit f parameter seed labels hconsistent index leaves opening κ level hlevel hm,
+      merkleInput_not_msg _ _ _ _ _ _ _⟩
   · exact ⟨_, Fors.rootsInput_mem f parameter index leaves opening,
       rootsMatch_hit f parameter seed labels hconsistent index _ hroots,
       ForsSigner.not_msg_tweakable _ _ _ (by rw [rootsPayload_length]; omega)⟩
 
 include hconsistent in
-theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : PublicKey)
+/-- A tree hit is at a queried node input of a layer's tree. -/
+theorem treeHit_input (hboundary : BoundaryCorrect f parameter seed labels) (pk : PublicKey)
     (hparameter : pk.parameter = parameter) (message : Message) (signature : Signature) (j : Nat)
     (h : SignatureWitness.TreeHit f pk seed message signature j) :
-    ∃ input ∈ SignatureWitness.trace f pk message signature,
-      truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
-        ¬ForsSigner.IsMsgInput input := by
+    ∃ lay tree index path value level,
+      merkleInput f parameter (fun height index => .node lay tree height index) index path value level ∈
+        SignatureWitness.trace f pk message signature ∧
+      truncateHash (f (merkleInput f parameter (fun height index => .node lay tree height index) index path value
+        level)) ∈ targets parameter (graphTable f parameter seed labels)
+          (merkleInput f parameter (fun height index => .node lay tree height index) index path value level) := by
   subst hparameter
   obtain ⟨-, value, -, hrun, hcase⟩ := h
   generalize hlay : layerUp j = lay at hrun hcase
@@ -624,7 +642,7 @@ theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : 
     exact merkleInput_mem f pk.parameter _ leaf.val path value (layerHeight lay) level hlevel
   rcases hcase with ⟨reference, hreference, level, hlevel, hparent, hne, hout⟩ |
     ⟨hlaytop, level, hlevel, ⟨hlower, hpositive, hsurrogate⟩, haddress⟩
-  · refine ⟨_, hmem level hlevel, ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
+  · refine ⟨_, _, _, _, _, _, hmem level hlevel, ?_⟩
     have hpos := active_hit f pk.parameter seed labels
       (treePosition lay tree (level + 1) (hlevel.trans_le (layerHeight_le lay))
         ⟨reference.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt reference.isLt⟩)
@@ -654,7 +672,7 @@ theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : 
     have htop : tree = rootTree := by
       rw [← htree]; exact Completeness.treeIndexAt_top _
     subst htop
-    refine ⟨_, hmem (level - 1) (by omega), ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
+    refine ⟨_, _, _, _, _, _, hmem (level - 1) (by omega), ?_⟩
     have hlevel' : level < maxLayerHeight := hlevel.trans_le (layerHeight_le _)
     have hentry := PrunedGraph.referenceTable_surrogate pk.parameter (otsSecrets f pk.parameter seed)
       (ftsSecrets f pk.parameter seed) (surrogates f pk.parameter seed) labels topLayer rootTree
@@ -673,6 +691,17 @@ theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : 
     rw [← hinput]
     exact hsurrogate
 
+
+include hconsistent in
+theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : PublicKey)
+    (hparameter : pk.parameter = parameter) (message : Message) (signature : Signature) (j : Nat)
+    (h : SignatureWitness.TreeHit f pk seed message signature j) :
+    ∃ input ∈ SignatureWitness.trace f pk message signature,
+      truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
+        ¬ForsSigner.IsMsgInput input := by
+  obtain ⟨_, _, _, _, _, _, hmem, hhit⟩ :=
+    treeHit_input f parameter seed labels hconsistent hboundary pk hparameter message signature j h
+  exact ⟨_, hmem, hhit, merkleInput_not_msg _ _ _ _ _ _ _⟩
 end Hits
 
 theorem encoding_fields_injective {key key' : OtsKey}

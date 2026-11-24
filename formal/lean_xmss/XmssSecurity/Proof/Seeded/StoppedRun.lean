@@ -5,11 +5,18 @@ public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 
+/-!
+# Runs stopped before a bad query
+
+`stopBefore bad` runs a computation and returns `none` at its first query satisfying `bad`. Under
+`romImpl`, a stopped run that finishes satisfies an event no more often than the full run
+(`probEvent_stopBefore_le`), and the full run's probability is at most the stopped run's plus the
+probability that it stops (`probEvent_le_stopBefore_add_failure`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
-
-set_option backward.isDefEq.respectTransparency false
 
 theorem run'_lift_sample_bind {α β : Type} (computation : ProbComp α)
     (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) :

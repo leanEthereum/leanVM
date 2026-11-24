@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
-# `column_selector` (TRIAGE G #68)
+# `column_selector`
 
 `column_selector(offset, sel_eq, sel_g, κ)` hints the `g`-power digits `g^u_k` of
 `offset`'s exponent's nibbles `κ / 4 .. 7` (`hint_decompose_digits_exponent`) and, for each
@@ -40,9 +40,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-! ## General lemmas -/
-
-/-- The factor of bit `t` of an index: `1 + b·(1 + g^(2^t))`. -/
-def csFactor (b : E) (t : ℕ) : E := 1 + b * (1 + gen ^ 2 ^ t)
 
 theorem prod_range_four_blocks {M : Type} [CommMonoid M] (F : ℕ → M) (B : ℕ) : ∀ m : ℕ,
     ∏ k ∈ Finset.range m, ∏ s ∈ Finset.range 4, F (B + 4 * k + s) =
@@ -73,7 +70,6 @@ theorem bitsEq_eq_prod : ∀ {m : ℕ} {bs : List Bool} {zs zs1 : List E}, bs.le
     rw [bitsEq, List.zip_cons_cons, List.zip_cons_cons, List.map_cons, List.prod_cons, ← bitsEq,
       bitsEq_eq_prod h1 h2 h3, Finset.prod_range_succ', mul_comm]
     simp
-
 
 theorem eqLevels_length {zs zs1 : List E} {n : ℕ} (h : zs.length = n) (h1 : zs1.length = n) :
     (eqLevels zs zs1).length = 2 ^ (n + 1) - 2 := by

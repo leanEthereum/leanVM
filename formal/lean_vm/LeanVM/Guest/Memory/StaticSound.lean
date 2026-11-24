@@ -66,7 +66,7 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
       rw [decide_eq_true_eq] at h0
       rw [h0, Parameters.addressOfIndex, g_pow_eq_ofBits h64]
     · rw [decide_eq_true_eq] at h0
-      rw [h0, Pow.gpowW_eq he]
+      rw [h0, Pow.ofBits_gpowN, Pow.gpowW_eq he]
   refine ⟨E.ext fun i => ?_, he⟩
   rw [limb_ofK]
   fin_cases i
@@ -77,19 +77,6 @@ theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e))
 
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
-
-theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ := by
-  induction ρ with
-  | nil => simp [vlookup]
-  | cons q l ih =>
-    intro h
-    simp only [vlookup] at h
-    split_ifs at h with hq
-    · cases h
-      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-      rw [hq.2]
-      exact List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (ih h)
 
 theorem vidx_get {v : V} : ∀ {ps : List V} {k j : ℕ}, vidx v ps k = some j → k ≤ j ∧ ps[j - k]? = some v
   | [], _, _, h => by simp [vidx] at h
@@ -114,7 +101,7 @@ theorem cls_pow (hρ : EnvOk σ ρ) {v : V} {e : ℕ} (h : cls ρ ps v = .pow e)
   split at h
   · rename_i e' he'
     cases h
-    exact hρ _ (lookup_mem he')
+    exact hρ _ (lookupV_mem he')
   · split at h <;> cases h
 
 theorem cls_param (hp : ps.map σ = args) {v : V} {k : ℕ} (h : cls ρ ps v = .param k) :
@@ -142,18 +129,6 @@ def BndOk (σ : Val) (args : List E) (β : BEnv) : Prop :=
 
 /-- The constants and the bounds hold. -/
 def Env2Ok (σ : Val) (args : List E) (ρ : Env × BEnv) : Prop := EnvOk σ ρ.1 ∧ BndOk σ args ρ.2
-
-theorem blookup_mem {β : BEnv} {v : V} {b : Aff} : blookup v β = some b → (v, b) ∈ β := by
-  induction β with
-  | nil => intro h; cases h
-  | cons q l ih =>
-      intro h
-      simp only [blookup] at h
-      split_ifs at h with hq
-      · cases h
-        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-        rw [hq.2]; exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (ih h)
 
 /-- **`logG` of a product by `g^c`**: at most `c` more (a non-power stays one). -/
 theorem logG_mul_le (w : E) (c : ℕ) : logG (w * ofK (addressOfIndex c)) ≤ logG w + c := by
@@ -198,7 +173,7 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
       rw [hg] at h
       simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
       subst h
-      exact ((hρ.2 _ (blookup_mem hb')).1 hg).1
+      exact ((hρ.2 _ (lookupV_mem hb')).1 hg).1
   · split at h
     · rename_i e he
       cases h
@@ -222,7 +197,7 @@ theorem bnd_pow {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ = a
       rw [hg] at h
       simp only [Option.isSome_none, Bool.cond_false, Option.some.injEq] at h
       subst h
-      exact ((hρ.2 _ (blookup_mem hb')).1 hg).2 ha
+      exact ((hρ.2 _ (lookupV_mem hb')).1 hg).2 ha
   · split at h
     · rename_i e he
       exact ⟨e, (cls_pow hρ.1 he).1⟩
@@ -572,7 +547,7 @@ theorem siteBL_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω
     unfold guardB at hgd
     split at hgd
     · rename_i b hb'
-      exact (hρ.2 _ (blookup_mem hb')).2 a0 k hgd
+      exact (hρ.2 _ (lookupV_mem hb')).2 a0 k hgd
     · cases hgd
   have hne : σ (V.n k) ≠ ofK (addressOfIndex a0) := by
     intro h0; rw [h0, CharTwo.add_self_eq_zero] at hgv; exact hc hgv
@@ -839,7 +814,7 @@ theorem guardAtom_ok {ρ : Env × BEnv} {d x y : V} (hρ : Env2Ok σ args ρ) (h
     Env2Ok σ args (guardAtom ks ρ d x y) := by
   unfold guardAtom
   split_ifs
-  · cases hx : vlookup x ρ.1 with
+  · cases hx : lookupV x ρ.1 with
     | none => exact hρ
     | some a =>
       cases hs : selIs y.idx y with
@@ -853,7 +828,7 @@ theorem guardAtom_ok {ρ : Env × BEnv} {d x y : V} (hρ : Env2Ok σ args ρ) (h
           simp only at hg
           rw [hgo] at hg
           cases hg
-          obtain ⟨hxv, -⟩ := hρ.1 _ (lookup_mem hx)
+          obtain ⟨hxv, -⟩ := hρ.1 _ (lookupV_mem hx)
           simp only
           rw [hh, hxv]
           congr 1
@@ -1115,7 +1090,6 @@ variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ks :
 
 theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
   simp [Acc.zero, Acc.add, Aff.add]
-
 theorem addAcc_assoc (a b c : Option Acc) :
     Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
   cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]
@@ -1394,7 +1368,7 @@ theorem defAtom_mul {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.mu
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_mul h
   | .ite .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
@@ -1408,7 +1382,7 @@ theorem defAtom_add {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.ad
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_add h
   | .ite .. :: l, h => defAtom_add (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_add (by simpa [defAtom] using h)
@@ -1422,7 +1396,7 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
   | .atom b :: l, h => by
       simp only [defAtom] at h
       split_ifs at h with hb
-      · cases h; simpa using hb
+      · cases h; simpa [vBeq_iff] using hb
       · exact defAtom_const h
   | .ite .. :: l, h => defAtom_const (by simpa [defAtom] using h)
   | .match_ .. :: l, h => defAtom_const (by simpa [defAtom] using h)

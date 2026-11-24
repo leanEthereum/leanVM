@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 The body is `vkT` (`vk_body`); its sections (`vkHeadT_holds`, the copy loop `verify_keccak_loop0`,
 `vkFirstT_holds`, `vkStepsT_holds`, `vkOutT_holds`, `vkInT_holds`, `vkFinT_holds`) give the sponge
 runs, the reads and the two opening checks (`vk_out_check`, `vk_in_check`), and `vk_runsTo`
-composes them into `keccakSeg`'s run.
+composes them into `verifyKeccak`'s run.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -199,7 +199,7 @@ theorem verify_keccak_holds_of (rd : Reader) (hK : keccak_layer_Spec rd) :
       and_true, true_and]
     ring
 
-/-- **`verify_keccak`** (TRIAGE #53): its core IR computes its meaning on a memory
+/-- **`verify_keccak`**: its core IR computes its meaning on a memory
 image. -/
 theorem verify_keccak_holds {κ : ℕ} (hκ : κ ≤ 32) (hκ' : winTabBits ≤ κ) (L : MemoryImage κ) :
     verify_keccak_Spec L.read :=

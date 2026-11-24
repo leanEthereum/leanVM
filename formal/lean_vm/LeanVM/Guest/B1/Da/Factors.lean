@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.Cell
+public import LeanVM.Guest.B1.Da.Padding
 public import LeanVM.Guest.B1.Da.VectorMath
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_factors__L»
@@ -31,6 +31,20 @@ open LeanVM.Guest.B1.Digest
 @[expose] public section
 
 variable {rd : Reader} {σ : Val}
+
+/-- Atom lists compared, words limb by limb. -/
+def atomsEqb : List Atom → List Atom → Bool
+  | [], [] => true
+  | x :: xs, y :: ys => atomEqb x y && atomsEqb xs ys
+  | _, _ => false
+
+theorem atomsEqb_sound : ∀ {xs ys : List Atom}, atomsEqb xs ys = true → xs = ys
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp [atomsEqb] at h
+  | _ :: _, [], h => by simp [atomsEqb] at h
+  | x :: xs, y :: ys, h => by
+    simp only [atomsEqb, Bool.and_eq_true] at h
+    rw [atomEqb_sound h.1, atomsEqb_sound h.2]
 
 /-- The value of depth `d`'s power. -/
 def facB (d : ℕ) : ℕ := 2 + d + 4 * (2 ^ d - 1)

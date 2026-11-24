@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop2»
 * `armM_c` … `sCodewordT_c`, `sSt_c`, `sStart_c`, `sTip_c`: the codeword with `sW` is the one with
   the clamped step `sWc` (the chains `< 58`, the steps `< 3`, the powers `≤ 12` it uses);
 * `sgState_eq_sSt`: the groups' state, as the soundness proof names it;
-* `armsM_numBelow`, `sGroupArms_numBelow`: a dispatch's values are numbered below its end (the
+* `armsM_numBelow`, `sGroupMatch_numBelow`: a dispatch's values are numbered below its end (the
   tail's arms `≥ 16` are `armT`'s values or fewer);
 * `sGroups_complete`: the dispatches complete in sequence, each by the arm of its honest digits;
 * `sCodewordT_complete`: the codeword completes.

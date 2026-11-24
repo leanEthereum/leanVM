@@ -9,7 +9,9 @@ module
 
 public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.CoreMode.Fam.ResA
-public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoReplay
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.ResT
+public import LeanVM.Guest.CoreMode.Fam.RefAll
 public import LeanVM.Guest.B1.Placement.Certify
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»

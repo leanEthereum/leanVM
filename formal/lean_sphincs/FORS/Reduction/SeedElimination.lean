@@ -24,7 +24,6 @@ open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly 
   GraphView Reduce DetValue
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### Randomizer-derivation inputs -/
@@ -248,9 +247,6 @@ theorem evalDist_rtable_split {β : Type} (F : RTable → ProbComp β) :
   exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 /-! ### One sample -/
-
-noncomputable local instance detLabelsSampleable' : SampleableType CanonicalGraphLabels :=
-  graphLabelsSampleable
 
 theorem preparedCache_randomizer (material : Material) (seed : MasterSeed) (answers : CanonicalGraphLabels)
     (prf : HashOutput) (parameter : PublicParameter) (message : Message) :

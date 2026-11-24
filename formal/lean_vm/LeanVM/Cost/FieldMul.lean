@@ -1,7 +1,7 @@
 module
 
 public import Statement.CostMachine
-public import Statement.Fast.FieldWords
+public import FastFields.FieldWords
 
 /-!
 # The product in `GF(2^64)` on the machine
@@ -12,12 +12,9 @@ This module gives that code and proves it:
 
 * `carryless_eq`: the machine's carry-less product (`carrylessMultiply`, the verifier's
   `carryless`) on two words is CompPoly's `carryLessMul (w := 128)` (the product `BF64.mul`
-  reduces), and below `2^127` (`carryless_lt_two_pow_127`);
+  reduces);
 * `mulKNat a b`: the product of the elements of lanes `a`, `b`, a straight line of primitives,
-  and `mulKNat_eq`: it is `(a * b).lane.toNat`, below `2^64` (`mulKNat_lt`);
-* `mulKTerm i j`: `mulKNat` as a machine term on the environment's positions `i`, `j`, and
-  `evaluateTerm_mulKTerm` (on natural numbers) and `evaluateTerm_mulKTerm_encode` (on encoded
-  `K` elements): its value and **a price of at most `21`**.
+  and `mulKNat_eq`: it is `(a * b).lane.toNat`, below `2^64` (`mulKNat_lt`).
 
 **The reduction** is Barrett's, whose constant `⌊x^128 / P⌋` is the modulus
 `P = x^64 + x^4 + x^3 + x + 1` itself (`0x1000000000000001B`, since `x^128 = (x^64 + T)·P + T²`
@@ -192,10 +189,6 @@ theorem carryless_eq (a b : UInt64) :
   rw [carryless_eq_fold a.toNat b.toNat_lt, carryLessMul_comm, carryLessMul]
   exact (toNat_foldl_carryLessMul b.toBitVec a.toBitVec 64 le_rfl).symm
 
-/-- The carry-less product of two words is below `2^127`. -/
-theorem carryless_lt_two_pow_127 (a b : UInt64) : carryless a.toNat b.toNat < 2 ^ 127 :=
-  carryless_lt (n := 64) (m := 64) a.toNat_lt b.toNat_lt
-
 /-! ## The product by the modulus -/
 
 /-- The product by `x^4 + x^3 + x + 1` (`0x1B`), as shifts. -/
@@ -333,77 +326,6 @@ theorem mulKNat_eq (a b : K) : mulKNat a.lane.toNat b.lane.toNat = (a * b).lane.
 theorem mulKNat_lt (a b : K) : mulKNat a.lane.toNat b.lane.toNat < 2 ^ 64 := by
   rw [mulKNat_eq]
   exact UInt64.toNat_lt _
-
-/-! ## On the machine -/
-
-/-- A number below `2^(64·k)` has at most `k` limbs. -/
-theorem limbCount_le_of_lt_two_pow {n k : ℕ} (hk : 1 ≤ k) (h : n < 2 ^ (64 * k)) :
-    limbCount n ≤ k := by
-  unfold limbCount
-  by_cases h0 : n = 0
-  · subst h0
-    simp [Nat.log2_zero, hk]
-  · have := (Nat.log2_lt h0).mpr h
-    omega
-
-/-- `mulKNat` as a term of the machine, the lanes at positions `i` and `j` of the environment:
-the carry-less product bound once, the rest nested. -/
-def mulKTerm (i j : ℕ) : Term :=
-  .letIn (.primitive .carrylessMultiply [.position i, .position j])
-    (.primitive .bitwiseXor [.position 0, .primitive .carrylessMultiply [
-      .primitive .shiftRight [.primitive .carrylessMultiply [.primitive .shiftRight [.position 0,
-          .literal (.nat 64)],
-        .literal (.nat 0x1000000000000001B)], .literal (.nat 64)],
-      .literal (.nat 0x1000000000000001B)]])
-
-/-- **`mulKTerm` computes `mulKNat` at a price of at most `21`** (see the module docstring). -/
-theorem evaluateTerm_mulKTerm (P : MachineProgram) (n : ℕ) (env : List MachineValue)
-    {i j a b : ℕ} (hi : env[i]? = some (.nat a)) (hj : env[j]? = some (.nat b))
-    (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
-    ∃ c ≤ 21, evaluateTerm P n env (mulKTerm i j) = some (.nat (mulKNat a b), c) := by
-  simp only [mulKTerm, evaluateTerm, evaluateTerms, hi, hj, PrimitiveOperation.apply,
-    linearlyPricedResult, quadraticallyPricedResult, Option.map_some, Option.bind_eq_bind,
-    Option.bind_some, List.getElem?_cons_zero, Option.pure_def]
-  refine ⟨_, ?_, rfl⟩
-  have hP : (0x1000000000000001B : ℕ) < 2 ^ 65 := by norm_num
-  have hp : carryless a b < 2 ^ 127 := carryless_lt (n := 64) (m := 64) ha hb
-  generalize carryless a b = p at *
-  have hh : p >>> 64 < 2 ^ 63 := by
-    rw [Nat.shiftRight_eq_div_pow, Nat.div_lt_iff_lt_mul (by positivity)]
-    exact hp
-  have ht := carryless_lt hh hP
-  generalize carryless (p >>> 64) 0x1000000000000001B = t at *
-  generalize p >>> 64 = h at *
-  have hq : t >>> 64 < 2 ^ 63 := by
-    rw [Nat.shiftRight_eq_div_pow, Nat.div_lt_iff_lt_mul (by positivity)]
-    exact ht
-  have hu := carryless_lt hq hP
-  generalize carryless (t >>> 64) 0x1000000000000001B = u at *
-  generalize t >>> 64 = q at *
-  have hr : p ^^^ u < 2 ^ 127 := Nat.xor_lt_two_pow hp hu
-  have two : ∀ x : ℕ, x < 2 ^ 127 → limbCount x ≤ 2 := fun x hx ↦
-    limbCount_le_of_lt_two_pow (by omega)
-      (lt_of_lt_of_le hx (Nat.pow_le_pow_right (by norm_num) (by omega)))
-  have one : ∀ x : ℕ, x < 2 ^ 64 → limbCount x = 1 := fun x hx ↦
-    le_antisymm (limbCount_le_of_lt_two_pow le_rfl hx) (by unfold limbCount; omega)
-  have := two _ hp
-  have := two _ ht
-  have := two _ hu
-  have := two _ hr
-  have := two 0x1000000000000001B (by norm_num)
-  rw [one _ ha, one _ hb, one 64 (by norm_num), one h (lt_of_lt_of_le hh (by norm_num)),
-    one q (lt_of_lt_of_le hq (by norm_num))]
-  omega
-
-/-- **`mulKTerm` computes the product of two encoded `K` elements at a price of at most
-`21`.** -/
-theorem evaluateTerm_mulKTerm_encode (P : MachineProgram) (n : ℕ) (env : List MachineValue)
-    {i j : ℕ} {a b : K} (hi : env[i]? = some (encodeValue a))
-    (hj : env[j]? = some (encodeValue b)) :
-    ∃ c ≤ 21, evaluateTerm P n env (mulKTerm i j) = some (encodeValue (a * b), c) := by
-  obtain ⟨c, hc, h⟩ := evaluateTerm_mulKTerm P n env (a := a.lane.toNat) (b := b.lane.toNat) hi hj
-    a.lane.toNat_lt b.lane.toNat_lt
-  exact ⟨c, hc, by rw [h, mulKNat_eq]; rfl⟩
 
 end
 

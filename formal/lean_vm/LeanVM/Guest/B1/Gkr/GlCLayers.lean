@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
+import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
@@ -114,9 +115,52 @@ theorem glcFnCheck_sound {f : String} {b : List Stmt} (h : glcFnCheck f b = true
     exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
+/-- `glcLsN`'s index. -/
+def glcLsIdx : ℕ → ℕ
+  | 0 => idx% «gkr_layers__L0»
+  | _ => idx% «gkr_layers__L1»
+
+/-- `glcLsLN`'s index. -/
+def glcLsLIdx : ℕ → ℕ
+  | 0 => idx% «gkr_layers__L0_loop0»
+  | _ => idx% «gkr_layers__L1_loop0»
+
+/-- `glcLastN`'s index. -/
+def glcLastIdx : ℕ → ℕ → ℕ
+  | 0, 0 => idx% «gkr_last_layers__L0_L0»
+  | 0, _ => idx% «gkr_last_layers__L0_L1»
+  | 1, 0 => idx% «gkr_last_layers__L1_L0»
+  | 1, _ => idx% «gkr_last_layers__L1_L1»
+  | 2, 0 => idx% «gkr_last_layers__L2_L0»
+  | 2, _ => idx% «gkr_last_layers__L2_L1»
+  | _, 0 => idx% «gkr_last_layers__L3_L0»
+  | _, _ => idx% «gkr_last_layers__L3_L1»
+
+/-- `glcFnCheck` at function `j`, found by its index (`coreProgram.find?` compares every name on the way). -/
+noncomputable def glcFnCheckAt (j : ℕ) (f : String) (b : List Stmt) : Bool :=
+  match coreProgram[j]? with
+  | some fn => fn.name == f && decide (fn.params = glcPar9) && tbStmtsEqb fn.body b
+  | none => false
+
+theorem glcFnCheck_of_at {j : ℕ} {f : String} {b : List Stmt} (h : glcFnCheckAt j f b = true) :
+    glcFnCheck f b = true := by
+  unfold glcFnCheckAt at h
+  split at h
+  · rename_i fn hj
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    rw [glcFnCheck, coreProgram_find?_at hj h.1.1]
+    simp only [h.1.2, h.2, Bool.and_self]
+  · exact absurd h (by simp)
+
+private theorem glc_layers_checkAt : ∀ o < 2, glcFnCheckAt (glcLsIdx o) (glcLsN o) (glcLsBody o) = true ∧
+    glcFnCheckAt (glcLsLIdx o) (glcLsLN o) (glcLsLBody o) = true ∧
+    ∀ r < 4, glcFnCheckAt (glcLastIdx r o) (glcLastN r o) (glcLastBody r o) = true := by decide +kernel
+
 theorem glc_layers_check : ∀ o < 2, glcFnCheck (glcLsN o) (glcLsBody o) = true ∧
     glcFnCheck (glcLsLN o) (glcLsLBody o) = true ∧
-    ∀ r < 4, glcFnCheck (glcLastN r o) (glcLastBody r o) = true := by decide +kernel
+    ∀ r < 4, glcFnCheck (glcLastN r o) (glcLastBody r o) = true := fun o ho ↦
+  have h := glc_layers_checkAt o ho
+  ⟨glcFnCheck_of_at h.1, glcFnCheck_of_at h.2.1, fun r hr ↦ glcFnCheck_of_at (h.2.2 r hr)⟩
 
 /-! ## Holding -/
 

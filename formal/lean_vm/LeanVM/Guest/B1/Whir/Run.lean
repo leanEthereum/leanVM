@@ -61,11 +61,6 @@ theorem RunsWith.bind' {α β : Type} {p : VerifierProgram α} {f : α → Verif
     (h1 : RunsWith p s xs os1 r0 a s1 r1) (h2 : RunsWith (f a) s1 ys os2 r1 b s2 r2) :
     RunsWith (p.bind f) s (xs ++ ys) (os1 ++ os2) r0 b s2 r2 := RunsWith.bind h1 h2
 
-/-- `RunsTo.bind` on `VerifierProgram.bind`. -/
-theorem RunsTo.bind' {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
-    {s s1 s2 : Fs} {xs ys : List E} {a : α} {b : β} (h1 : RunsTo p s xs a s1)
-    (h2 : RunsTo (f a) s1 ys b s2) : RunsTo (p.bind f) s (xs ++ ys) b s2 := RunsTo.bind h1 h2
-
 theorem RunsWith.of_eq {α : Type} {p : VerifierProgram α} {s s' t t' : Fs} {xs xs' : List E}
     {os os' : List (List Opening)} {r r' q q' : List (Digest × ℕ × ℕ)} {a a' : α}
     (h : RunsWith p s xs os r a t q) (hs : s = s') (hx : xs = xs') (ho : os = os') (hr : r = r')

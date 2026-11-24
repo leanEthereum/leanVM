@@ -9,11 +9,11 @@ public import Common.Indiff.Support
 
 The combined game's two views answer alike as long as two things have not happened:
 
-* **a visible collision** (`CState.bad`): some simulator draw — a fresh answer, forward or
-  inverse — has a capacity already visible (`knownC`): the initial capacity, or a capacity of
+* **a visible collision** (`CState.bad`): some simulator draw (a fresh answer, forward or
+  inverse) has a capacity already visible (`knownC`): the initial capacity, or a capacity of
   either end of an earlier simulator edge;
-* **a hidden collision** (`EC`): the value of a *hidden* path — a prefix of a hashed message's
-  padding that the simulator has not rooted — has the capacity of a visible state or of another
+* **a hidden collision** (`EC`): the value of a *hidden* path (a prefix of a hashed message's
+  padding that the simulator has not rooted) has the capacity of a visible state or of another
   hidden path's value.
 
 `Inv` is the invariant of the combined game: unconditional bookkeeping facts (`Struct`), and,

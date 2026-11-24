@@ -1,6 +1,7 @@
 module
 
 public import FORS.SmallBudget.SampleEvents
+public import FORS.LargeBudget.Covers
 
 @[expose] public section
 
@@ -19,9 +20,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
@@ -114,7 +112,6 @@ theorem small_realFF (x qh q N ρ B c M : ℝ) (hx0 : 0 ≤ x) (hxq : x ≤ qh) 
     linarith
   linarith
 
-set_option maxRecDepth 100000 in
 /-- **The small-budget bound in closed form**, with the two cap terms of the scan signer. -/
 theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh) (hqh : qh ≤ 2 ^ 127)
     (hN : signatureLimit ≤ 2 ^ 70) (ρ : ℝ) (hρ : 0 ≤ ρ) (B c : ℚ) (hB : 0 ≤ B) (hc : 0 ≤ c)

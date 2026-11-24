@@ -14,8 +14,7 @@ public import LeanVM.Guest.B1.Whir.CHonFinRun
 On `hR : HonRun μ r … w cfg Ls`, at `h := hdOf μ r Ls`: the run's terminal `w` is the guest's
 (`finEnd_w` at the final level): its target the closing claim plus the deficit times the tail
 challenges (`target_eq`), its inner sum the glued claims' weights (`inner_eq`), its residual the
-final lane at the tail challenges (`residual_eq`), its point the rotated challenges (`point_eq`);
-`μ` is the folds and the closing rounds (`mu_eq`).
+final lane at the tail challenges (`residual_eq`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -31,9 +30,6 @@ variable {μ r : ℕ} {target : E} {S : KeccakState} {root : Digest} {xs : List 
   {os : List (List Opening)} {w : WhirEnd} {cfg : List Whir.Level} {Ls : List LvAt}
   (hR : HonRun μ r target S root xs os w cfg Ls)
 include hR
-
-/-- `μ` is the folds and the closing rounds. -/
-theorem mu_eq : μ = (osCfgR (μ - minOpenLog) (r - 1)).nFolds + (osCfgR (μ - minOpenLog) (r - 1)).yrLog := hR.cand.1.symm
 
 /-- **The terminal, in the honest data's terms.** -/
 theorem end_eq :
@@ -77,10 +73,6 @@ theorem inner_eq :
 theorem residual_eq :
     w.residual = multilinearEval ((hdOf μ r Ls).Lf.fw.fold.take (hdOf μ r Ls).c.yrLen) (hdOf μ r Ls).T :=
   hR.end_eq.2.2.1
-
-theorem point_eq :
-    w.point = rotPt (hdOf μ r Ls).G (hdOf μ r Ls).T ((osCfgR (μ - minOpenLog) (r - 1)).levels.headD default).folds :=
-  hR.end_eq.2.2.2
 
 end HonRun
 

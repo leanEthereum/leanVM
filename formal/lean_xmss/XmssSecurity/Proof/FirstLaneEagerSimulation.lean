@@ -1,11 +1,23 @@
 module
 
 public import XmssSecurity.Proof.FirstLaneOracleSimulation
-public import XmssSecurity.Proof.EncodingOracleSimulation
 public import XmssSecurity.Proof.RevealProbeOracleSimulation
 public import XmssSecurity.Proof.CappedEncodingMonitor
+public import XmssSecurity.Proof.EncodingActionTrace
 
 @[expose] public section
+
+/-!
+# The first-lane oracle, simulated eagerly
+
+`eagerTraceImpl` answers the first-lane oracle `World` with fresh uniform hash outputs for encoding
+queries and signing attempts and with a presampled table for reveals, and logs each encoding and
+chain action as an `ActionTrace`. A trace's hazards are its encoding queries and probes
+(`hazardCount`), at most a computation's bound on `IsHazardQuery`
+(`simulate_eagerTrace_support_hazardCount_le`). `eagerExperiment` samples the table and runs the
+simulation; it hits (`ExperimentHit`, `CombinedHit`) when the capped encoding monitor hits on the
+trace's encoding actions or the reveal-probe monitor on its chain actions.
+-/
 
 open OracleComp OracleSpec
 

@@ -13,6 +13,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Grind
 import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Verifier.KeccakPack
 public import LeanVM.Protocol.Compile.Spec
+import LeanVM.ToMathlib.List
 
 /-!
 # The prover moves of the leanVM verifier
@@ -33,7 +34,7 @@ the follower of a return right after a proof of work must start with a challenge
 * `Moves.grindBits_le`: on a program whose proofs of work have at most `B` bits, every reachable
   history ends with a proof of work of at most `B` bits.
 
-The instances follow `leanVmVerifierProgram` (`Statement/LeanVmVerifier.lean`)
+The instances follow `leanVmVerifierProgram` (`Statement/Verifier/Lib.lean`)
 phase by phase. Every grind is followed by a challenge: the sumcheck rounds' grinds by the round's
 challenge, the bus's by the slot weights, a GKR step's by its combiner and its `y`, the table
 phase's by `ξ`, the Keccak reduction's by its segment, `s` and `β`, ring switching's by its map,
@@ -685,18 +686,11 @@ theorem moves_whirLevels_le (hB : grindCap ≤ B) (logN laneFolds : ℕ) (evalua
 theorem queryTable_pos : ∀ row ∈ Whir.queryTable, ∀ r ∈ row, ∀ q ∈ r, q ≠ 0 := by
   decide
 
-private theorem getD_mem_or {γ : Type} (l : List (List γ)) (i : ℕ) :
-    l.getD i [] ∈ l ∨ l.getD i [] = [] := by
-  rw [List.getD_eq_getElem?_getD]
-  rcases h : l[i]? with _ | x
-  · exact .inr rfl
-  · exact .inl (List.mem_of_getElem? h)
-
 /-- Every count the table gives a shape is positive. -/
 theorem queryTable_getD_pos (i j : ℕ) : ∀ q ∈ (Whir.queryTable.getD i []).getD j [], q ≠ 0 := by
   intro q hq
-  rcases getD_mem_or Whir.queryTable i with hrow | hrow
-  · rcases getD_mem_or (Whir.queryTable.getD i []) j with hr | hr
+  rcases List.getD_mem_or Whir.queryTable i [] with hrow | hrow
+  · rcases List.getD_mem_or (Whir.queryTable.getD i []) j [] with hr | hr
     · exact queryTable_pos _ hrow _ hr q hq
     · rw [hr] at hq; simp at hq
   · rw [hrow] at hq; simp at hq
@@ -778,11 +772,6 @@ theorem moves_computedBytecodeValue_le {g : ℕ → Prop} (w : List K) (p : List
     Moves g False (fun _ ↦ True) (fun _ ↦ False) (computedBytecodeValue w p v) :=
   (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
 
-theorem moves_claimedBytecodeValue_le {g : ℕ → Prop} (claim : BytecodeClaim) (w : List K)
-    (p : List E) (v : E) :
-    Moves g False (fun _ ↦ True) (fun _ ↦ False) (claimedBytecodeValue claim w p v) :=
-  (Moves.require _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) (fun _ h ↦ h)
-
 /-- **The leanVM verifier program's moves**, every grind at most `B` bits where every layout the
 sizes can build has its bus grind at most `B` bits. -/
 theorem moves_leanVmProgram_le (hB : grindCap ≤ B) (bytecode : List K) (publicInput : Digest)
@@ -862,10 +851,6 @@ theorem moves_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (computedBytecodeValue w p v) :=
   moves_computedBytecodeValue_le w p v
 
-theorem moves_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
-    Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (claimedBytecodeValue claim w p v) :=
-  moves_claimedBytecodeValue_le claim w p v
-
 end Phases
 
 /-- **The leanVM verifier program's moves.** -/
@@ -873,13 +858,6 @@ theorem moves_leanVmProgram (bytecode : List K) (publicInput : Digest) :
     Moves G64 True (fun _ ↦ True) (fun _ ↦ False) (leanVmVerifierProgram bytecode publicInput) :=
   Moves.seq' (moves_verifyExecution moves_computedBytecodeValue bytecode publicInput) fun _ _ ↦
     Moves.pure trivial
-
-/-- **The deferring verifier program's moves.** -/
-theorem moves_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    Moves G64 True (fun _ ↦ True) (fun _ ↦ False)
-      (deferringVerifierProgram claim bytecode publicInput) :=
-  Moves.seq' (moves_verifyExecution (moves_claimedBytecodeValue claim) bytecode publicInput)
-    fun _ _ ↦ Moves.pure trivial
 
 /-- **A challenge follows every proof of work of the leanVM verifier.** -/
 theorem grindThenSample_leanVmProgram (bytecode : List K) (publicInput : Digest) :

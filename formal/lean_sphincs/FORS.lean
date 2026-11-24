@@ -107,7 +107,6 @@ public import FORS.Classification.Hidden
 public import FORS.Classification.RecoveredFors
 public import FORS.Classification.Reference
 public import FORS.Classification.RefinedEvents
-public import FORS.Classification.RefinedOutcome
 public import FORS.Classification.Signature
 public import FORS.Classification.SignedReveals
 public import FORS.Classification.Targeting
@@ -147,7 +146,6 @@ public import FORS.SmallBudget.Closing
 public import FORS.SmallBudget.ClosingH
 public import FORS.SmallBudget.BridgeH
 public import FORS.SmallBudget.Contact.Bound
-public import FORS.SmallBudget.Contact.HonestBase
 public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.SmallBudget.Contact.PaidPotential
 public import FORS.SmallBudget.Contact.PaidPotentialH

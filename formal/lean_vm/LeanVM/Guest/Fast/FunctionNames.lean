@@ -18,7 +18,7 @@ no function, `Guest/NameIndex.lean`).
 * `nameIndex_decoderFunctionName`: the index of function `j`'s name is `canonIndex j` (`j` on the
   indices, `1` off them), so a frame map keyed by name `V` and one keyed by index agree when the
   latter is `V` re-keyed (`fun j ↦ V (decoderFunctionName j)`) and reads its index through
-  `canonIndex`; `decoderFunctionName_nameIndex`: a function's name is that of its index;
+  `canonIndex`;
 * the readers, their compiled forms (`Cost/Decoder/`) and their costs (`Cost/Bounds/Guest/`) name
   a function by its stable name, `fn_idx% s` (`Guest/CoreRef.lean`), which elaborates to its index
   as a numeral, never by the number itself; `name_*` (`main`'s callees whose witness is read,
@@ -64,20 +64,8 @@ theorem nameIndex_decoderFunctionName (j : ℕ) :
     omega
   · exact nameIndex_main
 
-/-- **A function's name is that of its index.** -/
-theorem decoderFunctionName_nameIndex {f : String} (hf : f ∈ coreProgram.map (·.name)) :
-    decoderFunctionName (nameIndex f) = f := by
-  obtain ⟨g, hg, rfl⟩ := List.mem_map.mp hf
-  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hg
-  have hl := coreProgram_length
-  unfold nameIndex decoderFunctionName
-  rw [findIdx_name_of_nodup coreProgram_names_nodup hi]
-  simp only [isFunctionIndex, show 1 ≤ i + 1 ∧ i + 1 ≤ core_count% by omega, decide_true, Bool.and_self,
-    ↓reduceIte, Nat.add_sub_cancel, List.getD_eq_getElem _ _ hi]
-
 /-! ## The functions the readers name -/
 
-theorem name_main : decoderFunctionName (fn_idx% main) = name% main := by decide +kernel
 theorem name_verify_sub : decoderFunctionName (fn_idx% verify_sub) = name% verify_sub := by
   decide +kernel
 theorem name_xmss : decoderFunctionName (fn_idx% main_loop2) = name% main_loop2 := by decide +kernel

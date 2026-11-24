@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.Batch.Run
 public import LeanVM.Guest.B1.Common.Atoms
 public import LeanVM.Guest.B1.Sumcheck.MeaningP
+import LeanVM.ToMathlib.List
 
 /-!
 # The batching's sponge
@@ -176,9 +177,6 @@ def RowRel (rd : Reader) (p : E) (s : Fs) : Prop :=
       s.pend[k].2 = dsObserve ∧ PackOf s.pend[k].1 (memAt rd p (5 + 2 * k)) (memAt rd p (6 + 2 * k))
     else memAt rd p (5 + 2 * k) = 0 ∧ memAt rd p (6 + 2 * k) = 0
 
-theorem getD_mem {α : Type} {l : List α} {c : ℕ} {d : α} (h : c < l.length) : l.getD c d ∈ l := by
-  rw [List.getD_eq_getElem _ _ h]; exact List.getElem_mem _
-
 theorem list_eq_of_getD {l1 l2 : List E} {n : ℕ} (h1 : l1.length = n) (h2 : l2.length = n)
     (h : ∀ c < n, l1.getD c 0 = l2.getD c 0) : l1 = l2 :=
   List.ext_getElem (by omega) fun c hc1 hc2 => by
@@ -339,9 +337,9 @@ theorem check_facts (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds r
   obtain ⟨⟨⟨⟨h1, h2⟩, hk⟩, hw⟩, hl⟩ := h
   refine ⟨h1, h2, fun k hk' => ?_, fun w hw' => ?_, fun k hk' => hl k (by omega)⟩
   · have hk'' : k < s.ks.length := hk'
-    obtain ⟨⟨a1, a2⟩, a3⟩ := hk _ (getD_mem (d := ([], [])) hk'')
+    obtain ⟨⟨a1, a2⟩, a3⟩ := hk _ (List.getD_mem (d := ([], [])) hk'')
     exact ⟨a1, a2, keccak_sound a3 hat⟩
-  · exact packIn_sound (hw _ (getD_mem (d := default) hw')) hat
+  · exact packIn_sound (hw _ (List.getD_mem (d := default) hw')) hat
 
 /-- A `KECCAK` atom's facts: its outputs are the permutation's cells. -/
 theorem keccak_facts {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)

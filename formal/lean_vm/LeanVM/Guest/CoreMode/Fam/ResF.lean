@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 # The families' shared checks, sound
 
 `topAtoms_on_path`, `topSels_sound`: a top-level atom or selector before any statement that may
-return is on every returning path; so are a witness's (`TopAt.wit`, `witOk`). `powOf_sound`:
+return is on every returning path. `powOf_sound`:
 `powOf w = some e` makes `w = g^e` (`Data.powTree`, checked once). `rcBound_sound`: on a memory of at
 most `2^32` words, a range check against `g^(N - 1)` makes its value `g^e`, `e < N`
 (`B1.Tables.tb_rc_sound'`).
@@ -30,7 +30,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit witOk topAtoms topSels selOf powOf constOf rcBound cellLt holdsBase mulBy inFr eqCells shiftHi shiftB frEx subFamB sideShape sideB sideRead sideIn tabVals numOf frExT mulConst)
+open LeanVM.Guest.Res (Wit topAtoms topSels selOf powOf constOf rcBound)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 

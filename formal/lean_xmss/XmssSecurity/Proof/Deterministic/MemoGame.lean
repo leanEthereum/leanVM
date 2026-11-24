@@ -1,16 +1,25 @@
 module
 
 public import XmssSecurity.Proof.Deterministic.TranscriptReduction
+public import XmssSecurity.Proof.Deterministic.Preparation
 
 @[expose] public section
+
+/-!
+# Memoizing the adversary can only help it
+
+`evaluateSource` runs a computation with a signer under the lazy random oracle from a given cache.
+In the source game, the memoized adversary (`memoAdversary`) wins at least as often as the original
+(`prob_sourceGame_le_memo`): memoizing the whole game keeps its distribution
+(`evalDist_runSigning_memoize`), and a win against the full request log stays a win against the
+forwarded one (`transcriptReduction_win`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 noncomputable def evaluateSource {α : Type} (sign : SignRequest → OracleComp HashSpec (Option Signature))
     (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec) : ProbComp α :=

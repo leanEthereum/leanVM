@@ -12,7 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«index_mle__L»
 
 /-!
-# `index_mle` (TRIAGE G #44)
+# `index_mle`
 
 `index_mle(zeta, n)` multiplies `1 + zeta[g^t]·INDEX_MLE_FACTORS[t]` over `t < n`,
 `INDEX_MLE_FACTORS[t] = 1 + g^(2^t)` (`imFactor_eq`). Its specialization `index_mle__L{n}` is

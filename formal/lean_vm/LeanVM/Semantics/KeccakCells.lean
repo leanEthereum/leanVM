@@ -10,8 +10,8 @@ module
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 /-!
 # The cells of `KECCAK`
@@ -64,7 +64,6 @@ theorem stateLanes_laneState (L : Fin 25 → K) : stateLanes (laneState L) = L :
 
 /-! ## The three facts -/
 
-set_option maxHeartbeats 4000000 in
 /-- **The state the cells hold is the lanes**, whatever the limb holding no lane holds. -/
 theorem stateOfCells_laneCells (L : Fin 25 → K) (odd : Bool) (free : K) :
     stateOfCells (laneCells L odd free) odd = laneState L := by
@@ -75,14 +74,12 @@ theorem stateOfCells_laneCells (L : Fin 25 → K) (odd : Bool) (free : K) :
       laneCells, cellLanes, laneLimb, limb_ofLimbs]
     interval_cases i <;> simp [laneState]
 
-set_option maxHeartbeats 4000000 in
 /-- **The cells `KECCAK` writes** are the cells of the state's lanes, the free limb zero. -/
 theorem cellsOfState_eq_laneCells (S : KeccakState) (odd : Bool) :
     cellsOfState S odd = laneCells (stateLanes S) odd 0 := by
   funext c
   cases odd <;> fin_cases c <;> simp [cellsOfState, laneCells, cellLanes, laneLimb, stateLanes]
 
-set_option maxHeartbeats 4000000 in
 /-- **Cells with the free limb zero are equal exactly when their lanes are**: every lane sits in
 one limb of one cell, in either layout. -/
 theorem laneCells_eq_iff {L L' : Fin 25 → K} {odd : Bool} :
@@ -100,7 +97,6 @@ layout, cell `0`'s low limb in the odd one. -/
 def freeLimb (cells : Fin 13 → E) (odd : Bool) : K :=
   if odd then (cells 0).limb 0 else (cells 8).limb 1
 
-set_option maxHeartbeats 4000000 in
 /-- **Cells are the cells of the lanes they hold**, the limb holding no lane theirs. -/
 theorem laneCells_stateOfCells (cells : Fin 13 → E) (odd : Bool) :
     laneCells (stateLanes (stateOfCells cells odd)) odd (freeLimb cells odd) = cells := by

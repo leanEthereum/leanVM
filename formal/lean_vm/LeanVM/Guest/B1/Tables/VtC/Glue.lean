@@ -13,9 +13,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Flat
 # From statements to the relation
 
 `VSH C rd σ s`: the statement holds, its continuation aside; an `ite` by its taken branch, every
-statement of which is straight (`iteOk`, checked of `vtPre` by the kernel). `vt_rel_of`: when every
-statement of `vtPre` does, the parameters are the arguments and `vtRets` the returns, the relation
-holds.
+statement of which is straight (`iteOk`, checked of `vtPre` by the kernel: `vt_iteOk`).
 -/
 
 namespace LeanVM.Guest.B1.Tables

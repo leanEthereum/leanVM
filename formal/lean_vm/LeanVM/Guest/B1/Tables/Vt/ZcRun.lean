@@ -32,14 +32,6 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vt_chi_index {n j : ℕ} {y : E} (hj : j < n) (hy : gen ^ n * vtWInvGen = y * gen ^ j) :
-    y = gen ^ (n - 1 - j) := by
-  have h1 : gen ^ n * vtWInvGen * gen = gen ^ n := by rw [mul_assoc, vtWInvGen_mul, mul_one]
-  rw [hy, mul_assoc, ← pow_succ] at h1
-  have e : y * gen ^ (j + 1) = gen ^ (n - 1 - j) * gen ^ (j + 1) := by
-    rw [h1, ← pow_add, show n - 1 - j + (j + 1) = n by omega]
-  exact mul_right_cancel₀ (pow_ne_zero _ gen_ne_zero) e
-
 /-- The sponge `ξ` is squeezed from: the bytecode sumcheck's last capacity, its value waiting. -/
 def vtXiFs (σ : Val) : Fs :=
   (⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "bfs0@3") + k)), []⟩ : Fs).absorb (σ (.n (val% «verify_tables» "x@8"))) dsObserve

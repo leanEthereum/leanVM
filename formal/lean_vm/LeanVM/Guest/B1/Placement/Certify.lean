@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
-# `certify_placement` (TRIAGE G #67)
+# `certify_placement`
 
 `certify_placement(kappa_base, g_squares)` reads `kb[i] = kappa_base[g^i]`, then
 for each column group `gi < 9` (`colGroupStart`) builds its `g^κ` from its first column's source

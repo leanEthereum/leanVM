@@ -1,13 +1,14 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHL5
 
-  `main`'s honest children loop `main_loop4`: complete at `main`'s words (`MainGoalL5`).
+  `main`'s honest children loop `main_loop4`: each child as the loop needs it at `main`'s words.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Main.MainGoalsHKid
 public import LeanVM.Guest.AcceptableChild
+import LeanVM.ToMathlib.List
 
 /-!
 # The children loop on an honest run
@@ -18,7 +19,6 @@ there, and the coverage word there marks the claim's global index (`kid_hCover_x
 DA digests lie in `da_digests` before the own one (`reads_buf`).
 `kidOk`: child `c` is `KidOkC` at `main`'s words, its two `child_claim_list_digest` calls and its
 `verify_sub` call complete by hypothesis (the lists: `MainGoalsHClT`).
-`mainGoalL5`: `l5_completeAt` from the counter `0`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -117,9 +117,6 @@ theorem kid_length_flatMap_const {α : Type} {f : α → List E} {k : ℕ} :
     rw [List.flatMap_cons, List.length_append, h a List.mem_cons_self,
       kid_length_flatMap_const l fun b hb => h b (List.mem_cons_of_mem _ hb), List.length_cons]
     ring
-
-theorem getD_range_map (f : ℕ → E) {n c : ℕ} (hc : c < n) : ((List.range n).map f).getD c 0 = f c := by
-  rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]
 
 /-! ## `main`'s words -/
 
@@ -237,9 +234,9 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     rw [e4] at p4
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · have := loadHolds_getD r8 (k := c) (by simp; omega)
-      rwa [getD_range_map _ (by omega)] at this
+      rwa [List.getD_map_range _ (by omega)] at this
     · have := loadHolds_getD r8 (k := c + 1) (by simp; omega)
-      rw [getD_range_map _ (by omega), hW1, pow_add, pow_add] at this
+      rw [List.getD_map_range _ (by omega), hW1, pow_add, pow_add] at this
       exact this
     · have := p4 0 (by simp [B1.Digest.digestCells])
       rw [loadHolds_mul_gen_pow, Nat.add_zero] at this

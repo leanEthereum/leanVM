@@ -8,7 +8,9 @@
 
 module
 
-public import LeanVM.Guest.Bridge.RefHonest
+public import LeanVM.Guest.Bridge.StepRule
+public import LeanVM.Guest.Bridge.TrackHonest
+public import LeanVM.Prover.ExecuteComplete
 public import LeanVM.Guest.EndExec
 public import LeanVM.Guest.EndExecEntry
 
@@ -18,8 +20,8 @@ public import LeanVM.Guest.EndExecEntry
 `RefTrack A r`: the tree track's invariant (`Bridge.RefOk`) on the reference run `r`, its honest tree
 and memory, at the entries and alignment `A` gives. `traceRef`: for alignments of the program's
 functions (`ProgAl`), `main` at its entry, where the top frame of every state of the track has its
-jumps' cells (`JumpCells`), a trace of track states along `r`'s run from `main`'s entry, as
-`Bridge.trace_deployed` gives on the trees it builds, here on `r`'s own. `inst_fp_lt`: an honest
+jumps' cells (`JumpCells`), a trace of track states along `r`'s run from `main`'s entry, on
+`r`'s own tree. `inst_fp_lt`: an honest
 instance's frame is below `maxCells`.
 
 `entry_of_atPc`: a frame at pc `pc` of the track, with `pc` a guest function's entry, is an instance

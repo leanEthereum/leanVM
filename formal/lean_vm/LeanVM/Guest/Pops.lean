@@ -15,7 +15,7 @@ A hint atom constrains nothing, so the entries a run pops are what the valuation
 
 The order is the path's (`walk`), so a block pops its atoms' entries in event order (`evPops`), and a call pops its callee's where its event sits: `splice` interleaves a node's entries with its callees', one per call event (a phantom pops nothing), and `Tree.pops` is that, recursively.
 
-`SameStreams` compares pops with pushes stream by stream, as the streams are grouped by name. `FallPops rd σ ss ps`, the block-level form for templates (`ss` falls through, calls nothing and pops `ps`), composes by `append`, across a `match` or branch taken, and into a node's pops (`Tree.pops_of_body`).
+`SameStreams` compares pops with pushes stream by stream, as the streams are grouped by name. `FallPops rd σ ss ps`, the block-level form for templates (`ss` falls through, calls nothing and pops `ps`), composes by `append`, across a `match` or branch taken, and into a node's pops.
 -/
 
 namespace LeanVM.Guest.Core
@@ -234,17 +234,6 @@ theorem Tree.pops_node {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tr
   have : (Tree.node f σ bufs kids).events P = es := by
     simp only [Tree.events, Tree.name, Tree.val, hf, hw]
   rw [Tree.pops, this]
-
-/-- **A node whose body starts with a block popping `p`** pops `p` first. -/
-theorem Tree.pops_of_body {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} {fn : Fn}
-    {xs ys : List Stmt} {p : List Pop} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
-    (hb : fn.body = xs ++ ys) (hx : FallPops rd σ xs p) (hy : walk σ ys = .ret es vs) :
-    ∃ es', walk σ fn.body = .ret es' vs ∧
-      (Tree.node f σ bufs kids).pops P rd = p ++ splice rd σ es (Tree.popsKids P rd kids) := by
-  obtain ⟨es0, hw0, hc0, rfl⟩ := hx
-  have hw : walk σ fn.body = .ret (es0 ++ es) vs := by
-    rw [hb, walk_append_fall ys hw0, hy, Out.pre]
-  exact ⟨_, hw, by rw [Tree.pops_node hf hw, splice_append_of_calls_nil es _ hc0]⟩
 
 end Tree
 

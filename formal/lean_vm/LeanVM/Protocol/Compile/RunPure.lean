@@ -3,10 +3,10 @@
 
   The verifier program run with every permutation answered by `default` (`Compile.runPure`), and
   the layout and rate a stream announces (`Verifier.announcedLayoutAndRate`), both in
-  `Statement/LeanVmVerifier.lean`, where the extractor's budget reads them.
+  `Statement/Verifier/Lib.lean`, where the extractor's budget reads them.
 -/
 
 module
 
-import Statement.LeanVmVerifier
+import Statement.Verifier.Lib
 public import CompPoly.Fields.Binary.BF64

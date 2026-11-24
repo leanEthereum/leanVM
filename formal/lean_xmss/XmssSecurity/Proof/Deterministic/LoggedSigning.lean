@@ -1,17 +1,23 @@
 module
 
-public import XmssSecurity.Proof.Deterministic.Preparation
 public import XmssSecurity.Proof.Deterministic.MemoLog
+public import XmssSecurity.Proof.Deterministic.MemoErasure
 
 @[expose] public section
+
+/-!
+# Signing with a request log
+
+`loggedRun` answers a computation's signing requests with a signer, forwards its oracle-world
+queries, and returns the log of requests and answers. Running `withRequestLog` with a
+hash-computation signer (`runSigning`) is `loggedRun` (`runSigning_withRequestLog`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 variable {Request Answer : Type} [DecidableEq Request]
 

@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Selectors.BlockSelector
 
 /-!
-# `block_selector` is complete (TRIAGE G #50)
+# `block_selector` is complete
 
 For bits `bs` at `sel_bits` (as `0/1` words), complements `zs1` and weights `cs`, the valuation
 `bsVal` gives every value of `block_selector__L{n}`'s body what the body computes: block `k`'s

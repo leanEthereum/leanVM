@@ -27,9 +27,6 @@ open LeanVM.Guest.Value.Keccak
 
 variable {rd : Reader}
 
-/-- `v` is numbered below `b`. -/
-def NBvF (b : Nat) (v : V) : Prop := ∃ j < b, v = .n j
-
 /-- The values an atom defines. -/
 def aOuts : Atom → List V
   | .const d _ | .add d _ _ | .mul d _ _ | .copy d _ => [d]
@@ -226,40 +223,6 @@ theorem fwd_completes {C : CallRel} {lo hi : Nat} {ss : List Stmt} (h : SSA ss)
   completes_atoms h.atoms (fun v hv => fwd_of_not_mem ss σ fun hm => by
       obtain ⟨k, h1, h2, rfl⟩ := hout v hm
       exact hv k h1 h2 rfl) rfl (fwd_holds ss σ h)
-
-theorem fwd_append : ∀ (xs ys : List Stmt) (σ : Val), fwd (xs ++ ys) σ = fwd ys (fwd xs σ)
-  | [], _, _ => rfl
-  | .atom a :: xs, ys, σ => fwd_append xs ys (fwdA σ a)
-  | .ite .. :: xs, ys, σ | .match_ .. :: xs, ys, σ | .call .. :: xs, ys, σ | .callIf .. :: xs, ys, σ
-  | .dispatch .. :: xs, ys, σ | .ret _ :: xs, ys, σ => fwd_append xs ys σ
-
-theorem SSA.disj : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → ∀ v ∈ outsList ys, v ∉ Stmt.valsList xs
-  | [], _, _, _, _, h => by simp at h
-  | .atom a :: xs, ys, h, v, hv, hm => by
-      obtain ⟨-, -, hl, hs⟩ := h
-      simp only [valsList_cons, Stmt.vals, List.mem_append] at hm
-      rcases hm with hm | hm
-      · exact hl v (outsList_append xs ys ▸ List.mem_append_right _ hv : v ∈ outsList (xs ++ ys)) hm
-      · exact SSA.disj hs v hv hm
-  | .ite .. :: _, _, h, _, _, _ | .match_ .. :: _, _, h, _, _, _ | .call .. :: _, _, h, _, _, _
-  | .callIf .. :: _, _, h, _, _, _ | .dispatch .. :: _, _, h, _, _, _ | .ret _ :: _, _, h, _, _, _ =>
-      h.elim
-
-theorem SSA.left : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → SSA xs
-  | [], _, _ => trivial
-  | .atom a :: xs, ys, h => by
-      obtain ⟨h1, h2, h3, h4⟩ := h
-      exact ⟨h1, h2, fun v hv => h3 v (outsList_append xs ys ▸ List.mem_append_left _ hv :
-        v ∈ outsList (xs ++ ys)),
-        SSA.left h4⟩
-  | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
-  | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
-
-theorem SSA.right : ∀ {xs ys : List Stmt}, SSA (xs ++ ys) → SSA ys
-  | [], _, h => h
-  | .atom _ :: xs, _, h => SSA.right (xs := xs) h.2.2.2
-  | .ite .. :: _, _, h | .match_ .. :: _, _, h | .call .. :: _, _, h
-  | .callIf .. :: _, _, h | .dispatch .. :: _, _, h | .ret _ :: _, _, h => h.elim
 
 end
 end LeanVM.Guest.B1.Sig

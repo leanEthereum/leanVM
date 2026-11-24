@@ -4,13 +4,15 @@ public import Sphincs.Bridge
 public import FORS.Reduction.AdvCountGame
 public import Common.AdvBudget
 public import Common.SphincsCost
+public import Sphincs.Queries
+public import Sphincs.CrateSim
 
 @[expose] public section
 
 /-!
 # leanSPHINCS at the adversary's own count, in the random-permutation model
 
-From upstream's model at the adversary's own count (`AdvBound c`: an adversary of `FORS.Security`
+From FORS's model at the adversary's own count (`AdvBound c`: an adversary of `FORS.Security`
 that itself makes at most `q` hash calls on every path forges with probability at most
 `(q + c) / 2^127`; key generation, the signer and the final verification are not charged), the
 route is the leanXMSS one (`XmssSecurity/Rpm.lean`):
@@ -35,7 +37,7 @@ namespace Sphincs.Model
 
 attribute [local instance] params
 
-/-- **Upstream's model at the adversary's own count**, at 127 bits with the constant `c`: every
+/-- **FORS's model at the adversary's own count**, at 127 bits with the constant `c`: every
 adversary that itself makes at most `q` hash calls on every path, whatever the answers
 (`FORS.Security.AdvCount.AdvHash`: a call of `H`; coins and signing requests free), forges with
 probability at most `(q + c) / 2^127`. -/
@@ -64,7 +66,7 @@ theorem isQueryBoundP_of_costAtMost {ι : Type} {spec : OracleSpec.{0, 0} ι} {�
       exact hk
 
 /-- **The model's bound in the form of `Common.SufCma.RomBoundAdv`**, at any number of signing
-requests (upstream's game loses past its signature limit). -/
+requests (FORS's game loses past its signature limit). -/
 theorem modelScheme_romBoundAdv {c : ℕ} (h : AdvBound c) (maxRequests : ℕ) :
     RomBoundAdv modelScheme 127 c maxRequests := by
   intro q main hq _

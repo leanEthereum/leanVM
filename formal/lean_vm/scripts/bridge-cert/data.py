@@ -18,6 +18,21 @@ def _halt():
 HALT = _halt()
 
 
+IMPORT = re.compile(r'^(?:public )?(?:meta )?import ', re.M)
+
+
+def quiet(files):
+    """`files` (path to text) with the linters off after each module's imports, unless it turns them off itself: they
+    find nothing in a generated module, and each runs in the interpreter on every declaration."""
+    def one(text):
+        ms = list(IMPORT.finditer(text))
+        if 'set_option linter.all false' in text or not ms:
+            return text
+        end = text.index('\n', ms[-1].start()) + 1
+        return text[:end] + '\nset_option linter.all false\n' + text[end:]
+    return {p: one(t) for p, t in files.items()}
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
@@ -337,6 +352,14 @@ def read_text(p):
     return _TEXTS[p]
 
 
+def unlit(t):
+    """A pack's `Bundle.lean` text with its numerals as written before `(nat_lit n)` (`GuestCert.natLits`)."""
+    return NAT_LIT.sub(r'\1', t)
+
+
+NAT_LIT = re.compile(r'\(nat_lit (\w+)\)')
+
+
 def core_paths():
     """The packs' core modules, by pack and module number (`Core`, `Core1`, `Core2`, ...)."""
     return sorted(glob.glob(ROOT + '/Pack/*/Core*.lean'),
@@ -388,7 +411,7 @@ def bundle_blocks():
     out = {}
     for b in sorted(glob.glob(ROOT + '/Pack/*/Bundle.lean')):
         pack = b.split('/')[-2]
-        for blk in read_text(b).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+        for blk in unlit(read_text(b)).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
             out[blk.split('\n', 1)[0].strip().strip('«»')] = (pack, blk)
     return out
 

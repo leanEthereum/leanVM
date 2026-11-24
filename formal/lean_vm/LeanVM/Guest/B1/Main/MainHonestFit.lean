@@ -18,7 +18,7 @@ public import LeanVM.Guest.Batch.Node
 
 `hOwn_lengths`: the honest buffers' lengths are `mSizes`, for a statement of the bytecode's
 shape (`Nat.log2 bytecode.length = 23`) and children whose fresh claims are at points of `23`
-coordinates; `hOwn_fit` the `Forall₂` `main_relAtIn` takes. `hData_bounds`: `MainBounds` under
+coordinates; `hOwn_fit` the `Forall₂` `main_relAtInT_core` takes. `hData_bounds`: `MainBounds` under
 `Limits`. `hW_total`: the running count after the last child is the coverage table's size.
 -/
 
@@ -122,7 +122,7 @@ theorem length_raw {α W : Type} (l : List (α × W)) : (l.map (·.1)).length = 
 
 /-- **After the last child, the running count is the coverage table's size.** -/
 theorem hW_total (hl : GuestLimits s w) : hW s w w.children.length = planSlots s w := by
-  rw [hW_eq, List.take_length, coverage_made hl.toDeployedLimits, length_made, length_made]
+  rw [hW_eq, List.take_length, coverage_made hl.signatureClaimsHeld, length_made, length_made]
   simp only [hRawX, hRawS, length_raw, List.map_map]
   simp only [Function.comp_def]
   omega
@@ -212,10 +212,10 @@ theorem hData_bounds (hl : GuestLimits s w) (fs : String → ℕ) (fp : ℕ) :
   have hc := hl.planSlotsBelow2Pow23
   rw [coverage_eq] at hc
   have hx : w.xmssSignatures.length ≤ (s.claims.xmss ++ (xPlan s w).duplicates).length :=
-    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl.toDeployedLimits)
+    raw_le_table s.claims.xmss w.xmssSignatures _ (xPlan_held hl.signatureClaimsHeld)
   have hs : w.sphincsSignatures.length ≤
       (s.claims.sphincs ++ (sPlan s w).duplicates).length :=
-    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl.toDeployedLimits)
+    raw_le_table s.claims.sphincs w.sphincsSignatures _ (sPlan_held hl.signatureClaimsHeld)
   simp only [List.length_append] at hc hx hs
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hl.children_le_sixteen, ?_, ?_, daPick_le, fun h => ?_, fun h => ?_⟩
   · show s.claims.xmss.length < 2 ^ 23; omega

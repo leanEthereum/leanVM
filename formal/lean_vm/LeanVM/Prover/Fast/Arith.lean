@@ -1,13 +1,13 @@
 module
 
 public import Statement.Field
-public import Statement.Fast.QuadExt
+public import FastFields.QuadExt
 import Mathlib.Tactic.Ring
 
 /-!
 # Products in `E` on machine words
 
-`E`'s product compiles generically (`Statement.Fast.QuadExt`: `Ext.mulQuad`, each coefficient
+`E`'s product compiles generically (`FastFields.QuadExt`: `Ext.mulQuad`, each coefficient
 product a call of `BF64.mul`), and a `K` word that is no small number is a big natural number at
 run time, so every product of `K` words converts its factors to machine words and its result back,
 each conversion of a big number a few allocations. Here the product of two elements of `E`
@@ -39,8 +39,6 @@ def powE (x : E) (n : ℕ) : E := x ^ n
 
 /-- A machine word as a `K` word. -/
 @[inline] def kOf (u : UInt64) : K := BF64.ofBitVec u.toBitVec
-
-theorem kOf_wOf (a : K) : kOf (wOf a) = a := rfl
 
 theorem kOf_xor (a b : UInt64) : kOf (a ^^^ b) = kOf a + kOf b := by
   apply BF64.ext

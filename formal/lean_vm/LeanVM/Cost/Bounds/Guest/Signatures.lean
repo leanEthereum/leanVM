@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Cost.Decoder.Signatures
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds on the guest decoder's prices: the signatures
@@ -86,7 +87,7 @@ theorem offAtA_tabA_lt {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r k
 
 theorem getD_toArray_lt {l : List ℕ} {M : ℕ} (h : ListOK M l) (k : ℕ) :
     l.toArray.getD k 0 < 2 ^ 20 := by
-  rw [getD_toArray]; exact getD_lt_of h.2 (by norm_num) k
+  rw [List.getD_toArray]; exact getD_lt_of h.2 (by norm_num) k
 
 /-- `sp_wots`' tables as arrays, their entries small (`spTabs_ok`). -/
 structure SpTabsOK (T : SpTabs) : Prop where

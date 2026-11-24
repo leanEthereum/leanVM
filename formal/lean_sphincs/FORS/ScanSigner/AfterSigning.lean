@@ -115,10 +115,7 @@ variable [Params]
 
 open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
-
 
 /-- A reveal is a FORS position the digest opens, or not a FORS position at all. -/
 def ForsOk (digest : MessageDigest) (x : Coordinate) : Prop :=

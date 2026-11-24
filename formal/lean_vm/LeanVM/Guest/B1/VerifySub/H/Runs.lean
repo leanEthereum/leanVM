@@ -208,8 +208,6 @@ theorem c3 : ∃ sp, S.s3.Carries sp := Tables.RunsTo.carries S.runB S.c2
 theorem c4 : ∃ sp, S.s4.Carries sp := Tables.RunsTo.carries S.runG S.c3
 theorem c5 : ∃ sp, S.s5.Carries sp := Tables.RunsTo.carries S.runT S.c4
 theorem c6 : ∃ sp, S.s6.Carries sp := Tables.RunsTo.carries S.runK S.c5
-theorem c7 : ∃ sp, S.s7.Carries sp := Tables.RunsTo.carries S.runR S.c6
-
 /-! ## The bus depth -/
 
 theorem d_eq (hbl : bytecode.length = 2 ^ 23) : S.d = log2Ceil S.pushT := by

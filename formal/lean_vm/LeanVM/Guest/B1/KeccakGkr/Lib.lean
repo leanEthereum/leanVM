@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Lib
 
-  The vocabulary of B1-d's proofs: functions found by index, a `KECCAK` atom in the even layouts
+  The vocabulary of the Keccak GKR proofs: functions found by index, a `KECCAK` atom in the even layouts
   as a squeeze of the carried sponge, the rate cells of waiting scalars, and `fs_next`'s cells.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# B1-d: shared lemmas
+# The Keccak GKR proofs' shared lemmas
 
 * `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
   cells it reads (`permOf`), output `k` its cell `k`;
@@ -148,8 +148,6 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-! ## Words -/
-
 /-! ## Records and runs -/
 
 /-- Five capacity cells `krCap` words apart. -/
@@ -204,13 +202,10 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
   | i :: l => by
     rw [List.map_cons, List.flatten_cons, noRetList_append, h i, noRetList_flatten_map f h l]; rfl
 
-/-! ## Facts by position
+/-! ## Blocks of atoms, by kernel evaluation
 
 A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
-by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
-final `ret`. -/
-
-/-! ## Blocks of atoms, by kernel evaluation -/
+by kernel evaluation (`stmtEqb`), holds. -/
 
 /-- An atom statement. -/
 def isAtom : Stmt → Bool

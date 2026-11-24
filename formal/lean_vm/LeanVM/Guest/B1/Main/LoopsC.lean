@@ -42,10 +42,6 @@ def Unfolds (rd : Reader) (C : CallRel) : Prop :=
   ∀ f args rets, C f args rets → ∃ (fn : Fn) (σ : Val), coreProgram.find? f = some fn ∧
     fn.params.map σ = args ∧ Stmt.HoldsList C rd σ fn.body False (fun rs => rs = rets)
 
-theorem unfolds_rel (rd : Reader) : Unfolds rd (coreProgram.Rel rd) := fun f args rets h => by
-  obtain ⟨fn, hf, σ, hp, hb⟩ := (rel_iff coreProgram f args rets).mp h
-  exact ⟨fn, σ, hf, hp, hb⟩
-
 /-- A call relation unfolding at a frame map unfolds. -/
 theorem unfolds_of_V {rd : Reader} {C : CallRel} {V : FrameMap} (h : UnfoldsV rd C V) :
     Unfolds rd C := fun f args rets hc => by
@@ -303,7 +299,6 @@ theorem l3_stepC {rd : Reader} {C : CallRel}
   simp only [l3Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨σ, hp, hb, -⟩ := (hX _ h).choose_spec
   exact ⟨h, (loop_of_body (fn := l2Fn) hok.1.1.1.1.1 hp hb).2.2.2⟩
-
 
 /-- **A raw leanSPHINCS signature** at the counter `x`: a slot `s` below the region's bound
 holding the mark `n_raw_x · x` (at `cover · lx_slots · g^s`), and the signature check of the

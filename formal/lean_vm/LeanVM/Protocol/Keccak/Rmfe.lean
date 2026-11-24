@@ -18,6 +18,7 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The embedding
@@ -57,10 +58,8 @@ def projectLit : List ℕ := [1, 140737488355327, 43218598786281, 32136906789799
   101951566367639, 112771593653537, 102871349771039, 126754541004432, 60819261648545,
   20682647020959, 30409630824272, 11891857888673, 6939470531743, 76314673122000, 70368744177664]
 
-set_option maxRecDepth 100000 in
 theorem rmfeEmbed_eq : rmfeEmbed = embedLit := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem rmfeProject_eq : rmfeProject = projectLit := by decide +kernel
 
 theorem rmfeEmbed_length : rmfeEmbed.length = 16 := by rw [rmfeEmbed_eq]; rfl
@@ -95,7 +94,6 @@ def rmfeOk (emb proj : List ℕ) : Bool :=
     parityL (proj.getD i 0) (mulGF2 (bitsFrom (emb.getD a 0) 24) (bitsFrom (emb.getD b 0) 24)) ==
       (i == a && a == b)
 
-set_option maxRecDepth 100000 in
 /-- **The embedding lemma**, checked by the kernel on the literals. -/
 theorem rmfeOk_lit : rmfeOk embedLit projectLit = true := by decide +kernel
 
@@ -308,7 +306,7 @@ theorem projected_eq (mu product : List E) (hmu : mu.length = 16) (G : E[X])
       sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
         if mask.testBit c then some m else none) * product.getD c 0) =
       ∑ i ∈ range 16, mu.getD i 0 * projE (rmfeProject.getD i 0) G := by
-  rw [sumE_eq_sum, list_sum_range]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range]
   have h : ∀ c ∈ range productBits, sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
       if mask.testBit c then some m else none) * product.getD c 0 =
         ∑ i ∈ range 16, mu.getD i 0 * (if (rmfeProject.getD i 0).testBit c then G.coeff c else 0) := by

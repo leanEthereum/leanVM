@@ -40,7 +40,7 @@ theorem mainGoalL3R (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
       ((hm fs fp seed s w).nrx * iterK fs SK name% «main_loop2» + fs name% «main_loop2») := by
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.signatureClaimsHeld
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have hX' : rX s w ≤ 2 ^ 23 := by omega
   have hr : (hRawX s w).length < 2 ^ 34 := by omega

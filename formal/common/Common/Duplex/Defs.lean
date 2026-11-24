@@ -82,6 +82,4 @@ def chalP (r : Root) : OracleComp (Rom2 Msg Dg St) (List Z) := do
 
 end Programs
 
-/-! ## The simulator -/
-
 end Common.SeedDuplex

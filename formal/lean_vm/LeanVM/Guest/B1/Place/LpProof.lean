@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.LpProof
 
-  `level_positions` complete placed at every specialization: `level_positions_completeAt`.
+  `level_positions` placed at every frame pointer (`lp_placed`).
 -/
 
 module
@@ -20,8 +20,7 @@ public import LeanVM.Guest.B1.Whir.HelperAll
 allocated, the capacity stored in row `1`, the decoders' group, the last row loaded and
 returned); on every memory holding its squeeze run (`lpSqzW`: row `j ≥ 1` the capacity after
 `j - 1` squeezes), the decoders' runs and the caller's words, it relates its arguments to the last
-capacity in `lpN` words, the group placed by `os_sq_group`. `level_positions_completeAt`: every
-entry of `lpTable`, its decoder's placed completeness `qwDecodeAtD_holds`.
+capacity in `lpN` words, the group placed by `os_sq_groupE`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -499,18 +498,6 @@ theorem lpTable_facts : ∀ e ∈ lpTable,
     digitsVal (osPowDigits (128 / e.2.2.1)) 1 = 128 / e.2.2.1 ∧
     (dqwName e.2.2.1 e.2.2.2, e.2.2.1, e.2.2.2) ∈ queryWindowsShapes := by
   decide +kernel
-
-/-- **`level_positions` is complete placed at every specialization.** -/
-theorem level_positions_completeAt : level_positions_completeAt_Spec := by
-  intro fs cert κ hfit hcons hκ e he S hS hSB
-  obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
-  have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
-  intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
-  obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS
-    (by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega) hSB hpw hdec hcl fp
-    (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp), hR⟩
 
 end
 end LeanVM.Guest.B1

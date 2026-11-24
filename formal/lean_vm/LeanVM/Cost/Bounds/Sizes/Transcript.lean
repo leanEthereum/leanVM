@@ -14,9 +14,8 @@ public import LeanVM.Protocol.Extraction.Fast.Transcript
   keeps at most `N + 1` paths (`replay_paths_length_le`), so at most `N + 1` evaluations, of at
   most `L` bytes each (`keccakEvaluationsFast_length_le`, `keccakEvaluationsFast_mem_length_le`);
   the index is a good map of at most `N + 1` insertions (`transcriptIndex_bounds`).
-* **The committed word** (`subtreeLeavesWith`, `leafAt`): a subtree of height `h` has `2^h`
-  leaves of `w` words each (`subtreeLeavesWith_size`, `subtreeLeavesWith_mem_length`), and every
-  position of the word reads `w` words (`leafAt_length`).
+* **The committed word** (`subtreeLeavesWith`): a subtree of height `h` has `2^h` leaves of `w`
+  words each (`subtreeLeavesWith_size`, `subtreeLeavesWith_mem_length`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -313,15 +312,6 @@ theorem subtreeLeavesWith_mem_length (pre : Digest → ℕ → Option Bytes) (w 
       · exact ih _ x hx
     · rw [Array.mem_replicate] at hx
       rw [hx.2, List.length_replicate]
-
-/-- **Every position of the committed word reads `w` words.** -/
-theorem leafAt_length (pre : Digest → ℕ → Option Bytes) (w h : ℕ) (d : Digest) (v : ℕ) :
-    (leafAt (subtreeLeavesWith pre w h d) h w v).length = w := by
-  rw [leafAt, Array.getD_eq_getD_getElem?]
-  have hv : v % 2 ^ h < (subtreeLeavesWith pre w h d).size := by
-    rw [subtreeLeavesWith_size]; exact Nat.mod_lt _ (by positivity)
-  rw [Array.getElem?_eq_getElem hv, Option.getD_some]
-  exact subtreeLeavesWith_mem_length pre w h d _ (Array.getElem_mem hv)
 
 end
 

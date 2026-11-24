@@ -1,8 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.RunFacts
-public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.ScanSigner.ScanReveals
+public import FORS.CoverPotential.Groups
+public import FORS.CoverBound.IndexFactor
 
 @[expose] public section
 
@@ -22,8 +22,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 open FORS.LoopWalk
 open FORS.Base.Domination
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### Hitting one leaf -/

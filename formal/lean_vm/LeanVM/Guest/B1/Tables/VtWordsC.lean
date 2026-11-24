@@ -35,24 +35,7 @@ theorem vt_bound_le {H : VtHonest} (W : VtWords fs) (hμ : H.μ < 32) (hn : H.n 
   unfold vtBnd
   omega
 
-/-- **`verify_tables` is complete, placed, within `vtMax`**, at a bus depth below `32` and a height below `31`,
-given its words facts. -/
-theorem verify_tables_completeAtW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok) (hs : VtShape H)
-    (hμ : H.μ < 32) (hn : H.n < 31) (B : VtBases) (W : VtWords fs) :
-    CompleteAtB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B)) (vtMax fs W) :=
-  (verify_tables_completeAtTBW (ι := Empty) hκ h hs B W.Kf W.Ksh W.K10 W.hKf W.hsh W.h10 nofun nofun nofun nofun
-    nofun).toCompleteAtB.mono le_rfl (vt_bound_le W hμ hn)
-
-/-- **`verify_tables` is complete within `vtMax` by a tree within its weight bound** at each `ω op`. -/
-theorem verify_tables_completeAtWW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok) (hs : VtShape H)
-    (hμ : H.μ < 32) (hn : H.n < 31) (B : VtBases) (W : VtWords fs) {ω : Opcode → String → ℕ}
-    (Ww : VtWeights ω) :
-    CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
-      (fun t ↦ ∀ op, Budget.WeighsLe coreProgram (ω op) (vtWeightB Ww op) t) (vtMax fs W) :=
-  (verify_tables_completeAtTBW' hκ h hs B W.Kf W.Ksh W.K10 W.hKf W.hsh W.h10 ω Ww.Kvw Ww.Wss Ww.Kw10 Ww.hKvw
-    Ww.hssw Ww.h10w).mono (vt_bound_le W hμ hn) fun _ h ↦ h
-
-/-- **`verify_tables_completeAtWW` by its honest node**: its valuation the honest one at its own buffers, which the
+/-- **`verify_tables` within its words, by its honest node**: its valuation the honest one at its own buffers, which the
 memory holds (`vtQn`). -/
 theorem verify_tables_completeAtWWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok) (hs : VtShape H)
     (hμ : H.μ < 32) (hn : H.n < 31) (B : VtBases) (W : VtWords fs) {ω : Opcode → String → ℕ}

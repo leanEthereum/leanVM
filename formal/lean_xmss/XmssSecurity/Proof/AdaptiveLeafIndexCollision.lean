@@ -1,16 +1,28 @@
 module
 
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import VCVio.OracleComp.Constructions.SampleableType
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# The encoding monitor and its collision pairs
+
+`EncodingMonitor` replays a list of observed actions, each a query or a signature at a leaf index
+with its hash output. Its `State` keeps the digests (`truncateHash` of the output) queried at each
+unsigned leaf index and the digest a signature installs; `runObserved` hits when a query's digest is
+the signed one at its leaf index, or a signature's digest was queried before at its leaf index. With
+distinct signed leaf indices, a hit from `State.empty` is exactly a `HasCollisionPair`, a query and
+a signature at one leaf index with equal digests in either order
+(`runObserved_empty_eq_true_of_collisionPair`, `collisionPair_of_runObserved_empty_eq_true`), so a
+hit persists in every list containing the actions as a sublist, its signed leaf indices still
+distinct (`runObserved_empty_eq_true_mono_sublist`).
+-/
 
 open OracleComp ENNReal
 open scoped BigOperators
 
 namespace XmssSecurity.EncodingMonitor
-
-set_option maxRecDepth 100000
 
 structure State where
   pending : LeafIndex → Finset Digest
@@ -451,8 +463,8 @@ theorem runObserved_empty_eq_true_of_query_before_sign
       beforeResult.state.signed leafIndex = State.empty.signed leafIndex :=
         replayObserved_state_signed_eq_of_not_mem State.empty before leafIndex hnoBeforeSign
       _ = none := rfl
-  have htailHit : (replayObserved beforeResult.state tail).hit = true := by
-    exact replayObserved_hit_of_query_before_sign beforeResult.state leafIndex queriedOutput
+  have htailHit : (replayObserved beforeResult.state tail).hit = true :=
+    replayObserved_hit_of_query_before_sign beforeResult.state leafIndex queriedOutput
       signedOutput middle after hbeforeSigned hnoMiddleSign hcollision
   change (beforeResult.hit || (replayObserved beforeResult.state tail).hit) = true
   simp [htailHit]
@@ -484,8 +496,8 @@ theorem runObserved_empty_eq_true_of_sign_before_query
       beforeResult.state.signed leafIndex = State.empty.signed leafIndex :=
         replayObserved_state_signed_eq_of_not_mem State.empty before leafIndex hnoBeforeSign
       _ = none := rfl
-  have htailHit : (replayObserved beforeResult.state tail).hit = true := by
-    exact replayObserved_hit_of_sign_before_query beforeResult.state leafIndex signedOutput
+  have htailHit : (replayObserved beforeResult.state tail).hit = true :=
+    replayObserved_hit_of_sign_before_query beforeResult.state leafIndex signedOutput
       queriedOutput middle after hbeforeSigned hnoMiddleSign hcollision
   change (beforeResult.hit || (replayObserved beforeResult.state tail).hit) = true
   simp [htailHit]
@@ -567,8 +579,8 @@ theorem pair_sublist_iff (first second : α) (actions : List α) :
             obtain ⟨before, middle, after, hactions⟩ := ih htail
             exact ⟨action :: before, middle, after, by simp [hactions]⟩
         | cons_cons _ htail =>
-            have hsecond : second ∈ actions := by
-              exact List.singleton_sublist.mp htail
+            have hsecond : second ∈ actions :=
+              List.singleton_sublist.mp htail
             obtain ⟨middle, after, hactions⟩ := List.append_of_mem hsecond
             exact ⟨[], middle, after, by simp [hactions]⟩
   · rintro ⟨before, middle, after, rfl⟩

@@ -22,7 +22,7 @@ buffers the body reads or stores into holding their words (`table_rows`, `dims_g
 challenges, `c_table`, the pooled claims, the deferred claim's cells), and the callees' powers
 of `g` (the rate, the memory's log, the bus depth, the stack's log).
 
-`vsSideA`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
+`vsSidePieces`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
 stores, range checks, two quotients); `vs_sideHolds` proves each from the data, `vs_dispIdx` the
 three dispatches' indices, and `vsCPre_complete`: every statement of `verify_sub` but its `ret`
 holds under the trivial call relation.
@@ -576,7 +576,7 @@ theorem vs_dispIdx (D : VsSecData rd w args) : ∀ x fs as rs, Stmt.dispatch x f
   · exact ⟨D.d - 20, by omega, by omega, by rw [h322, gen_pow_eq_ofK]⟩
   · exact ⟨D.m - 20, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
 
-/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepR`'s `DispOk`). -/
+/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepRBPR`'s `DispOk`). -/
 theorem vs_dispOk (D : VsSecData rd w args) : ∀ s ∈ vsCPre, DispOk ς s := by
   intro s hs
   cases s with

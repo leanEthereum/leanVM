@@ -21,7 +21,7 @@ challenges, then some round `j` is bad (`BadRound`): the round's polynomial is n
 `f` along the round's coordinate after the earlier challenges, and `r_j` is a root of their
 difference. That difference is fixed before `r_j` is squeezed (it depends on the claim before the
 round, the round's message and the earlier challenges), and for `f` quadratic along each
-coordinate it is a nonzero quadratic, with at most two roots (`badRound_roots`).
+coordinate it is a nonzero quadratic, with at most two roots (`round_bad`, `RomSpec.lean`).
 -/
 
 namespace LeanVM.Guest.Batch

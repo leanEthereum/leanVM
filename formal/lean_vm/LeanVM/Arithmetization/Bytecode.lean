@@ -72,8 +72,6 @@ def derefMode? (fpc ffp : K) : Option DerefMode :=
   else if fpc = 0 ∧ ffp = 1 then some .fp
   else none
 
-/-! ## The bus entry and the sixteen slots -/
-
 /-! ## The decoder -/
 
 /-- A `KECCAK` layout flag, if the word is `0` or `1`. -/

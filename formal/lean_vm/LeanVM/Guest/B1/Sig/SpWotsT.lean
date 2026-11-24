@@ -1,10 +1,10 @@
 /-
   LeanVM.Guest.B1.Sig.SpWotsT
 
-  The body of `sp_wots` as a template, written from the guest's structure
-  (`lean_ethereum.py`) with the values numbered uniformly, every
-  chain step taking three fresh values; the guest's numbering is this one with the two values the
-  steps without an address constant leave unused removed (`SpWotsLayout`'s `spRen`).
+  The layout of `sp_wots`'s groups as a template, written from the guest's structure
+  (`lean_ethereum.py`) with the values numbered uniformly, every chain step taking three fresh
+  values, and its constants; the guest's numbering is this one with the two values the steps
+  without an address constant leave unused removed (`SpWotsLayout`'s `spRen`).
 -/
 
 module
@@ -14,7 +14,10 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sp_wots»
 
 /-!
-# `sp_wots` as a template
+# `sp_wots`'s layout, as a template
+
+The signature's decoder reads the hints where this layout puts them (`SpWotsLayout`); the proofs
+about the body read its reference function (`SpWotsRef`).
 
 `sp_wots(pp, a0, a1, encoding)` (`G` is `lean_ethereum.py`) has the parameters
 `pp = n0`, the one-time key's FIPS 205 address `a0 = n1` (its layer and tree) and `a1 = n2` (type
@@ -36,12 +39,9 @@ out from `n21` (`spL`), five above its digit word; every chain step and the leaf
 * `spDigitPos`, `spDigitsC`: where the encoding digest holds digit `j`, most significant first in
   each byte (`base_2b`, two bits a digit), and the constant arm `k` adds to the encoding (the
   digits' fields `XOR`ed: they are apart);
-* `spL`, `spPre`, `spSlot`, `spProd`, `spEnc`, `spGroupT`, `spGroupsT`: a group's layout base, the
-  run the first group sets, a chain's slots, the group's outputs, a group, the groups;
-* `spLeafCells`, `spBodyT`: the leaf's cells and the body: the copies, the powers, the groups, the
-  encoding asserted to be `encoding`, the digit product to be `g^128` (`SP_TARGET_SUM`), the leaf
-  hashed as `T_v` of `pp`, `a0`, `a1 + SP_WOTS_PK` and the 64 tips (`keccak_cells` over `sp_word`,
-  67 cells, 1072 bytes) and returned.
+* `spL`, `spPre`, `spSlot`, `spProd`, `spEnc`, `spGroupT`: a group's layout base, the run the
+  first group sets, a chain's slots, the group's outputs, a group;
+* `spTarget`, `spPkC`: `g^128` (`SP_TARGET_SUM`) and `SP_WOTS_PK`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -117,50 +117,13 @@ def spEnc (fold : Bool) (n B : Nat) : Nat := spProd fold n B + 1
 def spGroupT (first n : Nat) (fold : Bool) (prodIn encIn : V) (B : Nat) : List Stmt × Nat :=
   groupD spW first n fold prodIn encIn B (spPre fold B) (spL fold B)
 
-/-- Groups `p ..< p + m` of three digits from base `B`, after the running product and encoding:
-the statements, the next base, the chains' tips, the product and the encoding. -/
-def spGroupsT : Nat → Nat → V → V → Nat → List Stmt × Nat × List V × V × V
-  | 0, _, prod, enc, B => ([], B, [], prod, enc)
-  | m + 1, p, prod, enc, B =>
-      let fold := p == 0
-      let g := spGroupT (3 * p) 3 fold prod enc B
-      let rest := spGroupsT m (p + 1) (.n (spProd fold 3 B)) (.n (spEnc fold 3 B)) g.2
-      (g.1 ++ rest.1, rest.2.1,
-        (List.range 3).map (fun r => V.n (spSlot fold B r 2)) ++ rest.2.2.1, rest.2.2.2)
-
-/-! ## The body -/
+/-! ## The constants -/
 
 /-- `g^128`, the target sum in the exponent (`SP_TARGET_SUM`), as the compiler writes it. -/
 def spTarget : E := word 325 0
 
 /-- `SP_WOTS_PK`, the type `WOTS_PK` in `A1`'s byte 19. -/
 def spPkC : E := word (2 ^ 24) 0
-
-/-- The codeword's groups: 21 of three digits from `n16`, then the last chain's. -/
-def spGs : List Stmt × Nat × List V × V × V := spGroupsT 21 0 (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "pp")) 16
-
-/-- The last chain's group. -/
-def spLast : List Stmt × Nat := spGroupT 63 1 false spGs.2.2.2.1 spGs.2.2.2.2 spGs.2.1
-
-/-- The first value after the codeword's checks: `g^128` there, the leaf's `A1` after it. -/
-def spC : Nat := spLast.2
-
-/-- The leaf's cells: `pp`, `a0`, `a1 + SP_WOTS_PK` and the 64 chain tips (`sp_word`). -/
-def spLeafCells : List V :=
-  V.n (val% «sp_wots» "pp") :: V.n (val% «sp_wots» "a0") :: V.n (spC + 2) :: spGs.2.2.1 ++ [V.n (spSlot false spGs.2.1 0 2)]
-
-/-- The leaf's `keccak_cells` (1072 bytes), its padding run at `spPad`: the statements, the next
-base and the output run's base. -/
-def spLeafK : List Stmt × Nat × Nat := kMsg spPad (spLeafCells.map KC.cell) 1072 false none (spC + 3)
-
-/-- The body of `sp_wots`, numbered uniformly. -/
-def spBodyT : List Stmt :=
-  [copyS (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "a0")), copyS (.n (val% «sp_wots» "at[1]")) (.n (val% «sp_wots» "a1"))] ++
-    (List.range 10).map (fun s => cst (6 + s) (word (2 ^ s) 0)) ++ spGs.1 ++ spLast.1 ++
-    [.atom (.assertEq (.n (spEnc false 1 spGs.2.1)) (.n (val% «sp_wots» "encoding"))), cst spC spTarget,
-      .atom (.assertEq (.n (spProd false 1 spGs.2.1)) (.n spC)), cst (spC + 1) spPkC,
-      addS (.n (spC + 2)) (.n (val% «sp_wots» "a1")) (.n (spC + 1))] ++ spLeafK.1 ++
-    [copyS (.n spLeafK.2.1) (.n spLeafK.2.2), .ret [.n spLeafK.2.1]]
 
 end
 end LeanVM.Guest.B1.Sig

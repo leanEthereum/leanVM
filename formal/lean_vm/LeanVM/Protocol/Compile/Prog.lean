@@ -1,18 +1,18 @@
 /-
   LeanVM.Protocol.Compile.Prog
 
-  The interactive-oracle reading of the verifier language of `Statement.LeanVmVerifier`: histories
+  The interactive-oracle reading of the verifier language of `Statement.Verifier.Transcript`: histories
   of prover messages, challenges and committed words, and the round-by-round certificate whose
   escape probabilities the random-oracle theorem sums.
 -/
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 public import Statement.Prover.Script
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Protocol.Field
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Basic.ENNReal.Operations
@@ -25,7 +25,7 @@ public import VCVio.OracleComp.Constructions.SampleableType
 # The interactive reading of the verifier language
 
 The language (`VerifierProgram`, its five operations, and the compiled reading `runProof` on a proof
-with a hash function) is defined with the verifier, in `Statement.LeanVmVerifier` (Part 2). This
+with a hash function) is defined with the verifier, in `Statement.Verifier.Transcript`. This
 module gives the second reading of the same programs: a public-coin protocol in which the prover
 sends field elements and whole matrices (`Word`s), and the verifier draws uniform challenges and
 reads rows of the matrices directly. A run is a history (`List Ev`).

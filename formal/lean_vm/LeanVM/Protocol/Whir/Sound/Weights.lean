@@ -16,6 +16,7 @@ import LeanVM.Protocol.Whir.SubspaceAt
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import Mathlib.Tactic
+import LeanVM.ToMathlib.List
 
 /-!
 # The verifier's weights
@@ -28,16 +29,15 @@ This module proves what the round-by-round analysis needs of each:
 * **products of affine factors** are multiaffine (`isMultiaffine_prod`);
 * `eqEval z` (the out-of-domain claim's weight) is multiaffine (`isMultiaffine_eqEval`), and its
   inner product with a message is the message's multilinear extension at `z`
-  (`sum_eqEval_mul_eq_evalMle`);
+  (`sum_eqEval_vec`, `Sound/Escape.lean`);
 * the verifier's `inducedWeight` (`induced_weight`) is the column-weight sum of Annex D
   `lem:colweight` (`inducedWeight_eq_sum`, through `LeanVM.Protocol.Whir.inducedWeight_eq`; the
-  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq_closed`), hence
+  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq`), hence
   multiaffine (`isMultiaffine_inducedWeight`), and its inner product with a message is the batched
   codeword entries, `Σ_q w_q Enc(G)[x_q]` (`sum_inducedWeight_mul`);
 * the opening weight read at the rotated point, `w(p[ℓ₀:] ++ p[:ℓ₀])`, is multiaffine when `w` is
-  the multilinear extension of its cube values (`IsMultilinearFn`,
-  `isMultiaffine_of_isMultilinearFn`, `isMultiaffine_rotL`);
-* `dot(row, eq_kernel(folds))`, the lane fold of an opened row (`enforcedSum`), is the row folded
+  the multilinear extension of its cube values (`IsMultilinearFn`, `isMultiaffine_rotL`);
+* `dot(row, eq_kernel(folds))`, the lane fold of an opened row, is the row folded
   by `foldsN` (`dot_eqKernel`).
 
 `joinMsg` regroups a message split into lanes and message bits into one message on the full
@@ -84,24 +84,12 @@ theorem isMultiaffine_prod (n : ℕ) (f : ℕ → E → E) (hf : ∀ i, IsAffine
   rw [hf k X]
   ring
 
-/-- `foldl (*)` from `a` is `a` times the product. -/
-theorem foldl_mul_eq (l : List E) (a : E) : l.foldl (· * ·) a = a * l.prod := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.prod_cons, mul_assoc]
-
-/-- `foldl (+)` from `a` is `a` plus the sum. -/
-theorem foldl_add_eq (l : List E) (a : E) : l.foldl (· + ·) a = a + l.sum := by
-  induction l generalizing a with
-  | nil => simp
-  | cons b l ih => rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
-
 /-! ## The out-of-domain weight -/
 
 /-- `eq_eval(z, x)` is the product of its coordinate factors. -/
 theorem eqEval_eq_prod (z x : List E) (h : x.length = z.length) :
     eqEval z x = ∏ i : Fin z.length, (1 + z.getD i 0 + x.getD i 0) := by
-  rw [eqEval, foldl_mul_eq, one_mul]
+  rw [eqEval, List.foldl_mul_eq_mul_prod, one_mul]
   induction z generalizing x with
   | nil => simp
   | cons a z ih =>
@@ -165,20 +153,6 @@ theorem isMultiaffine_rotL {n j : ℕ} {w : List E → E} (hw : IsMultiaffine n 
   intro l hl k hk X
   simp only [rotL_set j l (hl ▸ hj) (hl ▸ hk)]
   exact hw _ (by rw [length_rotL, hl]) _ (by split_ifs <;> omega) X
-
-/-- A multilinear extension of its cube values is multiaffine. -/
-theorem isMultiaffine_of_isMultilinearFn {μ : ℕ} {w : List E → E} (hw : IsMultilinearFn μ w) :
-    IsMultiaffine μ w := by
-  have hb : ∀ x, (boolPoint μ x).length = μ := fun x ↦ by simp [boolPoint]
-  have hsum : IsMultiaffine μ fun l ↦ ∑ x : Fin (2 ^ μ), w (boolPoint μ x) *
-      eqEval (boolPoint μ x) l :=
-    IsMultiaffine.sum _ _ fun x _ ↦ by
-      have := (isMultiaffine_eqEval (boolPoint μ x)).const_mul (w (boolPoint μ x))
-      rwa [hb] at this
-  intro l hl k hk X
-  have hlen : ∀ Y, (l.set k Y).length = μ := fun Y ↦ by simp [hl]
-  rw [hw _ (hlen X), hw _ (hlen 0), hw _ (hlen 1)]
-  exact hsum l hl k hk X
 
 /-! ## The induced weight -/
 

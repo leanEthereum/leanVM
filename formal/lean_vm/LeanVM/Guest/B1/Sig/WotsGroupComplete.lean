@@ -189,13 +189,5 @@ theorem groupD_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Na
   simp only [Nat.zero_add]
   exact harm k hk
 
-/-- **A group's values are numbered below its end.** -/
-theorem groupT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {fold : Bool}
-    {prodIn encIn : V} {b : Nat} (hB : B ≤ b) (hpi : NBv b prodIn) (hei : NBv b encIn)
-    (hpw : ∀ j, NBv b (W.power j)) :
-    NumBelow (groupT W first n fold prodIn encIn b).2 (Stmt.valsList (groupT W first n fold prodIn encIn b).1) :=
-  groupD_numBelow (pre := []) hW (by omega) le_rfl (.nil _) (NBv.mono' hpi (by omega)) (NBv.mono' hei (by omega))
-    (fun _ _ => NBv.mono' (hpw _) (by omega))
-
 end
 end LeanVM.Guest.B1.Sig

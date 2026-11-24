@@ -18,7 +18,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 
 /-!
-# `certify_placement`, completely (TRIAGE G #67)
+# `certify_placement`, completely
 
 The inputs are the runs `cpLin`: `kappa_base = [1, g^log_mem, g^τ_0, …, g^τ_5]` at `ekb`, the
 squares table at `esq` and the rank keys at `esq + 178` (`rankKeysList`). The buffers (`cpOwn`),

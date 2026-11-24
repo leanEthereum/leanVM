@@ -74,14 +74,6 @@ theorem Fine.lt_of_peek {M : ℕ → E} {s : St} (hs : Fine M s) {c : ℕ} (h : 
   | none => simp [hg] at h
   | some v => exact lt_of_lt_of_le (hs.agree.wf.get_lt hg) hs.agree.used
 
-/-- A written cell lies below `maxCells`. -/
-theorem Fine.lt_of_written {M : ℕ → E} {s : St} (hs : Fine M s) {c : ℕ} (h : s.mem.written c = true) :
-    c < maxCells := by
-  unfold Mem.written at h
-  cases hg : s.mem.get c with
-  | none => simp [hg] at h
-  | some v => exact lt_of_lt_of_le (hs.agree.wf.get_lt hg) hs.agree.used
-
 /-- A nonempty run of the reference's values ends below `maxCells`. -/
 theorem RunOk.end_le {M : ℕ → E} {b : ℕ} {vs : List E} (h : RunOk M b vs) (hl : 0 < vs.length) :
     b + vs.length ≤ maxCells := by

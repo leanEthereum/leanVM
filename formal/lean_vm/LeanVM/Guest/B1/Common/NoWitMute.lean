@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Common.NoWitMute
 
-  The functions passing `noWitness` form a mute set (`noWitS_mute`); a callee of function `j` passing it is in the set (`noWitS_of_callee`, decided by the kernel); and a block of function `j` with no witness hint whose callees pass the check is mute in it (`noWitBlock_mute`, decided by the kernel).
+  The functions passing `noWitJ` form a mute set (`noWitS_mute`); a callee of function `j` passing it is in the set (`noWitS_of_callee`, decided by the kernel); and a block of function `j` with no witness hint whose callees pass the check is mute in it (`noWitBlock_mute`, decided by the kernel).
 -/
 
 module
@@ -59,7 +59,7 @@ theorem Stmt.muteArms_of_noWit {S : String → Bool} : ∀ (as : List (List Stmt
         Stmt.muteArms_of_noWit as h.2 fun g hg => hc g (.inr hg)⟩
 end
 
-/-- The functions passing `noWitness`. -/
+/-- The functions passing `noWitJ`. -/
 noncomputable def noWitS (g : String) : Bool := by classical exact decide (NoWitG g)
 
 theorem noWitS_iff {g : String} : noWitS g = true ↔ NoWitG g := by
@@ -67,7 +67,7 @@ theorem noWitS_iff {g : String} : noWitS g = true ↔ NoWitG g := by
   unfold noWitS
   exact decide_eq_true_iff
 
-/-- **The functions passing `noWitness` are a mute set.** -/
+/-- **The functions passing `noWitJ` are a mute set.** -/
 theorem noWitS_mute : MuteIn coreProgram noWitS := fun g hg fn hf => by
   obtain ⟨hb, hc⟩ := coreProgram_noWitIn g (noWitS_iff.mp hg) fn hf
   exact Stmt.muteList_of_noWit fn.body hb fun g' hg' => noWitS_iff.mpr (hc g' hg')

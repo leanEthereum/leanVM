@@ -73,24 +73,6 @@ attribute [local irreducible] instFintypeDigest instFintypeKState
 /-- The probability that one nonce fails a proof of work of `b` bits: `1 - 2^-b`. -/
 noncomputable def missProb (b : ℕ) : ℝ≥0∞ := 1 - 2⁻¹ ^ b
 
-/-- **A nonce fails with probability exactly `1 - 2^-b`.** -/
-theorem avg_miss_eq {b : ℕ} (hb : b ≤ 64) :
-    (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = false)) / Fintype.card KeccakState =
-      missProb b := by
-  have hc : (Fintype.card KeccakState : ℝ≥0∞) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
-  have hct : (Fintype.card KeccakState : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
-  have hadd : (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = false)) +
-      (∑ u : KeccakState, ind (powOk b (Keccak.lane u 2) = true)) = Fintype.card KeccakState := by
-    rw [← Finset.sum_add_distrib]
-    calc ∑ u : KeccakState, (ind (powOk b (Keccak.lane u 2) = false) +
-          ind (powOk b (Keccak.lane u 2) = true))
-        = ∑ _u : KeccakState, (1 : ℝ≥0∞) := Finset.sum_congr rfl fun u _ ↦ by
-          cases powOk b (Keccak.lane u 2) <;> simp [ind]
-      _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
-  have hdiv := congrArg (· / (Fintype.card KeccakState : ℝ≥0∞)) hadd
-  simp only [ENNReal.add_div, ENNReal.div_self hc hct, sum_powOk_div_eq hb] at hdiv
-  exact ENNReal.eq_sub_of_add_eq (by simp) hdiv
-
 /-- `1 - 2^-64`: the probability that a uniform challenge lies outside `K`. -/
 noncomputable def qK : ℝ≥0∞ := 1 - 2⁻¹ ^ 64
 

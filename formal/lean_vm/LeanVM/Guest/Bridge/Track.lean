@@ -102,37 +102,6 @@ theorem walk_dispatch_cons (x : V) (fs : List String) (args rets : List V) (ps :
     walk σ (.dispatch x fs args rets :: ps) = (pick σ x args rets 0 fs).seq (walk σ ps) := by
   rw [walk, walk1]
 
-/-- **A `match` takes the arm of its selector**, `g^k`. -/
-theorem walkArms_of (x : V) : ∀ (arms : List (List Stmt)) (j k : ℕ) (hk : k < arms.length),
-    σ x = ofK (addressOfIndex (j + k)) → j + k < 2 ^ 64 - 1 → walkArms σ x j arms = walk σ arms[k]
-  | [], _, _, hk, _, _ => absurd hk (Nat.not_lt_zero _)
-  | a :: as, j, k, hk, hx, hlt => by
-    rw [walkArms]
-    cases k with
-    | zero => rw [ite_eq_left (by simpa using hx)]; rfl
-    | succ k =>
-      rw [ite_eq_right (fun h ↦ by
-        have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
-          (ofK_injective (h.symm.trans hx))
-        omega)]
-      exact walkArms_of x as (j + 1) k (by simpa using hk) (by rw [hx]; congr 2; omega) (by omega)
-
-/-- **A dispatch calls the callee of its selector**, `g^i`. -/
-theorem pick_of (x : V) (args rets : List V) : ∀ (fs : List String) (j i : ℕ) (hi : i < fs.length),
-    σ x = ofK (addressOfIndex (j + i)) → j + i < 2 ^ 64 - 1 →
-      pick σ x args rets j fs = .fall [.call fs[i] args rets]
-  | [], _, _, hi, _, _ => absurd hi (Nat.not_lt_zero _)
-  | f :: fs, j, i, hi, hx, hlt => by
-    rw [pick]
-    cases i with
-    | zero => rw [ite_eq_left (by simpa using hx)]; rfl
-    | succ i =>
-      rw [ite_eq_right (fun h ↦ by
-        have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
-          (ofK_injective (h.symm.trans hx))
-        omega)]
-      exact pick_of x args rets fs (j + 1) i (by simpa using hi) (by rw [hx]; congr 2; omega) (by omega)
-
 end Walk
 
 /-! ## Splicing -/
@@ -241,7 +210,6 @@ by the frames' remainders the tree's pops. -/
 structure TrackOk (Is : List Inst) (T : Tree) (done : List Pop) (st : List Ent) : Prop where
   ents : ∀ e ∈ st, EntOk P Is e
   pops : done ++ remS P rd st = T.pops P rd
-
 
 /-- **One move of the tree track**, at the top frame's position. -/
 inductive Move (Is : List Inst) : List Pop × List Ent → List Pop × List Ent → Prop

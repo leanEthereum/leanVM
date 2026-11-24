@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fwd.Canon
 # (List K → List E → Prog E) on two memories
 
 A range check `rangeCheck x y t1 t2 k` reads the memory at `x` and `y` into `t1`, `t2`
-(`auxIdx`); in the guest's bodies nothing else uses them (`deadB`). `ev_agree`: then `Fwd.ev` on
+(`auxIdx`); in the guest's bodies nothing else uses them (`deadS`). `ev_agree`: then `Fwd.ev` on
 two memories gives the same words at every other index, when every load reads, at its address
 under the first evaluation, the same word from both memories. So a function's honest valuation
 is the same, off those reads, on every memory holding its buffers, and its calls' arguments and

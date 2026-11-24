@@ -17,8 +17,7 @@ The output measure of a `PMF`, its monad equations, and uniform-table laws state
 distribution.
 -/
 
-/-! `PMF` monad unfolding and uniform distributions under bijections (formerly in VCVio's
-`ToMathlib.Probability.ProbabilityMassFunction.Lemmas`). -/
+/-! `PMF` monad unfolding and uniform distributions under bijections. -/
 
 universe u
 
@@ -40,8 +39,7 @@ lemma Cslib.Probability.PMF.uniformOfFintype_map_of_bijective {α β : Type*} [F
   convert tsum_ite_eq a (fun _ : α => ((Fintype.card β : ENNReal)⁻¹))
 
 /-! The output measure of a `PMF` is `PMF.toMeasure`, so the event notation reads a `PMF` as it
-reads any other computation (VCVio's earlier discrete layer gave `PMF` this semantics through its
-lift to `SPMF`). -/
+reads any other computation. -/
 
 namespace PMF
 
@@ -110,16 +108,3 @@ theorem uniformSample_bind_update_evalDistEq {D R : Type} [Finite D] [DecidableE
     SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample t id
   simp only [id, bind_pure] at h
   exact EvalDistEq.of_evalDist_eq h
-
-/-- Expose a uniform table cell before running a continuation that reads it. -/
-theorem uniformSample_cell_extract_evalDistEq {D R α : Type} [Finite D] [DecidableEq D] [Finite R]
-    [Nonempty R] [SampleableType R] [SampleableType (D → R)] (t : D)
-    (next : (D → R) → R → ProbComp α) :
-    (do let g ← ($ᵗ (D → R) : ProbComp (D → R)); next g (g t)) =ᵈ (do
-      let u ← ($ᵗ R : ProbComp R)
-      let g ← ($ᵗ (D → R) : ProbComp (D → R))
-      next (Function.update g t u) u) := by
-  let : MeasurableSpace R := ⊤
-  let : MeasurableSpace α := ⊤
-  exact EvalDistEq.of_evalDist_eq <| evalDist_bind_cell_extract ($ᵗ R) ($ᵗ (D → R))
-    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample t next

@@ -5,13 +5,20 @@ public import XmssSecurity.Proof.Seeded.Presampling
 
 @[expose] public section
 
+/-!
+# Preparing every signature in advance
+
+`prepareSigning` runs a signer on every request of a finite type through the random oracle, after
+which the cache resolves each request to the prepared answer (`resolves_prepareSigning`).
+Presampling it and erasing the queries it fixes shows that memoization keeps the output distribution
+of a signing run (`evalDist_runSigning_memoize`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 /-- Preparing finitely many deterministic computations fixes every result in the final cache. -/
 theorem resolves_sequenceFin {α : Type} {n : Nat} (computations : Fin n → OracleComp HashSpec α)

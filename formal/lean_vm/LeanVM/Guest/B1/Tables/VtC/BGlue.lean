@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 /-!
 # Between the selectors
 
-`vtB_const`: a constant's word. `vtc_fsNext`: a
+`vtc_fsNext`: a
 stream read `fsNextT` of a word the memory holds holds, its word the memory's and its cells
 `fsPackVals`.
 -/
@@ -27,11 +27,6 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protoco
 
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
-
-/-- A constant's word. -/
-theorem vtB_const (hl : args.length = 21) {d : V} {c : E} (hm : Stmt.atom (.const d c) ∈ vtPre) :
-    vtσ rd wo args d = c :=
-  vt_goodS (rd := rd) (w := wo) hl hm
 
 /-- A `KECCAK` holds by evaluation: its outputs are the permutation of its inputs. -/
 theorem vtB_keccakAt (hl : args.length = 21) (n : ℕ) {ins outs : List V} {i o : Bool}

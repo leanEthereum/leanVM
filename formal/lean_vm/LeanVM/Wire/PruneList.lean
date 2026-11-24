@@ -15,7 +15,7 @@ public import LeanVM.Wire.Encoding
 `dedupByKey` (`LeanVM.Wire.Encoding`) keeps a sublist of its input, a member of each key
 it meets (`dedupByKey_sublist`, `exists_mem_dedupByKey`), and commutes with a map along its key
 (`map_dedupByKey`). `takeWhile` of the zero words gives the leading zeros of a leaf
-(`take_eq_replicate_of_le_takeWhile`, `getElem_ne_zero_of_takeWhile`).
+(`take_eq_replicate_of_le_takeWhile`, `getD_ne_zero_of_takeWhile`).
 -/
 
 @[expose] public section

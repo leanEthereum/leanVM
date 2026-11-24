@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.OsSpec
 
-  open_stacked's placed completeness, stated: what it returns, the bound of its callees, and the
-  statements at every stack log and rate, unbounded and bounded.
+  What `open_stacked` returns placed, and the bound of its callees.
 -/
 
 module
@@ -13,7 +12,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.Memory.SizeTotal
 
 /-!
-# `open_stacked`, placed: the statements
+# `open_stacked`, placed: its returns and its callees' bound
 
 `OsOut μ w`: the returns and returned buffers, the run's claim, the point zero-padded, one plus
 each coordinate one-padded, the glued weight and the residual's value.
@@ -22,13 +21,6 @@ each coordinate one-padded, the glued weight and the residual's value.
 its trees within `Bnd` of its name on the arguments the arm passes it (`osArgsOk`: `level_positions`' squeezes and
 `level_residual`'s batches, the exponents they read). `osBosAt fs Bnd μ`: the arm of `μ`'s bound (`osBos`), the largest over the rates (`osBos_le_osBosAt`).
 `scripts/count/vsos.py` mirrors it.
-
-**The statements**: `open_stacked_completeAtD_Spec`, at every stack log `μ ∈ [20, 30]` and rate
-`r ∈ [1, 4]`, for certificates whose frame runs fit (`Lift.RunsFit`, `RunsConsec`), on memories
-defined below `2^κ`, `11 ≤ κ` (the grinds' range checks): on an accepting run of
-`whirOpen μ r target` from `⟨capOf S, []⟩` with openings agreeing in the caps, where every memory holding the caller's words reads `xs` at the cursor and the window tables
-at `tabs`, the arm of `μ` called on the rate's selector is complete placed returning `OsOut μ w`.
-`open_stacked_completeAtB_Spec`: within `osBosAt` words, every frame below `2^32`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -71,38 +63,6 @@ theorem osBos_le_osBosAt (fs Bnd : String → ℕ) (μ : ℕ) {ri : ℕ} (hri : 
   exact le_foldl_max_map (fun ri ↦ osBos fs Bnd (openName μ) (osCfgR (μ - minOpenLog) ri)) (List.mem_range.mpr hri)
 
 /-! ## The statements -/
-
-/-- **`open_stacked` is complete placed at every stack log and rate.** -/
-def open_stacked_completeAtD_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
-    ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), Lift.RunsFit fs cert →
-      RunsConsec cert → 11 ≤ κ →
-      ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
-        (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-        RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        CapsAgree μ r target S xs os root →
-        ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
-          CompleteAtD fs cert κ (openName μ) Lin
-            (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur,
-              tabs])
-            (OsOut μ w)
-
-/-- **`open_stacked` is complete placed at every stack log and rate, within `osBosAt` words**,
-given its callees' words bounds. -/
-def open_stacked_completeAtB_Spec : Prop :=
-  ∀ (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
-    ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
-      Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → OsLeafBounds fs Bnd →
-      (∀ f, fs f < 2 ^ 32) → (∀ f, fs (tailKey f) ≤ fs f) →
-      ∀ (S : KeccakState) (root : Digest) (target cur tabs : E) (xs : List E)
-        (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-        RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots' →
-        CapsAgree μ r target S xs os root →
-        ∀ Lin : Layout, (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) →
-          CompleteAtB fs cert κ (openName μ) Lin
-            (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur,
-              tabs])
-            (OsOut μ w) (osBosAt fs Bnd μ)
 
 end
 end LeanVM.Guest.B1

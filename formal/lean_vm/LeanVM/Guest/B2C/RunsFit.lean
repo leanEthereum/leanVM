@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B2C.RunsFit
 
-  The deployed certificates' frame runs fit their frames (`Lift.RunsFit fs cert`) and meet only at
-  common values (`Lift.RunsApart cert`), from the sharing check's lists (`FnStatic`).
+  The deployed certificates' frame runs fit their frames (`Lift.RunsFit fs cert`), from the sharing check's lists (`FnStatic`).
 -/
 
 module
@@ -11,7 +10,8 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.B2C.Static
 public import LeanVM.Guest.B2C.Shared
 public import LeanVM.Guest.SoundFacts
-public import LeanVM.Guest.Lift.OqFits
+public import LeanVM.Guest.Memory.LiftPure
+public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 
 /-!
 # The deployed frame runs
@@ -19,7 +19,7 @@ public import LeanVM.Guest.Lift.OqFits
 The sharing check confirms, once per function, that every value of a frame run is listed with
 its cell, the run's cells consecutive (`FnStatic.run`), every listed cell in the frame
 (`FnStatic.runsIn`) and one value per cell (`FnStatic.runsFun`). So a run fits its frame
-(`runsFit`), and two runs meeting at a cell hold one value there (`runsApart`).
+(`runsFit`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -77,19 +77,6 @@ theorem runsFit : Lift.RunsFit fs cert := by
   simp only at hin
   rw [hfs, hcert]
   omega
-
-/-- **Two deployed frame runs of a body meet only at a common value.** -/
-theorem runsApart : Lift.RunsApart cert := by
-  intro f fn hf p r rs p' r' rs' hm hm' k hk k' hk' he
-  obtain ⟨j, hj, hc, -, hcert⟩ := idx_of_find hf
-  have FS := fnStatic_of hj
-  rw [← hc, blockAtoms_eq] at hm hm'
-  obtain ⟨hv, -, hrun⟩ := FS.run p r rs hm k hk
-  obtain ⟨hv', -, hrun'⟩ := FS.run p' r' rs' hm' k' hk'
-  rw [hcert, hcert] at he
-  have hidx := FS.runsFun _ hrun _ hrun' he
-  simp only at hidx
-  rw [hv, hv', hidx]
 
 end
 end LeanVM.Guest.B2C

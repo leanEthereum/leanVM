@@ -23,7 +23,7 @@ import LeanVM.Guest.Data.ValNames.child_claim_list_mono_loop1
 its caller's frame `a` (`monoQ_all`), whose cell `5` holds its parameter `limit = g^L`; with its ghost word the
 caller's cell `2` (`setG σ [M (a + 2)]`), each read of the family (`mlSub`) lies in the caller's table: the record
 gives the entries pointer `M (a + 2) · g^(4 O)` (`RecAt`), the gaps add `4 Σ e_i` (`monoWalk_vals`), and the range
-check of the walk's end bounds `O + Σ e_i + k` below `L` (as `mlRead`). `mlGlF`: its linked cells hold.
+check of the walk's end bounds `O + Σ e_i + k` below `L` (as `cmRead`). `mlGlF`: its linked cells hold.
 -/
 
 namespace LeanVM.Guest.EndExec

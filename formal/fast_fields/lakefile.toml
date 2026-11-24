@@ -1,0 +1,28 @@
+name = "fast_fields"
+version = "0.1.0"
+defaultTargets = ["FastFields"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# Pinned as the statement pins it.
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "afb9b1363984a70f10e24bd597f6ff40ebc8afbb"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.36.0"
+
+# CompPoly's `GF(2^64)` on machine words (`FastFields/FieldWords.lean`) and its degree-two
+# extensions unrolled (`FastFields/QuadExt.lean`): proved `@[csimp]` lemmas that make the
+# statement's field arithmetic compile fast and change nothing it means.
+[[lean_lib]]
+name = "FastFields"
+globs = ["FastFields.+"]

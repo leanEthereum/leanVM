@@ -11,14 +11,14 @@ public import LeanVM.Guest.B1.Whir.CHonFields5
 public import LeanVM.Guest.B1.Whir.CHonBodyRun1
 
 /-!
-# `os_honest_Spec`
+# The honest data of an accepting run
 
-`osHonest`, `osHonest_run`: every accepting run (`HonRun`) has `OsHonestA` at the arm of `μ` and the rate `r`:
+`osHonest`: every accepting run (`HonRun`) has `OsHonestA` at the arm of `μ` and the rate `r`:
 the buffers' honest words `own` (`Whir/CHonBuf`), the helpers' data `D` (`OsHD.D`), the stored
 positions, the hinted caps and flags (`capW`, `flW`), the levels' `opening_queries` data, the
 memory facts on every memory holding the buffers, and the body at values fixed before the callees
 and the memory, returning the run's claim, point buffers, glued weight and residual
-(`Whir/CHonBodyRun`). `os_honest_proved`: `B1.os_honest_Spec`.
+(`Whir/CHonBodyRun`). `osHonest_fields`: its caps, flags and levels' data are the run's.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -143,20 +143,7 @@ theorem osHonest_fields {cur tabs : E} :
   dsimp only
   exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
-theorem osHonest_run {cur tabs : E} :
-    Nonempty (OsHonestA (osCfgR (μ - minOpenLog) (r - 1))
-      (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs]) cur tabs xs
-      w.target w.inner w.residual (w.point ++ List.replicate (pointCap - μ) 0)
-      (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)) :=
-  ⟨hR.osHonest⟩
-
 end HonRun
-
-/-- **Every accepting run has its honest data** (`Place/OsProtoSpec`). -/
-theorem os_honest_proved : B1.os_honest_Spec := by
-  intro μ r h1 h2 h3 h4 S root target cur tabs xs os w s' roots' hrun hca
-  obtain ⟨cfg, Ls, hR⟩ := honRun_of h1 h2 h3 h4 hrun hca
-  exact hR.osHonest_run
 
 end
 end LeanVM.Guest.B1.Whir

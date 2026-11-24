@@ -1,7 +1,6 @@
 module
 
 public import FORS.LargeBudget.SurvivalWeight
-public import FORS.ScanSigner.FairShare
 public import FORS.ScanSigner.Scan
 
 @[expose] public section
@@ -22,9 +21,6 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]
@@ -179,9 +175,6 @@ variable [Params]
 open FORS.Base
 open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner FORS.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 section LoopSW

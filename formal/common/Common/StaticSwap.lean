@@ -84,28 +84,8 @@ section QueriesIn
 
 variable {P : List UInt8 → Prop} {α β : Type}
 
-theorem queriesIn_pure (a : α) : QueriesIn P (pure a : OracleComp SchemeHashSpec α) := trivial
-
 theorem queriesIn_query_bind (t : List UInt8) (k : BitVec 256 → OracleComp SchemeHashSpec α) :
     QueriesIn P (liftM (SchemeHashSpec.query t) >>= k) ↔ P t ∧ ∀ u, QueriesIn P (k u) := Iff.rfl
-
-theorem queriesIn_bind {X : OracleComp SchemeHashSpec α} {f : α → OracleComp SchemeHashSpec β}
-    (hX : QueriesIn P X) (hf : ∀ a, QueriesIn P (f a)) : QueriesIn P (X >>= f) := by
-  induction X using OracleComp.inductionOn with
-  | pure a => simpa using hf a
-  | query_bind t k ih =>
-    rw [bind_assoc, queriesIn_query_bind]
-    exact ⟨hX.1, fun u ↦ ih u (hX.2 u)⟩
-
-theorem queriesIn_map {X : OracleComp SchemeHashSpec α} (f : α → β) (hX : QueriesIn P X) :
-    QueriesIn P (f <$> X) := by
-  rw [map_eq_bind_pure_comp]
-  exact queriesIn_bind hX fun _ ↦ trivial
-
-theorem queriesIn_query {t : List UInt8} (ht : P t) :
-    QueriesIn P (liftM (SchemeHashSpec.query t) : OracleComp SchemeHashSpec (BitVec 256)) := by
-  have := (queriesIn_query_bind (P := P) t pure).mpr ⟨ht, fun _ ↦ trivial⟩
-  simpa using this
 
 end QueriesIn
 
@@ -124,37 +104,6 @@ noncomputable def eagerW (g : {d // P d} → BitVec 256) :
       if h : P d then StateT.mk fun c ↦ pure ((c d).getD (g ⟨d, h⟩), c)
       else SchemeHashSpec.randomOracle d
 
-omit [DecidablePred P] [Fintype {d // P d}] in
-theorem randomOracle_run_comm' (t d : List UInt8) (ht : t ≠ d) (c : SchemeHashSpec.QueryCache)
-    (u : BitVec 256) :
-    Prod.map id (fun c' ↦ c'.cacheQuery d u) <$> (SchemeHashSpec.randomOracle t).run c =
-      (SchemeHashSpec.randomOracle t).run (c.cacheQuery d u) := by
-  rw [randomOracle.run_eq, randomOracle.run_eq, QueryCache.cacheQuery_of_ne _ _ ht]
-  rcases h : c t with _ | v
-  · simp only [map_bind, map_pure, Prod.map_apply, id_eq]
-    refine bind_congr fun w ↦ ?_
-    rw [QueryCache.cacheQuery_comm _ (Ne.symm ht)]
-  · simp
-
-omit [DecidablePred P] [Fintype {d // P d}] in
-theorem mem_support_randomOracle_run' {t : List UInt8} {c : SchemeHashSpec.QueryCache} {z}
-    (hz : z ∈ support ((SchemeHashSpec.randomOracle t).run c)) :
-    z.2 = c ∨ ∃ v, z.2 = c.cacheQuery t v := by
-  rw [randomOracle.run_eq] at hz
-  rcases h : c t with _ | v
-  · simp only [h, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-    obtain ⟨w, -, rfl⟩ := hz
-    exact Or.inr ⟨w, rfl⟩
-  · simp only [h, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
-    exact Or.inl rfl
-
-theorem unifFwd_run' (n : ℕ) (c : SchemeHashSpec.QueryCache) :
-    (unifFwdImpl SchemeHashSpec n).run c =
-      (·, c) <$> (unifSpec.query n : ProbComp (Fin (n + 1))) := by
-  simpa using unifFwdImpl.simulateQ_run (hashSpec := SchemeHashSpec)
-    (unifSpec.query n : ProbComp (Fin (n + 1))) c
-
 omit [Fintype {d // P d}] in
 /-- Moving a cached `P`-answer into the table. -/
 theorem run'_eagerW_cacheQuery (g : {d // P d} → BitVec 256) (d : List UInt8) (hd : P d)
@@ -167,7 +116,7 @@ theorem run'_eagerW_cacheQuery (g : {d // P d} → BitVec 256) (d : List UInt8) 
   · intro t s hsd z hz
     rcases t with n | d'
     · change z ∈ support ((unifFwdImpl _ n).run s) at hz
-      rw [unifFwd_run', support_map] at hz
+      rw [unifFwd_run, support_map] at hz
       obtain ⟨_, -, rfl⟩ := hz
       exact hsd
     · simp only [eagerW] at hz
@@ -175,13 +124,13 @@ theorem run'_eagerW_cacheQuery (g : {d // P d} → BitVec 256) (d : List UInt8) 
       · simp only [StateT.run_mk, support_pure, Set.mem_singleton_iff] at hz
         subst hz; exact hsd
       · next hd' =>
-        rcases mem_support_randomOracle_run' hz with h | ⟨v, h⟩
+        rcases mem_support_randomOracle_run hz with h | ⟨v, h⟩
         · rw [h]; exact hsd
         · rw [h, QueryCache.cacheQuery_of_ne _ _ (by rintro rfl; exact hd' hd)]; exact hsd
   · intro t s hsd
     rcases t with n | d'
     · change _ <$> (unifFwdImpl _ n).run s =ᵈ (unifFwdImpl _ n).run _
-      rw [unifFwd_run', unifFwd_run', Functor.map_map]
+      rw [unifFwd_run, unifFwd_run, Functor.map_map]
       exact EvalDistEq.rfl
     · simp only [eagerW]
       split
@@ -194,7 +143,7 @@ theorem run'_eagerW_cacheQuery (g : {d // P d} → BitVec 256) (d : List UInt8) 
           have : (⟨d', hd'⟩ : {d // P d}) ≠ ⟨d, hd⟩ := fun h ↦ hdd (congrArg Subtype.val h)
           simp [Function.update_of_ne this]
       · next hd' =>
-        exact (randomOracle_run_comm' d' d (by rintro rfl; exact hd' hd) s u) ▸ EvalDistEq.rfl
+        exact (randomOracle_run_comm d' d (by rintro rfl; exact hd' hd) s u) ▸ EvalDistEq.rfl
 
 /-- **Eager sampling of the `P`-part of the random oracle.** -/
 theorem run'_romImpl_evalDistEq_eagerW {α : Type} (X : OracleComp World α)
@@ -253,7 +202,7 @@ theorem pFree_step (g : {d // P d} → BitVec 256) (t : World.Domain) (c : Schem
   intro z hz
   rcases t with n | d
   · change z ∈ support ((unifFwdImpl _ n).run c) at hz
-    rw [unifFwd_run', support_map] at hz
+    rw [unifFwd_run, support_map] at hz
     obtain ⟨_, -, rfl⟩ := hz
     exact hc
   · simp only [eagerW] at hz
@@ -261,7 +210,7 @@ theorem pFree_step (g : {d // P d} → BitVec 256) (t : World.Domain) (c : Schem
     · simp only [StateT.run_mk, support_pure, Set.mem_singleton_iff] at hz
       subst hz; exact hc
     · next hd =>
-      rcases mem_support_randomOracle_run' hz with h | ⟨v, h⟩
+      rcases mem_support_randomOracle_run hz with h | ⟨v, h⟩
       · rw [h]; exact hc
       · intro d' hd'
         rw [h, QueryCache.cacheQuery_of_ne _ _ (by rintro rfl; exact hd hd')]

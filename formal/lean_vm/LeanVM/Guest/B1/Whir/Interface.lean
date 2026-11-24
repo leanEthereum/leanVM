@@ -18,7 +18,7 @@ import LeanVM.Protocol.Compile.Prog
 
 `open_stacked(m_idx, rate_sel, fs0..fs4, target, commit_root_0, commit_root_1, cursor, tabs)`
 (`guests/lean_ethereum.py`, `open_stacked`) runs
-the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`;
+the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/Verifier/Whir.lean`;
 `crates/verifier/src/whir.rs`) from `verifyStackedOpening`, up to its terminal: the
 fold rounds of CWYZ26's affine combiner (`foldRound`), each non-final level's commitment, high
 part, out-of-domain points and values, query grind, batching grind and `λ`, the final level's
@@ -36,13 +36,13 @@ level's `match` on the rate dispatches into helpers specialized on the rate's sh
 * `RunsWith p s xs os roots a s' roots'`: `RunsTo` (`B1/Common/Sponge.lean`) with the openings
   `os` read and the commitments `roots` growing to `roots'`, on any rest of the stream and of the
   openings.
-* `OpenOut rd μ r root fs target cur rets`: what a call establishes: from the sponge the guest
+* What a call establishes (`OpenOutW`, at given words and openings): from the sponge the guest
   carries as the capacity `fs` with nothing waiting, the stack's root committed with its shape,
   the stream words at the cursor and some openings run `whirOpen μ r target` to `w`; the call
   returns `w`'s claim, two buffers holding `w`'s point (`μ` coordinates, witness order) and its
   coordinates plus one, zero-padded (one-padded) to `pointCap = 40`, `w`'s glued weight and its
   final lane's low part at the tail challenges.
-* `open_stacked_sound_SpecP P`: in the program `P` (`InterfaceAt.lean`: at `coreProgram`), every specialization's call relation at `rateSel r` gives `OpenOut`, on a memory
+* `open_stacked_sound_w_SpecP P osW` (`InterfaceW.lean`): in the program `P`, every specialization's call relation at `rateSel r` gives that, on a memory
   image of `2^κ` words, `11 ≤ κ ≤ 32` (the query windows' range checks, `decode_query_windows`) whose
   window tables are at `tabs` (`WinTabs`: the grinds' and the query windows' lookups).
 
@@ -73,36 +73,6 @@ def RunsWith {α : Type} (p : VerifierProgram α) (s : Fs) (xs : List E) (os : L
     ∃ sp' : Sponge, s'.Carries sp' ∧ runId p ⟨sp, xs ++ rest, os ++ orest, roots⟩ = some (a, ⟨sp', rest, orest, roots'⟩)
 
 /-! ## What a call establishes -/
-
-/-- **`open_stacked__L{μ - minOpenLog}(rateSel r, fs0..fs4, target, root_0, root_1, cursor, tabs)`**
-(TRIAGE #42): from the sponge the guest carries as the capacity `fs` with nothing waiting (the
-batching challenge of `verifyStackedOpening` was just squeezed), the stack's
-root `root` committed with its shape and nothing else, the words `xs` at the cursor and some
-openings `os` run `whirOpen μ r target` to `w`; the function returns `w`'s claim, a buffer
-holding its point (`μ` coordinates, zero-padded to `pointCap`), a buffer holding one plus each of
-them (one-padded), its glued weight and its final lane's low part at the tail challenges. -/
-def OpenOut (rd : Reader) (μ r : ℕ) (root : Digest) (fs : List E) (target cur : E)
-    (rets : List E) : Prop :=
-  ∃ (xs : List E) (os : List (List Opening)) (w : WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
-    ReadsAt rd cur xs ∧
-    RunsWith (whirOpen μ r target) ⟨fs, []⟩ xs os [(root, stackShape μ r)] w s' roots' ∧
-    w.point.length = μ ∧
-    ∃ pt pt1 : E, rets = [w.target, pt, pt1, w.inner, w.residual] ∧
-      ReadsAt rd pt (w.point ++ List.replicate (pointCap - μ) 0) ∧
-      ReadsAt rd pt1 (w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)
-
-/-- **`open_stacked` is sound** in the program `P`, at every stack log and rate: a call of the specialization of `μ`
-on the rate's selector, the capacity cells `fs`, the claim `target`, the root's two cells, the
-cursor and the exponent
-table `tabs` establishes `OpenOut`, on a memory image of `2^κ` words, `11 ≤ κ ≤ 32`,
-(`decode_query_windows`' range checks) holding the window tables at `tabs` (`WinTabs`). -/
-def open_stacked_sound_SpecP (P : Program) : Prop :=
-  ∀ {κ : ℕ}, κ ≤ 32 → winTabBits ≤ κ → ∀ (L : MemoryImage κ) (μ r : ℕ), minOpenLog ≤ μ → μ ≤ 30 →
-    1 ≤ r → r ≤ 4 →
-    ∀ (root : Digest) (fs : List E) (target root0 root1 cur tabs : E) (rets : List E),
-      fs.length = 5 → (root0, root1) = digestHalves root → WinTabs L.read tabs →
-      P.Rel L.read (openName μ) (rateSel r :: fs ++ [target, root0, root1, cur, tabs]) rets →
-        OpenOut L.read μ r root fs target cur rets
 
 end
 end LeanVM.Guest.B1.Whir

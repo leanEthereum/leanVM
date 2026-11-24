@@ -1,14 +1,14 @@
 module
 
-public import FORS.Statement
 public import FORS.Scheme.DigestView
 public import Statement.LeanSphincs
 public import Common.WithHash
+import Common.SequenceFin
 
 @[expose] public section
 
 /-!
-# The statement's leanSPHINCS and upstream's model: the maps and the verifier
+# The statement's leanSPHINCS and FORS's model: the maps and the verifier
 
 The proof of this project (`FORS`, leanVM's `formal/lean_sphincs` at `40f877dc`) is about
 `FORS.Scheme`, a model of leanSPHINCS generic in its shape (`FORS.Params`), the hash a random oracle
@@ -23,7 +23,7 @@ presentation only:
   (`treeBytes_eq`: the same bytes below `2^64`), and the model places a FORS node index past its
   tree's width above `2^31`, which no algorithm computes;
 * the model's digest packs the index and the FORS leaves into one bit vector, the statement reads
-  them off the digest's bytes (`digestIndex_eq`, `digestForsLeaves_eq`).
+  them off the digest's bytes (`digestIndex_eq`, `digestLeaves_eq`).
 -/
 
 open OracleComp OracleSpec
@@ -39,10 +39,6 @@ abbrev params : FORS.Params := .layered 26 3 8 24 10 1182000000
 attribute [local instance] params
 
 /-! ## Bytes -/
-
-theorem bytesLE_eq : @FORS.bytesLE = @littleEndianBytes := rfl
-
-theorem bytesBE_eq : @FORS.bytesBE = @bigEndianBytes := rfl
 
 /-- **The tree word**: the model's 96-bit tree word is the statement's zero word and 64-bit tree,
 below `2^64`. -/
@@ -84,10 +80,6 @@ theorem ofLayer_toLayer (lay : FORS.Layer) : ofLayer (toLayer lay) = lay := by
 theorem layerHeight_toLayer (lay : FORS.Layer) :
     layerHeight (toLayer lay) = FORS.layerHeight lay := by
   rcases lay with ⟨_ | _ | _ | n, h⟩ <;> first | rfl | (change _ < 3 at h; omega)
-
-theorem layerByte_eq (lay : FORS.Layer) : FORS.layerByte lay = (toLayer lay).val := rfl
-
-theorem maxLayerHeight_eq : FORS.maxLayerHeight = 10 := rfl
 
 /-- A model leaf (of any layer) as the statement's. -/
 def toLeaf (leaf : FORS.LeafIndex) : TreeLeafIndex := ⟨leaf.val, leaf.isLt⟩
@@ -207,7 +199,6 @@ theorem simulateQ_oracleHash (input : FORS.HashInput) :
   refine congrArg (· <$> _) (funext fun digest ↦ ?_)
   simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes, Vector.toList]
 
-
 /-! ### Binds
 
 The model's computations are in `OracleComp FORS.HashSpec`, the statement's hash spec up to
@@ -222,10 +213,6 @@ theorem sim_bind {α β : Type} (x : OracleComp FORS.HashSpec α)
 theorem sim_pure {α : Type} (a : α) :
     simulateQ σ (@Pure.pure (OracleComp FORS.HashSpec) _ α a) = pure a :=
   simulateQ_pure _ _
-
-theorem sim_map {α β : Type} (f : α → β) (x : OracleComp FORS.HashSpec α) :
-    simulateQ σ (@Functor.map (OracleComp FORS.HashSpec) _ α β f x) = f <$> simulateQ σ x :=
-  simulateQ_map _ _ _
 
 /-- Two binds agree when their computations and their continuations do. -/
 theorem bind_eq_of {m : Type → Type} [Monad m] {α β : Type} {x y : m α} {f g : α → m β}
@@ -249,7 +236,7 @@ theorem simulateQ_sequenceFin {α : Type} {n : ℕ} (c : Fin n → OracleComp FO
   induction n with
   | zero => simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_pure]
   | succ n ih =>
-    simp only [FORS.Concrete.sequenceFin, sequenceFin, sim_bind, sim_pure, ih]
+    simp only [FORS.Concrete.sequenceFin, Common.sequenceFin_succ, sim_bind, sim_pure, ih]
 
 /-! ## The maps of keys and signatures -/
 
@@ -260,13 +247,6 @@ def toModelPublicKey (publicKey : PublicKey) : FORS.PublicKey :=
 /-- A model public key as the statement's. -/
 def ofModelPublicKey (publicKey : FORS.PublicKey) : PublicKey :=
   ⟨publicKey.parameter, publicKey.root⟩
-
-/-- The public keys correspond. -/
-def publicKeyEquiv : FORS.PublicKey ≃ PublicKey where
-  toFun := ofModelPublicKey
-  invFun := toModelPublicKey
-  left_inv _ := rfl
-  right_inv _ := rfl
 
 /-- A FORS tree's opening, the model's from the statement's. -/
 def toModelTreeOpening (opening : ForsTreeOpening) : FORS.TreeOpening :=
@@ -340,8 +320,6 @@ theorem treeIndexBytes_eq : FORS.treeIndexBytes = 3 := rfl
 theorem leafIndexBytes_eq : FORS.leafIndexBytes = 1 := rfl
 
 theorem bottomHeight_eq : FORS.bottomHeight = 8 := rfl
-
-theorem messageDigestBits_eq : FORS.messageDigestBits = 266 := rfl
 
 /-- Bit `g` of the statement's value of the calls is bit `g` of the calls. -/
 theorem testBit_digestValue (outputs : DigestCall → HashOutput) (g : ℕ) (hg : g < 512) :
@@ -513,13 +491,6 @@ section Verification
 open Verification
 
 variable (parameter : FORS.PublicParameter)
-
-theorem decodeDigest_eq (digest : Digest) :
-    FORS.TargetSum.decodeDigest digest = TargetSum.decodeDigest digest := by
-  have henc : FORS.TargetSum.digestEncoding digest = TargetSum.base2bDigits digest := rfl
-  unfold FORS.TargetSum.decodeDigest TargetSum.decodeDigest
-  rw [henc]
-  rfl
 
 theorem simulateQ_chainWalk (lay : FORS.Layer) (tree : FORS.TreeIndex) (leaf : FORS.LeafIndex)
     (chainIndex : FORS.ChainIndex) (start : ℕ) :

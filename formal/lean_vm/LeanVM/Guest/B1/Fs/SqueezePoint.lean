@@ -215,11 +215,6 @@ theorem holds_sqChain (z b cap0 : ℕ) (pt : V) (off m : ℕ) (next : Prop) (kre
 /-- A cell index, reduced. -/
 def fin13 (x : ℕ) : Fin 13 := ⟨x % 13, Nat.mod_lt _ (by decide)⟩
 
-/-- Decide the next `if` of an unfolded index function by `omega`. -/
-macro "sp_if" : tactic => `(tactic| first
-  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
-  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
-
 theorem fin13_eq {x : ℕ} {c : Fin 13} (h : x % 13 = c.val) : fin13 x = c := Fin.ext h
 
 /-- The last capacity copied out twice: cells `8 .. 12` of the last squeeze's state, read from the
@@ -333,7 +328,6 @@ theorem spf_sound {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
           rw [show 17 + 5 + 13 * (m + 1) + 4 = 26 + 13 * (m + 1) by ring]).trans
             (d4.trans (by rw [show 21 + 13 * (m + 1) = 17 + 13 * (m + 1) + 4 by ring]))
 
-
 theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     (hfind : coreProgram.find? name = some f)
     (hparams : f.params = [.n (valf% «squeeze_point_from» "fs0"), .n (valf% «squeeze_point_from» "fs1"), .n (valf% «squeeze_point_from» "fs2"), .n (valf% «squeeze_point_from» "fs3"), .n (valf% «squeeze_point_from» "fs4"), .n (valf% «squeeze_point_from» "first"), .n (valf% «squeeze_point_from» "point")])
@@ -358,7 +352,7 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     have := c.isLt
     rw [ev, spfVals, show (17 + 13 * x + c.val - 17) / 13 = x by omega,
       show (17 + 13 * x + c.val - 17) % 13 = c.val by omega]
-    repeat sp_if
+    repeat omega_if
     congr 1; apply fin13_eq; omega
   have hp : ∀ x < n, LoadHolds rd point (1 + x) (challengeOf (sqSt s x).perm) := by
     intro x hx
@@ -375,13 +369,13 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
     intro i hi
     rw [ev, spfVals]
-    repeat sp_if
+    repeat omega_if
     rw [show m + 1 - 1 = m by omega, show 17 + 13 * (m + 1) + i - (17 + 13 * (m + 1)) = i by omega]
   have cB : ∀ i < 5, σ (.n (22 + 13 * (m + 1) + i)) =
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by
     intro i hi
     rw [ev, spfVals]
-    repeat sp_if
+    repeat omega_if
     rw [show m + 1 - 1 = m by omega, show 22 + 13 * (m + 1) + i - (22 + 13 * (m + 1)) = i by omega]
   have cC : ∀ i < 5, σ (.n (17 + 13 * m + 8 + i)) =
       cellsOfState (sqSt s m).perm false (fin13 (8 + i)) := by

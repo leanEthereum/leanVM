@@ -1,8 +1,8 @@
 module
 
-public import XmssSecurity.Proof.Bridge.Basic
-public import LeanXmss.Statement
-public import Common.WithHash
+public import LeanXmss.Scheme
+public import XmssSecurity.Scheme
+import Common.SequenceFin
 
 @[expose] public section
 
@@ -248,7 +248,7 @@ theorem sequenceFin_eq {m : Type → Type} [Monad m] {α : Type} {n : Nat} (c : 
   induction n with
   | zero => rfl
   | succ n ih =>
-      simp only [HashSig.OverPermutation.sequenceFin, Concrete.sequenceFin, ih]
+      simp only [Common.sequenceFin_succ, Concrete.sequenceFin, ih]
 
 theorem treeFold_bottom (parameter : PublicParameter) (key : LeafIndex) (signature : Signature)
     (leaf : Digest) (levels : Nat) (hlevels : levels ≤ treeHeight) :

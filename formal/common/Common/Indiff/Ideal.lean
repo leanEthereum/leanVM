@@ -19,6 +19,45 @@ open OracleComp OracleSpec
 
 namespace Common
 
+section RoPart
+
+variable {Msg Dg τ : Type} [DecidableEq Msg] [DecidableEq τ] [SampleableType Dg]
+  {O : OracleSpec.{0, 0} τ} [∀ t, SampleableType (O.Range t)]
+
+/-- The random oracle part of a cache of the random oracle and another oracle `O`. -/
+def roPart (c : (roSpec Msg Dg + O).QueryCache) : (roSpec Msg Dg).QueryCache :=
+  QueryCache.ofFn fun m ↦ c (.inl m)
+
+@[simp] theorem roPart_apply (c : (roSpec Msg Dg + O).QueryCache) (m : Msg) :
+    roPart c m = c (.inl m) := rfl
+
+/-- Recording a random-oracle answer commutes with forgetting `O`. -/
+theorem roPart_cacheQuery_inl (c : (roSpec Msg Dg + O).QueryCache) (m : Msg) (d : Dg) :
+    roPart (c.cacheQuery (.inl m) d) = (roPart c).cacheQuery m d := by
+  refine QueryCache.ext fun m' ↦ ?_
+  by_cases h : m' = m
+  · subst h; simp
+  · rw [roPart_apply, QueryCache.cacheQuery_of_ne _ _ (by simpa using h),
+      QueryCache.cacheQuery_of_ne _ _ h, roPart_apply]
+
+/-- Recording an answer of `O` is invisible to the random oracle part. -/
+theorem roPart_cacheQuery_inr (c : (roSpec Msg Dg + O).QueryCache) (x : τ) (t : O.Range x) :
+    roPart (c.cacheQuery (.inr x) t) = roPart c := by
+  refine QueryCache.ext fun m' ↦ ?_
+  rw [roPart_apply, QueryCache.cacheQuery_of_ne _ _ (by simp), roPart_apply]
+
+/-- A random-oracle step, seen through the random oracle part. -/
+theorem roPart_roStep_inl (m : Msg) (c : (roSpec Msg Dg + O).QueryCache) :
+    (fun w ↦ (w.1, roPart w.2)) <$> roStep (hs := roSpec Msg Dg + O) (.inl m) c =
+      roStep (hs := roSpec Msg Dg) m (roPart c) := by
+  rcases h : c (.inl m) with _ | d
+  · rw [roStep_of_none h, roStep_of_none (by simpa using h)]
+    simp [roPart_cacheQuery_inl]
+  · rw [roStep_of_some h, roStep_of_some (by simpa using h)]
+    simp
+
+end RoPart
+
 section Setting
 
 variable {Dg E C Msg : Type}
@@ -27,37 +66,6 @@ variable {Dg E C Msg : Type}
   [Fintype Dg] [Fintype E] [Fintype C]
   [SampleableType Dg] [SampleableType E] [SampleableType C]
   (P : Padding Msg (Dg × E)) [P.Lawful] (iv : SpState Dg E C)
-
-/-- The random oracle part of an intermediate game's cache. -/
-def roPart (c : ACache Msg Dg E C) : (roSpec Msg Dg).QueryCache :=
-  QueryCache.ofFn fun m ↦ c (.inl m)
-
-@[simp] theorem roPart_apply (c : ACache Msg Dg E C) (m : Msg) : roPart c m = c (.inl m) := rfl
-
-/-- Recording a random-oracle answer commutes with forgetting the path oracle. -/
-theorem roPart_cacheQuery_inl (c : ACache Msg Dg E C) (m : Msg) (d : Dg) :
-    roPart (c.cacheQuery (.inl m) d) = (roPart c).cacheQuery m d := by
-  refine QueryCache.ext fun m' ↦ ?_
-  by_cases h : m' = m
-  · subst h; simp
-  · rw [roPart_apply, QueryCache.cacheQuery_of_ne _ _ (by simpa using h),
-      QueryCache.cacheQuery_of_ne _ _ h, roPart_apply]
-
-/-- Recording a path-oracle answer is invisible to the random oracle part. -/
-theorem roPart_cacheQuery_inr (c : ACache Msg Dg E C) (β : List (Dg × E))
-    (t : SpState Dg E C) : roPart (c.cacheQuery (.inr β) t) = roPart c := by
-  refine QueryCache.ext fun m' ↦ ?_
-  rw [roPart_apply, QueryCache.cacheQuery_of_ne _ _ (by simp), roPart_apply]
-
-/-- A random-oracle step, seen through the random oracle part. -/
-theorem roPart_roStep_inl (m : Msg) (c : ACache Msg Dg E C) :
-    (fun w ↦ (w.1, roPart w.2)) <$> roStep (hs := aSpec Msg Dg E C) (.inl m) c =
-      roStep (hs := roSpec Msg Dg) m (roPart c) := by
-  rcases h : c (.inl m) with _ | d
-  · rw [roStep_of_none h, roStep_of_none (by simpa using h)]
-    simp [roPart_cacheQuery_inl]
-  · rw [roStep_of_some h, roStep_of_some (by simpa using h)]
-    simp
 
 /-- The rest of the rate and the capacity of a uniform state are uniform. -/
 theorem uniform_rest_evalDistEq {β : Type} (f : E × C → ProbComp β) :

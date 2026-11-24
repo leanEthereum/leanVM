@@ -451,6 +451,28 @@ end Pairs
 
 /-! ## A frame lookup -/
 
+/-- A call's key searched in the table (`searchInKeyC`): at most
+`(64w + 78 + 9·wl E)·(E + 2)`, `w = |args| + |rets|`. -/
+theorem searchCallKey_cost (hP : Includes P searchInKeyC.costDeps) (E : ℕ)
+    (table : Array (CallKey × K)) (ht : ∀ e ∈ table, KeyOK 56 e.1) (hs : table.size ≤ 2 ^ E)
+    (j : ℕ) (args rets : List LeanVM.Parameters.E) :
+    machineCost P searchInKeyC.costIdx [encodeValue table, encodeValue (callKey (canonIndex j) args rets),
+        encodeValue 0, encodeValue table.size] ≤
+      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) := by
+  have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
+    callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
+  have h3 := searchInKey_cost P hP 56 table ht _ hk (2 ^ E) (wl E)
+    (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
+  have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
+      64 * (args.length + rets.length) + 41 := by
+    simp [keyCmpPrice, callKey]
+  have hlog : Nat.log2 (table.size - 0) ≤ E := by
+    have := log2_mono (show table.size - 0 ≤ 2 ^ E by omega)
+    rwa [Nat.log2_two_pow] at this
+  refine h3.trans ?_
+  rw [hkc]
+  exact Nat.mul_le_mul (by omega) (by omega)
+
 /-- **The frame map on the sorted array** (`frameAtAC`): one binary search of the call's key
 (`w = |args| + |rets|` words) in a table of keys of at most `56` codes and at most `2^E` pairs,
 two frame reads: at most `(64w + 78 + 9·wl E)·(E + 2) + 27w + R + 1584`. -/
@@ -467,22 +489,8 @@ theorem frameAtA_cost (rd : Reader) (rdVal : MachineValue)
   rw [frameAtAC.costEq P hP table rd rdVal hrd]
   have h1 := isFunctionIndex_cost P (by includes) j hj
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
-  have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
-    callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
-  have h3 := searchInKey_cost P (by includes) 56 table ht _ hk (2 ^ E) (wl E)
-    (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
-  have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
-      64 * (args.length + rets.length) + 41 := by
-    simp [keyCmpPrice, callKey]
-  have hlog : Nat.log2 (table.size - 0) ≤ E := by
-    have := log2_mono (show table.size - 0 ≤ 2 ^ E by omega)
-    rwa [Nat.log2_two_pow] at this
-  have h3' : (keyCmpPrice (callKey (canonIndex j) args rets) + 37 + 9 * wl E) *
-      (Nat.log2 (table.size - 0) + 2) ≤
-      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) := by
-    rw [hkc]
-    exact Nat.mul_le_mul (by omega) (by omega)
-  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3' ⊢
+  have h3 := searchCallKey_cost P (by includes) E table ht hs j args rets
+  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3 ⊢
   generalize searchIn table (callKey (canonIndex j) args rets) 0 table.size = o
   cases o with
   | none => dsimp only; split_ifs <;> omega
@@ -502,22 +510,8 @@ theorem frameFpA_cost (hP : Includes P frameFpAC.costDeps) (E : ℕ)
   rw [frameFpAC.costEq P hP]
   have h1 := isFunctionIndex_cost P (by includes) j hj
   have h2 := callKey_cost P (by includes) (canonIndex j) args rets
-  have hk : KeyOK (args.length + rets.length) (callKey (canonIndex j) args rets) :=
-    callKey_ok (canonIndex_lt64 j) (by omega) (by omega)
-  have h3 := searchInKey_cost P (by includes) 56 table ht _ hk (2 ^ E) (wl E)
-    (fun x hx ↦ limbs_le_wl' hx) hs 0 table.size (Nat.zero_le _) hs
-  have hkc : keyCmpPrice (callKey (canonIndex j) args rets) =
-      64 * (args.length + rets.length) + 41 := by
-    simp [keyCmpPrice, callKey]
-  have hlog : Nat.log2 (table.size - 0) ≤ E := by
-    have := log2_mono (show table.size - 0 ≤ 2 ^ E by omega)
-    rwa [Nat.log2_two_pow] at this
-  have h3' : (keyCmpPrice (callKey (canonIndex j) args rets) + 37 + 9 * wl E) *
-      (Nat.log2 (table.size - 0) + 2) ≤
-      (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) := by
-    rw [hkc]
-    exact Nat.mul_le_mul (by omega) (by omega)
-  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3' ⊢
+  have h3 := searchCallKey_cost P (by includes) E table ht hs j args rets
+  generalize (64 * (args.length + rets.length) + 78 + 9 * wl E) * (E + 2) = X at h3 ⊢
   split_ifs <;> omega
 
 /-- **A word of a frame looked up once** (`frameValAtC`): at most `R + 1544`. -/

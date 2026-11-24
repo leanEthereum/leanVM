@@ -187,14 +187,8 @@ theorem eqtreeLvlVal_word (rs : List E) (t i j : ℕ) (hj : j < 3) :
     show ¬ 3 + 3 * i + j = 2 by omega, ↓reduceIte, e1, e2]
   interval_cases j <;> simp
 
-/-- The honest valuation of `eqtreeT … b n` over `σ`, through level `m`. -/
-def eqtreeSig (σ : Val) (rs : List E) (b : ℕ) : ℕ → Val
-  | 0 => setv σ b 3 fun o ↦ [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD o 0
-  | m + 1 => setv (eqtreeSig σ rs b m) (eqtreeS b (m + 1)) (3 + 3 * 2 ^ (m + 1))
-      (eqtreeLvlVal rs (m + 1))
-
 /-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
-every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
+every level's `eqKernel` entries, and the template's values the honest ones (`eqtreeLvlVal`). -/
 theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)
     (hpt : ∀ t < n, LoadHolds rd (σ p) (po + t) (rs.getD t 0))
     (hout : ∀ t, 1 ≤ t → t ≤ n → ∀ i < 2 ^ t,

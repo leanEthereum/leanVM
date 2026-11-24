@@ -28,7 +28,6 @@ structure Forgery where
   leafIndex : LeafIndex
   message : Message
   signature : Signature
-deriving DecidableEq
 
 /-- The request a forgery claims to answer. -/
 def Forgery.request (forgery : Forgery) : SignRequest :=

@@ -17,9 +17,8 @@ import LeanVM.Protocol.WithHash
 
 * `perm_eq`: the Spec's permutation input of a sponge the guest carries as `s` permutes to
   `s.perm`; `carries_absorb`, `carries_squeeze`: `Fs.absorb` and `Fs.squeeze` are `absorb` and
-  `squeeze` (`Statement/LeanVmVerifier.lean`, at `Id` and `keccakF`) on the carried cells.
-* `RunsTo.bind`, `runsTo_ret`: runs compose (`RunsTo.bindG`, `RunsToG.bindFrom`,
-  `RunsFromG.bind` through a ground challenge); `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
+  `squeeze` (`Statement/Verifier/Transcript.lean`, at `Id` and `keccakF1600`) on the carried cells.
+* `RunsTo.bind`, `runsTo_ret`: runs compose (`RunsToG.bindFrom`, `RunsFromG.bind` through a ground challenge); `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
   `runsTo_sampleN`: the Spec's reads and samples as runs on the carried sponge
   (`Fs.absorb … dsObserve`, `Fs.squeeze`).
 * `runsToG_grind`: a proof of work, the nonce absorbed with `dsPowNonce` and permuted, `powOk`
@@ -161,16 +160,6 @@ theorem runsTo_sampleN (n : ℕ) (s : Fs) :
     simpa [VerifierProgram.sampleChallenges, Fs.squeezeN] using h
 
 /-! ## Through a ground challenge -/
-
-theorem RunsTo.bindG {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 : Fs}
-    {xs ys : List E} {a : α} {b : β} {cap : List E} {c : E} (h1 : RunsTo p s xs a s1)
-    (h2 : RunsToG (f a) s1 ys b cap c) : RunsToG (p >>= f) s (xs ++ ys) b cap c := by
-  intro sp hs rest os roots
-  obtain ⟨sp1, hs1, e1⟩ := h1 sp hs (ys ++ rest) os roots
-  obtain ⟨sp2, hs2, e2⟩ := h2 sp1 hs1 rest os roots
-  refine ⟨sp2, hs2, ?_⟩
-  rw [prog_bind_eq, run_bind, List.append_assoc, e1]
-  exact e2
 
 theorem RunsToG.bindFrom {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
     {s s2 : Fs} {xs ys : List E} {a : α} {b : β} {cap : List E} {c : E}

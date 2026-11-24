@@ -125,10 +125,6 @@ theorem lxArmBase_cost (hP : Includes P Decoder.lxArmBaseC.costDeps) (w k : ℕ)
   rw [Decoder.lxArmBaseC.costEq P hP]
   limbs_one; split_ifs <;> first | omega | (limbs_one; omega)
 
-theorem lxSibAt_lt (w k r : ℕ) (hk : k ≤ 256) (hr : r < 8) : lxSibAt w k r < 2 ^ 20 := by
-  have := lxArmBase_lt w k hk
-  unfold lxSibAt; split_ifs <;> omega
-
 theorem lxSibAt_cost (hP : Includes P Decoder.lxSibAtC.costDeps) (w k r : ℕ) (hw : w < 4)
     (hk : k ≤ 256) (hr : r < 8) :
     machineCost P Decoder.lxSibAtC.costIdx [encodeValue w, encodeValue k, encodeValue r] ≤ 80 := by

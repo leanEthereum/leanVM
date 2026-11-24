@@ -57,7 +57,7 @@ def certs():
     blocks = {}
     for f in glob.glob("LeanVM/Guest/Pack/*/Bundle.lean"):
         for m in re.finditer(r"^namespace LeanVM\.Guest\.Fn\.«([^»]*)»\n(.*?)^end LeanVM\.Guest\.Fn\.«\1»$",
-                             open(f).read(), re.S | re.M):
+                             re.sub(r"\(nat_lit (\w+)\)", r"\1", open(f).read()), re.S | re.M):
             blocks[m.group(1)] = m.group(2)
     for j, key in keys().items():
         names, nret = cert_body(blocks[key], "cert")

@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
+import LeanVM.ToMathlib.List
 
 /-!
 # The query cost of the leanVM verifier
@@ -56,8 +57,7 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.LeanVmVerifier`,; it covers every proof, accepted or
-not, and the deferring program `deferringVerifierProgram` alike (`costLE_deferringProgram`).
+`Statement.Verifier.Lib`; it covers every proof, accepted or not.
 -/
 
 namespace LeanVM.Protocol.Verifier
@@ -494,14 +494,6 @@ theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     · simp only [List.map_cons, List.sum_cons]; omega
     · simp only [List.map_cons, List.sum_cons]; omega
 
-private theorem foldl_max_le (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc ≤ M → (∀ x ∈ l, x ≤ M) →
-    l.foldl max acc ≤ M
-  | [], _, h, _ => h
-  | x :: xs, acc, h, hl => by
-    simp only [List.foldl_cons]
-    exact foldl_max_le M xs _ (max_le h (hl x List.mem_cons_self))
-      fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
-
 /-- The widths of the first components of a zip are at most the widths of the list. -/
 theorem sum_width_zip {β : Type} : ∀ (l : List Table) (m : List β),
     ((List.zip l m).map fun r ↦ r.1.width).sum ≤ (l.map Table.width).sum
@@ -519,7 +511,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (30 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
+  have hmax := List.foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundCost 4 = 12 := rfl
   refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
@@ -982,11 +974,6 @@ theorem costs_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     VerifierProgram.Costs costHeight (computedBytecodeValue w p v) 0 fun _ ↦ True :=
   (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
 
-/-- The deferring check of the fixed polynomial's value costs nothing. -/
-theorem costs_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
-    VerifierProgram.Costs costHeight (claimedBytecodeValue claim w p v) 0 fun _ ↦ True :=
-  (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
-
 /-- **The cost of the leanVM verifier program**: every run of `leanVmVerifierProgram` costs at most
 `leanVmCost` quarters, every commitment having height at most `costHeight`, for every bytecode
 and public input. -/
@@ -995,14 +982,6 @@ theorem costLE_leanVmProgram (bytecode : List K) (publicInput : Digest) :
   rw [leanVmProgram_eq]
   exact VerifierProgram.Costs.seq
     (costs_verifyExecution _ costs_computedBytecodeValue bytecode publicInput) (fun _ _ ↦
-      trivial) le_rfl
-
-/-- **The cost of the deferring verifier program**, as the deployed one's. -/
-theorem costLE_deferringProgram (claim : BytecodeClaim) (bytecode : List K) (publicInput : Digest) :
-    (deferringVerifierProgram claim bytecode publicInput).CostLE costHeight leanVmCost := by
-  rw [deferredProgram_eq]
-  exact VerifierProgram.Costs.seq
-    (costs_verifyExecution _ (costs_claimedBytecodeValue claim) bytecode publicInput) (fun _ _ ↦
       trivial) le_rfl
 
 /-! ## The seed and the query bound -/

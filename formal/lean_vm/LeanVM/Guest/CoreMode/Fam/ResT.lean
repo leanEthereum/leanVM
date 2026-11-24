@@ -72,8 +72,6 @@ theorem progOk_guest : ProgOk coreProgram where
       ↓reduceIte] at h
     exact h
 
-/-! ## Distinct entries -/
-
 /-! ## The certificates' termination facts -/
 
 /-- A loop helper's end as an exponent: its second argument's (cell `3`), or the constant. -/

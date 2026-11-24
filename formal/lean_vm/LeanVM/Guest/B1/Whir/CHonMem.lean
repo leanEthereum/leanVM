@@ -78,14 +78,13 @@ theorem ownW_fin {k : ℕ} (hk : k < 7) :
 
 end OsHD
 
-/-! ## The sizes -/
-
 namespace HonStatic
 
 variable {c : OsCfg} (hS : HonStatic c)
 include hS
 
 theorem n2 : 2 ≤ c.levels.length := hS.1
+
 theorem yr : c.yrLevel + 1 = c.levels.length := hS.2.1
 theorem ylog : c.yrLog ≤ yrLogCap := hS.2.2.1
 
@@ -131,11 +130,6 @@ theorem fin {k : ℕ} (hk : k < 7) : (osSizesL c).getD (13 + c.yrLevel + k) 0 =
 theorem posTot {ri : ℕ} (hri : ri < ligNRates) (hL : c.levelsAt.getD ri [] = c.levels) :
     c.posTotal.getD ri 0 = osPosTotal c :=
   hS.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 ri hri hL
-
-theorem posTotLen : c.posTotal.length = ligNRates := hS.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-
-theorem posTotLt {r : ℕ} (hr : r < ligNRates) : c.posTotal.getD r 0 < u128Bound :=
-  hS.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 r hr
 
 /-- The head's buffers' indices are buffers. -/
 theorem headLt {j : ℕ} (hj : j < 12) : j < (osSizesL c).length := by rw [hS.len]; omega

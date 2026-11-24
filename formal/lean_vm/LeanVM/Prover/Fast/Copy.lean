@@ -6,7 +6,7 @@ import LeanVM.Prover.Fast.Sponge
 # Copies of definitions, compiled with `E`'s word-level arithmetic
 
 A `@[csimp]` lemma acts where code is compiled. The statement's prover (`Statement/Prover/`) and
-the verifier's functions it calls (`Statement/LeanVmVerifier.lean`) were compiled with `E`'s
+the verifier's functions it calls (`Statement/Verifier/`) were compiled with `E`'s
 generic product, and their compiled functions call one another, so a lemma here would change
 nothing in them. This module recompiles them. For a definition `f`, `f.fast` is the definition
 whose value is `f`'s with every product `x * y` and power `x ^ n` in `E` replaced by `mulE x y` and
@@ -21,7 +21,7 @@ with `mulE` for `E`'s product, proved equal by induction and marked `@[csimp]` (
 `fast_copy_modules p₁ p₂ …` copies, callee-first, every definition of the modules whose name
 starts with one of the prefixes that multiplies in `E` or calls a definition that has or needs a
 copy, except a definition that already compiles as another (a `@[csimp]` lemma of
-`Statement/Fast/`); its callers wait for a recursive one's hand-written copy, so the copies are
+`Statement/Fast/` or `fast_fields`); its callers wait for a recursive one's hand-written copy, so the copies are
 written in rounds. `fast_copy_modules_final` copies them anyway, calling the definition itself;
 `fast_copy_modules_complete` fails instead, if one is left.
 -/
@@ -95,7 +95,7 @@ def copyDecl (c : Name) (force : Bool) : MetaM Bool := do
 already replaced by a `@[csimp]` lemma. -/
 def copyable (env : Environment) (c : Name) : Bool :=
   !c.isInternal && !isMatcherCore env c &&
-    -- One that already compiles as another (`@[csimp]`, `Statement/Fast/`) keeps that.
+    -- One that already compiles as another (`@[csimp]`, `Statement/Fast/`, `fast_fields`) keeps that.
     !(Compiler.CSimp.ext.getState env).map.contains c &&
     match env.find? c with
     | some (.defnInfo _) => true

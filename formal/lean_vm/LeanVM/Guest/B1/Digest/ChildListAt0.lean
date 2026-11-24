@@ -28,9 +28,6 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
   holds every atom (`AnyVals`: the words that size the buffer, end the loops and place the
   callees).
 * `recMem_drop`: the records after the first `s`, the marks `base · g^s`.
-* `ccl_completeAtB`, `ccl_completeAt`: `child_claim_list_last__L{k}` is complete, placed, a leaf
-  within its frame (`relAtIn_atoms` on `ccl_core`), reading the state's words, the records' marks
-  at `region · g^(os j)` and their cells among the caller's words.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -306,53 +303,6 @@ theorem clU_big {a q : ℕ} (hq : q ≤ a) : clU a q = 8 * q := by
 /-- `clU` after the big frames. -/
 theorem clU_grp (a q : ℕ) : clU a (a + q) = 8 * a + q := by
   unfold clU; rw [Nat.min_eq_right (by omega)]; omega
-
-/-! ## The last claims -/
-
-/-- **`child_claim_list_last__L{k}` is complete, placed, within its frame**: the state at
-`sp = g^sP`, the records' marks at `region · g^(os j)` and their cells among the caller's words. -/
-theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ} (hk : k < 17) {κ : ℕ}
-    {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
-    {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
-    (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
-    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
-      RecMem rd region (gen ^ L) entries marks k os cells)
-    (hR1 : ∀ o < 13, RegionL Lin (sP + o)) (hR2 : ∀ j < k, RegionL Lin (rg + os j))
-    (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
-    CompleteAtDTB fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
-      (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) (fun _ => True)
-      (fs (cclNames.getD k "")) := by
-  intro fp
-  refine ⟨fs (cclNames.getD k ""), [], _, [], le_rfl, ⟨rfl, rfl⟩, fun q hq => by simp at hq,
-    B1.disj_nil, fun rd hlow hm => ?_⟩
-  simp only [List.append_nil, List.nil_append] at hm
-  obtain ⟨hS, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload, -⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
-    (boundMem_of_low hlow hLκ)
-  refine RelAtIn.relAtInT (relAtIn_atoms (ccl_name hk) hb (ccl_loop hk) (ccl_na hk) hp hat hr
-    (fun q hq => by rw [ccl_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)
-    (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq))
-  rcases hload q hq with ⟨o, ho, h⟩ | ⟨j, hj, h⟩ | ⟨j, hj, c, hc4, h⟩
-  · exact ⟨_, h, Or.inl (hR1 o ho)⟩
-  · exact ⟨_, h, Or.inl (hR2 j hj)⟩
-  · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
-
-/-- **`child_claim_list_last__L{k}` is complete, placed.** -/
-theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ} (hk : k < 17) {κ : ℕ}
-    {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
-    {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
-    (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
-    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
-      RecMem rd region (gen ^ L) entries marks k os cells)
-    (hR1 : ∀ o < 13, RegionL Lin (sP + o)) (hR2 : ∀ j < k, RegionL Lin (rg + os j))
-    (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
-    CompleteAtD fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
-      (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) :=
-  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
 
 end
 end LeanVM.Guest.B1.Digest

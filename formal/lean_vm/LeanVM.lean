@@ -5,8 +5,7 @@ public import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Guest.Batch.Children
 public import LeanVM.Guest.Batch.Rpm
 public import LeanVM.Guest.EndRpm
-public import LeanVM.Guest.Budget.ClosedN
-public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Guest.Budget.Closed
 public import LeanVM.Prover.End
 public import LeanVM.Prover.EndChild
 public import LeanVM.Protocol.Verifier.Defers
@@ -47,9 +46,9 @@ program too (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`):
 `LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
-execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
-`guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
-DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
+execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget
+(`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget : DecoderPriceWithinBudget`,
+`Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
 `corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
 Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
 `DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
@@ -444,8 +443,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     Statement.Corollaries (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram) where
   aggregateSound := by
-    intro A Q hA hQ
-    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA hQ)
+    intro A Q hA
+    refine le_trans (prEvent_mono _ _ _ ?_) (h.leanVmKnowledgeSoundness A Q hA)
     rintro ⟨prog, input, π, b, T⟩ ⟨s, hb, hprog, hpub, hs, hno⟩
     dsimp only at hprog
     subst hprog

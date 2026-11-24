@@ -52,9 +52,6 @@ abbrev drawErrors (C : Type) (e : ℝ≥0) : Errors (drawTree C) (drawRoles C) :
 abbrev drawSlot (C : Type) [SampleableType C] : Slot :=
   ⟨drawTree C, drawRoles C, ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩, ($ᵗ C, fun _ ↦ PUnit.unit)⟩
 
-/-- The execution path of one challenge. -/
-abbrev drawPath {C : Type} (c : C) : (drawTree C).ExecutionPath := ⟨c, PUnit.unit⟩
-
 variable {ι : Type} (O : ι → Type) {StmtIn StmtOut W : Type} (C : Type) [SampleableType C]
   (check : StmtIn → Bool) (f : StmtIn → C → StmtOut)
 

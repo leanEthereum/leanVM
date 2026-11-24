@@ -4,6 +4,14 @@ public import VCVio.OracleComp.SimSemantics.StateT.Basic
 
 @[expose] public section
 
+/-!
+# Simulating through a state lens
+
+A `StateLens` views one component of a state. If every query of an implementation runs a base
+query on the viewed component and overwrites only it, so does the simulation of every computation
+(`StateLens.simulateQ_run_eq`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity

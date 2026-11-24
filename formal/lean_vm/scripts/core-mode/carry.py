@@ -15,6 +15,7 @@ import resgen
 import heapc
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
+import coredata  # noqa: E402
 
 from compiled import BD  # noqa: E402
 
@@ -23,6 +24,9 @@ OUT = resgen.OUT
 RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 270), (370, 3), (373, 3), (376, 3), (379, 2), (381, 19), (400, 200), (600, 200), (800, 200), (1000, 200), (1200, None)]
 # `Res.nzDepth`, `Res.kDepth`
 NZ_DEPTH, K_DEPTH = 12, 8
+# a function alone in its range with more than `NZ_MIN` top-level statements has its nonzero facts' pass over its body
+# checked in `NZ_N` slices of them (`Res.allBSlice`): the kernel's memory grows over one evaluation
+NZ_MIN, NZ_N = 4000, 8
 
 
 # ---- the core IR, as `Res.carryNzG` reads it -------------------------------------------------------------------------
@@ -388,14 +392,30 @@ def render():
     ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
     assert sum(m for _, m in ranges) == n and all(m > 0 for _, m in ranges), ranges
     mods = []
+    keys = coredata.keys(os.path.join(resgen.ROOT, 'Data'))
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
         t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
+        one = keys[a] if m == 1 and keys[a] in F and len(F[keys[a]]['body']) > NZ_MIN else None
+        t.append('public import LeanVM.Guest.CoreMode.Fam.%s\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
                  'public section\n\ntheorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\n'
-                 'theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
+                 '  unfold RangeOk; decide +kernel\n\n' % ('CarrySplit' if one else 'CarryDefs', a, a, m))
+        if one:
+            # its pass over its body in slices
+            f, n = 'Fn.«%s».core' % one, len(F[one]['body'])
+            cuts = sorted({n * c // NZ_N for c in range(NZ_N + 1)})
+            for c in range(len(cuts) - 1):
+                t.append('theorem carryNz_%d_s%d : allBSlice (nzStmt (kvNz %s)) %s.body (spineE %s.body) %d %d = true := by\n'
+                         '  decide +kernel\n\n' % (a, c, f, f, f, cuts[c], cuts[c + 1]))
+            prf = 'allB_drop_of_le (by decide +kernel)'
+            for c in reversed(range(len(cuts) - 1)):
+                prf = 'allB_drop_of_slice (by decide) carryNz_%d_s%d\n      (%s)' % (a, c, prf)
+            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d 1 :=\n'
+                     '  rangeOk_one (f := %s) rfl <| carryNzG_of\n    (allB_of_drop_zero\n      (%s))\n'
+                     '    (by decide +kernel) (by decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, f, prf))
+        else:
+            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d := by\n'
+                     '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]

@@ -24,15 +24,21 @@ name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
 rev = "afb9b1363984a70f10e24bd597f6ff40ebc8afbb"
 
+# Proved `@[csimp]` lemmas that compile `K` and `E` arithmetic on machine words, which
+# `Statement.Field` imports so that the statement's definitions are compiled with them.
+[[require]]
+name = "fast_fields"
+path = "../fast_fields"
+
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
 git = "https://github.com/leanprover-community/mathlib4"
 rev = "v4.36.0"
 
-# The statement files are `Statement/*.lean` (modules `Statement.<Name>`), the generated guest
-# data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that make the
-# compiled definitions fast, and the proofs of the laws the definitions need
+# The statement files are `Statement/*.lean` (modules `Statement.<Name>`) and the verifier's pieces
+# `Statement/Verifier/*.lean`, the generated guest data `Statement/Data/*.lean`, the proved `@[csimp]` lemmas `Statement/Fast/*.lean` that make the
+# compiled Keccak-f fast, and the proofs of the laws the definitions need
 # `Statement/Lemmas/*.lean`; the package directory is `Statement/`, so the sources are found from
 # its parent.
 [[lean_lib]]
@@ -44,4 +50,4 @@ globs = ["Statement.Keccak", "Statement.RandomPermutation", "Statement.SufCma", 
   "Statement.LeanVmGuestProver", "Statement.LeanVmGuestCompleteness", "Statement.CostMachine",
   "Statement.Theorems",
   "Statement.Corollaries",
-  "Statement.Data.+", "Statement.Fast.+", "Statement.Lemmas.+", "Statement.Prover.+"]
+  "Statement.Verifier.+", "Statement.Data.+", "Statement.Fast.+", "Statement.Lemmas.+", "Statement.Prover.+"]

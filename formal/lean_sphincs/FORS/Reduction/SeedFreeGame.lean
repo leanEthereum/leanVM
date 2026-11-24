@@ -1,8 +1,6 @@
 module
 
 public import FORS.Reduction.UntilSeed
-public import FORS.LazyRun.Cost
-public import FORS.Seed.Guess
 
 @[expose] public section
 
@@ -20,8 +18,6 @@ variable [Params]
 open Completeness SeedCoupling Internalize Eager Short SeedModel Graph Assembly Stop HiddenCost
   GraphView
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 theorem programGraphCache_congr_base (parameter : PublicParameter)
@@ -42,9 +38,6 @@ theorem programGraphCache_congr_base (parameter : PublicParameter)
       · show (base.cacheQuery _ _) input = (base'.cacheQuery _ _) input
         rw [QueryCache.cacheQuery_of_ne _ _ heq, QueryCache.cacheQuery_of_ne _ _ heq]
         exact h
-
-noncomputable local instance reduceLabelsSampleable : SampleableType CanonicalGraphLabels :=
-  graphLabelsSampleable
 
 /-- The canonical graph cache without any seed-addressed entry. -/
 noncomputable def graphCache (material : Material) (answers : CanonicalGraphLabels) :

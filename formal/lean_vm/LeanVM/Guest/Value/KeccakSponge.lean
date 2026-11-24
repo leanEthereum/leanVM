@@ -8,8 +8,10 @@
 module
 
 public import LeanVM.Guest.Value.KeccakLayout
+public import Statement.Verifier.Transcript
 public import LeanVM.Guest.Word
 import LeanVM.Guest.Value.KeccakEval
+import LeanVM.ToMathlib.List
 
 /-!
 # The sponge over message cells
@@ -68,7 +70,7 @@ theorem absorbBlock_take (S : KeccakState) (bs : List UInt8) :
   · rename_i hi
     congr 1
     unfold littleEndianLane
-    refine foldl_congr_mem _ _ fun acc k hk ↦ ?_
+    refine List.foldl_ext _ _ _ fun acc k hk ↦ ?_
     have hk := List.mem_range.mp hk
     have h8 : 8 * i.val + k < rate := by simp only [rate]; omega
     simp only [List.getD_eq_getElem?_getD, List.getElem?_take, h8, ↓reduceIte]
@@ -172,10 +174,6 @@ theorem blockBytes_drop (P : List E) (k : ℕ) :
     simp only [beq_self_eq_true, ↓reduceIte]
     congr 1; ring
 
-theorem getD_drop {α : Type} (l : List α) (m c : ℕ) (d : α) :
-    (l.drop m).getD c d = l.getD (m + c) d := by
-  simp [List.getD_eq_getElem?_getD, List.getElem?_drop]
-
 /-- **A chain of `KECCAK`s over message cells is `absorbChunks`.** Block `k < B` reads `I k`:
 its nine rate cells the previous output `O k` plus the message cells from `17k / 2`, its four
 capacity cells `O k`'s; it writes `O (k + 1)`. From `O 0`, the cells of `S0` in the even layout
@@ -203,7 +201,7 @@ theorem keccak_chain {P : List E} {S0 : KeccakState} {B : ℕ} {I O : ℕ → Fi
       have hb := keccak_block (S := absorbChunks j S0 (cellsBytes P)) (blk := P.drop (17 * j / 2))
         (fun c ↦ by
           by_cases hc : c.val < 9
-          · rw [ite_eq_left hc, hrate j hjB c hc, hO, getD_drop]
+          · rw [ite_eq_left hc, hrate j hjB c hc, hO, List.getD_drop]
           · rw [ite_eq_right hc, hcap j hjB c (by omega), hO, add_zero])
         (hK j hjB)
       rw [hb, blockBytes_drop, ← absorbBlock_take, ← absorbChunks_succ, outLayout_eq hjB]
@@ -384,7 +382,7 @@ theorem getD_padBytes (data : List UInt8) {j : ℕ} (hj : j < rate * (data.lengt
   · rw [getD_append_right' (by simp; omega), List.length_take, min_eq_left (by omega),
       getD_padBlock _ (by simp only [List.length_drop, rate] at *; omega)
         (by simp only [rate] at *; omega)]
-    rw [getD_drop, List.length_drop,
+    rw [List.getD_drop, List.length_drop,
       show rate * (data.length / rate) + (j - rate * (data.length / rate)) = j by omega]
     have c1 : j - rate * (data.length / rate) = data.length - rate * (data.length / rate) ↔
         j = data.length := by omega

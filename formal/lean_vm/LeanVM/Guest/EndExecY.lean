@@ -29,7 +29,7 @@ honest pushes put at the cursor (`Ref.Ok.pops`, `streams_guest`); its words are 
 the destination, a stack run's at the frame's cells, a heap run's the reference's own words there
 (`Ref.Ok.hintWords`).
 
-What it rests on beyond `ExecGaps.ofX`'s premises: the alignment's advice is the executor's hints
+What it rests on beyond the tracks' premises: the alignment's advice is the executor's hints
 (`AdvAl`), each witness atom's destination cells hold its values in the reference, a heap pointer a
 power below `maxCells` (`WitCells`), and the honest pushes read the bytecode only through its length
 (`PushShape`).

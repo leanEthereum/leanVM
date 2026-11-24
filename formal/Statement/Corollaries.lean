@@ -44,13 +44,13 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q ≤ 2^128` queries to `π`, `π⁻¹`. The
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`. The
 digest, the seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks
 meet here). -/
 def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
+    Common.QueryCostAtMost adversary Common.permutationCallCost Q →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[∃ statement : NodeStatement,
       outcome.accepted ∧ outcome.program = guest ∧
       publicInputDigest outcome.input = statementDigest (deployedSeed guest) statement ∧

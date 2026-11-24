@@ -10,6 +10,7 @@ module
 import LeanVM.Protocol.EndToEnd.Complete.BusTables
 public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
+import LeanVM.ToMathlib.List
 
 /-!
 # The verifier's bus blocks
@@ -116,15 +117,8 @@ def fwLogs (prog : LeanIsaProgram) (s : Sizes) : List ℕ := [0, s.logMem, prog.
 def busDepth (prog : LeanIsaProgram) (s : Sizes) : ℕ :=
   log2Ceil (blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)))
 
-theorem map_range_getD {α β' : Type} (l : List α) (d : α) (f : α → β') :
-    (List.range l.length).map (fun b ↦ f (l.getD b d)) = l.map f := by
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp only [List.getElem_map, List.getElem_range]
-  rw [List.getD_eq_getElem _ _ (by simpa using h1)]
-
 theorem blockTotal_eq (sizes : List ℕ) : blockTotal sizes = (sizes.map (2 ^ ·)).sum := by
-  rw [blockTotal, map_range_getD sizes 0 (2 ^ ·)]
+  rw [blockTotal, List.map_range_getD sizes 0 (2 ^ ·)]
 
 theorem blockTotal_sideSizes (fw : List ℕ) (blocks : List BusBlock) :
     blockTotal (sideSizes fw blocks) =

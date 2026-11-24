@@ -1,9 +1,7 @@
 module
 
-public import XmssSecurity.Proof.KeygenCache
 public import XmssSecurity.Proof.ChainKey
 public import XmssSecurity.Proof.TopKeygenQueryBound
-public import XmssSecurity.Proof.HonestKeygenRun
 public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section

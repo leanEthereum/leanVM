@@ -17,8 +17,7 @@ public import LeanVM.Guest.AcceptableChild
 # `da_verify` on an honest run, its honest shape
 
 `hDvNH w`: `da_verify`'s honest shape on the directly held DA claim's witness (no constraint
-without one). `MainGoalDvT`: `MainGoalDv` by such a tree (`MainGoalsDvTB.mainGoalDvTB` proves it
-within a bound).
+without one).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -34,17 +33,6 @@ open LeanVM.Guest.B1.Da (reads_of_memL exists_of_length_succ wLog)
 /-- **`da_verify`'s honest shape on the checked DA claim's witness.** -/
 def hDvNH (w : NodeWitness) : Tree → Prop :=
   (w.daMatrix.map fun p => Da.dvNH p.2.rows.length (wLog p.2)).getD fun _ => True
-
-/-- `da_verify` complete by a tree of its honest shape. -/
-def MainGoalDvT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
-    (s : NodeStatement) (w : NodeWitness) : Prop :=
-  (hm fs fp seed s w).nd = 1 →
-    CompleteAtDT fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
-      (Returns (hm fs fp seed s w).daR) (hDvNH w)
-
-theorem MainGoalDvT.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
-    {s : NodeStatement} {w : NodeWitness} (h : MainGoalDvT fs cert fp seed s w) :
-    MainGoalDv fs cert fp seed s w := fun hn => (h hn).toD
 
 variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 

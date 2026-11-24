@@ -133,7 +133,7 @@ theorem mainGoalL4R (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
       ((hm fs fp seed s w).nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3») := by
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.signatureClaimsHeld
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have hr : (hRawS s w).length < 2 ^ 34 := by omega
   have e : ([gen ^ 0, gen ^ (hRawS s w).length, gen ^ rY s w, gen ^ (hPos seed s w fs fp 2 + rX s w),

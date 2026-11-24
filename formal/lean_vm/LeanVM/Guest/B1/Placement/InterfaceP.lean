@@ -13,7 +13,7 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `certify_placement` (TRIAGE G #67): the interface
+# `certify_placement`: the interface
 
 `certify_placement(kappa_base, g_squares)` groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
@@ -70,9 +70,6 @@ def colKappaSrc (c : ℕ) : ℕ :=
 
 /-- `COL_KAPPA_ADJ[c]`: the bytecode's log size `19`, and `q_keccak`'s slot bits `6`. -/
 def colKappaAdj (c : ℕ) : ℕ := if c = 3 then 19 else if c = 4 then 6 else 0
-
-/-- `N_COL_GROUPS`: the runs of committed columns sharing one `kappa_base` source. -/
-abbrev nColGroups : ℕ := 9
 
 /-- `COL_GROUP_START`: each group's first column, then `N_COMMITTED_COLS`. -/
 def colGroupStart : List ℕ := [0, 3, 4, 5, 18, 31, 38, 52, 66, 94]

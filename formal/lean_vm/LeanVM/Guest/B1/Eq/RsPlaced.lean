@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 # `rs_eq_run`, placed
 
 On the caller's words, `count < 64` coordinates `zs` at `g^bz` and `ps` at `g^bp`, `rs_eq_run` is
-complete at every frame pointer (`rs_completeAt`): its chain (`HeapBuf` of `64 (count / 8 + 2)`
+complete at every frame pointer: its chain (`HeapBuf` of `64 (count / 8 + 2)`
 words) at `fp + fs "rs_eq_run"` holds the honest rows `rsChain` and is returned with the last row's
 pointer (`RsOut`); its callees, `rs_eq_run_loop0` (entered unless `count < 8`) and the remainder's
 `rs_eq_rows__L{count % 8}`, are pure, complete from their relations (`rs_kids_rel`), and its body
@@ -130,7 +130,7 @@ theorem rs_params : Fn.params fn% «rs_eq_run» =
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **`rs_eq_run`'s honest valuation, placed**: on a memory holding its chain at `g^b` and the
-caller's words, a valuation satisfying `completeAt_flatOutD`'s conditions. -/
+caller's words, a valuation satisfying `completeAt_flatOutDTB`'s conditions. -/
 theorem rs_hσ {b bz bp count : ℕ} {zs ps : List E} (hcount : count < 64) (hz : zs.length = count)
     (hp : ps.length = count) (outs : List (List E × Main.Layout)) (ho : OutsOk (rsKidsAt b bz bp count zs ps) outs)
     (rd : Reader) (hB : MemL rd [(b, rsChain zs ps count)]) (hLin : MemL rd [(bz, zs), (bp, ps)]) :
@@ -222,29 +222,6 @@ theorem rsKids_memL {rd : Reader} {b bz bp count : ℕ} {zs ps : List E}
   intro k hk
   simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
   rcases hk with rfl | rfl <;> exact h
-
-/-- **`rs_eq_run` is complete, placed**: on `count < 64` coordinates and the point, at every frame
-pointer, its chain at the bump allocator's position, returned (`RsOut`). -/
-theorem rs_completeAt (κ : ℕ) {bz bp count : ℕ} {zs ps : List E} (hcount : count < 64)
-    (hz : zs.length = count) (hp : ps.length = count) :
-    CompleteAtD fs cert κ "rs_eq_run" [(bz, zs), (bp, ps)]
-      [ofK (addressOfIndex bz), ofK (addressOfIndex bp), gen ^ count] (RsOut zs ps count) := by
-  refine completeAt_flatOutD (fs := fs) (cert := cert) find_rs_eq_run rs_not_loop κ _ _
-    (fun fp ↦ [ofK (addressOfIndex (fp + fs "rs_eq_run")) * gen ^ (64 * ((count + 7) / 8))]) _ rs_body'
-    rs_flat rs_addrs [64 * (count / 8 + 2)] (fun _ ↦ [rsChain zs ps count])
-    (fun _ ↦ by simp [rsChain_length]) (fun fp ↦ ⟨_, rfl, by simp [bufL, bases]⟩)
-    (fun fp ↦ rsKidsAt (fp + fs "rs_eq_run") bz bp count zs ps) ?_ (fun _ k hk _ ↦ rsKids_region k hk)
-    (fun _ _ hB hLin ↦ rsKids_memL hB hLin)
-    (fun fp outs ho rd _ hB hLin ↦ rs_hσ hcount hz hp outs ho rd (by simpa [bufL, bases] using hB) hLin)
-  · intro fp k hk ht
-    simp only [rsKidsAt, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl
-    · simp only [decide_eq_true_eq] at ht
-      exact completeAt_of_rel_pureD rsKid_pure (by simp [rsKidNames])
-        (fun rd hL ↦ (rsK_rel hcount hz hp hL).1.2 ht) κ
-    · exact completeAt_of_rel_pureD rsKid_pure
-        (rsRows_mem (by omega))
-        (fun rd hL ↦ (rsK_rel hcount hz hp hL).2) κ
 
 /-! ## Within a bound -/
 

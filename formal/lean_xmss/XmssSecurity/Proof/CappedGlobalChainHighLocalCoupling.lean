@@ -2,10 +2,23 @@ module
 
 public import VCVio.ProgramLogic.Relational.FromUnary
 public import XmssSecurity.Proof.CappedGlobalChainHighSetup
-public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
+
+/-!
+# The causal simulation's answer to one hash query
+
+`globalFilteredCausalAttackerHashPlan` sorts an adversary hash query
+(`GlobalFilteredCausalHashPlan`): cached; a chain step from a revealed value, answered by revealing
+the next one (`reveal`); a chain step or a leaf input over a hidden value, which probes that value
+first (`probeThenFresh`); a leaf input over revealed endpoints, redirected to key generation's
+answer (`redirect`); or fresh. `globalCausalAttackerHashQueryFromHigh` answers by that plan, the
+high halves read from a table. The `relTriple_programmed_globalFilteredHashQuery_*` theorems couple
+each case with the real random oracle, the probing ones until the monitor hits
+(`relTriple_programmed_globalFilteredChainHashQuery_until_hit` for chain inputs), and
+`programmedGlobal_leaf_cache_pair_of_reveals_match` gives the redirect's answer on both sides.
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
@@ -148,9 +161,6 @@ noncomputable def globalFilteredCausalLeafHashPlan
             | none => .fresh
           else .fresh
 
-
-set_option maxRecDepth 1000000
-
 noncomputable def globalFilteredCausalUncachedAttackerHashPlan
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
@@ -223,8 +233,8 @@ theorem globalChainInputProbe?_globalChainTableEdgeInput
     globalChainInputProbe? parameter
         (globalChainTableEdgeInput parameter table edge) =
       some ((edge.1, edge.2.1, chainStepDigit edge.2.2),
-        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) := by
-  exact globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
+        table (edge.1, edge.2.1, chainStepDigit edge.2.2)) :=
+  globalChainInputProbe?_keyChainInput parameter edge.2.1 edge.1 edge.2.2
     (table (edge.1, edge.2.1, chainStepDigit edge.2.2))
 
 theorem globalFilteredCausalAttackerHashPlan_eq_reveal_globalEdge
@@ -310,7 +320,6 @@ theorem globalCausalAttackerHashQueryFromHigh_run
            globalCausalRevealHashQueryFromHigh high secretKey input state
              index) := rfl
 
-
 theorem globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -349,14 +358,9 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
       exact globalCausalHashQuery_run_isProbeQueryBoundP input
         (globalCausalRecordedState secretKey input state)
 
-
-set_option maxRecDepth 1000000
-
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -382,9 +386,7 @@ theorem relTriple_programmed_globalFilteredHashQuery_cached
 
 theorem relTriple_programmed_globalFilteredHashQuery_fresh
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -431,9 +433,7 @@ theorem relTriple_programmed_globalFilteredHashQuery_fresh
 
 theorem relTriple_programmed_globalFilteredHashQuery_redirect
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -483,14 +483,9 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
     WriterT.run_pure]
   exact relTriple_pure_pure ⟨rfl, hnext⟩
 
-
-set_option maxRecDepth 1000000
-
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -583,13 +578,9 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
   · exact hleft
   · rfl
 
-
-set_option maxRecDepth 1000000
-
 def GlobalFilteredHashUntilHitRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (monitor : AdaptiveRevealMonitor.State GlobalChainValueIndex)
     (leftResult : HashOutput × QueryCache HashSpec)
     (rightResult : (HashOutput × GlobalCausalHashState) ×
@@ -650,9 +641,7 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
 
 theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_of_baseNone
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -701,9 +690,7 @@ theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_of_baseNone
 
 theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -790,9 +777,7 @@ theorem globalChainInputProbe?_eq_some_iff
 
 theorem programmedGlobal_left_chainValue_eq_table
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (index : GlobalChainValueIndex) :
@@ -808,9 +793,7 @@ theorem programmedGlobal_left_chainValue_eq_table
 
 theorem programmedGlobal_left_cache_chainInput_eq_none_of_probe_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (input : HashInput) (index : GlobalChainValueIndex) (target : Digest)
@@ -834,9 +817,7 @@ theorem programmedGlobal_left_cache_chainInput_eq_none_of_probe_miss
 
 theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -939,7 +920,6 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
             intro _leftResult _rightResult hresult
             exact Or.inl hresult
 
-
 theorem globalLeafInput_not_signingComparable
     (parameter : PublicParameter) (leafIndex : ChainKey)
     (endpoints : ChainIndex → Digest) :
@@ -951,23 +931,19 @@ theorem globalLeafInput_not_signingComparable
 
 theorem programmedGlobal_left_endpoint_eq_table
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leafIndex : ChainKey) (chain : ChainIndex) :
     Concrete.CacheReplay.keyOneTimePublicKey left.cache
         left.secretKey.parameter left.secretKey.keyChainStart leafIndex chain =
-      right.1.2 (chain, leafIndex, chainEndpointDigit) := by
-  exact programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
+      right.1.2 (chain, leafIndex, chainEndpointDigit) :=
+  programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
     (chain, leafIndex, chainEndpointDigit)
 
 theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leafIndex : ChainKey) (endpoints : ChainIndex → Digest)
@@ -986,9 +962,7 @@ theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss
 
 theorem globalLeafRevealsMatch_endpoints_eq_leftReplay
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (state : GlobalCausalHashState) (leafIndex : ChainKey)
@@ -1008,9 +982,7 @@ theorem globalLeafRevealsMatch_endpoints_eq_leftReplay
 
 theorem programmedGlobal_secretKey_parameter_eq
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1110,9 +1082,7 @@ theorem leafBaseCachePair_of_treeCorrespondence
 
 theorem programmedGlobal_leaf_base_cache_pair
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1144,9 +1114,7 @@ theorem programmedGlobal_leaf_base_cache_pair
 
 theorem programmedGlobal_leaf_cache_pair_of_reveals_match
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support

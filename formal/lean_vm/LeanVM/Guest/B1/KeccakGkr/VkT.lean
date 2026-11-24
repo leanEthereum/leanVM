@@ -21,7 +21,7 @@ The sections, in order:
   and `rem_g` (`assert step_g⁸·rem_g = y_g`); the instance coordinates copied to `z_vals`;
   the point's pack coordinates copied (`verify_keccak_loop0`); the segment and the lane coordinates
   squeezed (`sqZeroT`); the committed outputs' value read;
-* the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `muCopyT`),
+* the first claim's record: `KC_KAPPA`, `KC_POINT`, the instance weights (`eqtreeT`, `copyWordsT`),
   the lanes (`eqtreeT`), the segment weights (`eqtreeT`), the value (`dotLoadsT`);
 * twelve steps (`stepT`): the claim's segment weights (`eqfLevel0T`), its `ι` term (`flipsT`,
   `iotaSegT`), and `keccak_layer` (`stepTailT`);
@@ -281,9 +281,6 @@ def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
 /-- Lane `lane`'s weight in `slotLanesT`. -/
 def slotLaneV (b count lane : ℕ) : ℕ :=
   if count = 1 then b + 134 + 2 * lane else b + 136 + 4 * lane
-
-/-- The value after `slotLanesT`. -/
-def slotLanesEnd (b count : ℕ) : ℕ := if count = 1 then b + 183 else b + 233
 
 /-- Read `z` of the slices from `b`. -/
 def slB (b z : ℕ) : ℕ := b + 3 * z + 13 * (z / 4)

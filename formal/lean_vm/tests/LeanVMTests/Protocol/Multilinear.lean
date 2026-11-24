@@ -32,7 +32,7 @@ def pt : Vector K 2 := #v[K.ofBits 5, K.ofBits 9]
 #guard evalMle tbl (boolVec (⟨2, by decide⟩ : Fin (2 ^ 2))) = K.ofBits 3
 -- The Lagrange basis sums to one off the cube (`sumCube_lagrangeBasis`).
 #guard sumCube (lagrangeBasis pt) = 1
--- Evaluation is the weighted sum (`evalMle_eq_sumCube_hadamard`).
+-- Evaluation is the weighted sum (`evalMle_eq_sum`).
 #guard evalMle tbl pt = sumCube (hadamard (lagrangeBasis pt) tbl)
 -- A constant table extends to the constant (`evalMle_replicate`).
 #guard evalMle (Vector.replicate (2 ^ 2) (K.ofBits 7 : K)) pt = K.ofBits 7
@@ -55,7 +55,7 @@ def pt : Vector K 2 := #v[K.ofBits 5, K.ofBits 9]
 #guard slice (k := 1) (m := 2)
     (placeSlice (#v[K.ofBits 3, K.ofBits 4] : CMlPolynomialEval K 1) (⟨2, by decide⟩ : Fin (2 ^ 2)))
     (⟨1, by decide⟩ : Fin (2 ^ 2)) = #v[0, 0]
--- Placing keeps the cube sum, whatever the slot (`sumCube_placeSlice`).
+-- Placing keeps the cube sum, whatever the slot.
 #guard sumCube (placeSlice tbl (⟨1, by decide⟩ : Fin (2 ^ 1))) = sumCube tbl
 #guard sumCube (placeSlice tbl (⟨0, by decide⟩ : Fin (2 ^ 1))) = sumCube tbl
 -- Its extension is the table's, times the Lagrange weight of the slot (`evalMle_placeSlice`).

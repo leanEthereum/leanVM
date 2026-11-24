@@ -115,11 +115,6 @@ theorem prEvent_fStep_le (x : SpState Dg E C) (s : FState Msg Dg E C) (L : List 
   · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun z _ h ↦ absurd (hg z h).1 (by simp [hc])]
     exact zero_le
 
-theorem b0_bookUpd_same {b b' : Book (SpState Dg E C)} (hF : b'.dF = b.dF) (hI : b'.dI = b.dI)
-    (hb : ¬ B0 iv b) : ¬ B0 iv b' := by
-  simp only [B0, capsOf, hF, hI] at hb ⊢
-  exact hb
-
 /-- **A step creates a capacity collision with probability at most its cost times `N / |C|`.** -/
 theorem prEvent_b0_step (NF : (Dg × E) → Prop) [DecidablePred NF] (N : ℕ)
     (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain) (s : FState Msg Dg E C × Book (SpState Dg E C))
@@ -241,8 +236,8 @@ theorem prEvent_disagree_le (NF : (Dg × E) → Prop) [DecidablePred NF]
       ((SimState.init iv, ∅), Book.init))}[z.2.2.flag = true] ≤
       q * (q / (Fintype.card C : ℝ≥0∞)) := by
   refine (prEvent_mono_of_support _ _ _ fun z hz hf ↦ ?_).trans (prEvent_b0_le P iv NF D q hq)
-  have hI := inv_of_mem_support_run (aug2 P iv NF) (SInv iv NF)
-    (fun t s hs z hz ↦ sInv_step P hNF t s hs hz) D (sInv_init iv NF) z hz
+  have hI := simulateQ_run_preserves_inv_of_query (aug2 P iv NF) (SInv iv NF)
+    (fun t s hs z hz ↦ sInv_step P hNF t s hs hz) D _ (sInv_init iv NF) z hz
   rcases hI.flag hf with h | h
   · exact h
   · rw [viol_false P iv NF D [] hD _ _ rfl rfl z hz] at h

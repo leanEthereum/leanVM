@@ -1,11 +1,20 @@
 module
 
-public import XmssSecurity.Proof.ChainInputTrace
-public import XmssSecurity.Proof.HashInputLemmas
 public import XmssSecurity.Proof.WinningEventReduction
 public import XmssSecurity.Proof.ChainKey
 
 @[expose] public section
+
+/-!
+# Chain coordinates, hidden and returned
+
+A chain coordinate (`ChainValueIndex`) is a chain key of either layer and a digit;
+`keygenChainValueTable` reads the honest chain values from key generation's cache, and
+`returnedChainValueIndices` holds the coordinates the returned signatures send at a chain, with
+every later coordinate on it. A winning chain event's forged coordinate precedes every returned one
+at the forged leaf index (`WinningOutcomeBadEventOccurs.chain_coordinate_lt_returned`), so it is not
+among them (`WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned`).
+-/
 
 open OracleSpec
 
@@ -99,7 +108,6 @@ theorem mem_returnedChainValueIndices_iff
   classical
   simp only [returnedChainValueIndices, Finset.mem_filter, Finset.mem_univ, true_and]
 
-set_option maxRecDepth 10000 in
 set_option linter.constructorNameAsVariable false in
 theorem WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned
     {cache : QueryCache HashSpec} {outcome : GameOutcome} {chain : ChainIndex}
@@ -118,8 +126,8 @@ theorem WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned
     hleafIndex, hdigit⟩ | ⟨_, _, _, _, _, _, hkey, _⟩
   swap
   · cases hkey
-  have hleafIndex : request.leafIndex = outcome.forgery.leafIndex := by
-    exact (Sum.inl_injective hleafIndex).symm
+  have hleafIndex : request.leafIndex = outcome.forgery.leafIndex :=
+    (Sum.inl_injective hleafIndex).symm
   have hbackward := hevent.chain_coordinate_lt_returned forgedEncoding
     hforgedDecode request signature signedEncoding hreturned hsignedDecode hleafIndex
   exact (not_lt_of_ge hdigit) hbackward

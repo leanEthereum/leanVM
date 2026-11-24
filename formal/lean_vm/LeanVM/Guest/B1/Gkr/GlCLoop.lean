@@ -16,13 +16,14 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
 
 The eight loops (one per layer function) have one body but for the recursive call's name
 (`glcBody`, checked against all eight by `glc_check`): the record `head·y^7`, the rows `qrow·y^8`
-and `nqrow·y^8`, then `gkPre true 8` (B1-a's rounds) renamed by `glcSh`, its challenge stores
+and `nqrow·y^8`, then `gkPre true 8` (the sumcheck's rounds) renamed by `glcSh`, its challenge stores
 `pt[42 + q]` redirected to `npt[q]` (`glcMap`; `npt = pt·g^42`), then the guard and the next
 call's argument.
 
@@ -77,9 +78,11 @@ def glcBody (nm : String) : List Stmt :=
 /-- The loop's parameters. -/
 def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]
 
+/-- The loop of `p`, `o` at its index (`glLoopIdx`) is named `glLoopName p o` and has these parameters and body. -/
 noncomputable def glcCheck (p o : ℕ) : Bool :=
-  match coreProgram.find? (glLoopName p o) with
-  | some fn => decide (fn.params = glcPar6) && tbStmtsEqb fn.body (glcBody (glLoopName p o))
+  match coreProgram[glLoopIdx p o]? with
+  | some fn => fn.name == glLoopName p o && decide (fn.params = glcPar6) &&
+      tbStmtsEqb fn.body (glcBody (glLoopName p o))
   | none => false
 
 theorem glc_check : ∀ p < 4, ∀ o < 2, glcCheck p o = true := by decide +kernel
@@ -89,9 +92,9 @@ theorem glcFound {p o : ℕ} (hp : p < 4) (ho : o < 2) : ∃ fn : Fn, coreProgra
   have h := glc_check p hp o ho
   unfold glcCheck at h
   split at h
-  · rename_i fn hf
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+  · rename_i fn hj
+    simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
+    exact ⟨fn, coreProgram_find?_at hj h.1.1, h.1.2, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- Every statement of `gkPre true 8` is an atom over values `.n k`, `k ≤ 324`, never the window
@@ -181,7 +184,7 @@ theorem glc_val_sh {x N head qrow nqrow tabs : E} {σgk : Val} (hσv : ∀ v, σ
     have i5 : ¬ v.idx < 5 := by omega
     simp only [glcSh, glcVal, e0, e1, e2, e5, i1, i2, i3, i4, i5, ↓reduceIte, Nat.add_sub_cancel]
 
-/-- Eight rounds between records `1` apart, as B1-a's `GkrRoundsOut` on the record's cursor. -/
+/-- Eight rounds between records `1` apart, as `GkrRoundsOut` on the record's cursor. -/
 theorem glc_out_of_tb {rd : Reader} {rec pt : E} (h : TbGkrRoundsOut 8 1 rd rec pt) :
     ∃ cur, GkrRoundsOut 8 rd rec pt cur ∧ LoadHolds rd rec 5 cur := by
   obtain ⟨cap, cur, claim, cs, es, h1, hc, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h

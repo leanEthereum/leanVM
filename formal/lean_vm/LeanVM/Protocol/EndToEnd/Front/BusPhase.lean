@@ -180,35 +180,6 @@ theorem toAlpha_ofFn (v : Fin 16 → E) : toAlpha (List.ofFn v) = v := by
   funext i
   fin_cases i <;> rfl
 
-open Classical in
-/-- **The union bound over candidates**, for any finite type of challenges. -/
-theorem card_exists_le_of {α β : Type} [Fintype α] {C : Set β} (hfin : C.Finite) {L₀ : ℕ}
-    (hcard : C.ncard ≤ L₀) (P : β → α → Prop) {e : ℝ≥0∞}
-    (h : ∀ q ∈ C, (Fintype.card α : ℝ≥0∞)⁻¹ *
-      ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) ≤ e) :
-    (Fintype.card α : ℝ≥0∞)⁻¹ *
-        ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞) ≤ L₀ * e := by
-  let s := hfin.toFinset
-  have hsub : (Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c) ⊆
-      s.biUnion fun q ↦ Finset.univ.filter fun c ↦ P q c := by
-    intro c hc
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hc
-    obtain ⟨q, hq, hp⟩ := hc
-    exact Finset.mem_biUnion.mpr ⟨q, hfin.mem_toFinset.mpr hq, by simpa using hp⟩
-  calc (Fintype.card α : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞)
-      ≤ (Fintype.card α : ℝ≥0∞)⁻¹ *
-          ∑ q ∈ s, ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := by
-        gcongr
-        exact_mod_cast (Finset.card_le_card hsub).trans Finset.card_biUnion_le
-    _ = ∑ q ∈ s, (Fintype.card α : ℝ≥0∞)⁻¹ *
-          ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) := Finset.mul_sum _ _ _
-    _ ≤ ∑ _q ∈ s, e := Finset.sum_le_sum fun q hq ↦ h q (hfin.mem_toFinset.mp hq)
-    _ = s.card * e := by rw [Finset.sum_const, nsmul_eq_mul]
-    _ ≤ L₀ * e := by
-        gcongr
-        rw [← Set.ncard_eq_toFinset_card C hfin]
-        exact_mod_cast hcard
-
 /-! ## The fingerprint challenges -/
 
 section Challenges
@@ -277,7 +248,7 @@ noncomputable def abSpec (hI : Bus.Conditions I) {L₀ : ℕ} (hfin : ∀ W, (ca
             rw [← Finset.mul_sum, ← mul_assoc, ← ENNReal.mul_inv (by simp) (by simp), ← hcardT,
               ← Fintype.sum_prod_type', Finset.sum_boole]
         _ ≤ L₀ * (overE (2 ^ I.μBus) : ℝ≥0∞) :=
-            card_exists_le_of (hfin W) (hcard W)
+            card_exists_le (hfin W) (hcard W)
               (fun o ab ↦ (((input, ab), o), ()) ∈ Bus.afterChallenge I)
               fun o ho ↦ ab_card_le I input hI o (hR o ho)
 
@@ -511,11 +482,6 @@ theorem busAt_of {alphas : List E} {beta : E} {point values memory : List E} {mf
       bytecodePoint⟩ h :=
   ⟨h1, h2, h3, h4, h5⟩
 
-/-- **The bus seam on the wire**: the bus phase returns the verifier's leaf decomposition of what it
-read, and the bus seam holds of no candidate at the protocol's output on it. -/
-def BusPost (bus : BusResult) (h : List Ev) : Prop :=
-  ∃ w : BusWit, bus = w.result layout ∧ BusAt I hI cands input layout w h
-
 variable {εmax : ℝ≥0∞}
 
 open Classical in
@@ -601,26 +567,6 @@ noncomputable def busThenSpec {β : Type} {f : BusResult → VerifierProgram β}
           fun r ↦ busTailSpec I hI cands input layout hLk o₀ hs hbc hlb K ab.1 h ab.2 r).mono
           (fun _ hp ↦ hp.2) (fun _ _ hq ↦ hq) le_rfl le_rfl le_rfl
       else specOfFalse fun _ hp ↦ h hp.1
-
-/-- **The bus phase** alone: from the commitment's doom to the bus seam on the wire. -/
-noncomputable def busPhaseSpec {T : ℝ≥0∞} (hTf : T ≤ εmax) {L₀ : ℕ}
-    (hfin : ∀ W, (cands W).Finite)
-    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hμ : I.μBus ≠ 0)
-    (hdepth : (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth = I.μBus)
-    (hbc : layout.bytecode.length = 2 ^ (layout.logBytecode + busBits))
-    (hlb : layout.logBytecode ≤ I.μBus) (o₀ : ∀ i, TheOracle I i)
-    (hlt : abError I L₀ < 1)
-    (hab : (2 : ℝ≥0∞)⁻¹ ^ busGrindingBits I.μBus * (abError I L₀ + 0) ≤ εmax)
-    (he : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
-    (hlam : lambdaError L₀ + 0 ≤ εmax) (hs : roundError 1 2 + 0 ≤ εmax) :
-    Spec (verifyBusBalance computedBytecodeValue layout) (HDoom cands (Seam.commit I) input)
-      (BusPost I hI cands input layout) εmax
-      (if busGrindingBits I.μBus = 0 then abError I L₀ + 0 else 0) T :=
-  Spec.congr (VerifierProgram.bind_ret _)
-    (busThenSpec I hI cands input layout hTf
-      (fun w _ ↦ (Spec.ret (Post := BusPost I hI cands input layout) (w.result layout)).mono
-        (fun _ hp ↦ ⟨w, rfl, hp⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl)
-      hfin hcard hμ hdepth hbc hlb o₀ hlt hab he hT hlam hs)
 
 end Phase
 

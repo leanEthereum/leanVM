@@ -142,26 +142,6 @@ theorem simulateQ_liftM_of_coins (impl : QueryImpl (unifSpec + hs₁) (OracleCom
     rw [simulateQ_spec_query, h n]
     exact bind_congr fun u ↦ ih u
 
-/-- **A stateful simulation forwarding the coins keeps a coin computation**, and its state. -/
-theorem run_simulateQ_liftM_of_coins {σ : Type}
-    (impl : QueryImpl (unifSpec + hs₁) (StateT σ (OracleComp (unifSpec + hs₂))))
-    (h : ∀ n s, (impl (.inl n)).run s =
-      (·, s) <$> (liftM ((unifSpec + hs₂).query (.inl n)) : OracleComp (unifSpec + hs₂) _))
-    (p : ProbComp α) (s : σ) :
-    (simulateQ impl (liftM p : OracleComp (unifSpec + hs₁) α)).run s =
-      (·, s) <$> (liftM p : OracleComp (unifSpec + hs₂) α) := by
-  change (simulateQ impl (OracleComp.liftComp p _)).run s = _ <$> OracleComp.liftComp p _
-  induction p using OracleComp.inductionOn with
-  | pure a => rfl
-  | query_bind n k ih =>
-    rw [OracleComp.liftComp_bind, OracleComp.liftComp_bind, simulateQ_bind,
-      OracleComp.liftComp_query, OracleComp.liftComp_query]
-    simp only [OracleQuery.cont_query, OracleQuery.input_query, id_map]
-    change (simulateQ impl (liftM ((unifSpec + hs₁).query (.inl n))) >>= _).run s =
-      _ <$> (liftM ((unifSpec + hs₂).query (.inl n)) >>= _)
-    rw [simulateQ_spec_query, StateT.run_bind, h n s, bind_map_left, map_bind]
-    exact bind_congr fun u ↦ ih u
-
 end Coins
 
 end Common

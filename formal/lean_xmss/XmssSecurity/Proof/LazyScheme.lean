@@ -1,10 +1,17 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.IdealStatement
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
+
+/-!
+# The scheme without precomputation
+
+`Concrete.keygen` keeps only the parameter, the chain starts and the top signatures
+(`SecretKey.withoutPrecomputation`), and `Concrete.cappedSign` recomputes the chain values, the
+authentication path and the top signature through the oracle at each signing. Erasing the stored
+values of the precomputed key generation gives the lazy one (`erasePrecomputedKeygen_eq_keygen`).
+-/
 
 open OracleComp OracleSpec
 
@@ -19,9 +26,6 @@ def SecretKey.withoutPrecomputation
     topSigned⟩
 
 namespace Concrete
-
-noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
-  SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
 
 noncomputable def keygen : OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter
@@ -77,14 +81,6 @@ noncomputable def signAttempt {m : Type → Type} [Monad m] [HasQuery HashSpec m
   match TargetSum.decodeDigest digest with
   | none => pure none
   | some encoding => some <$> signWithEncoding secretKey leafIndex randomness encoding
-
-noncomputable def sign (secretKey : SecretKey)
-    (leafIndex : LeafIndex) (message : Message) : OracleComp OracleWorld (Option Signature) := do
-  let randomness ← liftM signingRandomness
-  liftM (signAttempt secretKey leafIndex message randomness :
-    OracleComp HashSpec (Option Signature))
-
-attribute [irreducible] sign
 
 noncomputable def signBoundedAttempts (secretKey : SecretKey) (leafIndex : LeafIndex)
     (message : Message) (base : Randomness) : Nat → Nat → OracleComp OracleWorld (Option Signature)

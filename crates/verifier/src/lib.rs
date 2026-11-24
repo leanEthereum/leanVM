@@ -1,6 +1,6 @@
 //! A self-contained verifier for leanVM execution proofs: single threaded, std only, plain integer arithmetic.
 //!
-//! Kept close enough to the Lean transcription (`formal/Statement/LeanVmVerifier.lean`) to read side by side: the same functions, in the same order, with the same constants.
+//! Kept close enough to the Lean transcription (`formal/Statement/Verifier/`, a file per file of this crate, its constants in `formal/Statement/LeanVmVerifier.lean`) to read side by side: the same functions, in the same order, with the same constants.
 //!
 //! What the transcription has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the proof's byte encoding ([`Proof::to_bytes`]) and what the statement of an aggregate adds, [`da`].
 //!

@@ -30,20 +30,6 @@ open scoped ENNReal
 
 namespace LeanDa
 
-/-! ## Averages -/
-
-theorem prEvent_bind_le_of_support {α β : Type} (mx : ProbComp α) (f : α → ProbComp β)
-    (P : β → Prop) (a : ℝ≥0∞) (hp : ∀ x ∈ support mx, Pr{let y ← f x}[P y] ≤ a) :
-    Pr{let y ← mx >>= f}[P y] ≤ a := by
-  simp only [OracleComp.prEvent_bind_eq_tsum]
-  calc ∑' x, Pr{let z ← mx}[z = x] * Pr{let y ← f x}[P y]
-      ≤ ∑' x, Pr{let z ← mx}[z = x] * a := tsum_le_tsum fun x ↦ by
-        by_cases hx : x ∈ support mx
-        · gcongr; exact hp x hx
-        · simp [prEvent_eq_zero_of_not_mem_support mx hx]
-    _ = (∑' x, Pr{let z ← mx}[z = x]) * a := ENNReal.tsum_mul_right
-    _ ≤ a := mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one mx)
-
 /-! ## The simulated world with a verdict -/
 
 section Ideal
@@ -83,12 +69,6 @@ def tCount : (unifSpec + roSpec (List UInt8) DigestBytes).Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
-theorem isWeightBound_zero {ι : Type} {spec : OracleSpec.{0, 0} ι} {α : Type}
-    (X : OracleComp spec α) : QueryCostAtMost X (fun _ ↦ 0) 0 := by
-  induction X using OracleComp.inductionOn with
-  | pure a => trivial
-  | query_bind t k ih => exact (isWeightBound_query_bind_iff _ _ _ _).mpr ⟨le_rfl, fun u ↦ ih u⟩
-
 theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
     (path : List Common.DigestBytes) : ∀ (idx : ℕ) (node : Common.DigestBytes),
@@ -106,7 +86,6 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     isWeightBound_pure _ _ 0).mono (by simp only [List.length_append, List.length_singleton]; omega)
 
-set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
     QueryCostAtMost (tailH r ps ext crs out l) tCount (commitCalls r + (9 + logMaxRows)) := by
   classical
@@ -141,7 +120,7 @@ theorem isWeightBound_embG_g {α : Type} (Y : OracleComp (unifSpec + roSpec (Lis
   isWeightBound_simulateQ _ (fun _ ↦ 0) _ (fun t ↦ by
     rcases t with k | a
     · exact isWeightBound_query gwCalls (.inl k)
-    · exact isWeightBound_query gwCalls (.inr (.inl a))) (isWeightBound_zero Y)
+    · exact isWeightBound_query gwCalls (.inr (.inl a))) (QueryCostAtMost.zero_weight Y)
 
 theorem hgCalls_eq : (fun t ↦ hCallsG t + gCalls (Msg := List UInt8) (Dg := DigestBytes)
     (Root := Common.DigestBytes) (Z := Draw) (n := nLabels) t) = hgCalls := by
@@ -174,7 +153,7 @@ theorem isWeightBound_advSim (A : CodeBindingAdvB r Crs Proof) (Q : ℕ)
       (gCalls (Msg := List UInt8) (Dg := DigestBytes) (Root := Common.DigestBytes) (Z := Draw) (n := nLabels)) Q := by
     rw [advSim, StateT.run'_eq]; exact isWeightBound_map _ hSf
   refine ⟨?_, h2⟩
-  have := h1.add h2
+  have := h1.add_weight h2
   rw [hgCalls_eq] at this
   exact this.mono (by omega)
 

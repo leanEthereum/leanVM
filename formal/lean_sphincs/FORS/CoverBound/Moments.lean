@@ -1,6 +1,5 @@
 module
 
-public import FORS.CoverBound.IndexFactor
 public import FORS.Scheme
 
 @[expose] public section
@@ -17,8 +16,6 @@ namespace FORS.Security.H0
 variable [Params]
 
 open Concrete
-
-set_option linter.unusedSectionVars false
 
 /-! ### Real averages -/
 

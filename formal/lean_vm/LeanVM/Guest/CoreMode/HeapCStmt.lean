@@ -1198,7 +1198,7 @@ theorem condE_nth {sigOf : String → HSig} {ms : List CCell} : ∀ {gs : List S
     exact ⟨by simpa using hk, by simpa using h⟩
 
 theorem addCd_ok {st : CSt} (hs : StOk rd W σ st) {l : List CdE} (hl : CdOk rd W σ l) : StOk rd W σ (st.addCd l) :=
-  ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, hs.src, hs.pf, hs.pr, fun e he ↦ (List.mem_append.mp he).elim (hs.cd e) (hl e), hs.eqs, hs.dq⟩
+  ⟨hs.env, hs.sc, hs.rs, hs.ad, hs.sv, hs.src, hs.pf, hs.pr, fun e he ↦ (List.mem_append.mp he).elim (fun h ↦ hs.cd e (List.mem_filter.mp h).1) (hl e), hs.eqs, hs.dq⟩
 
 /-- **A dispatch's returned pointers hold** in `W'`: each returned word `j`'s cells at the offsets. -/
 def VpOk (W' : K → Prop) (σ : Val) (rets : List V) (vps : List (ℕ × List ℕ)) : Prop :=

@@ -85,12 +85,15 @@ theorem range13_map (f : ℕ → V) :
 /-- The sponge of a plain round: `c₀`, `c₂` absorbed after the waiting scalars, squeezed. -/
 def plainSq (s : Fs) (c0 c2 : E) : E × Fs := ((s.absorb c0 dsObserve).absorb c2 dsObserve).squeeze
 
-/-- **A round with nothing waiting**: the atom reads `c₀`'s and `c₂`'s rate cells, four zero
-cells and the capacity; the challenge `o` and the outputs `o + 8 .. o + 12` are the
-squeeze's. -/
-theorem plain_round_sq0 {cur pt vIn : V} {zs capV : List V} {i a o : ℕ} {cap : List E}
-    (h : PlainRoundOk rd σ cur pt vIn ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV)
-      i a o)
+/-- A round's sponge facts. -/
+structure PlainCore (rd : Reader) (σ : Val) (ins : List V) (a o : ℕ) : Prop where
+  pk0 : FsPackOk σ (.n a) (a + 1) dsObserve
+  pk2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve
+  kc : (Atom.keccak ins ((List.range 13).map fun k ↦ .n (o + k)) false false).Holds rd σ
+
+/-- A round with nothing waiting: the challenge and the capacity cells after it. -/
+theorem plain_core_sq0 {zs capV : List V} {a o : ℕ} {cap : List E}
+    (h : PlainCore rd σ ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV) a o)
     (hz : zs.map σ = [0, 0, 0, 0]) (hc : capV.map σ = cap) :
     σ (.n o) = (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
@@ -109,11 +112,10 @@ theorem plain_round_sq0 {cur pt vIn : V} {zs capV : List V} {i a o : ℕ} {cap :
   rw [plainSq, habs]
   exact ⟨this.1, this.2⟩
 
-/-- **A round with one scalar `w` waiting**, its rate cells `p0`, `p1`: the atom reads them,
-`c₀`'s and `c₂`'s rate cells, two zero cells and the capacity. -/
-theorem plain_round_sq1 {cur pt vIn p0 p1 : V} {zs capV : List V} {i a o : ℕ} {cap : List E} {w : E}
-    (h : PlainRoundOk rd σ cur pt vIn
-      ([p0, p1, .n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV) i a o)
+/-- A round with one scalar `w` waiting, its rate cells `p0`, `p1`. -/
+theorem plain_core_sq1 {p0 p1 : V} {zs capV : List V} {a o : ℕ} {cap : List E} {w : E}
+    (h : PlainCore rd σ ([p0, p1, .n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV)
+      a o)
     (hp : (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
     (hz : zs.map σ = [0, 0]) (hc : capV.map σ = cap) :
     σ (.n o) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
@@ -133,6 +135,30 @@ theorem plain_round_sq1 {cur pt vIn p0 p1 : V} {zs capV : List V} {i a o : ℕ} 
   simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
   rw [plainSq, habs]
   exact ⟨this.1, this.2⟩
+
+/-- **A round with nothing waiting**: the atom reads `c₀`'s and `c₂`'s rate cells, four zero
+cells and the capacity; the challenge `o` and the outputs `o + 8 .. o + 12` are the
+squeeze's. -/
+theorem plain_round_sq0 {cur pt vIn : V} {zs capV : List V} {i a o : ℕ} {cap : List E}
+    (h : PlainRoundOk rd σ cur pt vIn ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV)
+      i a o)
+    (hz : zs.map σ = [0, 0, 0, 0]) (hc : capV.map σ = cap) :
+    σ (.n o) = (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
+      [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
+        (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap :=
+  plain_core_sq0 ⟨h.pk0, h.pk2, h.kc⟩ hz hc
+
+/-- **A round with one scalar `w` waiting**, its rate cells `p0`, `p1`: the atom reads them,
+`c₀`'s and `c₂`'s rate cells, two zero cells and the capacity. -/
+theorem plain_round_sq1 {cur pt vIn p0 p1 : V} {zs capV : List V} {i a o : ℕ} {cap : List E} {w : E}
+    (h : PlainRoundOk rd σ cur pt vIn
+      ([p0, p1, .n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV) i a o)
+    (hp : (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
+    (hz : zs.map σ = [0, 0]) (hc : capV.map σ = cap) :
+    σ (.n o) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
+      [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
+        (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap :=
+  plain_core_sq1 ⟨h.pk0, h.pk2, h.kc⟩ hp hz hc
 
 /-- `plainRun`'s first round, from the facts of its squeeze. -/
 theorem plainRun_step {c0 c2 v v' ch : E} {s : Fs} {cap' : List E} {rest : List (E × E)}

@@ -1,20 +1,22 @@
 module
 
-public import XmssSecurity.Proof.EncodingTargetMap
-public import XmssSecurity.Proof.SigningRandomnessUniformity
 public import Mathlib.Data.Set.Card.Arithmetic
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.LazyScheme
 
 @[expose] public section
+
+/-!
+# One attempt of the bounded signer
+
+Under the lazy random oracle, `attempts + 1` signing attempts run one `Concrete.signAttempt`, then
+`Concrete.signBoundedAttemptsContinuation`, which keeps a signature found and otherwise runs the
+remaining attempts (`Concrete.signBoundedAttempts_run_succ_eq`). `CausalSigningKeygenCoupling` and
+`CappedGlobalChainHighSetup` use this unfolding to couple the signer.
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
-
-set_option maxRecDepth 100000
-
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
 
 noncomputable def Concrete.signBoundedAttemptsContinuation
     (attempts trial : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)

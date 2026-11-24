@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.LevelMid
 public import LeanVM.Protocol.Whir.Sound.Tail
+import LeanVM.ToMathlib.List
 
 /-!
 # The final level
@@ -143,7 +144,7 @@ theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
       (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.alphas ++ tail).drop glued.foldStart))
       (eb ((s.alphas ++ tail).drop laneFolds ++ (s.alphas ++ tail).take laneFolds)) =
     runW eb laneFolds s tail := by
-  rw [runW_eq, foldl_add_map]
+  rw [runW_eq, List.foldl_add_eq_add_sum_map]
   refine congrArg₂ (· + ·) rfl (congrArg List.sum (List.map_congr_left fun g hgm ↦ ?_))
   rw [List.drop_append_of_le_length (hg g hgm)]
 

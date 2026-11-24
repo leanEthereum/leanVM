@@ -18,8 +18,8 @@ public import LeanVM.Guest.Exact.FreeMain
 
 `main_loop4`'s body has no computed hint (`l5_pinned`); its claim lists' digests and the statement's digest are exact
 for free (`child_claim_list_digest_exactFree`). So a valid tree of `L5From` whose `verify_sub` trees are exact is exact
-(`l5From_every`), and `mainGoalsRR_l5E` is `mainGoalsRR_l5` with every node of the loop's tree exact, given
-`verify_sub`'s trees exact.
+(`l5From_every`), and `mainGoalsRR_l5E` gives `MainGoalsRR.l5` with every node of the loop's tree exact, `q` popping
+`l5PopsH`, given `verify_sub`'s trees exact.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -83,8 +83,8 @@ theorem l5From_every {rd : Reader} {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
   {w : NodeWitness} {bytecode : List K}
 
-/-- **`MainGoalsRR.l5`, every node exact**: `mainGoalsRR_l5`, each child's `verify_sub` call by a tree also exact on
-the memory. -/
+/-- **`MainGoalsRR.l5`, every node exact**, `q` popping `l5PopsH`: each child's `verify_sub` call by a tree also exact
+on the memory. -/
 theorem mainGoalsRR_l5E (hbl : bytecode.length = 2 ^ 23) (hn : NodeRelation bytecode seed s w)
     (hl : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} {q : MainPops}
     (hS : MainStatics fs SB SK) {px ps pv : ℕ → List Pop}

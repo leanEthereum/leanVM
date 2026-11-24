@@ -8,7 +8,6 @@
 
 module
 
-import LeanVM.Protocol.LeanVMSound
 public import Statement.LeanVm
 import Common.Prob
 public import LeanVM.Protocol.WithHash
@@ -170,13 +169,13 @@ noncomputable def loggedPermDet : QueryImpl (Common.permutationOracleSpec Keccak
 no coins. -/
 abbrev DetAdversary : Type := OracleComp (Common.permutationOracleSpec KeccakState) (ProgramAndInput × Proof)
 
-/-- `rpmExperiment` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
+/-- `knowledgeSoundnessExperiment` (`Statement/LeanVm.lean`) for a deterministic adversary. -/
 noncomputable def detExperiment (A : DetAdversary) : ProbComp ExperimentOutcomeWithHash := do
   let (z, perms, transcript) ← (simulateQ loggedPermDet A).run ([], [])
   let verdict ← (simulateQ keccakCallsOverRandomPermutation (verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2)).run' perms
   return ((z, verdict), transcript)
 
-/-- `runAdversaryThen` (`Statement/LeanVm.lean`) for a deterministic adversary, without the transcript. -/
+/-- `runAdversaryThen` (`Protocol/WithHash.lean`) for a deterministic adversary, without the transcript. -/
 noncomputable def detRun {α β : Type} (A : OracleComp (Common.permutationOracleSpec KeccakState) α)
     (V : α → OracleComp KeccakCalls β) : ProbComp (α × β) := do
   let (z, perms, _) ← (simulateQ loggedPermDet A).run ([], [])

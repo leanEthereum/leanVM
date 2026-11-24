@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Main.RelAtW
+public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Memory.Uniform
 
 /-!
@@ -17,13 +17,11 @@ public import LeanVM.Guest.Memory.Uniform
 Ts`: `KidsFromIn`, the `j`-th entered callee by a tree satisfying `Ts[j]` (no constraint past
 `Ts`). `KidsT cs Ts ks`: the entered callees' trees satisfy their predicates.
 `relAtInWT_of_walk`: `relAtIn_of_walk` (same proof), its tree the node at the walk's valuation
-with children satisfying `KidsT`; `relAtInWT_of_walk_loop` likewise for a loop iteration
-(`relAtIn_of_walk_loop`), its tail call's tree satisfying `Tt`.
-`CompleteAtDT … T`: `CompleteAtD` by a tree satisfying `T`; `kidsFromInT_of_kidsDT`:
-`kidsFromIn_of_kidsD` with the callees' predicates. `CompleteAtL … T Bd`: a loop helper from an
-iteration on, its frames at any `fp` and the rest at any `c` past them, its words satisfying `Bd`;
-`completeAtL_tail` the next iteration's or the last phantom, `CompleteAtL.toDT` the loop entered
-fresh.
+with children satisfying `KidsT`; `relAtInWT_of_walk_loop` likewise for a loop iteration,
+its tail call's tree satisfying `Tt`.
+`CompleteAtDT … T`: `CompleteAtD` by a tree satisfying `T`. `CompleteAtL … T Bd`: a loop helper
+from an iteration on, its frames at any `fp` and the rest at any `c` past them, its words satisfying
+`Bd`; `completeAtL_tail` the next iteration's or the last phantom.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -87,18 +85,6 @@ theorem RelAtInCT.relAtInT {rd : Reader} {R D : ℕ → Prop} {fp B n : ℕ} {f 
   obtain ⟨t, ⟨hn, hv, hb, hp, hB, ht, hl, hd⟩, hT⟩ := h
   subst hB
   exact ⟨t, ⟨hn, hv, hb, hp, ht, hl, hd⟩, hT⟩
-
-theorem RelAtInCT.relAtInC {rd : Reader} {R D : ℕ → Prop} {fp c B n : ℕ} {f : String}
-    {args rets : List E} {T : Tree → Prop} (h : RelAtInCT P fs cert rd R D fp c B n f args rets T) :
-    RelAtInC P fs cert rd R D fp c B n f args rets :=
-  let ⟨t, ht, _⟩ := h
-  ⟨t, ht⟩
-
-theorem RelAtInC.relAtInCT {rd : Reader} {R D : ℕ → Prop} {fp c B n : ℕ} {f : String}
-    {args rets : List E} (h : RelAtInC P fs cert rd R D fp c B n f args rets) :
-    RelAtInCT P fs cert rd R D fp c B n f args rets fun _ => True :=
-  let ⟨t, ht⟩ := h
-  ⟨t, ht, trivial⟩
 
 variable {rd : Reader} {σ : Val}
 
@@ -268,8 +254,8 @@ theorem kidsT_snoc {c : Call} {T : Tree → Prop} {k : Tree} : ∀ {cs : List Ca
   | _ :: _, _ :: _, _ :: _, h1, h2, h, hc =>
     ⟨h.1, kidsT_snoc (by simpa using h1) (by simpa using h2) h.2 hc⟩
 
-/-- **Composition with regions, a loop iteration, its callees' trees exposed**:
-`relAtIn_of_walk_loop` by the node at the walk's valuation, its children satisfying
+/-- **Composition with regions, a loop iteration, its callees' trees exposed**: by the node at the walk's
+valuation, its children satisfying
 `KidsT (calls es) (Ts ++ [Tt])`: the other callees `Ts`, the tail call `Tt`. -/
 theorem relAtInWT_of_walk_loop (hP : P.Wf) {R D Dk Rt Dt : ℕ → Prop} {fp c Bt m N : ℕ}
     {f : String} {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call}
@@ -380,12 +366,6 @@ def CompleteAtDT (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-theorem CompleteAtD.toT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) :
-    CompleteAtDT fs cert k f Lin args Out fun _ => True := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => (hr rd hl hm).relAtInT⟩
-
 theorem CompleteAtDT.toD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} {T : Tree → Prop} (h : CompleteAtDT fs cert k f Lin args Out T) :
     CompleteAtD fs cert k f Lin args Out := fun fp =>
@@ -400,21 +380,6 @@ def CompleteAtL (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f
     Bd (B + n) ∧ Out rets Lout ∧ Within (Lout ++ Lown) c n ∧ DisjL (Lout ++ Lown) ∧
     ∀ rd, LowDef k rd → MemL rd (Lout ++ Lown ++ Lin) →
       RelAtInCT coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp c B n f args rets T
-
-/-- **A loop entered fresh**: its frames at `fp`, the rest right after them. -/
-theorem CompleteAtL.toDT {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {T : Tree → Prop} {Bd : ℕ → Prop}
-    (h : CompleteAtL fs cert k f Lin args Out T Bd) : CompleteAtDT fs cert k f Lin args Out T :=
-  fun fp =>
-    let ⟨B, hB⟩ := h
-    let ⟨n, Lown, rets, Lout, _, ho, hw, hd, hr⟩ := hB fp (fp + B) le_rfl
-    ⟨B + n, Lown, rets, Lout, ho, hw.mono (by omega) (by omega), hd,
-      fun rd hl hm => (hr rd hl hm).relAtInT⟩
-
-theorem CompleteAtL.toD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {T : Tree → Prop} {Bd : ℕ → Prop}
-    (h : CompleteAtL fs cert k f Lin args Out T Bd) : CompleteAtD fs cert k f Lin args Out :=
-  h.toDT.toD
 
 theorem CompleteAtL.mono {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} {T T' : Tree → Prop} {Bd Bd' : ℕ → Prop}
@@ -449,30 +414,11 @@ theorem completeAtL_tail {k : ℕ} {f g : String} {Lin : Layout} {args : List E}
     simp only [hl, not_false_eq_true, decide_true, ↓reduceIte]
     exact hR rd hlw (by simpa using hm)
 
-/-- A completeness on memories defined below `2^k` holds on those defined below `2^k'`,
-`k ≤ k'`. -/
-theorem CompleteAtD.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) (hk : k ≤ k') :
-    CompleteAtD fs cert k' f Lin args Out := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
-
-theorem CompleteAtDT.lowMono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
-    {Out : List E → Layout → Prop} {T : Tree → Prop} (h : CompleteAtDT fs cert k f Lin args Out T)
-    (hk : k ≤ k') : CompleteAtDT fs cert k' f Lin args Out T := fun fp =>
-  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
-  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
-
 /-- The entered callees are complete by trees satisfying their predicates. -/
 def KidsDT (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : List Kid → List (Tree → Prop) → Prop
   | k :: ks, Ts => (k.taken = true → CompleteAtDT fs cert κ k.f k.Lin k.args k.Out
       (Ts.headD fun _ => True)) ∧ KidsDT fs cert κ ks Ts.tail
   | [], _ => True
-
-theorem KidsDT.lowMono {κ κ' : ℕ} (hk : κ ≤ κ') : ∀ {ks : List Kid} {Ts : List (Tree → Prop)},
-    KidsDT fs cert κ ks Ts → KidsDT fs cert κ' ks Ts
-  | [], _, _ => trivial
-  | _ :: _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).lowMono hk, hs.lowMono hk⟩
 
 theorem kidsFromInT_dend {rd : Reader} {σ : Val} {R : ℕ → Prop} :
     ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Dacc : ℕ → Prop) (b n : ℕ) {D D' : ℕ → Prop},
@@ -482,68 +428,6 @@ theorem kidsFromInT_dend {rd : Reader} {σ : Val} {R : ℕ → Prop} :
   | [], _, _, _, _, _, _, hD, ⟨hn, h⟩ => ⟨hn, fun i hi => h i (hD i hi)⟩
   | _ :: cs, _, _, _, _, _, _, hD, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ =>
       ⟨m, n', Rk, Dk, hn, hR, hc, kidsFromInT_dend cs _ _ _ _ hD hk⟩
-
-theorem kidsFromInT_of_kidsDT (κ : ℕ) : ∀ (ks : List Kid) (Ts : List (Tree → Prop)),
-    KidsDT fs cert κ ks Ts → ∀ b : ℕ,
-    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
-      DisjL L ∧ OutsIn ks outs L ∧
-      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
-        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
-        KidsFromInT coreProgram fs cert rd σ R Dacc cs Ts b N (fun i => Dacc i ∨ outRegion ks outs i)
-  | [], _, _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, disj_nil, trivial,
-      fun rd σ cs R Dacc hc _ _ _ _ => by
-      match cs, hc with
-      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
-  | k :: ks, Ts, hok, b => by
-    by_cases ht : k.taken = true
-    · obtain ⟨n, Lown, rets, Lout, hout, hw, hd, hrel⟩ := hok.1 ht b
-      obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_kidsDT κ ks Ts.tail hok.2 (b + n)
-      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_,
-        disj_append hd hD hw hW le_rfl,
-        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
-      · rw [within_append]
-        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
-      · intro rd σ cs R Dacc hc hlow hL hLin hRg
-        match cs, hc with
-        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
-          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
-          simp only [Kid.lins, List.flatMap_cons] at hLin
-          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
-          obtain ⟨hR1, hR2⟩ := hRg
-          obtain ⟨ha, hr⟩ := hcar ht
-          refine ⟨n, N, RegionL k.Lin, RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
-          · rw [hct]
-            simp only [ht, ↓reduceIte]
-            rw [hf, ha, hr]
-            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
-          · refine kidsFromInT_dend cs _ _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
-            · intro i hi
-              rcases hi with hi | ⟨_, hi⟩ | hi
-              · exact Or.inl (Or.inl hi)
-              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
-              · exact Or.inr hi
-            · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromInT_of_kidsDT κ ks Ts.tail hok.2 (b + fs (tailKey k.f))
-      refine ⟨fs (tailKey k.f) + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
-        hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
-      intro rd σ cs R Dacc hc hlow hL hLin hRg
-      match cs, hc with
-      | c :: cs, ⟨hf, hct, _, hc⟩ =>
-        simp only [Kid.lins, List.flatMap_cons] at hLin
-        refine ⟨fs (tailKey k.f), N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
-        · have ht' : k.taken = false := by simpa using ht
-          rw [hct, ht']
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          rw [hf]
-        · refine kidsFromInT_dend cs _ _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
-          · intro i hi
-            rcases hi with hi | ⟨h, _⟩ | hi
-            · exact Or.inl (Or.inl hi)
-            · exact absurd h ht
-            · exact Or.inr hi
-          · have := hRg.2
-            simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
-            exact this
 
 end
 end LeanVM.Guest.B1

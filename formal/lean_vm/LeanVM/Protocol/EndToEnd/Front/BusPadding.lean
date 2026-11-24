@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Bus
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The padding weight
@@ -44,11 +44,6 @@ private theorem eOfNat_one' : eOfNat 1 = 1 := by
   unfold eOfNat
   rw [show K.ofBits 1 = 1 by decide +kernel]
   simp
-
-/-- `1 + 1 = 0` in `E`. -/
-private theorem one_add_one' : (1 : E) + 1 = 0 := by
-  rw [one_add_one_eq_two]
-  exact CharTwo.two_eq_zero
 
 /-- Nothing lies above every row: no row of `2^m` is at least `2^m`. -/
 theorem padWeight_of_le {m n : ℕ} (z : Vector E m) (h : 2 ^ m ≤ n) : Bus.padWeight n z = 0 := by
@@ -137,10 +132,12 @@ theorem foldPad_eq (n : ℕ) : ∀ l : List E,
     rcases Nat.mod_two_eq_zero_or_one (n >>> l.length) with hb | hb
     · rw [hb, eOfNat_zero', Nat.mul_zero, Nat.add_zero,
         show n % 2 ^ l.length - 2 ^ l.length = 0 by omega, padWeight_zero]
-      linear_combination (r * Bus.padWeight (n % 2 ^ l.length) (vecList l)) * one_add_one'
+      linear_combination (r * Bus.padWeight (n % 2 ^ l.length) (vecList l)) *
+        CharTwo.add_self_eq_zero (1 : E)
     · rw [hb, eOfNat_one', Nat.mul_one, padWeight_of_le (vecList l)
         (show 2 ^ l.length ≤ n % 2 ^ l.length + 2 ^ l.length by omega), Nat.add_sub_cancel]
-      linear_combination (r + Bus.padWeight (n % 2 ^ l.length) (vecList l)) * one_add_one'
+      linear_combination (r + Bus.padWeight (n % 2 ^ l.length) (vecList l)) *
+        CharTwo.add_self_eq_zero (1 : E)
 
 /-- **`padding_weight` is the padding rows' weight** (Lemma `lem:suffix`): for `n ≤ 2^|point|`,
 the verifier's `pad_n(point)` is the extension at `point` of the indicator of the rows `x ≥ n`. -/
@@ -152,7 +149,7 @@ theorem paddingWeight_eq_padWeight (l : List E) (n : ℕ) (h : n ≤ 2 ^ l.lengt
   · rw [Nat.shiftRight_eq_div_pow, Nat.div_eq_of_lt hlt, Nat.zero_mod, eOfNat_zero', add_zero,
       one_mul, Nat.mod_eq_of_lt hlt]
   · rw [heq, Nat.shiftRight_eq_div_pow, Nat.div_self (Nat.two_pow_pos _), Nat.one_mod,
-      eOfNat_one', one_add_one', zero_mul, padWeight_of_le _ le_rfl]
+      eOfNat_one', CharTwo.add_self_eq_zero (1 : E), zero_mul, padWeight_of_le _ le_rfl]
 
 /-- `padding_weight` of a point's first `m` coordinates, for `n ≤ 2^m`, is the padding rows'
 weight at them. -/

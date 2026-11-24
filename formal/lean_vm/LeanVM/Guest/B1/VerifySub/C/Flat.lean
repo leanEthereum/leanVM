@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.FlatLift
 (`vs_cflat`: atoms, calls, `callIf`s and one fused `match` of calls, no `ite`), place no address
 by a frame cell (`vs_caddrs`), and `verify_sub` is no loop. `vsEvL`: the evaluation list (each
 `assertNe` read as the product it checks); the checker accepts it from the `6` parameters
-(`vs_chk`).
+(`vs_chk'`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

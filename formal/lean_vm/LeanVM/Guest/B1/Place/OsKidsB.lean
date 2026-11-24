@@ -82,18 +82,6 @@ def OsCompleteAtPB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
     ∀ rd, LowDef κ rd → MemL rd (Lout fp ++ Lown ++ Lin fp) →
       RelAtIn coreProgram fs cert rd (RegionL (Lin fp)) (RegionL (Lout fp)) fp n f args rets
 
-theorem OsCompleteAtPB.toP {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
-    {Lout : ℕ → Layout} {B : ℕ} (h : OsCompleteAtPB fs cert κ f Lin args rets Lout B) :
-    OsCompleteAtP fs cert κ f Lin args rets Lout := fun fp =>
-  let ⟨n, Lown, hW, hD, _, hr⟩ := h fp
-  ⟨n, Lown, hW, hD, hr⟩
-
-theorem OsCompleteAtPB.mono {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
-    {Lout : ℕ → Layout} {B B' : ℕ} (h : OsCompleteAtPB fs cert κ f Lin args rets Lout B) (hB : B ≤ B') :
-    OsCompleteAtPB fs cert κ f Lin args rets Lout B' := fun fp =>
-  let ⟨n, Lown, hW, hD, hn, hr⟩ := h fp
-  ⟨n, Lown, hW, hD, le_trans hn hB, hr⟩
-
 /-- **One such callee within `B`**, placed at `b`, claiming its buffers. -/
 theorem os_kidsFromIn_onePB {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args rets : List E}
     {Lout : ℕ → Layout} {B : ℕ}

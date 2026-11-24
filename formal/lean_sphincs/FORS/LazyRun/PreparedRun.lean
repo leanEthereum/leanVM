@@ -1,7 +1,7 @@
 module
 
-public import FORS.CoverPotential.Game
 public import FORS.LazyRun.Replay
+public import FORS.CoverPotential.Game
 
 @[expose] public section
 
@@ -19,8 +19,6 @@ variable [Params]
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section Rest

@@ -31,10 +31,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vtWInvGen_mul : vtWInvGen * gen = 1 := by
-  rw [vtWInvGen, tb_word_eOfNat, eOfNat, ← tb_word_gen, tb_word_eOfNat, eOfNat, ← ofK_mul,
-    show K.ofBits 9223372036854775821 * K.ofBits 2 = 1 by decide +kernel, ofK_one]
-
 /-- `verify_tables_loop0`'s atoms, `sumcheck_round4` inlined on the record `rounds·x^7` (value `10`). -/
 def l10Atoms : List Stmt :=
   [.atom (.mul (.n 6) (.n 0) (.n 0)), .atom (.mul (.n 7) (.n 6) (.n 0)), .atom (.mul (.n 8) (.n 7) (.n 7)),

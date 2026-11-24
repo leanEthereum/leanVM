@@ -14,10 +14,10 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
 
 /-!
-# `ring_switch_weight` (TRIAGE G #66)
+# `ring_switch_weight`
 
 `ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (`fn% «ring_switch_weight»`)
-calls `rs_eq_run`, whose last row holds `ringRow 1 r p k` (`Π (r_n^(2^k) + p_n)`, B1-a's
+calls `rs_eq_run`, whose last row holds `ringRow 1 r p k` (`Π (r_n^(2^k) + p_n)`,
 `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is
 `ringWeight r r' c_table` (`ringWeight_eq`).
@@ -95,7 +95,7 @@ theorem foldl_mul_start : ∀ (l : List E) (c : E), l.foldl (· * ·) c = c * l.
     rw [List.foldl_cons, List.foldl_cons, foldl_mul_start l (c * x), foldl_mul_start l (1 * x),
       one_mul, mul_assoc]
 
-/-- With `r' = 1 + p`, a product of `ringWeight` is `ringRow` (B1-a's, `rs_eq_run`'s rows):
+/-- With `r' = 1 + p`, a product of `ringWeight` is `ringRow` (`rs_eq_run`'s rows):
 `1 + v + (1 + p) = v + p` in characteristic two. -/
 theorem rwProd_eq_ringRow (k : ℕ) :
     ∀ (rs ps : List E) (c : E), rs.length = ps.length →

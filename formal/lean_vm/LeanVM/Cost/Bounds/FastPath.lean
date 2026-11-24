@@ -27,8 +27,6 @@ public section
 
 variable (P : MachineProgram)
 
-/-! ## List functions -/
-
 /-! ## Field arithmetic: the subspace polynomial and the inverse -/
 
 /-- A product over `range n` (`prodRange.c103`): `B + 41` per factor, `5` at the end. -/
@@ -171,15 +169,6 @@ theorem novelInv_cost (hP : Includes P novelInvC.costDeps) (κ : ℕ) (hκ : κ 
   rw [List.length_range] at this
   have hr := rangeLoop_cost P (by includes) κ [] (by omega)
   nlinarith
-
-theorem leafAt_length_le (leaves : Array (List K)) (h w v : ℕ) (hl : ∀ l ∈ leaves, l.length ≤ w) :
-    (leafAt leaves h w v).length ≤ w := by
-  unfold leafAt
-  rw [Array.getD_eq_getD_getElem?]
-  generalize hx : leaves[v % 2 ^ h]? = o
-  cases o with
-  | none => simp
-  | some l => exact hl l (Array.mem_of_getElem? hx)
 
 end
 

@@ -208,12 +208,6 @@ def KeccakSpec (r : KeccakRow K) (next : Registers K) (data : ProverData K) : Pr
 
 /-! ## Proof helpers -/
 
-/-- A cell limb holding the same lane in both layouts, and the others, in the layout a flag
-selects (the forms `layout_limb` takes with a missing lane). -/
-theorem layoutLimb_flag' (a : K) (odd : Bool) :
-    a + layoutFlagWord odd * a = if odd then 0 else a := by
-  cases odd <;> simp [layoutFlagWord, CharTwo.add_self_eq_zero]
-
 /-- The tuple of a `KECCAK` bytecode read, flat. -/
 theorem keccak_tuple (c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 f3 f4 : K) :
     #v[c] ++ #v[o0, o1, o2, o3, o4, o5, o6, o7, f1, f2, f3, f4] =

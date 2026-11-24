@@ -16,8 +16,6 @@ variable [Params]
 
 open Concrete
 
-set_option linter.unusedSectionVars false
-
 /-- The first moment of the cover fraction of one tree after `n` uniform disclosed leaves. -/
 noncomputable def Ψ1R (n : ℕ) : ℝ := avgNR (fun X : Multiset FLeaf => avgR fun t : FLeaf => coverR t X) n 0
 

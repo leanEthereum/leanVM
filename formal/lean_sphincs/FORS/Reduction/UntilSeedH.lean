@@ -1,6 +1,5 @@
 module
 
-public import FORS.Reduction.UntilSeed
 public import FORS.GraphView.PreparedSearch
 
 @[expose] public section

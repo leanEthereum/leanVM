@@ -1,10 +1,6 @@
 module
 
 public import FORS.LazyRun.Resample
-public import FORS.LazyRun.Outside
-public import FORS.LazyRun.Cost
-public import FORS.Seed.Guess
-public import FORS.LazyRun.Graph
 
 @[expose] public section
 
@@ -19,8 +15,6 @@ variable [Params]
 
 open Eager Short
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 noncomputable local instance lazyCoordinateDecEq : DecidableEq HiddenGraph.Coordinate :=
   Classical.decEq _

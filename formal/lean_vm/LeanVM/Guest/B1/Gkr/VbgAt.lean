@@ -9,13 +9,13 @@ module
 public import LeanVM.Guest.B1.Gkr.VbgLoads
 public import LeanVM.Guest.B1.Gkr.GlCInVbg
 public import LeanVM.Guest.B1.Gkr.GlCInZeta
-public import LeanVM.Guest.B1.Tables.FlatLiftOut
+public import LeanVM.Guest.B1.Tables.FlatLiftT
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 
 /-!
-# `verify_bus_gkr`, placed (TRIAGE G #43)
+# `verify_bus_gkr`, placed
 
 `vbg_run`: at `2 ≤ depth`, on a memory defined below `2^κ` (`κ ≥ 6`, the range check of
 `g^depth`) holding the cursor's words, the point at `zeta` and the eight buffers whole
@@ -27,9 +27,9 @@ holding the cursor's words, the point and the buffers, its loads land inside the
 capacity, cursor and the values' buffer. The radix-four layers' dispatch loads from `R`
 (`vbg_layers_relIn`), and the point's copy `verify_bus_gkr_loop0` (`vbz_relIn`).
 
-`verify_bus_gkr_completeAt`: `flat_completeAtOut` for `vbgFlat`, the buffers at the bump
-allocator's positions from `fp + fs "verify_bus_gkr"`, returned (`VbgOut`: the values' buffer is
-among them).
+`verify_bus_gkr_completeAtTB` (`Gkr/VbgB`): `flat_completeAtOutTB` for `vbgFlat`, the buffers at the
+bump allocator's positions from `fp + fs "verify_bus_gkr"`, returned (`VbgOut`: the values' buffer
+is among them).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -399,7 +399,6 @@ theorem vbgLayersW_length {depth : ℕ} {cap0 xs : List E} {cur : E}
     simp [vbgLayBlock_length hcl]
   rw [this, List.sum_replicate, smul_eq_mul, mul_comm]
 
-
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- `verify_bus_gkr`'s buffers' first words at `fp`: layers, `gkr_sizes`, rounds, rows,
@@ -566,39 +565,6 @@ of its returned layout holding the values `vals`. -/
 def VbgOut (cap' : List E) (cur : E) (vals : List E) (rets : List E) (Lout : List (ℕ × List E)) :
     Prop :=
   ∃ b, rets = cap' ++ [cur, ofK (addressOfIndex b)] ∧ (b, vals) ∈ Lout
-
-/-- **`verify_bus_gkr` is complete, placed** (TRIAGE G #43): at `2 ≤ depth ≤ 32`, on memories
-defined below `2^κ`, `κ ≥ 6`, an accepting run of `gkrPhase depth` from a carried capacity `cap0`
-reading the words `xs` at the cursor `g^ec`, the run's point at `zeta = g^ez`, its eight buffers
-at the bump allocator's positions holding their honest words (`vbgOwnW`), returned. It returns
-the run's capacity, the cursor past `xs` and a returned buffer holding the run's values. -/
-theorem verify_bus_gkr_completeAt {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 6 ≤ κ)
-    {cap0 xs : List E} {r : E × List E × List E} {cap' : List E}
-    (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
-    (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) (tabs stream : E) (ec ez : ℕ) :
-    CompleteAtD fs cert κ "verify_bus_gkr" [(ec, xs), (ez, r.2.1)]
-      (cap0 ++ [ofK (addressOfIndex ec), gen ^ depth, ofK (addressOfIndex ez), tabs, stream])
-      (VbgOut cap' (ofK (addressOfIndex ec) * gen ^ xs.length) r.2.2) := by
-  have hcl : cap0.length = 5 := by
-    obtain ⟨sp, hsp⟩ := hc
-    have hsc : capOf sp.state = cap0 := hsp.1
-    rw [← hsc]; simp [capOf]
-  have hvals : vbgValsW depth cap0 xs = r.2.2 := by
-    obtain ⟨-, -, -, -, -, -, hr, -⟩ := gk_walk hrun hc
-    rw [hr]; rfl
-  obtain ⟨hown, hbufs, hfacts⟩ := vbg_lift_facts (fs := fs) hd2 hd hκ hrun hc tabs stream ec ez
-  exact flat_completeAtOut vbgFlat [(ec, xs), (ez, r.2.1)] _
-    (fun fp ↦ cap' ++ [ofK (addressOfIndex ec) * gen ^ xs.length,
-      ofK (addressOfIndex (vbgEV fs depth fp))]) _ (by simp [vbgFlat, hcl]) (vbgSizes depth)
-    (fun _ ↦ vbgOwnW depth cap0 xs (ofK (addressOfIndex ec))) hown
-    (fun fp ↦ ⟨vbgEV fs depth fp, rfl, by
-      rw [show fp + fs vbgFlat.name = fp + fs "verify_bus_gkr" from rfl, vbg_bufL, ← hvals]
-      simp⟩)
-    (fun fp ↦ vbgW (ofK (addressOfIndex (vbgEL fs fp))) (ofK (addressOfIndex (vbgES fs depth fp)))
-      (ofK (addressOfIndex (vbgER fs depth fp))) (ofK (addressOfIndex (vbgEP fs depth fp)))
-      (ofK (addressOfIndex (vbgEO fs depth fp))) (ofK (addressOfIndex (vbgEB fs depth fp)))
-      (ofK (addressOfIndex (vbgEM fs depth fp))) (ofK (addressOfIndex (vbgEV fs depth fp))))
-    (vbgBufs fs depth xs ec) hbufs (fun fp rd hlow hL ↦ (hfacts fp rd hlow hL).1)
 
 end
 end LeanVM.Guest.B1.Tables

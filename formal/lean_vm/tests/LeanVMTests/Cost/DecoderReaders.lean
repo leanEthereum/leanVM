@@ -51,7 +51,6 @@ cost_compile cursor5C := cursor5
 
 -- the readers as they were compiled
 cost_compile xmssOldC := xmssSigOfN
-set_option maxRecDepth 100000 in
 cost_compile sphincsOldC := sphincsSigOfN
 
 def sigmaV : MachineValue := .closure powSigmaC.costIdx []

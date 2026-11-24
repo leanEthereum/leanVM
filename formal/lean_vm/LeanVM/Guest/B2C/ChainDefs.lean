@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B2C.ChainDefs
 
-  The chained `match`es' static check (`B2C/Chain.lean` proves it sound), apart from the proofs
-  on function `j`'s data: the checks of `ChainCheck.lean` (`chainFn_eq`, `chainWin_eq`, by `rfl`).
+  The chained `match`es' static check of function `j`, from the parts of `ChainCheck.lean`
+  (`B2C/Chain.lean` proves it sound).
 -/
 
 module
@@ -52,10 +52,6 @@ theorem chainOk_of_nil {j : ℕ} (h : (plumbOf j).chains.isEmpty = true) : Chain
   refine ⟨?_, fun i _ ↦ ?_⟩
   · simp [chainFn, h', chainsPw]
   · simp [chainWin, h']
-
-theorem chainFn_eq (j : ℕ) : chainFn j = chainFnD glob.jt (plumbOf j) (coreOf j) := rfl
-
-theorem chainWin_eq (j i : ℕ) : chainWin j i = chainWinD (plumbOf j) (coreOf j) (certOf j) i := rfl
 
 end
 end LeanVM.Guest.B2C

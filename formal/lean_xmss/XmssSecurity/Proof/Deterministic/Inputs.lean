@@ -1,15 +1,23 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
-public import XmssSecurity.Proof.Seeded.KeyDerivation
+public import VCVio.EvalDist.Monad.UniformTable
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
+public import VCVio.OracleComp.EvalDist.Sum
+public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
+
+/-!
+# Hitting the master seed with one input
+
+`DerivationSeedHit` says bytes 32 to 63 of a hash input are the master seed, where every
+seed-derived input carries it. A uniform master seed hits a fixed input with probability at most
+`2^-256` (`probEvent_derivationSeedHit_le`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
-
-set_option backward.isDefEq.respectTransparency false
 
 /-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=

@@ -1,6 +1,7 @@
 module
 
 public import FORS.Certificates.Build
+public import FORS.Certificates.Closing
 
 @[expose] public section
 
@@ -17,9 +18,7 @@ certificate and checks again only its cover chains, where its keygen credit ente
 
 namespace FORS.Security.H0
 
-set_option maxRecDepth 1000000
 -- one check at a time: with asynchronous elaboration the memory of the finished checks is kept
-set_option Elab.async false
 
 /-- Poisson table of the small route, height 26, full key, 1,182,000,000 signatures. -/
 def tab_h26_b26 : PoisT := poisOf 324905686008222608494 220 136 150

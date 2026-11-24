@@ -1,6 +1,5 @@
 module
 
-public import VCVio.EvalDist.EvalDistEq
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.Monad.UniformTable

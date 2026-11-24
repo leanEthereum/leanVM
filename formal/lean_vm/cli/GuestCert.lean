@@ -29,7 +29,7 @@ names; the completeness data (`Data/Plumb`, `CplParts`, `CplArms`), the sharing 
 `B2C/Shared/`, `B2C/Cplw/`, which link them or check what is not in the packs). `lake exe guest-cert --check` writes nothing
 and fails when the files differ. Run it from `lean_vm`.
 
-Nothing here is trusted: the checker (`Check.checkFn`) validates every certificate, so a wrong
+Nothing here is trusted: the checker (`Check.chkL`) validates every certificate, so a wrong
 cell here makes a check fail, never a false theorem. The cells are inferred by walking the core
 function along a mirror of `Exec.exec` (same segments, items and exits, computed with hash maps),
 matching each core atom with the first instruction that fits the cells known so far, as the
@@ -40,8 +40,9 @@ A `match` of many straight-line arms (`__loop2_main`'s dispatches on a codeword,
 naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
 its three checks are split into groups of `armGroup` arms, sized by the values they name
 (`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
-`B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
-check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
+`B2C.cplWinS`), the window's check from its groups' in a module (`Checked/F*`, `B2C/Shared/T*`,
+`B2C/Cplw/E*`) that checks the groups too when they fit it (`groupsPerFile`), else imports them
+from modules of their own (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), what the groups share
 computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2_main`'s, whose arms jump to
 the next one's) as well. The kernel's time on one
 declaration grows faster than its work, so many small checks beat one large one. A certificate too
@@ -2878,6 +2879,18 @@ def gtabText : String := Id.run do
     x := y
   return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
 
+/-- `g^(s·d)` for `d < 1024`, in rows of 32 (`Pow.tabN`). -/
+def gtabRowsText (s : K) : String := Id.run do
+  let mut rows : Array String := #[]
+  let mut y : K := 1
+  for _ in List.range 32 do
+    let mut row : Array String := #[]
+    for _ in List.range 32 do
+      row := row.push (toString y.toBitVec.toNat)
+      y := y * s
+    rows := rows.push ("[" ++ ", ".intercalate row.toList ++ "]")
+  return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
+
 /-- The frame sizes, by compiled function index. -/
 def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   header "FrameSizes" "The frame size of each compiled function, by index." ++
@@ -2891,20 +2904,32 @@ def framesFile (fsz : List ℕ) (jtSlots : ℕ) : String :=
   "/-- The jump table's slots, one `SET` of `__jump_tables` each (`B2C.jtSets`). -/\n" ++
   s!"abbrev jtSlots : ℕ := {jtSlots}\n" ++ tail
 
-/-- The tables: the powers of `g` the guest names, the digit table and the jump table. -/
+/-- The digit tables of powers of `g`, the same for every program: `Pow.lean` imports them without the
+guest's data. -/
+def gtabFile : String :=
+  header "GTab" "The digit tables of powers of `g`, the same for every program." ++
+  "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
+  s!"/-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
+def gtab : List (List ℕ) := {gtabText}
+
+/-- `g^d` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabLo : List (List ℕ) := {gtabRowsText g}
+
+/-- `g^(1024·d)` for `d < 1024`, at row `d / 32`, column `d % 32`, as bits. -/
+def gtabHi : List (List ℕ) := {gtabRowsText (g ^ 1024)}
+" ++ tail
+
+/-- The tables: the powers of `g` the guest names and the jump table. -/
 def powsFile (T : Tables) : String :=
   let ps := (T.pows.toArray.qsort (·.1 < ·.1))
   let (top, subs) := powTop ps powCut 0
   let jt := trieLit ((T.jt.toList.mergeSort (·.1 ≤ ·.1)).map fun (s, e) => (s, toString e))
   header "Pows" "The powers of `g` the guest's constants name, and its jump table." ++
-  "public import LeanVM.Guest.ExecCore\n" ++ preamble ++
+  "public import LeanVM.Guest.ExecCore\npublic import LeanVM.Guest.Data.GTab\n" ++ preamble ++
   String.join (subs.zipIdx.map fun (sub, i) =>
     s!"/-- Subtree {i} of `powTree`. -/\nnoncomputable def powT{i} : PowTree := {nodeLines (powTreeText sub)}\n\n") ++
   s!"/-- The powers of `g` the guest's `SET`s name, bits to exponent, a search tree. -/
 noncomputable def powTree : PowTree := {top}
-
-/-- `g^(d·16^w)` at row `w`, column `d`, as bits. -/
-def gtab : List (List ℕ) := {gtabText}
 
 /-- The jump table: slot of `main`'s frame to the pc it holds (`__jump_tables`). -/
 noncomputable def jtTrie : Trie ℕ := {jt}
@@ -2966,6 +2991,33 @@ def coreRef (key : String) : String := s!"Fn.«{key}».core"
 
 /-- The options of a module of generated data: its literals nest deeper than the default allows. -/
 def dataOptions : String := "set_option maxRecDepth 100000\nset_option linter.all false\n\n"
+
+/-- `s` with each numeral outside docstrings, string literals and instructions written `(nat_lit n)`,
+which the elaborator takes as it is, without the `OfNat` instance a numeral costs (the readers of the
+text undo it, `scripts/bridge-cert/data.py`'s `unlit`). An instruction's numerals stay as they are: there
+the longer text costs more to parse than the instances save. -/
+def natLits (s : String) : String :=
+  "\n".intercalate ((s.splitOn "\n").map fun l =>
+    if l.startsWith "/--" || l.startsWith "  (." then l else Id.run do
+      let mut out := ""
+      let mut num := ""
+      let mut prev := ' '
+      let mut inStr := false
+      for c in l.toList do
+        if inStr then
+          out := out.push c
+          inStr := c != '"'
+        else if (c.isDigit && (!num.isEmpty || !(prev.isAlphanum || "_.«'".contains prev))) ||
+            (!num.isEmpty && (c.isAlphanum)) then
+          num := num.push c
+        else
+          if !num.isEmpty then
+            out := out ++ s!"(nat_lit {num})"
+            num := ""
+          inStr := c == '"'
+          out := out.push c
+        prev := c
+      return if num.isEmpty then out else out ++ s!"(nat_lit {num})")
 
 def fnPreamble (key : String) : String :=
   s!"\nnamespace {fnNs key}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++ "@[expose] public section\n\n"
@@ -3054,11 +3106,15 @@ def winFixed : ℕ := 100
 /-- The windows (parts, groups of arms) a module of checks holds at most. -/
 def perFile : ℕ := 8
 
+/-- The checks a pack's module of completeness or sharing checks (`Cplw*`, `Shared*`) holds at
+most, within its budget: most are light, so the count binds and the module is mostly its import. -/
+def packPerFile : ℕ := 24
+
 /-- The groups of arms of a split window (`splitOf`) a module checks. -/
 def groupsPerFile : ℕ := perFile
 
 /-- The subtrees of the power tree a module checks. -/
-def powsPerFile : ℕ := 8
+def powsPerFile : ℕ := 16
 
 /-- Set at the top of a module of several kernel checks: elaborated asynchronously, a module of
 several checks of the `B2C` walks keeps the memory of each until the module ends. -/
@@ -3171,23 +3227,29 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
       s!"win_lit x{j}_{w} {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
     let chunks := chunksOf groupsPerFile gs.zipIdx
+    -- groups that fit one module are checked in the window's
+    let one := chunks.length == 1
     let cname (k : ℕ) : String := s!"G_{I[j]!.key}_{w}_{k}"
-    let gfiles := chunks.map fun (c, k) =>
+    let groupText (c : List ((ℕ × ℕ × List (ℕ × ℕ)) × ℕ)) : String :=
+      String.join (c.map fun (g, k) =>
+        s!"/-- `{fns[j]!.name}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
+        s!"theorem wg{j}_{w}_{k} : checkWinS glob {j} (coreOf {j}) (certOf {j}) {j == 1} {w} {g.1} {g.2.1}\n" ++
+        s!"    {listText (g.2.2.map pairText)} = true :=\n  checkWinS_of_pre x{j}_{w}_eq (by decide +kernel)\n\n")
+    let gfiles := if one then [] else chunks.map fun (c, k) =>
       (cname k, checkedHeader (cname k) "The kernel's checks of groups of arms of a window of one `match`." ++
         s!"public import LeanVM.Guest.Checked.{xname}\nimport all Statement.Data.Bytecode\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
-        String.join (c.map fun (g, k) =>
-          s!"/-- `{fns[j]!.name}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
-          s!"theorem wg{j}_{w}_{k} : checkWinS glob {j} (coreOf {j}) (certOf {j}) {j == 1} {w} {g.1} {g.2.1}\n" ++
-          s!"    {listText (g.2.2.map pairText)} = true :=\n  checkWinS_of_pre x{j}_{w}_eq (by decide +kernel)\n\n") ++
-        "end\nend LeanVM.Guest.Checked\n")
+        groupText c ++ "end\nend LeanVM.Guest.Checked\n")
     let n := gs.length
     let pats := " | ".intercalate ((List.range n).map fun _ => "rfl")
     let wfile := (checkedName I[j]!.key w, checkedHeader (checkedName I[j]!.key w)
         "The kernel's check of a window of one `match`, by groups of its arms." ++
-      "public import LeanVM.Guest.CheckSplit\nimport all Statement.Data.Bytecode\n" ++
-      String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.Checked.{cname k}\n") ++
-      "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
+      "public import LeanVM.Guest.CheckSplit\n" ++
+      (if one then s!"public import LeanVM.Guest.Checked.{xname}\n" else "") ++ "import all Statement.Data.Bytecode\n" ++
+      (if one then "\n" ++ asyncOff
+        else String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.Checked.{cname k}\n") ++ "\n") ++
+      "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
+      (if one then groupText (chunks.headD ([], 0)).1 else "") ++
       s!"/-- `{fns[j]!.name}`, window {w}: one `match`, by {n} groups of arms. -/\n" ++
       s!"theorem w{j}_{w} : WinOk {j} {w} :=\n  winOk_of_split {listText (gs.map gText)}\n" ++
       s!"    {gText gs.head!} List.mem_cons_self (by decide +kernel) (by decide +kernel) fun g hg ↦ by\n" ++
@@ -3245,7 +3307,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
       String.join (js.map fun j =>
         let k := I[j]!.key
         s!"namespace {fnNs k}\n\nopen LeanVM.Guest LeanVM.Guest.Exec\n\n" ++ dataOptions ++
-          "@[expose] public section\n\n" ++ I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c ++ s!"\nend\nend {fnNs k}\n\n")
+          "@[expose] public section\n\n" ++ natLits (I[j]!.code ++ I[j]!.cert ++ I[j]!.b2c) ++ s!"\nend\nend {fnNs k}\n\n")
     let cs := js.filter fun j => !alone j && !(ownW j).isEmpty
     let checked := packHeader dir "Checked"
         s!"The kernel's checks of the windows of compiled functions {names cs}, over their views of the program." ++
@@ -3280,9 +3342,10 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
         s!"semantic relations it assumes. -/\ndef sig : Check.Sig :=\n  {sigText j}\nend\nend {fnNs k}\n\n"))
   let powFiles := (chunksOf powsPerFile (List.range nPow)).map fun (is, c) =>
     (powName (c / powsPerFile), checkedHeader (powName (c / powsPerFile)) "The kernel's checks of subtrees of the powers of `g`." ++
-      "public import LeanVM.Guest.Pow\n\n" ++ asyncOff ++ "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
+      "public import LeanVM.Guest.Pow\npublic import LeanVM.Guest.Data.Pows\n\n" ++ asyncOff ++
+      "namespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (is.map fun i =>
-        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okWB (by decide +kernel)\n\n") ++
+        s!"theorem powT{i}_ok : Data.powT{i}.OkW := Exec.PowTree.okW_of_okMB (by decide +kernel)\n\n") ++
       "end\nend LeanVM.Guest.Checked\n")
   -- each function's `CheckOk` and `Plain`, in modules of `fnBlock` consecutive functions, its
   -- windows over its view linked to `WinOk` there (`Check.Link`)
@@ -3513,24 +3576,29 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
     s!"({g.1}, {g.2.1}, {(r 1).1}, {(r 1).2}, {(r 0).1}, {(r 0).2})"
   let splitFiles := (splits.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun ((j, w), gs) =>
     let chunks := chunksOf groupsPerFile gs.zipIdx
+    -- groups that fit one module are checked in the window's
+    let one := chunks.length == 1
     let gname (k : ℕ) : String := s!"H_{key j}_{w}_{k}"
-    let gfiles := chunks.map fun (c, k) =>
+    let groupText (c : List ((ℕ × ℕ × List (ℕ × ℕ)) × ℕ)) : String :=
+      String.join (c.map fun (g, k) =>
+        s!"/-- `{fns[j]!.name}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
+        s!"theorem sg{j}_{w}_{k} : shareWinS {j} (snapsOf {j}) {w} {gArgs g} = true := by\n  decide +kernel\n\n")
+    let gfiles := if one then [] else chunks.map fun (c, k) =>
       (sharedDir / (gname k ++ ".lean"), checkedHeader ("B2C.Shared." ++ gname k)
         "The kernel's sharing checks of groups of arms of a window of one `match`." ++
         "public import LeanVM.Guest.B2C.ShareSplit\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
-        String.join (c.map fun (g, k) =>
-          s!"/-- `{fns[j]!.name}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
-          s!"theorem sg{j}_{w}_{k} : shareWinS {j} (snapsOf {j}) {w} {gArgs g} = true := by\n  decide +kernel\n\n") ++
-        "end\nend LeanVM.Guest.B2C.Shared\n")
+        groupText c ++ "end\nend LeanVM.Guest.B2C.Shared\n")
     let nG := gs.length
     let pats := " | ".intercalate ((List.range nG).map fun _ => "rfl")
     let wname := s!"T_{key j}_{w}"
     let wfile := (sharedDir / (wname ++ ".lean"), checkedHeader ("B2C.Shared." ++ wname)
         "The kernel's sharing check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.B2C.ShareSplit\n" ++
-      String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.B2C.Shared.{gname k}\n") ++
-      "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+      (if one then "\n" ++ asyncOff
+        else String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.B2C.Shared.{gname k}\n") ++ "\n") ++
+      "namespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+      (if one then groupText (chunks.headD ([], 0)).1 else "") ++
       s!"/-- `{fns[j]!.name}`, window {w}: one `match`, by {nG} groups of arms. -/\n" ++
       s!"theorem w{j}_{w} : shareWin {j} (snapsOf {j}) {w} = true :=\n" ++
       s!"  shareWin_of_split {listText (gs.map gTup)}\n" ++
@@ -3883,25 +3951,31 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     s!"({g.1}, {g.2.1}, {(r 1).1}, {(r 1).2}, {(r 0).1}, {(r 0).2})"
   let splitFiles := (splits.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun ((j, w), gs) =>
     let chunks := chunksOf groupsPerFile gs.zipIdx
+    -- groups that fit one module are checked in the window's
+    let one := chunks.length == 1
     let gname (k : ℕ) : String := s!"D_{key j}_{w}_{k}"
-    let gfiles := chunks.map fun (c, k) =>
+    let groupText (c : List ((ℕ × ℕ × List (ℕ × ℕ)) × ℕ)) : String :=
+      String.join (c.map fun (g, k) =>
+        s!"/-- `{names.getD j ""}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
+        s!"theorem cg{j}_{w}_{k} : cplWinS {j} {w} {gArgs g} = true :=\n" ++
+        s!"  cplWinS_of_pre Checked.x{j}_{w}_eq (by decide +kernel)\n\n")
+    let gfiles := if one then [] else chunks.map fun (c, k) =>
       (cplwDir / (gname k ++ ".lean"), header ("B2C.Cplw." ++ gname k)
         "The kernel's completeness checks of groups of arms of a window of one `match`." ++
         s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\nimport all Statement.Data.Bytecode\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
-        String.join (c.map fun (g, k) =>
-          s!"/-- `{names.getD j ""}`, window {w}, arms {g.1} to {g.2.1 - 1}. -/\n" ++
-          s!"theorem cg{j}_{w}_{k} : cplWinS {j} {w} {gArgs g} = true :=\n" ++
-          s!"  cplWinS_of_pre Checked.x{j}_{w}_eq (by decide +kernel)\n\n") ++
-        "end\nend LeanVM.Guest.B2C.Cplw\n")
+        groupText c ++ "end\nend LeanVM.Guest.B2C.Cplw\n")
     let nG := gs.length
     let pats := " | ".intercalate ((List.range nG).map fun _ => "rfl")
     let wname := s!"E_{key j}_{w}"
     let wfile := (cplwDir / (wname ++ ".lean"), header ("B2C.Cplw." ++ wname)
         "The kernel's completeness check of a window of one `match`, by groups of its arms." ++
-      "public import LeanVM.Guest.B2C.CplSplit\nimport all Statement.Data.Bytecode\n" ++
-      String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.B2C.Cplw.{gname k}\n") ++
-      "\nnamespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
+      "public import LeanVM.Guest.B2C.CplSplit\n" ++
+      (if one then s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\n" else "") ++ "import all Statement.Data.Bytecode\n" ++
+      (if one then "\n" ++ asyncOff
+        else String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.B2C.Cplw.{gname k}\n") ++ "\n") ++
+      "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
+      (if one then groupText (chunks.headD ([], 0)).1 else "") ++
       s!"/-- `{names.getD j ""}`, window {w}: one `match`, by {nG} groups of arms. -/\n" ++
       s!"theorem cw{j}_{w}_0 : cplWin {j} {w} 0 = true :=\n" ++
       s!"  cplWin_of_split {listText (gs.map gTup)}\n" ++
@@ -4054,7 +4128,7 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
     let mut groups : Array (Array (ℕ × ℕ × ℕ)) := #[#[]]
     let mut size := 0
     for (j, i, k, c) in items do
-      if (size + c > CplK.modCost || (groups.back!).size ≥ perFile) && size > 0 then
+      if (size + c > CplK.modCost || (groups.back!).size ≥ packPerFile) && size > 0 then
         groups := groups.push #[]
         size := 0
       groups := groups.modify (groups.size - 1) (·.push (j, i, k))
@@ -4097,7 +4171,7 @@ def files (I : Array FnInfo) (packs : List (String × List ℕ)) (special : ℕ 
     let mut sgroups : Array (Array (ℕ × Option ℕ)) := #[#[]]
     size := 0
     for (j, w, l) in sitems do
-      if (size + l > maxShared || (sgroups.back!).size ≥ perFile) && size > 0 then
+      if (size + l > maxShared || (sgroups.back!).size ≥ packPerFile) && size > 0 then
         sgroups := sgroups.push #[]
         size := 0
       sgroups := sgroups.modify (sgroups.size - 1) (·.push (j, w))
@@ -4344,19 +4418,32 @@ noncomputable def certs : List Check.Cert :=
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
   let checked := checkedFiles infos packs (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits
     (fun j => !kOnly && !special j)
-  let kFiles := (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
+  let kFiles := (([("Pows", powsFile T), ("GTab", gtabFile),
+      ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
       [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked
   if kOnly then return kFiles
   let armsText ← CplK.armsFile P armRows.toList
   let (packed, cplGlue, shareGlue) := B2CPack.files infos packs special cplFns.toList shareStatics shareWins
     frames[1]!
-  return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
+  return (([("Pows", powsFile T), ("GTab", gtabFile),
+      ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
       [("Cert", index), ("Plumb", plumbIndex), ("CplParts", partsIndex), ("Snaps", snapsIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked ++
     sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue
       (fun j => infos[j]!.key) ++
     CplK.cplFiles (cplFns.toList.filter (special ·.j)) splits P.length cplGlue (fun j => infos[j]!.key) ++
     [(dataDir / "CplArms.lean", armsText)] ++ CplK.chainedFiles chainedFns.toList (fun j => infos[j]!.key) ++ packed
+
+/-- `text` with the linters off after its imports, unless it turns them off itself: they find nothing
+in a generated module, and each runs in the interpreter on every declaration. -/
+def quiet (text : String) : String :=
+  if (text.splitOn "set_option linter.all false").length > 1 then text else
+  let ls := text.splitOn "\n"
+  let isImport (l : String) : Bool :=
+    ["import ", "public import ", "meta import ", "public meta import "].any fun p => l.startsWith p
+  match (ls.zipIdx.filter fun (l, _) => isImport l).getLast? with
+  | some (_, i) => "\n".intercalate (ls.take (i + 1) ++ ["", "set_option linter.all false"] ++ ls.drop (i + 1))
+  | none => text
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
@@ -4451,6 +4538,7 @@ def main (args : List String) : IO UInt32 := do
   let fs ← match files P keys (fun k => cores.getD k s!"LeanVM.Guest.Fn.«{k}».Core") kOnly with
     | .ok fs => pure fs
     | .error e => do IO.eprintln s!"certificate failed: {e}"; return 1
+  let fs := fs.map fun (p, t) => (p, quiet t)
   unless check do
     IO.FS.createDirAll checkedDir
     IO.FS.createDirAll sharedDir

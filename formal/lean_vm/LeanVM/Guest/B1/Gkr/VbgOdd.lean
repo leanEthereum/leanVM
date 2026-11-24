@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Gkr.Holds
 # The root-most layer, completely
 
 `vbgEvL`: `verify_bus_gkr`'s body as the forward evaluator walks it (its `ite`'s arms in order,
-the checked inverse as its product, `fixNe`); `vb_good`, `rt_goodB`: the statements of the body
+the checked inverse as its product, `fixNe`); `vb_good`, `rt2_goodB`, `rt4_goodB`: the statements of the body
 and of the root-most layer's arms satisfy their equations.
 
 * `chc_read`, `chc_val`: a child's read and a tree's new value at two coordinates, on their
@@ -73,8 +73,6 @@ theorem fixNe_of_noNe {s : Stmt} (h : noNeB s = true) : fixNe s = s := by
   cases s with
   | atom a => cases a <;> first | rfl | simp [noNeB] at h
   | _ => rfl
-
-theorem rtArms_noNe : (rtFour ++ rtTwo).all noNeB = true := by decide +kernel
 
 theorem tb_mem_of_slice {pre : List Stmt} {n : ℕ} {blk : List Stmt}
     (h : tbStmtsEqb blk ((pre.drop n).take blk.length) = true) : ∀ s ∈ blk, s ∈ pre := by

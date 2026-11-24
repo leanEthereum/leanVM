@@ -16,11 +16,11 @@ public import Statement.Prover.Execute
 
 The executor runs the compiler's hints (`Prover.Exec.Hint`, by pc); the core IR has hint atoms (`Core.Hint`, in its bodies). `compiles loc h h'`: the ISA hint `h'` is the compilation of the core hint `h` under the cell map `loc` (a value's index to its frame cell): the same stream or computation, its operands and destinations at the cells of the atom's values (`destOk`: a run of frame values from the hint's base, or a buffer's pointer and offset). An `allocDyn` whose size the compiler knows is compiled to a static `alloc`.
 
-The cell map is the certificate's (`Cert.locs`) but for the values only hints touch, which the certificate places at cell `0` (`log2_ceil_in_the_exponent`'s bit buffer): `locOf locs extra` reads those from `extra`, generated per function, and `cellsFresh` checks that each such cell is no certificate cell, no header cell and no plumbing cell (`plumbCells`), so the reference memory can hold the hint's word there.
+The cell map is the certificate's (`Cert.locs`) but for the values only hints touch, which the certificate places at cell `0` (`log2_ceil_in_the_exponent`'s bit buffer), read from `extra`, generated per function, and `cellsFresh` checks that each such cell is no certificate cell, no header cell and no plumbing cell (`plumbCells`), so the reference memory can hold the hint's word there.
 
 A **flow** hint is a witness or computed one (it pops or writes words the instructions read); allocations and plumbing (frame addresses, callee frames, dispatch frames, loop frames) are not, and are bridged apart (allocations by the bump pointer, plumbing by `B2C`'s fixed cells).
 
-`prefixOk loc body code adv`: the **prefix class**. The body's flow hints are all among its leading atoms (`atomPrefix`), the rest of the body has no witness hint (`Stmt.noWitList`), and the function's ISA flow hints (`isaFlow`, from the advice by function: entry, length, hints by pc) sit at offsets up to its first jump and compile those leading flow hints one for one, in order (`pairsOk`). The frame's run passes those offsets in order before it can branch, call or return, so its flow hints run in body order.
+The **prefix class**: the body's flow hints are all among its leading atoms (`atomPrefix`), the rest of the body has no witness hint (`Stmt.noWitList`), and the function's ISA flow hints (from the advice by function: entry, length, hints by pc) sit at offsets up to its first jump and compile those leading flow hints one for one, in order (`pairsOk`). The frame's run passes those offsets in order before it can branch, call or return, so its flow hints run in body order.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -72,10 +72,6 @@ def compiles (loc : ℕ → ℕ) : Core.Hint → Prover.Exec.Hint → Bool
   | .allocDyn d _, .alloc p _ => loc d.idx == p
   | _, _ => false
 
-/-- **The cell map**: the certificate's cells `locs`, but for the values of `extra`, the cells only
-hints touch. -/
-def locOf (locs : List ℕ) (extra : List (ℕ × ℕ)) (i : ℕ) : ℕ := (extra.lookup i).getD (locs.getD i 0)
-
 /-- The cells a function's frame holds beyond its core values: its fixed cells, its call sites'
 callee frames and dispatch targets, and its table jumps' targets. -/
 def plumbCells (p : B2C.Plumb) : List ℕ :=
@@ -103,24 +99,6 @@ def atomPrefix : List Stmt → List Atom × List Stmt
   | .atom a :: ss => ((atomPrefix ss).1.cons a, (atomPrefix ss).2)
   | ss => ([], ss)
 
-/-- The flow hints among atoms, in order. -/
-def flowOf : List Atom → List Core.Hint
-  | [] => []
-  | .hint h :: as => if coreFlow h then h :: flowOf as else flowOf as
-  | _ :: as => flowOf as
-
-/-- The flow hints of the hints at one pc, each with its offset. -/
-def flowAt (entry : ℕ) (p : ℕ × List Prover.Exec.Hint) : List (ℕ × Prover.Exec.Hint) :=
-  (p.2.filter isaFlowHint).map fun h ↦ (p.1 - entry, h)
-
-/-- **A function's ISA flow hints**, each with its offset, in the advice's order (by pc, then in
-the list at a pc): from the advice by function (entry, length, hints by pc). -/
-def isaFlow (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : List (ℕ × Prover.Exec.Hint) :=
-  d.2.2.flatMap (flowAt d.1)
-
-/-- The offset of the first jump of the code, or its length. -/
-def firstJump (code : List OffsetInstruction) : ℕ := code.findIdx OffsetInstruction.isJump
-
 /-- The core hints and the ISA hints pair one for one, in order, each compiling its own. -/
 def pairsOk (loc : ℕ → ℕ) : List Core.Hint → List Prover.Exec.Hint → Bool
   | [], [] => true
@@ -131,15 +109,6 @@ def pairsOk (loc : ℕ → ℕ) : List Core.Hint → List Prover.Exec.Hint → B
 def pcsUp : List (ℕ × List Prover.Exec.Hint) → Bool
   | a :: b :: l => a.1 < b.1 && pcsUp (b :: l)
   | _ => true
-
-/-- **The prefix class**: the body's flow hints are its leading atoms', its rest has no witness
-hint, and the function's ISA flow hints, at offsets up to its first jump and pcs from its entry,
-compile them one for one, in order. -/
-def prefixOk (loc : ℕ → ℕ) (body : List Stmt) (code : List OffsetInstruction)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
-  Stmt.noWitList (atomPrefix body).2 && pcsUp d.2.2 && d.2.2.all (fun p ↦ d.1 ≤ p.1) &&
-    (isaFlow d).all (fun p ↦ p.1 ≤ firstJump code) &&
-    pairsOk loc (flowOf (atomPrefix body).1) ((isaFlow d).map (·.2))
 
 end
 

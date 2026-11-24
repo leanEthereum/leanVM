@@ -135,14 +135,14 @@ def BreaksKnowledgeSoundness (extractor : StraightLineExtractor) (outcome : Expe
       ValidExecution outcome.program outcome.input execution
 
 /-- **Knowledge soundness in the random-permutation model**, for the extractor `extractor`: an
-adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
+adversary of at most `Q` queries to `π` and `π⁻¹` (its coins free) breaks soundness with
 probability at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, `2^-125` the round-by-round
 error of every verifier message after its proof of work; `statement.tex` accounts for `2^14`. The
 extractor must output some valid execution of the program on the input, not necessarily the one
 the proof commits to. -/
 def KnowledgeSoundness (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
+    Common.QueryCostAtMost adversary Common.permutationCallCost Q →
     Pr{let outcome ← knowledgeSoundnessExperiment adversary}[
         BreaksKnowledgeSoundness extractor outcome] ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +

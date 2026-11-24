@@ -1,9 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.TopBase
 public import XmssSecurity.Proof.Bridge.Honest
-public import XmssSecurity.Proof.Deterministic.TrialSampling
 
 @[expose] public section
 
@@ -19,8 +17,6 @@ open OracleComp OracleSpec
 namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 /-! ## Chain starts from pair derivations -/
 

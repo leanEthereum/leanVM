@@ -151,14 +151,15 @@ end Lookup
 
 section Cells
 
-set_option maxRecDepth 100000 in
-/-- Every function's name is shorter than a tail key. -/
-theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.length 256) = true := by
+/-- Every function's name is shorter than a tail key, in bytes (the kernel reads a string's bytes
+fast, its characters slowly). -/
+theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.utf8ByteSize 256) = true := by
   decide +kernel
 
-theorem tailKey_length (f : String) : (Memory.tailKey f).length = 256 + f.length := by
+theorem tailKey_size (f : String) : (Memory.tailKey f).utf8ByteSize = 256 + f.utf8ByteSize := by
   unfold Memory.tailKey
-  rw [String.length_append, String.length_ofList, List.length_replicate]
+  rw [String.utf8ByteSize_append,
+    show (String.ofList (List.replicate 256 '#')).utf8ByteSize = 256 by decide +kernel]
 
 /-- No function is named a tail key. -/
 theorem indexOf_tailKey (f : String) : coreProgram.indexOf? (Memory.tailKey f) = none := by
@@ -169,7 +170,7 @@ theorem indexOf_tailKey (f : String) : coreProgram.indexOf? (Memory.tailKey f) =
   rw [Nat.blt_eq] at hs
   apply beq_false_of_ne
   intro h
-  rw [h, tailKey_length] at hs
+  rw [h, tailKey_size] at hs
   omega
 
 theorem tailKey_inj {a b : String} : Memory.tailKey a = Memory.tailKey b ↔ a = b := by

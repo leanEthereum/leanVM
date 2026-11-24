@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Terminal.PiChain
 public import LeanVM.Guest.B1.Terminal.Body
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
+import LeanVM.ToMathlib.List
 
 /-!
 # The head's values
@@ -52,7 +53,7 @@ theorem x1_getD {x : List E} (hx : x.length ≤ termPointCap) {i : ℕ} (hi : i 
 
 theorem prefixProd_seed (s : E) (as bs : List E) (j : ℕ) :
     prefixProd s as bs j = s * prefixProd 1 as bs j := by
-  rw [prefixProd, prefixProd, foldl_mul_eq, foldl_mul_eq, one_mul]
+  rw [prefixProd, prefixProd, List.foldl_mul_eq_mul_prod, List.foldl_mul_eq_mul_prod, one_mul]
 
 /-- **A prefix chain's values**, seeded with `s`. -/
 theorem chain_value_seed {chain s a b1 cg : E} {A x : List E}

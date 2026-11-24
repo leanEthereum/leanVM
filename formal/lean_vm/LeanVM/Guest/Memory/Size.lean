@@ -16,7 +16,7 @@ public import LeanVM.Guest.Memory.Retemp
 nothing: with `ω` the instructions a function's frame executes at most, it bounds the trace's
 length, and `Tree.total` the memory. `WeightLe P ω f B` and `TotalLe P fs f B` bound them over
 every valid tree of `f`, by a function of the arguments. Re-choosing the temporaries changes
-neither (`weight_retemp`, `total_retemp`).
+neither (`total_retemp`).
 -/
 
 namespace LeanVM.Guest.Memory
@@ -49,23 +49,6 @@ def TotalLe (P : Core.Program) (fs : String → ℕ) (f : String) (B : List E �
     t.BufsOk P → t.total fs ≤ B args
 
 variable {P : Core.Program} {fs : String → ℕ} {ν : ℕ → String → Val → V → E} {ω : String → ℕ}
-
-mutual
-/-- **Re-choosing the temporaries keeps the weight.** -/
-theorem weight_retemp : ∀ (t : Tree) (pos : ℕ × ℕ), (t.retemp P fs ν pos).weight ω = t.weight ω
-  | .node f σ bufs kids, pos => by
-      rw [retemp_node, Tree.weight, Tree.weight, weightKids_retempKids kids _
-        (by rw [length_kidPos, List.length_map])]
-  | .phantom .., pos => by rw [retemp_phantom]
-
-theorem weightKids_retempKids : ∀ (ks : List Tree) (ps : List (ℕ × ℕ)), ps.length = ks.length →
-    Tree.weightKids ω (Tree.retempKids P fs ν ps ks) = Tree.weightKids ω ks
-  | [], _, _ => by rw [retempKids_nil]
-  | _ :: _, [], h => absurd h (by simp)
-  | k :: ks, p :: ps, h => by
-      rw [retempKids_cons, Tree.weightKids, Tree.weightKids, weight_retemp k p,
-        weightKids_retempKids ks ps (by simpa using h)]
-end
 
 end
 end LeanVM.Guest.Memory

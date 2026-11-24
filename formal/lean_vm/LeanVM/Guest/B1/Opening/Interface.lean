@@ -20,7 +20,7 @@ public import LeanVM.Protocol.RunWithHash
 `opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n_iters_g, odd_g)` with
 the compile-time `(base, folds, leaf_cells, path_depth, mu, vanish, n_hs, hs_bits, final)`
 (`guests/lean_ethereum.py`, `opening_queries` and `opening_query`) runs one
-level's queries of the stacked WHIR opening (`whirLevels`, `Statement/LeanVmVerifier.lean`;
+level's queries of the stacked WHIR opening (`whirLevels`, `Statement/Verifier/Whir.lean`;
 `crates/verifier/src/whir.rs`, `verify_whir`). Query `k` at the position `q_k` (its word
 `positions[k] = eOfNat q_k` and its windows at `query_win_ptrs[k]`, both `decode_query_windows`'):
 
@@ -28,7 +28,7 @@ level's queries of the stacked WHIR opening (`whirLevels`, `Statement/LeanVmVeri
   an `E` cell deeper (the leaf's `K` words two by two, `extRow`);
 * hashes it (`merkleLeafDigest`) and climbs `path_depth` levels by hinted siblings into the cap
   (`walk_path`, inline): the node reached is written at the cap's leaf `q / 2^path_depth`, at the
-  cap pointer the caller offsets past the levels above, and its parent's flag set (`QueryOpens`);
+  cap pointer the caller offsets past the levels above, and its parent's flag set;
 * folds the row's lanes (`lanesOf`: level `0`'s reversed, deeper ones as they are) at its point
   round by round (`foldRow`), the rounds' `(α, β)` at `coefs[2j], coefs[2j + 1]`;
 * at a non-final level (`final = 0`) the fold is the query's value `d_k`, and the function returns
@@ -101,10 +101,6 @@ def QueryOpensS (rd : Reader) (base folds pd : ℕ) (capL flagsL : E) (q : ℕ) 
     LoadHolds rd capL (2 * (q / 2 ^ pd)) (digestHalves (climbD (merkleLeafDigest row) q sibs)).1 ∧
     LoadHolds rd capL (2 * (q / 2 ^ pd) + 1) (digestHalves (climbD (merkleLeafDigest row) q sibs)).2 ∧
     LoadHolds rd flagsL (q / 2 ^ (pd + 1)) 1
-
-/-- `QueryOpensS` for some siblings. -/
-def QueryOpens (rd : Reader) (base folds pd : ℕ) (capL flagsL : E) (q : ℕ) (row : List K) : Prop :=
-  ∃ sibs, QueryOpensS rd base folds pd capL flagsL q row sibs
 
 /-! ## `opening_queries` -/
 

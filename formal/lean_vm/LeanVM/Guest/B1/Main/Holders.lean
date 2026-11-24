@@ -18,15 +18,17 @@ import LeanVM.Guest.Data.ValNames.«main»
 `signatures_held`: the decoded witness (`decWit`) holds the decoded claims (`decStmt`), as
 `SignatureClaimsHeld` asks. The `j`-th raw leanXMSS signature is read at the slot holding the mark
 `j` (`slotOf`, the writer's slot `slOf … j`, `slotOf_lx`; no other writer stores a raw
-signature's mark, `slot_raw`): its writer's check is at that slot (`CalleesW.xmss`), so it
+signature's mark, `slot_raw`): its writer's check is at that slot (`CalleesWC.xmss`), so it
 verifies its slot's claim (`xmss_raw_verify`); likewise for leanSPHINCS at the mark `n_raw_x + j`
 (`sphincs_raw_verify`). A declared claim's slot has its writer `m` (`Writers.onto`); in the
 leanXMSS region the writer is a raw leanXMSS signature (`m < RX`, the `m`-th raw signature, at
-that slot) or a child's claim (the child `kid m`, whose rebuilt list holds the slot's claim,
-`kidStmt_eq`): `xmss_covered`; likewise for leanSPHINCS.
+that slot) or a child's claim (the child `kid m`, whose rebuilt list holds the slot's claim at
+entry `m - a (kid m)`, `kidStmt_eq`). Every holder's claim is its slot's and the declared claims'
+slots are distinct, so the declared claims are a sub-multiset of the holders'
+(`map_range_subperm`): `xmss_covered`; likewise for leanSPHINCS.
 
 `da_rel`: the DA digest at the slot `da_pick` is, with the direct DA check, the
-node's own slot, the digest of the claim `da_verify` returns (`CalleesW.da` opens it); without it,
+node's own slot, the digest of the claim `da_verify` returns (`CalleesWC.da` opens it); without it,
 the node's own slot's zeros or child `da_pick`'s digest.
 -/
 
@@ -61,6 +63,18 @@ theorem region_raw (S : Segs) (m : ℕ) :
   refine ⟨fun h => ?_, fun h1 h2 => ?_⟩ <;> unfold Segs.region
   · rw [ite_pos' h]
   · rw [ite_neg' (by omega), ite_pos' h2]
+
+/-- **The claims of distinct slots are a sub-multiset of their holders' claims**: when every slot
+below `n` is in the list `S` of the holders' slots, the claims of the slots below `n` are a
+sub-multiset of the holders' claims, each holder's claim its slot's. -/
+theorem map_range_subperm {α : Type} {n : ℕ} {S : List ℕ} (F : ℕ → α) (h : ∀ k < n, k ∈ S) :
+    ((List.range n).map F).Subperm (S.map F) := by
+  obtain ⟨l, hp, hs⟩ := List.nodup_range.subperm fun k hk => h k (List.mem_range.mp hk)
+  exact ⟨l.map F, hp.map F, hs.map F⟩
+
+/-- A decoded child's statement, an equation to rewrite with, so that the kernel never unfolds `kidStmt`. -/
+theorem decKid_statement {wV : List E → Proof} (c : ℕ) : (decKid rd σ wV c).statement = kidStmt rd σ c :=
+  rfl
 
 section Held
 
@@ -166,58 +180,85 @@ theorem sphincs_raw_verify (cw : CalleesWC bytecode C rd (σ (.n (val% «main» 
 
 include hK
 
-/-- **Every declared leanXMSS claim is a raw signature's or in a child's list.** -/
+/-- **Every declared leanXMSS claim, with its multiplicity, is a raw signature's or in a child's
+list.** -/
 theorem xmss_covered :
-    ∀ claim ∈ (decStmt σ rd).claims.xmss,
-      claim ∈ (decWit σ rd wX wS wD wV wA).xmssSignatures.map (·.1) ∨
-        ∃ child ∈ (decWit σ rd wX wS wD wV wA).children, claim ∈ child.statement.claims.xmss := by
+    (decStmt σ rd).claims.xmss.Subperm ((decWit σ rd wX wS wD wV wA).xmssSignatures.map (·.1) ++
+      ((decWit σ rd wX wS wD wV wA).children.map (·.statement.claims.xmss)).flatten) := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  intro claim hclaim
-  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
-    (show claim ∈ (List.range (gLog (σ (.n (val% «main» "meta[0]"))))).map (xmssAt rd (σ (.n (val% «main» "lx_table")))) from hclaim)
-  rw [List.mem_range, gLog_lg] at hk
+  have eD : (decStmt σ rd).claims.xmss = (List.range (lg σ 0)).map (xmssAt rd (σ (.n (val% «main» "lx_table")))) := by
+    unfold decStmt; simp only [gLog_lg]
+  have eR : (decWit σ rd wX wS wD wV wA).xmssSignatures = (List.range (nRawX σ)).map (rawXmss rd σ wX) := rfl
+  have eC : (decWit σ rd wX wS wD wV wA).children = (List.range (nKids σ)).map (decKid rd σ wV) := rfl
+  -- the holders' claims, each its slot's: the raw signatures', then each child's list's
+  have e1 : ((List.range (nRawX σ)).map (rawXmss rd σ wX)).map (·.1) =
+      ((List.range (lg σ 2)).map (slotOf rd σ 0 (lxSlots σ))).map (xmssAt rd (σ (.n (val% «main» "lx_table")))) := by
+    rw [List.map_map, List.map_map, nRawX_eq]
+    refine List.map_congr_left fun j _ => ?_
+    simp only [Function.comp_apply, rawXmss]
+  have e2 : (((List.range (nKids σ)).map (decKid rd σ wV)).map (·.statement.claims.xmss)).flatten =
+      (((List.range (lg σ 6)).map fun c => (List.range (Kr c).ex).map (Kr c).ox).flatten).map
+        (xmssAt rd (σ (.n (val% «main» "lx_table")))) := by
+    rw [List.map_flatten, List.map_map, List.map_map, nKids_eq]
+    refine congrArg List.flatten (List.map_congr_left fun c hc => ?_)
+    rw [Function.comp_apply, Function.comp_apply, decKid_statement,
+      kidStmt_eq MF hK hW (List.mem_range.mp hc)]
+    simp only [List.map_map, Function.comp_def]
+  rw [eD, eR, eC, e1, e2, ← List.map_append]
+  refine map_range_subperm _ fun k hk => ?_
+  -- declared slot `k`'s writer: a raw signature, or a child's claim
   obtain ⟨m, hm, hsm⟩ := hW.onto k (by omega)
   have hr0 : (segsOf σ Kr).region m = 0 :=
     (inRegion_iff (hW.reg m hm) (region_le _ _)).1.mp (by omega)
   obtain ⟨rr0, rr1⟩ := region_raw (segsOf σ Kr) m
   simp only [segsOf_RX, segsOf_RS] at rr0 rr1
   by_cases hraw : m < lg σ 2
-  · refine Or.inl (List.mem_map.mpr ⟨rawXmss rd σ wX m,
-      List.mem_map.mpr ⟨m, List.mem_range.mpr (by rw [nRawX_eq]; exact hraw), rfl⟩, ?_⟩)
-    simp only [rawXmss]
+  · refine List.mem_append_left _ (List.mem_map.mpr ⟨m, List.mem_range.mpr hraw, ?_⟩)
     rw [slotOf_lx MF hW (m := m) (by omega) (by omega), hsm]
-  · refine Or.inr ?_
-    have h0 : (segsOf σ Kr).a 0 ≤ m := by
+  · have h0 : (segsOf σ Kr).a 0 ≤ m := by
       rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]
       by_contra hlt
       rw [rr1 (by omega) (by omega)] at hr0
       omega
     obtain ⟨hc, h1, h2⟩ := mark_kid hW h0 hm
     set c := (segsOf σ Kr).kid m
-    refine ⟨decKid rd σ wV c,
-      List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).1.mp hr0
     rw [segsOf_ex] at hj
-    show xmssAt rd (σ (.n (val% «main» "lx_table"))) k ∈ (kidStmt rd σ c).claims.xmss
-    rw [kidStmt_eq MF hK hW hc]
-    refine List.mem_map.mpr ⟨m - (segsOf σ Kr).a c, List.mem_range.mpr (by omega), ?_⟩
+    refine List.mem_append_right _ (List.mem_flatten.mpr ⟨_,
+      List.mem_map.mpr ⟨c, List.mem_range.mpr hc, rfl⟩,
+      List.mem_map.mpr ⟨m - (segsOf σ Kr).a c, List.mem_range.mpr (by omega), ?_⟩⟩)
     rw [← slOf_x (rx := rx) (rs := rs) hc (by omega), Nat.add_sub_cancel' h1, hsm]
 
-/-- **Every declared leanSPHINCS claim is a raw signature's or in a child's list.** -/
+/-- **Every declared leanSPHINCS claim, with its multiplicity, is a raw signature's or in a child's
+list.** -/
 theorem sphincs_covered :
-    ∀ claim ∈ (decStmt σ rd).claims.sphincs,
-      claim ∈ (decWit σ rd wX wS wD wV wA).sphincsSignatures.map (·.1) ∨
-        ∃ child ∈ (decWit σ rd wX wS wD wV wA).children,
-          claim ∈ child.statement.claims.sphincs := by
+    (decStmt σ rd).claims.sphincs.Subperm ((decWit σ rd wX wS wD wV wA).sphincsSignatures.map (·.1) ++
+      ((decWit σ rd wX wS wD wV wA).children.map (·.statement.claims.sphincs)).flatten) := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl
-  intro claim hclaim
-  obtain ⟨k, hk, rfl⟩ := List.mem_map.mp
-    (show claim ∈ (List.range (gLog (σ (.n (val% «main» "meta[3]"))))).map (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table")))) from hclaim)
-  rw [List.mem_range, gLog_lg] at hk
+  have eD : (decStmt σ rd).claims.sphincs = (List.range (lg σ 3)).map (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table")))) := by
+    unfold decStmt; simp only [gLog_lg]
+  have eR : (decWit σ rd wX wS wD wV wA).sphincsSignatures = (List.range (nRawS σ)).map (rawSphincs rd σ wS) := rfl
+  have eC : (decWit σ rd wX wS wD wV wA).children = (List.range (nKids σ)).map (decKid rd σ wV) := rfl
+  -- the holders' claims, each its slot's: the raw signatures', then each child's list's
+  have e1 : ((List.range (nRawS σ)).map (rawSphincs rd σ wS)).map (·.1) =
+      ((List.range (lg σ 5)).map (fun j => slotOf rd σ (lxSlots σ) (lsSlots σ) (nRawX σ + j))).map (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table")))) := by
+    rw [List.map_map, List.map_map, nRawS_eq]
+    refine List.map_congr_left fun j _ => ?_
+    simp only [Function.comp_apply, rawSphincs]
+  have e2 : (((List.range (nKids σ)).map (decKid rd σ wV)).map (·.statement.claims.sphincs)).flatten =
+      (((List.range (lg σ 6)).map fun c => (List.range (Kr c).es).map (Kr c).os).flatten).map
+        (sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table")))) := by
+    rw [List.map_flatten, List.map_map, List.map_map, nKids_eq]
+    refine congrArg List.flatten (List.map_congr_left fun c hc => ?_)
+    rw [Function.comp_apply, Function.comp_apply, decKid_statement,
+      kidStmt_eq MF hK hW (List.mem_range.mp hc)]
+    simp only [List.map_map, Function.comp_def]
+  rw [eD, eR, eC, e1, e2, ← List.map_append]
+  refine map_range_subperm _ fun k hk => ?_
   obtain ⟨m, hm, hsm⟩ := hW.onto (LXS σ + k) (by omega)
   have hr1 : (segsOf σ Kr).region m = 1 :=
     (inRegion_iff (hW.reg m hm) (region_le _ _)).2.mp (by omega)
@@ -225,27 +266,24 @@ theorem sphincs_covered :
   simp only [segsOf_RX, segsOf_RS] at rr0 rr1
   have hRX : lg σ 2 ≤ m := by by_contra h; rw [rr0 (by omega)] at hr1; omega
   by_cases hraw : m < lg σ 2 + lg σ 5
-  · refine Or.inl (List.mem_map.mpr ⟨rawSphincs rd σ wS (m - lg σ 2),
-      List.mem_map.mpr ⟨m - lg σ 2, List.mem_range.mpr (by rw [nRawS_eq]; omega), rfl⟩, ?_⟩)
-    simp only [rawSphincs, nRawX_eq, Nat.add_sub_cancel' hRX]
-    rw [slotOf_ls MF hW (m := m) hraw (by omega) (by omega), hsm, Nat.add_sub_cancel_left]
-  · refine Or.inr ?_
-    have h0 : (segsOf σ Kr).a 0 ≤ m := by
+  · refine List.mem_append_left _
+      (List.mem_map.mpr ⟨m - lg σ 2, List.mem_range.mpr (by omega), ?_⟩)
+    rw [nRawX_eq, Nat.add_sub_cancel' hRX, slotOf_ls MF hW (m := m) hraw (by omega) (by omega),
+      hsm, Nat.add_sub_cancel_left]
+  · have h0 : (segsOf σ Kr).a 0 ≤ m := by
       rw [Segs.a.eq_1, segsOf_RX, segsOf_RS]; omega
     obtain ⟨hc, h1, h2⟩ := mark_kid hW h0 hm
     set c := (segsOf σ Kr).kid m
-    refine ⟨decKid rd σ wV c,
-      List.mem_map.mpr ⟨c, List.mem_range.mpr (by rw [nKids_eq]; exact hc), rfl⟩, ?_⟩
     have hj := (region_kid' (by rw [segsOf_NC]; exact hc) h1 h2).2.mp hr1
     rw [segsOf_ex, segsOf_es] at hj
-    show sphincsAt rd (σ (.n (val% «main» "lean_sphincs_table"))) k ∈ (kidStmt rd σ c).claims.sphincs
-    rw [kidStmt_eq MF hK hW hc]
-    refine List.mem_map.mpr ⟨m - (segsOf σ Kr).a c - (Kr c).ex, List.mem_range.mpr (by omega), ?_⟩
+    refine List.mem_append_right _ (List.mem_flatten.mpr ⟨_,
+      List.mem_map.mpr ⟨c, List.mem_range.mpr hc, rfl⟩,
+      List.mem_map.mpr ⟨m - (segsOf σ Kr).a c - (Kr c).ex, List.mem_range.mpr (by omega), ?_⟩⟩)
     have := slOf_s (σ := σ) (K := Kr) (rx := rx) (rs := rs) hc
       (j := m - (segsOf σ Kr).a c - (Kr c).ex) (by omega)
     rw [show (segsOf σ Kr).a c + (Kr c).ex + (m - (segsOf σ Kr).a c - (Kr c).ex) = m by omega,
       hsm] at this
-    rw [show (Kr c).os (m - (segsOf σ Kr).a c - (Kr c).ex) = k by omega]
+    omega
 
 /-- **The decoded witness holds the decoded signature claims** (`SignatureClaimsHeld`). -/
 theorem signatures_held (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n (val% «main» "byte_bits"))) wX wS wD wV wA) :

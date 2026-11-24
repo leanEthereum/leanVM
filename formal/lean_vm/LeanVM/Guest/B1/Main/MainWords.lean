@@ -21,7 +21,7 @@ import LeanVM.Guest.LitRef
 # `main`'s words, linear in the work
 
 Component bounds: `dvB_le` (`da_verify`, linear in its blobs and padded blobs),
-`clB_le`, `ccB_le` (the claim lists' digests, linear in the list's length), `l5Chain_le` (the
+`clB_le`, `ccBM_le` (the claim lists' digests, linear in the list's length), `l5Chain_le` (the
 children's loop, linear in the children and their claims). `mainWords`: the budget;
 `Bmain_le`: `Bmain` at `0` within it.
 -/

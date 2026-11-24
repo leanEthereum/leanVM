@@ -18,8 +18,7 @@ COPIED = ("LeanVM", "tests")
 # what the steps `bridge`, `core-mode` and `res` write
 OUTS = ("LeanVM/Guest/CoreMode", "LeanVM/Guest/Bridge")
 STEPS = [
-    ["scripts/bridge-cert/align.py"], ["scripts/bridge-cert/progal.py"], ["scripts/bridge-cert/jumpcells.py"],
-    ["scripts/bridge-cert/pair.py"], ["scripts/bridge-cert/wit.py"], ["scripts/bridge-cert/alloc.py"],
+    ["scripts/bridge-cert/align.py"], ["scripts/bridge-cert/progal.py"], ["scripts/bridge-cert/checks.py"],
     ["scripts/core-mode/fnreg.py"], ["scripts/core-mode/anylink.py"], ["scripts/core-mode/sigc.py"],
     ["scripts/core-mode/pows.py"], ["scripts/core-mode/glue.py"], ["scripts/core-mode/callc.py", "--emit"],
     ["scripts/core-mode/loopcc.py", "--emit"],

@@ -21,8 +21,7 @@ decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
   hypothesis every bound of the decoder takes; **`gLog_bound`**: `GLogBound P discreteLogTables
   gLogPrice`, `gLogPrice = 122435 ≈ 2^16.90` (the exponents' bits priced at `64`);
 * `gLogD_lt`: every count the decoder reads is below `2^34`;
-* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/PreTest.lean`'s
-  `powSqE_cost`), `n < 2^k`: `11 + 606·k`; `powSqK_cost_lt`: `5 + 73·k`.
+* `powSqK_cost_lt`: `a^n` in `K` by squaring, `n < 2^k`: `5 + 73·k`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -34,17 +33,7 @@ public section
 
 variable (P : MachineProgram)
 
-/-! ## `a^n` in `E` -/
-
-/-- `a^n` in `E`, `n < 2^k`, `k ≤ 64`: at most `11 + 606·k`. -/
-theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
-    (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Decoder.powSqEC.costIdx [encodeValue a, encodeValue n] ≤
-      11 + 606 * k := by
-  have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
-  refine (LeanVM.Cost.Bounds.powSqE_cost P hP a n h64).trans ?_
-  have := log2_lt_of hk0 hn
-  nlinarith
+/-! ## `a^n` in `K` -/
 
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
 theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)

@@ -323,7 +323,7 @@ def stateDerived (f : FlushesC) (pc fp : ℕ) (npc nfp : FormC) : FlushesC :=
 def stateStep (f : FlushesC) (pc fp : ℕ) : FlushesC :=
   f.stateDerived pc fp (FormC.col pc 1) (FormC.col fp)
 
-/-- `Flushes._counted`. -/
+/-- `Flushes.counted`. -/
 def counted (f : FlushesC) (pre : List FormC) (counter : FormC) (count : ℕ)
     (suffix : List FormC) : FlushesC :=
   f.pair (pre ++ [counter] ++ suffix) (pre ++ [FormC.col count] ++ suffix)

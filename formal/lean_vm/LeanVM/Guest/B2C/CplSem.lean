@@ -16,7 +16,7 @@ import Mathlib.Data.List.GetD
 # The facts of a path
 
 `clocW_get`: a window's packed cells are the certificate's. `walk_noRetC`, `atom_on_pathC`,
-`atoms_in`: a block without `ret` falls through or is stuck, and on a path that falls through
+`atoms_last`: a block without `ret` falls through or is stuck, and on a path that falls through
 every one of its atoms is an event; the last window's statements are such a block and a `ret`.
 `val_cell`, `locC_holds`, `fileB_ok`: on a frame holding what the honest memory puts there
 (`FrameHolds`), each atom of the path holds on its cells, so every book the walk files holds.

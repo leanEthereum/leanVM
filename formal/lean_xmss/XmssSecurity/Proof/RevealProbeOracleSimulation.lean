@@ -5,6 +5,19 @@ public import XmssSecurity.Proof.IndexedHiddenValue
 
 @[expose] public section
 
+/-!
+# An oracle of hidden values, probed and revealed
+
+`RevealProbeOracleSimulation.World` is an oracle over hidden digests indexed by `Index`: a probe
+guesses a target at an index, a reveal returns the hidden value, and uniform queries forward
+`ProbComp` sampling (`liftProbComp`). `eagerTraceImpl` answers reveals from a table sampled up front
+and logs every probe and reveal as an `ActionTrace`. `runObserved` replays that trace with the
+`AdaptiveRevealMonitor` state: it hits when a reveal's value was probed before at its index, or at
+the end when an unrevealed index's value was probed. Over a uniform table the final check hits with
+probability at most the pending probe count over `2^digestBits`
+(`eagerFinalize_true_probability_le`).
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace QueryImpl
@@ -79,21 +92,10 @@ def liftProbComp (computation : ProbComp α) :
     OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
 
-def IsSpecialQuery : (World Index).Domain → Prop
-  | .uniform _ => False
-  | .probe _ _ => True
-  | .reveal _ => True
-
 def IsProbeQuery : (World Index).Domain → Prop
   | .uniform _ => False
   | .probe _ _ => True
   | .reveal _ => False
-
-noncomputable instance : DecidablePred (IsSpecialQuery (Index := Index)) :=
-  fun input => match input with
-  | .uniform _ => isFalse (by simp [IsSpecialQuery])
-  | .probe _ _ => isTrue (by simp [IsSpecialQuery])
-  | .reveal _ => isTrue (by simp [IsSpecialQuery])
 
 noncomputable instance : DecidablePred (IsProbeQuery (Index := Index)) :=
   fun input => match input with
@@ -134,7 +136,6 @@ theorem revealQuery_isProbeQueryBoundP (index : Index) (probes : Nat) :
 inductive ObservedAction (Index : Type) where
   | probe (index : Index) (target : Digest)
   | reveal (index : Index) (value : Digest)
-deriving DecidableEq
 
 abbrev ActionTrace (Index : Type) := List (ObservedAction Index)
 
@@ -212,8 +213,8 @@ omit [Fintype Index] in
 theorem StateAgrees.addPending
     {table : Index → Digest} {state : AdaptiveRevealMonitor.State Index}
     (hagrees : StateAgrees table state) (index : Index) (target : Digest) :
-    StateAgrees table (state.addPending index target) := by
-  exact hagrees
+    StateAgrees table (state.addPending index target) :=
+  hagrees
 
 omit [Fintype Index] in
 theorem StateValid.install
@@ -375,8 +376,8 @@ theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
     Pr{let value ← $ᵗ Digest}[value ∈ targets] =
-      Pr{let value ← $ᵗ Digest}[∃ target ∈ targets, value = target] := by
-      exact prEvent_congr _ _ _ fun value => by simp
+      Pr{let value ← $ᵗ Digest}[∃ target ∈ targets, value = target] :=
+      prEvent_congr _ _ _ fun value => by simp
     _ ≤ ∑ target ∈ targets,
         Pr{let value ← $ᵗ Digest}[value = target] :=
       prEvent_exists_finset_le targets ($ᵗ Digest)
@@ -414,8 +415,6 @@ theorem evalDist_uniformTable_eq_bind_update
         (evalDistEq_uniformSample_bind_update index continuation).symm
     _ = _ := by simp [bind_assoc]
 
-
-set_option maxRecDepth 100000 in
 def observedProbeCount : ActionTrace Index → Nat
   | [] => 0
   | .probe _ _ :: rest => (observedProbeCount rest).succ

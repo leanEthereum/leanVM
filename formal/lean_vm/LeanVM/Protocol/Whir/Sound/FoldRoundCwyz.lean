@@ -9,7 +9,6 @@ module
 public import LeanVM.Protocol.Whir.Sound.FoldRound
 import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerLemma43
 public import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployed
-import LeanVM.Protocol.ToArkLib.Whir.AffineCombinerFoldRel
 import LeanVM.Protocol.Field
 public import ArkLib.Data.Polynomial.FrobeniusContraction
 public import ArkLib.Data.Polynomial.ResultantDegree

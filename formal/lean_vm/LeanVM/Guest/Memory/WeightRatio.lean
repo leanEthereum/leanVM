@@ -15,8 +15,7 @@ public import LeanVM.Guest.Memory.SizeTotal
 If every function of a set `S` closed under calls (`CallsIn`) has `q · ω g ≤ p · fs g`, a valid
 tree of a function of `S` has `q · weight ≤ p · total` (`weight_le_ratio`): each instance that
 runs contributes its frame to the words and its weight to the weight, a phantom or a `HeapBuf`
-only words. `callsIn_of_list` gives `CallsIn` from a list closed under `Stmt.blockCallees`,
-decidable for literal lists.
+only words.
 -/
 
 namespace LeanVM.Guest.Memory

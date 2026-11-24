@@ -1,11 +1,20 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.SourceDirectTrace
+public import XmssSecurity.Proof.CappedChain.ChainInputTrace
 
 @[expose] public section
 
+/-!
+# Hash costs of the adversary's and the verifier's queries
+
+`directHashActionCost` charges one per adversary hash query and nothing for a uniform or signing
+query: the number of hash inputs the query adds to the action trace
+(`attackerActionFragment_hashInputs_length`). `verifierHashQueryCost` charges one per verifier hash
+query. The first lane's hazard counts use both (`CappedExactFirstLaneTransportReduction`,
+`CappedExactFirstLaneBound`).
+-/
+
 open OracleComp OracleSpec
-set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity.CappedChain
 

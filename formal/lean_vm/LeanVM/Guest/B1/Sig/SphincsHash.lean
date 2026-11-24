@@ -24,9 +24,9 @@ bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethere
   bytes of its byte reversal, `beWordAt 0`;
 * `adrs_toBytes_cells`: the address's bytes are its two cells' (no bound on the fields: both sides
   read them modulo `2^32`, the tree modulo `2^64`);
-* `addressedHash_cells`: the hash of the bytes of cells is the first cell of the `hcell` of
-  `PK.seed`, the two address cells and the cells; `addressedHash_digest`, `addressedHash_node`,
-  `addressedHash_digests` for a payload of one, two, or a vector of digests that are cells' values;
+* `addressedHash_of_cells`: the hash of the bytes of cells is the first cell of the `hcell` of
+  `PK.seed`, the two address cells and the cells; `digest_cells`, `nodePayload_cellVal`,
+  `digestsPayload_cells`: a payload of one, two, or a vector of digests that are cells' values;
 * `addressedHash_encoding`: the encoding's 68 bytes, `PK.seed ‖ ADRS ‖ M ‖ BE_32(c)` (`encoder`,
   `wots.rs`), are the first 68 bytes of the cells `[P, A0, A1] ++ M ++ [counter]`, the
   counter cell holding `BE_32(c)` in its low four bytes: the number `beWordAt 0 c`, `c`'s bytes
@@ -179,14 +179,6 @@ theorem addressedHash_of_cells {pp a0 a1 : E} {address : Sphincs.Address}
     List.append_assoc]
   rfl
 
-/-- **The addressed hash of cells at `makeAddress`.** -/
-theorem addressedHash_cells (pp : E) (layer tree : Nat) (ty : Sphincs.AddressType)
-    (kp w2 w3 : Nat) (vs : List E) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
-        (Sphincs.makeAddress layer tree ty kp w2 w3) (vs.flatMap cellBytes) =
-      cellVal (hcell ([pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3] ++ vs)).1 :=
-  addressedHash_of_cells (adrs_toBytes_cells layer tree ty kp w2 w3) vs
-
 /-! ## Payloads of digests -/
 
 /-- One digest that is a cell's value. -/
@@ -211,29 +203,6 @@ theorem digestsPayload_cells {n : Nat} (c : Fin n → E) :
   have e : (List.ofFn fun i => (cellVal (c i) : HashSig.Digest)) = (List.ofFn c).map cellVal :=
     (List.map_ofFn (f := c) (g := cellVal)).symm
   exact (congrArg (fun l => List.flatMap (littleEndianBytes 16) l) e).trans (flatMap_bytes_cellVal _)
-
-theorem addressedHash_digest (pp x : E) (layer tree : Nat) (ty : Sphincs.AddressType)
-    (kp w2 w3 : Nat) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
-        (Sphincs.makeAddress layer tree ty kp w2 w3) (littleEndianBytes 16 (cellVal x)) =
-      cellVal (hcell [pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3, x]).1 := by
-  rw [digest_cells, addressedHash_cells]
-  rfl
-
-theorem addressedHash_node (pp l r : E) (layer tree : Nat) (ty : Sphincs.AddressType)
-    (kp w2 w3 : Nat) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
-        (Sphincs.makeAddress layer tree ty kp w2 w3) (nodePayload (cellVal l) (cellVal r)) =
-      cellVal (hcell [pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3, l, r]).1 := by
-  rw [nodePayload_cellVal, addressedHash_cells]
-  rfl
-
-theorem addressedHash_digests (pp : E) (layer tree : Nat) (ty : Sphincs.AddressType)
-    (kp w2 w3 : Nat) {n : Nat} (c : Fin n → E) :
-    Sphincs.Verification.addressedHash (m := Id) keccakF1600 (cellVal pp)
-        (Sphincs.makeAddress layer tree ty kp w2 w3) (digestsPayload fun i => cellVal (c i)) =
-      cellVal (hcell ([pp, adrsCell0 layer tree, adrsCell1 ty.word kp w2 w3] ++ List.ofFn c)).1 := by
-  rw [digestsPayload_cells, addressedHash_cells]
 
 /-! ## The encoding: digests and a counter -/
 

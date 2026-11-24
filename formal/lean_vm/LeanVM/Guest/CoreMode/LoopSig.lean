@@ -14,8 +14,8 @@ public import LeanVM.Guest.CoreMode.CoreSlot
 A loop helper's mode signature (`Mode.Sig`) speaks of runs whose bounds are exponents of its
 parameters' words (`.ex (.fr o) 0`, frame cell `o = 2 + b` holding parameter `b`) or constants, and of
 its termination fact (its counter's exponent below its bound's). `idxT` and `rngT` translate those to
-the heap check's indices (`CIdx.val b`, `CIdx.num n`) and runs (`CRun`); `SigL` says a heap
-signature is a mode signature's translation, field by field (`sigOkLP` checks it, `LoopSigP.lean`).
+the heap check's indices (`CIdx.val b`, `CIdx.num n`) and runs (`CRun`); `sigOkLP` (`LoopSigP.lean`) checks that
+a heap signature is a mode signature's translation, field by field.
 
 Over a frame whose parameter cells hold the slots' words (`ParAt`): a mode exponent's value is its
 translation's exponent (`idxVal_iff`), a mode run written is its heap run's cells written (`rw_slotT`)
@@ -72,9 +72,6 @@ termination fact holds. -/
 def idxK (G : Mode.Sig) : Mode.Idx → Bool
   | .num _ => true
   | i => G.term.any fun p ↦ decide (p.1 = i) || decide (p.2 = i)
-
-/-- A run whose bounds' values exist wherever the termination fact holds. -/
-def rngK (G : Mode.Sig) (r : Mode.Rng) : Bool := idxK G r.lo && idxK G r.hi
 
 /-! ## Over a frame holding the parameters -/
 
@@ -236,34 +233,7 @@ theorem mapM_mem {α β : Type} {f : α → Option β} : ∀ {l : List α} {l' :
       · obtain ⟨b', hb', h'⟩ := h2 a' ha'
         exact ⟨b', List.mem_cons_of_mem _ hb', h'⟩
 
-/-- **A heap signature, a mode signature's translation**, field by field. -/
-structure SigL (G : Mode.Sig) (h : HSig) (np : ℕ) : Prop where
-  ret : G.ret = []
-  postP : G.postP = []
-  postLP : G.postLP = []
-  preP : G.preP = []
-  retV : G.retV = []
-  postT : G.postT = []
-  postC : G.postC = []
-  hpreP : h.preP = []
-  hprePR : h.prePR = []
-  hpostP : h.postP = []
-  hpostPR : h.postPR = []
-  hretM : h.retM = []
-  hpostV : h.postV = []
-  hpostQ : h.postQ = []
-  hretEq : h.retEq = []
-  hghost : h.ghosts = 0
-  term : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ h.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
-    idxT G np hi = some ei
-  pre : G.pre.mapM (monoT G np) = some h.pre
-  preR : G.preR.mapM (rngT G np) = some h.preR
-  post : G.post.mapM (monoT G np) = some h.post
-  postR : (G.postR ++ G.postL).mapM (rngT G np) = some h.postR
-  kpreR : ∀ r ∈ G.preR, rngK G r = true
-  kpostR : ∀ r ∈ G.postR ++ G.postL, rngK G r = true
-
-/-- An exponent of a run checked by `rngK` has its value where the termination facts hold. -/
+/-- An exponent checked by `idxK` has its value where the termination facts hold. -/
 theorem idxK_val {G : Mode.Sig} {s : St} (hT : ∀ p ∈ G.term, LTF s p.1 p.2) {i : Mode.Idx}
     (h : idxK G i = true) : ∃ x, IdxVal s i x := by
   cases i with

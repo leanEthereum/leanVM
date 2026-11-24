@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Keccak.Rmfe
 public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.ToMathlib.Finset
 
 /-!
 # A layer: the product polynomial
@@ -164,7 +165,7 @@ theorem sum_segment {P : ℕ} {point : List E} (hpt : point.length = P + 1) (f :
       ∑ m ∈ range 2, eqAt (point.drop P) m * f m := by
   have hsplit : point = point.take P ++ point.drop P := (List.take_append_drop P point).symm
   have htl : (point.take P).length = P := by simp [hpt]
-  rw [pow_succ, mul_comm, sum_range_mul]
+  rw [pow_succ, mul_comm, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
   have hm' := Finset.mem_range.1 hm
   have h1 : ∀ y ∈ range (2 ^ P), eqAt point (2 ^ P * m + y) * f ((2 ^ P * m + y) / 2 ^ P) =
@@ -240,7 +241,7 @@ theorem iota_eq (step P : ℕ) (point w : List E) (hpt : point.length = P + 1) :
             some (w.getD z 0) else none)) =
       ∑ m ∈ range 2, eqAt (point.drop P) m * iotaW (layerRC step m) w := by
   have hl : (point.drop P).length = 1 := by simp [hpt]
-  rw [sumE_eq_sum, list_sum_range, show keccakSegments = 2 from rfl]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range, show keccakSegments = 2 from rfl]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
   rw [eqKernel_getD, hl, ite_eq_left (by simpa using hm), sumE_filterMap_range]
   rfl

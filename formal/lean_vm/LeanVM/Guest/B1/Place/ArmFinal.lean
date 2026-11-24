@@ -25,9 +25,7 @@ public import LeanVM.Guest.B1.Place.Ls
 complete placed at an optional words bound (`osBosAt`) by its node, from `arm_completeAtO`, the body's honest data `H`,
 the named callees (`kindD_holds`, or `kindDB` and `kindDBE` within `OsLeafBounds`), and the helpers
 (`level_positions_completeAtE`, `level_queries_completeAtOP`, `level_residual`'s statement, or `HelperBounds`;
-`level_residual_slow`'s statement);
-`open_stacked_completeAtO_of` with `H` from `os_honest_Spec`. `open_stacked_completeAtD_of`,
-`open_stacked_completeAtB_of`: the two statements of `Place/OsSpec`.
+`level_residual_slow`'s statement).
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -54,20 +52,32 @@ def HelperBounds (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) 
       a.getD 5 0 = ofK (addressOfIndex (q % resBatch))) (fun _ ↦ B) →
     LrAtOq fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 q (some B))
 
-/-- **Arm `m`'s callees' names**: a `level_residual` specialization is no `level_positions` one, and a named callee
-or a `level_queries` specialization neither. -/
+/-- **Arm `m`'s callees' names**: a `level_residual` specialization is no `level_positions` one, neither is a named
+callee or a `level_queries` specialization (compared by their encodings, `encS`: the kernel compares strings slowly),
+and a `level_residual_slow` specialization is neither. -/
 def NamesOk (m : ℕ) : Prop :=
-  (∀ f ∈ osResNames m, f ∉ osPosNames m) ∧ (∀ f ∈ osCalleeNames (osCfg m),
-    ((osKindOf f).isSome = true ∨ f ∈ lqTable.map Prod.fst) → f ∉ osPosNames m ∧ f ∉ osResNames m) ∧
+  (∀ f ∈ osResNames m, f ∉ osPosNames m) ∧
+  (∀ f ∈ osPosNames m ++ osResNames m,
+    encS f ∉ osKindTable.map (encS ·.1) ∧ encS f ∉ lqTable.map (encS ·.1)) ∧
   ∀ r < ligNRates, ∀ j < (osCfg m).yrLevel,
     osSlowName (osCfgR m r) (osLvR m r j) ∉ osPosNames m ∧ osSlowName (osCfgR m r) (osLvR m r j) ∉ osResNames m
 
-set_option synthInstance.maxHeartbeats 400000 in
-set_option synthInstance.maxSize 2048 in
 instance (m : ℕ) : Decidable (NamesOk m) := by unfold NamesOk; infer_instance
 
 set_option maxRecDepth 100000 in
 theorem namesOk_all : ∀ m < osArms, NamesOk m := by decide +kernel
+
+/-- A named callee or a `level_queries` specialization is no `level_positions` or `level_residual` one. -/
+theorem NamesOk.free {m : ℕ} (h : NamesOk m) {f : String}
+    (hk : (osKindOf f).isSome = true ∨ f ∈ lqTable.map Prod.fst) : f ∉ osPosNames m ∧ f ∉ osResNames m := by
+  have key : f ∉ osPosNames m ++ osResNames m := fun hf ↦ by
+    obtain ⟨h1, h2⟩ := h.2.1 f hf
+    rcases hk with hk | hk
+    · obtain ⟨K, hK⟩ := Option.isSome_iff_exists.mp hk
+      exact h1 (List.mem_map.mpr ⟨(f, K), os_mem_of_lookup _ hK, rfl⟩)
+    · obtain ⟨e, he, rfl⟩ := List.mem_map.mp hk
+      exact h2 (List.mem_map.mpr ⟨e, he, rfl⟩)
+  simpa only [List.mem_append, not_or] using key
 
 theorem totalLeOn_mono {fs : String → ℕ} {f : String} {Pre Pre' : List E → Prop} {B : List E → ℕ}
     (h : TotalLeOn coreProgram fs f Pre B) (hp : ∀ a, Pre' a → Pre a) : TotalLeOn coreProgram fs f Pre' B :=
@@ -122,15 +132,15 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
   have hTotOn : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames (osCfgR m ri),
       TotalLeOn coreProgram fs f (osArgsOk m f) (fun _ ↦ Bk f) :=
     fun Bk hBk f hf ↦ hleaf Bk hBk m hm f (by rwa [osCalleeNames_rate] at hf)
-  obtain ⟨hNres, hNfree, hNslow⟩ := namesOk_all m hm
+  have hN := namesOk_all m hm
+  have hNres := hN.1
+  have hNslow := hN.2.2
   have hTot0 : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames (osCfgR m ri), f ∉ osPosNames m → f ∉ osResNames m →
       TotalLe coreProgram fs f (fun _ ↦ Bk f) :=
     fun Bk hBk f hf h1 h2 ↦ totalLe_of_free (hTotOn Bk hBk f hf) h1 h2
   have hTot : ∀ Bk ∈ Bd, ∀ f ∈ osCalleeNames (osCfgR m ri),
       ((osKindOf f).isSome = true ∨ f ∈ lqTable.map Prod.fst) → TotalLe coreProgram fs f (fun _ ↦ Bk f) :=
-    fun Bk hBk f hf hk ↦
-      have hf' : f ∈ osCalleeNames (osCfg m) := by rwa [osCalleeNames_rate] at hf
-      hTot0 Bk hBk f hf (hNfree f hf' hk).1 (hNfree f hf' hk).2
+    fun Bk hBk f hf hk ↦ hTot0 Bk hBk f hf (hN.free hk).1 (hN.free hk).2
   have hLv := armLv_ok hm hri
   have hlen : (osCfgR m ri).levels.length = osNLevels m := osCfgR_levels_length m ri
   have hrow : ∀ l < (osCfgR m ri).levels.length, osLvA (osCfgR m ri) l = osLvR m ri l := fun l hl ↦
@@ -181,7 +191,7 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
       (osLvA (osCfgR m ri) j).logCols (osLvA (osCfgR m ri) j).folds (osLvA (osCfgR m ri) j).highBits
       (osLvA (osCfgR m ri) j).queries (Bd.map (· (osResidualName (osLvA (osCfgR m ri) j)))) := by
     intro j hj hn
-    have hyr := (armBody_ok hm hri).2.2.2.2
+    have hyr := (armBody_ok ri hm).2.2.2.2
     have hjl : j < (osCfgR m ri).levels.length := by omega
     obtain ⟨-, -, hlrE, -⟩ := hLv j hjl
     obtain ⟨he, hq1, hq2⟩ := hlrE hj
@@ -204,7 +214,7 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
         (Bd.map (· (osSlowName (osCfgR m ri) (osLvA (osCfgR m ri) j)))) := fun j hj hn ↦
     hLS fs cert κ hrf hcons hκ m hm ri hri j hj _ fun B hB ↦ by
       obtain ⟨Bk, hBk, rfl⟩ := Option.mem_map.mp hB
-      have hjl : j < (osCfgR m ri).levels.length := by have := (armBody_ok hm hri).2.2.2.2; omega
+      have hjl : j < (osCfgR m ri).levels.length := by have := (armBody_ok ri hm).2.2.2.2; omega
       have hs := hNslow ri (by unfold ligNRates; omega) j hj
       rw [← hrow j hjl] at hs
       exact ⟨hfs Bk hBk, hTot0 Bk hBk _ hn hs.1 hs.2⟩
@@ -216,49 +226,6 @@ theorem open_stacked_completeAtOT_of (hLR : level_residual_completeAt_Spec)
   refine ⟨n, Lown, rets, Lout, ho, hw, hd, fun B hB ↦ ?_, hr⟩
   obtain ⟨Bk, hBk, rfl⟩ := Option.mem_map.mp hB
   exact le_trans (hn _ (Option.mem_map.mpr ⟨Bk, hBk, rfl⟩)) (osBos_le_osBosAt fs Bk μ (by unfold ligNRates; omega))
-
-/-- **`open_stacked` is complete placed at an optional words bound.** -/
-theorem open_stacked_completeAtO_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec)
-    {μ r : ℕ} (hμ1 : minOpenLog ≤ μ) (hμ2 : μ ≤ 30) (hr1 : 1 ≤ r) (hr4 : r ≤ 4)
-    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 11 ≤ κ)
-    {Bd : Option (String → ℕ)} (hleaf : ∀ Bk ∈ Bd, OsLeafBounds fs Bk)
-    (hHB : ∀ Bk ∈ Bd, HelperBounds fs cert κ) (hfs : ∀ Bk ∈ Bd, ∀ f, fs f < 2 ^ 32)
-    (htl : ∀ Bk ∈ Bd, ∀ f, fs (tailKey f) ≤ fs f)
-    {S : KeccakState} {root : Digest} {target cur tabs : E} {xs : List E}
-    {os : List (List Opening)} {w : WhirEnd} {s' : Fs} {roots' : List (Digest × ℕ × ℕ)}
-    (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s' roots')
-    (hcaps : CapsAgree μ r target S xs os root)
-    {Lin : Layout} (hLin : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd cur xs ∧ WinTabs rd tabs) :
-    CompleteAtO fs cert κ (openName μ) Lin
-      (rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
-      (OsOut μ w) (Bd.map fun Bk ↦ osBosAt fs Bk μ) := by
-  obtain ⟨H⟩ := hH μ r hμ1 hμ2 hr1 hr4 S root target cur tabs xs os w s' roots' hrun hcaps
-  obtain ⟨_, -, -, h⟩ := open_stacked_completeAtOT_of hLR hLS hμ2 hr1 hr4 hrf hcons hκ hleaf hHB hfs htl H hLin
-  exact h.toO
-
-/-- **`open_stacked` is complete placed at every stack log and rate**, given the body's honest
-data and `level_residual`'s and `level_residual_slow`'s placed statements. -/
-theorem open_stacked_completeAtD_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec) : open_stacked_completeAtD_Spec := by
-  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ hrf hcons hκ S root target cur tabs xs os w s' roots' hrun
-    hcaps Lin hLin
-  exact (open_stacked_completeAtO_of (Bd := none) hH hLR hLS hμ1 hμ2 hr1 hr4 hrf hcons hκ
-    (fun _ h ↦ absurd h (by simp)) (fun _ h ↦ absurd h (by simp)) (fun _ h ↦ absurd h (by simp))
-    (fun _ h ↦ absurd h (by simp)) hrun hcaps hLin).toD
-
-/-- **`open_stacked` is complete placed within `osBosAt` words**, given also the helpers within
-the bounds of their trees. -/
-theorem open_stacked_completeAtB_of (hH : os_honest_Spec) (hLR : level_residual_completeAt_Spec)
-    (hLS : level_residual_slow_completeAt_Spec)
-    (hHB : ∀ fs cert κ, Lift.RunsFit fs cert → RunsConsec cert → 11 ≤ κ → (∀ f, fs f < 2 ^ 32) →
-      HelperBounds fs cert κ) :
-    open_stacked_completeAtB_Spec := by
-  intro μ r hμ1 hμ2 hr1 hr4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s'
-    roots' hrun hcaps Lin hLin
-  exact (open_stacked_completeAtO_of (Bd := some Bnd) hH hLR hLS hμ1 hμ2 hr1 hr4 hrf hcons hκ
-    (fun _ h ↦ by cases h; exact hleaf) (fun _ _ ↦ hHB fs cert κ hrf hcons hκ hfs) (fun _ _ ↦ hfs)
-    (fun _ _ ↦ htl) hrun hcaps hLin).toB
 
 end
 end LeanVM.Guest.B1.Arm

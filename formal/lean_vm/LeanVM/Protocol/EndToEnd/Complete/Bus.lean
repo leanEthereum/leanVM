@@ -13,6 +13,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusShare
 public import LeanVM.Protocol.EndToEnd.Complete.Gkr
 import LeanVM.Protocol.EndToEnd.Front.BusPadding
 public import LeanVM.Protocol.EndToEnd.Complete.BusTables
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # The bus phase
@@ -177,7 +179,7 @@ theorem prod_pushLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
   rw [pushLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pushBlocks s)).length =
     3 + (pushBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pushTabs_add_three]
-  rw [map_range_getD (pushBlocks s) default
+  rw [List.map_range_getD (pushBlocks s) default
     fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pushTabs]
@@ -193,7 +195,7 @@ theorem prod_pullLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
   rw [pullLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pullBlocks s)).length =
     3 + (pullBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pullTabs_add_three]
-  rw [map_range_getD (pullBlocks s) default
+  rw [List.map_range_getD (pullBlocks s) default
     fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pullTabs]
@@ -226,11 +228,6 @@ theorem sum_map_filter_cons {α : Type} (p : α → Prop) [DecidablePred p] (g :
     (((y :: l).filter fun a ↦ decide (p a)).map g).sum =
       (if p y then g y else 0) + ((l.filter fun a ↦ decide (p a)).map g).sum := by
   by_cases h : p y <;> simp [h]
-
-/-- `1 + 1 = 0` in `E`. -/
-private theorem one_add_one_E : (1 : E) + 1 = 0 := by
-  rw [one_add_one_eq_two]
-  exact CharTwo.two_eq_zero
 
 /-- The verifier's tables have the instance's widths. -/
 theorem columns_length : ∀ t : Fin 6, (tables.getD t default).columns.length = width (opIdx t) := by
@@ -294,7 +291,8 @@ theorem sum_block_true (hP : (inst prog s).PaddingHonest q) (β : E) (w : List E
     ring
   · simp only [hx, ↓reduceIte, Nat.le_of_not_lt hx, rowVal_padding prog s q hP t x
       (Nat.le_of_not_lt hx)]
-    linear_combination (-(sel * eqEval (boolPoint (s.τ t) x) (p.take (s.τ t)))) * one_add_one_E
+    linear_combination (-(sel * eqEval (boolPoint (s.τ t) x) (p.take (s.τ t)))) *
+      CharTwo.add_self_eq_zero (1 : E)
 
 /-- `padSum` of a cons. -/
 theorem padSum_cons (w : List E) (β : E) (p : List E) (sel : E) (b : BusBlock)
@@ -336,7 +334,7 @@ theorem sum_owner_tables (hP : (inst prog s).PaddingHonest q) (β : E) (w : List
 theorem sum_zip_range (l : List BusBlock) (f : ℕ → E) (g : E × BusBlock → E) :
     ((List.zip ((List.range l.length).map f) l).map g).sum =
       ∑ i ∈ range l.length, g (f i, l.getD i default) := by
-  rw [sum_range_eq_list]
+  rw [Finset.sum_range_eq_sum_map_range]
   congr 1
   apply List.ext_getElem (by simp)
   intro i h1 h2

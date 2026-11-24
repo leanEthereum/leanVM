@@ -31,8 +31,8 @@ Ported from the BLAKE2s-era `B1/Basic.lean` (its hash-chain runs dropped; the du
   `loadHolds_mul_gen_pow`: a load through `p·g^j` at offset `k` is the load at offset `j + k`;
   `loadHolds_unique`.
 * `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
-  valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
-* `loop_iff`, `guarded_loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds
+  valuation is built, block after block (`set_n_in`, `set_n_lt` evaluate it).
+* `loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds
   exactly when `N = g^m` for the first `m > k` the loop reaches and its body holds at every `g^j`,
   `k ≤ j < m`.
 * `stmtsEqb_sound`: a template equal to a function's body by `decide +kernel`.
@@ -47,7 +47,6 @@ namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-
 
 @[expose] public section
 
@@ -140,7 +139,6 @@ theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
         pow_add]
     exact h
 
-
 theorem loadHolds_unique {rd : Reader} {p : E} {k : ℕ} {w w' : E} (h : LoadHolds rd p k w)
     (h' : LoadHolds rd p k w') : w = w' :=
   Option.some.inj (h.2.symm.trans h'.2)
@@ -193,14 +191,6 @@ theorem set_n_lt {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : k < b) : setv σ 
     exact absurd h'.2.2.1 (by simp only; omega)
   · rfl
 
-theorem set_n_ge {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : b + n ≤ k) :
-    setv σ b n f (.n k) = σ (.n k) := by
-  unfold setv
-  split
-  · rename_i h'
-    exact absurd h'.2.2.2 (by simp only; omega)
-  · rfl
-
 /-- The valuation of a function's arguments, `.n k ↦ args[k]`. -/
 def Val.ofArgs (args : List E) : Val := fun v => args.getD v.idx 0
 
@@ -212,9 +202,14 @@ theorem ofArgs_n (args : List E) (k : ℕ) : Val.ofArgs args (.n k) = args.getD 
 /-- Evaluate a lookup in a valuation built by `setv`/`setl` on `Val.ofArgs`, the side conditions
 by `omega` from the context. -/
 macro "b1_look" : tactic =>
-  `(tactic| simp (disch := omega) only [setl, set_n_lt, set_n_ge, set_n_in, Nat.add_sub_cancel_left,
+  `(tactic| simp (disch := omega) only [setl, set_n_lt, set_n_in, Nat.add_sub_cancel_left,
     ofArgs_n, List.getD_cons_succ, List.getD_cons_zero, List.length_cons, List.length_nil,
     Nat.reduceAdd, Nat.reduceSub, Nat.add_zero, Nat.sub_self, Nat.zero_add])
+
+/-- Decide the next `if` of an unfolded index function by `omega`. -/
+macro "omega_if" : tactic => `(tactic| first
+  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
+  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
 
 /-! ## `mul_range` loops -/
 
@@ -420,43 +415,6 @@ theorem gen_pow_ordG : gen ^ ordG = 1 := by
     pow_orderOf_eq_one, ofK_one]
 
 theorem ordG_pos : 0 < ordG := Nat.sub_pos_of_lt (Nat.one_lt_two_pow (by decide))
-
-/-- **A loop behind its guard** (`for x in mul_range(1, N)`: `callIf (1 + N) f [1, …]`): the guard
-is in `K` and, when nonzero, the loop runs, exactly when `N = g^m` for some `m` below the order of
-`g` and the body holds at every `g^j`, `j < m`. -/
-theorem guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
-    {B : E → Prop}
-    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] ↔
-      B x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) [])) :
-    (IsInK (1 + N) ∧ (1 + N ≠ 0 → P.Rel rd f (1 :: ps) [])) ↔
-      ∃ m < ordG, N = gen ^ m ∧ ∀ j < m, B (gen ^ j) := by
-  have hl := loop_iff hstep 0
-  rw [pow_zero] at hl
-  constructor
-  · rintro ⟨hK, hrun⟩
-    by_cases h1 : 1 + N = 0
-    · refine ⟨0, by decide, ?_, fun j hj => absurd hj (Nat.not_lt_zero j)⟩
-      rw [pow_zero]; exact (e_add_eq_zero_iff.mp h1).symm
-    · obtain ⟨m, hm, hN, hfirst, hall⟩ := hl.mp (hrun h1)
-      refine ⟨m, ?_, hN, fun j hj => hall j (Nat.zero_le j) hj⟩
-      by_contra hge
-      rcases Nat.lt_or_ge ordG m with hgt | hle
-      · have : gen ^ (m - ordG) = N := by
-          obtain ⟨t, rfl⟩ : ∃ t, m = ordG + t := ⟨m - ordG, by omega⟩
-          rw [hN, pow_add, gen_pow_ordG, one_mul, Nat.add_sub_cancel_left]
-        exact hfirst (m - ordG) (Nat.sub_pos_of_lt hgt) (Nat.sub_lt (by omega) ordG_pos) this
-      · have hm' : m = ordG := by omega
-        rw [hm', gen_pow_ordG] at hN
-        exact h1 (by rw [hN]; exact e_add_self 1)
-  · rintro ⟨m, hm, hN, hall⟩
-    refine ⟨?_, fun h1 => ?_⟩
-    · rw [hN]
-      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
-    have hm0 : 0 < m := by
-      rcases Nat.eq_zero_or_pos m with h | h
-      · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1
-      · exact h
-    exact hl.mpr ⟨m, hm0, hN, first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
 
 /-- A forward branch whose blocks have no `ret` holds, then its continuation. -/
 theorem holds_ite_noRet {C : CallRel} {rd : Reader} {σ : Val} (c : V) (z n : List Stmt)

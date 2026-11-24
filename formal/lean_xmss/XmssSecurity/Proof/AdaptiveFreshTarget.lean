@@ -1,11 +1,18 @@
 module
 
-public import XmssSecurity.Proof.HashInputLemmas
-public import XmssSecurity.Proof.StatementLemmas
-public import XmssSecurity.Proof.Execution
 public import XmssSecurity.Proof.RandomOracle
+public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
+
+/-!
+# Truncated outputs and adaptive fresh-target collisions
+
+A uniform hash output truncates to any fixed digest with probability `(2 ^ digestBits)⁻¹`
+(`uniform_truncate_probability`). `AdaptiveFreshDigestCollisionWith` is the event that an input
+absent from an initial cache gets the digest of its target input, which that cache already holds;
+`ExpectedAdaptiveFreshTarget` bounds it.
+-/
 
 open OracleComp ENNReal
 
@@ -34,9 +41,6 @@ theorem uniform_truncate_probability (target : Digest) :
       rw [ENNReal.mul_inv_cancel hzero htop, one_mul]
 
 open OracleSpec
-
-noncomputable local instance : UniformAnswerMeasure HashSpec :=
-  UniformAnswerMeasure.ofFiniteNonempty _
 
 /-- Each fresh query may select its own target digest without adding an index-set loss. The outputs
 are `HashOutput`s, not `HashSpec.Range input`: a witness read off another input's cache entry then

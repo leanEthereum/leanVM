@@ -21,7 +21,7 @@ The instance's columns are given as arrays `cols`, indexed by the verifier's glo
 * `toList_stackA`: a side's leaves are `stackLeaves` of its blocks' lists;
 * `getD_powsA`: the running powers;
 * `rowOf_eq`: a table's row read off the arrays is `rowAt`;
-* `toList_tableTabA`, `toList_memTabA_push/pull`, `toList_bcTabA_push/pull`: the blocks;
+* `toList_tableTabA`, `toList_memTabA`, `toList_bcTabA`: the blocks;
 * `toList_pushLeaves`, `toList_pullLeaves`, `toList_countLeaves`: **the three sides' leaves are
   the specification's**, at the verifier's layout.
 -/

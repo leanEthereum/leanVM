@@ -14,6 +14,7 @@ public import LeanVM.Protocol.Rpm.ExtractF
 import LeanVM.Protocol.Rpm.RpmRelabel
 import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Extraction.Extract
+import Common.Linear
 public import CompPoly.Fields.Binary.AdditiveNTT.NovelPolynomialBasis
 public import Mathlib.Analysis.Complex.ExponentialBounds
 
@@ -169,14 +170,25 @@ theorem knowledgeSoundnessRpmAS_coins (D : NearDecoder) {B : RandomPermutationAd
 
 end Rpm
 
+/-- **Past `2^128` queries the bound of `KnowledgeSoundness` exceeds one**: its first term alone is
+above `2^128 · 2^-125 = 8`. -/
+theorem one_le_knowledgeSoundnessBound {Q : ℕ} (hQ : 2 ^ 128 < Q) :
+    1 ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+      5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 :=
+  le_add_right (Common.one_le_mul_inv_two_pow (le_add_right (by
+    exact_mod_cast (by norm_num : 2 ^ 125 ≤ 2 ^ 128).trans hQ.le)))
+
 /-- **Knowledge soundness holds for the agreement-set extractor** (in the random-permutation
-model), over any near-tuple decoder, with the end statement's bound. -/
+model), over any near-tuple decoder, with the end statement's bound: `soundnessRpmAS_le_statement`
+up to `2^128` queries, `one_le_knowledgeSoundnessBound` past them. -/
 theorem knowledgeSoundnessAS_holds (D : NearDecoder) :
     KnowledgeSoundness (transcriptExtractorAS D) := by
-  intro A Q hQ hcap
-  have := (Rpm.knowledgeSoundnessRpmAS_coins D hQ).trans (soundnessRpmAS_le_statement hcap)
-  rw [← map_soundnessExperiment, prEvent_map] at this
-  exact this
+  intro A Q hQ
+  rcases le_or_gt Q (2 ^ 128) with hcap | hcap
+  · have := (Rpm.knowledgeSoundnessRpmAS_coins D hQ).trans (soundnessRpmAS_le_statement hcap)
+    rw [← map_soundnessExperiment, prEvent_map] at this
+    exact this
+  · exact (prEvent_le_one _).trans (one_le_knowledgeSoundnessBound hcap)
 
 end LeanVM
 

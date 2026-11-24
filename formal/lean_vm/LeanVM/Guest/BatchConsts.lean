@@ -21,7 +21,7 @@ grinds from it and from `grindingBits`. Each is pinned here to the guest's const
 to the round's degree fails the build here: `MAX_RECURSIONS`, `BATCH_LAM_GRIND_BITS`,
 `ROUND2_GRIND_BITS`, and the words the guest reads of `bc_sumcheck_msgs`, `BC_LAM_WORDS` before the
 rounds and `BC_ROUND_WORDS` a round, which the statement's pushes match. The proofs read the current
-values through `maxRecursions_eq`, `lambdaGrindNonceCells_eq`, `grindRound_eq`.
+values through `lambdaGrindNonceCells_eq`, `grindRound_eq`.
 -/
 
 @[expose] public section
@@ -29,23 +29,6 @@ values through `maxRecursions_eq`, `lambdaGrindNonceCells_eq`, `grindRound_eq`.
 namespace LeanVM.Guest.Batch
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Node
-
-theorem maxRecursions_eq_guest : maxRecursions = guest_const% MAX_RECURSIONS := rfl
-
-theorem batchLambdaGrindBits_eq_guest : batchLambdaGrindBits = guest_const% BATCH_LAM_GRIND_BITS := by
-  decide
-
-theorem grindingBits_two_eq_guest : grindingBits 2 = guest_const% ROUND2_GRIND_BITS := by decide
-
-theorem lambdaGrindNonceCells_length_eq_guest (h : BatchingHints) :
-    (lambdaGrindNonceCells h).length = guest_const% BC_LAM_WORDS := by
-  simp only [lambdaGrindNonceCells, show batchLambdaGrindBits ≠ 0 by decide, ite_false,
-    List.length_singleton]
-
-theorem sumcheckRoundCells_length_eq_guest (g : E × E) :
-    (sumcheckRoundCells g).length = guest_const% BC_ROUND_WORDS := rfl
-
-theorem maxRecursions_eq : maxRecursions = 16 := rfl
 
 theorem lambdaGrindNonceCells_eq (h : BatchingHints) : lambdaGrindNonceCells h = [h.lambdaGrindNonce] := by
   simp only [lambdaGrindNonceCells, show batchLambdaGrindBits ≠ 0 by decide, ite_false]

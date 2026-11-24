@@ -14,6 +14,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Facts
 import LeanVM.Protocol.EndToEnd.Complete.Flushes
 import LeanVM.Protocol.Verifier
 import LeanVM.Protocol.EndToEnd.Front.LayoutArith
+import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The table phase
@@ -232,7 +234,7 @@ theorem getD_tableLogs (t : Fin 6) : (tableLogs s).getD t 0 = s.τ t := by
 
 /-- Every table's height is at most the number of rounds. -/
 theorem τ_le_nRounds (t : Fin 6) : s.τ t ≤ nRounds s := by
-  refine (le_foldl_max (tableLogs s) 0).2 _ ?_
+  refine (List.foldl_max_ge (tableLogs s) 0).2 _ ?_
   simp only [tableLogs, List.mem_ofFn]
   exact ⟨t, rfl⟩
 
@@ -290,14 +292,6 @@ end Degree
 
 /-! ## The cube sum -/
 
-/-- A sum over `a · b` indices, split into the low index `y < a` and the high index `z < b`. -/
-theorem sum_range_mul_split (f : ℕ → E) (a : ℕ) : ∀ b : ℕ,
-    ∑ x ∈ range (a * b), f x = ∑ z ∈ range b, ∑ y ∈ range a, f (y + a * z)
-  | 0 => by simp
-  | b + 1 => by
-    rw [Nat.mul_succ, sum_range_add, sum_range_mul_split f a b, sum_range_succ]
-    exact congrArg _ (sum_congr rfl fun y _ ↦ by rw [add_comm])
-
 /-- **A table's weight on the cube**: summed against a function of the first `h` coordinates,
 the weight of a table of log-height `h` is the equality weight of its rows against the point. -/
 theorem sum_cube_weight (e : List E) {h n : ℕ} (hn : h ≤ n) (he : h ≤ e.length)
@@ -306,7 +300,7 @@ theorem sum_cube_weight (e : List E) {h n : ℕ} (hn : h ≤ n) (he : h ≤ e.le
         G (boolPoint n x) =
       ∑ y : Fin (2 ^ h), eqEval (e.take h) (boolPoint h y) * G (boolPoint h y) := by
   obtain ⟨k, rfl⟩ : ∃ k, n = h + k := ⟨n - h, by omega⟩
-  rw [pow_add, sum_range_mul_split,
+  rw [pow_add, Finset.sum_range_mul',
     Fin.sum_univ_eq_sum_range (fun y ↦ eqEval (e.take h) (boolPoint h y) * G (boolPoint h y))]
   have htake : ∀ y z, y < 2 ^ h → (boolPoint (h + k) (y + 2 ^ h * z)).take h = boolPoint h y :=
     fun y z hy ↦ by
@@ -613,7 +607,7 @@ theorem claimOf_split (cp fp : List E) (bus : BusResult) (ext : List E)
       claimOf prog s q cp fp bus ext := by
   obtain ⟨m, hm⟩ : ∃ m, nRounds s - ext.length = m + 1 := ⟨nRounds s - ext.length - 1, by omega⟩
   rw [claimOf_snoc, claimOf_snoc, claimOf, hm, Nat.add_sub_cancel, pow_succ,
-    sum_range_mul_split _ _ 2, sum_range_succ, sum_range_succ, sum_range_zero, zero_add]
+    Finset.sum_range_mul' _ 2, sum_range_succ, sum_range_succ, sum_range_zero, zero_add]
   have h1 : ∀ y ∈ range (2 ^ m), ∀ z, boolPoint (m + 1) (y + 2 ^ m * z) =
       boolPoint m y ++ boolPoint 1 z := fun y hy z ↦ boolPoint_add m 1 y z (mem_range.mp hy)
   refine congrArg₂ (· + ·) (sum_congr rfl fun y hy ↦ ?_) (sum_congr rfl fun y hy ↦ ?_)
@@ -723,8 +717,6 @@ theorem lanes_termsPure (bus : BusResult) (cp fp pt : List E) (hpt : s.τ 5 ≤ 
   congr 1
   omega
 
--- The table heights are `Nat.clog` of the row counts, which unification unfolds.
-set_option maxHeartbeats 800000 in
 variable {prog s q} in
 /-- **The honest prover follows the table phase.** On a stack satisfying `M3Holds`, from a true
 bus result, every check of `tablePhase` passes and every claim it returns is true. -/

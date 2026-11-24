@@ -8,7 +8,7 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The verifier with a hash of its own
@@ -156,29 +156,6 @@ theorem runWithHash_bind {α β : Type} (p : VerifierProgram α) (f : α → Ver
       · exact ih _ _
       · rfl
     · rfl
-
-/-- Opening a list of positions consumes one opening per position. -/
-theorem openAllWithHash_length (root : Digest) (height width : ℕ) :
-    ∀ (ps : List ℕ) (os : List Opening) {rows : List (List K)} {rest : List Opening},
-      openAllWithHash (m := Id) H root height width ps os = some (rows, rest) →
-        os = os.take ps.length ++ rest ∧ rows = (os.take ps.length).map Opening.leaf
-  | [], os, rows, rest, h => by
-    simp only [openAllWithHash, pure] at h
-    cases h
-    simp
-  | _ :: _, [], _, _, h => by simp [openAllWithHash, pure] at h
-  | q :: qs, o :: os, rows, rest, h => by
-    simp only [openAllWithHash, bind, pure] at h
-    split at h
-    · obtain ⟨⟨rows', rest'⟩, h', he⟩ := Option.map_eq_some_iff.mp h
-      simp only [Prod.mk.injEq] at he
-      obtain ⟨rfl, rfl⟩ := he
-      obtain ⟨h1, h2⟩ := openAllWithHash_length root height width qs os h'
-      refine ⟨?_, ?_⟩
-      · simp only [List.length_cons, List.take_succ_cons, List.cons_append]
-        exact congrArg (o :: ·) h1
-      · simp [h2]
-    · simp at h
 
 /-- **A `query` runs** exactly when its commitment is read, a phase of openings is left, the phase
 is opened, and the continuation runs on the rest. -/

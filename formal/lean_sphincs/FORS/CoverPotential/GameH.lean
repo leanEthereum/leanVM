@@ -1,6 +1,5 @@
 module
 
-public import FORS.CoverPotential.Game
 public import FORS.GraphView.HonestGame
 
 @[expose] public section
@@ -17,8 +16,6 @@ namespace FORS.Security.ForsPotential
 variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView
-
-set_option backward.isDefEq.respectTransparency false
 
 section Program
 

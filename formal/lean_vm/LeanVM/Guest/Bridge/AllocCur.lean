@@ -21,7 +21,7 @@ callee frame is reserved and not entered. From `curChk`:
 * `nb_succ`: past an offset, the buffer hints at it are counted; `nb_skip`: a jump skipping no
   buffer hint counts those at its offset; `nb_none`: past every buffer hint, all of them;
 * `pend_succ`: past an instruction no jump, the frame hints at it are pending (at most one frame
-  pending, `pend_le`); `pend_nf`: at a jump no frame hint's, nothing is pending or reserved;
+  pending); `pend_nf`: at a jump no frame hint's, nothing is pending or reserved;
   `pend_site`: at a jump through a call site's frame cell, its frame was reserved and is no longer
   pending past it;
 * `bufsJumps_at`, `targetsOk_at`, `blockM_sels`, `armTgtsOk_at`: the code's jumps and the body's

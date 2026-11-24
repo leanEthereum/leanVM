@@ -77,14 +77,6 @@ theorem proveWithHash_eq_none
 
 end Monadic
 
-/-- A strategy that wins every interactive run, committing well-shaped words, wins from the
-start for every choice of the challenges (`Strategy.acceptsFrom_of_runFrom`, stated on `runI`
-so that a concrete program is not unfolded). -/
-theorem acceptsFrom_of_runI {S : Strategy} {P : VerifierProgram Bool}
-    (h1 : ∀ chal, runI P S chal = some true) (h2 : ∀ chal, shapedI P S chal) :
-    S.AcceptsFrom P [] :=
-  Strategy.acceptsFrom_of_runFrom P [] h1 h2
-
 /-- The facts of the leanVM verifier program and the strategy `leanVmProver` the proofs below
 use, on a valid execution within the cap at a valid rate: the strategy wins every interactive run
 with well-shaped words, the program's openings are within the wire bounds, and its cost is at

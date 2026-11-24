@@ -1,10 +1,17 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
-public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
-public import VCVio.OracleComp.SimSemantics.StateT.PreservesInv
+public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
+
+/-!
+# The security game with its final cache
+
+Under `romImpl` a lifted probabilistic computation leaves the cache unchanged
+(`xmssRom_lift_probComp_cache_eq`) and every computation's final cache extends its initial one
+(`xmssRom_cache_le`). `gameWithCache` runs the security game from the empty cache and keeps its
+final cache, with the same winning probability (`forgeAdvantage_eq_gameWithCache`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
@@ -55,8 +62,8 @@ theorem romImpl_query_cache_le
 theorem xmssRom_cache_le {α : Type} (computation : OracleComp OracleWorld α)
     (initialCache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ romImpl computation).run initialCache)) :
-    initialCache ≤ result.2 := by
-  exact OracleComp.simulateQ_run_preservesInv romImpl
+    initialCache ≤ result.2 :=
+  OracleComp.simulateQ_run_preservesInv romImpl
     (fun cache => initialCache ≤ cache)
     (by
       intro input cache hcache queryResult hquery

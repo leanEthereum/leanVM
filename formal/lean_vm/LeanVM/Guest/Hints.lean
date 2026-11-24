@@ -11,11 +11,10 @@ public import Statement.LeanVmGuest
 public import LeanVM.Facts.ClaimBytes
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme
-public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Guest.Word
@@ -159,8 +158,6 @@ def digitGroups (digits : List ℕ) : List (String × Entry) :=
 /-- The ordered children of a node and its sibling: the sibling first when `right`. -/
 def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
   if right then [cell128 sibling, cell128 node] else [cell128 node, cell128 sibling]
-
-/-! ## Coverage (`Region::plan`, `take_slot`) -/
 
 /-! ## A leanXMSS signature (`lean_xmss_hints`) -/
 

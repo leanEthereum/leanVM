@@ -99,10 +99,6 @@ def pairOf {α β : Type} (f : Expr → MetaM α) (g : Expr → MetaM β) (e : E
   let (_, xs) ← ctorOf e 2
   return (← f xs[0]!, ← g xs[1]!)
 
-def optionOf {α : Type} (f : Expr → MetaM α) (e : Expr) : MetaM (Option α) := do
-  let (c, xs) ← ctorOf e 1
-  if c == ``Option.some then return some (← f xs[0]!) else return none
-
 def symOf (e : Expr) : MetaM Sym := do
   let (c, xs) ← ctorOf e 0
   match c with

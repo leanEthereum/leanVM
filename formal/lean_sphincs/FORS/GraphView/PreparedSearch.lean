@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.HonestSigner
-public import FORS.LazyRun.PreparedEncodings
 public import FORS.LazyRun.Replay
 
 @[expose] public section
@@ -11,7 +10,7 @@ section
 /-! The preparation's cache covers every key's counter search (`searchCached_preparation`): a
 lazily sampled search caches each trial it makes and goes on only past a trial that encodes
 nothing, and the later searches only grow the cache. With it the honest signer's searches read
-only prepared trials (`HonestSigner.SignerReadsGood.searched`). -/
+only prepared trials (`SignerReadsGood.searched`). -/
 
 open OracleComp OracleSpec
 
@@ -19,7 +18,6 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph HiddenDebt HiddenBridge
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] encodingAttemptLimit
 
 /-- A lazily sampled query caches its answer. -/

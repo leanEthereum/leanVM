@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.ExecCore
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Data.GTab
 
 /-!
 # Powers of `g` by digits
@@ -49,7 +49,7 @@ theorem gpowW_eq {e : ℕ} (h : e < 2 ^ 20) : gpowW e = addressOfIndex e := by
 
 The kernel evaluates a product of `K` bit by bit, through `BitVec` and a well-founded fold.
 `mulN` is the product on the words of `K` as `ℕ`, by the loop of `BF64.mulShift`
-(`Statement.Fast.FieldWords`) on `ℕ` operations the kernel evaluates natively (`ofBits_mulN`), and
+(`FastFields.FieldWords`) on `ℕ` operations the kernel evaluates natively (`ofBits_mulN`), and
 `gpowN` is `gpowW` by it (`ofBits_gpowN`). -/
 
 /-- `2^64`. -/
@@ -136,6 +136,71 @@ theorem ofBits_gpowN (e : ℕ) : K.ofBits (gpowN e) = gpowW e := by
   simp only [gpowN, ofBits_mulN]
   rfl
 
+/-! ## Powers by one product
+
+`gpowM e` is `g^e` for `e < 2^20` by one product, of `g^(e % 1024)` and `g^(1024·(e / 1024))` from
+the tables `Data.gtabLo` and `Data.gtabHi`, each checked once as a chain of products (`tabs_ok`). -/
+
+/-- Entry `d` of a table in rows of 32. -/
+def tabN (t : List (List ℕ)) (d : ℕ) : ℕ :=
+  listElementOrDefault (listElementOrDefault t (d / 32) []) (d % 32) 0
+
+/-- Entries `1` to `n` of a table are each the one before times `s` (`s` first: `mulN` loops over its first
+factor's bits). -/
+def chainN (t : List (List ℕ)) (s : ℕ) : ℕ → Bool
+  | 0 => true
+  | n + 1 => Nat.beq (tabN t (n + 1)) (mulN s (tabN t n)) && chainN t s n
+
+theorem chainN_pow {t : List (List ℕ)} {s : ℕ} : ∀ {n : ℕ}, chainN t s n = true → ∀ d ≤ n,
+    K.ofBits (tabN t d) = K.ofBits (tabN t 0) * K.ofBits s ^ d
+  | 0, _, d, hd => by rw [Nat.le_zero.mp hd, pow_zero, mul_one]
+  | n + 1, h, d, hd => by
+    simp only [chainN, Bool.and_eq_true, Nat.beq_eq] at h
+    rcases Nat.lt_or_ge d (n + 1) with hlt | hge
+    · exact chainN_pow h.2 d (by omega)
+    · rw [show d = n + 1 by omega, h.1, ofBits_mulN, chainN_pow h.2 n le_rfl, pow_succ]
+      ring
+
+/-- The tables start at `g^0` and `g^1024 = g^1023 · g`, and each is a chain. -/
+theorem tabs_ok : (Nat.beq (tabN Data.gtabLo 0) (gwN 0 0) && Nat.beq (tabN Data.gtabHi 0) (gwN 0 0) &&
+    Nat.beq (tabN Data.gtabHi 1) (mulN (tabN Data.gtabLo 1023) (gwN 0 1)) &&
+    chainN Data.gtabLo (gwN 0 1) 1023 && chainN Data.gtabHi (tabN Data.gtabHi 1) 1023) = true := by
+  decide +kernel
+
+theorem gwN_eq {w d : ℕ} (hw : w < 5) (hd : d < 16) : K.ofBits (gwN w d) = addressOfIndex (d * 16 ^ w) :=
+  gw_eq w hw d hd
+
+theorem gLoN_eq {d : ℕ} (hd : d < 1024) : K.ofBits (tabN Data.gtabLo d) = addressOfIndex d := by
+  have h := tabs_ok
+  simp only [Bool.and_eq_true, Nat.beq_eq] at h
+  rw [chainN_pow h.1.2 d (by omega), h.1.1.1.1, gwN_eq (w := 0) (d := 0) (by decide) (by decide),
+    gwN_eq (w := 0) (d := 1) (by decide) (by decide)]
+  simp only [addressOfIndex, ← pow_mul, ← pow_add]
+  congr 1
+  omega
+
+theorem gHiN_eq {d : ℕ} (hd : d < 1024) : K.ofBits (tabN Data.gtabHi d) = addressOfIndex (1024 * d) := by
+  have h := tabs_ok
+  simp only [Bool.and_eq_true, Nat.beq_eq] at h
+  have h1 : K.ofBits (tabN Data.gtabHi 1) = addressOfIndex 1024 := by
+    rw [h.1.1.2, ofBits_mulN, gLoN_eq (by decide), gwN_eq (w := 0) (d := 1) (by decide) (by decide)]
+    simp only [addressOfIndex, ← pow_add]
+    norm_num
+  rw [chainN_pow h.2 d (by omega), h.1.1.1.2, gwN_eq (w := 0) (d := 0) (by decide) (by decide), h1]
+  simp only [addressOfIndex, ← pow_mul, ← pow_add]
+  congr 1
+  omega
+
+/-- `g^e` for `e < 2^20`, one product. -/
+def gpowM (e : ℕ) : ℕ := mulN (tabN Data.gtabLo (e % 1024)) (tabN Data.gtabHi (e / 1024))
+
+/-- **`gpowM` is `g^e`.** -/
+theorem ofBits_gpowM {e : ℕ} (he : e < 2 ^ 20) : K.ofBits (gpowM e) = addressOfIndex e := by
+  rw [gpowM, ofBits_mulN, gLoN_eq (Nat.mod_lt _ (by decide)), gHiN_eq (by omega)]
+  simp only [addressOfIndex, ← pow_add]
+  congr 1
+  omega
+
 end
 end LeanVM.Guest.Pow
 
@@ -176,6 +241,19 @@ theorem PowTree.okW_of_okWB : ∀ {t : PowTree}, t.okWB = true → t.OkW
     simp only [okWB, Bool.and_eq_true, Nat.blt_eq] at h
     obtain ⟨⟨⟨he, hk⟩, hl⟩, hr⟩ := h
     exact ⟨he, gpowW_of_beq hk, okW_of_okWB hl, okW_of_okWB hr⟩
+
+/-- `PowTree.OkW` as a `Bool`, one product a pair (`gpowM`). -/
+def PowTree.okMB : PowTree → Bool
+  | .leaf => true
+  | .node k e l r => Nat.blt e 1048576 && Nat.beq k (gpowM e) && l.okMB && r.okMB
+
+/-- **`PowTree.OkW`, decided by one product a pair.** -/
+theorem PowTree.okW_of_okMB : ∀ {t : PowTree}, t.okMB = true → t.OkW
+  | .leaf, _ => trivial
+  | .node _ _ _ _, h => by
+    simp only [okMB, Bool.and_eq_true, Nat.blt_eq, Nat.beq_eq] at h
+    obtain ⟨⟨⟨he, rfl⟩, hl⟩, hr⟩ := h
+    exact ⟨he, (ofBits_gpowM he).trans (gpowW_eq he).symm, okW_of_okMB hl, okW_of_okMB hr⟩
 
 theorem PowTree.ok_of_okW : ∀ {t : PowTree}, t.OkW → t.Ok
   | .leaf, _ => trivial

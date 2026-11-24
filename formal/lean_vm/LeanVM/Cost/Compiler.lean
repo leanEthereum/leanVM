@@ -360,11 +360,19 @@ def Ctx.premise (ctx : Ctx) (deps : Array (Nat × Name)) : MetaM Expr := do
   ctx.pending.modify (·.push (m.mvarId!, deps))
   return m
 
-/-- A proof of `goal` (a decrease, a membership) by a tactic. -/
+/-- A proof of `goal` (a decrease, a membership) by a tactic, the hypotheses about runs (the
+induction hypothesis, the closures' specs, `Includes`) cleared first: `simp_all` would rewrite them
+all for nothing. -/
 def proveByTactic (goal : Expr) : MetaM Expr := do
   let mvar ← mkFreshExprSyntheticOpaqueMVar goal
-  let tac ← `(tactic| first | omega | (simp_all; done) | (simp_all; omega) | decreasing_tactic)
-  let remaining ← Term.TermElabM.run' (Tactic.run mvar.mvarId! (Tactic.evalTactic tac))
+  let mut g := mvar.mvarId!
+  for d in ← getLCtx do
+    if d.isImplementationDetail then continue
+    let ty ← instantiateMVars d.type
+    if (ty.find? fun e ↦ e.isConstOf ``RunsBody || e.isConstOf ``RunsApp || e.isConstOf ``Includes).isSome then
+      g ← g.tryClear d.fvarId
+  let tac ← `(tactic| first | omega | (simp_all <;> omega) | decreasing_tactic)
+  let remaining ← Term.TermElabM.run' (Tactic.run g (Tactic.evalTactic tac))
   unless remaining.isEmpty do throwError "could not prove {goal}"
   instantiateMVars mvar
 

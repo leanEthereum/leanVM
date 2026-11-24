@@ -1,14 +1,14 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.FlatGB
 
-  `completeAt_flatG` within a bound (`CompleteAtB`): the function's frame, its buffers and its
+  A flat function with callees depending on their frame pointers, complete within a bound (`CompleteAtB`): the function's frame, its buffers and its
   callees' bounds.
 -/
 
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatG
-public import LeanVM.Guest.B1.KeccakGkr.FlatFB
+public import LeanVM.Guest.Budget.Bounded
 
 /-!
 # Callees reading earlier callees' buffers, within a bound
@@ -16,11 +16,10 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatFB
 * `KidsGB fs cert κ ks Bs`: each entered call of `ks` is complete within its bound in `Bs` (in
   order), at every prefix of frame pointers (`CompleteAtFB`).
 * `kidsGBound fs ks Bs`: the callees' words, an entered call's bound, a skipped call's frame.
-* `kidsFromIn_of_kidsGB`: `kidsFromIn_of_kidsG` with the total at most `kidsGBound`.
-* `completeAt_flatGB`: `completeAt_flatG` within `fs f + sizes.sum + NB`, the callees' words at most
+* `kidsFromIn_of_kidsGB`: the callees composed along the caller's calls, the total at most `kidsGBound`.
+* `completeAt_flatGB`: the flat function complete within `fs f + sizes.sum + NB`, the callees' words at most
   `NB` at every frame pointer.
 
-The proofs are `kidsFromIn_of_kidsG`'s and `completeAt_flatG`'s with the bounds carried along.
 -/
 
 namespace LeanVM.Guest.B1
@@ -44,7 +43,7 @@ def kidsGBound (fs : String → ℕ) : List KidG → List ℕ → ℕ
   | k :: ks, Bs => (if k.taken then Bs.headD 0 else fs (tailKey k.f)) + kidsGBound fs ks Bs.tail
   | [], _ => 0
 
-/-- **`kidsFromIn_of_kidsG` within the callees' bounds** (`Bs`, an entered call's; a skipped call's
+/-- **The callees composed within their bounds** (`Bs`, an entered call's; a skipped call's
 frame): the total `N` at most `kidsGBound fs ks Bs`. -/
 theorem kidsFromIn_of_kidsGB (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG) (Bs : List ℕ),
     KidsGB fs cert κ ks Bs →
@@ -124,7 +123,7 @@ theorem kidsFromIn_of_kidsGB (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG) 
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
 
-/-- **`completeAt_flatG` within `fs f + sizes.sum + NB` words**: the callees within `Bs`, their
+/-- **A flat function complete within `fs f + sizes.sum + NB` words**: the callees within `Bs`, their
 words (`kidsGBound`) at most `NB` at every frame pointer. -/
 theorem completeAt_flatGB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
@@ -171,37 +170,11 @@ theorem completeAt_flatGB {f : String} {fn : Fn} (hf : coreProgram.find? f = som
     fun q hq => hLk q (takenOuts_sub hI q hq)
   obtain ⟨hlins, hreg, σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ :=
     hσ fp fps outs hlen hge ho rd hlow hB hLin hto
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp fps)) i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp fps) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk hlins
-    (regionsOk_mono (fun i h => h.imp_right (hown' i)) hreg)
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL [])
-    (Dk := fun i => False ∨ outRegion (atAllG [] (kids fp) fps) outs i) (N := N) (fp := fp)
-    coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
-  · rw [hal] at h
-    exact h
-  · rw [i5, flatMap_loadsEv σ pre hnl] at hA
-    obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-    obtain ⟨i, hi, h | h | h⟩ := hld q hq
-    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-    · exact ⟨i, hi, Or.inl (hown' i h)⟩
-    · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩
+  exact relAtIn_flat (D := RegionL []) hf hl hb hst haddrs (hown fp fps) hp hdo hh hsz hbuf
+    (hK rd σ _ _ _ hcm hlow hLk hlins hreg)
+    (fun q hq => (hld q (by rwa [flatMap_loadsEv σ pre hnl] at hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
 
 end
 end LeanVM.Guest.B1

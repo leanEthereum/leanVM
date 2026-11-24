@@ -21,13 +21,12 @@ import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 (`SphincsDigestT`); the next value is `n1372`. After them:
 
 * `sForsAddrs`: `a0_b` at `n1379` (`sA0B`), `key_b` at `n1381` (`sKeyB`);
-* `sForsB`: `SphincsForsT.sForsBlock` from `n1382`: `fors_at` at `n1383`
-  (`sForsA1`), the 24 trees (tree `c` from `sForsBase c`, its root at `sRootOf c`), `T_k` over the
-  roots, the FORS key at `n5248` (`sForsPk`); the trees read the digest's bits through `sForsBit`
+* `sForsB`: `SphincsForsT.sForsBlock` from `n1382`: `fors_at` at `n1383`, the 24 trees (tree `c`
+  from `sForsBase c`), `T_k` over the roots, the FORS key at `n5248` (`sForsPk`); the trees read the digest's bits through `sForsBit`
   and the values `vals[k]` through `sVals`;
 * `sLayerAt l` (`sp_layer`), layer `l` from `sLayerBase l`: its counter hinted
   (`sp_counter`) and read (`sFromMarks`, 4 bytes, `sCtrOf l`), then `SphincsForsT.sHtLayer`: the
-  encoding digest (`sEncOf l`), the call of `sp_wots` (`sWotsCall`, its leaf `sLeafOf l`) and the
+  encoding digest (`sEncOf l`), the call of `sp_wots` (its leaf `sLeafOf l`) and the
   path of `sHeightOf l` levels from leaf bit `sOffOf l` up to the layer's root;
 * `sLayerB`, `sMidAddrs`, `sLayerM`, `sTopAddrs`, `sLayerT`: the three layers with
   their addresses (`sA0Of l`, `sA1Of l`) between them, then `root[0] == pk_root`;
@@ -53,8 +52,6 @@ def sForsBit (k : Nat) : V := sMdBit (10 * (k / 10) + 9 - k % 10)
 2^104`), `key_b` (its leaf, `lvals[0] · 2^56`), and `fors_at = key_b + SP_FORS_TREE`. -/
 def sA0B : V := .n (val% «verify_sig_lean_sphincs» "a0_b")
 def sKeyB : V := .n (val% «verify_sig_lean_sphincs» "key_b")
-def sForsA1 : V := .n (val% «verify_sig_lean_sphincs» "fors_at")
-
 /-- `a0_b`, `key_b`, from `n1372`. -/
 def sForsAddrs : List Stmt :=
   [cst 1372 (lit (2 ^ 120)), mulS (.n (val% «verify_sig_lean_sphincs» "a0_b~1")) (sLVal 8) (.n (val% «verify_sig_lean_sphincs» "a0_b~0")), cst 1374 (lit (2 ^ 112)),
@@ -68,9 +65,6 @@ def sForsB : List Stmt × Nat × Nat := sForsBlock sPad sPP sA0B sKeyB sForsBit 
 
 /-- Tree `c`'s base, its secret's cell. -/
 def sForsBase (c : Nat) : Nat := 1384 + ((List.range c).map forsTreeW).sum
-
-/-- Tree `c`'s root, `roots[c]`: the last level's output, the value before the next tree. -/
-def sRootOf (c : Nat) : V := .n (sForsBase (c + 1) - 1)
 
 /-- The FORS public key, `fors_pk[0]`. -/
 def sForsPk : V := .n (val% «verify_sig_lean_sphincs» "fors_pk[0]")
@@ -96,10 +90,6 @@ def sA1Of (l : Nat) : V := if l = 0 then sKeyB else if l = 1 then .n (val% «ver
 def sCtrOf (l : Nat) : V := .n (sLayerBase l + 36)
 def sEncOf (l : Nat) : V := .n (sLayerBase l + 46 + a0W (sAcOf l))
 def sLeafOf (l : Nat) : V := .n (sLayerBase l + 47 + 2 * a0W (sAcOf l))
-
-/-- The one-time key's leaf, by a call of `sp_wots(pp, a0, a1, encoding)`, at `b`: the call
-`SphincsForsT.sHtLayer` writes. -/
-def sWotsCall (a0 a1 enc : V) (b : Nat) : Stmt := .call "sp_wots" [sPP, a0, a1, enc] [.n b]
 
 /-- Layer `l` (`sp_layer`) signing `signed`, at `a0` with its key pair `a1`: the
 counter's four bytes hinted at `sLayerBase l …` and read, then the layer. The statements, the next

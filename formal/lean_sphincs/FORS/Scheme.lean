@@ -206,10 +206,6 @@ def firstCall : DigestCall := ⟨0, digestCalls_pos⟩
 leaf of tree `κ` at bit `h + a κ`. -/
 abbrev MessageDigest := BitVec messageDigestBits
 
-/-- The outputs of the digest calls as one number, call 0 in the low 256 bits. -/
-def digestValue (outputs : DigestCall → HashOutput) : Nat :=
-  ∑ call : DigestCall, (outputs call).toNat * 2 ^ (hashOutputBits * call.val)
-
 /-- The FORS key of an instance: the roots of its `k` trees, which `T_k` compresses into the FORS
 public key (`Concrete.forsPublicKey`). -/
 abbrev ForsKey := FTree → Digest
@@ -553,7 +549,7 @@ def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf 
     (message ++ bytesBE 4 counter)
   return TargetSum.decodeDigest digest
 
-/-- `Ots.leaf` (`wots_leaf`): the verifier's leaf, or nothing if the counter does not encode the message. -/
+/-- `Wots.leaf` (`wots_leaf`): the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (message : HashInput) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
@@ -920,7 +916,7 @@ def treeOpen (parameter : PublicParameter) (index : Index) (κ : FTree) (leaf : 
     forsNode parameter index κ seed level.val (Nat.xor (leaf.val / 2 ^ level.val) 1)
   return ⟨secret, path⟩
 
-/-- `Fts.sign`: the opening of every tree. -/
+/-- `Fors.sign`: the opening of every tree. -/
 def forsOpen (parameter : PublicParameter) (index : Index) (leaves : FTree → FLeaf)
     (seed : MasterSeed) : m (FTree → TreeOpening) :=
   sequenceFin fun κ => treeOpen parameter index κ (leaves κ) seed

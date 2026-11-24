@@ -31,13 +31,6 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.Exec
 def codeFrom (f : CompiledFunction) (a : ℕ) : List OffsetInstruction :=
   (f.chunks.drop (a / chunkSize)).flatten.drop (a % chunkSize)
 
-/-- `execWin`, the window's code read by `codeFrom`. -/
-def execWinC (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
-    (b : ℕ) :
-    Result :=
-  pass F f.entryPc f.instructionCount ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf
-      env))) [] [] 0
-
 /-- `execWinS`, the window's code read by `codeFrom`. -/
 def execWinCS (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym))
     (seeds : List ℕ) (b : ℕ) : Result :=
@@ -63,15 +56,6 @@ theorem drop_flatten_chunked {C : ℕ} (hC : 0 < C) : ∀ {cs : List (List Offse
         rw [hq, hr, List.drop_succ_cons, List.flatten_cons, List.drop_append,
           List.drop_eq_nil_of_le (by omega), List.nil_append, hl]
         exact drop_flatten_chunked hC h' (a - C)
-
-theorem execWinC_eq_of {f : CompiledFunction} (hf : chunked chunkSize f.chunks f.instructionCount = true)
-    (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinC F f a env b = execWin F f a env b := by
-  unfold execWinC execWin codeFrom CompiledFunction.code
-  rw [← drop_flatten_chunked (by decide) hf]
-
-theorem execWinCS_nil (F : Facts) (f : CompiledFunction) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinCS F f a env [] b = execWinC F f a env b := rfl
 
 theorem execWinCS_eq_of {f : CompiledFunction} (hf : chunked chunkSize f.chunks f.instructionCount = true)
     (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (seeds : List ℕ) (b : ℕ) :

@@ -15,7 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The terminal's words at `B2C.fs`
 
-The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `rsw_completeAtB` at
+The hypotheses of `check_opening_terminal_completeAtBWE`, `rst_completeAtB` and `rsw_completeAtB` at
 `B2C.fs`:
 
 * `eqc_totalLe_fs`: `eq_prefix_chain` within `184` (its certificate);
@@ -25,10 +25,10 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
 * `rsRows_totalLe_fs`: each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words (their certificates);
 * `l14_totalLeOn_fs`: `ring_switch_target_loop0` from `1` (to its constant end `g^8`) within `3204`
   (`8 · 354 + 354`);
-* `cs_totalLe_fs`, `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
+* `cs_fs_le`: each `column_selector__L{κ}`, `κ < 31`, within `157` words, its frame
   at most `157` (its certificate is its frame);
-* `rs_totalLeOn_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8526` (`rs_totalLeOn34`:
-  `57 + (25 + 4 · 1641) + 1489 + 384`); `rs_bound_fs`: the same bounds as `RsBound`, what
+* `rs_bound_fs`: `rs_eq_run` on `c ≤ 34` coordinates within `8526`
+  (`57 + (25 + 4 · 1641) + 1489 + 384`), as `RsBound`, what
   `rsw_completeAtB` takes.
 -/
 
@@ -152,14 +152,6 @@ theorem cs_facts {κ : ℕ} (hκ : κ < 31) :
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   exact ⟨h.1.1, h.1.2, h.2⟩
 
-/-- **Each `column_selector__L{κ}` within `157` words.** -/
-theorem cs_totalLe_fs : ∀ κ < 31,
-    TotalLe coreProgram B2C.fs (Tables.lName "column_selector" κ) fun _ => 157 := by
-  intro κ hκ rd t args rets hn hv hb
-  obtain ⟨hname, hc, -⟩ := cs_facts hκ
-  obtain ⟨b, ks, hcb, hb157⟩ := certLe_spec hc
-  exact (fs_totalLe ((wcertOf_of_idx hname).trans hcb) rd t args rets hn hv hb).trans hb157
-
 /-- **Each `column_selector__L{κ}`'s frame at most `157` words.** -/
 theorem cs_fs_le : ∀ κ < 31, B2C.fs (Tables.lName "column_selector" κ) ≤ 157 := by
   intro κ hκ
@@ -183,22 +175,10 @@ theorem rsRows_totalLe_fs : ∀ r < 8,
   obtain ⟨b, ks, hcb, hbB⟩ := certLe_spec h.2
   exact (fs_totalLe ((wcertOf_of_idx h.1).trans hcb) rd t args rets hn hv hb).trans hbB
 
-/-- **`rs_eq_run` on at most `34` coordinates within `8526` words** (`rs_totalLeOn34`:
-`57 + (25 + 4 · 1641) + 1489 + 384 ≤ 8526`). -/
-theorem rs_totalLeOn_fs : ∀ c ≤ 34,
-    TotalLeOn coreProgram B2C.fs "rs_eq_run" (fun a => a.getD 2 0 = gen ^ c) fun _ => 8526 := by
-  intro c hc rd t args rets hn hp hv hb
-  refine (rs_totalLeOn34 B2C.fs_tailKey_le l6_totalLeOn_fs rsRows_totalLe_fs c hc rd t args rets hn hp hv
-    hb).trans ?_
-  show B2C.fs "rs_eq_run" + (B2C.fs name% «rs_eq_run_loop0» + 4 * 1641) + 1489 + 384 ≤ 8526
-  rw [fs_rs, fs_l6]; decide
-
 /-- **`rs_eq_run`'s callees' words at `B2C.fs`, its own on at most `34` coordinates within `8526`**
 (`RsBound`: `57 + (25 + 4 · 1641) + 1489 + 384 ≤ 8526`). -/
 theorem rs_bound_fs : RsBound B2C.fs 8526 :=
   ⟨B2C.fs_tailKey_le, 1641, 1489, l6_totalLeOn_fs, rsRows_totalLe_fs, by rw [fs_rs, fs_l6]; decide⟩
-
-/-! ## At `B2C.fs` -/
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.RouteWin
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.AlignRun
 public import LeanVM.Guest.Bridge.JumpCellsSound
+import LeanVM.ToMathlib.List
 
 /-!
 # Reached `match`es in a branch
@@ -282,14 +283,6 @@ theorem selGo_arms {j : ℕ} {ps : List V} {B : List Stmt} : ∀ {seen : List At
 
 /-! ## Cursors -/
 
-theorem getD_mem_or {l : List Stmt} {t : ℕ} : l.getD t default ∈ l ∨ l.getD t default = default := by
-  rcases Nat.lt_or_ge t l.length with h | h
-  · left
-    rw [List.getD_eq_getElem _ _ h]
-    exact List.getElem_mem h
-  · right
-    exact List.getD_eq_default _ _ h
-
 theorem subBlock_default (c : ℕ) : subBlock (default : Stmt) c = [] := rfl
 
 theorem blockAt_sub {body : List Stmt} : ∀ {ks : List (ℕ × ℕ)}, ks ≠ [] →
@@ -298,7 +291,7 @@ theorem blockAt_sub {body : List Stmt} : ∀ {ks : List (ℕ × ℕ)}, ks ≠ []
   | (t, c) :: r, _, w, hw => by
     simp only [blockAt] at hw
     have hw' := subBlock_sub hw
-    rcases getD_mem_or (l := blockAt body r) (t := t) with hv | hv
+    rcases List.getD_mem_or (blockAt body r) t default with hv | hv
     · cases r with
       | nil => exact ⟨_, hv, hw'⟩
       | cons e r' =>
@@ -337,7 +330,7 @@ theorem zok_cases {body : List Stmt} {zs : Zip} (hz : ZOk body zs) {s : Stmt} {s
   · right; right
     have hs1 : s ∈ subBlock ((blockAt body ((t0, c0) :: r)).getD t default) c := List.mem_of_mem_drop hs
     have hs' := subBlock_sub hs1
-    rcases getD_mem_or (l := blockAt body ((t0, c0) :: r)) (t := t) with hv | hv
+    rcases List.getD_mem_or (blockAt body ((t0, c0) :: r)) t default with hv | hv
     · obtain ⟨u, hu, hvu⟩ := blockAt_sub (List.cons_ne_nil _ _) _ hv
       exact ⟨u, hu, _, hvu, hs'⟩
     · rw [hv, subBlock_default] at hs1

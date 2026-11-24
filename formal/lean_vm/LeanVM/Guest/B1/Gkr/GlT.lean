@@ -15,6 +15,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 public import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.B1.Common.Find
 
 /-!
 # A radix-four layer's templates
@@ -349,13 +350,59 @@ def glParams : List V := (List.range 9).map V.n
 def glLoopParams : List V := (List.range 6).map V.n
 
 
-theorem glIs_layers : ∀ p < 4, ∀ o < 2,
-    glIs (glName p o) glParams (glBody p o (glLoopName p o)) = true := by
+/-- `glName`'s index. -/
+def glIdx : ℕ → ℕ → ℕ
+  | 0, 0 => idx% «gkr_layer__L0_L0»
+  | 1, 0 => idx% «gkr_layer__L1_L0»
+  | 2, 0 => idx% «gkr_layer__L2_L0»
+  | 3, 0 => idx% «gkr_layer__L3_L0»
+  | 0, _ => idx% «gkr_layer__L0_L1»
+  | 1, _ => idx% «gkr_layer__L1_L1»
+  | 2, _ => idx% «gkr_layer__L2_L1»
+  | _, _ => idx% «gkr_layer__L3_L1»
+
+/-- `glLoopName`'s index. -/
+def glLoopIdx : ℕ → ℕ → ℕ
+  | 0, 0 => idx% «gkr_layer__L0_L0_loop0»
+  | 1, 0 => idx% «gkr_layer__L1_L0_loop0»
+  | 2, 0 => idx% «gkr_layer__L2_L0_loop0»
+  | 3, 0 => idx% «gkr_layer__L3_L0_loop0»
+  | 0, _ => idx% «gkr_layer__L0_L1_loop0»
+  | 1, _ => idx% «gkr_layer__L1_L1_loop0»
+  | 2, _ => idx% «gkr_layer__L2_L1_loop0»
+  | _, _ => idx% «gkr_layer__L3_L1_loop0»
+
+/-- `glIs` at function `j`, found by its index (`coreProgram.find?` compares every name on the way). -/
+noncomputable def glIsAt (j : ℕ) (f : String) (ps : List V) (b : List Stmt) : Bool :=
+  match coreProgram[j]? with
+  | some fn => fn.name == f && decide (fn.params = ps) && tbStmtsEqb fn.body b
+  | none => false
+
+theorem glIs_of_at {j : ℕ} {f : String} {ps : List V} {b : List Stmt} (h : glIsAt j f ps b = true) :
+    glIs f ps b = true := by
+  unfold glIsAt at h
+  split at h
+  · rename_i fn hj
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    rw [glIs, coreProgram_find?_at hj h.1.1]
+    simp only [h.1.2, h.2, Bool.and_self]
+  · exact absurd h (by simp)
+
+private theorem glIsAt_layers : ∀ p < 4, ∀ o < 2,
+    glIsAt (glIdx p o) (glName p o) glParams (glBody p o (glLoopName p o)) = true := by
   decide +kernel
 
-theorem glIs_loops : ∀ p < 4, ∀ o < 2,
-    glIs (glLoopName p o) glLoopParams (glLoopBody (glLoopName p o)) = true := by
+private theorem glIsAt_loops : ∀ p < 4, ∀ o < 2,
+    glIsAt (glLoopIdx p o) (glLoopName p o) glLoopParams (glLoopBody (glLoopName p o)) = true := by
   decide +kernel
+
+theorem glIs_layers : ∀ p < 4, ∀ o < 2,
+    glIs (glName p o) glParams (glBody p o (glLoopName p o)) = true :=
+  fun p hp o ho ↦ glIs_of_at (glIsAt_layers p hp o ho)
+
+theorem glIs_loops : ∀ p < 4, ∀ o < 2,
+    glIs (glLoopName p o) glLoopParams (glLoopBody (glLoopName p o)) = true :=
+  fun p hp o ho ↦ glIs_of_at (glIsAt_loops p hp o ho)
 
 end
 end LeanVM.Guest.B1.Tables

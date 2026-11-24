@@ -11,6 +11,8 @@ module
 
 public import LeanVM.Protocol.Whir.Sound.Escape
 public import LeanVM.Protocol.Whir.SubspaceAt
+import LeanVM.Parameters.Field
+import LeanVM.ToMathlib.List
 
 /-!
 # The novel basis in the verifier
@@ -129,7 +131,7 @@ theorem eval_polyOf (cs : List E) (x : K) :
 /-- **`novel_eval`** of the subspace polynomials is the polynomial's value. -/
 theorem novelEval_eq {mu : ℕ} (hmu : mu < 64) (cs : List E) (hc : cs.length ≤ 2 ^ (mu + 1))
     (x : K) : novelEval cs (subspaceAt mu x) = (polyOf cs).eval (ofK x) := by
-  rw [novelEval, novelBasis_subspaceAt hmu hc, eval_polyOf, sumE, foldl_add_eq, zero_add]
+  rw [novelEval, novelBasis_subspaceAt hmu hc, eval_polyOf, sumE, List.foldl_add_eq_add_sum, zero_add]
   have hz : List.zipWith (fun p b ↦ p * ofK b) cs
       ((List.range cs.length).map fun c ↦ novelAt c x) =
       (List.range cs.length).map fun c ↦ cs.getD c 0 * ofK (novelAt c x) := by

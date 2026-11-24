@@ -19,11 +19,11 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `verify_tables` (TRIAGE G #51, #52): the interface
+# `verify_tables`: the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
 fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest
-`guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`) settles the bus against the six tables: it certifies each side's blocks'
+`guests/lean_ethereum.py` and `V` `Statement/Verifier/Bus.lean`) settles the bus against the six tables: it certifies each side's blocks'
 offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
 be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four column claims,
 reduces the bytecode's share of its leaf by the slot sumcheck to one value of the stacked bytecode
@@ -70,7 +70,7 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** computes `paddingWeight`: soundness. -/
 def padding_weight_SpecP (P : Program) : Prop :=
   ∀ n < 31, ∀ rd args rets,
     P.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -273,7 +273,7 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point va
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound**, for the guest's own bytecode words
 `bytecode`. -/
 def verify_tables_SpecP (P : Program) (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem weights point values args rets,

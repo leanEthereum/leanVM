@@ -7,21 +7,20 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.B1.Digest.StatementComplete
+public import LeanVM.Guest.B1.Digest.Statement
 public import Statement.LeanVmGuest
 
 /-!
 # A child's statement digest, placed
 
-* `statement_completeAt`: the pure digest, from its completeness on every memory holding the
-  caller's words;
+* `sd_pure`: `statement_digest` is pure;
 * `statementDigest_of_parts`: a statement's digest from its header cells and deferred cells.
 -/
 
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtD Returns completeAt_of_rel_pureD)
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Node
 open LeanVM.Guest.Value.Keccak (cellsBytes)
@@ -40,14 +39,6 @@ theorem sd_pure : coreProgram.PureIn ["statement_digest"] := by
   rw [find_statement_digest, Option.some.injEq] at hf
   subst hf
   decide +kernel
-
-/-- **`statement_digest` is complete, placed**, on every memory holding the caller's words
-`MeaningStatementDigest` reads. -/
-theorem statement_completeAt {κ : ℕ} {Lin : Layout} {args rets : List E}
-    (h : ∀ rd, MemL rd Lin → MeaningStatementDigest rd args rets) :
-    CompleteAtD fs cert κ "statement_digest" Lin args (Returns rets) :=
-  completeAt_of_rel_pureD sd_pure (List.mem_singleton_self _)
-    (fun rd hm => statement_digest_complete rd args rets (h rd hm)) κ
 
 /-- **A statement's digest from its parts**: the header cells' bytes and the 24 deferred cells. -/
 theorem statementDigest_of_parts {seed : Digest} {s : NodeStatement}

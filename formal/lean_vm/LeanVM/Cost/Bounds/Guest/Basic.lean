@@ -12,11 +12,8 @@ Their prices are bounded in the prices of those closures' applications (`R`, `S`
 hypothesis `∀ a, appCost P v [encodeValue a] ≤ R`, beside the closure's spec
 `∀ a, RunsApp P v [encodeValue a] (encodeValue (f a))` the price equations take.
 
-* `cost_facts' [h₁, …]`: `cost_facts`, the hypotheses of each `hₖ` discharged first and its data
-  read off them: a bound of a function of a closure `rd` names `rd` only in the closure's spec,
-  which unification against the context's spec instantiates;
-* `limbs_one`: `limbCount t = 1` for every `limbCount t` of the goal that `omega` shows
-  word-sized.
+`limbs_one` adds `limbCount t = 1` for every `limbCount t` of the goal that `omega` shows
+word-sized.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -28,50 +25,6 @@ public section
 section Meta
 
 open Lean Meta Elab Tactic
-
-/-- `instantiateAt`, the hypotheses discharged before the data is checked: the data a hypothesis
-names (a closure's Lean function) is read off it by the discharge's `assumption`. -/
-meta def instantiateAtDeferred (pf s : Expr) : TacticM (Option Expr) := do
-  let saved ← saveState
-  let (xs, _, concl) ← forallMetaTelescopeReducing (← inferType pf)
-  let concl ← whnfR concl
-  let some lhs := (if concl.isAppOfArity ``LE.le 4 || concl.isAppOfArity ``LT.lt 4 then
-      some concl.appFn!.appArg!
-    else if concl.isAppOfArity ``Eq 3 then some concl.appFn!.appArg! else none)
-    | return none
-  unless ← isDefEq lhs s do
-    saved.restore
-    return none
-  for x in xs do
-    let x ← instantiateMVars x
-    if x.isMVar then
-      let g := x.mvarId!
-      if (← isProp (← g.getType)) then
-        unless ← discharge g do
-          saved.restore
-          return none
-  for x in xs do
-    let x ← instantiateMVars x
-    if x.hasExprMVar then
-      saved.restore
-      return none
-  return some (← instantiateMVars (mkAppN pf xs))
-
-/-- `cost_facts' [h₁, …, hₙ]`: as `cost_facts`, the hypotheses of each `hₖ` discharged before its
-data is checked (`instantiateAtDeferred`). -/
-elab "cost_facts'" " [" hs:term,* "]" : tactic => withMainContext do
-  let pfs ← hs.getElems.mapM fun h ↦ elabTerm h none
-  let goal ← getMainGoal
-  let prices := pricesIn (← instantiateMVars (← goal.getType))
-  let mut g := goal
-  for s in prices do
-    for pf in pfs do
-      let r ← g.withContext (instantiateAtDeferred pf s)
-      if let some p := r then
-        let (_, g') ← (← g.assert `hcost (← inferType p) p).intro1P
-        g := g'
-        break
-  replaceMainGoal [g]
 
 /-- The arguments of the `limbCount`s in `e` (no loose bound variables). -/
 meta partial def limbArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=

@@ -7,7 +7,13 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.Front
+public import LeanVM.Guest.CoreMode.Gen.TermCallers
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.RefAll
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 public import LeanVM.Guest.B1.VerifySub.NodePops

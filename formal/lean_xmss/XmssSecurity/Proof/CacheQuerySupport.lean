@@ -1,9 +1,18 @@
 module
 
-public import XmssSecurity.Proof.CacheReplayEval
-public import VCVio.OracleComp.QueryTracking.QueryBound
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# What a query bound says about the lazy oracle's cache
+
+Two facts about a computation run against the lazy random oracle `randomOracle`:
+`cache_none_of_zero_query_bound` (an input the computation never queries and the cache does not
+hold stays absent) and `cache_unique_of_query_bound_one` (a computation making at most one query to
+a class of inputs, none of them cached at the start, leaves at most one input of that class cached).
+The tree and key generation cache lemmas apply them address by address.
+-/
 
 open OracleComp OracleSpec
 

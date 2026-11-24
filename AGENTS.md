@@ -115,7 +115,7 @@ cargo leanvm-bench --prover stable fibonacci --n <steps>
 ## Three verifiers, one protocol
 
 1. **Rust**, `crates/verifier`: what `AggregateProof::verify` and `cpu::verify` run. No dependencies, `unsafe`, `core::arch`, `cfg(target_arch)` or threads.
-2. **Lean**, `formal/Statement/LeanVmVerifier.lean`: the reference, and the trusted statement of the soundness proof. `formal/check-all.sh vectors` pins it against the Rust.
+2. **Lean**, `formal/Statement/Verifier/` (its constants in `formal/Statement/LeanVmVerifier.lean`): the reference, and the trusted statement of the soundness proof. `formal/check-all.sh vectors` pins it against the Rust.
 3. **Recursive**, `guests/lean_ethereum.py`.
 
 Security and Fiat-Shamir:

@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.ValNames.«certify_placement»
 /-!
 # `verify_sub`'s pops
 
-`cp_honest_pops`, `vt_honest_pops`: `certify_placement`'s and `verify_tables`' honest nodes (`Tables.cpQn`, `Tables.vtQn`: the honest valuation, its own buffers held) pop their group orders and `verify_tables` its round count; `cp_kidBP`, `vt_kidBWP`: so on the honest child, from `certify_placement_completeAtBR` and `verify_tables_completeAtTBWR'`. `verify_sub_completeBTP`: `verify_sub_completeBTG` with them; its tree pops `childHints`, stream by stream (`vs_hon_child_pops`, its callees' entries by `VsKidQ` and the group orders' equalities `colGroupOrder_layoutOf`, `blockGroupOrder_eq`).
+`cp_honest_pops`, `vt_honest_pops`: `certify_placement`'s and `verify_tables`' honest nodes (`Tables.cpQn`, `Tables.vtQn`: the honest valuation, its own buffers held) pop their group orders and `verify_tables` its round count; `cp_kidBP`: so on the honest child, from `certify_placement_completeAtBR`. `vsPcp`, `vsPvt`, `vsPos`: the callees' entries.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -97,59 +97,9 @@ theorem cp_kidBP (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (
     (S.h30.trans (by norm_num)) (S.hs_lt33 hbl) (show S.hs.getD 5 0 ≤ 27 by omega) e1 e2).monoV le_rfl
     fun _ _ _ hv ht ↦ cp_honest_pops ht hv
 
-/-- **`verify_tables` on the honest child, within `vtMax` by a tree within its weights popping its group order and
-its round count.** -/
-theorem vt_kidBWP (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (W : VsWordsOs fs) (B : Tables.VtBases) :
-    CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
-      (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧
-        vsPvt S.logMem S.rowsN S.H.n rd t) (Tables.vtMax fs W.vt) :=
-  (Tables.verify_tables_completeAtWWR hκ (S.H_run hbl).1 (S.H_shape hbl) (S.vt_dims hbl).1 (S.vt_dims hbl).2 B
-    W.vt W.vtW).monoV le_rfl
-    fun _ _ _ hv ⟨hw, _, _, e, hq⟩ ↦ ⟨hw, vt_honest_vsPvt rfl rfl e hq hv⟩
-
 end ChildSegs
 
 /-! ## `verify_sub` -/
-
-/-- **`verify_sub` is complete on an honest child within its own bound by a node popping `childHints`**, stream by
-stream, given its `open_stacked` callee complete by trees popping the child's Merkle
-hints. -/
-theorem verify_sub_completeBTP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs) {Bvk κ : ℕ}
-    (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) {seed : Digest} {c : Child}
-    (S : ChildSegs bytecode seed c) (sqE outE : ℕ) (Lin : Main.Layout)
-    (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
-    (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 12 noKid pv).Lin
-      ((S.kids bs sqE).getD 12 noKid pv).args ((S.kids bs sqE).getD 12 noKid pv).Out (vsPos bytecode seed c)
-      (osBosAt fs W.Bnd S.μs)) :
-    CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧
-        SameStreams (t.pops coreProgram rd) (Hints.childHints bytecode seed c))
-      (vsBoundAt W Bvk S.μs S.rate) := by
-  refine CompleteAtDTBR.monoV (verify_sub_completeBTG hbl hrf hcons W hκ hvk S sqE outE Lin hst hexp hout
-    (fun _ _ ↦ S.cp_kidBP hbl (by omega) _ _) (fun B ↦ S.vt_kidBWP hbl (by omega) W B) hos) le_rfl
-    fun rd t rets hv ⟨hT, σ, bufs, ks, e, hQn, hK⟩ ↦ ⟨hT, ?_⟩
-  subst e
-  obtain ⟨b, outs, rfl, hB⟩ := hQn
-  obtain ⟨tcp, tvt, tos, ncp, nvt, nos, hmem, himpl⟩ :=
-    vs_hon_child_pops S (args := vsArgs seed c sqE outE) rfl b outs hB hst hv
-  have hQ : ∀ t ∈ [tcp, tvt, tos],
-      VsKidQ (vsPcp S.logMem S.hs) (vsPvt S.logMem S.rowsN S.H.n) (vsPos bytecode seed c) rd t := by
-    intro t ht
-    obtain ⟨hm, a, r, hvt'⟩ := hmem t ht
-    exact hK t hm ⟨a, r, hvt'⟩
-  have hlay : S.layout = Tables.layoutOf bytecode S.logMem S.rowsN := S.hlayout
-  refine himpl ?_ ?_ ((hQ tos (by simp)).2.2 nos)
-  · rw [(hQ tcp (by simp)).1 ncp, hlay, colGroupOrder_layoutOf hbl S.logMem S.hrowsL]
-    rfl
-  · have hn : S.H.n < 2 ^ 64 := by
-      have := S.nT_le hbl
-      have e : S.H.n = S.nT := rfl
-      omega
-    rw [(hQ tvt (by simp)).2.1 nvt, hlay, blockGroupOrder_eq hbl S.logMem S.hrowsL, count_eq_gen (by
-      show S.H.n < 2 ^ 64; exact hn)]
-    rfl
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -3,8 +3,8 @@
 
   An interactive oracle proof that commits to its witness: the prover sends the witness as an
   oracle message, a front component runs over it, and the verifier asks it one question at the
-  end. Completeness, and round-by-round knowledge soundness with the extractor that reads the
-  witness off the message. Candidate for ArkLib.
+  end. Round-by-round knowledge soundness with the extractor that reads the witness off the
+  message. Candidate for ArkLib.
 -/
 
 module
@@ -20,15 +20,11 @@ public import LeanVM.Protocol.ToArkLib.Oracles
 the oracle message, then runs the front component `D` with `m` as its one oracle; the verifier
 runs `D`'s front verifier and, on `D`'s output `t`, asks the message the question `Q.query t`
 (`priorQuery`, routed past the slot) and accepts `Q.out t` when `Q.check` holds of the answer.
-The verifier's output on an execution path is `commitVerdict D Q s path`
-(`commit_output`), whatever the prover.
+The verifier's output on an execution path is `commitVerdict D Q s path`, whatever the prover.
 
-* `commit_complete`: if `D` is complete from the witness relation at the message into `Q.rel
-  relOut` (the check passes and the output is in `relOut`), every outcome of the honest execution
-  is accepted into `relOut`.
 * `Security.commitCertificate`: if `D` is secure into `Q.rel relOut` at errors `err`, the
   protocol has a knowledge certificate at the same errors from the witness relation, whose
-  extractor reads the witness off the message (`extractWitness_commit`), whose terminal state is
+  extractor reads the witness off the message (`commitExtractor`), whose terminal state is
   `relOut` at the verifier's output (`Security.commitTerminal`), and whose challenges the verifier
   draws (`Security.commit_samplesChallenges`). The question needs no challenge of its own: it is
   checked at the leaf, and `Q.rel` makes the component's terminal state the protocol's.
@@ -140,11 +136,9 @@ to the message the path sends. -/
 def commitVerdict (s : S) (path : (commitSlot M σ).tree.ExecutionPath) : Option U :=
   Q.verdict path.1 (D.verdict s (restPath path).toBranchPath)
 
-/-! ## Completeness -/
+/-! ## Knowledge soundness -/
 
 variable {D Q} {relIn : S → M → Prop} {relOut : Set ((U × ∀ i, OneOracle M i) × Unit)}
-
-/-! ## Knowledge soundness -/
 
 /-- The family of the protocol's output claims, over the message as the oracle. -/
 abbrev commitFamily (M U : Type) : ClaimFamily.{0, 0} (∀ i, OneOracle M i) :=

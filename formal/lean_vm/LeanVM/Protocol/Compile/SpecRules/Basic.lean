@@ -24,8 +24,9 @@ A run of `p.bind f` is a run of `p` until `p` returns a value `a`, then a run of
 * `VerifierProgram.after_bind_of_after`, `VerifierProgram.after_bind_append`,
   `VerifierProgram.after_bind_cases`: the program after a history of `p.bind f`, inside `p`, after a
   return of `p`, and the converse decomposition.
-* `Prog.reach_bind_cases`: a local run of `p.bind f` is a run of `p`, or a run of `p` to a
-  return at `l₁` followed by a run of `f a` after `h₀ ++ l₁`.
+* `VerifierProgram.reach_of_reach_bind`, `VerifierProgram.reach_of_reach_bind_of_retSplit`: a
+  local run of `p.bind f` is a run of `p`, or a run of `p` to a return at `l₁` followed by a run
+  of `f a` after `h₀ ++ l₁`.
 * `VerifierProgram.reach_nil_iff`: the local runs from the empty history are the interactive runs.
 * `endsMove_iff_boundary`: a nonempty history ends with a prover move exactly when it is a
   boundary.

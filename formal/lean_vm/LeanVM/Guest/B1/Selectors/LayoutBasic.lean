@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Selectors.LayoutBasic
 
-  Layouts of words for B1-c's completeness: runs `(e, ws)` (word `j` at `g^(e + j)`), the memory
+  Layouts of words for the completeness proofs: runs `(e, ws)` (word `j` at `g^(e + j)`), the memory
   holding them, and a reader that holds them, to evaluate a body on before the memory is known.
 -/
 
@@ -17,7 +17,7 @@ A layout is a list of runs `(e, ws)`: word `j` of `ws` at the address `g^(e + j)
 the memory holds every run (`TbReadsAt` at `ofK (g^e)`). `layRd L`: a reader answering every
 address of a run with one of its words (by choice); on a memory holding `L` it answers as the
 memory does (`layRd_agree`). An honest body is evaluated on `layRd` of its inputs (`Fwd.ev`), and
-its loads of them hold on every memory holding them (`load_of_layRd`).
+its loads of them hold on every memory holding them.
 -/
 
 namespace LeanVM.Guest.B1.Tables

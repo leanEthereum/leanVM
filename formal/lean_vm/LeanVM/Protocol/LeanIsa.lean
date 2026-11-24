@@ -12,7 +12,7 @@ public import LeanVM.Arithmetization.Statement
 public import LeanVM.Protocol.Bus
 public import LeanVM.Protocol.FixedColumns
 public import LeanVM.Protocol.Stack
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 
 /-!
 # The leanISA instance
@@ -974,12 +974,6 @@ theorem constrained_pushes : ∀ j : Fin 9, 0 < (LeanIsa.constraints j).length �
 
 variable (prog : LeanIsaProgram) (s : Sizes)
 
-/-- A side's leaf count, from its blocks' log-heights. -/
-private theorem leafCount_eq (I : M3Instance) (k : Fin 3) :
-    Bus.leafCount I k = (((Bus.sources I k).map Bus.Source.κ).map (2 ^ ·)).sum := by
-  rw [Bus.leafCount, List.map_map]
-  rfl
-
 /-- The leaves of the push side, by table. -/
 private theorem leafCount_push :
     Bus.leafCount (leanIsaInstance prog s) 0 =
@@ -987,7 +981,7 @@ private theorem leafCount_push :
       ((List.finRange 9).map fun j ↦
         ((LeanIsa.flushes j).filter fun f ↦ decide (f.1 = Side.push)).length *
           2 ^ height prog s j).sum := by
-  rw [leafCount_eq]
+  rw [Bus.leafCount_eq]
   change ((((Bus.sideSources _ .push).map Bus.Source.κ).map (2 ^ ·))).sum = _
   rw [Bus.sideSources_map_κ, List.map_append, List.sum_append, sum_flatMap_replicate,
     List.map_map]
@@ -997,7 +991,7 @@ private theorem leafCount_push :
 boundary blocks pair up. -/
 private theorem leafCount_pull :
     Bus.leafCount (leanIsaInstance prog s) 1 = Bus.leafCount (leanIsaInstance prog s) 0 := by
-  rw [leafCount_push, leafCount_eq]
+  rw [leafCount_push, Bus.leafCount_eq]
   change ((((Bus.sideSources _ .pull).map Bus.Source.κ).map (2 ^ ·))).sum = _
   rw [Bus.sideSources_map_κ, List.map_append, List.sum_append, sum_flatMap_replicate,
     List.map_map]
@@ -1006,7 +1000,7 @@ private theorem leafCount_pull :
 /-- The count side has at most as many leaves as the push side. -/
 private theorem leafCount_count_le :
     Bus.leafCount (leanIsaInstance prog s) 2 ≤ Bus.leafCount (leanIsaInstance prog s) 0 := by
-  rw [leafCount_push, leafCount_eq]
+  rw [leafCount_push, Bus.leafCount_eq]
   change ((((Bus.countSources _).map Bus.Source.κ).map (2 ^ ·))).sum ≤ _
   rw [Bus.countSources_map_κ, sum_flatMap_replicate]
   refine le_add_left (List.sum_le_sum fun j _ ↦ ?_)

@@ -6,6 +6,14 @@ import all LeanVM.Protocol.Whir.Sound.LowMsgC
 import all LeanVM.Protocol.Whir.Sound.StackA
 import all Statement.Prover.Ntt
 import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 import all LeanVM.Protocol.Whir.Sound.State
 import all LeanVM.Protocol.Whir.Sound.DescentC
 import all LeanVM.Protocol.Whir.Params.Check
@@ -694,21 +702,16 @@ theorem leavesAt_cost (hP : Includes P leavesAtC.costDeps)
 
 /-! ## The levels' shapes -/
 
-/-- Every level of the fold table spans at most `2^34` columns. -/
-theorem foldTable_small : (Protocol.Whir.AffineCombiner.foldTable.all fun row ↦ row.all fun lvs ↦
-    lvs.all fun lv ↦ decide (lv.1 + lv.2.1 ≤ 34)) = true := by
-  decide +kernel
-
-theorem levels_small (μ R i : ℕ) :
-    ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).1 +
-      ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).2.1 ≤ 34 := by
-  have hT := foldTable_small
-  simp only [List.all_eq_true, decide_eq_true_eq] at hT
+/-- A property of every level of the fold table, and of `junkLv`, holds of every entry of
+`levelsOf μ R`. -/
+theorem levelsOf_getD_of_all (p : Protocol.Whir.Params.Lv → Prop)
+    (hT : ∀ row ∈ Protocol.Whir.AffineCombiner.foldTable, ∀ lvs ∈ row, ∀ lv ∈ lvs, p lv)
+    (hj : p Protocol.Whir.Params.junkLv) (μ R i : ℕ) :
+    p ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv) := by
   rw [List.getD_eq_getElem?_getD]
   cases h : (Protocol.Whir.Params.levelsOf μ R)[i]? with
-  | none => simp [Protocol.Whir.Params.junkLv]
+  | none => exact hj
   | some lv =>
-    simp only [Option.getD_some]
     have hm := List.mem_of_getElem? h
     unfold Protocol.Whir.Params.levelsOf at hm
     rw [List.getD_eq_getElem?_getD] at hm
@@ -723,6 +726,18 @@ theorem levels_small (μ R i : ℕ) :
       | some row =>
         rw [h3, Option.getD_some] at hm2
         exact hT row (List.mem_of_getElem? h3) lvs hm2 lv hm
+
+/-- Every level of the fold table spans at most `2^34` columns. -/
+theorem foldTable_small : (Protocol.Whir.AffineCombiner.foldTable.all fun row ↦ row.all fun lvs ↦
+    lvs.all fun lv ↦ decide (lv.1 + lv.2.1 ≤ 34)) = true := by
+  decide +kernel
+
+theorem levels_small (μ R i : ℕ) :
+    ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).1 +
+      ((Protocol.Whir.Params.levelsOf μ R).getD i Protocol.Whir.Params.junkLv).2.1 ≤ 34 := by
+  have hT := foldTable_small
+  simp only [List.all_eq_true, decide_eq_true_eq] at hT
+  exact levelsOf_getD_of_all (fun lv ↦ lv.1 + lv.2.1 ≤ 34) hT (by simp [Protocol.Whir.Params.junkLv]) μ R i
 
 theorem lvC_small (μ R i : ℕ) : (lvC μ R i).1 + (lvC μ R i).2.1 ≤ 34 := by
   have := levels_small μ R i

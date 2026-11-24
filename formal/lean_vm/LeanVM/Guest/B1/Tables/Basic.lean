@@ -22,7 +22,7 @@ families (prefixed `tb`) until the shared `B1/Common` has them:
   holds, compared with a template at its position;
 * `tb_loadHolds_mul_gen_pow`, `tb_loadHolds_unique`, `tbReadsAt_append`: memory runs;
 * `tbSetv`, `tbSetl`, `tb_look`: valuations built block by block;
-* `tb_loop_iff`, `tb_guarded_loop_iff`: `mul_range` loops.
+* `tb_loop_sound`: `mul_range` loops.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -196,7 +196,6 @@ def tbStmtsEqb : List Stmt → List Stmt → Bool
   | [], [] => true
   | s :: ss, s' :: ss' => tbStmtEqb s s' && tbStmtsEqb ss ss'
   | _, _ => false
-
 
 /-- Arms compared structurally. -/
 def tbArmsEqb : List (List Stmt) → List (List Stmt) → Bool
@@ -432,13 +431,10 @@ end Blocks
 def tbSetv (σ : Val) (b n : ℕ) (f : ℕ → E) : Val := fun v =>
   if v.path = [] ∧ v.tag = 0 ∧ b ≤ v.idx ∧ v.idx < b + n then f (v.idx - b) else σ v
 
-/-- The valuation of a function's arguments, `.n k ↦ args[k]`. -/
-def tbOfArgs (args : List E) : Val := fun v => args.getD v.idx 0
-
 /-- `σ` with the values from `.n b` on set to the words `l`. -/
 abbrev tbSetl (σ : Val) (b : ℕ) (l : List E) : Val := tbSetv σ b l.length (fun k => l.getD k 0)
 
-/-- Evaluate a lookup in a valuation built by `tbSetv`/`tbSetl` on `tbOfArgs`, the side
+/-- Evaluate a lookup in a valuation built by `tbSetv`/`tbSetl` on the arguments, the side
 conditions by `omega` from the context. -/
 macro "tb_look" : tactic =>
   `(tactic| simp (disch := omega) only [tbSetl, tb_set_n_lt, tb_set_n_ge, tb_set_n_in,

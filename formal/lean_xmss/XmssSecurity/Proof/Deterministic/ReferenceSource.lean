@@ -1,17 +1,23 @@
 module
 
 public import XmssSecurity.Proof.Deterministic.TranscriptReduction
-public import XmssSecurity.Proof.Deterministic.TrialSampling
 
 @[expose] public section
+
+/-!
+# The source game with the reference signer
+
+`runWorldSigning` answers signing requests with an oracle-world computation. With
+`Concrete.precomputedCappedSign` as the signer, the source game is the rest of the security game
+after key generation (`runWorldSigning_sourceGame`), and simulating such a run with a handler
+simulates the computation with the handler and the simulated signer (`simulateQ_runWorldSigning`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 def runWorldSigning {α : Type} (sign : SignRequest → OracleComp OracleWorld (Option Signature))
     (computation : OracleComp (OracleWorld + SigningSpec) α) : OracleComp OracleWorld α :=

@@ -8,11 +8,11 @@
 
 module
 
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 import LeanVM.Protocol.KeccakHash
 public import LeanVM.Parameters.Field
