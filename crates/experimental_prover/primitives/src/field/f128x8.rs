@@ -426,6 +426,21 @@ mod avx2 {
             })
         }
 
+        /// Eight runs of sixteen elements: `out[j]` lane `p` is `src[16p + j]`.
+        #[inline(always)]
+        pub fn load_blocks(src: &[F128; 128]) -> [Self; 16] {
+            let at = |p: usize, j: usize| src[16 * p + j..].as_ptr().cast::<__m128i>();
+            std::array::from_fn(|j| {
+                Self(std::array::from_fn(|h| {
+                    // SAFETY: avx2 is enabled and each address holds one readable element.
+                    let pair = |i: usize| unsafe { _mm256_loadu2_m128i(at(4 * h + i + 2, j), at(4 * h + i, j)) };
+                    let (a, b) = (pair(0), pair(1));
+                    // SAFETY: the module's cfg enables avx2.
+                    F128x4(unsafe { [_mm256_unpacklo_epi64(a, b), _mm256_unpackhi_epi64(a, b)] })
+                }))
+            })
+        }
+
         /// Stores the lanes `a0 b0 a1 b1 … a7 b7`.
         #[inline(always)]
         pub fn store_interleaved(a: Self, b: Self, dst: &mut [F128; 16]) {

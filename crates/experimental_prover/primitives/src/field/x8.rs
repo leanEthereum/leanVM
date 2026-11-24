@@ -121,6 +121,16 @@ impl F128x8 {
         std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(2 * j + k) / 8][(2 * j + k) % 8])))
     }
 
+    /// Eight runs of sixteen elements: `out[j]` lane `p` is `src[16p + j]`.
+    #[inline(always)]
+    pub fn load_blocks(src: &[F128; 128]) -> [Self; 16] {
+        let q = src.as_ptr().cast::<u64>();
+        // SAFETY: the 128 elements are 256 readable qwords.
+        let blocks: [[__m512i; 8]; 4] =
+            std::array::from_fn(|b| transpose8(std::array::from_fn(|p| unsafe { load_u64x8(q.add(32 * p + 8 * b)) })));
+        std::array::from_fn(|j| Self(std::array::from_fn(|k| blocks[(2 * j + k) / 8][(2 * j + k) % 8])))
+    }
+
     /// The even lanes of `a` then of `b`, and the odd lanes of `a` then of `b`.
     #[inline(always)]
     pub fn even_odd(a: Self, b: Self) -> (Self, Self) {
