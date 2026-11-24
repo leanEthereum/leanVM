@@ -16,8 +16,9 @@ The causal simulation reads every chain value of key generation (`GlobalChainVal
 hidden value of `RevealProbeOracleSimulation`. Its state, `GlobalCausalHashState`, holds the random
 oracle's cache, key generation's cache, the values revealed so far and the chain probes the hash
 queries made (`globalCausalRecordedState`). `revealGlobalSignature` reveals the chain values a
-returned signature sends at both layers and writes them into the signature
-(`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
+returned signature sends at both layers and writes them into the signature, one layer at a time by
+the side of the chain key (`revealGlobalSignatureChains`,
+`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
 shows that a signature replayed from one key generation is the other's with the revealed table
 values written in, under the relations defined here (`ProgrammedGlobalChainKeygenStableRelation`,
 `ProgrammedGlobalChainKeygenFullCacheStableRelation`). Key generation with presampled trajectories
@@ -169,129 +170,6 @@ def globalCausalUniformImpl :
   fun n => liftM (RevealProbeOracleSimulation.uniformQuery
     (Index := GlobalChainValueIndex) n)
 
-noncomputable def revealGlobalSignatureChains
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
-    List ChainIndex → Signature →
-      StateT GlobalCausalHashState
-        (OracleComp
-          (RevealProbeOracleSimulation.World GlobalChainValueIndex)) Signature
-  | [], signature => pure signature
-  | chain :: chains, signature => fun state => do
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
-      let value ← RevealProbeOracleSimulation.revealQuery index
-      (revealGlobalSignatureChains request encoding chains
-        (replaceSignatureChainValue signature chain value)).run
-          (state.recordReveal index value)
-
-def globalSignatureRevealResult
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
-    List ChainIndex → Signature → GlobalCausalHashState →
-      Signature × GlobalCausalHashState
-  | [], signature, state => (signature, state)
-  | chain :: chains, signature, state =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
-      globalSignatureRevealResult table request encoding chains
-        (replaceSignatureChainValue signature chain (table index))
-        (state.recordReveal index (table index))
-
-def globalSignatureRevealTrace
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
-    List ChainIndex →
-      RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
-  | [] => []
-  | chain :: chains =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
-      .reveal index (table index) ::
-        globalSignatureRevealTrace table request encoding chains
-
-theorem simulate_eagerTrace_revealGlobalSignatureChains
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-        ((revealGlobalSignatureChains request encoding chains signature).run
-          state)).run =
-      pure (globalSignatureRevealResult table request encoding chains
-          signature state,
-        globalSignatureRevealTrace table request encoding chains) := by
-  induction chains generalizing signature state with
-  | nil =>
-      simp [revealGlobalSignatureChains, globalSignatureRevealResult,
-        globalSignatureRevealTrace]
-  | cons chain chains ih =>
-      rw [revealGlobalSignatureChains]
-      change (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table) (do
-          let value ← RevealProbeOracleSimulation.revealQuery
-            (chain, .inl request.leafIndex, encoding chain)
-          (revealGlobalSignatureChains request encoding chains
-            (replaceSignatureChainValue signature chain value)).run
-              (state.recordReveal
-                (chain, .inl request.leafIndex, encoding chain) value))).run = _
-      rw [simulateQ_bind, WriterT.run_bind',
-        RevealProbeOracleSimulation.simulate_eagerTrace_revealQuery]
-      simp only [pure_bind]
-      rw [ih]
-      simp [globalSignatureRevealResult, globalSignatureRevealTrace]
-
-theorem globalSignatureRevealResult_chainValue_of_not_mem
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) (candidate : ChainIndex)
-    (hnotmem : candidate ∉ chains) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).1.chainValue candidate = signature.chainValue candidate := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      simp only [List.mem_cons, not_or] at hnotmem
-      rw [globalSignatureRevealResult]
-      rw [ih _ _ hnotmem.2]
-      exact replaceSignatureChainValue_other signature chain candidate
-        (table (chain, .inl request.leafIndex, encoding chain))
-        hnotmem.1
-
-theorem globalSignatureRevealResult_chainValue_of_mem
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) (candidate : ChainIndex)
-    (hnodup : chains.Nodup) (hmem : candidate ∈ chains) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).1.chainValue candidate =
-        table (candidate, .inl request.leafIndex, encoding candidate) := by
-  induction chains generalizing signature state with
-  | nil => simp at hmem
-  | cons chain chains ih =>
-      rw [List.nodup_cons] at hnodup
-      rw [List.mem_cons] at hmem
-      rcases hmem with heq | hmem
-      · subst candidate
-        rw [globalSignatureRevealResult,
-          globalSignatureRevealResult_chainValue_of_not_mem]
-        · exact replaceSignatureChainValue_same signature chain _
-        · exact hnodup.1
-      · rw [globalSignatureRevealResult]
-        exact ih _ _ hnodup.2 hmem
-
-theorem globalSignatureRevealResult_allChains_chainValue
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (signature : Signature) (state : GlobalCausalHashState)
-    (chain : ChainIndex) :
-    (globalSignatureRevealResult table request encoding allChains signature
-      state).1.chainValue chain =
-        table (chain, .inl request.leafIndex, encoding chain) := by
-  apply globalSignatureRevealResult_chainValue_of_mem
-  · exact allChains_nodup
-  · simp [allChains]
-
 theorem globalCausalHashQuery_run_isProbeQueryBoundP
     (input : HashInput) (state : GlobalCausalHashState) :
     (globalCausalHashQuery input).run state |>.IsQueryBoundP
@@ -301,164 +179,107 @@ theorem globalCausalHashQuery_run_isProbeQueryBoundP
   exact RevealProbeOracleSimulation.liftProbComp_isProbeQueryBoundP
     ((randomOracle input).run state.cache) 0
 
-theorem revealGlobalSignatureChains_run_isProbeQueryBoundP
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (revealGlobalSignatureChains request encoding chains signature).run state
-        |>.IsQueryBoundP RevealProbeOracleSimulation.IsProbeQuery 0 := by
-  induction chains generalizing signature state with
-  | nil => simp [revealGlobalSignatureChains]
-  | cons chain chains ih =>
-      rw [revealGlobalSignatureChains]
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
-      apply OracleComp.isQueryBoundP_bind (n := 0) (m := 0)
-        (RevealProbeOracleSimulation.revealQuery_isProbeQueryBoundP index 0)
-      intro value _hvalue
-      exact ih (replaceSignatureChainValue signature chain value)
-        (state.recordReveal index value)
+section Reveal
 
-noncomputable def revealGlobalSignatureTopChains
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
+variable (table : GlobalChainValueIndex → Digest) (key : ChainKey) (encoding : ChainIndex → Digit)
+  (chains : List ChainIndex) (signature : Signature) (state : GlobalCausalHashState)
+
+/-- Reveal the chain values of `chains` at key `key`'s layer and write them into the signature. -/
+noncomputable def revealGlobalSignatureChains (key : ChainKey) (encoding : ChainIndex → Digit) :
     List ChainIndex → Signature →
       StateT GlobalCausalHashState
-        (OracleComp
-          (RevealProbeOracleSimulation.World GlobalChainValueIndex)) Signature
+        (OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)) Signature
   | [], signature => pure signature
   | chain :: chains, signature => fun state => do
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
+      let index : GlobalChainValueIndex := (chain, key, encoding chain)
       let value ← RevealProbeOracleSimulation.revealQuery index
-      (revealGlobalSignatureTopChains request encoding chains
-        (replaceSignatureTopChainValue signature chain value)).run
+      (revealGlobalSignatureChains key encoding chains
+        (replaceSignatureChainValue key signature chain value)).run
           (state.recordReveal index value)
 
-def globalSignatureTopRevealResult
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
-    List ChainIndex → Signature → GlobalCausalHashState →
-      Signature × GlobalCausalHashState
+/-- `revealGlobalSignatureChains` answered from `table`. -/
+def globalSignatureRevealResult (table : GlobalChainValueIndex → Digest) (key : ChainKey)
+    (encoding : ChainIndex → Digit) :
+    List ChainIndex → Signature → GlobalCausalHashState → Signature × GlobalCausalHashState
   | [], signature, state => (signature, state)
   | chain :: chains, signature, state =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-      globalSignatureTopRevealResult table request encoding chains
-        (replaceSignatureTopChainValue signature chain (table index))
+      let index : GlobalChainValueIndex := (chain, key, encoding chain)
+      globalSignatureRevealResult table key encoding chains
+        (replaceSignatureChainValue key signature chain (table index))
         (state.recordReveal index (table index))
 
-def globalSignatureTopRevealTrace
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit) :
-    List ChainIndex →
-      RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
+/-- The reveals `revealGlobalSignatureChains` makes. -/
+def globalSignatureRevealTrace (table : GlobalChainValueIndex → Digest) (key : ChainKey)
+    (encoding : ChainIndex → Digit) :
+    List ChainIndex → RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
   | [] => []
   | chain :: chains =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-      .reveal index (table index) ::
-        globalSignatureTopRevealTrace table request encoding chains
+      let index : GlobalChainValueIndex := (chain, key, encoding chain)
+      .reveal index (table index) :: globalSignatureRevealTrace table key encoding chains
 
-theorem simulate_eagerTrace_revealGlobalSignatureTopChains
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
+theorem simulate_eagerTrace_revealGlobalSignatureChains :
     (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-        ((revealGlobalSignatureTopChains request encoding chains signature).run
-          state)).run =
-      pure (globalSignatureTopRevealResult table request encoding chains
-          signature state,
-        globalSignatureTopRevealTrace table request encoding chains) := by
+        ((revealGlobalSignatureChains key encoding chains signature).run state)).run =
+      pure (globalSignatureRevealResult table key encoding chains signature state,
+        globalSignatureRevealTrace table key encoding chains) := by
   induction chains generalizing signature state with
-  | nil =>
-      simp [revealGlobalSignatureTopChains, globalSignatureTopRevealResult,
-        globalSignatureTopRevealTrace]
+  | nil => simp [revealGlobalSignatureChains, globalSignatureRevealResult, globalSignatureRevealTrace]
   | cons chain chains ih =>
-      rw [revealGlobalSignatureTopChains]
+      rw [revealGlobalSignatureChains]
       change (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table) (do
-          let value ← RevealProbeOracleSimulation.revealQuery
-            (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-          (revealGlobalSignatureTopChains request encoding chains
-            (replaceSignatureTopChainValue signature chain value)).run
-              (state.recordReveal
-                (chain, .inr (topKeyOf request.leafIndex), encoding chain) value))).run = _
+          let value ← RevealProbeOracleSimulation.revealQuery (chain, key, encoding chain)
+          (revealGlobalSignatureChains key encoding chains
+            (replaceSignatureChainValue key signature chain value)).run
+              (state.recordReveal (chain, key, encoding chain) value))).run = _
       rw [simulateQ_bind, WriterT.run_bind',
         RevealProbeOracleSimulation.simulate_eagerTrace_revealQuery]
       simp only [pure_bind]
       rw [ih]
-      simp [globalSignatureTopRevealResult, globalSignatureTopRevealTrace]
+      simp [globalSignatureRevealResult, globalSignatureRevealTrace]
 
-theorem globalSignatureTopRevealResult_chainValue_of_not_mem
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) (candidate : ChainIndex)
+theorem globalSignatureRevealResult_chainValue_of_not_mem (candidate : ChainIndex)
     (hnotmem : candidate ∉ chains) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.top.chainValue candidate = signature.top.chainValue candidate := by
+    (globalSignatureRevealResult table key encoding chains signature state).1.keyChainValue key
+      candidate = signature.keyChainValue key candidate := by
   induction chains generalizing signature state with
   | nil => rfl
   | cons chain chains ih =>
       simp only [List.mem_cons, not_or] at hnotmem
-      rw [globalSignatureTopRevealResult]
-      rw [ih _ _ hnotmem.2]
-      exact replaceSignatureTopChainValue_other signature chain candidate
-        (table (chain, .inr (topKeyOf request.leafIndex), encoding chain))
-        hnotmem.1
+      rw [globalSignatureRevealResult, ih _ _ hnotmem.2]
+      exact replaceSignatureChainValue_other key signature chain candidate _ hnotmem.1
 
-theorem globalSignatureTopRevealResult_chainValue_of_mem
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) (candidate : ChainIndex)
+theorem globalSignatureRevealResult_chainValue_of_mem (candidate : ChainIndex)
     (hnodup : chains.Nodup) (hmem : candidate ∈ chains) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.top.chainValue candidate =
-        table (candidate, .inr (topKeyOf request.leafIndex), encoding candidate) := by
+    (globalSignatureRevealResult table key encoding chains signature state).1.keyChainValue key
+      candidate = table (candidate, key, encoding candidate) := by
   induction chains generalizing signature state with
   | nil => simp at hmem
   | cons chain chains ih =>
       rw [List.nodup_cons] at hnodup
       rw [List.mem_cons] at hmem
-      rcases hmem with heq | hmem
-      · subst candidate
-        rw [globalSignatureTopRevealResult,
-          globalSignatureTopRevealResult_chainValue_of_not_mem]
-        · exact replaceSignatureTopChainValue_same signature chain _
-        · exact hnodup.1
-      · rw [globalSignatureTopRevealResult]
+      rcases hmem with rfl | hmem
+      · rw [globalSignatureRevealResult, globalSignatureRevealResult_chainValue_of_not_mem _ _ _ _ _ _
+          _ hnodup.1]
+        exact replaceSignatureChainValue_same key signature _ _
+      · rw [globalSignatureRevealResult]
         exact ih _ _ hnodup.2 hmem
 
-theorem globalSignatureTopRevealResult_allChains_chainValue
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (signature : Signature) (state : GlobalCausalHashState)
-    (chain : ChainIndex) :
-    (globalSignatureTopRevealResult table request encoding allChains signature
-      state).1.top.chainValue chain =
-        table (chain, .inr (topKeyOf request.leafIndex), encoding chain) := by
-  apply globalSignatureTopRevealResult_chainValue_of_mem
-  · exact allChains_nodup
-  · simp [allChains]
+theorem globalSignatureRevealResult_allChains_chainValue (chain : ChainIndex) :
+    (globalSignatureRevealResult table key encoding allChains signature state).1.keyChainValue key
+      chain = table (chain, key, encoding chain) :=
+  globalSignatureRevealResult_chainValue_of_mem _ _ _ _ _ _ _ allChains_nodup (by simp [allChains])
 
-theorem revealGlobalSignatureTopChains_run_isProbeQueryBoundP
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (revealGlobalSignatureTopChains request encoding chains signature).run state
+theorem revealGlobalSignatureChains_run_isProbeQueryBoundP :
+    (revealGlobalSignatureChains key encoding chains signature).run state
         |>.IsQueryBoundP RevealProbeOracleSimulation.IsProbeQuery 0 := by
   induction chains generalizing signature state with
-  | nil => simp [revealGlobalSignatureTopChains]
+  | nil => simp [revealGlobalSignatureChains]
   | cons chain chains ih =>
-      rw [revealGlobalSignatureTopChains]
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
+      rw [revealGlobalSignatureChains]
       apply OracleComp.isQueryBoundP_bind (n := 0) (m := 0)
-        (RevealProbeOracleSimulation.revealQuery_isProbeQueryBoundP index 0)
+        (RevealProbeOracleSimulation.revealQuery_isProbeQueryBoundP (chain, key, encoding chain) 0)
       intro value _hvalue
-      exact ih (replaceSignatureTopChainValue signature chain value)
-        (state.recordReveal index value)
+      exact ih _ _
 
 theorem Signature.eq_of_fields
     (left right : Signature)
@@ -471,161 +292,61 @@ theorem Signature.eq_of_fields
   cases right
   simp_all
 
-theorem globalSignatureRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).1.randomness = signature.randomness := by
+/-- What a reveal leaves alone: `field` reads no chain value of key `key`'s layer. -/
+theorem globalSignatureRevealResult_field {α : Type} (field : Signature → α)
+    (hfield : ∀ signature chain value,
+      field (replaceSignatureChainValue key signature chain value) = field signature) :
+    field (globalSignatureRevealResult table key encoding chains signature state).1 =
+      field signature := by
   induction chains generalizing signature state with
   | nil => rfl
   | cons chain chains ih =>
-      rw [globalSignatureRevealResult]
-      exact ih _ _
+      rw [globalSignatureRevealResult, ih, hfield]
 
-theorem globalSignatureRevealResult_authPath
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).1.authPath = signature.authPath := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureRevealResult]
-      exact ih _ _
+theorem globalSignatureRevealResult_randomness :
+    (globalSignatureRevealResult table key encoding chains signature state).1.randomness =
+      signature.randomness :=
+  globalSignatureRevealResult_field table key encoding chains signature state Signature.randomness (by cases key <;> intros <;> rfl)
 
-theorem globalSignatureRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).2.cache = state.cache := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureRevealResult, ih]
-      rfl
+theorem globalSignatureRevealResult_authPath :
+    (globalSignatureRevealResult table key encoding chains signature state).1.authPath =
+      signature.authPath :=
+  globalSignatureRevealResult_field table key encoding chains signature state Signature.authPath (by cases key <;> intros <;> rfl)
 
-theorem globalSignatureRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).2.keygenCache = state.keygenCache := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureRevealResult, ih]
-      rfl
+theorem globalSignatureRevealResult_inl_top (leafIndex : LeafIndex) :
+    (globalSignatureRevealResult table (.inl leafIndex) encoding chains signature state).1.top =
+      signature.top :=
+  globalSignatureRevealResult_field table _ encoding chains signature state Signature.top (fun _ _ _ => rfl)
 
-theorem globalSignatureTopRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.randomness = signature.randomness := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult]
-      exact ih _ _
+theorem globalSignatureRevealResult_inr_chainValue (topKey : TopIndex) :
+    (globalSignatureRevealResult table (.inr topKey) encoding chains signature state).1.chainValue =
+      signature.chainValue :=
+  globalSignatureRevealResult_field table _ encoding chains signature state Signature.chainValue (fun _ _ _ => rfl)
 
-theorem globalSignatureTopRevealResult_authPath
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.authPath = signature.authPath := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult]
-      exact ih _ _
+theorem globalSignatureRevealResult_inr_topRandomness (topKey : TopIndex) :
+    (globalSignatureRevealResult table (.inr topKey) encoding chains signature state).1.top.randomness =
+      signature.top.randomness :=
+  globalSignatureRevealResult_field table _ encoding chains signature state (·.top.randomness) (fun _ _ _ => rfl)
 
-theorem globalSignatureTopRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).2.cache = state.cache := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult, ih]
-      rfl
+theorem globalSignatureRevealResult_inr_topAuthPath (topKey : TopIndex) :
+    (globalSignatureRevealResult table (.inr topKey) encoding chains signature state).1.top.authPath =
+      signature.top.authPath :=
+  globalSignatureRevealResult_field table _ encoding chains signature state (·.top.authPath) (fun _ _ _ => rfl)
 
-theorem globalSignatureTopRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).2.keygenCache = state.keygenCache := by
+theorem globalSignatureRevealResult_cache :
+    (globalSignatureRevealResult table key encoding chains signature state).2.cache = state.cache := by
   induction chains generalizing signature state with
   | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult, ih]
-      rfl
+  | cons chain chains ih => rw [globalSignatureRevealResult, ih]; rfl
 
-theorem globalSignatureRevealResult_top
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureRevealResult table request encoding chains signature
-      state).1.top = signature.top := by
+theorem globalSignatureRevealResult_keygenCache :
+    (globalSignatureRevealResult table key encoding chains signature state).2.keygenCache =
+      state.keygenCache := by
   induction chains generalizing signature state with
   | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureRevealResult]
-      exact ih _ _
+  | cons chain chains ih => rw [globalSignatureRevealResult, ih]; rfl
 
-theorem globalSignatureTopRevealResult_chainValue
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.chainValue = signature.chainValue := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult]
-      exact ih _ _
-
-theorem globalSignatureTopRevealResult_topRandomness
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.top.randomness = signature.top.randomness := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult]
-      exact ih _ _
-
-theorem globalSignatureTopRevealResult_topAuthPath
-    (table : GlobalChainValueIndex → Digest)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    (globalSignatureTopRevealResult table request encoding chains signature
-      state).1.top.authPath = signature.top.authPath := by
-  induction chains generalizing signature state with
-  | nil => rfl
-  | cons chain chains ih =>
-      rw [globalSignatureTopRevealResult]
-      exact ih _ _
+end Reveal
 
 /-- Reveal the chain values a returned signature sends: its bottom ones and those of its top
 signature. An unsigned bottom tree's signature is never returned, so nothing is revealed. -/
@@ -638,8 +359,8 @@ noncomputable def revealGlobalSignature
     match topSigned (topKeyOf request.leafIndex) with
     | none => pure (signature, state)
     | some (_, topEncoding) => do
-        let bottom ← (revealGlobalSignatureChains request encoding allChains signature).run state
-        (revealGlobalSignatureTopChains request topEncoding allChains bottom.1).run bottom.2
+        let bottom ← (revealGlobalSignatureChains (.inl request.leafIndex) encoding allChains signature).run state
+        (revealGlobalSignatureChains (.inr (topKeyOf request.leafIndex)) topEncoding allChains bottom.1).run bottom.2
 
 noncomputable def globalSignatureFullRevealResult
     (table : GlobalChainValueIndex → Digest)
@@ -649,8 +370,8 @@ noncomputable def globalSignatureFullRevealResult
   match topSigned (topKeyOf request.leafIndex) with
   | none => (signature, state)
   | some (_, topEncoding) =>
-      let bottom := globalSignatureRevealResult table request encoding allChains signature state
-      globalSignatureTopRevealResult table request topEncoding allChains bottom.1 bottom.2
+      let bottom := globalSignatureRevealResult table (.inl request.leafIndex) encoding allChains signature state
+      globalSignatureRevealResult table (.inr (topKeyOf request.leafIndex)) topEncoding allChains bottom.1 bottom.2
 
 noncomputable def globalSignatureFullRevealTrace
     (table : GlobalChainValueIndex → Digest)
@@ -660,8 +381,8 @@ noncomputable def globalSignatureFullRevealTrace
   match topSigned (topKeyOf request.leafIndex) with
   | none => []
   | some (_, topEncoding) =>
-      globalSignatureRevealTrace table request encoding allChains ++
-        globalSignatureTopRevealTrace table request topEncoding allChains
+      globalSignatureRevealTrace table (.inl request.leafIndex) encoding allChains ++
+        globalSignatureRevealTrace table (.inr (topKeyOf request.leafIndex)) topEncoding allChains
 
 theorem simulate_eagerTrace_revealGlobalSignature
     (table : GlobalChainValueIndex → Digest)
@@ -685,8 +406,8 @@ theorem simulate_eagerTrace_revealGlobalSignature
   | some signed =>
       obtain ⟨randomness, topEncoding⟩ := signed
       have hrun : (revealGlobalSignature topSigned request encoding signature).run state =
-          ((revealGlobalSignatureChains request encoding allChains signature).run state >>=
-            fun bottom => (revealGlobalSignatureTopChains request topEncoding allChains
+          ((revealGlobalSignatureChains (.inl request.leafIndex) encoding allChains signature).run state >>=
+            fun bottom => (revealGlobalSignatureChains (.inr (topKeyOf request.leafIndex)) topEncoding allChains
               bottom.1).run bottom.2) := by
         unfold revealGlobalSignature
         rw [htop]
@@ -694,7 +415,7 @@ theorem simulate_eagerTrace_revealGlobalSignature
       rw [hrun, simulateQ_bind, WriterT.run_bind',
         simulate_eagerTrace_revealGlobalSignatureChains]
       simp only [pure_bind]
-      rw [simulate_eagerTrace_revealGlobalSignatureTopChains]
+      rw [simulate_eagerTrace_revealGlobalSignatureChains]
       simp
 
 theorem revealGlobalSignature_run_isProbeQueryBoundP
@@ -715,18 +436,19 @@ theorem revealGlobalSignature_run_isProbeQueryBoundP
   | some signed =>
       obtain ⟨randomness, topEncoding⟩ := signed
       have hrun : (revealGlobalSignature topSigned request encoding signature).run state =
-          ((revealGlobalSignatureChains request encoding allChains signature).run state >>=
-            fun bottom => (revealGlobalSignatureTopChains request topEncoding allChains
+          ((revealGlobalSignatureChains (.inl request.leafIndex) encoding allChains signature).run state >>=
+            fun bottom => (revealGlobalSignatureChains (.inr (topKeyOf request.leafIndex)) topEncoding allChains
               bottom.1).run bottom.2) := by
         unfold revealGlobalSignature
         rw [htop]
         rfl
       rw [hrun]
       apply OracleComp.isQueryBoundP_bind (n := 0) (m := 0)
-        (revealGlobalSignatureChains_run_isProbeQueryBoundP request encoding allChains
+        (revealGlobalSignatureChains_run_isProbeQueryBoundP (.inl request.leafIndex) encoding allChains
           signature state)
       intro bottom _
-      exact revealGlobalSignatureTopChains_run_isProbeQueryBoundP request topEncoding allChains
+      exact revealGlobalSignatureChains_run_isProbeQueryBoundP (.inr (topKeyOf request.leafIndex))
+        topEncoding allChains
         bottom.1 bottom.2
 
 theorem globalSignatureFullRevealResult_cache
@@ -741,7 +463,7 @@ theorem globalSignatureFullRevealResult_cache
   | none => rfl
   | some signed =>
       simp only
-      rw [globalSignatureTopRevealResult_cache, globalSignatureRevealResult_cache]
+      rw [globalSignatureRevealResult_cache, globalSignatureRevealResult_cache]
 
 theorem globalSignatureFullRevealResult_randomness
     (table : GlobalChainValueIndex → Digest)
@@ -755,7 +477,7 @@ theorem globalSignatureFullRevealResult_randomness
   | none => rfl
   | some signed =>
       simp only
-      rw [globalSignatureTopRevealResult_randomness, globalSignatureRevealResult_randomness]
+      rw [globalSignatureRevealResult_randomness, globalSignatureRevealResult_randomness]
 
 theorem globalSignatureFullRevealResult_keygenCache
     (table : GlobalChainValueIndex → Digest)
@@ -769,7 +491,7 @@ theorem globalSignatureFullRevealResult_keygenCache
   | none => rfl
   | some signed =>
       simp only
-      rw [globalSignatureTopRevealResult_keygenCache, globalSignatureRevealResult_keygenCache]
+      rw [globalSignatureRevealResult_keygenCache, globalSignatureRevealResult_keygenCache]
 
 def ProgrammedGlobalChainKeygenView.keyResult
     (view : ProgrammedGlobalChainKeygenView) :
@@ -814,8 +536,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_topCacheStable
 
 def ProgrammedGlobalChainKeygenStableRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenRelation left right ∧
     TreeCacheStable left.secretKey.parameter left.secretKey.chainStart
       left.cache ∧
@@ -848,8 +569,7 @@ theorem LayerSignature.eq_of_fields
 other key generation's signer writes the revealed table values into. -/
 theorem keygenViews_signWithEncoding_eq_globalReveal
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (hrel : ProgrammedGlobalChainKeygenStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (_hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
@@ -878,11 +598,12 @@ theorem keygenViews_signWithEncoding_eq_globalReveal
   rw [hrightTop]
   simp only
   apply Signature.eq_of_fields
-  · rw [globalSignatureTopRevealResult_randomness, globalSignatureRevealResult_randomness]
+  · rw [globalSignatureRevealResult_randomness, globalSignatureRevealResult_randomness]
     rfl
   · funext chain
-    rw [globalSignatureTopRevealResult_chainValue,
-      globalSignatureRevealResult_allChains_chainValue]
+    rw [globalSignatureRevealResult_inr_chainValue]
+    refine Eq.trans ?_ (globalSignatureRevealResult_allChains_chainValue right.2
+      (.inl request.leafIndex) encoding _ rightState chain).symm
     have hchain :=
       Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable
         left.keyResult hleftKey leftCache hleftLe request.leafIndex randomness
@@ -907,7 +628,7 @@ theorem keygenViews_signWithEncoding_eq_globalReveal
           right.1.secretKey request.leafIndex level :=
             congrFun (hrel.1.2.2.2.1 request.leafIndex) level
       _ = _ := by
-        rw [globalSignatureTopRevealResult_authPath, globalSignatureRevealResult_authPath]
+        rw [globalSignatureRevealResult_authPath, globalSignatureRevealResult_authPath]
         change Concrete.CacheReplay.authenticationPath right.1.cache
             right.1.secretKey request.leafIndex level =
           Concrete.CacheReplay.authenticationPath rightCache
@@ -917,14 +638,15 @@ theorem keygenViews_signWithEncoding_eq_globalReveal
   · have hleftTop := hrel.2.2.2.1 leftCache hleftLe (topKeyOf request.leafIndex)
     have hrightTopStable := hrel.2.2.2.2 rightCache hrightLe (topKeyOf request.leafIndex)
     apply LayerSignature.eq_of_fields
-    · rw [globalSignatureTopRevealResult_topRandomness, globalSignatureRevealResult_top]
+    · rw [globalSignatureRevealResult_inr_topRandomness, globalSignatureRevealResult_inl_top]
       change (Concrete.CacheReplay.topPartFromCache leftCache left.secretKey
           (topKeyOf request.leafIndex)).randomness =
         (Concrete.CacheReplay.topPartFromCache rightCache right.1.secretKey
           (topKeyOf request.leafIndex)).randomness
       simp [Concrete.CacheReplay.topPartFromCache, htop, hrightTop]
     · funext chain
-      rw [globalSignatureTopRevealResult_allChains_chainValue]
+      refine Eq.trans ?_ (globalSignatureRevealResult_allChains_chainValue right.2
+        (.inr (topKeyOf request.leafIndex)) topEncoding _ _ chain).symm
       change (Concrete.CacheReplay.topPartFromCache leftCache left.secretKey
           (topKeyOf request.leafIndex)).chainValue chain = _
       have hchain := Concrete.CacheReplay.topPartFromCache_chainValue_eq_keygenChainValueTable
@@ -937,7 +659,7 @@ theorem keygenViews_signWithEncoding_eq_globalReveal
             simpa [ProgrammedGlobalChainKeygenView.keyResult] using hchain, ← htable]
       rfl
     · funext level
-      rw [globalSignatureTopRevealResult_topAuthPath, globalSignatureRevealResult_top]
+      rw [globalSignatureRevealResult_inr_topAuthPath, globalSignatureRevealResult_inl_top]
       change (Concrete.CacheReplay.topPartFromCache leftCache left.secretKey
           (topKeyOf request.leafIndex)).authPath level =
         (Concrete.CacheReplay.topPartFromCache rightCache right.1.secretKey
@@ -985,49 +707,15 @@ theorem GlobalSigningRevealsAgree.globalSignatureRevealResult
     {table : GlobalChainValueIndex → Digest}
     {state : GlobalCausalHashState}
     (hagrees : GlobalSigningRevealsAgree table state)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
+    (key : ChainKey) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature) :
     GlobalSigningRevealsAgree table
-      (globalSignatureRevealResult table request encoding chains signature
-        state).2 := by
+      (globalSignatureRevealResult table key encoding chains signature state).2 := by
   induction chains generalizing signature state with
-  | nil =>
-      change GlobalSigningRevealsAgree table state
-      exact hagrees
+  | nil => exact hagrees
   | cons chain chains ih =>
-      change GlobalSigningRevealsAgree table
-        (XmssSecurity.CappedChain.globalSignatureRevealResult table request
-          encoding chains
-          (replaceSignatureChainValue signature chain
-            (table (chain, .inl request.leafIndex, encoding chain)))
-          (state.recordReveal (chain, .inl request.leafIndex, encoding chain)
-            (table (chain, .inl request.leafIndex, encoding chain)))).2
       apply ih
-      exact hagrees.recordReveal (chain, .inl request.leafIndex, encoding chain)
-
-theorem GlobalSigningRevealsAgree.globalSignatureTopRevealResult
-    {table : GlobalChainValueIndex → Digest}
-    {state : GlobalCausalHashState}
-    (hagrees : GlobalSigningRevealsAgree table state)
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature) :
-    GlobalSigningRevealsAgree table
-      (globalSignatureTopRevealResult table request encoding chains signature
-        state).2 := by
-  induction chains generalizing signature state with
-  | nil =>
-      change GlobalSigningRevealsAgree table state
-      exact hagrees
-  | cons chain chains ih =>
-      change GlobalSigningRevealsAgree table
-        (XmssSecurity.CappedChain.globalSignatureTopRevealResult table request
-          encoding chains
-          (replaceSignatureTopChainValue signature chain
-            (table (chain, .inr (topKeyOf request.leafIndex), encoding chain)))
-          (state.recordReveal (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-            (table (chain, .inr (topKeyOf request.leafIndex), encoding chain)))).2
-      apply ih
-      exact hagrees.recordReveal (chain, .inr (topKeyOf request.leafIndex), encoding chain)
+      exact hagrees.recordReveal (chain, key, encoding chain)
 
 theorem GlobalSigningRevealsAgree.globalSignatureFullRevealResult
     {table : GlobalChainValueIndex → Digest}
@@ -1041,13 +729,13 @@ theorem GlobalSigningRevealsAgree.globalSignatureFullRevealResult
   cases topSigned (topKeyOf request.leafIndex) with
   | none => exact hagrees
   | some signed =>
-      exact (hagrees.globalSignatureRevealResult request encoding allChains
-        signature).globalSignatureTopRevealResult request signed.2 allChains _
+      exact (hagrees.globalSignatureRevealResult (.inl request.leafIndex) encoding allChains
+        signature).globalSignatureRevealResult (.inr (topKeyOf request.leafIndex)) signed.2
+          allChains _
 
 def ProgrammedGlobalChainKeygenFullCacheRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenRelation left right ∧
     ∃ leftEndpoints rightEndpoints,
       GlobalTreeCacheCorrespondence left.secretKey.parameter leftEndpoints
@@ -1069,8 +757,7 @@ def GlobalTreeSigningCacheRelation
 
 def ProgrammedGlobalChainKeygenFullCacheStableRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheRelation left right ∧
     TreeCacheStable left.secretKey.parameter left.secretKey.chainStart
       left.cache ∧
@@ -1084,8 +771,7 @@ def ProgrammedGlobalChainKeygenFullCacheStableRelation
 
 theorem ProgrammedGlobalChainKeygenFullCacheStableRelation.toStable
     {left : ProgrammedGlobalChainKeygenView}
-    {right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)}
+    {right : KeygenViewWithBase}
     (hrel : ProgrammedGlobalChainKeygenFullCacheStableRelation left right) :
     ProgrammedGlobalChainKeygenStableRelation left right :=
   ⟨hrel.1.1, hrel.2.1, hrel.2.2.1, hrel.2.2.2.1, hrel.2.2.2.2.1⟩

@@ -9,8 +9,8 @@ public import XmssSecurity.Proof.MerkleQueryPresence
 /-!
 # Key generation's cache: the bottom forest's nodes and the top layer
 
-What key generation caches at the bottom forest's Merkle addresses (global node indices, so level
-`ℓ` uses nodes below `2^(2h - ℓ - 1)`), and at the top layer's addresses: one honest input per top
+What key generation caches at the bottom forest's Merkle addresses (global node indices, so the
+address at `MerkleLevel ℓ` takes nodes below `2^(2h - ℓ - 1)`), and at the top layer's addresses: one honest input per top
 chain step, top leaf and top Merkle node, and at a top message digest address only the trials of
 the honest bottom root, of which the selected one is the only one that decodes.
 -/
@@ -159,10 +159,10 @@ theorem Concrete.precomputedKeygen_cache_has_topChainInput
   obtain ⟨beforeCache, afterCache, value, hwalk, hafter⟩ :=
     Concrete.CacheReplay.honestKeygen_runsBelow_topChainWalk hrun key chain (step.val + 1)
       (by have := step.isLt; omega)
-  obtain ⟨output, hcached⟩ := Concrete.CacheReplay.topChainWalk_query_cached_in_largerCache
-    keyResult.1.2.parameter key chain 0 (step.val + 1) (keyResult.1.2.topChainStart key chain)
-    step.val (by omega) (by have := step.isLt; omega) beforeCache afterCache keyResult.2 value
-    hwalk hafter
+  obtain ⟨output, hcached⟩ := Concrete.CacheReplay.keyChainWalk_query_cached_in_largerCache
+    keyResult.1.2.parameter (.inr key) chain 0 (step.val + 1)
+    (keyResult.1.2.topChainStart key chain) step.val (by omega) (by have := step.isLt; omega)
+    beforeCache afterCache keyResult.2 value (by rwa [Concrete.keyChainWalk_inr]) hafter
   have hstep : (⟨0 + step.val, by have := step.isLt; omega⟩ : ChainStep) = step :=
     Fin.ext (Nat.zero_add _)
   rw [hstep] at hcached

@@ -237,18 +237,14 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh
       hrightMaterialSupport, hrunRel⟩, hhighFinal, hmatches.mono hcacheLe⟩
 
 noncomputable def coupledGlobalChainKeygenWithBaseHighFull :
-    ProbComp ((ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest)) := do
+    ProbComp KeygenViewWithBaseHigh := do
   let parameter ← Concrete.samplePublicParameter
   let result ← coupledGlobalChainKeygenWithBaseHigh parameter
   pure ((result.1.1.toProgrammedView parameter, result.1.2), result.2)
 
 def ProgrammedGlobalChainKeygenBaseHighFullRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBaseHigh) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheRelation left right.1 ∧
     globalChainEdgeHighTableOfCache left.cache left.secretKey.parameter
       left.table = right.2 ∧
@@ -297,9 +293,7 @@ theorem relTriple_coupledGlobalChainKeygenWithBaseHighFull :
     exact KeygenRunRelation.rightReplayEndpoints hrightWarm hrunRel
 
 theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
-    (result : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (result : KeygenViewWithBaseHigh)
     (hresult : result ∈ support
       coupledGlobalChainKeygenWithBaseHighFull) :
     result.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen := by
@@ -361,9 +355,7 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
 
 def ProgrammedGlobalChainKeygenBaseHighStableRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBaseHigh) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheStableRelation left right.1 ∧
     globalChainEdgeHighTableOfCache left.cache left.secretKey.parameter
       left.table = right.2 ∧
@@ -541,8 +533,7 @@ theorem simulate_eagerTrace_globalCausalHashQuery
 
 def GlobalFilteredCausalStateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftCache : QueryCache HashSpec)
     (rightState : GlobalCausalHashState) : Prop :=
   HashCachesAgreeOn
@@ -566,8 +557,7 @@ theorem GlobalSigningRevealsAgree.globalCausalRecordedState
 
 theorem GlobalFilteredCausalStateRelation.recordedStateSetCache
     {left : ProgrammedGlobalChainKeygenView}
-    {right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)}
+    {right : KeygenViewWithBase}
     {leftCache : QueryCache HashSpec}
     {rightState : GlobalCausalHashState}
     (hstate : GlobalFilteredCausalStateRelation left right leftCache rightState)
@@ -588,8 +578,7 @@ theorem GlobalFilteredCausalStateRelation.recordedStateSetCache
 
 theorem GlobalFilteredCausalStateRelation.recordedState
     {left : ProgrammedGlobalChainKeygenView}
-    {right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)}
+    {right : KeygenViewWithBase}
     {leftCache : QueryCache HashSpec}
     {rightState : GlobalCausalHashState}
     (hstate : GlobalFilteredCausalStateRelation left right leftCache rightState)
@@ -691,8 +680,7 @@ theorem GlobalSigningRevealsAgree.globalFilteredCausalRevealResultState
 
 theorem GlobalFilteredCausalStateRelation.revealResultState
     {left : ProgrammedGlobalChainKeygenView}
-    {right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)}
+    {right : KeygenViewWithBase}
     {leftCache : QueryCache HashSpec}
     {rightState : GlobalCausalHashState}
     (hstate : GlobalFilteredCausalStateRelation left right leftCache rightState)
@@ -718,8 +706,7 @@ theorem GlobalFilteredCausalStateRelation.revealResultState
 
 def GlobalFilteredHashResultRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftResult : HashOutput × QueryCache HashSpec)
     (rightResult : (HashOutput × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
@@ -804,9 +791,7 @@ theorem relTriple_globalEncodingHash_run_filtered
 
 theorem programmedGlobal_filteredKeygen_stateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1072,8 +1057,7 @@ theorem mem_support_globalFilteredCausalSigningQuery
 
 def GlobalFilteredSigningResultRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftResult : Option Signature × QueryCache HashSpec)
     (rightResult : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
@@ -1084,8 +1068,7 @@ def GlobalFilteredSigningResultRelation
 bottom tree has a top signature: otherwise the signer discards it. -/
 def GlobalFilteredSigningLoopRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) (request : SignRequest)
+    (right : KeygenViewWithBase) (request : SignRequest)
     (leftResult : Option Signature × QueryCache HashSpec)
     (rightResult : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
@@ -1096,8 +1079,7 @@ def GlobalFilteredSigningLoopRelation
 
 def GlobalFilteredSigningAttemptResultRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) (request : SignRequest)
+    (right : KeygenViewWithBase) (request : SignRequest)
     (leftResult : Option Signature × QueryCache HashSpec)
     (rightResult : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
@@ -1106,9 +1088,7 @@ def GlobalFilteredSigningAttemptResultRelation
 
 theorem relTriple_programmed_globalFilteredCausalSigningAttempt
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1229,9 +1209,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningAttempt
 theorem relTriple_programmed_globalFilteredCausalSignBoundedAttempts
     (attempts trial : Nat) (base : Randomness)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1291,9 +1269,7 @@ theorem relTriple_programmed_globalFilteredCausalSignBoundedAttempts
 
 theorem relTriple_programmed_globalFilteredCausalSigningQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support

@@ -48,9 +48,7 @@ theorem relTriple_sourceExact_firstLane_detailedExecution_boundedHit
     (countLimit hitLimit : Nat)
     (adversary : Adversary)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
