@@ -390,8 +390,9 @@ theorem keccakIdx_cost (hP : Includes P Auto.LeanVM.Protocol.KeccakHash.keccak25
       [.closure hashMC.lam0.costIdx [encodeValue M], encodeValue m] ≤
       (m.length / 136 + 1) * (fwdLookupPrice D W + 430004) + 8 * m.length + 85 := by
   rw [Auto.LeanVM.Protocol.KeccakHash.keccak256With.Option.costEq P hP
-    (fwdF M) _ (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x))]
-  limbs
+    (fwdF M) _ (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x)),
+    limbs_of_lt (by omega : m.length < 2 ^ 64),
+    limbs_of_lt (by rw [LeanVM.Cost.Bounds.rate_eq]; norm_num : LeanVM.Protocol.KeccakHash.rate < 2 ^ 64)]
   have hl := length_cost P (by includes) m (by omega)
   have ha := absorbWith_cost P (by includes) (fwdF M) _
     (fun x ↦ RunsApp.of_spec (hashMC.lam0.costSpec P hL M x)) _
@@ -1506,7 +1507,6 @@ theorem skGkrLayers_cost (hP : Includes P skGkrLayers.costDeps) :
       have h3 := append_cost P (by includes) (skGkrStep 1 false L) (skGkrLayers (k + 1) (1 + L))
       have h4 := length_skGkrStep 1 false L (by omega)
       rw [show 1 + L + (k + 1) = L + (k + 2) by omega] at h2
-      limbs
       have : (k + 2) * (3200 * (L + (k + 2)) + 7500) =
           (k + 1) * (3200 * (L + (k + 2)) + 7500) + (3200 * (L + (k + 2)) + 7500) := by ring
       simp only [max_self]
@@ -1517,7 +1517,6 @@ theorem skGkrLayers_cost (hP : Includes P skGkrLayers.costDeps) :
         (skGkrLayers k (2 + L))
       have h4 := length_skGkrStep 2 (decide (k = 0)) L (by omega)
       rw [show 2 + L + k = L + (k + 2) by omega] at h2
-      limbs
       have : (k + 2) * (3200 * (L + (k + 2)) + 7500) =
           k * (3200 * (L + (k + 2)) + 7500) + 2 * (3200 * (L + (k + 2)) + 7500) := by ring
       simp only [max_self]
@@ -2229,8 +2228,9 @@ theorem sizesOfL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.sizesOfL.costDe
         (List.take 6 (List.drop 1 ann)))) 28 (fun L hL ↦ by
       have := buildLayoutLite_stackLog hL
       rw [appCost_fn, List.singleton_append,
-        Auto.LeanVM.Extraction.AS.sizesOfL.lam2.costEq P]
-      limbs
+        Auto.LeanVM.Extraction.AS.sizesOfL.lam2.costEq P,
+        limbs_of_lt (by omega : L.stackLog < 2 ^ 64),
+        limbs_of_lt (by simp [Whir.minLogStack]), limbs_of_lt (by simp [Whir.maxLogStack])]
       simp only [List.length_singleton]
       split_ifs <;> omega)
   have hk := kToNat_lt ((ann.getLastD 0).limb 0)

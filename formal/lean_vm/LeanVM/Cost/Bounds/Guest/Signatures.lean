@@ -172,8 +172,7 @@ theorem idxBelow_cost (hP : Includes P Decoder.idxBelowC.costDeps) (w : ℕ)
       have ht := hl t (by simp)
       have := idxBelow_cost hP w hw ts (i + 1) k (fun x hx ↦ hl x (by simp [hx])) (by omega)
       dsimp only
-      rw [limbs_of_lt hw, limbs_of_lt ht, limbs_of_lt (by omega : i < 2 ^ 64),
-        limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
+      limbs
       split_ifs <;> omega
 
 /-- **An exponent off the lanes given** (`logGTWithC`), `bound < 2^32`: at most
