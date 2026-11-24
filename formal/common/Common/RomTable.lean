@@ -179,9 +179,7 @@ theorem evalDist_queryTable_fresh (inputs : J → D) (hinj : Function.Injective 
   rw [Functor.map_map]
   congr 1
   funext outputs
-  simp only [cacheTable, e, Equiv.arrowCongr_apply, Equiv.coe_refl, Function.comp_def, id,
-    Equiv.symm_symm, Equiv.apply_symm_apply]
-  rfl
+  simp [cacheTable, e, Function.comp_def]
 
 end Table
 
