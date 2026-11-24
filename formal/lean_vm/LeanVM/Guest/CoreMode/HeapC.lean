@@ -27,7 +27,7 @@ public import LeanVM.Guest.Memory.SelArm
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them. An `ite`'s zero branch keeps the equation `a = b` of its guard's sum `c = a + b` (`zeroEq`: characteristic 2), so a run whose bounds are one word by the kept equations has no cell (`emptyE`). The certificate may list `ite`s (`HCert.dups`, by guard) whose continuation the pass checks in each branch (`dupB`): the `ret` after an `ite` that only one branch's writes reach.
 
-**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
+**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`), replacing an equal earlier entry (`CSt.addCd`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
 
 **Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and each callee instance is given those words (`setG`, `CoreGhost.lean`).
 
@@ -990,9 +990,22 @@ def condE (sigOf : String → HSig) (ms : List CCell) : List String → List CdA
     | some cs, some rs, some ps, some prs => ⟨cs, rs, ps, prs⟩
     | _, _, _, _ => ⟨[], [], [], []⟩) :: condE sigOf ms gs
 
-/-- The guarantees under a selector, added. -/
+/-- Two lists equal entry by entry. -/
+def listBeq {α : Type} (beq : α → α → Bool) : List α → List α → Bool
+  | [], [] => true
+  | a :: as, b :: bs => beq a b && listBeq beq as bs
+  | _, _ => false
+
+/-- Two entries under a selector are equal. -/
+def CdE.beq (a b : CdE) : Bool :=
+  a.mx.beq b.mx && listBeq (fun p q ↦ listBeq CCell.beq p.cs q.cs && listBeq PRun.beq p.rs q.rs &&
+    listBeq pfBeq p.ps q.ps && listBeq prBeq p.prs q.prs) a.arms b.arms
+
+/-- The guarantees under a selector, added, an equal earlier entry dropped: a later dispatch on the selector
+would push its guarantees twice. -/
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
-  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l, st.eqs, st.dq⟩
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt,
+    st.cd.filter (fun e ↦ !l.any e.beq) ++ l, st.eqs, st.dq⟩
 
 /-- The word a signature names at return (`postV`) at the cell `c`, its `post` cell at the slots `ms`. -/
 def wordAt (G : HSig) (ms : List CCell) (c : CCell) : Option CCell :=

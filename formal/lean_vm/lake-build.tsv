@@ -227,14 +227,6 @@ LeanVM.Guest.CoreMode.Gen.open_stacked__L9.RouteW0	52.4	52.4	3319	1593
 LeanVM.Guest.CoreMode.Gen.sp_wots.Core	100.0	100.0	5500	3800
 LeanVM.Guest.CoreMode.Gen.sp_wots.Ok	10.0	10.0	4300	3100
 LeanVM.Guest.CoreMode.Gen.sp_wots.Route	57.2	57.2	5841	4132
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W1	20.0	20.0	4800	3600
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W11	10.0	10.0	4500	3300
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W12	20.0	20.0	4800	3600
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W13	30.0	30.0	5600	4300
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W14	20.0	20.0	5100	3900
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W15	20.0	20.0	5900	4600
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W3	20.0	20.0	4700	3400
-LeanVM.Guest.CoreMode.GenW.check_opening_terminal.W6	20.0	20.0	4900	3700
 LeanVM.Guest.CoreMode.GenW.exponent_tables.Ok	20.0	20.0	4500	3300
 LeanVM.Guest.CoreMode.GenW.verify_tables.W72	20.0	20.0	4600	3300
 LeanVM.Guest.CoreMode.Pack.P43.FrameD0W0	20.0	20.0	5100	3600

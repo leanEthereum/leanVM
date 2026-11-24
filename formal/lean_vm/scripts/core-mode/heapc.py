@@ -1316,7 +1316,8 @@ class Pass:
         for q, a, S, hi, b in abs_:
             st.pushR((abBase(mx, q, a), S, ((), 0), abBase(mx, hi, b)))
         if len(fs) < CAPE:
-            st.cd = st.cd + tuple(condE(X.sigOf, ms, mx, fs))
+            new = tuple(condE(X.sigOf, ms, mx, fs))
+            st.cd = tuple(e for e in st.cd if e not in new) + new
 
     def ret(self, st, vs):
         """`retC`: the frame run cells (`fas`) pushed first, into the state the guarantees are checked in only."""
