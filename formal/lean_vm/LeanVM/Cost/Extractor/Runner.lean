@@ -133,7 +133,7 @@ cost_compile runnerTablesC := runnerTables
 
 -- a stack's execution from the tables (`runWithTables`): the per-stack work only; its compilation
 -- needs more than the default heartbeats
-set_option maxHeartbeats 800000 in
+set_option maxHeartbeats 500000 in
 cost_compile runWithTablesC := runWithTables
 
 end
