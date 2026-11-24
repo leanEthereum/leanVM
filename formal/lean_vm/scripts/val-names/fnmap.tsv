@@ -57,7 +57,6 @@ LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtZcA verify_tables
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@vsPops_honest verify_sub
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@vs_child_pops verify_sub
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@cpPop_honest certify_placement
-LeanVM/Guest/B1/VerifySub/ChildPops.lean@vtPops_honest verify_tables
 LeanVM/Guest/B1/VerifySub/CompleteBP.lean@cpσ_136 certify_placement
 LeanVM/Guest/B1/VerifySub/C/ValsB.lean@vs_maps verify_sub
 # Opening: the loop's parameters and guard, the main function's frame (every specialization names them alike)
@@ -588,11 +587,9 @@ LeanVM/Guest/Exact/SphincsPinned.lean@sBitsAtoms verify_sig_lean_sphincs
 LeanVM/Guest/Lift/XmssLeaf.lean@segLoad main_loop2
 LeanVM/Guest/Lift/Sig.lean@loads_seg main_loop2
 LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage_vals verify_sig_lean_sphincs
-LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_cells verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_sound verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete_vals verify_sig_lean_sphincs
-LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SpWotsCheck.lean@spLeafCells_eq sp_wots
 LeanVM/Guest/B1/Sig/SphincsBytes.lean@sFromMarks_sound verify_sig_lean_sphincs
 LeanVM/Cost/Decoder/Raw.lean main

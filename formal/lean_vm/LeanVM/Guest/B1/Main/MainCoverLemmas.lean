@@ -19,7 +19,7 @@ public import LeanVM.Guest.AcceptableChild
 # Reading `main`'s honest words
 
 * `idxOf_slot`: the slots are taken once each, so the taker of slot `(slotsOf p)[k]` is `k`;
-* `segOf_sum`, `hMarkX_raw` … `hMarkS_child`: the marks of the raw claims and of child `c`'s
+* `hMarkX_raw` … `hMarkS_child`: the marks of the raw claims and of child `c`'s
   claim `j` (`hW c + j`, after the child's leanXMSS claims for leanSPHINCS);
 * `hCover_x`, `hCover_s`: the coverage table's word at each region's slot `t` (the leanSPHINCS
   region after the leanXMSS one); `hCover_takerX`, `hCover_takerS`: at the slot of taker `k`, `g`
@@ -51,19 +51,6 @@ theorem idxOf_slot {α : Type} [BEq α] [LawfulBEq α] (D R : List α) (Cs : Lis
     (hk : k < (slotsOf (coveragePlan D R Cs)).length) :
     (slotsOf (coveragePlan D R Cs)).idxOf (slotsOf (coveragePlan D R Cs))[k] = k :=
   (plan_nodup D R Cs).idxOf_getElem k hk
-
-/-- Child `c`'s claim `j`, numbered child by child, is `(c, j)`. -/
-theorem segOf_sum : ∀ (ls : List ℕ) {c j : ℕ} (hc : c < ls.length), j < ls[c] →
-    segOf ls ((ls.take c).sum + j) = (c, j)
-  | [], _, _, hc, _ => absurd hc (by simp)
-  | l :: ls, 0, j, _, hj => by
-    have hj' : j < l := hj
-    simp [segOf, hj']
-  | l :: ls, c + 1, j, hc, hj => by
-    have ih := segOf_sum ls (c := c) (j := j) (by simpa using hc) (by simpa using hj)
-    have h1 : ¬ l + (ls.take c).sum + j < l := by omega
-    simp only [List.take_succ_cons, List.sum_cons, segOf, h1, ↓reduceIte,
-      show l + (ls.take c).sum + j - l = (ls.take c).sum + j by omega, ih]
 
 variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 

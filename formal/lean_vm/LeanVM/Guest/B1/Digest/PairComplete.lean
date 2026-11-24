@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Digest.PairComplete
 
-  Loads and limb hints on an evaluated valuation (`pack_pair`'s module, kept for its lemmas).
+  A load that holds reads its word.
 -/
 
 module
@@ -10,10 +10,9 @@ public import LeanVM.Guest.B1.Digest.Basic
 public import LeanVM.Guest.B1.Fwd.Canon
 
 /-!
-# Loads and limbs on an evaluated valuation
+# Loads on an evaluated valuation
 
-`rdAt_of_load`: a load that holds reads its word; `limbAt_zero`, `limbAt_one`: a limb hint's
-words.
+`rdAt_of_load`: a load that holds reads its word.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -27,10 +26,6 @@ variable {rd : Reader}
 
 theorem rdAt_of_load {p : E} {k : ℕ} {v : E} (h : LoadHolds rd p k v) : rdAt rd p k = v := by
   unfold rdAt; rw [h.2]; rfl
-
-theorem limbAt_zero (x : E) : limbAt x 0 = ofK (x.limb 0) := rfl
-
-theorem limbAt_one (x : E) : limbAt x 1 = ofK (x.limb 1) := rfl
 
 end
 end LeanVM.Guest.B1.Digest

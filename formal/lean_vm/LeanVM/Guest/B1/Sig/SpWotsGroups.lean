@@ -35,14 +35,6 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 
 /-! ## Atoms -/
 
-theorem atomsOnly_iff : ∀ {L : List Stmt}, atomsOnly L = true ↔ ∀ x ∈ L, ∃ a, x = .atom a
-  | [] => by simp [atomsOnly]
-  | .atom a :: L => by
-      simp only [atomsOnly, List.mem_cons, forall_eq_or_imp, atomsOnly_iff]
-      exact ⟨fun h => ⟨⟨a, rfl⟩, h⟩, fun h => h.2⟩
-  | .ite .. :: _ | .match_ .. :: _ | .call .. :: _ | .callIf .. :: _ | .dispatch .. :: _
-  | .ret _ :: _ => by simp [atomsOnly]
-
 theorem spW_atoms : StepAtoms spW := by
   intro i s v c o
   simp only [spW, spWp]

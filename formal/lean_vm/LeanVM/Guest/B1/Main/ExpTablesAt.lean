@@ -49,22 +49,6 @@ theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ++ [.ret
 theorem et_straight : (etAs.map Stmt.atom).all Main.Stmt.straight = true := by
   simp [Main.Stmt.straight]
 
-theorem length_expTableWords : expTableWords.length = 236 := by
-  simp [expTableWords, length_etWordsN]
-
-/-- The table's first `34` words are the squares `g^(2^j)`. -/
-theorem expTableWords_sq {j : ℕ} (hj : j < 34) :
-    expTableWords[j]'(by rw [length_expTableWords]; omega) = gen ^ 2 ^ j := by
-  rw [← List.getD_eq_getElem _ 0, expTableWords_getD j (by omega), etListK_sq j hj, ofK_pow,
-    ← gen_eq_ofK]
-
-/-- The whole table's first `34` words are the squares `g^(2^j)`. -/
-theorem expTabAllWords_sq {j : ℕ} (hj : j < 34) :
-    expTabAllWords[j]'(by rw [length_expTabAllWords]; omega) = gen ^ 2 ^ j := by
-  rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' (by omega), expTabWord,
-    ite_pos' (by omega), List.getD_eq_getElem _ _ (by rw [length_expTableWords]; omega),
-    expTableWords_sq hj]
-
 /-- The table's first word at `fp`. -/
 abbrev etB (fs : String → ℕ) (fp : ℕ) : ℕ := fp + fs "exponent_tables"
 

@@ -306,25 +306,6 @@ theorem sForsTree_complete {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s
     rw [← hw]
     exact hs' j (by omega) (by omega)
 
-/-- **FORS tree `c`'s root**, completed: `fRootE` of the secret and siblings. -/
-theorem sForsTree_complete_val {pad : Nat} {pp a0 a1 : V} {bit val : Nat → V} {c s b : Nat}
-    (hc : c < 24) (hs : s < 2 ^ 10) {secret : E} {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b)
-    (hpp : NBv b pp) (ha0 : NBv b a0) (ha1 : NBv b a1) (hbn : ∀ j < 10, NBv b (bit (10 * c + j)))
-    (hvn : ∀ j < 10, NBv b (val (10 * c + j))) (hp : PadOK σ pad)
-    (hbit : ∀ j < 10, σ (bit (10 * c + j)) = if s.testBit j then 1 else 0)
-    (hval : ∀ j < 10, σ (val (10 * c + j)) = eOfNat (fIdx c j s)) :
-    Completes C rd b (sForsTree pad pp a0 a1 bit val c b).2.1 (sForsTree pad pp a0 a1 bit val c b).1 σ
-      (fun σ' => AgreeBelow b σ σ' ∧
-        σ' (sForsTree pad pp a0 a1 bit val c b).2.2 = fRootE (σ pp) (σ a0) (σ a1) c s secret sib) := by
-  refine ((sForsTree_complete (secret := secret) (sib := sib) hc hs σ hpb hpp ha0 ha1 hbn hvn hp hbit
-    hval).withAtoms (sForsTree_atoms ..)).mono le_rfl le_rfl
-    (fun σ' ⟨⟨hag, hsec', hsib'⟩, hA⟩ => ⟨hag, ?_⟩)
-  have t : ∀ v, NBv b v → σ' v = σ v := fun v hv => hag.apply hv
-  rw [sForsTree_sound (hp.congr hpb hag) hc hs
-    (fun j hj => by rw [t _ (hbn j hj)]; exact hbit j hj)
-    (fun j hj => by rw [t _ (hvn j hj)]; exact hval j hj) hA, t _ hpp, t _ ha0, t _ ha1, hsec']
-  exact fRootE_congr hsib'
-
 theorem forsTreePops_congr (pp a0 A1 : E) (c s : Nat) (secret : E) {sib sib' : Nat → E}
     (h : ∀ j < 10, sib j = sib' j) :
     forsTreePops pp a0 A1 c s secret sib = forsTreePops pp a0 A1 c s secret sib' := by

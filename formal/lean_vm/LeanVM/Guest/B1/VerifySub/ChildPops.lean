@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 * `childHints_some`: on an announced layout, `childHints` is the stream, `zc_tau_max`, the heights, the two group orders, then the Merkle entries;
 * `heap_words`: a heap hint's words, read where the memory holds a buffer;
-* `vsPops_honest`, `cpPop_honest`, `vtPops_honest`: the nodes' own entries on the honest buffers and values;
+* `vsPops_honest`, `cpPop_honest`: the nodes' own entries on the honest buffers and values;
 * `childPops_sameStreams`: those entries, and `open_stacked`'s, are `childHints`', stream by stream;
 * `vs_child_pops`: a valid `verify_sub` node on the honest stream and `dims_g` pops them, given its `certify_placement`, `verify_tables` and `open_stacked` callees pop theirs.
 -/
@@ -96,13 +96,6 @@ theorem vsPops_honest {b1 b3 lm : ℕ} {stream : List E} {hs : List ℕ} (h1 : �
 theorem cpPop_honest {b : ℕ} {ws : List E} (h : σ (.n (val% «certify_placement» "group_order")) = ofK (addressOfIndex b))
     (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 9) : cpPop rd σ = ("col_group_order", ws) := by
   rw [cpPop, heap_words h hm (by omega), List.drop_zero, List.take_of_length_le (by omega)]
-
-/-- **`verify_tables`' entries on its block group order's buffer and its round count `g^n`.** -/
-theorem vtPops_honest {b n : ℕ} {ws : List E} (h : σ (.n (val% «verify_tables» "group_order")) = ofK (addressOfIndex b))
-    (hm : ReadsAt rd (ofK (addressOfIndex b)) ws) (hl : ws.length = 24) (hz : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n)
-    (hn : n < 2 ^ 64) : vtPops rd σ = [("block_group_order", ws), ("zc_tau_max", [Hints.count n])] := by
-  rw [vtPops, heap_words h hm (by omega), List.drop_zero, List.take_of_length_le (by omega), hz,
-    count_eq_gen hn]
 
 /-! ## The node -/
 

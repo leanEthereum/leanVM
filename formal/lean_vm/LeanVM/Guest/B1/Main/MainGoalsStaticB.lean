@@ -16,8 +16,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s static callees on an honest run, bounded
 
-`MainGoalL1B` … `MainGoalStB`: `MainGoalL1` … `MainGoalSt` with `CompleteAtDTB` within the static
-bounds (`SB`, `SK`, the loops' counts).
+`MainGoalL1B` … `MainGoalStB`: `main_loop0`, `main_loop1`, `main_loop2`, `main_loop3` and
+`statement_digest` complete (`CompleteAtDTB`) at the words `main` passes them, within the static
+bounds (`SB`, `SK`, the loops' counts); `mainGoalL1B` … `mainGoalStB` prove them.
 -/
 
 namespace LeanVM.Guest.B1.Main

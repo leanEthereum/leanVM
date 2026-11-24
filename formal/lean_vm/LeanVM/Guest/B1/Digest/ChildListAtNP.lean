@@ -13,7 +13,15 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 /-!
 # The walk by hinted indices, placed with its pops
 
-`child_claim_list_any_completeAtTBP`: `child_claim_list_any_completeAtTB` popping its claims' indices (`anyPss`).
+`child_claim_list_any_completeAtTBP`: for `n = 136a + 17b + c < 136 · 2^20` honest records
+(`RecMem`: slots `o j` below `L`, marks `base · g^j` at `region · g^(o j)`, cells at
+`entries · g^(4 o j)`) among the caller's words, with `L ≤ 2^κ` (the range checks read below
+`2^κ`), `child_claim_list_any` on `[g^eP, g^rg, base, g^L, g^a, g^b, g^c]` is complete returning
+the cells' digest: its chain buffer (`chainCells`, `13 (a + b + 1)` words) after its frame, then
+`child_claim_list_any_loop0` over the `a` big frames, `child_claim_list_any_loop1` over the `b`
+groups (`anyLoop_completeAtBP`), `child_claim_list_last__L{c}` (`ccl_completeAtBP`); by a tree of
+honest shape `anyHonest n` (`anyQ`, `anyCalls`, `anyBufs`), within `anyB fs n` words, popping its claims'
+indices (`anyPss`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -320,7 +328,6 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     refine ⟨b0 + c, by rw [hV.v17, hchain, limb0_gen_pow_mul], Or.inl ?_⟩
     rw [hal]
     exact hown _ (by omega) (by omega)
-
 
 end
 end LeanVM.Guest.B1.Digest

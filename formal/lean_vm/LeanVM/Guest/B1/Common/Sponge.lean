@@ -102,9 +102,6 @@ def squeezeN : ℕ → Fs → List E × Fs
   | 0, s => ([], s)
   | n + 1, s => ((s.squeeze.1 :: (squeezeN n s.squeeze.2).1), (squeezeN n s.squeeze.2).2)
 
-/-- The cells a `KECCAK` can read: five capacity cells, at most four waiting. -/
-def Ok (s : Fs) : Prop := s.cap.length = 5 ∧ s.pend.length ≤ rateScalars
-
 /-- The Spec's sponge `sp` is the one the guest carries as `s`: no grind's challenge waits. -/
 def Carries (s : Fs) (sp : Sponge) : Prop :=
   capOf sp.state = s.cap ∧ sp.pending = s.pend ∧ sp.ground = none
@@ -128,8 +125,6 @@ def grindSqueeze (s : Fs) (bits : ℕ) (n : E) : E × Fs :=
 zero (`powOk`), or there is no grind. -/
 def GrindOk (s : Fs) (bits : ℕ) (n : E) : Prop :=
   bits = 0 ∨ powOk bits (Keccak.lane (s.nonceState n) 2) = true
-
-theorem grindSqueeze_zero (s : Fs) (n : E) : s.grindSqueeze 0 n = s.squeeze := rfl
 
 theorem grindSqueeze_pos (s : Fs) {bits : ℕ} (h : bits ≠ 0) (n : E) :
     s.grindSqueeze bits n = (challengeOf (s.nonceState n), ⟨capOf (s.nonceState n), []⟩) := by

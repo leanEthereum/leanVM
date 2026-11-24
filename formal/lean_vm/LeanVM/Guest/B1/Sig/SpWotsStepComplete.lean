@@ -19,8 +19,7 @@ The step is a 64-byte `keccak` (`k64`) of `pp`, `at[0]`, the step's `A1` and the
 two atoms that add the step's constant to `at[1]` (`spPre2`), none for chain `0`'s first step.
 
 * `spWp_step`: the step in those terms;
-* `SpGood b σ`: the padding run at `b`, which the step reads; `spWp_shape`, `spWp_stable`,
-  `spWp_atoms`.
+* `SpGood b σ`: the padding run at `b`, which the step reads; `spWp_shape`, `spWp_stable`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -35,11 +34,6 @@ def spPre2 (i s c : Nat) : List Stmt := [cst c (lit (spStepC i s)), addS (.n (c 
 theorem spWp_step (X i s : Nat) (v : V) (c o : Nat) : (spWp X).step i s v c o =
     if i = 0 ∧ s = 0 then k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (val% «sp_wots» "at[1]")) v c o
     else spPre2 i s c ++ k64 X (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "at[0]")) (.n (c + 1)) v (c + 2) o := rfl
-
-theorem spWp_atoms (X : Nat) : StepAtoms (spWp X) := by
-  intro i s v c o
-  rw [spWp_step]
-  split <;> rfl
 
 theorem spPre2_ssa (i s : Nat) {c : Nat} (hc : 6 ≤ c) : SSA (spPre2 i s c) := by
   simp [spPre2, SSA, cst, addS, aOuts, aReads, outsList, Atom.vals, DefOK]

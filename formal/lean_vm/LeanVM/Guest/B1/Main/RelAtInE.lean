@@ -162,24 +162,11 @@ theorem RelAtInT.and_every {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args 
   let ⟨t, ht, hT⟩ := h
   ⟨t, ht, hT, hQ t ht.1 ht.2.1⟩
 
-theorem RelAtInCT.and_every {R D : ℕ → Prop} {fp c B n : ℕ} {f : String} {args rets : List E} {T : Tree → Prop}
-    (h : RelAtInCT P fs cert rd R D fp c B n f args rets T)
-    (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
-    RelAtInCT P fs cert rd R D fp c B n f args rets fun t => T t ∧ t.Every Q :=
-  let ⟨t, ht, hT⟩ := h
-  ⟨t, ht, hT, hQ t ht.1 ht.2.1⟩
-
 theorem RelAtInP.withEvery {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E} {ps : List Pop}
     (h : RelAtInP P fs cert rd R D fp n f args rets ps)
     (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
     RelAtInPE P fs cert rd Q R D fp n f args rets ps :=
   RelAtInT.and_every h hQ
-
-theorem RelAtInCP.withEvery {R D : ℕ → Prop} {fp c B n : ℕ} {f : String} {args rets : List E} {ps : List Pop}
-    (h : RelAtInCP P fs cert rd R D fp c B n f args rets ps)
-    (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
-    RelAtInCPE P fs cert rd Q R D fp c B n f args rets ps :=
-  RelAtInCT.and_every h hQ
 
 /-! ## Composition -/
 

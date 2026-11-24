@@ -285,11 +285,6 @@ def gkVals (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E)
   else if k = 12 + 39 * n + n % 2 then cur * word (2 ^ (4 * n)) 0
   else 0
 
-/-- Decide the next `if` of an unfolded index function by `omega`. -/
-macro "gk_if" : tactic => `(tactic| first
-  | (rw [ite_eq_right_of_eq_false]; rotate_left; exact eq_false (by omega))
-  | (rw [ite_eq_left_of_eq_true]; rotate_left; exact eq_true (by omega)))
-
 section
 variable (as cap : List E) (cur : E) (Cf : ℕ → List E) (ef cl : ℕ → E) (P : ℕ → KeccakState)
 
@@ -298,7 +293,7 @@ theorem gkVals_word {n q t r : ℕ} (hq : q < n) (ht : t < 4) (hr : r < 3) :
       if r = 2 then word 0 dsObserve else (Cf q).getD t 0 := by
   rw [gkVals, show (11 + 39 * q + 3 * t + r - 11) / 39 = q by omega,
     show (11 + 39 * q + 3 * t + r - 11) % 39 = 3 * t + r by omega]
-  repeat gk_if
+  repeat omega_if
   rw [gkWordVal, show (3 * t + r) % 3 = r by omega, show (3 * t + r) / 3 = t by omega]
 
 theorem gkVals_cells {n q : ℕ} (hq : q < n) (c : Fin 13) :
@@ -306,7 +301,7 @@ theorem gkVals_cells {n q : ℕ} (hq : q < n) (c : Fin 13) :
   have hc := c.isLt
   rw [gkVals, show (23 + 39 * q + c.val - 11) / 39 = q by omega,
     show (23 + 39 * q + c.val - 11) % 39 = 12 + c.val by omega]
-  repeat gk_if
+  repeat omega_if
   congr 1; apply gkFin_eq; omega
 
 theorem gkVals_chal {n q : ℕ} (hq : q < n) :
@@ -317,33 +312,33 @@ theorem gkVals_chal {n q : ℕ} (hq : q < n) :
 
 theorem gkVals_e {n q : ℕ} (hq : q < n) : gkVals as cap cur Cf ef cl P n (36 + 39 * q) = ef q := by
   rw [gkVals, show (36 + 39 * q - 11) / 39 = q by omega, show (36 + 39 * q - 11) % 39 = 25 by omega]
-  repeat gk_if
+  repeat omega_if
 
 theorem gkVals_arith {n q u : ℕ} (hq : q < n) (hu : u < 13) :
     gkVals as cap cur Cf ef cl P n (37 + 39 * q + u) =
       (gkArith (cl q) (ef q) (Cf q) (challengeOf (P q))).getD u 0 := by
   rw [gkVals, show (37 + 39 * q + u - 11) / 39 = q by omega,
     show (37 + 39 * q + u - 11) % 39 = 26 + u by omega]
-  repeat gk_if
+  repeat omega_if
   rw [show 26 + u - 26 = u by omega]
 
 theorem gkVals_pad {n : ℕ} (h : n % 2 = 1) : gkVals as cap cur Cf ef cl P n (11 + 39 * n) = 0 := by
   rw [gkVals, show (11 + 39 * n - 11) / 39 = n by omega]
-  repeat gk_if
+  repeat omega_if
 
 theorem gkVals_tail0 {n : ℕ} :
     gkVals as cap cur Cf ef cl P n (11 + 39 * n + n % 2) = word (2 ^ (4 * n)) 0 := by
   rw [gkVals, show (11 + 39 * n + n % 2 - 11) / 39 = n by omega]
-  repeat gk_if
+  repeat omega_if
 
 theorem gkVals_tail1 {n : ℕ} :
     gkVals as cap cur Cf ef cl P n (12 + 39 * n + n % 2) = cur * word (2 ^ (4 * n)) 0 := by
   rw [gkVals, show (12 + 39 * n + n % 2 - 11) / 39 = n by omega]
-  repeat gk_if
+  repeat omega_if
 
 theorem gkVals_tail2 {n : ℕ} : gkVals as cap cur Cf ef cl P n (13 + 39 * n + n % 2) = 0 := by
   rw [gkVals, show (13 + 39 * n + n % 2 - 11) / 39 = n by omega]
-  repeat gk_if
+  repeat omega_if
 
 end
 

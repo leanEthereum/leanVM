@@ -13,8 +13,8 @@ public import LeanVM.Guest.Budget.Bounded
 /-!
 # The children's claim lists, within bounds
 
-`ChildListGoalsTB … Pxs Pss Bxs Bss`: `ChildListGoalsT` with `CompleteAtDTB`, child `c`'s two
-calls within `Bxs c`, `Bss c` words. `ChildListGoalsTB.toT` forgets the bounds.
+`ChildListGoalsTB … Pxs Pss Bxs Bss`: child `c`'s two `child_claim_list_digest` calls complete by
+trees satisfying `Pxs c`, `Pss c`, within `Bxs c`, `Bss c` words (`CompleteAtDTB`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -42,12 +42,6 @@ def ChildListGoalsTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
         (hKid s w c).base * gen ^ (hKid s w c).ex,
         gen ^ ((hm fs fp seed s w).nls + (hm fs fp seed s w).nsd), gen ^ (hKid s w c).es]
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) (Pss c) (Bss c)
-
-theorem ChildListGoalsTB.toT {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
-    {s : NodeStatement} {w : NodeWitness} {Pxs Pss : ℕ → Tree → Prop} {Bxs Bss : ℕ → ℕ}
-    (h : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
-    ChildListGoalsT fs cert fp seed s w Pxs Pss := fun c hc =>
-  ⟨(h c hc).1.toDT, (h c hc).2.toDT⟩
 
 end
 end LeanVM.Guest.B1.Main

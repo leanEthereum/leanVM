@@ -18,8 +18,8 @@ public import LeanVM.Guest.AcceptableChild
 # `da_verify` on an honest run, within its bound
 
 `hDvB fs SB SK w`: `Da.dvB` at the directly held DA claim's witness (`0` without one).
-`MainGoalDvTB`: `MainGoalDvT` within `hDvB`; `mainGoalDvTB`: as `mainGoalDvT`, from the static
-bounds `Da.DvStaticB`. `completeAtDTB_lin_mono`: `completeAtDT_lin_mono` within a bound.
+`MainGoalDvTB`: `da_verify` complete by a tree of its honest shape (`hDvNH`) within `hDvB`, when
+`n_direct_da = 1`; `mainGoalDvTB` proves it from the static bounds `Da.DvStaticB`. `completeAtDTB_lin_mono`: `completeAtDT_lin_mono` within a bound.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -54,11 +54,6 @@ def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) 
   (hm fs fp seed s w).nd = 1 →
     CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
       (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK w)
-
-theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
-    {s : NodeStatement} {w : NodeWitness} {SB SK : String → ℕ}
-    (h : MainGoalDvTB fs cert fp seed s w SB SK) : MainGoalDvT fs cert fp seed s w :=
-  fun hn => (h hn).toDT
 
 variable {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
 

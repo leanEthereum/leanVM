@@ -17,8 +17,10 @@ public import LeanVM.Guest.B1.Main.MainPushes
 
 * `slotGaps_eq`: the gaps between slots, by index; `ccPops_mono_eq`, `ccPops_any_eq`: a list's entries on either walk
   are its slots' pushes;
-* `kidTB_hXP`, `kidTB_hSP`, `childListGoalsTBR_honest`: `kidTB_hX`, `kidTB_hS`, `childListGoalsTB_honest` by trees
-  popping the slots' pushes.
+* `kidTB_hXP`, `kidTB_hSP`: child `c`'s claim lists' digests within `ccBM fs SB` of its lists' lengths, on
+  the walks the honest prover takes, by trees of honest shape (`ccHonest`) popping the slots' pushes;
+* `childListGoalsTBR_honest`: `ChildListGoalsTBR` with those predicates and bounds; `childListGoalsTB_honest`:
+  `ChildListGoalsTB` with the honest shape alone.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -364,6 +366,17 @@ theorem childListGoalsTBR_honest (cert : String → V → ℕ)
       (fun c => ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
       (fun c => ccBM fs SB (hMonoS s w c) (hKid s w c).es) := fun _ hc =>
   ⟨kidTB_hXP cert hl hc hLS, kidTB_hSP cert hl hc hLS⟩
+
+/-- **The children's claim lists' digests on the honest run, by trees of honest shape, within
+`ccBM`.** -/
+theorem childListGoalsTB_honest (cert : String → V → ℕ)
+    (hl : GuestLimits s w) {SB : String → ℕ}
+    (hLS : TotalLe coreProgram fs "list_split" (fun _ => SB "list_split")) :
+    ChildListGoalsTB fs cert fp seed s w (fun c => ccHonest (hKid s w c).ex (hMonoX s w c))
+      (fun c => ccHonest (hKid s w c).es (hMonoS s w c))
+      (fun c => ccBM fs SB (hMonoX s w c) (hKid s w c).ex)
+      (fun c => ccBM fs SB (hMonoS s w c) (hKid s w c).es) := fun _ hc =>
+  ⟨(kidTB_hXP cert hl hc hLS).toDTB fun _ _ h => h.1, (kidTB_hSP cert hl hc hLS).toDTB fun _ _ h => h.1⟩
 
 end
 end LeanVM.Guest.B1.Main

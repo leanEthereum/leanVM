@@ -21,7 +21,7 @@ pins them by booleanity and `q_g^8 · r_g = count_g` (`r_g` from bits `0 .. 2`, 
 `3 .. 5`, so `count = 8q + r`), allocates its chain (`HeapBuf` of `64 (q + 2)` words, `rsAlloc`),
 writes row `0`'s ones (`rsInits`), runs `rs_eq_run_loop0` over the `q` full chunks
 (`rs_eq_rows__L8` each), and dispatches the remainder's `rs_eq_rows__L{r}` on the row
-`chain·g^(64q)`; it returns that call's return, the last row (`rs_eq_run_holds`).
+`chain·g^(64q)`; it returns that call's return, the last row (`rs_eq_run_sound`).
 
 The rows from the chunks and back: `rows_of_chunks`, `chunks_of_rows` (chunk `t` is coordinates
 `8t ..` and row `t`, `ChunkOk`).
@@ -617,22 +617,6 @@ theorem rs_honest {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (
     show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
     rw [e53, e47]
     exact hdisp
-
-/-- **`rs_eq_run`'s meaning gives its core IR**: its honest valuation (`rs_honest`). -/
-theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
-    coreProgram.Rel rd "rs_eq_run" args rets := by
-  obtain ⟨z, p, cg, rfl⟩ : ∃ z p cg, args = [z, p, cg] := by
-    match args, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
-  obtain ⟨count, hcount, rfl, chain, zs, ps, lz, lp, hz, hpp, hone, hr, rfl⟩ := hm
-  obtain ⟨σ, hpar, hh, -⟩ := rs_honest hcount lz lp hz hpp hone hr
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"), .n (val% «rs_eq_run» "count_g")] from rfl,
-    rs_eq_run_body]
-  exact ⟨σ, by simp only [List.map_cons, List.map_nil]; exact hpar, hh⟩
-
-/-- **`rs_eq_run`'s core IR is its meaning.** -/
-theorem rs_eq_run_holds : rs_eq_run_Spec := fun rd args rets ↦
-  ⟨rs_eq_run_sound rd args rets, rs_eq_run_complete rd args rets⟩
 
 end
 end LeanVM.Guest.B1

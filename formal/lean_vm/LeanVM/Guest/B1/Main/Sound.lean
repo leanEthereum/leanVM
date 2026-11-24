@@ -14,8 +14,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 /-!
 # `main`, soundly, its witness decoded
 
-`main_sound_w`: `main_sound_Spec bytecode` (`Main/Interface`), given `exponent_tables`' statement
-(B1-a). From a run of the body (`main_facts`), the children's records (`kid_rec`), the coverage
+`Final.lean`'s `main_sound_C`, given `exponent_tables`' statement (B1-a), reads these. From a run of the body (`main_facts`), the children's records (`kid_rec`), the coverage
 table's writers (`writers`), every slot its writer's (`Writers.onto`):
 
 * the statement's digest (`own_digest`): the bytes `statement_digest` hashes are the decoded

@@ -95,9 +95,6 @@ theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (Lis
 def l5S : List Atom :=
   [.load (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0, .load (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1, .load (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1]
 
-/-- The block's atoms but the stores. -/
-def l5A' : List Atom := (atomsIn l5Pre).filter fun a => decide (a ∉ l5S)
-
 /-- The calls of the block. -/
 def l5Calls : List Stmt :=
   [.call "child_claim_list_digest" [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")] [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")],

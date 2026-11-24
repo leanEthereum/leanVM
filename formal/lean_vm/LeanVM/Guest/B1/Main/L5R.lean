@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.L5R
 
-  `main`'s honest children loop within its bound, its callees' trees satisfying predicates of the memory: `l5_stepAtTB`,
-  `l5_completeAtTB`, `mainGoalL5TB` (same proofs) over `CompleteAtDTBR`.
+  `main`'s honest children loop within its bound, its callees' trees satisfying predicates of the memory
+  (`CompleteAtDTBR`), and with predicates independent of it (`mainGoalL5TB`).
 -/
 
 module
@@ -15,9 +15,10 @@ import LeanVM.Guest.Data.ValNames.«main_loop4»
 /-!
 # The children loop, its callees' predicates of the memory
 
-`l5_stepAtTBR`, `l5_completeAtTBR`: `l5_stepAtTB`, `l5_completeAtTB` with the callees `CompleteAtDTBR`.
-`VerifySubGoalsTBR`, `ChildListGoalsTBR`: each child's `verify_sub` call and claim lists' digests so;
-`mainGoalL5TBR`: `mainGoalL5TB` with them.
+`l5_stepAtTBR`, `l5_completeAtTBR`: child `c` and the rest of the loop, and the loop from every counter,
+within `l5ChainB`, the callees `CompleteAtDTBR`. `VerifySubGoalsTBR`, `ChildListGoalsTBR`: each child's
+`verify_sub` call and claim lists' digests so; `mainGoalL5TBR`: the loop from the counter `0` with them.
+`mainGoalL5TB`: the same with predicates independent of the memory.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -41,8 +42,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 variable (fs cert)
 
-/-- **One child of `main_loop4` within its bound, placed, its tree exposed**: `l5_stepAtTB` (same proof), its
-callees' and tail call's trees satisfying predicates of the memory. -/
+/-- **One child of `main_loop4` within its bound, placed, its tree exposed**: its callees within their
+bounds, the tail call within `Bt`, their trees satisfying predicates of the memory. -/
 theorem l5_stepAtTBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bt Bv Bx Bs : ℕ} {Lin : Layout} {W D Pi Cr nk c : ℕ}
@@ -273,8 +274,8 @@ theorem l5_stepAtTBR (SB : String → ℕ)
     · refine ⟨W + c + 1, ?_, Or.inr (Or.inl rW1)⟩
       rw [hV.v56]; exact hW' 1
 
-/-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: `l5_completeAtTB`, the callees'
-trees satisfying predicates of the memory. -/
+/-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: each iteration's callees
+within their bounds, their trees satisfying predicates of the memory. -/
 theorem l5_completeAtTBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {Lin : Layout} {W D Pi Cr nk : ℕ}
@@ -353,8 +354,8 @@ def ChildListGoalsTBR (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
 
 variable (fs cert)
 
-/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed**: `mainGoalL5TB`, the callees'
-trees satisfying predicates of the memory. -/
+/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed**: from the counter `0`,
+each child's callees by trees satisfying predicates of the memory. -/
 theorem mainGoalL5TBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
@@ -386,6 +387,19 @@ theorem mainGoalL5TBR (SB : String → ℕ)
     (fun c hc => (hX c hc).2) 0 (by have : w.children.length ≠ 0 := hnc; omega)
   rw [pow_zero, Nat.sub_zero] at h
   exact h
+
+/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed** (`L5Hinted w Pvs`):
+`mainGoalL5TBR` with predicates independent of the memory. -/
+theorem mainGoalL5TB (SB : String → ℕ)
+    (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
+    {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}
+    {bytecode : List K} {Pxs Pss Pvs : ℕ → Tree → Prop} (hbl : bytecode.length = 2 ^ bytecodeVars)
+    (hrel : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
+    (hV : VerifySubGoalsTB fs cert fp seed s w Pvs Bv)
+    (hX : ChildListGoalsTB fs cert fp seed s w Pxs Pss Bxs Bss) :
+    MainGoalL5TB fs cert fp seed s w (L5Hinted w Pxs Pss Pvs) (l5B fs SB Bxs Bss Bv w) :=
+  mainGoalL5TBR fs cert SB hSD (Pxs := fun _ => Pxs) (Pss := fun _ => Pss) (Pvs := fun _ => Pvs) hbl hrel hl
+    hV hX
 
 end
 end LeanVM.Guest.B1.Main

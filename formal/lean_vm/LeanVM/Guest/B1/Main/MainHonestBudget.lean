@@ -1,14 +1,15 @@
 /-
   LeanVM.Guest.B1.Main.MainHonestBudget
 
-  `main`'s completeness on a node's honest run, its callees' trees of honest shape where the
-  budget needs them: its claim lists' digests (`clHonest`), each child's (`ccHonest`),
-  `aggregate_claims` (`aggHonest`); `da_verify`'s and each `verify_sub`'s by given predicates.
+  `main`'s callees' predicates on a node's honest run, trees of honest shape where the budget needs
+  them: its claim lists' digests (`clHonest`), each child's (`ccHonest`), `aggregate_claims`
+  (`aggHonest`); `da_verify`'s and each `verify_sub`'s by given predicates.
 -/
 
 module
 
-public import LeanVM.Guest.B1.Main.MainHonestFull
+public import LeanVM.Guest.B1.Main.MainGoalsHL5T
+public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.B1.Main.MainGoalsHClT
 public import LeanVM.Guest.B1.Main.MainGoalsDvT
 public import LeanVM.Guest.B1.Main.AggAtT
@@ -18,7 +19,7 @@ public import LeanVM.Guest.B1.Main.AggAtT
 
 `mainPredsH w Pd Pvs`: `main`'s callees' predicates, of honest shape on its claim lists' digests,
 each child's and `aggregate_claims`; `Pd` on `da_verify`'s, `Pvs c` on child `c`'s
-`verify_sub`'s. `main_honest_budget`: `main_honest_fullT` with those.
+`verify_sub`'s.
 -/
 
 namespace LeanVM.Guest.B1.Main

@@ -28,9 +28,6 @@ abbrev plus_one_run_Spec : Prop := plus_one_run_SpecP coreProgram
 /-- `rs_eq_rows_SpecP` at the guest's `coreProgram`. -/
 abbrev rs_eq_rows_Spec : Prop := rs_eq_rows_SpecP coreProgram
 
-/-- `rs_eq_run_SpecP` at the guest's `coreProgram`. -/
-abbrev rs_eq_run_Spec : Prop := rs_eq_run_SpecP coreProgram
-
 /-- `fold_final_msg_SpecP` at the guest's `coreProgram`. -/
 abbrev fold_final_msg_Spec : Prop := fold_final_msg_SpecP coreProgram
 

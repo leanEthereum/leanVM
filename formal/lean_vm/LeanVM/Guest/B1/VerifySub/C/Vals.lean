@@ -82,9 +82,6 @@ theorem vsg_quot {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y
   rwa [ite_neg' (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
     fun h' ↦ by simp only at h'; omega)] at h
 
-theorem vsg_add {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ}
-    (h : GoodS rd S w σ (.atom (.add (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) + σ (.n y) := h
-
 /-- A read through a pointer, of a word the memory holds. -/
 theorem vsg_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
     (hg : GoodS rd S w σ (.atom (.load d p off))) (hS : Atom.load d p off ∉ S)
@@ -120,9 +117,6 @@ def vsTailP : List Stmt :=
   (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ++
   (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ++
   [vsLd 615 5 23]
-
-theorem vsTailT_split : vsTailT = vsTailP ++ [.ret []] := by
-  simp only [vsTailT, vsTailP, List.append_assoc, List.cons_append, List.nil_append]
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 

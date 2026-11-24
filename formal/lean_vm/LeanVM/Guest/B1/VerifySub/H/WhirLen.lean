@@ -84,12 +84,6 @@ theorem always_foldRounds : ∀ (n : ℕ) (s : WhirState),
     obtain ⟨s2, rounds⟩ := r'
     exact alwaysR_ret (by simp only at hr hr' ⊢; omega)
 
-theorem foldl_alphas {X : Type} (f : WhirState → X → WhirState)
-    (hf : ∀ s x, (f s x).alphas = s.alphas) :
-    ∀ (l : List X) (s : WhirState), (l.foldl f s).alphas = s.alphas
-  | [], _ => rfl
-  | x :: l, s => (foldl_alphas f hf l (f s x)).trans (hf s x)
-
 theorem glueLevel_alphas (s : WhirState) (lam : E) (mu : ℕ) (p : List E) (v : E)
     (qs : List ℕ) (ws : List E) (b : E) : (glueLevel s lam mu p v qs ws b).alphas = s.alphas := rfl
 

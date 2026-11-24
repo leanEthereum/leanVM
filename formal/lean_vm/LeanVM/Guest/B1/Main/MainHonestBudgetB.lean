@@ -12,10 +12,10 @@ module
 public import LeanVM.Guest.B1.Main.MainHonestB
 public import LeanVM.Guest.B1.Main.MainHonestBudget
 public import LeanVM.Guest.B1.Main.MainGoalsClTB
-public import LeanVM.Guest.B1.Main.MainGoalsHClTB
+public import LeanVM.Guest.B1.Main.MainGoalsHClTBP
 public import LeanVM.Guest.B1.Main.MainGoalsDvTB
 public import LeanVM.Guest.B1.Main.MainGoalsHAgTB
-public import LeanVM.Guest.B1.Main.MainGoalsHL5TB
+public import LeanVM.Guest.B1.Main.L5R
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
 

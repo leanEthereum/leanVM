@@ -125,10 +125,6 @@ theorem covPtrB_ent {g0 j : ℕ} : covPtrB g0 (g0 + 10 * j + 5) = false := by
   simp only [covPtrB, Bool.and_eq_false_iff, decide_eq_false_iff_not, beq_eq_false_iff_ne]
   right; omega
 
-theorem covPtrB_below {g0 q : ℕ} (h : q < g0 + 2) : covPtrB g0 q = false := by
-  simp only [covPtrB, Bool.and_eq_false_iff, decide_eq_false_iff_not]
-  left; omega
-
 /-! ## The claims' values -/
 
 theorem mStart_le {o : ℕ → ℕ} {s K : ℕ} (hinc : ∀ j < K, mStart o (s + j) ≤ o (s + j)) :

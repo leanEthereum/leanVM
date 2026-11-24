@@ -189,12 +189,6 @@ theorem readOnly_readN : ∀ n, ReadOnly (VerifierProgram.readScalars n)
     refine ReadOnly.bind ((readOnly_iff _).2 fun _ ↦ trivial) fun _ ↦ ?_
     exact ReadOnly.bind (readOnly_readN n) fun _ ↦ readOnly_ret _
 
-theorem readOnly_require (c : Prop) [Decidable c] : ReadOnly (VerifierProgram.require c) := by
-  unfold VerifierProgram.require
-  split
-  · exact readOnly_ret _
-  · exact readOnly_fail
-
 theorem readOnly_liftOption {α : Type} (o : Option α) : ReadOnly (Verifier.liftOption o) := by
   cases o
   · exact readOnly_fail
@@ -399,10 +393,6 @@ theorem carries_fsOfT {sp : Sponge} (hg : sp.ground = none) : (Tables.fsOfT sp).
 /-- Two carried sponges of one Spec sponge are one. -/
 theorem fs_eq_of_carries {s : Fs} {sp : Sponge} (h : s.Carries sp) : s = Tables.fsOfT sp :=
   (Tables.eq_fsOfT h).1
-
-/-- The memory's log-size (`h30` weakened). -/
-theorem ChildSegs.h32 {bytecode : List K} {seed : Digest} {c : Node.Child}
-    (S : ChildSegs bytecode seed c) : S.logMem ≤ 32 := by have := S.h30; omega
 
 /-- The stack's log-size (`hmu30` weakened). -/
 theorem ChildSegs.hmu32 {bytecode : List K} {seed : Digest} {c : Node.Child}

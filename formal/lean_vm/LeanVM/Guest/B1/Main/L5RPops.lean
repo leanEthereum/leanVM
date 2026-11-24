@@ -18,7 +18,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop4»
 /-!
 # The children loop with its pops
 
-* `l5From_popsS`: `l5From_pops`, `verify_sub`'s trees popping their entries stream by stream;
+* `l5From_popsS`: a valid tree of `L5From` (`main_loop4` from child `c` to the count `nk`), its callees' predicates giving their entries, pops each child's `l5Seg` in order, `verify_sub`'s trees popping their entries stream by stream;
 * `L5From.mono`: the callees' predicates weakened;
 * `l5PopsH`: the children loop's honest entries, each child's `l5Seg` at its claim lists' `px c`, `ps c` and
   `verify_sub`'s `pv c`;
@@ -40,7 +40,8 @@ open LeanVM.Guest.B1.Digest (valid_holds words_heap monoIs monoIs_sound genMulOk
 section
 variable {rd : Reader}
 
-/-- **`l5From_pops` stream by stream**: `verify_sub`'s trees popping `pv` stream by stream. -/
+/-- **A valid tree of `L5From` pops each child's `l5Seg` in order**, `verify_sub`'s trees popping
+`pv` stream by stream. -/
 theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop} {px ps pv : ℕ → List Pop}
     {defer : ℕ → List E} {da : ℕ → E × E}
     (hpx : ∀ c t, Pxs c t → t.pops coreProgram rd = px c) (hps : ∀ c t, Pss c t → t.pops coreProgram rd = ps c)
@@ -150,7 +151,6 @@ theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop}
     l5_words_of_reads σ h35 hda
   rw [w1, w2, w3]
   simp only [List.append_assoc, List.cons_append, List.nil_append, List.append_nil]
-
 
 /-- **`L5From`, the callees' predicates weakened.** -/
 theorem L5From.mono {ex es : ℕ → ℕ} {Pxs Pss Pvs Qxs Qss Qvs : ℕ → Tree → Prop}

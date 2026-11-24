@@ -162,16 +162,6 @@ theorem runsTo_sampleN (n : ℕ) (s : Fs) :
 
 /-! ## Through a ground challenge -/
 
-theorem RunsTo.bindG {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 : Fs}
-    {xs ys : List E} {a : α} {b : β} {cap : List E} {c : E} (h1 : RunsTo p s xs a s1)
-    (h2 : RunsToG (f a) s1 ys b cap c) : RunsToG (p >>= f) s (xs ++ ys) b cap c := by
-  intro sp hs rest os roots
-  obtain ⟨sp1, hs1, e1⟩ := h1 sp hs (ys ++ rest) os roots
-  obtain ⟨sp2, hs2, e2⟩ := h2 sp1 hs1 rest os roots
-  refine ⟨sp2, hs2, ?_⟩
-  rw [prog_bind_eq, run_bind, List.append_assoc, e1]
-  exact e2
-
 theorem RunsToG.bindFrom {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β}
     {s s2 : Fs} {xs ys : List E} {a : α} {b : β} {cap : List E} {c : E}
     (h1 : RunsToG p s xs a cap c) (h2 : RunsFromG (f a) cap c ys b s2) :

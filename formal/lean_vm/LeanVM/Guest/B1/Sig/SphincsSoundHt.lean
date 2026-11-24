@@ -24,7 +24,7 @@ The statement's side:
 * `otsLeaf_of_valid`: a counter whose encoding's digits reach the target sum recovers
   `wotsLeafOf`;
 * `pathAdr_eq`, `htTreeFold_cells`: a path of the hypertree over cells, at the tree's first address
-  cell, is `SphincsSoundPath`'s `pFold` of `pNodeE` (`addressedHash_node`);
+  cell, is `SphincsSoundPath`'s `pFold` of `pNodeE` (`addressedHash_of_cells`);
 * `layerReaches_of_cells`: the encoding's digest, `sp_wots`'s leaf and the fold reach the root.
 
 The guest's side, layer `l` at `sLayerBase l`:

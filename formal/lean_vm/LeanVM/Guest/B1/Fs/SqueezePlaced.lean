@@ -14,10 +14,8 @@ public import LeanVM.Guest.B1.Fs.SqueezePoint
 
 A leaf (`spf_leafLoads`, a kernel check) loading only the `n` coordinates at `point` (`spfLoads`),
 which its meaning fixes (`spf_pin`): `completeRelB_of_leaf` with `squeeze_point_from_holds`, on the
-meaning itself (`MeaningSqueezePointFrom n`).
-
-`squeeze_point_from_completeB` (its frame), `squeeze_point_from_completeB_of` (any bound of its
-trees), `squeeze_point_from_completeD`.
+meaning itself (`MeaningSqueezePointFrom n`): `squeeze_point_from_completeB_of`, within any bound
+of its trees.
 -/
 
 namespace LeanVM.Guest.B1
@@ -68,17 +66,6 @@ theorem squeeze_point_from_completeB_of {n : ℕ} (hn : n ∈ spfDeployed) (κ :
     CompleteRelB fs cert κ (spfName n) (MeaningSqueezePointFrom n) B :=
   completeRelB_of_leaf (spf_leafSpecOk n hn) (squeeze_point_from_holds n hn) (fun _ _ _ h => h)
     (spf_pin n) κ hT
-
-/-- **`squeeze_point_from__L{n}`, placed, within its frame.** -/
-theorem squeeze_point_from_completeB {n : ℕ} (hn : n ∈ spfDeployed) (κ : ℕ) :
-    CompleteRelB fs cert κ (spfName n) (MeaningSqueezePointFrom n) (fs (spfName n)) :=
-  completeRelB_of_leaf' (spf_leafSpecOk n hn) (squeeze_point_from_holds n hn) (fun _ _ _ h => h)
-    (spf_pin n) κ
-
-/-- **`squeeze_point_from__L{n}`, placed.** -/
-theorem squeeze_point_from_completeD {n : ℕ} (hn : n ∈ spfDeployed) (κ : ℕ) :
-    CompleteRelD fs cert κ (spfName n) (MeaningSqueezePointFrom n) :=
-  (squeeze_point_from_completeB hn κ).toCompleteRelD
 
 end
 end LeanVM.Guest.B1

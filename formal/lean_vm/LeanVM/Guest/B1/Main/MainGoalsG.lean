@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsG
 
-  `main`'s raw-signature loops on an honest run, and its direct DA claim: `MainGoalL3`,
-  `MainGoalL4`, `checked_da`.
+  `main`'s raw signatures on an honest run, and its direct DA claim: `rawXD`, `rawSD`,
+  `checked_da`.
 
   The DA witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
 -/
@@ -23,9 +23,8 @@ honest words `hLmain`:
 
 * `rawXD`, `rawSD`: the raw signatures' data (`RawXData`, `RawSData`): raw signature `i` takes
   slot `(slotsOf p)[i]` of its region (`plan_raw`), whose coverage word is `g` to its mark
-  (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim;
-* `mainGoalL3`, `mainGoalL4`: `main_loop2`, `main_loop3` from the counter `1 = g^0`
-  (`rawX_completeAt`, `rawS_completeAt`), the regions below `2^16` by `Limits.coverage`;
+  (`hMarkX_raw`, `hMarkS_raw`) and whose table entry is its claim, the regions below `2^23`
+  (`regions_lt`);
 * `checked_da`: the checked DA claim's witness opens it, `da_verify`'s returns its cells (its
   completeness is `MainGoalsDvTB.mainGoalDvTB`).
 -/
@@ -134,18 +133,6 @@ def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.
   regCover _ hi := xs_regCover hi
   regClaim _ hi _ hk := xs_regClaim hi hk
 
-/-- **`main_loop2` on an honest run.** -/
-theorem mainGoalL3 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hc : Sig.verify_lean_xmss_complete_Spec) : MainGoalL3 fs cert fp seed s w := by
-  intro h0
-  have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
-  have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
-  have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
-  have h := rawX_completeAt fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) 0 hpos
-  rw [pow_zero] at h
-  exact h
-
 /-! ## The raw leanSPHINCS signatures -/
 
 section
@@ -211,18 +198,6 @@ def rawSD (hn : NodeRelation bytecode seed s w) (d0 : LeanSphincsClaim × Sphinc
   regCover _ hj := ss_regCover hj
   regClaim _ hj _ hk := ss_regClaim hj hk
   regBytes _ hv := bytes_region hv
-
-/-- **`main_loop3` on an honest run.** -/
-theorem mainGoalL4 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hc : Sig.SphincsCompleteSpecs) : MainGoalL4 fs cert fp seed s w := by
-  intro h0
-  have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
-  have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
-  have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
-  have h := rawS_completeAt fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) 0 hpos
-  rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h
-  exact h
 
 /-! ## The direct DA claim -/
 

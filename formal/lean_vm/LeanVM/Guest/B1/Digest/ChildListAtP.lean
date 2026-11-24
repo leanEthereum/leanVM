@@ -13,8 +13,12 @@ public import LeanVM.Guest.B1.Digest.MonoAtNP
 # The walk by hinted indices' helpers, with their pops
 
 * `idxPops o s m`: claims `s ..< s + m`'s indices (`o`); `idxPops_append`, `idxPops_flatMap`, `idxPops_shift`;
-* `anyLoop_blocksP`, `anyLoop_completeAtBP`, `ccl_completeAtBP`: `anyLoop_blocks`, `anyLoop_completeAtB`,
-  `ccl_completeAtB` by trees popping their claims' indices (`any_core`'s, `ccl_core`'s oracle `slotW`).
+* `anyLoop_blocksP`: at every frame `q ≤ M` of a frame loop of `m` claims a frame (`nb` blocks), the sponge state
+  after whole blocks and the first `4mq` cells at `chain · g^(13q)` (`any_core` at each counter `g^q`);
+  `anyLoop_completeAtBP`: the loop run over `M` frames from the counter `1` is `CompleteAtDTBR` within `M` frames
+  and the tail; `ccl_completeAtBP`: `child_claim_list_last__L{k}` is complete, placed, a leaf within its frame
+  (`relAtIn_atoms` on `ccl_core`); each by trees popping their claims' indices (`any_core`'s, `ccl_core`'s oracle
+  `slotW`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -74,8 +78,7 @@ theorem ccl_wits (k : ℕ) (hk : k < 17) : (cclAtoms k).flatMap atomWit =
     ((List.range k).map fun i => ("child_claim_index", [V.n (ccOV 5 i)])).map fun x => (x.1, .stack x.2) :=
   of_decide_eq_true (ccl_wits_all k hk)
 
-/-- **A frame loop of child claims, its frames, with their pops**: `anyLoop_blocks`, frame `q` popping its claims'
-indices. -/
+/-- **A frame loop of child claims, its frames, with their pops**: frame `q` popping its claims' indices. -/
 theorem anyLoop_blocksP {j : ℕ} {f : String} {m o0 p0 mk st0 nb : ℕ}
     (hok : anyOk (coreProgram.getD j default) f m o0 p0 mk st0 = true)
     (hhd : anycHead (coreProgram.getD j default) f = true)

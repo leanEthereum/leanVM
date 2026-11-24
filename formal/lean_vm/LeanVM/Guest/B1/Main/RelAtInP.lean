@@ -67,11 +67,6 @@ theorem RelAtInP.relAtIn {rd : Reader} {R D : ℕ → Prop} {fp n : ℕ} {f : St
     {ps : List Pop} (h : RelAtInP P fs cert rd R D fp n f args rets ps) : RelAtIn P fs cert rd R D fp n f args rets :=
   RelAtInT.relAtIn h
 
-theorem RelAtInCP.relAtInC {rd : Reader} {R D : ℕ → Prop} {fp c B n : ℕ} {f : String} {args rets : List E}
-    {ps : List Pop} (h : RelAtInCP P fs cert rd R D fp c B n f args rets ps) :
-    RelAtInC P fs cert rd R D fp c B n f args rets :=
-  RelAtInCT.relAtInC h
-
 /-- **A loop entered fresh**, with its pops. -/
 theorem RelAtInCP.relAtInP {rd : Reader} {R D : ℕ → Prop} {fp B n : ℕ} {f : String} {args rets : List E}
     {ps : List Pop} (h : RelAtInCP P fs cert rd R D fp (fp + B) B n f args rets ps) :

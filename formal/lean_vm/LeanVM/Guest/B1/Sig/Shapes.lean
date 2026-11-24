@@ -59,15 +59,6 @@ def rangeS (x : V) (bound : E) (b : Nat) : List Stmt :=
 def booleans (base n : Nat) : List Stmt :=
   (List.range n).map fun j => mulS (.n (base + j)) (.n (base + j)) (.n (base + j))
 
-/-- `shifts(bits, 0, n, out)` (`lean_ethereum.py`): out `l` at `outBase + 3·(n - 1 - l)`,
-over the bits from `bitBase`. -/
-def shifts (bitBase n outBase : Nat) : List Stmt :=
-  copyS (.n outBase) (.n (bitBase + n - 1)) ::
-  (List.range (n - 1)).flatMap fun r' => let r := r' + 1;
-    [cst (outBase + 3 * r - 2) (word 2 0),
-      mulS (.n (outBase + 3 * r - 1)) (.n (outBase + 3 * r - 2)) (.n (outBase + 3 * r - 3)),
-      addS (.n (outBase + 3 * r)) (.n (bitBase + n - 1 - r)) (.n (outBase + 3 * r - 1))]
-
 /-! ## Constants -/
 
 /-- An address's type field, `tag · 2^56`. -/

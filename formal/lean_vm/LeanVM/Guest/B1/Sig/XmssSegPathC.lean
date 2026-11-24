@@ -59,10 +59,6 @@ theorem ExtO.apply {lo hi o : Nat} {σ σ' : Val} (h : ExtO lo hi o σ σ') {j :
   h _ (fun k h1 h2 e => by simp only [V.mk.injEq, true_and] at e; omega)
     (by rintro ⟨i, hi, e⟩; simp only [V.mk.injEq, true_and] at e; omega)
 
-theorem Completes.toO {lo hi : Nat} (o : Nat) {ss : List Stmt} {σ : Val} {P : Val → Prop}
-    (h : Completes C rd lo hi ss σ P) : CompletesO C rd lo hi o ss σ P :=
-  let ⟨σ', he, hp, hh⟩ := h; ⟨σ', fun v hv _ => he v hv, hp, hh⟩
-
 /-- A block writing only the run at `o`. -/
 theorem Completes.toO_run {lo hi o : Nat} {ss : List Stmt} {σ : Val} {P : Val → Prop}
     (h : Completes C rd o (o + 1) ss σ P) : CompletesO C rd lo hi o ss σ P :=
@@ -332,7 +328,6 @@ theorem lxLevelT_complete {L : Nat} {w r : Nat} (hw : w < 4) (hr : r < 8) {cur :
       · intro _ _ _ _
         exact lvl_inputs ⟨jc, by omega, rfl⟩ (notInR_of (by omega)) (by omega)
           (by omega) (by omega) (by omega) (by omega) (by omega) (ord_cases _ _)
-
 
 /-! ## A level's values -/
 

@@ -139,9 +139,6 @@ theorem runsG_of_runId {α : Type} {p : VerifierProgram α} (hp : NoCommit p) {s
   obtain ⟨sp', hc, hr⟩ := Tables.runId_of_runT p _ sp2 hs2 a _ e3
   exact ⟨sp', hc, hr⟩
 
-theorem tcar_fsOfT (sp : Sponge) : Tables.TCar (Tables.fsOfT sp) sp.ground sp :=
-  ⟨rfl, rfl, rfl⟩
-
 /-! ## The primitives -/
 
 theorem noCommit_ret {α : Type} (a : α) : NoCommit (VerifierProgram.ret a) :=

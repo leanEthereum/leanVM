@@ -29,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Da LeanVM.Node
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT Returns Kid OutsOk CallsMatch RegionsOk outRegion
-  DisjL Within disj_append disj_nil kidsFromInT_of_kidsDT completeAt_of_rel_pureD regionsOk_of
+  DisjL Within disj_append disj_nil completeAt_of_rel_pureD regionsOk_of
   within_append bufL bufL_within bufL_disj bufL_region)
 open LeanVM.Guest.Budget (NodeHonest)
 

@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
 `G` is `lean_ethereum.py`. The body (`sBody_splitC`) is the statements before the root's check
 (`sPre`): the digest and FORS (`sBottom_complete`), the bottom layer, the middle layer's address
 (`sMidAddrs_vals`), the middle layer, the top layer's address (`sTopAddrs_vals`) and the top layer
-(`layer_stage`); then `root[0] == pk_root` and the return. The statement's verification
+(`layer_stage_vals`); then `root[0] == pk_root` and the return. The statement's verification
 by stages (`verifyWithKeccak_iff_stages`) gives each layer's root from the one below, the FORS key
 at the bottom (`sForsKeyOf_eq`), the key's root at the top. The loads are the claim's and the byte
 table's (`listLoadsB` of `loadPtrs sPre`, `sBody_loads`). `sPre_complete_vals` also gives the three calls of

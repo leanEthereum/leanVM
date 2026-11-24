@@ -19,7 +19,7 @@ import LeanVM.Guest.Data.ValNames.«main_loop2»
 
 * `l2Pops D i`: iteration `i`'s entries, its raw index `g^(slot i)` then the check's;
 * `rawX_stepP`: an iteration, its tail's entries after its own;
-* `rawX_loopP`, `rawX_completeAtDP`: the loop from the counter `g^i` pops iterations `i ..< nrx`' entries in order.
+* `rawX_loopP`: the loop from the counter `g^i` pops iterations `i ..< nrx`' entries in order.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -215,17 +215,6 @@ theorem rawX_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv
       show (nrx - (i + 1) + 1) * fs name% «main_loop2» + fs (tailKey name% «main_loop2») =
         fs name% «main_loop2» + ((nrx - (i + 1)) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)) by ring]
     exact h
-
-/-- **`main_loop2` is complete, placed, with its pops**, from every counter `g^i` below the count: iterations
-`i ..< nrx`' entries in order. -/
-theorem rawX_completeAtDP (fs : String → ℕ) (cert : String → V → ℕ) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) :
-    ∀ i < nrx, CompleteAtDP fs cert 23 name% «main_loop2» Lin
-      ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns [])
-      (fun _ => (List.range' i (nrx - i)).flatMap (l2Pops D)) := fun i hi fp =>
-  ⟨(nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2») + 0, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-    fun rd hl hL => (rawX_loopP fs cert D hX hnrx hl (by simpa using hL) i hi fp
-      (fp + ((nrx - i) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)))).relAtInP⟩
 
 end
 end LeanVM.Guest.B1.Main

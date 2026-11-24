@@ -20,8 +20,8 @@ import LeanVM.Guest.Data.ValNames.«sp_wots»
 A group of `sp_wots` is the shared group (`groupD`) over `spW`, its digit word at its base `B`, its
 arms laid out from `spL fold B`: so its arms are the shared arms (`armT spW`).
 
-* `spArmK`, `spArmB`, `spArmBase`, `spArmsT`: arm `k` of the group from `B`, from base `b`; the base
-  of arm `k`; the base arm `k + j` starts from; the arms (`groupArmsT`);
+* `spArmK`, `spArmB`, `spArmBase`: arm `k` of the group from `B`, from base `b`; the base of arm
+  `k`; the base arm `k + j` starts from;
 * `spState`, `spGroupsT_eq`: group `p`'s running product, encoding and base (`cwState` for `sp_wots`);
 * `spN`, `spStartAt K i`: group `p`'s digits and the value chain `i`'s start is hinted into when
   group `p` takes arm `K p`;
@@ -43,12 +43,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
 def spArmK (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k b : Nat) : List Stmt × Nat :=
   armT spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) k b
 
-/-- The arms `k ..< k + m` of the group from `B`, from base `b`. -/
-def spArmsT (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (m k b : Nat) :
-    List (List Stmt) × Nat :=
-  armsT spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) m k b
-
-/-- The base arm `k + j` of `spArmsT` from arm `k` at `b` starts from. -/
+/-- The base arm `k + j` of the group's arms from arm `k` at `b` starts from. -/
 def spArmBase (first n : Nat) (fold : Bool) (B : Nat) (prodIn encIn : V) (k j b : Nat) : Nat :=
   armBase spW (spSlot fold B) first n fold prodIn encIn (.n (spProd fold n B)) (.n (spEnc fold n B)) k j b
 
@@ -146,13 +141,9 @@ def spStartAt (K : Nat → Nat) (i : Nat) : V :=
 /-! ## The guest's numbering -/
 
 /-- The constant cells of the steps without an address constant: chain `0`'s first step in the
-first group's arm `4j`, one above the arm's base (the chain's hint)
-(`spZero_eq`). -/
+first group's arm `4j`, one above the arm's base (the chain's hint). -/
 def spZero : List Nat :=
   [28, 140, 229, 306, 367, 456, 533, 598, 647, 724, 789, 842, 879, 940, 989, 1026]
-
-theorem spZero_eq : spZero = (List.range 16).map fun j => spArmB 0 3 true 16 (.n (val% «sp_wots» "pp")) (.n (val% «sp_wots» "pp")) (4 * j) + 1 := by
-  decide +kernel
 
 /-- The guest's number of the template's value `i`: two fewer for each step without an address
 constant below it. -/

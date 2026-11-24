@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHL5
 
-  `main`'s honest children loop `main_loop4`: complete at `main`'s words (`MainGoalL5`).
+  `main`'s honest children loop `main_loop4`: each child as the loop needs it at `main`'s words.
 -/
 
 module
@@ -18,7 +18,6 @@ there, and the coverage word there marks the claim's global index (`kid_hCover_x
 DA digests lie in `da_digests` before the own one (`reads_buf`).
 `kidOk`: child `c` is `KidOkC` at `main`'s words, its two `child_claim_list_digest` calls and its
 `verify_sub` call complete by hypothesis (the lists: `MainGoalsHClT`).
-`mainGoalL5`: `l5_completeAt` from the counter `0`.
 -/
 
 namespace LeanVM.Guest.B1.Main

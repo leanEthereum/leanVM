@@ -2,8 +2,7 @@
   LeanVM.Guest.B1.Main.MainGoalsClTB
 
   `main`'s two claim lists' digests on its honest run, by trees of honest shape, within bounds
-  before the memory (`clB` of the lists' lengths): `mainGoalClXT`, `mainGoalClST` (same proofs)
-  with `claim_list_digest_completeAtTB`.
+  before the memory (`clB` of the lists' lengths), by `claim_list_digest_completeAtTB`.
 -/
 
 module
@@ -16,8 +15,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s claim lists, within bounds
 
-`MainGoalClXTB … SB SK`, `MainGoalClSTB`: `MainGoalClXT`, `MainGoalClST` with `CompleteAtDTB`
-within `clB fs SB SK` of the declared lists' lengths. `mainGoalClXTB`, `mainGoalClSTB`.
+`MainGoalClXTB … SB SK`, `MainGoalClSTB`: the leanXMSS and leanSPHINCS lists' digests complete by
+trees of shape `clHonest` (`CompleteAtDTB`), within `clB fs SB SK` of the declared lists' lengths.
+`mainGoalClXTB`, `mainGoalClSTB`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -35,29 +35,19 @@ open LeanVM.Guest.Budget (NodeHonest)
 variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest) (s : NodeStatement)
   (w : NodeWitness)
 
-/-- `MainGoalClXT` within `clB` of the declared leanXMSS list's length. -/
+/-- **The leanXMSS list's digest**, within `clB` of its declared length. -/
 def MainGoalClXTB (SB SK : String → ℕ) : Prop :=
   CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (clHonest (hm fs fp seed s w).nlx)
     (clB fs SB SK (hm fs fp seed s w).nlx)
 
-/-- `MainGoalClST` within `clB` of the declared leanSPHINCS list's length. -/
+/-- **The leanSPHINCS list's digest**, within `clB` of its declared length. -/
 def MainGoalClSTB (SB SK : String → ℕ) : Prop :=
   CompleteAtDTB fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) (clHonest (hm fs fp seed s w).nls)
     (clB fs SB SK (hm fs fp seed s w).nls)
-
-variable {fs cert fp seed s w} in
-theorem MainGoalClXTB.toT {SB SK : String → ℕ} (h : MainGoalClXTB fs cert fp seed s w SB SK) :
-    MainGoalClXT fs cert fp seed s w :=
-  CompleteAtDTB.toDT h
-
-variable {fs cert fp seed s w} in
-theorem MainGoalClSTB.toT {SB SK : String → ℕ} (h : MainGoalClSTB fs cert fp seed s w SB SK) :
-    MainGoalClST fs cert fp seed s w :=
-  CompleteAtDTB.toDT h
 
 /-- **`claim_list_digest` on the leanXMSS table's declared claims, by a tree of honest shape, within
 `clB`.** -/
@@ -130,7 +120,6 @@ theorem mainGoalClSTB (hL : GuestLimits s w) {SB SK : String → ℕ}
   unfold MainGoalClSTB clHonest
   rw [ha, hn', hd, mf_sphincs_digest]
   exact key.lowMono (by norm_num)
-
 
 end
 end LeanVM.Guest.B1.Main
