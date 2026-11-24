@@ -374,45 +374,9 @@ theorem searchBytes_cost (hP : Includes P searchIn.«Bytes, Digest».costDeps)
       machineCost P searchIn.«Bytes, Digest».costIdx [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
         (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
-  have hcmp := compareBytes_cost P (by includes)
-  have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
-    (fun x ↦ machineCost P searchIn.«Bytes, Digest».costIdx [encodeValue t, encodeValue k, encodeValue x.1, encodeValue x.2])
-    (40 + 26 * k.length + 9 * W) (40 + 26 * k.length + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
-  · dsimp only at this
-    nlinarith
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
-    dsimp only at *
-    rw [searchIn.«Bytes, Digest».costEq P hP]
-    simp only [show ¬lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    omega
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
-    dsimp only at *
-    rw [searchIn.«Bytes, Digest».costEq P hP]
-    simp only [show lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    generalize hv : t[(lo + hi) / 2]? = ov
-    cases ov with
-    | none =>
-      left
-      dsimp only
-      split_ifs <;> omega
-    | some v =>
-      have hc := hcmp v.1 k
-      dsimp only
-      generalize compare v.1 k = o2
-      cases o2
-      · right
-        refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
-      · left
-        dsimp only
-        split_ifs <;> omega
-      · right
-        refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
+  have := searchIn_cost_of P _ Auto.List.compareLex.costIdx searchBytesC.lam0.costIdx t k H W _ hW hts
+    (searchIn.«Bytes, Digest».costEq P hP t k) (fun x ↦ compareBytes_cost P (by includes) x k) lo hi hlo hhi
+  rwa [show 26 * k.length + 7 + 33 + 9 * W = 40 + 26 * k.length + 9 * W by omega] at this
 
 /-- Byte-string keys of at most `L` bytes. -/
 @[expose] def BytesKey (L : ℕ) (k : List UInt8) : Prop := k.length ≤ L
@@ -423,35 +387,12 @@ theorem mergeNewerBytes_cost (hP : Includes P mergeNewer.«Bytes, Digest».costD
     ∀ (n : ℕ) (a b : List (List UInt8 × Protocol.Digest)), a.length + b.length = n →
       (∀ e ∈ b, BytesKey L e.1) →
       machineCost P mergeNewer.«Bytes, Digest».costIdx [encodeValue a, encodeValue b] ≤ (26 * L + 33) * n + 3 := by
-  have hcmp := compareLex_cost P (by includes) _ (.closure searchBytesC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchBytesC.lam0.costSpec P (by includes) a b)) 9
-    (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchBytesC.lam0.costEq P (by includes)]
-      split_ifs <;> omega)
-  intro n
-  induction n using Nat.strong_induction_on with
-  | _ n ih =>
-  intro a b hn hb
-  cases a with
-  | nil => rw [mergeNewer.«Bytes, Digest».costEq_nil P hP]; omega
-  | cons x a =>
-    rw [mergeNewer.«Bytes, Digest».costEq_cons P hP]
-    cases b with
-    | nil => simp at hn ⊢; have : 1 ≤ n := (by omega); nlinarith
-    | cons y b =>
-      dsimp only
-      have hy : y.1.length ≤ L := hb y (by simp)
-      have hc := hcmp x.1 y.1
-      have h1 := ih (a.length + (b.length + 1)) (by simp at hn; omega) a (y :: b) (by simp) hb
-      have h2 := ih (a.length + b.length) (by simp at hn; omega) a b rfl
-        (fun e he ↦ hb e (by simp [he]))
-      have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp)
-        (fun e he ↦ hb e (by simp [he]))
-      simp only [List.length_cons] at hn h1 h3
-      have : (9 + 17) * y.1.length ≤ 26 * L := by omega
-      generalize compare x.1 y.1 = o2
-      subst hn
-      cases o2 <;> dsimp only <;> nlinarith
+  intro n a b hn hb
+  have := mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchBytesC.lam0.costIdx (BytesKey L) (26 * L + 7)
+    (fun b ↦ (mergeNewer.«Bytes, Digest».costEq_nil P hP b).trans_le (by norm_num))
+    (mergeNewer.«Bytes, Digest».costEq_cons P hP)
+    (fun x y hy ↦ by have := compareBytes_cost P (by includes) x y; unfold BytesKey at hy; omega) n a b hn hb
+  rwa [show 26 * L + 7 + 26 = 26 * L + 33 by omega] at this
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Two levels merged (`levelMergeBytesC`): at most `26·L + 37` per entry and `18`. -/
@@ -596,13 +537,14 @@ theorem firstAnswers_cost (hP : Includes P firstAnswersC.costDeps) (L D W : ℕ)
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Word lists compared (`compareLex` with `searchPreC.lam0`): `26` per word of the second. -/
-theorem compareWordsU_cost (hP : Includes P searchIn.«List UInt64, Unit».costDeps) (a b : List UInt64) :
+theorem compareWords_cost (hP : Includes P Auto.List.compareLex.costDeps)
+    (hP' : Includes P searchPreC.lam0.costDeps) (a b : List UInt64) :
     machineCost P Auto.List.compareLex.costIdx [.closure searchPreC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
       26 * b.length + 7 := by
-  have := compareLex_cost P (by includes) _ (.closure searchPreC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchPreC.lam0.costSpec P (by includes) a b)) 9
+  have := compareLex_cost P hP _ (.closure searchPreC.lam0.costIdx [])
+    (fun a b ↦ RunsApp.of_spec (searchPreC.lam0.costSpec P hP' a b)) 9
     (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchPreC.lam0.costEq P (by includes)]
+      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchPreC.lam0.costEq P hP']
       split_ifs <;> omega) a b
   omega
 
@@ -616,45 +558,9 @@ theorem searchWordsU_cost (hP : Includes P searchIn.«List UInt64, Unit».costDe
       machineCost P searchIn.«List UInt64, Unit».costIdx [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
         (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
-  have hcmp := compareWordsU_cost P (by includes)
-  have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
-    (fun x ↦ machineCost P searchIn.«List UInt64, Unit».costIdx [encodeValue t, encodeValue k, encodeValue x.1, encodeValue x.2])
-    (40 + 26 * k.length + 9 * W) (40 + 26 * k.length + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
-  · dsimp only at this
-    nlinarith
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
-    dsimp only at *
-    rw [searchIn.«List UInt64, Unit».costEq P hP]
-    simp only [show ¬lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    omega
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
-    dsimp only at *
-    rw [searchIn.«List UInt64, Unit».costEq P hP]
-    simp only [show lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    generalize hv : t[(lo + hi) / 2]? = ov
-    cases ov with
-    | none =>
-      left
-      dsimp only
-      split_ifs <;> omega
-    | some v =>
-      have hc := hcmp v.1 k
-      dsimp only
-      generalize compare v.1 k = o2
-      cases o2
-      · right
-        refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
-      · left
-        dsimp only
-        split_ifs <;> omega
-      · right
-        refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
+  have := searchIn_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx t k H W _ hW hts
+    (searchIn.«List UInt64, Unit».costEq P hP t k) (fun x ↦ compareWords_cost P (by includes) (by includes) x k) lo hi hlo hhi
+  rwa [show 26 * k.length + 7 + 33 + 9 * W = 40 + 26 * k.length + 9 * W by omega] at this
 
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -663,35 +569,12 @@ theorem mergeNewerU_cost (hP : Includes P mergeNewer.«List UInt64, Unit».costD
     ∀ (n : ℕ) (a b : List (List UInt64 × Unit)), a.length + b.length = n →
       (∀ e ∈ b, WordsKey L e.1) →
       machineCost P mergeNewer.«List UInt64, Unit».costIdx [encodeValue a, encodeValue b] ≤ (26 * L + 33) * n + 3 := by
-  have hcmp := compareLex_cost P (by includes) _ (.closure searchPreC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchPreC.lam0.costSpec P (by includes) a b)) 9
-    (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchPreC.lam0.costEq P (by includes)]
-      split_ifs <;> omega)
-  intro n
-  induction n using Nat.strong_induction_on with
-  | _ n ih =>
-  intro a b hn hb
-  cases a with
-  | nil => rw [mergeNewer.«List UInt64, Unit».costEq_nil P hP]; omega
-  | cons x a =>
-    rw [mergeNewer.«List UInt64, Unit».costEq_cons P hP]
-    cases b with
-    | nil => simp at hn ⊢; have : 1 ≤ n := (by omega); nlinarith
-    | cons y b =>
-      dsimp only
-      have hy : y.1.length ≤ L := hb y (by simp)
-      have hc := hcmp x.1 y.1
-      have h1 := ih (a.length + (b.length + 1)) (by simp at hn; omega) a (y :: b) (by simp) hb
-      have h2 := ih (a.length + b.length) (by simp at hn; omega) a b rfl
-        (fun e he ↦ hb e (by simp [he]))
-      have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp)
-        (fun e he ↦ hb e (by simp [he]))
-      simp only [List.length_cons] at hn h1 h3
-      have : (9 + 17) * y.1.length ≤ 26 * L := by omega
-      generalize compare x.1 y.1 = o2
-      subst hn
-      cases o2 <;> dsimp only <;> nlinarith
+  intro n a b hn hb
+  have := mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx (WordsKey L) (26 * L + 7)
+    (fun b ↦ (mergeNewer.«List UInt64, Unit».costEq_nil P hP b).trans_le (by norm_num))
+    (mergeNewer.«List UInt64, Unit».costEq_cons P hP)
+    (fun x y hy ↦ by have := compareWords_cost P (by includes) (by includes) x y; unfold WordsKey at hy; omega) n a b hn hb
+  rwa [show 26 * L + 7 + 26 = 26 * L + 33 by omega] at this
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Two levels merged (`Level.merge.«List UInt64, Unit»`): at most `26·L + 37` per entry and `18`. -/
@@ -762,18 +645,6 @@ theorem getU_cost (hP : Includes P SortedMap.get?.«List UInt64, Unit».costDeps
   nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- Word lists compared (`compareLex` with `searchPreC.lam0`): `26` per word of the second. -/
-theorem compareWordsC_cost (hP : Includes P searchIn.«List UInt64, KeccakState × Option Bytes».costDeps) (a b : List UInt64) :
-    machineCost P Auto.List.compareLex.costIdx [.closure searchPreC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
-      26 * b.length + 7 := by
-  have := compareLex_cost P (by includes) _ (.closure searchPreC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchPreC.lam0.costSpec P (by includes) a b)) 9
-    (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchPreC.lam0.costEq P (by includes)]
-      split_ifs <;> omega) a b
-  omega
-
-open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- The binary search of a word list `k` (`searchIn.«List UInt64, KeccakState × Option Bytes»`): at most `(40 + 26·|k| + 9·W)·(log₂(hi − lo)
 + 2)`. -/
 theorem searchWordsC_cost (hP : Includes P searchIn.«List UInt64, KeccakState × Option Bytes».costDeps)
@@ -783,45 +654,9 @@ theorem searchWordsC_cost (hP : Includes P searchIn.«List UInt64, KeccakState �
       machineCost P searchIn.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
         (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
-  have hcmp := compareWordsC_cost P (by includes)
-  have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
-    (fun x ↦ machineCost P searchIn.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue t, encodeValue k, encodeValue x.1, encodeValue x.2])
-    (40 + 26 * k.length + 9 * W) (40 + 26 * k.length + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
-  · dsimp only at this
-    nlinarith
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
-    dsimp only at *
-    rw [searchIn.«List UInt64, KeccakState × Option Bytes».costEq P hP]
-    simp only [show ¬lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    omega
-  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
-    dsimp only at *
-    rw [searchIn.«List UInt64, KeccakState × Option Bytes».costEq P hP]
-    simp only [show lo < hi by omega, ↓reduceIte]
-    limbs_bound hW
-    generalize hv : t[(lo + hi) / 2]? = ov
-    cases ov with
-    | none =>
-      left
-      dsimp only
-      split_ifs <;> omega
-    | some v =>
-      have hc := hcmp v.1 k
-      dsimp only
-      generalize compare v.1 k = o2
-      cases o2
-      · right
-        refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
-      · left
-        dsimp only
-        split_ifs <;> omega
-      · right
-        refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
+  have := searchIn_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx t k H W _ hW hts
+    (searchIn.«List UInt64, KeccakState × Option Bytes».costEq P hP t k) (fun x ↦ compareWords_cost P (by includes) (by includes) x k) lo hi hlo hhi
+  rwa [show 26 * k.length + 7 + 33 + 9 * W = 40 + 26 * k.length + 9 * W by omega] at this
 
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
@@ -830,35 +665,12 @@ theorem mergeNewerC_cost (hP : Includes P mergeNewer.«List UInt64, KeccakState 
     ∀ (n : ℕ) (a b : List (List UInt64 × (LeanVM.Semantics.KeccakState × Option (List UInt8)))), a.length + b.length = n →
       (∀ e ∈ b, WordsKey L e.1) →
       machineCost P mergeNewer.«List UInt64, KeccakState × Option Bytes».costIdx [encodeValue a, encodeValue b] ≤ (26 * L + 33) * n + 3 := by
-  have hcmp := compareLex_cost P (by includes) _ (.closure searchPreC.lam0.costIdx [])
-    (fun a b ↦ RunsApp.of_spec (searchPreC.lam0.costSpec P (by includes) a b)) 9
-    (fun a b ↦ by
-      rw [appCost_fn, List.nil_append, List.length_nil, Nat.add_zero, searchPreC.lam0.costEq P (by includes)]
-      split_ifs <;> omega)
-  intro n
-  induction n using Nat.strong_induction_on with
-  | _ n ih =>
-  intro a b hn hb
-  cases a with
-  | nil => rw [mergeNewer.«List UInt64, KeccakState × Option Bytes».costEq_nil P hP]; omega
-  | cons x a =>
-    rw [mergeNewer.«List UInt64, KeccakState × Option Bytes».costEq_cons P hP]
-    cases b with
-    | nil => simp at hn ⊢; have : 1 ≤ n := (by omega); nlinarith
-    | cons y b =>
-      dsimp only
-      have hy : y.1.length ≤ L := hb y (by simp)
-      have hc := hcmp x.1 y.1
-      have h1 := ih (a.length + (b.length + 1)) (by simp at hn; omega) a (y :: b) (by simp) hb
-      have h2 := ih (a.length + b.length) (by simp at hn; omega) a b rfl
-        (fun e he ↦ hb e (by simp [he]))
-      have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp)
-        (fun e he ↦ hb e (by simp [he]))
-      simp only [List.length_cons] at hn h1 h3
-      have : (9 + 17) * y.1.length ≤ 26 * L := by omega
-      generalize compare x.1 y.1 = o2
-      subst hn
-      cases o2 <;> dsimp only <;> nlinarith
+  intro n a b hn hb
+  have := mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx (WordsKey L) (26 * L + 7)
+    (fun b ↦ (mergeNewer.«List UInt64, KeccakState × Option Bytes».costEq_nil P hP b).trans_le (by norm_num))
+    (mergeNewer.«List UInt64, KeccakState × Option Bytes».costEq_cons P hP)
+    (fun x y hy ↦ by have := compareWords_cost P (by includes) (by includes) x y; unfold WordsKey at hy; omega) n a b hn hb
+  rwa [show 26 * L + 7 + 26 = 26 * L + 33 by omega] at this
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
 /-- Two levels merged (`Level.merge.«List UInt64, KeccakState × Option Bytes»`): at most `26·L + 37` per entry and `18`. -/

@@ -271,6 +271,130 @@ theorem smGood_levels_le {m : SortedMap α β} (hm : smGood m) {D : ℕ} (hN : s
 
 end Amortized
 
+/-! ## The compiled search and merge, for any key and value types -/
+
+section Compiled
+
+variable (P : MachineProgram) {κ β : Type} [Ord κ] [MachineEncoding κ] [MachineEncoding β]
+
+/-- The price recurrence of `searchIn` compiled to function `i`, its keys compared by `compareLex`
+(function `j`) with the closure `c`: its `costEq`'s right side. -/
+@[expose] def searchRec (i j c : ℕ) (t : Array (κ × β)) (k : κ) (lo hi : ℕ) : ℕ :=
+  (max (limbCount lo) (limbCount hi) +
+      if lo < hi then
+        ((max (limbCount (lo + hi)) (max (limbCount lo) (limbCount hi)) + limbCount (lo + hi) +
+              max (limbCount ((lo + hi) / 2)) (limbCount t.size) +
+            if (lo + hi) / 2 < t.size then
+              max (limbCount (lo + hi)) (max (limbCount lo) (limbCount hi)) + limbCount (lo + hi) + 8
+            else 1) +
+          Option.casesOn (motive := fun _ ↦ ℕ) t[(lo + hi) / 2]? 1 fun val ↦
+            machineCost P j [.closure c [], encodeValue val.1, encodeValue k] +
+              Ordering.casesOn (motive := fun _ ↦ ℕ) (compare val.1 k)
+                (max (limbCount (lo + hi)) (max (limbCount lo) (limbCount hi)) + limbCount (lo + hi) +
+                    max (limbCount ((lo + hi) / 2 + 1)) (limbCount ((lo + hi) / 2)) +
+                  machineCost P i [encodeValue t, encodeValue k, encodeValue ((lo + hi) / 2 + 1),
+                    encodeValue hi] + 8)
+                4
+                (max (limbCount (lo + hi)) (max (limbCount lo) (limbCount hi)) + limbCount (lo + hi) +
+                  machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue ((lo + hi) / 2)] +
+                  7) + 7) + 7
+      else 1) + 3
+
+/-- **The binary search of `k`** (`searchIn` compiled to function `i`, of recurrence `searchRec`),
+each comparison at most `C`: at most `(C + 33 + 9·W)·(log₂(hi − lo) + 2)`, `W` a bound of the limbs
+of the positions (up to `2·H`). -/
+theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : ℕ)
+    (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W) (hts : t.size ≤ H)
+    (hEq : ∀ lo hi, machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] =
+      searchRec P i j c t k lo hi)
+    (hcmp : ∀ x, machineCost P j [.closure c [], encodeValue x, encodeValue k] ≤ C) :
+    ∀ lo hi, lo ≤ H → hi ≤ H →
+      machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
+        (C + 33 + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
+  intro lo hi hlo hhi
+  have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
+    (fun x ↦ machineCost P i [encodeValue t, encodeValue k, encodeValue x.1, encodeValue x.2])
+    (C + 33 + 9 * W) (C + 33 + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
+  · dsimp only at this
+    nlinarith
+  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
+    dsimp only at *
+    rw [hEq, searchRec]
+    simp only [show ¬lo < hi by omega, ↓reduceIte]
+    limbs_bound hW
+    omega
+  · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ hpos
+    dsimp only at *
+    rw [hEq, searchRec]
+    simp only [show lo < hi by omega, ↓reduceIte]
+    limbs_bound hW
+    generalize hv : t[(lo + hi) / 2]? = ov
+    cases ov with
+    | none =>
+      left
+      dsimp only
+      split_ifs <;> omega
+    | some v =>
+      have hc := hcmp v.1
+      dsimp only
+      generalize compare v.1 k = o2
+      cases o2
+      · right
+        refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
+        dsimp only
+        split_ifs <;> omega
+      · left
+        dsimp only
+        split_ifs <;> omega
+      · right
+        refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
+        dsimp only
+        split_ifs <;> omega
+
+/-- The price recurrence of `mergeNewer` compiled to function `i` on a nonempty first list, its keys
+compared by `compareLex` (function `j`) with the closure `c`: its `costEq_cons`'s right side. -/
+@[expose] def mergeNewerRec (i j c : ℕ) (x : κ × β) (a b : List (κ × β)) : ℕ :=
+  (List.casesOn (motive := fun _ ↦ ℕ) b 5 fun y b ↦
+      machineCost P j [.closure c [], encodeValue x.1, encodeValue y.1] +
+        Ordering.casesOn (motive := fun _ ↦ ℕ) (compare x.1 y.1)
+          (machineCost P i [encodeValue a, encodeValue (y :: b)] + 11)
+          (machineCost P i [encodeValue a, encodeValue b] + 7)
+          (machineCost P i [encodeValue (x :: a), encodeValue b] + 11) + 9) + 6
+
+/-- **`mergeNewer`** (compiled to function `i`, of recurrence `mergeNewerRec`), each comparison
+with a key of the second list (of property `Q`) at most `C`: at most `C + 26` per entry and `3`. -/
+theorem mergeNewer_cost_of (i j c : ℕ) (Q : κ → Prop) (C : ℕ)
+    (hnil : ∀ b : List (κ × β), machineCost P i [encodeValue ([] : List (κ × β)), encodeValue b] ≤ 3)
+    (hcons : ∀ x (a b : List (κ × β)),
+      machineCost P i [encodeValue (x :: a), encodeValue b] = mergeNewerRec P i j c x a b)
+    (hcmp : ∀ x y, Q y → machineCost P j [.closure c [], encodeValue x, encodeValue y] ≤ C) :
+    ∀ (n : ℕ) (a b : List (κ × β)), a.length + b.length = n → (∀ e ∈ b, Q e.1) →
+      machineCost P i [encodeValue a, encodeValue b] ≤ (C + 26) * n + 3 := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro a b hn hb
+  cases a with
+  | nil => have := hnil b; omega
+  | cons x a =>
+    rw [hcons, mergeNewerRec]
+    cases b with
+    | nil => simp at hn ⊢; nlinarith
+    | cons y b =>
+      dsimp only
+      have hc := hcmp x.1 y.1 (hb y (by simp))
+      have h1 := ih (a.length + (b.length + 1)) (by simp at hn; omega) a (y :: b) (by simp) hb
+      have h2 := ih (a.length + b.length) (by simp at hn; omega) a b rfl
+        (fun e he ↦ hb e (by simp [he]))
+      have h3 := ih (a.length + 1 + b.length) (by simp at hn; omega) (x :: a) b (by simp)
+        (fun e he ↦ hb e (by simp [he]))
+      simp only [List.length_cons] at hn h1 h3
+      generalize compare x.1 y.1 = o
+      subst hn
+      cases o <;> dsimp only <;> nlinarith
+
+end Compiled
+
 /-! ## A fold, amortized -/
 
 section Fold
