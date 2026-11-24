@@ -116,7 +116,7 @@ theorem cp_distinct {k : ℕ → E} (hnz : ∀ r < 9, k r ≠ 0)
     have h1 : (gen ^ D - 1) * k s = 0 := by rw [sub_mul, ← hD, one_mul, sub_self]
     rcases mul_eq_zero.mp h1 with h | h
     · have h2 : gen ^ D = gen ^ 0 := by rw [pow_zero]; exact sub_eq_zero.mp h
-      have := tb_gen_pow_inj' (by omega) (by omega) h2
+      have := Value.gen_pow_inj (by omega) (by omega) h2
       omega
     · exact hnz s hs h
   intro r hr s hs he

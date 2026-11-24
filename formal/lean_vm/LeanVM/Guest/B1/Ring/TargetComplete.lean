@@ -355,9 +355,9 @@ theorem rst_hσ {bs bm : ℕ} {s chs : List E} (hs : s.length = 64) (hc : chs.le
         dsimp only
         have hok := List.all_eq_true.mp rst_loadIn _ (rt_atoms_mem hst)
         rcases rstLoadIn_load hok with ⟨rfl, hok⟩ | ⟨rfl, hok⟩ | ⟨rfl, hok⟩
-        · rw [e1, Main.addr_ofK]
+        · rw [e1, Value.limb0_ofK_addressOfIndex_mul]
           exact ⟨_, rfl, Or.inl ⟨(bm, chs), by simp, by simp [hc]; omega⟩⟩
-        · rw [e2, Main.addr_ofK]
+        · rw [e2, Value.limb0_ofK_addressOfIndex_mul]
           exact ⟨_, rfl, Or.inr ⟨(b, chainWords s (chs.drop 8)), by simp [bufL, bases],
             by simp only [hcw]; omega⟩⟩
         · rw [e13, rt_addr_mul]

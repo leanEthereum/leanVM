@@ -254,7 +254,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
       simp [hF, btkVal]
     simp only [btPre, h0, ↓reduceIte]
     rw [holdsList_append_noRet (noRetList_flatten_range _ _ (btNibT_noRet n)),
-      holdsList_flatten_range _ _ (btNibT_noRet n)]
+      holdsList_range_flatten _ _ (btNibT_noRet n), and_true]
     refine ⟨fun k hk ↦ ?_, ?_⟩
     · -- nibble `k`
       have hw1 := btW_pos hk

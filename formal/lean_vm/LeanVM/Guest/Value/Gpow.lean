@@ -14,8 +14,8 @@ public import LeanVM.Guest.Value.FieldBits
 # Powers of `g`
 
 A pointer is a power of `g` (`gen ^ a`, in `K` as `addressOfIndex a`), and the guest moves along
-memory by multiplying pointers. This is the one home of the facts the proofs share about them:
-products of addresses and of powers, the address a load through a pointer reads
+memory by multiplying pointers. The facts the proofs share about them live here: products of
+addresses and of powers, the address a load through a pointer reads
 (`limb0_ofK_mul_gen_pow_mul`), `K`-membership (`isInK_add`, `isInK_mul`, `gen_pow_isInK`, …), and the
 loop guard `1 + g^a` (`one_add_gen_pow_ne_zero_iff`). Injectivity below the order of `g` is
 `gen_pow_inj` (`LeanVM.Guest.Value.Bits`).

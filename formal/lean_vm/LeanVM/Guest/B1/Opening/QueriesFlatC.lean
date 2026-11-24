@@ -231,7 +231,7 @@ theorem guarded_loop_iffC {P : Core.Program} {f : String} {ps : List E} {N : E}
   · rintro ⟨m, hm, hN, hall⟩
     refine ⟨?_, fun h1 => ?_⟩
     · rw [hN]
-      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
+      exact one_add_gen_pow_isInK m
     have hm0 : 0 < m := by
       rcases Nat.eq_zero_or_pos m with h | h
       · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1

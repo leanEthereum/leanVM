@@ -130,7 +130,8 @@ theorem holds_stLevel {j w : ℕ} (h : Stmt.HoldsList C rd σ (stLevel j w) True
     LoadHolds rd (σ (.n (val% «selector_tables» "point1"))) (4 * j + 3 - w) (σ (.n (stM j w - 1))) ∧
     ∀ i < 2 ^ w, σ (.n (stV j w (2 * i))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 1)) ∧
       σ (.n (stV j w (2 * i + 1))) = σ (.n (stV j (w - 1) i)) * σ (.n (stM j w - 2)) := by
-  rw [stLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)] at h
+  rw [stLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl),
+    and_true] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   refine ⟨h1.1, h1.2, fun i hi => ?_⟩
@@ -155,7 +156,7 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
       Bool.and_self]),
     holdsList_append_noRet (by simp only [noRetList_append, stLevel_noRet, n0,
       Bool.and_self]),
-    holdsList_append_noRet n0, holdsList_flatten_range _ _ (stStores_noRet j)] at h
+    holdsList_append_noRet n0, holdsList_range_flatten _ _ (stStores_noRet j), and_true] at h
   obtain ⟨⟨⟨⟨h0, h1⟩, h2⟩, h3⟩, h4⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   refine ⟨h0, h1, h2, h3, fun w hw i hi => ?_⟩
@@ -227,7 +228,7 @@ theorem selector_tables_sound {rd : Reader} {args rets : List E}
   subst hpar hret
   rw [stPre, holdsList_append_noRet (by
       rw [noRetList_append, noRetList_flatten_range _ _ stNib_noRet]; rfl),
-    holdsList_append_noRet rfl, holdsList_flatten_range _ _ stNib_noRet] at hpre
+    holdsList_append_noRet rfl, holdsList_range_flatten _ _ stNib_noRet, and_true] at hpre
   obtain ⟨⟨-, hnibs⟩, hcopy⟩ := hpre
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hcopy
   simp only [SelTablesOut]

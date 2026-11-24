@@ -314,7 +314,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 theorem holds_cpChain {v0 : ℕ} {bs : List Bool}
     (h : Stmt.HoldsList C rd σ (cpChain v0 bs) True kret) :
     ∀ j ≤ bs.length, σ (.n (v0 + j)) = σ (.n v0) ^ cpChainExp (bs.take j) := by
-  rw [cpChain, holdsList_flatten_range _ _ fun _ ↦ rfl] at h
+  rw [cpChain, holdsList_range_flatten _ _ fun _ ↦ rfl, and_true] at h
   intro j hj
   induction j with
   | zero => simp [cpChainExp]
@@ -375,7 +375,7 @@ theorem holds_cpCols {gi : ℕ} (h : Stmt.HoldsList C rd σ (cpCols gi) True kre
     LoadHolds rd (σ (.n (val% «certify_placement» "group_base"))) gi (σ (.n (cpD gi + 2))) ∧
     ∀ j < cpLen gi, LoadHolds rd (σ (.n (val% «certify_placement» "col_off_g"))) (cpC0 gi + j)
       (σ (.n (cpD gi + 2)) * σ (.n (cpD gi + 1)) ^ j) := by
-  rw [cpCols, holdsList_append_noRet rfl, holdsList_flatten_range _ _ fun _ ↦ rfl] at h
+  rw [cpCols, holdsList_append_noRet rfl, holdsList_range_flatten _ _ fun _ ↦ rfl, and_true] at h
   obtain ⟨h0, h1⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   obtain ⟨m0, l1, l2, l3⟩ := h0
@@ -463,7 +463,7 @@ theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : 
   have ekv : σ (.n (cpKv gi)) = gen ^ (eb + cpAdj gi) := by
     rw [hkv, hkb, word_two_pow (by omega), ← pow_add]
   obtain ⟨x, hx, ex⟩ := cp_rc34 hμ Lm hq hrc
-  have hκ : eb + cpAdj gi = x := tb_gen_pow_inj' (by omega) (by omega) (ekv.symm.trans ex)
+  have hκ : eb + cpAdj gi = x := gen_pow_inj (by omega) (by omega) (ekv.symm.trans ex)
   rw [ekv, loadHolds_mul_gen_pow] at hload hsqL
   have e5 := loadHolds_unique hload (by
     rw [add_comm]; exact hrk (eb + cpAdj gi) (by omega))
@@ -537,7 +537,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
   have hkb' : ReadsAt Lm.read kb (ebL.map (gen ^ ·)) := by simpa [ebL] using hkb
   have heb : ∀ i < 8, σ (.n ((val% «certify_placement» "kb[0]") + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 33 := fun i hi ↦ by
     refine ⟨loadHolds_unique (by rw [← h0]; exact hloads i hi)
-      ((tbReadsAt_map_iff.mp hkb') i (by omega)), ?_⟩
+      ((readsAt_map_iff.mp hkb') i (by omega)), ?_⟩
     rcases i with _ | _ | i
     · simp [ebL]
     · simp only [ebL, List.getD_cons_succ, List.getD_cons_zero]; omega
@@ -619,7 +619,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
         gen ^ (e + 1 + κc (cpC0 (π (r + 1))) * 247 + cpC0 (π r)) := by
       rw [pow_add, pow_add, pow_add, ← k1, ← k2, hrel]
       ring
-    have := tb_gen_pow_inj' (by omega) (by omega) heq
+    have := gen_pow_inj (by omega) (by omega) heq
     refine ⟨by omega, fun ht ↦ cpC0_lt _ ha _ hb (by omega)⟩
   -- the columns
   have hoff : ∀ r < 9, ∀ i, cpC0 (π r) + i < cpC0 (π r + 1) →
@@ -653,7 +653,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     rw [htot]
     rfl
   · rw [hκ, e407]
-    refine tbReadsAt_map_iff.mpr fun c hc ↦ ?_
+    refine readsAt_map_iff.mpr fun c hc ↦ ?_
     rw [tb_stackOffsets_length, List.length_map, List.length_range] at hc
     exact hoffs c hc
 

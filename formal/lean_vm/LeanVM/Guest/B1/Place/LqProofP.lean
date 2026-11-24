@@ -197,8 +197,9 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   have hO : ordG = 2 ^ 64 - 1 := rfl
   have hU : u128Bound = 2 ^ 128 := rfl
   have hCAPm : ofK (addressOfIndex ecap) = CAP * gen ^ (2 ^ (cd + 1)) := by
-    rw [hCAP, ofK_addr_mul_gen_pow]
-  have hFLm : ofK (addressOfIndex eflags) = FL * gen ^ (2 ^ (cd - 1)) := by rw [hFL, ofK_addr_mul_gen_pow]
+    rw [hCAP, Value.ofK_addressOfIndex_mul_gen_pow]
+  have hFLm : ofK (addressOfIndex eflags) = FL * gen ^ (2 ^ (cd - 1)) := by
+    rw [hFL, ofK_addressOfIndex_mul_gen_pow]
   have hCAPo' : CAP * gw (2 ^ (cd + 1)) = ofK (addressOfIndex ecap) := by
     rw [hCAPm, Whir.gw_eq (by rw [hU]; omega)]
   have hFLo' : FL * gw (2 ^ (cd - 1)) = ofK (addressOfIndex eflags) := by

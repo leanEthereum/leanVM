@@ -331,7 +331,7 @@ theorem arm_lq_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
           (lpLvP (osLvA c l).depth (osLvA c l).capDepth).depth
           (lpLvP (osLvA c l).depth (osLvA c l).capDepth).capDepth
           (k % sqPer (lpLvP (osLvA c l).depth (osLvA c l).capDepth)) = ofK (addressOfIndex (eb k)) := by
-        rw [qwPtrAt, ofK_addr_mul_gen_pow]; rfl
+        rw [qwPtrAt, Value.ofK_addressOfIndex_mul_gen_pow]; rfl
       rw [e] at this
       exact this
     · have hk' : k < (osLvA c l).squeezes * (128 / (osLvA c l).depth) := lt_of_lt_of_le hk hqS

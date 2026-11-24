@@ -201,7 +201,7 @@ theorem head_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
     · exact a24 1 hm1
     · refine ⟨b0 + 70 + m, ?_, api m le_rfl⟩
       show (σ (.n (val% «check_opening_terminal» "pi_eq~0"))).limb 0 * addressOfIndex 0 = _
-      rw [e33, e26, e6, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+      rw [e33, e26, e6, ofK_addressOfIndex_mul_gen_pow, limb0_ofK_addressOfIndex_mul, Nat.add_zero]
     all_goals exact akb _ (by decide)
 
 /-! ## The selectors -/
@@ -371,10 +371,11 @@ theorem tail_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
     rcases hq with rfl | rfl
     · refine ⟨b0 + 105 + (τ + 6), ?_, ach⟩
       show (σ (.n (val% «check_opening_terminal» "inner_sum@135~0"))).limb 0 * addressOfIndex 6 = _
-      rw [e10, e0, e7, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
+      rw [e10, e0, e7, ofK_addressOfIndex_mul_gen_pow, limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
     · refine ⟨b0 + 146 + n, ?_, aod⟩
       show (σ (.n (val% «check_opening_terminal» "s29#0"))).limb 0 * addressOfIndex 0 = _
-      rw [e19', e16, e19, ofK_gpow_mul_gen, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+      rw [e19', e16, e19, ofK_addressOfIndex_mul_gen_pow, limb0_ofK_addressOfIndex_mul,
+        Nat.add_zero]
 
 end
 end LeanVM.Guest.B1.VerifySub

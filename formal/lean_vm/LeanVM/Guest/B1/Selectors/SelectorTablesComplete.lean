@@ -114,7 +114,7 @@ theorem st_rdAt {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} 
     rdAt (layRd L) (ofK (addressOfIndex q.1)) o = q.2.getD o 0 ∧
       LoadHolds rd (ofK (addressOfIndex q.1)) o (q.2.getD o 0) := by
   have hr := memLay_read hm hq ho
-  refine ⟨?_, tb_isInK_ofK _, by rw [limb0_ofK_addressOfIndex_mul]; exact hr⟩
+  refine ⟨?_, Value.ofK_isInK _, by rw [limb0_ofK_addressOfIndex_mul]; exact hr⟩
   rw [rdAt, limb0_ofK_addressOfIndex_mul, layRd_agree hm ⟨q, hq, o, ho, rfl⟩, hr]
   rfl
 

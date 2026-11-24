@@ -164,7 +164,7 @@ theorem vbg_tables (h : Stmt.HoldsList C rd σ vbgPre True kret) {depth : ℕ}
       .atom (.load (.n (141 + 3 * e)) (.n (val% «verify_bus_gkr» "four_bounds")) (e + 1)),
       .atom (.const (.n (142 + 3 * e)) (word (2 ^ ((e / 2) % 4)) 0)),
       .atom (.load (.n (142 + 3 * e)) (.n (val% «verify_bus_gkr» "four_rem")) (e + 1))]).flatten) (by decide +kernel)
-  rw [holdsList_flatten_range _ _ (fun _ => rfl)] at ht
+  rw [holdsList_range_flatten _ _ (fun _ => rfl), and_true] at ht
   have hdt := ht (depth - 1) (by omega)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
     show depth - 1 + 1 = depth by omega] at hdt
@@ -392,7 +392,7 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
     [Stmt.atom (.load (.n ((val% «verify_bus_gkr» "s38.u0.s0#0") + k)) (.n (val% «verify_bus_gkr» "last")) (6 + k)),
       .atom (.load (.n ((val% «verify_bus_gkr» "s38.u0.s0#0") + k)) (.n (val% «verify_bus_gkr» "leaves")) k)]).flatten (by decide +kernel)
   rw [holdsList_mapAtoms] at hcs
-  rw [holdsList_flatten_range _ _ (fun _ => rfl)] at hvs
+  rw [holdsList_range_flatten _ _ (fun _ => rfl), and_true] at hvs
   simp only [Atom.Holds] at hcs
   have ecap : ∀ k < 5, σ (.n ((val% «verify_bus_gkr» "s39#0") + k)) = s.cap.getD k 0 := fun k hk =>
     loadHolds_unique (ld _ _ (hcs k hk)) (hcap k hk)

@@ -106,12 +106,12 @@ theorem bs_zip_range {α β : Type} (l1 : List α) (l2 : List β) (d1 : α) (d2 
 theorem bsEqV_eq (bs : List Bool) (zs1 : List E) : ∀ k, bsEqV bs zs1 k =
     ((List.range (k + 1)).map fun j ↦ bsB bs j + zs1.getD j 0).prod
   | 0 => by simp [bsEqV]
-  | k + 1 => by rw [bsEqV, bsEqV_eq bs zs1 k, tb_prod_map_range_succ' _ (k + 1)]
+  | k + 1 => by rw [bsEqV, bsEqV_eq bs zs1 k, List.prod_range_succ _ (k + 1)]
 
 theorem bsRbV_eq (bs : List Bool) (cs : List E) : ∀ k, bsRbV bs cs k =
     ((List.range (k + 1)).map fun j ↦ 1 + bsB bs j * cs.getD j 0).prod
   | 0 => by simp [bsRbV]
-  | k + 1 => by rw [bsRbV, bsRbV_eq bs cs k, tb_prod_map_range_succ' _ (k + 1)]
+  | k + 1 => by rw [bsRbV, bsRbV_eq bs cs k, List.prod_range_succ _ (k + 1)]
 
 /-- **`block_selector` is complete** at its 34 specializations. -/
 theorem block_selector_complete_holds : block_selector_complete_Spec := by

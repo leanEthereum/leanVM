@@ -104,7 +104,8 @@ theorem holds_nbLevel {B : ℕ} {pz pz1 : V} {t : ℕ}
     LoadHolds rd (σ pz) t (σ (.n (nbM B t - 2))) ∧ LoadHolds rd (σ pz1) t (σ (.n (nbM B t - 1))) ∧
     ∀ i < 2 ^ t, σ (.n (nbM B t + 2 * i)) = σ (.n (nbLv B (t - 1) i)) * σ (.n (nbM B t - 1)) ∧
       σ (.n (nbM B t + 2 * i + 1)) = σ (.n (nbLv B (t - 1) i)) * σ (.n (nbM B t - 2)) := by
-  rw [nbLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)] at h
+  rw [nbLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl),
+    and_true] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   refine ⟨h1.1, h1.2, fun i hi => ?_⟩
@@ -209,7 +210,7 @@ theorem holds_nbEq {B : ℕ} {pz pz1 peq : V} {w : ℕ} (hw1 : 1 ≤ w) (hw4 : w
     true := rfl
   rw [nbEq, holdsList_append_noRet (by simp only [noRetList_append, nL, n0, Bool.and_self]),
     holdsList_append_noRet n0, holdsList_mapAtoms,
-    holdsList_flatten_range _ _ (fun t => nbLevel_noRet B pz pz1 (t + 1))] at h
+    holdsList_range_flatten _ _ (fun t => nbLevel_noRet B pz pz1 (t + 1)), and_true] at h
   obtain ⟨⟨h0, hL⟩, hEq⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   have hlev := nbLevels hL
@@ -280,7 +281,7 @@ theorem holds_nbG {c : ℕ} {pgs pgo : V} {w : ℕ} (hw1 : 1 ≤ w)
     Stmt.atom (.load (.n (c + 1)) pgs 0)] = true := rfl
   rw [nbG, holdsList_append_noRet (by simp only [noRetList_append, nG, n0, Bool.and_self]),
     holdsList_append_noRet n0, holdsList_mapAtoms,
-    holdsList_flatten_range _ _ (fun t => nbGStep_noRet c pgs (t + 1))] at h
+    holdsList_range_flatten _ _ (fun t => nbGStep_noRet c pgs (t + 1)), and_true] at h
   obtain ⟨⟨h0, hG⟩, hGs⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   have hgs := nbGs h0.1 hG

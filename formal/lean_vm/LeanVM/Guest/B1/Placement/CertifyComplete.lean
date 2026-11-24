@@ -442,7 +442,7 @@ noncomputable def cpOffRd (Q : ℕ → ℕ) : Reader := fun x ↦
 
 theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 94) :
     LoadHolds (cpOffRd Q) (ofK (addressOfIndex 0)) c (gen ^ Q c) := by
-  refine ⟨tb_isInK_ofK _, ?_⟩
+  refine ⟨Value.ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul, Nat.zero_add]
   have h : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
   have he : ∀ h' : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c,
@@ -505,7 +505,7 @@ end
 theorem ldef_load {k : ℕ} {rd : Reader} (hlow : LowDefB k rd) {a : ℕ} (ha : a < 2 ^ k) :
     LoadHolds rd (gen ^ a) 0 (rdv rd a) := by
   rw [gen_pow_eq_ofK]
-  refine ⟨tb_isInK_ofK _, ?_⟩
+  refine ⟨Value.ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
   rw [rdv, hv]; rfl
@@ -526,7 +526,7 @@ theorem wRankBound_eq : wRankBound = gen ^ 8397 := by
 theorem tb_load_ofK_add {rd : Reader} {a b k : ℕ} {w : E} :
     LoadHolds rd (ofK (addressOfIndex (a + b))) k w ↔
       LoadHolds rd (ofK (addressOfIndex a)) (b + k) w := by
-  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, tb_isInK_ofK, true_and, Nat.add_assoc]
+  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, Value.ofK_isInK, true_and, Nat.add_assoc]
 
 section
 variable {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd : Reader}
@@ -550,12 +550,12 @@ theorem cp_reads (hl : hs.length = 6)
     CpReads lm hs ekb esq e10 e11 e136 e137 e293 rd := by
   obtain ⟨ho, hi⟩ := memLay_append.mp hm
   have r10 := ho (e10, (List.range 9).map (cpKey lm hs)) (by simp [cpOwn])
-  have r11 := tbReadsAt_map_iff.mp
+  have r11 := readsAt_map_iff.mp
     (ho (e11, (List.range 9).map fun g ↦ gen ^ cpSize lm hs g) (by simp [cpOwn]))
-  have r138 := tbReadsAt_map_iff.mp (ho (e136, (cpGOrd lm hs).map (gen ^ ·)) (by simp [cpOwn]))
-  have r139 := tbReadsAt_map_iff.mp
+  have r138 := readsAt_map_iff.mp (ho (e136, (cpGOrd lm hs).map (gen ^ ·)) (by simp [cpOwn]))
+  have r139 := readsAt_map_iff.mp
     (ho (e137, (List.range 9).map fun g ↦ gen ^ cpGP lm hs (cpRho lm hs g)) (by simp [cpOwn]))
-  have r295 := tbReadsAt_map_iff.mp
+  have r295 := readsAt_map_iff.mp
     (ho (e293, (stackOffsets (cpKs lm hs)).1.map (gen ^ ·)) (by simp [cpOwn]))
   have rkb := hi (ekb, 1 :: gen ^ lm :: hs.map (gen ^ ·)) (by simp [cpLin])
   have rsq := hi (esq, gSquaresList) (by simp [cpLin])
@@ -696,7 +696,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
         loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.sq κ (by omega)
   · -- the chain
-    rw [cpChain, holdsList_flatten_range _ _ fun _ ↦ rfl]
+    rw [cpChain, holdsList_range_flatten _ _ fun _ ↦ rfl, and_true]
     intro j hj
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     have e1 : cpZ gi + 1 + 1 + j = cpZ gi + 1 + (j + 1) := by omega
@@ -801,7 +801,7 @@ theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs
     intro j hj
     rw [vO j hj, ← hoffs gi hgi j hj]
     exact R.off _ (by have := cpC0_le gi hgi; unfold cpLen at hj; omega)
-  rw [cpCols, holdsList_append_noRet rfl, holdsList_flatten_range _ _ fun _ ↦ rfl]
+  rw [cpCols, holdsList_append_noRet rfl, holdsList_range_flatten _ _ fun _ ↦ rfl, and_true]
   refine ⟨?_, fun j hj ↦ ?_⟩
   · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨?_, ?_, ?_, ?_⟩

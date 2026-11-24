@@ -38,16 +38,10 @@ open LeanVM.Guest.B1.Whir
 
 /-! ## Pointers -/
 
-theorem ofK_addr_mul_gen_pow (a m : ℕ) :
-    ofK (Parameters.addressOfIndex a) * gen ^ m = ofK (Parameters.addressOfIndex (a + m)) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul]
-  congr 1
-  simp only [Parameters.addressOfIndex, pow_add]
-
 theorem ofK_addr_shift (a o j p : ℕ) :
     ofK (Parameters.addressOfIndex a) * gen ^ o * (gen ^ j) ^ p =
       ofK (Parameters.addressOfIndex (a + o + j * p)) := by
-  rw [← pow_mul, ofK_addr_mul_gen_pow, ofK_addr_mul_gen_pow]
+  rw [← pow_mul, Value.ofK_addressOfIndex_mul_gen_pow, Value.ofK_addressOfIndex_mul_gen_pow]
 
 theorem loadHolds_ofK_iff {rd : Reader} {a k b k' : ℕ} {v : E} (h : a + k = b + k') :
     LoadHolds rd (ofK (Parameters.addressOfIndex a)) k v ↔

@@ -163,8 +163,8 @@ theorem holds_spPre {w : ℕ} (h : Stmt.HoldsList C rd σ (spPre w) True kret) :
     holdsList_append_noRet (by simp only [noRetList_append, nL, nA, n0, Bool.and_self]),
     holdsList_append_noRet (by simp only [noRetList_append, nL, n0, Bool.and_self]),
     holdsList_append_noRet n0, holdsList_mapAtoms, holdsList_mapAtoms,
-    holdsList_flatten_range _ _ (fun t => spLevel_noRet (t + 1)),
-    holdsList_flatten_range _ _ (fun t => spGStep_noRet w (t + 1))] at h
+    holdsList_range_flatten _ _ (fun t => spLevel_noRet (t + 1)), and_true,
+    holdsList_range_flatten _ _ (fun t => spGStep_noRet w (t + 1)), and_true] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨h0, h1⟩, h2⟩, -⟩, h3⟩, h4⟩, h5⟩, -⟩, h6⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0 h3 h6
   exact ⟨h0, h1, h2, h3, h4, h5, h6⟩
@@ -174,7 +174,8 @@ theorem holds_spLevel {t : ℕ} (h : Stmt.HoldsList C rd σ (spLevel t) True kre
     LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z1"))) t (σ (.n (spM t - 1))) ∧
     ∀ i < 2 ^ t, σ (.n (spM t + 2 * i)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 1)) ∧
       σ (.n (spM t + 2 * i + 1)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 2)) := by
-  rw [spLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)] at h
+  rw [spLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl),
+    and_true] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   refine ⟨h1.1, h1.2, fun i hi => ?_⟩

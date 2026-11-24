@@ -124,10 +124,6 @@ theorem imPre_noRet (n : ℕ) : Stmt.noRetList (imPre n) = true := by
   · rfl
   · rw [noRetList_append, imBlks_noRet]; rfl
 
-theorem tb_prod_map_range_succ {M : Type} [CommMonoid M] (f : ℕ → M) (m : ℕ) :
-    ((List.range (m + 1)).map f).prod = ((List.range m).map f).prod * f m := by
-  rw [List.range_succ, List.map_append, List.prod_append]; simp
-
 /-! ## The semantics -/
 
 section Sem
@@ -189,7 +185,7 @@ theorem index_mle_sound {P : Program} (hall : (List.range 34).all (imCheckP P) =
         simp [zs, List.getD_eq_getElem?_getD, ht]
       | succ t ih =>
         rw [(holds_imBlk_succ (by omega) (by omega) (hb (t + 1) ht)).2, Nat.add_sub_cancel,
-          ih (by omega), tb_prod_map_range_succ _ (t + 1)]
+          ih (by omega), List.prod_range_succ _ (t + 1)]
         congr 2
         simp [zs, List.getD_eq_getElem?_getD, ht]
     refine ⟨zs, by simp [zs], fun t ht => ?_, ?_⟩

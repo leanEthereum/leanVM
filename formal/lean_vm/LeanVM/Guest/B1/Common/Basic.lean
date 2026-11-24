@@ -234,13 +234,6 @@ theorem holdsList_append_noRet {C : CallRel} {rd : Reader} {σ : Val} {kret : Li
       Stmt.HoldsList C rd σ A True kret ∧ Stmt.HoldsList C rd σ B True kret := by
   rw [holdsList_append, holdsList_noRet _ ha]
 
-/-- `ret`-free blocks indexed by `i < n`, in sequence. -/
-theorem holdsList_flatten_range {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
-    (n : ℕ) (g : ℕ → List Stmt) (hg : ∀ i, Stmt.noRetList (g i) = true) :
-    Stmt.HoldsList C rd σ ((List.range n).map g).flatten True kret ↔
-      ∀ i < n, Stmt.HoldsList C rd σ (g i) True kret := by
-  rw [holdsList_range_flatten n g hg, and_true]
-
 /-- What a range check `rangeCheck x y t1 t2 k` asks of memory, for some complement and touched
 words: `x` and `k / x` are readable addresses (`rangeCheck_iff` makes it `x = g^e`, `e < K`, on a
 memory image of at most `2^32` words). -/
@@ -635,7 +628,7 @@ theorem guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : Lis
   · rintro ⟨m, hm, hN, hall⟩
     refine ⟨?_, fun h1 => ?_⟩
     · rw [hN]
-      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
+      exact one_add_gen_pow_isInK m
     have hm0 : 0 < m := by
       rcases Nat.eq_zero_or_pos m with h | h
       · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1

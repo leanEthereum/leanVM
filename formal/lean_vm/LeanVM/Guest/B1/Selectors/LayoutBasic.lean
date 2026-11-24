@@ -39,9 +39,6 @@ theorem memLay_append {rd : Reader} {L L' : TLay} :
   exact ⟨fun h => ⟨fun q hq => h q (Or.inl hq), fun q hq => h q (Or.inr hq)⟩,
     fun h q hq => hq.elim (h.1 q) (h.2 q)⟩
 
-theorem tb_isInK_ofK (a : K) : IsInK (ofK a) := by
-  simp [IsInK]
-
 /-- An address of the layout. -/
 def InLay (L : TLay) (a : K) : Prop := ∃ q ∈ L, ∃ j < q.2.length, a = addressOfIndex (q.1 + j)
 
@@ -104,7 +101,7 @@ theorem lay_same {L : TLay} (hd : DisjLay L) (hl : LowLay L) {q q' : ℕ × List
 /-- **`layRd` holds a layout of runs apart, below the order of `g`.** -/
 theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd L) L := by
   intro q hq j hj
-  refine ⟨tb_isInK_ofK _, ?_⟩
+  refine ⟨Value.ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul]
   have ha : InLay L (addressOfIndex (q.1 + j)) := ⟨q, hq, j, hj, rfl⟩
   unfold layRd

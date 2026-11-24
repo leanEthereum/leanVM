@@ -48,7 +48,7 @@ theorem length_wtsCells (q : ℕ → ℕ) : (wtsCells q).length = 128 := by simp
 theorem gen_pow_add_ne {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) :
     decide (gen ^ a + gen ^ b ≠ 0) = decide (a ≠ b) :=
   decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
-    fun h he => h (gen_pow_inj' ha hb (e_add_eq_zero_iff.mp he))⟩
+    fun h he => h (Value.gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he))⟩
 
 /-- `da_verify_blob_loop0`'s statements before its `ret`. -/
 def cellLP : List Stmt := cellLPre ++ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")]]

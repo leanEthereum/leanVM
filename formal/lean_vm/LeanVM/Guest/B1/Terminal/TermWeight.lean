@@ -250,12 +250,12 @@ theorem check_opening_terminal_completeAtBW (κ : ℕ) (hκ : 6 ≤ κ) (B : Ter
     · intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
-      rw [ofK_gpow_mul_gen] at hgt
+      rw [Value.ofK_addressOfIndex_mul_gen_pow] at hgt
       exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
-      rw [← ofK_gpow_mul_gen]; exact hrp
+      rw [← Value.ofK_addressOfIndex_mul_gen_pow]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct
   · exact term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)

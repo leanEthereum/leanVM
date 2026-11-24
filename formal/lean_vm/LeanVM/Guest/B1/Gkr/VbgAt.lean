@@ -350,7 +350,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
       obtain ⟨n, h⟩ := hv.2 hne
       simp only [List.map_cons, List.map_nil, c426, e6, e7, e423] at h ⊢
       rw [show (1 : E) = gen ^ 0 from (pow_zero _).symm] at h ⊢
-      rw [tb_ofK_gpow_mul] at h ⊢
+      rw [Value.ofK_addressOfIndex_mul_gen_pow] at h ⊢
       exact vbz_relIn (ptrIn_ofK hReg.z) (ptrIn_ofK fun i hi ↦ by
         rw [Nat.add_assoc]; exact hReg.r _ (by omega)) n 0 (by omega) h
   · -- the loads

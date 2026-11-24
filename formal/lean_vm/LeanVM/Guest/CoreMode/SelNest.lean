@@ -44,11 +44,6 @@ theorem stmtsOf_cases {w : Stmt} : ∀ {l : List Stmt}, w ∈ stmtsOf l → w �
       · exact Or.inl (List.mem_cons_of_mem _ h)
       · exact Or.inr ⟨v, List.mem_cons_of_mem _ hv, h⟩
 
-theorem noRetList_append : ∀ (a b : List Stmt),
-    Core.Stmt.noRetList (a ++ b) = (Core.Stmt.noRetList a && Core.Stmt.noRetList b)
-  | [], b => by simp [Core.Stmt.noRetList]
-  | s :: a, b => by simp only [List.cons_append, Core.Stmt.noRetList, noRetList_append a b, Bool.and_assoc]
-
 theorem noMatch_mem {l : List Stmt} (h : noMatch l = true) {x : V} {arms : List (List Stmt)}
     (hm : Stmt.match_ x arms ∈ l) : False := by
   have := List.all_eq_true.mp h _ hm
@@ -409,7 +404,7 @@ theorem sel_nested {σ : Val} {j : ℕ} {ps : List V} {B P R z n Q S : List Stmt
     have h' : Core.Stmt.noRetList (subBlock (.ite c0 z n) c) = true := by
       rw [hbz]; split
       exacts [hnI.1, hnI.2]
-    rw [hbr, noRetList_append, Bool.and_eq_true] at h'
+    rw [hbr, B1.noRetList_append, Bool.and_eq_true] at h'
     exact h'.2
   rw [Bridge.walk_append σ] at hw1
   rcases seq_eq_ret hw1 with ⟨W, Z', hW, hR', rfl⟩ | hW

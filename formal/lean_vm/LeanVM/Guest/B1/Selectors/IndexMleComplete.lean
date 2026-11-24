@@ -62,7 +62,7 @@ theorem imAccV_eq (zs : List E) : ∀ t < 34, imAccV zs t =
     ((List.range (t + 1)).map fun s ↦ imFactorOf (zs.getD s 0) s).prod
   | 0, _ => by simp [imAccV, imFactorOf, imFac, imFactor_eq (show 0 < 34 by norm_num)]
   | t + 1, ht => by
-    rw [imAccV, imAccV_eq zs t (by omega), tb_prod_map_range_succ _ (t + 1), imFactorOf, imFac,
+    rw [imAccV, imAccV_eq zs t (by omega), List.prod_range_succ _ (t + 1), imFactorOf, imFac,
       imFactor_eq ht]
 
 theorem imBlkV_0 (zs : List E) (t : ℕ) : imBlkV zs t 0 = 1 := by simp [imBlkV]

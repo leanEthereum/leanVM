@@ -224,7 +224,7 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
     simp [hpre.1, hpre.2, word_one, bitsEq, bitsPow]
   simp only [btPre, h0, ↓reduceIte] at hpre
   rw [holdsList_append_noRet (noRetList_flatten_range _ _ (btNibT_noRet n)),
-    holdsList_flatten_range _ _ (btNibT_noRet n)] at hpre
+    holdsList_range_flatten _ _ (btNibT_noRet n), and_true] at hpre
   obtain ⟨hnibs, htail⟩ := hpre
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at htail
   obtain ⟨hc1, hc2⟩ := htail

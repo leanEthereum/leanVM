@@ -165,10 +165,10 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   simp only [MeaningFoldFinalMsg] at hM
   obtain ⟨m, ps, hml, hpsl, hm, hps, hyat⟩ := hM
   have em : m = fold.take c.yrLen := by
-    have := readsAt_take hm hF.fmsg (by rw [hml, hF.ylen]; exact hF.foldl)
+    have := eq_take_of_readsAt hm hF.fmsg (by rw [hml, hF.ylen]; exact hF.foldl)
     rw [this, hml, hF.ylen]
   have eps : ps = T := by
-    have := readsAt_take hps hF.tch (by rw [hpsl, hF.Tl])
+    have := eq_take_of_readsAt hps hF.tch (by rw [hpsl, hF.Tl])
     rw [this, hpsl, ← hF.Tl, List.take_length]
   -- the point
   have hPl : (rotPt G T (c.levels.headD default).folds).length = c.nFolds + c.yrLog := by

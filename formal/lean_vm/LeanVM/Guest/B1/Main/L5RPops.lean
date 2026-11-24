@@ -122,7 +122,7 @@ theorem l5From_popsS {ex es : ℕ → ℕ} {Pxs Pss Pvs : ℕ → Tree → Prop}
     by_cases h0' : σ (.n (val% «main_loop4» "s21#2")) = 0
     · have hcm' : c + 1 = nk := by
         rw [h53] at h0'
-        exact Digest.gen_pow_inj' (by omega) hnk34 (e_add_eq_zero_iff.mp h0')
+        exact Value.gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0')
       rw [show m = 0 by omega, List.range'_zero, List.flatMap_nil]
       have : (decide (σ (.n (val% «main_loop4» "s21#2")) ≠ 0)) = false := by simpa using h0'
       simp only [this, Bool.false_eq_true, ↓reduceIte] at hvt

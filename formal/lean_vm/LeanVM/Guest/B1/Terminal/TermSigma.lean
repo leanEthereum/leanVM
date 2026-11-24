@@ -622,7 +622,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       · show [σ (.n (selStart c)), σ (.n (val% «check_opening_terminal» "sel_eq")), σ (.n ((selKap c).2.2 + 1))] =
           [gen ^ (stackOffsets KC).1.getD c 0, (stRes (outs.take (4 + c))).1.getD 0 0,
             ofK (addressOfIndex (B.gsq + 34))]
-        rw [stRes_take, ite_eq_left (by omega), e36, e43, e38, e0, ofK_gpow_mul_gen]
+        rw [stRes_take, ite_eq_left (by omega), e36, e43, e38, e0, ofK_addressOfIndex_mul_gen_pow]
       · show [σ (.n (selV c))] = _
         rw [esel, (hOK ht).1, List.getD_cons_zero]
     · have : j = 98 ∨ j = 99 ∨ j = 100 := by omega

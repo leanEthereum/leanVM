@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Helpers -/
 
-theorem readsAt_take {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
+theorem eq_take_of_readsAt {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
     (hl : xs.length ≤ ys.length) : xs = ys.take xs.length := by
   refine List.ext_getElem (by simp; omega) fun i hi _ ↦ ?_
   rw [List.getElem_take]

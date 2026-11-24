@@ -99,7 +99,7 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       row * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] []) :
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (glLoopCall p nm) True kret := by
   have g : ∀ a, Stmt.atom a ∈ glLoopCall p nm → Good rd S w σ a := fun a ha ↦ hG _ ha
-  have hK : IsInK (1 + gen ^ m) := isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK _)
+  have hK : IsInK (1 + gen ^ m) := one_add_gen_pow_isInK _
   have hm0 : 1 + gen ^ m ≠ 0 → 0 < m := fun hne ↦ by
     rcases Nat.eq_zero_or_pos m with h0 | h0
     · rw [h0, pow_zero, e_add_self] at hne; exact absurd rfl hne

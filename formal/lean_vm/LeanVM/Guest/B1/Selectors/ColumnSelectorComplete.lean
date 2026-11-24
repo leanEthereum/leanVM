@@ -215,7 +215,7 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
   rw [holdsList_append_noRet (noRetList_flatten_range _ _ (csNibT_noRet κ)),
-    holdsList_flatten_range _ _ (csNibT_noRet κ)]
+    holdsList_range_flatten _ _ (csNibT_noRet κ), and_true]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`

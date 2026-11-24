@@ -150,7 +150,7 @@ theorem holds_spLevel_iff {t : ℕ} :
         LoadHolds rd (σ (.n (valf% «sel_partial_nibble» "z1"))) t (σ (.n (spM t - 1)))) ∧
       ∀ i < 2 ^ t, σ (.n (spM t + 2 * i)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 1)) ∧
         σ (.n (spM t + 2 * i + 1)) = σ (.n (spLv (t - 1) i)) * σ (.n (spM t - 2)) := by
-  rw [spLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)]
+  rw [spLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl), and_true]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
 theorem holds_spGStep_iff {w t : ℕ} :
@@ -165,7 +165,7 @@ theorem holds_spGStep_iff {w t : ℕ} :
 theorem holds_spPad_iff {v0 : ℕ} {p : V} {e0 n : ℕ} :
     Stmt.HoldsList C rd σ (spPad v0 p e0 n) True kret ↔
       ∀ k < n, σ (.n (v0 + k)) = word 0 0 ∧ LoadHolds rd (σ p) (e0 + k) (σ (.n (v0 + k))) := by
-  rw [spPad, holdsList_flatten_range _ _ (fun _ => rfl)]
+  rw [spPad, holdsList_range_flatten _ _ (fun _ => rfl), and_true]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
 theorem holds_spPre_iff {w : ℕ} :
@@ -204,8 +204,8 @@ theorem holds_spPre_iff {w : ℕ} :
     holdsList_append_noRet (by simp only [noRetList_append, nL, nA, n0, Bool.and_self]),
     holdsList_append_noRet (by simp only [noRetList_append, nL, n0, Bool.and_self]),
     holdsList_append_noRet n0, holdsList_mapAtoms, holdsList_mapAtoms,
-    holdsList_flatten_range _ _ (fun t => spLevel_noRet (t + 1)),
-    holdsList_flatten_range _ _ (fun t => spGStep_noRet w (t + 1)), holds_spPad_iff,
+    holdsList_range_flatten _ _ (fun t => spLevel_noRet (t + 1)), and_true,
+    holdsList_range_flatten _ _ (fun t => spGStep_noRet w (t + 1)), and_true, holds_spPad_iff,
     holds_spPad_iff]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
