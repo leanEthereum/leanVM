@@ -11,8 +11,12 @@ public import XmssSecurity.Proof.ChainTrajectory
 /-!
 # Presampling the chains of key generation
 
-Key generation walks every chain of both layers, so its run equals the run that first computes every
-chain trajectory and then runs key generation from the warmed cache.
+Key generation walks every chain of both layers from its start (`CoversKeyChains`), so a run of it
+equals in distribution the run that first computes one chain's trajectory and then runs key
+generation from the warmed cache (`evalDist_run_eq_chainTrajectory_then`), and likewise for the
+same chain of each key in a list (`evalDist_run_eq_fixedSeedTrajectories_then`). Key generation's
+cache holds each honest chain step's input and no other at its address (`Concrete.keygen_cache_has_chainInput`,
+`Concrete.keygen_cache_chainInput_eq_none_of_ne`).
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -114,27 +118,6 @@ theorem sequenceFin_component_support_in_largerCache {n : Nat}
         cases hfinal
         exact ih (fun index => computation index.succ) tailTarget headCache resultCache
           largerCache tail htail hle
-
-/-- A prefix of a chain walk runs inside the walk's run. -/
-theorem RunsBelow.keyChainWalk_prefix {parameter : PublicParameter} {key : ChainKey}
-    {chain : ChainIndex} {position : Nat} {value : Digest} {cache : QueryCache HashSpec}
-    {steps : Nat} (prefixSteps : Nat) (hprefix : prefixSteps ≤ steps)
-    (hrun : RunsBelow (Concrete.keyChainWalk parameter key chain position steps value :
-      OracleComp HashSpec Digest) cache) :
-    RunsBelow (Concrete.keyChainWalk parameter key chain position prefixSteps value :
-      OracleComp HashSpec Digest) cache := by
-  induction steps with
-  | zero =>
-      obtain rfl : prefixSteps = 0 := by omega
-      exact hrun
-  | succ steps ih =>
-      by_cases hsame : prefixSteps = steps + 1
-      · subst hsame
-        exact hrun
-      obtain ⟨beforeCache, afterCache, digest, hmem, hafter⟩ := hrun
-      rw [Concrete.keyChainWalk] at hmem
-      obtain ⟨previous, middleCache, hprevious, _, hmiddleLe⟩ := runsBelow_bind_left hmem
-      exact ih (by omega) ⟨beforeCache, middleCache, previous, hprevious, hmiddleLe.trans hafter⟩
 
 /-- A chain walk that ran below a cache has its every step's input cached there. -/
 theorem RunsBelow.keyChainInput_cached

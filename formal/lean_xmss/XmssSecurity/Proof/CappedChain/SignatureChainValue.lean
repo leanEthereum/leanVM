@@ -7,11 +7,10 @@ public import XmssSecurity.Proof.ChainOraclePresampling
 /-!
 # Writing and replaying a signature's chain values
 
-`replaceSignatureChainValue` overwrites one chain value of a signature at either layer, as the causal
-simulation does when it reveals one. Over a cache extending key
-generation's, the chain values of `Concrete.CacheReplay.signWithEncoding` and
-`Concrete.CacheReplay.topPartFromCache` are the honest values `keygenChainValueTable` at the signed
-coordinates (`Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable`,
+`replaceSignatureChainValue` overwrites one chain value of a signature at the layer of a chain key,
+as the causal simulation does when it reveals one. Over a cache extending key generation's, the
+chain values of `Concrete.CacheReplay.signWithEncoding` and `Concrete.CacheReplay.topPartFromCache`
+are the honest values `keygenChainValueTable` at the signed coordinates (`Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable`,
 `Concrete.CacheReplay.topPartFromCache_chainValue_eq_keygenChainValueTable`).
 -/
 

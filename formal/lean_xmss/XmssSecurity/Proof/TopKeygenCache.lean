@@ -9,8 +9,8 @@ public import XmssSecurity.Proof.MerkleQueryPresence
 /-!
 # Key generation's cache: the bottom forest's nodes and the top layer
 
-What key generation caches at the bottom forest's Merkle addresses (global node indices, so level
-`ℓ` uses nodes below `2^(2h - ℓ - 1)`), and at the top layer's addresses: one honest input per top
+What key generation caches at the bottom forest's Merkle addresses (global node indices, so the
+address at `MerkleLevel ℓ` takes nodes below `2^(2h - ℓ - 1)`), and at the top layer's addresses: one honest input per top
 chain step, top leaf and top Merkle node, and at a top message digest address only the trials of
 the honest bottom root, of which the selected one is the only one that decodes.
 -/

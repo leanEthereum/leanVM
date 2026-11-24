@@ -16,8 +16,9 @@ The causal simulation reads every chain value of key generation (`GlobalChainVal
 hidden value of `RevealProbeOracleSimulation`. Its state, `GlobalCausalHashState`, holds the random
 oracle's cache, key generation's cache, the values revealed so far and the chain probes the hash
 queries made (`globalCausalRecordedState`). `revealGlobalSignature` reveals the chain values a
-returned signature sends at both layers and writes them into the signature
-(`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
+returned signature sends at both layers and writes them into the signature, one layer at a time by
+the side of the chain key (`revealGlobalSignatureChains`,
+`globalSignatureRevealResult_allChains_chainValue`). `keygenViews_signWithEncoding_eq_globalReveal`
 shows that a signature replayed from one key generation is the other's with the revealed table
 values written in, under the relations defined here (`ProgrammedGlobalChainKeygenStableRelation`,
 `ProgrammedGlobalChainKeygenFullCacheStableRelation`). Key generation with presampled trajectories
