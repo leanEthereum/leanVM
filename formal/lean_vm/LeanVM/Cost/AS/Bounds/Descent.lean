@@ -23,7 +23,7 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `List.any` (`any`): `11` per element and the predicate's price, `3`. -/
+/-- `List.any`: `11` per element and the predicate's price, `3`. -/
 theorem anyC_cost (hP : Includes P Auto.List.any.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →

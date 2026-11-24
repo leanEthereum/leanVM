@@ -87,7 +87,7 @@ section MergeSortWl
 variable {α : Type} [MachineEncoding α] (W N : ℕ) (hW : ∀ x, x ≤ N → limbCount x ≤ W)
 
 include hW in
-/-- `List.length` (`length`), the counts of at most `W` limbs: `7 + W` per element, `3`. -/
+/-- `List.length`, the counts of at most `W` limbs: `7 + W` per element, `3`. -/
 theorem length_cost_wl (hP : Includes P Auto.List.length.costDeps) :
     ∀ l : List α, l.length ≤ N →
       machineCost P Auto.List.length.costIdx [encodeValue l] ≤ (7 + W) * l.length + 3 := by

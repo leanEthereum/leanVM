@@ -37,7 +37,7 @@ theorem ofFnFrom_length {α : Type} {n : ℕ} (f : Fin n → α) : (Rewrite.ofFn
 section
 variable {α : Type} [MachineEncoding α]
 
-/-- `Array.ofFn` through `ofFnFrom` (`ofFnFrom`): `B + 16` per entry, `5` at the end. -/
+/-- `Array.ofFn` through `ofFnFrom`: `B + 16` per entry, `5` at the end. -/
 theorem ofFnFrom_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.ofFnFrom.costDeps)
     {α : Type} [MachineEncoding α] {n : ℕ} (hn : n < 2 ^ 64) (f : Fin n → α) (fVal : MachineValue)
     (hf : ∀ a : Fin n, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
@@ -73,7 +73,7 @@ theorem rangeLoop_cost (hP : Includes P Auto.List.range.loop.costDeps) :
     have := ih (n :: l) (by omega)
     omega
 
-/-- `List.reverseAux` (`reverseAux`): `11` per element, `3` at the end. -/
+/-- `List.reverseAux`: `11` per element, `3` at the end. -/
 theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (l acc : List α), machineCost P Auto.List.reverseAux.costIdx [encodeValue l, encodeValue acc] ≤
       11 * l.length + 3 := by
@@ -87,7 +87,7 @@ theorem reverseAux_cost (hP : Includes P Auto.List.reverseAux.costDeps) {α : Ty
     simp only [List.length_cons]
     omega
 
-/-- `List.length` (`length`): `8` per element, `3` at the end, for word-sized lists. -/
+/-- `List.length`: `8` per element, `3` at the end, for word-sized lists. -/
 theorem length_cost (hP : Includes P Auto.List.length.costDeps) {α : Type} [MachineEncoding α] :
     ∀ l : List α, l.length < 2 ^ 64 →
       machineCost P Auto.List.length.costIdx [encodeValue l] ≤ 8 * l.length + 3 := by
@@ -103,7 +103,7 @@ theorem length_cost (hP : Includes P Auto.List.length.costDeps) {α : Type} [Mac
     simp only [List.length_cons]
     omega
 
-/-- `List.append` (`append`): `11` per element of the first, `3` at the end. -/
+/-- `List.append`: `11` per element of the first, `3` at the end. -/
 theorem append_cost (hP : Includes P Auto.List.append.costDeps) {α : Type} [MachineEncoding α] :
     ∀ (a b : List α), machineCost P Auto.List.append.costIdx [encodeValue a, encodeValue b] ≤
       11 * a.length + 3 := by
@@ -117,7 +117,7 @@ theorem append_cost (hP : Includes P Auto.List.append.costDeps) {α : Type} [Mac
     simp only [List.length_cons]
     omega
 
-/-- `List.filter` (`filter`): `15` per element and the predicate's price, `3`. -/
+/-- `List.filter`: `15` per element and the predicate's price, `3`. -/
 theorem filter_cost (hP : Includes P Auto.List.filter.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
@@ -134,7 +134,7 @@ theorem filter_cost (hP : Includes P Auto.List.filter.costDeps) {α : Type} [Mac
     generalize p a = b
     cases b <;> dsimp only <;> nlinarith
 
-/-- `List.filterMap` (`filterMap`): `16` per element and the closure's price, `3` at the end. -/
+/-- `List.filterMap`: `16` per element and the closure's price, `3` at the end. -/
 theorem filterMap_cost (hP : Includes P Auto.List.filterMap.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
@@ -150,7 +150,7 @@ theorem filterMap_cost (hP : Includes P Auto.List.filterMap.costDeps) {α β : T
     simp only [List.length_cons]
     cases f x <;> dsimp only <;> nlinarith
 
-/-- `List.map` (`map`): `13` per element and the closure's price, `3` at the end. -/
+/-- `List.map`: `13` per element and the closure's price, `3` at the end. -/
 theorem map_cost (hP : Includes P Auto.List.map.costDeps) {α β : Type} [MachineEncoding α] [MachineEncoding β]
     (f : α → β) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P fVal [encodeValue a] ≤ B) →
@@ -158,7 +158,7 @@ theorem map_cost (hP : Includes P Auto.List.map.costDeps) {α β : Type} [Machin
   listMap_le P _ fVal (Auto.List.map.costEq_nil P hP f fVal hf)
     (fun x l ↦ Auto.List.map.costEq_cons P hP f fVal hf x l) B
 
-/-- `List.findSome?` (`findSome?`), any element type: `11` per element and the closure's
+/-- `List.findSome?`, any element type: `11` per element and the closure's
 price, `3` at the end. -/
 theorem findSome_cost (hP : Includes P Auto.List.findSome?.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → Option β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a)))
@@ -176,7 +176,7 @@ theorem findSome_cost (hP : Includes P Auto.List.findSome?.costDeps) {α β : Ty
     generalize f l = o
     cases o <;> dsimp only <;> nlinarith
 
-/-- `List.all` (`all`): `11` per element and the predicate's price, `3`. -/
+/-- `List.all`: `11` per element and the predicate's price, `3`. -/
 theorem all_cost (hP : Includes P Auto.List.all.costDeps) {β : Type} [MachineEncoding β]
     (p : β → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List β, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
@@ -192,7 +192,7 @@ theorem all_cost (hP : Includes P Auto.List.all.costDeps) {β : Type} [MachineEn
     simp only [List.length_cons]
     split_ifs <;> nlinarith
 
-/-- `List.zipIdx` (`zipIdx`): `17` per element, `3` at the end, for word-sized indices. -/
+/-- `List.zipIdx`: `17` per element, `3` at the end, for word-sized indices. -/
 theorem zipIdx_cost (hP : Includes P Auto.List.zipIdx.costDeps) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 →
       machineCost P Auto.List.zipIdx.costIdx [encodeValue l, encodeValue n] ≤ 17 * l.length + 3
@@ -204,7 +204,7 @@ theorem zipIdx_cost (hP : Includes P Auto.List.zipIdx.costDeps) :
     simp only [List.length_cons]
     omega
 
-/-- `List.foldr` (`foldr`), the closure's price bounded on the suffixes: `11` per element and
+/-- `List.foldr`, the closure's price bounded on the suffixes: `11` per element and
 the closure's price, `3` at the end. -/
 theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → β → β) (fVal : MachineValue)
@@ -222,14 +222,14 @@ theorem foldrSuffix_cost (hP : Includes P Auto.List.foldr.costDeps) {α β : Typ
     simp only [List.length_cons]
     nlinarith
 
-/-- `List.foldr` (`foldr`): `11` per element and the closure's price, `3` at the end. -/
+/-- `List.foldr`: `11` per element and the closure's price, `3` at the end. -/
 theorem foldr_cost (hP : Includes P Auto.List.foldr.costDeps) {α β : Type} [MachineEncoding α] [MachineEncoding β]
     (f : α → β → β) (fVal : MachineValue) (hf : ∀ (a : α) (b : β), RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b)))
     (B : ℕ) (init : β) (l : List α) (hB : ∀ a ∈ l, ∀ b : β, appCost P fVal [encodeValue a, encodeValue b] ≤ B) :
     machineCost P Auto.List.foldr.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 11) * l.length + 3 :=
   foldrSuffix_cost P hP f fVal hf B init l fun x tl h ↦ hB x (h.subset (by simp)) _
 
-/-- `List.flatten` (`flatten`): `11` per element of the pieces and `11` per piece, `3`. -/
+/-- `List.flatten`: `11` per element of the pieces and `11` per piece, `3`. -/
 theorem flatten_cost (hP : Includes P Auto.List.flatten.costDeps) {α : Type} [MachineEncoding α]
     (M : ℕ) : ∀ ls : List (List α), (∀ l ∈ ls, l.length ≤ M) →
       machineCost P Auto.List.flatten.costIdx [encodeValue ls] ≤ (11 * M + 11) * ls.length + 3 := by
@@ -254,7 +254,7 @@ theorem flatten_map_cost (hP : Includes P Auto.List.flatten.costDeps) {α σ : T
     exact hM s hs)
   simpa using this
 
-/-- `List.flatten` (`flatten`), by the total length: `11` per element, `11` per piece, `3`. -/
+/-- `List.flatten`, by the total length: `11` per element, `11` per piece, `3`. -/
 theorem flatten_cost_length (hP : Includes P Auto.List.flatten.costDeps) :
     ∀ xss : List (List α),
       machineCost P Auto.List.flatten.costIdx [encodeValue xss] ≤ 11 * xss.flatten.length + 11 * xss.length + 3
@@ -300,7 +300,7 @@ theorem getInternal_cost_idx (hP : Includes P Auto.List.«get?Internal».costDep
       simp only
       omega
 
-/-- `List.getD` (`getD`): `15` per element, `9` at the end. -/
+/-- `List.getD`: `15` per element, `9` at the end. -/
 theorem getD_cost (hP : Includes P Auto.List.getD.costDeps) {α : Type} [MachineEncoding α]
     (l : List α) (k : ℕ) (d : α) (hk : k < 2 ^ 64) :
     machineCost P Auto.List.getD.costIdx [encodeValue l, encodeValue k, encodeValue d] ≤ 15 * l.length + 9 := by
@@ -383,7 +383,7 @@ theorem replicate_cost (hP : Includes P Auto.List.replicate.costDeps) {α : Type
     have := ih (by omega)
     omega
 
-/-- `Option.map` (`map`): at most the closure's price `+ 8`. -/
+/-- `Option.map`: at most the closure's price `+ 8`. -/
 theorem optionMap_cost (hP : Includes P Auto.Option.map.costDeps) {α β : Type} [MachineEncoding α]
     [MachineEncoding β] (f : α → β) (fVal : MachineValue) (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
     (o : Option α) (hB : ∀ a, o = some a → appCost P fVal [encodeValue a] ≤ B) :

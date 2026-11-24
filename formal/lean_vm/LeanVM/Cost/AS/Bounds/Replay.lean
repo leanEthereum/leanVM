@@ -55,39 +55,39 @@ theorem searchFwd_cost (hP : Includes P searchIn.«List UInt64, KeccakState».co
     (hts : t.size ≤ H) :
     ∀ lo hi, lo ≤ H → hi ≤ H →
       machineCost P searchIn.«List UInt64, KeccakState».costIdx [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
-        (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
-  intro lo hi hlo hhi
-  have := searchIn_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx t k H W _ hW hts
-    (searchIn.«List UInt64, KeccakState».costEq P hP t k) (fun x ↦ compareWords_cost P (by includes) (by includes) x k) lo hi hlo hhi
-  rwa [show 26 * k.length + 7 + 33 + 9 * W = 40 + 26 * k.length + 9 * W by omega] at this
+        (40 + 26 * k.length + 9 * W) * (Nat.log2 (hi - lo) + 2) :=
+  searchIn_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx t k H W _ _ hW hts
+    (searchIn.«List UInt64, KeccakState».costEq P hP t k)
+    (fun x ↦ compareWords_cost P (by includes) (by includes) x k) (by omega)
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- `mergeNewer` on word-list keys (`mergeNewer.«List UInt64, KeccakState»`): at most `26·L + 33` per entry and `3`. -/
+/-- `mergeNewer` on word-list keys (`mergeNewer.«List UInt64, KeccakState»`): at most `26·L + 33`
+per entry and `3`. -/
 theorem mergeNewerFwd_cost (hP : Includes P mergeNewer.«List UInt64, KeccakState».costDeps) (L : ℕ) :
     ∀ (n : ℕ) (a b : List FwdEntry), a.length + b.length = n →
       (∀ e ∈ b, WordsKey L e.1) →
-      machineCost P mergeNewer.«List UInt64, KeccakState».costIdx [encodeValue a, encodeValue b] ≤ (26 * L + 33) * n + 3 := by
-  intro n a b hn hb
-  have := mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx (WordsKey L) (26 * L + 7)
-    (fun b ↦ (mergeNewer.«List UInt64, KeccakState».costEq_nil P hP b).trans_le (by norm_num))
-    (mergeNewer.«List UInt64, KeccakState».costEq_cons P hP)
-    (fun x y hy ↦ by have := compareWords_cost P (by includes) (by includes) x y; unfold WordsKey at hy; omega) n a b hn hb
-  rwa [show 26 * L + 7 + 26 = 26 * L + 33 by omega] at this
+      machineCost P mergeNewer.«List UInt64, KeccakState».costIdx [encodeValue a, encodeValue b] ≤
+        (26 * L + 33) * n + 3 :=
+  mergeNewer_cost_of P _ Auto.List.compareLex.costIdx searchPreC.lam0.costIdx (WordsKey L) (26 * L + 7)
+    (mergeNewer.«List UInt64, KeccakState».costEq_nil P hP) (mergeNewer.«List UInt64, KeccakState».costEq_cons P hP)
+    (fun x y hy ↦ by have := compareWords_cost P (by includes) (by includes) x y; unfold WordsKey at hy; omega)
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- Two levels merged (`Level.merge.«List UInt64, KeccakState»`): at most `26·L + 37` per entry and `18`. -/
+/-- Two levels merged (`Level.merge.«List UInt64, KeccakState»`): at most `26·L + 37` per entry and
+`18`. -/
 theorem levelMergeFwd_cost (hP : Includes P Level.merge.«List UInt64, KeccakState».costDeps) (L : ℕ)
     (l l' : Level (List UInt64) LeanVM.Semantics.KeccakState) (hQ : KeysIn (WordsKey L) [l, l'])
     (W : ℕ) (hw : limbCount l.weight ≤ W) (hw' : limbCount l'.weight ≤ W)
     (hws : limbCount (l.weight + l'.weight) ≤ W) :
     machineCost P Level.merge.«List UInt64, KeccakState».costIdx [encodeValue l, encodeValue l'] ≤
-      18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) := by
-  have := levelMerge_cost_of P Level.merge.«List UInt64, KeccakState».costIdx _ (WordsKey L) (26 * L + 33) W (Level.merge.«List UInt64, KeccakState».costEq P hP)
+      18 + W + (26 * L + 37) * (l.entries.size + l'.entries.size) :=
+  levelMerge_cost_of P _ _ (WordsKey L) (26 * L + 33) W
+    (Level.merge.«List UInt64, KeccakState».costEq P hP)
     (fun a b _ hb ↦ mergeNewerFwd_cost P (by includes) L _ a b rfl hb) l l' hQ hw hw' hws
-  nlinarith
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- **An insertion into the first forward answers' map, amortized** (`carry.«List UInt64, KeccakState»`). -/
+/-- **An insertion into the first forward answers' map, amortized**
+(`carry.«List UInt64, KeccakState»`). -/
 theorem carryFwd_amortized (hP : Includes P carry.«List UInt64, KeccakState».costDeps) (L D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
     (m : SortedMap (List UInt64) LeanVM.Semantics.KeccakState) (hm : smGood m)
@@ -96,35 +96,26 @@ theorem carryFwd_amortized (hP : Includes P carry.«List UInt64, KeccakState».c
     (hs : l.entries.size = 1) (hk : ∀ e ∈ l.entries, WordsKey L e.1) :
     machineCost P carry.«List UInt64, KeccakState».costIdx [encodeValue l, encodeValue m.levels] +
         (26 * L + 37) * potential D (carry l m.levels) ≤
-      (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) := by
-  exact carry_amortized_of P _ Level.merge.«List UInt64, KeccakState».costIdx (WordsKey L) (26 * L + 37) D W hW
-    (fun l ↦ (carry.«List UInt64, KeccakState».costEq_nil P hP l).trans_le (by norm_num)) (carry.«List UInt64, KeccakState».costEq_cons P hP)
+      (26 * L + 37) * potential D m.levels + (26 * L + 37) * D + (32 + 2 * W) * (m.levels.length + 1) :=
+  carry_amortized_of P _ _ (WordsKey L) (26 * L + 37) D W hW
+    (carry.«List UInt64, KeccakState».costEq_nil P hP) (carry.«List UInt64, KeccakState».costEq_cons P hP)
     (fun l l' hQ2 ↦ levelMergeFwd_cost P (by includes) L l l' hQ2 W) m hm hQ hN l hw hs hk
 
 open LeanVM.Cost.Auto.LeanVM.Extraction.Fast in
-/-- A lookup in the first forward answers' map (`SortedMap.get?.«List UInt64, KeccakState»`): a binary search per level. -/
+/-- A lookup in the first forward answers' map (`SortedMap.get?.«List UInt64, KeccakState»`): a
+binary search per level. -/
 theorem getFwd_cost (hP : Includes P SortedMap.get?.«List UInt64, KeccakState».costDeps)
     (m : SortedMap (List UInt64) LeanVM.Semantics.KeccakState) (H W : ℕ)
     (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W)
     (hm : ∀ l ∈ m.levels, l.entries.size ≤ H) (k : List UInt64) :
     machineCost P SortedMap.get?.«List UInt64, KeccakState».costIdx [encodeValue m, encodeValue k] ≤
-      m.levels.length * (20 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2)) + 9 := by
-  have hlam : ∀ l ∈ m.levels, appCost P (.closure SortedMap.get?.«List UInt64, KeccakState».lam0.costIdx [encodeValue k])
-      [encodeValue l] ≤ 9 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2) := by
-    intro l hl
-    rw [appCost_fn, List.length_singleton, List.singleton_append,
-      SortedMap.get?.«List UInt64, KeccakState».lam0.costEq P]
-    have := searchFwd_cost P (by includes) l.entries k H W hW (hm l hl)
-      0 l.entries.size (by omega) (hm l hl)
-    have := log2_mono (show l.entries.size - 0 ≤ H by have := hm l hl; omega)
-    have : (40 + 26 * k.length + 9 * W) * (Nat.log2 (l.entries.size - 0) + 2) ≤
-        (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2) := Nat.mul_le_mul_left _ (by omega)
-    omega
-  have hfs := findSome_cost P (by includes) _
-    (.closure SortedMap.get?.«List UInt64, KeccakState».lam0.costIdx [encodeValue k])
-    (fun a ↦ RunsApp.of_spec (SortedMap.get?.«List UInt64, KeccakState».lam0.costSpec P (by includes) _ a)) _ m.levels hlam
-  rw [SortedMap.get?.«List UInt64, KeccakState».costEq P hP]
-  nlinarith
+      m.levels.length * (20 + (40 + 26 * k.length + 9 * W) * (Nat.log2 H + 2)) + 9 :=
+  get_cost_of P _ _ _ _ m k H _ (SortedMap.get?.«List UInt64, KeccakState».costEq P hP m k)
+    (fun B ↦ findSome_cost P (by includes) _ _ (fun a ↦ RunsApp.of_spec
+      (SortedMap.get?.«List UInt64, KeccakState».lam0.costSpec P (by includes) k a)) B m.levels)
+    (SortedMap.get?.«List UInt64, KeccakState».lam0.costEq P (by includes) k)
+    (fun l hl ↦ searchFwd_cost P (by includes) l.entries k H W hW (hm l hl) 0 _ (by omega)
+      (hm l hl)) hm
 
 /-! ## The index -/
 
@@ -1029,7 +1020,7 @@ section Skeleton
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Cost.Auto.LeanVM.Protocol.EndToEnd.Sound
 
-/-- `grindingBits` (`grindingBits`), a numerator below `2^128`: at most `1900`. -/
+/-- `grindingBits`, a numerator below `2^128`: at most `1900`. -/
 theorem grindingBits_cost (hP : Includes P Auto.LeanVM.Protocol.Compile.grindingBits.costDeps)
     (n : ℕ) (hn : n < 2 ^ 128 := by omega) :
     machineCost P Auto.LeanVM.Protocol.Compile.grindingBits.costIdx [encodeValue n] ≤ 1900 := by
@@ -1207,7 +1198,7 @@ theorem skBytecodeShare_cost (hP : Includes P skBytecodeShare.costDeps) :
   len_facts [length_skSum]
   omega
 
-/-- `productBits` (`productBits`): `5`. -/
+/-- `productBits`: `5`. -/
 theorem productBits_cost (hP : Includes P Auto.LeanVM.Protocol.Verifier.productBits.costDeps) :
     machineCost P Auto.LeanVM.Protocol.Verifier.productBits.costIdx [] ≤ 5 := by
   obtain ⟨-, -, -, -, -, -, -, -, -, -, c11, -⟩ := skConsts
@@ -1280,12 +1271,12 @@ theorem kLen_cost (hP : Includes P kLen.costDeps) (hs : List ℕ) (hl : hs.lengt
   limbs
   split_ifs <;> omega
 
-/-- The constant `tableWidthsL` (`tableWidthsL`). -/
+/-- The constant `tableWidthsL`. -/
 theorem tableWidthsL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.tableWidthsL.costDeps) :
     machineCost P Auto.LeanVM.Extraction.AS.tableWidthsL.costIdx [] ≤ 25 :=
   (Auto.LeanVM.Extraction.AS.tableWidthsL.costEq P hP).le
 
-/-- The constant `pushCountsL` (`pushCountsL`). -/
+/-- The constant `pushCountsL`. -/
 theorem pushCountsL_cost (hP : Includes P Auto.LeanVM.Extraction.AS.pushCountsL.costDeps) :
     machineCost P Auto.LeanVM.Extraction.AS.pushCountsL.costIdx [] ≤ 25 :=
   (Auto.LeanVM.Extraction.AS.pushCountsL.costEq P hP).le
@@ -1684,7 +1675,7 @@ theorem skMidTail_cost (hP : Includes P skMidTail.costDeps) (logN A : ℕ) (l n 
   len_facts [length_skGrind]
   omega
 
-/-- A price of `skLevels` (`skLevels`) from `A` folds made. -/
+/-- A price of `skLevels` from `A` folds made. -/
 @[expose] def skLevelsPrice (logN : ℕ) : ℕ → List Whir.Level → ℕ
   | _, [] => 3
   | A, [l] => 377 * l.fold + 15 * (2 ^ (logN - (A + l.fold)) + l.fold) + 40
@@ -2040,7 +2031,7 @@ theorem length_skLevels_le (logN : ℕ) : ∀ (levels : List Whir.Level) (A : �
     simp only [skLevels, List.length_append, length_skFoldRounds] at *
     omega
 
-/-- A price of `decLevelsP` (`decLevelsP`) from `A` folds made. -/
+/-- A price of `decLevelsP` from `A` folds made. -/
 @[expose] def decLevelsPrice (logN : ℕ) : ℕ → List Whir.Level → ℕ
   | _, [] => 3
   | A, [l] => (500 * l.fold + 1100) * l.fold + 1000 * l.fold +

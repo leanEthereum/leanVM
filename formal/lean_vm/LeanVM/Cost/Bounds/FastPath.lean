@@ -67,7 +67,7 @@ theorem subspacePoly_cost (hP : Includes P Auto.LeanVM.Extraction.subspacePoly.c
     (2 ^ j) (Nat.pow_lt_pow_right (by norm_num) hj)
   omega
 
-/-- `Nat.testBit` (`testBit`): `9` on words. -/
+/-- `Nat.testBit`: `9` on words. -/
 theorem testBit_cost (hP : Includes P Auto.Nat.testBit.costDeps) (a b : ℕ) (ha : a < 2 ^ 64)
     (hb : b < 2 ^ 64) : machineCost P Auto.Nat.testBit.costIdx [encodeValue a, encodeValue b] ≤ 9 := by
   rw [Auto.Nat.testBit.costEq P hP, limbs_of_lt ha, limbs_of_lt hb,

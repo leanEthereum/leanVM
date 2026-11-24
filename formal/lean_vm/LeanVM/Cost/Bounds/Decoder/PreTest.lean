@@ -154,7 +154,7 @@ theorem sum_map_affine {α : Type} (f : α → ℕ) (a b : ℕ) :
     simp only [List.map_cons, List.sum_cons, List.length_cons, sum_map_affine f a b l]
     ring
 
-/-- `List.all` (`all`), the predicate's price depending on the element: its prices and `11`
+/-- `List.all`, the predicate's price depending on the element: its prices and `11`
 per element, `3`. -/
 theorem all_cost_sum (hP : Includes P Auto.List.all.costDeps) {β : Type} [MachineEncoding β]
     (p : β → Bool) (pVal : MachineValue)

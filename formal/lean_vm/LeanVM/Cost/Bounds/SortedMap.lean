@@ -26,11 +26,11 @@ all. The prices are bounded by a potential (Bentley–Saxe, Tarjan's banker's me
   potential after, at most the potential before plus `A`) pays `(A + 11)·n + 3` from a start of
   potential `0`.
 
-The compiled maps (one `searchIn`, `mergeNewer`, `Level.merge` and `carry` per key and value type)
-instantiate them through one bound each, from the compiled recurrence (`searchRec`,
+The compiled maps (one `searchIn`, `mergeNewer`, `Level.merge`, `carry` and `get?` per key and
+value type) instantiate them through one bound each, from the compiled recurrence (`searchRec`,
 `mergeNewerRec`, matched by unfolding): `searchIn_cost_of`, `mergeNewer_cost_of`,
-`levelMerge_cost_of`, `carry_amortized_of`; the instances are the preimage index and the first
-answers (`Bounds/Transcript.lean`) and the replay's maps.
+`levelMerge_cost_of`, `carry_amortized_of`, `get_cost_of`; the instances are the preimage index
+and the first answers (`Bounds/Transcript.lean`) and the replay's maps.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -261,22 +261,23 @@ variable (P : MachineProgram) {κ β : Type} [Ord κ] [MachineEncoding κ] [Mach
       else 1) + 3
 
 /-- **The binary search of `k`** (`searchIn` compiled to function `i`, of recurrence `searchRec`),
-each comparison at most `C`: at most `(C + 33 + 9·W)·(log₂(hi − lo) + 2)`, `W` a bound of the limbs
-of the positions (up to `2·H`). -/
-theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : ℕ)
+each comparison at most `C`: at most `S·(log₂(hi − lo) + 2)` for any `S ≥ C + 33 + 9·W`, `W` a bound
+of the limbs of the positions (up to `2·H`). -/
+theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C S : ℕ)
     (hW : ∀ x, x ≤ 2 * H → limbCount x ≤ W) (hts : t.size ≤ H)
     (hEq : ∀ lo hi, machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] =
       searchRec P i j c t k lo hi)
-    (hcmp : ∀ x : κ, machineCost P j [.closure c [], encodeValue x, encodeValue k] ≤ C) :
+    (hcmp : ∀ x : κ, machineCost P j [.closure c [], encodeValue x, encodeValue k] ≤ C)
+    (hS : C + 33 + 9 * W ≤ S) :
     ∀ lo hi, lo ≤ H → hi ≤ H →
       machineCost P i [encodeValue t, encodeValue k, encodeValue lo, encodeValue hi] ≤
-        (C + 33 + 9 * W) * (Nat.log2 (hi - lo) + 2) := by
+        S * (Nat.log2 (hi - lo) + 2) := by
   intro lo hi hlo hhi
   have := le_of_halving (α := ℕ × ℕ) (fun x ↦ x.1 ≤ H ∧ x.2 ≤ H) (fun x ↦ x.2 - x.1)
     (fun x ↦ machineCost P i [encodeValue t, encodeValue k, encodeValue x.1, encodeValue x.2])
     (C + 33 + 9 * W) (C + 33 + 9 * W) ?hz ?h (lo, hi) ⟨hlo, hhi⟩
   · dsimp only at this
-    nlinarith
+    nlinarith [Nat.mul_le_mul_right (Nat.log2 (hi - lo) + 2) hS]
   · rintro ⟨lo, hi⟩ ⟨hlo, hhi⟩ h0
     dsimp only at *
     rw [hEq, searchRec]
@@ -290,26 +291,17 @@ theorem searchIn_cost_of (i j c : ℕ) (t : Array (κ × β)) (k : κ) (H W C : 
     limbs [hW]
     generalize hv : t[(lo + hi) / 2]? = ov
     cases ov with
-    | none =>
-      left
-      dsimp only
-      split_ifs <;> omega
+    | none => left; dsimp only; split_ifs <;> omega
     | some v =>
       have hc := hcmp v.1
       dsimp only
       generalize compare v.1 k = o2
       cases o2
-      · right
-        refine ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
-      · left
-        dsimp only
-        split_ifs <;> omega
-      · right
-        refine ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega, ?_⟩
-        dsimp only
-        split_ifs <;> omega
+      · exact .inr ⟨((lo + hi) / 2 + 1, hi), ⟨by omega, hhi⟩, by dsimp only; omega,
+          by dsimp only; split_ifs <;> omega⟩
+      · left; dsimp only; split_ifs <;> omega
+      · exact .inr ⟨(lo, (lo + hi) / 2), ⟨hlo, by omega⟩, by dsimp only; omega,
+          by dsimp only; split_ifs <;> omega⟩
 
 /-- The price recurrence of `mergeNewer` compiled to function `i` on a nonempty first list, its keys
 compared by `compareLex` (function `j`) with the closure `c`: its `costEq_cons`'s right side. -/
@@ -324,7 +316,7 @@ compared by `compareLex` (function `j`) with the closure `c`: its `costEq_cons`'
 /-- **`mergeNewer`** (compiled to function `i`, of recurrence `mergeNewerRec`), each comparison
 with a key of the second list (of property `Q`) at most `C`: at most `C + 26` per entry and `3`. -/
 theorem mergeNewer_cost_of (i j c : ℕ) (Q : κ → Prop) (C : ℕ)
-    (hnil : ∀ b : List (κ × β), machineCost P i [encodeValue ([] : List (κ × β)), encodeValue b] ≤ 3)
+    (hnil : ∀ b : List (κ × β), machineCost P i [encodeValue ([] : List (κ × β)), encodeValue b] = 3)
     (hcons : ∀ x (a b : List (κ × β)),
       machineCost P i [encodeValue (x :: a), encodeValue b] = mergeNewerRec P i j c x a b)
     (hcmp : ∀ x y : κ, Q y → machineCost P j [.closure c [], encodeValue x, encodeValue y] ≤ C) :
@@ -382,7 +374,7 @@ theorem levelMerge_cost_of (i im : ℕ) (Q : κ → Prop) (c W : ℕ)
 the potential. -/
 theorem carry_amortized_of [Std.TransOrd κ] [Std.LawfulEqOrd κ] (i iL : ℕ) (Q : κ → Prop) (b D W : ℕ)
     (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ W)
-    (hnil : ∀ l : Level κ β, machineCost P i [encodeValue l, encodeValue ([] : List (Level κ β))] ≤ 32)
+    (hnil : ∀ l : Level κ β, machineCost P i [encodeValue l, encodeValue ([] : List (Level κ β))] = 7)
     (hcons : ∀ (l l' : Level κ β) ls, machineCost P i [encodeValue l, encodeValue (l' :: ls)] =
       (max (limbCount l.weight) (limbCount l'.weight) +
         if l.weight = l'.weight then
@@ -412,6 +404,32 @@ theorem carry_amortized_of [Std.TransOrd κ] [Std.LawfulEqOrd κ] (i iL : ℕ) (
     have := hW l'.weight (by omega)
     simp only [heq, ↓reduceIte]
     omega
+
+/-- **A lookup** (`SortedMap.get?` compiled to function `i`: the `findSome?` `f`, of price `hfs`,
+over the levels with the closure `c`, which searches a level with function `j`), each level of at
+most `H` entries and its search at most `S·(log₂ |entries| + 2)`: at most
+`|levels|·(20 + S·(log₂ H + 2)) + 9`. -/
+theorem get_cost_of (i f c j : ℕ) (m : SortedMap κ β) (k : κ) (H S : ℕ)
+    (hEq : machineCost P i [encodeValue m, encodeValue k] =
+      machineCost P f [.closure c [encodeValue k], encodeValue m.levels] + 6)
+    (hfs : ∀ B, (∀ l ∈ m.levels, appCost P (.closure c [encodeValue k]) [encodeValue l] ≤ B) →
+      machineCost P f [.closure c [encodeValue k], encodeValue m.levels] ≤ (B + 11) * m.levels.length + 3)
+    (hc : ∀ l : Level κ β, machineCost P c [encodeValue k, encodeValue l] =
+      machineCost P j [encodeValue l.entries, encodeValue k, encodeValue (0 : ℕ),
+        encodeValue l.entries.size] + 8)
+    (hs : ∀ l ∈ m.levels, machineCost P j [encodeValue l.entries, encodeValue k, encodeValue (0 : ℕ),
+      encodeValue l.entries.size] ≤ S * (Nat.log2 (l.entries.size - 0) + 2))
+    (hm : ∀ l ∈ m.levels, l.entries.size ≤ H) :
+    machineCost P i [encodeValue m, encodeValue k] ≤ m.levels.length * (20 + S * (Nat.log2 H + 2)) + 9 := by
+  have := hfs (9 + S * (Nat.log2 H + 2)) fun l hl ↦ by
+    rw [appCost_fn, List.length_singleton, List.singleton_append, hc]
+    have := hs l hl
+    have := log2_mono (show l.entries.size - 0 ≤ H by have := hm l hl; omega)
+    have : S * (Nat.log2 (l.entries.size - 0) + 2) ≤ S * (Nat.log2 H + 2) :=
+      Nat.mul_le_mul_left _ (by omega)
+    omega
+  rw [hEq]
+  nlinarith
 
 end Compiled
 

@@ -8,8 +8,8 @@ public import LeanVM.Cost.Prices
 # Bound: the guest decoder's replay of the run, compiled
 
 The price of the replay `Cost/Decoder/Replay.lean` compiles, **the decoder's big runtime term:
-the run's steps times the step's price**. The step is the extractor's `stepVec` (`stepVec`,
-priced in `Bounds/Step.lean`'s `stepVec_cost`), not compiled again.
+the run's steps times the step's price**. The step is the extractor's `stepVec` (priced in
+`Bounds/Step.lean`'s `stepVec_cost`), not compiled again.
 
 * **`statesVec_cost`**: one round per state replayed, each at most the step's price `S` and `46`
   (the comparison with the final registers, the fuel's decrement, a cons, the step's `match`; the

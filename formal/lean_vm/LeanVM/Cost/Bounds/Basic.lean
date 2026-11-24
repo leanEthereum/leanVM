@@ -113,8 +113,8 @@ meta def includesAuto (g : MVarId) : MetaM Bool := g.withContext do
       catch _ => pure ()
   return false
 
-/-- `includes` (`LeanVM.Cost.Compiler.includesTac`, also the compiled functions' premises'
-`autoParam`). -/
+/-- Elaborate `includes` (declared in `Cost/Compiler.lean`, where it closes the compiled functions'
+premises as an `autoParam`). -/
 @[tactic LeanVM.Cost.Compiler.includesTac] meta def evalIncludes : Tactic := fun _ ↦ do
   let g ← getMainGoal
   unless ← includesAuto g do throwError "includes: no hypothesis holds these bodies"

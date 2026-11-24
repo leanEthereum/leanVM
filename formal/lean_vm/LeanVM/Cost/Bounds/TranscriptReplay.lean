@@ -26,7 +26,7 @@ variable (P : MachineProgram)
 
 /-! ## Byte-string helpers -/
 
-/-- `List.dropWhile` (`dropWhile`): `B + 11` per element, `B + 13` at the end. -/
+/-- `List.dropWhile`: `B + 11` per element, `B + 13` at the end. -/
 theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a : α, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ)
     (hB : ∀ a : α, appCost P pVal [encodeValue a] ≤ B) :
@@ -41,7 +41,7 @@ theorem dropWhile336_cost (hP : Includes P Auto.List.dropWhile.costDeps) {α : T
     simp only [List.length_cons]
     cases p x <;> dsimp only <;> nlinarith
 
-/-- `List.modifyHead` (`modifyHead`) with a closure of price `B`: at most `B + 11`. -/
+/-- `List.modifyHead` with a closure of price `B`: at most `B + 11`. -/
 theorem modifyHead342_cost (hP : Includes P Auto.List.modifyHead.costDeps) {α : Type} [MachineEncoding α]
     (f : α → α) (fVal : MachineValue) (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
     (hB : ∀ a : α, appCost P fVal [encodeValue a] ≤ B) (l : List α) :
@@ -51,7 +51,7 @@ theorem modifyHead342_cost (hP : Includes P Auto.List.modifyHead.costDeps) {α :
   | nil => dsimp only; omega
   | cons x l => have := hB x; dsimp only; omega
 
-/-- `List.modifyTailIdx.go` (`modifyTailIdx.go`): `20` per position and the closure's price. -/
+/-- `List.modifyTailIdx.go`: `20` per position and the closure's price. -/
 theorem modifyTailIdx340_cost (hP : Includes P Auto.List.modifyTailIdx.go.costDeps)
     {α : Type} [MachineEncoding α] (f : List α → List α) (fVal : MachineValue)
     (hf : ∀ a : List α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ)
@@ -164,7 +164,7 @@ theorem stripPad_length_le (bs : List UInt8) : (Common.stripPad bs).length ≤ b
       omega
     · simp at *
 
-/-- `Common.stripPad` (`stripPad`): at most `36·|bs| + 34`. -/
+/-- `Common.stripPad`: at most `36·|bs| + 34`. -/
 theorem stripPad_cost (hP : Includes P Auto.Common.stripPad.costDeps) (bs : List UInt8)
     (hb : bs.length < 2 ^ 62) :
     machineCost P Auto.Common.stripPad.costIdx [encodeValue bs] ≤ 36 * bs.length + 34 := by

@@ -50,7 +50,7 @@ theorem listFoldl_le_sum {α β : Type} [MachineEncoding α] [MachineEncoding β
     simp only [List.map_cons, List.sum_cons]
     omega
 
-/-- `rot` (`rot`): `28` at most on a word-sized rotation. -/
+/-- `rot`: `28` at most on a word-sized rotation. -/
 theorem rot_cost (hP : Includes P Auto.LeanVM.Semantics.Keccak.rot.costDeps) (x : UInt64) (n : ℕ)
     (hn : n < 2 ^ 64) : machineCost P Auto.LeanVM.Semantics.Keccak.rot.costIdx [encodeValue x, encodeValue n] ≤ 28 := by
   rw [Auto.LeanVM.Semantics.Keccak.rot.costEq P hP, limbs_of_lt hn,
@@ -209,7 +209,7 @@ theorem findLane_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.findLane.cost
 section Generic
 variable {α β : Type} [MachineEncoding α] [MachineEncoding β]
 
-/-- `Option.bind` (`bind`): the closure's price on the value bound, `+ 6`. -/
+/-- `Option.bind`: the closure's price on the value bound, `+ 6`. -/
 theorem bind_le (hP : Includes P Auto.Option.bind.costDeps) (f : α → Option β) (fVal : MachineValue)
     (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (o : Option α) (B : ℕ)
     (hB : ∀ a, o = some a → appCost P fVal [encodeValue a] ≤ B) :
@@ -218,14 +218,14 @@ theorem bind_le (hP : Includes P Auto.Option.bind.costDeps) (f : α → Option �
   | none => rw [Auto.Option.bind.costEq_none P hP f fVal hf]; omega
   | some a => rw [Auto.Option.bind.costEq_some P hP a f fVal hf]; have := hB a rfl; omega
 
-/-- `Option.bind` (`bind`) where the value bound is `some a`: the closure's price on `a`, and `6`. -/
+/-- `Option.bind` where the value bound is `some a`: the closure's price on `a`, and `6`. -/
 theorem bind_some_eq (hP : Includes P Auto.Option.bind.costDeps) {f : α → Option β} {fVal : MachineValue}
     (hf : ∀ a, RunsApp P fVal [encodeValue a] (encodeValue (f a))) {o : Option α} {a : α} (ho : o = some a) :
     machineCost P Auto.Option.bind.costIdx [encodeValue o, fVal] = appCost P fVal [encodeValue a] + 6 := by
   subst ho
   exact Auto.Option.bind.costEq_some P hP a f fVal hf
 
-/-- `Option.bind` (`bind`): the closure's price and `6` at most. -/
+/-- `Option.bind`: the closure's price and `6` at most. -/
 theorem bind_cost (hP : Includes P Auto.Option.bind.costDeps) (f : α → Option β) (fVal : MachineValue)
     (hf : ∀ a : α, RunsApp P fVal [encodeValue a] (encodeValue (f a))) (B : ℕ) (hB : ∀ a : α, appCost P fVal [encodeValue a] ≤ B)
     (o : Option α) : machineCost P Auto.Option.bind.costIdx [encodeValue o, fVal] ≤ B + 6 :=
@@ -560,7 +560,7 @@ theorem executeSet_cost (hP : Includes P executeWithShared.costDeps) (r : Regist
   have := hR (r.fp * o)
   omega
 
-/-- `derefSource` (`derefSource`): at most `193`. -/
+/-- `derefSource`: at most `193`. -/
 theorem derefSource_cost (hP : Includes P derefSource.costDeps) (mode : DerefMode) (r : Registers K)
     (v : E) : machineCost P derefSource.costIdx [encodeValue mode, encodeValue r, encodeValue v] ≤ 193 := by
   have := powSq_cost_le P (by includes) g 2 (by omega)
@@ -667,7 +667,7 @@ theorem executeJump_cost (hP : Includes P executeWithShared.costDeps) (r : Regis
   have := hR (r.fp * oc)
   omega
 
-/-- `KeccakOutputCells.cellCount` (`cellCount`): `3`. -/
+/-- `KeccakOutputCells.cellCount`: `3`. -/
 theorem cellCount_cost (hP : Includes P KeccakOutputCells.cellCount.costDeps)
     (outCells : KeccakOutputCells) :
     machineCost P KeccakOutputCells.cellCount.costIdx [encodeValue outCells] = 3 := by
