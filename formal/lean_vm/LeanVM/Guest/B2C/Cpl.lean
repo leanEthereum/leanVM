@@ -35,9 +35,6 @@ open LeanVM.Guest.Exec LeanVM.Guest.Check
 /-- The parts of function `j`'s windows. -/
 noncomputable def cplPartsOf (j : ℕ) : List (List (List ℕ)) := listElementOrDefault Data.cplParts j []
 
-/-- The parts of window `i` of function `j`. -/
-noncomputable def partsOf (j i : ℕ) : List (List ℕ) := partsOfD (cplPartsOf j) i
-
 /-- The number of parts of a window. -/
 noncomputable def nParts (j i : ℕ) : ℕ := nPartsD (cplPartsOf j) i
 

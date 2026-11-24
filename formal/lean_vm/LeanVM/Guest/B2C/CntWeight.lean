@@ -25,22 +25,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-mutual
-theorem weightV_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
-    ∀ t : Tree, weightV ω t ≤ t.weight ω'
-  | .node f σ _ kids => by
-    rw [weightV, Tree.weight]
-    exact Nat.add_le_add (h f σ) (weightVKids_le ω ω' h kids)
-  | .phantom .. => by rw [weightV, Tree.weight]
-
-theorem weightVKids_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
-    ∀ ks : List Tree, weightVKids ω ks ≤ Tree.weightKids ω' ks
-  | [] => by rw [weightVKids, Tree.weightKids]
-  | k :: ks => by
-    rw [weightVKids, Tree.weightKids]
-    exact Nat.add_le_add (weightV_le ω ω' h k) (weightVKids_le ω ω' h ks)
-end
-
 section Valid
 
 variable {P : Core.Program} {rd : Reader} (ω : String → Val → ℕ) (ω' : String → ℕ)

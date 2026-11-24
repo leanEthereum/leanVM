@@ -171,10 +171,12 @@ def costMaxC1 (acs : List (ℕ × List (List ℕ))) : Stmt → C6
   | .match_ x arms => (keyMaxC (armRaw acs x.idx)).add (costMaxCArms acs arms)
   | _ => C6.zero
 
-/-- `costMaxW` at every opcode. -/
+/-- `costMaxW` at every opcode, an atom passed over (most of a body, and `0`). -/
 def costMaxCW (acs : List (ℕ × List (List ℕ))) : List Stmt → C6
   | [] => C6.zero
-  | s :: ss => (costMaxC1 acs s).add (costMaxCW acs ss)
+  | s :: ss => match s with
+    | .atom _ => costMaxCW acs ss
+    | _ => (costMaxC1 acs s).add (costMaxCW acs ss)
 
 /-- `costMaxArms` at every opcode. -/
 def costMaxCArms (acs : List (ℕ × List (List ℕ))) : List (List Stmt) → C6
@@ -198,7 +200,10 @@ theorem costMaxC1_at : ∀ s : Stmt, (costMaxC1 acs s).at op = costMax1 acs op s
 
 theorem costMaxCW_at : ∀ ss : List Stmt, (costMaxCW acs ss).at op = costMaxW acs op ss
   | [] => C6.at_zero op
-  | s :: ss => by rw [costMaxCW, costMaxW, C6.at_add, costMaxC1_at s, costMaxCW_at ss]
+  | s :: ss => by
+    have h1 := costMaxC1_at s
+    have h2 := costMaxCW_at ss
+    cases s <;> simp only [costMaxCW, costMaxW, C6.at_add, h1, h2, costMax1, Nat.zero_add]
 
 theorem costMaxCArms_at : ∀ arms : List (List Stmt), (costMaxCArms acs arms).at op = costMaxArms acs op arms
   | [] => C6.at_zero op
@@ -212,7 +217,6 @@ of its counted `match`es' largest arms, as `guest-cert` computes them (`Data.arm
 def xmssArmC (op : Opcode) : ℕ := Data.armMax.getD (opIdx op) 0
 
 -- a kernel evaluation over the body of the function with counted arms (`Data.armFn`)
-set_option maxRecDepth 100000 in
 theorem costMaxCW_arm :
     costMaxCW (listElementOrDefault Data.cplArms Data.armFn []) (coreOf Data.armFn).body =
       C6.ofList Data.armMax := by

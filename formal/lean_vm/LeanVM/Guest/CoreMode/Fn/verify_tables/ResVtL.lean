@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.verify_tables.ResVt
-public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
+public import LeanVM.Guest.CoreMode.Fam.LoopCtr
 public import LeanVM.Guest.B1.Tables.Vt.Loop10
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
@@ -123,44 +123,6 @@ theorem vt_l10_site {c : Call} (ha : c.args = l10ArgsV) (hr : c.rets = []) :
 
 variable {r : Ref}
 
-/-- A loop's tail call: the loop's own last call, the counter stepped, the rest of the parameters
-kept, the header kept. -/
-theorem vt_tail {fI : String} {fnI : Fn} (hfI : coreProgram.find? fI = some fnI) (hl : fnI.loop = true)
-    {gs : List String} (hbc : Stmt.blockCallees (loopBody fnI) = gs) (hng : fI ∉ gs)
-    {I : Inst} {σI : Val} {bufsI : List ℕ} {kidsI : List Tree} (hIt : I.t = .node fI σI bufsI kidsI)
-    {es : List Ev} {vs : List V} (hw : walk σI fnI.body = .ret es vs) (hh : HoldsAll r.img.read σI es)
-    {i : ℕ} {c : Call} (hci : (calls es)[i]? = some c) (hcf : c.f = fI) :
-    ∃ c0 p0 prest, fnI.params = p0 :: prest ∧ c.args = c0 :: prest ∧ σI c0 = σI p0 * ofK (addressOfIndex 1) ∧
-      B2C.H I i = I.hdr := by
-  obtain ⟨-, e0, -, hsh, -⟩ := progOk_guest.loop _ fnI hfI hl
-  obtain ⟨p0, prest, c0, i0, es1, hps, hw1, hes, hi0, -⟩ := Res.loop_path hsh hw hh
-  subst hes
-  have hnm : fnI.name = fI := Da.fn_name_of_find hfI
-  rw [Res.loop_calls, hnm] at hci
-  have hi : i = (calls es1).length := by
-    by_contra hne
-    rcases Nat.lt_or_gt_of_ne hne with hlt | hgt
-    · rw [List.getElem?_append_left hlt] at hci
-      have hc1 := walk_callees (σ := σI) (loopBody fnI) (c := c)
-        (by rw [hw1]; exact List.mem_of_getElem? hci)
-      rw [hbc, hcf] at hc1
-      exact hng hc1
-    · rw [List.getElem?_append_right (by omega), List.getElem?_eq_none (by simp; omega)] at hci
-      cases hci
-  subst hi
-  rw [List.getElem?_append_right le_rfl, Nat.sub_self] at hci
-  simp only [List.getElem?_singleton, ↓reduceIte, Option.some.injEq] at hci
-  subst hci
-  obtain ⟨j, hj⟩ := B2C.idxOf_of_find hfI
-  obtain ⟨i2, hji2, hi2, -, hf', hc', -⟩ := fn_of_idx hj
-  have hcj : coreOf j = fnI := by rw [hc']; exact Option.some.inj (hf'.symm.trans hfI)
-  have hH := B2C.H_eq_kidHdr hIt hj (by rw [hcj]; exact hw) (calls es1).length
-  unfold kidHdr at hH
-  rw [Res.loop_calls, hnm, List.getElem?_append_right le_rfl, Nat.sub_self] at hH
-  simp only [List.getElem?_singleton, ↓reduceIte] at hH
-  rw [ite_eq_left (show (coreOf j).loop = true ∧ _ from ⟨by rw [hcj]; exact hl, by simp⟩)] at hH
-  exact ⟨i0, p0, prest, hps, rfl, hi0, hH⟩
-
 /-- **The rounds loop's cursor passes down from `verify_tables`, and from one round to the next.** -/
 theorem vtLQ_step (hr : r.Ok) :
     Res.KidStep coreProgram r.img.read B2C.H (honestInsts coreProgram B2C.fs B2C.H r.hdr r.T) (VtLQ r) := by
@@ -240,7 +202,7 @@ theorem vtLQ_step (hr : r.Ok) :
     obtain rfl : fI = name% «verify_tables_loop0» := hnI.symm.trans hS
     obtain rfl : fnI = fn% «verify_tables_loop0» := Option.some.inj (hfI.symm.trans find_l10)
     obtain ⟨c0, p0', prest, hps, hca, hi0, hH⟩ :=
-      vt_tail hfI hll hbc (by decide) hIt hw hh hci hcf
+      loop_tail_hdr hfI hll (by rw [hbc]; decide) hIt hw hh hci hcf
     rw [hpl] at hps
     obtain ⟨rfl, rfl⟩ := List.cons.inj hps
     rw [hca] at hpar

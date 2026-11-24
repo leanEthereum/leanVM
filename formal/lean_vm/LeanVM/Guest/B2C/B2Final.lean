@@ -21,7 +21,7 @@ public import LeanVM.Guest.B2C.Chain
 The instance is the certificates' (`B2C.fs`, `B2C.H`, `B2C.C`, `B2C.cert`) with the counts
 `B2C.cnt` (each instance's path count at each opcode, plus the jump table's `SET`s, `jtSets`).
 Every compiled function runs by the kernel's completeness checks (`cplRun_all`, `Cplw.cplOk_all`),
-and every running instance's frame holds what its check reads (`frameHolds_all`; the chained
+and every running instance's frame holds what its check reads (`frameHolds_cover`; the chained
 `match`es' targets by `Chained.chainOk_all`, `chainApart_of`), so the honest
 memory runs from `main`'s entry to the end (`b2cB2`) within the counts (`b2cCount`). With the
 checker's facts (`kFactsAll`), the counts' invariance under the re-choice of temporaries

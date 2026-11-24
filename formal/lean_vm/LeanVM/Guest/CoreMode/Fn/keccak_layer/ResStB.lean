@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStB
 
-  The proof stream's reads (`Res.stB`), sound at the honest frames: `keccak_layer`'s and its two
+  The proof stream's reads, sound at the honest frames: `keccak_layer`'s and its two
   loops' reads past their cursors lie inside the stream.
 -/
 
@@ -26,19 +26,6 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **The proof stream's readers**: function, its cursor's cell, the stream's base (the layer's
-parameter, the loops' through their header), the words read past the cursor. -/
-def stSites : List (String × ℕ × Mode.Base × ℕ) :=
-  [(name% «keccak_layer__L0», 747, .fr 17, 36), (name% «keccak_layer__L1», 773, .fr 17, 36),
-    (name% «keccak_layer__L0_loop0», 20, .hp 1 17, 16), (name% «keccak_layer__L1_loop0», 20, .hp 1 17, 16),
-    (name% «keccak_layer__L0_loop1», 17, .hp 1 17, 2), (name% «keccak_layer__L1_loop1», 17, .hp 1 17, 2)]
-
-/-- **A read of the proof stream** at function `j`: a site's, below its words. -/
-noncomputable def stB (j : ℕ) : Mode.Res → Bool
-  | .sub a bs => stSites.any fun s ↦ (coreOf j).name == s.1 && decide (a.q.k < s.2.2.2) &&
-      decide (Mode.Res.sub a bs = stRes s.2.1 s.2.2.1 a.q.k)
-  | _ => false
-
 end
 
 end LeanVM.Guest.Res
@@ -49,7 +36,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Gu
 open LeanVM.Guest.B1 LeanVM.Guest.B1.VerifySub
 open LeanVM.Guest.B2C (idxOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (stB stRes stSites topAtoms)
+open LeanVM.Guest.Res (stRes topAtoms)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 

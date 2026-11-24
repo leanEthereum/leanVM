@@ -1132,13 +1132,6 @@ noncomputable def retVOk (Cf : CFun) (G : Mode.Sig) : Bool :=
 
 /-! ## The shape -/
 
-/-- A straight-line body: atoms and returns. -/
-def straight (body : List Stmt) : Bool :=
-  body.all fun s ↦ match s with
-    | .atom _ => true
-    | .ret _ => true
-    | _ => false
-
 /-- A statement the core route takes: an atom, a branch, a `match`, a return, a call or a conditional
 call. -/
 def ctrlOk : Stmt → Bool

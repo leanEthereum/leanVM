@@ -8,7 +8,9 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fn.keccak_layer.ResStP
+public import LeanVM.Guest.CoreMode.Fam.LoopCtr
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Gen.TermCallers
 public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrS
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef
@@ -96,33 +98,6 @@ public section
 theorem vs_vbg_sites :
     Res.sitesB (fun f args _ ↦ f != name% «verify_bus_gkr» || args == vbgArgsV) VerifySub.vsT = true := by
   decide +kernel
-
-/-- **A loop helper's tail call**: the last call of its path, its counter one step on. -/
-theorem loop_tail {rd : Reader} {fI : String} {fnI : Fn} (hfI : coreProgram.find? fI = some fnI)
-    (hl : fnI.loop = true) (hnc : fI ∉ Stmt.blockCallees (loopBody fnI)) {σI : Val} {es : List Ev} {vs : List V}
-    (hw : walk σI fnI.body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σI) {i : ℕ} {c : Call}
-    (hci : (calls es)[i]? = some c) (hcf : c.f = fI) :
-    ∃ p0 prest i0, fnI.params = p0 :: prest ∧ c.args = i0 :: prest ∧
-      σI i0 = σI p0 * ofK (addressOfIndex 1) ∧ i + 1 = (calls es).length := by
-  obtain ⟨-, e0, -, hsh, -⟩ := progOk_guest.loop _ _ hfI hl
-  obtain ⟨p0, prest, c0, i0, es1, hps, hw1, hes, hi0, -⟩ := Res.loop_path hsh hw hh
-  subst hes
-  have hnm : fnI.name = fI := Da.fn_name_of_find hfI
-  rw [Res.loop_calls, hnm] at hci ⊢
-  have hi : i = (calls es1).length := by
-    by_contra hne
-    rcases Nat.lt_or_gt_of_ne hne with hlt | hgt
-    · rw [List.getElem?_append_left hlt] at hci
-      have hc1 := walk_callees (σ := σI) (loopBody fnI) (c := c) (by rw [hw1]; exact List.mem_of_getElem? hci)
-      rw [hcf] at hc1
-      exact hnc hc1
-    · rw [List.getElem?_append_right (by omega), List.getElem?_eq_none (by simp; omega)] at hci
-      cases hci
-  subst hi
-  rw [List.getElem?_append_right le_rfl, Nat.sub_self] at hci
-  simp only [List.getElem?_singleton, ↓reduceIte, Option.some.injEq] at hci
-  subst hci
-  exact ⟨p0, prest, i0, hps, rfl, hi0, by simp⟩
 
 /-! ## Down from `verify_sub` -/
 

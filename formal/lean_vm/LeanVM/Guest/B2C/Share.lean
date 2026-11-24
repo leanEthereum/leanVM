@@ -74,8 +74,6 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
 def ShareOk (j : ℕ) : Prop :=
   shareStatic j = true ∧ ∀ k ≤ (snapsOf j).length, shareWin j (snapsOf j) k = true
 
-theorem apartOk_eq (j : ℕ) : apartOk j = apartOkD (certOf j) (plumbOf j) (Nat.beq j 1) Data.mainCells := rfl
-
 theorem shareStatic_eqD (j : ℕ) :
     shareStatic j = shareStaticD (coreOf j) (certOf j) (plumbOf j) (fsN j) (snapsOf j) (Nat.beq j 1) Data.mainCells :=
   rfl

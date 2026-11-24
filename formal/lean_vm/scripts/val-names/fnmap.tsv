@@ -441,8 +441,7 @@ LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsLQ gkr_layers__L_loop0
 LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsQ gkr_layers__L
 LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@VbgQ verify_bus_gkr
 LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@VkQ verify_keccak
-LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@front_carried verify_sub
-LeanVM/Guest/CoreMode/Fn/verify_sub/ResVs.lean@vs_cells verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_sub/Front.lean verify_sub
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@VtQ verify_tables
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_cur13 verify_tables
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_zc_front verify_tables

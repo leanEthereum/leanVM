@@ -16,7 +16,6 @@ public import LeanVM.Guest.CoreMode.CoreGhost
 public import LeanVM.Guest.CoreMode.LoopLink
 public import LeanVM.Guest.CoreMode.Fam.SelDefs
 public import LeanVM.Guest.CoreMode.Fam.TermDefs
-public import LeanVM.Guest.CoreMode.Fam.ExpDefs
 public import LeanVM.Guest.CoreMode.Gen.FnData
 import LeanVM.Guest.Data.Consts
 

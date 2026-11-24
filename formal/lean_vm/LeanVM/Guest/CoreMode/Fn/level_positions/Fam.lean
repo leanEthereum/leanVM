@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.CoreMode.CoreRes
 public import LeanVM.Guest.CoreMode.Fn.level_positions.Data
-public meta import LeanVM.Guest.CoreRef
 import LeanVM.Guest.Data.Source
 
 namespace LeanVM.Guest.CoreMode.Own.level_positions

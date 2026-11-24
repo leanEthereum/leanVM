@@ -6,7 +6,9 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.LoopB
+public import LeanVM.Guest.Bridge.JumpCellsDefs
+public import LeanVM.Guest.Bridge.Track
+public import LeanVM.Guest.Bridge.Prefix
 public import LeanVM.Guest.CoreMode.WalkS
 
 /-!

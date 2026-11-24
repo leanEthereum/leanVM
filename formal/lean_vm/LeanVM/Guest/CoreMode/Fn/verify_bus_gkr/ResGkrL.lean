@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
+public import LeanVM.Guest.CoreMode.Fam.ResF
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
@@ -160,17 +161,9 @@ theorem glLQ_step (hr : r.Ok) :
   · -- the loop's tail call
     subst h
     obtain rfl := Option.some.inj (hfI.symm.trans hfn)
-    obtain ⟨p0, prest, i0, hps, hargs, hi0, hlen⟩ := loop_tail hfI hlp hnc hw hh hci hcf
+    obtain ⟨i0, p0, prest, hps, hargs, hi0, hH⟩ := loop_tail_hdr hfI hlp hnc hIt hw hh hci hcf
     rw [hp', glLoopParams_eq] at hps
     obtain ⟨rfl, rfl⟩ := List.cons.inj hps
-    obtain ⟨j, hj⟩ := B2C.idxOf_of_find hfI
-    obtain ⟨i2, hji2, hi2, -, hf2, hc2, -⟩ := fn_of_idx hj
-    have hcj := hc2.trans (Option.some.inj (hf2.symm.trans hfI))
-    have hH := B2C.H_eq_kidHdr hIt hj (by rw [hcj]; exact hw) i
-    unfold kidHdr at hH
-    rw [hci] at hH
-    dsimp only at hH
-    rw [ite_eq_left (show (coreOf j).loop = true ∧ _ from ⟨by rw [hcj]; exact hlp, hlen⟩)] at hH
     rw [hargs] at hpar
     simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
     obtain ⟨p0, p1, p2, -⟩ := hpar

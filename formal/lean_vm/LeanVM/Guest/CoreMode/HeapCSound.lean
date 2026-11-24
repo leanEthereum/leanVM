@@ -49,17 +49,6 @@ section Pass
 
 variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} {σ : Val} {rd : Reader}
 
-theorem pick_cases (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
-    pick σ x args rets j fs = .stuck ∨ ∃ g ∈ fs, pick σ x args rets j fs = .fall [.call g args rets]
-  | [], _ => Or.inl rfl
-  | g :: fs, j => by
-    unfold pick
-    split_ifs
-    · exact Or.inr ⟨g, List.mem_cons_self, rfl⟩
-    · rcases pick_cases x args rets fs (j + 1) with h | ⟨g', hg', h⟩
-      · exact Or.inl h
-      · exact Or.inr ⟨g', List.mem_cons_of_mem _ hg', h⟩
-
 theorem pick_idx (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
     pick σ x args rets j fs = .stuck ∨ ∃ i, ∃ hi : i < fs.length, σ x = ofK (addressOfIndex (j + i)) ∧
       pick σ x args rets j fs = .fall [.call fs[i] args rets]
@@ -1332,19 +1321,6 @@ theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
   ((heapOkC_soundP hp hok hself hw hh hE hR hD hG).2 hM).1.2 hn
 
 end Main
-
-/-- **Constant preconditions** (`main`'s public input cells): a precondition of a signature whose preconditions
-are cells only, each constant (`⟨[], k⟩`), is the address `g^k` of one of them, whatever the words. -/
-theorem preSet_const {rd : Reader} {G : HSig} {ws : List E} {x : K} (hR : G.preR = []) (hP : G.preP = [])
-    (hPR : G.prePR = []) (hc : ∀ c ∈ G.pre, c.bases = []) (h : PreSet rd G ws x) :
-    ∃ c ∈ G.pre, x = addressOfIndex c.off := by
-  rcases h with (⟨c, hc', rfl⟩ | ⟨r, hr, -⟩) | (⟨p, hp, -⟩ | ⟨p, hp, -⟩)
-  · refine ⟨c, hc', ?_⟩
-    rw [CCell.addrW, valW_nil (by simp [hc c hc'])]
-    simp
-  · rw [hR] at hr; cases hr
-  · rw [hP] at hp; cases hp
-  · rw [hPR] at hp; cases hp
 
 /-! ## `heapOk`'s statement -/
 

@@ -1728,7 +1728,7 @@ def pubRd : Fn where
   params := []
   body := [.atom (.const (.n 0) (word 1 0)), .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 0) 1), .ret []]
 
-/-- `pubRd`'s certificate: the two cells constant preconditions (`preSet_const`). -/
+/-- `pubRd`'s certificate: the two cells constant preconditions. -/
 def hPubRd : HCert where
   sig := { pre := [⟨[], 0⟩, ⟨[], 1⟩] }
   reads := [(1, [(0, 0, .pre 0)]), (2, [(0, 1, .pre 1)])]
