@@ -1,7 +1,7 @@
 mode = ScriptMode.Verbose
 
 packageName   = "lean_pq"
-version       = "0.16.0" # x-release-please-version
+version       = "0.17.0" # x-release-please-version
 author        = "The leanVM contributors"
 description   = "leanXMSS and leanSPHINCS post-quantum signatures and their recursive aggregation"
 license       = "MIT or Apache License 2.0"

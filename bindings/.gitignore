@@ -14,6 +14,8 @@ __pycache__/
 .maturin/
 /java/.gradle/
 /java/build/
+/dotnet/**/bin/
+/dotnet/**/obj/
 # Staged static bridge archives (bindings/native/scripts/stage-static.sh): the Go module release
 # bundles them, main never holds them.
 /go/internal/native/*/liblean_pq_native.a

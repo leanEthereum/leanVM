@@ -194,6 +194,67 @@ jobs:
       - name: Run a Maven consumer of the Java bindings
         run: sh bindings/java/scripts/consumer-smoke.sh -PleanPqNativeDir="$GITHUB_WORKSPACE/native"
 
+  dotnet:
+    name: .NET 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the CPU tiers' rustc wrapper
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - name: Test .NET bindings
+        run: dotnet test bindings/dotnet/Ethereum.LeanPq.slnx -c Release
+
+      - name: Check .NET formatting
+        run: dotnet format bindings/dotnet/Ethereum.LeanPq.slnx --verify-no-changes
+
+      # Packs the package (bundling the host-built library) into a throwaway feed and runs a fresh
+      # consumer of Ethereum.LeanPq without LEAN_PQ_NATIVE_PATH.
+      - name: Run a NuGet consumer of the .NET bindings
+        run: sh bindings/dotnet/scripts/consumer-smoke.sh
+
+  # The tests against the host (MSVC) build, then a fresh consumer loading the release's Windows
+  # build from the package: x86_64-pc-windows-gnu, checked to import only DLLs Windows ships.
+  dotnet-windows:
+    name: .NET 10 / Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bindings
+
+      - name: Test .NET bindings
+        run: dotnet test bindings/dotnet/Ethereum.LeanPq.slnx -c Release
+
+      - name: Build the Windows native library
+        run: sh bindings/java/scripts/build-native.sh windows-x86_64 native
+
+      - name: Run a NuGet consumer of the .NET bindings
+        run: sh bindings/dotnet/scripts/consumer-smoke.sh -p:LeanPqNativeDir="$GITHUB_WORKSPACE/native"
+
   node:
     name: Node.js
     runs-on: ubuntu-latest
