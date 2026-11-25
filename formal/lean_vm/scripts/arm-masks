@@ -11,8 +11,8 @@ them by call depth, in chunks, and the masks. `Place/FreeNoWitL{d}C{c}.lean`,
 the mask of the depths below (`stepOk`), a module each so that they build at once. `Place/FreeLq.lean`,
 `Place/FreeLp.lean`: the names of the `level_queries`, `is_zero` and `level_positions` callees.
 `Place/FreeNoWitOk.lean`, `Place/FreeExactOk.lean`: the chunks joined. Nothing here is trusted: a wrong index fails its kernel
-check. The files are never committed (`formal/.gitignore`); a `Place/Free*.lean` other than `FreeMask.lean` that is no
-longer generated is removed, and under `--check` reported.
+check. The files are never committed (`formal/.gitignore`, whose patterns `OWNED` mirrors); a file matching `OWNED` that
+is no longer generated is removed, and under `--check` reported.
 """
 import glob, os, re, sys
 from pathlib import Path
@@ -24,6 +24,7 @@ CALLEES = Path('LeanVM/Guest/Memory/GuestCallees.lean')
 PLACE = Path('LeanVM/Guest/B1/Place')
 ARMS = 11
 LV_CHUNK = 50
+OWNED = ('FreeExact*.lean', 'FreeNoWit*.lean', 'FreeLp.lean', 'FreeLq.lean', 'FreeMaskData.lean')
 HEAD = '''/-
   LeanVM.Guest.B1.Place.{name}
 
@@ -78,9 +79,12 @@ def files():
     lq, lp = [k for k in callees if is_lq(k)], [k for k in callees if is_lp(k)]
     rank = {}
 
-    def depth(j):
+    def depth(j, path=()):
+        if j in path:
+            cyc = ' -> '.join(names.get(k, str(k)) for k in path[path.index(j):] + (j,))
+            sys.exit(f'arm-masks: mutual recursion {cyc}: call depths need an acyclic call graph (self-calls aside)')
         if j not in rank:
-            rank[j] = 1 + max((depth(k) for k in cal.get(j, []) if k != j), default=0)
+            rank[j] = 1 + max((depth(k, path + (j,)) for k in cal.get(j, []) if k != j), default=0)
         return rank[j]
 
     out, body, chunked = {}, '', {}
@@ -178,8 +182,7 @@ def files():
 
 def main():
     check = sys.argv[1:] == ['--check']
-    owned = glob.glob(str(PLACE / 'Free*.lean'))
-    owned = [p for p in owned if Path(p).name != 'FreeMask.lean']
+    owned = [p for g in OWNED for p in glob.glob(str(PLACE / g))]
     stale = genfiles.sync({str(PLACE / f'{n}.lean'): v for n, v in files().items()}, owned, check)
     genfiles.fail_if_stale(stale, check)
 

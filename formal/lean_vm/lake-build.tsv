@@ -4,7 +4,7 @@ LeanVM.Guest.B1.Da.VerifyChk	10.0	10.0	4800	3400
 LeanVM.Guest.B1.Exact.VerifyTables	20.0	20.0	5700	3700
 LeanVM.Guest.B1.KeccakGkr.VkCB	10.0	10.0	4900	3600
 LeanVM.Guest.B1.KeccakGkr.VkCDK	40.0	40.0	4700	3400
-LeanVM.Guest.B1.Place.ArmData	190.0	190.0	2800	1400
+LeanVM.Guest.B1.Place.ArmData	160.0	160.0	2800	1400
 LeanVM.Guest.B1.Place.ArmXT	20.0	20.0	4600	3300
 LeanVM.Guest.B1.Place.FreeExactL1C1	40.0	40.0	4800	3600
 LeanVM.Guest.B1.Place.LqBound	20.0	20.0	5600	4300
