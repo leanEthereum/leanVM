@@ -61,7 +61,7 @@ noncomputable abbrev Rd (fp o : ℕ) : Option E := img.read (g ^ fp * addressOfI
 /-- **The value facts** of a path, of the reference image at frame `fp`. -/
 structure FVal (fp : ℕ) (A : FSt) : Prop where
   st : Exec.St.Holds img (g ^ fp) A.st
-  nz : ∀ o, A.nz.get o = some () → ∃ v, Rd img fp o = some v ∧ v ≠ 0
+  nz : ∀ o, Bits.has A.nz o = true → ∃ v, Rd img fp o = some v ∧ v ≠ 0
   hs : ∀ q o, o < hqLim → A.hs.get (hqKey q o) = some () →
     ∃ p, Rd img fp q = some p ∧ IsInK p ∧ img.read (p.limb 0 * addressOfIndex o) = some p
   cp : ∀ t c, A.cp.get t = some c → ∃ v, Rd img fp t = some v ∧ Rd img fp c = some v
@@ -69,7 +69,7 @@ structure FVal (fp : ℕ) (A : FSt) : Prop where
 
 /-- **The written facts** of a path, of the executor's memory. -/
 structure FWr (s : Prover.Exec.St) (A : FSt) : Prop where
-  w : ∀ o, A.w.get o = some () → s.mem.written (s.fp + o) = true
+  w : ∀ o, Bits.has A.w o = true → s.mem.written (s.fp + o) = true
   hq : ∀ q o, o < hqLim → A.hq.get (hqKey q o) = some () →
     ∃ p x, s.mem.get (s.fp + q) = some p ∧ Names (p * ofK (g ^ o)) x ∧ s.mem.written x = true
 
@@ -103,7 +103,7 @@ variable {κ : ℕ} {img : MemoryImage κ} {fp : ℕ} {s : Prover.Exec.St} {A : 
 
 theorem FWr.addW (h : FWr s A) {o : ℕ} (hw : s.mem.written (s.fp + o) = true) : FWr s (A.addW o) where
   w o' ho' := by
-    rcases get_set_unit (t := A.w) (d := Exec.envDepth) (n := o) ho' with rfl | ho'
+    rcases Bits.has_add ho' with rfl | ho'
     · exact hw
     · exact h.w o' ho'
   hq := h.hq
@@ -141,7 +141,7 @@ theorem FVal.addNz (h : FVal img fp A) {o : ℕ} (hn : ∃ v, Rd img fp o = some
     FVal img fp (A.addNz o) where
   st := h.st
   nz o' ho' := by
-    rcases get_set_unit (t := A.nz) (d := Exec.envDepth) (n := o) ho' with rfl | ho'
+    rcases Bits.has_add ho' with rfl | ho'
     · exact hn
     · exact h.nz o' ho'
   hs := h.hs
@@ -185,17 +185,17 @@ theorem envHolds_inter_right {fp : K} {a b : Exec.Trie Exec.Sym} (h : Exec.EnvHo
 
 theorem FHolds.meet_left (h : FHolds img s A) : FHolds img s (A.meet B) := by
   obtain ⟨hv, hw⟩ := h
-  refine ⟨⟨stHolds_init (envHolds_inter_left hv.st.1), fun o ho ↦ hv.nz o (get_inter_unit ho).1,
+  refine ⟨⟨stHolds_init (envHolds_inter_left hv.st.1), fun o ho ↦ hv.nz o (Bits.has_inter ho).1,
     fun q o hl ho ↦ hv.hs q o hl (get_inter_unit ho).1, fun t c ho ↦ hv.cp t c (get_inter_nat ho).1,
     fun c x ho ↦ hv.one c x (get_inter_nat ho).1⟩,
-    ⟨fun o ho ↦ hw.w o (get_inter_unit ho).1, fun q o hl ho ↦ hw.hq q o hl (get_inter_unit ho).1⟩⟩
+    ⟨fun o ho ↦ hw.w o (Bits.has_inter ho).1, fun q o hl ho ↦ hw.hq q o hl (get_inter_unit ho).1⟩⟩
 
 theorem FHolds.meet_right (h : FHolds img s B) : FHolds img s (A.meet B) := by
   obtain ⟨hv, hw⟩ := h
-  refine ⟨⟨stHolds_init (envHolds_inter_right hv.st.1), fun o ho ↦ hv.nz o (get_inter_unit ho).2,
+  refine ⟨⟨stHolds_init (envHolds_inter_right hv.st.1), fun o ho ↦ hv.nz o (Bits.has_inter ho).2,
     fun q o hl ho ↦ hv.hs q o hl (get_inter_unit ho).2, fun t c ho ↦ hv.cp t c (get_inter_nat ho).2,
     fun c x ho ↦ hv.one c x (get_inter_nat ho).2⟩,
-    ⟨fun o ho ↦ hw.w o (get_inter_unit ho).2, fun q o hl ho ↦ hw.hq q o hl (get_inter_unit ho).2⟩⟩
+    ⟨fun o ho ↦ hw.w o (Bits.has_inter ho).2, fun q o hl ho ↦ hw.hq q o hl (get_inter_unit ho).2⟩⟩
 
 theorem get_of_sub_unit {a b : Exec.Trie Unit} (h : a.sub (fun _ _ ↦ true) b = true) {n : ℕ}
     (ha : a.get n = some ()) : b.get n = some () :=
@@ -210,10 +210,10 @@ theorem FHolds.sub (h : FHolds img s A) (hs : B.sub A = true) : FHolds img s B.r
   obtain ⟨hv, hw⟩ := h
   simp only [FSt.sub, Bool.and_eq_true] at hs
   obtain ⟨⟨⟨⟨⟨⟨he, h1⟩, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := hs
-  refine ⟨⟨stHolds_init (Exec.EnvHolds.sub he hv.st.1), fun o ho ↦ hv.nz o (get_of_sub_unit h2 ho),
+  refine ⟨⟨stHolds_init (Exec.EnvHolds.sub he hv.st.1), fun o ho ↦ hv.nz o (Bits.has_of_sub h2 ho),
     fun q o hl ho ↦ hv.hs q o hl (get_of_sub_unit h4 ho), fun t c ho ↦ hv.cp t c (get_of_sub_nat h5 ho),
     fun c x ho ↦ hv.one c x (get_of_sub_nat h6 ho)⟩,
-    ⟨fun o ho ↦ hw.w o (get_of_sub_unit h1 ho), fun q o hl ho ↦ hw.hq q o hl (get_of_sub_unit h3 ho)⟩⟩
+    ⟨fun o ho ↦ hw.w o (Bits.has_of_sub h1 ho), fun q o hl ho ↦ hw.hq q o hl (get_of_sub_unit h3 ho)⟩⟩
 
 end Meet
 
