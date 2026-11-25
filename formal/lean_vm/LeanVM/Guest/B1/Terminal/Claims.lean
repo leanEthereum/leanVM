@@ -44,9 +44,6 @@ theorem claimColumns_getD {j : ℕ} (hj : j < 159) : Tables.claimColumns.getD j 
   rw [claimColumns_eq, List.getD_eq_getElem _ _ (by simpa using hj), List.getElem_map,
     List.getElem_range]
 
-theorem gen_pow_inj_le {a b : ℕ} (ha : a ≤ 64) (hb : b ≤ 64) (h : gen ^ a = gen ^ b) : a = b :=
-  gen_pow_inj (lt_of_le_of_lt ha (by norm_num)) (lt_of_le_of_lt hb (by norm_num)) h
-
 /-- The exponents of `kappa_base`: `[0, log_mem, τ_0, …, τ_5]`. -/
 def kbExp (layout : Layout) (i : ℕ) : ℕ :=
   ([0, layout.logMemory] ++ layout.tableLogHeights).getD i 0

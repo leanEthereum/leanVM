@@ -265,11 +265,11 @@ def gen_rest():
         '        W 4 * σ (.n 864))) +\n'
         '      σ (.n 880) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 883) + W 2)) +\n'
         '      σ (.n 1154) * σ (.n 1540)'), fw0, fwP_leaves, extra=consts,
-        extra_rw='  simp only [word_one, word_gen, vt_word4]\n')
+        extra_rw='  simp only [word_one, word_gen, word_four]\n')
     write('PushFw', "`verify_tables`' push side's framework blocks: their fingerprints' accumulator and the\n  bytecode share's public term.",
           'LeanVM.Guest.B1.Tables.Vt.PushPad',
           "# The push side's framework blocks\n\n`vt_push_fw`: the accumulator after the state, memory and bytecode blocks is\n`Σ_f eq_f·(β + Σ_i w_i·coord_i)`, the bytecode block's public slots left out, plus\n`public_eq·S`. " + FW_NOTE,
-          'theorem vt_word4 : word 4 0 = gen ^ 2 := by\n  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, word_two_pow (by norm_num)]\n\n' + fwP)
+          fwP)
     # ---- PullTotal ----
     fwQ_leaves = {14, 1155, 1160, 1174, 1162, 1166, 1168, 1170, 1176, 1180, 1297, 1540}
     constsQ = [def_pos(v, 'const') for v in (1156, 1157, 1158, 1161, 1175)]
@@ -279,7 +279,7 @@ def gen_rest():
         '        W 3 * σ (.n 1168) + W 4 * σ (.n 1170))) +\n'
         '      σ (.n 1174) * (σ (.n 14) + (W 0 * gen ^ 2 + W 1 * σ (.n 1176) + W 2 * σ (.n 1180))) +\n'
         '      σ (.n 1297) * σ (.n 1540)'), fw1, fwQ_leaves, extra=constsQ,
-        extra_rw='  simp only [word_one, word_gen, vt_word4]\n')
+        extra_rw='  simp only [word_one, word_gen, word_four]\n')
     # the pull side's running selector sum, over the push side's copies
     D2 = defs(def_pos(sel1, 'copy') - 160, def_pos(sel1, 'copy'))
     copies = [835, 852, 880] + [c for _, _, c, _ in push_data]
