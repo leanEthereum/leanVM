@@ -19,7 +19,6 @@ namespace FORS.Security.GraphView
 
 variable [Params]
 open Concrete Completeness Prefix HiddenGraph HiddenDebt HiddenCost
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit
 
 /-! ### Reads of a hash computation from a prepared state -/

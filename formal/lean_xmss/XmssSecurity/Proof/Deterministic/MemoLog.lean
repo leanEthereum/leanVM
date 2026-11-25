@@ -8,8 +8,6 @@ open OracleComp OracleSpec
 
 namespace DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {ι : Type} {base : OracleSpec ι} {Request Answer : Type}
 
 abbrev RequestLog (Request Answer : Type) := QueryLog (Request →ₒ Answer)

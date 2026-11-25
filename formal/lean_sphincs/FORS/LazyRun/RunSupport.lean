@@ -16,8 +16,6 @@ variable [Params]
 
 open HiddenCost GraphView Stop
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 noncomputable local instance supportCoordinateDecEq : DecidableEq HiddenGraph.Coordinate :=
   Classical.decEq _

@@ -223,8 +223,6 @@ noncomputable def globalFirstLaneVerifierImpl
   globalFirstLaneOracleImpl keyView edgeHigh
 
 
-set_option maxRecDepth 1000000
-
 theorem globalFirstLaneUniformQuery_hazardBound (n : Nat) :
     (FirstLaneOracleSimulation.uniformQuery
       (Index := GlobalChainValueIndex) n).IsQueryBoundP
@@ -1097,8 +1095,6 @@ theorem globalFirstLaneVerifierImpl_hash
     globalFirstLaneOracleExecution
   rfl
 
-
-set_option maxRecDepth 1000000
 
 def appendAttackerActionTrace
     (input : (OracleWorld + SigningSpec).Domain)

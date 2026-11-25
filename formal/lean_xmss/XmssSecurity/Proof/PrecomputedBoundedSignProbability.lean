@@ -12,8 +12,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-set_option maxRecDepth 100000
-
 noncomputable local instance precomputedRandomnessSampleable : SampleableType Randomness :=
   SampleableType.ofFintype Randomness
 

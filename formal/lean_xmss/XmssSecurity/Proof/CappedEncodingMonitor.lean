@@ -9,8 +9,6 @@ open OracleComp ENNReal
 
 namespace XmssSecurity.CappedEncodingMonitor
 
-set_option maxRecDepth 100000
-
 noncomputable def State.pendingRisk
     (state : EncodingMonitor.State) : ℝ≥0∞ :=
   (state.pendingCount : ℝ≥0∞) *

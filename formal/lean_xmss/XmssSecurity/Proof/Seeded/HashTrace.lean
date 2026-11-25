@@ -11,8 +11,6 @@ namespace XmssSecurity.Seeded
 
 open Common.RomTable
 
-set_option backward.isDefEq.respectTransparency false
-
 def prependHash (input : OracleWorld.Domain) (inputs : List HashInput) : List HashInput :=
   match input with
   | .inl _ => inputs

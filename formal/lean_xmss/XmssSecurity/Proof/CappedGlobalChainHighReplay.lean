@@ -14,8 +14,6 @@ namespace XmssSecurity.CappedChain
 
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
 
-set_option maxRecDepth 1000000
-
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
     (input : HashInput) (leafIndex : ChainKey)
@@ -75,8 +73,6 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   simp only
   rw [hhidden, ite_eq_right hmatch]
 
-
-set_option maxRecDepth 1000000
 
 theorem globalLeaf_not_match_endpoint_miss
     (state : GlobalCausalHashState) (leafIndex : ChainKey)
@@ -221,8 +217,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
             exact Or.inl hresult
 
 
-set_option maxRecDepth 10000000
-
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hmem : keyResult ∈ support
@@ -336,8 +330,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
   exact globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
     right.1.1.secretKey rightState input hcache hchain hleaf
 
-
-set_option maxRecDepth 1000000
 
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
@@ -469,8 +461,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
               intro _leftResult _rightResult hresult
               exact Or.inl hresult
 
-
-set_option maxRecDepth 10000000
 
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
@@ -727,8 +717,6 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
   rw [hextends.2] at hkeygen
   exact hextends.1 (hretained input hmerkle output hkeygen)
 
-
-set_option maxRecDepth 1000000
 
 structure GlobalMonitoredCausalState where
   causal : GlobalCausalHashState

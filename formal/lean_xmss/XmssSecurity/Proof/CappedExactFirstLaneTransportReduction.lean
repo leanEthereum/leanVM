@@ -18,7 +18,6 @@ variable {ι : Type*} {α : Type}
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 namespace GlobalHighDirectTracedState
@@ -2094,8 +2093,6 @@ theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
       computation state.causalState baseResult hbase)
 
 
-set_option maxRecDepth 1000000
-
 theorem globalExactTracedLift_hazardBound
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState
@@ -2173,7 +2170,6 @@ theorem globalFirstLaneExactTracedVerifierImpl_hazardBound
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
 
-set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 theorem map_globalHighMonitored_adversary_exact_query

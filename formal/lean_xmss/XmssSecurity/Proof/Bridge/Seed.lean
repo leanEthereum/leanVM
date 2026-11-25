@@ -20,8 +20,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem run_progCache (seed : MasterSeed) (d : Derivations) :
     (simulateQ randomOracle (honestRun d).withQueryLog).run (progCache seed d) =
       (fun p => (p.1, overlay (progCache seed d) p.2)) <$>

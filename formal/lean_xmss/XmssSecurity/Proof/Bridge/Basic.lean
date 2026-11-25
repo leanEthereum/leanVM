@@ -16,8 +16,6 @@ open OracleComp OracleSpec
 
 namespace DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {D R : Type}
 
 /-- The first query of a computation and its continuation. -/
@@ -139,8 +137,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 variable {D R : Type}
 
 /-- An erasure of known queries resolves wherever its result resolves. -/
@@ -176,8 +172,6 @@ end XmssSecurity.Seeded
 namespace XmssSecurity.Bridge
 
 open DeterministicSigning
-
-set_option backward.isDefEq.respectTransparency false
 
 /-! ## Exact query counts -/
 

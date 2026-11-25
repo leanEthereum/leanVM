@@ -10,8 +10,6 @@ namespace XmssSecurity.Seeded
 
 open Common.RomTable
 
-set_option backward.isDefEq.respectTransparency false
-
 def hashBad (bad : HashInput → Prop) : OracleWorld.Domain → Prop
   | .inl _ => False
   | .inr input => bad input
