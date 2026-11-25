@@ -388,6 +388,14 @@ def cut_of(clens, i):
 LIT_TRIES = [('loc', 'ℕ'), ('stat', 'B2C.PC'), ('sites', 'B2C.Site'), ('arms', '(ℕ × ℕ)'), ('ents', 'String')]
 
 
+def alit_mod(k):
+    """The module `emit` writes `k`'s alignment context's tries to (`ALit`), or `None`: `k` passes with windows."""
+    out, _ = collect()
+    if not out.get(k, {}).get('states'):
+        return None
+    return f'LeanVM.Guest.CoreMode.Gen.«{heap.pack_of()[k][0]}».«{k}».«ALit»'
+
+
 def lit_mod(base, k, mod, kind, imps, lits, ctx, eq):
     """`k`'s module `mod`: its `kind` context with its tries `lits` (name, type, value each) stated once (`kernel_lit`,
     `CoreMode/PairLit.lean`), the context's definition `ctx` and its equation `eq`."""

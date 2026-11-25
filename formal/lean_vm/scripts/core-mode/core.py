@@ -487,12 +487,32 @@ def long_loop(k, j, hp, frame_mod, gl):
         rimps.append(f'{base}.SW{i}')
         sws.append(f'Fn.«{k}».selw{i}')
     cws = []
+    # several code windows: each over the slice of the chunks it covers, with the alignment context's tries stated
+    # (`CLit`: `pair.py`'s `ALit`, the chunks' lengths), by `CoreMode.cw_of_slice` (`CoreMode/LoopWinS.lean`)
+    from pair import alit_mod, cut_of
+    amod = alit_mod(k) if len(cb) > 2 and ctx == 'alignCtxP' else None
+    if amod:
+        clens = AL.functions()[k]['clens']
+        files['CLit'] = (hdr('CLit', f'`{k}`\'s code windows\' data: its chunks\' lengths and its core data with the '
+                             'alignment context\'s tries stated once.') +
+                         'public meta import LeanVM.Guest.KernelLit\n' +
+                         ''.join(f'public import {m}\n' for m in sorted({amod, f'{base}.Cfun', 'LeanVM.Guest.CoreMode.LoopWinS'})) +
+                         ns(f'kernel_lit Fn.«{k}».clens : List ℕ := Fn.«{k}».code.chunks.map List.length\n\n'
+                            f'/-- `cfun`, its alignment context\'s tries stated (`alignL`). -/\n'
+                            f'noncomputable def Fn.«{k}».cfunL : CoreMode.CFun := {{ Fn.«{k}».cfun with X := Fn.«{k}».alignL }}\n\n'
+                            f'theorem Fn.«{k}».cfun_lit : Fn.«{k}».cfun = Fn.«{k}».cfunL := by\n'
+                            f'  rw [Fn.«{k}».cfunL, ← Fn.«{k}».alignL_eq]; rfl\n'))
     for i in range(len(cb) - 1):
         a, b = cb[i], cb[i + 1]
-        files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') + imp +
-                           ns(f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
-                              f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
-                              f'  decide +kernel\n'))
+        stmt = (f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
+                f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true :=')
+        if amod:
+            body = (f'\n  CoreMode.cw_of_slice (ca := {cut_of(clens, a)}) (cb := {cut_of(clens, b)})\n'
+                    f'    (by rw [Fn.«{k}».clens_eq]; decide +kernel) (by rw [Fn.«{k}».cfun_lit]; decide +kernel)\n')
+        else:
+            body = ' by\n  decide +kernel\n'
+        files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') +
+                           (f'public import {base}.CLit\n' if amod else imp) + ns(stmt + body))
         cimps.append(f'{base}.CW{i}')
         cws.append(f'Fn.«{k}».cw{i}')
     pairs = lambda m: lst(f'({x}, {y})' for x, y in m)
@@ -736,7 +756,7 @@ def main(check=False):
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     have = (glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
             glob.glob(os.path.join(GEN, '*', 'Fns.lean')) +
-            [f for pat in ('Cfun', 'LW*', 'CW*', 'RW*', 'SW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
+            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
     stale = genfiles.sync(files, have, check)
     lines = sum(text.count('\n') for text in files.values())
     print('core route: %d functions, %d packs, %d files, %d lines' % (len(R), len(packs), len(files), lines) +
