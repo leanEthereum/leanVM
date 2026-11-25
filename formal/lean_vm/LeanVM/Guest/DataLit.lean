@@ -22,7 +22,8 @@ elaborator writes it (`OfNat.ofNat ℕ n (instOfNatNat n)`); a string; a list `[
 tuple `(a, b, …)`.
 Anything else is elaborated as usual. Nothing here is trusted: the kernel checks the definition's
 value against its type, and the certificates check the values against the statement's data
-(`Checked/Link*`).
+(`Checked/Link*`). It is for the proofs' generated data only: the statement's data
+(`formal/Statement/`) stays plain Lean.
 -/
 
 namespace LeanVM.Guest.DataLit
@@ -43,6 +44,15 @@ def elabUsual (stx : Syntax) (ty : Expr) : TermElabM Expr := do
 /-- The elements of a chain `a :: b :: … :: l`, and its last term `l`. -/
 partial def consChain (stx : Syntax) (acc : Array Syntax := #[]) : Array Syntax × Syntax :=
   if stx.getKind == `«term_::_» then consChain stx[2] (acc.push stx[0]) else (acc, stx)
+
+/-- The constant `.id` names at type `ty`, as the elaborator resolves it: in the namespace of the
+type's head, then of each unfolding. -/
+partial def dotName (id : Name) (ty : Expr) : MetaM (Option Name) := do
+  let ty ← instantiateMVars ty
+  if let .const I _ := ty.cleanupAnnotations.getAppFn then
+    if (← getEnv).contains (I ++ id) then return some (I ++ id)
+  let some ty ← unfoldDefinition? ty | return none
+  dotName id (← whnfCore ty)
 
 mutual
 
@@ -79,9 +89,8 @@ partial def tryBuild (stx : Syntax) (ty : Expr) : TermElabM (Option Expr) := do
   if args.any fun a ↦ a.getKind matches ``Lean.Parser.Term.namedArgument | ``Lean.Parser.Term.ellipsis then
     return none
   if f.getKind == ``Lean.Parser.Term.dotIdent then
-    let ty ← whnfR ty
-    let .const I _ := ty.getAppFn | return none
-    return ← appConst (I ++ f[1].getId.eraseMacroScopes) args ty
+    let some c ← dotName f[1].getId.eraseMacroScopes ty | return none
+    return ← appConst c args ty
   if f.isIdent then
     let some c ← (try some <$> realizeGlobalConstNoOverload f catch _ => pure none) | return none
     return ← appConst c args ty
