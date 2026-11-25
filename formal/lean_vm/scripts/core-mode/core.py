@@ -172,7 +172,9 @@ def res_block(k, po, p):
 
 def res_tags(k, blk, name=None):
     """`resFamFrom`'s tags (`restag.py`) of `k`'s residual list `name` (a chunk of `res`), else of its inline `res`;
-    `None` when none skips a family, the list does not parse, or `res` is a sum of chunks (decided whole)."""
+    `None` when the list is shorter than `RES_IX` and none skips a family, or `res` is a sum of chunks (decided
+    whole). A list of `RES_IX` residuals or more is checked by its tags even when all are `0`: tag `0` reads the atoms
+    indexed by value (`resFamGI`, `ResIx.lean`)."""
     if name is not None:
         m = re.search(r'\ndef %s : List CoreMode\.CRes :=\n(.*?)\n\n' % name, blk, re.S)
     elif '\n  res := (' in blk:
@@ -182,10 +184,12 @@ def res_tags(k, blk, name=None):
     if not m:
         raise SystemExit(f'core: no residual list {name or "res"} of {k}')
     ts = restag.tags(k, m.group(1), route.sigs().get(k))
-    return ts if ts and any(ts) else None
+    return ts if ts and (any(ts) or len(ts) >= RES_IX) else None
 
 
 DK = '(by decide +kernel)'
+# residuals from which a list's check reads the atoms indexed (`res_tags`)
+RES_IX = 8
 K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
