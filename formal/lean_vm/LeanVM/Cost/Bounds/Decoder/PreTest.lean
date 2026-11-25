@@ -130,9 +130,9 @@ theorem gpowAt_cost (hP : Includes P gpowAtC.costDeps) (Pw : Array E) (o : ℕ)
     machineCost P gpowAtC.costIdx [encodeValue Pw, encodeValue o] ≤ 17 := by
   have h128 : smallPowBound < 2 ^ 64 := by unfold smallPowBound; norm_num
   have h34 : LeanVM.Guest.B1.sizeBits = 34 := rfl
-  rw [gpowAtC.costEq P hP, limbs_of_lt (by omega : o < 2 ^ 64), limbs_of_lt h128,
-    limbs_of_lt (by norm_num [LeanVM.Guest.B1.sizeBits] : LeanVM.Guest.B1.sizeBits < 2 ^ 64),
+  rw [gpowAtC.costEq P hP,
     limbs_of_lt (by unfold smallPowBound at h128 ho; omega : LeanVM.Guest.B1.sizeBits + o < 2 ^ 64)]
+  limbs
   simp only [ho, ↓reduceIte, max_self]
   omega
 

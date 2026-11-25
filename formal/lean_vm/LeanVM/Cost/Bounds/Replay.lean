@@ -219,10 +219,7 @@ theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.
       (pr + pf - red) subsequentReduction (by omega) (by omega)
       (by simp only [subsequentFold]; omega) (by simp [subsequentReduction])
     simp only [residualMaxLog, subsequentFold, subsequentReduction] at hrec ⊢
-    rw [limbs_of_lt hf, limbs_of_lt hr, limbs_of_lt (by omega : pr < 2 ^ 64),
-      limbs_of_lt (by omega : pf < 2 ^ 64), limbs_of_lt (by omega : pr + pf < 2 ^ 64),
-      limbs_of_lt hred, limbs_of_lt (by omega : min 4 rem < 2 ^ 64),
-      limbs_of_lt (by norm_num : (5 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (4 : ℕ) < 2 ^ 64)]
+    limbs
     simp only [max_self]
     by_cases h5 : rem ≤ 5
     · simp only [h5, ↓reduceIte]; omega
@@ -335,10 +332,7 @@ theorem commitStackPure_cost (hP : Includes P commitStackPureC.costDeps) (logN R
       obtain ⟨hf, hr⟩ := ladder_head hla
       simp only [hf, hr, LeanVM.Parameters.Whir.initialFold]
       have hc := commitPure_cost P (by includes) (logN - 6 + R) (2 ^ 6) s hs
-      rw [limbs_of_lt (by omega : logN < 2 ^ 64), limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64),
-        limbs_of_lt (by omega : logN - 6 + R < 2 ^ 64),
-        limbs_of_lt (by omega : logN - 6 < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64),
-        limbs_of_lt (by norm_num : 1 <<< 6 < 2 ^ 64)]
+      limbs
       omega
 
 /-! ## Logarithms -/
@@ -395,8 +389,8 @@ theorem keccakSlot_cost (hP : Includes P keccakSlotC.costDeps) (c : ℕ) (hc : c
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] 0 (by simp)
     (fun x hx ↦ by
       rw [appCost_fn, List.length_singleton, List.cons_append, List.nil_append, keccakSlotC.lam1.costEq P,
-        keccakBase, limbs_of_lt hc, limbs_of_lt (by norm_num : (66 : ℕ) < 2 ^ 64),
-        limbs_of_lt (by simp at hx; omega : x < 2 ^ 64), limbs_of_lt (by omega : c - 66 < 2 ^ 64)]
+        keccakBase, limbs_of_lt (by simp at hx; omega : x < 2 ^ 64)]
+      limbs
       simp only [max_self]
       omega)
   have hm : ∀ o : Option ℕ, o.all (· < 2 ^ 63) → machineCost P Auto.Option.map.costIdx
@@ -421,8 +415,7 @@ theorem keccakSlot_cost (hP : Includes P keccakSlotC.costDeps) (c : ℕ) (hc : c
         simp only [Option.all_some, decide_eq_true_eq]
         simp at hk; omega)
   rw [keccakBase] at hidx ⊢
-  rw [limbs_of_lt hc, limbs_of_lt (by norm_num : (66 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by omega : c - 66 < 2 ^ 64), limbs_of_lt (by norm_num : (15 + 25 : ℕ) < 2 ^ 64)]
+  limbs
   simp only [max_self, List.length_cons, List.length_nil] at hf ⊢
   split_ifs <;> omega
 
@@ -839,8 +832,8 @@ theorem buildLayoutLite_cost (hP : Includes P buildLayoutLiteC.costDeps) (byteco
       (fun x ↦ RunsApp.of_spec (buildLayoutLiteC.lam0.costSpec P (by includes) x)) 7 tableRows
       (fun x hx ↦ by
         rw [appCost_fn, List.length_nil, Nat.add_zero, List.nil_append, buildLayoutLiteC.lam0.costEq P,
-          limbs_of_lt (hr x hx), limbs_of_lt (by norm_num : 1 <<< 30 < 2 ^ 64),
-          limbs_of_lt (by norm_num : (2 : ℕ) ^ 30 < 2 ^ 64)]
+          limbs_of_lt (hr x hx)]
+        limbs
         simp)
     have hlr := length_cost P (by includes) tableRows (by omega)
     simp only [busBits, FastLib.tablesLength, limbs_of_lt hm, limbs_of_lt (by omega : val < 2 ^ 64),
@@ -1000,10 +993,11 @@ theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode :
     (s : VerifierProgramState) (hb : bytecode.length < 2 ^ 63) (hs : s.sponge.pending.length ≤ 4) :
     machineCost P readSizesLiteC.costIdx [encodeValue bytecode, encodeValue s] ≤
       8 * bytecode.length + 977124710 := by
-  rw [readSizesLiteC.costEq P hP, FastLib.tablesLength, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
+  rw [readSizesLiteC.costEq P hP, FastLib.tablesLength]
   have hr := readPure_cost P (by includes) 8 s (by norm_num) hs
-  rw [show (2 + 6 : ℕ) = 8 from rfl, limbs_of_lt (by norm_num : (8 : ℕ) < 2 ^ 64), Auto.Option.bind.costEq P (by includes) _ _ _
+  rw [show (2 + 6 : ℕ) = 8 from rfl, Auto.Option.bind.costEq P (by includes) _ _ _
     (fun r ↦ RunsApp.of_spec (readSizesLiteC.lam0.costSpec P (by includes) bytecode r))]
+  limbs
   cases hrp : readPure 8 s with
   | none => simp only; omega
   | some r =>

@@ -249,7 +249,10 @@ meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
 /-- `limbs`: for every `limbCount t` of the goal that `omega` shows word-sized (`t < 2 ^ 64`), the
 hypothesis `limbCount t = 1`, and the goal rewritten with it (as `rw [limbs_of_lt …]`).
 `limbs [hW]` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`) also adds `limbCount t ≤ W` for each other
-`t` that `omega` shows at most `B`. -/
+`t` that `omega` shows at most `B`. It runs `omega` once per `limbCount` of the goal, so a
+`limbCount (1 <<< k)` or `limbCount (2 ^ k)` with `k` not a numeral (opaque to `omega`) is rewritten
+first with `limbs_shift` or `limbs_two_pow`, and one whose bound needs more than the context
+(`j.isLt`) with `limbs_of_lt`. -/
 syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
 
 /-- Elaborate `limbs`. -/
@@ -259,6 +262,8 @@ syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
   let mut g ← getMainGoal
   let mut eqs : Array Ident := #[]
   for t in limbsArgs tgt do
+    -- a compiled equation may carry raw literals, which `omega` does not read
+    let t := if let some n := t.rawNatLit? then mkNatLit n else t
     let ty64 ← elabTerm (← `($(← Term.exprToSyntax t) < 2 ^ 64)) (some (mkSort .zero))
     if let some pf ← omegaProof? ty64 then
       let n := Name.mkSimple s!"hlimbs_{eqs.size}"

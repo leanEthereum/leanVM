@@ -205,8 +205,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
   rw [extractLC.costEq P hP, bind_some_eq P (by includes)
     (fun a ↦ RunsApp.of_spec (extractLC.lam0.costSpec P (by includes) prog input qs π (fwdIndex qs) a)) h1]
   cost_app [extractLC.lam0.costEq P,
-    Auto.LeanVM.Protocol.EndToEnd.Sound.startState.costEq P, hl6,
-    limbs_of_lt (by norm_num : 2 + 6 < 2 ^ 64), limbs_of_lt (by norm_num : 6 < 2 ^ 64), bind_some_eq P (by includes)
+    Auto.LeanVM.Protocol.EndToEnd.Sound.startState.costEq P, hl6, bind_some_eq P (by includes)
     (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs) a)) h2]
   cost_app [extractLC.lam0.lam0.costEq P, bind_some_eq P (by includes)
     (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.costSpec P (by includes) prog input qs (fwdIndex qs)
@@ -218,6 +217,7 @@ theorem extractL_cost (P : MachineProgram) (hP : Includes P extractLC.costDeps) 
     (fun a ↦ RunsApp.of_spec (extractLC.lam0.lam0.lam0.lam0.lam0.costSpec P (by includes) prog input qs
       (lay, ρ) r₂ a)) h5]
   cost_app [extractLC.lam0.lam0.lam0.lam0.lam0.costEq P]
+  limbs
   unfold headPrice
   omega
 

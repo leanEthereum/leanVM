@@ -331,7 +331,8 @@ theorem absorbWith_cost (hP : Includes P absorbWith.Option.costDeps)
   induction k with
   | zero =>
     intro s data _ hd
-    rw [absorbWith.Option.costEq P hP π πVal hπ, limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64)]
+    rw [absorbWith.Option.costEq P hP π πVal hπ]
+    limbs
     have h1 := padBlock_cost P (by includes) data (by omega)
     have h2 := absorbBlockWith_cost P (by includes) π πVal hπ B hB s (padBlock data)
     simp only [Nat.rec_zero]
@@ -490,8 +491,7 @@ theorem publicInputDigest_cost (hP : Includes P Auto.LeanVM.publicInputDigest.co
   rw [Auto.LeanVM.publicInputDigest.costEq P hP, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P,
     Auto.Fin.ofNat.«4».costEq P]
-  rw [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
-    limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
+  limbs
   omega
 
 /-! ## The sponge -/
@@ -1028,18 +1028,15 @@ theorem grindingBits_cost (hP : Includes P Auto.LeanVM.Protocol.Compile.grinding
   rw [Auto.LeanVM.Protocol.Compile.grindingBits.costEq P hP]
   have hl1 : limbCount n ≤ 3 := limbs_le_wl (E := 128) (by omega)
   have hs : securityBits = 125 := rfl
-  rw [hs, limbs_of_lt (by norm_num : (125 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : 128 - 125 < 2 ^ 64)]
+  rw [hs]
   have hlog : Nat.log2 (n - 1) < 128 := by
     rcases Nat.eq_zero_or_pos (n - 1) with h0 | h0
     · rw [h0]; simp
     · exact (Nat.log2_lt (by omega)).2 (by omega)
   have hr := log2Rec_cost P (by includes) (n - 1) (by omega)
-  split_ifs with h
-  · simp only [limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64)]
-    omega
-  · rw [limbs_of_lt (by omega : Nat.log2 (n - 1) + 1 < 2 ^ 64),
-      limbs_of_lt (by omega : Nat.log2 (n - 1) < 2 ^ 64)]
-    simp only [max_self]
+  split_ifs <;> limbs
+  · omega
+  · simp only [max_self]
     nlinarith
 
 theorem grindingBits_le (n : ℕ) (hn : n < 2 ^ 128) : grindingBits n ≤ 128 := by
@@ -1970,7 +1967,7 @@ theorem decRoundP_cost (hP : Includes P decRoundP.costDeps) (h : List EvP) :
   have := drop_cost P (by includes) (4 + (skGrind Whir.foldGrindingBits).length) h (by omega)
   have := listCases_le (List.drop (4 + (skGrind Whir.foldGrindingBits).length) h) 1 5
   rw [hg] at *
-  rw [limbs_of_lt (by norm_num : 4 + 1 < 2 ^ 64), limbs_of_lt (by norm_num : 1 < 2 ^ 64)]
+  limbs
   omega
 
 /-- The fold rounds' challenges (`decRoundsP`): at most `(500·n + 1100)·n + 7`. -/

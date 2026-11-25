@@ -91,8 +91,8 @@ cost_compile lenB := lenB
 example := @LeanVM.Cost.Auto.LeanVMTests.Cost.lenAt.Box.costEq
 example := @LeanVM.Cost.Auto.LeanVMTests.Cost.lenAt.«LeanVMTests.Cost.ClashB.Box».costEq
 
-/-- The full name taken too. -/
 set_option linter.dupNamespace false in
+/-- The full name taken too. -/
 def _root_.LeanVM.Cost.Auto.LeanVMTests.Cost.lenAt.«LeanVMTests.Cost.ClashC.Box».costIdx : ℕ := 0
 
 /-- `lenAt` at `ClashC.Box`. -/

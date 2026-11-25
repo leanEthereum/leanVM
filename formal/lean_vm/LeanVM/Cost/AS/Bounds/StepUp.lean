@@ -422,8 +422,8 @@ theorem upAtA_cost (hP : Includes P upAtAC.costDeps) (κ κ' m R : ℕ) (VA' : A
     (fun i ↦ RunsApp.of_spec (upAtAC.lam0.costSpec P (by includes) κ R i))
     ((hatPrice + 28) * 2 ^ (κ + R) + 27)
     (fun i ↦ by
-      cost_app [upAtAC.lam0.costEq P, limbs_of_lt (by omega : κ + R < 2 ^ 64),
-        limbs_of_lt (by omega : κ < 2 ^ 64), limbs_of_lt (by omega : R < 2 ^ 64)]
+      cost_app [upAtAC.lam0.costEq P]
+      limbs
       have := stageTwiddles_cost P (by includes) (κ + R) i (by have := i.isLt; omega) hN
       simp only [max_self]
       omega) 0 (Nat.zero_le _)
@@ -471,8 +471,8 @@ theorem stackA_cost (hP : Includes P stackAC.costDeps) (μ : ℕ) (VA : AV) (hμ
   have hl : Protocol.EndToEnd.laneBits = 6 := rfl
   have hμe : μ = κ + 6 := by omega
   subst hμe
-  rw [limbs_of_lt (by omega : κ + 6 < 2 ^ 64), limbs_of_lt (by norm_num : Protocol.EndToEnd.laneBits < 2 ^ 64),
-    limbs_shift (by norm_num : Protocol.EndToEnd.laneBits < 64), limbs_shift (by omega : κ + 6 < 64)]
+  rw [limbs_shift (by norm_num : Protocol.EndToEnd.laneBits < 64), limbs_shift (by omega : κ + 6 < 64)]
+  limbs
   have h2 : 2 ^ (κ + 6) = 64 * 2 ^ κ := by rw [pow_add]; ring
   have hNp : 2 ^ (κ + 6) ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) hμ'
   have h1 := ofFnFrom_cost P (by includes) (n := 2 ^ Protocol.EndToEnd.laneBits) (by norm_num) _

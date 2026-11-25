@@ -585,8 +585,7 @@ theorem bitsB_cost (hP : Includes P Decoder.bitsBC.costDeps) :
     have := bitsB_cost hP l (by simp at hl; omega)
     have hb := bitsB_lt l
     have h62 : 2 ^ l.length ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) (by simp at hl; omega)
-    rw [limbs_of_lt (by omega : bitsB l < 2 ^ 64), limbs_of_lt (by omega : 2 * bitsB l < 2 ^ 64),
-      List.length_cons]
+    rw [List.length_cons]
     split_ifs <;> limbs <;> omega
 
 omit hrd hR in
