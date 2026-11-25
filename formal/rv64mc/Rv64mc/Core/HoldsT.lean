@@ -39,7 +39,7 @@
 
   * `HoldsT.call`, `HoldsT.mono_need`
   * `WinOk.of_ne`, `WinOk.of_opn`, `WinOk.of_set`, `WinOk.nil`
-  * `Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, `data`, `dataSub`, `noCodeAt`,
+  * `inWindow_iff`, `Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, `data`, `dataSub`, `noCodeAt`,
     `callee`, `after`
 -/
 
@@ -102,6 +102,11 @@ end WinOk
 
 /-! ## Where the windows lie -/
 
+/-- `inWindow` as linear bounds, for `omega`. -/
+theorem inWindow_iff {a : Word} {w : Nat} : inWindow a w = true ↔
+    (0x10000000 ≤ a.toNat ∧ a.toNat + w ≤ 0x78000000) ∨ (0xa0000000 ≤ a.toNat ∧ a.toNat + w ≤ 0xc0000000) := by
+  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
+
 /-- **Where the windows lie**, as a total contract assumes at entry with stack top `top`. Its facts about `env` are
     constant: the concrete image discharges them by kernel checks (`Final/EndT.lean`). -/
 structure Windows (env : Env) (top : Word) (m : MachineState) : Prop where
@@ -130,8 +135,7 @@ theorem stackObj (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat
     inWindow a w = true := by
   have := env.layout
   have := h.nextAddr_ge
-  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
-  exact .inr ⟨by omega, by omega⟩
+  exact inWindow_iff.2 <| .inr ⟨by omega, by omega⟩
 
 /-- An access within the stack, between `stackLimit` and the stack top, is in a window. -/
 theorem stack (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat) (hhi : a.toNat + w ≤ top.toNat) :
@@ -143,8 +147,7 @@ theorem stack (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat) (
 theorem heapObj (h : Windows env top m) (hlo : 0x10000000 ≤ a.toNat) (hhi : a.toNat + w ≤ env.heapEnd.toNat) :
     inWindow a w = true := by
   have := h.heapEnd_le
-  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
-  exact .inl ⟨by omega, by omega⟩
+  exact inWindow_iff.2 <| .inl ⟨by omega, by omega⟩
 
 /-- An access within the heap, from `NEXT` to the heap's end, is in a window. -/
 theorem heap (h : Windows env top m) (hlo : (env.next m).toNat ≤ a.toNat) (hhi : a.toNat + w ≤ env.heapEnd.toNat) :
@@ -157,8 +160,7 @@ theorem nextAddr (h : Windows env top m) (hs : env.stackLimit.toNat ≤ top.toNa
   have := env.layout
   have := h.top_le
   have := h.nextAddr_ge
-  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
-  exact .inr ⟨by omega, by omega⟩
+  exact inWindow_iff.2 <| .inr ⟨by omega, by omega⟩
 
 /-- A static data word is in a window. -/
 theorem data (h : Windows env top m) {q : Word × Word} (hq : q ∈ env.data) : inWindow q.1 8 = true :=
@@ -167,14 +169,13 @@ theorem data (h : Windows env top m) {q : Word × Word} (hq : q ∈ env.data) : 
 /-- An access within a static data word is in a window. -/
 theorem dataSub (h : Windows env top m) {q : Word × Word} (hq : q ∈ env.data) (hlo : q.1.toNat ≤ a.toNat)
     (hhi : a.toNat + w ≤ q.1.toNat + 8) : inWindow a w = true := by
-  have hd := h.data hq
-  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hd ⊢
-  omega
+  have := inWindow_iff.1 (h.data hq)
+  exact inWindow_iff.2 (by omega)
 
 /-- **A store in a window hits no code**: SP1's `noCodeAt` holds. From machine-checked's `noCodeAt_of_codeWithin`. -/
 theorem noCodeAt (h : Windows env top m) (ha : inWindow a w = true) (hw : 0 < w) :
     RiscvZkvm.Rv64.noCodeAt m a w = true := by
-  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at ha
+  have := inWindow_iff.1 ha
   exact noCodeAt_of_codeWithin h.code_within a w hw (by omega) (by omega)
 
 /-- At a callee's entry, with a stack top no higher. -/

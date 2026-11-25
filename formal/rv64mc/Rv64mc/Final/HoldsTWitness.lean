@@ -97,7 +97,7 @@ theorem loadFn_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (a : Word) (
   intro Q ret top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, _⟩, hwin⟩ _ hk
   obtain ⟨hin, hal⟩ := ha top m (by omega) hwin
   have hok : isValidMemAddrSp1 a = true ∧ alignedFor 8 a = true := by
-    simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hin
+    have := inWindow_iff.1 hin
     simp only [isValidMemAddrSp1, SP1_MAX_MEMORY, alignedFor, isAligned8, ite_true, beq_iff_eq]
     exact ⟨decide_eq_true (by omega), hal⟩
   refine Total.opn hp rfl (r' := updReg regs .x10 (m.getMem a)) (m' := m) ?_ (WinOk.of_opn hp rfl ?_) ?_

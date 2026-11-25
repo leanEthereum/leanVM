@@ -36,17 +36,20 @@ theorem steps_stuck {t : MachineState} (h : step t = none) (k : Nat) : steps (k 
 theorem step_ecall {t : MachineState} (h : t.code t.pc = some .ECALL) : step t = none := by
   simp [step, h]
 
+/-- A run that stops at `n` steps has no run of more. -/
+theorem steps_after_stop {s t : MachineState} {n k : Nat} (h : steps n s = some t) (hs : step t = none)
+    (hk : n < k) : steps k s = none := by
+  obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_lt hk
+  rw [Nat.add_assoc, steps_add, h, Option.bind_some, steps_stuck hs]
+
 /-- Two runs from `s` that stop are the same run. -/
 theorem steps_stop_unique {s t t' : MachineState} {n n' : Nat} (h : steps n s = some t) (hs : step t = none)
     (h' : steps n' s = some t') (hs' : step t' = none) : n = n' ∧ t = t' := by
   rcases Nat.lt_trichotomy n n' with hlt | rfl | hgt
-  · obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_lt hlt
-    rw [Nat.add_assoc, steps_add, h, Option.bind_some, steps_stuck hs] at h'
+  · rw [steps_after_stop h hs hlt] at h'
     cases h'
-  · rw [h] at h'
-    exact ⟨rfl, Option.some.inj h'⟩
-  · obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_lt hgt
-    rw [Nat.add_assoc, steps_add, h', Option.bind_some, steps_stuck hs'] at h
+  · exact ⟨rfl, Option.some.inj (h.symm.trans h')⟩
+  · rw [steps_after_stop h' hs' hgt] at h
     cases h
 
 /-- **`Halts` is deterministic**: the number of steps and the verdict. -/
@@ -68,9 +71,8 @@ theorem stops_at_halt {img : Image} (h : HaltsSafely img) {words : List Word} {s
 
 /-- **No run goes on past the halt**: from a halting run of `n` steps, every run of more steps is none. -/
 theorem steps_eq_none {s : MachineState} {n : Nat} {v : Word} (h : Halts s n v) {k : Nat} (hk : n < k) :
-    steps k s = none := by
-  obtain ⟨t, ht, hc, -⟩ := h
-  obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_lt hk
-  rw [Nat.add_assoc, steps_add, ht, Option.bind_some, steps_stuck (step_ecall hc)]
+    steps k s = none :=
+  let ⟨_, ht, hc, _⟩ := h
+  steps_after_stop ht (step_ecall hc) hk
 
 end Rv64mc

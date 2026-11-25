@@ -62,19 +62,16 @@ theorem env_windows : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.nextAddr.toNat %
 
 /-- **Every input `HaltsSafely` covers can be loaded.** -/
 theorem loaded_bounded (words : List Word) (h : words.length < maxInputWords) : ∃ s, Loaded image words s :=
-  loaded_nonempty words (by have : maxInputWords ≤ inputCapacity := by decide
-                            omega)
+  loaded_nonempty words (Nat.lt_of_lt_of_le h (by decide)).le
 
 /-- **Every run of the image on an input of fewer than `2^16` words ends at a verdict**, if `main` keeps its total
     contract. -/
 theorem rv64_halts_of_main (hmain : MainSpecT env (liftProg Gen.fns) Gen.Start.link.main.idx need) :
     HaltsSafely image := by
   have hw := wordsIn_of_check words_in_check
-  obtain ⟨fn, hg⟩ : ∃ fn, Gen.fns[0]? = some fn := by
-    have := Gen.Start.tmpl_eq
-    simp only [liftProg, List.getElem?_map, Option.map_eq_some_iff] at this
-    obtain ⟨fn, h, -⟩ := this
-    exact ⟨fn, h⟩
+  have := Gen.Start.tmpl_eq
+  simp only [liftProg, List.getElem?_map, Option.map_eq_some_iff] at this
+  obtain ⟨fn, hg, -⟩ := this
   have hl := layout_facts
   exact haltsSafely_of_main (fns := Gen.fns) (env := env) (need := need) (by rw [fns_eq]; exact progOk_of_wordsIn hw)
     (by rw [fns_eq]; exact fnsIn_of_wordsIn hw) hg Gen.Start.tmpl_eq (by simpa using entry_check) Gen.Start.wf

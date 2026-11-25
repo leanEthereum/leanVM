@@ -77,36 +77,33 @@ theorem capacityOverflow_aborts (L : Alloc.RawVec.CapacityOverflow.Link)
 theorem assertFailedUsizeUsize_aborts (L : Core.Panicking.AssertFailedUsizeUsize.Link)
     (hp : p[i]? = some (Core.Panicking.AssertFailedUsizeUsize.tmpl L)) (hL : L.WF p)
     (h : Aborts env p L.assertFailedInner.idx need) : Aborts env p i need := by
-  intro Q ret top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩, hwin⟩ hstop _
+  intro Q ret top rest regs m hpre hstop _
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
   refine Total.set hp rfl (WinOk.of_set hp rfl) ?_
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
   refine Total.set hp rfl (WinOk.of_set hp rfl) ?_
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
-  exact HoldsT.call h hp rfl (callee_site hL.assertFailedInner hL.s0 (by simp [updReg_apply, Expr.eval]))
-    (by simpa [updReg_apply, hsp] using hstk) hst hnx trivial (by simpa [updReg_apply, hsp] using hal)
-    (by simpa [updReg_apply, hsp] using hwin) hstop (fun _ _ _ _ _ _ h => h.elim)
+  exact h.call hpre hp rfl (callee_site hL.assertFailedInner hL.s0 (by simp [updReg_apply, Expr.eval]))
+    (by simp [updReg_apply, hpre.1.1.2]) hstop
 
 /-- `handle_error`: `capacity_overflow` for a zero argument, else `panic_nounwind_fmt`. -/
 theorem handleError_aborts (L : Alloc.RawVec.HandleError.Link)
     (hp : p[i]? = some (Alloc.RawVec.HandleError.tmpl L)) (hL : L.WF p)
     (h1 : Aborts env p L.capacityOverflow.idx need) (h2 : Aborts env p L.panicNounwindFmt.idx need) :
     Aborts env p i need := by
-  intro Q ret top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩, hwin⟩ hstop _
+  intro Q ret top rest regs m hpre hstop _
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
   refine Total.cond hp rfl (b := regs .x10 != BitVec.ofInt 64 0) (by simp [condEval, operandVal, cmpEval]) rfl
     (WinOk.of_ne hp rfl nofun) (fun _ => ?_) (fun _ => ?_)
   · refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
     refine Total.set hp rfl (WinOk.of_set hp rfl) ?_
     refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
-    exact HoldsT.call h2 hp rfl (callee_site hL.panicNounwindFmt hL.s1 (by simp [updReg_apply, Expr.eval]))
-      (by simpa [updReg_apply, hsp] using hstk) hst hnx trivial (by simpa [updReg_apply, hsp] using hal)
-      (by simpa [updReg_apply, hsp] using hwin) hstop (fun _ _ _ _ _ _ h => h.elim)
+    exact h2.call hpre hp rfl (callee_site hL.panicNounwindFmt hL.s1 (by simp [updReg_apply, Expr.eval]))
+      (by simp [updReg_apply, hpre.1.1.2]) hstop
   · refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
     refine Total.set hp rfl (WinOk.of_set hp rfl) ?_
     refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
-    exact HoldsT.call h1 hp rfl (callee_site hL.capacityOverflow hL.s0 (by simp [updReg_apply, Expr.eval]))
-      (by simpa [updReg_apply, hsp] using hstk) hst hnx trivial (by simpa [updReg_apply, hsp] using hal)
-      (by simpa [updReg_apply, hsp] using hwin) hstop (fun _ _ _ _ _ _ h => h.elim)
+    exact h1.call hpre hp rfl (callee_site hL.capacityOverflow hL.s0 (by simp [updReg_apply, Expr.eval]))
+      (by simp [updReg_apply, hpre.1.1.2]) hstop
 
 end Rv64mc.Proof.Runtime.PanicsT

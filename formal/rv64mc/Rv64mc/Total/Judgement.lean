@@ -28,7 +28,7 @@
 
   * `Ascent.Total.run`, `Ascent.Total.diverge`, `Ascent.Total.reaches`: what the judgement says
     of the runs
-  * `Ascent.Total.mono`, `Ascent.Total.guard`
+  * `Ascent.Total.mono`, `Ascent.Total.guard`, `Ascent.Total.of_not_end`
   * `Total.label`, `opn`, `set`, `goto`, `cond`, `call`, `tail`, `ret`, `ext`, `ext_done`,
     `returned`: one rule per instruction
   * `Total.loop`: a loop, by strong induction on a natural-number measure at its head
@@ -66,30 +66,28 @@ theorem mono {G' Q' : σ → Prop} {s : σ} (h : Total R accept G Q s) (hG : ∀
   | done hg ha hq => exact .done (hG _ hg) ha (hQ _ ha hq)
   | next hg ht hw hex _ ih => exact .next (hG _ hg) ht hw hex ih
 
+/-- A state where the run does not end neither traps nor goes `wrong`, and the judgement holds at its successors. -/
+theorem of_not_end {s : σ} (h : Total R accept G Q s) (hn : ¬ (accept s ∧ Q s)) :
+    ¬ R s .trap ∧ ¬ R s .wrong ∧ ∀ t, R s (.ok t) → Total R accept G Q t := by
+  cases h with
+  | done _ ha hq => exact absurd ⟨ha, hq⟩ hn
+  | next _ ht hw _ hk => exact ⟨ht, hw, hk⟩
+
 /-- **No run stops early.** A run along which no state accepts with `Q` neither traps nor goes
     `wrong`: it ends in a state, where the judgement still holds. -/
 theorem run {s : σ} (h : Total R accept G Q s) {n : Nat} {o : Outcome σ}
     (hr : Run R (fun t => ¬ (accept t ∧ Q t)) n s o) : ∃ t, o = .ok t ∧ Total R accept G Q t := by
   induction hr with
   | done _ => exact ⟨_, rfl, h⟩
-  | next hg hs _ ih =>
-    cases h with
-    | done _ ha hq => exact absurd ⟨ha, hq⟩ hg
-    | next _ _ _ _ hn => exact ih (hn _ hs)
-  | trap hg hs =>
-    cases h with
-    | done _ ha hq => exact absurd ⟨ha, hq⟩ hg
-    | next _ ht _ _ _ => exact absurd hs ht
-  | wrong hg hs =>
-    cases h with
-    | done _ ha hq => exact absurd ⟨ha, hq⟩ hg
-    | next _ _ hw _ _ => exact absurd hs hw
+  | next hg hs _ ih => exact ih ((h.of_not_end hg).2.2 _ hs)
+  | trap hg hs => exact absurd hs (h.of_not_end hg).1
+  | wrong hg hs => exact absurd hs (h.of_not_end hg).2.1
 
 /-- **No run diverges.** Every infinite run from `s` meets an accepting state satisfying `Q`. -/
 theorem diverge {s : σ} (h : Total R accept G Q s) (f : Nat → σ) (h0 : f 0 = s)
     (hf : ∀ i, R (f i) (.ok (f (i + 1)))) : ∃ i, accept (f i) ∧ Q (f i) := by
   induction h generalizing f with
-  | done _ ha hq => exact ⟨0, by rw [h0]; exact ha, by rw [h0]; exact hq⟩
+  | done _ ha hq => exact ⟨0, h0 ▸ ha, h0 ▸ hq⟩
   | next _ _ _ _ _ ih =>
     obtain ⟨i, hi⟩ := ih (f 1) (by rw [← h0]; exact hf 0) (fun i => f (i + 1)) rfl fun i => hf (i + 1)
     exact ⟨i + 1, hi⟩
@@ -265,10 +263,8 @@ theorem loop (Inv : Nat → (I.Reg → BitVec 64) → I.M → Prop)
       (∀ k' regs' m', k' < k → Inv k' regs' m' →
         I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs', m'⟩) →
       I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩) :
-    ∀ k regs m, Inv k regs m → I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
-  intro k
-  induction k using Nat.strongRecOn with
-  | ind k ih => exact fun regs m h => hbody k regs m h fun k' regs' m' hk h' => ih k' hk regs' m' h'
+    ∀ k regs m, Inv k regs m → I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
+  fun k => Nat.strongRecOn k fun k ih regs m h => hbody k regs m h fun k' regs' m' hk => ih k' hk regs' m'
 
 end Total
 

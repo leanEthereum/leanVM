@@ -14,7 +14,7 @@
 
   ## Main results
 
-  * `halt_aborts`, `forward_aborts`
+  * `halt_aborts`, `Aborts.call`, `forward_aborts`
 -/
 
 import Rv64mc.Core.HoldsT
@@ -44,19 +44,30 @@ theorem halt_aborts (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Veri
   refine Total.ext_done hp rfl h5 (WinOk.of_ne hp rfl nofun) (hstop _ _ _ _ ?_ (.inr ⟨0, SafeN.fetch_eq hp rfl, h5⟩))
   simp [updReg_apply, Expr.eval, BinOp.eval]
 
+/-- **A call of a function that aborts**, from inside a function entered with `HoldsT`'s precondition at stack top
+    `top`, with `sp` still `top`. -/
+theorem Aborts.call {env : Env} {p : Lprog (Op Reg) Reg} {f need : Nat} (h : Aborts env p f need)
+    {Pre : (Reg → Word) → MachineState → Prop} {ret₀ top : Word} {regs₀ : Reg → Word} {m : MachineState}
+    (hpre : HoldsT.pre env need Pre ret₀ top regs₀ m) {fn pc : Nat} {fd : Lfundef (Op Reg) Reg} {ret rv top' : Word}
+    {tgt : Target Reg} {rest : List Frame} {regs : Reg → Word} {Q : State rvIsa → Prop} (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lcall ret tgt)) (hc : rvIsa.callee p regs tgt = some f) (hsp : regs .x2 = top)
+    (hstop : ∀ fr st r' m', r' .x10 = 2 → rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ → Q ⟨fr :: st, r', m'⟩) :
+    rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top'⟩ :: rest, regs, m⟩ :=
+  let ⟨⟨_, hstk, hst, hnx, _, hal⟩, hwin⟩ := hpre
+  HoldsT.call h hf hi hc (hsp ▸ hstk) hst hnx trivial (hsp ▸ hal) (hsp ▸ hwin) hstop fun _ _ _ _ _ _ h => h.elim
+
 /-- **A call of a function that aborts aborts**, with the callee's stack. -/
 theorem forward_aborts {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfundef (Op Reg) Reg}
     (hp : p[i]? = some fd) {s : Site} {c : Callee} {ret : Word} (hb : fd.body = forwardBody s c ret)
     (hc : c.WF p) (hs : s.WF c) (h : Aborts env p c.idx need) : Aborts env p i need := by
-  intro Q ret' top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩, hwin⟩ hstop _
+  intro Q ret' top rest regs m hpre hstop _
   obtain ⟨name, addr, depth, body⟩ := fd
   simp only at hb
   subst hb
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
   refine Total.set hp rfl (WinOk.of_set hp rfl) ?_
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
-  refine HoldsT.call h hp rfl (callee_site hc hs (by simp [updReg_apply, Expr.eval]))
-    (by simpa [updReg_apply, hsp] using hstk) hst hnx trivial (by simpa [updReg_apply, hsp] using hal)
-    (by simpa [updReg_apply, hsp] using hwin) hstop (fun _ _ _ _ _ _ h => h.elim)
+  exact h.call hpre hp rfl (callee_site hc hs (by simp [updReg_apply, Expr.eval]))
+    (by simp [updReg_apply, hpre.1.1.2]) hstop
 
 end Rv64mc.Proof.Runtime

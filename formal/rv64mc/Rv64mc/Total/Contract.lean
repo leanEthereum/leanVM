@@ -91,10 +91,8 @@ theorem mono (h : I.TContract p c G f Pre Post Stop)
     contract at `k` from the contract at every `k' < k`. -/
 theorem measure {Pre : Nat → BitVec 64 → BitVec 64 → (I.Reg → BitVec 64) → I.M → Prop}
     (h : ∀ k, (∀ k' < k, I.TContract p c G f (Pre k') Post Stop) → I.TContract p c G f (Pre k) Post Stop) :
-    ∀ k, I.TContract p c G f (Pre k) Post Stop := by
-  intro k
-  induction k using Nat.strongRecOn with
-  | ind k ih => exact h k ih
+    ∀ k, I.TContract p c G f (Pre k) Post Stop :=
+  fun k => Nat.strongRecOn k h
 
 /-- **What a contract says of a run from the entry** of an outermost call: it is total, and
     ends either returned, with `Post`, or at an accepting state with a nonempty stack, in
