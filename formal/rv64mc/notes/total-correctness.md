@@ -19,7 +19,7 @@ What a proof of `MainSpecB` must discharge beyond `MainSpecT`: that no abort oth
 
 ## Proving a function total
 
-What differs from a `Holds` proof, and so what stepping `rvIsa.Total p stmtCtx (WinOk p) Q s` goals needs (`rv_symT` does each, below):
+What differs from a `Holds` proof, and so what stepping `rvIsa.Total p stmtCtx (WinOk p) Q s` goals needs (`rv_symT` does each but a loop's or a recursive function's measure and `Total.ext_done`, below):
 
 * A rule set of its own: the `Total.*` rules in place of `SafeN.*`, with the same continuation shape. Each takes the obligation `WinOk p s` at the state it steps from: `WinOk.of_ne hp rfl nofun` at an instruction that is not an operation (a label, a branch, a call, a return, an `ECALL`), `WinOk.of_set hp rfl` at a register write, `WinOk.of_opn hp rfl trivial` at a `skip`, and `WinOk.of_opn hp rfl hw` at a load or store, where `hw : opWin op regs` is `inWindow addr width = true`, a new side goal about the address. Its facts come from `HoldsT`'s precondition: `Windows.stack` (between `stackLimit` and the stack top), `Windows.heap` (from `NEXT` to the heap's end), `Windows.nextAddr`, `Windows.data` and `dataSub` (a static data word, or a part of one). `Windows` covers what the function owns. A pointer it is passed (the input, a caller's stack object, a heap object allocated before the call) is in a window only by bounds the function's `Pre` (or its representation predicates) must state: `Windows.stackObj` takes `stackLimit ≤ ptr` and an end at most `0xc0000000`, `Windows.heapObj` takes `0x10000000 ≤ ptr` and an end at most the heap's end. Neither `Windows` nor `Holds`'s existing preconditions bound a heap pointer below, so each pointer argument of a total contract needs its window bounds and its alignment in `Pre`.
 * A load or store must give a result: `Total.opn` takes `rvIsa.opn op regs m = some (r', m')`, so SP1's check is a goal, where `lsym` leaves it as a hypothesis `hm` because a fault is safe for `SafeN`. Its three parts: the address below `2^37` (from the window), aligned for its width (from the pointer's alignment in `Pre`, or `Windows.nextAddr_aligned` and `data_ok` for `NEXT` and the static data words: an access misaligned for its width anywhere in the image would make the function's `HoldsT` false), and, for a store, no code at it (`Windows.noCodeAt`, from the window). `frameFn_total` and `loadFn_total` show the pattern.
@@ -56,7 +56,7 @@ Measured on this machine (`lake env lean` of the module, imports built, best of 
 | `E::square` | 26, 7, 5.6 s | `ESquareT` 45, 7, 6.7 s |
 | `Digest::from_halves` | 83, 25, 25.0 s | `DigestFromHalvesT` 68 (its lemmas are the partial's), 26, 29.4 s |
 | `memcmp` | 116, 61 (loop lemma and `ok`, by `lsym`), 6.9 s | `MemcmpT` 92 (lemmas the partial's), 47, 6.0 s |
-| `Input::word` (total, by `TStep`) | 139, 60, 7.1 s | by `rv_autoT`: 110, 31, 5.9 s |
+| `Input::word` (total, by `TStep`) | 139, 60, 7.1 s | by `rv_autoT`: 107, 28, 6.1 s |
 | `alloc` (total, by `TStep`) | 114, 51, 7.5 s | by `rv_autoT`: 93, 29, 6.2 s |
 
-The total files' extra lines are the header and the `specT` definition: the proofs are the partial ones, the side goals of totality closed by the tactic.
+The total files' extra lines are the header and the `specT` definition. The proofs are the partial ones, the side goals of totality closed by the tactic, except `memcmp`'s loop, a new `Total.loop` proof in place of the partial loop lemma, and `DigestFromHalvesT`'s `clear` of two window facts.

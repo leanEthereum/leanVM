@@ -115,17 +115,19 @@ def absorbFactsT (g : MVarId) (facts : Array Expr) (bind : Nat := 0) : MetaM MVa
 def withArith {α : Type} (x : MetaM α) : MetaM α := withOptions (rv_sym.heap.set · true) x
 
 /-- `M.code = T.code`, through stores (`code_setMem`, …) and callees' postconditions (`m'.code = M.code` in the
-    context). -/
-partial def codeWalk (M T : Expr) : MetaM (Option Expr) := do
+    context). `seen` holds the memories already walked, so that a cycle of such facts ends. -/
+partial def codeWalk (M T : Expr) (seen : List Expr := []) : MetaM (Option Expr) := do
   let M := M.consumeMData
   if M == T then return some (← mkEqRefl (← mkAppM ``MachineState.code #[M]))
+  if seen.contains M then return none
+  let seen := M :: seen
   let stores := [(``MachineState.setMem, ``MachineState.code_setMem),
     (``MachineState.setByte, ``MachineState.code_setByte),
     (``MachineState.setHalfword, ``MachineState.code_setHalfword),
     (``MachineState.setWord32, ``MachineState.code_setWord32)]
   if let some (_, c) := stores.find? (M.isAppOfArity ·.1 3) then
     let N := M.appFn!.appFn!.appArg!
-    let some p ← codeWalk N T | return none
+    let some p ← codeWalk N T seen | return none
     let p1 ← mkAppOptM c #[N, M.appFn!.appArg!, M.appArg!]
     return some (← mkEqTrans p1 p)
   for d in ← getLCtx do
@@ -136,7 +138,7 @@ partial def codeWalk (M T : Expr) : MetaM (Option Expr) := do
     let r := ty.appArg!.consumeMData
     unless l.isAppOfArity ``MachineState.code 1 && r.isAppOfArity ``MachineState.code 1 && l.appArg! == M do continue
     if r.appArg! == M then continue
-    let some p ← codeWalk r.appArg! T | continue
+    let some p ← codeWalk r.appArg! T seen | continue
     return some (← mkEqTrans d.toExpr p)
   return none
 
