@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreMode.PairSlice
 /-!
 # Contexts with stated tries
 
-Each window of a long function's pairing (`winOkHS`) and alignment (`Bridge.winOk`) starts by
+Each window of a long function's pairing (`winOkHS`) and alignment (`winOkAS`) starts by
 building its context's tries from lists: the cells, the fixed cells, the call sites, the table
 jumps, the callees (`AlignCtx.ofPacked`), the heap certificate's reads (`HCert.readT`) and the
 oracle (`offsT`). The kernel shares nothing between declarations, so every window builds them
@@ -36,8 +36,6 @@ def AlignCtx.withTries (X : AlignCtx) (loc : Trie ℕ) (stat : Trie B2C.PC) (sit
 end
 
 public section
-
-theorem AlignCtx.withTries_self (X : AlignCtx) : X.withTries X.loc X.stat X.sites X.arms X.ents = X := rfl
 
 /-- **A context with its tries stated**: equal to `X` when each stated trie is `X`'s. -/
 theorem AlignCtx.eq_withTries {X : AlignCtx} {loc : Trie ℕ} {stat : Trie B2C.PC} {sites : Trie B2C.Site}

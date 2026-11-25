@@ -66,8 +66,9 @@ partial def tryBuild (stx : Syntax) (ty : Expr) : TermElabM (Option Expr) := do
   if k == `«term_::_» then
     let (xs, tl) := consChain stx
     return ← listOf (xs.map Sum.inl |>.push (Sum.inr tl)) (← whnfR ty)
-  if let `(($a, $bs,*)) := stx then
-    return ← tupleOf a bs.getElems (← whnfR ty)
+  if k == ``Lean.Parser.Term.tuple then
+    if stx[1].getNumArgs == 0 then return none
+    return ← tupleOf (#[stx[1][0]] ++ stx[1][2].getSepArgs) (← whnfR ty)
   if k == ``Lean.Parser.Term.anonymousCtor then
     let ty ← whnfR ty
     let .const I _ := ty.getAppFn | return none
@@ -101,17 +102,14 @@ partial def listOf (xs : Array (Sum Syntax Syntax)) (ty : Expr) : TermElabM (Opt
     l := mkApp3 (.const ``List.cons us) α (← build a α) l
   return some l
 
-/-- The tuple `(a, b₁, …, bₙ)` at type `ty`, a product nested to the right. -/
-partial def tupleOf (a : Syntax) (bs : Array Syntax) (ty : Expr) : TermElabM (Option Expr) := do
+/-- The tuple `(x₀, x₁, …)` at type `ty`, a product `α × β` with `(x₁, …)` at `β`. -/
+partial def tupleOf (xs : Array Syntax) (ty : Expr) : TermElabM (Option Expr) := do
+  let some x := xs[0]? | return none
+  if xs.size == 1 then return some (← build x ty)
   unless ty.isAppOfArity ``Prod 2 do return none
   let .const _ us := ty.getAppFn | return none
-  let α := ty.appFn!.appArg!
-  let β := ty.appArg!
-  let x ← build a α
-  let β' ← whnfR β
-  let y? ← if h : bs.size = 1 then some <$> build bs[0] β else tupleOf bs[0]! (bs.extract 1 bs.size) β'
-  let some y := y? | return none
-  return some (mkApp4 (.const ``Prod.mk us) α β x y)
+  let some r ← tupleOf (xs.extract 1 xs.size) (← whnfR ty.appArg!) | return none
+  return some (mkApp4 (.const ``Prod.mk us) ty.appFn!.appArg! ty.appArg! (← build x ty.appFn!.appArg!) r)
 
 /-- Constant `c` applied to `args` at type `ty`: a constructor of `ty`'s inductive type after its
 parameters, or a constant without universe parameters; each argument at its binder's type, the
