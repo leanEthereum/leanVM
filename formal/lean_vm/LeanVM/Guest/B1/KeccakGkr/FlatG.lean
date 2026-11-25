@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatF
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Callees reading earlier callees' buffers
@@ -156,7 +157,7 @@ theorem kidsFromIn_of_kidsG (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG),
 /-- **A flat function is complete, placed, its callees reading earlier callees' results.** -/
 theorem completeAt_flatG {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))

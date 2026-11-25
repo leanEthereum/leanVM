@@ -52,7 +52,7 @@ def lpBodyA (d cd : ℕ) (loop : String) : List Stmt :=
     ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i))
 
 theorem lpBody_split (d cd : ℕ) (loop : String) :
-    lpBody d cd loop = lpBodyA d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] := by
+    lpBody d cd loop = lpBodyA d cd loop ⧺ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] := by
   simp only [lpBody, lpBodyA, List.append_assoc]
 
 theorem lpBodyA_flat (d cd : ℕ) (loop : String) : (lpBodyA d cd loop).all Stmt.flat = true := by

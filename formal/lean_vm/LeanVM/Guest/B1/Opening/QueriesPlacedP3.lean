@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlacedP2
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `opening_queries`, placed with its pops
@@ -32,7 +33,7 @@ def oqMainPops (s : Oq) (odd : ℕ) (w : QW) : List Pop := if odd = 1 then oqQE 
 
 /-- The tail after the loop's call walks to its return, calling and popping nothing. -/
 theorem oqMainEnd_walk (σ : Val) (rd : Reader) (s : Oq) (k : ℕ) :
-    ∃ es vs, walk σ (oqMainEnd s k ++ [.ret [.n (oqMainRet s k)]]) = .ret es vs ∧ calls es = [] ∧
+    ∃ es vs, walk σ (oqMainEnd s k ⧺ [.ret [.n (oqMainRet s k)]]) = .ret es vs ∧ calls es = [] ∧
       evPops rd σ es = [] := by
   unfold oqMainEnd oqMainRet
   split
@@ -187,7 +188,7 @@ theorem oqMain_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
         · rw [show even = true by rw [heven]; exact decide_eq_true h0, ite_eq_left rfl, ite_eq_left h0]
         · rw [show even = false by rw [heven]; exact decide_eq_false h0, ite_eq_right (by decide), ite_eq_right h0]
       have hbody : fm.body = oqMainPre ++ .ite (.n 13) oqEvenT (oqOddT s) ::
-          ((oqMainPost s ++ ca :: en) ++ [.ret [.n (oqMainRet s k)]]) := by
+          ((oqMainPost s ++ ca :: en) ⧺ [.ret [.n (oqMainRet s k)]]) := by
         rw [hbm, oqMainT_eq, oqMainA_one hb]
         simp only [List.append_assoc, List.cons_append, ← hk, hca, hen]
       have hsub : ∀ x, x ∈ oqMainPre ∨ x ∈ (if σ (.n 13) = 0 then oqEvenT else oqOddT s) ∨
@@ -235,7 +236,7 @@ theorem oqMain_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Stri
           · rcases List.mem_append.mp he with he | he
             · exact hFev e (hsubE e (Or.inr (Or.inl he)))
             · exact hFev e (hsubE e (Or.inr (Or.inr he)))
-    · have hbody : fm.body = fl ++ [.ret [.n (oqMainRet s k)]] := by
+    · have hbody : fm.body = fl ⧺ [.ret [.n (oqMainRet s k)]] := by
         rw [hbm, oqMainT_eq, hfl, oqStartFlat, ite_eq_right hb]
         simp only [List.append_assoc, List.cons_append, ← hk, hca, hen]
       exact ⟨_, by rw [hbody]; exact walk_flatM σ _ fl hflF hmoF, rfl, rfl, rfl, rfl, rfl, hFev⟩

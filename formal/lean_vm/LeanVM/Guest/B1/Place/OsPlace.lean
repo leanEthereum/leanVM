@@ -11,6 +11,7 @@ public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Place.HelperAt
 public import LeanVM.Guest.B1.Main.KidsT
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Straight-line bodies returning buffers, placed
@@ -121,7 +122,7 @@ def osLoutJ (b : ℕ) (sizes : List ℕ) (own : List (List E)) (js : List ℕ) :
 /-- **A straight-line function returning its buffers `js` is complete, placed.** -/
 theorem os_completeAt_placeJ {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
-    (Out : List E → Layout → Prop) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (Out : List E → Layout → Prop) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Main.Stmt.straight = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
     {C : CallRel}
@@ -221,7 +222,7 @@ theorem os_completeAt_placeJ {f : String} {fn : Fn} (hf : coreProgram.find? f = 
 with dispatches, each entering the callee its selector names. -/
 theorem os_completeAt_placeJF {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
-    (Out : List E → Layout → Prop) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (Out : List E → Layout → Prop) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
     {C : CallRel}
@@ -364,7 +365,7 @@ buffers and the callees' total are; the tree the node at the valuation, its call
 `Ts σ rd`. -/
 theorem os_completeAt_placeJFOT {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
-    (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
     {C : CallRel} (Q : Val → Prop) (Ts : Val → Reader → List (Tree → Prop))
@@ -465,7 +466,7 @@ theorem os_completeAt_placeJFOT {f : String} {fn : Fn} (hf : coreProgram.find? f
 and the callees' total are. -/
 theorem os_completeAt_placeJFO {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
-    (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    (Out : List E → Layout → Prop) (Bd : Option ℕ) {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
     {C : CallRel}

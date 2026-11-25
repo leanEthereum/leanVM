@@ -64,7 +64,7 @@ def sqLoopE (lv : OsLv) : ℕ :=
   (osMat 4 lv.posOff ((osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2 + 1
 
 theorem sqLoopBody_split (lv : OsLv) (name : String) :
-    sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ++
+    sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ⧺
       [.callIf (.n (sqLoopE lv + 2)) name
         (.n (sqLoopE lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
   simp only [sqLoopBody, sqLoopA, sqLoopE, osLoopTail_split, List.append_assoc]

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Fwd.Eval
 import LeanVM.Guest.Value.KeccakLayout
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Holding an evaluated body
@@ -112,7 +113,7 @@ def SHolds (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
 theorem holdsList_straight {C : CallRel} {σ : Val} :
     ∀ (ss : List Stmt) (vs : List V) (next : Prop) (kret : List E → Prop),
       (∀ s ∈ ss, SHolds C rd σ s) → kret (vs.map σ) →
-        Stmt.HoldsList C rd σ (ss ++ [.ret vs]) next kret
+        Stmt.HoldsList C rd σ (ss ⧺ [.ret vs]) next kret
   | [], vs, next, kret, _, hr => by
     simp only [List.nil_append, Stmt.HoldsList, Stmt.Holds]
     exact hr

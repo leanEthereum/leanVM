@@ -56,7 +56,7 @@ def lqBodyA (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
 
 theorem lqBody_split (q base folds leaf d cd mu nhs hbits fin : ℕ) :
     lqBody q base folds leaf d cd mu nhs hbits fin =
-      lqBodyA q base folds leaf d cd mu nhs hbits fin ++ [.ret [.n 19, .n 20, .n 21, .n (22 + osPowLen q)]] := by
+      lqBodyA q base folds leaf d cd mu nhs hbits fin ⧺ [.ret [.n 19, .n 20, .n 21, .n (22 + osPowLen q)]] := by
   simp [lqBody, lqBodyA, lqIters, lqOdd]
 
 theorem lqBodyA_flat (q base folds leaf d cd mu nhs hbits fin : ℕ) :

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
 import LeanVM.Guest.LitRef
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `exponent_tables`, placed
@@ -41,7 +42,7 @@ theorem etBlks_eq : ∀ l : List ℕ, (l.map etBlk).flatten = (l.flatMap fun t =
     simp only [List.map_cons, List.flatten_cons, List.flatMap_cons, etBlks_eq l, etBlk,
       List.cons_append, List.nil_append]
 
-theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ++ [.ret [.n (val% «exponent_tables» "s8#0")]] := by
+theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ⧺ [.ret [.n (val% «exponent_tables» "s8#0")]] := by
   rw [exponent_tables_body, etBody, etBlks_eq, etAs]
   simp only [List.map_append, List.map_cons, List.map_nil, List.append_assoc, List.cons_append,
     List.nil_append]

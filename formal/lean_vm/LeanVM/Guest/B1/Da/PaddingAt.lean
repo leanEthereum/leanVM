@@ -14,6 +14,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_padding»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_padding`, placed
@@ -39,7 +40,7 @@ def padAs : List Atom := [
     .rangeCheck (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s1#1")) (.n (val% «da_padding» "s1#2")) (.n (val% «da_padding» "s1#3")) (.n (val% «da_padding» "s1#0")), .const (.n (val% «da_padding» "s2#1")) (word (2 ^ guest_const% DA_MAX_ROWS) 0),
     .mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g")), .copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))]
 
-theorem pad_split : Fn.body fn% «da_padding» = padAs.map Stmt.atom ++ [.ret [.n (val% «da_padding» "s2#0")]] := by
+theorem pad_split : Fn.body fn% «da_padding» = padAs.map Stmt.atom ⧺ [.ret [.n (val% «da_padding» "s2#0")]] := by
   rw [da_padding_body]; rfl
 
 theorem pad_loop : coreProgram.loop "da_padding" = false := by

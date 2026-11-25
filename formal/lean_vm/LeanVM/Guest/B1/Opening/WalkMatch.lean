@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Memory.Straight
 import Mathlib.Data.List.GetD
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Walking `match`es of quiet arms
@@ -115,7 +116,7 @@ theorem walk1_flatM (σ : Val) : ∀ s : Stmt, s.flatM = true → MatchOk σ s �
 
 /-- **A flat body with `match`es walks every statement.** -/
 theorem walk_flatM (σ : Val) (vs : List V) : ∀ pre : List Stmt, pre.all Stmt.flatM = true →
-    (∀ s ∈ pre, MatchOk σ s) → walk σ (pre ++ [.ret vs]) = .ret (pre.flatMap (fmEvs σ)) vs
+    (∀ s ∈ pre, MatchOk σ s) → walk σ (pre ⧺ [.ret vs]) = .ret (pre.flatMap (fmEvs σ)) vs
   | [], _, _ => by simp [walk, walk1, Out.seq]
   | s :: pre, h, hd => by
     simp only [List.all_cons, Bool.and_eq_true] at h

@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsBytes
 public import LeanVM.Guest.WithHashBridge
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The message digest, sound
@@ -291,7 +292,7 @@ def sCheckC : List Stmt :=
     cst 1370 (word 2 1), mulS (.n (val% «verify_sig_lean_sphincs» "high")) (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~7"))]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
-    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
+    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ⧺
     [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)] := by
   simp [sCheck, sCheckA, sCheckCorr, sCheckB, sCheckC]
 

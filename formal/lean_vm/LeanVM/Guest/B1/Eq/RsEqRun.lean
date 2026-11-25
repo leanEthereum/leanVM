@@ -12,6 +12,8 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 import LeanVM.Guest.Value.FieldBits
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)
@@ -108,9 +110,9 @@ def rsD : Stmt :=
 def rsT : List Stmt := rsG ++ rsT0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))]
 
 /-- The expansion of `rs_eq_run`. -/
-def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ++ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
+def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ⧺ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
 
-theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := by kernel_rfl
 
 theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some fn% «rs_eq_run» :=
   coreProgram_find?_at (j := idx% «rs_eq_run») rfl

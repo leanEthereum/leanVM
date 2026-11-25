@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.CLoads
 public import LeanVM.Guest.B1.VerifySub.H.Fits
 public import LeanVM.Guest.B1.VerifySub.H.Regions
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub`'s obligations
@@ -150,7 +151,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         vsC_param hla (i := 2) (by norm_num), vsC_param hla (i := 3) (by norm_num),
         vsC_param hla (i := 4) (by norm_num), vsC_param hla (i := 5) (by norm_num)]
       rfl
-    · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
+    · rw [show Fn.body fn% «verify_sub» = vsCPre ⧺ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
     · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB D q hq

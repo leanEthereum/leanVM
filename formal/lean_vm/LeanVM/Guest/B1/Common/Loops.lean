@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 public import LeanVM.Guest.Renumber
 import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Loops of atoms
@@ -36,7 +37,7 @@ in `K` and, when it is nonzero, the call at `x·g`, when the body computes the g
 call's arguments. -/
 theorem loop_step_atoms {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
     (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List V}
-    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : AllAtoms A)
+    (hb : fn.body = A ⧺ [.callIf (.n c) f args, .ret []]) (hA : AllAtoms A)
     {x N : E} {rest : List E}
     (hc : ∀ σ : Val, fn.params.map σ = x :: N :: rest → (∀ a, Stmt.atom a ∈ A → a.Holds rd σ) →
       σ (.n c) = x * gen + N ∧ args.map σ = x * gen :: N :: rest) (d : ℕ) :

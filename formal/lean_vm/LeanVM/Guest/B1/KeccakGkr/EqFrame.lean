@@ -46,7 +46,7 @@ def eqfEnt (t B k j : ℕ) : ℕ :=
 def eqfLevelT (pt : V) (off t B k : ℕ) (pw : ℕ → ℕ) : List Stmt :=
   [.atom (.load (.n B) pt (off + t)), .atom (.const (.n (B + 1)) (word 1 0)),
     .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ⧺
-  ((List.range (2 ^ t)).map fun i ↦ [.atom (.mul (.n (eqfEnt t B k i)) (.n (pw i)) (.n (B + 2)))] ++
+  ((List.range (2 ^ t)).map fun i ↦ [.atom (.mul (.n (eqfEnt t B k i)) (.n (pw i)) (.n (B + 2)))] ⧺
     if i < k then [.atom (.mul (.n (B + 4 + 2 * i)) (.n (pw i)) (.n B))] else []).flatten
 
 theorem eqfLevel0T_holds {pt : V} {off b : ℕ} {next : Prop} {kret : List E → Prop}

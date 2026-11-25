@@ -353,11 +353,12 @@ theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take (po
 
 set_option maxRecDepth 100000 in
 theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
-    [.inl 24, .inl 24, .inl 24, .inl 24] ++
-      ((List.range 6).flatMap fun t ↦ [.inr (.n (vtShV t + 10)), .inr (.n (vtShV t + 14))]) ++
-      [.inl 34, .inr (.n (val% «verify_tables» "g_bus_mu")), .inl 153,
-      .inr (.n (val% «verify_tables» "offset_bits@1~0")), .inr (.n (val% «verify_tables» "offset_bits@2~0")), .inr (.n (val% «verify_tables» "offset_bits@3~0"))] ++ List.replicate 96 (.inl 9) ++
-      [.inl 245, .inl 35, .inl 34, .inl 35] := by decide +kernel
+    ([.inl 24, .inl 24, .inl 24, .inl 24] : List (ℕ ⊕ V)) ++
+      ((List.range 6).flatMap fun t ↦ ([.inr (.n (vtShV t + 10)), .inr (.n (vtShV t + 14))] : List (ℕ ⊕ V))) ++
+      ([.inl 34, .inr (.n (val% «verify_tables» "g_bus_mu")), .inl 153,
+      .inr (.n (val% «verify_tables» "offset_bits@1~0")), .inr (.n (val% «verify_tables» "offset_bits@2~0")), .inr (.n (val% «verify_tables» "offset_bits@3~0"))] : List (ℕ ⊕ V)) ++
+      List.replicate 96 (Sum.inl 9 : ℕ ⊕ V) ++ ([.inl 245, .inl 35, .inl 34, .inl 35] : List (ℕ ⊕ V)) := by
+  decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem vt_bits_consts : stmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@1~0")) (word 17179869184 0))]

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Da.LevelsComplete
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed completeness, the shared part
@@ -44,7 +45,7 @@ def RunIn (cert : String → V → ℕ) (fp : ℕ) (f : String) (as : List Atom)
 /-- **A leaf of atoms, placed**: its frame only, its `frameAddr`s at their runs, its loads in its
 region or its runs, its claim within its runs. -/
 theorem relAtIn_atoms {f : String} {fn : Fn} {as : List Atom} {vs : List V}
-    (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ++ [.ret vs])
+    (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ⧺ [.ret vs])
     (hl : coreProgram.loop f = false) (hna : as.all (fun a => !atomAllocB a) = true)
     {rd : Reader} {σ : Val} {args rets : List E} {fp : ℕ} {R D : ℕ → Prop}
     (hp : fn.params.map σ = args) (hh : ∀ a ∈ as, a.Holds rd σ) (hr : vs.map σ = rets)

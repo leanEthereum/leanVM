@@ -63,16 +63,18 @@ private theorem termsEvalZ_eq (r : ℕ → K) (l : List (List ℕ × Coef)) :
     · rfl
 
 /-- `vtPadTieCheck`, its terms evaluated by `termsEvalZ`. -/
-private def vtPadTieCheckZ (spec : List (List FormC)) (pads : List (List ℕ)) (row : List K) : Bool :=
+private def vtPadTieCheckZ (spec : List (List FormC)) (pads : List (List ℕ)) (row : List K) :
+    Bool :=
   decide (spec.length = pads.length) &&
     (List.zip spec pads).all fun p ↦ decide (p.1.length = p.2.length) &&
       (List.zip p.1 p.2).all fun q ↦
         decide (K.ofBits q.2 = termsEvalZ (row.getD · 0) q.1.terms)
 
-private theorem vtPadTieCheckZ_eq (spec : List (List FormC)) (pads : List (List ℕ)) (row : List K) :
-    vtPadTieCheckZ spec pads row = vtPadTieCheck spec pads row := by
-  simp only [vtPadTieCheckZ, termsEvalZ_eq]
-  rfl
+private theorem vtPadTieCheck_of_checkZ {spec : List (List FormC)} {pads : List (List ℕ)}
+    {row : List K} (h : vtPadTieCheckZ spec pads row = true) :
+    vtPadTieCheck spec pads row = true := by
+  simp only [vtPadTieCheckZ, termsEvalZ_eq] at h
+  exact h
 
 def vtPads00 : List (List ℕ) :=
   [[1, 0, 0], [4, 0, 0, 1, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0], [2, 0, 0, 0, 0], [2, 0, 0, 0, 0]]
@@ -126,52 +128,40 @@ def vtPads25 : List (List ℕ) :=
     [0], [0], [0], [0], [0], [0], [0], [0]]
 
 theorem vtPadTie00 : vtPadTieCheck (refSideC 0 .push) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 0 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie10 : vtPadTieCheck (refSideC 0 .pull) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 0 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie01 : vtPadTieCheck (refSideC 1 .push) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 1 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie11 : vtPadTieCheck (refSideC 1 .pull) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 1 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie02 : vtPadTieCheck (refSideC 2 .push) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 2 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie12 : vtPadTieCheck (refSideC 2 .pull) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 2 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie03 : vtPadTieCheck (refSideC 3 .push) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 3 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie13 : vtPadTieCheck (refSideC 3 .pull) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 3 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie04 : vtPadTieCheck (refSideC 4 .push) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 4 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie14 : vtPadTieCheck (refSideC 4 .pull) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 4 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie05 : vtPadTieCheck (refSideC 5 .push) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 5 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 theorem vtPadTie15 : vtPadTieCheck (refSideC 5 .pull) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := by
-  rw [← vtPadTieCheckZ_eq]; decide +kernel
+    (paddingRowK (tables.getD 5 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
 
 /-- The tables' count columns (`refCountColumns`). -/
 def vtCountCols : List (List ℕ) :=

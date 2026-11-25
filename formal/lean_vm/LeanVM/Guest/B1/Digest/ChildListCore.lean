@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Digest.ChildListCLast
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The last child claims' honest valuation
@@ -78,7 +79,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
       (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map
-          Stmt.atom ++ [.ret vs] ∧
+          Stmt.atom ⧺ [.ret vs] ∧
       (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp,
           entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧

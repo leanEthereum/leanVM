@@ -22,6 +22,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The roots' tree, placed
@@ -127,7 +128,7 @@ theorem dl_rel (hL : L = guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ b
 /-- `da_pad`'s body before its `ret`. -/
 def padPre : List Stmt := dpadBody.dropLast
 
-theorem pad_body : (fn% «da_pad»).body = padPre ++ [.ret []] := by
+theorem pad_body : (fn% «da_pad»).body = padPre ⧺ [.ret []] := by
   have hok := dpad_ok
   unfold dpadOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok

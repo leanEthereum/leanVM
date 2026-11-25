@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundHt
 public import LeanVM.Guest.B1.Sig.SphincsSoundKey
 public import LeanVM.Guest.B1.Sig.SphincsSoundAddrs
 public import LeanVM.Guest.B1.Sig.SphincsData
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs`, sound
@@ -71,7 +72,7 @@ theorem verify_sig_lean_sphincs_sound_holdsP (P : Program) [Finds P "sp_wots" Fn
       sLayerPre 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2) := hB
   have hC' : AtomsHold L.read σ ((sLayerPath 1 (sA0Of 1) sLayerB.2.2).1 ++ sTopAddrs ++
       sLayerPre 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2) := hC
-  have hD' : AtomsHold L.read σ ((sLayerPath 2 (sA0Of 2) sLayerM.2.2).1 ++
+  have hD' : AtomsHold L.read σ ((sLayerPath 2 (sA0Of 2) sLayerM.2.2).1 ⧺
       [.atom (.assertEq sLayerT.2.2 sRoot)]) := hD
   -- the digest, the addresses, the FORS key, the root's check
   obtain ⟨hp, c, d, hclaim, T, hDig, hmd⟩ := sDigestBlock_sound_stmt hκ hbb hA'.left.left.left

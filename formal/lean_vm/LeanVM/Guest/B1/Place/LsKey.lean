@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Place.LsLoops
 public import LeanVM.Guest.B1.Place.LrProof
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_residual_slow`, placed
@@ -61,7 +62,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
       .atom (.const (.n 14) (gw Q)),
       .callIf (.n 12) loop [.n 13, .n 14, .n 5, .n 7, .n 0, .n 1, .n 2, .n 3],
       .atom (.load (.n 15) (.n 5) Q)] with hpre
-  have hb' : fn.body = pre ++ [.ret [.n 15]] := by rw [hb]; rfl
+  have hb' : fn.body = pre ⧺ [.ret [.n 15]] := by rw [hb]; rfl
   have hstr : pre.all Main.Stmt.straight = true := by simp [hpre, Main.Stmt.straight]
   set b := fp + fs sum with hbd
   set b' := fp + fs sum + (Q + 1) with hbd'
@@ -147,7 +148,7 @@ theorem lsum_relAtIn {sum loop : String} {Q : ℕ} (hs : FnIs sum (osParams 4) (
 /-- `level_residual_slow`'s body before its `ret`. -/
 theorem lrsBody_split (sum : String) :
     lrsBody sum = [.ite (.n 4) [.atom (.copy (.n 5) (.n 4))] [.call sum [.n 0, .n 1, .n 2, .n 3] [.n 5]],
-      .atom (.copy (.n 6) (.n 5))] ++ [.ret [.n 6]] := rfl
+      .atom (.copy (.n 6) (.n 5))] ⧺ [.ret [.n 6]] := rfl
 
 /-- **`level_residual_slow` at a zero flag, placed** at `fp`: its frame alone. -/
 theorem lrs_relAtIn0 {name sum : String} (hl : FnIs name (osParams 5) (lrsBody sum))

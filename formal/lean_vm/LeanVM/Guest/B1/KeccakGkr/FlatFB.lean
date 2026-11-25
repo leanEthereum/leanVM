@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatF
 public import LeanVM.Guest.Budget.Bounded
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies at the frame pointer, within a bound
@@ -40,7 +41,7 @@ words (`kidsBound`) within `NB` at every frame pointer. -/
 theorem completeAt_flatOutFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : ℕ → Layout) (args : List E) (rets : ℕ → List E)
     (Out : ℕ → List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List (List E))

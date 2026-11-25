@@ -239,7 +239,7 @@ def vkPointT : List Stmt :=
 def vkSqueezesT : List Stmt :=
   sqZeroT 13 74 ⧺ [.atom (.load (.n (val% «verify_keccak» "nxt[0]@1")) (.n (val% «verify_keccak» "segment")) 0), .atom (.hint (.alloc (.n (val% «verify_keccak» "r_lane")) 5))] ⧺
     ((List.range 5).map fun i ↦
-      sqZeroT (if i = 0 then 82 else 83 + 13 * i) (88 + 13 * i) ++
+      sqZeroT (if i = 0 then 82 else 83 + 13 * i) (88 + 13 * i) ⧺
         [.atom (.load (.n (88 + 13 * i)) (.n (val% «verify_keccak» "r_lane")) i)]).flatten
 
 /-- **The head.** -/
@@ -307,7 +307,7 @@ def slicesT (cur : V) (capb b : ℕ) : List Stmt :=
       [keccakA (slCells b (g - 1) ++ cap5 (slCap capb b (g - 1)))
         ((List.range 13).map fun k ↦ .n (slP b g + k))]) ++
     ((List.range 4).map fun j ↦
-      fsNextT cur (4 * g + j) (slB b (4 * g + j)) ++
+      fsNextT cur (4 * g + j) (slB b (4 * g + j)) ⧺
         [.atom (.load (.n (slB b (4 * g + j))) (.n (val% «verify_keccak» "slices")) (4 * g + j))]).flatten).flatten ⧺
   [keccakA (slCells b 15 ++ cap5 (slCap capb b 15)) ((List.range 13).map fun k ↦ .n (slP b 16 + k))]
 

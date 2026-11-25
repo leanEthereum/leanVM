@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Da.Expand
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_vector»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_vector`
@@ -69,7 +70,7 @@ noncomputable def vecOk : Bool :=
   let P := vecP
   let A := atomsIn P
   decide ((fn% «da_vector»).params = [.n (val% «da_vector» "z")]) &&
-  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"),
+  stmtsEqb (Fn.body fn% «da_vector») (P ⧺ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"),
       .n (val% «da_vector» "s10#0[3]")]]) && P.all Stmt.flat &&
   (List.range 13).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n (val% «da_vector» "zs")) j)) &&
   (List.range 12).all (fun j ↦ isMul A (.n (j + (val% «da_vector» "zj@1"))) (.n (vecPw j)) (.n (vecPw j))) &&

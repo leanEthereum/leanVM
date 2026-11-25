@@ -18,6 +18,7 @@ import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
 import LeanVM.Guest.Data.ValNames.«da_verify»
 import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
 import LeanVM.Guest.Data.ValNames.«da_weights»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_verify`, checked
@@ -116,7 +117,7 @@ noncomputable def wsOk : Bool :=
   let P := wsP
   let A := atomsIn P
   decide ((fn% «da_weights»).params = [.n (val% «da_weights» "top_leaves"), .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), .n (val% «da_weights» "offsets")]) &&
-  stmtsEqb (Fn.body fn% «da_weights») (P ++ [.ret [.n (val% «da_weights» "s2#0")]]) && P.all Stmt.flat &&
+  stmtsEqb (Fn.body fn% «da_weights») (P ⧺ [.ret [.n (val% «da_weights» "s2#0")]]) && P.all Stmt.flat &&
   A.any (isCopyAt (.n (val% «da_weights» "s2#0")) (.n (val% «da_weights» "weights"))) &&
   (List.range 128).all fun h =>
     hasCall P "da_expand__L6_L7" [wsLeaf h, .n (val% «da_weights» "cell_factors"), .n (val% «da_weights» "zs"), wsOff h] [.n (4 * h + 6)] &&
@@ -133,7 +134,7 @@ noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
   decide ((fn% «da_verify»).params = [.n (val% «da_verify» "byte_bits")]) &&
-  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]]) &&
+  stmtsEqb (Fn.body fn% «da_verify») (P ⧺ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]]) &&
   P.all Stmt.flat &&
   hasCall P "da_padding" [.n (val% «da_verify» "n_blob_g")] [.n (val% «da_verify» "gap_g")] &&
   hasCall P "da_vector" [.n (val% «da_verify» "z")] [.n (val% «da_verify» "zs"), .n (val% «da_verify» "top_leaves"), .n (val% «da_verify» "cell_factors"), .n (val% «da_verify» "offsets")] &&

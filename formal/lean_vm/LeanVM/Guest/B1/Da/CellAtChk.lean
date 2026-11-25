@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Da.VecCChk
 public import LeanVM.Guest.B1.Tables.FlatAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_cell»
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1.Da
 
@@ -25,7 +26,7 @@ noncomputable def cellPre : List Stmt := (Fn.body fn% «da_verify_cell»).dropLa
 /-- **Its shape**: the block then `ret`, flat, no dispatch nor `ite`, no `frameAddr`, `HeapBuf` nor call, loading the
 weights `0 … 127` through `.n 0`. -/
 noncomputable def cellPOk : Bool :=
-  stmtsEqb (Fn.body fn% «da_verify_cell») (cellPre ++ [.ret [.n (val% «da_verify_cell» "s6#0"), .n (val% «da_verify_cell» "s6#0[1]"), .n (val% «da_verify_cell» "s6#0[2]")]]) &&
+  stmtsEqb (Fn.body fn% «da_verify_cell») (cellPre ⧺ [.ret [.n (val% «da_verify_cell» "s6#0"), .n (val% «da_verify_cell» "s6#0[1]"), .n (val% «da_verify_cell» "s6#0[2]")]]) &&
   cellPre.all Core.Stmt.flat && cellPre.all noDispatch && cellPre.all notIteB &&
   decide (cellPre.filterMap Main.Stmt.addrS = []) && decide (cellPre.filterMap Main.Stmt.allocSz = []) &&
   decide (cellPre.filterMap Main.Stmt.callS = []) &&

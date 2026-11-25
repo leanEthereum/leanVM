@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.Loops
 public import LeanVM.Guest.B1.Whir.ResQuery
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The residual loop
@@ -176,7 +177,7 @@ theorem osBatchPow_val {C : CallRel} {σ : Val} (k : ℕ) (h : AllOk C rd σ (os
   exact osPowSteps_val 0 (osPowDigits resBatch) 0 k 1 (pow_one _).symm h
 
 theorem resLoopBody_split (lvl : ℕ) (lv : OsLv) (name : String) :
-    resLoopBody lvl lv name = (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)) ++
+    resLoopBody lvl lv name = (resLoopA lvl lv ++ osLoopTailA (resLoopR lvl lv)) ⧺
       [.callIf (.n (resLoopR lvl lv + 2)) name
         (.n (resLoopR lvl lv + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
   simp only [resLoopBody, resLoopA, resLoopR, osLoopTail_split, List.append_assoc]
