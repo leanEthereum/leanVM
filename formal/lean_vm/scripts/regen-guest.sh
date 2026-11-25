@@ -245,6 +245,8 @@ part_count_vsos() {
 part_count_loops() {
   step "count: the loop helpers' entries (scripts/core-mode/loopcheck.py)"
   python3 -I scripts/core-mode/loopcheck.py ${check[@]+"${check[@]}"}
+  step "count: open_stacked's callees' masks (scripts/arm-masks)"
+  python3 -I scripts/arm-masks ${check[@]+"${check[@]}"}
 }
 
 part_tables() {

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.B1.Whir.HelperTables
 public import LeanVM.Guest.Exact.Kids
 public import LeanVM.Guest.B1.Bits.MeaningP
+public import LeanVM.Guest.B1.Place.FreeMaskData
 
 /-!
 # The arms' exactness check
@@ -19,8 +20,9 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 * `isWinHint`: a `windowsExp` hint, as the inlined grind checks (`gcInlineT`) write, pinned by no next atom: their
   exactness comes from the honest valuation (`Whir.WinEx`, from `gcInline_exact_of_vals`), not from the check;
 * `armExactOk name j`: function `j` is named `name`, its computed hints but the window hints are pinned by the next atom, and each of its
-  callees is `armExactS` or exact for free (`exactCallee j`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`; `ArmExactB`, `ArmExactC` by its parts, `armExactOk_of`);
-* `armExact_find`: such a function's callees not `armExactS` are exact for free;
+  callees is one of the arms' (its bit in `armCalleeMask`), decided by the kernel per arm (`ArmExact0` to `ArmExact5`, `ArmExactB`, `ArmExactC`);
+* `armExact_find`: the arms' callees being `armExactS` or exact for free (`ArmExactNeedOk`, decided once), such a
+  function's callees not `armExactS` are exact for free;
   `armExact_every`: so a valid node of it whose window hints are exact and whose `armExactS` callees' predicates give
   `Every` exact is exact at every node.
 -/
@@ -48,40 +50,32 @@ def isComputedNW (a : Atom) : Bool := isComputed a && !isWinHint a
 noncomputable def armExactOk (name : String) (j : ℕ) : Bool :=
   match coreProgram[j]? with
   | some fn => fn.name == name && Stmt.blockNextOk isComputedNW pinsInverse fn.body &&
-      (Stmt.blockCallees fn.body).all fun g => armExactS g || exactCallee j g
+      (Stmt.blockCallees fn.body).all (maskCallee armCalleeMask j)
   | none => false
 
-/-- **`armExactOk` from its parts**, the callees' check decided apart (`ArmExactB`, `ArmExactC`, in chunks: one
-kernel check of a large arm's callees at once holds too much memory). -/
-theorem armExactOk_of {name : String} {j : ℕ} {fn : Fn} (hj : coreProgram[j]? = some fn)
-    (hn : (fn.name == name) = true) (hp : Stmt.blockNextOk isComputedNW pinsInverse fn.body = true)
-    (hc : (Stmt.blockCallees fn.body).all (fun g => armExactS g || exactCallee j g) = true) :
-    armExactOk name j = true := by
-  unfold armExactOk
-  rw [hj]
-  simp only [hn, hp, hc, Bool.and_self]
+/-- The arms' callees' facts the exactness check reads, decided once (`Place/FreeExactOk`, `Place/FreeLp`). -/
+def ArmExactNeedOk : Prop :=
+  (∀ k ∈ armExactNeed, exactJ 8 k = true) ∧ ∀ k ∈ armLpNeed, (Data.nameT.find k).all armExactS = true
 
-/-- A list's `all` from its chunk at `n * k` and the rest after it. -/
-theorem all_drop_chunk {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
-    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
-    (l.drop (n * k)).all p = true := by
-  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
-  rwa [Nat.mul_succ] at ht
-
-theorem armExact_find {name : String} {j : ℕ} (h : armExactOk name j = true) :
+theorem armExact_find (hN : ArmExactNeedOk) {name : String} {j : ℕ} (h : armExactOk name j = true) :
     ∃ fn, coreProgram.find? name = some fn ∧ Stmt.blockNextOk isComputedNW pinsInverse fn.body = true ∧
       ∀ g ∈ Stmt.blockCallees fn.body, armExactS g = true ∨ ExactFreeG g := by
   unfold armExactOk at h
   split at h
   · next fn hj =>
-    simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true, Bool.or_eq_true] at h
+    simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at h
     obtain ⟨⟨hn, hp⟩, hc⟩ := h
-    exact ⟨fn, coreProgram_find?_at hj hn, hp, fun g hg ↦ (hc g hg).imp id exactFreeG_of_callee⟩
+    refine ⟨fn, coreProgram_find?_at hj hn, hp, fun g hg ↦ ?_⟩
+    obtain ⟨k, hk, hk', hg'⟩ := maskCallee_mem armCalleeMask_exact (hc g hg)
+    rcases List.mem_append.mp hk with hk | hk
+    · exact .inr ⟨8, k, hk', hN.1 k hk⟩
+    · exact .inl (by simpa [hg'] using hN.2 k hk)
   · exact absurd h Bool.false_ne_true
 
 /-- **A valid node of an arm passing the check is exact at every node** when its window hints are exact and each
 entered `armExactS` callee's predicate gives `Every` exact on its valid trees. -/
-theorem armExact_every {name : String} {j : ℕ} (h : armExactOk name j = true) {rd : Reader} {σ : Val}
+theorem armExact_every (hN : ArmExactNeedOk) {name : String} {j : ℕ} (h : armExactOk name j = true)
+    {rd : Reader} {σ : Val}
     {bufs : List ℕ} {ks : List Tree} {args rets : List E} {Ts : List (Memory.Tree → Prop)}
     (hv : (Memory.Tree.node name σ bufs ks).Valid coreProgram rd args rets)
     (hW : ∀ fn es vs, coreProgram.find? name = some fn → walk σ fn.body = .ret es vs →
@@ -91,7 +85,7 @@ theorem armExact_every {name : String} {j : ℕ} (h : armExactOk name j = true) 
       ∀ c T, (c, T) ∈ (calls es).zip Ts → c.taken = true → armExactS c.f = true → ∀ t : Memory.Tree, t.name = c.f →
         t.Valid coreProgram rd (c.args.map σ) (c.rets.map σ) → T t → t.Every (ExactAt coreProgram rd)) :
     (Memory.Tree.node name σ bufs ks).Every (ExactAt coreProgram rd) := by
-  obtain ⟨fn, hf, hp, hc⟩ := armExact_find h
+  obtain ⟨fn, hf, hp, hc⟩ := armExact_find hN h
   obtain ⟨fn', hf', -, es, vs, hw, -, hes, hkv⟩ := hv
   rw [hf] at hf'
   cases hf'
