@@ -325,3 +325,34 @@ theorem and2_zero (x : Word) : x &&& 2#64 = 0#64 ↔ x.toNat % 4 < 2 := by
   have hl : x.toNat % 4 < 4 := Nat.mod_lt _ (by decide)
   generalize x.toNat % 4 = k at hl ⊢
   rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3) with rfl | rfl | rfl | rfl <;> decide
+
+theorem toNat_shl3 {x : Word} (h : x.toNat < 8) : (x <<< 3).toNat = 8 * x.toNat := by
+  rw [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]; omega
+
+/-- `slot_copy` from byte `lo` of the slot on. -/
+theorem slot_copy_from {top dst src X v : Word} {n j lo i B : Nat} {w : Width} {m M : MachineState}
+    (hI : Inv env top dst src n m M j) (hdoff : OffStack env top dst n) (hj : j ≤ n) (hdn : dst.toNat + n < 2 ^ 64)
+    (hroom : env.stackLimit.toNat + 16 ≤ top.toNat) (htop : top.toNat % 8 = 0)
+    (hS : ∀ t, lo ≤ t → t < i → bat M (top.toNat - 8 + t) = bat m (B + t)) (hX : X.toNat = top.toNat - 8 + i)
+    (hal : X.toNat % w.bytes = 0) (hiw : i + w.bytes ≤ 8)
+    (hv : ∀ u, u < w.bytes → extractByte v u = bat m (B + i + u)) :
+    Inv env top dst src n m (storeMem w M X v) j ∧
+      ∀ t, lo ≤ t → t < i + w.bytes → bat (storeMem w M X v) (top.toNat - 8 + t) = bat m (B + t) := by
+  have htl := top.isLt
+  refine ⟨hI.slot hdoff hj hdn hroom htop (by omega) (by omega) hal, fun t ht0 ht => ?_⟩
+  rw [bat_storeMem hal (by omega)]
+  by_cases hti : i ≤ t
+  · rw [iteT (by omega), hv _ (by omega)]; congr 1; omega
+  · rw [iteF (by omega)]; exact hS t ht0 (by omega)
+
+theorem and4_zero (x : Word) : x &&& 4#64 = 0#64 ↔ x.toNat % 8 < 4 := by
+  have h7 : x &&& 7#64 = BitVec.ofNat 64 (x.toNat % 8) := by
+    apply BitVec.eq_of_toNat_eq
+    rw [Proof.Runtime.Alloc.and7, BitVec.toNat_ofNat]; omega
+  have : x &&& 4#64 = BitVec.ofNat 64 (x.toNat % 8) &&& 4#64 := by
+    rw [← h7, BitVec.and_assoc]; rfl
+  rw [this]
+  have hl : x.toNat % 8 < 8 := Nat.mod_lt _ (by decide)
+  generalize x.toNat % 8 = k at hl ⊢
+  rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 ∨ k = 7) with
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
