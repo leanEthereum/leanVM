@@ -328,8 +328,7 @@ def etBody : List Stmt :=
   [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ⧺ ((List.range lit% expTabN).map etBlk).flatten ⧺
   [.atom (.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))), .ret [.n (val% «exponent_tables» "s8#0")]]
 
-theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody := by
-  kernel_rfl
+theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody := by kernel_rfl
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some fn% «exponent_tables» :=
   coreProgram_find?_at (j := idx% «exponent_tables») rfl

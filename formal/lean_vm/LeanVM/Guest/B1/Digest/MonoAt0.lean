@@ -51,12 +51,10 @@ noncomputable def monoP1 : List Stmt := monoFlat.take (pos% «child_claim_list_m
 /-- The body after its dispatch. -/
 noncomputable def monoPost : List Stmt := monoFlat.drop (pos% «child_claim_list_mono» "s9#0")
 
-theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost := by
-  kernel_rfl
+theorem monoFlat_split : monoFlat = monoP1 ++ monoDispS :: monoPost := by kernel_rfl
 
 theorem monoPost_eq : monoPost = [.atom (.touch (.n (val% «child_claim_list_mono» "s9#0")) (.n (val% «child_claim_list_mono» "bigs"))), .atom (.touch (.n (val% «child_claim_list_mono» "s10#0")) (.n (val% «child_claim_list_mono» "groups"))),
-    .atom (.copy (.n (val% «child_claim_list_mono» "s11#0")) (.n (val% «child_claim_list_mono» "d0"))), .atom (.copy (.n (val% «child_claim_list_mono» "s11#0[1]")) (.n (val% «child_claim_list_mono» "d1")))] := by
-  kernel_rfl
+    .atom (.copy (.n (val% «child_claim_list_mono» "s11#0")) (.n (val% «child_claim_list_mono» "d0"))), .atom (.copy (.n (val% «child_claim_list_mono» "s11#0[1]")) (.n (val% «child_claim_list_mono» "d1")))] := by kernel_rfl
 
 theorem monoPost_straight : monoPost.all Main.Stmt.straight = true := by rw [monoPost_eq]; rfl
 

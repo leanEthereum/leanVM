@@ -521,8 +521,7 @@ theorem find_eq_prefix_chain_rev :
 theorem eq_prefix_chain_rev_body : Fn.body fn% «eq_prefix_chain_rev» =
     [.atom (.const (.n (val% «eq_prefix_chain_rev» "s0#0")) (word (2 ^ 32) 0)),
       .atom (.rangeCheck (.n (val% «eq_prefix_chain_rev» "count_g")) (.n (val% «eq_prefix_chain_rev» "s0#1")) (.n (val% «eq_prefix_chain_rev» "s0#2")) (.n (val% «eq_prefix_chain_rev» "s0#3")) (.n (val% «eq_prefix_chain_rev» "s0#0"))),
-      .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")], .ret []] := by
-  kernel_rfl
+      .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")], .ret []] := by kernel_rfl
 
 /-- **`eq_prefix_chain_rev`'s core IR is its meaning.** -/
 theorem eq_prefix_chain_rev_holds : eq_prefix_chain_rev_Spec := by

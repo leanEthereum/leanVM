@@ -94,14 +94,10 @@ noncomputable def chPost : List Stmt := chainFlat.drop (pos% «claim_list_chain�
 /-- The checks after the call of `claim_list_tail`: `bigs`, `groups`, `rest`, `list_split`'s identity and `n_g`. -/
 noncomputable def chChk : List Stmt := chPost.dropLast.dropLast
 
-set_option maxRecDepth 100000 in
-theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost := by
-  kernel_rfl
+theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost := by kernel_rfl
 
-set_option maxRecDepth 100000 in
 theorem chPost_eq :
-    chPost = chChk ⧺ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by
-  kernel_rfl
+    chPost = chChk ⧺ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by kernel_rfl
 
 set_option maxRecDepth 100000 in
 theorem chChk_atoms : chChk.all isAtomS = true := by decide +kernel

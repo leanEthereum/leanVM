@@ -528,10 +528,8 @@ theorem monoLast_sound {rd : Reader} (hm : MemOk rd) {k : ℕ} (hk : k < 17) {ar
 /-- `child_claim_list_mono`'s body before its `ret`. -/
 noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»).dropLast
 
-set_option maxRecDepth 100000 in
 theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ⧺ [.ret [.n
-    (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]] := by
-  kernel_rfl
+    (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]] := by kernel_rfl
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
 `chain · g^14`, the big frames' loop, `mid = chain · bigs^15`, the groups' loop,

@@ -87,10 +87,8 @@ def sdAtoms : List Atom :=
   sdHdr ++ sdLoads ++ sdConsts ++ [sdKeccak 0] ++ (List.range 2).flatMap (fun j => sdBlk (j + 1)) ++
     sdBlk3 ++ [.copy (.n (val% «statement_digest» "s12#0")) (.n (val% «statement_digest» "st[0]")), .copy (.n (val% «statement_digest» "s12#0[1]")) (.n (val% «statement_digest» "st[1]"))]
 
-set_option maxRecDepth 100000 in
 theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ⧺ [.ret [.n (val% «statement_digest» "s12#0"),
-    .n (val% «statement_digest» "s12#0[1]")]] := by
-  kernel_rfl
+    .n (val% «statement_digest» "s12#0[1]")]] := by kernel_rfl
 
 theorem sd_params : Fn.params fn% «statement_digest» =
     [.n (val% «statement_digest» "seed_0"), .n (val% «statement_digest» "seed_1"), .n (val% «statement_digest» "xd_0"), .n (val% «statement_digest» "xd_1"), .n (val% «statement_digest» "sd_0"), .n (val% «statement_digest» "sd_1"), .n (val% «statement_digest» "da_0"), .n (val% «statement_digest» "da_1"), .n (val% «statement_digest» "defer")] := rfl

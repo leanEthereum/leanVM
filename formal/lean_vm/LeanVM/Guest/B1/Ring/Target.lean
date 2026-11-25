@@ -191,8 +191,7 @@ def loop13T : List Stmt :=
     .atom (.const (.n (val% «ring_switch_target_loop0» "s8#4")) (word 2 0)), .atom (.mul (.n (val% «ring_switch_target_loop0» "s8#5")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "s8#4"))),
     .callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"), .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")], .ret []]
 
-theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T := by
-  kernel_rfl
+theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T := by kernel_rfl
 
 theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some
     fn% «ring_switch_target_loop0» :=

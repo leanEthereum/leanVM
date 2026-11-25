@@ -125,8 +125,8 @@ def nums(name, pre):
 
 
 def thm(fname, nparams, body):
-    """Function `fname`'s data theorem, for any program that finds it, and its instance at
-    `coreProgram`, each its own declaration."""
+    """Function `fname`'s body equation, its data theorem for any program that finds it, and
+    the theorem's instance at `coreProgram`, each its own declaration."""
     key, t = KEY[fname], tname(fname)
     return (f'\nprivate kernel_rfl {t}_body : (Fn.«{key}».core).body = {body}\n\n/-- `{fname}`. -/\n'
             f'theorem {t} (P : Program) [Finds P "{fname}" Fn.«{key}».core] :\n'
@@ -134,7 +134,7 @@ def thm(fname, nparams, body):
             f'  fnIsP_of P "{fname}" Fn.«{key}».core (by decide +kernel) {t}_body\n',
             f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
             f'theorem {inst(fname)} : FnIs "{fname}" (osParams {nparams}) ({body}) :=\n'
-            f'  @{tname(fname)} coreProgram {found(fname)}\n')
+            f'  @{t} coreProgram {found(fname)}\n')
 
 
 def tname(fname):

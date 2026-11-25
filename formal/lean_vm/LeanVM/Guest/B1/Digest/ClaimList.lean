@@ -99,8 +99,7 @@ theorem find_claim_list_tail : coreProgram.find? "claim_list_tail" = some fn% «
 
 theorem claim_list_tail_shape : Fn.body fn% «claim_list_tail» =
     [.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")] [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")], .atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))),
-      .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1"))), .ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]] := by
-  kernel_rfl
+      .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1"))), .ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]] := by kernel_rfl
 
 theorem claim_list_tail_params : Fn.params fn% «claim_list_tail» = [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk"), .n (val% «claim_list_tail» "rest")] := by
   decide +kernel
@@ -291,10 +290,8 @@ theorem find_claim_list_chain : coreProgram.find? "claim_list_chain" = some fn% 
 /-- `claim_list_chain`'s body before its `ret`. -/
 noncomputable def chainFlat : List Stmt := (Fn.body fn% «claim_list_chain»).dropLast
 
-set_option maxRecDepth 100000 in
 theorem claim_list_chain_shape : Fn.body fn% «claim_list_chain» = chainFlat ⧺ [.ret [.n (val% «claim_list_chain» "s13#0"),
-    .n (val% «claim_list_chain» "s13#0[1]")]] := by
-  kernel_rfl
+    .n (val% «claim_list_chain» "s13#0[1]")]] := by kernel_rfl
 
 /-- The body: the zero state at `chain`, the big frames' loop, `mid = chain · bigs^13`,
 `mid_entries = entries · bigs^544`, the groups' loop, `last = mid · groups^13`,
@@ -417,12 +414,10 @@ noncomputable def cl23Else : List Stmt := match Fn.body fn% «claim_list_digest�
   | [_, _, .ite _ _ n, _, _, _, _] => n
   | _ => []
 
-set_option maxRecDepth 100000 in
 theorem claim_list_digest_shape : Fn.body fn% «claim_list_digest» =
     [.atom (.const (.n (val% «claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «claim_list_digest» "s1#1")) (.n (val% «claim_list_digest» "n_g")) (.n (val% «claim_list_digest» "s1#0"))),
      .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else, .atom (.touch (.n (val% «claim_list_digest» "s2#0")) (.n (val% «claim_list_digest» "n_g"))), .atom (.copy (.n (val% «claim_list_digest» "s3#0")) (.n (val% «claim_list_digest» "digest[0]"))),
-     .atom (.copy (.n (val% «claim_list_digest» "s3#0[1]")) (.n (val% «claim_list_digest» "digest[1]"))), .ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]] := by
-  kernel_rfl
+     .atom (.copy (.n (val% «claim_list_digest» "s3#0[1]")) (.n (val% «claim_list_digest» "digest[1]"))), .ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]] := by kernel_rfl
 
 /-- The empty list's chain: the empty message from the zero state. -/
 noncomputable def czSpec : ChainSpec := ⟨[], 0, true, none, keccakBlocks (atomsIn cl23Zero)⟩

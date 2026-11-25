@@ -83,8 +83,7 @@ def asgBlk (j : ℕ) : List Stmt :=
 def asgBody : List Stmt :=
   asgHead ++ ((List.range 8).map asgBlk).flatten ⧺ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
 
-theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody := by
-  kernel_rfl
+theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody := by kernel_rfl
 
 theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some
     fn% «assert_small_g_power» :=
