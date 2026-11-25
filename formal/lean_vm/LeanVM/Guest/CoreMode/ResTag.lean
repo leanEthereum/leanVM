@@ -15,8 +15,8 @@ public import LeanVM.Guest.CoreMode.CoreResG
 `resFamG` is a disjunction of families, tried in order; a family that fails scans the function's
 atoms to their end, so the kernel pays every family before the one that holds. The generator knows
 which one holds (`scripts/core-mode/callcres.py`) and names it, as a tag: `resFamFrom t` skips the
-families before `t`. A tag that names a later family than the first that holds fails the check (a
-failed build, never a wrong one); past the tags the check is `resFamG` itself.
+families before `t`. A tag past every family that holds fails the check (a failed build, never a
+wrong one); tag `0`, and a residual past the tags, is checked by `resFamG` itself.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -44,27 +44,19 @@ noncomputable def resFamFrom (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)
 
 theorem resFamG_of_from {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {t : ℕ} {r : CRes}
     (h : resFamFrom fn xc gw t r = true) : resFamG fn xc gw r = true := by
-  unfold resFamFrom at h
-  split at h
-  · exact h
-  all_goals
-    unfold resFamG
-    simp only [Bool.or_eq_true, Bool.and_eq_true] at h ⊢
-    tauto
+  unfold resFamFrom resFamG at h
+  unfold resFamG
+  split at h <;> simp only [Bool.or_eq_true, Bool.and_eq_true] at h ⊢ <;> tauto
 
-/-- Each residual of `l` of its family from its tag on (`ts`, in order; past the tags, of any). -/
+/-- Each residual of `l` of its family from its tag on (`ts`, in order; past the tags, tag `0`). -/
 noncomputable def resTagged (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) : List CRes → List ℕ → Bool
   | [], _ => true
-  | r :: l, [] => resFamG fn xc gw r && resTagged fn xc gw l []
-  | r :: l, t :: ts => resFamFrom fn xc gw t r && resTagged fn xc gw l ts
+  | r :: l, ts => resFamFrom fn xc gw (ts.headD 0) r && resTagged fn xc gw l ts.tail
 
 theorem all_of_tagged {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} :
     ∀ {l : List CRes} {ts : List ℕ}, resTagged fn xc gw l ts = true → l.all (resFamG fn xc gw) = true
   | [], _, _ => rfl
-  | _ :: _, [], h => by
-    simp only [resTagged, Bool.and_eq_true] at h
-    rw [List.all_cons, h.1, all_of_tagged h.2, Bool.true_and]
-  | _ :: _, _ :: _, h => by
+  | _ :: _, _, h => by
     simp only [resTagged, Bool.and_eq_true] at h
     rw [List.all_cons, resFamG_of_from h.1, all_of_tagged h.2, Bool.true_and]
 

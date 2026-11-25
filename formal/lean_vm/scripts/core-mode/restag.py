@@ -1,8 +1,8 @@
 """Each residual's family tag (`CoreMode.resFamFrom`, `CoreMode/ResTag.lean`): the first of `resFamG`'s families the
-Python twins (`callcres.py`) find it in, `0` (all of them) when they find none or fail. A tag past the first family
-that holds fails the kernel's check, never a wrong one.
+Python twins (`callcres.py`) find it in, `5` (its ghost families) when they find no ghost-free one, `0` (all of them)
+when they fail. A tag past every family that holds fails the kernel's check, never a wrong one.
 
-`tags(k, text)`: the tags of a residual list written as `DataC.lean` writes it (`emitc.lres`)."""
+`tags(k, text, G)`: the tags of a residual list written as `DataC.lean` writes it (`emitc.lres`)."""
 import re
 import callcres as CR
 import fnrules as R
@@ -28,15 +28,23 @@ class P:
     def num(self):
         return int(self.take())
 
-    def cell(self):
-        self.take('⟨'); self.take('[')
-        bs = []
+    def seq(self, item):
+        """A bracketed list of `item`s."""
+        self.take('[')
+        out = []
         while self.peek() != ']':
-            self.take('('); b = self.num(); self.take(','); e = self.num(); self.take(')')
-            bs.append((b, e))
+            out.append(item())
             if self.peek() == ',':
                 self.take(',')
-        self.take(']'); self.take(','); off = self.num(); self.take('⟩')
+        self.take(']')
+        return out
+
+    def base(self):
+        self.take('('); b = self.num(); self.take(','); e = self.num(); self.take(')')
+        return (b, e)
+
+    def cell(self):
+        self.take('⟨'); bs = self.seq(self.base); self.take(','); off = self.num(); self.take('⟩')
         return (tuple(bs), off)
 
     def idx(self):
@@ -61,13 +69,8 @@ class P:
     def res(self):
         k = self.take()[1:]
         if k == 'under':
-            self.take('[')
-            cs = []
-            while self.peek() != ']':
-                cs.append(self.cond())
-                if self.peek() == ',':
-                    self.take(',')
-            self.take(']'); self.take('(')
+            cs = self.seq(self.cond)
+            self.take('(')
             r = self.res()
             self.take(')')
             return ('under', cs, r)
@@ -76,28 +79,13 @@ class P:
         if k == 'sub':
             return ('sub', self.cell(), self.run())
         if k == 'subP':
-            c = self.cell()
-            self.take('[')
-            cs = []
-            while self.peek() != ']':
-                cs.append(self.cell())
-                if self.peek() == ',':
-                    self.take(',')
-            self.take(']')
-            return ('subP', c, cs)
+            return ('subP', self.cell(), self.seq(self.cell))
         if k == 'subR':
             return ('subR', self.run(), self.run())
         raise ValueError(f'restag: residual .{k}')
 
     def list(self):
-        self.take('[')
-        out = []
-        while self.peek() != ']':
-            out.append(self.res())
-            if self.peek() == ',':
-                self.take(',')
-        self.take(']')
-        return out
+        return self.seq(self.res)
 
 
 def tag(k, r, G):

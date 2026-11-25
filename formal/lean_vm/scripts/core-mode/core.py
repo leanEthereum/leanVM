@@ -12,6 +12,7 @@ sys.path.append(os.path.join(HERE, '..'))
 import genfiles  # noqa: E402
 import route, heap  # noqa: E402
 import callc  # noqa: E402
+import restag  # noqa: E402
 
 GUEST = route.GUEST
 GEN = os.path.join(GUEST, 'CoreMode', 'Gen')
@@ -67,44 +68,37 @@ FA_RUN = 64
 FA_B = 32
 
 
-def nstmts(body):
+def stmts(body):
     """The statements of a core body, nested ones included."""
-    t = 0
     for s in body:
-        t += 1
+        yield s
         if s[0] == 'ite':
-            t += nstmts(s[2]) + nstmts(s[3])
+            yield from stmts(s[2])
+            yield from stmts(s[3])
         elif s[0] == 'match':
-            t += sum(nstmts(a) for a in s[2])
-    return t
+            for a in s[2]:
+                yield from stmts(a)
+
+
+def nstmts(body):
+    return sum(1 for _ in stmts(body))
+
+
+def ints(x):
+    """The integers in a nested tuple."""
+    if isinstance(x, int):
+        yield x
+    elif isinstance(x, (list, tuple)):
+        for y in x:
+            yield from ints(y)
 
 
 def ptr_trie(k):
     """Whether `k`'s pointer check reads its cells from a trie (`PTR_TRIE`), its cells counted as the variables its
     body names."""
-    params, body = heap.CORE[k]
-    ptrs, names = [], set()
-
-    def walk(b):
-        for st in b:
-            if st[0] == 'ite':
-                walk(st[2]); walk(st[3])
-            elif st[0] == 'match':
-                for arm in st[2]:
-                    walk(arm)
-            else:
-                if st[0] == 'a' and st[1][0] == 'load':
-                    ptrs.append(st[1][2])
-                stack = [st]
-                while stack:
-                    x = stack.pop()
-                    if isinstance(x, int):
-                        if x < 1 << 20:
-                            names.add(x)
-                    elif isinstance(x, (list, tuple)):
-                        stack.extend(x)
-    walk(body)
-    return sum(ptrs) > PTR_TRIE * len(names)
+    leaves = [s for s in stmts(heap.CORE[k][1]) if s[0] not in ('ite', 'match')]
+    ptrs = sum(s[1][2] for s in leaves if s[0] == 'a' and s[1][0] == 'load')
+    return ptrs > PTR_TRIE * len({x for s in leaves for x in ints(s) if x < 1 << 20})
 
 
 def long_body(k):
@@ -178,8 +172,7 @@ def res_block(k, po, p):
 
 def res_tags(k, blk, name=None):
     """`resFamFrom`'s tags (`restag.py`) of `k`'s residual list `name` (a chunk of `res`), else of its inline `res`;
-    `None` when none skips a family or `res` is a sum of chunks (decided whole)."""
-    import restag
+    `None` when none skips a family, the list does not parse, or `res` is a sum of chunks (decided whole)."""
     if name is not None:
         m = re.search(r'\ndef %s : List CoreMode\.CRes :=\n(.*?)\n\n' % name, blk, re.S)
     elif '\n  res := (' in blk:
@@ -194,6 +187,15 @@ def res_tags(k, blk, name=None):
 
 DK = '(by decide +kernel)'
 K = '⟨envC, funC, code.chunks.flatten⟩'
+
+
+def tagged(lemma, ts, imps):
+    """A residual check's proof by `lemma` (`ResTag.lean`) from its tags `ts`, its import added to `imps`; `None`
+    without tags."""
+    if not ts:
+        return None
+    imps.add('LeanVM.Guest.CoreMode.ResTag')
+    return f'CoreMode.{lemma} (ts := [{", ".join(map(str, ts))}]) {DK}'
 
 
 def thm(k, name, stmt, prf=DK):
@@ -697,31 +699,25 @@ def main(check=False):
             hb = '(by decide +kernel)'
             rch = res_chunks(k, po)
             rw = []
+            fk = f'Fn.«{k}»'
+            # each residual checked against its family only (`ResTag.lean`), not every family before it
             if len(rch) > RES_SPLIT:
-                fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 blk = res_block(k, po, p)
                 for c in rch:
-                    # each residual checked against its family only (`ResTag.lean`), not every family before it
-                    ts = res_tags(k, blk, c)
-                    pf = (f'CoreMode.all_of_tagged (ts := [{", ".join(map(str, ts))}]) {DK}' if ts else 'by decide +kernel')
-                    if ts:
-                        rimps.add('LeanVM.Guest.CoreMode.ResTag')
+                    pf = tagged('all_of_tagged', res_tags(k, blk, c), rimps) or 'by decide +kernel'
                     hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := {pf}\n')
                 hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
                             f'  simp only [List.all_append, {", ".join(f"res{i}_{c}" for c in rch)}, Bool.and_self]\n')
                 rw.append(f'res{i}_ok')
-                hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             elif rch == [] and k not in LONG:
-                ts = res_tags(k, res_block(k, po, p))
-                if ts:
-                    rimps.add('LeanVM.Guest.CoreMode.ResTag')
-                    fk = f'Fn.«{k}»'
-                    hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := '
-                                f'CoreMode.resOk_of_tagged (ts := [{", ".join(map(str, ts))}]) {DK}\n')
+                pf = tagged('resOk_of_tagged', res_tags(k, res_block(k, po, p)), rimps)
+                if pf:
+                    hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := {pf}\n')
                     rw.append(f'res{i}_ok')
-                    hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
+            if rw:
+                hb = f'(by rw [{", ".join(rw)}]; decide +kernel)'
             if k in LONG:
                 rimps |= set(LONG[k][1])
                 hons.append(LONG[k][2])
@@ -735,13 +731,13 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
-                trie = ptr_trie(k)
-                if trie:
+                # the pointers' cells read from a trie (`RouteFast.lean`), not the cells' list
+                fast = ''
+                if ptr_trie(k):
                     rimps.add('LeanVM.Guest.CoreMode.RouteFast')
+                    fast = 'rw [CoreMode.ptrCellB_eq]; '
                 for nm, st, doc in parts:
-                    # the pointers' cells read from a trie (`RouteFast.lean`), not the cells' list
-                    fast = 'rw [CoreMode.ptrCellB_eq]; ' if nm == 'ptr' and trie else ''
-                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by {fast}decide +kernel\n')
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by {fast if nm == "ptr" else ""}decide +kernel\n')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats
