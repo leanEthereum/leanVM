@@ -11,11 +11,12 @@ windows cover a loop helper's body without its tail (`loopBody`), or a function'
 its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/<fn>/` (`loopcc.py`):
 
 * `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures as `CFun.sigOf` reads
-  them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
-  certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
-  context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
-  rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at most `SPART` characters
-  (each importing the last, the first `Cx`);
+  them), which the context of a function with at least `SIGK` callees reads by the names' keys (`sigK`, `hsigK`,
+  `SigIx.lean`: no string compared); each trie `cxOf` builds from the certificate as a literal of its shape whose
+  entries are positions of the certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation
+  (one `decide +kernel`); the context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the
+  tries (each window's proof rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at
+  most `SPART` characters (each importing the last, the first `Cx`);
 * `W<i>.lean`: `win<i> : winOk Fn.«{k}».pows sigW core hcert (((loopBody core).drop a).take (b - a)) st<i> st<i+1> =
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
@@ -38,6 +39,9 @@ import genfiles
 # the windows' sizes (`windows.py`)
 BUDGET, WIN, ATOMS, FIXW = windows.HEAP_BUDGET, windows.HEAP_WIN, windows.HEAP_ATOMS, windows.HEAP_FIXW
 CXPART, CXDEC, SPART = windows.HEAP_CXPART, windows.HEAP_CXDEC, windows.HEAP_SPART
+# the callees from which a context reads their signatures by key (`SigIx.lean`): with fewer, the keys cost the kernel
+# more than the scan of the names
+SIGK = 100
 # The kernel's work, in thousands of heartbeats (the heartbeat limit's unit), estimated from `heapc.py`'s pass: per
 # line it executes (`Meter`), per atom (the ghost check), per character of the certificate (the context's tries), per
 # frame run cell and top-level statement (`faOk`), per trie entry or list element of a window's states (comparing the
@@ -444,6 +448,22 @@ HEADER = genfiles.header('core-mode/heapwin.py')
 DATA = 'public meta import LeanVM.Guest.DataLit\n'
 
 
+def core_name(k):
+    """The name `core.name` holds: the compiler's name whose stable name is `k` (`coreir.load`'s `stable`)."""
+    ns = [n for n, s in I.STABLE.items() if s == k]
+    if len(ns) > 1:
+        raise SystemExit(f'heapwin: {k} is the stable name of {ns}')
+    return ns[0] if ns else k
+
+
+def str_key(name):
+    """`CoreMode.strKey`: the name's UTF-8 bytes as a number, base 256 from the last byte, over a leading 1."""
+    n = 1
+    for b in reversed(name.encode()):
+        n = n * 256 + b
+    return n
+
+
 def repack(text):
     """Code lines over 120 characters packed (`pack`), at their indentation plus four."""
     out = []
@@ -622,14 +642,24 @@ def emit(k, H, sts, cs, po, splits, gen):
         cx += ''.join(f'public import {base}.CxH{j}\n' for j in range(len(groups)))
     else:
         cx += f'public import {prev}\n' if prev else head
-    cx += DATA
+    sigk = len(gen['names']) >= SIGK
+    cx += ('public import LeanVM.Guest.CoreMode.SigIx\n' if sigk else '') + DATA
     cx += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
     cx += '\n' + ''.join(cur) if cur else ''
     cx += thm(groups[0]) if len(groups) == 1 else ''
-    cx += (f'\n/-- The context, its tries stated. -/\nnoncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
-           'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
-    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
-           'hcxHV hcxEQ\n')
+    # past `SIGK` callees, their signatures read by their names' keys (`SigIx.lean`), the keys stated once
+    sig = 'sigW'
+    if sigk:
+        own, keys = str_key(core_name(k)), ', '.join(str(str_key(f)) for f in gen['names'])
+        sig = f'sigK {own} hcert.sig sigKeys csigs'
+        cx += (f'\n/-- The keys of the callees\' names (`strKey`). -/\nnoncomputable def sigKeys : List ℕ :=\n'
+               f'  data% [{keys}]\n\n/-- The callees\' signatures, read by key. -/\n'
+               f'theorem hsigK : sigW = {sig} :=\n  sigK_eq (by decide +kernel) (by decide +kernel)\n')
+    cx += (f'\n/-- The context, its tries stated. -/\n'
+           f'noncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
+           f'cxRS, cxDV, cxHV, hcert.gargs, {sig}, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
+    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=' + (' by\n  rw [hsigK]\n  exact' if sigk else '\n ')
+           + ' cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ\n')
     cx += f'\nend\nend {ns}.{sub}\n'
     mods.append(('Cx', repack(cx)))
     # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
