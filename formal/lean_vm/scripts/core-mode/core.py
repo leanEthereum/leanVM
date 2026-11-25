@@ -62,10 +62,9 @@ HON_SPLIT = 2000
 # than `PTR_TRIE` times its cells: the list walks the trie saves cost a step an index, building the trie costs about
 # `PTR_TRIE` steps a cell
 PTR_TRIE = 64
-# a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
-# time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
+# a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked in a declaration of
+# its own, in one evaluation: the frame at every return (`retSt`) costs more than the run's cells, so it is not split
 FA_RUN = 64
-FA_B = 32
 
 
 def stmts(body):
@@ -118,24 +117,11 @@ def max_run(ss):
     return m
 
 
-def fa_chunks(k):
-    """The number of `FA_B`-value chunks `k`'s frame run cells at returns are checked in, or None (one evaluation)."""
-    n = max_run(heap.CORE[k][1])
-    return -(-n // FA_B) if n > FA_RUN else None
-
-
 def faret(k):
-    """`CoreOk.faret`'s parts (`fa_chunks`), if any, and its proof."""
-    m = fa_chunks(k)
-    if m is None:
+    """`CoreOk.faret`'s proof: a declaration of its own for a body with a frame run longer than `FA_RUN`."""
+    if max_run(heap.CORE[k][1]) <= FA_RUN:
         return '', DK
-    code = 'code.chunks.flatten'
-    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
-    out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
-    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(f'faret{c}' for c in range(m))
-    out += thm(k, 'faret', f'CoreMode.faRetOk cfun {code} = true',
-               f'\n  CoreMode.faRetOk_of_kchunks {FA_B} {m} (by decide) faret_runs {tail}')
-    return out, 'faret'
+    return thm(k, 'faret', 'CoreMode.faRetOk cfun code.chunks.flatten = true'), 'faret'
 
 
 def res_chunks(k, po):
@@ -172,20 +158,25 @@ def res_block(k, po, p):
 
 def res_tags(k, blk, name=None):
     """`resFamFrom`'s tags (`restag.py`) of `k`'s residual list `name` (a chunk of `res`), else of its inline `res`;
-    `None` when none skips a family, the list does not parse, or `res` is a sum of chunks (decided whole)."""
+    `None` when the list is shorter than `RES_IX` and none skips a family, or `res` is a sum of chunks (decided
+    whole). A list of `RES_IX` residuals or more is checked by its tags even when all are `0`: tag `0` reads the atoms
+    indexed by value (`resFamGI`, `ResIx.lean`)."""
     if name is not None:
         m = re.search(r'\ndef %s : List CoreMode\.CRes :=\n(.*?)\n\n' % name, blk, re.S)
     elif '\n  res := (' in blk:
         return None
     else:
-        m = re.search(r'\n  res := (\[.*?\])\n(?=  [a-z]|\n|$)', blk + '\n', re.S)
+        m = re.search(r'\n  res := (?:data% )?(\[.*?\])\n(?=  [a-z]|\n|$)', blk + '\n', re.S)
     if not m:
         raise SystemExit(f'core: no residual list {name or "res"} of {k}')
-    ts = restag.tags(k, m.group(1), route.sigs().get(k))
-    return ts if ts and any(ts) else None
+    # a list `callc.py` writes as `data% [...]` (`data_lit`)
+    ts = restag.tags(k, m.group(1).strip().removeprefix('data% '), route.sigs().get(k))
+    return ts if ts and (any(ts) or len(ts) >= RES_IX) else None
 
 
 DK = '(by decide +kernel)'
+# residuals from which a list's check reads the atoms indexed (`res_tags`)
+RES_IX = 8
 K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
@@ -226,38 +217,24 @@ def common(k):
             f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok')
 
 
-_SIGS = {}
-
-
 def sig_split(k):
-    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`), its promised
-    runs one by one; the number of runs, else None."""
-    if not long_body(k):
-        return None
-    if 'S' not in _SIGS:
-        _SIGS['S'] = route.sigs()
-    G = _SIGS['S'].get(k)
-    return None if G is None else len(G['postR'])
+    """Whether `k`'s signature check is in parts (`CoreMode.ownOk_of`): a long body with calls, no heap contract."""
+    return long_body(k) and k in route.sigs()
 
 
 def sig_check(k, split):
     """`core_sig`: one kernel evaluation, or a long body's parts (`sig_split`, a body with calls)."""
     a = 'funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)'
-    n = sig_split(k) if split else None
-    if n is None:
+    if not (split and sig_split(k)):
         return thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true')
-    out = (thm(k, 'core_hc', 'cfun.hc = false') +
-           thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
-           thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
-           thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true'))
-    for i in range(n):
-        out += thm(k, f'core_sigR{i}', f'CoreMode.chunkAll (CoreMode.postRP {a}) funC.sig.postR {i} = true')
-    tail = ('fun i hi ↦ absurd hi (Nat.not_lt_zero _)' if n == 0 else
-            'fun i hi ↦ by\n    interval_cases i\n    exacts [%s]' % ', '.join(f'core_sigR{i}' for i in range(n)))
-    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true', f'\n  CoreMode.all_of_chunks {n} {DK} {tail}') +
+    # the promised runs share most of their work, so `core_sigR` checks them all in one evaluation
+    return (thm(k, 'core_hc', 'cfun.hc = false') +
+            thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
+            thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
+            thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true') +
+            thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true') +
             thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true',
                 'CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG'))
-    return out
 
 
 def checks(k, j, frame, heap, split=False):
@@ -656,8 +633,6 @@ def main(check=False):
                 dimps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
             else:
                 dimps.add('LeanVM.Guest.CoreMode.Gen.«%s».Data' % p)
-            if R[k].get('kind') != 'lc' and fa_chunks(k) is not None:
-                imps.add('LeanVM.Guest.CoreMode.FaRetSplit')
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             if R[k].get('kind') == 'lc':
@@ -672,7 +647,7 @@ def main(check=False):
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
-                if sig_split(k) is not None:
+                if sig_split(k):
                     imps.add('LeanVM.Guest.CoreMode.SigSplit')
                 if heap_win(k):
                     imps.add(heap_win(k))

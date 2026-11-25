@@ -1295,6 +1295,12 @@ def arm_def(k, r, sel, po, base, ns):
             f'end\n\nend {ns}\n')
 
 
+def data_lit(t):
+    """`t` with each declaration's or structure field's value that is a list literal built as a term (`data%`,
+    `Guest/DataLit.lean`)."""
+    return re.sub(r'(:=\n  |\n  [a-z][A-Za-z0-9]* := )\[', r'\1data% [', t)
+
+
 def emit(R, check):
     import heap
     po = heap.pack_of()
@@ -1311,9 +1317,10 @@ def emit(R, check):
             out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs, data=True)}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         imps = sorted({po[c][0] for c in used})
-        out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n' +
+        out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n'
+                                'public import LeanVM.Guest.DataLit\n' +
                                 ''.join(f'public import LeanVM.Guest.CoreMode.Gen.«{q}».Sig\n' for q in imps))
-        files[os.path.join(GEN, pack, 'DataC.lean')] = ''.join(out)
+        files[os.path.join(GEN, pack, 'DataC.lean')] = data_lit(''.join(out))
     sigp = collections.defaultdict(lambda: ([], []))
     for k in R:
         if in_sigs(k, R[k], shared):

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.CoreResG
+public import LeanVM.Guest.CoreMode.ResIx
 
 /-!
 # Residuals by their families
@@ -16,7 +16,8 @@ public import LeanVM.Guest.CoreMode.CoreResG
 atoms to their end, so the kernel pays every family before the one that holds. The generator knows
 which one holds (`scripts/core-mode/callcres.py`) and names it, as a tag: `resFamFrom t` skips the
 families before `t`. A tag past every family that holds fails the check (a failed build, never a
-wrong one); tag `0`, and a residual past the tags, is checked by `resFamG` itself.
+wrong one); tag `0`, and a residual past the tags, is checked by `resFamG` itself, its first family
+over the atoms indexed by value (`resFamGI`, `ResIx.lean`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -29,7 +30,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 `ownFam`, with the values below `GB`), `5` to `8` its ghost ones (`mlSub`, `stSub`, `cmSub`, `gwFam`). -/
 noncomputable def resFamFrom (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (t : ℕ) (r : CRes) : Bool :=
   match t with
-  | 0 => resFamG fn xc gw r
+  | 0 => resFamGI fn xc gw r
   | 1 => ((resQ fn r || rcPts fn r || rcTab fn r || ownFam fn r) && r.vals.all (Nat.blt · GB)) ||
       mlSub fn r || stSub fn r || cmSub fn r || gwFam fn gw r
   | 2 => ((rcPts fn r || rcTab fn r || ownFam fn r) && r.vals.all (Nat.blt · GB)) ||
@@ -44,9 +45,10 @@ noncomputable def resFamFrom (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)
 
 theorem resFamG_of_from {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {t : ℕ} {r : CRes}
     (h : resFamFrom fn xc gw t r = true) : resFamG fn xc gw r = true := by
-  unfold resFamFrom resFamG at h
-  unfold resFamG
-  split at h <;> simp only [Bool.or_eq_true, Bool.and_eq_true] at h ⊢ <;> tauto
+  unfold resFamFrom at h
+  split at h
+  · rwa [resFamGI_eq] at h
+  all_goals unfold resFamG; simp only [Bool.or_eq_true, Bool.and_eq_true] at h ⊢; tauto
 
 /-- Each residual of `l` of its family from its tag on (`ts`, in order; past the tags, tag `0`). -/
 noncomputable def resTagged (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) : List CRes → List ℕ → Bool
