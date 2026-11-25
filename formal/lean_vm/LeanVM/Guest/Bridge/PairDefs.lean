@@ -79,10 +79,10 @@ def allocOf : Atom → Option V
   | .hint (.allocDyn d _) => some d
   | _ => none
 
-/-- A frame value at its certificate cell, in `[2, n)`, no hint-only cell (of `extra`), its number below
-`2^30`. -/
-def cellOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (v : V) : Bool :=
-  (extra.lookup v.idx).isNone && Nat.blt v.idx (2 ^ 30) && Nat.ble 2 (locs.getD v.idx 0) && Nat.blt (locs.getD v.idx 0) n
+/-- A frame value at its certificate cell (of the cell map `loc`), in `[2, n)`, no hint-only cell (of
+`extra`), its number below `2^30`. -/
+def cellOk (extra : List (ℕ × ℕ)) (loc : ℕ → ℕ) (n : ℕ) (v : V) : Bool :=
+  (extra.lookup v.idx).isNone && Nat.blt v.idx (2 ^ 30) && Nat.ble 2 (loc v.idx) && Nat.blt (loc v.idx) n
 
 /-- A frame value at its hint-only cell (of `extra`), in `[2, n)`. -/
 def hintOnlyOk (extra : List (ℕ × ℕ)) (n : ℕ) (v : V) : Bool :=
@@ -92,17 +92,17 @@ def hintOnlyOk (extra : List (ℕ × ℕ)) (n : ℕ) (v : V) : Bool :=
 
 /-- A buffer from offset `0`, of length in `(0, 2^30)`, its pointer at its certificate cell or a
 hint-only one, allocated and written whole on the spine `sp`. -/
-def bufOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) (b : V × ℕ × ℕ) : Bool :=
+def bufOk (extra : List (ℕ × ℕ)) (loc : ℕ → ℕ) (n : ℕ) (sp : List Atom) (b : V × ℕ × ℕ) : Bool :=
   Nat.beq b.2.1 0 && Nat.blt 0 b.2.2 && Nat.blt b.2.2 (2 ^ 30) &&
-    (cellOk extra locs n b.1 || (extra.lookup b.1.idx).isSome) &&
+    (cellOk extra loc n b.1 || (extra.lookup b.1.idx).isSome) &&
     sp.any (fun a ↦ allocOf a == some b.1) && sp.any (fun a ↦ atomHeapDest? a == some b)
 
 /-- **A computed hint atom's cells and buffer.** -/
-def pairAtomOk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (sp : List Atom) : Atom → Bool
-  | .hint h => !compHint h || ((hintFrame h).all (fun v ↦ cellOk extra locs n v || hintOnlyOk extra n v) &&
+def pairAtomOk (extra : List (ℕ × ℕ)) (loc : ℕ → ℕ) (n : ℕ) (sp : List Atom) : Atom → Bool
+  | .hint h => !compHint h || ((hintFrame h).all (fun v ↦ cellOk extra loc n v || hintOnlyOk extra n v) &&
       match hintBuf h with
     | none => true
-    | some b => bufOk extra locs n sp b)
+    | some b => bufOk extra loc n sp b)
   | _ => true
 
 /-- Every atom of a block, at any depth, passes `p`: by the recursor, for the kernel. -/
@@ -117,10 +117,14 @@ noncomputable def armsAll (p : Atom → Bool) : List (List Stmt) → Bool :=
     (fun a ↦ p a) (fun _ _ _ hz hn ↦ hz && hn) (fun _ _ ha ↦ ha) (fun _ _ _ ↦ true) (fun _ _ _ ↦ true)
     (fun _ _ _ _ ↦ true) (fun _ ↦ true) true (fun _ _ hs hss ↦ hs && hss) true (fun _ _ ha has ↦ ha && has)
 
+/-- The computed hints' check of a function over a cell map `loc`. -/
+noncomputable def pairChkAt (extra : List (ℕ × ℕ)) (loc : ℕ → ℕ) (n : ℕ) (body : List Stmt) : Bool :=
+  blockAll (pairAtomOk extra loc n (spine body)) body
+
 /-- **The computed hints' check of a function**: its hint-only cells, certificate cells, frame size
 and body. -/
 noncomputable def pairChk (extra : List (ℕ × ℕ)) (locs : List ℕ) (n : ℕ) (body : List Stmt) : Bool :=
-  blockAll (pairAtomOk extra locs n (spine body)) body
+  pairChkAt extra (locs.getD · 0) n body
 
 end
 
