@@ -10,8 +10,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace QueryImpl
 
-variable {ι : Type*} {spec : OracleSpec ι} {α : Type}
-
 @[simp] theorem run_simulateQ_withTraceAppend_const_empty {ι α : Type}
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m] {Log : Type}
     [EmptyCollection Log] [Append Log] [LawfulAppend Log]
@@ -19,6 +17,8 @@ variable {ι : Type*} {spec : OracleSpec ι} {α : Type}
     (simulateQ (impl.withTraceAppend (fun _ _ => (∅ : Log))) computation).run =
       (fun result => (result, ∅)) <$> simulateQ impl computation := by
   induction computation using OracleComp.inductionOn <;> simp [*]
+
+variable {ι : Type*} {spec : OracleSpec ι} {α : Type}
 
 theorem mapLog_run_simulateQ_of_query
     {SourceLog TargetLog : Type}
