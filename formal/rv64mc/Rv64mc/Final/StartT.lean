@@ -87,14 +87,15 @@ theorem haltsSafely_of_main {img : Image} {fns : List Fn} {env : Env} {need gs :
     (hstatic : ∀ m : MachineState, (∀ p ∈ img.data, m.getMem p.1 = p.2) → env.Static m)
     (hnext : (env.nextAddr, heapStart) ∈ img.data) (hheap : heapStart.toNat ≤ env.heapEnd.toNat)
     (hstack : env.stackLimit.toNat + need ≤ stackTop.toNat)
-    (henv : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.heapEnd.toNat ≤ 0x78000000 ∧ ∀ q ∈ env.data, inWindow q.1 8 = true)
+    (henv : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.nextAddr.toNat % 8 = 0 ∧ env.heapEnd.toNat ≤ 0x78000000 ∧
+      ∀ q ∈ env.data, inWindow q.1 8 = true ∧ q.1.toNat % 8 = 0)
     (hcode : ∀ a, img.codeAt a ≠ none → 0x78000000 ≤ a.toNat ∧ a.toNat < 0xa0000000)
     (hmain : MainSpecT env (liftProg fns) L.main.idx need) : HaltsSafely img := by
   intro words s hw hl
   have ⟨hpc, hc, hdata, hin, h10, hcap⟩ := hl
   have hwin : Windows env stackTop s :=
-    ⟨by decide, henv.1, by rw [show env.next s = heapStart from hdata _ hnext]; decide, henv.2.1, henv.2.2,
-      fun a ha => hcode a (by rw [← hc]; exact ha)⟩
+    ⟨by decide, henv.1, henv.2.1, by rw [show env.next s = heapStart from hdata _ hnext]; decide, henv.2.2.1,
+      henv.2.2.2, fun a ha => hcode a (by rw [← hc]; exact ha)⟩
   have hbase : fn.base = L.base := by
     rw [getElem?_liftProg hg] at hstart
     exact congrArg Lfundef.addr (Option.some.inj hstart)

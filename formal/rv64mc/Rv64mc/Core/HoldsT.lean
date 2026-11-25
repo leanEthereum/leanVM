@@ -15,14 +15,16 @@
     SP1's conditions (`memOkSp1`), and a total proof must show that each operation gives a
     result, so together every access the run makes passes the statement's `memOk`.
   * `HoldsT env p i need Pre Post Out Stop` is `Holds`'s pre- and postcondition, plus `Stop`:
-    the registers and memory at which the function may end the whole run, inside the call, at
-    the halting `ECALL` (`halt` and every path to it: the allocator's failure, a panic). Its
-    precondition adds `Windows`, where the windows lie relative to the stack, the heap, the
-    static data and the code, which a total proof needs to discharge `WinOk` and SP1's store
-    check (`Windows.stack`, `heap`, `nextAddr`, `data`, `noCodeAt`); its postcondition adds that
-    the code map is kept, so that a caller has `Windows` again after the call (`Windows.after`).
-    A partial `Holds` needs neither: there, an access outside the windows is a stop, which is
-    safe.
+    the registers and memory at which the function may end the whole run at the halting `ECALL`,
+    in an accepting state with a nonempty stack (`halt` and every path to it: the allocator's
+    failure, a panic). Its precondition adds `Windows`, where the windows lie relative to the
+    stack, the heap, `NEXT`, the static data and the code, and that `NEXT` and the static data
+    words are 8-byte aligned, which a total proof needs to discharge `WinOk` and SP1's checks
+    (`Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, `data`, `dataSub`, `noCodeAt`);
+    its postcondition adds that the code map is kept, so that a caller has `Windows` again after
+    the call (`Windows.after`). A partial `Holds` needs neither: there, an access outside the
+    windows is a stop, which is safe. `Windows` covers what a function owns; a pointer it is
+    passed needs its window and alignment facts in the function's `Pre`.
 
   A call through it is `HoldsT.call`. `WinOk` holds at every state that is not at an operation
   (`WinOk.of_ne`), at a register write (`WinOk.of_set`), and at a load or store whose address is
@@ -37,14 +39,14 @@
 
   * `HoldsT.call`, `HoldsT.mono_need`
   * `WinOk.of_ne`, `WinOk.of_opn`, `WinOk.of_set`, `WinOk.nil`
-  * `Windows.stack`, `Windows.heap`, `Windows.nextAddr`, `Windows.data`, `Windows.noCodeAt`,
-    `Windows.callee`, `Windows.after`
+  * `Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, `data`, `dataSub`, `noCodeAt`,
+    `callee`, `after`
 -/
 
 import Rv64mc.Core.Holds
 import Rv64mc.EndStatement
 import Rv64mc.Total.Contract
-import MachineChecked.RiscV.Sym.Core
+import MachineChecked.RiscV.Sym.Exec
 
 namespace Rv64mc
 
@@ -100,110 +102,91 @@ end WinOk
 
 /-! ## Where the windows lie -/
 
-/-- **Where the windows lie**, as a total contract assumes at entry with stack top `top`: the stack top at most the
-    stack window's end and `NEXT`'s address in that window, so the stack between them is in it; `NEXT` at least the
-    input and heap window's start and the heap's end at most its end, so the heap from `NEXT` to its end is in it;
-    every static data word in a window; and every code word between the two windows, so a store in a window hits no
-    code. -/
-def Windows (env : Env) (top : Word) (m : MachineState) : Prop :=
-  top.toNat ≤ 0xc0000000 ∧ 0xa0000000 ≤ env.nextAddr.toNat ∧ 0x10000000 ≤ (env.next m).toNat ∧
-    env.heapEnd.toNat ≤ 0x78000000 ∧ (∀ q ∈ env.data, inWindow q.1 8 = true) ∧ CodeWithin 0x78000000 0xa0000000 m
+/-- **Where the windows lie**, as a total contract assumes at entry with stack top `top`. Its facts about `env` are
+    constant: the concrete image discharges them by kernel checks (`Final/EndT.lean`). -/
+structure Windows (env : Env) (top : Word) (m : MachineState) : Prop where
+  /-- The stack top at most the stack window's end. -/
+  top_le : top.toNat ≤ 0xc0000000
+  /-- `NEXT`'s address at least the stack window's start, so the stack above it is in that window. -/
+  nextAddr_ge : 0xa0000000 ≤ env.nextAddr.toNat
+  /-- `NEXT`'s address aligned for its 8-byte load and store. -/
+  nextAddr_aligned : env.nextAddr.toNat % 8 = 0
+  /-- `NEXT` at least the input and heap window's start. -/
+  next_ge : 0x10000000 ≤ (env.next m).toNat
+  /-- The heap's end at most the input and heap window's end. -/
+  heapEnd_le : env.heapEnd.toNat ≤ 0x78000000
+  /-- Every static data word in a window and aligned for an 8-byte load. -/
+  data_ok : ∀ q ∈ env.data, inWindow q.1 8 = true ∧ q.1.toNat % 8 = 0
+  /-- Every code word between the two windows, so a store in a window hits no code. -/
+  code_within : CodeWithin 0x78000000 0xa0000000 m
 
 namespace Windows
 
 variable {env : Env} {top a : Word} {w : Nat} {m : MachineState}
 
-/-- An access within the stack, between `stackLimit` and the stack top, is in a window. -/
-theorem stack (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat) (hhi : a.toNat + w ≤ top.toNat) :
+/-- An access on the stack, from `stackLimit` to the stack window's end, is in a window: the callee's own frame, or an
+    object of a caller's at or above the callee's stack top. -/
+theorem stackObj (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat) (hhi : a.toNat + w ≤ 0xc0000000) :
     inWindow a w = true := by
   have := env.layout
-  have := h.1
-  have := h.2.1
+  have := h.nextAddr_ge
   simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
   exact .inr ⟨by omega, by omega⟩
 
-/-- An access within the heap, from `NEXT` to the heap's end, is in a window. -/
-theorem heap (h : Windows env top m) (hlo : (env.next m).toNat ≤ a.toNat) (hhi : a.toNat + w ≤ env.heapEnd.toNat) :
+/-- An access within the stack, between `stackLimit` and the stack top, is in a window. -/
+theorem stack (h : Windows env top m) (hlo : env.stackLimit.toNat ≤ a.toNat) (hhi : a.toNat + w ≤ top.toNat) :
+    inWindow a w = true :=
+  h.stackObj hlo (by have := h.top_le; omega)
+
+/-- An access from the input and heap window's start to the heap's end is in a window: the input, an object allocated
+    before the call, or the heap from `NEXT` on. -/
+theorem heapObj (h : Windows env top m) (hlo : 0x10000000 ≤ a.toNat) (hhi : a.toNat + w ≤ env.heapEnd.toNat) :
     inWindow a w = true := by
-  have := h.2.2.1
-  have := h.2.2.2.1
+  have := h.heapEnd_le
   simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
   exact .inl ⟨by omega, by omega⟩
+
+/-- An access within the heap, from `NEXT` to the heap's end, is in a window. -/
+theorem heap (h : Windows env top m) (hlo : (env.next m).toNat ≤ a.toNat) (hhi : a.toNat + w ≤ env.heapEnd.toNat) :
+    inWindow a w = true :=
+  h.heapObj (by have := h.next_ge; omega) hhi
 
 /-- `NEXT` itself is in a window, below a stack top at least `stackLimit`. -/
 theorem nextAddr (h : Windows env top m) (hs : env.stackLimit.toNat ≤ top.toNat) :
     inWindow env.nextAddr 8 = true := by
   have := env.layout
-  have := h.1
-  have := h.2.1
+  have := h.top_le
+  have := h.nextAddr_ge
   simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
   exact .inr ⟨by omega, by omega⟩
 
 /-- A static data word is in a window. -/
 theorem data (h : Windows env top m) {q : Word × Word} (hq : q ∈ env.data) : inWindow q.1 8 = true :=
-  h.2.2.2.2.1 q hq
+  (h.data_ok q hq).1
 
-private theorem align4_toNat (y : Word) : (align4 y).toNat = y.toNat - y.toNat % 4 := by
-  have hlow : (y &&& 3#64).toNat = y.toNat % 4 := by
-    rw [BitVec.toNat_and]; simp; exact Nat.and_two_pow_sub_one_eq_mod y.toNat 2
-  have hdisj : (y &&& ~~~3#64) &&& (y &&& 3#64) = 0 := by
-    apply BitVec.eq_of_getLsbD_eq; intro i
-    simp only [BitVec.getLsbD_and, BitVec.getLsbD_not]
-    cases (3#64).getLsbD i <;> cases y.getLsbD i <;> simp
-  have hsum : (y &&& ~~~3#64) + (y &&& 3#64) = y := by
-    rw [BitVec.add_eq_or_of_and_eq_zero _ _ hdisj, ← BitVec.and_or_distrib_left]
-    have : (~~~3#64 ||| 3#64) = BitVec.allOnes 64 := by decide
-    rw [this, BitVec.and_allOnes]
-  have hle : (y &&& ~~~3#64).toNat ≤ y.toNat := by
-    rw [BitVec.toNat_and]; exact Nat.and_le_left
-  have h := congrArg BitVec.toNat hsum
-  rw [BitVec.toNat_add, hlow] at h
-  have hy := y.isLt
-  unfold align4
+/-- An access within a static data word is in a window. -/
+theorem dataSub (h : Windows env top m) {q : Word × Word} (hq : q ∈ env.data) (hlo : q.1.toNat ≤ a.toNat)
+    (hhi : a.toNat + w ≤ q.1.toNat + 8) : inWindow a w = true := by
+  have hd := h.data hq
+  simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hd ⊢
   omega
 
-/-- **A store in a window hits no code**: SP1's `noCodeAt` holds. -/
+/-- **A store in a window hits no code**: SP1's `noCodeAt` holds. From machine-checked's `noCodeAt_of_codeWithin`. -/
 theorem noCodeAt (h : Windows env top m) (ha : inWindow a w = true) (hw : 0 < w) :
     RiscvZkvm.Rv64.noCodeAt m a w = true := by
   simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at ha
-  unfold RiscvZkvm.Rv64.noCodeAt
-  simp only [List.all_eq_true, List.mem_range]
-  intro i hi
-  simp only [Option.isNone_iff_eq_none]
-  have hlo := align4_toNat a
-  have hhi := align4_toNat (a + BitVec.ofNat 64 (w - 1))
-  have hw1 : (a + BitVec.ofNat 64 (w - 1)).toNat = a.toNat + (w - 1) := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (a := w - 1) (by omega)]
-    exact Nat.mod_eq_of_lt (by omega)
-  rw [hw1] at hhi
-  have hsub : (align4 (a + BitVec.ofNat 64 (w - 1)) - align4 a).toNat
-      = (align4 (a + BitVec.ofNat 64 (w - 1))).toNat - (align4 a).toNat := by
-    rw [BitVec.toNat_sub]
-    have h1 := (align4 a).isLt
-    have h2 := (align4 (a + BitVec.ofNat 64 (w - 1))).isLt
-    rw [show 2 ^ 64 - (align4 a).toNat + (align4 (a + BitVec.ofNat 64 (w - 1))).toNat
-        = ((align4 (a + BitVec.ofNat 64 (w - 1))).toNat - (align4 a).toNat) + 2 ^ 64 by omega]
-    rw [Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
-  rw [hsub] at hi
-  have hx : (align4 a + BitVec.ofNat 64 (4 * i)).toNat = (align4 a).toNat + 4 * i := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (a := 4 * i) (by omega)]
-    exact Nat.mod_eq_of_lt (by omega)
-  cases hc : m.code (align4 a + BitVec.ofNat 64 (4 * i)) with
-  | none => rfl
-  | some _ =>
-    have hb := h.2.2.2.2.2 _ (by rw [hc]; exact Option.some_ne_none _)
-    rw [hx] at hb
-    omega
+  exact noCodeAt_of_codeWithin h.code_within a w hw (by omega) (by omega)
 
 /-- At a callee's entry, with a stack top no higher. -/
 theorem callee {top' : Word} (h : Windows env top m) (ht : top'.toNat ≤ top.toNat) : Windows env top' m :=
-  ⟨by have := h.1; omega, h.2⟩
+  { h with top_le := by have := h.top_le; omega }
 
 /-- After a call or a store that keeps the code and does not lower `NEXT`. -/
 theorem after {m' : MachineState} (h : Windows env top m) (hc : m'.code = m.code)
-    (hn : (env.next m).toNat ≤ (env.next m').toNat) : Windows env top m' := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  exact ⟨h1, h2, by omega, h4, h5, fun a ha => h6 a (by rw [← hc]; exact ha)⟩
+    (hn : (env.next m).toNat ≤ (env.next m').toNat) : Windows env top m' :=
+  { h with
+    next_ge := by have := h.next_ge; omega
+    code_within := fun a ha => h.code_within a (by rw [← hc]; exact ha) }
 
 end Windows
 

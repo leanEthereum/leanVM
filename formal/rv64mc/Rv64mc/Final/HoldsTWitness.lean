@@ -1,23 +1,30 @@
 /-
   Rv64mc.Final.HoldsTWitness
 
-  Guards that `HoldsT` is satisfiable by the functions a total proof meets, and that it excludes
-  what it should. `frameFn` is the prologue and epilogue of a non-leaf function (`addi sp, sp, -16;
-  sd ra, 8(sp); ld ra, 8(sp); addi sp, sp, 16; ret`): `frameFn_total` proves its total contract at
-  any `env` from `HoldsT`'s precondition alone, the store and the load in the stack window
-  (`Windows.stack`), the store over no code (`Windows.noCodeAt`), SP1's range and alignment from
-  the stack top's bound and alignment. Without `Windows`' bound on the stack top it would be
-  false: a top above the stack window puts the store outside both windows. `countdownFn` counts
-  `a0` down to zero: `countdownFn_total` is a loop by `Total.loop`, its count an argument.
-  `not_total_ecall`: under `stmtCtx` the run cannot pass a system call other than the halt.
+  Guards that `HoldsT` is satisfiable by functions that touch memory, and that it excludes what it
+  should. What they cover: a store to and a load from the function's own frame, a load of `NEXT`
+  and of a static data word, a data-dependent loop. What they do not yet: a store to the heap
+  (bumping `NEXT`), a call followed by `Windows.after`, a recursive function (`TContract.measure`).
+
+  `frameFn` is the prologue and epilogue of a non-leaf function (`addi sp, sp, -16; sd ra, 8(sp);
+  ld ra, 8(sp); addi sp, sp, 16; ret`): `frameFn_total` proves its total contract at any `env` from
+  `HoldsT`'s precondition alone, the store and the load in the stack window (`Windows.stack`), the
+  store over no code (`Windows.noCodeAt`), SP1's range and alignment from the stack top's bound and
+  alignment. Without `Windows`' bound on the stack top it would be false: a top above the stack
+  window puts the store outside both windows. `loadFn a` loads the word at the constant address
+  `a` into `a0`: `loadFn_next` (at `NEXT`) and `loadFn_data` (at a static data word), from `loadFn_total`, hold
+  at any `env`, and without `Windows`' alignment of `NEXT` and of the data words they would be false (SP1
+  refuses a misaligned 8-byte load). `countdownFn` counts `a0` down to zero: `countdownFn_total` is
+  a loop by `Total.loop`, its count an argument. `not_total_ecall`: under `stmtCtx` the run cannot
+  pass a system call other than the halt.
 
   ## Main definitions
 
-  * `frameFn`, `countdownFn`
+  * `frameFn`, `loadFn`, `countdownFn`
 
   ## Main results
 
-  * `frameFn_total`, `countdownFn_total`, `not_total_ecall`
+  * `frameFn_total`, `loadFn_total`, `loadFn_next`, `loadFn_data`, `countdownFn_total`, `not_total_ecall`
 -/
 
 import Rv64mc.Final.Transfer
@@ -43,7 +50,7 @@ theorem frameFn_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (hp : p[i]?
     HoldsT env p i 16 (fun _ _ => True) (fun _ _ _ _ => True) := by
   intro Q ret top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩, hwin⟩ _ hk
   have hlay := env.layout
-  have htop := hwin.1
+  have htop := hwin.top_le
   -- the slot of `ra`, at `top - 8`
   generalize hsl : top + 0xfffffffffffffff0#64 + 8#64 = a
   have ha : a.toNat = top.toNat - 8 := by rw [← hsl]; bv_omega
@@ -73,6 +80,44 @@ theorem frameFn_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (hp : p[i]?
   · simp [updReg_apply]
   · exact Env.Frame.setMem_stack hnx hlo (by omega)
   · exact Env.static_setMem_stack hst hlo
+
+/-- Loads the word at the constant address `a` into `a0` and returns. -/
+def loadFn (a : Word) : Lfundef (Op Reg) Reg where
+  name := "load"
+  addr := 0
+  depth := 0
+  body := [.Lopn (.load .x10 .b8 false (.imm a)), .Lret]
+
+/-- **A load from a constant address keeps a total contract** wherever `Windows` puts the address in a window,
+    8-byte aligned. -/
+theorem loadFn_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (a : Word) (hp : p[i]? = some (loadFn a))
+    (ha : ∀ top m, env.stackLimit.toNat ≤ top.toNat → Windows env top m →
+      inWindow a 8 = true ∧ a.toNat % 8 = 0) :
+    HoldsT env p i 0 (fun _ _ => True) (fun _ m r' _ => r' .x10 = m.getMem a) := by
+  intro Q ret top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, _⟩, hwin⟩ _ hk
+  obtain ⟨hin, hal⟩ := ha top m (by omega) hwin
+  have hok : isValidMemAddrSp1 a = true ∧ alignedFor 8 a = true := by
+    simp only [inWindow, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hin
+    simp only [isValidMemAddrSp1, SP1_MAX_MEMORY, alignedFor, isAligned8, ite_true, beq_iff_eq]
+    exact ⟨decide_eq_true (by omega), hal⟩
+  refine Total.opn hp rfl (r' := updReg regs .x10 (m.getMem a)) (m' := m) ?_ (WinOk.of_opn hp rfl ?_) ?_
+  · simp [Op.eval, rvMem, Expr.eval, hok.1, hok.2, Width.bytes]
+  · simpa [opWin, Expr.eval, Width.bytes] using hin
+  refine Total.ret hp rfl (by simp [updReg_apply, hra]) (by simp [updReg_apply, hsp])
+    (WinOk.of_ne hp rfl nofun) ?_
+  refine hk _ _ ⟨⟨?_, Env.Frame.refl hnx, hst, by simp [updReg_apply]⟩, rfl⟩
+  simp [AbiRegs, updReg_apply, hsp]
+
+/-- **A load of `NEXT` keeps a total contract.** -/
+theorem loadFn_next (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (hp : p[i]? = some (loadFn env.nextAddr)) :
+    HoldsT env p i 0 (fun _ _ => True) (fun _ m r' _ => r' .x10 = env.next m) :=
+  loadFn_total env p i _ hp fun _ _ hs h => ⟨h.nextAddr hs, h.nextAddr_aligned⟩
+
+/-- **A load of a static data word keeps a total contract.** -/
+theorem loadFn_data (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) {q : Word × Word} (hq : q ∈ env.data)
+    (hp : p[i]? = some (loadFn q.1)) :
+    HoldsT env p i 0 (fun _ _ => True) (fun _ m r' _ => r' .x10 = m.getMem q.1) :=
+  loadFn_total env p i _ hp fun _ _ _ h => h.data_ok q hq
 
 /-- Counts `a0` down to zero and returns. -/
 def countdownFn : Lfundef (Op Reg) Reg where
@@ -131,6 +176,14 @@ end Rv64mc
 /-- info: 'Rv64mc.frameFn_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.frameFn_total
+
+/-- info: 'Rv64mc.loadFn_next' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.loadFn_next
+
+/-- info: 'Rv64mc.loadFn_data' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.loadFn_data
 
 /-- info: 'Rv64mc.countdownFn_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

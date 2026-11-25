@@ -5,10 +5,10 @@
   from `main`'s total contract alone. Every other hypothesis of `haltsSafely_of_main` is
   discharged as `rv64_sound` discharges `sound_of_main`'s (`Final/End.lean`): by the kernel's
   checks on the image and the link step's. The facts `HoldsT`'s precondition `Windows` asks of the
-  image (its code between the windows, `NEXT` and the static data in a window) are three more
-  such checks. `loaded_bounded`: `Loaded image words` is satisfiable for every input
-  `HaltsSafely` covers, so `HaltsSafely image` is not vacuous by its loader. Until `MainSpecT` is
-  proved, it is the one hypothesis.
+  image (its code between the windows, `NEXT` and the static data in a window and 8-byte
+  aligned) are five more such checks. `loaded_bounded`: `Loaded image words` is satisfiable for
+  every input `HaltsSafely` covers, so `HaltsSafely image` is not vacuous by its loader. Until
+  `MainSpecT` is proved, it is the one hypothesis.
 -/
 
 import Rv64mc.Final.StartT
@@ -26,6 +26,10 @@ kernel_eq code_between_check : (decide (0x78000000 ≤ image.codeBase.toNat) &&
 kernel_eq next_window_check : decide (0xa0000000 ≤ nextAddr.toNat) = true
 
 kernel_eq data_window_check : (image.data.all fun p => inWindow p.1 8) = true
+
+kernel_eq next_aligned_check : decide (nextAddr.toNat % 8 = 0) = true
+
+kernel_eq data_aligned_check : (image.data.all fun p => decide (p.1.toNat % 8 = 0)) = true
 
 /-- A code word lies in the image's code range. -/
 theorem Image.codeAt_range {img : Image} {a : Word} (h : img.codeAt a ≠ none) :
@@ -47,13 +51,14 @@ theorem code_between {a : Word} (h : image.codeAt a ≠ none) : 0x78000000 ≤ a
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
   omega
 
-/-- **The environment's windows**: `NEXT` in the stack window, the heap's end at the first window's end, the static
-    data words in a window. -/
-theorem env_windows : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.heapEnd.toNat ≤ 0x78000000 ∧
-    ∀ q ∈ env.data, inWindow q.1 8 = true := by
-  refine ⟨by simpa [env] using next_window_check, by decide, fun q hq => ?_⟩
+/-- **The environment's windows**: `NEXT`'s address at least the stack window's start and 8-byte aligned, the heap's
+    end at most the first window's end, the static data words in a window and 8-byte aligned. -/
+theorem env_windows : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.nextAddr.toNat % 8 = 0 ∧
+    env.heapEnd.toNat ≤ 0x78000000 ∧ ∀ q ∈ env.data, inWindow q.1 8 = true ∧ q.1.toNat % 8 = 0 := by
+  refine ⟨by simpa [env] using next_window_check, by simpa [env] using next_aligned_check, by decide,
+    fun q hq => ?_⟩
   simp only [env, List.mem_filter] at hq
-  exact List.all_eq_true.1 data_window_check q hq.1
+  exact ⟨List.all_eq_true.1 data_window_check q hq.1, by simpa using List.all_eq_true.1 data_aligned_check q hq.1⟩
 
 /-- **Every input `HaltsSafely` covers can be loaded.** -/
 theorem loaded_bounded (words : List Word) (h : words.length < maxInputWords) : ∃ s, Loaded image words s :=
