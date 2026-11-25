@@ -130,15 +130,9 @@ theorem Base.of_agree {ret top : Word} {regs r r' : Reg → Word} {m m' : Machin
     (h : Base env ret top regs m r m') (hr : ∀ x, x ≠ .x12 → x ≠ .x13 → x ≠ .x14 → x ≠ .x15 → x ≠ .x16 → r' x = r x) :
     Base env ret top regs m r' m' := by
   obtain ⟨h1, ha, h10, h11, hk⟩ := h
-  have e : ∀ x, x ∉ [Reg.x12, .x13, .x14, .x15, .x16] → r' x = r x := fun x hx => by
-    simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hx
-    exact hr x hx.1 hx.2.1 hx.2.2.1 hx.2.2.2.1 hx.2.2.2.2
   unfold AbiRegs at ha
   unfold Base AbiRegs
-  rw [e .x1 (by decide), e .x2 (by decide), e .x8 (by decide), e .x9 (by decide), e .x10 (by decide),
-    e .x11 (by decide), e .x18 (by decide), e .x19 (by decide), e .x20 (by decide), e .x21 (by decide),
-    e .x22 (by decide), e .x23 (by decide), e .x24 (by decide), e .x25 (by decide), e .x26 (by decide),
-    e .x27 (by decide)]
+  simp (disch := decide) only [hr]
   exact ⟨h1, ha, h10, h11, hk⟩
 
 /-- `Base` with its memory replaced by another that `Kept` relates to the entry's. -/
@@ -196,10 +190,8 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
   have ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨hnw, hwin0⟩, hal⟩, hwin⟩ := hpre
   -- the return
   have hRet : ∀ r m', Base env ret top regs m r m' →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 75, ret, top⟩ :: rest, r, m'⟩ := by
-    intro r m' ⟨h1, ha, h10, _, hk'⟩
-    refine TotalRv.ret hp rfl h1 ha.1 ?_
-    exact hk _ _ ⟨⟨ha, hk'.1, hk'.2.1, h10⟩, hk'.2.2⟩
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 75, ret, top⟩ :: rest, r, m'⟩ :=
+    fun _ _ ⟨h1, ha, h10, _, hk'⟩ => TotalRv.ret hp rfl h1 ha.1 (hk _ _ ⟨⟨ha, hk'.1, hk'.2.1, h10⟩, hk'.2.2⟩)
   -- the bytes after the doublewords: `x13` the next, `x12 = k` left
   have hTail : ∀ k r m', TailInv env ret top regs m k r m' →
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 66, ret, top⟩ :: rest, r, m'⟩ := by
@@ -212,13 +204,11 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
     tnorm
     tsteps hp
     have hb' := ((hb.upd (d := .x12) (by decide) (r .x12 + 18446744073709551615#64)).upd (d := .x13) (by decide)
-      (r .x13 + 1#64)).mem
-      (hb.2.2.2.2.setByte hw hlo (by omega) ((r .x11).truncate 8))
+      (r .x13 + 1#64)).mem (hb.2.2.2.2.setByte hw hlo (by omega) ((r .x11).truncate 8))
     tcond hp as hc
     · have h1 := toNat_sub_one (x := r .x12) (by omega)
       have hx := toNat_add_ofNat (a := r .x13) (k := 1) (by unfold InWin at hw; omega)
-      refine ih (k - 1) _ _ (by omega) ⟨hb', ?_, ?_, ?_, ?_⟩ <;>
-        tomega
+      refine ih (k - 1) _ _ (by omega) ⟨hb', ?_, ?_, ?_, ?_⟩ <;> tomega
     · tstep hp
       exact hRet _ _ hb'
   -- after the doublewords: `x13` their end, `x12 % 8` bytes after it
@@ -235,9 +225,7 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
       (r .x13 + (r .x12 &&& 7#64))
     tsteps hp
     tcond hp as hc
-    · exact hTail ((r .x12).toNat % 8) _ _ ⟨hb', by tnorm; exact h7, by omega,
-        by tnorm; exact hlo,
-        by tomega⟩
+    · exact hTail ((r .x12).toNat % 8) _ _ ⟨hb', by tnorm; exact h7, by omega, by tnorm; exact hlo, by tomega⟩
     · tsteps hp
       exact hRet _ _ hb'
   -- the doublewords
@@ -256,10 +244,8 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
     tnorm
     tsteps hp
     tcond hp as hc
-    · refine ih (k - 8) _ _ (by omega) ⟨hb', ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-        tomega
-    · exact hSec3 _ _ hb' (by tomega)
-        (by tomega)
+    · refine ih (k - 8) _ _ (by omega) ⟨hb', ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> tomega
+    · exact hSec3 _ _ hb' (by tomega) (by tomega)
   -- from the first doubleword boundary `x14 = dst + x13`
   have hSec2 : ∀ r m', Base env ret top regs m r m' → (r .x14).toNat % 8 = 0 →
       (r .x14).toNat = (regs .x10).toNat + (r .x13).toNat → (r .x13).toNat ≤ 7 →
@@ -277,13 +263,10 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
       omega
     tsteps hp
     tcond hp as hc
-    · exact hSec3 _ _ (Base.of_agree hb fun x h12 h13 h14 h15 h16 => by simp [updReg_apply, h12, h13])
-        (by tomega)
-        (by tomega)
+    · exact hSec3 _ _ (Base.of_agree hb (by agree)) (by tomega) (by tomega)
     · iterate 14 tstep hp
       refine hDw ((regs .x12).toNat - (r .x13).toNat - ((regs .x12).toNat - (r .x13).toNat) % 8) _ _
-        ⟨Base.of_agree hb fun x h12 h13 h14 h15 h16 => by simp [updReg_apply, h12, h13, h15, h16], ?_, ?_, ?_, ?_, ?_,
-          ?_⟩ <;> tomega
+        ⟨Base.of_agree hb (by agree), ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> tomega
   -- the bytes before the first doubleword boundary
   have hHead : ∀ k r m', HeadInv env ret top regs m k r m' →
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 16, ret, top⟩ :: rest, r, m'⟩ := by
@@ -318,8 +301,7 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
     tcond hp as hc'
     · tsteps hp
       exact hRet _ _ (Base.of_agree hb0 (by agree))
-    · exact hTail (regs .x12).toNat _ _ ⟨Base.of_agree hb0 (by agree), by tnorm, by omega, by tomega,
-        by tomega⟩
+    · exact hTail (regs .x12).toNat _ _ ⟨Base.of_agree hb0 (by agree), by tnorm, by omega, by tomega, by tomega⟩
   -- at least 16: the bytes to a doubleword boundary, the doublewords, the bytes after them
   · have h13 := toNat_neg_and7 (regs .x10)
     have hx : (regs .x10 + (0#64 - regs .x10 &&& 7#64)).toNat =
@@ -356,13 +338,7 @@ theorem tail_total {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfundef (Op Reg
     (fun _ _ _ _ h => h.elim) fun r' m' ⟨⟨hr, hf, hs', hq⟩, hcode⟩ => hk _ _ ⟨⟨?_, ⟨hf.1, hf.2.1, ?_⟩, hs',
       hpost _ _ _ _ hq⟩, hcode⟩
   · simpa [AbiRegs, updReg_apply] using hr
-  · intro a ha
-    refine hf.2.2 a fun hw => ha ?_
-    rcases hw with hw | hw | hw | hw
-    · exact Or.inl hw
-    · exact Or.inr (Or.inl hw)
-    · exact Or.inr (Or.inr (Or.inl hw))
-    · exact Or.inr (Or.inr (Or.inr (hout _ _ _ hw)))
+  · exact fun a ha => hf.2.2 a fun hw => ha (hw.imp_right (·.imp_right (·.imp_right (hout _ _ _))))
 
 /-- **The C wrapper `memset` is total**, from `compiler_builtins`' `memset`. -/
 theorem memset_total {p : Lprog (Op Reg) Reg} {i need : Nat} (L : Rv64mc.Gen.Memset.Link)

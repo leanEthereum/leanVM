@@ -90,7 +90,6 @@ theorem total (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : Abo
     exact BitVec.eq_of_toNat_eq hc
   -- the next word: `q` the slice's pointer, `l ≠ 0` its length
   · have hl0 : m.getMem (regs .x10 + 8#64) ≠ 0 := fun h => hc (by rw [h]; rfl)
-    have hl1 : 1 ≤ (m.getMem (regs .x10 + 8#64)).toNat := Nat.one_le_iff_ne_zero.2 hc
     have ⟨hqlo, hqal, hqhi⟩ := hsl hc
     have hwq : inWindow (m.getMem (regs .x10)) 8 = true := hwin.heapObj hqlo (by omega)
     tsteps hp

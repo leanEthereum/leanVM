@@ -109,14 +109,10 @@ theorem ult_eq_false : a.ult b = false ↔ b.toNat ≤ a.toNat := by simp [BitVe
 theorem not_ult_eq_true : (!a.ult b) = true ↔ b.toNat ≤ a.toNat := by simp [BitVec.ult]
 theorem not_ult_eq_false : (!a.ult b) = false ↔ a.toNat < b.toNat := by simp [BitVec.ult]
 
-theorem beq_zero_eq_true : (a == BitVec.ofInt 64 0) = true ↔ a.toNat = 0 := by
-  simp [← BitVec.toNat_inj]
-theorem beq_zero_eq_false : (a == BitVec.ofInt 64 0) = false ↔ a.toNat ≠ 0 := by
-  simp [← BitVec.toNat_inj]
-theorem bne_zero_eq_true : (a != BitVec.ofInt 64 0) = true ↔ a.toNat ≠ 0 := by
-  simp [← BitVec.toNat_inj]
-theorem bne_zero_eq_false : (a != BitVec.ofInt 64 0) = false ↔ a.toNat = 0 := by
-  simp [← BitVec.toNat_inj]
+theorem beq_zero_eq_true : (a == BitVec.ofInt 64 0) = true ↔ a.toNat = 0 := by simp [← BitVec.toNat_inj]
+theorem beq_zero_eq_false : (a == BitVec.ofInt 64 0) = false ↔ a.toNat ≠ 0 := by simp [← BitVec.toNat_inj]
+theorem bne_zero_eq_true : (a != BitVec.ofInt 64 0) = true ↔ a.toNat ≠ 0 := by simp [← BitVec.toNat_inj]
+theorem bne_zero_eq_false : (a != BitVec.ofInt 64 0) = false ↔ a.toNat = 0 := by simp [← BitVec.toNat_inj]
 
 end Rv64mc.TotalRv
 
