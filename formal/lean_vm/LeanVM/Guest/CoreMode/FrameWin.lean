@@ -6,10 +6,9 @@ public import LeanVM.Guest.CoreMode.FramePass
 # A long function's frame walk, from its windows
 
 A long function's walk is checked in windows (`frameWin`), from the cut at each inner bound to the
-next; `framePass_of_wins` chains them into the whole pass (`FramePassOk`), and `frameAcc_of_wins` adds the
-oracle, checked once (`FrameAcc`). At a cut the pass goes on
-from the cut's state whatever it had (`cutF`), so the windows' runs are the pass's
-(`frameRunH_cut`).
+next; `framePass_of_wins` chains them into the whole pass (`FramePassOk`), and `frameAcc_of_wins`
+adds the oracle, checked once (`FrameAcc`). At a cut the pass goes on from the cut's state whatever
+it had (`cutF`), so the windows' runs are the pass's (`frameRunH_cut`).
 -/
 
 namespace LeanVM.Guest.CoreMode
