@@ -86,19 +86,14 @@ private theorem mem_foldl_addAt (e : Ev) {m : ℕ} (hm : m + 1 < 2 ^ Exec.indexD
       x ∈ (getF (ks.foldl (addAt e) t) m).getD [] ↔ x ∈ (getF t m).getD [] ∨ (x = e ∧ m ∈ ks)
   | [], t, x => by simp
   | k :: ks, t, x => by
-    rw [List.foldl_cons, mem_foldl_addAt e hm ks]
-    unfold addAt
-    by_cases hk : k + 1 < 2 ^ Exec.indexDepth
-    · have hb : Nat.blt (k + 1) (2 ^ Exec.indexDepth) = true := Nat.blt_eq.mpr hk
-      rw [hb, Bool.cond_true, getF_setF' hk]
+    rw [List.foldl_cons, mem_foldl_addAt e hm ks, addAt]
+    cases hb : Nat.blt (k + 1) (2 ^ Exec.indexDepth)
+    · have hmk : m ≠ k := by rintro rfl; rw [Nat.blt_eq.mpr hm] at hb; cases hb
+      simp only [Bool.cond_false, List.mem_cons, hmk, false_or]
+    · rw [Bool.cond_true, getF_setF' (Nat.blt_eq.mp hb)]
       by_cases hmk : m = k
       · subst hmk; simp only [↓reduceIte, Option.getD_some, List.mem_cons]; tauto
       · simp only [hmk, ↓reduceIte, List.mem_cons, false_or]
-    · have hb : Nat.blt (k + 1) (2 ^ Exec.indexDepth) = false := by
-        rw [Bool.eq_false_iff, ne_eq, Nat.blt_eq]; exact hk
-      have hmk : m ≠ k := fun h ↦ hk (h ▸ hm)
-      rw [hb, Bool.cond_false]
-      simp only [List.mem_cons, hmk, false_or]
 
 /-- **The index**: a key below the depth reads the events named by it, added to what it read. -/
 theorem mem_evIdx {m : ℕ} (hm : m + 1 < 2 ^ Exec.indexDepth) :
@@ -107,37 +102,22 @@ theorem mem_evIdx {m : ℕ} (hm : m + 1 < 2 ^ Exec.indexDepth) :
   | [], t, x => by simp [evIdx]
   | e :: sp, t, x => by
     simp only [evIdx, Trie.seq_eq]
-    rw [mem_evIdx hm sp, mem_foldl_addAt e hm]
-    constructor
-    · rintro ((h | ⟨rfl, h⟩) | ⟨h1, h2⟩)
-      · exact Or.inl h
-      · exact Or.inr ⟨List.mem_cons_self, h⟩
-      · exact Or.inr ⟨List.mem_cons_of_mem _ h1, h2⟩
-    · rintro (h | ⟨h1, h2⟩)
-      · exact Or.inl (Or.inl h)
-      · rcases List.mem_cons.mp h1 with rfl | h1
-        · exact Or.inl (Or.inr ⟨rfl, h2⟩)
-        · exact Or.inr ⟨h1, h2⟩
+    rw [mem_evIdx hm sp, mem_foldl_addAt e hm, List.mem_cons]
+    rcases eq_or_ne x e with rfl | hx
+    · tauto
+    · simp only [hx, false_and, or_false, false_or]
 
 /-- **A scan for `v` over its events is the scan over the spine**, when every event the scan accepts
 names `v`. -/
 private theorem any_evAt {sp : List Ev} {v : V} {P : Ev → Bool} (hP : ∀ e, P e = true → v.idx ∈ evKeys e) :
     (evAt sp (evIdx sp .nil) v).any P = sp.any P := by
   unfold evAt
-  by_cases hk : v.idx + 1 < 2 ^ Exec.indexDepth
-  · rw [Nat.blt_eq.mpr hk, Bool.cond_true]
-    apply Bool.eq_iff_iff.mpr
-    simp only [List.any_eq_true]
-    constructor
-    · rintro ⟨e, he, hp⟩
-      rcases (mem_evIdx hk sp .nil e).mp he with h | ⟨h, -⟩
-      · exact absurd (show e ∈ ([] : List Ev) from h) List.not_mem_nil
-      · exact ⟨e, h, hp⟩
-    · rintro ⟨e, he, hp⟩
-      exact ⟨e, (mem_evIdx hk sp .nil e).mpr (Or.inr ⟨he, hP e hp⟩), hp⟩
-  · have hb : Nat.blt (v.idx + 1) (2 ^ Exec.indexDepth) = false := by
-      rw [Bool.eq_false_iff, ne_eq, Nat.blt_eq]; exact hk
-    rw [hb, Bool.cond_false]
+  cases hb : Nat.blt (v.idx + 1) (2 ^ Exec.indexDepth)
+  · rfl
+  · rw [Bool.cond_true, Bool.eq_iff_iff]
+    simp only [List.any_eq_true, mem_evIdx (Nat.blt_eq.mp hb)]
+    exact exists_congr fun e ↦ ⟨fun ⟨h, hp⟩ ↦ ⟨(h.resolve_left List.not_mem_nil).1, hp⟩,
+      fun ⟨h, hp⟩ ↦ ⟨.inr ⟨h, hP e hp⟩, hp⟩⟩
 
 end
 
@@ -183,13 +163,11 @@ private theorem pinNz_key (v : V) : ∀ e, pinNz v e = true → v.idx ∈ evKeys
   | .call g args rets, h => by
     simp only [pinNz, upAt, List.any_eq_true, Bool.and_eq_true] at h
     obtain ⟨c, -, hw, -⟩ := h
-    revert hw
-    cases hc : (args ++ rets)[c.2]? with
-    | none => simp
-    | some w =>
-      intro hw
+    split at hw
+    next w hc =>
       simp only [veq, Bool.and_eq_true, beq_iff_eq] at hw
       exact List.mem_map.mpr ⟨w, List.mem_of_getElem? hc, hw.1⟩
+    next => cases hw
   | .inK _, h | .skip .., h => by simp [pinNz] at h
 
 theorem kIn0_congr (h : ScanEq l₁ l₂) (kv : List V) (v : V) : kIn0 l₁ kv v = kIn0 l₂ kv v := by
@@ -201,7 +179,7 @@ theorem kIn1_congr (h : ScanEq l₁ l₂) (kv : List V) (v : V) : kIn1 l₁ kv v
   exact h.any (by ev_eq [kIn0_congr h]) (by ev_key [])
 
 theorem kIn_congr (h : ScanEq l₁ l₂) (kv : List V) : ∀ n v, kIn l₁ kv n v = kIn l₂ kv n v
-  | 0, v => by rw [kIn, kIn, h v _ (by ev_key [pinIn])]
+  | 0, v => kIn0_congr h kv v
   | n + 1, v => by
     rw [kIn, kIn, h v _ (by ev_key [pinIn])]
     congr 1
@@ -238,10 +216,9 @@ theorem tabNz_congr (h : ScanEq l₁ l₂) (nz : V → Bool) (p : V) (off : ℕ)
 theorem nzOf_congr (h : ScanEq l₁ l₂) (kv : List V) : ∀ n v, nzOf l₁ kv n v = nzOf l₂ kv n v
   | 0, v => by rw [nzOf, nzOf, h v _ (pinNz_key v)]
   | n + 1, v => by
-    have ih : nzOf l₁ kv n = nzOf l₂ kv n := funext (nzOf_congr h kv n)
     rw [nzOf, nzOf, h v _ (pinNz_key v)]
     congr 1
-    exact h.any (by ev_eq [ih, kIn_congr h, tabNz_congr h]) (by ev_key [])
+    exact h.any (by ev_eq [funext (nzOf_congr h kv n), kIn_congr h, tabNz_congr h]) (by ev_key [])
 
 end Congr
 

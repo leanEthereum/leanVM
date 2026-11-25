@@ -162,8 +162,6 @@ def kIn (kv : List V) : ℕ → V → Bool
       | .atom (.add d a b) => veq d v && kIn1 look kv a && kIn1 look kv b
       | _ => false
 
-end Scan
-
 /-- A call's word `v` pinned by its callee: the position of `v` among the call's words listed for
 the callee (`nzUp`). -/
 def upAt (g : String) (ws : List V) (v : V) : Bool :=
@@ -180,10 +178,6 @@ def pinNz (v : V) : Ev → Bool
   | .atom (.rangeCheck x y _ _ _) => veq x v || veq y v
   | .call g args rets => upAt g (args ++ rets) v
   | _ => false
-
-section Scan
-
-variable (look : V → List Ev)
 
 /-- The exponent of a word of `K` the guest's powers name. -/
 noncomputable def powOf (w : LeanVM.Parameters.E) : Option ℕ :=
@@ -208,7 +202,7 @@ noncomputable def tabNz (nz : V → Bool) (p : V) (off : ℕ) : Bool :=
     | .atom (.mul q a b) => veq q p && (tabAt look nz a b off || tabAt look nz b a off)
     | _ => false
 
-/-- **`v` nonzero in `K`**: a listed value, pinned by an event of `sp`, a product of such, a factor
+/-- **`v` nonzero in `K`**: a listed value, pinned by an event of `look v`, a product of such, a factor
 of such by a value in `K`, a copy (an `assertEq` too), or a table read (`tabNz`), `n` deep. -/
 noncomputable def nzOf (kv : List V) : ℕ → V → Bool
   | 0, v => kv.any (veq · v) || (look v).any (pinNz v)

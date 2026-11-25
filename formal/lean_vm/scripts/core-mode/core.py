@@ -437,8 +437,7 @@ def long_loop(k, j, hp, frame_mod, gl):
     # (`CLit`: `pair.py`'s `ALit`, the chunks' lengths), by `CoreMode.cw_of_slice` (`CoreMode/LoopWinS.lean`)
     from pair import alit_mod, cut_of
     amod = alit_mod(k) if len(cb) > 2 and ctx == 'alignCtxP' else None
-    sliced = amod is not None
-    if sliced:
+    if amod:
         clens = AL.functions()[k]['clens']
         files['CLit'] = (hdr('CLit', f'`{k}`\'s code windows\' data: its chunks\' lengths and its core data with the '
                              'alignment context\'s tries stated once.') +
@@ -453,13 +452,13 @@ def long_loop(k, j, hp, frame_mod, gl):
         a, b = cb[i], cb[i + 1]
         stmt = (f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
                 f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true :=')
-        if sliced:
+        if amod:
             body = (f'\n  CoreMode.cw_of_slice (ca := {cut_of(clens, a)}) (cb := {cut_of(clens, b)})\n'
                     f'    (by rw [Fn.«{k}».clens_eq]; decide +kernel) (by rw [Fn.«{k}».cfun_lit]; decide +kernel)\n')
         else:
             body = ' by\n  decide +kernel\n'
         files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') +
-                           (f'public import {base}.CLit\n' if sliced else imp) + ns(stmt + body))
+                           (f'public import {base}.CLit\n' if amod else imp) + ns(stmt + body))
         cimps.append(f'{base}.CW{i}')
         cws.append(f'Fn.«{k}».cw{i}')
     pairs = lambda m: lst(f'({x}, {y})' for x, y in m)
