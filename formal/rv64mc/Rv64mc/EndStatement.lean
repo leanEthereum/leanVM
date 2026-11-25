@@ -11,6 +11,9 @@ statement's verifier `verifyWith` over Keccak-f[1600] accepts. `AllDecode image`
 instruction the machine runs, so that no word the decoder cannot read, and no `EBREAK` or `CSRS`, makes `Sound`
 hold by stopping the machine. The end theorem is `rv64_sound` (`Final/End.lean`), `AllDecode image ∧ Sound image`
 for the concrete image; until `main`'s proof lands, `main`'s contract (`MainSpec`) is its one hypothesis.
+`HaltsSafely image`: on every input of fewer than `maxInputWords` words, the loaded image runs, every step taken by
+`step`, to the halting `ECALL` with `a0` one of the guest's verdicts. Its end theorem is `rv64_halts_of_main`
+(`Final/EndT.lean`), with `main`'s total contract (`MainSpecT`) its one hypothesis until that is proved.
 
 ## The loader (`Loaded`)
 
@@ -32,7 +35,8 @@ other memory word and register is arbitrary (`_start` sets `sp` and `gp` itself)
   stop it too.
 A machine that continues where this one stops (one that runs system calls, allows misaligned or out-of-window
 accesses, or loads from code) can accept runs this statement says nothing about. `TrapFree` names the theorem that
-would close this: every loaded run stops only at the halting `ECALL`. It is not proved.
+would close this: every loaded run stops only at the halting `ECALL`. It is not proved; `HaltsSafely` implies it for
+the inputs it covers (`stops_at_halt`, `Final/HaltsSafely.lean`).
 
 ## Weaker than #738, or than intent
 
@@ -42,8 +46,11 @@ would close this: every loaded run stops only at the halting `ECALL`. It is not 
 * Word operations: #738's machine executes all RV64IM 32-bit operations; here those outside `Instr` stop it, and
   `AllDecode` must hold of the image instead.
 * The verdict is `a0 = 0` (#738: `1`).
-* Soundness only, and partial: no completeness (#738 names `Complete` but never defines it), no termination; a run
-  that stops elsewhere or never halts is not constrained.
+* No completeness (#738 names `Complete` but never defines it). `Sound` is partial: a run that stops elsewhere or
+  never halts is not constrained by it. `HaltsSafely` adds termination at a verdict, but only for inputs of fewer
+  than `maxInputWords` words, and with any of the three verdicts: an accepted proof may be answered `1` or `2` (the
+  guest aborts with `2` when memory runs out), so it is not completeness either. It bounds no number of steps. Its
+  end theorem is conditional on `MainSpecT`, which is not proved.
 * The image is the build of `scripts/nostd-verifier.sh`'s `no_std` copy of `crates/verifier`, with the inline
   attributes it inserts (`boundaries.txt`), and `guest/`; the end theorem is about the ELF whose sha256 is
   `image.sha256`, read by `Rv64mc/ImageOfElf.lean`.
@@ -214,5 +221,17 @@ def Sound (img : Image) : Prop :=
 def TrapFree (img : Image) : Prop :=
   ∀ words s n t, Loaded img words s → steps n s = some t → step t = none →
     t.code t.pc = some .ECALL ∧ t.getReg .x5 = 0
+
+/-- The inputs `HaltsSafely` covers: fewer than `2^16` words (512 KiB). -/
+def maxInputWords : Nat := 2 ^ 16
+
+/-- **Every run ends at a verdict**: on every input of fewer than `maxInputWords` words, the loaded image takes `n`
+    steps of `step` (so none of them traps, accesses memory outside SP1's checks or the windows, meets a missing or
+    undecodable word, or is an `ECALL` other than the last) and is then at the halting `ECALL` (`t0 = 0`), with `a0`
+    the guest's acceptance `0`, rejection `1` or abort `2`. Since `step` is a function and stops at every `ECALL`,
+    that run is the only one (`Final/HaltsSafely.lean`). Says nothing of which verdict, nor of larger inputs. -/
+def HaltsSafely (img : Image) : Prop :=
+  ∀ words s, words.length < maxInputWords → Loaded img words s →
+    ∃ n v, Halts s n v ∧ (v = 0 ∨ v = 1 ∨ v = 2)
 
 end Rv64mc
