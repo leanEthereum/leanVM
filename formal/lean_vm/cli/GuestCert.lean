@@ -1528,11 +1528,11 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     | none => listText (a.map toString)
   let armsDefs := if !manyArms then "" else
     String.join (tabs.toList.zipIdx.map fun (a, k) =>
-      s!"/-- `{f.name}`: a table's arms. -/\nnoncomputable def cert{j}_t{k} : List ℕ := data% " ++
-        "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
+      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := data% (" ++
+        " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
     -- by offset: the executor looks up a table jump's arms in the trie, not along the list
     s!"/-- `{f.name}`: the table jumps' arms, by offset. -/\n" ++
-    s!"noncomputable def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  data% {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
+    s!"def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  data% {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
   let armsT := if manyArms then "[], armsT := " ++ s!"cert{j}_armsT"
     else listText (armsL.map fun (i, a) => s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
@@ -1577,7 +1577,7 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     locDefs := locDefs ++ String.join ((chunks.zipIdx.reverse).map fun (l, c) =>
       let tl := if c + 1 < nc then s!"cert{j}_w{w}_{c + 1}" else "[]"
       s!"/-- `{f.name}`: window {w}'s cells, of values {los[w]! + c * locChunk} on. -/\n" ++
-      s!"noncomputable def cert{j}_w{w}_{c} : List ℕ := data% " ++
+      s!"def cert{j}_w{w}_{c} : List ℕ := data% " ++
         (if nc == 1 then litOf l else "(" ++ " :: ".intercalate (l.map toString) ++ s!" :: {tl})") ++
         "\n\n") ++ winMark
     cellT := cellT.push (if chunks.isEmpty then "[]" else s!"cert{j}_w{w}_0")
@@ -4336,7 +4336,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
     "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
     "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n" ++ preamble ++
     "/-- The parts of each window, by function (`Fn.«name».parts`) and window. -/\n" ++
-    "def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
+    "noncomputable def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
     refRows ((List.range n).map fun i => s!"Fn.«{infos[i + 1]!.key}».parts") 4 ++ " []\n" ++ tail
   let snapsIndex := header "Snaps" "The sharing check's snapshots, by compiled function index." ++
     bundles ++ "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++

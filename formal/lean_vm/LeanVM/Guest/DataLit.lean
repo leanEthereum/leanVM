@@ -22,7 +22,8 @@ elaborator writes it (`OfNat.ofNat ℕ n (instOfNatNat n)`); a string; a list `[
 tuple `(a, b, …)`.
 Anything else is elaborated as usual. Nothing here is trusted: the kernel checks the definition's
 value against its type, and the certificates check the values against the statement's data
-(`Checked/Link*`).
+(`Checked/Link*`). It is for the proofs' generated data only: the statement's data
+(`formal/Statement/`) stays plain Lean.
 -/
 
 namespace LeanVM.Guest.DataLit
@@ -44,6 +45,29 @@ def elabUsual (stx : Syntax) (ty : Expr) : TermElabM Expr := do
 partial def consChain (stx : Syntax) (acc : Array Syntax := #[]) : Array Syntax × Syntax :=
   if stx.getKind == `«term_::_» then consChain stx[2] (acc.push stx[0]) else (acc, stx)
 
+/-- `t` if it is a `∀`, else its weak head normal form. -/
+def whnfPi (t : Expr) : MetaM Expr := if t.isForall then pure t else whnf t
+
+/-- The constant `.id` names at type `ty`, as the elaborator resolves it: in the namespace of the
+type's head, then of each unfolding. -/
+partial def dotName (id : Name) (ty : Expr) : MetaM (Option Name) := do
+  let ty ← instantiateMVars ty
+  if let .const I _ := ty.cleanupAnnotations.getAppFn then
+    if (← getEnv).contains (I ++ id) then return some (I ++ id)
+  let some ty ← unfoldDefinition? ty | return none
+  dotName id (← whnfCore ty)
+
+/-- Constant `c` at type `ty`, and its type: a constructor of `ty`'s inductive type applied to `ty`'s
+parameters, or a constant without universe parameters. -/
+def constAt (c : Name) (ty : Expr) : MetaM (Option (Expr × Expr)) := do
+  let some ci := (← getEnv).find? c | return none
+  let .ctorInfo v := ci | return if ci.levelParams.isEmpty then some (.const c [], ci.type) else none
+  let ty ← whnfR ty
+  let .const I us := ty.getAppFn | return none
+  unless I == v.induct && ty.getAppNumArgs == v.numParams do return none
+  let ps := ty.getAppArgs
+  return some (mkAppN (.const c us) ps, ← instantiateForall (ci.instantiateTypeLevelParams us) ps)
+
 mutual
 
 /-- `stx` built at type `ty`, or elaborated as usual where it is not a data literal. -/
@@ -62,10 +86,10 @@ partial def tryBuild (stx : Syntax) (ty : Expr) : TermElabM (Option Expr) := do
   if let some s := stx.isStrLit? then
     return if (← whnfR ty).isConstOf ``String then some (mkStrLit s) else none
   if k == `«term[_]» then
-    return ← listOf (stx[1].getSepArgs.map Sum.inl) (← whnfR ty)
+    return ← listOf stx[1].getSepArgs none (← whnfR ty)
   if k == `«term_::_» then
     let (xs, tl) := consChain stx
-    return ← listOf (xs.map Sum.inl |>.push (Sum.inr tl)) (← whnfR ty)
+    return ← listOf xs tl (← whnfR ty)
   if k == ``Lean.Parser.Term.tuple then
     if stx[1].getNumArgs == 0 then return none
     return ← tupleOf (#[stx[1][0]] ++ stx[1][2].getSepArgs) (← whnfR ty)
@@ -76,29 +100,23 @@ partial def tryBuild (stx : Syntax) (ty : Expr) : TermElabM (Option Expr) := do
     let [c] := v.ctors | return none
     return ← appConst c stx[1].getSepArgs ty
   let (f, args) := if k == ``Lean.Parser.Term.app then (stx[0], stx[1].getArgs) else (stx, #[])
-  if args.any fun a ↦ a.getKind == ``Lean.Parser.Term.namedArgument || a.getKind == ``Lean.Parser.Term.ellipsis then
+  if args.any fun a ↦ a.getKind matches ``Lean.Parser.Term.namedArgument | ``Lean.Parser.Term.ellipsis then
     return none
   if f.getKind == ``Lean.Parser.Term.dotIdent then
-    let ty ← whnfR ty
-    let .const I _ := ty.getAppFn | return none
-    return ← appConst (I ++ f[1].getId.eraseMacroScopes) args ty
+    let some c ← dotName f[1].getId.eraseMacroScopes ty | return none
+    return ← appConst c args ty
   if f.isIdent then
     let some c ← (try some <$> realizeGlobalConstNoOverload f catch _ => pure none) | return none
     return ← appConst c args ty
   return none
 
-/-- The list of the elements `xs` (each a term, or the list it ends in) at type `ty`. -/
-partial def listOf (xs : Array (Sum Syntax Syntax)) (ty : Expr) : TermElabM (Option Expr) := do
-  unless ty.isAppOfArity ``List 1 do return none
-  let .const _ us := ty.getAppFn | return none
-  let α := ty.appArg!
-  let mut l := mkApp (.const ``List.nil us) α
-  let mut rest := xs
-  if let some (.inr tl) := xs.back? then
-    l ← build tl ty
-    rest := xs.pop
-  for x in rest.reverse do
-    let .inl a := x | return none
+/-- The list of the elements `xs` followed by the list `tl` (`[]` if absent) at type `ty`. -/
+partial def listOf (xs : Array Syntax) (tl : Option Syntax) (ty : Expr) : TermElabM (Option Expr) := do
+  let .app (.const ``List us) α := ty | return none
+  let mut l ← match tl with
+    | some tl => build tl ty
+    | none => pure (mkApp (.const ``List.nil us) α)
+  for a in xs.reverse do
     l := mkApp3 (.const ``List.cons us) α (← build a α) l
   return some l
 
@@ -106,35 +124,22 @@ partial def listOf (xs : Array (Sum Syntax Syntax)) (ty : Expr) : TermElabM (Opt
 partial def tupleOf (xs : Array Syntax) (ty : Expr) : TermElabM (Option Expr) := do
   let some x := xs[0]? | return none
   if xs.size == 1 then return some (← build x ty)
-  unless ty.isAppOfArity ``Prod 2 do return none
-  let .const _ us := ty.getAppFn | return none
-  let some r ← tupleOf (xs.extract 1 xs.size) (← whnfR ty.appArg!) | return none
-  return some (mkApp4 (.const ``Prod.mk us) ty.appFn!.appArg! ty.appArg! (← build x ty.appFn!.appArg!) r)
+  let .app (.app (.const ``Prod us) α) β := ty | return none
+  let some r ← tupleOf (xs.extract 1) (← whnfR β) | return none
+  return some (mkApp4 (.const ``Prod.mk us) α β (← build x α) r)
 
-/-- Constant `c` applied to `args` at type `ty`: a constructor of `ty`'s inductive type after its
-parameters, or a constant without universe parameters; each argument at its binder's type, the
-binders after the parameters exactly the arguments, all explicit. -/
+/-- Constant `c` applied to `args` at type `ty` (`constAt`), each argument at its binder's type, the
+binders after the type's parameters exactly the arguments, all explicit. -/
 partial def appConst (c : Name) (args : Array Syntax) (ty : Expr) : TermElabM (Option Expr) := do
-  let some ci := (← getEnv).find? c | return none
-  let some (f, fty) ← (match ci with
-    | .ctorInfo v => do
-      let ty ← whnfR ty
-      let .const I us := ty.getAppFn | return none
-      unless I == v.induct && ty.getAppNumArgs == v.numParams do return none
-      let ps := ty.getAppArgs
-      return some (mkAppN (.const c us) ps, ← instantiateForall (ci.instantiateTypeLevelParams us) ps)
-    | _ => return if ci.levelParams.isEmpty then some (.const c [], ci.type) else none
-    : TermElabM (Option (Expr × Expr))) | return none
+  let some (f, fty) ← constAt c ty | return none
   let mut e := f
   let mut t := fty
   for a in args do
-    let t' ← if t.isForall then pure t else whnf t
-    let .forallE _ d b bi := t' | return none
-    unless bi.isExplicit do return none
+    let .forallE _ d b .default ← whnfPi t | return none
     let x ← build a d
     e := mkApp e x
     t := b.instantiate1 x
-  if (← if t.isForall then pure t else whnf t).isForall then return none
+  if (← whnfPi t).isForall then return none
   return some e
 
 end

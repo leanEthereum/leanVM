@@ -334,7 +334,7 @@ _TEXTS = {}
 def read_text(p):
     if p not in _TEXTS:
         with open(p, encoding='utf-8') as fh:
-            _TEXTS[p] = fh.read()
+            _TEXTS[p] = fh.read().replace('data% ', '')  # the data literals' `data%` (`Guest/DataLit.lean`)
     return _TEXTS[p]
 
 
