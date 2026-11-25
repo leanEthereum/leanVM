@@ -385,7 +385,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
         | tail e _ hpc' => rw [hpc', hok.fentry, ← hok.xentry] at hpco; omega
         | call G t _ _ hG _ _ _ =>
           have h := List.all_eq_true.mp hsout o (List.mem_range.mpr (by rw [hlen]; exact hol))
-          simp only [Bool.or_eq_true, Nat.beq_eq] at h
+          simp only [Bool.or_eq_true, Nat.beq_eq, getQ_eq] at h
           rcases h with h | h
           · omega
           rw [hpco, hok.xentry, ← hok.fentry] at hG

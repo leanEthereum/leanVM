@@ -218,9 +218,6 @@ structure LoopWins (K : Mode.Cert) (Cf : CFun) (ml : List (ℕ × ℕ)) (cs : Li
   rest : loopShapeRest Cf = true
   ptr : (Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty || stmtsAll rdFree Cf.fn.body) = true
 
-theorem stmtsOf_all_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) :
-    (stmtsOf l).all p = true := List.all_eq_true.mpr h
-
 /-- **The fields of `LoopOkC` the windows give.** -/
 theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} {cs : List (ℕ × List (ℕ × ℕ))}
     {ccs : List ℕ} (h : LoopWins K Cf ml cs ccs) :
@@ -266,7 +263,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     | _ => rfl
   obtain ⟨-, htg, hjt⟩ := cwins_spec le_rfl hc
   rw [slice_all] at htg hjt
-  refine ⟨hBB, stmtsAll_of fun s hs ↦ ?_, ?_, ?_, stmtsAll_of fun s hs ↦ ?_, ?_,
+  refine ⟨hBB, stmtsAll_of fun s hs ↦ ?_, ?_, ?_, stmtsAll_of fun s hs ↦ ?_, stmtsAll_of fun s hs ↦ ?_,
     ?_, ?_, ?_⟩
   · rcases hall s hs with ⟨hbw, hp⟩ | rfl | rfl
     · cases s with
@@ -299,9 +296,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   · have := hP s hs
     simp only [winP, Bool.and_eq_true] at this
     exact this.1.2
-  · rw [noFA_eq]
-    refine stmtsOf_all_of fun s hs ↦ ?_
-    have := hP s hs
+  · have := hP s hs
     cases s with
     | atom a =>
       cases a with
@@ -327,7 +322,7 @@ theorem nzr_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} {cs : L
   have hr := h.rest
   rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
   unfold nzrOk
-  exact List.all_eq_true.mpr fun i _ ↦ by rw [trieNil_get hr.1.2]
+  exact List.all_eq_true.mpr fun i _ ↦ by rw [getQ_eq, trieNil_get hr.1.2]
 
 end
 

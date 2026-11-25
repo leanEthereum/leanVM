@@ -56,8 +56,8 @@ noncomputable def postGo (X : HX) (post : List (CCell × Wit)) : List Stmt → H
   | .ret _ :: _, st => post.all fun p ↦ witOk X.pre st.sc (substC st.env p.1) p.2
   | _, _ => false
 
-/-- **The heap guarantees' check** of a function: the heap check's pass to its `ret`, each promised cell
-witnessed there. -/
+/-- **The heap guarantees' check** of a function: no promised cell, or the heap check's pass to its `ret`, each
+promised cell witnessed there. -/
 noncomputable def postOk (pows : PowTree) (H : HCert) (post : List (CCell × Wit)) (body : List Stmt) : Bool :=
   post.isEmpty || H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ postGo ⟨pows, R, P⟩ post body ⟨.nil, .nil, 0⟩
 

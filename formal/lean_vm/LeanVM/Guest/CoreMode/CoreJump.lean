@@ -225,7 +225,7 @@ theorem tgtGo_at {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : Li
         Cf.frame.arms.get k = some ts ∧ armsCover Cf.X Cf.frame.entry ml a ts = true)
   | _, [], _, _, _, _, _, _, h, _ => by simp at h
   | n, ins :: code, h, i, k, oc, od, of, hi, ht => by
-    simp only [tgtGo, Bool.and_eq_true] at h
+    simp only [tgtGo, getQ_eq, Bool.and_eq_true] at h
     cases i with
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
@@ -253,7 +253,7 @@ theorem tgtGo_none {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : 
       Cf.frame.tgt.get (n + i) = none → dspSite Cf.X od of = false
   | _, [], h, _, _, _, _, hi, _ => by simp at hi
   | n, ins :: code, h, i, oc, od, of, hi, ht => by
-    simp only [tgtGo, Bool.and_eq_true] at h
+    simp only [tgtGo, getQ_eq, Bool.and_eq_true] at h
     cases i with
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
@@ -1418,6 +1418,7 @@ theorem nzr_hnz {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : C
     ∀ o ∈ (Cf.frame.nzr.get i).getD [], ∃ v, Rd img s.fp o = some v ∧ v ≠ 0 := by
   intro o ho
   have h := List.all_eq_true.mp hn i (List.mem_range.mpr hi)
+  rw [getQ_eq] at h
   cases hz : Cf.frame.nzr.get i with
   | none => rw [hz] at ho; cases ho
   | some os =>
