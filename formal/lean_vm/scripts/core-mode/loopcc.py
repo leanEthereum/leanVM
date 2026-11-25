@@ -238,7 +238,6 @@ def windows(R, po):
             continue
         gen = dict(root='LeanVM.Guest.CoreMode.GenWL', sub='HeapWL', final='heap_okW',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0]],
-                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})',
                    names=sorted(R[k]['cs']))
         for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENWL, k, name + '.lean')] = text
