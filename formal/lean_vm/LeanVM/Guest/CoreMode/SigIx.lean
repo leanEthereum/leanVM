@@ -15,8 +15,8 @@ public import LeanVM.Guest.CoreMode.Defs
 A heap check reads a callee's signature at each call and several times for each arm of a dispatch,
 through `fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {}` (`heapwin.py`'s
 `sigW`): a scan of the callee list comparing strings. The kernel compares two strings byte by byte
-through their UTF-8 encodings, a few milliseconds each, so a dispatch over a hundred arms whose
-callee list holds a hundred names spends most of its check there. `strKey` reads a string's bytes as
+through their UTF-8 encodings, so a dispatch over many arms whose callee list holds many names
+spends most of its check there. `strKey` reads a string's bytes as
 one number (base 256, a leading `1`), which is injective (`strKey_inj`), so the same lookup compares
 numbers (`sigK`) once each name's key is known: one key per lookup, the callee list's keys stated
 once (`sigK_eq`).
