@@ -39,12 +39,12 @@ frame run (`addr`) its consecutive cells.
 A `match` of many straight-line arms (`__loop2_main`'s dispatches on a codeword, `256` inlined arms)
 naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
 its three checks are split into groups of `armGroup` arms, sized by the values they name, the
-sharing check's and the completeness check's smaller (`splitArms`, `splitGroups`, `shareGroup`, `cplVals`;
-`Check.checkWinS`, `B2C.shareWinS`, `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
-check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
-computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2_main`'s, whose arms jump to
-the next one's) as well. The kernel's time on one
-declaration grows faster than its work, so many small checks beat one large one. A certificate too
+sharing check's and the completeness check's smaller (`splitArms`, `splitGroups`, `shareGroup`,
+`cplVals`; `Check.checkWinS`, `B2C.shareWinS`, `B2C.cplWinS`), each group a module (`Checked/G*`,
+`B2C/Shared/H*`, `B2C/Cplw/D*`), the window's check from them in another (`Checked/F*`,
+`B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share computed once (`Checked/X*`, `B2C.winPre`),
+chained `match`es (`__loop2_main`'s, whose arms jump to the next one's) as well. The kernel's time
+on one declaration grows faster than its work, so many small checks beat one large one. A certificate too
 large for one module has its cells in modules of their own (`Pack/<name>/Cells{k}`). The checks
 of a function's windows over its view import its pack's data and core IR and its callees'
 signature packs only, so an edit of a function that keeps its length rebuilds its pack, the links
@@ -3036,7 +3036,7 @@ def splitArms (cf : Core.Fn) (start stop lo : ℕ) :
 arm `0`, the value ranges of the window's cells they name (offsets in the window), each value the
 group names in a range or below the window (`ins`), the arms of a group naming at most `gv` values
 on average (`armGroup`). `[]` if a value is in neither. -/
-def splitGroups (maxG : ℕ) (lo : ℕ) (ins : List ℕ) (gv : ℕ) :
+def splitGroups (maxG lo : ℕ) (ins : List ℕ) (gv : ℕ) :
     List Core.Stmt × Array (List Core.Stmt) × Array (List ℕ) × ℕ → List (ℕ × ℕ × List (ℕ × ℕ))
   | (a0, asA, owns, vals) =>
     let armGroup := armGroup maxG gv vals asA.size
@@ -3062,9 +3062,8 @@ def splitGroups (maxG : ℕ) (lo : ℕ) (ins : List ℕ) (gv : ℕ) :
     if ok then gs else []
 
 /-- The groups of a split window (`splitArms`, `splitGroups`), `[]` for any other window. -/
-def splitOf (maxG : ℕ) (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) (gv : ℕ := groupVals) :
-    List (ℕ × ℕ × List (ℕ × ℕ)) :=
-  ((splitArms cf start stop lo).map (splitGroups maxG lo ins gv)).getD []
+def splitOf (maxG : ℕ) (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) : List (ℕ × ℕ × List (ℕ × ℕ)) :=
+  ((splitArms cf start stop lo).map (splitGroups maxG lo ins groupVals)).getD []
 
 /-- The cost of the windows a module of checks holds at most: their instructions, and
 `winFixed` each. Each module costs the kernel about a second to import, so a module holds several
@@ -3088,7 +3087,7 @@ def packPerFile : ℕ := 64
 /-- How many times the cost bound of a module of checks (`maxShared`, `CplK.modCost`) a pack's module holds. -/
 def packCost : ℕ := 4
 
-/-- The groups of arms of a split window (`splitOf`) a module checks. -/
+/-- The groups of arms of a split window (`splitGroups`) a module checks. -/
 def groupsPerFile : ℕ := perFile
 
 /-- The groups of arms of a split sharing window a module checks: a window's (`256 / shareGroup`). -/
@@ -4235,11 +4234,10 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
         let b := if w + 1 < nw then starts[w + 1]! else cf.body.length
         let ins := (insW[w]!).map (·.1)
         (splitArms cf a b los[w]!).bind fun arms =>
-          match splitGroups maxGroup los[w]! ins groupVals arms with
+          let groups (gv : ℕ) := splitGroups maxGroup los[w]! ins gv arms
+          match groups groupVals with
           | [] => none
-          | gs => some (w, gs, match splitGroups maxGroup los[w]! ins cplVals arms with
-            | [] => gs
-            | cs => cs)
+          | gs => some (w, gs, match groups cplVals with | [] => gs | cs => cs)
       -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no
       -- code): those whose statements are such a soundness window's, neither the first nor the last
       let ssp := (wpos.zipIdx).filterMap fun ((a, w), k) =>

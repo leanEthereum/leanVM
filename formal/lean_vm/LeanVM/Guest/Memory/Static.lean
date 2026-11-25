@@ -126,8 +126,8 @@ def constOk (w : E) (e : ℕ) : Bool :=
     (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
 
 /-! The lookups are written with the recursor and raw `Nat.beq`, which the kernel reduces several
-times faster than the compiled form of structural recursion and `if` on `==`; compiled code runs
-their structural twins (`@[csimp]`). -/
+times faster than structural recursion (its `brecOn` encoding) and `if` on `==`; compiled code
+runs their structural twins (`@[csimp]`). -/
 
 /-- A value's entry, its index compared first. -/
 noncomputable def vfind {β : Type} (v : V) (l : List (V × β)) : Option β :=
@@ -143,7 +143,7 @@ def vfindC {β : Type} (v : V) : List (V × β) → Option β
   funext β v l
   induction l with
   | nil => rfl
-  | cons q l ih => simp only [vfind, vfindC] at ih ⊢; rw [ih]
+  | cons q l ih => exact congrArg (cond _ _) ih
 
 theorem vfind_mem {β : Type} {l : List (V × β)} {v : V} {b : β} (h : vfind v l = some b) :
     (v, b) ∈ l := by
@@ -151,13 +151,11 @@ theorem vfind_mem {β : Type} {l : List (V × β)} {v : V} {b : β} (h : vfind v
   | nil => cases h
   | cons q l ih =>
     change (bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else vfind v l) = some b at h
-    cases hq : (Nat.beq v.idx q.1.idx && decide (v = q.1))
-    · rw [hq] at h; exact List.mem_cons_of_mem _ (ih h)
-    · rw [hq] at h
-      cases h
+    cases hq : (Nat.beq v.idx q.1.idx && decide (v = q.1)) <;> rw [hq] at h
+    · exact List.mem_cons_of_mem _ (ih h)
+    · cases h
       simp only [Bool.and_eq_true, decide_eq_true_eq] at hq
-      rw [hq.2]
-      exact List.mem_cons_self
+      exact hq.2 ▸ List.mem_cons_self
 
 /-- A value's known constant. -/
 def vlookup (v : V) (l : List (V × ℕ)) : Option ℕ := vfind v l
@@ -176,7 +174,7 @@ def vidxC (v : V) : List V → ℕ → Option ℕ
   funext v ps k
   induction ps generalizing k with
   | nil => rfl
-  | cons p ps ih => simp only [vidx, vidxC] at ih ⊢; rw [ih]
+  | cons p ps ih => exact congrArg (cond _ _) (ih (k + 1))
 
 /-- What a value is to the checker. -/
 inductive VCls where
@@ -512,11 +510,7 @@ def dstIs (d : V) (a : Atom) : Bool :=
 
 theorem dstOf_of_dstIs {d : V} {a : Atom} (h : dstIs d a = true) : dstOf a = some d := by
   unfold dstIs at h
-  split at h
-  · rename_i x hx
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    rw [hx, h.2]
-  · cases h
+  split at h <;> simp_all
 
 /-- The top-level atom of a block defining `d`, by the recursor (the kernel's reduction). -/
 noncomputable def defAtom (d : V) (l : List Stmt) : Option Atom :=

@@ -48,15 +48,15 @@ noncomputable def zipIdxR (l : List α) (n : Nat) : List (α × Nat) :=
 
 theorem allR_eq (p : α → Bool) : ∀ l : List α, allR p l = l.all p
   | [] => rfl
-  | a :: l => by show (p a && allR p l) = _; rw [allR_eq p l]; rfl
+  | a :: l => congrArg (p a && ·) (allR_eq p l)
 
 theorem anyR_eq (p : α → Bool) : ∀ l : List α, anyR p l = l.any p
   | [] => rfl
-  | a :: l => by show (p a || anyR p l) = _; rw [anyR_eq p l]; rfl
+  | a :: l => congrArg (p a || ·) (anyR_eq p l)
 
 theorem mapR_eq (f : α → β) : ∀ l : List α, mapR f l = l.map f
   | [] => rfl
-  | a :: l => by show f a :: mapR f l = _; rw [mapR_eq f l]; rfl
+  | a :: l => congrArg (f a :: ·) (mapR_eq f l)
 
 theorem foldlR_eq (f : β → α → β) : ∀ (b : β) (l : List α), foldlR f b l = l.foldl f b
   | _, [] => rfl
@@ -64,7 +64,7 @@ theorem foldlR_eq (f : β → α → β) : ∀ (b : β) (l : List α), foldlR f 
 
 theorem zipIdxR_eq : ∀ (l : List α) (n : Nat), zipIdxR l n = l.zipIdx n
   | [], _ => rfl
-  | a :: l, n => by show (a, n) :: zipIdxR l (n + 1) = _; rw [zipIdxR_eq l (n + 1)]; rfl
+  | a :: l, n => congrArg ((a, n) :: ·) (zipIdxR_eq l (n + 1))
 
 end
 end LeanVM.Guest.B2C

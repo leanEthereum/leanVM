@@ -408,7 +408,7 @@ variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st : SSt} {pre : List V}
     {Ψ : ℕ → E}, Inv cg rd σ st pre Ψ → FitV loc cg vs → (∀ v ∈ vs, ∀ x, kc v.idx = some x → σ v = tw x) →
     ∃ Ψ', Inv cg rd σ (nameAll loc sh kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc sh kc st vs) Ψ'
-  | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll_nil] using hI, by simpa [nameAll_nil] using Step.refl st Ψ⟩
+  | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll_nil] using hI, Step.refl st Ψ⟩
   | v :: vs, st, pre, Ψ, hI, hf, hk => by
     simp only [nameAll_cons, SSt.seq_eq]
     obtain ⟨hv, hc⟩ := hf v List.mem_cons_self
