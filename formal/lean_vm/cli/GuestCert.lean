@@ -39,7 +39,7 @@ frame run (`addr`) its consecutive cells.
 A `match` of many straight-line arms (`__loop2_main`'s dispatches on a codeword, `256` inlined arms)
 naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
 its three checks are split into groups of `armGroup` arms, sized by the values they name, the
-sharing check's and the completeness check's smaller (`splitOf`, `shareGroup`, `cplVals`;
+sharing check's and the completeness check's smaller (`splitArms`, `splitGroups`, `shareGroup`, `cplVals`;
 `Check.checkWinS`, `B2C.shareWinS`, `B2C.cplWinS`), each group a module (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), the window's
 check from them in another (`Checked/F*`, `B2C/Shared/T*`, `B2C/Cplw/E*`), what the groups share
 computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2_main`'s, whose arms jump to
@@ -3016,43 +3016,55 @@ def codeText (f : CompiledFunction) : String :=
 
 def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 
-/-- The groups of a window that is one `match` of more than `bigArms` straight-line arms naming
-more than `groupVals` values of the window: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
-ranges of the window's cells they name (offsets in the window), each value the group names in a
-range or below the window (`ins`), the arms of a group naming at most `gv` values on average
-(`armGroup`). `[]` for any other window. -/
-def splitOf (maxG : ℕ) (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) (gv : ℕ := groupVals) :
-    List (ℕ × ℕ × List (ℕ × ℕ)) :=
+/-- The arms of a window that is one `match` of more than `bigArms` straight-line arms naming
+more than `groupVals` values of the window: arm `0`, the others, the values of the window each arm
+names (`lo` and above; the others' in order, then arm `0`'s), and how many the others name in all.
+`none` for any other window. -/
+def splitArms (cf : Core.Fn) (start stop lo : ℕ) :
+    Option (List Core.Stmt × Array (List Core.Stmt) × Array (List ℕ) × ℕ) :=
   let isAtom : Core.Stmt → Bool := fun | .atom _ => true | _ => false
   match (cf.body.drop start).take (stop - start) with
   | [.match_ _ (a0 :: as)] =>
     let own (a : List Core.Stmt) : List ℕ := ((Check.stmtsVals a).map (·.idx)).filter (lo ≤ ·)
-    let vals := (as.map fun a => (own a).length).foldl (· + ·) 0
-    let armGroup := armGroup maxG gv vals as.length
-    if as.length ≤ bigArms || vals ≤ groupVals || !(a0 :: as).all (·.all isAtom) then []
-    else
-      let span (vs : List ℕ) : Option (ℕ × ℕ) := match vs with
-        | [] => none
-        | v :: _ => some (vs.foldl min v, vs.foldl max v)
-      let asA := as.toArray
-      let a0r := span (own a0)
-      let gs := (List.range ((as.length + armGroup - 1) / armGroup)).map fun k =>
-        let glo := 1 + armGroup * k
-        let ghi := min (glo + armGroup) (as.length + 1)
-        -- the arms' own values, past those of arm `0` (the `match`'s results, named in every arm)
-        let vs := ((List.range (ghi - glo)).flatMap fun e => own asA[glo - 1 + e]!).filter fun v =>
-          match a0r with
-          | some (_, b) => b < v
-          | none => true
-        let rs := (a0r.toList ++ (span vs).toList).map fun (a, b) => (a - lo, b - a + 1)
-        (glo, ghi, rs)
-      -- every value a group names: in a range or below the window, as `ins` has it
-      let ok := gs.all fun (glo, ghi, rs) =>
-        let vals := (Check.stmtsVals a0 ++ (List.range (ghi - glo)).flatMap fun e =>
-          Check.stmtsVals asA[glo - 1 + e]!).map (·.idx)
-        vals.all fun v => rs.any (fun (m, n) => lo + m ≤ v && v < lo + m + n) || ins.contains v
-      if ok then gs else []
-  | _ => []
+    let owns := as.toArray.map own
+    let vals := owns.foldl (· + ·.length) 0
+    if as.length ≤ bigArms || vals ≤ groupVals || !(a0 :: as).all (·.all isAtom) then none
+    else some (a0, as.toArray, owns.push (own a0), vals)
+  | _ => none
+
+/-- The groups of a split window's arms (`splitArms`): `(lo, hi, ranges)`, arms `lo ≤ k < hi` and
+arm `0`, the value ranges of the window's cells they name (offsets in the window), each value the
+group names in a range or below the window (`ins`), the arms of a group naming at most `gv` values
+on average (`armGroup`). `[]` if a value is in neither. -/
+def splitGroups (maxG : ℕ) (lo : ℕ) (ins : List ℕ) (gv : ℕ) :
+    List Core.Stmt × Array (List Core.Stmt) × Array (List ℕ) × ℕ → List (ℕ × ℕ × List (ℕ × ℕ))
+  | (a0, asA, owns, vals) =>
+    let armGroup := armGroup maxG gv vals asA.size
+    let span (vs : List ℕ) : Option (ℕ × ℕ) := match vs with
+      | [] => none
+      | v :: _ => some (vs.foldl min v, vs.foldl max v)
+    let a0r := span owns.back!
+    let gs := (List.range ((asA.size + armGroup - 1) / armGroup)).map fun k =>
+      let glo := 1 + armGroup * k
+      let ghi := min (glo + armGroup) (asA.size + 1)
+      -- the arms' own values, past those of arm `0` (the `match`'s results, named in every arm)
+      let vs := ((List.range (ghi - glo)).flatMap fun e => owns[glo - 1 + e]!).filter fun v =>
+        match a0r with
+        | some (_, b) => b < v
+        | none => true
+      let rs := (a0r.toList ++ (span vs).toList).map fun (a, b) => (a - lo, b - a + 1)
+      (glo, ghi, rs)
+    -- every value a group names: in a range or below the window, as `ins` has it
+    let ok := gs.all fun (glo, ghi, rs) =>
+      let vals := (Check.stmtsVals a0 ++ (List.range (ghi - glo)).flatMap fun e =>
+        Check.stmtsVals asA[glo - 1 + e]!).map (·.idx)
+      vals.all fun v => rs.any (fun (m, n) => lo + m ≤ v && v < lo + m + n) || ins.contains v
+    if ok then gs else []
+
+/-- The groups of a split window (`splitArms`, `splitGroups`), `[]` for any other window. -/
+def splitOf (maxG : ℕ) (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) (gv : ℕ := groupVals) :
+    List (ℕ × ℕ × List (ℕ × ℕ)) :=
+  ((splitArms cf start stop lo).map (splitGroups maxG lo ins gv)).getD []
 
 /-- The cost of the windows a module of checks holds at most: their instructions, and
 `winFixed` each. Each module costs the kernel about a second to import, so a module holds several
@@ -4221,11 +4233,13 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
         let b := if w + 1 < nw then starts[w + 1]! else cf.body.length
-        match splitOf maxGroup cf a b los[w]! ((insW[w]!).map (·.1)) with
-        | [] => none
-        | gs => some (w, gs, match splitOf maxGroup cf a b los[w]! ((insW[w]!).map (·.1)) cplVals with
-          | [] => gs
-          | cs => cs)
+        let ins := (insW[w]!).map (·.1)
+        (splitArms cf a b los[w]!).bind fun arms =>
+          match splitGroups maxGroup los[w]! ins groupVals arms with
+          | [] => none
+          | gs => some (w, gs, match splitGroups maxGroup los[w]! ins cplVals arms with
+            | [] => gs
+            | cs => cs)
       -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no
       -- code): those whose statements are such a soundness window's, neither the first nor the last
       let ssp := (wpos.zipIdx).filterMap fun ((a, w), k) =>
