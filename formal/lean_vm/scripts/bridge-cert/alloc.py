@@ -543,8 +543,9 @@ def run(check):
         def fr_thm(j, k):
             # the callees by their indices as the glue names them (`Fn.«k».idx`), not as numbers
             cs = '[' + ', '.join(f'Fn.«{lk[c][0]}».idx' for c in frd[j][0]) + ']'
+            # only a window's frame check is a module of its own; it decides the fast form (`Bridge.frChk_of_fast`)
             return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true',
-                     prf.replace('decide +kernel', 'apply Bridge.frChk_of_fast\ndecide +kernel'))]
+                     'rw [alignCtxEq]\napply Bridge.frChk_of_fast\ndecide +kernel')]
 
         def thm1(j, k):
             if win:

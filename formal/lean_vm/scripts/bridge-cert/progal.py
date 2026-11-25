@@ -147,9 +147,10 @@ end LeanVM.Guest.Bridge
                 tbody.append(f'kernel_rfl plumbEq{j} : B2C.plumbOf {j} = Fn.«{k}».plumb\n')
                 pe = f'plumbEq{j}'
             # the callees' names and entries by their link modules' equations, not walking the program to each
-            ens = ''.join(f'(Bridge.ents_cons Checked.core{c} Checked.code{c} ' for c in callees[j]) + 'rfl' + ')' * len(callees[j])
+            cs = callees[j]
+            ens = ''.join(f'(Bridge.ents_cons Checked.core{c} Checked.code{c} ' for c in cs) + 'rfl' + ')' * len(cs)
             tbody.append(f'kernel_rfl tabK{j} : (Bridge.calleesOf {j}, Bridge.extraOf {j}, Bridge.adviceOf {j}) = '
-                         f'([{", ".join(map(str, callees[j]))}], {cells}, Data.adviceFn{j})\n'
+                         f'([{", ".join(map(str, cs))}], {cells}, Data.adviceFn{j})\n'
                          f'theorem tab{j} : (Bridge.extraOf {j}, Bridge.entsOf {j}, Bridge.adviceOf {j}) = '
                          f'({cells}, {ents}, Data.adviceFn{j}) :=\n  Bridge.tab_of tabK{j} {ens}\n')
             body.append(f'theorem ok{j} : Bridge.FnAlOk {j} := Bridge.fnAlOk_of Checked.code{j} Checked.core{j} '
@@ -158,7 +159,9 @@ end LeanVM.Guest.Bridge
             HEAD(mod=f'LeanVM.Guest.Bridge.ProgAl.{tmod}',
                         what=f"The alignment tables' entries of the functions of `Checked.{mod}`.")
             + 'public import LeanVM.Guest.Bridge.ProgAlDefs\n'
-            + ''.join(f'public import LeanVM.Guest.Checked.{m}\n' for m in sorted({mod} | {lk[c][1] for j in js for c in callees[j]}))
+            # the callees' link modules, for their `core`, `code` equations
+            + ''.join(f'public import LeanVM.Guest.Checked.{m}\n'
+                      for m in sorted({mod} | {lk[c][1] for j in js for c in callees[j]}))
             + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
             + ''.join(f'public import LeanVM.Guest.CoreMode.GlueE.«{q}»\n' for q in glue)
             + '''meta import LeanVM.Guest.KernelLit

@@ -217,33 +217,20 @@ end
 
 public section
 
-theorem frChk_eq_frChkS (X : AlignCtx) (n : ℕ) (cs : List ℕ) (ps : List V) (body : List Stmt)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : frChk X n cs ps body d = frChkS X n cs ps body d := by
-  have h : ∀ sp nm st, ((frames X d).all fun q ↦ match allocPtr q.2 with
-      | some p => (X.siteAt p (stArgs st) (stRets st)).isNone || frFits X n ps sp nm (calTbl cs) q.2 st
-      | none => true) = (frSites X d).all fun q ↦
-        !(q.1.args == (stArgs st).map (·.idx) && q.1.rets == (stRets st).map (·.idx)) ||
-          frFits X n ps sp nm (calTbl cs) q.2 st := by
-    intro sp nm st
-    simp only [frSites, List.all_filterMap]
-    congr 1
-    funext q
-    cases allocPtr q.2 with
-    | none => rfl
-    | some p =>
-      simp only [Option.bind_some, AlignCtx.siteAt]
-      cases getF X.sites p with
-      | none => rfl
-      | some s =>
-        dsimp only [Option.map_some]
-        cases s.args == (stArgs st).map (·.idx) && s.rets == (stRets st).map (·.idx) <;> rfl
-  simp only [frChk, frChkS, Exec.listSeq_eq, h]
-
 /-- **`frChk` from its fast form.** -/
 theorem frChk_of_fast {X : AlignCtx} {n : ℕ} {cs : List ℕ} {ps : List V} {body : List Stmt}
     {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : frChkS X n cs ps body d = true) :
-    frChk X n cs ps body d = true :=
-  (frChk_eq_frChkS X n cs ps body d).trans h
+    frChk X n cs ps body d = true := by
+  rw [← h]
+  simp only [frChk, frChkS, Exec.listSeq_eq, frSites, List.all_filterMap]
+  congr; funext sp nm st; congr; funext q
+  rcases allocPtr q.2 with _ | p
+  · rfl
+  simp only [Option.bind_some, AlignCtx.siteAt]
+  rcases getF X.sites p with _ | s
+  · rfl
+  dsimp only [Option.map_some]
+  cases s.args == (stArgs st).map (·.idx) && s.rets == (stRets st).map (·.idx) <;> rfl
 
 end
 
