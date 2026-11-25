@@ -254,9 +254,8 @@ theorem entryC_cost (hP : Includes P Auto.LeanVM.Arithmetization.busEntry.costDe
     dsimp only
     rw [Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P,
       Auto.Fin.ofNat.«4».costEq P, Auto.Fin.ofNat.«4».costEq P]
-    simp only [Auto.LeanVM.Arithmetization.layoutFlagWord.costEq P,
-      limbs_of_lt (by norm_num : (0 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (1 : ℕ) < 2 ^ 64),
-      limbs_of_lt (by norm_num : (2 : ℕ) < 2 ^ 64), limbs_of_lt (by norm_num : (3 : ℕ) < 2 ^ 64)]
+    simp only [Auto.LeanVM.Arithmetization.layoutFlagWord.costEq P]
+    limbs
     cases outCells <;> simp only [ite_self] <;> omega
   | _ => dsimp only; omega
 

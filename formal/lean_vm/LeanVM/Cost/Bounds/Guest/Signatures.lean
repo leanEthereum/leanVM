@@ -223,7 +223,7 @@ theorem cwCellA_cost (hP : Includes P Decoder.cwCellC.costDeps) (lanes : List �
   have h1 := hf (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h2 := hr (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h3 := hl (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4)
-  split_ifs with c1 c2 <;> limbs <;> omega
+  split_ifs <;> limbs <;> omega
 
 /-! ## leanSPHINCS -/
 
@@ -311,7 +311,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
   have := cellNat_cost P (by includes) (σ (.n (spCtr l)))
   have := beWordAt_cost P (by includes) _ (Decoder.cellNat_lt (σ (.n (spCtr l))))
   have hbe := limbs_of_lt (lt_trans (beWordAt_lt (Sig.cellNat (σ (.n (spCtr l))))) (by norm_num))
-  rw [limbs_of_lt (by norm_num : 2 ^ 32 - 1 < 2 ^ 64), hbe]
+  rw [hbe]
   have hlay := layer.isLt
   simp only [Sphincs.layerCount] at hlay
   limbs
