@@ -4336,7 +4336,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
     "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
     "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n" ++ preamble ++
     "/-- The parts of each window, by function (`Fn.«name».parts`) and window. -/\n" ++
-    "def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
+    "noncomputable def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
     refRows ((List.range n).map fun i => s!"Fn.«{infos[i + 1]!.key}».parts") 4 ++ " []\n" ++ tail
   let snapsIndex := header "Snaps" "The sharing check's snapshots, by compiled function index." ++
     bundles ++ "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++
