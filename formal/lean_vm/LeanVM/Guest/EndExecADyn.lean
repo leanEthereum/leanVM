@@ -35,7 +35,7 @@ public import LeanVM.Guest.B1.Placement.Common
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.Res (veq kvNz pinIn kIn upAt pinNz nzOf nzDepth siteNz nzStmt retNz upChk carryNzG
+open LeanVM.Guest.Res (veq kvNz pinIn kIn upAt pinNz nzOf nzDepth siteNz nzStmt retNz upChk carryNzG carryNzBy
   carriedNz nzUp carryNz_all tabAt tabNz armNzB topSelsC selTabAt selTabB ownChk ownNz)
 
 @[expose] public section
@@ -161,14 +161,14 @@ theorem pinIn_sound {v : V} {e : Ev} (hh : e.Holds rd σ) (hp : pinIn v e = true
   case touch t p => rw [← veq_eq hp]; exact hh.1
 
 theorem kIn0_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)) (hh : ∀ e ∈ sp, e.Holds rd σ)
-    {v : V} (h : Res.kIn0 kv sp v = true) : IsInK (σ v) := by
+    {v : V} (h : Res.kIn0 (fun _ ↦ sp) kv v = true) : IsInK (σ v) := by
   simp only [Res.kIn0, Bool.or_eq_true, List.any_eq_true] at h
   rcases h with ⟨u, hu, he⟩ | ⟨e, he, hp⟩
   · rw [← veq_eq he]; exact hkv u hu
   · exact pinIn_sound (hh e he) hp
 
 theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)) (hh : ∀ e ∈ sp, e.Holds rd σ)
-    {v : V} (h : Res.kIn1 kv sp v = true) : IsInK (σ v) := by
+    {v : V} (h : Res.kIn1 (fun _ ↦ sp) kv v = true) : IsInK (σ v) := by
   simp only [Res.kIn1, Bool.or_eq_true, List.any_eq_true] at h
   rcases h with h | ⟨e, he, hm⟩
   · exact kIn0_sound hkv hh h
@@ -189,7 +189,7 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
 
 /-- **`kIn` puts its value in `K`.** -/
 theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)) (hh : ∀ e ∈ sp, e.Holds rd σ) :
-    ∀ n v, kIn kv sp n v = true → IsInK (σ v)
+    ∀ n v, kIn (fun _ ↦ sp) kv n v = true → IsInK (σ v)
   | 0, v, h => kIn0_sound hkv hh h
   | n + 1, v, h => by
     rw [kIn, Bool.or_eq_true] at h
@@ -257,7 +257,7 @@ theorem tab_powOf {w : E} {e : ℕ} (h : Res.powOf w = some e) : w = ofK (addres
 the word at `T·J·g^off` is the one the context stores at `T·g^(e + off)`. -/
 theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds rd σ) {nz : V → Bool}
     (hnz : ∀ w, nz w = true → NZ (σ w)) {T J : V} {off : ℕ} {d : E}
-    (hld : LoadHolds rd (σ T * σ J) off d) (h : tabAt sp nz T J off = true) : NZ d := by
+    (hld : LoadHolds rd (σ T * σ J) off d) (h : tabAt (fun _ ↦ sp) nz T J off = true) : NZ d := by
   unfold tabAt at h
   obtain ⟨e1, he1, h1⟩ := List.any_eq_true.mp h
   cases e1 with
@@ -306,7 +306,7 @@ theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds r
 /-- **A read at `p·g^off` of a table is `NZ`** (`tabNz`). -/
 theorem tabNz_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds rd σ) {nz : V → Bool}
     (hnz : ∀ w, nz w = true → NZ (σ w)) {p : V} {off : ℕ} {d : E}
-    (hld : LoadHolds rd (σ p) off d) (h : tabNz sp nz p off = true) : NZ d := by
+    (hld : LoadHolds rd (σ p) off d) (h : tabNz (fun _ ↦ sp) nz p off = true) : NZ d := by
   unfold tabNz at h
   obtain ⟨e1, he1, h1⟩ := List.any_eq_true.mp h
   cases e1 with
@@ -329,7 +329,7 @@ theorem tabNz_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds r
 a memory as `MemNz` asks, and its context's calls' listed words. -/
 theorem nzOf_sound (hM : MemNz rd) {kv : List V} {sp : List Ev}
     (hkv : ∀ u ∈ kv, NZ (σ u)) (hh : ∀ e ∈ sp, e.Holds rd σ) (hup : UpCtx σ sp) :
-    ∀ n v, nzOf kv sp n v = true → NZ (σ v)
+    ∀ n v, nzOf (fun _ ↦ sp) kv n v = true → NZ (σ v)
   | 0, v, h => by
     simp only [nzOf, Bool.or_eq_true, List.any_eq_true] at h
     rcases h with ⟨u, hu, he⟩ | ⟨e, he, hp⟩
@@ -544,7 +544,7 @@ theorem up_valid (hrd : MemNz rd) :
   | .node f σ _ kids, args, rets, ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩ => by
     have hname : fn.name = f := fn_name_of_find hf
     have hG := carryNzG_of hf
-    simp only [carryNzG, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq] at hG
+    simp only [carryNzG, carryNzBy, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq] at hG
     have hupc : ∀ ctx : List Ev, (∀ x ∈ ctx, x ∈ es) → UpCtx σ ctx := fun ctx hctx g a r hg ↦
       Tree.KidsValid.up hrd σ kids (calls es) hk _ (call_mem_calls (hctx _ hg)) rfl
     have hsp : ∀ x ∈ spineE fn.body, x ∈ es := by
@@ -646,7 +646,7 @@ theorem kvNz_sound (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2
     split_ifs at hcu with hb
     obtain rfl := Option.some.inj hcu
     have hG := carryNzG_of hf
-    simp only [carryNzG, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq] at hG
+    simp only [carryNzG, carryNzBy, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true, bne_iff_ne, ne_eq] at hG
     exact hown _ ((hG.2 c hc).resolve_left (not_not.mpr (beq_iff_eq.mp hb)))
 
 /-- **The carried parameters pass down a call.** -/
@@ -673,7 +673,7 @@ theorem carryNzQ_step (hr : r.Ok) :
     · obtain rfl := Option.some.inj hec; cases hct
   subst hev
   have hG := carryNzG_of hfI
-  simp only [carryNzG, Bool.and_eq_true] at hG
+  simp only [carryNzG, carryNzBy, Bool.and_eq_true] at hG
   obtain ⟨ctx, s, hs, hem, hctx⟩ := allB_body hG.1.1 hw _ he
   have hrd := ref_memNz hr
   obtain ⟨args', rets', hvI⟩ := inst_valid' hr hI hIt
@@ -681,10 +681,10 @@ theorem carryNzQ_step (hr : r.Ok) :
   obtain rfl : fnI = fnI' := Option.some.inj (hfI.symm.trans hfI')
   rw [hw] at hw'
   obtain ⟨rfl, rfl⟩ := Out.ret.inj hw'
-  have hpin : ∀ a, nzOf (kvNz fnI) ctx nzDepth a = true → NZ (σI a) := fun a ha ↦
+  have hpin : ∀ a, nzOf (fun _ ↦ ctx) (kvNz fnI) nzDepth a = true → NZ (σI a) := fun a ha ↦
     nzOf_sound hrd (kvNz_sound hr hI hIt hfI hQI) (fun x hx ↦ hh x (hctx x hx))
       (fun g a' r' hg ↦ Tree.KidsValid.up hrd σI kidsI (calls es) hkI _ (call_mem_calls (hctx _ hg)) rfl) _ a ha
-  have hsite : siteNz (kvNz fnI) ctx c.f c.args = true := by
+  have hsite : siteNz (fun sp _ ↦ sp) (kvNz fnI) ctx c.f c.args = true := by
     rcases s with a | _ | _ | ⟨g, a', r'⟩ | ⟨b, g, a'⟩ | ⟨x, gs, a', r'⟩ | _
     all_goals try (simp [Emits] at hem; done)
     · simp only [Emits, Ev.call.injEq] at hem
@@ -723,9 +723,9 @@ theorem dynPow_guest : DynPow := by
   obtain ⟨fn, hf, -, es, vs, hw, -, hh, hk⟩ := hv
   rw [hIt, events_node hf hw] at hev
   have hG := carryNzG_of hf
-  simp only [carryNzG, Bool.and_eq_true] at hG
+  simp only [carryNzG, carryNzBy, Bool.and_eq_true] at hG
   obtain ⟨ctx, st, hs, hem, hctx⟩ := allB_body hG.1.1 hw _ hev
-  have hs' : nzOf (kvNz fn) ctx nzDepth s = true := by
+  have hs' : nzOf (fun _ ↦ ctx) (kvNz fn) nzDepth s = true := by
     rcases st with a | _ | _ | _ | _ | _ | _
     all_goals try (simp [Emits] at hem; done)
     simp only [Emits, Ev.atom.injEq] at hem

@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.CoreMode.Fam.CarryIdx
 
-  The nonzero facts' check (`Res.carryNzG`) with each scan of a spine for a value read from an
-  index of the spine's events by the values they name: equal to it, faster in the kernel.
+  The nonzero facts' check (`Res.carryNzBy`) with each scan of a spine for a value read from an
+  index of the spine's events by the values they name: equal to `Res.carryNzG`, faster in the kernel.
 -/
 
 module
@@ -13,14 +13,16 @@ public import LeanVM.Guest.TrieFacts
 /-!
 # The nonzero facts' check, indexed
 
-`nzOf` and its helpers scan the whole spine of a body for the events naming one value (`veq d v`,
-`veq T' T`, …), several times per level of their search, so a long body's check walks its spine
-thousands of times. Here the spine's events are indexed once by the numbers of the values they
-name (`evIdx`, a trie of lists, `evKeys`), and each scan for a value `v` reads `evAt sp I v`, the
-events under `v.idx` (the whole spine for a number past the trie's depth). An event a scan accepts
-names `v`, so the scan over `evAt` is the scan over the spine (`any_evAt`), and the indexed check
-is the check (`carryNzGI_eq`). `RangeOk (fun _ fn ↦ carryNzG fn)` follows from the indexed check's
-range (`rangeOk_carryNz`), which is what the generated `Gen/CarryCallers*.lean` decide.
+`carryNzG`'s searches (`nzOf` and its helpers) scan the whole spine of a body for the events naming
+one value (`veq d v`, `veq T' T`, …), several times per level, so a long body's check walks its
+spine thousands of times. They read the events to scan for `v` from `look v`, so the same check runs
+over an index of the spine's events by the numbers of the values they name (`evIdx`, a trie of
+lists, `evKeys`), each scan reading `evAt sp I v`, the events under `v.idx` (the whole spine for a
+number past the trie's depth): `carryNzBy idxScan`. An event a scan accepts names `v`, so the
+scan over `evAt` is the scan over the spine (`any_evAt`), two such scans give the same searches
+(`ScanEq`, `nzOf_congr`), and the indexed check is the check (`carryNzBy_idxScan`).
+`RangeOk (fun _ fn ↦ carryNzG fn)` follows from the indexed check's range (`rangeOk_carryNz`), which
+is what the generated `Gen/CarryCallers*.lean` decide.
 -/
 
 namespace LeanVM.Guest.Res
@@ -66,6 +68,9 @@ noncomputable def evIdx : List Ev → Trie (List Ev) → Trie (List Ev)
 /-- The events to scan for `v`: those under its number, or the whole spine past the trie's depth. -/
 noncomputable def evAt (sp : List Ev) (I : Trie (List Ev)) (v : V) : List Ev :=
   bif Nat.blt (v.idx + 1) (2 ^ Exec.indexDepth) then (getF I v.idx).getD [] else sp
+
+/-- **The indexed scan** of a context: its events by value, indexed once. -/
+noncomputable def idxScan (sp : List Ev) : V → List Ev := evAt sp (evIdx sp .nil)
 
 end
 
@@ -116,7 +121,7 @@ theorem mem_evIdx {m : ℕ} (hm : m + 1 < 2 ^ Exec.indexDepth) :
 
 /-- **A scan for `v` over its events is the scan over the spine**, when every event the scan accepts
 names `v`. -/
-theorem any_evAt {sp : List Ev} {v : V} {P : Ev → Bool} (hP : ∀ e, P e = true → v.idx ∈ evKeys e) :
+private theorem any_evAt {sp : List Ev} {v : V} {P : Ev → Bool} (hP : ∀ e, P e = true → v.idx ∈ evKeys e) :
     (evAt sp (evIdx sp .nil) v).any P = sp.any P := by
   unfold evAt
   by_cases hk : v.idx + 1 < 2 ^ Exec.indexDepth
@@ -126,156 +131,57 @@ theorem any_evAt {sp : List Ev} {v : V} {P : Ev → Bool} (hP : ∀ e, P e = tru
     constructor
     · rintro ⟨e, he, hp⟩
       rcases (mem_evIdx hk sp .nil e).mp he with h | ⟨h, -⟩
-      · simp [getF_nil'] at h
+      · exact absurd (show e ∈ ([] : List Ev) from h) List.not_mem_nil
       · exact ⟨e, h, hp⟩
     · rintro ⟨e, he, hp⟩
       exact ⟨e, (mem_evIdx hk sp .nil e).mpr (Or.inr ⟨he, hP e hp⟩), hp⟩
   · have hb : Nat.blt (v.idx + 1) (2 ^ Exec.indexDepth) = false := by
       rw [Bool.eq_false_iff, ne_eq, Nat.blt_eq]; exact hk
     rw [hb, Bool.cond_false]
-where getF_nil' (k : ℕ) : getF (Trie.nil : Trie (List Ev)) k = none := rfl
 
 end
-
-/-! ## The check, its scans indexed -/
-
-section Defs
-
-variable (sp : List Ev) (I : Trie (List Ev))
-
-@[expose] public section
-
-/-- `kIn0`, indexed. -/
-noncomputable def kIn0I (kv : List V) (v : V) : Bool := kv.any (veq · v) || (evAt sp I v).any (pinIn v)
-
-/-- `kIn1`, indexed. -/
-noncomputable def kIn1I (kv : List V) (v : V) : Bool :=
-  kIn0I sp I kv v || (evAt sp I v).any fun
-    | .atom (.mul d a b) => veq d v && kIn0I sp I kv a && kIn0I sp I kv b
-    | .atom (.add d a b) => veq d v && kIn0I sp I kv a && kIn0I sp I kv b
-    | _ => false
-
-/-- `kIn`, indexed. -/
-noncomputable def kInI (kv : List V) : ℕ → V → Bool
-  | 0, v => kv.any (veq · v) || (evAt sp I v).any (pinIn v)
-  | n + 1, v => kv.any (veq · v) || (evAt sp I v).any (pinIn v) || (evAt sp I v).any fun
-      | .atom (.mul d a b) => veq d v && kInI kv n a && kInI kv n b
-      | .atom (.add d a b) => veq d v && kIn1I sp I kv a && kIn1I sp I kv b
-      | _ => false
-
-/-- `tabAt`, indexed. -/
-noncomputable def tabAtI (nz : V → Bool) (T J : V) (off : ℕ) : Bool :=
-  (evAt sp I J).any fun
-    | .atom (.rangeCheck x _ _ _ k) => veq x J && (evAt sp I k).any fun
-        | .atom (.const d c) => veq d k && match powOf c with
-            | some m => decide (m < 2 ^ 28) && (List.range (m + 1)).all fun t => (evAt sp I T).any fun
-                | .atom (.load w T' o) => veq T' T && o == t + off && nz w
-                | _ => false
-            | none => false
-        | _ => false
-    | _ => false
-
-/-- `tabNz`, indexed. -/
-noncomputable def tabNzI (nz : V → Bool) (p : V) (off : ℕ) : Bool :=
-  (evAt sp I p).any fun
-    | .atom (.mul q a b) => veq q p && (tabAtI sp I nz a b off || tabAtI sp I nz b a off)
-    | _ => false
-
-/-- `nzOf`, indexed. -/
-noncomputable def nzOfI (kv : List V) : ℕ → V → Bool
-  | 0, v => kv.any (veq · v) || (evAt sp I v).any (pinNz v)
-  | n + 1, v => kv.any (veq · v) || (evAt sp I v).any (pinNz v) || (evAt sp I v).any fun
-      | .atom (.mul d a b) => (veq d v && nzOfI kv n a && nzOfI kv n b) ||
-          (veq b v && kInI sp I kv kDepth a && nzOfI kv n d) ||
-          (veq a v && kInI sp I kv kDepth b && nzOfI kv n d)
-      | .atom (.copy d s) => (veq d v && nzOfI kv n s) || (veq s v && nzOfI kv n d)
-      | .atom (.assertEq d s) => (veq d v && nzOfI kv n s) || (veq s v && nzOfI kv n d)
-      | .atom (.load d p off) => veq d v && tabNzI sp I (nzOfI kv n) p off
-      | _ => false
-
-
-/-- `siteNz`, indexed. -/
-noncomputable def siteNzI (kv : List V) (sp : List Ev) (f : String) (args : List V) : Bool :=
-  carriedNz.all fun c => c.1 != f || match args[c.2]? with
-    | some a => nzOfI sp (evIdx sp .nil) kv nzDepth a
-    | none => false
-
-/-- `nzStmt`, indexed. -/
-noncomputable def nzStmtI (kv : List V) (sp : List Ev) : Stmt → Bool
-  | .atom (.hint (.allocDyn _ s)) => nzOfI sp (evIdx sp .nil) kv nzDepth s
-  | .call f args _ => siteNzI kv sp f args
-  | .callIf _ f args => siteNzI kv sp f args
-  | .dispatch _ fs args _ => fs.all fun f => siteNzI kv sp f args
-  | _ => true
-
-/-- `retNz`, indexed. -/
-noncomputable def retNzI (j : ℕ) (sp : List Ev) : Stmt → Bool
-  | .ret vs => match vs[j]? with
-    | some v => nzOfI sp (evIdx sp .nil) [] nzDepth v
-    | none => false
-  | _ => true
-
-/-- `upChk`, indexed. -/
-noncomputable def upChkI (fn : Fn) (i : ℕ) : Bool :=
-  match fn.params[i]? with
-  | some p => nzOfI (spineE fn.body) (evIdx (spineE fn.body) .nil) [] nzDepth p
-  | none => allB (fun sp s => retNzI (i - fn.params.length) sp s) fn.body (spineE fn.body)
-
-/-- **`carryNzG`, its scans indexed.** -/
-noncomputable def carryNzGI (fn : Fn) : Bool :=
-  allB (nzStmtI (kvNz fn)) fn.body (spineE fn.body) && nzUp.all (fun c => c.1 != fn.name || upChkI fn c.2) &&
-    ownNz.all fun c => c.1 != fn.name || ownChk fn (V.n c.2)
-
-end
-
-end Defs
 
 /-! ## The indexed check is the check -/
 
-public section
+section Congr
 
-variable {sp : List Ev}
+/-- **Two scans agree** on every search for a value by a predicate accepting only events naming it. -/
+def ScanEq (l₁ l₂ : V → List Ev) : Prop :=
+  ∀ v (P : Ev → Bool), (∀ e, P e = true → v.idx ∈ evKeys e) → (l₁ v).any P = (l₂ v).any P
 
-/-- A scan for `v` over its events, by a predicate equal to one that accepts only events naming `v`, is
-the scan over the spine. -/
-private theorem any_evAt_congr {v : V} {P Q : Ev → Bool} (hPQ : ∀ e, P e = Q e)
-    (hQ : ∀ e, Q e = true → v.idx ∈ evKeys e) : (evAt sp (evIdx sp .nil) v).any P = sp.any Q := by
-  rw [show P = Q from funext hPQ]; exact any_evAt hQ
+variable {l₁ l₂ : V → List Ev}
 
-/-- An event a scan accepts names the value scanned for: by its constructors, `veq` read as equal numbers. -/
-local syntax "ev_key" ("[" Lean.Parser.Tactic.simpLemma,* "]")? : tactic
+/-- A search for `v` by predicates agreeing on every event, one accepting only events naming `v`. -/
+private theorem ScanEq.any (h : ScanEq l₁ l₂) {v : V} {P Q : Ev → Bool} (hPQ : ∀ e, P e = Q e)
+    (hQ : ∀ e, Q e = true → v.idx ∈ evKeys e) : (l₁ v).any P = (l₂ v).any Q := by
+  rw [show P = Q from funext hPQ]; exact h v Q hQ
 
-macro_rules
-  | `(tactic| ev_key) => `(tactic| (
-    intro e h
-    rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;>
-      simp only [veq, evKeys, atomKeys, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq,
-        List.mem_cons, List.not_mem_nil, or_false, reduceCtorEq, Bool.false_eq_true] at h ⊢ <;> grind))
-  | `(tactic| ev_key [$ls,*]) => `(tactic| (
-    intro e h
-    rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;>
-      simp only [veq, evKeys, atomKeys, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq,
-        List.mem_cons, List.not_mem_nil, or_false, reduceCtorEq, Bool.false_eq_true, $ls,*] at h ⊢ <;> grind))
-
-/-- The indexed predicate and the plain one agree on every event: by its constructors. -/
-local syntax "ev_eq" ("[" Lean.Parser.Tactic.simpLemma,* "]")? : tactic
+/-- The `simp only` set reading a scan's predicate on an event: `veq` as equal numbers, the event's keys. -/
+local syntax "ev_simp" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
 
 macro_rules
-  | `(tactic| ev_eq) => `(tactic| (
-    intro e
-    rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> rfl))
-  | `(tactic| ev_eq [$ls,*]) => `(tactic| (
-    intro e
-    rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> (try simp only [$ls,*]) <;> rfl))
+  | `(tactic| ev_simp [$ls,*]) =>
+    `(tactic| simp only [veq, evKeys, atomKeys, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq,
+        List.mem_cons, List.not_mem_nil, or_false, reduceCtorEq, Bool.false_eq_true, $ls,*] at *)
 
-private theorem pinNz_key (v : V) : ∀ e, pinNz v e = true → v.idx ∈ evKeys e := by
-  intro e h
-  rcases e with ⟨a⟩ | _ | ⟨g, args, rets⟩ | _
-  · cases a <;>
-      simp only [pinNz, veq, evKeys, atomKeys, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq,
-        List.mem_cons, List.not_mem_nil, or_false, Bool.false_eq_true] at h ⊢ <;> grind
-  · simp [pinNz] at h
-  · simp only [pinNz, upAt, List.any_eq_true, Bool.and_eq_true] at h
+/-- An event a scan accepts names the value scanned for: by its constructors. -/
+local syntax "ev_key" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
+
+macro_rules
+  | `(tactic| ev_key [$ls,*]) =>
+    `(tactic| (intro e h; rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> ev_simp [$ls,*] <;> grind))
+
+/-- Two searches' predicates agree on every event: by its constructors. -/
+local syntax "ev_eq" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
+
+macro_rules
+  | `(tactic| ev_eq [$ls,*]) =>
+    `(tactic| (intro e; rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> (try simp only [$ls,*]) <;> rfl))
+
+private theorem pinNz_key (v : V) : ∀ e, pinNz v e = true → v.idx ∈ evKeys e
+  | .atom a, h => by cases a <;> ev_simp [pinNz] <;> grind
+  | .call g args rets, h => by
+    simp only [pinNz, upAt, List.any_eq_true, Bool.and_eq_true] at h
     obtain ⟨c, -, hw, -⟩ := h
     revert hw
     cases hc : (args ++ rets)[c.2]? with
@@ -284,37 +190,33 @@ private theorem pinNz_key (v : V) : ∀ e, pinNz v e = true → v.idx ∈ evKeys
       intro hw
       simp only [veq, Bool.and_eq_true, beq_iff_eq] at hw
       exact List.mem_map.mpr ⟨w, List.mem_of_getElem? hc, hw.1⟩
-  · simp [pinNz] at h
+  | .inK _, h | .skip .., h => by simp [pinNz] at h
 
-theorem kIn0I_eq (kv : List V) (v : V) : kIn0I sp (evIdx sp .nil) kv v = kIn0 kv sp v := by
-  rw [kIn0I, kIn0, any_evAt (by ev_key [pinIn])]
+theorem kIn0_congr (h : ScanEq l₁ l₂) (kv : List V) (v : V) : kIn0 l₁ kv v = kIn0 l₂ kv v := by
+  rw [kIn0, kIn0, h v _ (by ev_key [pinIn])]
 
-theorem kIn1I_eq (kv : List V) (v : V) : kIn1I sp (evIdx sp .nil) kv v = kIn1 kv sp v := by
-  rw [kIn1I, kIn1, kIn0I_eq]
+theorem kIn1_congr (h : ScanEq l₁ l₂) (kv : List V) (v : V) : kIn1 l₁ kv v = kIn1 l₂ kv v := by
+  rw [kIn1, kIn1, kIn0_congr h]
   congr 1
-  exact any_evAt_congr (by ev_eq [kIn0I_eq]) (by ev_key)
+  exact h.any (by ev_eq [kIn0_congr h]) (by ev_key [])
 
-theorem kInI_eq (kv : List V) : ∀ n v, kInI sp (evIdx sp .nil) kv n v = kIn kv sp n v
-  | 0, v => by rw [kInI, kIn, any_evAt (by ev_key [pinIn])]
+theorem kIn_congr (h : ScanEq l₁ l₂) (kv : List V) : ∀ n v, kIn l₁ kv n v = kIn l₂ kv n v
+  | 0, v => by rw [kIn, kIn, h v _ (by ev_key [pinIn])]
   | n + 1, v => by
-    rw [kInI, kIn, any_evAt (by ev_key [pinIn])]
+    rw [kIn, kIn, h v _ (by ev_key [pinIn])]
     congr 1
-    exact any_evAt_congr (by ev_eq [kInI_eq kv n, kIn1I_eq]) (by ev_key)
+    exact h.any (by ev_eq [kIn_congr h kv n, kIn1_congr h]) (by ev_key [])
 
-theorem tabAtI_eq (nz : V → Bool) (T J : V) (off : ℕ) :
-    tabAtI sp (evIdx sp .nil) nz T J off = tabAt sp nz T J off := by
-  unfold tabAtI tabAt
-  refine any_evAt_congr ?_ ?_
-  swap
-  · ev_key
+theorem tabAt_congr (h : ScanEq l₁ l₂) (nz : V → Bool) (T J : V) (off : ℕ) :
+    tabAt l₁ nz T J off = tabAt l₂ nz T J off := by
+  unfold tabAt
+  refine h.any ?_ (by ev_key [])
   intro e
   rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> try rfl
   rename_i x _ _ _ k
   dsimp only
   congr 1
-  refine any_evAt_congr ?_ ?_
-  swap
-  · ev_key
+  refine h.any ?_ (by ev_key [])
   intro e
   rcases e with ⟨a⟩ | _ | _ | _ <;> (try cases a) <;> try rfl
   rename_i d c
@@ -326,55 +228,53 @@ theorem tabAtI_eq (nz : V → Bool) (T J : V) (off : ℕ) :
     dsimp only
     congr 2
     funext t
-    refine any_evAt_congr ?_ ?_
-    · ev_eq
-    · ev_key
+    exact h.any (by ev_eq []) (by ev_key [])
 
-theorem tabNzI_eq (nz : V → Bool) (p : V) (off : ℕ) :
-    tabNzI sp (evIdx sp .nil) nz p off = tabNz sp nz p off := by
-  rw [tabNzI, tabNz]
-  exact any_evAt_congr (by ev_eq [tabAtI_eq]) (by ev_key)
+theorem tabNz_congr (h : ScanEq l₁ l₂) (nz : V → Bool) (p : V) (off : ℕ) :
+    tabNz l₁ nz p off = tabNz l₂ nz p off := by
+  rw [tabNz, tabNz]
+  exact h.any (by ev_eq [tabAt_congr h]) (by ev_key [])
 
-theorem nzOfI_eq (kv : List V) : ∀ n v, nzOfI sp (evIdx sp .nil) kv n v = nzOf kv sp n v
-  | 0, v => by rw [nzOfI, nzOf, any_evAt (pinNz_key v)]
+theorem nzOf_congr (h : ScanEq l₁ l₂) (kv : List V) : ∀ n v, nzOf l₁ kv n v = nzOf l₂ kv n v
+  | 0, v => by rw [nzOf, nzOf, h v _ (pinNz_key v)]
   | n + 1, v => by
-    have ih : nzOfI sp (evIdx sp .nil) kv n = nzOf kv sp n := funext (nzOfI_eq kv n)
-    rw [nzOfI, nzOf, any_evAt (pinNz_key v)]
+    have ih : nzOf l₁ kv n = nzOf l₂ kv n := funext (nzOf_congr h kv n)
+    rw [nzOf, nzOf, h v _ (pinNz_key v)]
     congr 1
-    exact any_evAt_congr (by ev_eq [ih, kInI_eq, tabNzI_eq]) (by ev_key)
+    exact h.any (by ev_eq [ih, kIn_congr h, tabNz_congr h]) (by ev_key [])
 
-theorem nzStmtI_eq (kv : List V) (sp : List Ev) (s : Stmt) : nzStmtI kv sp s = nzStmt kv sp s := by
-  have h : ∀ f args, siteNzI kv sp f args = siteNz kv sp f args := fun f args ↦ by
-    simp only [siteNzI, siteNz, nzOfI_eq]; rfl
-  cases s with
-  | atom a =>
-    cases a with
-    | hint hh =>
-      cases hh with
-      | allocDyn _ s => exact nzOfI_eq kv nzDepth s
+end Congr
+
+public section
+
+/-- **The indexed check is the check.** -/
+theorem carryNzBy_idxScan (fn : Fn) : carryNzBy idxScan fn = carryNzG fn := by
+  have hn : ∀ sp, nzOf (idxScan sp) = nzOf fun _ ↦ sp := fun sp ↦
+    funext fun kv ↦ funext fun n ↦ funext (nzOf_congr (fun _ _ hP ↦ any_evAt hP) kv n)
+  have hs : siteNz idxScan = siteNz fun sp _ ↦ sp := by
+    funext kv sp f args; simp only [siteNz, hn]
+  have hst : nzStmt idxScan = nzStmt fun sp _ ↦ sp := by
+    funext kv sp s
+    cases s with
+    | atom a =>
+      cases a with
+      | hint hh =>
+        cases hh with
+        | allocDyn _ s => simp only [nzStmt, hn]
+        | _ => rfl
       | _ => rfl
+    | call | callIf | dispatch => simp only [nzStmt, hs]
     | _ => rfl
-  | call f args _ => exact h f args
-  | callIf _ f args => exact h f args
-  | dispatch _ fs args _ => simp only [nzStmtI, nzStmt, h]
-  | _ => rfl
-
-theorem carryNzGI_eq (fn : Fn) : carryNzGI fn = carryNzG fn := by
-  have hs : nzStmtI (kvNz fn) = nzStmt (kvNz fn) := funext fun sp ↦ funext (nzStmtI_eq _ sp)
-  have hr : ∀ j, (fun sp s ↦ retNzI j sp s) = fun sp s ↦ retNz j sp s := fun j ↦ funext fun sp ↦ funext fun s ↦ by
-    cases s <;> try rfl
-    rename_i vs
-    simp only [retNzI, retNz]
-    cases vs[j]? <;> simp [nzOfI_eq]
-  have hu : ∀ i, upChkI fn i = upChk fn i := fun i ↦ by
-    unfold upChkI upChk
-    cases fn.params[i]? <;> simp only [nzOfI_eq, hr]
-  simp only [carryNzGI, carryNzG, hs, hu]
+  have hr : retNz idxScan = retNz fun sp _ ↦ sp := by
+    funext j sp s; cases s <;> simp only [retNz, hn]
+  have hu : upChk idxScan = upChk fun sp _ ↦ sp := by
+    funext fn i; simp only [upChk, hn, hr]
+  rw [carryNzG, carryNzBy, carryNzBy, hst, hu]
 
 /-- **The nonzero facts' check of a range, from the indexed check's.** -/
-theorem rangeOk_carryNz {a n : ℕ} (h : RangeOk (fun _ fn ↦ carryNzGI fn) a n) :
+theorem rangeOk_carryNz {a n : ℕ} (h : RangeOk (fun _ fn ↦ carryNzBy idxScan fn) a n) :
     RangeOk (fun _ fn ↦ carryNzG fn) a n := by
-  simpa only [carryNzGI_eq] using h
+  simpa only [carryNzBy_idxScan] using h
 
 end
 

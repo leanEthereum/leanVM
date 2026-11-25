@@ -435,12 +435,11 @@ def long_loop(k, j, hp, frame_mod, gl):
     cws = []
     # several code windows: each over the slice of the chunks it covers, with the alignment context's tries stated
     # (`CLit`: `pair.py`'s `ALit`, the chunks' lengths), by `CoreMode.cw_of_slice` (`CoreMode/LoopWinS.lean`)
-    alit = glob.glob(os.path.join(GEN, '*', k, 'ALit.lean'))
-    sliced = len(cb) > 2 and len(alit) == 1 and ctx == 'alignCtxP'
+    from pair import alit_mod, cut_of
+    amod = alit_mod(k) if len(cb) > 2 and ctx == 'alignCtxP' else None
+    sliced = amod is not None
     if sliced:
-        from pair import cut_of
         clens = AL.functions()[k]['clens']
-        amod = 'LeanVM.Guest.CoreMode.Gen.' + '.'.join(f'«{x}»' for x in os.path.relpath(alit[0], GEN)[:-5].split(os.sep))
         files['CLit'] = (hdr('CLit', f'`{k}`\'s code windows\' data: its chunks\' lengths and its core data with the '
                              'alignment context\'s tries stated once.') +
                          'public meta import LeanVM.Guest.KernelLit\n' +
