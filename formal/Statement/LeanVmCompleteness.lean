@@ -74,14 +74,15 @@ noncomputable def completenessExperiment (honestProver : HonestProver) (program 
     | some proof => leanVmVerifier queryPermutation program input proof
 
 /-- **Completeness in the random-permutation model**: trying `2^35` nonces per proof of work, the
-honest prover's (`leanVmHonestProver`) proof of an execution within the verifier's size cap is
-rejected with probability at most `2^-256`. Within that cap the widest grind is the bus's,
+honest prover's (`leanVmHonestProver`) proof of an execution within the verifier's size cap, at a
+rate exponent `ρ` from `1` to `4` (`MIN_LOG_INV_RATE`, `MAX_LOG_INV_RATE`, `whir.rs`), is rejected
+with probability at most `2^-256`. Within that cap the widest grind is the bus's,
 `busGrindingBits` of a push tree of depth at most `30`, `27` bits, and `2^35 = 2^27 · 2^8` nonces
 miss a `27`-bit proof of work with probability at most `2^-320`. -/
 def Completeness : Prop :=
   ∀ (program : LeanIsaProgram) (input : PublicInput) (execution : Execution program) (ρ : ℕ),
     ValidExecution program input execution → execution.committedSize ≤ 2 ^ 30 →
-    Whir.minLogInvRate ≤ ρ ∧ ρ ≤ Whir.maxLogInvRate →
+    1 ≤ ρ ∧ ρ ≤ 4 →
     Pr{let v ← completenessExperiment leanVmHonestProver program input execution ρ (2 ^ 35)}[
         v = false] ≤
       (2 : ℝ≥0∞)⁻¹ ^ 256

@@ -7,18 +7,18 @@ public import LeanVM.Cost.Encoding
 /-!
 # The extractor's entry
 
-`LeanVM.extractorComputedBy P` (`Statement/LeanVmExtractor.lean`), the extractor of the end
-statement, runs the program's function `0` on one value, `encodeLeanVmKnowledgeExtractorInput prog
-input T proof = .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]`
-with `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses
-an execution's encoding. The compiled extractor is a function of four encoded arguments whose output
+`LeanVM.extractorComputedBy P` (`Statement/LeanVmExtractor.lean`), the extractor of the end statement, runs
+the program's function `0` on one value, `encodeLeanVmKnowledgeExtractorInput prog input T proof =
+.ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
+`qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an
+execution's encoding. The compiled extractor is a function of four encoded arguments whose output
 encodes an `Option (Execution prog)`. The glue is the entry body `entryBody j`
-(`Cost/ExtractorProgram.lean`): it destructures the input, calls function `j` on its four fields and
-unwraps the option (`none` to `.ctor 0 []`, which no execution decodes from; `some t` to `t`'s
+(`Cost/ExtractorProgram.lean`): it destructures the input, calls function `j` on its four fields
+and unwraps the option (`none` to `.ctor 0 []`, which no execution decodes from; `some t` to `t`'s
 encoding), at most `14` more than the call (`runsBody_entry`: two `case`s and their five fields,
 four variables, the call). `decodeExecution_unwrap` decodes the unwrapped option, and
-`runsBody_of_outputWithin` reads a run off an output within a budget. The agreement-set extractor's
-glue is `Cost/AS/Glue.lean`.
+`runsBody_of_outputWithin` reads a run off an output within a budget. The agreement-set
+extractor's glue is `Cost/AS/Glue.lean`.
 -/
 
 namespace LeanVM.Cost

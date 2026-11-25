@@ -107,12 +107,6 @@ def minLogStack : ℕ := 16
 cap every size shares. -/
 def maxLogStack : ℕ := 30
 
-/-- The smallest rate exponent: `MIN_LOG_INV_RATE` (`whir.rs`), the `1` of `Admissible`. -/
-def minLogInvRate : ℕ := 1
-
-/-- The largest rate exponent: `MAX_LOG_INV_RATE` (`whir.rs`), the `4` of `Admissible`. -/
-def maxLogInvRate : ℕ := 4
-
 /-- One level of an opening: the number of fold rounds it makes (`ℓ_i`), the rate exponent of
 the code its commitment is in (`ν_i`), and the number of positions queried (`ω_i`), in the
 notation of Annex B. -/
@@ -166,7 +160,7 @@ def queryTable : List (List (List ℕ)) := [
    [55, 32, 23, 18, 16, 14]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range `1..4`, from
-`minLogInvRate` to `maxLogInvRate` (`whir_queries`, `whir.rs`; the rate also `lib.rs` and
+`MIN_LOG_INV_RATE` to `MAX_LOG_INV_RATE` (`whir_queries`, `whir.rs`; the rate also `lib.rs` and
 `whir_config.rs`). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
   minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ 1 ≤ logInvRate ∧ logInvRate ≤ 4
