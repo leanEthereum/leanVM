@@ -1528,8 +1528,8 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     | none => listText (a.map toString)
   let armsDefs := if !manyArms then "" else
     String.join (tabs.toList.zipIdx.map fun (a, k) =>
-      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := data% " ++
-        "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
+      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := data% (" ++
+        " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
     -- by offset: the executor looks up a table jump's arms in the trie, not along the list
     s!"/-- `{f.name}`: the table jumps' arms, by offset. -/\n" ++
     s!"def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  data% {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
