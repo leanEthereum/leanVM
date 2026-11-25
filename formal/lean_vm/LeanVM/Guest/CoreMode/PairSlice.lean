@@ -16,8 +16,9 @@ public import LeanVM.Guest.Bridge.ProgAlSlice
 `winOkH` (`PairDefs.lean`) hands each window the whole code and drops the offsets before it, which
 the kernel walks every time; for a long function the walk outweighs a late window. `winOkHS` hands it
 the slice of the code's chunks between two cuts (`Bridge.slice`, built from the chunks it touches),
-and a chain of such windows (`SliceChain`) from the chunks' start to their end is the whole pass
-(`SliceChain.run`, for any pass with `SlicePass`'s laws, by `Bridge.slice_rest`; `pairOk_of_chainS`).
+and a chain of such windows (`SliceChain`) from the chunks' start to their end is the whole pass, for
+any pass with `SlicePass`'s laws (`SliceChain.run`, by `Bridge.slice_rest`): the pairing's here
+(`pairOk_of_chainS`), the alignment's in `AlignSlice.lean`.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -70,24 +71,19 @@ private theorem sliceChain_go (hg : SlicePass body hs go)
     ∀ (ks : List (PCut × KSt)) (c : PCut) (K : KSt) (st : St) (acc : List (ℕ × Zip)),
       SliceChain C w (c, K) ks → StOk body hs st → stOfK body hs K = st →
       ((go (restL C c) st acc).bind fun p ↦ alignEnd p.1 p.2).isSome
-  | [], c, K, st, acc, hc, _, hk => by
+  | [], (_, _), K, _, acc, hc, _, rfl => by
     simp only [SliceChain, chainEndS, Bool.and_eq_true, Nat.beq_eq, Option.isNone_iff_eq_none,
       List.isEmpty_iff, lenTR_eq, Nat.add_zero] at hc
-    obtain ⟨⟨⟨h1, h2⟩, hcur⟩, hpend⟩ := hc
-    subst hk
-    obtain ⟨c1, c2⟩ := c
-    simp only at h1 h2
-    subst h1 h2
+    obtain ⟨⟨⟨rfl, rfl⟩, hcur⟩, hpend⟩ := hc
     rw [restL_end, hg.nil]
     simp [alignEnd, stOfK, hcur, hpend]
-  | (c', K') :: ks, c, K, st, acc, ⟨hw', hc⟩, hst, hk => by
+  | (c', K') :: ks, c, K, _, acc, ⟨hw', hc⟩, hst, rfl => by
     obtain ⟨hs', hw'⟩ := hw _ _ _ _ hw'
-    rw [hk] at hw'
-    obtain ⟨⟨st1, acc1⟩, h1, hK⟩ := Option.map_eq_some_iff.mp hw'
+    obtain ⟨⟨st1, acc1⟩, h1, rfl⟩ := Option.map_eq_some_iff.mp hw'
     have hst1 := hg.ok _ hst h1
     rw [← slice_rest hs', hg.append, hg.acc, h1]
     simp only [Option.map_some, Option.bind_some]
-    exact sliceChain_go hg hw ks c' K' st1 (acc1 ++ acc) hc hst1 (by rw [← hK]; exact stOfK_keyOfSt hst1)
+    exact sliceChain_go hg hw ks c' _ st1 (acc1 ++ acc) hc hst1 (stOfK_keyOfSt hst1)
 
 /-- **A chain of windows over slices is the whole pass**, from the body's start at offset `0`. -/
 theorem SliceChain.run (hg : SlicePass body hs go)
