@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
-import LeanVM.Guest.KernelLit
+meta import LeanVM.Guest.KernelLit
 
 /-!
 # The body, flat
@@ -40,7 +40,6 @@ def vkVs : List V := [.n (val% «verify_keccak» "s82#0"), .n (val% «verify_kec
 /-- The body but its return. -/
 def vkPre : List Stmt := vkHeadT ++ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinPre
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl vkFinT_pre : vkFinT = vkFinPre ++ [.ret vkVs]
 
 theorem vkT_pre : vkT = vkPre ++ [.ret vkVs] := by

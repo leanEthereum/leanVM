@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L4_L1»
 import LeanVM.Guest.Data.ValNames.«keccak_plain_rounds__L6_L0»
-import LeanVM.Guest.KernelLit
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!
@@ -190,7 +190,6 @@ def plain60T : List Stmt :=
     .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[5]")) (.n (val% «keccak_plain_rounds__L6_L0» "s2#2"))), .atom (.copy (.n (val% «keccak_plain_rounds__L6_L0» "s2#0[6]")) (.n (val% «keccak_plain_rounds__L6_L0» "value@7"))),
     .ret [.n (val% «keccak_plain_rounds__L6_L0» "s2#0"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[1]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[2]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[3]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[4]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[5]"), .n (val% «keccak_plain_rounds__L6_L0» "s2#0[6]")]]
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl body60 : (fn% «keccak_plain_rounds__L6_L0»).body = plain60T
 
 /-- The two zero cells of `__L4_L1`'s first round. -/
@@ -226,7 +225,6 @@ def plain41T : List Stmt :=
     .atom (.copy (.n (val% «keccak_plain_rounds__L4_L1» "s2#0[5]")) (.n (val% «keccak_plain_rounds__L4_L1» "s2#2"))), .atom (.copy (.n (val% «keccak_plain_rounds__L4_L1» "s2#0[6]")) (.n (val% «keccak_plain_rounds__L4_L1» "value@5"))),
     .ret [.n (val% «keccak_plain_rounds__L4_L1» "s2#0"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[1]"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[2]"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[3]"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[4]"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[5]"), .n (val% «keccak_plain_rounds__L4_L1» "s2#0[6]")]]
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl body41 : (fn% «keccak_plain_rounds__L4_L1»).body = plain41T
 
 theorem find_plain60 : coreProgram.find? "keccak_plain_rounds__L6_L0" = some

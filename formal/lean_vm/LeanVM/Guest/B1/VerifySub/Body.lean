@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.VerifySub.Template
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
-import LeanVM.Guest.KernelLit
+meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -18,7 +18,6 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl vs_body : (fn% «verify_sub»).body = vsT
 
 theorem vs_params : (fn% «verify_sub»).params = [.n (val% «verify_sub» "pi_0"), .n (val% «verify_sub» "pi_1"), .n (val% «verify_sub» "seed_0"), .n (val% «verify_sub» "seed_1"), .n (val% «verify_sub» "g_squares"), .n (val% «verify_sub» "defer_out")] := rfl

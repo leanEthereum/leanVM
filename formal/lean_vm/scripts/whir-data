@@ -90,7 +90,7 @@ def data(m):
     fn = f"(Fn.«{key}».core)"
     out = [HDR.format(mod=f"Data{m}", doc=f"`open_stacked__L{m}` is its template, by the kernel.",
                       imports="public import LeanVM.Guest.B1.Whir.DataSpecP\n" + fn_import(key)
-                      + "import LeanVM.Guest.KernelLit\n")]
+                      + "meta import LeanVM.Guest.KernelLit\n")]
     out.append(f"""
 /-!
 # Size {m}
@@ -100,7 +100,6 @@ checked by the kernel as one definitional equality (`kernel_rfl`), which compare
 structurally and unfolds each side only as far as the comparison needs.
 -/
 
-open LeanVM.Guest.KernelLit in
 private kernel_rfl os_body_{m} : {fn}.body = osBody (osCfg {m})
 
 set_option maxRecDepth 100000 in

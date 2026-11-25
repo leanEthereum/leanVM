@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Gkr.Root
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 public import LeanVM.Guest.B1.Gkr.Holds
-import LeanVM.Guest.KernelLit
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!
@@ -114,7 +114,6 @@ def rtTwoL : List Stmt :=
   [.atom (.const (.n 360) (word 128 0)), .atom (.load (.n 360) (.n 139) 9)]
 
 set_option maxRecDepth 10000 in
-open LeanVM.Guest.KernelLit in
 kernel_rfl rtTwoL_eq : rtTwo = rtTwoL
 
 /-- The radix-four arm. -/
@@ -144,7 +143,6 @@ def rtFourL : List Stmt :=
   [.atom (.const (.n 287) (word 128 0)), .atom (.load (.n 287) (.n 139) 9)]
 
 set_option maxRecDepth 10000 in
-open LeanVM.Guest.KernelLit in
 kernel_rfl rtFourL_eq : rtFour = rtFourL
 
 section Eval

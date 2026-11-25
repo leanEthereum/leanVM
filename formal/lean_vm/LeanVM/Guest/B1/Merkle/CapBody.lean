@@ -18,7 +18,7 @@ public import LeanVM.Guest.Pack.P56.Core
 public import LeanVM.Guest.Pack.P61.Core
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
-import LeanVM.Guest.KernelLit
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1
@@ -75,25 +75,18 @@ def mcBody (L : ℕ) : List Stmt :=
   [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]"))),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L2_body : (Fn.«verify_merkle_cap__L2».core).body = mcBody (2 ^ 2)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L3_body : (Fn.«verify_merkle_cap__L3».core).body = mcBody (2 ^ 3)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L4_body : (Fn.«verify_merkle_cap__L4».core).body = mcBody (2 ^ 4)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L5_body : (Fn.«verify_merkle_cap__L5».core).body = mcBody (2 ^ 5)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L6_body : (Fn.«verify_merkle_cap__L6».core).body = mcBody (2 ^ 6)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L7_body : (Fn.«verify_merkle_cap__L7».core).body = mcBody (2 ^ 7)
 
-open LeanVM.Guest.KernelLit in
 kernel_rfl verify_merkle_cap_L8_body : (Fn.«verify_merkle_cap__L8».core).body = mcBody (2 ^ 8)
 
 end
