@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Main.Loops
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.KernelLit
 
 /-!
 # `main`'s body
@@ -52,9 +53,9 @@ noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD (pos% «
 noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "own_0~2")).dropLast
 
 set_option maxRecDepth 100000 in
-theorem main_shape : Fn.body fn% «main» =
-    mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++ mPost ++ [.ret []] :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl main_shape : Fn.body fn% «main» =
+    mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++ mPost ++ [.ret []]
 
 /-! ## The facts, by evaluation -/
 

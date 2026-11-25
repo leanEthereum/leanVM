@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.Word
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
+import LeanVM.Guest.KernelLit
 
 /-!
 # `verify_bus_gkr`'s body, completely
@@ -156,9 +157,9 @@ def vbR9 : List Stmt :=
   [.atom (.copy (.n (val% «verify_bus_gkr» "s39#0[5]")) (.n (val% «verify_bus_gkr» "cursor@2"))), .atom (.copy (.n (val% «verify_bus_gkr» "s39#0[6]")) (.n (val% «verify_bus_gkr» "leaves")))]
 
 set_option maxRecDepth 10000 in
-theorem vbgPre_eq' :
-    vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9 :=
-  tbStmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl vbgPre_eq' :
+    vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9
 
 theorem tb_word_four : word 4 0 = gen ^ 2 := by
   rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]

@@ -14,6 +14,7 @@ public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«aggregate_claims»
+import LeanVM.Guest.KernelLit
 
 /-!
 # `aggregate_claims`' body
@@ -47,8 +48,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 noncomputable def aggP : List Stmt := (Fn.body fn% «aggregate_claims»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem agg_shape : Fn.body fn% «aggregate_claims» = aggP ++ [Stmt.ret []] :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl agg_shape : Fn.body fn% «aggregate_claims» = aggP ++ [Stmt.ret []]
 
 /-- The seed's constants `(lo, hi)`. -/
 def seedLo : List (ℕ × ℕ) :=
@@ -90,9 +91,9 @@ def aggGrindA : List Atom :=
     | _ => none
 
 set_option maxRecDepth 100000 in
-theorem aggGrindA_eq : aggGrindA.map Stmt.atom = gcInlineT 2 aggGo
-    (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) (.n (val% «aggregate_claims» "tabs")) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl aggGrindA_eq : aggGrindA.map Stmt.atom = gcInlineT 2 aggGo
+    (.n (val% «aggregate_claims» "fs_perm.nxt[1]")) (.n (val% «aggregate_claims» "tabs"))
 
 /-- **`aggregate_claims`' block, checked.** -/
 noncomputable def aggOk : Bool :=
