@@ -93,7 +93,7 @@ noncomputable def winL (Cf : CFun) (l : List Stmt) (ml : List (ℕ × ℕ)) : Bo
   stmtsAll (fun s ↦ isBW s && winP Cf s) l && l.all topOk && decide (matchLens l = ml)
 
 theorem matchLens_append (x y : List Stmt) : matchLens (x ++ y) = matchLens x ++ matchLens y := by
-  simp [matchLens_eq, stmtsOf_append, List.filterMap_append]
+  simp [matchLens, stmtsFM_eq, stmtsOf_append, List.filterMap_append]
 
 theorem winL_append {Cf : CFun} {x y : List Stmt} {mx my : List (ℕ × ℕ)} (hx : winL Cf x mx = true)
     (hy : winL Cf y my = true) : winL Cf (x ++ y) (mx ++ my) = true := by
@@ -115,7 +115,7 @@ theorem lwins_spec {Cf : CFun} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List (ℕ × List (ℕ × ℕ))}, LWins Cf l e a cs →
       a ≤ e ∧ winL Cf (slice l a e) (cs.map (·.2)).flatten = true := fun h ↦
   wins_fold (Q := fun (a : ℕ) (cs : List (ℕ × List (ℕ × ℕ))) ↦ winL Cf (slice l a e) (cs.map (·.2)).flatten = true)
-    (by simp [winL, stmtsAll_eq, slice_self, matchLens_eq, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
+    (by simp [winL, stmtsAll_eq, slice_self, matchLens, stmtsFM_eq, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
       rw [slice_split l hab hbe, List.map_cons, List.flatten_cons]
       exact winL_append hw hq) h
 
@@ -254,9 +254,9 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     exact List.all_eq_true.mpr fun s hs ↦ isBS_of_isBW (hst s hs).1
   have hML : matchLens Cf.fn.body = ml := by
     rw [hbody, matchLens_append, hmlE]
-    simp [matchLens_eq, stmtsOf, Bridge.stmtsSub]
+    simp [matchLens, stmtsFM_eq, stmtsOf, Bridge.stmtsSub]
   have hDL : dspLens Cf.fn.body = [] := by
-    rw [dspLens_eq, List.filterMap_eq_nil_iff]
+    rw [dspLens, stmtsFM_eq, List.filterMap_eq_nil_iff]
     intro s hs
     cases s with
     | dispatch x fs a r => exact absurd hs (loopBB_noDsp hBB)
