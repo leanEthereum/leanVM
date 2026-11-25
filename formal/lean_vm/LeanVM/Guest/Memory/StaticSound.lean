@@ -78,31 +78,21 @@ theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e))
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
 
-theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ := by
-  induction ρ with
-  | nil => simp [vlookup]
-  | cons q l ih =>
-    intro h
-    simp only [vlookup] at h
-    split_ifs at h with hq
-    · cases h
-      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-      rw [hq.2]
-      exact List.mem_cons_self
-    · exact List.mem_cons_of_mem _ (ih h)
+theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ :=
+  vfind_mem
 
 theorem vidx_get {v : V} : ∀ {ps : List V} {k j : ℕ}, vidx v ps k = some j → k ≤ j ∧ ps[j - k]? = some v
-  | [], _, _, h => by simp [vidx] at h
+  | [], _, _, h => by cases h
   | p :: ps, k, j, h => by
-      simp only [vidx] at h
-      split_ifs at h with hq
-      · cases h
-        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-        simp [hq.2]
+      change (bif Nat.beq v.idx p.idx && decide (v = p) then some k else vidx v ps (k + 1)) = some j at h
+      cases hq : (Nat.beq v.idx p.idx && decide (v = p)) <;> rw [hq] at h
       · obtain ⟨h1, h2⟩ := vidx_get h
         refine ⟨by omega, ?_⟩
         rw [show j - k = (j - (k + 1)) + 1 by omega, List.getElem?_cons_succ]
         exact h2
+      · cases h
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hq
+        simp [hq.2]
 
 section Cls
 
@@ -143,17 +133,8 @@ def BndOk (σ : Val) (args : List E) (β : BEnv) : Prop :=
 /-- The constants and the bounds hold. -/
 def Env2Ok (σ : Val) (args : List E) (ρ : Env × BEnv) : Prop := EnvOk σ ρ.1 ∧ BndOk σ args ρ.2
 
-theorem blookup_mem {β : BEnv} {v : V} {b : Aff} : blookup v β = some b → (v, b) ∈ β := by
-  induction β with
-  | nil => intro h; cases h
-  | cons q l ih =>
-      intro h
-      simp only [blookup] at h
-      split_ifs at h with hq
-      · cases h
-        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-        rw [hq.2]; exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (ih h)
+theorem blookup_mem {β : BEnv} {v : V} {b : Aff} : blookup v β = some b → (v, b) ∈ β :=
+  vfind_mem
 
 /-- **`logG` of a product by `g^c`**: at most `c` more (a non-power stays one). -/
 theorem logG_mul_le (w : E) (c : ℕ) : logG (w * ofK (addressOfIndex c)) ≤ logG w + c := by
@@ -1375,61 +1356,30 @@ theorem atom_on_path {a : Atom} : ∀ {l : List Stmt} {es : List Ev}, Stmt.noRet
         · rw [h2] at hw; simp [Out.seq, Out.pre] at hw
       · rw [h1] at hw; simp [Out.seq] at hw
 
-theorem defAtom_mem {d : V} {a : Atom} : ∀ {l : List Stmt}, defAtom d l = some a → Stmt.atom a ∈ l
-  | [], h => by simp [defAtom] at h
+theorem defAtom_spec {d : V} {a : Atom} :
+    ∀ {l : List Stmt}, defAtom d l = some a → Stmt.atom a ∈ l ∧ dstOf a = some d
+  | [], h => by cases h
   | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h
-      · cases h; exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (defAtom_mem h)
-  | .ite .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .match_ .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .call .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .callIf .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .dispatch .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .ret .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
+      change (bif dstIs d b then some b else defAtom d l) = some a at h
+      cases hb : dstIs d b <;> rw [hb] at h
+      · exact ⟨List.mem_cons_of_mem _ (defAtom_spec (l := l) h).1, (defAtom_spec (l := l) h).2⟩
+      · cases h; exact ⟨List.mem_cons_self, dstOf_of_dstIs hb⟩
+  | .ite .. :: l, h | .match_ .. :: l, h | .call .. :: l, h | .callIf .. :: l, h
+  | .dispatch .. :: l, h | .ret .. :: l, h =>
+      have h' : defAtom d l = some a := h
+      ⟨List.mem_cons_of_mem _ (defAtom_spec h').1, (defAtom_spec h').2⟩
 
-theorem defAtom_mul {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.mul x y z) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa using hb
-      · exact defAtom_mul h
-  | .ite .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
+theorem defAtom_mem {d : V} {a : Atom} {l : List Stmt} (h : defAtom d l = some a) : Stmt.atom a ∈ l :=
+  (defAtom_spec h).1
 
-theorem defAtom_add {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.add x y z) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa using hb
-      · exact defAtom_add h
-  | .ite .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_add (by simpa [defAtom] using h)
+theorem defAtom_mul {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.mul x y z)) : x = d := by
+  simpa [dstOf] using (defAtom_spec h).2
 
-theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = some (.const x w) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa using hb
-      · exact defAtom_const h
-  | .ite .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_const (by simpa [defAtom] using h)
+theorem defAtom_add {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.add x y z)) : x = d := by
+  simpa [dstOf] using (defAtom_spec h).2
+
+theorem defAtom_const {d x : V} {w : E} {l : List Stmt} (h : defAtom d l = some (.const x w)) : x = d := by
+  simpa [dstOf] using (defAtom_spec h).2
 
 theorem gpow_succ' (a : ℕ) : addressOfIndex a * addressOfIndex 1 = addressOfIndex (a + 1) := by
   simp [Parameters.addressOfIndex, pow_add]
