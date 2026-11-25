@@ -149,7 +149,8 @@ theorem dropVecStackClaim :
 theorem partialDropForm :
     DropSpecT env (liftProg fns) Idx.Core.Array.Iter.IterInner.SliceMaybeUninitForm.AsPartialDrop.PartialDrop
       Needs.Core.Array.Iter.IterInner.SliceMaybeUninitForm.AsPartialDrop.PartialDrop :=
-  DropT.partialDropForm_total env _ _ _ Core.Array.Iter.IterInner.SliceMaybeUninitForm.AsPartialDrop.PartialDrop.tmpl_eq _
+  DropT.partialDropForm_total env _ _ _
+    Core.Array.Iter.IterInner.SliceMaybeUninitForm.AsPartialDrop.PartialDrop.tmpl_eq _
 
 end Rv64mc.Table.RuntimeT
 
