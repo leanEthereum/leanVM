@@ -157,8 +157,7 @@ def vbR9 : List Stmt :=
   (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «verify_bus_gkr» "s39#0") + k)) (.n (val% «verify_bus_gkr» "last")) k)) ⧺
   [.atom (.copy (.n (val% «verify_bus_gkr» "s39#0[5]")) (.n (val% «verify_bus_gkr» "cursor@2"))), .atom (.copy (.n (val% «verify_bus_gkr» "s39#0[6]")) (.n (val% «verify_bus_gkr» "leaves")))]
 
-kernel_rfl vbgPre_eq' :
-    vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9
+kernel_rfl vbgPre_eq' : vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9
 
 theorem tb_word_four : word 4 0 = gen ^ 2 := by
   rw [show (4 : ℕ) = 2 ^ 2 by norm_num, tb_word_two_pow (by norm_num)]

@@ -3,8 +3,8 @@
 is its template, `OsData m`, `Whir/DataSpec.lean`), and `HelperData{k}.lean`, `HelperFind{c}.lean`,
 `HelperTables.lean` and `HelperAll.lean` (every specialization of `level_positions`,
 `level_queries`, `level_residual`, `level_residual_slow`, `level_residual_sum`, `residual_query_slow` and of their loops is its template,
-`Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by the kernel (`Data{m}` as a
-definitional equality, `kernel_rfl`; the helpers by evaluation). `Data{m}` reads only its function's core pack, and
+`Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by the kernel (`Data{m}` by
+`kernel_rfl`, the helpers by evaluation). `Data{m}` reads only its function's core pack, and
 `HelperData{k}` the helpers in core pack `k` (`Guest/Pack/P{k}/Core.lean`) and that pack only;
 they hold for any program that finds the functions (`FnIsP`, `OsDataP`, `Whir/DataSpecP.lean`), and
 `DataAll` and `HelperFind{c}` (eight chunks of packs) find them in `coreProgram`. The sizes are `ligNSizes`
@@ -95,14 +95,12 @@ def data(m):
 /-!
 # Size {m}
 
-`osData_{m} P : OsDataP P {m}` for every `P` that finds the function: its body is the template,
-checked by the kernel as one definitional equality (`kernel_rfl`), which compares the two terms
-structurally and unfolds each side only as far as the comparison needs.
+`osData_{m} P : OsDataP P {m}` for every `P` that finds the function: its body is the template
+(`kernel_rfl`).
 -/
 
 private kernel_rfl os_body_{m} : {fn}.body = osBody (osCfg {m})
 
-set_option maxRecDepth 100000 in
 theorem osData_{m} (P : Program) [Finds P "{name}" Fn.«{key}».core] : OsDataP P {m} :=
   fnIsP_of P "{name}" Fn.«{key}».core (by decide +kernel) os_body_{m}
 """)

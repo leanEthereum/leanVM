@@ -38,11 +38,9 @@ for k, part in enumerate(parts):
         loop = gen.stable[d['loop']]
         loopT = ('oqLoop1T %s.oq name%% «%s»' % (sh, loop)) if d['base'] == 1 else \
                 ('oqLoop0T %s.oq name%% «%s»' % (sh, loop))
-        out.append('''set_option linter.style.nameCheck false in
-/-- `%s`. -/
+        out.append('''/-- `%s`. -/
 kernel_rfl oqBody_%s : (Fn.«%s».core).body = oqMainT %s.oq name%% «%s»
 
-set_option linter.style.nameCheck false in
 /-- `%s`. -/
 kernel_rfl oqLoopBody_%s : (Fn.«%s».core).body = %s
 ''' % (d['name'], gen.key_of(d['name']), gen.key_of(d['name']), sh, loop, loop, gen.key_of(d['name']), loop,

@@ -16,9 +16,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_sig_lean_sphincs`'s body is the template**, checked by the kernel as one definitional
-equality, which compares the two terms structurally and unfolds each side only as far as the
-comparison needs. -/
+/-- **`verify_sig_lean_sphincs`'s body is the template** (`kernel_rfl`). -/
 kernel_rfl sBody_eq : (Fn.«verify_sig_lean_sphincs».core).body = sBody
 
 end
