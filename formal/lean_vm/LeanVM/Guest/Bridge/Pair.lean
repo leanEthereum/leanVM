@@ -245,7 +245,7 @@ theorem pairChk_sound {extra : List (ℕ × ℕ)} {locs : List ℕ} {n : ℕ} {b
       ((extra.lookup p.idx = none ∧ p.idx < 2 ^ 30 ∧ 2 ≤ locs.getD p.idx 0 ∧ locs.getD p.idx 0 < n) ∨
         (extra.lookup p.idx).isSome) ∧
       p ∈ allocDsts es ∧ ∃ a, Ev.atom a ∈ es ∧ atomHeapDest? a = some (p, off, len) := by
-  have hcell : ∀ v, cellOk extra locs n v = true →
+  have hcell : ∀ v, cellOk extra (locs.getD · 0) n v = true →
       extra.lookup v.idx = none ∧ v.idx < 2 ^ 30 ∧ 2 ≤ locs.getD v.idx 0 ∧ locs.getD v.idx 0 < n := fun v hv ↦ by
     simp only [cellOk, Bool.and_eq_true, Option.isNone_iff_eq_none, Nat.ble_eq, Nat.blt_eq] at hv
     exact ⟨hv.1.1.1, hv.1.1.2, hv.1.2, hv.2⟩
