@@ -125,15 +125,58 @@ def constOk (w : E) (e : ℕ) : Bool :=
   decide (e < 2 ^ 20) && decide (w.limb 1 = 0) &&
     (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
 
+/-! The lookups are written with the recursor and raw `Nat.beq`, which the kernel reduces several
+times faster than the compiled form of structural recursion and `if` on `==`; compiled code runs
+their structural twins (`@[csimp]`). -/
+
 /-- A value's entry, its index compared first. -/
-def vlookup (v : V) : List (V × ℕ) → Option ℕ
+noncomputable def vfind {β : Type} (v : V) (l : List (V × β)) : Option β :=
+  List.rec (motive := fun _ ↦ Option β) none
+    (fun q _ r ↦ bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else r) l
+
+/-- `vfind` by structural recursion. -/
+def vfindC {β : Type} (v : V) : List (V × β) → Option β
   | [] => none
-  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else vlookup v l
+  | q :: l => bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else vfindC v l
+
+@[csimp] theorem vfind_eq_vfindC : @vfind = @vfindC := by
+  funext β v l
+  induction l with
+  | nil => rfl
+  | cons q l ih => simp only [vfind, vfindC] at ih ⊢; rw [ih]
+
+theorem vfind_mem {β : Type} {l : List (V × β)} {v : V} {b : β} (h : vfind v l = some b) :
+    (v, b) ∈ l := by
+  induction l with
+  | nil => cases h
+  | cons q l ih =>
+    change (bif Nat.beq v.idx q.1.idx && decide (v = q.1) then some q.2 else vfind v l) = some b at h
+    cases hq : (Nat.beq v.idx q.1.idx && decide (v = q.1))
+    · rw [hq] at h; exact List.mem_cons_of_mem _ (ih h)
+    · rw [hq] at h
+      cases h
+      simp only [Bool.and_eq_true, decide_eq_true_eq] at hq
+      rw [hq.2]
+      exact List.mem_cons_self
+
+/-- A value's known constant. -/
+def vlookup (v : V) (l : List (V × ℕ)) : Option ℕ := vfind v l
 
 /-- A value's position among the parameters from `k`, its index compared first. -/
-def vidx (v : V) : List V → ℕ → Option ℕ
+noncomputable def vidx (v : V) (ps : List V) (k : ℕ) : Option ℕ :=
+  List.rec (motive := fun _ ↦ ℕ → Option ℕ) (fun _ ↦ none)
+    (fun p _ r k ↦ bif Nat.beq v.idx p.idx && decide (v = p) then some k else r (k + 1)) ps k
+
+/-- `vidx` by structural recursion. -/
+def vidxC (v : V) : List V → ℕ → Option ℕ
   | [], _ => none
-  | p :: ps, k => if v.idx == p.idx && decide (v = p) then some k else vidx v ps (k + 1)
+  | p :: ps, k => bif Nat.beq v.idx p.idx && decide (v = p) then some k else vidxC v ps (k + 1)
+
+@[csimp] theorem vidx_eq_vidxC : @vidx = @vidxC := by
+  funext v ps k
+  induction ps generalizing k with
+  | nil => rfl
+  | cons p ps ih => simp only [vidx, vidxC] at ih ⊢; rw [ih]
 
 /-- What a value is to the checker. -/
 inductive VCls where
@@ -150,9 +193,7 @@ def cls (ρ : Env) (ps : List V) (v : V) : VCls :=
     | none => .none
 
 /-- A value's bound entry. -/
-def blookup (v : V) : BEnv → Option Aff
-  | [] => none
-  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else blookup v l
+def blookup (v : V) (l : BEnv) : Option Aff := vfind v l
 
 /-- A bound on a value's exponent: tracked, a known constant's, or a parameter's. -/
 def bnd (ρ : Env × BEnv) (ps : List V) (v : V) : Option Aff :=
@@ -456,17 +497,45 @@ def Stmt.noRetArms : List (List Stmt) → Bool
   | a :: as => Stmt.noRetListS a && Stmt.noRetArms as
 end
 
-/-- The top-level atom of a block defining `d`. -/
-def defAtom (d : V) : List Stmt → Option Atom
+/-- The value an atom defines: a constant's, a sum's or a product's. -/
+def dstOf : Atom → Option V
+  | .const x _ => some x
+  | .add x _ _ => some x
+  | .mul x _ _ => some x
+  | _ => none
+
+/-- Atom `a` defines `d`, the index compared first. -/
+def dstIs (d : V) (a : Atom) : Bool :=
+  match dstOf a with
+  | some x => Nat.beq x.idx d.idx && decide (x = d)
+  | none => false
+
+theorem dstOf_of_dstIs {d : V} {a : Atom} (h : dstIs d a = true) : dstOf a = some d := by
+  unfold dstIs at h
+  split at h
+  · rename_i x hx
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [hx, h.2]
+  · cases h
+
+/-- The top-level atom of a block defining `d`, by the recursor (the kernel's reduction). -/
+noncomputable def defAtom (d : V) (l : List Stmt) : Option Atom :=
+  List.rec (motive := fun _ ↦ Option Atom) none
+    (fun s _ r ↦ match s with
+      | .atom a => bif dstIs d a then some a else r
+      | _ => r) l
+
+/-- `defAtom` by structural recursion. -/
+def defAtomC (d : V) : List Stmt → Option Atom
   | [] => none
-  | .atom a :: ss =>
-      let dst? : Option V := match a with
-        | .const x _ => some x
-        | .add x _ _ => some x
-        | .mul x _ _ => some x
-        | _ => none
-      if dst? = some d then some a else defAtom d ss
-  | _ :: ss => defAtom d ss
+  | .atom a :: ss => bif dstIs d a then some a else defAtomC d ss
+  | _ :: ss => defAtomC d ss
+
+@[csimp] theorem defAtom_eq_defAtomC : @defAtom = @defAtomC := by
+  funext d l
+  induction l with
+  | nil => rfl
+  | cons s l ih => cases s <;> simp only [defAtom, defAtomC] at ih ⊢ <;> rw [ih]
 
 /-- `d = p · g` by a top-level `mul` with a constant `g`. -/
 def isStep (pre : List Stmt) (p d : V) : Bool :=
