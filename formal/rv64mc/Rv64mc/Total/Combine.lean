@@ -243,3 +243,7 @@ end Lprog
 /-- info: 'Lprog.Isa.step_ok_of_ext_not_ok' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Lprog.Isa.step_ok_of_ext_not_ok
+
+/-- info: 'Lprog.Isa.step_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Lprog.Isa.step_congr
