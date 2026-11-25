@@ -14,6 +14,9 @@ for the concrete image; until `main`'s proof lands, `main`'s contract (`MainSpec
 `HaltsSafely image`: on every input of fewer than `maxInputWords` words, the loaded image runs, every step taken by
 `step`, to the halting `ECALL` with `a0` one of the guest's verdicts. Its end theorem is `rv64_halts_of_main`
 (`Final/EndT.lean`), with `main`'s total contract (`MainSpecT`) its one hypothesis until that is proved.
+`SafeVerdict image` is the two together, the headline: every input under 512 KiB ends at the halting `ECALL`, and
+exit code `0` only on a proof the verifier accepts (`rv64_safeVerdict`, `Final/Headline.lean`). `BoolVerdict` is
+the target beyond it: exit code `2` (abort) only on an input that does not decode. It is not proved.
 
 ## The loader (`Loaded`)
 
@@ -233,5 +236,24 @@ def maxInputWords : Nat := 2 ^ 16
 def HaltsSafely (img : Image) : Prop :=
   ∀ words s, words.length < maxInputWords → Loaded img words s →
     ∃ n v, Halts s n v ∧ (v = 0 ∨ v = 1 ∨ v = 2)
+
+/-- **The headline, as proved**: on every input of fewer than `maxInputWords` words (512 KiB), the loaded image ends
+    at the halting `ECALL` after a run of `step` (`HaltsSafely`), and its exit code `a0` is read as a boolean,
+    accept when `0`: then the input decodes to a proof the Lean verifier accepts (`Sound`). Exit codes `1` and `2`
+    are both "not accepted". -/
+def SafeVerdict (img : Image) : Prop :=
+  ∀ words s, words.length < maxInputWords → Loaded img words s →
+    ∃ n v, Halts s n v ∧ (v = 0 ∨ v = 1 ∨ v = 2) ∧
+      (v = 0 → ∃ bytecode publicInput proof, decodeInput words = some (bytecode, publicInput, proof) ∧
+        verify bytecode publicInput proof = true)
+
+/-- **The headline, as targeted**: `SafeVerdict`, and the abort code `2` only on an input that does not decode, so
+    that on every well-formed input the exit code is `0` or `1` (`BoolVerdict.bool`, `Final/Headline.lean`). It does
+    not say that `0` is answered exactly when the verifier accepts (completeness). -/
+def BoolVerdict (img : Image) : Prop :=
+  ∀ words s, words.length < maxInputWords → Loaded img words s →
+    ∃ n v, Halts s n v ∧ (v = 0 ∨ v = 1 ∨ (v = 2 ∧ decodeInput words = none)) ∧
+      (v = 0 → ∃ bytecode publicInput proof, decodeInput words = some (bytecode, publicInput, proof) ∧
+        verify bytecode publicInput proof = true)
 
 end Rv64mc
