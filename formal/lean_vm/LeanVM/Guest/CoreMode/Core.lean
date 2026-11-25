@@ -1311,7 +1311,7 @@ noncomputable def nzrOk (Cf : CFun) (res : Exec.Trie (List Mode.Res)) (code : Li
   (List.range code.length).all fun i ↦ match Cf.frame.nzr.get i with
     | none => true
     | some os => match retSt Cf.frame code i with
-      | some A => os.all fun o ↦ (A.w.get o).isSome && ((res.get i).getD []).contains (.nz o)
+      | some A => os.all fun o ↦ A.hasW o && ((res.get i).getD []).contains (.nz o)
       | none => false
 
 /-- A value an atom of the body defines. -/
@@ -1327,8 +1327,8 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (
   | .atom (.frameAddr p (r :: rs)) => ((List.range (rs.length + 1)).all fun k ↦
       !(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome) &&
-      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
+        | none => false) || A.hasW (X.locAt r.idx + k)) &&
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || A.hasW (X.locAt r.idx + q.2)
   | _ => true
 
 /-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
