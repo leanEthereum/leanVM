@@ -21,7 +21,7 @@
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
-    <td align="right"><b>3,4 MiB/s</b></td>
+    <td align="right"><b>6,9 MiB/s</b></td>
   </tr>
 </table>
 <table align="center">
