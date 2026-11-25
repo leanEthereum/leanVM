@@ -4,7 +4,7 @@ is its template, `OsData m`, `Whir/DataSpec.lean`), and `HelperData{k}.lean`, `H
 `HelperTables.lean` and `HelperAll.lean` (every specialization of `level_positions`,
 `level_queries`, `level_residual`, `level_residual_slow`, `level_residual_sum`, `residual_query_slow` and of their loops is its template,
 `Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by the kernel (`Data{m}` by
-`kernel_rfl`, the helpers by evaluation). `Data{m}` reads only its function's core pack, and
+`kernel_rfl`, the helpers' bodies too). `Data{m}` reads only its function's core pack, and
 `HelperData{k}` the helpers in core pack `k` (`Guest/Pack/P{k}/Core.lean`) and that pack only;
 they hold for any program that finds the functions (`FnIsP`, `OsDataP`, `Whir/DataSpecP.lean`), and
 `DataAll` and `HelperFind{c}` (eight chunks of packs) find them in `coreProgram`. The sizes are `ligNSizes`
@@ -127,11 +127,11 @@ def nums(name, pre):
 def thm(fname, nparams, body):
     """Function `fname`'s data theorem, for any program that finds it, and its instance at
     `coreProgram`, each its own declaration."""
-    key = KEY[fname]
-    return (f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
-            f'theorem {tname(fname)} (P : Program) [Finds P "{fname}" Fn.«{key}».core] :\n'
+    key, t = KEY[fname], tname(fname)
+    return (f'\nprivate kernel_rfl {t}_body : (Fn.«{key}».core).body = {body}\n\n/-- `{fname}`. -/\n'
+            f'theorem {t} (P : Program) [Finds P "{fname}" Fn.«{key}».core] :\n'
             f'    FnIsP P "{fname}" (osParams {nparams}) ({body}) :=\n'
-            f'  fnIsP_of P "{fname}" Fn.«{key}».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))\n',
+            f'  fnIsP_of P "{fname}" Fn.«{key}».core (by decide +kernel) {t}_body\n',
             f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
             f'theorem {inst(fname)} : FnIs "{fname}" (osParams {nparams}) ({body}) :=\n'
             f'  @{tname(fname)} coreProgram {found(fname)}\n')
@@ -214,10 +214,10 @@ def helpers(idx):
     for k in files:
         chunk = byPack[k]
         out[f"HelperData{k}"] = (HDR.format(
-            mod=f"HelperData{k}", doc="Specializations of `open_stacked`'s helpers are their templates, by kernel evaluation.",
+            mod=f"HelperData{k}", doc="Specializations of `open_stacked`'s helpers are their templates, by the kernel.",
             imports="public import LeanVM.Guest.B1.Whir.HelperT\npublic import LeanVM.Guest.B1.Whir.SlowT\n"
             "public import LeanVM.Guest.B1.Whir.DataSpecP\n"
-            + "".join(dict.fromkeys(fn_import(KEY[f]) for f, _ in chunk)))
+            + "".join(dict.fromkeys(fn_import(KEY[f]) for f, _ in chunk)) + "meta import LeanVM.Guest.KernelLit\n")
             + "".join(x for _, (x, _) in chunk) + FTR)
     # the finds are glue, cheap: FIND_CHUNKS modules, pack `k` in chunk `k % FIND_CHUNKS`
     finds = sorted({k % FIND_CHUNKS for k in files})
