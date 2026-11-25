@@ -76,7 +76,7 @@ partial def tryBuild (stx : Syntax) (ty : Expr) : TermElabM (Option Expr) := do
     let [c] := v.ctors | return none
     return ← appConst c stx[1].getSepArgs ty
   let (f, args) := if k == ``Lean.Parser.Term.app then (stx[0], stx[1].getArgs) else (stx, #[])
-  if args.any fun a ↦ a.getKind == ``Lean.Parser.Term.namedArgument || a.getKind == ``Lean.Parser.Term.ellipsis then
+  if args.any fun a ↦ a.getKind matches ``Lean.Parser.Term.namedArgument | ``Lean.Parser.Term.ellipsis then
     return none
   if f.getKind == ``Lean.Parser.Term.dotIdent then
     let ty ← whnfR ty
