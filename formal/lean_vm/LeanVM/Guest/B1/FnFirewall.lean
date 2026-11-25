@@ -57,11 +57,7 @@ import LeanVM.Guest.B1.Sig.SphincsCompleteConv
 import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 import LeanVM.Guest.B1.Sig.SphincsData
-import LeanVM.Guest.B1.Sig.SphincsData0
-import LeanVM.Guest.B1.Sig.SphincsData1
-import LeanVM.Guest.B1.Sig.SphincsData2
 import LeanVM.Guest.B1.Sig.SphincsDigestComplete
-import LeanVM.Guest.B1.Sig.SphincsDigestData
 import LeanVM.Guest.B1.Sig.SphincsDigestT
 import LeanVM.Guest.B1.Sig.SphincsFields
 import LeanVM.Guest.B1.Sig.SphincsFieldsComplete
