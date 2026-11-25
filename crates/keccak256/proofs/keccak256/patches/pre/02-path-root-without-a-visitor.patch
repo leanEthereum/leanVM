@@ -1,0 +1,30 @@
+diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
+--- a/crates/keccak256/src/lib.rs
++++ b/crates/keccak256/src/lib.rs
+@@ -221,6 +221,26 @@
+             [sibling, current]
+         };
+         visit(&children);
++        current = node(z + 1, e >> (z + 1), &children);
++    }
++    current
++}
++
++/// [`path_fold`] with nothing watching.
++pub fn path_root<const N: usize>(
++    leaf: [u8; N],
++    e: usize,
++    path: &[[u8; N]],
++    node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
++) -> [u8; N] {
++    let mut current = leaf;
++    for z in 0..path.len() {
++        let sibling = path[z];
++        let children = if (e >> z) & 1 == 0 {
++            [current, sibling]
++        } else {
++            [sibling, current]
++        };
+         current = node(z + 1, e >> (z + 1), &children);
+     }
+     current

@@ -1,0 +1,5 @@
+# `cargo test --release` arguments, one run per line, on the patched source.
+-p keccak256
+# The schemes that fold their Merkle paths with it.
+-p lean_xmss
+-p lean_sphincs

@@ -14,5 +14,4 @@ opaque = [
   "crate::digest_of",  # Aeneas: unimplemented
   "crate::final_state",  # Aeneas: unimplemented
   "crate::hash_from_state",  # Lean: unknown identifier `core.slice.slice.as_chunks`
-  "crate::path_fold",  # Lean: type mismatch
 ]

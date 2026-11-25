@@ -1,0 +1,59 @@
+diff --git a/crates/lean_sphincs/src/hash.rs b/crates/lean_sphincs/src/hash.rs
+--- a/crates/lean_sphincs/src/hash.rs
++++ b/crates/lean_sphincs/src/hash.rs
+@@ -133,8 +133,9 @@
+     let mut z = Hasher::new();
+     z.update(r).update(pk_seed).update(pk_root).update(m);
+     let mut out = [0; 32 * DIGEST_CALLS];
+-    for (i, call) in out.as_chunks_mut::<32>().0.iter_mut().enumerate() {
+-        *call = z.clone().update(&(i as u32).to_be_bytes()).finalize();
++    for i in 0..DIGEST_CALLS {
++        let call = z.clone().update(&(i as u32).to_be_bytes()).finalize();
++        out[32 * i..32 * (i + 1)].copy_from_slice(&call);
+     }
+     out
+ }
+diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.rs
+--- a/crates/lean_sphincs/src/scheme.rs
++++ b/crates/lean_sphincs/src/scheme.rs
+@@ -89,7 +89,10 @@
+ 
+ /// Where layer `layer`'s path sits among a signature's path nodes: after every layer below it.
+ fn path_range(layer: usize) -> core::ops::Range<usize> {
+-    let start = LAYER_HEIGHTS[..layer].iter().sum();
++    let mut start = 0;
++    for below in 0..layer {
++        start += LAYER_HEIGHTS[below];
++    }
+     start..start + LAYER_HEIGHTS[layer]
+ }
+ 
+diff --git a/crates/lean_sphincs/src/wots.rs b/crates/lean_sphincs/src/wots.rs
+--- a/crates/lean_sphincs/src/wots.rs
++++ b/crates/lean_sphincs/src/wots.rs
+@@ -25,7 +25,11 @@
+     /// the layer dropped, the rest split into a tree and a leaf.
+     pub fn of_index(layer: usize, idx: u64) -> Self {
+         let height = LAYER_HEIGHTS[layer];
+-        let e = idx >> LAYER_HEIGHTS[..layer].iter().sum::<usize>();
++        let mut below = 0;
++        for l in 0..layer {
++            below += LAYER_HEIGHTS[l];
++        }
++        let e = idx >> below;
+         Self {
+             layer,
+             tree: e >> height,
+@@ -85,7 +89,11 @@
+ fn codeword(digest: &Digest) -> Option<[u8; V]> {
+     let d = u128::from_be_bytes(*digest);
+     let x: [u8; V] = core::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);
+-    (x.iter().map(|&chunk| chunk as usize).sum::<usize>() == TARGET_SUM).then_some(x)
++    let mut sum = 0;
++    for i in 0..V {
++        sum += x[i] as usize;
++    }
++    (sum == TARGET_SUM).then_some(x)
+ }
+ 
+ /// `Wots.sign`: the LEAST admissible counter, and the chain value each chunk
