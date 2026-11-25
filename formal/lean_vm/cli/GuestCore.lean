@@ -153,13 +153,18 @@ structure Def where
   term : Lines
   refs : List String := []
 
-def Def.text (d : Def) : String :=
+/-- The mark of a definition's value, built as a data literal (`Guest/DataLit.lean`). The files'
+split points are measured without it. -/
+def dataMark : String := "data% "
+
+/-- The text of `d`, its value marked `mark`. -/
+def Def.text (d : Def) (mark := dataMark) : String :=
   let t := match d.term with
-    | l :: ls => s!"noncomputable def {d.name} : {d.ty} := data% {l}" :: ls
+    | l :: ls => s!"noncomputable def {d.name} : {d.ty} := {mark}{l}" :: ls
     | [] => []
   s!"/-- {d.doc} -/\n" ++ "\n".intercalate t ++ "\n"
 
-def Def.size (d : Def) : Nat := d.text.length
+def Def.size (d : Def) : Nat := (d.text "").length
 
 structure Ctx where
   /-- The function's stable name, for the documentation. -/
@@ -527,7 +532,8 @@ def files (P : Core.Program) : List (String × String) :=
   let keys := (List.range P.length).map fun j => st.getD j ""
   let defs := (P.zip keys).map fun (f, key) => (key, pack [pFn key f])
   let text (fs : Array File) : String := "\n".intercalate (blocks fs[0]!.parts.toList)
-  let own (fs : Array File) : Bool := fs.size > 1 || (text fs).length > ownSize
+  let own (fs : Array File) : Bool :=
+    fs.size > 1 || ((text fs).replace dataMark "").length > ownSize
   let ownFiles := defs.flatMap fun (key, fs) =>
     if own fs then fs.toList.zipIdx.map fun (fl, i) =>
       (s!"Pack/{key}/{fnFileName fs.size i}.lean", fl.text key fs.size i)

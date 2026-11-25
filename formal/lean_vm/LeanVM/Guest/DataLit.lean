@@ -20,10 +20,11 @@ and list against its expected type, synthesizes each numeral's instance and unif
 parameters are the `n` explicit arguments, each built at its binder's type; a numeral at `ℕ` as the
 elaborator writes it (`OfNat.ofNat ℕ n (instOfNatNat n)`); a string; a list `[a, …]` or `a :: l`; a
 tuple `(a, b, …)`.
-Anything else is elaborated as usual. Nothing here is trusted: the kernel checks the definition's
-value against its type, and the certificates check the values against the statement's data
-(`Checked/Link*`). It is for the proofs' generated data only: the statement's data
-(`formal/Statement/`) stays plain Lean.
+A term of another form, or a constructor applied to other than its fields (a flattened `⟨a, b, c⟩`
+at a structure of two fields), is elaborated as usual. An argument of a form it builds is built, or
+elaborated, at its binder's type on its own: an error there is not retried on the whole term.
+Nothing here is trusted: the kernel checks each definition's value against its type. It is for the
+proofs' generated data only: the statement's data (`formal/Statement/`) stays plain Lean.
 -/
 
 namespace LeanVM.Guest.DataLit
@@ -129,8 +130,11 @@ partial def tupleOf (xs : Array Syntax) (ty : Expr) : TermElabM (Option Expr) :=
   return some (mkApp4 (.const ``Prod.mk us) α β (← build x α) r)
 
 /-- Constant `c` applied to `args` at type `ty` (`constAt`), each argument at its binder's type, the
-binders after the type's parameters exactly the arguments, all explicit. -/
+binders after the type's parameters exactly the arguments, all explicit (a constructor's fields
+counted before any is built). -/
 partial def appConst (c : Name) (args : Array Syntax) (ty : Expr) : TermElabM (Option Expr) := do
+  if let some (.ctorInfo v) := (← getEnv).find? c then
+    unless v.numFields == args.size do return none
   let some (f, fty) ← constAt c ty | return none
   let mut e := f
   let mut t := fty

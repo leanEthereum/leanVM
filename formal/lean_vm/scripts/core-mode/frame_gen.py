@@ -289,7 +289,7 @@ def chunk_lens(k):
     if k not in BD.bundle_blocks():
         raise SystemExit('frame_gen: no code of %s' % k)
     blk = BD.bundle_blocks()[k][1]
-    ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
+    ds = {m.group(1): m.group(2) for m in re.finditer(r'^(?:noncomputable )?def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
     # one instruction a line
     return [ds[c].count('\n') + 1 for c in BD.code_of(blk)[3]]
 
