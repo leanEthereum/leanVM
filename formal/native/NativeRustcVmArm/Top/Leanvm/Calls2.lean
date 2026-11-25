@@ -14,7 +14,7 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
 open NativeRustcVm.Wire (streamW openingsW)
 open NativeVm.Wire (decodeM PhaseOut)
 open LeanVM.Parameters (E)
@@ -110,8 +110,6 @@ theorem decodeWire (hp : Placed code k)
     rw [hX0]
     have gw := g.wire hL0
     have gwN := g.wireN
-    have hww : bytes.length ≤ 8 * NativeVm.Entry.wireWords bytes.length := by
-      unfold NativeVm.Entry.wireWords; omega
     have ewi : a.wire.toBitVec.toNat = a.wire.toNat := rfl
     exact bytesAt_keep (wireBytes hin).1 hP.body.same (by omega) fun q hq ↦ by
       unfold InStack at hq; omega

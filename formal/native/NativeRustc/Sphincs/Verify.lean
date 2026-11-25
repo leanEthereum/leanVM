@@ -12,6 +12,9 @@ the FORS openings, then each layer's big-endian counter and words); parsed (`Pub
 `Signature.fromBytes`) they are the bytes of the statement's values (`pk_fromBytes`,
 `messageBytes_encode`, `randomizer_fromBytes`, `fors_fromBytes`, `layerHolds_fromBytes`), so
 `sphincsVerify` is `Sphincs.verifyWithKeccak` (`verify_eq`).
+
+`verify_decode` covers arbitrary words: re-encoding their decoded fields preserves the wrapper's
+key, message and signature bytes, including the truncation of each layer counter to 32 bits.
 -/
 
 @[expose] public section
@@ -279,5 +282,138 @@ theorem verify_eq :
   rw [sphincsVerify, pk_fromBytes, messageBytes_encode]
   exact verify_spec pk m sig _ (randomizer_fromBytes pk m sig) (fors_fromBytes pk m sig)
     (layerHolds_fromBytes pk m sig)
+
+private theorem decode_digestWord (w : Nat → UInt64) (b k : Nat) (hk : k < 2) :
+    SphincsVerifier.digestWord (ofWords (w b) (w (b + 1))) k = w (b + k) := by
+  interval_cases k <;>
+    simp [SphincsVerifier.digestWord, digestLo_ofWords, digestHi_ofWords]
+
+private theorem decode_messageWord (w : Nat → UInt64) {i : Nat} (hi : i < 4) :
+    word256 (SphincsVerifier.decode w).2.1 i = w (4 + i) := by
+  have h4 := (w 4).toNat_lt
+  have h5 := (w 5).toNat_lt
+  have h6 := (w 6).toNat_lt
+  have h7 := (w 7).toNat_lt
+  apply UInt64.toNat_inj.mp
+  interval_cases i <;>
+    simp only [SphincsVerifier.decode, word256, BitVec.toNat_ofNat, UInt64.toNat_ofNat']
+    <;> norm_num <;> omega
+
+private theorem decode_forsWord (w : Nat → UInt64) (c : ForsTreeIndex)
+    {k : Nat} (hk : k < 22) :
+    SphincsVerifier.forsWord ((SphincsVerifier.decode w).2.2.forsOpening c) k =
+      w (SphincsVerifier.forsOff c.val + k) := by
+  simp only [SphincsVerifier.forsWord]
+  split
+  · exact decode_digestWord w _ _ ‹k < 2›
+  · dsimp only [SphincsVerifier.decode]
+    rw [decode_digestWord w _ _ (Nat.mod_lt _ (by decide))]
+    congr 1
+    omega
+
+private theorem decode_layerWord (w : Nat → UInt64) (l : Layer)
+    {k : Nat} (hk0 : 0 < k) (hk : k < 129 + 2 * layerHeight l) :
+    SphincsVerifier.layerWord ((SphincsVerifier.decode w).2.2.layers l) k =
+      w (SphincsVerifier.layerOff l.val + k) := by
+  simp only [SphincsVerifier.layerWord, ite_eq_right (Nat.ne_of_gt hk0)]
+  split
+  · dsimp only [SphincsVerifier.decode]
+    rw [decode_digestWord w _ _ (Nat.mod_lt _ (by decide))]
+    apply congrArg w
+    omega
+  · dsimp only [SphincsVerifier.decode]
+    rw [decode_digestWord w _ _ (Nat.mod_lt _ (by decide))]
+    apply congrArg w
+    omega
+
+/-- Re-encoding preserves the key, message, randomizer and FORS words. -/
+theorem encode_decode_head (w : Nat → UInt64) {i : Nat} (hi : i < 538) :
+    SphincsVerifier.encode (SphincsVerifier.decode w).1 (SphincsVerifier.decode w).2.1
+      (SphincsVerifier.decode w).2.2 i = w i := by
+  unfold SphincsVerifier.encode
+  split
+  · simpa only [SphincsVerifier.decode, Nat.zero_add] using decode_digestWord w 0 i ‹i < 2›
+  · split
+    · have h := decode_digestWord w 2 (i - 2) (by omega)
+      simpa only [SphincsVerifier.decode, show 2 + (i - 2) = i by omega] using h
+    · split
+      · have h := decode_messageWord w (i := i - 4) (by omega)
+        simpa only [show 4 + (i - 4) = i by omega] using h
+      · split
+        · have h := decode_digestWord w 8 (i - 8) (by omega)
+          simpa only [SphincsVerifier.decode, show 8 + (i - 8) = i by omega] using h
+        · rw [dite_eq_left (show i < SphincsVerifier.layerOff 0 by exact hi)]
+          rw [decode_forsWord w _ (Nat.mod_lt _ (by decide))]
+          apply congrArg w
+          change 10 + 22 * ((i - 10) / 22) + (i - 10) % 22 = i
+          omega
+
+/-- Re-encoding preserves every full-width layer word. -/
+theorem encode_decode_layer (w : Nat → UInt64) (l : Layer) {k : Nat}
+    (hk0 : 0 < k) (hk : k < 129 + 2 * layerHeight l) :
+    SphincsVerifier.encode (SphincsVerifier.decode w).1 (SphincsVerifier.decode w).2.1
+      (SphincsVerifier.decode w).2.2 (SphincsVerifier.layerOff l.val + k) =
+      w (SphincsVerifier.layerOff l.val + k) := by
+  rw [SphincsVerifier.encode_layer _ _ _ l.val l.isLt hk]
+  exact decode_layerWord w l hk0 hk
+
+/-- The counter conversion preserves exactly the low 32 bits. -/
+theorem encode_decode_counter (w : Nat → UInt64) (l : Layer) :
+    (SphincsVerifier.encode (SphincsVerifier.decode w).1 (SphincsVerifier.decode w).2.1
+      (SphincsVerifier.decode w).2.2 (SphincsVerifier.layerOff l.val)).toUInt32 =
+      (w (SphincsVerifier.layerOff l.val)).toUInt32 := by
+  rw [← Nat.add_zero (SphincsVerifier.layerOff l.val),
+    SphincsVerifier.encode_layer _ _ _ l.val l.isLt (by omega),
+    SphincsVerifier.layerWord_counter]
+  apply UInt32.toNat_inj.mp
+  have h := (w (SphincsVerifier.layerOff l.val)).toUInt32.toNat_lt
+  change ((w (SphincsVerifier.layerOff l.val)).toUInt32.toNat.toUInt64).toUInt32.toNat =
+    (w (SphincsVerifier.layerOff l.val)).toUInt32.toNat
+  rw [UInt64.toNat_toUInt32, Nat.toUInt64_eq, UInt64.toNat_ofNat']
+  omega
+
+/-- Every wrapper input is verified against the Statement specification of its decoded fields. -/
+theorem verify_decode (w : Nat → UInt64) :
+    sphincsVerify w = verifyWithKeccak (SphincsVerifier.decode w).1
+      (SphincsVerifier.decode w).2.1 (SphincsVerifier.decode w).2.2 := by
+  let e := SphincsVerifier.encode (SphincsVerifier.decode w).1
+    (SphincsVerifier.decode w).2.1 (SphincsVerifier.decode w).2.2
+  have hp : pkBytes e = pkBytes w := by
+    unfold pkBytes
+    congr 1
+    apply List.map_congr_left
+    intro i hi
+    exact encode_decode_head w (by have := List.mem_range.mp hi; omega)
+  have hm : messageBytes e = messageBytes w := by
+    unfold messageBytes
+    congr 1
+    apply List.map_congr_left
+    intro i hi
+    exact encode_decode_head w (by have := List.mem_range.mp hi; omega)
+  have hh : headBytes e = headBytes w := by
+    unfold headBytes
+    apply congrArg wordsBytes
+    apply List.map_congr_left
+    intro i hi
+    exact encode_decode_head w (by have := List.mem_range.mp hi; omega)
+  have hl : ∀ l < 3, layerBytes e l = layerBytes w l := by
+    intro l hl
+    unfold layerBytes
+    rw [show (e (layerWordOff l)).toUInt32 = (w (layerWordOff l)).toUInt32 from
+      encode_decode_counter w ⟨l, hl⟩]
+    apply congrArg (fun bs => be32 (w (layerWordOff l)).toUInt32 ++ wordsBytes bs)
+    apply List.map_congr_left
+    intro k hk
+    have hk := List.mem_range.mp hk
+    have he : layerHeights.getD l 0 = layerHeight ⟨l, hl⟩ := layerHeights_eq ⟨l, hl⟩
+    simpa only [layerWordOff_eq, Nat.add_assoc] using
+      encode_decode_layer w ⟨l, hl⟩ (k := 1 + k) (by omega) (by omega)
+  have hs : sigBytes e = sigBytes w := by
+    rw [sigBytes_eq, sigBytes_eq, hh, hl 0 (by omega), hl 1 (by omega), hl 2 (by omega)]
+  rw [← verify_eq (SphincsVerifier.decode w).1 (SphincsVerifier.decode w).2.1
+    (SphincsVerifier.decode w).2.2]
+  change sphincsVerify w = sphincsVerify e
+  unfold sphincsVerify
+  rw [hp, hm, hs]
 
 end NativeRustc.Sphincs

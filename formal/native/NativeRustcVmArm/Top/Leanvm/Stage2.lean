@@ -14,7 +14,7 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
 open NativeRustcVm.Wire (streamW openingsW)
 open NativeVm.Wire (decodeM PhaseOut)
 open LeanVM.Parameters (E)

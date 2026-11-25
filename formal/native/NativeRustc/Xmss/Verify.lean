@@ -10,6 +10,9 @@ into the key's, the message's and the signature's bytes; parsed (`PublicKey.from
 `Signature.fromBytes`) they are the bytes of the statement's values (`pk_fromBytes`,
 `messageBytes_encode`, `takeLayer_encode`, `sig_fromBytes`), so `xmssVerify` is
 `LeanXmss.verifyWithKeccak` (`verify_eq`).
+
+`verify_decode` covers arbitrary words: re-encoding their decoded fields preserves the wrapper's
+key, message and signature bytes, including the truncation of the leaf index to 32 bits.
 -/
 
 @[expose] public section
@@ -103,5 +106,98 @@ bytes of the input words `encode pk msg sig` is `LeanXmss.verifyWithKeccak`. -/
 theorem verify_eq : xmssVerify (encode pk msg sig) = verifyWithKeccak pk msg sig := by
   rw [xmssVerify, pk_fromBytes, messageBytes_encode, sig_fromBytes]
   exact verify_spec pk msg sig (leafIndex_toNat pk msg sig)
+
+private theorem decode_digestWord (w : Nat → UInt64) (b k : Nat) (hk : k < 2) :
+    digestWord (ofWords (w b) (w (b + 1))) k = w (b + k) := by
+  interval_cases k <;>
+    simp [digestWord, digestLo_ofWords, digestHi_ofWords]
+
+private theorem decode_messageWord (w : Nat → UInt64) {i : Nat} (hi : i < 4) :
+    word256 (decode w).2.1 i = w (4 + i) := by
+  have h4 := (w 4).toNat_lt
+  have h5 := (w 5).toNat_lt
+  have h6 := (w 6).toNat_lt
+  have h7 := (w 7).toNat_lt
+  apply UInt64.toNat_inj.mp
+  interval_cases i <;> simp only [decode, word256, BitVec.toNat_ofNat, UInt64.toNat_ofNat']
+    <;> norm_num <;> omega
+
+private theorem decode_layerWord (w : Nat → UInt64) (l : LeanXmss.Layer)
+    {k : Nat} (hk : k < 150) :
+    layerWord ((decode w).2.2.layers l) k = w (9 + 150 * l.val + k) := by
+  simp only [layerWord]
+  split
+  · exact decode_digestWord w _ _ ‹k < 2›
+  · split
+    · dsimp only [decode]
+      rw [decode_digestWord w _ _ (Nat.mod_lt _ (by decide))]
+      congr 1
+      omega
+    · dsimp only [decode]
+      rw [decode_digestWord w _ _ (Nat.mod_lt _ (by decide))]
+      congr 1
+      omega
+
+/-- Re-encoding a decoded input preserves every full-width word the wrapper reads. -/
+theorem encode_decode_word (w : Nat → UInt64) {i : Nat} (hi : i < 309) (h8 : i ≠ 8) :
+    encode (decode w).1 (decode w).2.1 (decode w).2.2 i = w i := by
+  unfold encode
+  split
+  · simpa only [decode, Nat.zero_add] using decode_digestWord w 0 i ‹i < 2›
+  · split
+    · have h : i - 2 < 2 := by omega
+      have he := decode_digestWord w 2 (i - 2) h
+      simpa only [decode, show 2 + (i - 2) = i by omega] using he
+    · split
+      · have h := decode_messageWord w (i := i - 4) (by omega)
+        simpa only [show 4 + (i - 4) = i by omega] using h
+      · rw [dite_eq_left (show i < 9 + 2 * layerWords by simpa only [layerWords] using hi)]
+        simp only [layerWords]
+        rw [decode_layerWord w _ (Nat.mod_lt _ (by decide))]
+        apply congrArg w
+        change 9 + 150 * ((i - 9) / 150) + (i - 9) % 150 = i
+        omega
+
+/-- The leaf-index conversion preserves exactly the low 32 bits. -/
+theorem encode_decode_index (w : Nat → UInt64) :
+    (encode (decode w).1 (decode w).2.1 (decode w).2.2 8).toUInt32 =
+      (w 8).toUInt32 := by
+  apply UInt32.toNat_inj.mp
+  have h := (w 8).toUInt32.toNat_lt
+  simp only [encode, decode, show ¬(8 < 2) by decide, show ¬(8 < 4) by decide,
+    show ¬(8 < 8) by decide, ite_false, ite_true, UInt64.toNat_toUInt32,
+    Nat.toUInt64_eq, UInt64.toNat_ofNat']
+  omega
+
+/-- Every wrapper input is verified against the Statement specification of its decoded fields. -/
+theorem verify_decode (w : Nat → UInt64) :
+    xmssVerify w = verifyWithKeccak (decode w).1 (decode w).2.1 (decode w).2.2 := by
+  let e := encode (decode w).1 (decode w).2.1 (decode w).2.2
+  have hp : pkBytes e = pkBytes w := by
+    unfold pkBytes
+    congr 1
+    apply List.map_congr_left
+    intro i hi
+    have hi := List.mem_range.mp hi
+    exact encode_decode_word w (by omega) (by omega)
+  have hm : messageBytes e = messageBytes w := by
+    unfold messageBytes
+    congr 1
+    apply List.map_congr_left
+    intro i hi
+    have hi := List.mem_range.mp hi
+    exact encode_decode_word w (by omega) (by omega)
+  have hs : sigBytes e = sigBytes w := by
+    unfold sigBytes
+    rw [encode_decode_index w]
+    congr 2
+    apply List.map_congr_left
+    intro i hi
+    have hi := List.mem_range.mp hi
+    exact encode_decode_word w (by omega) (by omega)
+  rw [← verify_eq (decode w).1 (decode w).2.1 (decode w).2.2]
+  change xmssVerify w = xmssVerify e
+  unfold xmssVerify
+  rw [hp, hm, hs]
 
 end NativeRustc.Xmss

@@ -5,10 +5,12 @@
 //! Each case (the format of `reference/src/main.rs`) names its scheme and the expected bit. A signature case carries the
 //! input words: the harness lays out the read-only context as `rustc/xmss.rs` and `rustc/sphincs.rs` require, with
 //! input words from byte 1024. A leanVM case names its bytecode, public input and wire files: the harness lays out
-//! the 12-word read-only context and its areas as `rustc/vm/src/lib.rs` requires. Every area lies between guard pages.
+//! the 12-word read-only context and its areas as `rustc/vm/src/lib.rs` requires, without rounding wire bytes to words.
+//! Each case runs with the payload immediately before or after a guard page; the signature prefix is inaccessible
+//! in the guard-before placement. Read-only inputs and canaries in the other page slack protect the frame.
 //! The harness calls the verifier through a wrapper that checks the callee-saved registers
 //! survive (x86-64: rbx, rbp, r12..r15; AArch64: x19..x29, x30 holding the return address, and sp), checks the guard
-//! words (and for leanVM the words the verifier only reads), and prints a line per case: `ok` or `MISMATCH`, the name,
+//! bytes (and the inputs the verifier only reads), and prints a line per case: `ok` or `MISMATCH`, the name,
 //! the expected bit and the verifier's result (rax or x0).
 //!
 //! Exit codes: 0 every case agreed, 1 a mismatch, 2 a malformed case or a verifier not linked in, 3 a verifier broke its
@@ -209,11 +211,10 @@ core::arch::global_asm!(
     ".size harness_call, .-harness_call",
 );
 
-const GUARD_WORDS: usize = 512;
-const GUARD: u64 = 0x5a5a_5a5a_5a5a_5a5a;
+const GUARD: u8 = 0x5a;
 
 /// The signature wrappers' input offset (`rustc/xmss.rs`, `rustc/sphincs.rs`).
-const SIG_INPUT_WORD: usize = 1024 / 8;
+const SIG_INPUT_BYTES: usize = 1024;
 
 #[cfg(xmss)]
 const XMSS: Option<Verify> = Some(xmss_verify);
@@ -256,75 +257,93 @@ fn page_size() -> usize {
     if p > 0 { p as usize } else { 4096 }
 }
 
-/// Words between `PROT_NONE` guard pages (with leading in-band `GUARD` words up to the page boundary), right-aligned
-/// so the end of the payload abuts the trailing `PROT_NONE` guard page: any out-of-bounds read or write past the end
-/// faults immediately, and `readonly` areas are protected with `PROT_READ`.
+#[derive(Clone, Copy)]
+enum Placement {
+    Before,
+    After,
+}
+
+/// Exact byte payloads between inaccessible pages, with canaries in the remaining page slack.
 struct Guarded {
     base: *mut u8,
     total: usize,
     page: usize,
-    prefix_words: usize,
-    len_words: usize,
+    data_bytes: usize,
+    offset: usize,
+    len_bytes: usize,
 }
 
 impl Guarded {
-    fn with_prot(words: &[u64], readonly: bool) -> Self {
+    fn allocate(len_bytes: usize, placement: Placement) -> Self {
         let page = page_size();
-        let payload_bytes = words.len() * 8;
-        let min_data = GUARD_WORDS * 8 + payload_bytes;
-        let data_bytes = min_data.div_ceil(page).max(1) * page;
+        let data_bytes = len_bytes.div_ceil(page) * page;
         let total = page + data_bytes + page;
         // SAFETY: anonymous private mapping, initially PROT_NONE, then data pages made RW.
         let base = unsafe { mmap(core::ptr::null_mut(), total, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0) };
         assert!(base != (!0usize as *mut u8), "mmap failed");
-        let data_ptr = unsafe { base.add(page) };
-        let rc = unsafe { mprotect(data_ptr, data_bytes, PROT_READ | PROT_WRITE) };
-        assert_eq!(rc, 0, "mprotect RW failed");
-        let total_words = data_bytes / 8;
-        let prefix_words = total_words - words.len();
-        let slice = unsafe { core::slice::from_raw_parts_mut(data_ptr as *mut u64, total_words) };
-        slice[..prefix_words].fill(GUARD);
-        slice[prefix_words..].copy_from_slice(words);
-        if readonly {
-            let rc = unsafe { mprotect(data_ptr, data_bytes, PROT_READ) };
+        if data_bytes != 0 {
+            let data_ptr = unsafe { base.add(page) };
+            let rc = unsafe { mprotect(data_ptr, data_bytes, PROT_READ | PROT_WRITE) };
+            assert_eq!(rc, 0, "mprotect RW failed");
+        }
+        // Non-page-sized payloads need paired placements to guard both boundaries immediately.
+        let offset = match placement {
+            Placement::Before => 0,
+            Placement::After => data_bytes - len_bytes,
+        };
+        if data_bytes != 0 {
+            unsafe {
+                core::ptr::write_bytes(base.add(page), GUARD, offset);
+                core::ptr::write_bytes(base.add(page + offset + len_bytes), GUARD, data_bytes - offset - len_bytes);
+            }
+        }
+        Self { base, total, page, data_bytes, offset, len_bytes }
+    }
+
+    fn readonly(bytes: &[u8], placement: Placement) -> Self {
+        let mut area = Self::allocate(bytes.len(), placement);
+        unsafe { core::ptr::copy_nonoverlapping(bytes.as_ptr(), area.addr(), bytes.len()) };
+        if area.data_bytes != 0 {
+            let rc = unsafe { mprotect(area.base.add(area.page), area.data_bytes, PROT_READ) };
             assert_eq!(rc, 0, "mprotect RO failed");
         }
-        Self {
-            base,
-            total,
-            page,
-            prefix_words,
-            len_words: words.len(),
-        }
+        area
     }
 
-    fn new(words: &[u64]) -> Self {
-        Self::with_prot(words, false)
+    fn readonly_words(words: &[u64], placement: Placement) -> Self {
+        let bytes = unsafe { core::slice::from_raw_parts(words.as_ptr().cast::<u8>(), size_of_val(words)) };
+        Self::readonly(bytes, placement)
     }
 
-    fn new_readonly(words: &[u64]) -> Self {
-        Self::with_prot(words, true)
+    fn scratch(words: usize, placement: Placement) -> Self {
+        let mut area = Self::allocate(words * 8, placement);
+        unsafe { core::slice::from_raw_parts_mut(area.addr().cast::<u64>(), words) }.fill(JUNK);
+        area
     }
 
-    fn len(&self) -> usize {
-        self.len_words
+    fn len_words(&self) -> usize {
+        assert_eq!(self.len_bytes % 8, 0);
+        self.len_bytes / 8
     }
 
-    fn data_words(&self) -> &[u64] {
-        unsafe { core::slice::from_raw_parts(self.base.add(self.page) as *const u64, self.prefix_words + self.len_words) }
+    fn data(&self) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(self.base.add(self.page), self.data_bytes) }
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.data()[self.offset..self.offset + self.len_bytes]
     }
 
     fn words(&self) -> &[u64] {
-        &self.data_words()[self.prefix_words..]
+        unsafe { core::slice::from_raw_parts(self.bytes().as_ptr().cast::<u64>(), self.len_words()) }
     }
 
-    /// The inside's address, 8-byte aligned even when empty.
-    fn addr(&mut self) -> *mut u64 {
-        unsafe { (self.base.add(self.page) as *mut u64).add(self.prefix_words) }
+    fn addr(&mut self) -> *mut u8 {
+        unsafe { self.base.add(self.page + self.offset) }
     }
 
     fn guards_intact(&self) -> bool {
-        self.data_words()[..self.prefix_words].iter().all(|&w| w == GUARD)
+        self.data()[..self.offset].iter().chain(&self.data()[self.offset + self.len_bytes..]).all(|&b| b == GUARD)
     }
 }
 
@@ -411,16 +430,15 @@ fn sig_case<'a>(name: &str, tokens: &mut impl Iterator<Item = &'a str>) -> Resul
     Ok((verify, input))
 }
 
-fn run_sig(path: &str, verify: Verify, expect: u64, input: &[u64]) -> i32 {
-    let mut words = vec![JUNK; SIG_INPUT_WORD + input.len()];
-    words[SIG_INPUT_WORD..SIG_INPUT_WORD + input.len()].copy_from_slice(input);
-    let mut ctx = Guarded::new_readonly(&words);
+fn run_sig(path: &str, verify: Verify, expect: u64, input: &[u64], placement: Placement) -> i32 {
+    let mut area = Guarded::readonly_words(input, placement);
     let mut faults = Vec::new();
-    let result = call(verify, ctx.addr(), &mut faults);
-    if !ctx.guards_intact() {
-        faults.push("a write outside the context".into());
+    let ctx = area.addr().wrapping_sub(SIG_INPUT_BYTES).cast::<u64>();
+    let result = call(verify, ctx, &mut faults);
+    if !area.guards_intact() {
+        faults.push("a write outside the input".into());
     }
-    if ctx.words()[SIG_INPUT_WORD..SIG_INPUT_WORD + input.len()] != *input {
+    if area.words() != input {
         faults.push("a write to the input".into());
     }
     report(path, expect, result, &faults)
@@ -438,8 +456,8 @@ fn vm_decoded_words(l: usize) -> usize {
     1 + 2 * (l / 16) + 1 + 8 * (3 + 256 * opening)
 }
 
-/// The caller's working-area capacity, bounded by the assertion in `rustc/vm/src/lib.rs`.
-const VM_WORK_WORDS: usize = 85438;
+/// `WORK_WORDS` in `rustc/vm/src/lib.rs`.
+const VM_WORK_WORDS: usize = 61944;
 
 /// Bytes packed little-endian into words, the last word's bytes past the end zero.
 fn le_words(bytes: &[u8]) -> Vec<u64> {
@@ -468,12 +486,11 @@ fn vm_case<'a>(tokens: &mut impl Iterator<Item = &'a str>) -> Result<(Vec<u64>, 
 /// Lays out the 12-word context from `rustc/vm/src/lib.rs`: wire address and byte count (0, 1), bytecode address and
 /// word count (2, 3), public input (4..8), decoded address and word count (8, 9), working address and word count
 /// (10, 11). Inputs are read-only; scratch starts as `JUNK`. Every area has guard pages.
-fn run_vm(path: &str, verify: Verify, expect: u64, bytecode: &[u64], public: &[u64], wire: &[u8]) -> i32 {
-    let wire_words = le_words(wire);
-    let mut wire_area = Guarded::new_readonly(&wire_words);
-    let mut bytecode_area = Guarded::new_readonly(bytecode);
-    let mut decoded = Guarded::new(&vec![JUNK; vm_decoded_words(wire.len())]);
-    let mut work = Guarded::new(&vec![JUNK; VM_WORK_WORDS]);
+fn run_vm(path: &str, verify: Verify, expect: u64, bytecode: &[u64], public: &[u64], wire: &[u8], placement: Placement) -> i32 {
+    let mut wire_area = Guarded::readonly(wire, placement);
+    let mut bytecode_area = Guarded::readonly_words(bytecode, placement);
+    let mut decoded = Guarded::scratch(vm_decoded_words(wire.len()), placement);
+    let mut work = Guarded::scratch(VM_WORK_WORDS, placement);
     let mut words = [JUNK; VM_CTX_WORDS];
     words[0] = wire_area.addr() as u64;
     words[1] = wire.len() as u64;
@@ -481,13 +498,13 @@ fn run_vm(path: &str, verify: Verify, expect: u64, bytecode: &[u64], public: &[u
     words[3] = bytecode.len() as u64;
     words[4..8].copy_from_slice(public);
     words[8] = decoded.addr() as u64;
-    words[9] = decoded.len() as u64;
+    words[9] = decoded.len_words() as u64;
     words[10] = work.addr() as u64;
-    words[11] = work.len() as u64;
-    let mut ctx = Guarded::new_readonly(&words);
+    words[11] = work.len_words() as u64;
+    let mut ctx = Guarded::readonly_words(&words, placement);
 
     let mut faults = Vec::new();
-    let result = call(verify, ctx.addr(), &mut faults);
+    let result = call(verify, ctx.addr().cast::<u64>(), &mut faults);
     let areas = [
         ("context", &ctx),
         ("wire", &wire_area),
@@ -500,7 +517,7 @@ fn run_vm(path: &str, verify: Verify, expect: u64, bytecode: &[u64], public: &[u
             faults.push(format!("a write next to the {name}"));
         }
     }
-    if wire_area.words() != wire_words {
+    if wire_area.bytes() != wire {
         faults.push("a write to the wire".into());
     }
     if bytecode_area.words() != bytecode {
@@ -543,14 +560,14 @@ fn parse(text: &str) -> Result<(u64, Case), String> {
 }
 
 /// Runs one case: 0 it agreed, else the exit code.
-fn run(path: &str) -> i32 {
+fn run(path: &str, placement: Placement) -> i32 {
     match fs::read_to_string(path)
         .map_err(|e| e.to_string())
         .and_then(|text| parse(&text))
     {
-        Ok((expect, Case::Sig(verify, input))) => run_sig(path, verify, expect, &input),
+        Ok((expect, Case::Sig(verify, input))) => run_sig(path, verify, expect, &input, placement),
         Ok((expect, Case::Vm(verify, bytecode, public, wire))) => {
-            run_vm(path, verify, expect, &bytecode, &public, &wire)
+            run_vm(path, verify, expect, &bytecode, &public, &wire, placement)
         }
         Err(e) => {
             eprintln!("harness: {path}: {e}");
@@ -560,51 +577,57 @@ fn run(path: &str) -> i32 {
 }
 
 /// Defensive context-precondition checks for the rustc-compiled `leanvm_verify` (`rustc/vm/src/lib.rs`).
-fn run_vm_preconditions() -> i32 {
+fn run_vm_preconditions(placement: Placement) -> i32 {
     let Some(verify) = VM else {
         eprintln!("harness: leanvm_verify is not linked in");
         return 2;
     };
-    let mut wire_area = Guarded::new_readonly(&[0u64; 1]);
-    let mut bc_area = Guarded::new_readonly(&[0u64; 24]);
-    let mut dec_area = Guarded::new(&vec![JUNK; vm_decoded_words(8)]);
-    let mut work_area = Guarded::new(&vec![JUNK; VM_WORK_WORDS]);
-    let base: [u64; 12] = [
-        wire_area.addr() as u64,
-        8,
-        bc_area.addr() as u64,
-        16,
-        0,
-        0,
-        0,
-        0,
-        dec_area.addr() as u64,
-        dec_area.len() as u64,
-        work_area.addr() as u64,
-        work_area.len() as u64,
-    ];
-    let cases: &[(&str, [u64; 12])] = &[
-        ("l-ge-2p32", { let mut c = base; c[1] = 1u64 << 32; c }),
-        ("n-gt-bcSmall", { let mut c = base; c[3] = ((1u64 << 32) - 10) / 8 + 1; c }),
-        ("dec-undersized", { let mut c = base; c[9] = (vm_decoded_words(8) - 1) as u64; c }),
-        ("work-undersized", { let mut c = base; c[11] = 1; c }),
-        ("dec-null", { let mut c = base; c[8] = 0; c }),
-        ("dec-unaligned", { let mut c = base; c[8] += 1; c }),
-        ("work-null", { let mut c = base; c[10] = 0; c }),
-        ("work-unaligned", { let mut c = base; c[10] += 1; c }),
-        ("bc-null-nonzero-n", { let mut c = base; c[2] = 0; c }),
-        ("bc-unaligned-nonzero-n", { let mut c = base; c[2] += 1; c }),
-        ("wire-null-nonzero-l", { let mut c = base; c[0] = 0; c }),
-        ("bc-empty", { let mut c = base; c[3] = 0; c }),
-        ("bc-non-pow2", { let mut c = base; c[3] = 24; c }),
+    let names = [
+        "l-ge-2p32", "n-gt-bcSmall", "dec-undersized", "work-undersized",
+        "dec-null", "dec-unaligned", "work-null", "work-unaligned",
+        "bc-null-nonzero-n", "bc-unaligned-nonzero-n", "wire-null-nonzero-l",
+        "bc-empty", "bc-non-pow2",
     ];
     let mut worst = 0;
-    for &(name, header) in cases {
-        let mut ctx = Guarded::new_readonly(&header);
+    for name in names {
+        let wire = [0u8; 8];
+        let bytecode = vec![0u64; match name { "bc-empty" => 0, "bc-non-pow2" => 24, _ => 16 }];
+        let mut wire_area = Guarded::readonly(&wire, placement);
+        let mut bc_area = Guarded::readonly_words(&bytecode, placement);
+        let mut dec_area = Guarded::scratch(vm_decoded_words(wire.len()) - usize::from(name == "dec-undersized"), placement);
+        let mut work_area = Guarded::scratch(VM_WORK_WORDS - usize::from(name == "work-undersized"), placement);
+        let mut header = [
+            wire_area.addr() as u64, wire.len() as u64,
+            bc_area.addr() as u64, bytecode.len() as u64,
+            0, 0, 0, 0,
+            dec_area.addr() as u64, dec_area.len_words() as u64,
+            work_area.addr() as u64, work_area.len_words() as u64,
+        ];
+        match name {
+            "l-ge-2p32" => header[1] = 1u64 << 32,
+            "n-gt-bcSmall" => header[3] = ((1u64 << 32) - 10) / 8 + 1,
+            "dec-null" => header[8] = 0,
+            "dec-unaligned" => header[8] += 1,
+            "work-null" => header[10] = 0,
+            "work-unaligned" => header[10] += 1,
+            "bc-null-nonzero-n" => header[2] = 0,
+            "bc-unaligned-nonzero-n" => header[2] += 1,
+            "wire-null-nonzero-l" => header[0] = 0,
+            _ => {}
+        }
+        let mut ctx = Guarded::readonly_words(&header, placement);
         let mut faults = Vec::new();
-        let result = call(verify, ctx.addr(), &mut faults);
-        if !ctx.guards_intact() {
-            faults.push("a write outside the context".into());
+        let result = call(verify, ctx.addr().cast::<u64>(), &mut faults);
+        for (area_name, area) in [
+            ("context", &ctx), ("wire", &wire_area), ("bytecode", &bc_area),
+            ("decoded area", &dec_area), ("working area", &work_area),
+        ] {
+            if !area.guards_intact() {
+                faults.push(format!("a write next to the {area_name}"));
+            }
+        }
+        if ctx.words() != header || wire_area.bytes() != wire || bc_area.words() != bytecode {
+            faults.push("a write to an input".into());
         }
         worst = worst.max(report(&format!("vm_precondition_{name}"), 0, result, &faults));
     }
@@ -612,17 +635,22 @@ fn run_vm_preconditions() -> i32 {
 }
 
 fn main() {
-    let cases: Vec<String> = env::args().skip(1).collect();
+    let mut cases: Vec<String> = env::args().skip(1).collect();
+    let placement = match cases.first().map(String::as_str) {
+        Some("--guard-before") => { cases.remove(0); Placement::Before }
+        Some("--guard-after") => { cases.remove(0); Placement::After }
+        _ => Placement::After,
+    };
     if cases.is_empty() {
-        eprintln!("usage: harness [--vm-preconditions] CASE...");
+        eprintln!("usage: harness [--guard-before|--guard-after] [--vm-preconditions] CASE...");
         process::exit(2);
     }
     let mut worst = 0;
     for arg in &cases {
         let rc = if arg == "--vm-preconditions" {
-            run_vm_preconditions()
+            run_vm_preconditions(placement)
         } else {
-            run(arg)
+            run(arg, placement)
         };
         worst = worst.max(rc);
     }

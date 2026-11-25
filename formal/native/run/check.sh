@@ -29,7 +29,9 @@
 # fixture's proof and copies of its wire cut, extended or with a bit flipped in each field (`reference/src/vm.rs`),
 # plus mutated public inputs, mutated valid bytecodes and adversarial malformed wire encodings, with what the crate
 # `verifier` returns. `harness.rs`, linked with the assembled verifiers, lays out each case's context (and for leanVM
-# the areas `rustc/vm/src/lib.rs` asks for), runs the verifier on it and compares its result with that bit.
+# the areas `rustc/vm/src/lib.rs` asks for), runs each case with guards immediately before and after the exact
+# payload in separate placements, and compares its result with that bit. The signature prefix is inaccessible in
+# the guard-before placement. The summary counts each placement and each defensive VM rejection separately.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -145,29 +147,36 @@ rustc --edition 2024 -C opt-level=1 --target "$triple" -C linker=rust-lld --chec
 
 total=0
 bad=0
-if [[ " ${schemes[*]} " == *" vm "* ]]; then
-  total=$((total + 1))
-  rc=0
-  timeout 600 "${runner[@]}" "$out/harness" --vm-preconditions 2>"$out/vm_preconditions.err" || rc=$?
-  if [[ $rc -ne 0 ]]; then
-    bad=$((bad + 1))
-    echo "vm_preconditions: HARNESS ERROR (exit $rc): $(cat "$out/vm_preconditions.err")"
+run_case() {
+  local name=$1 placement=$2
+  shift 2
+  local rc=0 count failures
+  timeout 600 "${runner[@]}" "$out/harness" "--guard-$placement" "$@" \
+    >"$out/$name.$placement.log" 2>"$out/$name.$placement.err" || rc=$?
+  cat "$out/$name.$placement.log"
+  count=$(grep -cE '^(ok|MISMATCH) ' "$out/$name.$placement.log" || true)
+  failures=$(grep -c '^MISMATCH ' "$out/$name.$placement.log" || true)
+  if [[ $rc -ne 0 && $failures -eq 0 ]]; then
+    count=$((count + 1))
+    failures=1
   fi
-  [[ -s $out/vm_preconditions.err ]] || rm -f "$out/vm_preconditions.err"
-fi
-while read -r name; do
-  [[ " ${schemes[*]} " == *" ${name%%_*} "* ]] || continue
-  total=$((total + 1))
-  rc=0
-  timeout 600 "${runner[@]}" "$out/harness" "$out/$name.case" 2>"$out/$name.err" || rc=$?
-  if [[ $rc -ne 0 ]]; then
-    bad=$((bad + 1))
-    if [[ $rc -ne 1 ]]; then
-      echo "$name: HARNESS ERROR (exit $rc): $(cat "$out/$name.err")"
-    fi
+  total=$((total + count))
+  bad=$((bad + failures))
+  if [[ $rc -ne 0 && $rc -ne 1 ]]; then
+    echo "$name ($placement): HARNESS ERROR (exit $rc): $(cat "$out/$name.$placement.err")"
   fi
-  [[ -s $out/$name.err ]] || rm -f "$out/$name.err"
-done <"$out/cases.list"
+  [[ -s $out/$name.$placement.err ]] || rm -f "$out/$name.$placement.err"
+}
+for placement in after before; do
+  echo "running with guard pages immediately $placement payloads"
+  if [[ " ${schemes[*]} " == *" vm "* ]]; then
+    run_case vm_preconditions "$placement" --vm-preconditions
+  fi
+  while read -r name; do
+    [[ " ${schemes[*]} " == *" ${name%%_*} "* ]] || continue
+    run_case "$name" "$placement" "$out/$name.case"
+  done <"$out/cases.list"
+done
 
 echo
 echo "$((total - bad)) of $total cases agree on $arch; outputs in $out"

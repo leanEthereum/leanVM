@@ -51,6 +51,14 @@ The build fails if an axiom footprint grows beyond Lean's three standard axioms.
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcX64.XmssVerifier.verify_correct
 
+/-- info: 'NativeRustcX64.SphincsVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustcX64.SphincsVerifier.verify_confined
+
+/-- info: 'NativeRustcX64.XmssVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustcX64.XmssVerifier.verify_confined
+
 /-- info: 'NativeRustcX64.Xmss.rc_data' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcX64.Xmss.rc_data

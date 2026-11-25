@@ -6,7 +6,7 @@ public import NativeRustcVmArm.Field.Norm
 /-!
 # `leanvm_verify`: its checks' conditions
 
-`b0`'s checks pass on what `EntryPre` gives (`cond0`): the working area's count at least
+`b0`'s checks pass on what `CheckedEntryPre` gives (`cond0`): the working area's count at least
 `WORK_WORDS`, the decoded area's at least `decodedWords L` (rustc computes it as
 `((L >> 3) | 1) + 395289`, `dw_toNat`), `n ≤ 536870910`, `L < 2^32`. The tests of the other
 blocks: a word zero (`beq0`), its low three bits zero (`band7`).

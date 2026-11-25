@@ -5,17 +5,21 @@ public import NativeRustcVmX64.Placed
 public import NativeRustcVmX64.Mem
 public import NativeRustcVmX64.Rodata.Keccak
 public import NativeRustcVmX64.Rodata.Items
-public import NativeRustcVmX64.Top.Assembly
+public import NativeRustcVmX64.Top.Assembly.Reads
 
 /-!
 # The rustc-compiled leanVM verifier on x86-64
 
-`VmVerifier.verify_correct` proves the pinned rustc's raw `leanvm_verify` assembly (`rustc/vm`), ingested as `NativeRustcVmX64.Vm.code`, against Kraken's x86-64 semantics and the verifier model, as `NativeRustcVmArm` does on AArch64. Every function contract is discharged by its blocks and proved callees. The theorem retains program placement, input representation, alignment, stack, memory-separation, and `GotAt` assumptions: the reached `memcpy` and `memset` slots contain their labels' addresses and are disjoint from the stack and protected areas. It has no unproved callee contracts. The build fails if an axiom footprint grows beyond Lean's three standard axioms.
+`VmVerifier.verify_correct` proves the pinned rustc's `leanvm_verify` assembly (`rustc/vm`), ingested as `NativeRustcVmX64.Vm.code`, against Kraken's x86-64 semantics and the verifier model. Its premises are the Rust safety contract, ABI stack and return address, loader data, and reached `memcpy` and `memset` GOT slots. The entry's size, alignment, and nonzero checks guard the result rather than restrict callers. `verify_correct_reads` runs the same theorem with all other memory removed. Every callee contract is discharged, and the roots pin both theorems to Lean's three standard axioms.
 -/
 
 /-- info: 'NativeRustcVmX64.VmVerifier.verify_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcVmX64.VmVerifier.verify_correct
+
+/-- info: 'NativeRustcVmX64.VmVerifier.verify_correct_reads' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustcVmX64.VmVerifier.verify_correct_reads
 
 /-- info: 'NativeRustcVmX64.Placement.labels_nodup' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -8,7 +8,15 @@ use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature, MESSAGE_LEN, PUB_
 const INPUT: usize = 1024 / 8;
 
 /// # Safety
-/// `ctx` points to a context whose 977 input words are readable.
+/// `ctx` is non-null and 8-byte aligned. Pointer arithmetic from `ctx` through
+/// `ctx.add(128 + 977)` stays within one allocation, allowing its one-past end,
+/// and does not wrap.
+/// The 977 `u64` words starting 1024 bytes after `ctx` are initialized, readable,
+/// and remain unchanged throughout the call. No other context bytes are read.
+/// Their contents are unrestricted; each layer counter uses only its low 32 bits.
+/// The input region is disjoint from the callee's stack.
+/// The input does not overlap the verifier's own static data or GOT entries;
+/// inputs from the caller's allocations or statics always satisfy this.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn sphincs_verify(ctx: *const u64) -> u64 {
     // SAFETY: the caller's contract.

@@ -66,4 +66,19 @@ def encode (pk : _root_.Sphincs.PublicKey) (message : Message) (sig : Signature)
   else if i < inputWords then layerWord (sig.layers 2) (i - layerOff 2)
   else 0
 
+/-- Decode the wrapper's words, discarding each counter's high 32 bits as Rust does. -/
+def decode (w : Nat → UInt64) : _root_.Sphincs.PublicKey × Message × Signature :=
+  let d := fun i => Native.ofWords (w i) (w (i + 1))
+  ({ publicSeed := d 0, root := d 2 },
+    BitVec.ofNat 256 ((w 4).toNat + 2 ^ 64 * (w 5).toNat +
+      2 ^ 128 * (w 6).toNat + 2 ^ 192 * (w 7).toNat),
+    { randomizer := d 8
+      forsOpening := fun c =>
+        { secret := d (forsOff c.val)
+          path := fun z => d (forsOff c.val + 2 + 2 * z.val) }
+      layers := fun l =>
+        { counter := (w (layerOff l.val)).toUInt32.toBitVec
+          chainValues := fun i => d (layerOff l.val + 1 + 2 * i.val)
+          authenticationPath := fun j => d (layerOff l.val + 129 + 2 * j.val) } })
+
 end Native.SphincsVerifier

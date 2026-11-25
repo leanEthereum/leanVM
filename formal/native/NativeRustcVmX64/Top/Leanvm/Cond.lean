@@ -5,7 +5,7 @@ public import NativeRustcVmX64.Top.Leanvm.Basic
 /-!
 # `leanvm_verify`: its checks' conditions (x86-64)
 
-Each exit condition of the checks' blocks on the values `EntryPre` and `Aligned` give: `b0` (`L`
+Each exit condition of the checks' blocks on the values `CheckedEntryPre` and `Aligned` give: `b0` (`L`
 below `2 ^ 32`), `b1` (`n ≤ 536870910`), `b2` (the decoded area's count at least
 `decodedWords L`), `b3` (the working area's at least `WORK_WORDS`), `b4`, `b5` (the decoded and the
 working areas nonzero and 8-aligned), `b7` (the bytecode nonzero and 8-aligned when nonempty), and

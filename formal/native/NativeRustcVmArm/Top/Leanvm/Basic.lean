@@ -17,8 +17,8 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
+open NativeVm.Transcript (wd)
 
 /-- The frame's address. -/
 @[expose] public def frameOf (m0 : MachineData) : BitVec 64 :=
@@ -61,8 +61,8 @@ public structure Geo (a : NativeVm.Entry.Areas) (L n : Nat) (m0 : MachineData) :
   al : m0.regs.SP.toBitVec.toNat % 16 = 0
   F : (frameOf m0).toNat = m0.regs.SP.toBitVec.toNat - 128
   sb : (stackBelow m0 leanvmVerifyStack).toNat = m0.regs.SP.toBitVec.toNat - 19344
-  ctxN : m0.regs.X0.toNat + 8 * ctxEnd ≤ 2 ^ 64
-  ctx : m0.regs.X0.toNat + 8 * ctxEnd ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
+  ctxN : m0.regs.X0.toNat + 8 * NativeVm.Entry.ctxWords ≤ 2 ^ 64
+  ctx : m0.regs.X0.toNat + 8 * NativeVm.Entry.ctxWords ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
     m0.regs.SP.toBitVec.toNat ≤ m0.regs.X0.toNat
   decN : a.decoded.toNat + 8 * decodedWords L ≤ 2 ^ 64
   dec : a.decoded.toNat + 8 * decodedWords L ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
@@ -72,27 +72,27 @@ public structure Geo (a : NativeVm.Entry.Areas) (L n : Nat) (m0 : MachineData) :
     m0.regs.SP.toBitVec.toNat ≤ a.work.toNat
   decWork : a.decoded.toNat + 8 * decodedWords L ≤ a.work.toNat ∨
     a.work.toNat + workAreaBytes ≤ a.decoded.toNat
-  ctxDec : m0.regs.X0.toNat + 8 * ctxEnd ≤ a.decoded.toNat ∨
+  ctxDec : m0.regs.X0.toNat + 8 * NativeVm.Entry.ctxWords ≤ a.decoded.toNat ∨
     a.decoded.toNat + 8 * decodedWords L ≤ m0.regs.X0.toNat
-  ctxWork : m0.regs.X0.toNat + 8 * ctxEnd ≤ a.work.toNat ∨
+  ctxWork : m0.regs.X0.toNat + 8 * NativeVm.Entry.ctxWords ≤ a.work.toNat ∨
     a.work.toNat + workAreaBytes ≤ m0.regs.X0.toNat
   bcN : a.bytecode.toNat + 8 * n ≤ 2 ^ 64
   bc : 0 < n → a.bytecode.toNat + 8 * n ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
     m0.regs.SP.toBitVec.toNat ≤ a.bytecode.toNat
-  bcDec : a.bytecode.toNat + 8 * n ≤ a.decoded.toNat ∨
+  bcDec : 0 < n → a.bytecode.toNat + 8 * n ≤ a.decoded.toNat ∨
     a.decoded.toNat + 8 * decodedWords L ≤ a.bytecode.toNat
-  bcWork : a.bytecode.toNat + 8 * n ≤ a.work.toNat ∨
+  bcWork : 0 < n → a.bytecode.toNat + 8 * n ≤ a.work.toNat ∨
     a.work.toNat + workAreaBytes ≤ a.bytecode.toNat
-  wireN : a.wire.toNat + 8 * NativeVm.Entry.wireWords L ≤ 2 ^ 64
-  wire : 0 < L → a.wire.toNat + 8 * NativeVm.Entry.wireWords L ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
+  wireN : a.wire.toNat + L ≤ 2 ^ 64
+  wire : 0 < L → a.wire.toNat + L ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
     m0.regs.SP.toBitVec.toNat ≤ a.wire.toNat
-  wireDec : a.wire.toNat + 8 * NativeVm.Entry.wireWords L ≤ a.decoded.toNat ∨
+  wireDec : 0 < L → a.wire.toNat + L ≤ a.decoded.toNat ∨
     a.decoded.toNat + 8 * decodedWords L ≤ a.wire.toNat
-  wireWork : a.wire.toNat + 8 * NativeVm.Entry.wireWords L ≤ a.work.toNat ∨
+  wireWork : 0 < L → a.wire.toNat + L ≤ a.work.toNat ∨
     a.work.toNat + workAreaBytes ≤ a.wire.toNat
 
-theorem workAreaBytes_le (n : Nat) : workAreaBytes ≤ 8 * NativeVm.Entry.workWords n := by
-  have := NativeRustcVm.Top.workAreaWords_le n
+theorem workAreaBytes_le : workAreaBytes ≤ 8 * NativeVm.Entry.workWords := by
+  have := NativeRustcVm.Top.workAreaWords_le
   unfold workAreaBytes; omega
 
 theorem decodedWords_pos (L : Nat) : 0 < decodedWords L := by
@@ -111,11 +111,11 @@ theorem geo_of [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecod
   have hsb : (stackBelow m0 leanvmVerifyStack).toNat = m0.regs.SP.toBitVec.toNat - 19344 := by
     show (m0.regs.SP.toBitVec - BitVec.ofNat 64 leanvmVerifyStack).toNat = _
     rw [hS]; exact toNat_subAddr hs
-  have hwa := workAreaBytes_le bytecode.length
+  have hwa := workAreaBytes_le
   have hdp := decodedWords_pos bytes.length
-  have hce : ctxEnd = 175 := NativeVm.Transcript.ctxEnd_val
+  have hce : NativeVm.Entry.ctxWords = 12 := (rfl)
   have ap : ∀ (x : UInt64) (sz : Nat),
-      (⟨x.toBitVec, sz⟩ : Region) ∈ entryRegions m0.regs.X0 a bytes.length bytecode.length →
+      (⟨x.toBitVec, sz⟩ : Region) ∈ usedRegions m0.regs.X0 a bytes.length bytecode.length →
       0 < sz → x.toNat + sz ≤ m0.regs.SP.toBitVec.toNat - 19344 ∨
         m0.regs.SP.toBitVec.toNat ≤ x.toNat := fun x sz hr hp ↦ by
     have h := hapS _ hr hp
@@ -136,18 +136,21 @@ theorem geo_of [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecod
   have dbk := hin.disjBcWork
   have dwd := hin.disjWireDec
   have dwk := hin.disjWireWork
-  unfold NativeVm.Transcript.Fits at fx fd fk fb fw
-  unfold NativeVm.Transcript.Disj at dxd dxk ddk dbd dbk dwd dwk
-  have a0 := ap m0.regs.X0 (8 * ctxEnd) (by simp [entryRegions]) (by omega)
-  have a3 := ap a.decoded (8 * decodedWords bytes.length) (by simp [entryRegions]) (by omega)
-  have a4 := ap a.work (8 * NativeVm.Entry.workWords bytecode.length) (by simp [entryRegions])
+  unfold NativeVm.Transcript.Fits at fx fd fk fb
+  unfold NativeRustcVm.NoWrap at fw
+  unfold NativeVm.Transcript.Disj at dxd dxk ddk dbd dbk
+  unfold NativeRustcVm.Apart at dwd dwk
+  simp only [UInt64.toNat_toBitVec] at fw dwd dwk
+  have a0 := ap m0.regs.X0 (8 * NativeVm.Entry.ctxWords) (by simp [usedRegions]) (by omega)
+  have a3 := ap a.decoded (8 * decodedWords bytes.length) (by simp [usedRegions]) (by omega)
+  have a4 := ap a.work (8 * NativeVm.Entry.workWords) (by simp [usedRegions])
     (by have h := hwa; unfold workAreaBytes NativeRustcVm.Top.workAreaWords at h; omega)
   refine ⟨hs, hal, toNat_subAddr (by omega), hsb, fx, a0, fd, by omega, by omega, by omega,
-    by omega, by omega, by omega, fb, fun hn ↦ ?_, by omega, by omega, fw, fun hL ↦ ?_,
-    by omega, by omega⟩
-  · exact ap a.bytecode (8 * bytecode.length) (by simp [entryRegions]) (by omega)
-  · have hw : 0 < NativeVm.Entry.wireWords bytes.length := by unfold NativeVm.Entry.wireWords; omega
-    exact ap a.wire (8 * NativeVm.Entry.wireWords bytes.length) (by simp [entryRegions]) (by omega)
+    by omega, by omega, by omega, fb, fun hn ↦ ?_, dbd,
+    (fun hn ↦ by have := dbk hn; omega), fw, fun hL ↦ ?_,
+    dwd, (fun hL ↦ by have := dwk hL; omega)⟩
+  · exact ap a.bytecode (8 * bytecode.length) (by simp [usedRegions]) (by omega)
+  · exact ap a.wire bytes.length (by simp [usedRegions]) hL
 
 variable [Host] {k : Nat}
 

@@ -17,7 +17,7 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
 open NativeRustcVm.Wire (streamW openingsW)
 open NativeVm.Wire (decodeM PhaseOut)
 open LeanVM.Parameters (E)
@@ -116,8 +116,8 @@ theorem stage3 (hp : Placed code k)
     by_cases hn0 : bytecode.length = 0
     · rw [List.eq_nil_of_length_eq_zero hn0]; exact NativeRustcVm.wordsAt_nil _ _
     · have gb := g.bc (by omega)
-      have gbd := g.bcDec
-      have gbw := g.bcWork
+      have gbd := g.bcDec (by omega)
+      have gbw := g.bcWork (by omega)
       have gbN := g.bcN
       have gd := g.dec
       have gdN := g.decN

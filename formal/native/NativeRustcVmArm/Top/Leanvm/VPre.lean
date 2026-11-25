@@ -14,7 +14,7 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
 open NativeRustcVm.Transcript (DecArea DecFieldsAt DecodedAt)
 open NativeVm.Model (EW OpeningW)
 
@@ -41,7 +41,7 @@ theorem rodata_R2 [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {byte
     show (st.regs.SP.toBitVec - BitVec.ofNat 64 verifyStack).toNat = _
     rw [hsp, hV, toNat_subAddr (by rw [hF]; omega), hF]; omega
   have hdp := decodedWords_pos bytes.length
-  have hwle := workAreaBytes_le bytecode.length
+  have hwle := workAreaBytes_le
   refine rodataAt_keep hrod hs (fun p hp t ↦ ?_) (by rw [hsb, hsbV])
     (by rw [hsb, hsbV, hS, hV]; omega)
   have hst := hrod.apart t
@@ -49,13 +49,13 @@ theorem rodata_R2 [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {byte
   rw [hsb, hS] at hst
   rcases hp with hp | hp | hp
   · unfold InStack at hp; rw [hS] at hp; omega
-  · have h := hapR ⟨a.decoded.toBitVec, 8 * decodedWords bytes.length⟩ (by simp [entryRegions])
+  · have h := hapR ⟨a.decoded.toBitVec, 8 * decodedWords bytes.length⟩ (by simp [usedRegions])
       (by show 0 < 8 * decodedWords bytes.length; omega) t
     unfold NativeRustcVm.Apart at h
     rw [inRange_nat g.decN] at hp
     simp only at h; omega
-  · have h := hapR ⟨a.work.toBitVec, 8 * NativeVm.Entry.workWords bytecode.length⟩ (by simp [entryRegions])
-      (by show 0 < 8 * NativeVm.Entry.workWords bytecode.length
+  · have h := hapR ⟨a.work.toBitVec, 8 * NativeVm.Entry.workWords⟩ (by simp [usedRegions])
+      (by show 0 < 8 * NativeVm.Entry.workWords
           have : workAreaBytes = 495552 := rfl
           omega) t
     unfold NativeRustcVm.Apart at h
@@ -92,7 +92,7 @@ theorem vPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode 
   have hn32 := hin.bcSmall
   have hX1 : st.regs.X1.toNat = bytecode.length := by rw [hx1]; exact natToU64 (by omega)
   have hdp := decodedWords_pos bytes.length
-  have hwle := workAreaBytes_le bytecode.length
+  have hwle := workAreaBytes_le
   have hwa : workAreaBytes = 495552 := rfl
   have gd := g.dec
   have gdN := g.decN
@@ -111,7 +111,7 @@ theorem vPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode 
       (by rw [hsb, hF]; omega)) hB.kept
   have hdM : Mapped st.dmem a.decoded.toBitVec (8 * decodedWords bytes.length) :=
     Mapped.kept (NativeRustcVm.mapped_of_wordView hin.decSome) hB.kept
-  have hwM : Mapped st.dmem a.work.toBitVec (8 * NativeVm.Entry.workWords bytecode.length) :=
+  have hwM : Mapped st.dmem a.work.toBitVec (8 * NativeVm.Entry.workWords) :=
     Mapped.kept (NativeRustcVm.mapped_of_wordView hin.workSome) hB.kept
   -- The frame's bytes apart from the read-only data.
   have hFR : ∀ (o n : Nat), o + n ≤ 128 → RodataApart (frameOf m0 + BitVec.ofNat 64 o) n :=
@@ -174,19 +174,19 @@ theorem vPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode 
     · show RodataApart st.regs.X3.toBitVec 24
       rw [hx3]; exact hFR 40 24 (by omega)
     · exact fun t ↦ hapR ⟨a.decoded.toBitVec, 8 * decodedWords bytes.length⟩
-        (by simp [entryRegions]) (by show 0 < 8 * decodedWords bytes.length; omega) t
+        (by simp [usedRegions]) (by show 0 < 8 * decodedWords bytes.length; omega) t
     · show RodataApart st.regs.X4.toBitVec workAreaBytes
       rw [hx4]
       intro t
-      have h := hapR ⟨a.work.toBitVec, 8 * NativeVm.Entry.workWords bytecode.length⟩ (by simp [entryRegions])
-        (by show 0 < 8 * NativeVm.Entry.workWords bytecode.length; omega) t
+      have h := hapR ⟨a.work.toBitVec, 8 * NativeVm.Entry.workWords⟩ (by simp [usedRegions])
+        (by show 0 < 8 * NativeVm.Entry.workWords; omega) t
       unfold NativeRustcVm.Apart at h ⊢
       simp only at h
       omega
   · have hn' : 0 < bytecode.length := by rw [← hX1]; exact hn
     have gb := g.bc hn'
-    have gbd := g.bcDec
-    have gbw := g.bcWork
+    have gbd := g.bcDec (by omega)
+    have gbw := g.bcWork (by omega)
     show NativeRustcVm.Disjoint [⟨stackBelow st verifyStack, verifyStack⟩,
       ⟨st.regs.X0.toBitVec, 8 * st.regs.X1.toNat⟩,
       ⟨a.decoded.toBitVec, 8 * decodedWords bytes.length⟩, ⟨st.regs.X4.toBitVec, workAreaBytes⟩]
@@ -195,7 +195,7 @@ theorem vPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode 
   · have hn' : 0 < bytecode.length := by rw [← hX1]; exact hn
     show RodataApart st.regs.X0.toBitVec (8 * st.regs.X1.toNat)
     rw [hx0 hn', hX1]
-    exact fun t ↦ hapR ⟨a.bytecode.toBitVec, 8 * bytecode.length⟩ (by simp [entryRegions])
+    exact fun t ↦ hapR ⟨a.bytecode.toBitVec, 8 * bytecode.length⟩ (by simp [usedRegions])
       (by show 0 < 8 * bytecode.length; omega) t
 
 end

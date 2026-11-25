@@ -25,7 +25,7 @@ read-only data (`RodataAt`), apart from the areas they are given (`RodataApart`)
   (`Model.verifyExecution`), and on `some` the `TState` represents the walk's last state.
 - `verify(bc, n, pub, dec, w)` (X0 to X4; `dec` points to the 24-byte `Decoded` naming the decoded
   area `a`, which holds `stream` and `openings`): X0 is `1` when `Model.verify` accepts, else `0`.
-- `leanvm_verify(ctx)` (X0): from `NativeVm.Entry.EntryPre` on the word view of memory, the
+- `leanvm_verify(ctx)` (X0): after the entry checks, from `NativeVm.Entry.CheckedEntryPre`, the
   alignment it checks (`NativeRustcVm.Top.Aligned`), the caller's areas apart from its stack and
   the read-only data: X0 is `1` exactly when the wire bytes decode (`Proof.fromBytes`) to a proof
   `verifyWith` accepts, else `0`.
@@ -144,17 +144,17 @@ def VerifyPost (stream : Array EW) (openings : Array (Array OpeningW)) (m m' : M
 
 /-! ## `leanvm_verify` -/
 
-/-- `leanvm_verify`'s precondition: the context at X0 as `EntryPre` describes it, the alignment
+/-- `leanvm_verify`'s precondition: the context at X0 as `CheckedEntryPre` describes it, the alignment
 it checks, the caller's areas (those not empty) apart from its stack and the read-only data. -/
 def LeanvmVerifyPre (a : NativeVm.Entry.Areas) (bytes : List UInt8) (bytecode : List UInt64)
     (pub : Vector UInt64 4) (m : MachineData) : Prop :=
   let ctx := m.regs.X0
   StackOk m leanvmVerifyStack ∧ RodataAt m leanvmVerifyStack ∧
-    NativeVm.Entry.EntryPre (NativeRustcVm.wordView m.dmem) ctx a bytes bytecode pub ∧
+    NativeVm.Entry.CheckedEntryPre m.dmem ctx a bytes bytecode pub ∧
     Aligned a bytes.length bytecode.length ∧
-    ApartFrom (entryRegions ctx a bytes.length bytecode.length) (stackBelow m leanvmVerifyStack)
+    ApartFrom (usedRegions ctx a bytes.length bytecode.length) (stackBelow m leanvmVerifyStack)
       leanvmVerifyStack ∧
-    ∀ r ∈ entryRegions ctx a bytes.length bytecode.length, 0 < r.size → RodataApart r.addr r.size
+    ∀ r ∈ usedRegions ctx a bytes.length bytecode.length, 0 < r.size → RodataApart r.addr r.size
 
 /-- The verdict: `1` when the wire bytes decode (`Proof.fromBytes`) to a proof `verifyWith`
 accepts, else `0`. -/

@@ -17,8 +17,8 @@ namespace NativeRustcVmX64.Top.Leanvm
 
 open NativeRustcX64 NativeRustcX64.Sym NativeRustcVmX64.Vm.LeanvmVerify NativeRustcVmX64.Transcript
 open NativeRustcVmX64.Top NativeVm NativeVm.Wire NativeRustcVm.Wire NativeRustcVm.Transcript
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
+open NativeVm.Transcript (wd)
 
 /-- What `leanvm_verify` may change: its stack, the decoded and the working areas. -/
 @[expose] public def Out (m0 : MachineData) (a : NativeVm.Entry.Areas) (L : Nat) (q : BitVec 64) : Prop :=
@@ -45,13 +45,8 @@ public section
 /-- The wire's bytes at its address. -/
 theorem wireBytes {d : DataMem} {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode : List UInt64}
     {pub : Vector UInt64 4} {ctx : UInt64}
-    (hin : NativeVm.Entry.EntryPre (NativeRustcVm.wordView d) ctx a bytes bytecode pub) :
-    NativeRustcVm.BytesAt d a.wire.toBitVec bytes := by
-  obtain ⟨ws, hold, htake, hws⟩ := hin.wire
-  have hW : NativeRustcVm.WordsAt d a.wire.toBitVec ws := NativeRustcVm.wordsAt_of_wordView hws
-  have := NativeRustcVm.BytesAt.take hW bytes.length
-  rw [← htake]
-  exact this
+    (hin : NativeVm.Entry.CheckedEntryPre d ctx a bytes bytecode pub) :
+    NativeRustcVm.BytesAt d a.wire.toBitVec bytes := hin.wire
 
 theorem rc_len : (NativeRustcVm.Data.Item.bytes .keccakRC).length = 192 := by
   rw [NativeRustcVm.Data.Item.bytes, NativeRustcVm.length_wordsBytes, keccakRC_eq]; rfl
@@ -92,7 +87,7 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
   have hfnw := frame_noWrap (F := 112) hst (by decide)
   have hsp : rspOf st.data = stackBelow m0 112 := by rw [hf.sp, off_zero]
   have hL := hin.L32
-  have hwa := workAreaBytes_le bytecode.length
+  have hwa := workAreaBytes_le
   have hdp := decodedWords_pos bytes.length
   have hwb : NativeRustcVm.Wire.workBytes ≤ workAreaBytes := by decide
   have gdec := g.dec
@@ -109,14 +104,14 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
   -- the read-only data and the areas
   have rcApart : ∀ (x : UInt64) (sz : Nat),
       (⟨x.toBitVec, sz⟩ : NativeRustcVm.Region) ∈
-        entryRegions (ctxOf m0) a bytes.length bytecode.length →
+        usedRegions (ctxOf m0) a bytes.length bytecode.length →
       0 < sz → x.toNat + sz ≤ rcAddr.toNat ∨ rcAddr.toNat + 192 ≤ x.toNat := fun x sz hr hp ↦ by
     have h := hapR _ hr hp .keccakRC
     unfold NativeRustcVm.Apart at h
     rw [rc_len] at h
     exact h
-  have rcD := rcApart a.decoded (8 * decodedWords bytes.length) (by simp [entryRegions]) (by omega)
-  have rcW := rcApart a.work (8 * NativeVm.Entry.workWords bytecode.length) (by simp [entryRegions])
+  have rcD := rcApart a.decoded (8 * decodedWords bytes.length) (by simp [usedRegions]) (by omega)
+  have rcW := rcApart a.work (8 * NativeVm.Entry.workWords) (by simp [usedRegions])
     (by unfold workAreaBytes NativeRustcVm.Top.workAreaWords at hwa; omega)
   have hstk : (stackBelow st.data 1296).toNat = lsb m0 + 17408 := by
     rw [stackBelow_callee hsp (by show 112 + 1296 ≤ (rspOf m0).toNat; omega),
@@ -129,7 +124,7 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
   have hwireM : NativeRustcVm.Mapped m0.dmem a.wire.toBitVec bytes.length :=
     (wireBytes hin).mapped
   have hwN : a.wire.toNat + bytes.length ≤ 2 ^ 64 := by
-    have := g.wireN; unfold NativeVm.Entry.wireWords at this; omega
+    have := g.wireN; omega
   -- the frame's changes are in the stack
   have hfr : ∀ q, NativeRustcVm.InRange (stackBelow m0 112) 112 q →
       lsb m0 + 18704 ≤ q.toNat ∧ q.toNat < lsb m0 + 18816 := fun q h ↦ by
@@ -162,11 +157,10 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
     · rcases hbp with ⟨h0, -⟩ | ⟨-, rfl⟩
       · omega
       have gw := g.wire hL0
-      have gwd := g.wireDec
-      have gww := g.wireWork
-      have rcWi := rcApart a.wire (8 * NativeVm.Entry.wireWords bytes.length) (by simp [entryRegions])
-        (by unfold NativeVm.Entry.wireWords; omega)
-      have hww : bytes.length ≤ 8 * NativeVm.Entry.wireWords bytes.length := by unfold NativeVm.Entry.wireWords; omega
+      have gwd := g.wireDec (by omega)
+      have gww := g.wireWork (by omega)
+      have rcWi := rcApart a.wire (bytes.length) (by simp [usedRegions])
+        (by omega)
       simp only [NativeRustcVm.disjoint_cons_iff, List.forall_mem_cons, List.mem_nil_iff,
         false_implies, implies_true, NativeRustcVm.disjoint_nil, and_true, NativeRustcVm.Apart,
         stackR, rcR, show decodeStack = 1296 from rfl, hstk, UInt64.toNat_toBitVec]
@@ -188,9 +182,9 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
         rcases hp with rfl | rfl | rfl
         · exact ⟨(rcAddr, 192), by simp [rc_mem_rodataAreas], Nat.le_refl _, Nat.le_refl _⟩
         · exact ⟨(a.decoded.toBitVec, 8 * decodedWords bytes.length),
-            by simp [entryRegions], Nat.le_refl _, Nat.le_refl _⟩
-        · refine ⟨(a.work.toBitVec, 8 * NativeVm.Entry.workWords bytecode.length),
-            by simp [entryRegions], Nat.le_refl _, ?_⟩
+            by simp [usedRegions], Nat.le_refl _, Nat.le_refl _⟩
+        · refine ⟨(a.work.toBitVec, 8 * NativeVm.Entry.workWords),
+            by simp [usedRegions], Nat.le_refl _, ?_⟩
           dsimp only
           omega
   refine call_then hpc hdec hpre' fun st' hpc' hrsp' hpost ↦ ?_
@@ -259,8 +253,6 @@ theorem decodeCall (hdec : Spec (Labels.label NativeRustcVmX64.Vm.Decode.entryLa
         have gw := g.wire h0
         rw [NativeRustcVm.toNat_add_ofNat (by simp; omega)] at this
         simp only [UInt64.toNat_toBitVec] at this
-        have hww : bytes.length ≤ 8 * NativeVm.Entry.wireWords bytes.length := by
-          unfold NativeVm.Entry.wireWords; omega
         omega
     have h := hres bytes rfl hB
     exact h

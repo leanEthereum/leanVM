@@ -1,13 +1,13 @@
 //! leanVM's verifier, wire bytes to verdict, for rustc to compile to x86-64 and AArch64 assembly:
 //! `no_std`, no allocation, no dependency. `leanvm_verify(ctx)` takes the context of
-//! `formal/native/NativeVm/Input.lean` (`EntryPre`, `NativeVm/Code/Entry.lean`) and returns `1`
+//! `formal/native/NativeVm/Entry.lean` (`EntryPre`) and returns `1`
 //! exactly when the bytes decode (`NativeVm.Wire.decodeM`) to a proof the model accepts
 //! (`NativeVm.Model.verify`), else `0`.
 //!
 //! Each module mirrors a module of the model (`NativeVm/Model/*.lean`, `NativeVm/Wire/Model.lean`),
 //! function for function, with its names, order and constants; an `Array` of the model is a
-//! fixed-capacity buffer in the caller's areas or on the stack, the capacities those of
-//! `NativeVm/Code/Data.lean`, and a step past a capacity rejects. The model's `none` is `None`.
+//! fixed-capacity buffer in the caller's areas or on the stack, and a step past a capacity rejects.
+//! The model's `none` is `None`.
 //!
 //! The assembly is proved function by function (`formal/native/NativeRustcVm{Arm,X64}`), so every
 //! function says whether it stays one: `#[inline(never)]` on each but the few-instruction helpers,
@@ -47,9 +47,6 @@ pub const WORK_WORDS: usize = {
     (if a > b { a } else { b }).div_ceil(8)
 };
 
-/// `NativeVm.Code.workWords 0`, which every caller allocates at least.
-const _: () = assert!(WORK_WORDS <= 85438);
-
 /// The context's words the verifier reads.
 const CTX_WORDS: usize = 12;
 
@@ -57,13 +54,19 @@ const CTX_WORDS: usize = 12;
 ///
 /// # Safety
 ///
-/// `ctx` must be non-null, 8-byte aligned, and readable over its first 12 words (`NativeVm/Input.lean`):
+/// `ctx` must be non-null, 8-byte aligned, and readable over its first 12 words (`NativeVm/Entry.lean`):
 /// words `0`, `1` the wire bytes' address and count, `2`, `3` the bytecode's words' address and count,
 /// `4 .. 7` the public input, `8`, `9` the decoded area's address and word count, `10`, `11` the working
-/// area's; every area readable over its count, the decoded and working areas writable and initialized over
-/// their counts (since Rust `&mut [u64]` / `&mut T` references require initialized integer memory), and all
-/// areas apart from one another except the read-only wire and bytecode. The area counts and alignments
-/// (other than `ctx` itself) are checked here. Like `Statement/LeanVmVerifier.lean`, this entry point does
+/// area's. The wire count is in bytes; the other area counts are in `u64` words. Every area must be
+/// readable over its count, with no address-space wrapping. The decoded and working areas
+/// must also be writable and initialized over their counts (Rust references require initialized
+/// integer memory). All nonempty areas must be apart from one another except the read-only wire and
+/// bytecode. The context must also be apart from all nonempty areas. No wire padding is required.
+/// The context and areas, including empty-area pointers, neither overlap nor point into the
+/// verifier's own static data or GOT entries; regions from the caller's allocations or statics
+/// always satisfy this.
+/// The area counts and alignments (other than `ctx` itself) are checked here.
+/// Like `Statement/LeanVmVerifier.lean`, this entry point does
 /// not check `is_valid_encoding_of_a_leanisa_program`; callers on untrusted bytecode must validate it
 /// externally to match `crates/verifier::Bytecode::new`.
 #[unsafe(no_mangle)]
@@ -74,7 +77,7 @@ pub unsafe extern "C" fn leanvm_verify(ctx: *mut u64) -> u64 {
     let (l, n) = (l as usize, n as usize);
     let aligned = |a: u64| a != 0 && a % 8 == 0;
     let dec_words = decoded_words(l);
-    // `EntryPre`'s bounds: `L < 2^32`, `8 n + 9 < 2^32`.
+    // Reject sizes outside the verifier's supported bounds.
     if l as u64 >= 1 << 32
         || (n as u64) > ((1 << 32) - 10) / 8
         || (dec_n as usize) < dec_words

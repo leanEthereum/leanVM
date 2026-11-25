@@ -57,15 +57,15 @@ theorem verify_correct_of_specs (hP : Host.prog = Vm.code)
       (VerifyExecutionPost a s))
     {bytes : List UInt8} {bytecode : List UInt64} {pub : Vector UInt64 4} {a : NativeVm.Entry.Areas}
     {m : MachineData}
-    (hin : NativeVm.Entry.EntryPre (NativeRustcVm.wordView m.dmem) (ctxOf m) a bytes bytecode pub)
+    (hin : NativeVm.Entry.CheckedEntryPre m.dmem (ctxOf m) a bytes bytecode pub)
     (hal : Aligned a bytes.length bytecode.length)
     (hstack : StackOk m leanvmVerifyStack) (hrod : RodataAt m leanvmVerifyStack)
-    (hapS : ApartFrom (entryRegions (ctxOf m) a bytes.length bytecode.length)
+    (hapS : ApartFrom (usedRegions (ctxOf m) a bytes.length bytecode.length)
       (stackBelow m leanvmVerifyStack) (leanvmVerifyStack + 8))
-    (hapR : ∀ r ∈ entryRegions (ctxOf m) a bytes.length bytecode.length, 0 < r.size →
+    (hapR : ∀ r ∈ usedRegions (ctxOf m) a bytes.length bytecode.length, 0 < r.size →
       RodataApart r.addr r.size)
     (hgot : GotAt m leanvmVerifyStack
-      ((entryRegions (ctxOf m) a bytes.length bytecode.length).map (fun r => (r.addr, r.size)) ++
+      ((usedRegions (ctxOf m) a bytes.length bytecode.length).map (fun r => (r.addr, r.size)) ++
         rodataAreas) ["memcpy", "memset"]) :
     Eventually (step1 Host.exe) (fun st ↦ st.pc = retOf m ∧ rspOf st.data = rspOf m + 8#64 ∧
       reg st.data .rax = (if (Id.run (Proof.fromBytes (m := Id) keccakF1600 bytes)).elim false

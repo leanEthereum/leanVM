@@ -14,8 +14,8 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
+open NativeVm.Transcript (wd)
 
 /-- After the checks: the frame's body; the counts, the areas' addresses and the public input in
 registers. -/
@@ -70,7 +70,7 @@ theorem stage0 (hp : Placed code k) {a : NativeVm.Entry.Areas} {bytes : List UIn
       m0.regs.SP.toBitVec.toNat - 19344 := g.sb
   have hS := leanvmVerifyStack_eq
   have hsl := m0.regs.SP.toBitVec.isLt
-  have hce : ctxEnd = 175 := NativeVm.Transcript.ctxEnd_val
+  have hce : NativeVm.Entry.ctxWords = 12 := (rfl)
   have gc := g.ctx
   have gcN := g.ctxN
   have e0 : m0.regs.X0.toNat = m0.regs.X0.toBitVec.toNat := rfl
@@ -101,7 +101,7 @@ theorem stage0 (hp : Placed code k) {a : NativeVm.Entry.Areas} {bytes : List UIn
   obtain ⟨v9, h9, hv9⟩ := hin.decLen
   obtain ⟨v11, h11, hv11⟩ := hin.workLen
   have hww : 61944 ≤ v11.toNat := by
-    have := NativeRustcVm.Top.workAreaWords_le bytecode.length
+    have := NativeRustcVm.Top.workAreaWords_le
     unfold NativeRustcVm.Top.workAreaWords at this; omega
   have hn : bytecode.length ≤ 536870910 := by have := hin.bcSmall; omega
   refine exec_then (hb NativeRustcVmArm.Vm.LeanvmVerify.b0Offset hp b0_in_code (by simp [b0])) run_b0 hwf hm fun st1 hm1 hpc1 ↦ ?_
@@ -212,7 +212,7 @@ theorem ctxEnv [Labels] {a : NativeVm.Entry.Areas} {L n : Nat} {m0 st : MachineD
   have hs := g.s
   have hF := g.F
   have hsl := m0.regs.SP.toBitVec.isLt
-  have hce : ctxEnd = 175 := NativeVm.Transcript.ctxEnd_val
+  have hce : NativeVm.Entry.ctxWords = 12 := (rfl)
   have gc := g.ctx
   have gcN := g.ctxN
   have e0 : m0.regs.X0.toNat = m0.regs.X0.toBitVec.toNat := rfl
@@ -249,7 +249,7 @@ theorem stage1 (hp : Placed code k) {a : NativeVm.Entry.Areas} {bytes : List UIn
       m0.regs.SP.toBitVec.toNat - 19344 := g.sb
   have hS := leanvmVerifyStack_eq
   have hsl := m0.regs.SP.toBitVec.isLt
-  have hce : ctxEnd = 175 := NativeVm.Transcript.ctxEnd_val
+  have hce : NativeVm.Entry.ctxWords = 12 := (rfl)
   have gc := g.ctx
   have gcN := g.ctxN
   have e0 : m0.regs.X0.toNat = m0.regs.X0.toBitVec.toNat := rfl

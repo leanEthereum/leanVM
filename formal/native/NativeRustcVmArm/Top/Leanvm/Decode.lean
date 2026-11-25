@@ -15,11 +15,11 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
 open NativeRustcVm.Wire (streamW openingsW)
 open NativeVm.Wire (decodeM PhaseOut)
 open LeanVM.Parameters (E)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeVm.Transcript (wd)
 
 /-- What the verifier may change: its stack, the decoded and the working areas. -/
 @[expose] public def R2 (a : NativeVm.Entry.Areas) (L : Nat) (m0 : MachineData) (q : BitVec 64) : Prop :=

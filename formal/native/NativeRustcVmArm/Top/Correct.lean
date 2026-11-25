@@ -57,12 +57,12 @@ theorem verify_correct_of_specs (hP : NativeRustcArm.Host.prog = Vm.code)
       (VerifyExecutionPost a s))
     {bytes : List UInt8} {bytecode : List UInt64} {pub : Vector UInt64 4} {a : NativeVm.Entry.Areas}
     {m : MachineData}
-    (hin : NativeVm.Entry.EntryPre (NativeRustcVm.wordView m.dmem) m.regs.X0 a bytes bytecode pub)
+    (hin : NativeVm.Entry.CheckedEntryPre m.dmem m.regs.X0 a bytes bytecode pub)
     (hal : Aligned a bytes.length bytecode.length)
     (hstack : StackOk m leanvmVerifyStack) (hrod : RodataAt m leanvmVerifyStack)
-    (hapS : ApartFrom (entryRegions m.regs.X0 a bytes.length bytecode.length)
+    (hapS : ApartFrom (usedRegions m.regs.X0 a bytes.length bytecode.length)
       (stackBelow m leanvmVerifyStack) leanvmVerifyStack)
-    (hapR : ∀ r ∈ entryRegions m.regs.X0 a bytes.length bytecode.length, 0 < r.size →
+    (hapR : ∀ r ∈ usedRegions m.regs.X0 a bytes.length bytecode.length, 0 < r.size →
       RodataApart r.addr r.size) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = retOf m ∧
       st.data.regs.X0 = (if (Id.run (Proof.fromBytes (m := Id) keccakF1600 bytes)).elim false

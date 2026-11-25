@@ -16,8 +16,8 @@ namespace NativeRustcVmArm.Top.Leanvm
 
 open NativeRustcArm NativeRustcArm.Sym NativeRustcVmArm.Vm.LeanvmVerify NativeVm
 open NativeRustcVm (WordAt WordsAt Region)
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
+open NativeVm.Transcript (wd)
 
 public section
 
@@ -29,18 +29,9 @@ theorem workBytes_le : NativeRustcVm.Wire.workBytes ≤ workAreaBytes := by deci
 /-- The wire's bytes at its address. -/
 theorem wireBytes {d : DataMem} {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode : List UInt64}
     {pub : Vector UInt64 4} {ctx : UInt64}
-    (hin : NativeVm.Entry.EntryPre (NativeRustcVm.wordView d) ctx a bytes bytecode pub) :
-    BytesAt d a.wire.toBitVec bytes ∧ Mapped d a.wire.toBitVec (8 * NativeVm.Entry.wireWords bytes.length) := by
-  obtain ⟨ws, hold, htake, hws⟩ := hin.wire
-  have hW : WordsAt d a.wire.toBitVec ws := NativeRustcVm.wordsAt_of_wordView hws
-  have hl : ws.length = NativeVm.Entry.wireWords bytes.length := hold.1
-  refine ⟨?_, ?_⟩
-  · have := NativeRustcVm.BytesAt.take hW bytes.length
-    rw [← htake]
-    exact this
-  · have := NativeRustcVm.WordsAt.mapped hW
-    rw [hl] at this
-    exact this
+    (hin : NativeVm.Entry.CheckedEntryPre d ctx a bytes bytecode pub) :
+    BytesAt d a.wire.toBitVec bytes ∧ Mapped d a.wire.toBitVec bytes.length :=
+  ⟨hin.wire, NativeRustcVm.BytesAt.mapped hin.wire⟩
 
 /-- **`decode`'s precondition.** -/
 theorem decPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecode : List UInt64}
@@ -80,18 +71,18 @@ theorem decPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecod
     rw [hx3]; exact natToU64 (by omega)
   have hdM : Mapped st.dmem a.decoded.toBitVec (8 * decodedWords bytes.length) :=
     Mapped.kept (NativeRustcVm.mapped_of_wordView hin.decSome) hB.kept
-  have hwM : Mapped st.dmem a.work.toBitVec (8 * NativeVm.Entry.workWords bytecode.length) :=
+  have hwM : Mapped st.dmem a.work.toBitVec (8 * NativeVm.Entry.workWords) :=
     Mapped.kept (NativeRustcVm.mapped_of_wordView hin.workSome) hB.kept
-  have hwle := workAreaBytes_le bytecode.length
+  have hwle := workAreaBytes_le
   -- The round constants apart from the stack and the areas.
   have rcS : NativeRustcVm.Apart (stackBelow st decodeStack) decodeStack rcAddr 192 :=
     NativeRustcVm.Apart.symm hrc.2.2
   have rcD : NativeRustcVm.Apart a.decoded.toBitVec (8 * decodedWords bytes.length) rcAddr 192 :=
-    hapR ⟨a.decoded.toBitVec, _⟩ (by simp [entryRegions])
+    hapR ⟨a.decoded.toBitVec, _⟩ (by simp [usedRegions])
       (by show 0 < 8 * decodedWords bytes.length; omega) .keccakRC
-  have rcW : NativeRustcVm.Apart a.work.toBitVec (8 * NativeVm.Entry.workWords bytecode.length) rcAddr 192 :=
-    hapR ⟨a.work.toBitVec, _⟩ (by simp [entryRegions])
-      (by show 0 < 8 * NativeVm.Entry.workWords bytecode.length; omega) .keccakRC
+  have rcW : NativeRustcVm.Apart a.work.toBitVec (8 * NativeVm.Entry.workWords) rcAddr 192 :=
+    hapR ⟨a.work.toBitVec, _⟩ (by simp [usedRegions])
+      (by show 0 < 8 * NativeVm.Entry.workWords; omega) .keccakRC
   have ed : a.decoded.toBitVec.toNat = a.decoded.toNat := rfl
   have ew : a.work.toBitVec.toNat = a.work.toNat := rfl
   have ewi : a.wire.toBitVec.toNat = a.wire.toNat := rfl
@@ -111,13 +102,12 @@ theorem decPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecod
     by_cases h0 : bytes.length = 0
     · rw [h0]; exact fun i hi ↦ absurd hi (Nat.not_lt_zero _)
     · rw [hx0 (by omega)]
-      exact NativeRustcVm.Mapped.mono (Mapped.kept (wireBytes hin).2 hB.kept)
-        (by unfold NativeVm.Entry.wireWords; omega)
+      exact Mapped.kept (wireBytes hin).2 hB.kept
   · show st.regs.X0.toBitVec.toNat + st.regs.X1.toNat ≤ 2 ^ 64
     rw [hX1]
     by_cases h0 : bytes.length = 0
     · rw [h0]; have := st.regs.X0.toBitVec.isLt; omega
-    · rw [hx0 (by omega)]; have := g.wireN; unfold NativeVm.Entry.wireWords at this; omega
+    · rw [hx0 (by omega)]; have := g.wireN; omega
   · show Mapped st.dmem st.regs.X2.toBitVec (8 * st.regs.X3.toNat)
     rw [hx2, hX3]; exact hdM
   · show st.regs.X2.toBitVec.toNat + 8 * st.regs.X3.toNat ≤ 2 ^ 64
@@ -133,13 +123,12 @@ theorem decPre [Labels] {a : NativeVm.Entry.Areas} {bytes : List UInt8} {bytecod
       omega
   · rw [hX1] at hL0
     have gwi := g.wire hL0
-    have gwd := g.wireDec
-    have gwk := g.wireWork
-    have rcI : NativeRustcVm.Apart a.wire.toBitVec (8 * NativeVm.Entry.wireWords bytes.length) rcAddr 192 :=
-      hapR ⟨a.wire.toBitVec, _⟩ (by simp [entryRegions])
-        (by show 0 < 8 * NativeVm.Entry.wireWords bytes.length; unfold NativeVm.Entry.wireWords; omega) .keccakRC
+    have gwd := g.wireDec (by omega)
+    have gwk := g.wireWork (by omega)
+    have rcI : NativeRustcVm.Apart a.wire.toBitVec (bytes.length) rcAddr 192 :=
+      hapR ⟨a.wire.toBitVec, _⟩ (by simp [usedRegions])
+        (by show 0 < bytes.length; omega) .keccakRC
     unfold NativeRustcVm.Apart at rcI
-    have hww : bytes.length ≤ 8 * NativeVm.Entry.wireWords bytes.length := by unfold NativeVm.Entry.wireWords; omega
     show NativeRustcVm.Disjoint [⟨stackBelow st decodeStack, decodeStack⟩, ⟨rcAddr, 192⟩,
       ⟨st.regs.X0.toBitVec, st.regs.X1.toNat⟩, ⟨st.regs.X2.toBitVec, 8 * st.regs.X3.toNat⟩,
       ⟨st.regs.X4.toBitVec, NativeRustcVm.Wire.workBytes⟩]

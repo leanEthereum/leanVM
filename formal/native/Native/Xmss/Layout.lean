@@ -53,4 +53,17 @@ def encode (pk : PublicKey) (message : Message) (sig : Signature) (i : Nat) : UI
       ((i - 9) % layerWords)
   else 0
 
+/-- Decode the wrapper's words, discarding the leaf index's high 32 bits as Rust does. -/
+def decode (w : Nat → UInt64) : PublicKey × Message × Signature :=
+  let d := fun i => ofWords (w i) (w (i + 1))
+  ({ root := d 0, parameter := d 2 },
+    BitVec.ofNat 256 ((w 4).toNat + 2 ^ 64 * (w 5).toNat +
+      2 ^ 128 * (w 6).toNat + 2 ^ 192 * (w 7).toNat),
+    { leafIndex := ⟨(w 8).toUInt32.toNat, (w 8).toUInt32.toNat_lt⟩
+      layers := fun l =>
+        let b := 9 + 150 * l.val
+        { randomizer := d b
+          chainValues := fun i => d (b + 2 + 2 * i.val)
+          authenticationPath := fun j => d (b + 118 + 2 * j.val) } })
+
 end Native.XmssVerifier

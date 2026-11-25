@@ -16,8 +16,8 @@ namespace NativeRustcVmX64.Top.Leanvm
 
 open NativeRustcX64 NativeRustcX64.Sym NativeRustcVmX64.Vm.LeanvmVerify NativeRustcVmX64.Transcript
 open NativeRustcVmX64.Top NativeVm NativeRustcVm.Transcript
-open NativeRustcVm.Top (workAreaBytes entryRegions ApartFrom Aligned)
-open NativeVm.Transcript (wd ctxEnd)
+open NativeRustcVm.Top (workAreaBytes usedRegions ApartFrom Aligned)
+open NativeVm.Transcript (wd)
 
 /-- After the checks: the frame, RSP at offset `8`, only the frame written; the context's values
 in registers. -/
@@ -65,7 +65,7 @@ theorem checks (hp : Placed code k) {a : NativeVm.Entry.Areas} {bytes : List UIn
   have hR := g.R
   have h8 := g.e8
   have hBn := g.F
-  have hce : ctxEnd = 175 := NativeVm.Transcript.ctxEnd_val
+  have hce : NativeVm.Entry.ctxWords = 12 := (rfl)
   have hc : (ctxOf m0).toNat = (reg m0 .rdi).toNat := rfl
   have gc := g.ctx
   have gcN := g.ctxN
@@ -96,7 +96,7 @@ theorem checks (hp : Placed code k) {a : NativeVm.Entry.Areas} {bytes : List UIn
   obtain ⟨v9, h9, hv9⟩ := hin.decLen
   obtain ⟨v11, h11, hv11⟩ := hin.workLen
   have hww : 61944 ≤ v11.toNat := by
-    have := NativeRustcVm.Top.workAreaWords_le bytecode.length
+    have := NativeRustcVm.Top.workAreaWords_le
     unfold NativeRustcVm.Top.workAreaWords at this; omega
   -- `b0`: the prologue, `L`.
   have hwf0 := frame_wf (m0 := m0) (d := m0) (F := 112) (rest := [(reg m0 .rdi, 96)])

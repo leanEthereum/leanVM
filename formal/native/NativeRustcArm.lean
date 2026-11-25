@@ -49,6 +49,14 @@ contracts. The build fails if an axiom footprint grows beyond Lean's three stand
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcArm.XmssVerifier.verify_correct
 
+/-- info: 'NativeRustcArm.SphincsVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustcArm.SphincsVerifier.verify_confined
+
+/-- info: 'NativeRustcArm.XmssVerifier.verify_confined' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustcArm.XmssVerifier.verify_confined
+
 /-- info: 'NativeRustcArm.Xmss.rc_data' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustcArm.Xmss.rc_data

@@ -7,7 +7,7 @@ public import NativeRustcVmArm.Spec.Top
 # The end theorem from `leanvm_verify`'s contract
 
 `verify_correct_of`: given `leanvm_verify`'s contract (`LeanvmVerifyPre`, `LeanvmVerifyPost`), from
-its label with the context at X0 as `NativeVm.Entry.EntryPre` describes it, the alignment it
+its label with the context at X0 as `NativeVm.Entry.CheckedEntryPre` describes it, the alignment it
 checks, its stack and the read-only data in place and apart from the caller's areas, the machine
 inevitably returns to its caller with X0 `1` exactly when the wire bytes decode
 (`Proof.fromBytes`) to a proof `verifyWith` accepts, else `0`, no byte changed outside the decoded
@@ -29,12 +29,12 @@ theorem verify_correct_of
       (LeanvmVerifyPre a bytes bytecode pub) (LeanvmVerifyPost a bytes bytecode pub))
     {bytes : List UInt8} {bytecode : List UInt64} {pub : Vector UInt64 4} {a : NativeVm.Entry.Areas}
     {m : MachineData}
-    (hin : NativeVm.Entry.EntryPre (NativeRustcVm.wordView m.dmem) m.regs.X0 a bytes bytecode pub)
+    (hin : NativeVm.Entry.CheckedEntryPre m.dmem m.regs.X0 a bytes bytecode pub)
     (hal : Aligned a bytes.length bytecode.length)
     (hstack : StackOk m leanvmVerifyStack) (hrod : RodataAt m leanvmVerifyStack)
-    (hapS : ApartFrom (entryRegions m.regs.X0 a bytes.length bytecode.length)
+    (hapS : ApartFrom (usedRegions m.regs.X0 a bytes.length bytecode.length)
       (stackBelow m leanvmVerifyStack) leanvmVerifyStack)
-    (hapR : ∀ r ∈ entryRegions m.regs.X0 a bytes.length bytecode.length, 0 < r.size →
+    (hapR : ∀ r ∈ usedRegions m.regs.X0 a bytes.length bytecode.length, 0 < r.size →
       RodataApart r.addr r.size) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = retOf m ∧
       st.data.regs.X0 = (if (Id.run (Proof.fromBytes (m := Id) keccakF1600 bytes)).elim false
