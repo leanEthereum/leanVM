@@ -50,10 +50,6 @@ theorem loadHolds_ofK_iff {rd : Reader} {a k b k' : ℕ} {v : E} (h : a + k = b 
   rw [limb0_ofK_addressOfIndex_mul, limb0_ofK_addressOfIndex_mul, h]
   simp [ofK_isInK]
 
-theorem limb_ofK_addr (a t : ℕ) :
-    (ofK (Parameters.addressOfIndex a)).limb 0 * Parameters.addressOfIndex t =
-      Parameters.addressOfIndex (a + t) := limb0_ofK_addressOfIndex_mul a t
-
 /-- A run's word, loaded. -/
 theorem memL_run_load {rd : Reader} {e : ℕ} {ws : List E} (h : MemL rd [(e, ws)]) {k : ℕ}
     (hk : k < ws.length) : LoadHolds rd (ofK (Parameters.addressOfIndex e)) k ws[k] :=
@@ -258,9 +254,9 @@ theorem os_sq_groupE (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
     rcases hp with rfl | rfl | rfl
     · refine ⟨eqp + lv.posOff + j * sqPer lv + t, ?_, hRk _ (hrp j hj t ht)⟩
-      simp only [List.getD_cons_succ, List.getD_cons_zero, hqpos, ofK_addr_shift, limb_ofK_addr]
+      simp only [List.getD_cons_succ, List.getD_cons_zero, hqpos, ofK_addr_shift, limb0_ofK_addressOfIndex_mul]
     · refine ⟨eq + lv.posOff + j * sqPer lv + t, ?_, hRw _ (sqW_region hj ht)⟩
-      simp only [List.getD_cons_succ, List.getD_cons_zero, hqbp, ofK_addr_shift, limb_ofK_addr]
+      simp only [List.getD_cons_succ, List.getD_cons_zero, hqbp, ofK_addr_shift, limb0_ofK_addressOfIndex_mul]
     · obtain ⟨i, hi, hR⟩ := hrt t ht
       exact ⟨i, hi, hRk i hR⟩
   -- decoder `0`

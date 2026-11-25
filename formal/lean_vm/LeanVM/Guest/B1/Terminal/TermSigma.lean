@@ -210,7 +210,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   obtain ⟨hkap, hOr⟩ := hPC
   have hcc : chis' = chis := by
     have hl : chis'.length = chis.length :=
-      gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
+      gen_pow_inj (by omega) (by omega) (hgzc.symm.trans hgz)
     exact readsAt_unique hchR hchis hl
   subst hcc
   set kappas := columnKappas layout.logMemory Tables.guestLogBytecode layout.tableLogHeights

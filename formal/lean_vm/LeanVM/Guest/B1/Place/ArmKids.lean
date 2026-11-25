@@ -655,13 +655,13 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
     refine hls j hjy hnm Lk _ _ _ _ _ _ _ (zeroOf_01 _) (fun q hq' t ht ↦ ?_) (fun rd hlow hm ↦ ?_)
     · have hptr : ∀ e o t, (osPtrA c b0 e * gen ^ o).limb 0 * addressOfIndex t =
           addressOfIndex (baseA c b0 e + (o + t)) := fun e o t ↦ by
-        rw [osPtrA_mul, limb_ofK_addr, Nat.add_assoc]
+        rw [osPtrA_mul, limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
       rcases hq' with rfl | rfl | rfl <;> simp only at ht
       · exact ⟨_, hptr osIxQposA _ t, regionL_lkA_buf hlen h9 (by decide)
           (by rw [← osOwnA, hlen9]; exact hpos t ht)⟩
       · exact ⟨_, hptr osIxFchA _ t, regionL_lkA_buf hlen h2 (by decide) (by rw [← osOwnA, hlen2]; omega)⟩
-      · exact ⟨_, limb_ofK_addr _ t, regionL_lkA_buf hlen htc (by simp only [osIxTchA, osIxQbpA]; omega)
+      · exact ⟨_, limb0_ofK_addressOfIndex_mul _ t, regionL_lkA_buf hlen htc (by simp only [osIxTchA, osIxQbpA]; omega)
           (by rw [← osOwnA, hlenT]; omega)⟩
     · have hM := osMemA_of_lk hlen hm
       refine ⟨fun i hi ↦ ?_, fun t ht ↦ ?_, fun t ht ↦ ?_⟩
@@ -707,7 +707,7 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
     (by simp) (fun q hq' t ht ↦ ?_) (fun rd hlow hm ↦ ?_)
   · have hptr : ∀ e o t, (osPtrA c b0 e * gen ^ o).limb 0 * addressOfIndex t =
         addressOfIndex (baseA c b0 e + (o + t)) := fun e o t ↦ by
-      rw [osPtrA_mul, limb_ofK_addr, Nat.add_assoc]
+      rw [osPtrA_mul, limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
     rcases hq' with rfl | rfl | rfl
     · exact ⟨_, hptr osIxQposA _ t, regionL_lkA_buf hlen h9 (by decide)
