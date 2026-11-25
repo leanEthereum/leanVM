@@ -90,8 +90,8 @@ exclude = [
   # Lean library's. Unused by verification.
   "{impl core::clone::Clone for crate::bytecode::Bytecode}",
   "{impl core::clone::Clone for crate::transcript::Sponge}",
-  # Their signatures crash Aeneas while translating the `Iterator` trait; patch 01 removes
-  # the crate's uses.
+  # Their signatures crash Aeneas while translating the `Iterator` trait. Patch 01 removes the
+  # uses in the functions that are translated; the uses left are inside opaque items.
   "core::iter::traits::iterator::Iterator::copied",
   "core::iter::traits::iterator::Iterator::find",
   "core::slice::iter::_::find",

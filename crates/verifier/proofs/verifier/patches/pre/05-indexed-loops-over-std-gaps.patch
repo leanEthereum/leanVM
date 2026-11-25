@@ -110,19 +110,6 @@ diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinea
 index 9d408a523..6e09c2222 100644
 --- a/crates/verifier/src/multilinear.rs
 +++ b/crates/verifier/src/multilinear.rs
-@@ -108,7 +108,11 @@ pub fn index_mle(point: &[E]) -> E {
- 
- /// A polynomial at `point`, by Horner over its coefficients, constant first.
- pub fn poly_eval(coefficients: &[E], point: E) -> E {
--    coefficients.iter().rev().fold(ZERO, |acc, &c| acc * point + c)
-+    let mut acc = ZERO;
-+    for i in 0..coefficients.len() {
-+        acc = acc * point + coefficients[coefficients.len() - 1 - i];
-+    }
-+    acc
- }
- 
- /// Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest.
 @@ -121,7 +125,9 @@ pub struct Placement {
  impl Placement {
      pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {

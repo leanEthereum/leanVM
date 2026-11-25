@@ -2,15 +2,6 @@ diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
 index b2d3a98ec..8655ef581 100644
 --- a/crates/verifier/src/bus.rs
 +++ b/crates/verifier/src/bus.rs
-@@ -44,7 +44,7 @@ fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Resul
-         let combiner = transcript.sample();
-         let claim = poly_eval(&values, combiner);
-         // The product is degree 2^step, so one more coefficient than that per round.
--        let equalities: Vec<Option<E>> = point.iter().copied().map(Some).collect();
-+        let equalities: Vec<Option<E>> = point.iter().map(|&x| Some(x)).collect();
-         let (x, claim) = sumcheck(transcript, claim, (1 << step) + 1, &equalities)?;
- 
-         let children = (0..N_TREES)
 @@ -83,11 +83,10 @@ struct BusLayout {
  }
  
@@ -27,15 +18,6 @@ index b2d3a98ec..8655ef581 100644
      let (offsets, depth) = stack_offsets(&sizes);
      let mut framework: Vec<Placement> = sizes
          .iter()
-@@ -263,7 +262,7 @@ pub fn table_sumcheck(
-     target: E,
-     transcript: &mut Transcript,
- ) -> Result<Vec<TableEvaluations>, VerifierError> {
--    let n_rounds = table_log_heights.iter().copied().max().unwrap_or(0);
-+    let n_rounds = *table_log_heights.iter().max().unwrap_or(&0);
-     let (challenges, claim) = sumcheck(transcript, target, 4, &vec![None; n_rounds])?;
-     let point: Vec<E> = challenges.into_iter().rev().collect();
-     let mut weights = vec![ONE; tables.len()];
 diff --git a/crates/verifier/src/keccak.rs b/crates/verifier/src/keccak.rs
 index 5fb1682bf..3c6476349 100644
 --- a/crates/verifier/src/keccak.rs
@@ -49,34 +31,6 @@ index 5fb1682bf..3c6476349 100644
          .collect()
  }
  
-@@ -130,11 +130,13 @@ fn verify_layer(
-     let product = transcript.next_scalars(PRODUCT_BITS)?;
-     if transcript.checked() {
-         let projected = E::sum((0..PRODUCT_BITS).map(|c| {
--            let functional = E::sum(
--                (0..PACK)
--                    .filter(|&i| RMFE_PROJECT[i] >> c & 1 == 1)
--                    .map(|i| claim.mu[i]),
--            );
-+            let functional = E::sum((0..PACK).map(|i| {
-+                if RMFE_PROJECT[i] >> c & 1 == 1 {
-+                    claim.mu[i]
-+                } else {
-+                    ZERO
-+                }
-+            }));
-             functional * product[c]
-         }));
-         // iota flips known positions of lane 0 in every instance.
-@@ -142,7 +144,7 @@ fn verify_layer(
-         let mut iota = ZERO;
-         for (segment, &weight) in segments.iter().enumerate().take(shape.segments()) {
-             let constant = KECCAK_RC[shape.depth * (segment + 1) - step - 1];
--            iota += weight * E::sum((0..64).filter(|z| constant >> z & 1 == 1).map(|z| claim.weights[z]));
-+            iota += weight * E::sum((0..64).map(|z| if constant >> z & 1 == 1 { claim.weights[z] } else { ZERO }));
-         }
-         require(
-             projected + iota * E::sum(claim.mu.iter().copied()) == claim.value,
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
 index 3721aa75d..4b5f04544 100644
 --- a/crates/verifier/src/layout.rs
