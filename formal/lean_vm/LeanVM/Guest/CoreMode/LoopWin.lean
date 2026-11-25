@@ -93,7 +93,7 @@ noncomputable def winL (Cf : CFun) (l : List Stmt) (ml : List (ℕ × ℕ)) : Bo
   (stmtsOf l).all (fun s ↦ isBW s && winP Cf s) && l.all topOk && decide (matchLens l = ml)
 
 theorem matchLens_append (x y : List Stmt) : matchLens (x ++ y) = matchLens x ++ matchLens y := by
-  simp [matchLens, stmtsOf_append, List.filterMap_append]
+  simp [matchLens_eq, stmtsOf_append, List.filterMap_append]
 
 theorem winL_append {Cf : CFun} {x y : List Stmt} {mx my : List (ℕ × ℕ)} (hx : winL Cf x mx = true)
     (hy : winL Cf y my = true) : winL Cf (x ++ y) (mx ++ my) = true := by
@@ -115,7 +115,7 @@ theorem lwins_spec {Cf : CFun} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List (ℕ × List (ℕ × ℕ))}, LWins Cf l e a cs →
       a ≤ e ∧ winL Cf (slice l a e) (cs.map (·.2)).flatten = true := fun h ↦
   wins_fold (Q := fun (a : ℕ) (cs : List (ℕ × List (ℕ × ℕ))) ↦ winL Cf (slice l a e) (cs.map (·.2)).flatten = true)
-    (by simp [winL, slice_self, matchLens, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
+    (by simp [winL, slice_self, matchLens_eq, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
       rw [slice_split l hab hbe, List.map_cons, List.flatten_cons]
       exact winL_append hw hq) h
 
@@ -257,17 +257,16 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     exact List.all_eq_true.mpr fun s hs ↦ isBS_of_isBW (hst s hs).1
   have hML : matchLens Cf.fn.body = ml := by
     rw [hbody, matchLens_append, hmlE]
-    simp [matchLens, stmtsOf, Bridge.stmtsSub]
+    simp [matchLens_eq, stmtsOf, Bridge.stmtsSub]
   have hDL : dspLens Cf.fn.body = [] := by
-    unfold dspLens
-    rw [List.filterMap_eq_nil_iff]
+    rw [dspLens_eq, List.filterMap_eq_nil_iff]
     intro s hs
     cases s with
     | dispatch x fs a r => exact absurd hs (loopBB_noDsp hBB)
     | _ => rfl
   obtain ⟨-, htg, hjt⟩ := cwins_spec le_rfl hc
   rw [slice_all] at htg hjt
-  refine ⟨hBB, stmtsOf_all_of fun s hs ↦ ?_, ?_, ?_, stmtsOf_all_of fun s hs ↦ ?_, stmtsOf_all_of fun s hs ↦ ?_,
+  refine ⟨hBB, stmtsOf_all_of fun s hs ↦ ?_, ?_, ?_, stmtsOf_all_of fun s hs ↦ ?_, ?_,
     ?_, ?_, ?_⟩
   · rcases hall s hs with ⟨hbw, hp⟩ | rfl | rfl
     · cases s with
@@ -300,7 +299,9 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   · have := hP s hs
     simp only [winP, Bool.and_eq_true] at this
     exact this.1.2
-  · have := hP s hs
+  · rw [noFA_eq]
+    refine stmtsOf_all_of fun s hs ↦ ?_
+    have := hP s hs
     cases s with
     | atom a =>
       cases a with

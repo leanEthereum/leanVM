@@ -418,7 +418,7 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                 (fun q hq ↦ hσ0.ptr _ _ hb a q (List.mem_append_right _ hma) hq) hwa
           have W1' : ∀ x, WrF Cf rd σ0 (pre ++ es) x → WrK s1.mem x := fun x hx ↦
             hx.elim (W1 x) fun ⟨hn, hf⟩ ↦ faw_wrk hok hi hci hAtF hm.le hm.fine hσ0.toHonB hb hn hf
-          have hvl : vs.length = retN Cf.fn.body := retsN_len hrN hb
+          have hvl : vs.length = retN Cf.fn.body := retIs_len hrN hb
           have hxw1 : Cf.hc = false → ExpW img (expCells K.F.sig) s1.fp := fun hc ↦ by
             rw [hm.fp, ← hok.fsig, ← CFun.xc_of hc]; exact hxw
           have hws : ∀ b < np + retN Cf.fn.body, Rd img s1.fp (2 + b) =

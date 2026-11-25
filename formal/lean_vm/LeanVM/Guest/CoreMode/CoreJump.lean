@@ -198,12 +198,12 @@ theorem monoC_bases_lt {G : Mode.Sig} {n : ℕ} {ent : Bool} {m : Mode.Mono} {c 
 /-! ## The shape -/
 
 theorem bodyC_ctrl {body : List Stmt} (h : bodyCore body = true) : ∀ s ∈ stmtsOf body, ctrlOk s = true := by
-  simp only [bodyCore, Bool.and_eq_true, List.all_eq_true] at h
+  simp only [bodyCore_eq, Bool.and_eq_true, List.all_eq_true] at h
   exact h.1
 
 theorem matchLens_mem {body : List Stmt} {x : V} {arms : List (List Stmt)} (h : Stmt.match_ x arms ∈ stmtsOf body) :
     (x.idx, arms.length) ∈ matchLens body :=
-  List.mem_filterMap.mpr ⟨_, h, rfl⟩
+  matchLens_eq body ▸ List.mem_filterMap.mpr ⟨_, h, rfl⟩
 
 theorem armsCover_at {X : AlignCtx} {e : ℕ} {ml : List (ℕ × ℕ)} {a : ℕ × ℕ} {ts : List ℕ}
     (h : armsCover X e ml a ts = true) {p : ℕ × ℕ} (hp : p ∈ ml) (hpa : p.1 = a.1) {j : ℕ} (hj : j < p.2) :
@@ -818,7 +818,7 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
     have hmem : Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body :=
       zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
     have hdl : (x, fs.length, args.map (·.idx), rets.map (·.idx)) ∈ dspLens Cf.fn.body :=
-      List.mem_filterMap.mpr ⟨_, hmem, rfl⟩
+      dspLens_eq _ ▸ List.mem_filterMap.mpr ⟨_, hmem, rfl⟩
     have hq := List.all_eq_true.mp hd _ hdl
     simp only [hargs, hrets, beq_self_eq_true, Bool.and_self, Bool.not_true, Bool.false_or, Bool.and_eq_true,
       Nat.beq_eq] at hq
@@ -1374,7 +1374,7 @@ theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryIma
   have hr' := hr i hi
   rw [hci] at hr'
   obtain ⟨A, hA, hH⟩ := atF_ret hok.frame.2.1 hok.frame.2.2 hi hat
-  simp only [hA, List.all_eq_true] at hr'
+  simp only [hA, stmtsAll_eq, List.all_eq_true] at hr'
   -- a frame run's cell `k` written in the walk's state, at its address
   have hcell : ∀ (p r : V) (rs : List V) (k : ℕ), Ev.atom (.frameAddr p (r :: rs)) ∈ es →
       (A.w.get (Cf.X.locAt r.idx + k)).isSome = true → WrK s1.mem (cellAt σ p k) := by
@@ -1394,7 +1394,7 @@ theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryIma
     have hk : k < rs.length + 1 := by simpa using (List.getElem?_eq_some_iff.mp hrk).1
     have hkk := hfa'.1 k hk
     have hdst : dstIn Cf.fn.body v = true := by
-      unfold dstIn
+      rw [dstIn_eq]
       exact List.any_eq_true.mpr ⟨.atom a, Bridge.walk_atomS Cf.fn.body (by rw [hw]; exact ha), by simpa using hva⟩
     rw [hrk] at hkk
     simp only [hdst, Bool.not_true, Bool.false_or] at hkk
