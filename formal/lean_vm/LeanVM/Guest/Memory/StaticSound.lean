@@ -1362,24 +1362,23 @@ theorem defAtom_spec {d : V} {a : Atom} :
   | .atom b :: l, h => by
       change (bif dstIs d b then some b else defAtom d l) = some a at h
       cases hb : dstIs d b <;> rw [hb] at h
-      · exact ⟨List.mem_cons_of_mem _ (defAtom_spec (l := l) h).1, (defAtom_spec (l := l) h).2⟩
+      · exact (defAtom_spec (l := l) h).imp_left (List.mem_cons_of_mem _)
       · cases h; exact ⟨List.mem_cons_self, dstOf_of_dstIs hb⟩
   | .ite .. :: l, h | .match_ .. :: l, h | .call .. :: l, h | .callIf .. :: l, h
   | .dispatch .. :: l, h | .ret .. :: l, h =>
-      have h' : defAtom d l = some a := h
-      ⟨List.mem_cons_of_mem _ (defAtom_spec h').1, (defAtom_spec h').2⟩
+      (defAtom_spec (l := l) h).imp_left (List.mem_cons_of_mem _)
 
 theorem defAtom_mem {d : V} {a : Atom} {l : List Stmt} (h : defAtom d l = some a) : Stmt.atom a ∈ l :=
   (defAtom_spec h).1
 
-theorem defAtom_mul {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.mul x y z)) : x = d := by
-  simpa [dstOf] using (defAtom_spec h).2
+theorem defAtom_mul {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.mul x y z)) : x = d :=
+  Option.some.inj (defAtom_spec h).2
 
-theorem defAtom_add {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.add x y z)) : x = d := by
-  simpa [dstOf] using (defAtom_spec h).2
+theorem defAtom_add {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.add x y z)) : x = d :=
+  Option.some.inj (defAtom_spec h).2
 
-theorem defAtom_const {d x : V} {w : E} {l : List Stmt} (h : defAtom d l = some (.const x w)) : x = d := by
-  simpa [dstOf] using (defAtom_spec h).2
+theorem defAtom_const {d x : V} {w : E} {l : List Stmt} (h : defAtom d l = some (.const x w)) : x = d :=
+  Option.some.inj (defAtom_spec h).2
 
 theorem gpow_succ' (a : ℕ) : addressOfIndex a * addressOfIndex 1 = addressOfIndex (a + 1) := by
   simp [Parameters.addressOfIndex, pow_add]

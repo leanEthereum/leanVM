@@ -35,7 +35,7 @@ The walk also confirms, per atom, the certificate's lists of temporaries and fra
 (`Plumb.tmps`, `Plumb.runs`), from which the honest memory's cells are built.
 
 Everything is recursion over lists and tries keyed by `ℕ`, for the kernel; the steps of every
-atom (`nameAll`, `isPend`, `record`, `cellKeys`) by the recursor (`KernelList.lean`).
+atom (`nameAll`, `isPend`, `record`, `cellKeys`) by `List.rec` (`KernelList.lean`).
 -/
 
 namespace LeanVM.Guest.B2C
