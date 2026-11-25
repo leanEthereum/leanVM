@@ -14,7 +14,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_padding»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 
 /-!
 # `da_padding`, completely

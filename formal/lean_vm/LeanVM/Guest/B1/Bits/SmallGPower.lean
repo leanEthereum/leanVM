@@ -12,7 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Value.FieldBits
 import LeanVM.Guest.B1.Common.Vc
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

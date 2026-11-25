@@ -14,7 +14,7 @@ public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

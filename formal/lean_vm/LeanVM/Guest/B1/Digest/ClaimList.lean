@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 import LeanVM.Guest.B1.Common.Vc
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

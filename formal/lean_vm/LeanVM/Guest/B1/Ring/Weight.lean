@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Eq.RsEqRun
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

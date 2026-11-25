@@ -12,7 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

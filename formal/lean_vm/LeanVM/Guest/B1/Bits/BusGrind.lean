@@ -26,7 +26,7 @@ import LeanVM.Guest.Data.ValNames.«bus_grind_check__L6»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L7»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L8»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L9»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

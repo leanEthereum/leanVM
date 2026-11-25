@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

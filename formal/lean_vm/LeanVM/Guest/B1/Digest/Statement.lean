@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Digest.Basic
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«statement_digest»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

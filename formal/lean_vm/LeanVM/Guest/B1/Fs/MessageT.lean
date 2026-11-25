@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«opening_message__L20_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L36_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L6_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L8_L1»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

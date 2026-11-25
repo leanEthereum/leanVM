@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L»
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L23»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

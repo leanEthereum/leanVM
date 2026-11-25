@@ -12,7 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
 import LeanVM.Guest.B1.Common.Vc
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

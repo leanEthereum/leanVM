@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Digest.ChildMono
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 
 /-!
 # `child_claim_list_digest`

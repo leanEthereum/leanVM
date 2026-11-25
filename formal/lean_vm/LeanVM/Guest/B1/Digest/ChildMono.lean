@@ -19,7 +19,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 import LeanVM.Guest.B1.Common.Find
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

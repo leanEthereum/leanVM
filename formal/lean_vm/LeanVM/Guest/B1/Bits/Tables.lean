@@ -13,7 +13,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.LitRef
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

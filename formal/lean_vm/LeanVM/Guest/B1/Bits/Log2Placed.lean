@@ -17,7 +17,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!

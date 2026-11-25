@@ -35,7 +35,7 @@ import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L6»
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L7»
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L8»
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L9»
-meta import LeanVM.Guest.B1.Common.KernelRfl
+meta import LeanVM.Guest.KernelLit
 import LeanVM.Guest.StmtsAppend
 
 /-!
