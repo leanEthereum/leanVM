@@ -42,11 +42,11 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} {S : Li
 claim. -/
 def GlRecK (rd : Reader) (rec cur : E) (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs)
     (a : ℕ) : Prop :=
-  TbCapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
+  CapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
     LoadHolds rd rec 5 (cur * gen ^ (4 * a)) ∧
     LoadHolds rd rec 6 (gkSt Cf ef claim s a).1
 
-theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : TbCapAt rd rec 0 1 cap)
+theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : CapAt rd rec 0 1 cap)
     {k : ℕ} (hk : k < 5) : LoadHolds rd rec k (cap.getD k 0) := by
   obtain ⟨hl, h⟩ := h
   have := h k (by omega)
@@ -58,7 +58,7 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
     {head cur : E} (e21 : σ (.n (valf% «gkr_layer» "s4#0")) = cur) (e54 : σ (.n (valf% «gkr_layer» "head")) = head) {cap : List E} {claim : E}
     (hcap : (glCap (if p = 0 then 35 else 39 + 78 * p)).map σ = cap)
     (hcl : σ (.n (if p = 0 then 57 else 57 + 78 * p)) = claim)
-    (hR1 : TbCapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
+    (hR1 : CapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
     (hR3 : LoadHolds rd head 6 claim) :
     Stmt.HoldsList C rd σ (glHeadStore p) True kret := by
   have hc : ∀ k < 5, LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) k
@@ -99,7 +99,7 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       row * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] []) :
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (glLoopCall p nm) True kret := by
   have g : ∀ a, Stmt.atom a ∈ glLoopCall p nm → Good rd S w σ a := fun a ha ↦ hG _ ha
-  have hK : IsInK (1 + gen ^ m) := isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK _)
+  have hK : IsInK (1 + gen ^ m) := one_add_gen_pow_isInK _
   have hm0 : 1 + gen ^ m ≠ 0 → 0 < m := fun hne ↦ by
     rcases Nat.eq_zero_or_pos m with h0 | h0
     · rw [h0, pow_zero, e_add_self] at hne; exact absurd rfl hne

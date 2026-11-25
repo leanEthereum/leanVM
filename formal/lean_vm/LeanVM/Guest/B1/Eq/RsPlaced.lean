@@ -190,7 +190,8 @@ theorem rs_hσ {b bz bp count : ℕ} {zs ps : List E} (hcount : count < 64) (hz 
     rw [flatMap_loadsEv σ rsPre rs_noLoadIte, rs_loads] at hq
     obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hq
     have hk' := List.mem_range.mp hk
-    refine ⟨b + k, by rw [ech, Main.addr_ofK], Or.inr ⟨_, List.mem_singleton_self _, by simp, ?_⟩⟩
+    refine ⟨b + k, by rw [ech, limb0_ofK_addressOfIndex_mul],
+      Or.inr ⟨_, List.mem_singleton_self _, by simp, ?_⟩⟩
     simp only [rsChain_length]
     omega
 

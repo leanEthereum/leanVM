@@ -2,7 +2,8 @@
   LeanVM.Facts.Verifier
 
   Facts about the verifier's definitions (`Statement/Verifier/`), proved:
-  the `q_keccak` spare slots and the `KECCAK` slot layout, and `pack`; and the verifier's
+  the `q_keccak` spare slots and the `KECCAK` slot layout, `pack`, and the lengths of
+  `stack_offsets` (`stackOffsets_length`); and the verifier's
   definitions no end statement reaches, moved here from the statement, names kept: `yE`,
   `packBits`, `pack`, the deployed seed `seed` and the deployed verifier `verify`.
 -/
@@ -42,6 +43,18 @@ theorem Placement.stackPoint_eq_drop (p : Placement) (point : List E) (stackLog 
     p.stackPoint point stackLog =
       point ++ (selectorPoint p.index stackLog).drop p.variableCount := by
   rw [selectorPoint_drop, Placement.stackPoint]
+
+/-- `stack_offsets` gives each block an offset. -/
+theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
+  have : ∀ (order : List ℕ) (acc : List ℕ × ℕ),
+      (order.foldl (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+        acc).1.length = acc.1.length := by
+    intro order
+    induction order with
+    | nil => intro acc; rfl
+    | cons k order ih => intro acc; rw [List.foldl_cons, ih, List.length_set]
+  unfold stackOffsets
+  simp only [this, List.length_replicate]
 
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 

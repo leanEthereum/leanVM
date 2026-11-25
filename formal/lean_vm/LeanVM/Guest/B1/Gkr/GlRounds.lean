@@ -95,9 +95,9 @@ theorem glRounds_succ (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (ca
     glCapAfter]
 
 /-- A record's capacity cells, `glCap b`'s values. -/
-theorem tbCapAt_glCap {rd : Reader} {σ : Val} {rec : E} {off b : ℕ}
+theorem capAt_glCap {rd : Reader} {σ : Val} {rec : E} {off b : ℕ}
     (h : ∀ k < 5, LoadHolds rd rec (off + k) (σ (.n (b + k)))) :
-    TbCapAt rd rec off 1 ((glCap b).map σ) := by
+    CapAt rd rec off 1 ((glCap b).map σ) := by
   refine ⟨by simp [glCap], fun j hj => ?_⟩
   have hj5 : j < 5 := by simpa [glCap] using hj
   simp only [glCap, List.getElem_map, List.getElem_range, Nat.mul_one]
@@ -168,9 +168,9 @@ end Sem
 /-- **Rounds between records** are a run from the first record's values to the second's. -/
 theorem glRun_of_out {rd : Reader} {n s : ℕ} {rec pt : E} (h : TbGkrRoundsOut n s rd rec pt) :
     ∃ (cap cap' : List E) (cur claim claim' : E),
-      TbCapAt rd rec 0 1 cap ∧ LoadHolds rd rec 5 cur ∧
+      CapAt rd rec 0 1 cap ∧ LoadHolds rd rec 5 cur ∧
       LoadHolds rd rec 6 claim ∧ GlRun rd n cur pt claim cap cap' claim' ∧
-      TbCapAt rd rec (7 * s) 1 cap' ∧ LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)) ∧
+      CapAt rd rec (7 * s) 1 cap' ∧ LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)) ∧
       LoadHolds rd rec (7 * s + 6) claim' := by
   obtain ⟨cap, cur, claim, cs, es, hc, hcur, hcl, hl, h4, hrd, hel, hes, hre, hcap, hcur', hcl'⟩ := h
   exact ⟨cap, _, cur, claim, _, hc, hcur, hcl, ⟨cs, es, hl, h4, hrd, hel, hes, hre, rfl, rfl⟩, hcap,
@@ -178,9 +178,9 @@ theorem glRun_of_out {rd : Reader} {n s : ℕ} {rec pt : E} (h : TbGkrRoundsOut 
 
 /-- **A run whose ends are stored** in two records is rounds between them. -/
 theorem glOut_of_run {rd : Reader} {n s : ℕ} {rec pt cur claim claim' : E} {cap cap' : List E}
-    (hc : TbCapAt rd rec 0 1 cap) (hcur : LoadHolds rd rec 5 cur)
+    (hc : CapAt rd rec 0 1 cap) (hcur : LoadHolds rd rec 5 cur)
     (hcl : LoadHolds rd rec 6 claim) (hr : GlRun rd n cur pt claim cap cap' claim')
-    (hc' : TbCapAt rd rec (7 * s) 1 cap') (hcur' : LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)))
+    (hc' : CapAt rd rec (7 * s) 1 cap') (hcur' : LoadHolds rd rec (7 * s + 5) (cur * gen ^ (4 * n)))
     (hcl' : LoadHolds rd rec (7 * s + 6) claim') : TbGkrRoundsOut n s rd rec pt := by
   obtain ⟨cs, es, hl, h4, hrd, hel, hes, hre, rfl, rfl⟩ := hr
   exact ⟨cap, cur, claim, cs, es, hc, hcur, hcl, hl, h4, hrd, hel, hes, hre, hc', hcur', hcl'⟩

@@ -108,7 +108,7 @@ theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.addressOfIndex b) * gen ^ c
   have e : ofK (Parameters.addressOfIndex b) * gen ^ c = ofK (Parameters.addressOfIndex (b + c)) := by
     rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
       Parameters.addressOfIndex, pow_add]
-  rw [e, Main.addr_ofK]
+  rw [e, limb0_ofK_addressOfIndex_mul]
 
 /-- Two lists read at one pointer, of one length, are one. -/
 theorem rt_readsAt_unique {rd : Reader} {p : E} {xs ys : List E} (hl : xs.length = ys.length)
@@ -493,7 +493,7 @@ theorem l13_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
         simp only [Ev.loadAddr?, Option.some.injEq] at hea
         subst hea
         rcases l13LoadIn_load hok with ⟨rfl, ho⟩ | ⟨rfl, ho⟩ | ⟨rfl, ho⟩
-        · rw [e1, Main.addr_ofK]
+        · rw [e1, limb0_ofK_addressOfIndex_mul]
           exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
         · rw [e15, ← pow_mul, rt_addr_mul]
           exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩

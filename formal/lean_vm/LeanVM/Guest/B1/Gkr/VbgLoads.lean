@@ -77,7 +77,7 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
       = true → x < d → y < d → σ (.n d) = σ (.n x) * σ (.n y) :=
     fun d x y h hx hy ↦ good_mul (g _ h) hx hy
   have c10 : σ (.n (val% «verify_bus_gkr» "layers~0")) = gen ^ 2 := by
-    rw [← tb_word_four]; exact g (.const (.n (val% «verify_bus_gkr» "layers~0")) (word 4 0)) (by decide +kernel)
+    rw [← word_four]; exact g (.const (.n (val% «verify_bus_gkr» "layers~0")) (word 4 0)) (by decide +kernel)
   have m11 := mul 11 6 10 (by decide +kernel) (by omega) (by omega)
   have m12 := mul 12 11 11 (by decide +kernel) (by omega) (by omega)
   have m13 := mul 13 12 12 (by decide +kernel) (by omega) (by omega)

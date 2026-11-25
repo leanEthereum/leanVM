@@ -196,7 +196,7 @@ theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
     rw [h78, h77, word_gen] at this
     exact this
 
-theorem tbReadsAt_nib {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) (j : ℕ) :
+theorem readsAt_nib {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) (j : ℕ) :
     ReadsAt rd (p * gen ^ (4 * j)) (nib l j) := by
   intro k hk
   rw [loadHolds_mul_gen_pow]
@@ -282,9 +282,9 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     have hlen : ∀ l : List E, l.length = 4 * q + r → (nib l j).length = 4 := fun l hl => by
       simp [nib, hl]; omega
     obtain ⟨h1, h2⟩ := hfull j hjq (nib zs j) (nib zs1 j) (nib gs j) (hlen zs hz) (hlen zs1 hz1)
-      (hlen gs hg) (by rw [← pow_mul, mul_comm j 4]; exact tbReadsAt_nib rz j)
-      (by rw [← pow_mul, mul_comm j 4]; exact tbReadsAt_nib rz1 j)
-      (by rw [← pow_mul, mul_comm j 4]; exact tbReadsAt_nib rg j)
+      (hlen gs hg) (by rw [← pow_mul, mul_comm j 4]; exact readsAt_nib rz j)
+      (by rw [← pow_mul, mul_comm j 4]; exact readsAt_nib rz1 j)
+      (by rw [← pow_mul, mul_comm j 4]; exact readsAt_nib rg j)
     rw [← pow_mul, mul_comm j 32] at h1
     rw [← pow_mul, mul_comm j 16] at h2
     exact ⟨h1, h2⟩
@@ -310,9 +310,9 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     rw [m53, hq4] at rg'
     rw [m49, m48, hq16', mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by ring] at reqs
     rw [m50, hq16', ite_eq_right (show ¬ r = 0 by omega)] at rgs
-    rw [readsAt_unique (tbReadsAt_nib rz q) rz' (by rw [hlen zs hz, hl]),
-      readsAt_unique (tbReadsAt_nib rz1 q) rz1' (by rw [hlen zs1 hz1, hl1]),
-      readsAt_unique (tbReadsAt_nib rg q) rg' (by rw [hlen gs hg, hlg])]
+    rw [readsAt_unique (readsAt_nib rz q) rz' (by rw [hlen zs hz, hl]),
+      readsAt_unique (readsAt_nib rz1 q) rz1' (by rw [hlen zs1 hz1, hl1]),
+      readsAt_unique (readsAt_nib rg q) rg' (by rw [hlen gs hg, hlg])]
     exact ⟨reqs, rgs⟩
 
 end

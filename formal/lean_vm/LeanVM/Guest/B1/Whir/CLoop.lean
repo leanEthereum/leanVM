@@ -90,7 +90,7 @@ theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
       rw [ha, gen_pow_mul_gen, show n - 1 - (i + 1) + 1 = n - 1 - i by omega]
       exact relN_mono P (le_max_right D d') _ _ _ hd'
   refine ⟨by
-    rw [hN]; exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK n),
+    rw [hN]; exact one_add_gen_pow_isInK n,
     fun _ ↦ ?_⟩
   obtain ⟨d, hd⟩ := key (n - 1) (by omega)
   rw [show n - 1 - (n - 1) = 0 by omega, pow_zero] at hd

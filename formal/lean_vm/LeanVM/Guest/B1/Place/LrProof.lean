@@ -118,9 +118,6 @@ theorem lr_notLoop {name : String} {fn : Fn} (hf : coreProgram.find? name = some
 
 /-! ## The body, placed -/
 
-theorem lr_addr_mul (b e : ℕ) : ofK (addressOfIndex b) * gen ^ e = ofK (addressOfIndex (b + e)) :=
-  ofK_addr_mul_gen_pow b e
-
 set_option maxHeartbeats 1600000 in
 /-- **`level_residual` placed** at `fp`: its chains `W` at `fp + fs name` (the batches' from `0`,
 the rest's from `2·(q / resBatch)`), its loops' trees of `m1` and `m2` words after them. -/
@@ -298,8 +295,8 @@ theorem lr_relAtIn {name loop1 loop2 : String} {q : ℕ}
         .n 2, .n 3] : List V).map σ =
         [1, gen ^ r, ofK (addressOfIndex (b + 2 * B)), P * gen ^ (resBatch * B), BD, HS, M] := by
       simp only [List.map_cons, List.map_nil]
-      rw [t3, a5, a17, t0, a1, a2, a3, hg0, hCH, ← pow_add, lr_addr_mul, ← two_mul, ← pow_mul,
-        Nat.mul_comm B resBatch]
+      rw [t3, a5, a17, t0, a1, a2, a3, hg0, hCH, ← pow_add, ofK_addressOfIndex_mul_gen_pow,
+        ← two_mul, ← pow_mul, Nat.mul_comm B resBatch]
     have hreg : ∀ Rk : ℕ → Prop, (∀ i, Rk i → R i ∨ (b ≤ i ∧ i < b + W.length)) →
         ∀ i, Rk i → R i ∨ ownData cert fp (fp + fs name) name [W.length] es i := by
       intro Rk hRk i hi
@@ -531,7 +528,7 @@ theorem lr_key {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
     have hk' : k < 2 * (q % resBatch + 1) := by rw [rsC_length] at hk; exact hk
     have := hCHm rd h (2 * (q / resBatch) + k) (by rw [hWl]; omega)
     rw [List.getElem_eq_getD 0, lrW_rsC hk', ← List.getElem_eq_getD 0,
-      ← loadHolds_mul_gen_pow, lr_addr_mul] at this
+      ← loadHolds_mul_gen_pow, ofK_addressOfIndex_mul_gen_pow] at this
     exact this
   obtain ⟨Lk, hLk⟩ : ∃ L, L = Lb ++ Lin := ⟨_, rfl⟩
   have hregK : ∀ i, RegionL Lk i → RegionL Lin i ∨ (b ≤ i ∧ i < b + W.length) := by

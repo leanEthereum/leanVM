@@ -98,7 +98,7 @@ theorem om_kidB (κ : ℕ) {B : ℕ} (hT : TotalLe coreProgram fs "opening_messa
     (opening_message_holds (1, 1) (by simp [omDeployed])) (fun _ _ _ h ↦ h.2.2.2)
     (om_pin 1 1 [v, nn]) κ hT _ _ _ fun rd _ hL ↦ ?_
   have hc : ReadsAt rd (ptr b * gen ^ 11) [v, nn] := by
-    rw [ofK_gpow_mul_gen]; exact hL _ List.mem_cons_self
+    rw [ofK_addressOfIndex_mul_gen_pow]; exact hL _ List.mem_cons_self
   have ho : ReadsAt rd (ptr o) [v] := hL _ (List.mem_cons_of_mem _ List.mem_cons_self)
   have hc1 : ReadsAt rd (ptr b * gen ^ 11) [v] := fun k hk ↦ by
     obtain rfl : k = 0 := by simpa using hk

@@ -36,20 +36,12 @@ theorem tb_exists_snoc {l : List E} {n : ℕ} (h : l.length = n + 1) :
   refine ⟨l.dropLast, l.getLast hne, (List.dropLast_append_getLast hne).symm, ?_⟩
   rw [List.length_dropLast, h]; rfl
 
-theorem tb_getD_append_left {l l' : List E} {n : ℕ} (h : n < l.length) :
-    (l ++ l').getD n 0 = l.getD n 0 := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_append_left h, ← List.getD_eq_getElem?_getD]
-
-theorem tb_getD_append_right {l l' : List E} {n : ℕ} (h : l.length ≤ n) :
-    (l ++ l').getD n 0 = l'.getD (n - l.length) 0 := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_append_right h, ← List.getD_eq_getElem?_getD]
-
 theorem tb_getD_map {f : E → E} {l : List E} {n : ℕ} (h : n < l.length) :
     (l.map f).getD n 0 = f (l.getD n 0) := by
   rw [List.getD_eq_getElem _ _ (by simpa using h), List.getD_eq_getElem _ _ h, List.getElem_map]
 
 theorem tb_getD_snoc_last {l : List E} {x : E} : (l ++ [x]).getD l.length 0 = x := by
-  rw [tb_getD_append_right le_rfl, Nat.sub_self]; rfl
+  rw [List.getD_append_right _ _ _ _ le_rfl, Nat.sub_self]; rfl
 
 theorem eqTable_snoc {zs zs1 : List E} (h : zs.length = zs1.length) (z z1 : E) :
     eqTable (zs ++ [z]) (zs1 ++ [z1]) =
@@ -107,13 +99,13 @@ theorem eqTable_getD : ∀ {n : ℕ} {zs zs1 : List E}, zs.length = n → zs1.le
     have hget : ∀ t ∈ Finset.range n, ((zs' ++ [z]).getD t 0 = zs'.getD t 0) ∧
         ((zs1' ++ [z1]).getD t 0 = zs1'.getD t 0) := fun t ht => by
       have ht' := Finset.mem_range.mp ht
-      exact ⟨tb_getD_append_left (by omega), tb_getD_append_left (by omega)⟩
+      exact ⟨List.getD_append _ _ _ _ (by omega), List.getD_append _ _ _ _ (by omega)⟩
     have hlast : (zs' ++ [z]).getD n 0 = z ∧ (zs1' ++ [z1]).getD n 0 = z1 := by
       refine ⟨?_, ?_⟩
       · rw [← h0']; exact tb_getD_snoc_last
       · rw [← h1']; exact tb_getD_snoc_last
     by_cases hlo : u < 2 ^ n
-    · rw [tb_getD_append_left (by rw [List.length_map, hl]; exact hlo),
+    · rw [List.getD_append _ _ _ _ (by rw [List.length_map, hl]; exact hlo),
         tb_getD_map (by rw [hl]; exact hlo), eqTable_getD h0' h1' hlo]
       have hb : bitPick u n ((zs' ++ [z]).getD n 0) ((zs1' ++ [z1]).getD n 0) = z1 := by
         simp only [bitPick, testBit_lt_two_pow hlo, Bool.false_eq_true, ↓reduceIte, hlast.2]
@@ -122,7 +114,7 @@ theorem eqTable_getD : ∀ {n : ℕ} {zs zs1 : List E}, zs.length = n → zs1.le
         rw [(hget t ht).1, (hget t ht).2]))
     · obtain ⟨v, rfl⟩ : ∃ v, u = 2 ^ n + v := ⟨u - 2 ^ n, by omega⟩
       have hv : v < 2 ^ n := by rw [pow_succ] at hu; omega
-      rw [tb_getD_append_right (by rw [List.length_map, hl]; omega), List.length_map, hl,
+      rw [List.getD_append_right _ _ _ _ (by rw [List.length_map, hl]; omega), List.length_map, hl,
         Nat.add_sub_cancel_left, tb_getD_map (by rw [hl]; exact hv), eqTable_getD h0' h1' hv]
       have hb : bitPick (2 ^ n + v) n ((zs' ++ [z]).getD n 0) ((zs1' ++ [z1]).getD n 0) = z := by
         simp only [bitPick, testBit_two_pow_add_self hv, ↓reduceIte, hlast.1]
@@ -144,17 +136,17 @@ theorem gTable_getD : ∀ {n : ℕ} {gs : List E}, gs.length = n → ∀ {u : �
     have hl : (gTable gs').length = 2 ^ n := gTable_length h0'
     rw [gTable_snoc, Finset.prod_range_succ]
     have hget : ∀ t ∈ Finset.range n, (gs' ++ [g]).getD t 0 = gs'.getD t 0 := fun t ht =>
-      tb_getD_append_left (by have := Finset.mem_range.mp ht; omega)
+      List.getD_append _ _ _ _ (by have := Finset.mem_range.mp ht; omega)
     have hlast : (gs' ++ [g]).getD n 0 = g := by rw [← h0']; exact tb_getD_snoc_last
     by_cases hlo : u < 2 ^ n
-    · rw [tb_getD_append_left (by rw [hl]; exact hlo), gTable_getD h0' hlo]
+    · rw [List.getD_append _ _ _ _ (by rw [hl]; exact hlo), gTable_getD h0' hlo]
       have hb : bitPick u n ((gs' ++ [g]).getD n 0) 1 = 1 := by
         simp only [bitPick, testBit_lt_two_pow hlo, Bool.false_eq_true, ↓reduceIte]
       rw [hb, mul_one]
       exact Finset.prod_congr rfl (fun t ht => by rw [hget t ht])
     · obtain ⟨v, rfl⟩ : ∃ v, u = 2 ^ n + v := ⟨u - 2 ^ n, by omega⟩
       have hv : v < 2 ^ n := by rw [pow_succ] at hu; omega
-      rw [tb_getD_append_right (by rw [hl]; omega), hl, Nat.add_sub_cancel_left,
+      rw [List.getD_append_right _ _ _ _ (by rw [hl]; omega), hl, Nat.add_sub_cancel_left,
         tb_getD_map (by rw [hl]; exact hv), gTable_getD h0' hv]
       have hb : bitPick (2 ^ n + v) n ((gs' ++ [g]).getD n 0) 1 = g := by
         simp only [bitPick, testBit_two_pow_add_self hv, ↓reduceIte, hlast]
@@ -192,9 +184,10 @@ theorem flatMap_levels_getD (L : ℕ → List E) :
         have : 2 ^ (s + 1 + 1) ≤ 2 ^ (m + 1) := Nat.pow_le_pow_right (by norm_num) (by omega)
         rw [pow_succ] at this
         omega
-      rw [tb_getD_append_left hlt, ih hL' hsm hu]
+      rw [List.getD_append _ _ _ _ hlt, ih hL' hsm hu]
     · obtain rfl : s = m := by omega
-      rw [tb_getD_append_right (by rw [htot s hL']; omega), htot s hL', Nat.add_sub_cancel_left]
+      rw [List.getD_append_right _ _ _ _ (by rw [htot s hL']; omega), htot s hL',
+        Nat.add_sub_cancel_left]
 
 /-- **The eq levels**: from `2^w - 2` on, `w ≥ 1`, the table over the first `w` coordinates. -/
 theorem eqLevels_getD {zs zs1 : List E} (h : zs.length = zs1.length) {w u : ℕ} (hw1 : 1 ≤ w)

@@ -77,7 +77,7 @@ theorem runsG_require_inv' {c : Prop} [Decidable c] {s t : Fs} {g : Option E} {x
     {u : Unit} (h : RunsG (VerifierProgram.require c) s none xs u t g) (hc : ∃ sp, s.Carries sp) :
     c ∧ xs = [] ∧ t = s ∧ g = none := by
   have hr := RunsG.require_inv h hc
-  obtain ⟨-, et, eg, ex⟩ := RunsG.det h (RunsTo.toG (tb_runsTo_require hr s)) hc (r1 := [])
+  obtain ⟨-, et, eg, ex⟩ := RunsG.det h (RunsTo.toG (runsTo_require hr s)) hc (r1 := [])
     (r2 := xs) (by simp)
   exact ⟨hr, by simpa using ex.symm, et, eg⟩
 

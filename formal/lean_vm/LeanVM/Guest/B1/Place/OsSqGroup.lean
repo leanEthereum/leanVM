@@ -38,27 +38,17 @@ open LeanVM.Guest.B1.Whir
 
 /-! ## Pointers -/
 
-theorem ofK_addr_mul_gen_pow (a m : ℕ) :
-    ofK (Parameters.addressOfIndex a) * gen ^ m = ofK (Parameters.addressOfIndex (a + m)) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul]
-  congr 1
-  simp only [Parameters.addressOfIndex, pow_add]
-
 theorem ofK_addr_shift (a o j p : ℕ) :
     ofK (Parameters.addressOfIndex a) * gen ^ o * (gen ^ j) ^ p =
       ofK (Parameters.addressOfIndex (a + o + j * p)) := by
-  rw [← pow_mul, ofK_addr_mul_gen_pow, ofK_addr_mul_gen_pow]
+  rw [← pow_mul, ofK_addressOfIndex_mul_gen_pow, ofK_addressOfIndex_mul_gen_pow]
 
 theorem loadHolds_ofK_iff {rd : Reader} {a k b k' : ℕ} {v : E} (h : a + k = b + k') :
     LoadHolds rd (ofK (Parameters.addressOfIndex a)) k v ↔
       LoadHolds rd (ofK (Parameters.addressOfIndex b)) k' v := by
   unfold LoadHolds
-  rw [Value.limb0_ofK_addressOfIndex_mul, Value.limb0_ofK_addressOfIndex_mul, h]
+  rw [limb0_ofK_addressOfIndex_mul, limb0_ofK_addressOfIndex_mul, h]
   simp [ofK_isInK]
-
-theorem limb_ofK_addr (a t : ℕ) :
-    (ofK (Parameters.addressOfIndex a)).limb 0 * Parameters.addressOfIndex t =
-      Parameters.addressOfIndex (a + t) := Value.limb0_ofK_addressOfIndex_mul a t
 
 /-- A run's word, loaded. -/
 theorem memL_run_load {rd : Reader} {e : ℕ} {ws : List E} (h : MemL rd [(e, ws)]) {k : ℕ}
@@ -264,9 +254,9 @@ theorem os_sq_groupE (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
     rcases hp with rfl | rfl | rfl
     · refine ⟨eqp + lv.posOff + j * sqPer lv + t, ?_, hRk _ (hrp j hj t ht)⟩
-      simp only [List.getD_cons_succ, List.getD_cons_zero, hqpos, ofK_addr_shift, limb_ofK_addr]
+      simp only [List.getD_cons_succ, List.getD_cons_zero, hqpos, ofK_addr_shift, limb0_ofK_addressOfIndex_mul]
     · refine ⟨eq + lv.posOff + j * sqPer lv + t, ?_, hRw _ (sqW_region hj ht)⟩
-      simp only [List.getD_cons_succ, List.getD_cons_zero, hqbp, ofK_addr_shift, limb_ofK_addr]
+      simp only [List.getD_cons_succ, List.getD_cons_zero, hqbp, ofK_addr_shift, limb0_ofK_addressOfIndex_mul]
     · obtain ⟨i, hi, hR⟩ := hrt t ht
       exact ⟨i, hi, hRk i hR⟩
   -- decoder `0`

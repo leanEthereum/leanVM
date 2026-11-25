@@ -153,7 +153,7 @@ theorem l5_stepAtTB (SB : String → ℕ)
     rw [hV.v59]
     refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
       fun h he => h ?_⟩
-    exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
+    exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
   have hcalls : calls ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) =
       [⟨"child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")], true⟩,
         ⟨"child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")], true⟩,

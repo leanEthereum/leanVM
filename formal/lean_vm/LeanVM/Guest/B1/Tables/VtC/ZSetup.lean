@@ -278,7 +278,7 @@ theorem vtZ_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   have c2654 : VSH (coreProgram.Rel rd) rd σ
       (.callIf (.n (val% «verify_tables» "s73#1")) name% «verify_tables_loop0» [.n (val% «verify_tables» "s73#2"), .n (val% «verify_tables» "g_zc_n"), .n (val% «verify_tables» "zc_rounds"), .n (val% «verify_tables» "tabs"), .n (val% «verify_tables» "zc_rk"),
           .n (val% «verify_tables» "zc_cprod")]) := by
-    refine ⟨by rw [v2597]; exact isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK n),
+    refine ⟨by rw [v2597]; exact one_add_gen_pow_isInK n,
       fun hne => ?_⟩
     have hn0 : 0 < n := by
       rcases Nat.eq_zero_or_pos n with rfl | h

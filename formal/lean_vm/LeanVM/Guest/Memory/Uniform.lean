@@ -92,31 +92,12 @@ theorem memL_agree {rd rd' : Reader} {L : Layout} (h : MemL rd L) (h' : MemL rd'
 
 /-! ## Reading a layout's buffers -/
 
-theorem readsAt_append' {rd : Reader} {p : E} {xs ys : List E} :
-    ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
-  constructor
-  · intro h
-    refine ⟨fun k hk => ?_, fun k hk => ?_⟩
-    · have := h k (by simp; omega)
-      rwa [List.getElem_append_left hk] at this
-    · have := h (xs.length + k) (by simp; omega)
-      rw [List.getElem_append_right (by omega)] at this
-      simp only [Nat.add_sub_cancel_left] at this
-      rw [loadHolds_mul_gen_pow]; exact this
-  · rintro ⟨h1, h2⟩ k hk
-    rcases Nat.lt_or_ge k xs.length with hk' | hk'
-    · rw [List.getElem_append_left hk']; exact h1 k hk'
-    · rw [List.getElem_append_right hk']
-      have := h2 (k - xs.length) (by simp at hk; omega)
-      rw [loadHolds_mul_gen_pow, show xs.length + (k - xs.length) = k by omega] at this
-      exact this
-
 theorem readsAt_flatMap_of {α : Type} {rd : Reader} {f : α → List E} {w : ℕ} :
     ∀ (l : List α) {p : E}, (∀ a ∈ l, (f a).length = w) → ReadsAt rd p (l.flatMap f) →
       ∀ c (hc : c < l.length), ReadsAt rd (p * gen ^ (w * c)) (f l[c])
   | [], _, _, _, c, hc => absurd hc (by simp)
   | a :: l, p, hw, h, c, hc => by
-    rw [List.flatMap_cons, readsAt_append'] at h
+    rw [List.flatMap_cons, readsAt_append] at h
     rcases c with _ | c
     · simpa using h.1
     · have := readsAt_flatMap_of l (fun b hb => hw b (List.mem_cons_of_mem _ hb)) h.2 c

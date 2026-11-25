@@ -117,11 +117,6 @@ theorem gkrStep_last {step : ℕ} (hs : step ≤ 2) (last : Bool) (st : GkrState
     gkrStep step last st = gkrStep step false st := by
   rw [gkrStep_eq hs, gkrStep_eq hs]
 
-theorem tb_runsTo_require {c : Prop} [Decidable c] (hc : c) (s : Fs) :
-    RunsTo (VerifierProgram.require c) s [] () s := by
-  simp only [VerifierProgram.require, hc, ↓reduceIte]
-  exact runsTo_ret () s
-
 /-- **One step of the walk as a run**: from the sponge `s`, the step samples its combiner, runs
 its sumcheck (`hsc`, reading `xs` to the challenges `x` and the claim `claim'`), reads the three
 trees' children, checks them, samples `y`, and returns their values at `y` with the point
@@ -148,7 +143,7 @@ theorem gkrStep_run {step : ℕ} (hs : step ≤ 2) (last : Bool) {st : GkrState}
   rw [h0] at r0
   rw [h1] at r1
   rw [h2] at r2
-  have hq := tb_runsTo_require hcheck
+  have hq := runsTo_require hcheck
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)
   have hy := runsTo_sampleN step
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)

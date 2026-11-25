@@ -107,7 +107,7 @@ theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
   rw [word_gen, gen_pow_mul_gen]
   refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
     fun h he => h ?_⟩
-  exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
+  exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
 
 /-! ## `main_loop2` -/
 

@@ -68,12 +68,6 @@ theorem packRunF_append :
     simp only [List.cons_append]
   | [], _, _ :: _, _, _, _, h | _ :: _, _, [], _, _, _, h => by simp at h
 
-theorem capAt_unique {rec : E} {k : ℕ} {cap cap' : List E} (h : CapAt rd rec k krCap cap)
-    (h' : CapAt rd rec k krCap cap') : cap = cap' := by
-  apply List.ext_getElem (by rw [h.1, h'.1])
-  intro j hj hj'
-  exact loadHolds_unique (h.2 j hj) (h'.2 j hj')
-
 theorem roundRec_unique {rec : E} {k : ℕ} {cap cap' : List E} {cur cur' cl cl' : E}
     (h : RoundRec rd rec k cap cur cl) (h' : RoundRec rd rec k cap' cur' cl') :
     cap = cap' ∧ cur = cur' ∧ cl = cl' :=

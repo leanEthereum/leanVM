@@ -227,7 +227,7 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
   have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
-  have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
+  have hncl : chis.length = nc := gen_pow_inj (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
   have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
@@ -315,12 +315,12 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
     · intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
-      rw [ofK_gpow_mul_gen] at hgt
+      rw [ofK_addressOfIndex_mul_gen_pow] at hgt
       exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
-      rw [← ofK_gpow_mul_gen]; exact hrp
+      rw [← ofK_addressOfIndex_mul_gen_pow]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct
   · obtain ⟨σ, hσ⟩ := term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)

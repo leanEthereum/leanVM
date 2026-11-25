@@ -219,7 +219,8 @@ theorem termKids_completeB (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : 
         (fun i hi => hreg i (by simp only [TermRegion]; omega)) hEqc
     · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 = ofK (addressOfIndex (D.B.zv +
         39)) := by
-        rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
+        rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide),
+          ofK_addressOfIndex_mul_gen_pow]
       have e2 : D.gtau * word 64 0 = gen ^ (D.τ + 6) := by rw [hgtau, hw64, ← pow_add]
       show CompleteAtB fs cert κ "ring_switch_weight" _
         [ofK (addressOfIndex D.B.zv) * word 549755813888 0, ofK (addressOfIndex D.B.pt1), ofK
@@ -283,7 +284,7 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
   have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
-  have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
+  have hncl : chis.length = nc := gen_pow_inj (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
   have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
@@ -365,12 +366,12 @@ theorem check_opening_terminal_completeAtB (κ : ℕ) (hκ : 6 ≤ κ) (B : Term
     · intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
-      rw [ofK_gpow_mul_gen] at hgt
+      rw [ofK_addressOfIndex_mul_gen_pow] at hgt
       exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
-      rw [← ofK_gpow_mul_gen]; exact hrp
+      rw [← ofK_addressOfIndex_mul_gen_pow]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct
   · exact term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)

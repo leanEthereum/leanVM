@@ -270,7 +270,7 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
   have hS := runsTo_readE F0 (σ (.n (val% «verify_tables» "x@5")))
   have hv := runsTo_readE
     (⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs) (σ (.n (val% «verify_tables» "x@8")))
-  have hq := tb_runsTo_require hfin
+  have hq := runsTo_require hfin
     ((⟨[σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))], []⟩ : Fs).absorb
       (σ (.n (val% «verify_tables» "x@8"))) dsObserve)
   -- the reads

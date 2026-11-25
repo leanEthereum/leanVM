@@ -51,7 +51,7 @@ theorem vt_word_g33 : vtW33 = ofK (Parameters.addressOfIndex 33) := by
 theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
     ∀ t < 34, LoadHolds rd (σ (.n (val% «verify_tables» "idxc_tab"))) t (1 + gen ^ 2 ^ t) := by
   obtain ⟨k, hs⟩ := h.sliceAt 715 vtIdxcT vtIdxc_check
-  rw [vtIdxcT, holdsList_flatten_range _ _ (fun _ => rfl)] at hs
+  rw [vtIdxcT, holdsList_range_flatten _ _ (fun _ => rfl), and_true] at hs
   intro t ht
   have := hs t ht
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this

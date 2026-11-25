@@ -44,15 +44,10 @@ open LeanVM.Guest.B1.Fwd
 
 /-! ## Words at powers of `g` -/
 
-theorem tb_ofK_gpow_mul (e k : ℕ) : ofK (addressOfIndex e) * gen ^ k = ofK (addressOfIndex (e +
-    k)) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
-      Parameters.addressOfIndex, ← pow_add]
-
 /-- A run's word at `g^(e + a)`, read from `g^e`. -/
 theorem tb_reads_load {rd : Reader} {e a : ℕ} {ws : List E} (h : ReadsAt rd (ofK (addressOfIndex (e + a))) ws)
     {k : ℕ} (hk : k < ws.length) : LoadHolds rd (ofK (addressOfIndex e)) (a + k) (ws.getD k 0) := by
-  rw [← loadHolds_mul_gen_pow, tb_ofK_gpow_mul, List.getD_eq_getElem _ _ hk]
+  rw [← loadHolds_mul_gen_pow, ofK_addressOfIndex_mul_gen_pow, List.getD_eq_getElem _ _ hk]
   exact h k hk
 
 /-! ## A slot's words -/
@@ -308,7 +303,7 @@ theorem verify_bus_gkr_body {rd : Reader} {depth : ℕ} (hd1 : 1 ≤ depth) (hd 
     have hik : k + sh - 1 + 1 - sh = k := by omega
     have hP := hmP _ (List.mem_map.mpr ⟨k + sh - 1, List.mem_range.mpr hi, rfl⟩)
     simp only [hik] at hP
-    rw [tb_ofK_gpow_mul]; exact hP
+    rw [ofK_addressOfIndex_mul_gen_pow]; exact hP
   have PAD : ∀ k ≤ M, sh = 1 →
       LoadHolds rd (ofK (addressOfIndex eP) * gen ^ (40 * (k + sh))) (2 * k + sh) 0 := by
     intro k hk h1

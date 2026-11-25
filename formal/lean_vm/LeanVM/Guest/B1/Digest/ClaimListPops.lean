@@ -63,7 +63,7 @@ theorem range'_zero_append (m k : ℕ) : List.range' 0 m ++ List.range' m k = Li
 /-- A heap destination through `g^a` reads the words from `g^(a + off)`. -/
 theorem words_heap (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) (off len : ℕ) :
     Dest.words rd σ (.heap p off len) = (List.range len).map fun c => (rd (addressOfIndex (a + (off + c)))).getD 0 := by
-  simp only [Dest.words, hp, gen_pow_eq_ofK, Main.addr_ofK]
+  simp only [Dest.words, hp, gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul]
 
 /-! ## `list_split` -/
 
@@ -140,7 +140,7 @@ theorem grp_pops {f : String} {j m c0 st0 ep : ℕ} (hidx : coreProgram.indexOf?
     rw [hpar] at hps
     simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
     rcases h with ⟨h0', -⟩ | ⟨-, t', hn', hv', hp⟩
-    · have := gen_pow_inj' (a := i + 1) (b := M) (by omega) hM
+    · have := gen_pow_inj (a := i + 1) (b := M) (by omega) (by omega)
         (by rw [pow_succ]; exact e_add_eq_zero_iff.mp h0')
       omega
     · rw [← pow_succ] at hv'

@@ -216,7 +216,7 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     have hne : σ (.n (val% «check_opening_terminal» "s9#1")) ≠ 0 := by
       rw [e31, e30, word_gen, hglm]
       intro h0
-      have := gen_pow_inj_le (a := 1) (b := layout.logMemory) (by omega) (by omega)
+      have := gen_pow_inj (a := 1) (b := layout.logMemory) (by omega) (by omega)
         (by rw [pow_one]; exact e_add_eq_zero_iff.mp h0)
       omega
     have hc : coreProgram.Rel Lm.read name% «check_opening_terminal_loop0»
@@ -287,7 +287,7 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     hrsw _ _ _ hrw
   have hn6 : n = τ + 6 := by
     rw [e1701, e1700, hw64, hgtau, ← pow_add] at hng
-    exact gen_pow_inj_le (by omega) (by omega) hng.symm
+    exact gen_pow_inj (by omega) (by omega) hng.symm
   subst hn6
   rw [e1699, e1698, show (549755813888 : ℕ) = 2 ^ 39 from rfl, word_two_pow (by decide)] at hrsR
   have hrs : rs = ringPoint :=

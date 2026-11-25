@@ -101,6 +101,8 @@ theorem word_gen : word 2 0 = gen := by rw [word_eOfNat]; rfl
 theorem word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := by
   rw [word_eOfNat, gen_pow_eq_eOfNat h]
 
+theorem word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
+
 theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 
 /-- `Y_INV = x + y`, the data's `word 2 1`. -/
@@ -233,13 +235,6 @@ theorem holdsList_append_noRet {C : CallRel} {rd : Reader} {σ : Val} {kret : Li
     Stmt.HoldsList C rd σ (A ++ B) True kret ↔
       Stmt.HoldsList C rd σ A True kret ∧ Stmt.HoldsList C rd σ B True kret := by
   rw [holdsList_append, holdsList_noRet _ ha]
-
-/-- `ret`-free blocks indexed by `i < n`, in sequence. -/
-theorem holdsList_flatten_range {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
-    (n : ℕ) (g : ℕ → List Stmt) (hg : ∀ i, Stmt.noRetList (g i) = true) :
-    Stmt.HoldsList C rd σ ((List.range n).map g).flatten True kret ↔
-      ∀ i < n, Stmt.HoldsList C rd σ (g i) True kret := by
-  rw [holdsList_range_flatten n g hg, and_true]
 
 /-- What a range check `rangeCheck x y t1 t2 k` asks of memory, for some complement and touched
 words: `x` and `k / x` are readable addresses (`rangeCheck_iff` makes it `x = g^e`, `e < K`, on a
@@ -635,7 +630,7 @@ theorem guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : Lis
   · rintro ⟨m, hm, hN, hall⟩
     refine ⟨?_, fun h1 => ?_⟩
     · rw [hN]
-      exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
+      exact one_add_gen_pow_isInK m
     have hm0 : 0 < m := by
       rcases Nat.eq_zero_or_pos m with h | h
       · exact absurd (show 1 + N = 0 by rw [hN, h, pow_zero]; exact e_add_self 1) h1

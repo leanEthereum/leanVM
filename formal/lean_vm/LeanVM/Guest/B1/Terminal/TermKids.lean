@@ -130,10 +130,6 @@ theorem piW_getD {rm : E} {ps : List E} {m k : ℕ} (hk : k ≤ m) :
   rw [List.getD_eq_getElem _ _ (by simp [piW]; omega)]
   simp [piW]
 
-theorem ofK_gpow_mul_gen (b c : ℕ) : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b +
-    c)) := by
-  rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
-
 theorem regionL_cons {L : Main.Layout} (q : ℕ × List E) {i : ℕ} (h : RegionL L i) :
     RegionL (q :: L) i := by
   obtain ⟨q', hq, h⟩ := h
@@ -214,7 +210,7 @@ theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n 
   have l1 := hl n (by omega)
   have l2 := hl (40 - n) (by omega)
   have a : ∀ a, (gen ^ a).limb 0 * addressOfIndex 0 = addressOfIndex a := fun a => by
-    rw [gen_pow_eq_ofK, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+    rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨t1, h1⟩ := Option.isSome_iff_exists.mp l1
   obtain ⟨t2, h2⟩ := Option.isSome_iff_exists.mp l2
   exact ⟨gen ^ (40 - n), t1, t2, ⟨gen_pow_isInK n, by rw [a]; exact h1⟩,
@@ -337,7 +333,8 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
       (fun i hi => hreg i (by simp only [TermRegion]; omega))
   · have e1 : ofK (addressOfIndex D.B.zv) * word 549755813888 0 = ofK (addressOfIndex (D.B.zv +
       39)) := by
-      rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide), ofK_gpow_mul_gen]
+      rw [show (549755813888 : ℕ) = 2 ^ 39 by norm_num, word_two_pow (by decide),
+        ofK_addressOfIndex_mul_gen_pow]
     have e2 : D.gtau * word 64 0 = gen ^ (D.τ + 6) := by rw [hgtau, hw64, ← pow_add]
     show CompleteAtD fs cert κ "ring_switch_weight" _
       [ofK (addressOfIndex D.B.zv) * word 549755813888 0, ofK (addressOfIndex D.B.pt1), ofK

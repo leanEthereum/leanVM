@@ -10,19 +10,7 @@ module
 
 public import LeanVM.Guest.Core
 public import LeanVM.Guest.Value.Bits
-
-namespace LeanVM.Guest.B1.Main
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
-
-@[expose] public section
-
-theorem addr_ofK (b k : ℕ) : (ofK (addressOfIndex b)).limb 0 * addressOfIndex k = addressOfIndex (b
-    + k) := by
-  rw [limb_ofK]; exact (pow_add _ _ _).symm
-
-end
-end LeanVM.Guest.B1.Main
+import LeanVM.Guest.Value.Gpow
 
 namespace LeanVM.Guest.B1
 
@@ -48,7 +36,7 @@ noncomputable def rcLow (rd : Reader) (e K : ℕ) : E × E × E :=
 theorem loadHolds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {i : ℕ} (hi : i < 2 ^ k) :
     LoadHolds rd (ofK (addressOfIndex i)) 0 ((rd (addressOfIndex i)).getD 0) := by
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [Main.addr_ofK, Nat.add_zero]
+  rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hl i hi)
   rw [hv]; rfl
 

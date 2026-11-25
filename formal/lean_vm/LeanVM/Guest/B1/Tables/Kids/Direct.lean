@@ -49,7 +49,7 @@ def PtrIn (R : ℕ → Prop) (p : E) (B : ℕ) : Prop :=
 
 theorem ptrIn_ofK {R : ℕ → Prop} {b B : ℕ} (h : ∀ i < B, R (b + i)) :
     PtrIn R (ofK (addressOfIndex b)) B :=
-  ⟨tb_isInK_ofK _, fun off hoff ↦ ⟨b + off, Value.limb0_ofK_addressOfIndex_mul b off, h off hoff⟩⟩
+  ⟨ofK_isInK _, fun off hoff ↦ ⟨b + off, limb0_ofK_addressOfIndex_mul b off, h off hoff⟩⟩
 
 theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hle : B' ≤ B) :
     PtrIn R p B' := ⟨h.1, fun off hoff ↦ h.2 off (by omega)⟩

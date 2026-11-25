@@ -114,7 +114,7 @@ theorem readsAt_range_prefix {rd : Reader} {p : E} {f : ℕ → List E} :
       ∀ l < n, ReadsAt rd (p * gen ^ ((List.range l).map fun m => (f m).length).sum) (f l)
   | 0, _, l, hl => absurd hl (by omega)
   | n + 1, h, l, hl => by
-    rw [List.range_succ, List.flatMap_append, Main.readsAt_append'] at h
+    rw [List.range_succ, List.flatMap_append, B1.readsAt_append] at h
     rcases Nat.lt_or_ge l n with hl' | hl'
     · exact readsAt_range_prefix n h.1 l hl'
     · have e : l = n := by omega
@@ -179,7 +179,7 @@ theorem exists_of_length_succ {α : Type} {l : List α} {n : ℕ} (h : l.length 
 
 theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = addressOfIndex (b +
     k) := by
-  rw [gen_pow_eq_ofK, Main.addr_ofK]
+  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul]
 
 
 /-! ## Shared by the completeness proofs -/

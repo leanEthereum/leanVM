@@ -237,7 +237,7 @@ theorem term_via (hbl : bytecode.length = 2 ^ 23) (bs : List ℕ) (sqE : ℕ)
     · exact regionL_of (q := (e293, (stackOffsets (Tables.cpKs S.logMem S.hs)).1.map (gen ^ ·)))
         (by simp [Tables.cpOwn]) h.1
         (by have : Tables.nCommittedCols = 94 := rfl
-            simp [Tables.tb_stackOffsets_length, Tables.cpKs_length]; omega)
+            simp [stackOffsets_length, Tables.cpKs_length]; omega)
     · exact regionL_of (hT (sqE, expTabAllWords) (by simp [ChildSegs.termLin])) (by omega)
         (by simp [length_expTabAllWords]; omega)
     · exact regionL_of (hT (vb bs 11, S.kOut.point ++ List.replicate (qkeccakVarsCap -

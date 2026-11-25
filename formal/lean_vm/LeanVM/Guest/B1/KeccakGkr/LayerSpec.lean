@@ -41,13 +41,6 @@ abbrev sGrindBits : ℕ := grindingBits (productBits - 1)
 
 theorem sGrindBits_eq : sGrindBits = 3 := by decide
 
-/-! ## Checks -/
-
-theorem runsTo_require {c : Prop} [Decidable c] (h : c) (s : Fs) :
-    RunsTo (VerifierProgram.require c) s [] () s := by
-  simp only [VerifierProgram.require, h, ↓reduceIte]
-  exact runsTo_ret () s
-
 /-! ## The pack rounds -/
 
 /-- `keccakPackRounds` on the carried sponge, round `i` reading `(g₁, g₂)`: the normalized value, challenges and sponge after them. -/

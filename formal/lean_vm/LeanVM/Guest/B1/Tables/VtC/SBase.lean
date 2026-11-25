@@ -64,7 +64,7 @@ theorem gen_pow_div {a K : ℕ} (ha : a ≤ K) : gen ^ K * (gen ^ a)⁻¹ = gen 
 theorem lowDefB_load {κ : ℕ} (hlow : LowDefB κ rd) {a : ℕ} (ha : a < 2 ^ κ) :
     LoadHolds rd (gen ^ a) 0 (rdAt rd (gen ^ a) 0) := by
   rw [gen_pow_eq_ofK]
-  refine ⟨tb_isInK_ofK _, ?_⟩
+  refine ⟨ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
   rw [rdAt, limb0_ofK_addressOfIndex_mul, Nat.add_zero, hv]; rfl

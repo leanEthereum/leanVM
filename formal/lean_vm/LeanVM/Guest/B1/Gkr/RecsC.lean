@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 claim. -/
 def RecAt (rd : Reader) (rec cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs)
     (r : ℕ) : Prop :=
-  TbCapAt rd rec 0 1 (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
+  CapAt rd rec 0 1 (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
     LoadHolds rd rec 5 (cur * gen ^ (4 * r)) ∧
     LoadHolds rd rec 6 (gkrRun (cs.take r) (es.take r) claim s).2.1
 

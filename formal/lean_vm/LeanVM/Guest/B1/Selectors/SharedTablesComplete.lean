@@ -159,9 +159,9 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
   have hzz := hlen zs hlz
   have hzz1 := hlen zs1 hlz1
   have hgl := hlen gs hlg
-  have rz : ReadsAt rd (z * gen ^ (4 * j)) (nib zs j) := tbReadsAt_nib hz j
-  have rz1 : ReadsAt rd (z1 * gen ^ (4 * j)) (nib zs1 j) := tbReadsAt_nib hz1 j
-  have rg : ReadsAt rd (gsq * gen ^ (4 * j)) (nib gs j) := tbReadsAt_nib hg j
+  have rz : ReadsAt rd (z * gen ^ (4 * j)) (nib zs j) := readsAt_nib hz j
+  have rz1 : ReadsAt rd (z1 * gen ^ (4 * j)) (nib zs1 j) := readsAt_nib hz1 j
+  have rg : ReadsAt rd (gsq * gen ^ (4 * j)) (nib gs j) := readsAt_nib hg j
   have lz : ∀ t < 4, LoadHolds rd (z * gen ^ (4 * j)) t ((nib zs j).getD t 0) := fun t ht ↦
     readsAt_getD rz (by omega)
   have lz1 : ∀ t < 4, LoadHolds rd (z1 * gen ^ (4 * j)) t ((nib zs1 j).getD t 0) := fun t ht ↦
@@ -215,7 +215,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       rw [nbEq, holdsList_append_noRet (by simp only [noRetList_append, nL, nn,
           Bool.and_self]),
         holdsList_append_noRet nn, holdsList_mapAtoms,
-        holdsList_flatten_range _ _ (fun t => nbLevel_noRet 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (t + 1))]
+        holdsList_range_flatten _ _ (fun t => nbLevel_noRet 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (t + 1)), and_true]
       refine ⟨⟨?_, fun t ht ↦ ?_⟩, fun e he ↦ ?_⟩
       · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
         rw [f13, f14]
@@ -225,7 +225,8 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
           simpa [nbZ] using lpVal_z j (gen ^ q) eqt z z1 gt gsq zs zs1 gs (t := 0) (by norm_num)
         rw [e15, e16]
         exact ⟨lz1 0 (by norm_num), lz 0 (by norm_num)⟩
-      · rw [nbLevel, holdsList_append_noRet rfl, holdsList_flatten_range _ _ (fun _ => rfl)]
+      · rw [nbLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl),
+          and_true]
         have hT : t + 1 < 4 := by omega
         have ez : F (nbM 15 (t + 1) - 2) = (nib zs j).getD (t + 1) 0 := by
           simpa [nbZ] using lpVal_z j (gen ^ q) eqt z z1 gt gsq zs zs1 gs hT
@@ -274,7 +275,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       rw [nbG, holdsList_append_noRet (by simp only [noRetList_append, nG, nn,
           Bool.and_self]),
         holdsList_append_noRet nn, holdsList_mapAtoms,
-        holdsList_flatten_range _ _ (fun t => nbGStep_noRet 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (t + 1))]
+        holdsList_range_flatten _ _ (fun t => nbGStep_noRet 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (t + 1)), and_true]
       have g0 : F 55 = word 1 0 := by
         have := gv 0 (by norm_num)
         simp only [nbGV, ↓reduceIte] at this
@@ -446,7 +447,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
       simp [nib, hl]; omega
     refine sel_partial_nibble_complete_holds (n % 4) hr4 rd _ _
       ⟨rfl, nib zs q, nib zs1 q, nib gs q, hlen zs hzl, hlen zs1 hz1l, hlen gs hgl,
-        tbReadsAt_nib hz q, tbReadsAt_nib hz1 q, tbReadsAt_nib hg q, ?_, ?_⟩ ?_
+        readsAt_nib hz q, readsAt_nib hz1 q, readsAt_nib hg q, ?_, ?_⟩ ?_
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · have e0 : nib zs q = [] := List.length_eq_zero_iff.mp ((hlen zs hzl).trans h0)
         have e1 : nib zs1 q = [] := List.length_eq_zero_iff.mp ((hlen zs1 hz1l).trans h0)

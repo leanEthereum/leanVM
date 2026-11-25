@@ -52,10 +52,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-theorem runsTo_require_true {c : Prop} [Decidable c] (h : c) (s : Fs) :
-    RunsTo (VerifierProgram.require c) s [] () s := by
-  rw [require_true h]; exact runsTo_ret () s
-
 /-- **The stacked opening runs**, given its batching challenge's squeeze, `open_stacked`'s run of
 `whirOpen` on the batched target and the terminal's check. -/
 theorem runsWith_stacked {m lir : ℕ} {claims : List StackClaim} (hlen : claims.length ≤ 512)
@@ -82,7 +78,7 @@ theorem runsWith_stacked {m lir : ℕ} {claims : List StackClaim} (hlen : claims
       (claims.map (·.2)))).bind fun w ↦ VerifierProgram.require (w.Accepts fun x ↦
         dot (powers lam claims.length) (claims.map fun c ↦ c.1 x))) s1 (xs ++ []) (os ++ []) roots
       () s2 roots' :=
-    Whir.RunsWith.bind' hW (Whir.RunsTo.withRoots (runsTo_require_true hacc s2) roots')
+    Whir.RunsWith.bind' hW (Whir.RunsTo.withRoots (runsTo_require hacc s2) roots')
   have h2 : Whir.RunsWith (VerifierProgram.sampleChallenge.bind fun lam' ↦
       (Whir.whirOpen m lir (dot (powers lam' claims.length) (claims.map (·.2)))).bind fun w ↦
         VerifierProgram.require (w.Accepts fun x ↦ dot (powers lam' claims.length)
@@ -92,7 +88,7 @@ theorem runsWith_stacked {m lir : ℕ} {claims : List StackClaim} (hlen : claims
       (Whir.whirOpen m lir (dot (powers lam' claims.length) (claims.map (·.2)))).bind fun w ↦
         VerifierProgram.require (w.Accepts fun x ↦ dot (powers lam' claims.length)
           (claims.map fun c ↦ c.1 x)))
-    (Whir.RunsTo.withRoots (runsTo_require_true (c := StackedOk claims)
+    (Whir.RunsTo.withRoots (runsTo_require (c := StackedOk claims)
       (stackedOk_of (by unfold maxStackedClaims; omega)) s) roots) h2
   exact Whir.RunsWith.of_eq h rfl (by simp) (by simp) rfl rfl rfl rfl
 

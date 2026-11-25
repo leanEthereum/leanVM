@@ -49,7 +49,7 @@ theorem chain_value_seed {chain s a b1 cg : E} {A x : List E}
     (hx1 : ReadsAt rd b1 ((padPoint x).map (1 + ·))) :
     ∀ m ≤ A.length, m ≤ x.length → valOf rd chain m = s * eqEval (A.take m) (x.take m) := by
   obtain ⟨-, -, n, hn, hcg', as, bs, hal, hbl, har, hbr, hch⟩ := h
-  have hnA : n = A.length := gen_pow_inj_le (by omega) (by omega) (hcg'.symm.trans hcg)
+  have hnA : n = A.length := gen_pow_inj (by omega) (by omega) (hcg'.symm.trans hcg)
   subst hnA
   have hasA : as = A := readsAt_unique har hAr hal
   subst hasA
@@ -69,7 +69,7 @@ theorem chain_value {chain a b1 cg : E} {A x : List E}
     (hx1 : ReadsAt rd b1 ((padPoint x).map (1 + ·))) :
     ∀ m ≤ A.length, m ≤ x.length → valOf rd chain m = eqEval (A.take m) (x.take m) := by
   obtain ⟨-, -, n, hn, hcg', as, bs, hal, hbl, har, hbr, hch⟩ := h
-  have hnA : n = A.length := gen_pow_inj_le (by omega) (by omega) (hcg'.symm.trans hcg)
+  have hnA : n = A.length := gen_pow_inj (by omega) (by omega) (hcg'.symm.trans hcg)
   subst hnA
   have hasA : as = A := readsAt_unique har hAr hal
   subst hasA
@@ -122,18 +122,6 @@ theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 158) {c 
     ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 94 by omega)]
   simp [colOfCommitted, hc]
 
-theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
-  unfold stackOffsets
-  simp only
-  have : ∀ (order : List ℕ) (acc : List ℕ × ℕ),
-      (order.foldl (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
-        acc).1.length = acc.1.length := by
-    intro order
-    induction order with
-    | nil => intro acc; rfl
-    | cons k order ih => intro acc; rw [List.foldl_cons, ih, List.length_set]
-  rw [this]; simp
-
 /-! ## The selectors -/
 
 /-- **Committed column `c`'s selector**, its `g^κ` at `kb[src]·g^adj`, its offset `g^o` with `o` a
@@ -160,7 +148,7 @@ theorem sel_value (hcs : Tables.column_selector_Spec) (hst : Tables.selector_tab
   have hjl : j < 31 := by simpa [colSelNames] using hj
   have hkv' : σ (.n (selKap c).2.1) = gen ^ κ := hkv.trans hkap
   rw [hkv', ← gen_pow_eq_ofK] at hkj
-  have hjκ : κ = j := gen_pow_inj_le (by omega) (by omega) hkj
+  have hjκ : κ = j := gen_pow_inj (by omega) (by omega) hkj
   subst hjκ
   simp only [colSelNames, List.getElem_map, List.getElem_range] at hcall
   have hsg : σ (.n ((selKap c).2.2 + 1)) = σ (.n (val% «check_opening_terminal» "g_squares")) * gen ^ 34 := by

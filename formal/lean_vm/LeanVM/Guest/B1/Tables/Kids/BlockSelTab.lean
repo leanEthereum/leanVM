@@ -97,7 +97,7 @@ theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ 
       have h0 : n ≠ 0 := by intro h0; subst h0; simp [btN] at hk
       simp only [btPre, h0, ↓reduceIte] at hpre
       rw [holdsList_append_noRet (noRetList_flatten_range _ _ (btNibT_noRet n)),
-        holdsList_flatten_range _ _ (btNibT_noRet n)] at hpre
+        holdsList_range_flatten _ _ (btNibT_noRet n), and_true] at hpre
       obtain ⟨hld, he', hg'⟩ := btNib_ptr (hpre.1 k hk)
       obtain ⟨u, hu, hdu⟩ := hd k hk
       rw [p0] at hld

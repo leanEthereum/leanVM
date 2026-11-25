@@ -65,7 +65,7 @@ noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E
   else (0, 0, 0)
 
 /-- A run of mapped words, entry by entry. -/
-theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
+theorem readsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
     ReadsAt rd p (l.map f) ↔ ∀ c < l.length, LoadHolds rd p c (f (l.getD c 0)) := by
   unfold ReadsAt
   constructor
@@ -79,13 +79,10 @@ theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
 
 /-! ## Exponents -/
 
-theorem tb_gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (h : gen ^ a = gen ^ b) :
-    a = b := gen_pow_inj (by omega) (by omega) h
-
 /-- `g^a = g^d · g^b` with all three small: `a = d + b`. -/
 theorem tb_gen_pow_eq_mul {a b d : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) (hd : d < 2 ^ 62)
     (h : gen ^ a = gen ^ d * gen ^ b) : a = d + b := by
-  rw [← pow_add] at h; exact tb_gen_pow_inj' (by omega) (by omega) h
+  rw [← pow_add] at h; exact gen_pow_inj (by omega) (by omega) h
 
 /-! ## Stack offsets -/
 
@@ -148,14 +145,6 @@ theorem tb_stackOffsets_fst (sizes : List ℕ) (r : ℕ)
       (List.replicate sizes.length 0, 0)).2) := rfl
   rw [hst]
   exact h.2.2 r (by omega)
-
-theorem tb_stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
-  set ord := (List.range sizes.length).mergeSort (stackLe (sizes.getD · 0))
-  have hperm : ord.Perm (List.range sizes.length) := List.mergeSort_perm _ _
-  have h := tb_stackFold_take (sizes.getD · 0) sizes.length ord (hperm.nodup_iff.mpr List.nodup_range)
-    (fun i hi => List.mem_range.mp (hperm.subset hi)) ord.length le_rfl
-  rw [List.take_length] at h
-  exact h.2.1
 
 /-! ## Stacking orders -/
 
