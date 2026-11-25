@@ -24,7 +24,7 @@
 
 import Rv64mc.Proof.Runtime.InputWord
 import Rv64mc.Proof.Runtime.HaltT
-import Rv64mc.Tactic.TStep
+import Rv64mc.Tactic.SymT
 
 namespace Rv64mc.Proof.Runtime.InputWordT
 
@@ -70,62 +70,33 @@ theorem wordPreT_input {regs : Reg → Word} {m : MachineState} {n : Nat}
 /-- **`Input::word` is total**, with no stack, from `halt`'s `Aborts`. -/
 theorem total (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : Aborts env p L.halt.idx 0) :
     InputWordSpecT env p i 0 := by
-  intro Q ret top rest regs m hpre hstop hk
-  have ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨⟨hlo, hhi⟩, hal8, hrd, hsl⟩, hal⟩, hwin⟩ := hpre
-  simp only [inputPtrAt_eq, inputLenAt_eq] at hsl
-  have hlay := env.layout
-  simp only [Layouts.Input.byteSize] at hhi hrd
-  have h8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
-  have hw0 : inWindow (regs .x10) 8 = true := hwin.stackObj hlo (by omega)
-  have hw8 : inWindow (regs .x10 + 8#64) 8 = true := hwin.stackObj (by omega) (by omega)
-  tsteps hp
-  refine TotalRv.ld8 hp rfl (by tnorm; exact hw8) (by tomega) ?_
-  tsteps hp
-  tcond hp as hc
+  rv_autoT hp with [hL] using [hhalt]
   -- an empty slice: `halt`
-  · tsteps hp
-    refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by tnorm))
-      (by tnorm; exact hsp) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
-    rw [inputLenAt_eq]
-    exact BitVec.eq_of_toNat_eq hc
-  -- the next word: `q` the slice's pointer, `l ≠ 0` its length
-  · have hl0 : m.getMem (regs .x10 + 8#64) ≠ 0 := fun h => hc (by rw [h]; rfl)
-    have ⟨hqlo, hqal, hqhi⟩ := hsl hc
-    have hwq : inWindow (m.getMem (regs .x10)) 8 = true := hwin.heapObj hqlo (by omega)
-    tsteps hp
-    refine TotalRv.ld8 hp rfl (by tnorm; exact hw0) (by tomega) ?_
-    tnorm
-    tsteps hp
-    refine TotalRv.ld8 hp rfl (by tnorm; exact hwq) (by tomega) ?_
-    tnorm
-    tsteps hp
-    refine TotalRv.sd8 hp rfl (by tnorm; exact hw0) (by tomega) (by tnorm; exact hwin.noCodeAt hw0 (by decide)) ?_
-    tnorm
-    tsteps hp
-    refine TotalRv.sd8 hp rfl (by tnorm; exact hw8) (by tomega) (by tnorm; exact hwin.noCodeAt hw8 (by decide)) ?_
-    tnorm
-    tsteps hp
-    refine TotalRv.ret hp rfl (by tnorm; exact hra) (by tnorm; exact hsp) ?_
-    have hn0 : regs .x10 ≠ env.nextAddr := fun h => by rw [h] at hlo; omega
+  · rw [inputLenAt_eq]; exact hc
+  -- the next word: `q` the slice's pointer, its length not zero
+  all_goals
+    have hlay := env.layout
+    simp only [inputPtrAt_eq, inputLenAt_eq, Layouts.Input.byteSize] at hpre_7 hpre_9 hpre_10 ⊢
+    have hl0 : (m.getMem (regs .x10 + 8#64)).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
+    have ⟨hqlo, hqal, hqhi⟩ := hpre_10 hl0
+  · exact hpre_12.heapObj hqlo (by omega)
+  · exact hqal
+  all_goals
+    have h8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
+    have hn0 : regs .x10 ≠ env.nextAddr := fun h => by rw [h] at hpre_6; omega
     have hn8 : regs .x10 + 8#64 ≠ env.nextAddr := fun h => by rw [← BitVec.toNat_inj, h8] at h; omega
-    have hs0 : (regs .x10).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10).toNat := by omega
-    have hs8 : (regs .x10 + 8#64).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10 + 8#64).toNat := by
-      omega
     have hf1 := Env.Frame.setMem_out (top := top) (out := WordOut regs m)
-      (v := m.getMem (regs .x10) + 8#64) hnx (Or.inl (inputPtrAt_eq _).symm) hn0
+      (v := m.getMem (regs .x10) + 8#64) hpre_5 (Or.inl (inputPtrAt_eq _).symm) hn0
     have hf2 := Env.Frame.setMem_out (top := top) (out := WordOut regs m)
       (v := m.getMem (regs .x10 + 8#64) + 18446744073709551615#64) hf1.2.1 (Or.inr (inputLenAt_eq _).symm) hn8
-    refine hk _ _ ⟨⟨by simp (disch := decide) only [AbiRegs.updReg_iff]; exact AbiRegs.refl hsp,
-      hf1.trans hf2 (Nat.le_refl _) fun a h => Or.inr (Or.inr (Or.inr h)),
-      Env.static_setMem (Env.static_setMem hst hs0) hs8, ?_, ?_, ?_, ?_⟩, rfl⟩
-    · show m.getMem (inputLenAt (regs .x10)) ≠ 0
-      rw [inputLenAt_eq]
-      exact hl0
-    · show m.getMem (m.getMem (regs .x10)) = m.getMem (m.getMem (inputPtrAt (regs .x10)))
-      rw [inputPtrAt_eq]
-    · rw [inputPtrAt_eq]
-      simp [MachineState.getMem, MachineState.setMem, ne_add8 (regs .x10)]
-    · rw [inputLenAt_eq, BitVec.sub_eq_add_neg]
+  · exact hf1.trans hf2 (Nat.le_refl _) fun a h => Or.inr (Or.inr (Or.inr h))
+  · have hs0 : (regs .x10).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10).toNat := by omega
+    have hs8 : (regs .x10 + 8#64).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10 + 8#64).toNat := by
+      omega
+    exact Env.static_setMem (Env.static_setMem hpre_4 hs0) hs8
+  · refine ⟨hc, trivial, ?_, ?_⟩
+    · simp [MachineState.getMem, MachineState.setMem, ne_add8 (regs .x10)]
+    · rw [BitVec.sub_eq_add_neg]
       simp [MachineState.getMem, MachineState.setMem]
 
 end Rv64mc.Proof.Runtime.InputWordT
