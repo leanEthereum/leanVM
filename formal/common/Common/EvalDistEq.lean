@@ -58,3 +58,12 @@ theorem OracleComp.prEvent_bind_congr_le_add {ι : Type} {spec : OracleSpec ι}
     _ ≤ (∫⁻ x, Pr{let y ← oc x}[q y] ∂𝒟[mx]) + ε := by
         gcongr
         exact mul_le_of_le_one_right' prob_le_one
+
+open MeasureTheory in
+/-- The expectation of a value over a `ProbComp` is the sum over its outcomes. -/
+theorem OracleComp.lintegral_id_evalDist_map_eq_tsum {α : Type} (computation : ProbComp α)
+    (f : α → ENNReal) :
+    ∫⁻ r, r ∂𝒟[f <$> computation] = ∑' x, Pr{let y ← computation}[y = x] * f x := by
+  let : MeasurableSpace α := ⊤
+  rw [lintegral_evalDist_map computation .of_discrete measurable_id']
+  exact lintegral_evalDist_eq_tsum computation f

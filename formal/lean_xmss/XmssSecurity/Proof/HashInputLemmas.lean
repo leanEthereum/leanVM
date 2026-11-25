@@ -4,6 +4,7 @@ public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.StatementLemmas
 public import XmssSecurity.Proof.EncodingLemmas
 public import Mathlib.Tactic.NormNum
+public import Common.ByteArray
 
 @[expose] public section
 
@@ -47,22 +48,8 @@ theorem length_bytesLE_publicParameter (value : PublicParameter) :
   length_bytesLE 16 value
 
 
-theorem bytesLE_injective (byteCount : Nat) : Function.Injective (bytesLE byteCount) := by
-  intro left right heq
-  have hbytes :
-      (fun index : Fin byteCount => UInt8.ofBitVec (left.extractLsb' (8 * index.val) 8)) =
-        (fun index : Fin byteCount => UInt8.ofBitVec (right.extractLsb' (8 * index.val) 8)) :=
-    List.ofFn_injective heq
-  apply BitVec.eq_of_getLsbD_eq
-  intro bit hbit
-  let byte : Fin byteCount := ⟨bit / 8, by omega⟩
-  have hbyte := congrFun hbytes byte
-  have hbyteBits := congrArg UInt8.toBitVec hbyte
-  have hlocal := congrArg (fun value => value.getLsbD (bit % 8)) hbyteBits
-  have hmod : bit % 8 < 8 := Nat.mod_lt bit (by omega)
-  have hposition : 8 * (bit / 8) + bit % 8 = bit := by
-    omega
-  simpa [byte, BitVec.getLsbD_extractLsb', hmod, hposition] using hlocal
+theorem bytesLE_injective (byteCount : Nat) : Function.Injective (bytesLE byteCount) :=
+  Common.ofFn_extractLsb'_bytes_injective byteCount
 
 @[simp]
 theorem length_fieldBytes (fields : TweakFields) : (fieldBytes fields).length = 16 := by

@@ -5,6 +5,7 @@ public import VCVio.OracleComp.SimSemantics.SimulateQ.FinMOfFn
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.Monad.UniformTable
+public import VCVio.EvalDist.IndepProductMeasure
 public import Common.EvalDistEq
 import Common.RomComm
 
@@ -140,24 +141,10 @@ theorem run_mOfFn_fresh {n : Nat} (inputs : Fin n → D)
 
 /-- `n` independent uniform draws are a uniform tuple. -/
 theorem evalDist_mOfFn_uniform [Fintype R] (n : Nat) :
-    (Fin.mOfFn n fun _ => ($ᵗ R : ProbComp R)) =ᵈ ($ᵗ (Fin n → R)) := by
-  classical
-  induction n with
-  | zero =>
-      refine OracleComp.evalDistEq_of_forall_prEvent_eq_output fun values => ?_
-      have heq : values = Fin.elim0 := funext fun i => i.elim0
-      simp [Fin.mOfFn, heq, Subsingleton.elim (default : Fin 0 → R) Fin.elim0, Finset.filter_eq']
-  | succ n ih =>
-      refine EvalDistEq.trans (my := Fin.consEquiv (fun _ => R) <$> (do
-          let head ← $ᵗ R
-          let tail ← $ᵗ (Fin n → R)
-          pure (head, tail))) ?_ ?_
-      · simp only [Fin.mOfFn, map_bind, Fin.consEquiv, Equiv.coe_fn_mk, bind_pure_comp]
-        refine EvalDistEq.bind_right _ fun head => ?_
-        simpa only [Functor.map_map] using ih.map (fun tail => (Fin.cons head tail : Fin (n + 1) → R))
-      rw [← SampleableType.uniformSample_prod_eq_bind]
-      exact SampleableType.map_uniformSample_evalDistEq_of_bijective
-        (Fin.consEquiv (fun _ => R)).bijective
+    (Fin.mOfFn n fun _ => ($ᵗ R : ProbComp R)) =ᵈ ($ᵗ (Fin n → R)) :=
+  let : MeasurableSpace R := ⊤
+  EvalDistEq.of_evalDist_eq ((evalDist_mOfFn_const_uniform n _
+    SampleableType.evalDist_uniformSample).trans SampleableType.evalDist_uniformSample.symm)
 
 variable [Fintype R] [SampleableType (J → R)]
 
