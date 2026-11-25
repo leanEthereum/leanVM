@@ -1,3 +1,22 @@
+/-
+  Rv64mc.Proof.Runtime.CopyT
+
+  What the total proofs of `compiler_builtins`' `memcpy` and `memmove` share: memory as bytes (`bat`), a store or load
+  of any width as the bytes it writes or reads (`bat_storeMem`, `extractByte_loadVal`), the reassembly of a doubleword
+  from two (`extractByte_shr_or_shl`), and the copy's invariant (`Inv`): the bytes copied so far, every other byte
+  apart from the stack below `top` kept, and the memory frame, with its lemmas for a byte, a doubleword and a store
+  into the stack slot (`Inv.byte`, `Inv.word`, `Inv.slot`, `slot_copy`).
+
+  ## Main definitions
+
+  * `bat`, `Inv`
+
+  ## Main results
+
+  * `bat_storeMem`, `extractByte_loadVal`, `extractByte_load`, `extractByte_shr_or_shl`, `shamt`, `or_eq_add`
+  * `Inv.start`, `Inv.byte`, `Inv.word`, `Inv.slot`, `Inv.src`, `slot_copy`, `slot_copy_from`
+-/
+
 import Rv64mc.Proof.Runtime.MemsetT
 import Rv64mc.Spec.Runtime.MemT
 import Rv64mc.Tactic.StepsT
@@ -8,6 +27,7 @@ namespace Rv64mc.Proof.Runtime.CopyT
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Tactic Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin Kept)
 
+/-- The byte at address `x`, a number. -/
 abbrev bat (M : MachineState) (x : Nat) : BitVec 8 := M.getByte (BitVec.ofNat 64 x)
 
 theorem toNat_align_ofNat {b : Nat} (hb : b < 2 ^ 64) : (alignToDword (BitVec.ofNat 64 b)).toNat = b - b % 8 := by
@@ -356,3 +376,14 @@ theorem and4_zero (x : Word) : x &&& 4#64 = 0#64 ↔ x.toNat % 8 < 4 := by
   generalize x.toNat % 8 = k at hl ⊢
   rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 ∨ k = 7) with
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+
+/-- `y` rounded down to a multiple of 8, as the code computes it. -/
+theorem toNat_and_not7 (y : Word) : (y &&& 18446744073709551608#64).toNat = y.toNat - y.toNat % 8 := by
+  rw [show (18446744073709551608#64 : Word) = ~~~7#64 by decide]
+  exact toNat_alignToDword y
+
+/-- The bytes from `x` to the next multiple of 8, as the code computes them. -/
+theorem toNat_neg_and7 (x : Word) : (0#64 - x &&& 7#64).toNat = (8 - x.toNat % 8) % 8 := by
+  rw [Proof.Runtime.Alloc.and7, BitVec.toNat_sub]
+  simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.zero_mod, Nat.add_zero]
+  omega

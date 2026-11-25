@@ -1,11 +1,26 @@
 /-
   Rv64mc.Proof.Runtime.MemcpyT
 
-  The total contract of `compiler_builtins`' `memcpy(dst, src, n)` (`MemcpySpecT`).
+  `compiler_builtins`' `memcpy(dst, src, n)` is total (`MemcpySpecT`, `Spec/Runtime/MemT.lean`'s pre- and
+  postcondition): it returns `dst` with `[dst, dst + n)` holding what `[src, src + n)` held, every other byte apart
+  from its stack kept. Below 16 bytes it copies a byte at a time; from 16 on, the bytes up to the destination's first
+  8-byte boundary, then the destination's doublewords, then the bytes after them. A source as aligned as the
+  destination is copied a doubleword at a time; another is read a source doubleword at a time and each destination
+  doubleword reassembled from two (`extractByte_shr_or_shl`), the partial first and last source doublewords read
+  through the stack slot (`load_aligned_end_partial`, `load_aligned_partial`), so that no byte outside the source is
+  read.
+
+  The proof is cut at the loops' heads and at the joins of the partial loads: each part a theorem from its program
+  counter, stepped by `rv_symT`, with the copy so far as `CopyT.Inv`. Every loop is `Total.loop` with the bytes or the
+  count left as the measure (`DInv`, `CInv`, `BInv`, `AInv`).
 
   ## Main definitions
 
   * `MemcpySpecT`
+
+  ## Main results
+
+  * `total`
 -/
 
 import Rv64mc.Proof.Runtime.CopyT
@@ -51,7 +66,6 @@ structure Fx (env : Env) (top dst src : Word) (n : Nat) (m : MachineState) : Pro
   win : Windows env top m
   room : env.stackLimit.toNat + 16 ≤ top.toNat
   al : top.toNat % 16 = 0
-  pos : 0 < n
   dwin : InWin env dst n
   doff : OffStack env top dst n
   swin : inWindow src n = true
@@ -783,4 +797,147 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
     any_goals (tnorm; assumption)
     all_goals first | (intro t ht1 ht2; omega) | tlit
 
+/-- With the destination aligned after `j` bytes: the doublewords, by the source's alignment. -/
+theorem words_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
+    (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j : Nat} {r : Reg → Word} {M : MachineState}
+    (hR : Regs ret top regs r) (hI : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M j)
+    (h13 : (r .x13).toNat = j) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
+    (hj : j ≤ 7) (hn : 16 ≤ (regs .x12).toNat) (h11 : r .x11 = regs .x11) (h12 : r .x12 = regs .x12) :
+    rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 32, ret, top⟩ :: rest, r, M⟩ := by
+  have hsw := inWindow_iff.1 F.swin
+  have hdw := F.dwin
+  unfold InWin at hdw
+  have hx2 := hR.2.1.1
+  have hA : (r .x11 + r .x13).toNat = (regs .x11).toNat + j := by rw [BitVec.toNat_add, h11]; omega
+  have hB : (r .x12 - r .x13).toNat = (regs .x12).toNat - j := by rw [BitVec.toNat_sub, h12]; omega
+  have hN := toNat_and_not7 (r .x12 - r .x13)
+  rw [hB] at hN
+  have ho := Proof.Runtime.Alloc.and7 (r .x11 + r .x13)
+  rw [hA] at ho
+  have hE : (r .x14 + (r .x12 - r .x13 &&& 18446744073709551608#64)).toNat =
+      (regs .x10).toNat + j + ((regs .x12).toNat - j - ((regs .x12).toNat - j) % 8) := by
+    rw [BitVec.toNat_add, hN]; omega
+  rv_symT hp stop [44, 166, 176] with [hx2]
+  · have := BitVec.le_def.1 hc
+    rw [hE, h14] at this
+    omega
+  · have hc' : ((regs .x11).toNat + j) % 8 = 0 := by rw [← ho, hc_1]; rfl
+    refine loopC_ok hp F hk hsp ((regs .x12).toNat - j - ((regs .x12).toNat - j) % 8) _ _ ⟨j, by regs_ok hR, hI, ?_,
+      ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, by omega⟩
+    all_goals (tnorm; omega)
+  · have hc' : ¬ ((regs .x11).toNat + j) % 8 = 0 := fun h => hc (BitVec.eq_of_toNat_eq (by rw [ho, h]; rfl))
+    refine endPartial_ok hp F hk hsp (j := j) (o := ((regs .x11).toNat + j) % 8)
+      (N := (regs .x12).toNat - j - ((regs .x12).toNat - j) % 8) (by regs_ok hR) hI (by omega) (by omega) ?_ ?_ ?_
+      (by omega) (by omega) (by omega) ?_ ?_ rfl ?_ ?_
+    all_goals (tnorm; omega)
+
+/-- The bytes up to the destination's first 8-byte boundary, `mis` of them, at the loop's head with `c` left. -/
+def AInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (mis c : Nat) (r : Reg → Word)
+    (M : MachineState) : Prop :=
+  Regs ret top regs r ∧ Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M (mis - c) ∧ (r .x15).toNat = c ∧
+    0 < c ∧ c ≤ mis ∧ (r .x16).toNat = (regs .x10).toNat + (mis - c) ∧
+    (r .x17).toNat = (regs .x11).toNat + (mis - c) ∧ (r .x13).toNat = mis ∧ (r .x14).toNat = (regs .x10).toNat + mis ∧
+    (r .x14).toNat % 8 = 0 ∧ mis ≤ 7 ∧ 16 ≤ (regs .x12).toNat ∧ r .x11 = regs .x11 ∧ r .x12 = regs .x12
+
+/-- The bytes up to the destination's first 8-byte boundary. -/
+theorem loopA_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
+    (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) (mis : Nat) :
+    ∀ c r M, AInv env ret top regs m mis c r M →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 20, ret, top⟩ :: rest, r, M⟩ := by
+  refine Total.loop (I := rvIsa) (AInv env ret top regs m mis)
+    fun c r M ⟨hR, hI, h15, hc0, hcm, h16, h17, h13, h14, ha14, hm7, hn, h11, h12⟩ ih => ?_
+  have hsw := inWindow_iff.1 F.swin
+  have hdw := F.dwin
+  unfold InWin at hdw
+  have hW := F.win
+  have hcode := hI.1.2.2
+  have hx2 := hR.2.1.1
+  have hv : extractByte ((M.getByte (r .x17)).zeroExtend 64) 0 =
+      bat m ((regs .x11).toNat + (mis - c)) := by
+    rw [extractByte_zext_getByte, h17]; exact F.src hI (by omega) (by omega)
+  have hI' := hI.byte F.dwin (x := r .x16) h16 (by omega) hv
+  have h15' := toNat_dec (a := r .x15) (by omega)
+  rv_symT hp stop [32] with [hx2]
+  · have : (r .x15 + 0xffffffffffffffff#64).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
+    refine ih (c - 1) _ _ (by omega) ⟨by regs_ok hR, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, hm7, hn, ?_, ?_⟩
+    · have e : mis - c + 1 = mis - (c - 1) := by omega
+      rw [e] at hI'; exact hI'
+    · tnorm; omega
+    · tnorm; rw [toNat_add_ofNat (by omega)]; omega
+    · tnorm; rw [toNat_add_ofNat (by omega)]; omega
+    · tnorm; exact h13
+    · tnorm; exact h14
+    · tnorm; exact ha14
+    · tnorm; exact h11
+    · tnorm; exact h12
+  · have : (r .x15 + 0xffffffffffffffff#64).toNat = 0 := by rw [hc]; rfl
+    refine words_ok hp F hk hsp (j := mis) (by regs_ok hR) ?_ ?_ ?_ ?_ hm7 hn ?_ ?_
+    · have e : mis - c + 1 = mis := by omega
+      rw [e] at hI'; exact hI'
+    · tnorm; exact h13
+    · tnorm; exact h14
+    · tnorm; exact ha14
+    · tnorm; exact h11
+    · tnorm; exact h12
+
+/-- **`memcpy` is total**, with its 16-byte frame: it returns `dst` with the bytes copied, from `CopyPreT false`. -/
+theorem total (hp : p[i]? = some (tmpl L)) : MemcpySpecT env p i 16 := by
+  intro Q ret top rest regs m hpre _ hk
+  obtain ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨⟨hnw1, hnw2, hdisj⟩, hwin0⟩, hal⟩, hwin⟩ := hpre
+  have hR0 : Regs ret top regs (updReg regs .x2 (regs .x2 + 0xfffffffffffffff0#64)) := by
+    refine ⟨by simp [updReg_apply, hra], ?_, by simp [updReg_apply]⟩
+    simp [AbiRegs, updReg_apply, hsp]
+  have hI0 : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m m 0 := Inv.start hst hnx
+  have h16 : (16#64 : Word).toNat = 16 := rfl
+  by_cases hn0 : (regs .x12).toNat = 0
+  · have hz : regs .x10 + regs .x12 = regs .x10 := by
+      rw [show regs .x12 = 0#64 from BitVec.eq_of_toNat_eq hn0, BitVec.add_zero]
+    rv_symT hp stop [20, 32, 184, 196]
+    · exact absurd hc (by rw [hz]; exact BitVec.lt_irrefl _)
+    · refine ret_ok hp hk hsp (by regs_ok hR0) ?_
+      rw [hn0]; exact Inv.start hst hnx
+    · exact absurd (BitVec.le_def.1 hc_1) (by rw [hn0]; decide)
+    · exact absurd (BitVec.le_def.1 hc_1) (by rw [hn0]; decide)
+  · obtain ⟨hdw, hdoff, hsw, hsoff⟩ := hwin0.resolve_left hn0
+    unfold NoWrap at hnw1 hnw2
+    have F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m := by
+      refine ⟨hwin, by omega, hal, hdw, hsp ▸ hdoff, hsw, hsp ▸ hsoff, fun k hk k' hk' he => ?_⟩
+      refine hdisj rfl (BitVec.ofNat 64 ((regs .x10).toNat + k)) ?_ ?_ <;> unfold InRange <;>
+        rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)] <;> omega
+    have hmis := toNat_neg_and7 (regs .x10)
+    have hE : (regs .x10 + (0#64 - regs .x10 &&& 7#64)).toNat =
+        (regs .x10).toNat + (8 - (regs .x10).toNat % 8) % 8 := by
+      have := hwin.heapEnd_le
+      rw [BitVec.toNat_add, hmis]; omega
+    have hN : (regs .x10 + regs .x12).toNat = (regs .x10).toNat + (regs .x12).toNat := by
+      rw [BitVec.toNat_add]; omega
+    rv_symT hp stop [20, 32, 184, 196]
+    · refine loopD_ok hp F hk hsp (regs .x12).toNat _ _ ⟨by regs_ok hR0, ?_, ?_, ?_, ?_, by omega, by omega⟩
+      · simpa only [Nat.sub_self] using hI0
+      all_goals tomega
+    · have := BitVec.le_def.1 hc
+      rw [hN] at this
+      omega
+    · have := BitVec.le_def.1 hc
+      rw [hE] at this
+      have h16' := BitVec.le_def.1 hc_1
+      refine words_ok hp F hk hsp (j := 0) (by regs_ok hR0) hI0 ?_ ?_ ?_ (by omega) (by rw [h16] at h16'; exact h16')
+        ?_ ?_
+      all_goals tnorm
+      · omega
+      · omega
+      · omega
+    · have := BitVec.lt_def.1 hc
+      rw [hE] at this
+      have h16' := BitVec.le_def.1 hc_1
+      refine loopA_ok hp F hk hsp ((8 - (regs .x10).toNat % 8) % 8) _ _ _ ⟨by regs_ok hR0, ?_, ?_, by omega, le_rfl,
+        ?_, ?_, ?_, ?_, ?_, by omega, by rw [h16] at h16'; exact h16', ?_, ?_⟩
+      · simpa only [Nat.sub_self] using hI0
+      all_goals tnorm
+      all_goals omega
+
 end Rv64mc.Proof.Runtime.MemcpyT
+
+/-- info: 'Rv64mc.Proof.Runtime.MemcpyT.total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Proof.Runtime.MemcpyT.total
