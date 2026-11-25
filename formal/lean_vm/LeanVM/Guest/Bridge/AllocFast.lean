@@ -118,10 +118,8 @@ private theorem scan_eq (f : ℕ → ℕ → ℕ → ℕ → Bool) (g : ℕ → 
 private theorem jumpsFrom_ge : ∀ (i : ℕ) (l : List OffsetInstruction), ∀ j ∈ jumpsFrom i l, i ≤ j.1
   | _, [] => by simp [jumpsFrom]
   | i, ins :: rest => by
-    have ih := jumpsFrom_ge (i + 1) rest
-    cases ins <;> simp only [jumpsFrom, List.mem_cons] <;> first
-      | exact fun j hj ↦ by have := ih j hj; omega
-      | rintro j (rfl | hj) <;> [exact le_rfl; exact by have := ih j hj; omega]
+    have ih := fun j hj ↦ Nat.le_of_succ_le (jumpsFrom_ge (i + 1) rest j hj)
+    cases ins <;> simp only [jumpsFrom, List.forall_mem_cons] <;> first | exact ih | exact ⟨le_rfl, ih⟩
 
 private theorem jumpAt_succ {js : List (ℕ × ℕ × ℕ × ℕ)} {a : ℕ} (h : ∀ j ∈ js, a + 1 ≤ j.1) :
     jumpAt js a = jumpAt js (a + 1) := by
@@ -171,29 +169,22 @@ private theorem nextJ_spec : ∀ (l : List OffsetInstruction) (i d : ℕ),
         omega
       · rw [jumpAt_succ hge, List.getElem?_cons_succ, h2]
 
-theorem nextJump_eq_nextJ (code : List OffsetInstruction) (a : ℕ) :
-    nextJump code a = nextJ (jumpsFrom 0 code) code.length a := by
-  have := (nextJ_spec code 0 a).1
-  simp only [Nat.zero_add] at this
-  exact this
+private theorem nextJump_eq_nextJ (code : List OffsetInstruction) :
+    nextJump code = nextJ (jumpsFrom 0 code) code.length :=
+  funext fun a ↦ by simpa only [nextJump, Nat.zero_add] using (nextJ_spec code 0 a).1
 
-theorem getElem_nextJump (code : List OffsetInstruction) (a : ℕ) :
-    code[nextJump code a]? = (jumpAt (jumpsFrom 0 code) a).map jumpIns := by
-  have := (nextJ_spec code 0 a).2
-  simp only [Nat.zero_add] at this
-  exact this
-
-theorem frameOk_eq_frameOkJ (code : List OffsetInstruction) (a : ℕ) (h : Prover.Exec.Hint) :
+private theorem frameOk_eq_frameOkJ (code : List OffsetInstruction) (a : ℕ) (h : Prover.Exec.Hint) :
     frameOk X code a h = frameOkJ X (jumpsFrom 0 code) a h := by
+  have hj : code[nextJump code a]? = (jumpAt (jumpsFrom 0 code) a).map jumpIns := by
+    simpa only [nextJump, Nat.zero_add] using (nextJ_spec code 0 a).2
   unfold frameOk frameOkJ
-  rw [getElem_nextJump]
+  rw [hj]
   rcases jumpAt (jumpsFrom 0 code) a with _ | ⟨_, oc, od, q⟩ <;> cases allocPtr h <;> rfl
 
 /-- **`curCodeJ` is `curCode`.** -/
 theorem curCode_eq_curCodeJ (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (code : List OffsetInstruction)
     (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : curCode X fs loop P code d = curCodeJ X fs loop P code d := by
-  have hnj : nextJ (jumpsFrom 0 code) code.length = nextJump code := funext fun a ↦ (nextJump_eq_nextJ code a).symm
-  simp only [curCode, curCodeJ, Exec.listSeq_eq, hnj]
+  simp only [curCode, curCodeJ, Exec.listSeq_eq, ← nextJump_eq_nextJ]
   have hpend : ∀ (fr : List (ℕ × Prover.Exec.Hint)) off,
       pendIn code fr off = pendJ (fr.map fun q ↦ (nextJump code q.1, q)) off := fun fr off ↦ by
     simp [pendIn, pendJ, List.any_map, Function.comp_def]
@@ -220,8 +211,7 @@ theorem curCode_eq_curCodeJ (fs : ℕ) (loop : Bool) (P : B2C.Plumb) (code : Lis
 theorem allocRest_of_fast {fs : ℕ} {loop : Bool} {P : B2C.Plumb} {body : List Stmt} {code : List OffsetInstruction}
     {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : allocRestJ X fs loop P body code d = true) :
     allocRest X fs loop P body code d = true := by
-  rw [allocRest, curCode_eq_curCodeJ]
-  exact h
+  rwa [allocRest, curCode_eq_curCodeJ]
 
 end
 
