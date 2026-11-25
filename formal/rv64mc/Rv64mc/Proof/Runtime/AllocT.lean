@@ -6,7 +6,8 @@
   the guest's abort (`halt(2)`). The total counterpart of `Alloc.lean`, over the same template and
   link facts, from `halt`'s `Aborts` (`HaltT.lean`). Its load and store of `NEXT` lie in a window
   and are aligned by `Windows` (`nextAddr`, `nextAddr_aligned`), the store over no code
-  (`Windows.noCodeAt`).
+  (`Windows.noCodeAt`), which `rv_autoT` closes from the link fact that the data reference is
+  `NEXT`'s address; what is left is the block's arithmetic.
 
   ## Main definitions
 
@@ -19,7 +20,7 @@
 
 import Rv64mc.Proof.Runtime.Alloc
 import Rv64mc.Proof.Runtime.HaltT
-import Rv64mc.Tactic.TStep
+import Rv64mc.Tactic.SymT
 
 namespace Rv64mc.Proof.Runtime.AllocT
 
@@ -37,7 +38,7 @@ def AllocStop (env : Env) (regs : Reg → Word) (m : MachineState) (r' : Reg →
 def AllocSpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   HoldsT env p i need AllocPre (AllocPost env) (Stop := AllocStop env)
 
-/-- `NEXT` rounded up to a multiple of 8, as the code computes it after `tnorm`. -/
+/-- `NEXT` rounded up to a multiple of 8, as the code computes it (`BinOp.eval` unfolded). -/
 theorem roundUp_toNat {N : Word} (hN : N.toNat < 2 ^ 63) :
     (((if (N &&& 7#64).ult 1#64 = true then (1 : Word) else 0) + 18446744073709551615#64 &&&
       8#64 - (N &&& 7#64)) + N).toNat = (N.toNat + 7) / 8 * 8 := by
@@ -59,51 +60,29 @@ theorem roundUp_toNat {N : Word} (hN : N.toNat < 2 ^ 63) :
 theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     (hnext : L.d_NEXT.addr = env.nextAddr) (hend : env.heapEnd = 0x78000000#64)
     (hhalt : Aborts env p L.halt.idx 0) : AllocSpecT env p i 0 := by
-  intro Q ret top rest regs m hpre hstop hk
-  have ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, hsz, hal⟩, hwin⟩ := hpre
   have hd : L.d_NEXT.hi + L.d_NEXT.lo = env.nextAddr := hL.d_NEXT.trans hnext
-  have hN : (m.getMem env.nextAddr).toNat ≤ 0x78000000 := by
-    simpa [Env.next, hend] using hnx
-  have hS := roundUp_toNat (Nat.lt_of_le_of_lt hN (by decide))
-  have hin : inWindow env.nextAddr 8 = true := hwin.nextAddr (by omega)
-  have hsz' : (regs .x10).toNat < 2 ^ 63 := hsz
-  tsteps hp
-  refine TotalRv.ld8 hp rfl (by tnorm; rw [hd]; exact hin) (by tnorm; rw [hd]; exact hwin.nextAddr_aligned) ?_
-  tsteps hp
-  simp only [hd]
-  generalize ((if (m.getMem env.nextAddr &&& 7#64).ult 1#64 = true then (1 : Word) else 0) +
-    18446744073709551615#64 &&& 8#64 - (m.getMem env.nextAddr &&& 7#64)) + m.getMem env.nextAddr = S at hS ⊢
-  have hE : (S + regs .x10).toNat = S.toNat + (regs .x10).toNat := by
-    rw [BitVec.toNat_add]
+  rv_autoT hp with [hL, hd] using [hhalt]
+  all_goals
+    have hN : (m.getMem env.nextAddr).toNat ≤ 0x78000000 := by simpa [Env.next, hend] using hpre_5
+    have hS := roundUp_toNat (Nat.lt_of_le_of_lt hN (by decide))
+    simp only [hd, BinOp.eval] at hc ⊢
+    generalize ((if (m.getMem env.nextAddr &&& 7#64).ult 1#64 = true then (1 : Word) else 0) +
+      18446744073709551615#64 &&& 8#64 - (m.getMem env.nextAddr &&& 7#64)) + m.getMem env.nextAddr = S at hS hc ⊢
+    have hE : (S + regs .x10).toNat = S.toNat + (regs .x10).toNat := by
+      rw [BitVec.toNat_add]
+      omega
+    have hx : (2013265920#64 : Word).toNat = 0x78000000 := by decide
+    simp only [BitVec.le_def, BitVec.lt_def, hx] at hc
+  -- the block fits: its end stored in `NEXT`, its start returned
+  · exact Alloc.frame_setNext (by show (m.getMem env.nextAddr).toNat ≤ _; omega) (by rw [hend, hx]; omega)
+  · exact Alloc.static_setNext hpre_4
+  · show (m.getMem env.nextAddr).toNat ≤ _
     omega
-  have hx : (2013265920#64 : Word).toNat = 0x78000000 := by decide
-  tcond hp as hc
-  -- the block fits: store its end in `NEXT` and return its start
-  · have hfit : S.toNat + (regs .x10).toNat ≤ 0x78000000 := by omega
-    tsteps hp
-    refine TotalRv.sd8 hp rfl (by tnorm; rw [hd]; exact hin) (by tnorm; rw [hd]; exact hwin.nextAddr_aligned)
-      (by tnorm; rw [hd]; exact hwin.noCodeAt hin (by decide)) ?_
-    tnorm
-    rw [hd]
-    tsteps hp
-    refine TotalRv.ret hp rfl (by tnorm; exact hra) (by tnorm; exact hsp) ?_
-    refine hk _ _ ⟨⟨?_, Alloc.frame_setNext ?_ ?_, Alloc.static_setNext hst, ?_, ?_, ?_⟩, rfl⟩
-    · simp (disch := decide) only [AbiRegs.updReg_iff]
-      exact AbiRegs.refl hsp
-    · show (m.getMem env.nextAddr).toNat ≤ _
-      omega
-    · rw [hend, hx]
-      omega
-    · show (m.getMem env.nextAddr).toNat ≤ _
-      tomega
-    · tomega
-    · rw [Alloc.next_setNext]
-      tomega
+  · omega
+  · rw [Alloc.next_setNext]
+    omega
   -- the heap is exhausted: `halt`
-  · tsteps hp
-    refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by tnorm))
-      (by tnorm; exact hsp) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
-    show env.heapEnd.toNat < ((m.getMem env.nextAddr).toNat + 7) / 8 * 8 + (regs .x10).toNat
+  · show env.heapEnd.toNat < ((m.getMem env.nextAddr).toNat + 7) / 8 * 8 + _
     rw [hend, hx]
     omega
 
