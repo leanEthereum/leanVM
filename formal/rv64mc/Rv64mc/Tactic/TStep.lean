@@ -105,9 +105,10 @@ theorem sb {a e : Expr Reg} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.
 end Rv64mc.TotalRv
 
 /-- The state's register values computed: each `Expr.eval` of a register write unfolded, and a read of a register
-    file through its writes resolved, so that the register file stays a chain of writes of values over the entry's. -/
+    file through its writes resolved, so that the register file stays a chain of writes of values over the entry's.
+    Also the side goals' addresses, and `noCodeAt` through a store. -/
 macro "tnorm" : tactic => `(tactic| simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply,
-  reduceCtorEq, ↓reduceIte, BitVec.add_zero, BitVec.zero_add])
+  reduceCtorEq, ↓reduceIte, BitVec.add_zero, BitVec.zero_add, Lprog.RiscV.noCodeAt_setMem])
 
 /-- One step of a `rvIsa.Total … (WinOk p)` goal at a label, a register write or a jump of the template `hp`, then
     `tnorm`. -/
