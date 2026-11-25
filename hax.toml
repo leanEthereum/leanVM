@@ -6,5 +6,5 @@ aeneas = "build-41977a5"
 charon = "nightly-2026.10.17"
 
 [versions]
-lean = "leanprover/lean4:v4.35.0"
+lean = "leanprover/lean4:v4.36.0"
 hax-lean-lib = "v0.3.34"
