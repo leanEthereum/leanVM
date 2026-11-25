@@ -70,13 +70,13 @@ def stPre : List Stmt :=
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
 
 theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
-    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]] := by
+    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]] := by
   have h := stCheck_eq
   unfold stCheck at h
   split at h

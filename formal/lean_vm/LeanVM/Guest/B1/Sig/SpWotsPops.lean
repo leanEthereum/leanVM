@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Sig.PopsKit
 import LeanVM.Guest.B1.Sig.SpWotsLinksAll
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sp_wots»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `sp_wots`'s pops
@@ -151,7 +152,7 @@ private theorem sp_body_pops {d : Nat → Nat} {vals : Nat → E} {σ : Val}
       List.ext_getElem (by simp [length_cutAt, spCuts]) fun i h1 _ => by
         rw [List.getElem_map, List.getElem_range, spP, List.getD_eq_getElem _ _ h1]
     have hb : Fn.«sp_wots».core.body =
-        (((List.range 22).map spP).flatten ++ (spP 22).dropLast) ++ [.ret vs] := by
+        (((List.range 22).map spP).flatten ++ (spP 22).dropLast) ⧺ [.ret vs] := by
       rw [List.append_assoc, List.dropLast_append_getLast? _ hl,
         ← flatten_cutAt spCuts Fn.«sp_wots».core.body, hcut,
         show List.range 23 = List.range 22 ++ [22] from List.range_succ, List.map_append,

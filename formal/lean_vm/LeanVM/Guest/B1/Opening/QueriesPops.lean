@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.WalkPops
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `opening_queries`' pops
@@ -155,7 +156,7 @@ theorem oqLoop1_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
     {kids : List Tree} {kn : List Pop} (hk : Tree.popsKids P rd kids = [kn]) :
     (Memory.Tree.node name τ bufs kids).pops P rd =
       queryPops τ s 15 true ++ queryPops τ s (oqE1 s + 2) false ++ kn := by
-  have hx : SplicePops rd τ (oqLoop1A s ++ [.callIf (.n (oqG1 s + 2)) name (oqNextArgs (oqG1 s))])
+  have hx : SplicePops rd τ (oqLoop1A s ⧺ [.callIf (.n (oqG1 s + 2)) name (oqNextArgs (oqG1 s))])
       (Tree.popsKids P rd kids) (queryPops τ s 15 true ++ queryPops τ s (oqE1 s + 2) false ++ kn) := by
     rw [hk]
     exact SplicePops.congr_ks ((SplicePops.of_fallPops (oqLoop1A_fallPops s h1 h2)).append
@@ -170,7 +171,7 @@ theorem oqLoop0_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
     (hb : fn.body = oqLoop0T s name) (τ : Val) (bufs : List ℕ) (h1 : WinSel τ s (oqCh s 14 true))
     {kids : List Tree} {kn : List Pop} (hk : Tree.popsKids P rd kids = [kn]) :
     (Memory.Tree.node name τ bufs kids).pops P rd = queryPops τ s 14 true ++ kn := by
-  have hx : SplicePops rd τ (oqLoop0A s ++ [.callIf (.n (oqG0 s + 2)) name (oqNextArgs (oqG0 s))])
+  have hx : SplicePops rd τ (oqLoop0A s ⧺ [.callIf (.n (oqG0 s + 2)) name (oqNextArgs (oqG0 s))])
       (Tree.popsKids P rd kids) (queryPops τ s 14 true ++ kn) := by
     rw [hk]
     exact SplicePops.congr_ks ((SplicePops.of_fallPops (oqLoop0A_fallPops s h1)).append
@@ -214,7 +215,7 @@ theorem oqMain_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? n
     (hodd : s.base = 1 → τ (.n 13) ≠ 0 → WinSel τ s (oqCh s 17 true))
     {kids : List Tree} {kl : List Pop} (hk : Tree.popsKids P rd kids = [kl]) :
     (Memory.Tree.node name τ bufs kids).pops P rd = startPops τ s ++ kl := by
-  have hx : SplicePops rd τ (oqMainA s ++ [.callIf (.n (oqMK s + 1)) loop
+  have hx : SplicePops rd τ (oqMainA s ⧺ [.callIf (.n (oqMK s + 1)) loop
       [.n (oqMK s + 2), .n oqMN, .n (if s.base = 1 then oqMK s - 2 else oqMPos),
         .n (if s.base = 1 then oqMK s - 1 else oqMQp), .n oqMCap, .n oqMFlags, .n oqMCoefs, .n oqMHs, .n 11,
         .n oqMLamInv]]) (Tree.popsKids P rd kids) (startPops τ s ++ kl) := by

@@ -217,13 +217,13 @@ def cpPre : List Stmt :=
 noncomputable def cpCheck : Bool :=
   match coreProgram.find? "certify_placement" with
   | some fn => decide (fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")]) &&
-      tbStmtsEqb fn.body (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]])
+      tbStmtsEqb fn.body (cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]])
   | none => false
 
 theorem cpCheck_eq : cpCheck = true := by decide +kernel
 
 theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn ∧
-    fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")] ∧ fn.body = cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]] := by
+    fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")] ∧ fn.body = cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]] := by
   have h := cpCheck_eq
   unfold cpCheck at h
   split at h

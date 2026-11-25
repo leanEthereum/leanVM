@@ -33,8 +33,8 @@ open LeanVM.Guest.B1.Fwd
 /-- The stores of `layerT first`: the next claim's instance weights and `κ`, the pack rounds'
 first record, the local point, the next claim's value, point, local point, lanes and flips. -/
 def layerSt (first : ℕ) : List Atom :=
-  (List.range 16).map (fun i ↦ .load (.n (layOff first + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)) ++
-  [.load (.n (layOff first + 688)) (.n (valf% «keccak_layer» "out")) 1,
+  (List.range 16).map (fun i ↦ Atom.load (.n (layOff first + rmfeStores.getD i 0)) (.n (valf% «keccak_layer» "out")) (6 + i)) ++
+  [Atom.load (.n (layOff first + 688)) (.n (valf% «keccak_layer» "out")) 1,
     .load (.n (layOff first + 539)) (.n (layOff first + 783)) 0,
     .load (.n (layOff first + 540)) (.n (layOff first + 783)) 11,
     .load (.n (layOff first + 541)) (.n (layOff first + 783)) 22,
@@ -42,15 +42,15 @@ def layerSt (first : ℕ) : List Atom :=
     .load (.n (layOff first + 543)) (.n (layOff first + 783)) 44,
     .load (.n (layOff first + 785)) (.n (layOff first + 783)) 55,
     .load (.n (layOff first + 780)) (.n (layOff first + 783)) 66] ++
-  (List.range 11).map (fun i ↦ .load (.n (layOff first + 821 + 32 * i)) (.n (layOff first + 809)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 24)) (.n (valf% «keccak_layer» "out")) 0,
+  (List.range 11).map (fun i ↦ Atom.load (.n (layOff first + 821 + 32 * i)) (.n (layOff first + 809)) i) ++
+  [Atom.load (.n (weightEnd first (layOff first) + 24)) (.n (valf% «keccak_layer» "out")) 0,
     .load (.n (layOff first + 782)) (.n (valf% «keccak_layer» "out")) 2, .load (.n (layOff first + 809)) (.n (valf% «keccak_layer» "out")) 4] ++
-  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 29 + 4 * i))
+  (List.range 25).map (fun i ↦ Atom.load (.n (weightEnd first (layOff first) + 29 + 4 * i))
     (.n (weightEnd first (layOff first) + 25)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 25)) (.n (valf% «keccak_layer» "out")) 3] ++
-  (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
+  [Atom.load (.n (weightEnd first (layOff first) + 25)) (.n (valf% «keccak_layer» "out")) 3] ++
+  (List.range 7).map (fun i ↦ Atom.load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
     (.n (topV (weightEnd first (layOff first)) + 3)) i) ++
-  [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n (valf% «keccak_layer» "out")) 5]
+  [Atom.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n (valf% «keccak_layer» "out")) 5]
 
 /-- The stores load into none of the inlined `grind_check`'s values. -/
 theorem layerSt_noGrind {first : ℕ} (hf : first < 2) :

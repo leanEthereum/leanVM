@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # B1 of the bus and the tables: machinery
@@ -46,7 +47,7 @@ theorem tb_rel_iff_sem {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
 /-- A function whose body is `pre ++ [ret vs]`, `pre` without `ret`: its relation is some
 valuation of its parameters satisfying `pre` and returning `vs`. -/
 theorem tb_rel_pre {P : Core.Program} {rd : Reader} {f : String} {fn : Fn} (hf : P.find? f = some fn)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hnr : Stmt.noRetList pre = true) (args rets : List E) :
     P.Rel rd f args rets ↔
     ∃ σ : Val, fn.params.map σ = args ∧

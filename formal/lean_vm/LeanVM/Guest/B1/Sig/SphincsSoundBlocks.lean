@@ -119,7 +119,7 @@ theorem sLayerT_root : sLayerT.2.2 = (sLayerPath 2 (sA0Of 2) sLayerM.2.2).2.2 :=
 /-- **The body around its three calls.** -/
 theorem sBody_split : sBody = sBlockA ++ sLayerCall 0 sA0B sKeyB sForsPk :: (sBlockB ++
     sLayerCall 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2 :: (sBlockC ++
-      sLayerCall 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2 :: (sBlockD ++ [.ret []]))) := by
+      sLayerCall 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2 :: (sBlockD ⧺ [.ret []]))) := by
   have eB : sLayerB.1 = sLayerPre 0 sA0B sKeyB sForsPk ++ sLayerCall 0 sA0B sKeyB sForsPk ::
       (sLayerPath 0 sA0B sForsPk).1 := by rw [sLayerB, sLayerAt_eq]
   have eM : sLayerM.1 = sLayerPre 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2 ++

@@ -13,6 +13,7 @@ import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
 import LeanVM.Guest.B1.Common.Vc
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eq_prefix_run`, `eq_prefix_chain` (TRIAGE #25, #26)
@@ -60,7 +61,7 @@ def epBlk (k : ℕ) : List Stmt :=
 
 /-- The expansion of `eq_prefix_run__L{n}`. -/
 def epBody (n : ℕ) : List Stmt :=
-  [.atom (.load (.n (valf% «eq_prefix_run» "seed")) (.n (valf% «eq_prefix_run» "chain")) 0)] ++ ((List.range n).map epBlk).flatten ++
+  [.atom (.load (.n (valf% «eq_prefix_run» "seed")) (.n (valf% «eq_prefix_run» "chain")) 0)] ⧺ ((List.range n).map epBlk).flatten ⧺
     [.atom (.const (.n (4 + 4 * n)) (word 0 0)), .ret [.n (4 + 4 * n)]]
 
 /-- What coordinate `k` asks. -/

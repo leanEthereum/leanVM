@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«fold_final_msg__L»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `fold_final_msg` (TRIAGE #24)
@@ -52,7 +53,7 @@ def ff0 (S t : ℕ) : List Stmt :=
 def ffPairs (w0 w1 : V) : ℕ → List V → List Stmt × List V
   | s, a :: b :: rest =>
     ([.atom (.mul (.n s) w0 a), .atom (.mul (.n (s + 1)) w1 b),
-      .atom (.add (.n (s + 2)) (.n s) (.n (s + 1)))] ++ (ffPairs w0 w1 (s + 3) rest).1,
+      .atom (.add (.n (s + 2)) (.n s) (.n (s + 1)))] ⧺ (ffPairs w0 w1 (s + 3) rest).1,
       .n (s + 2) :: (ffPairs w0 w1 (s + 3) rest).2)
   | _, _ => ([], [])
 
@@ -72,7 +73,7 @@ def ffOut0 (S m : ℕ) : List V := (List.range m).map fun t => .n (S + 5 * t + 4
 /-- The expansion of `fold_final_msg` at `L + 1`, its last value `fin`. -/
 def ffBody (L fin : ℕ) : List Stmt :=
   ((List.range (L + 1)).map ffW).flatten ++ ((List.range (2 ^ L)).map (ff0 (6 + 4 * L))).flatten ++
-    (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
+    (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ⧺
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
 
 theorem fold_final_msg_L2_body : Fn.body fn% «fold_final_msg__L2» = ffBody 1 22 := by

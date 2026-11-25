@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatF
 public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A layer's placement facts
@@ -55,7 +56,7 @@ theorem gcInline_mem_layerT {first : ℕ} (hf : first < 2) :
   unfold layerT
   simp only [List.mem_append, h', true_or, or_true]
 
-theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
+theorem layerT_pre (first : ℕ) : layerT first = layerPre first ⧺ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
   simp only [layerPre, layerVs, List.append_assoc]
 

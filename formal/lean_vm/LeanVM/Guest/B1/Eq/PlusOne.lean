@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `plus_one_run` (TRIAGE #27)
@@ -34,7 +35,7 @@ def poBlk (k : ℕ) : List Stmt :=
 
 /-- The expansion of `plus_one_run__L{n}`. -/
 def poBody (n : ℕ) : List Stmt :=
-  ((List.range n).map poBlk).flatten ++
+  ((List.range n).map poBlk).flatten ⧺
     [.atom (.const (.n (2 + 3 * n)) (word 0 0)), .ret [.n (2 + 3 * n)]]
 
 /-- What entry `k` asks. -/

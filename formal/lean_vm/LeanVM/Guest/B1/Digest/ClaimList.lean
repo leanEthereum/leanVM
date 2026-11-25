@@ -21,6 +21,7 @@ import LeanVM.Guest.B1.Common.Vc
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Value.FieldBits
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `claim_list_digest`
@@ -291,7 +292,7 @@ theorem find_claim_list_chain : coreProgram.find? "claim_list_chain" = some fn% 
 noncomputable def chainFlat : List Stmt := (Fn.body fn% «claim_list_chain»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem claim_list_chain_shape : Fn.body fn% «claim_list_chain» = chainFlat ++ [.ret [.n (val% «claim_list_chain» "s13#0"),
+theorem claim_list_chain_shape : Fn.body fn% «claim_list_chain» = chainFlat ⧺ [.ret [.n (val% «claim_list_chain» "s13#0"),
     .n (val% «claim_list_chain» "s13#0[1]")]] := by
   kernel_rfl
 

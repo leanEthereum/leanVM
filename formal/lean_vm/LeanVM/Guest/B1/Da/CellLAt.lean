@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Da.LoopsComplete
 public import LeanVM.Guest.B1.Da.WeightsAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_blob_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A blob's cell loop, popping its cells' symbols
@@ -51,9 +52,9 @@ theorem gen_pow_add_ne {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) :
     fun h he => h (gen_pow_inj' ha hb (e_add_eq_zero_iff.mp he))⟩
 
 /-- `da_verify_blob_loop0`'s statements before its `ret`. -/
-def cellLP : List Stmt := cellLPre ++ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")]]
+def cellLP : List Stmt := cellLPre ⧺ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")]]
 
-theorem cellL_body_split : Fn.body (coreProgram.getD idx% «da_verify_blob_loop0» default) = cellLP ++ [.ret []] := by
+theorem cellL_body_split : Fn.body (coreProgram.getD idx% «da_verify_blob_loop0» default) = cellLP ⧺ [.ret []] := by
   rw [dv_loops_body.2.2, cellLBody, cellLP, List.append_assoc]
   rfl
 

@@ -16,6 +16,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 import LeanVM.Guest.Data.ValNames.«claim_list_chain»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `claim_list_digest`, placed
@@ -53,7 +54,7 @@ open LeanVM.Guest.B1.Da (SlOk slEvs_holds exists_of_length_succ limb0_gen_pow_mu
 /-! ## `claim_list_digest`'s path -/
 
 theorem cl_body : Fn.body fn% «claim_list_digest» =
-    clHead ++ .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else :: (clTail ++ [.ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]) := by
+    clHead ++ .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else :: (clTail ⧺ [.ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]) := by
   rw [claim_list_digest_shape]; rfl
 
 set_option maxRecDepth 100000 in
@@ -99,7 +100,7 @@ theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost := by
 
 set_option maxRecDepth 100000 in
 theorem chPost_eq :
-    chPost = chChk ++ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by
+    chPost = chChk ⧺ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by
   kernel_rfl
 
 set_option maxRecDepth 100000 in
@@ -114,7 +115,7 @@ theorem chPost_parts : chPost.filterMap Main.Stmt.allocSz = [] ∧ chPost.filter
   decide +kernel
 
 theorem chain_body : Fn.body fn% «claim_list_chain» =
-    chP1 ++ clDispS :: (chPost ++ [.ret [.n (val% «claim_list_chain» "s13#0"), .n (val% «claim_list_chain» "s13#0[1]")]]) := by
+    chP1 ++ clDispS :: (chPost ⧺ [.ret [.n (val% «claim_list_chain» "s13#0"), .n (val% «claim_list_chain» "s13#0[1]")]]) := by
   rw [claim_list_chain_shape, chainFlat_split]; simp
 
 set_option maxRecDepth 100000 in

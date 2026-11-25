@@ -61,7 +61,7 @@ def rqsPre (pre yr vo : ℕ) : List Stmt :=
     [.atom (.copy (.n (11 * (pre + yr))) (.n (11 * (pre + yr) - 4)))]
 
 /-- **`residual_query_slow__L{pre}_L{yr}_L{vo}`'s body.** -/
-def rqsBody (pre yr vo : ℕ) : List Stmt := rqsPre pre yr vo ++ [.ret [.n (11 * (pre + yr))]]
+def rqsBody (pre yr vo : ℕ) : List Stmt := rqsPre pre yr vo ⧺ [.ret [.n (11 * (pre + yr))]]
 
 /-- **The loop's body** (`xq, g^Q, acc, pw, positions, fold_cs, tail_cs, λ`), calling `rq`, the
 level's `residual_query_slow`, and itself, `self`. -/

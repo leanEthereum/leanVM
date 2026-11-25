@@ -85,7 +85,7 @@ def tailA3 (o W : ℕ) : List Stmt := .atom (.load (.n (topV W + 3)) (.n (valf% 
 /-- The tail but its return. -/
 def tailPre (o W wv : ℕ) : List Stmt := tailA1 o W wv ++ lflipsT W ++ tailA3 o W
 
-theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ++
+theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ⧺
     [.ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
       .n (topV W + 309), .n (topV W + 312)]] := by
   simp [tailT, tailPre, tailA1, tailA3, tailP1, tailP2, tailP3, tailEqf, tailTop, keccakA,
@@ -106,7 +106,7 @@ def layerFlipT (W i : ℕ) : List Stmt :=
   lflipT (.n (W + 25)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (flipB W i)
 
 theorem lflipsT_eq (W : ℕ) : lflipsT W = ((List.range 7).map fun i ↦
-    layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
+    layerFlipT W i ⧺ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
 
 /-- The tail's first value. -/
 abbrev tW (first : ℕ) : ℕ := weightEnd first (layOff first)
@@ -277,7 +277,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
       rw [lflipBlk_noRet]; rfl)]
     refine ⟨fun i hi ↦ ?_, hnx⟩
     obtain ⟨hai, hri⟩ := hflk i hi
-    have mi : ∀ s ∈ layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
+    have mi : ∀ s ∈ layerFlipT W i ⧺ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
         GoodS rd S w σ s := fun s hs ↦ mF s (by
       rw [lflipsT_eq]
       exact List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩, hs⟩)

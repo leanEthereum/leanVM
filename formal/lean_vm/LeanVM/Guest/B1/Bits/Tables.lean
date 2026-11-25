@@ -14,6 +14,7 @@ import LeanVM.Guest.LitRef
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `exponent_tables`
@@ -324,7 +325,7 @@ def etBlk (t : ℕ) : List Stmt :=
 
 /-- The expansion of `exponent_tables`. -/
 def etBody : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ++ ((List.range lit% expTabN).map etBlk).flatten ++
+  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ⧺ ((List.range lit% expTabN).map etBlk).flatten ⧺
   [.atom (.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))), .ret [.n (val% «exponent_tables» "s8#0")]]
 
 theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody := by

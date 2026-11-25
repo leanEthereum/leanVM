@@ -66,7 +66,7 @@ def sqLoopPre (lv : OsLv) (name : String) : List Stmt :=
   (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ⧺ [.callIf (.n (sqLoopE lv + 2)) name (sqTailArgs lv)]
 
 theorem sqLoopBody_pre (lv : OsLv) (name : String) :
-    sqLoopBody lv name = sqLoopPre lv name ++ [.ret []] := by
+    sqLoopBody lv name = sqLoopPre lv name ⧺ [.ret []] := by
   rw [sqLoopBody_split, sqLoopPre, sqTailArgs]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
 
@@ -215,7 +215,7 @@ theorem sqLoop_iter (fs : String → ℕ) (cert : String → V → ℕ) {lv : Os
     RelAtInC coreProgram fs cert rd R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp c
       (fs name + Bt) (fs (sqDecName lv) + m) name [X, N, sqz, qpos, qbp, tabs] [] := by
   obtain ⟨σ, hpar, hA, h8, hdargs, hg, hta⟩ := hit rd X N sqz qpos qbp tabs cap hcl hrow hnext
-  have hpre : fn.body = sqLoopPre lv name ++ [.ret []] := hb.trans (sqLoopBody_pre lv name)
+  have hpre : fn.body = sqLoopPre lv name ⧺ [.ret []] := hb.trans (sqLoopBody_pre lv name)
   have hst := sqLoopPre_straight lv name
   set es := (sqLoopPre lv name).flatMap (Main.slEvs σ) with hes_def
   have hw : walk σ fn.body = .ret es [] := by rw [hpre]; exact Main.walk_straight σ [] _ hst

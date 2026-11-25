@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.Loop10
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_tables_loop0`, loading from a region
@@ -34,7 +35,7 @@ open LeanVM.Protocol.Verifier (gen)
 /-- `verify_tables_loop0`'s statements before its `ret`. -/
 def l10Pre : List Stmt := l10Body.dropLast
 
-theorem l10Body_eq : l10Body = l10Pre ++ [.ret []] := by simp [l10Pre, l10Body]
+theorem l10Body_eq : l10Body = l10Pre ⧺ [.ret []] := by simp [l10Pre, l10Body]
 
 theorem l10_flat : l10Pre.all Stmt.flat = true := by decide +kernel
 

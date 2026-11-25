@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Terminal.SelComplete
 public import LeanVM.Guest.Exact.Kids
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `column_selector`, exact
@@ -37,11 +38,11 @@ def csHintA (κ : ℕ) : Atom :=
 
 theorem cs_sites_all : (List.range 31).all (fun κ => Stmt.blockNextOk
     (fun a => isComputed a && !decide (a ∈ [csHintA κ])) pinsInverse
-    (Tables.csPre κ ++ [.ret [.n (Tables.csRet κ)]])) = true := by
+    (Tables.csPre κ ⧺ [.ret [.n (Tables.csRet κ)]])) = true := by
   decide +kernel
 
 theorem cs_sites {κ : ℕ} (hκ : κ < 31) : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [csHintA κ]))
-    pinsInverse (Tables.csPre κ ++ [.ret [.n (Tables.csRet κ)]]) = true :=
+    pinsInverse (Tables.csPre κ ⧺ [.ret [.n (Tables.csRet κ)]]) = true :=
   List.all_eq_true.mp cs_sites_all κ (List.mem_range.mpr hκ)
 
 /-- **The digits hint is exact** at the honest valuation. -/

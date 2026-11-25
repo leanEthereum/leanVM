@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Common.Atoms
 public import LeanVM.Guest.B1.Common.Basic
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eqtree` (TRIAGE #23)
@@ -46,14 +47,14 @@ def eqtreeWordT (o : V) (S t i : ℕ) : List Stmt :=
 /-- Level `t ≥ 1`. -/
 def eqtreeLevelT (p o : V) (po b t : ℕ) : List Stmt :=
   [.atom (.load (.n (eqtreeS b t)) p (po + t)), .atom (.const (.n (eqtreeS b t + 1)) (word 1 0)),
-    .atom (.add (.n (eqtreeS b t + 2)) (.n (eqtreeS b t + 1)) (.n (eqtreeS b t)))] ++
+    .atom (.add (.n (eqtreeS b t + 2)) (.n (eqtreeS b t + 1)) (.n (eqtreeS b t)))] ⧺
     ((List.range (2 ^ t)).map (eqtreeWordT o (eqtreeS b t) t)).flatten
 
 /-- **`eqtree(point, out, n)`** from the value `b`. -/
 def eqtreeT (p o : V) (po b n : ℕ) : List Stmt :=
   [.atom (.load (.n b) p po), .atom (.const (.n (b + 1)) (word 1 0)),
     .atom (.add (.n (b + 2)) (.n (b + 1)) (.n b)), .atom (.load (.n (b + 2)) o 0),
-    .atom (.load (.n b) o 1)] ++
+    .atom (.load (.n b) o 1)] ⧺
     ((List.range (n - 1)).map fun t ↦ eqtreeLevelT p o po b (t + 1)).flatten
 
 theorem eqtreeT_atoms (p o : V) (po b n : ℕ) : AllAtoms (eqtreeT p o po b n) := by

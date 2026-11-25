@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatGB
 public import LeanVM.Guest.B1.Da.FlatOut
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed callees, returned buffers
@@ -127,7 +128,7 @@ own buffers and its callees' returned buffers. -/
 theorem completeAt_flatGOutB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (rets : ℕ → List ℕ → List E) (Res : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))

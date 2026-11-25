@@ -75,14 +75,14 @@ def bsRet (n : ℕ) : List V := if n = 0 then [.n 3, .n 4] else [.n (10 * n + 1)
 noncomputable def bsCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector" n) with
   | some fn => decide (fn.params = [.n (valf% «block_selector» "sel_bits"), .n (valf% «block_selector» "zeta1_hi"), .n (valf% «block_selector» "idxc_hi")]) &&
-      tbStmtsEqb fn.body (bsPre n ++ [.ret (bsRet n)])
+      tbStmtsEqb fn.body (bsPre n ⧺ [.ret (bsRet n)])
   | none => false
 
 theorem bsCheck_all : (List.range 34).all bsCheck = true := by decide +kernel
 
 theorem bsFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
     coreProgram.find? (lName "block_selector" n) = some fn ∧ fn.params = [.n (valf% «block_selector» "sel_bits"), .n (valf% «block_selector» "zeta1_hi"), .n (valf% «block_selector» "idxc_hi")] ∧
-      fn.body = bsPre n ++ [.ret (bsRet n)] := by
+      fn.body = bsPre n ⧺ [.ret (bsRet n)] := by
   have h := List.all_eq_true.mp bsCheck_all n (List.mem_range.mpr hn)
   unfold bsCheck at h
   split at h

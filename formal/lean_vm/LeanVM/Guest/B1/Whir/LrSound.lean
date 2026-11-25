@@ -74,7 +74,7 @@ def lr1A (cols nhs hbits : ℕ) : List Stmt :=
 
 theorem lrLoop1Body_split (cols nhs hbits : ℕ) (name : String) :
     lrLoop1Body cols nhs hbits name =
-      (lr1A cols nhs hbits ++ osLoopTailA (lr1St cols nhs hbits).2.2.2) ++
+      (lr1A cols nhs hbits ++ osLoopTailA (lr1St cols nhs hbits).2.2.2) ⧺
         [.callIf (.n ((lr1St cols nhs hbits).2.2.2 + 2)) name
           (.n ((lr1St cols nhs hbits).2.2.2 + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)),
           .ret []] := by
@@ -164,7 +164,7 @@ def lr2A (cols nhs hbits : ℕ) : List Stmt :=
 
 theorem lrLoop2Body_split (cols nhs hbits : ℕ) (name : String) :
     lrLoop2Body cols nhs hbits name =
-      (lr2A cols nhs hbits ++ osLoopTailA ((lr2Q cols nhs hbits).2.2.2 + 6)) ++
+      (lr2A cols nhs hbits ++ osLoopTailA ((lr2Q cols nhs hbits).2.2.2 + 6)) ⧺
         [.callIf (.n ((lr2Q cols nhs hbits).2.2.2 + 6 + 2)) name
           (.n ((lr2Q cols nhs hbits).2.2.2 + 6 + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)),
           .ret []] := by
@@ -283,7 +283,7 @@ def lrBodyA (l1 l2 : String) : List Stmt :=
       osLd (18 + osPowLen resBatch + 7) (18 + osPowLen resBatch + 5) 1]
 
 theorem lrBody_split (l1 l2 : String) :
-    lrBody l1 l2 = lrBodyA l1 l2 ++
+    lrBody l1 l2 = lrBodyA l1 l2 ⧺
       [.ret [.n (18 + osPowLen resBatch + 6), .n (18 + osPowLen resBatch + 7)]] := by
   simp [lrBody, lrBodyA, List.append_assoc]
 

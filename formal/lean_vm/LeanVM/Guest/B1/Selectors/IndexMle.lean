@@ -97,12 +97,12 @@ def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 /-- The function `P` finds by name is the template. -/
 noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
   match P.find? (lName "index_mle" n) with
-  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
+  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ⧺ [.ret [.n (imRet n)]])
   | none => false
 
 theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
     ∃ fn : Fn, P.find? (lName "index_mle" n) = some fn ∧
-    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
+    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ⧺ [.ret [.n (imRet n)]] := by
   have h := List.all_eq_true.mp hall n (List.mem_range.mpr hn)
   unfold imCheckP at h
   split at h

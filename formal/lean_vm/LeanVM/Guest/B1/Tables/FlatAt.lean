@@ -11,6 +11,7 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies, placed
@@ -100,7 +101,7 @@ theorem walk1_flat (σ : Val) : ∀ s : Stmt, s.flat = true → DispOk σ s → 
 
 /-- **A flat body walks every statement.** -/
 theorem walk_flat (σ : Val) (vs : List V) : ∀ pre : List Stmt, pre.all Stmt.flat = true →
-    (∀ s ∈ pre, DispOk σ s) → walk σ (pre ++ [.ret vs]) = .ret (pre.flatMap (flEvs σ)) vs
+    (∀ s ∈ pre, DispOk σ s) → walk σ (pre ⧺ [.ret vs]) = .ret (pre.flatMap (flEvs σ)) vs
   | [], _, _ => by simp [walk, walk1, Out.seq]
   | s :: pre, h, hd => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -251,7 +252,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 /-- **A flat function is complete, placed.** -/
 theorem completeAt_flatD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
@@ -318,7 +319,7 @@ theorem completeAt_flatD {f : String} {fn : Fn} (hf : coreProgram.find? f = some
 theorem completeAt_flatOutD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Out : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)

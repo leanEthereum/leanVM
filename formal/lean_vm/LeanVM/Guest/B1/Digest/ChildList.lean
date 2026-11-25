@@ -20,6 +20,7 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 import LeanVM.Guest.B1.Common.Find
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `child_claim_list_any`
@@ -467,7 +468,7 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
 noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n (val% «child_claim_list_any» "s11#0"),
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ⧺ [.ret [.n (val% «child_claim_list_any» "s11#0"),
     .n (val% «child_claim_list_any» "s11#0[1]")]] := by
   kernel_rfl
 

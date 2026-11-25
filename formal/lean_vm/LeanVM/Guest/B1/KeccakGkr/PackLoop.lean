@@ -132,10 +132,10 @@ theorem packEqChain_length : ∀ {rs : List E} {ms : List (E × E)} {cl : E} {ca
 /-- Round `q` reads its coordinate and two coefficients, squeezes the challenge and stores the next normalized claim. -/
 def packRoundT (pp cu pt : V) (q b c : ℕ) (pre : List Stmt) (zs cap : List V) (cl : V) :
     List Stmt :=
-  [.atom (.load (.n b) pp q)] ++ fsNextT cu (2 * q) (b + 1) ++ fsNextT cu (2 * q + 1) (b + 4) ++
+  [.atom (.load (.n b) pp q)] ⧺ fsNextT cu (2 * q) (b + 1) ++ fsNextT cu (2 * q + 1) (b + 4) ++
     pre ++
   [keccakA ([.n (b + 2), .n (b + 3), .n (b + 5), .n (b + 6)] ++ zs ++ cap)
-    ((List.range 13).map fun k ↦ .n (c + k))] ++
+    ((List.range 13).map fun k ↦ .n (c + k))] ⧺
   [.atom (.load (.n c) pt q), .atom (.add (.n (c + 13)) (.n b) (.n c)),
     .atom (.mul (.n (c + 14)) (.n (c + 13)) (.n (b + 1))),
     .atom (.add (.n (c + 15)) cl (.n (c + 14))),

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.DataSpecP
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies
@@ -132,7 +133,7 @@ theorem stmtOk_dispatch {x : V} {fs : List String} {args rets : List V} {i : ℕ
 returns are its words. -/
 theorem holdsList_flat_ret (ss : List Stmt) (h : ss.all Stmt.flat = true) (vs : List V)
     (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (ss ++ [.ret vs]) False kret ↔ AllOk C rd σ ss ∧ kret (vs.map σ) := by
+    Stmt.HoldsList C rd σ (ss ⧺ [.ret vs]) False kret ↔ AllOk C rd σ ss ∧ kret (vs.map σ) := by
   rw [holdsList_append, holdsList_flat ss h]
   simp [Stmt.HoldsList, Stmt.Holds]
 

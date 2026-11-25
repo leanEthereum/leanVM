@@ -106,7 +106,7 @@ def ssPre : List Stmt :=
 noncomputable def ssCheck : Bool :=
   match coreProgram.find? "shared_selector_tables" with
   | some fn => decide (fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")]) &&
-      tbStmtsEqb fn.body (ssPre ++ [.ret []])
+      tbStmtsEqb fn.body (ssPre ⧺ [.ret []])
   | none => false
 
 theorem ssCheck_eq : ssCheck = true := by decide +kernel
@@ -122,7 +122,7 @@ theorem lpFound : ∃ fn : Fn, coreProgram.find? name% «shared_selector_tables_
   · exact absurd h (by simp)
 
 theorem ssFound : ∃ fn : Fn, coreProgram.find? "shared_selector_tables" = some fn ∧
-    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ++ [.ret []] := by
+    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ⧺ [.ret []] := by
   have h := ssCheck_eq
   unfold ssCheck at h
   split at h

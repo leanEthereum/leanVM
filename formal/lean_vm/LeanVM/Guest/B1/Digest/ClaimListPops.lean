@@ -16,6 +16,7 @@ import LeanVM.Guest.Data.ValNames.«claim_list_chain_loop1»
 import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 import LeanVM.Guest.Data.ValNames.«list_split»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `claim_list_digest`'s pops
@@ -236,7 +237,7 @@ theorem tail_pops {r : ℕ} (hr : r < 17) {t : Tree} {sp : E} {e : ℕ} {rets : 
     rw [claim_list_tail_shape] at hw
     rw [show [Stmt.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")] [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")], .atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))),
         .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1"))), .ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]] = [] ++ Stmt.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")]
-          [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")] :: ([.atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))), .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1")))] ++ [.ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]])
+          [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")] :: ([.atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))), .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1")))] ⧺ [.ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]])
         from rfl, hw2] at hw
     obtain ⟨rfl, -⟩ := Out.ret.inj hw
     obtain ⟨k, rfl⟩ : ∃ k, ks = [k] := by

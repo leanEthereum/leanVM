@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced8
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The function's body in pieces
@@ -52,7 +53,7 @@ def oqMainRest (s : Oq) (ch nG hN : E) : List E :=
 
 theorem oqMainT_eq (s : Oq) (loop : String) :
     oqMainT s loop = oqMainA s ++ (.callIf (.n (oqMK s + 1)) loop (oqCallArgs s) ::
-      (oqMainEnd s (oqMK s) ++ [.ret [.n (oqMainRet s (oqMK s))]])) := by
+      (oqMainEnd s (oqMK s) ⧺ [.ret [.n (oqMainRet s (oqMK s))]])) := by
   unfold oqMainT oqMainEnd oqMainRet oqCallArgs
   by_cases hf : s.final = 1 <;> simp [hf]
 

@@ -149,7 +149,7 @@ def lpPreB (d cd : ℕ) (loop : String) : List Stmt :=
     ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i))
 
 theorem lpBody_pre (d cd : ℕ) (loop : String) :
-    lpBody d cd loop = lpPreB d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
+    lpBody d cd loop = lpPreB d cd loop ⧺ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
   rfl
 
 theorem lpPreB_straight (d cd : ℕ) (loop : String) :

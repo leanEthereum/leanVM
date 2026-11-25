@@ -18,6 +18,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The radix-four layers' words
@@ -114,14 +115,14 @@ theorem gw_dispOk {σ : Val} {l : List Stmt} (h : l.all gwNoDisp = true) : ∀ s
 `cs`, each atom of `as` one of its statements. -/
 noncomputable def gwChk (b : List Stmt) (vr : List V) (cs : List (Option V × String × List V × List V))
     (as : List Atom) : Bool :=
-  tbStmtsEqb b (b.dropLast ++ [.ret vr]) && b.dropLast.all Stmt.flat &&
+  tbStmtsEqb b (b.dropLast ⧺ [.ret vr]) && b.dropLast.all Stmt.flat &&
     (b.dropLast.filterMap Main.Stmt.allocSz).isEmpty &&
     decide (b.dropLast.filterMap Main.Stmt.callS = cs) &&
     as.all fun a ↦ b.dropLast.any fun t ↦ tbStmtsEqb [t] [.atom a]
 
 theorem gwChk_sound {b : List Stmt} {vr : List V} {cs : List (Option V × String × List V × List V)}
     {as : List Atom} (h : gwChk b vr cs as = true) :
-    b = b.dropLast ++ [.ret vr] ∧ b.dropLast.all Stmt.flat = true ∧
+    b = b.dropLast ⧺ [.ret vr] ∧ b.dropLast.all Stmt.flat = true ∧
       b.dropLast.filterMap Main.Stmt.allocSz = [] ∧ b.dropLast.filterMap Main.Stmt.callS = cs ∧
       ∀ a ∈ as, Stmt.atom a ∈ b.dropLast := by
   simp only [gwChk, Bool.and_eq_true, decide_eq_true_eq, List.isEmpty_iff] at h
@@ -171,7 +172,7 @@ theorem gw_kids_total {rd : Reader} {σ : Val} : ∀ (cs : List Call) (Ws : List
 allocating nothing, its parameters are its arguments, `pre`'s atoms hold, and it allocates its
 frame and its calls' bounds. -/
 theorem gw_node {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre : List Stmt}
-    {vr : List V} (hbody : fn.body = pre ++ [.ret vr]) (hfl : pre.all Stmt.flat = true)
+    {vr : List V} (hbody : fn.body = pre ⧺ [.ret vr]) (hfl : pre.all Stmt.flat = true)
     (hal : pre.filterMap Main.Stmt.allocSz = []) {rd : Reader} {σ : Val} {bufs : List ℕ}
     {ks : List Tree} {args rets : List E}
     (hv : (Memory.Tree.node f σ bufs ks).Valid coreProgram rd args rets)
@@ -403,7 +404,7 @@ theorem glsl_total {Kg : ℕ → ℕ → ℕ}
 /-! ## `gkr_layers__L{o}` -/
 
 /-- `gkr_layers__L{o}`'s statements before its `ret`. -/
-theorem gls_split (o : ℕ) : glcLsBody o = (glcLsBody o).dropLast ++ [.ret [.n (valf% «gkr_layers» "s3#0")]] := rfl
+theorem gls_split (o : ℕ) : glcLsBody o = (glcLsBody o).dropLast ⧺ [.ret [.n (valf% «gkr_layers» "s3#0")]] := rfl
 
 theorem gls_flat : ∀ o < 2, (glcLsBody o).dropLast.all Stmt.flat = true := by decide +kernel
 

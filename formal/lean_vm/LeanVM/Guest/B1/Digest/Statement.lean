@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Digest.Basic
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«statement_digest»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `statement_digest`
@@ -87,7 +88,7 @@ def sdAtoms : List Atom :=
     sdBlk3 ++ [.copy (.n (val% «statement_digest» "s12#0")) (.n (val% «statement_digest» "st[0]")), .copy (.n (val% «statement_digest» "s12#0[1]")) (.n (val% «statement_digest» "st[1]"))]
 
 set_option maxRecDepth 100000 in
-theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n (val% «statement_digest» "s12#0"),
+theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ⧺ [.ret [.n (val% «statement_digest» "s12#0"),
     .n (val% «statement_digest» "s12#0[1]")]] := by
   kernel_rfl
 

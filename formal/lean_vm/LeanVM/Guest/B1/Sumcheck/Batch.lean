@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L»
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L23»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `batch_sumcheck` (TRIAGE #32)
@@ -68,8 +69,8 @@ def bsRound (j : ℕ) : List Stmt :=
 /-- The expansion of `batch_sumcheck` at `n ≥ 1` rounds. -/
 def bsBody (n : ℕ) : List Stmt :=
   [.atom (.copy (.n (val% «batch_sumcheck__L23» "sp[0]")) (.n (val% «batch_sumcheck__L23» "fs0"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[1]")) (.n (val% «batch_sumcheck__L23» "fs1"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[2]")) (.n (val% «batch_sumcheck__L23» "fs2"))),
-    .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[3]")) (.n (val% «batch_sumcheck__L23» "fs3"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[4]")) (.n (val% «batch_sumcheck__L23» "fs4")))] ++
-  bsRound0 ++ ((List.range (n - 1)).map bsRound).flatten ++
+    .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[3]")) (.n (val% «batch_sumcheck__L23» "fs3"))), .atom (.copy (.n (val% «batch_sumcheck__L23» "sp[4]")) (.n (val% «batch_sumcheck__L23» "fs4")))] ⧺
+  bsRound0 ++ ((List.range (n - 1)).map bsRound).flatten ⧺
   [.atom (.copy (.n (19 + 26 * n)) (.n (25 + 26 * (n - 1) + 8))),
     .atom (.copy (.n (20 + 26 * n)) (.n (25 + 26 * (n - 1) + 9))),
     .atom (.copy (.n (21 + 26 * n)) (.n (25 + 26 * (n - 1) + 10))),

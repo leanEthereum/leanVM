@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.KidsDep
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Dependent callees, placed, within a bound
@@ -150,7 +151,7 @@ theorem kidsFromIn_of_depB (κ : ℕ) : ∀ (ks : List KidD) (Bs : List ℕ) (pr
 `HeapBuf`s (`sizes`) and its callees' bounds `Bs` (`KidsDepB`): `fs f + sizes.sum + Bs.sum`. -/
 theorem completeAt_flatDepRB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hni : pre.all notIteB = true)
     (sizes : List ℕ) (own : ℕ → List (List E))

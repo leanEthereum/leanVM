@@ -331,7 +331,7 @@ value copied; the statements, the outputs and the next free value. -/
 def nvLevelT (w : V) : List ℕ → ℕ → List Stmt × List ℕ × ℕ
   | lo :: hi :: rest, k =>
     let r := nvLevelT w rest (k + 2)
-    ([.atom (.mul (.n k) w (.n hi)), .atom (.add (.n (k + 1)) (.n lo) (.n k))] ++ r.1, (k + 1) :: r.2.1,
+    ([.atom (.mul (.n k) w (.n hi)), .atom (.add (.n (k + 1)) (.n lo) (.n k))] ⧺ r.1, (k + 1) :: r.2.1,
       r.2.2)
   | [lo], k => ([.atom (.copy (.n k) (.n lo))], [k], k + 1)
   | [], k => ([], [], k)

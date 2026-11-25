@@ -349,8 +349,8 @@ def osHead (c : OsCfg) : List Stmt × OsSt :=
   let t := 30 + ligNRates
   (osHeap (c.yrLen + lastFolds) 11 ++ osHeap (2 * n) 13 ++ [osLd 7 osRoots 0, osLd 8 osRoots 1] ++
     osHeap c.nFolds 15 ++ osHeap (2 * c.nFolds) 17 ++ osHeap n 19 ++ osHeap n 21 ++
-    osHeap (n * hsStride) 23 ++ osHeap (n * ligColsCap) 25 ++ osHeap n 27 ++
-    [.atom (.hint (.alloc (.n osPosTab) ligNRates))] ++
+    osHeap (n * hsStride) 23 ++ osHeap (n * ligColsCap) 25 ++ osHeap n 27 ⧺
+    [.atom (.hint (.alloc (.n osPosTab) ligNRates))] ⧺
     ((List.range ligNRates).map fun r ↦
       [osCst (30 + r) (gw (c.posTotal.getD r 0)), osLd (30 + r) osPosTab r]).flatten ++
     [osMul t osPosTab osRate, osLd (t + 1) t 0, .atom (.hint (.allocDyn (.n osQpos) (.n (t + 1)))),
@@ -418,7 +418,7 @@ into `final_msg`. -/
 def osFinalMsg (c : OsCfg) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
   let cu := osCurS s
   let r := cu.2.2.k
-  (cu.1 ++ [.call ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1")
+  (cu.1 ⧺ [.call ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1")
       ((s.fs ++ [cu.2.1, osFmsg]).map V.n) (osRun r 8)],
    { cu.2.2 with k := r + 8, fs := [r + 2, r + 3, r + 4, r + 5, r + 6], cb := r + 7, co := 0,
                  word0 := r, pow0 := r + 1 })
@@ -444,15 +444,15 @@ def osCommit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt 
   let pd := osPad o0.2.2.pad (b + 6)
   let p := pd.2.1
   let j := pd.2.2
-  (osHeap (2 + lv.folds) k ++ cu.1 ++
+  (osHeap (2 + lv.folds) k ++ cu.1 ⧺
     [.call ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") ((s.fs ++ [cu.2.1, sent]).map V.n)
       (osRun r 8),
-] ++
+] ⧺
     gcInlineT levelOodGrind (r + 8) (.n (r + 1)) (.n osTabs) ++
     [osLd g sent 0, osLd g osRoots (2 * lvl + 2), osLd (g + 1) sent 1, osLd (g + 1) osRoots (2 * lvl + 3)] ++
-    o0.1 ++
+    o0.1 ⧺
     [.call ("squeeze_point_from__L" ++ natStr lv.logCols)
-      ([r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n) (osRun q 5)] ++
+      ([r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n) (osRun q 5)] ⧺
     ((List.range 5).map fun i ↦ osCp (q + 5 + i) (q + i)) ++
     [osLd b cb 0, osCp (b + 1) b, osCst (b + 2) (word 0 1),
       osLd (b + 3) cb 1, osCp (b + 4) (b + 3), osCst (b + 5) (word 0 4)] ++ pd.1 ++
@@ -568,7 +568,7 @@ def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt
   let hp : List Stmt × ℕ × OsSt :=
     if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
   let r := hp.2.2.k
-  (li.1 ++ cf.1 ++ hp.1 ++
+  (li.1 ++ cf.1 ++ hp.1 ⧺
     [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName c lvl))
         ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, s.lp, s.lw].map V.n) (osRun r 4),
       osLd r osRoots (2 * lvl), osLd (r + 1) osRoots (2 * lvl + 1)],
@@ -614,7 +614,7 @@ def osLevels (c : OsCfg) : ℕ → List OsLv → OsSt → List Stmt × OsSt
 def osTailRound (tch j : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let cu := osCurS s
   let r := cu.2.2.k
-  (cu.1 ++ [.call "opening_tail_round" ((s.fs ++ [cu.2.1, s.claim, osTabs]).map V.n) (osRun r 8),
+  (cu.1 ⧺ [.call "opening_tail_round" ((s.fs ++ [cu.2.1, s.claim, osTabs]).map V.n) (osRun r 8),
       osLd (r + 7) tch j],
    { cu.2.2 with k := r + 8, fs := [r, r + 1, r + 2, r + 3, r + 4], cb := r + 5, co := 0,
                  claim := r + 6 })
@@ -713,8 +713,8 @@ def osBasisLv (c : OsCfg) (tch bd ls la lvl : ℕ) (lv : OsLv) (k : ℕ) : List 
   let a := af.2.1.getD 0
   let z := af.2.2
   let r := osBasisRow bd cs k z (z + 2) (z + 3)
-  (osLd k osBetas lvl :: af.1 ++
-      [.call "is_zero" [.n a] [.n z], osCst (z + 1) (word 1 0), osAdd (z + 2) (z + 1) z] ++
+  (osLd k osBetas lvl :: af.1 ⧺
+      [.call "is_zero" [.n a] [.n z], osCst (z + 1) (word 1 0), osAdd (z + 2) (z + 1) z] ⧺
       r.1 ++ [osLd r.2.1 ls lvl, osLd a la lvl],
     r.2.2)
 

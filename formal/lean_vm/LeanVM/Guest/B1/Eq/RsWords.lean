@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_run` within its words
@@ -46,7 +47,7 @@ def rsPre : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ rsT))
 /-- Its statements before the remainder's dispatch. -/
 def rsPre0 : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsG ++ rsT0)))
 
-theorem rsBody_split : rsBody = rsPre ++ [.ret [.n (val% «rs_eq_run» "s12#0")]] := by
+theorem rsBody_split : rsBody = rsPre ⧺ [.ret [.n (val% «rs_eq_run» "s12#0")]] := by
   simp only [rsBody, rsPre, List.append_assoc]
 
 theorem rsPre_eq : rsPre = rsPre0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))] := by

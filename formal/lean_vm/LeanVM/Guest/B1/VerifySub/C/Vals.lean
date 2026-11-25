@@ -122,7 +122,7 @@ def vsTailP : List Stmt :=
   (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ⧺
   [vsLd 615 5 23]
 
-theorem vsTailT_split : vsTailT = vsTailP ++ [.ret []] := by
+theorem vsTailT_split : vsTailT = vsTailP ⧺ [.ret []] := by
   simp only [vsTailT, vsTailP, List.append_assoc, List.cons_append, List.nil_append]
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}

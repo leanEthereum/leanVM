@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.FlatAtT
 public import LeanVM.Guest.Budget.BoundedR
 public import LeanVM.Guest.Exact.Kids
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies, placed, callees' predicates of the memory
@@ -32,7 +33,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 predicate of `Ts rd` on each memory `rd` (`KidsDTBR`). -/
 theorem completeAt_flatDTBRR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)

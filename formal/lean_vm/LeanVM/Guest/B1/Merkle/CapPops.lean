@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Merkle.CapBody
 public import LeanVM.Guest.B1.Whir.HelperT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A level's cap pops
@@ -49,12 +50,12 @@ theorem fallPops_flatten_map_nil {α : Type} {f : α → List Stmt} :
 theorem mc_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn) {L : ℕ}
     (hb : fn.body = mcBody L) (τ : Val) (bufs : List ℕ) (kids : List Tree) :
     (Memory.Tree.node name τ bufs kids).pops P rd = [] := by
-  have hx : FallPops rd τ (((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ++
+  have hx : FallPops rd τ (((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ⧺
       [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
         .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
         .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
-        keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
-      ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
+        keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ⧺
+      ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ⧺
       [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]")))]) [] :=
     fallPops_eq ((((fallPops_noWit τ (noWit_flatten_map fun _ _ => rfl)).append (fallPops_noWit τ rfl)).append
       (fallPops_flatten_map_nil fun _ _ => mcNode_fallPops _ _ _)).append (fallPops_noWit τ rfl)) rfl
@@ -91,24 +92,24 @@ theorem lq_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? 
   let odd := if base = 1 then q % 2 else 0
   let pw := osPowSteps 0 (osPowDigits q) 0 22
   let k := 22 + osPowLen q
-  have hx : SplicePops rd τ (osHeap (4 * 2 ^ cd) 6 ++
-      [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ++
-      osHeap (2 ^ cd) 8 ++
-      [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))] ++
-      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]] ++
+  have hx : SplicePops rd τ (osHeap (4 * 2 ^ cd) 6 ⧺
+      [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ⧺
+      osHeap (2 ^ cd) 8 ⧺
+      [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))] ⧺
+      [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]] ⧺
       [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
-        osCst 16 (gw iters), osCst 17 (gw odd)] ++
+        osCst 16 (gw iters), osCst 17 (gw odd)] ⧺
       [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
-        [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]] ++
+        [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]] ⧺
       ([osCp 19 10, osCp 20 11, osCp 21 18] ++ pw.1 ++ [osCp k pw.2]))
       (Tree.popsKids P rd kids) (capPops rd τ cd ++ kc ++ ko) := by
     rw [hk]
-    have h : SplicePops rd τ (((((((osHeap (4 * 2 ^ cd) 6 ++
+    have h : SplicePops rd τ (((((((osHeap (4 * 2 ^ cd) 6 ⧺
         [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))]) ++
-        osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ++
+        osHeap (2 ^ cd) 8) ⧺ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ⧺
         [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]]) ++
         [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
-          osCst 16 (gw iters), osCst 17 (gw odd)]) ++
+          osCst 16 (gw iters), osCst 17 (gw odd)]) ⧺
         [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
           [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]]) ++
         ([osCp 19 10, osCp 20 11, osCp 21 18] ++ pw.1 ++ [osCp k pw.2]))

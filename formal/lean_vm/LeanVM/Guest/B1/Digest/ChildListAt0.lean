@@ -15,6 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The walk by hinted indices, the parts
@@ -109,7 +110,7 @@ theorem any_param (σ : Val) : (Fn.params fn% «child_claim_list_any»).map σ =
     [σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "base")), σ (.n (val% «child_claim_list_any» "limit_g")), σ (.n (val% «child_claim_list_any» "bigs")), σ (.n (val% «child_claim_list_any» "groups")), σ (.n (val% «child_claim_list_any» "rest"))] := rfl
 
 theorem any_body : Fn.body fn% «child_claim_list_any» =
-    anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")]]) := by
+    anyP1 ++ anyDispS :: (anyPost ⧺ [.ret [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")]]) := by
   rw [child_claim_list_any_shape, anyFlat_split]; simp
 
 theorem cclNames_get {r : ℕ} (hr : r < 17) : cclNames[r]! = cclNames.getD r "" := by

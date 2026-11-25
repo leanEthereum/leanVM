@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_bus_gkr` is sound
@@ -55,13 +56,13 @@ def vbgRets : List V := (List.range 7).map fun k ↦ .n ((val% «verify_bus_gkr�
 
 noncomputable def vbgCheck : Bool :=
   match coreProgram.find? name% «verify_bus_gkr» with
-  | some fn => decide (fn.params = vbgParams) && tbStmtsEqb fn.body (vbgPre ++ [.ret vbgRets])
+  | some fn => decide (fn.params = vbgParams) && tbStmtsEqb fn.body (vbgPre ⧺ [.ret vbgRets])
   | none => false
 
 theorem vbgCheck_eq : vbgCheck = true := by decide +kernel
 
 theorem vbgFound : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr» = some fn ∧
-    fn.params = vbgParams ∧ fn.body = vbgPre ++ [.ret vbgRets] := by
+    fn.params = vbgParams ∧ fn.body = vbgPre ⧺ [.ret vbgRets] := by
   have h := vbgCheck_eq
   unfold vbgCheck at h
   split at h

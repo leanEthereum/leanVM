@@ -211,14 +211,14 @@ def csRet (κ : ℕ) : ℕ := if κ = 32 then 4 else csC κ (csN κ)
 noncomputable def csCheck (κ : ℕ) : Bool :=
   match coreProgram.find? (lName "column_selector" κ) with
   | some fn => decide (fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")]) &&
-      tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
+      tbStmtsEqb fn.body (csPre κ ⧺ [.ret [.n (csRet κ)]])
   | none => false
 
 theorem csCheck_all : (List.range 31).all csCheck = true := by decide +kernel
 
 theorem csFound {κ : ℕ} (hκ : κ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")] ∧
-      fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
+      fn.body = csPre κ ⧺ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
   unfold csCheck at h
   split at h

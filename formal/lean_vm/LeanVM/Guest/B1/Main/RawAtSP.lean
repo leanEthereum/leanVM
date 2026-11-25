@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSigPops
 public import LeanVM.Guest.B1.Main.CompleteE
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop3»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main_loop3`, placed with its pops
@@ -84,7 +85,7 @@ def l4B : List Stmt := (l4Pre.drop 11).take 5
 /-- `main_loop3`'s self-call. -/
 def l4Call : Stmt := .callIf (.n (val% «main_loop3» "s5#2")) name% «main_loop3» [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")]
 
-theorem l4Pre_split : l4Pre = l4A ++ [.call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []] ++ l4B ++ [l4Call] := rfl
+theorem l4Pre_split : l4Pre = l4A ⧺ [.call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []] ⧺ l4B ++ [l4Call] := rfl
 
 theorem l4A_atoms : Sig.atomsOnly l4A = true := rfl
 theorem l4B_atoms : Sig.atomsOnly l4B = true := rfl

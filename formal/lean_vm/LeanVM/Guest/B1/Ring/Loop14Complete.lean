@@ -13,6 +13,7 @@ public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `ring_switch_target_loop0`, completely
@@ -140,7 +141,7 @@ def l13T : List Stmt :=
 /-- `ring_switch_target_loop0`'s atoms. -/
 def l13A : List Stmt := l13G ++ l13M1 ++ l13P ++ l13M2 ++ l13H ++ l13T
 
-theorem loop13T_split : loop13T = l13A ++
+theorem loop13T_split : loop13T = l13A ⧺
     [.callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"), .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")], .ret []] := by
   simp only [loop13T, l13A, l13G, l13M1, l13P, l13M2, l13H, l13T, List.append_assoc,
     List.cons_append, List.nil_append]
@@ -155,7 +156,7 @@ theorem mem_l13P {r : ℕ} (hr : r < 8) {s : Stmt} (hs : s ∈ psRow r) : s ∈ 
 
 /-- Chain `p`'s statements but its store. -/
 def hzPre (p : ℕ) : List Stmt :=
-  [.atom (.load (.n (hzBase p)) (.n (val% «ring_switch_target_loop0» "row")) p)] ++ ((List.range 8).map (hzStep (hzBase p) p)).flatten
+  [.atom (.load (.n (hzBase p)) (.n (val% «ring_switch_target_loop0» "row")) p)] ⧺ ((List.range 8).map (hzStep (hzBase p) p)).flatten
 
 theorem mem_l13H {p : ℕ} (hp : p < 8) {s : Stmt} (hs : s ∈ hzPre p) : s ∈ l13A := by
   refine l13A_mem (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl (List.mem_flatten.mpr
@@ -397,7 +398,7 @@ theorem l13_loadIn : (rtAtoms l13A).all l13LoadIn = true := by decide +kernel
 def l13Pre : List Stmt := l13A ++ [Stmt.callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"),
     .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")]]
 
-theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ++ [.ret []] := by
+theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ⧺ [.ret []] := by
   rw [loop13_body, loop13T_split, l13Pre, List.append_assoc]
   rfl
 

@@ -12,6 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_rows` (lean_ethereum.py)
@@ -97,13 +98,13 @@ def rrAcc (n k : ℕ) : ℕ → ℕ
 def rrCoord (n k i : ℕ) : List Stmt :=
   [.atom (.add (.n (rrS n k + 1 + rrStride k * i)) (.n (rrZ n k i)) (.n (4 + 2 * i))),
     .atom (.mul (.n (rrS n k + 2 + rrStride k * i)) (.n (rrAcc n k i))
-      (.n (rrS n k + 1 + rrStride k * i)))] ++
+      (.n (rrS n k + 1 + rrStride k * i)))] ⧺
   (if k < 63 then [.atom (.mul (.n (rrS n k + 3 + 3 * i)) (.n (rrZ n k i)) (.n (rrZ n k i)))]
     else [])
 
 /-- Row `k`: its word, the coordinates, the product stored. -/
 def rrRow (n k : ℕ) : List Stmt :=
-  [.atom (.load (.n (rrS n k)) (.n (valf% «rs_eq_rows» "row")) k)] ++ ((List.range n).map (rrCoord n k)).flatten ++
+  [.atom (.load (.n (rrS n k)) (.n (valf% «rs_eq_rows» "row")) k)] ⧺ ((List.range n).map (rrCoord n k)).flatten ⧺
     [.atom (.load (.n (rrAcc n k n)) (.n (valf% «rs_eq_rows» "row")) (64 + k))]
 
 /-- The coordinates' reads. -/
@@ -115,7 +116,7 @@ def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
 
 /-- The expansion of `rs_eq_rows__L{n}`, `n ≥ 1`. -/
 def rrBody (n : ℕ) : List Stmt :=
-  ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ++
+  ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ⧺
     [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n (valf% «rs_eq_rows» "row")) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 

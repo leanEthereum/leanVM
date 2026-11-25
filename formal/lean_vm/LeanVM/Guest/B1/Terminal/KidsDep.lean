@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.FlatAt
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Dependent callees, placed
@@ -159,7 +160,7 @@ theorem filterMap_of_loadsEv {σ : Val} : ∀ {pre : List Stmt}, pre.all notIteB
 own words. -/
 theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hni : pre.all notIteB = true)
     (sizes : List ℕ) (own : ℕ → List (List E))

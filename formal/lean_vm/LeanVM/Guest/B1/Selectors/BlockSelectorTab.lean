@@ -81,14 +81,14 @@ def btRet (n : ℕ) : List V :=
 noncomputable def btCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector_tab" n) with
   | some fn => decide (fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")]) &&
-      tbStmtsEqb fn.body (btPre n ++ [.ret (btRet n)])
+      tbStmtsEqb fn.body (btPre n ⧺ [.ret (btRet n)])
   | none => false
 
 theorem btCheck_all : (List.range 34).all btCheck = true := by decide +kernel
 
 theorem btFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
     coreProgram.find? (lName "block_selector_tab" n) = some fn ∧ fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")] ∧
-      fn.body = btPre n ++ [.ret (btRet n)] := by
+      fn.body = btPre n ⧺ [.ret (btRet n)] := by
   have h := List.all_eq_true.mp btCheck_all n (List.mem_range.mpr hn)
   unfold btCheck at h
   split at h

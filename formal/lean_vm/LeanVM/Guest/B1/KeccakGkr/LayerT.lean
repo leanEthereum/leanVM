@@ -392,7 +392,7 @@ def shOutT (low0 low1 high : ℕ → ℕ) : List ℕ → ℕ → List Stmt
       else
         [.atom (.mul (.n b) (.n (low0 (r % 8))) (.n (high (r / 8)))),
           .atom (.mul (.n (b + 1)) (.n (low1 (r % 8))) (.n (high ((r / 8 + 1) % 8)))),
-          .atom (.add (.n (b + 2)) (.n b) (.n (b + 1)))] ++ shOutT low0 low1 high rs (b + 3)
+          .atom (.add (.n (b + 2)) (.n b) (.n (b + 1)))] ⧺ shOutT low0 low1 high rs (b + 3)
 
 /-- Where `shOutT` writes `shifts[r]`. -/
 def shOutV : List ℕ → ℕ → ℕ → ℕ
@@ -450,8 +450,8 @@ def formEnt (lp : V) (sh f : ℕ → ℕ) (lane b : ℕ) (st : FAcc) : List Stmt
   let r4 := addOpt st.facc (f lane) r3.2.1
   ([.atom (.load (.n b) lp (keccakPi lane)),
     .atom (.mul (.n (b + 1)) (.n b) (.n (sh (keccakRho.getD lane 0)))),
-    .atom (.mul (.n (b + 2)) (.n (f lane)) (.n (b + 1)))] ++ r1.1 ++ r2.1 ++
-    [.atom (.mul (.n r2.2.1) (.n b) (.n (sh ((keccakRho.getD lane 0 + 1) % 64))))] ++ r3.1 ++ r4.1,
+    .atom (.mul (.n (b + 2)) (.n (f lane)) (.n (b + 1)))] ⧺ r1.1 ++ r2.1 ⧺
+    [.atom (.mul (.n r2.2.1) (.n b) (.n (sh ((keccakRho.getD lane 0 + 1) % 64))))] ⧺ r3.1 ++ r4.1,
     r4.2.1, ⟨some r1.2.2, some r2.2.2, some r3.2.2, some r4.2.2⟩)
 
 /-- The lanes `x + 5y` of a column, `y ∈ ys`. -/
@@ -471,9 +471,9 @@ def formCols (lp : V) (sh f : ℕ → ℕ) : List ℕ → ℕ → Option ℕ →
       let e := formEnts lp sh f x [0, 1, 2, 3, 4] b ⟨tot, none, none, none⟩
       let b1 := e.2.1
       let r := formCols lp sh f xs (b1 + 3) e.2.2.tot
-      (e.1 ++ [.atom (.copy (.n b1) (.n (e.2.2.acc.getD 0))),
+      (e.1 ⧺ [.atom (.copy (.n b1) (.n (e.2.2.acc.getD 0))),
           .atom (.copy (.n (b1 + 1)) (.n (e.2.2.accn.getD 0))),
-          .atom (.copy (.n (b1 + 2)) (.n (e.2.2.facc.getD 0)))] ++ r.1,
+          .atom (.copy (.n (b1 + 2)) (.n (e.2.2.facc.getD 0)))] ⧺ r.1,
         r.2.1, r.2.2.1, (b1, b1 + 1, b1 + 2) :: r.2.2.2)
 
 /-- The final loop: `total += f_column[x]·(column[x + 1] + column_next[x - 1])`. -/
@@ -484,7 +484,7 @@ def formFin (cols : List (ℕ × ℕ × ℕ)) : List ℕ → ℕ → ℕ → Lis
       ([.atom (.add (.n b) (.n (cols.getD ((x + 1) % 5) default).1)
           (.n (cols.getD ((x + 4) % 5) default).2.1)),
         .atom (.mul (.n (b + 1)) (.n (cols.getD x default).2.2) (.n b)),
-        .atom (.add (.n (b + 2)) (.n tot) (.n (b + 1)))] ++ r.1, r.2.1, r.2.2)
+        .atom (.add (.n (b + 2)) (.n tot) (.n (b + 1)))] ⧺ r.1, r.2.1, r.2.2)
 
 /-- `keccak_form(lanes, shifts, f_lanes, LANE_OFF)` from `B`: the statements, the next value and
 the total's value. -/
@@ -564,7 +564,7 @@ def topV (W : ℕ) : ℕ := eqfEnd 5 32 (sliceB W)
 /-- The flips, from `topV W + 4`, each `43` values; then their stores and the flips' pointer. -/
 def lflipsT (W : ℕ) : List Stmt :=
   ((List.range 7).map fun i ↦
-    lflipT (.n (W + 25)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (topV W + 4 + 43 * i) ++
+    lflipT (.n (W + 25)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (topV W + 4 + 43 * i) ⧺
       [.atom (.load (.n (topV W + 4 + 43 * i + 42)) (.n (topV W + 3)) i)]).flatten
 
 /-- The final check, the squeeze of `β`, the next claim's record, its flips, the return; `W` the

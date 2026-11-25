@@ -17,6 +17,7 @@ import LeanVM.Guest.Data.ValNames.«opening_message__L36_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L6_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L8_L1»
 meta import LeanVM.Guest.B1.Common.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `opening_message`'s body
@@ -133,7 +134,7 @@ def omRets (n nonce : ℕ) : List V :=
   [.n f, .n (f + 1), .n (f + 2), .n (f + 3), .n (f + 4), .n (f + 5), .n (f + 6), .n (f + 9)]
 
 /-- **The expansion of `opening_message__L{n}_L{nonce}`.** -/
-def omBody (n nonce : ℕ) : List Stmt := (omAtoms n nonce).map Stmt.atom ++ [.ret (omRets n nonce)]
+def omBody (n nonce : ℕ) : List Stmt := (omAtoms n nonce).map Stmt.atom ⧺ [.ret (omRets n nonce)]
 
 set_option maxRecDepth 100000 in
 theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some fn% «opening_message__L1_L1» ∧
