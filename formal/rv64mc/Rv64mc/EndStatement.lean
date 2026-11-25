@@ -48,9 +48,9 @@ the inputs it covers (`stops_at_halt`, `Final/HaltsSafely.lean`).
 * The verdict is `a0 = 0` (#738: `1`).
 * No completeness (#738 names `Complete` but never defines it). `Sound` is partial: a run that stops elsewhere or
   never halts is not constrained by it. `HaltsSafely` adds termination at a verdict, but only for inputs of fewer
-  than `maxInputWords` words, and with any of the three verdicts: an accepted proof may be answered `1` or `2` (the
-  guest aborts with `2` when memory runs out), so it is not completeness either. It bounds no number of steps. Its
-  end theorem is conditional on `MainSpecT`, which is not proved.
+  than `maxInputWords` words, and with any of the three verdicts: a proof the verifier accepts may be answered `1`
+  or `2` (the guest aborts with `2` when memory runs out), so it is not completeness either. It bounds no number of
+  steps. Its end theorem is conditional on `MainSpecT`, which is not proved.
 * The image is the build of `scripts/nostd-verifier.sh`'s `no_std` copy of `crates/verifier`, with the inline
   attributes it inserts (`boundaries.txt`), and `guest/`; the end theorem is about the ELF whose sha256 is
   `image.sha256`, read by `Rv64mc/ImageOfElf.lean`.

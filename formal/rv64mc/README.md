@@ -4,15 +4,16 @@ An experiment: compile `crates/verifier` (a `no_std` copy) to an RV64IM guest, l
 
 ## Trusted
 
-`Rv64mc/EndStatement.lean` is the statement: the machine, the loader, `Sound` and `AllDecode`; its docstring says where it is weaker than intended. Also trusted: `Rv64mc/ImageOfElf.lean` (the ELF reader that defines `image`), riscv-zkvm's decoder, and the statement's verifier. Everything else is checked by the kernel, on the standard axioms only.
+`Rv64mc/EndStatement.lean` is the statement: the machine, the loader, `Sound`, `AllDecode` and `HaltsSafely`; its docstring says where it is weaker than intended. Also trusted: `Rv64mc/ImageOfElf.lean` (the ELF reader that defines `image`), riscv-zkvm's decoder, and the statement's verifier. Everything else is checked by the kernel, on the standard axioms only.
 
 ## Layout
 
 * `guest/`: the RV64IM guest crate (`src/main.rs` decodes the input and calls the verifier); `ADAPTATIONS.md` says how it differs from #738's guest.
 * `scripts/`: `nostd-verifier.sh` (the `no_std` copy, with the inline attributes `boundaries.txt` asks for), `regen.sh` (build, lift, write `Rv64mc/Gen/`), `gen.py` (templates and link modules), `type-layouts.sh` (rustc's type layouts, named in `layouts.txt`), `iterate.sh` (the iteration benchmark over `bench/patches/`).
 * `Rv64mc/EndStatement.lean`: the trusted statement. `StepMeet.lean`, `Bridge.lean`: from its machine to machine-checked's `SafeN`.
-* `Rv64mc/Final/`: the end theorem (`End.lean`), `Sound` from `main`'s contract, `_start`, `main`'s contract, the kernel's checks on the image, and how `Sound` composes with the knowledge-soundness theorem (`LeanVm.lean`).
-* `Rv64mc/Core/`: contracts (`Holds`), the environment, memory representation predicates and their lemmas.
+* `Rv64mc/Final/`: the end theorem (`End.lean`), `Sound` from `main`'s contract, `_start`, `main`'s contract, the kernel's checks on the image, and how `Sound` composes with the knowledge-soundness theorem (`LeanVm.lean`). The termination end theorem (`EndT.lean`): `HaltsSafely` from `main`'s total contract (`MainSpecT.lean`), through `_start` (`StartT.lean`) and the transfer to the statement's machine (`Transfer.lean`); what `HaltsSafely` says of the runs (`HaltsSafely.lean`).
+* `Rv64mc/Total/`: total correctness at Lprog (`Ascent.Total`, `Isa.TContract`), for any instruction set, on machine-checked's `lprog` alone.
+* `Rv64mc/Core/`: contracts (`Holds`, and the total `HoldsT`), the environment, memory representation predicates and their lemmas.
 * `Rv64mc/Link/`: what a relocatable template knows of its callees and call sites.
 * `Rv64mc/Tactic/`: `rv_sym`/`rv_auto`, the symbolic executor the proofs use (its header documents it).
 * `Rv64mc/Model/`: Lean mirrors of the Rust verifier's functions, each proved equal to the statement's.
