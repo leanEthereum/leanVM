@@ -146,11 +146,31 @@ pub fn wots_leaf(
     values: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = codeword(&message_digest(pp, layer, e, randomizer, message))?;
-    let ends = core::array::from_fn(|i| {
+    Some((x, wots_leaf_hash(pp, layer, e, &chain_ends(pp, layer, e, &x, values))))
+}
+
+/// Each chain's end, from the value at its digit's position.
+#[cfg(not(feature = "std"))]
+fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+    core::array::from_fn(|i| {
         let start = x[i] as usize;
         chain(pp, layer, e, i, start, CHAIN_LEN - 1 - start, values[i])
-    });
-    Some((x, wots_leaf_hash(pp, layer, e, &ends)))
+    })
+}
+
+/// Each chain's end, from the value at its digit's position: as [`chain`] computes it, each step one batch over the
+/// chains still running.
+#[cfg(feature = "std")]
+fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+    let mut ends = *values;
+    for from in 0..CHAIN_LEN - 1 {
+        let running: Vec<usize> = (0..V).filter(|&i| usize::from(x[i]) <= from).collect();
+        let steps = running.iter().map(|&i| chain_input(layer, e, i, from, ends[i]));
+        for (&i, end) in running.iter().zip(th_digests_many(pp, steps)) {
+            ends[i] = end;
+        }
+    }
+    ends
 }
 
 /// The leaves of the `n` keys from `first` on `layer`, from the seed: what key generation and a
