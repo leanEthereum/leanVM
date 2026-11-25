@@ -42,8 +42,9 @@ theorem rpmError_completenessPermCalls_le :
     rpmError (completenessPermCalls (2 ^ 35)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
   rw [rpmError_eq, inv_pow_eq_div 257 508 (by norm_num)]
   refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
-  rw [completenessPermCalls, completenessQueries, verifierCost, verifierQueries]
-  norm_num
+  rw [completenessPermCalls]
+  refine (Nat.pow_le_pow_left (Nat.mul_le_mul_right _ (completenessQueries_le_budget _)) 2).trans ?_
+  norm_num [verifierCost, verifierQueries]
 
 end
 

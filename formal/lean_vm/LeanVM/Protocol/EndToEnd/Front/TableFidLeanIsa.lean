@@ -463,7 +463,7 @@ theorem result_claims (w : BusWit) (hm : w.memory.length = 2) :
   obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
     | [a, b], _ => exact ⟨a, b, rfl⟩
-  rw [result_eq_busOut, habc]
+  rw [result_eq_busOf, habc]
   rfl
 
 /-- The low coordinates of a list read as a vector. -/

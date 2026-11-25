@@ -91,7 +91,7 @@ theorem pushTotal_le_blocks (prog : LeanIsaProgram) (s : Sizes) :
 /-- **The push tree is no deeper than the stack.** -/
 theorem busDepth_le_leanIsaμ (prog : LeanIsaProgram) (s : Sizes) :
     busDepth prog s ≤ leanIsaμ prog s := by
-  rw [busDepth, log2Ceil_eq_clog]
+  rw [Complete.busDepth, log2Ceil_eq_clog]
   exact Nat.clog_le_of_le_pow ((pushTotal_le_blocks prog s).trans (blocks_fits prog s))
 
 /-- On admissible sizes the push tree has depth at most `30`. -/

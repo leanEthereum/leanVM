@@ -29,17 +29,16 @@ adversary, the verifier rejects with probability at most (`Rom.romComplete`)
 
   `completenessError fuel = Q · (1 - 2^-27 (1 - 2^-64))^fuel`,
 
-`Q = (1 + 1) + leanVmCost · (2^29 + 2·fuel + 2) + leanVmQueryBound` the queries of the prover and
-the verifier together (`completenessQueries`): the seed's hash and permutation, `leanVmCost`
+`Q = 2 + leanVmCost · (2^29 + 2·fuel + 2) + leanVmQueryBound` the queries of the prover and
+the verifier together (`LeanVM.completenessQueries`): the seed's hash and permutation, `leanVmCost`
 moves of the program each costing the prover at most `proverFactor costHeight fuel =
-2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound` (`romComplete_leanVm`); within
-the budgets of `LeanVM.Protocol.Errors`, `Q` is at most `LeanVM.completenessQueries fuel`
-(`completenessQueries_le`). Every proof of work the honest prover meets has at most `27` bits, the
-bus's at the widest (`busGrindLE_twentySeven`), WHIR's at most `17`, and the Keccak GKR's before
-`s` also asks its challenge to lie outside `K` (`grindSample`), which a nonce's does with probability
-`1 - 2^-64`. At `fuel = 2^35`, the error is below `2^-257` (`completenessError_two_pow_35_le`):
-`Q ≤ 2^53`, and such a proof of work fails with probability
-`(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) < 2^-320`.
+2^29 + 2·fuel + 2` queries, and the verifier's `leanVmQueryBound` (`romComplete_leanVm`). Every
+proof of work the honest prover meets has at most `27` bits, the bus's at the widest
+(`busGrindLE_twentySeven`), WHIR's at most `17`, and the Keccak GKR's before `s` also asks its
+challenge to lie outside `K` (`grindSample`), which a nonce's does with probability `1 - 2^-64`.
+At `fuel = 2^35`, the error is below `2^-257` (`completenessError_two_pow_35_le`): within the
+budgets, `Q ≤ 2^53` (`completenessQueries_le_budget`), and such a proof of work fails with
+probability `(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) < 2^-320`.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Complete
@@ -65,22 +64,10 @@ noncomputable def honestComp (prog : LeanIsaProgram) (input : PublicInput) (t : 
       (leanVmProver prog h.choose_spec.choose ρ (stackOf prog h.choose_spec.choose h.choose)) fuel
   else pure ⟨[], []⟩
 
-/-- The queries of the honest prover and the verifier together, at a fuel of `fuel`: the seed's
-hash and permutation, the program's moves at the prover's factor, and the verifier's bound. -/
-def completenessQueries (fuel : ℕ) : ℕ :=
-  1 + 1 + leanVmCost * proverFactor costHeight fuel + leanVmQueryBound
-
-/-- The queries fit the budget of the statement's completeness error. -/
-theorem completenessQueries_le (fuel : ℕ) :
-    completenessQueries fuel ≤ LeanVM.completenessQueries fuel := by
-  have hV := leanVmQueryBound_add_three_le
-  unfold completenessQueries LeanVM.completenessQueries
-  exact Nat.add_le_add (Nat.add_le_add_left (Nat.mul_le_mul leanVmCost_le le_rfl) _) (by omega)
-
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work: every query may
 complete a proof of work of at most `27` bits whose nonces all failed. -/
 noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
-  (completenessQueries fuel : ℝ≥0∞) * missK 27 ^ fuel
+  (LeanVM.completenessQueries fuel : ℝ≥0∞) * missK 27 ^ fuel
 
 /-- **Every layout the verifier builds for the program's bytecode within the stack's cap has its
 bus grind at most `27` bits**: the push tree is no deeper than the stack (`busDepth_le_leanIsaμ`),
@@ -185,8 +172,8 @@ probability `(1 - 2^-27 (1 - 2^-64))^(2^35) ≤ (1 - 2^-28)^(2^36) ≤ 2^-320` (
 `missProb_pow_four_le`). -/
 theorem completenessError_two_pow_35_le :
     LeanVM.completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 := by
-  have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 53 := by
-    norm_num [LeanVM.completenessQueries, LeanVM.verifierCost, LeanVM.verifierQueries]
+  have hQ : LeanVM.completenessQueries (2 ^ 35) ≤ 2 ^ 53 :=
+    (completenessQueries_le_budget _).trans (by norm_num [verifierCost, verifierQueries])
   have hmiss : (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ (2 ^ 35) ≤
       (2 : ℝ≥0∞)⁻¹ ^ (53 + 267) := by
     have h := missProb_pow_four_le 28 64

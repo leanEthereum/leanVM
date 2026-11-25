@@ -44,7 +44,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 namespace KeccakZero
 
-open LeanVM.Protocol.Verifier (eqAt eqAt_two_mul sum_range_two_mul)
+open LeanVM.Protocol.Verifier (eqAt eqAt_two_mul eqAt_two_mul_add_one sum_range_two_mul)
 
 /-- The table `δ` on `n` bits with its high `|acc|` coordinates bound to `acc`, at the index `v`
 of the low coordinates. -/
@@ -72,13 +72,12 @@ theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.l
     Finset.mul_sum, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun w _ ↦ ?_
   have e0 : eqAt (c :: acc) (2 * w) = (1 - c) * eqAt acc w := by
-    rw [(eqAt_two_mul c acc w).1, CharTwo.sub_eq_add]
-  have e1 := (eqAt_two_mul c acc w).2
+    rw [eqAt_two_mul, CharTwo.sub_eq_add]
   have i0 : v + 2 ^ m * (2 * w) = v + 2 ^ (m + 1) * w := by
     rw [pow_succ]; ring
   have i1 : v + 2 ^ m * (2 * w + 1) = v + 2 ^ m + 2 ^ (m + 1) * w := by
     rw [pow_succ]; ring
-  rw [e0, e1, i0, i1]
+  rw [e0, eqAt_two_mul_add_one, i0, i1]
   ring
 
 /-- Nothing bound: the table vanishes on the cube. -/

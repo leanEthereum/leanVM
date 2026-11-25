@@ -396,9 +396,9 @@ theorem multilinearEval_tableOf {m : ℕ} {w : List E → E} (hw : IsMultilinear
   exact sum_congr rfl fun i hi ↦ by rw [getD_tableOf _ _ _ (mem_range.mp hi)]
 
 /-- Pairing a function's table with a table. -/
-theorem dot_tableOf (m : ℕ) (w : List E → E) (g : List E) (hg : g.length = 2 ^ m) :
+theorem dot_tableOf (m : ℕ) (w : List E → E) (g : List E) :
     dot (tableOf m w) g = ∑ i ∈ range (2 ^ m), w (boolPoint m i) * g.getD i 0 := by
-  rw [dot_eq_sum _ _ (by simp [hg]), length_tableOf]
+  rw [dot_eq_sum_left, length_tableOf]
   exact sum_congr rfl fun i hi ↦ by rw [getD_tableOf _ _ _ (mem_range.mp hi)]
 
 /-! ## Multilinear functions -/

@@ -20,7 +20,8 @@ The verifier's points are lists, the first coordinate the lowest bit of an index
 `crates/verifier/src/multilinear.rs`). Here:
 
 * `eqAt pt w = Π_k eq(pt_k, bit k of w)`, defined coordinate by coordinate from the first;
-  `eqAt_append`: a point split in two; `sum_eqAt`: the weights sum to one;
+  `eqAt_append`: a point split in two; `eqAt_two_mul`, `eqAt_two_mul_add_one`: a pair of indices;
+  `sum_eqAt`: the weights sum to one;
 * `eqKernel_snoc`: one more coordinate doubles the kernel; `eqKernel_length`,
   `eqKernel_getD`: `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;
 * `dot_eq_sum_left`, `dot_eqKernel`: the verifier's inner product as a sum, and with the kernel the
@@ -90,20 +91,22 @@ theorem eqAt_append : ∀ (a b : List E) (w : ℕ),
     rw [List.cons_append, eqAt_cons, eqAt_cons, eqAt_append a b, List.length_cons, pow_succ,
       Nat.div_div_eq_div_mul, mul_comm (2 ^ a.length) 2, mul_assoc]
 
-/-- The weights at the even and the odd index of a pair. -/
+/-- The weight at the even index of a pair. -/
 theorem eqAt_two_mul (r : E) (rs : List E) (w : ℕ) :
-    eqAt (r :: rs) (2 * w) = (1 + r) * eqAt rs w ∧ eqAt (r :: rs) (2 * w + 1) = r * eqAt rs w := by
-  rw [eqAt_cons, eqAt_cons, ite_eq_right (show ¬2 * w % 2 = 1 by omega),
-    ite_eq_left (show (2 * w + 1) % 2 = 1 by omega), show 2 * w / 2 = w by omega,
-    show (2 * w + 1) / 2 = w by omega]
-  exact ⟨rfl, rfl⟩
+    eqAt (r :: rs) (2 * w) = (1 + r) * eqAt rs w := by
+  rw [eqAt_cons, ite_eq_right (show ¬2 * w % 2 = 1 by omega), show 2 * w / 2 = w by omega]
+
+/-- The weight at the odd index of a pair. -/
+theorem eqAt_two_mul_add_one (r : E) (rs : List E) (w : ℕ) :
+    eqAt (r :: rs) (2 * w + 1) = r * eqAt rs w := by
+  rw [eqAt_cons, ite_eq_left (show (2 * w + 1) % 2 = 1 by omega), show (2 * w + 1) / 2 = w by omega]
 
 /-- The equality weights sum to one. -/
 theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w = 1
   | [] => by simp
   | r :: rs => by
     rw [List.length_cons, sum_cube_succ, ← sum_eqAt rs, sum_congr rfl fun w _ ↦ ?_]
-    rw [(eqAt_two_mul r rs w).1, (eqAt_two_mul r rs w).2, ← add_mul, add_assoc,
+    rw [eqAt_two_mul, eqAt_two_mul_add_one, ← add_mul, add_assoc,
       CharTwo.add_self_eq_zero, add_zero, one_mul]
 
 /-! ## `eq_kernel` -/
@@ -120,7 +123,8 @@ theorem eqKernel_length (pt : List E) : (eqKernel pt).length = 2 ^ pt.length := 
     rw [eqKernel_snoc, List.length_append, List.length_map, List.length_map, ih,
       List.length_append, List.length_singleton, pow_succ, mul_two]
 
-private theorem getD_map_mul (l : List E) (c : E) (w : ℕ) :
+/-- Scaling a list scales each entry, the default zero read as zero. -/
+theorem getD_map_mul {R : Type*} [MulZeroClass R] (l : List R) (c : R) (w : ℕ) :
     (l.map (· * c)).getD w 0 = l.getD w 0 * c := by
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
   cases l[w]? <;> simp

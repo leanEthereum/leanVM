@@ -383,9 +383,9 @@ structure BusWit where
   /-- The point the share's sumcheck leaves the bytecode at. -/
   bytecodePoint : List E
 
-/-- The bus phase's result on what it read (`Complete.busOut`). -/
+/-- The bus phase's result on what it read (`Verifier.busOf`). -/
 def BusWit.result (layout : Verifier.Layout) (w : BusWit) : BusResult :=
-  Complete.busOut layout w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
+  Verifier.busOf layout w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
     w.bytecodePoint
 
 /-- The bus phase after the grand product, followed by `k`: the count root's check, the boundary
@@ -425,7 +425,7 @@ theorem verifyBusBalance_bind_eq {β : Type} (layout : Verifier.Layout) (f : Bus
       abProg.bind fun ab ↦ (verifyGkrGrandProducts
         (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth).bind
         fun r ↦ busTailK layout (fun w ↦ f (w.result layout)) ab.1 ab.2 r := by
-  rw [Complete.verifyBusBalance_eq]
+  rw [Verifier.verifyBusBalance_eq]
   simp only [abProg, busTailK, BusWit.result, VerifierProgram.bind_eq,
     VerifierProgram.bind_assoc, VerifierProgram.ret_bind, VerifierProgram.pure_eq]
 

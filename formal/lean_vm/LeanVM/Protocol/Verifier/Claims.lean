@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Protocol.Compile.Prog
-public import LeanVM.Protocol.Verifier.Phases
+public import LeanVM.Protocol.Verifier.Phases.Bus
 
 /-!
 # The claim-list form of `verify_execution`
@@ -296,22 +296,30 @@ theorem zipWith_columns {β : Type} (pt : List E) :
     · exact List.mem_cons_self ..
     · exact List.mem_cons_of_mem _ (zipWith_columns pt cols vals g c h)
 
-theorem allRet_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout) :
-    AllRet (verifyBusBalance ev layout) BusOk := by
-  unfold verifyBusBalance
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  allret_chain
-  refine .ret ⟨?_, fun c hc ↦ ?_, ?_⟩
-  · simp only [accumulateSide_length, List.length_map]
-  · simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc ⊢
+/-- What the bus returns has a form per table and at most four framework claims. -/
+theorem busOk_busOf (layout : Layout) (weights : List E) (beta : E)
+    (point treeValues memory : List E) (memoryFinal bytecodeFinal share : E)
+    (bytecodePoint : List E) :
+    BusOk (busOf layout weights beta point treeValues memory memoryFinal bytecodeFinal share
+      bytecodePoint) := by
+  refine ⟨?_, fun c hc ↦ ?_, ?_⟩
+  · simp only [busOf, accumulateSide_length, List.length_map]
+  · simp only [busOf, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc ⊢
     rcases hc with hc | rfl | rfl
     · have := zipWith_columns _ _ _ id c hc
       simp only [List.mem_cons, List.not_mem_nil, or_false] at this
       tauto
     · tauto
     · tauto
-  · simp only [List.length_append, List.length_zipWith, List.length_cons, List.length_nil]
+  · simp only [busOf, List.length_append, List.length_zipWith, List.length_cons, List.length_nil]
     omega
+
+theorem allRet_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit)
+    (layout : Layout) : AllRet (verifyBusBalance ev layout) BusOk := by
+  rw [verifyBusBalance_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+  allret_chain
+  exact .ret (busOk_busOf ..)
 
 /-! ## The table sumcheck -/
 

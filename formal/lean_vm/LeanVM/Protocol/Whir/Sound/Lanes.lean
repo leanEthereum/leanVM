@@ -62,7 +62,7 @@ theorem foldsN_eq_sum {ι : Type*} (s : List E) (O : ℕ → ι → E) (i : ℕ)
     rw [ih, List.length_cons, pow_succ, mul_comm (2 ^ s.length) 2, sum_range_two_mul]
     refine Finset.sum_congr rfl fun j _ ↦ ?_
     simp only [foldN, CharTwo.sub_eq_add]
-    rw [(eqAt_two_mul c s j).1, (eqAt_two_mul c s j).2,
+    rw [eqAt_two_mul, eqAt_two_mul_add_one,
       show i * (2 * 2 ^ s.length) + 2 * j = 2 * (i * 2 ^ s.length + j) by ring,
       show i * (2 * 2 ^ s.length) + (2 * j + 1) = 2 * (i * 2 ^ s.length + j) + 1 by ring]
     ring
@@ -70,7 +70,7 @@ theorem foldsN_eq_sum {ι : Type*} (s : List E) (O : ℕ → ι → E) (i : ℕ)
 /-- **The lane fold of an opened row**: `dot(row, eq_kernel(s))` is the row folded by `s`. -/
 theorem dot_eqKernel_eq_foldsN (row s : List E) (h : row.length = 2 ^ s.length) :
     dot row (eqKernel s) = foldsN s (fun j (_ : Unit) ↦ row.getD j 0) 0 () := by
-  rw [dot_eq_sum _ _ (by rw [h, eqKernel_length]), foldsN_eq_sum, h]
+  rw [dot_eq_sum_left, foldsN_eq_sum, h]
   refine Finset.sum_congr rfl fun j hj ↦ ?_
   rw [eqKernel_getD, ite_eq_left (Finset.mem_range.mp hj), zero_mul, zero_add, mul_comm]
 

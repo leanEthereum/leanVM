@@ -21,13 +21,13 @@ import Common.Linear
 `knowledgeSoundnessRomAS`: for an adversary of at most `Q` queries, the verifier accepts while the
 agreement-set extractor (`Sound.extractAS`, over any near-tuple decoder `D`, on the adversary's
 answers) does not return a valid execution with probability at most `soundnessErrorAS Q`: the
-random-oracle theorem's `(Q + V) · (2^-125 + 5 (Q + V) / 2^256)` (an accepted proof whose extracted
-history is not a good run is doomed, `Sound.doomedRun_of_verify`), a fresh hit of the final query's
-proof of work, `2^-127` once in all (`Sound.prEvent_logged2_hit_le`), and a fresh hash answer of
-the verifier that is a root the replay reads, `rootCap · 2^-256` per verifier query
-(`Sound.prEvent_logged2_roots_le`). Outside those, the adversary's answers cover the extractor's
-queries (`Sound.avail_or_hit`) and the extractor returns a valid execution
-(`Sound.extractAS_valid`).
+random-oracle theorem's `(Q + V) · (2^-125 + 5 (Q + V) / 2^256)`, `V = leanVmQueryBound` the
+verifier's queries (an accepted proof whose extracted history is not a good run is doomed,
+`Sound.doomedRun_of_verify`), a fresh hit of the final query's proof of work, `2^-127` once in all
+(`Sound.prEvent_logged2_hit_le`), and a fresh hash answer of the verifier that is a root the replay
+reads, `rootCap · 2^-256` per verifier query (`Sound.prEvent_logged2_roots_le`). Outside those, the
+adversary's answers cover the extractor's queries (`Sound.avail_or_hit`) and the extractor returns a
+valid execution (`Sound.extractAS_valid`).
 -/
 
 namespace LeanVM
@@ -134,8 +134,8 @@ theorem rootCap_le : Sound.rootCap ≤ 2 ^ 16 := by decide
 /-- **The agreement-set extractor's error fits the end statement's bound**: for `Q ≤ 2^128`
 queries, with the transfer to the random-permutation model, at most
 `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`. The new terms, the fresh hit
-`2^-127` and the fresh roots `V · rootCap · 2^-256`, are each at most `2^-125`, as are the
-transfer's, and `Q + V + 3 ≤ Q + 2^14` (`leanVmQueryBound_add_three_le`). -/
+`2^-127` and the fresh roots `V · rootCap · 2^-256` (`V = leanVmQueryBound`), are each at most
+`2^-125`, as are the transfer's, and `Q + V + 3 ≤ Q + 2^14` (`leanVmQueryBound_add_three_le`). -/
 theorem soundnessRpmAS_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
     soundnessErrorAS Q + rpmError (Q + verifierPermCalls) ≤
       (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
@@ -160,7 +160,8 @@ theorem soundnessRpmAS_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :
           exact_mod_cast hn
       _ = (2 : ℝ≥0∞)⁻¹ ^ 125 := Common.two_pow_mul_inv_pow 131 125
   have hq : Q + verifierPermCalls ≤ 2 ^ 129 :=
-    calc Q + verifierPermCalls ≤ 2 ^ 128 + 2 ^ 14 * 2 ^ 30 := Nat.add_le_add_right hQ _
+    calc Q + verifierPermCalls ≤ 2 ^ 128 + 2 ^ 14 * 2 ^ 30 :=
+          Nat.add_le_add hQ (Nat.mul_le_mul_right _ (by omega))
       _ ≤ 2 ^ 129 := by norm_num
   have hR : rpmError (Q + verifierPermCalls) ≤ (2 : ℝ≥0∞)⁻¹ ^ 125 :=
     calc rpmError (Q + verifierPermCalls)

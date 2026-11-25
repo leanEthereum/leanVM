@@ -83,7 +83,7 @@ theorem blockTotal_push_eq_pushLeaves (prog : LeanIsaProgram) (s : Sizes) :
 theorem busLayout_depth_leanIsa (prog : LeanIsaProgram) (s : Sizes) :
     (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
       (verifierLayout prog s).push).depth = (leanIsaInstance prog s).μBus := by
-  rw [busLayout_depth_verifier, busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
+  rw [busLayout_depth_verifier, Complete.busDepth, log2Ceil_eq_clog, blockTotal_push_eq_pushLeaves]
   rfl
 
 /-- The instance's constraint counts: `JUMP` (table `7`) has two, the others none. -/
