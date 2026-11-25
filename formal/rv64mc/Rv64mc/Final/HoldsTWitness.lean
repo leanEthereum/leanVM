@@ -12,11 +12,11 @@
   store over no code (`Windows.noCodeAt`), SP1's range and alignment from the stack top's bound and
   alignment. Without `Windows`' bound on the stack top it would be false: a top above the stack
   window puts the store outside both windows. `loadFn a` loads the word at the constant address
-  `a` into `a0`: `loadFn_next` (at `NEXT`) and `loadFn_data` (at a static data word), from `loadFn_total`, hold
-  at any `env`, and without `Windows`' alignment of `NEXT` and of the data words they would be false (SP1
-  refuses a misaligned 8-byte load). `countdownFn` counts `a0` down to zero: `countdownFn_total` is
-  a loop by `Total.loop`, its count an argument. `not_total_ecall`: under `stmtCtx` the run cannot
-  pass a system call other than the halt.
+  `a` into `a0`: `loadFn_next` (at `NEXT`) and `loadFn_data` (at a static data word), from
+  `loadFn_total`, hold at any `env`, and without `Windows`' alignment of `NEXT` and of the data
+  words they would be false (SP1 refuses a misaligned 8-byte load). `countdownFn` counts `a0` down
+  to zero: `countdownFn_total` is a loop by `Total.loop`, its count an argument. `not_total_ecall`:
+  under `stmtCtx` the run cannot pass a system call other than the halt.
 
   ## Main definitions
 
@@ -24,7 +24,8 @@
 
   ## Main results
 
-  * `frameFn_total`, `loadFn_total`, `loadFn_next`, `loadFn_data`, `countdownFn_total`, `not_total_ecall`
+  * `frameFn_total`, `loadFn_total`, `loadFn_next`, `loadFn_data`, `countdownFn_total`,
+    `not_total_ecall`
 -/
 
 import Rv64mc.Final.Transfer

@@ -66,7 +66,8 @@ theorem mono {G' Q' : σ → Prop} {s : σ} (h : Total R accept G Q s) (hG : ∀
   | done hg ha hq => exact .done (hG _ hg) ha (hQ _ ha hq)
   | next hg ht hw hex _ ih => exact .next (hG _ hg) ht hw hex ih
 
-/-- A state where the run does not end neither traps nor goes `wrong`, and the judgement holds at its successors. -/
+/-- A state where the run does not end neither traps nor goes `wrong`, and the judgement holds
+    at its successors. -/
 theorem of_not_end {s : σ} (h : Total R accept G Q s) (hn : ¬ (accept s ∧ Q s)) :
     ¬ R s .trap ∧ ¬ R s .wrong ∧ ∀ t, R s (.ok t) → Total R accept G Q t := by
   cases h with
@@ -264,7 +265,8 @@ theorem loop (Inv : Nat → (I.Reg → BitVec 64) → I.M → Prop)
         I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs', m'⟩) →
       I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩) :
     ∀ k regs m, Inv k regs m → I.Total p c G Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
-  fun k => Nat.strongRecOn k fun k ih regs m h => hbody k regs m h fun k' regs' m' hk => ih k' hk regs' m'
+  fun k => Nat.strongRecOn k fun k ih regs m h =>
+    hbody k regs m h fun k' regs' m' hk => ih k' hk regs' m'
 
 end Total
 

@@ -90,7 +90,8 @@ theorem mono (h : I.TContract p c G f Pre Post Stop)
 /-- **A recursive function**, by strong induction on a measure `k` in its precondition: the
     contract at `k` from the contract at every `k' < k`. -/
 theorem measure {Pre : Nat → BitVec 64 → BitVec 64 → (I.Reg → BitVec 64) → I.M → Prop}
-    (h : ∀ k, (∀ k' < k, I.TContract p c G f (Pre k') Post Stop) → I.TContract p c G f (Pre k) Post Stop) :
+    (h : ∀ k, (∀ k' < k, I.TContract p c G f (Pre k') Post Stop) →
+      I.TContract p c G f (Pre k) Post Stop) :
     ∀ k, I.TContract p c G f (Pre k) Post Stop :=
   fun k => Nat.strongRecOn k h
 

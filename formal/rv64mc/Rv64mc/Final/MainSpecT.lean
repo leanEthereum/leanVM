@@ -24,8 +24,8 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV
 def MainPostT (_regs : Reg → Word) (_m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
   r' .x10 = 0 ∨ r' .x10 = 1
 
-/-- Where `main` may end the run: at the halting `ECALL`, in an accepting state with a nonempty stack, with `a0 = 2`.
-    -/
+/-- Where `main` may end the run: at the halting `ECALL`, in an accepting state with a nonempty
+    stack, with `a0 = 2`. -/
 def MainStopT (_regs : Reg → Word) (_m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
   r' .x10 = 2
 
