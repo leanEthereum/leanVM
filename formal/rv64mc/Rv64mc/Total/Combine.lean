@@ -28,6 +28,7 @@
   ## Main results
 
   * `Ascent.Total.and_safeN`: a total judgement and a partial one along the same steps
+  * `Isa.step_congr`: a step from one stack to another, instruction by instruction
   * `Isa.step_append_ok`, `step_append_ok_inv`, `step_append_of_not_ok`, `accept_append`: a step
     under a longer stack
   * `Isa.step_ok_of_ext_not_ok`: a context whose external calls never continue steps only where
@@ -94,16 +95,29 @@ theorem stepI_append_of_not_ok {i : LinstrR I.Op I.Reg} {o : Ascent.Outcome (Sta
   | ok x => exact absurd rfl (ho x)
   | _ => cases i <;> simp only [Isa.stepI] at h ⊢ <;> (repeat' split at h) <;> simp_all
 
+/-- A step from `fr :: st` to `o` gives one from `fr :: st'` to `o'` if its instruction's does, and
+    `o'` is `wrong` where `o` is. -/
+theorem step_congr {E' : Type} {c' : Context I E'} {st' : List Frame}
+    {o : Ascent.Outcome (State I × List E)} {o' : Ascent.Outcome (State I × List E')}
+    (h : I.step p c ⟨fr :: st, regs, m⟩ o) (hw : o = .wrong → o' = .wrong)
+    (hI : ∀ body i, I.stepI p c body fr st regs m i o → I.stepI p c' body fr st' regs m i o') :
+    I.step p c' ⟨fr :: st', regs, m⟩ o' := by
+  cases hf : p[fr.fn]? with
+  | none =>
+    simp only [Isa.step, hf] at h ⊢
+    exact hw h
+  | some fd =>
+    cases hi : fd.body[fr.pc]? with
+    | none =>
+      simp only [Isa.step, hf, hi] at h ⊢
+      exact hw h
+    | some i => exact (SafeN.step_eq hf hi _).2 (hI _ _ ((SafeN.step_eq hf hi _).1 h))
+
 /-- A step from `fr :: st` is one from `fr :: st ++ rest`, `rest` appended to its result. -/
 theorem step_append_ok {t : State I} {es : List E}
     (h : I.step p c ⟨fr :: st, regs, m⟩ (.ok (t, es))) :
-    I.step p c ⟨fr :: st ++ rest, regs, m⟩ (.ok (t.append rest, es)) := by
-  cases hf : p[fr.fn]? with
-  | none => simp [Isa.step, hf] at h
-  | some fd =>
-    cases hi : fd.body[fr.pc]? with
-    | none => simp [Isa.step, hf, hi] at h
-    | some i => exact (SafeN.step_eq hf hi _).2 (stepI_append_ok ((SafeN.step_eq hf hi _).1 h))
+    I.step p c ⟨fr :: st ++ rest, regs, m⟩ (.ok (t.append rest, es)) :=
+  step_congr h nofun fun _ _ => stepI_append_ok
 
 /-- A step from `fr :: st ++ rest` is one from `fr :: st`, with `rest` appended to its result. -/
 theorem step_append_ok_inv {t : State I} {es : List E}
@@ -120,21 +134,13 @@ theorem step_append_ok_inv {t : State I} {es : List E}
 
 /-- A trap or `wrong` from `fr :: st ++ rest` is one from `fr :: st`. -/
 theorem step_append_of_not_ok {o : Ascent.Outcome (State I × List E)} (ho : ∀ x, o ≠ .ok x)
-    (h : I.step p c ⟨fr :: st ++ rest, regs, m⟩ o) : I.step p c ⟨fr :: st, regs, m⟩ o := by
-  cases hf : p[fr.fn]? with
-  | none => simpa [Isa.step, hf] using h
-  | some fd =>
-    cases hi : fd.body[fr.pc]? with
-    | none => simpa [Isa.step, hf, hi] using h
-    | some i =>
-      exact (SafeN.step_eq hf hi _).2 (stepI_append_of_not_ok ho ((SafeN.step_eq hf hi _).1 h))
+    (h : I.step p c ⟨fr :: st ++ rest, regs, m⟩ o) : I.step p c ⟨fr :: st, regs, m⟩ o :=
+  step_congr h id fun _ _ => stepI_append_of_not_ok ho
 
 /-- A state with a nonempty stack accepts under any longer stack. -/
 theorem accept_append (h : I.accept p c ⟨fr :: st, regs, m⟩) :
-    I.accept p c ⟨fr :: st ++ rest, regs, m⟩ := by
-  rcases h with h | ⟨n, hn, ha⟩
-  · cases h
-  · exact .inr ⟨n, by simpa [Isa.fetch] using hn, ha⟩
+    I.accept p c ⟨fr :: st ++ rest, regs, m⟩ :=
+  h.imp nofun id
 
 /-- **A context whose external calls never continue** steps only where any other context does:
     every instruction but an external call steps alike in every context, with no events. -/
@@ -143,17 +149,10 @@ theorem step_ok_of_ext_not_ok {E' : Type} {c' : Context I E'}
     (h : I.step p c s (.ok (t, es))) : I.step p c' s (.ok (t, [])) := by
   obtain ⟨_ | ⟨fr, rest⟩, regs, m⟩ := s
   · exact h.elim
-  cases hf : p[fr.fn]? with
-  | none => simp [Isa.step, hf] at h
-  | some fd =>
-    cases hi : fd.body[fr.pc]? with
-    | none => simp [Isa.step, hf, hi] at h
-    | some i =>
-      have h' := (SafeN.step_eq hf hi _).1 h
-      refine (SafeN.step_eq hf hi _).2 ?_
-      cases i
-      case Lext => exact absurd h'.2 (hc _ _ _ _)
-      all_goals simp only [Isa.stepI] at h' ⊢; (repeat' split at h') <;> simp_all
+  refine step_congr h nofun fun _ i h' => ?_
+  cases i
+  case Lext => exact absurd h'.2 (hc _ _ _ _)
+  all_goals simp only [Isa.stepI] at h' ⊢; (repeat' split at h') <;> simp_all
 
 end Isa
 
@@ -182,8 +181,7 @@ theorem append (hG : ∀ fr st regs m, G ⟨fr :: st, regs, m⟩ → G ⟨fr :: 
     · exact .done (hG _ _ _ _ hg) (accept_append ha) (hstop _ _ _ _ ha hq)
   | @next s hg ht hw hex _ ih =>
     obtain ⟨_ | ⟨fr, st⟩, regs, m⟩ := s
-    · obtain ⟨_, _, h⟩ := hex
-      exact h.elim
+    · obtain ⟨_, _, ⟨⟩⟩ := hex
     refine .next (hG _ _ _ _ hg) (fun h => ht (step_append_of_not_ok nofun h))
       (fun h => hw (step_append_of_not_ok nofun h)) ?_ fun t ⟨es, h⟩ => ?_
     · obtain ⟨t, es, h⟩ := hex
@@ -221,13 +219,10 @@ theorem and_contract (ht : I.TContract p c G f Pre Post Stop) (hp : I.Contract p
     fun _ => hp.run hpre' fun _ _ hq => SafeN.returned fun _ => hq
   have h := (ht.total hpre hG0).and_safeN hs (fun s t hg ⟨es, h⟩ => hstep s t es hg h)
     fun _ _ => trivial
-  refine Total.append (hG · · rest) (fun r' m' ⟨hq, hq'⟩ => ?_) (fun fr st r' m' ha ⟨hq, _⟩ => ?_) h
-  · rcases hq with ⟨-, hq⟩ | ⟨hne, -⟩
-    · exact hk r' m' ⟨hq, hq' (.inl rfl) rfl⟩
-    · exact absurd rfl hne
-  · rcases hq with ⟨hne, -⟩ | ⟨-, hq⟩
-    · cases hne
-    · exact hstop fr (st ++ rest) r' m' hq (accept_append ha)
+  exact Total.append (hG · · rest)
+    (fun r' m' ⟨hq, hq'⟩ => hk r' m' ⟨(hq.resolve_right (·.1 rfl)).2, hq' (.inl rfl) rfl⟩)
+    (fun fr st r' m' ha ⟨hq, _⟩ =>
+      hstop fr (st ++ rest) r' m' (hq.resolve_left (nomatch ·.1)).2 (accept_append ha)) h
 
 end Isa.TContract
 
