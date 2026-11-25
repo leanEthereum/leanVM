@@ -5,7 +5,7 @@ interface (`Mode.FnSpecC`); `Gen/<pack>/Route.lean`, its core data the deployed 
 check `callc.py` windowed (`GenW/<fn>/`) is taken from its windows; a body longer than `SPLIT` statements has its
 longest passes checked as declarations of their own (the kernel's memory goes by declaration).
 Usage: python3 -I scripts/core-mode/core.py [--check]  (with `CORE_MODE_CACHE` as for `heap.py`)"""
-import os, re, sys, glob, collections
+import os, re, sys, glob, collections, itertools
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.append(os.path.join(HERE, '..'))
@@ -190,12 +190,15 @@ K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
 def tagged(lemma, ts, imps):
-    """A residual check's proof by `lemma` (`ResTag.lean`) from its tags `ts`, its import added to `imps`; `None`
-    without tags."""
+    """A residual check's proof by `lemma` (`ResTag.lean`) from its tags `ts`, written as runs (`tagRuns`) without
+    a last run of `0`s, its import added to `imps`; `None` without tags."""
     if not ts:
         return None
     imps.add('LeanVM.Guest.CoreMode.ResTag')
-    return f'CoreMode.{lemma} (ts := [{", ".join(map(str, ts))}]) {DK}'
+    runs = [(t, len(list(g))) for t, g in itertools.groupby(ts)]
+    if runs[-1][0] == 0:
+        runs.pop()
+    return f'CoreMode.{lemma} (ts := CoreMode.tagRuns [{", ".join(f"({t}, {n})" for t, n in runs)}]) {DK}'
 
 
 def thm(k, name, stmt, prf=DK):

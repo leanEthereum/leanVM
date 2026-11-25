@@ -53,6 +53,10 @@ noncomputable def resTagged (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ))
   | [], _ => true
   | r :: l, ts => resFamFrom fn xc gw (ts.headD 0) r && resTagged fn xc gw l ts.tail
 
+/-- The tags of the runs `rs`: each `(t, n)` is `n` residuals of tag `t`. -/
+def tagRuns (rs : List (ℕ × ℕ)) : List ℕ :=
+  rs.flatMap fun r => List.replicate r.2 r.1
+
 theorem all_of_tagged {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} :
     ∀ {l : List CRes} {ts : List ℕ}, resTagged fn xc gw l ts = true → l.all (resFamG fn xc gw) = true
   | [], _, _ => rfl
