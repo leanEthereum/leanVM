@@ -85,23 +85,23 @@ theorem total (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : Abo
   · tsteps hp
     refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by simp [updReg_apply]))
       (by simp [updReg_apply, hsp]) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
-    simpa [condEval, operandVal, cmpEval, updReg_apply, inputLenAt_eq] using hc
+    rw [inputLenAt_eq]
+    exact BitVec.eq_of_toNat_eq hc
   -- the next word: `q` the slice's pointer, `l ≠ 0` its length
-  · have hl0 : m.getMem (regs .x10 + 8#64) ≠ 0 := by simpa [condEval, operandVal, cmpEval] using hc
-    have hl1 : 1 ≤ (m.getMem (regs .x10 + 8#64)).toNat :=
-      Nat.one_le_iff_ne_zero.2 fun h => hl0 (BitVec.eq_of_toNat_eq (by rw [h]; rfl))
+  · have hl0 : m.getMem (regs .x10 + 8#64) ≠ 0 := fun h => hc (by rw [h]; rfl)
+    have hl1 : 1 ≤ (m.getMem (regs .x10 + 8#64)).toNat := Nat.one_le_iff_ne_zero.2 hc
     have hwq : inWindow (m.getMem (regs .x10)) 8 = true := hwin.heapObj hqlo (by omega)
     tsteps hp
-    refine TotalRv.ld8 hp rfl (by tnorm; exact hw0) (by tnorm; omega) ?_
+    refine TotalRv.ld8 hp rfl (by tnorm; exact hw0) (by tomega) ?_
     tnorm
     tsteps hp
-    refine TotalRv.ld8 hp rfl (by tnorm; exact hwq) (by tnorm; omega) ?_
+    refine TotalRv.ld8 hp rfl (by tnorm; exact hwq) (by tomega) ?_
     tnorm
     tsteps hp
-    refine TotalRv.sd8 hp rfl (by tnorm; exact hw0) (by tnorm; omega) (by tnorm; exact hwin.noCodeAt hw0 (by decide)) ?_
+    refine TotalRv.sd8 hp rfl (by tnorm; exact hw0) (by tomega) (by tnorm; exact hwin.noCodeAt hw0 (by decide)) ?_
     tnorm
     tsteps hp
-    refine TotalRv.sd8 hp rfl (by tnorm; exact hw8) (by tnorm; omega) (by tnorm; exact hwin.noCodeAt hw8 (by decide)) ?_
+    refine TotalRv.sd8 hp rfl (by tnorm; exact hw8) (by tomega) (by tnorm; exact hwin.noCodeAt hw8 (by decide)) ?_
     tnorm
     tsteps hp
     refine TotalRv.ret hp rfl (by tnorm; exact hra) (by tnorm; exact hsp) ?_

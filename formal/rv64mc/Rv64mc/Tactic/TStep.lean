@@ -10,15 +10,16 @@
   `tstep hp` takes one step at a label, a register write or a jump, then computes the state's
   register values (`tnorm`), so that the register file stays a chain of writes of values over the
   entry's rather than of expressions over the previous files; `tsteps hp` as many as it can;
-  `tcond hp as h` steps a branch into its two outcomes, each with the comparison's value as a
-  hypothesis `h`. A load, a store, a call, a return and an `ECALL` are left to the rules here
+  `tcond hp as h` steps a branch into its two outcomes, each with the comparison's outcome as a
+  hypothesis `h`, over `toNat` for an unsigned comparison or one with zero (`ult_eq_true`, …). A load, a store, a call, a return and an `ECALL` are left to the rules here
   and to `HoldsT.call`, `Aborts.call`, `Total.ext_done`.
 
   ## Main results
 
   * `label`, `set`, `goto`, `cond`, `ret`: the rules with `WinOk` discharged
   * `ld8`, `lbu`, `sd8`, `sb`: a load or store of a doubleword or a byte
-  * `tnorm`, `tstep`, `tsteps`, `tcond`
+  * `ult_eq_true`, `beq_zero_eq_true`, …: a branch's outcome over `toNat`
+  * `tnorm`, `tomega`, `tstep`, `tsteps`, `tcond`
 -/
 
 import Rv64mc.Core.HoldsT
@@ -102,6 +103,24 @@ theorem sb {a e : Expr Reg} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.
   Total.opn hf hi (by simp [Op.eval, rvMem, valid_of_inWindow hw, alignedFor, hnc, Width.bytes])
     (WinOk.of_opn hf hi (by simpa [opWin, Width.bytes] using hw)) h
 
+/-! ## A branch's outcome as a fact about numbers -/
+
+variable {a b : Word}
+
+theorem ult_eq_true : a.ult b = true ↔ a.toNat < b.toNat := by simp [BitVec.ult]
+theorem ult_eq_false : a.ult b = false ↔ b.toNat ≤ a.toNat := by simp [BitVec.ult]
+theorem not_ult_eq_true : (!a.ult b) = true ↔ b.toNat ≤ a.toNat := by simp [BitVec.ult]
+theorem not_ult_eq_false : (!a.ult b) = false ↔ a.toNat < b.toNat := by simp [BitVec.ult]
+
+theorem beq_zero_eq_true : (a == BitVec.ofInt 64 0) = true ↔ a.toNat = 0 := by
+  simp [← BitVec.toNat_inj]
+theorem beq_zero_eq_false : (a == BitVec.ofInt 64 0) = false ↔ a.toNat ≠ 0 := by
+  simp [← BitVec.toNat_inj]
+theorem bne_zero_eq_true : (a != BitVec.ofInt 64 0) = true ↔ a.toNat ≠ 0 := by
+  simp [← BitVec.toNat_inj]
+theorem bne_zero_eq_false : (a != BitVec.ofInt 64 0) = false ↔ a.toNat = 0 := by
+  simp [← BitVec.toNat_inj]
+
 end Rv64mc.TotalRv
 
 /-- The state's register values computed: each `Expr.eval` of a register write unfolded, and a read of a register
@@ -109,6 +128,9 @@ end Rv64mc.TotalRv
     Also the side goals' addresses, and `noCodeAt` through a store. -/
 macro "tnorm" : tactic => `(tactic| simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply,
   reduceCtorEq, ↓reduceIte, BitVec.add_zero, BitVec.zero_add, Lprog.RiscV.noCodeAt_setMem])
+
+/-- A side goal about numbers: `tnorm`, then `omega` on what is left. -/
+macro "tomega" : tactic => `(tactic| ((try tnorm) <;> omega))
 
 /-- One step of a `rvIsa.Total … (WinOk p)` goal at a label, a register write or a jump of the template `hp`, then
     `tnorm`. -/
@@ -120,9 +142,11 @@ macro "tstep " hp:term : tactic => `(tactic| (first
 /-- `tstep` while it applies. -/
 macro "tsteps " hp:term : tactic => `(tactic| repeat tstep $hp)
 
-/-- A branch of the template `hp`: two goals, `h` the comparison's value, true (the jump) and false, with `tnorm` run
-    on it. -/
+/-- A branch of the template `hp`: two goals, `h` the comparison's outcome, the jump's and the fall-through's, with
+    `tnorm` run on it and an unsigned comparison or one with zero stated over `toNat`. -/
 macro "tcond " hp:term " as " h:ident : tactic =>
   `(tactic| (refine Rv64mc.TotalRv.cond $hp rfl rfl rfl (fun $h => ?_) (fun $h => ?_) <;>
     try simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply, reduceCtorEq, ↓reduceIte, BitVec.add_zero,
-      BitVec.zero_add] at $h:ident))
+      BitVec.zero_add, Rv64mc.TotalRv.ult_eq_true, Rv64mc.TotalRv.ult_eq_false, Rv64mc.TotalRv.not_ult_eq_true,
+      Rv64mc.TotalRv.not_ult_eq_false, Rv64mc.TotalRv.beq_zero_eq_true, Rv64mc.TotalRv.beq_zero_eq_false,
+      Rv64mc.TotalRv.bne_zero_eq_true, Rv64mc.TotalRv.bne_zero_eq_false] at $h:ident))

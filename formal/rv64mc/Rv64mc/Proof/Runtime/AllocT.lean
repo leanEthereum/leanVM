@@ -71,17 +71,16 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
   refine TotalRv.ld8 hp rfl (by simpa [Expr.eval, BinOp.eval, updReg_apply, hd] using hin)
     (by simpa [Expr.eval, BinOp.eval, updReg_apply, hd] using hwin.nextAddr_aligned) ?_
   tsteps hp
+  simp only [hd]
+  generalize ((if (m.getMem env.nextAddr &&& 7#64).ult 1#64 = true then (1 : Word) else 0) +
+    18446744073709551615#64 &&& 8#64 - (m.getMem env.nextAddr &&& 7#64)) + m.getMem env.nextAddr = S at hS ⊢
+  have hE : (S + regs .x10).toNat = S.toNat + (regs .x10).toNat := by
+    rw [BitVec.toNat_add]
+    omega
+  have hx : (2013265920#64 : Word).toNat = 0x78000000 := by decide
   tcond hp as hc
-  all_goals simp only [hd] at hc ⊢
-  all_goals generalize ((if (m.getMem env.nextAddr &&& 7#64).ult 1#64 = true then (1 : Word) else 0) +
-    18446744073709551615#64 &&& 8#64 - (m.getMem env.nextAddr &&& 7#64)) + m.getMem env.nextAddr = S at hc hS ⊢
-  all_goals have hE : (S + regs .x10).toNat = S.toNat + (regs .x10).toNat :=
-    (by rw [BitVec.toNat_add]; omega)
   -- the block fits: store its end in `NEXT` and return its start
-  · have hfit : S.toNat + (regs .x10).toNat ≤ 0x78000000 := by
-      simp only [Bool.not_eq_true', BitVec.ult, decide_eq_false_iff_not, hE] at hc
-      have : (2013265920#64 : Word).toNat = 0x78000000 := by decide
-      omega
+  · have hfit : S.toNat + (regs .x10).toNat ≤ 0x78000000 := by omega
     tsteps hp
     refine TotalRv.sd8 hp rfl (by simpa [Expr.eval, BinOp.eval, updReg_apply, hd] using hin)
       (by simpa [Expr.eval, BinOp.eval, updReg_apply, hd] using hwin.nextAddr_aligned)
@@ -89,7 +88,6 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
     simp only [Expr.eval, BinOp.eval, updReg_apply, reduceCtorEq, ↓reduceIte, hd]
     tsteps hp
     refine TotalRv.ret hp rfl (by simp [updReg_apply, hra]) (by simp [updReg_apply, hsp]) ?_
-    have hx : (2013265920#64 : Word).toNat = 0x78000000 := by decide
     refine hk _ _ ⟨⟨?_, Alloc.frame_setNext ?_ ?_, Alloc.static_setNext hst, ?_, ?_, ?_⟩, rfl⟩
     · simp (disch := decide) only [AbiRegs.updReg_iff]
       exact AbiRegs.refl hsp
@@ -108,8 +106,6 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
   · tsteps hp
     refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by simp [updReg_apply]))
       (by simp [updReg_apply, hsp]) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
-    simp only [Bool.not_eq_false', BitVec.ult, decide_eq_true_eq, hE] at hc
-    have hx : (2013265920#64 : Word).toNat = 0x78000000 := by decide
     show env.heapEnd.toNat < ((m.getMem env.nextAddr).toNat + 7) / 8 * 8 + (regs .x10).toNat
     rw [hend, hx]
     omega
