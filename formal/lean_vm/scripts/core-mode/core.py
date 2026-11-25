@@ -167,10 +167,11 @@ def res_tags(k, blk, name=None):
     elif '\n  res := (' in blk:
         return None
     else:
-        m = re.search(r'\n  res := (\[.*?\])\n(?=  [a-z]|\n|$)', blk + '\n', re.S)
+        m = re.search(r'\n  res := (?:data% )?(\[.*?\])\n(?=  [a-z]|\n|$)', blk + '\n', re.S)
     if not m:
         raise SystemExit(f'core: no residual list {name or "res"} of {k}')
-    ts = restag.tags(k, m.group(1), route.sigs().get(k))
+    # a list `callc.py` writes as `data% [...]` (`data_lit`)
+    ts = restag.tags(k, m.group(1).strip().removeprefix('data% '), route.sigs().get(k))
     return ts if ts and (any(ts) or len(ts) >= RES_IX) else None
 
 

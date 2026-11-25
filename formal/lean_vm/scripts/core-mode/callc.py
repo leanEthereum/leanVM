@@ -1293,6 +1293,14 @@ def arm_def(k, r, sel, po, base, ns):
             f'end\n\nend {ns}\n')
 
 
+def data_lit(t):
+    """A `DataC` file's list literals built as terms (`data%`, `Guest/DataLit.lean`): each declaration's or structure
+    field's value that is a list literal."""
+    t = re.sub(r'(:=\n  |\n  [a-z][A-Za-z0-9]* := )\[', r'\1data% [', t)
+    return t.replace('public import LeanVM.Guest.CoreMode.Defs\n',
+                     'public import LeanVM.Guest.CoreMode.Defs\npublic import LeanVM.Guest.DataLit\n', 1)
+
+
 def emit(R, check):
     import heap
     po = heap.pack_of()
@@ -1311,7 +1319,7 @@ def emit(R, check):
         imps = sorted({po[c][0] for c in used})
         out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n' +
                                 ''.join(f'public import LeanVM.Guest.CoreMode.Gen.«{q}».Sig\n' for q in imps))
-        files[os.path.join(GEN, pack, 'DataC.lean')] = ''.join(out)
+        files[os.path.join(GEN, pack, 'DataC.lean')] = data_lit(''.join(out))
     sigp = collections.defaultdict(lambda: ([], []))
     for k in R:
         if in_sigs(k, R[k], shared):
