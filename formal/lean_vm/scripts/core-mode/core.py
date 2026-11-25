@@ -175,6 +175,7 @@ def res_tags(k, blk, name=None):
 
 
 DK = '(by decide +kernel)'
+LEN = '(by rw [List.length_flatten]; decide +kernel)'
 # residuals from which a list's check reads the atoms indexed (`res_tags`)
 RES_IX = 8
 K = '⟨envC, funC, code.chunks.flatten⟩'
@@ -542,7 +543,8 @@ def loop_long(k, j, frame):
              ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
              ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
              ('xentry', 'cfun.X.entry = funC.entry')]
-    out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
+    # a length of the code: of its chunks, summed, not of their concatenation
+    out = ''.join(thm(k, 'loop_' + n, st, LEN if n.endswith('len') else DK) for n, st in parts)
     out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (funC.entry + i) = '
                f'Mode.hintsAt cfun.frame.hints (funC.entry + i)',
                f'Mode.hintsEq_of_fn (K := {K}) (j := Fn.«{k}».idx) (d := Fn.«{k}».advice) {DK} {DK} {DK} rfl')
@@ -730,12 +732,14 @@ def main(check=False):
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
                 # the pointers' cells read from a trie (`RouteFast.lean`), not the cells' list
+                # and a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list
                 fast = ''
                 if ptr_trie(k):
                     rimps.add('LeanVM.Guest.CoreMode.RouteFast')
-                    fast = 'rw [CoreMode.ptrCellB_eq]; '
+                    fast = ', CoreMode.ptrCellB_eq'
+                pre = {'ptr': f'rw [← CoreMode.stmtsAll_eq{fast}]; ', 'ret': 'rw [← CoreMode.stmtsAll_eq]; '}
                 for nm, st, doc in parts:
-                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by {fast if nm == "ptr" else ""}decide +kernel\n')
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := by {pre.get(nm, "")}decide +kernel\n')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
             # each its own declaration, its own heartbeats

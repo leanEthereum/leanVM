@@ -195,9 +195,9 @@ noncomputable def loopShapeOk0 (Cf : CFun) : Bool :=
       | none => true) &&
     Cf.frame.sig.entry.contains 0 && Cf.frame.sig.entry.contains 1 &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints &&
-    (stmtsOf Cf.fn.body).all fun s ↦ match s with
+    stmtsAll (fun s ↦ match s with
       | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
-      | _ => true
+      | _ => true) Cf.fn.body
 
 /-- **`loopShapeOk0`'s conjuncts**, by name. -/
 structure LoopShape0 (Cf : CFun) : Prop where
@@ -215,7 +215,7 @@ structure LoopShape0 (Cf : CFun) : Prop where
   cif : ∀ c f args, Stmt.callIf c f args ∈ stmtsOf Cf.fn.body → Cf.X.nzAt (Cf.X.locAt c.idx) = false
 
 theorem LoopShape0.of_ok {Cf : CFun} (h : loopShapeOk0 Cf = true) : LoopShape0 Cf := by
-  simp only [loopShapeOk0, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
+  simp only [loopShapeOk0, stmtsAll_eq, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq, List.all_eq_true,
     Option.isNone_iff_eq_none, List.contains_iff_mem] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩, h11⟩, h12⟩ := h
   refine ⟨h1, h2, h3, h4, h5, h6, fun o ho ↦ ?_, h8, h9, h10, h11, fun c f args hc ↦ by simpa using h12 _ hc⟩
@@ -320,18 +320,18 @@ noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
 cells excluded by `calleePtrOk`): the heap facts read the memory through no reader. -/
 noncomputable def noPtrL (Cf : CFun) : Bool :=
   Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty &&
-    (stmtsOf Cf.fn.body).all fun s ↦ match s with
+    stmtsAll (fun s ↦ match s with
       | .call g _ _ => (Cf.sigOf g).postPR.isEmpty
       | .callIf _ g _ => g == Cf.fn.name || (Cf.sigOf g).postPR.isEmpty
-      | _ => true
+      | _ => true) Cf.fn.body
 
 /-- **Each call of the body** (a conditional one of another function, not its tail `callIf`) checked by
 `callChk`. -/
 noncomputable def callsBL (Cf : CFun) : Bool :=
-  (stmtsOf Cf.fn.body).all fun s ↦ match s with
+  stmtsAll (fun s ↦ match s with
     | .call g args _ => callChk Cf g args
     | .callIf _ g args => g == Cf.fn.name || callChk Cf g args
-    | _ => true
+    | _ => true) Cf.fn.body
 
 /-- A call statement of the body: a `call`, or a conditional call of another function. -/
 def CallSt (body : List Stmt) (nm : String) (f : String) (args rets : List V) : Prop :=
@@ -339,27 +339,30 @@ def CallSt (body : List Stmt) (nm : String) (f : String) (args rets : List V) : 
 
 theorem callsBL_chk {Cf : CFun} (hcb : callsBL Cf = true) {f : String} {args rets : List V}
     (hs : CallSt Cf.fn.body Cf.fn.name f args rets) : callChk Cf f args = true := by
+  rw [callsBL, stmtsAll_eq] at hcb
   rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
   · exact List.all_eq_true.mp hcb _ hs
   · have := List.all_eq_true.mp hcb _ hs
     simp only [Bool.or_eq_true, beq_iff_eq] at this
     exact this.resolve_left hne
 
-theorem cptr_of {Cf : CFun} (h : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true) {f : String}
+theorem cptr_of {Cf : CFun} (h : stmtsAll (calleePtrOk Cf) Cf.fn.body = true) {f : String}
     {args rets : List V} (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
     ((Cf.sigOf f).postP.isEmpty && (Cf.sigOf f).postQ.isEmpty &&
       (Cf.sigOf f).postPR.all fun p ↦ runIn p.1 (Cf.sigOf f).postR) = true := by
+  rw [stmtsAll_eq] at h
   rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
   · exact List.all_eq_true.mp h _ hs
   · have := List.all_eq_true.mp h _ hs
     simp only [calleePtrOk, Bool.or_eq_true, beq_iff_eq] at this
     exact this.resolve_left hne
 
-theorem noPtrL_of {Cf : CFun} (h : ((stmtsOf Cf.fn.body).all fun s ↦ match s with
+theorem noPtrL_of {Cf : CFun} (h : stmtsAll (fun s ↦ match s with
       | .call g _ _ => (Cf.sigOf g).postPR.isEmpty
       | .callIf _ g _ => g == Cf.fn.name || (Cf.sigOf g).postPR.isEmpty
-      | _ => true) = true) {f : String} {args rets : List V} (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
+      | _ => true) Cf.fn.body = true) {f : String} {args rets : List V} (hs : CallSt Cf.fn.body Cf.fn.name f args rets) :
     (Cf.sigOf f).postPR.isEmpty = true := by
+  rw [stmtsAll_eq] at h
   rcases hs with hs | ⟨-, ⟨c, hs⟩, hne⟩
   · exact List.all_eq_true.mp h _ hs
   · have := List.all_eq_true.mp h _ hs
@@ -393,8 +396,8 @@ structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
   jtd : jtdOk Cf K.E K.code = true
   calls : callsBL Cf = true
   top : Cf.fn.body.all topOk = true
-  rdFree : ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true
-  cptr : (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true
+  rdFree : (stmtsAll rdFree Cf.fn.body || noPtrL Cf) = true
+  cptr : stmtsAll (calleePtrOk Cf) Cf.fn.body = true
   ders : Cf.H.ders = []
   gw : Cf.H.sig.gw = []
   nofa : noFA Cf.fn.body = true
@@ -566,7 +569,7 @@ theorem atom_holds_swap {rd rd' : Reader} {σ : Val} {a : Atom} (hf : rdFree (.a
 
 /-- **The path's events hold at a reader agreeing with the reference at the cells written at the tail
 call.** -/
-theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (_hok : LoopOkC K Cf) (hrf : (stmtsOf Cf.fn.body).all rdFree = true)
+theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (_hok : LoopOkC K Cf) (hrf : stmtsAll rdFree Cf.fn.body = true)
     {img : MemoryImage κ} {m : Mem} {rd : Reader}
     {σ0 : Val} {pre es evs : List Ev} {cs : List Atom} {c : V} {args : List V}
     (hb : walk σ0 Cf.fn.body = .ret (pre ++ es) []) (hh0 : ∀ e ∈ pre ++ es, e.Holds img.read σ0)
@@ -580,7 +583,7 @@ theorem holds_memRd {K : Mode.Cert} {Cf : CFun} (_hok : LoopOkC K Cf) (hrf : (st
   have h := hh0 e he
   cases e with
   | atom a =>
-    refine atom_holds_swap (List.all_eq_true.mp hrf _ (hatoms a he)) (fun d p off ha ↦ ?_) h
+    refine atom_holds_swap (List.all_eq_true.mp (stmtsAll_eq _ _ ▸ hrf) _ (hatoms a he)) (fun d p off ha ↦ ?_) h
     subst ha
     have hin : Ev.atom (.load d p off) ∈ pre ++ evs := by
       rw [heq, ← List.append_assoc] at he
@@ -1491,7 +1494,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
         | tail e _ hpc' => rw [hpc', hok.fentry, ← hok.xentry] at hpco; omega
         | call G t _ _ hG _ _ _ =>
           have h := List.all_eq_true.mp hsh.sigsOut o (List.mem_range.mpr (by rw [hlen]; exact hol))
-          simp only [Bool.or_eq_true, Nat.beq_eq] at h
+          simp only [Bool.or_eq_true, Nat.beq_eq, getQ_eq] at h
           rcases h with h | h
           · omega
           rw [hpco, hok.xentry, ← hok.fentry] at hG
