@@ -1,0 +1,19 @@
+# Models of Rust standard library items the extractions use and the pinned hax Lean library
+# (CoreModels) lacks, shared by every extraction. Each is a candidate for upstreaming there.
+name = "CoreModelsExt"
+defaultTargets = ["CoreModelsExt"]
+packagesDir = "../.lake/packages"
+
+[[lean_lib]]
+name = "CoreModelsExt"
+
+[[require]]
+name = "aeneas"
+git = "https://github.com/cryspen/aeneas"
+rev = "build-41977a5"
+subDir = "backends/lean"
+
+[[require]]
+name = "hax"
+git = "https://github.com/cryspen/hax-lean"
+rev = "v0.3.34"

@@ -1,0 +1,74 @@
+diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
+index 8655ef581..e31b40fe4 100644
+--- a/crates/verifier/src/bus.rs
++++ b/crates/verifier/src/bus.rs
+@@ -284,7 +284,7 @@ pub fn table_sumcheck(
+             let n_constraints = table.n_constraints();
+             let summand = dot(
+                 &constraint_powers[cursor..cursor + n_constraints],
+-                &(table.constraints)(evaluations),
++                &table.constraints(evaluations),
+             );
+             let form_values: Vec<E> = forms.iter().map(|form| form.evaluate(evaluations)).collect();
+             terminal += weight * (summand + dot(form_powers, &form_values));
+diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
+index 4b5f04544..60b46652e 100644
+--- a/crates/verifier/src/layout.rs
++++ b/crates/verifier/src/layout.rs
+@@ -195,12 +195,19 @@ pub struct Table {
+     pub columns: Vec<String>,
+     pub padding: Vec<E>, // the row a padding row holds
+     pub flushes: Flushes,
+-    pub constraints: fn(&[E]) -> Vec<E>,
+ }
+ 
+ impl Table {
++    pub fn constraints(&self, columns: &[E]) -> Vec<E> {
++        if self.opcode == OP_JUMP {
++            jump_constraints(columns)
++        } else {
++            vec![]
++        }
++    }
++
+     pub fn n_constraints(&self) -> usize {
+-        (self.constraints)(&vec![ZERO; self.width()]).len()
++        self.constraints(&vec![ZERO; self.width()]).len()
+     }
+ 
+     pub fn width(&self) -> usize {
+@@ -453,15 +460,14 @@ fn keccak_columns() -> Vec<String> {
+ }
+ 
+ pub fn tables() -> Vec<Table> {
+-    let table = |opcode, columns: Vec<String>, flushes, constraints| Table {
++    let table = |opcode, columns: Vec<String>, flushes| Table {
+         opcode,
+         padding: vec![ZERO; columns.len()],
+         columns,
+         flushes,
+-        constraints,
+     };
+     let named = |columns: &[&str]| columns.iter().map(|name| name.to_string()).collect();
+-    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak(), |_| vec![]);
++    let mut keccak = table(OP_KECCAK, keccak_columns(), flushes_keccak());
+     // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
+     let mut output = [0; STATE_LANES];
+     keccak_f(&mut output);
+@@ -469,11 +475,11 @@ pub fn tables() -> Vec<Table> {
+         *padding = E::new(lane, 0);
+     }
+     vec![
+-        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false), |_| vec![]),
+-        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true), |_| vec![]),
+-        table(OP_SET, named(SET_COLUMNS), flushes_set(), |_| vec![]),
+-        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref(), |_| vec![]),
+-        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump(), jump_constraints),
++        table(OP_XOR, named(ARITH_COLUMNS), flushes_arith(OP_XOR, false)),
++        table(OP_MUL, named(ARITH_COLUMNS), flushes_arith(OP_MUL, true)),
++        table(OP_SET, named(SET_COLUMNS), flushes_set()),
++        table(OP_DEREF, named(DEREF_COLUMNS), flushes_deref()),
++        table(OP_JUMP, named(JUMP_COLUMNS), flushes_jump()),
+         keccak,
+     ]
+ }

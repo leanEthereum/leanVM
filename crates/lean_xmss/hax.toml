@@ -1,0 +1,44 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/lean-xmss/lean.
+[scenario.lean-xmss]
+backend = "lean"
+opaque = [
+  # The bottom-tree cache behind a `Mutex` (scheme.rs:229): std's interior mutability.
+  "crate::scheme::_::bottom_tree",
+
+  # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be
+  # patched, modelled, or reduced to a reportable case.
+  "crate::scheme::_::from_cache_bytes",  # Aeneas: unsupported operation: &raw const (*_14.1) with_metadata(copy _14.1.me
+  "crate::scheme::_::parts",  # Aeneas: unimplemented
+  "crate::scheme::_::read",  # Aeneas: end_abs_aux: detected a loop in the chain of ids: abs@2(level:0) -> ab
+  "crate::scheme::_::to_bytes",  # Aeneas: unimplemented
+  "crate::tree::levels",  # Aeneas: there should be no bottoms in the value
+  "crate::LEAF_INDEX_SIZE",  # Lean: unknown identifier `core.mem.size_of`
+  "crate::scheme::CACHED_BOTTOM_SIZE",  # Lean: unknown identifier `core.mem.size_of`
+  "crate::scheme::_::cache",  # Lean: unknown constant `std.sync.poison.mutex.mutex.lock`
+  "crate::scheme::_::cache_to_bytes",  # Lean: unknown identifier `alloc.collections.vec_deque.iter.iter`
+  "crate::scheme::take",  # Lean: unknown identifier `core.slice.slice.split_first_chunk`
+  "crate::scheme::use_cached",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.iter`
+  "crate::scheme::verify",  # Lean: type mismatch
+  "crate::scheme::{impl core::cmp::PartialOrd for crate::scheme::LeanXmssPublicKey}::partial_cmp",  # Lean: `min` is not a field of structure `core.cmp.ord`
+  "crate::tree::_::from_bytes",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::tree::_::path",  # Lean: unknown constant `alloc.vec.vec.insts.coreitertraitscollectextend.exte
+  "crate::tree::subtree",  # Lean: unknown constant `core.ops.range.rangeinclusive.insts.coreitertraitsit
+  "crate::wots::least_trial",  # Lean: unknown constant `core.ops.range.rangefrom.insts.coreitertraitsiterato
+  "crate::wots::wots_secrets",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::wots::wots_sign",  # Lean: unknown identifier `alloc.slice.slice.concat`
+  "crate::wots::wots_public_leaves",  # Aeneas: internal error, please file an issue
+  "crate::hash::th_many",  # Lean: unknown identifier `keccak256.lanes.hash_many`
+]
+exclude = [
+  # Serde: the derived (de)serializers and the array helper, which Aeneas cannot translate
+  # (a visitor mutually recursive with its trait impl). The byte layouts are `to_bytes` and
+  # `from_bytes`, which are extracted.
+  "crate::array_serialization",
+  "{impl serde_core::ser::Serialize for _}",
+  "{impl serde_core::de::Deserialize for _}",
+  # Derived `Hash`, unused here: hashing an array has no model in the hax Lean library.
+  "{impl core::hash::Hash for _}",
+  # Key generation from an RNG: a `rand` call, then `key_gen_from_seed`, which is extracted.
+  "crate::scheme::key_gen",
+]

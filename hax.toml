@@ -1,0 +1,10 @@
+# Versions of the Rust-to-Lean toolchain every extraction uses (formal/extraction/README.md).
+# They move together: the aeneas build pins the Lean library its output needs, and charon
+# must be the one that aeneas build reads.
+[tools]
+aeneas = "build-41977a5"
+charon = "nightly-2026.10.17"
+
+[versions]
+lean = "leanprover/lean4:v4.35.0"
+hax-lean-lib = "v0.3.34"

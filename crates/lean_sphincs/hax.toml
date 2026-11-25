@@ -1,0 +1,24 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/lean-sphincs/lean.
+[scenario.lean-sphincs]
+backend = "lean"
+opaque = [
+  # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be
+  # patched, modelled, or reduced to a reportable case.
+  "crate::scheme::_::from_bytes",  # Aeneas: unimplemented
+  "crate::scheme::merkle_levels",  # Aeneas: internal error, please file an issue
+  "crate::fors::fors_recover",  # Lean: unknown identifier `core.mut0f.insts.coreopsfunctionfnmut`
+  "crate::hash::h_msg",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::scheme::_::to_bytes",  # Lean: unknown identifier `core.sharedaarray.insts.coreitertraitscollectintoi
+  "crate::scheme::path_range",  # Lean: unknown constant `core.iter.traits.iterator.iterator.sum.default`
+  "crate::scheme::sign",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::scheme::verify",  # Lean: type mismatch
+  "crate::wots::_::of_index",  # Lean: unknown constant `core.iter.traits.iterator.iterator.sum.default`
+  "crate::wots::codeword",  # Lean: unknown constant `core.iter.traits.iterator.iterator.sum.default`
+]
+exclude = [
+  "{impl serde_core::ser::Serialize for _}",
+  "{impl serde_core::de::Deserialize for _}",
+  "{impl core::hash::Hash for _}",
+  "crate::scheme::key_gen",
+]

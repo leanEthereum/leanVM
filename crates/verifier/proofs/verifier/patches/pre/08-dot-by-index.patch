@@ -1,0 +1,15 @@
+diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
+index 6e09c2222..35c847ea1 100644
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -79,8 +79,8 @@ pub fn eq_eval(left: &[E], right: &[E]) -> E {
+ pub fn dot(left: &[E], right: &[E]) -> E {
+     assert_eq!(left.len(), right.len());
+     let mut result = ZERO;
+-    for (&x, &y) in left.iter().zip(right) {
+-        result += x * y;
++    for i in 0..left.len() {
++        result += left[i] * right[i];
+     }
+     result
+ }

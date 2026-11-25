@@ -1,0 +1,123 @@
+diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
+index b2d3a98ec..8655ef581 100644
+--- a/crates/verifier/src/bus.rs
++++ b/crates/verifier/src/bus.rs
+@@ -44,7 +44,7 @@ fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Resul
+         let combiner = transcript.sample();
+         let claim = poly_eval(&values, combiner);
+         // The product is degree 2^step, so one more coefficient than that per round.
+-        let equalities: Vec<Option<E>> = point.iter().copied().map(Some).collect();
++        let equalities: Vec<Option<E>> = point.iter().map(|&x| Some(x)).collect();
+         let (x, claim) = sumcheck(transcript, claim, (1 << step) + 1, &equalities)?;
+ 
+         let children = (0..N_TREES)
+@@ -83,11 +83,10 @@ struct BusLayout {
+ }
+ 
+ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
+-    let sizes: Vec<usize> = framework_log_rows
+-        .iter()
+-        .copied()
+-        .chain(blocks.iter().map(|block| block.log_rows))
+-        .collect();
++    let mut sizes: Vec<usize> = framework_log_rows.to_vec();
++    for block in blocks {
++        sizes.push(block.log_rows);
++    }
+     let (offsets, depth) = stack_offsets(&sizes);
+     let mut framework: Vec<Placement> = sizes
+         .iter()
+@@ -263,7 +262,7 @@ pub fn table_sumcheck(
+     target: E,
+     transcript: &mut Transcript,
+ ) -> Result<Vec<TableEvaluations>, VerifierError> {
+-    let n_rounds = table_log_heights.iter().copied().max().unwrap_or(0);
++    let n_rounds = *table_log_heights.iter().max().unwrap_or(&0);
+     let (challenges, claim) = sumcheck(transcript, target, 4, &vec![None; n_rounds])?;
+     let point: Vec<E> = challenges.into_iter().rev().collect();
+     let mut weights = vec![ONE; tables.len()];
+diff --git a/crates/verifier/src/keccak.rs b/crates/verifier/src/keccak.rs
+index 5fb1682bf..3c6476349 100644
+--- a/crates/verifier/src/keccak.rs
++++ b/crates/verifier/src/keccak.rs
+@@ -115,7 +115,7 @@ fn instance_weights(s: E) -> Vec<E> {
+     }
+     RMFE_EMBED
+         .iter()
+-        .map(|&e| E::sum((0..EMBED_BITS).filter(|b| e >> b & 1 == 1).map(|b| powers[b])))
++        .map(|&e| E::sum((0..EMBED_BITS).map(|b| if e >> b & 1 == 1 { powers[b] } else { ZERO })))
+         .collect()
+ }
+ 
+@@ -130,11 +130,13 @@ fn verify_layer(
+     let product = transcript.next_scalars(PRODUCT_BITS)?;
+     if transcript.checked() {
+         let projected = E::sum((0..PRODUCT_BITS).map(|c| {
+-            let functional = E::sum(
+-                (0..PACK)
+-                    .filter(|&i| RMFE_PROJECT[i] >> c & 1 == 1)
+-                    .map(|i| claim.mu[i]),
+-            );
++            let functional = E::sum((0..PACK).map(|i| {
++                if RMFE_PROJECT[i] >> c & 1 == 1 {
++                    claim.mu[i]
++                } else {
++                    ZERO
++                }
++            }));
+             functional * product[c]
+         }));
+         // iota flips known positions of lane 0 in every instance.
+@@ -142,7 +144,7 @@ fn verify_layer(
+         let mut iota = ZERO;
+         for (segment, &weight) in segments.iter().enumerate().take(shape.segments()) {
+             let constant = KECCAK_RC[shape.depth * (segment + 1) - step - 1];
+-            iota += weight * E::sum((0..64).filter(|z| constant >> z & 1 == 1).map(|z| claim.weights[z]));
++            iota += weight * E::sum((0..64).map(|z| if constant >> z & 1 == 1 { claim.weights[z] } else { ZERO }));
+         }
+         require(
+             projected + iota * E::sum(claim.mu.iter().copied()) == claim.value,
+diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
+index 3721aa75d..4b5f04544 100644
+--- a/crates/verifier/src/layout.rs
++++ b/crates/verifier/src/layout.rs
+@@ -207,8 +207,14 @@ impl Table {
+         self.columns.len()
+     }
+ 
+-    fn count_columns(&self) -> impl Iterator<Item = usize> {
+-        (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
++    fn count_columns(&self) -> Vec<usize> {
++        let mut columns = Vec::new();
++        for i in 0..self.width() {
++            if self.columns[i].starts_with("cnt") {
++                columns.push(i);
++            }
++        }
++        columns
+     }
+ }
+ 
+@@ -429,7 +435,7 @@ pub const _ASSERT_36144350: () = {
+ /// there rather than a block of zeros and a block of its own.
+ pub fn qkeccak_slot(column: usize) -> Option<usize> {
+     let local = column.checked_sub(GLOBAL_COLUMN_BASES[OP_KECCAK])?;
+-    if let Some(k) = (0..QKECCAK_SPARE).find(|&k| spare_local(k) == local) {
++    if let Some(k) = (0..QKECCAK_SPARE).position(|k| spare_local(k) == local) {
+         return Some(QKECCAK_SLOTS + k);
+     }
+     (KECCAK_IN..KECCAK_OUT).contains(&local).then(|| local - KECCAK_IN)
+@@ -584,7 +590,12 @@ pub fn build_layout<'a>(
+         };
+         push.extend(table.flushes.push.iter().map(block));
+         pull.extend(table.flushes.pull.iter().map(block));
+-        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
++        count.extend(
++            table
++                .count_columns()
++                .into_iter()
++                .map(|local| block(&vec![col(local, 0)])),
++        );
+     }
+ 
+     let keccak = keccak_shape(&table_log_heights);

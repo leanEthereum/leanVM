@@ -1,0 +1,203 @@
+diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
+index e31b40fe4..3be68db4d 100644
+--- a/crates/verifier/src/bus.rs
++++ b/crates/verifier/src/bus.rs
+@@ -90,8 +90,8 @@ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
+     let (offsets, depth) = stack_offsets(&sizes);
+     let mut framework: Vec<Placement> = sizes
+         .iter()
+-        .zip(offsets)
+-        .map(|(&variables, index)| Placement { variables, index })
++        .zip(offsets.iter())
++        .map(|(&variables, &index)| Placement { variables, index })
+         .collect();
+     let tables = framework.split_off(framework_log_rows.len());
+     BusLayout {
+diff --git a/crates/verifier/src/field.rs b/crates/verifier/src/field.rs
+index be27bdb19..d995cb703 100644
+--- a/crates/verifier/src/field.rs
++++ b/crates/verifier/src/field.rs
+@@ -217,12 +217,13 @@ impl Scaled {
+         // r * x^k * y^t, k ascending: each step multiplies every limb by x.
+         let mut tables = vec![ZERO; (2 * WINDOWS_PER_LIMB) << WINDOW];
+         let mut monomial = r;
+-        for limb_tables in tables.as_chunks_mut::<{ WINDOWS_PER_LIMB << WINDOW }>().0 {
++        for limb in 0..2 {
+             let mut power = monomial;
+-            for table in limb_tables.as_chunks_mut::<{ 1 << WINDOW }>().0 {
++            for window in 0..WINDOWS_PER_LIMB {
++                let table = (limb * WINDOWS_PER_LIMB + window) << WINDOW;
+                 for bit in 0..WINDOW {
+                     for low in 0..1 << bit {
+-                        table[1 << bit | low] = table[low] + power;
++                        tables[table + (1 << bit | low)] = tables[table + low] + power;
+                     }
+                     power = E::new(times_x(power.c0), times_x(power.c1));
+                 }
+diff --git a/crates/verifier/src/hash.rs b/crates/verifier/src/hash.rs
+index 4733cfadc..2cd7daaf3 100644
+--- a/crates/verifier/src/hash.rs
++++ b/crates/verifier/src/hash.rs
+@@ -72,7 +72,7 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+     }
+ }
+ 
+-fn xor_block(state: &mut [u64; STATE_LANES], block: &[u8; RATE]) {
++fn xor_block(state: &mut [u64; STATE_LANES], block: &[u8]) {
+     for i in 0..RATE / 8 {
+         state[i] ^= u64::from_le_bytes(block[8 * i..8 * i + 8].try_into().unwrap());
+     }
+@@ -84,7 +84,7 @@ pub fn keccak_hash(data: &[u8]) -> Digest {
+     let mut state = [0u64; STATE_LANES];
+     let n_blocks = data.len() / RATE;
+     for k in 0..n_blocks {
+-        xor_block(&mut state, data[k * RATE..(k + 1) * RATE].try_into().unwrap());
++        xor_block(&mut state, &data[k * RATE..(k + 1) * RATE]);
+         keccak_f(&mut state);
+     }
+     let tail = &data[n_blocks * RATE..];
+diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
+index 2d89baefd..634371b76 100644
+--- a/crates/verifier/src/layout.rs
++++ b/crates/verifier/src/layout.rs
+@@ -162,12 +162,18 @@ impl Flushes {
+ 
+     /// A pull at `count` and a push at `counter`, the same otherwise.
+     fn counted(&mut self, prefix: &[Form; 2], counter: Form, count: usize, suffix: &[Form]) {
+-        let side = |counter: Form| [&prefix[..], &[counter], suffix].concat();
++        let side = |counter: Form| {
++            let mut side = prefix.to_vec();
++            side.push(counter);
++            side.extend_from_slice(suffix);
++            side
++        };
+         self.pair(side(counter), side(col(count, 0)));
+     }
+ 
+     fn bytecode(&mut self, pc: usize, count: usize, opcode: usize, operands: Vec<Form>) {
+-        let suffix = [vec![constant(gpow(opcode as u64))], operands].concat();
++        let mut suffix = vec![constant(gpow(opcode as u64))];
++        suffix.extend_from_slice(&operands);
+         self.counted(&[constant(SEP_BYTECODE), col(pc, 0)], col(count, 1), count, &suffix);
+     }
+ 
+@@ -336,15 +342,15 @@ fn layout_limb(even: Option<usize>, odd: Option<usize>, flag: usize, missing: Op
+     if a == b {
+         return a.map_or(constant(ZERO), |a| col(a, 0));
+     }
+-    Form::sum(
+-        [
+-            a.map(|a| col(a, 0)),
+-            a.map(|a| prod(flag, a, 0)),
+-            b.map(|b| prod(flag, b, 0)),
+-        ]
+-        .into_iter()
+-        .flatten(),
+-    )
++    let mut sum = Form::default();
++    if let Some(a) = a {
++        sum = sum + col(a, 0);
++        sum = sum + prod(flag, a, 0);
++    }
++    if let Some(b) = b {
++        sum = sum + prod(flag, b, 0);
++    }
++    sum
+ }
+ 
+ fn flushes_keccak() -> Flushes {
+diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
+index 9d408a523..6e09c2222 100644
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -108,7 +108,11 @@ pub fn index_mle(point: &[E]) -> E {
+ 
+ /// A polynomial at `point`, by Horner over its coefficients, constant first.
+ pub fn poly_eval(coefficients: &[E], point: E) -> E {
+-    coefficients.iter().rev().fold(ZERO, |acc, &c| acc * point + c)
++    let mut acc = ZERO;
++    for i in 0..coefficients.len() {
++        acc = acc * point + coefficients[coefficients.len() - 1 - i];
++    }
++    acc
+ }
+ 
+ /// Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest.
+@@ -121,7 +125,9 @@ pub struct Placement {
+ impl Placement {
+     pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {
+         let above = selector_point(self.index >> self.variables, stack_log - self.variables);
+-        [point, &above].concat()
++        let mut stacked = point.to_vec();
++        stacked.extend_from_slice(&above);
++        stacked
+     }
+ 
+     /// eq weight of the coordinates above the window.
+@@ -133,8 +139,15 @@ impl Placement {
+ 
+ /// Blocks of `2^size` laid end to end, largest first, ties by index: their offsets, and the total's `log2`, rounded up.
+ pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
+-    let mut order: Vec<usize> = (0..sizes.len()).collect();
+-    order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
++    // Larger first, ties by index: an insertion sort, stable on the indices it inserts in order.
++    let mut order: Vec<usize> = Vec::new();
++    for index in 0..sizes.len() {
++        let mut position = order.len();
++        while position > 0 && sizes[order[position - 1]] < sizes[index] {
++            position -= 1;
++        }
++        order.insert(position, index);
++    }
+     let mut offsets = vec![0; sizes.len()];
+     let mut total = 0;
+     for index in order {
+diff --git a/crates/verifier/src/ring_switch.rs b/crates/verifier/src/ring_switch.rs
+index 9ba09d9ef..a002bd678 100644
+--- a/crates/verifier/src/ring_switch.rs
++++ b/crates/verifier/src/ring_switch.rs
+@@ -58,9 +58,9 @@ fn ring_weight(r: &[E], r_prime: &[E], coefficients: &[E]) -> E {
+     let mut frobenius = r.to_vec();
+     for &c in coefficients {
+         let mut product = c;
+-        for (value, &challenge) in frobenius.iter_mut().zip(r_prime) {
+-            product *= ONE + *value + challenge;
+-            *value = value.square();
++        for i in 0..frobenius.len() {
++            product *= ONE + frobenius[i] + r_prime[i];
++            frobenius[i] = frobenius[i].square();
+         }
+         total += product;
+     }
+diff --git a/crates/verifier/src/transcript.rs b/crates/verifier/src/transcript.rs
+index 872512b18..b8d8f65b7 100644
+--- a/crates/verifier/src/transcript.rs
++++ b/crates/verifier/src/transcript.rs
+@@ -42,7 +42,7 @@ impl Sponge {
+                 keccak_f(&mut state);
+                 state
+             },
+-            pending: [(ZERO, 0); RATE_SCALARS],
++            pending: [(ZERO, 0), (ZERO, 0), (ZERO, 0), (ZERO, 0)],
+             n_pending: 0,
+             ground: None,
+         }
+diff --git a/crates/verifier/src/whir.rs b/crates/verifier/src/whir.rs
+index 3b476110b..48cbbde0c 100644
+--- a/crates/verifier/src/whir.rs
++++ b/crates/verifier/src/whir.rs
+@@ -101,11 +101,11 @@ fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize)
+ /// The subspace polynomials' normalizers. The subspaces are spanned by powers of x, so every one lies in K.
+ pub fn subspace_roots(log_n: usize) -> Vec<K> {
+     let mut roots = vec![K(1)];
+-    let mut layer: Vec<K> = (1..=log_n).map(|i| K(1 << i)).collect();
++    let mut layer: Vec<K> = (1..log_n + 1).map(|i| K(1 << i)).collect();
+     for _ in 0..log_n {
+         let root = roots[roots.len() - 1];
+-        for value in &mut layer {
+-            *value = value.square() + root * *value;
++        for i in 0..layer.len() {
++            layer[i] = layer[i].square() + root * layer[i];
+         }
+         roots.push(layer.remove(0));
+     }

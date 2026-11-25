@@ -1,0 +1,24 @@
+diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
+index 35c847ea1..3bc645d74 100644
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -7,12 +7,13 @@ use crate::{VerifierError, require};
+ pub fn eq_kernel(point: &[E]) -> Vec<E> {
+     let mut out = vec![ZERO; 1 << point.len()];
+     out[0] = ONE;
+-    for (k, &r) in point.iter().enumerate() {
+-        let (low, high) = out[..2 << k].split_at_mut(1 << k);
+-        let scale = Scaler::new(r, low.len());
+-        for (v, h) in low.iter_mut().zip(high) {
+-            *h = scale.mul(*v);
+-            *v += *h;
++    for k in 0..point.len() {
++        let half = 1 << k;
++        let scale = Scaler::new(point[k], half);
++        for i in 0..half {
++            let h = scale.mul(out[i]);
++            out[i + half] = h;
++            out[i] += h;
+         }
+     }
+     out

@@ -1,0 +1,18 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/keccak256/lean.
+[scenario.keccak256]
+backend = "lean"
+opaque = [
+  # The multi-way permutation: one body over a `Lanes` type per instruction set, chosen under
+  # `cfg(target_arch)`, so it differs between hosts (formal/extraction/LIMITATIONS.md). Excluding
+  # the per-architecture modules alone crashes Aeneas (`Not_found` in its function analysis).
+  "crate::lanes",
+
+  # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be
+  # patched, modelled, or reduced to a reportable case.
+  "crate::absorb",  # Aeneas: unimplemented
+  "crate::digest_of",  # Aeneas: unimplemented
+  "crate::final_state",  # Aeneas: unimplemented
+  "crate::hash_from_state",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::path_fold",  # Lean: type mismatch
+]

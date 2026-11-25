@@ -1,0 +1,4 @@
+# `cargo test --release` arguments, one run per line, on the patched source.
+-p verifier
+# The suite that checks the verifier against real proofs, through both encodings and every rate.
+-p stable_lean_vm_core --test verifiers

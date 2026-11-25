@@ -1,0 +1,36 @@
+diff --git a/crates/verifier/src/transcript.rs b/crates/verifier/src/transcript.rs
+index b8d8f65b7..91f0f22ac 100644
+--- a/crates/verifier/src/transcript.rs
++++ b/crates/verifier/src/transcript.rs
+@@ -224,12 +224,12 @@ impl<'a> Transcript<'a> {
+             None => {
+                 let constant = self.next_scalar()?;
+                 let tail = self.next_scalars(count - 2)?;
+-                [vec![constant, claim + E::sum(tail.iter().copied())], tail].concat()
++                [vec![constant, claim + tail.iter().fold(ZERO, |acc, &x| acc + x)], tail].concat()
+             }
+             // `(1 + r) q(0) + r q(1) == claim`. The transcript contains c1, c2, c3 ... (r := eq_factor)
+             Some(eq_factor) => {
+                 let tail = self.next_scalars(count - 1)?;
+-                [vec![claim + eq_factor * E::sum(tail.iter().copied())], tail].concat()
++                [vec![claim + eq_factor * tail.iter().fold(ZERO, |acc, &x| acc + x)], tail].concat()
+             }
+         };
+         self.grind_check(grinding_bits((count - 1 + usize::from(eq_factor.is_some())) as u128))?;
+diff --git a/crates/verifier/src/whir.rs b/crates/verifier/src/whir.rs
+index 48cbbde0c..6516836c1 100644
+--- a/crates/verifier/src/whir.rs
++++ b/crates/verifier/src/whir.rs
+@@ -129,9 +129,9 @@ impl Subspace {
+     pub fn at(&self, x: K) -> Vec<K> {
+         let mut basis = x;
+         let mut values = Vec::with_capacity(self.roots.len());
+-        for (&root, &inverse) in self.roots.iter().zip(&self.inverses) {
+-            values.push(basis * inverse);
+-            basis = basis.square() + root * basis;
++        for i in 0..self.roots.len() {
++            values.push(basis * self.inverses[i]);
++            basis = basis.square() + self.roots[i] * basis;
+         }
+         values
+     }
