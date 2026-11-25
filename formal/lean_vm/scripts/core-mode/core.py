@@ -62,10 +62,10 @@ HON_SPLIT = 2000
 # than `PTR_TRIE` times its cells: the list walks the trie saves cost a step an index, building the trie costs about
 # `PTR_TRIE` steps a cell
 PTR_TRIE = 64
-# a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked `FA_B` values at a
-# time (`CoreMode.faRetOk_of_kchunks`): one evaluation over a long run is the heaviest declaration of its module
+# a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked in a declaration of
+# its own. One evaluation, not chunks of the run (`CoreMode.faRetOk_of_kchunks`): each chunk recomputes the frame at
+# every return (`retSt`), which costs more than the run's cells
 FA_RUN = 64
-FA_B = 32
 
 
 def stmts(body):
@@ -118,24 +118,11 @@ def max_run(ss):
     return m
 
 
-def fa_chunks(k):
-    """The number of `FA_B`-value chunks `k`'s frame run cells at returns are checked in, or None (one evaluation)."""
-    n = max_run(heap.CORE[k][1])
-    return -(-n // FA_B) if n > FA_RUN else None
-
-
 def faret(k):
-    """`CoreOk.faret`'s parts (`fa_chunks`), if any, and its proof."""
-    m = fa_chunks(k)
-    if m is None:
+    """`CoreOk.faret`'s proof: a declaration of its own for a body with a frame run longer than `FA_RUN`."""
+    if max_run(heap.CORE[k][1]) <= FA_RUN:
         return '', DK
-    code = 'code.chunks.flatten'
-    out = ''.join(thm(k, f'faret{c}', f'CoreMode.faRetC cfun {code} {FA_B} {c} = true') for c in range(m))
-    out += thm(k, 'faret_runs', f'CoreMode.runsLe ({FA_B} * {m}) (Bridge.stmtsOf cfun.fn.body) = true')
-    tail = 'fun c hc ↦ by\n    interval_cases c\n    exacts [%s]' % ', '.join(f'faret{c}' for c in range(m))
-    out += thm(k, 'faret', f'CoreMode.faRetOk cfun {code} = true',
-               f'\n  CoreMode.faRetOk_of_kchunks {FA_B} {m} (by decide) faret_runs {tail}')
-    return out, 'faret'
+    return thm(k, 'faret', 'CoreMode.faRetOk cfun code.chunks.flatten = true'), 'faret'
 
 
 def res_chunks(k, po):
@@ -234,8 +221,8 @@ _SIGS = {}
 
 
 def sig_split(k):
-    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`), its promised
-    runs one by one; the number of runs, else None."""
+    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`); the number of its
+    promised runs, else None."""
     if not long_body(k):
         return None
     if 'S' not in _SIGS:
@@ -254,11 +241,8 @@ def sig_check(k, split):
            thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
            thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
            thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true'))
-    for i in range(n):
-        out += thm(k, f'core_sigR{i}', f'CoreMode.chunkAll (CoreMode.postRP {a}) funC.sig.postR {i} = true')
-    tail = ('fun i hi ↦ absurd hi (Nat.not_lt_zero _)' if n == 0 else
-            'fun i hi ↦ by\n    interval_cases i\n    exacts [%s]' % ', '.join(f'core_sigR{i}' for i in range(n)))
-    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true', f'\n  CoreMode.all_of_chunks {n} {DK} {tail}') +
+    # its promised runs in one evaluation, not one by one (`CoreMode.all_of_chunks`): the runs share most of the work
+    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true') +
             thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true',
                 'CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG'))
     return out
@@ -660,8 +644,6 @@ def main(check=False):
                 dimps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
             else:
                 dimps.add('LeanVM.Guest.CoreMode.Gen.«%s».Data' % p)
-            if R[k].get('kind') != 'lc' and fa_chunks(k) is not None:
-                imps.add('LeanVM.Guest.CoreMode.FaRetSplit')
             if os.path.exists(os.path.join(GEN, po[k][0], 'Ok.lean')):
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».Ok' % po[k][0])
             if R[k].get('kind') == 'lc':
