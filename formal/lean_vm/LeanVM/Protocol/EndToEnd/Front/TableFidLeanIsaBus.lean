@@ -696,8 +696,8 @@ section PyForms
 variable (prog : LeanIsaProgram) (s : Sizes)
 
 /-- The bus phase's result on what it read is the tail of `verify_bus_balance` on those reads. -/
-theorem result_eq_busOut (L : Verifier.Layout) (w : BusWit) :
-    w.result L = Complete.busOut L w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
+theorem result_eq_busOf (L : Verifier.Layout) (w : BusWit) :
+    w.result L = Verifier.busOf L w.alphas w.beta w.point w.values w.memory w.mf w.bf w.share
       w.bytecodePoint := rfl
 
 /-- **The verifier's forms**: the three sides' folds over their blocks with their selectors. -/
@@ -712,8 +712,8 @@ theorem result_forms (w : BusWit) :
               (Complete.fwLogs prog s) (Complete.pushBlocks s) w.point 3
               (Complete.pushBlocks s).length) (Complete.pushBlocks s))
             (tables.map fun _ ↦ [{}, {}, {}]))) := by
-  rw [result_eq_busOut]
-  simp only [Complete.busOut, Complete.accumulateSide_fst]
+  rw [result_eq_busOf]
+  simp only [Verifier.busOf, Complete.accumulateSide_fst]
   rw [Complete.layout_push, Complete.layout_pull, Complete.layout_count]
   rfl
 
@@ -1442,7 +1442,7 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl
       rw [boundaryColumns_leanIsa]
       exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
         List.mem_cons_self)))
-  rw [result_eq_busOut]
+  rw [result_eq_busOf]
   match k with
   | ⟨0, _⟩ =>
     have hG : (Bus.sources (leanIsaWith prog s fl) 0).map
@@ -1457,7 +1457,7 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl
     refine (total_eq prog s 0 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ prog s .push _ (pushBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
-    simp only [Complete.busOut, List.getD_cons_zero]
+    simp only [Verifier.busOf, List.getD_cons_zero]
     rw [Complete.layout_push, accumulateSide_snd_eq _ _ _ _ _ _ _ _ _ (by simp [fingerprints])]
     rfl
   | ⟨1, _⟩ =>
@@ -1473,13 +1473,13 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaWith prog s fl
     refine (total_eq prog s 1 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ prog s .pull _ (pullBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
-    simp only [Complete.busOut, List.getD_cons_succ, List.getD_cons_zero]
+    simp only [Verifier.busOf, List.getD_cons_succ, List.getD_cons_zero]
     rw [Complete.layout_pull, accumulateSide_snd_eq _ _ _ _ _ _ _ _ _ (by simp [fingerprints])]
     rfl
   | ⟨2, _⟩ =>
     refine (total_eq prog s 2 _ _ _ _ _ hp [] (Complete.countBlocks s) [] _
       (countSources_map_κ prog s) rfl (countSources_map_arkB prog s _ _ _ _ hp)).trans ?_
-    simp only [Complete.busOut, List.getD_cons_succ, List.getD_cons_zero]
+    simp only [Verifier.busOf, List.getD_cons_succ, List.getD_cons_zero]
     rw [Complete.layout_count, accumulateSide_snd_eq _ _ _ _ _ _ _ _ _ rfl]
     rfl
 

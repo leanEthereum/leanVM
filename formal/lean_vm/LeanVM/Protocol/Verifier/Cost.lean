@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
-public import LeanVM.Protocol.Errors
+public import LeanVM.Protocol.Verifier.Budget
 
 /-!
 # The query cost of the leanVM verifier
@@ -288,6 +288,21 @@ theorem costs_bytecodeShare (weights bytecodeLow : List E) :
 def ClaimsShort (claims : List ColumnClaim) : Prop :=
   ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point.length ≤ 30
 
+/-- The bus's framework claims are at points of at most `30` coordinates. -/
+theorem claimsShort_busOf {layout : Layout} (hm : layout.logMemory ≤ 30)
+    (hb : layout.logBytecode ≤ 30) (weights : List E) (beta : E) (point treeValues memory : List E)
+    (memoryFinal bytecodeFinal share : E) (bytecodePoint : List E) :
+    ClaimsShort (busOf layout weights beta point treeValues memory memoryFinal bytecodeFinal share
+      bytecodePoint).claims := by
+  intro c hc _
+  simp only [busOf, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+  rcases hc with hc | rfl | rfl
+  · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
+    simp only [List.getElem_zipWith, List.length_take]
+    omega
+  · simp only [List.length_take]; omega
+  · simp only [List.length_take]; omega
+
 /-- The bus phase, at the push side's depth, for a check of the fixed polynomial's value that
 costs nothing. -/
 theorem costs_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit)
@@ -297,29 +312,22 @@ theorem costs_verifyBusBalance (ev : List K → List E → E → VerifierProgram
       (5 + 4 * 2 ^ busBits + 4 + (2 + gkrCost (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 4 + (1 + busBits * roundCost 3 + 1))
       fun r ↦ ClaimsShort r.claims := by
+  rw [verifyBusBalance_eq]
   refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
       VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE
     (fun _ _ ↦ VerifierProgram.Costs.seq (costs_verifyGkrGrandProducts _) (fun r _ ↦ ?_) ?_) ?_)
       ?_) ?_) (Nat.zero_le _)
-  · obtain ⟨countRoot, point, treeValues⟩ := r
-    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+  · refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
         VerifierProgram.Costs.seq (VerifierProgram.Costs.readN 2)
       (fun memory hmem ↦ VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
           VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
             VerifierProgram.Costs.seq (costs_bytecodeShare _ _) (fun r _ ↦ ?_) ?_) ?_) ?_) ?_)
         (Nat.zero_le _)
     · obtain ⟨share, bytecodePoint, value⟩ := r
-      refine VerifierProgram.Costs.seq (hev _ _ _) (fun _ _ ↦ ?_) (Nat.zero_le _)
-      intro c hc _
-      simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
-      rcases hc with hc | rfl | rfl
-      · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
-        simp only [List.getElem_zipWith, List.length_take]
-        omega
-      · simp only [List.length_take]; omega
-      · simp only [List.length_take]; omega
+      exact VerifierProgram.Costs.seq (hev _ _ _) (fun _ _ ↦ claimsShort_busOf hm hb _ _ _ _ _ _ _ _ _)
+        (Nat.zero_le _)
     all_goals omega
   all_goals omega
 
@@ -982,11 +990,6 @@ theorem costs_verifyExecution (ev : List K → List E → E → VerifierProgram 
 /-- The deployed check of the fixed polynomial's value costs nothing. -/
 theorem costs_computedBytecodeValue (w : List K) (p : List E) (v : E) :
     VerifierProgram.Costs costHeight (computedBytecodeValue w p v) 0 fun _ ↦ True :=
-  (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
-
-/-- The deferring check of the fixed polynomial's value costs nothing. -/
-theorem costs_claimedBytecodeValue (claim : BytecodeClaim) (w : List K) (p : List E) (v : E) :
-    VerifierProgram.Costs costHeight (claimedBytecodeValue claim w p v) 0 fun _ ↦ True :=
   (VerifierProgram.Costs.require (n := 0) _).mono le_rfl fun _ _ ↦ trivial
 
 /-- **The cost of the leanVM verifier program**: every run of `leanVmVerifierProgram` costs at most

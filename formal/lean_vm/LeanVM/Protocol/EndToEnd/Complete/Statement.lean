@@ -21,9 +21,9 @@ one lazily sampled pair of random oracles (Keccak-256 and Keccak-f[1600]), and r
 verdict, the final cache and the adversary's cache. Forgetting the adversary's cache it is the
 random-oracle theorem's experiment (`experiment_map_romExperiment`), so `romComplete_leanVm`
 bounds the probability that the verifier rejects the honest prover's proof
-(`completeness_le`), by the statement's `completenessError`, which bounds `completenessError`
-by the budgets of `LeanVM.Protocol.Errors` (`completenessError_le_bound`), below `2^-257` at a fuel
-of `2^35` nonces per proof of work (`statement_completenessError_le`).
+(`completeness_le`), by the statement's `completenessError`, which is `completenessError`
+(`completenessError_eq`), below `2^-257` at a fuel of `2^35` nonces per proof of work
+(`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
 -/
 
@@ -55,10 +55,10 @@ noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) 
     (ρ fuel : ℕ) : LeanVM.Adversary :=
   (fun proof ↦ ((prog, input), proof)) <$> honestComp prog input t ρ fuel
 
-/-- The statement's completeness error bounds `completenessError`. -/
-theorem completenessError_le_bound (fuel : ℕ) :
-    completenessError fuel ≤ LeanVM.completenessError fuel :=
-  mul_le_mul' (Nat.cast_le.2 (completenessQueries_le fuel)) le_rfl
+/-- The statement's completeness error is `completenessError`. -/
+theorem completenessError_eq (fuel : ℕ) :
+    LeanVM.completenessError fuel = completenessError fuel :=
+  rfl
 
 /-- **Completeness in the statement's experiment.** For a valid execution whose committed size
 is at most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64`
@@ -74,14 +74,14 @@ theorem completeness_le {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
         (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
   have h := romComplete_leanVm hv hbudget hρ hfuel
-  rw [← hV] at h
+  rw [← hV, ← completenessError_eq] at h
   have e := prEvent_map (LeanVM.experiment (honestProverRom prog input t ρ fuel))
     (fun z ↦ (z.1, z.2.1)) (fun z ↦ z.1.2 = false)
   rw [experiment_map_romExperiment] at e
   refine (le_of_eq e.symm).trans ?_
   unfold honestProverRom
   rw [romExperiment_map, prEvent_map]
-  exact h.trans (completenessError_le_bound fuel)
+  exact h
 
 /-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the statement's completeness
 error is below `2^-257`. -/

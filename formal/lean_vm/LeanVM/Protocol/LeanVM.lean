@@ -73,10 +73,10 @@ noncomputable def honestProver (prog : LeanIsaProgram) (input : PublicInput) (t 
     (ρ fuel : ℕ) : Adversary :=
   Complete.honestProverRom prog input t ρ fuel
 
-/-- The statement's completeness error bounds the random-oracle theorem's. -/
-theorem completenessError_le_bound (fuel : ℕ) :
-    Complete.completenessError fuel ≤ completenessError fuel :=
-  Complete.completenessError_le_bound fuel
+/-- The statement's completeness error is the random-oracle theorem's. -/
+theorem completenessError_eq (fuel : ℕ) :
+    completenessError fuel = Complete.completenessError fuel :=
+  Complete.completenessError_eq fuel
 
 /-- **Completeness in the two-oracle random-oracle model.** For a valid execution whose committed size is at most `2^30`, at an inverse
 rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle

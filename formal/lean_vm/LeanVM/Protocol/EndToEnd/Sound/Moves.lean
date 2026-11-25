@@ -10,7 +10,7 @@
 module
 
 public import LeanVM.Protocol.Compile.SpecRules.Grind
-import LeanVM.Protocol.Verifier.Phases
+import LeanVM.Protocol.Verifier.Phases.Bus
 public import LeanVM.Protocol.Verifier.KeccakPack
 public import LeanVM.Protocol.Compile.Spec
 
@@ -419,12 +419,12 @@ theorem moves_verifyBusBalance_le (hB : grindCap ≤ B)
     (hb : ∀ w p v, Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (bytecodeValue w p v))
     (layout : Layout) (hl : BusGrindLE B layout) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (verifyBusBalance bytecodeValue layout) := by
+  rw [verifyBusBalance_eq]
   refine Moves.seq' (Moves.require _) fun _ hd ↦
     Moves.seq (Moves.grindP fun _ ↦ hl hd)
       (fun _ _ ↦ Moves.seq' (Moves.sampleN _) fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
-        Moves.seq' (moves_verifyGkrGrandProducts_le hB _) fun r _ ↦ ?_)
+        Moves.seq' (moves_verifyGkrGrandProducts_le hB _) fun _ _ ↦ ?_)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenges (by simp [busBits]) _
-  obtain ⟨countRoot, point, treeValues⟩ := r
   refine Moves.seq' (Moves.require _) fun _ _ ↦ Moves.seq' (Moves.readN 2) fun _ _ ↦
     Moves.seq' Moves.readE fun _ _ ↦ Moves.seq' Moves.readE fun _ _ ↦
       Moves.seq' (moves_bytecodeShare_le hB _ _) fun r _ ↦ ?_

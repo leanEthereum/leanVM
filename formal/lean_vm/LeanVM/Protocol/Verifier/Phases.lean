@@ -34,9 +34,10 @@ statement.
   `verifyStackedOpening`: its checks as one `require (StackedOk claims)`, the challenge, then WHIR
   (`verifyStackedOpening_nf`).
 
-The bus (`verifyBusBalance`) is split along its sub-programs in
-`LeanVM.Protocol.Verifier.Phases.Bus` (`verifyBusBalance_split`). The bus's pure tail, the table
-sumcheck (`tablePhase`) and the Keccak reduction (`keccakPhase`) are not in normal form yet.
+Step 3, the bus (`verifyBusBalance`), is in `LeanVM.Protocol.Verifier.Phases.Bus`: its messages,
+then `busOf` (`verifyBusBalance_eq`), and the split along the guest's sub-programs
+(`verifyBusBalance_split`). The table sumcheck (`tablePhase`) and the Keccak reduction
+(`keccakPhase`) are not in normal form yet.
 -/
 
 namespace LeanVM.Protocol.Verifier

@@ -160,9 +160,8 @@ theorem follows_verifyExecution {prog : LeanIsaProgram} {s : Sizes}
   · have hl : (openingClaims prog s rs kr.1 ood).length = kr.1.length + 2 := by
       simp [openingClaims]
     rw [hl]
-    simp only [List.length_append, hbus.claims_length, htc, hpl] at hkl
+    simp only [List.length_append, hbus.claims_length, htc, Claims.tableWidths_sum, hpl] at hkl
     simp only [maxStackedClaims]
-    have := Claims.tableWidths_sum
     omega
   · intro c hc
     rcases List.mem_append.mp hc with hc | hc

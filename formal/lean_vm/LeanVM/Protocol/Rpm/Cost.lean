@@ -44,8 +44,7 @@ bytes, every commitment of the leanVM verifier program having width at most `192
 So every query costs at most `⌊(2^37 + 9) / 136⌋ + 1 ≤ 2^30` calls, and a computation of `N`
 queries at most `N · 2^30` (`isWeightBound_of_isTotalQueryBound`):
 
-* `isWeightBound_verifier`: the verifier, `leanVmQueryBound ≤ verifierQueries` queries, at most
-  `verifierPermCalls`;
+* `isWeightBound_verifier`: the verifier, `leanVmQueryBound` queries, at most `verifierPermCalls`;
 * `isWeightBound_romHonest`: the honest prover then the verifier, at most
   `completenessQueries fuel` queries, so at most `completenessPermCalls fuel`.
 -/
@@ -478,9 +477,7 @@ theorem isWeightBound_verifier (prog : LeanIsaProgram) (input : PublicInput) (pr
       verifierPermCalls := by
   have hN := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
   rw [← verifier_eq] at hN
-  have hV := leanVmQueryBound_add_three_le
-  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30)
-    (show IsTotalQueryBound _ verifierQueries from hN.mono (by omega))
+  exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)
 
 end Verifier
@@ -734,7 +731,7 @@ theorem isWeightBound_proverVerifier {X : OracleComp KeccakCalls Proof} (prog : 
         have := isTotalQueryBound_leanVm (bytecodeWords prog) (publicInputDigest input) proof
         rw [← verifier_eq] at this
         exact this
-    exact h.mono (Complete.completenessQueries_le fuel)
+    exact h
   exact isWeightBound_of_isTotalQueryBound hashBlocks (2 ^ 30) hN
     ((allQueriesSatisfy_bind hXq fun proof ↦
       allQ_verifier prog input proof).mono fun _ h ↦ hashBlocks_le_of_short h)

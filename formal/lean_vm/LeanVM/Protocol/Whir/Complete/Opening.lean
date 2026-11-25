@@ -126,7 +126,7 @@ table with the stack table, both in the WHIR variable order. -/
 theorem dot_values_eq_dot {μ : ℕ} (hμ : laneBits ≤ μ) (q : Column μ) (scales : List E)
     (claims : List StackClaim) (h : ∀ c ∈ claims, StackClaim.Holds μ c q) :
     dot scales (claims.map (·.2)) = dot (basisTable μ scales claims) (stackTable μ q) := by
-  rw [dot_values_eq_sum q scales claims h, basisTable, dot_tableOf _ _ _ (length_stackTable μ q)]
+  rw [dot_values_eq_sum q scales claims h, basisTable, dot_tableOf]
   obtain ⟨n, rfl⟩ : ∃ n, μ = laneBits + n := ⟨μ - laneBits, by omega⟩
   have hn : laneBits + n - laneBits = n := by omega
   have hrot := sum_rotIndex laneBits n
