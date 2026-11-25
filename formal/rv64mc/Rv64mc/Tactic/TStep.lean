@@ -11,13 +11,14 @@
   register values (`tnorm`), so that the register file stays a chain of writes of values over the
   entry's rather than of expressions over the previous files; `tsteps hp` as many as it can;
   `tcond hp as h` steps a branch into its two outcomes, each with the comparison's outcome as a
-  hypothesis `h`, over `toNat` for an unsigned comparison or one with zero (`ult_eq_true`, …). A load, a store, a call, a return and an `ECALL` are left to the rules here
-  and to `HoldsT.call`, `Aborts.call`, `Total.ext_done`.
+  hypothesis `h`, over `toNat` for an unsigned comparison or one with zero (`ult_eq_true`, …).
+  A load, a store, a call, a return and an `ECALL` are left to the rules here and to
+  `HoldsT.call`, `Aborts.call`, `Total.ext_done`.
 
   ## Main results
 
   * `label`, `set`, `goto`, `cond`, `ret`: the rules with `WinOk` discharged
-  * `ld8`, `lbu`, `sd8`, `sb`: a load or store of a doubleword or a byte
+  * `ld8`, `sd8`, `sb`: a doubleword load, a doubleword or byte store
   * `ult_eq_true`, `beq_zero_eq_true`, …: a branch's outcome over `toNat`
   * `tnorm`, `tomega`, `tstep`, `tsteps`, `tcond`
 -/
@@ -36,21 +37,25 @@ theorem valid_of_inWindow {a : Word} {w : Nat} (h : inWindow a w = true) : isVal
   have := inWindow_iff.1 h
   exact decide_eq_true (show a.toNat < SP1_MAX_MEMORY by unfold SP1_MAX_MEMORY; omega)
 
+/-- `Total.label` with `WinOk` discharged. -/
 theorem label {kd : LabelKind} {l : LLabel} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Llabel kd l))
     (h : rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, regs, m⟩) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.label hf hi (WinOk.of_ne hf hi nofun) h
 
+/-- `Total.set` with `WinOk` discharged. -/
 theorem set {d : Reg} {e : Expr Reg} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lopn (.set d e)))
     (h : rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, updReg regs d (e.eval regs), m⟩) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.set hf hi (WinOk.of_set hf hi) h
 
+/-- `Total.goto` with `WinOk` discharged. -/
 theorem goto {l : LLabel} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lgoto l)) {j : Nat}
     (hl : labelIdx fd.body l = some j) (h : rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, j, rv, top⟩ :: rest, regs, m⟩) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.goto hf hi hl (WinOk.of_ne hf hi nofun) h
 
+/-- `Total.cond` with `WinOk` discharged. -/
 theorem cond {cnd : LOperand Reg} {l : LLabel} (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lcond cnd l))
     {b : Bool} (hc : condEval cnd regs = some b) {j : Nat} (hl : labelIdx fd.body l = some j)
     (ht : b = true → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, j, rv, top⟩ :: rest, regs, m⟩)
@@ -58,6 +63,7 @@ theorem cond {cnd : LOperand Reg} {l : LLabel} (hf : p[fn]? = some fd) (hi : fd.
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.cond hf hi hc hl (WinOk.of_ne hf hi nofun) ht hn
 
+/-- `Total.ret` with `WinOk` discharged. -/
 theorem ret (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some .Lret) (hra : regs .x1 = rv) (hsp : regs .x2 = top)
     (h : rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, regs, m⟩) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
@@ -72,15 +78,6 @@ theorem ld8 {d : Reg} {a : Expr Reg} (hf : p[fn]? = some fd)
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.opn hf hi
     (by simp [Op.eval, rvMem, valid_of_inWindow hw, alignedFor, isAligned8, hal, Width.bytes])
-    (WinOk.of_opn hf hi (by simpa [opWin, Width.bytes] using hw)) h
-
-/-- A byte load, zero-extended, in a window. -/
-theorem lbu {d : Reg} {a : Expr Reg} (hf : p[fn]? = some fd)
-    (hi : fd.body[pc]? = some (.Lopn (.load d .b1 false a))) (hw : inWindow (a.eval regs) 1 = true)
-    (h : rvIsa.Total p stmtCtx (WinOk p) Q
-      ⟨⟨fn, pc + 1, rv, top⟩ :: rest, updReg regs d ((m.getByte (a.eval regs)).zeroExtend 64), m⟩) :
-    rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
-  Total.opn hf hi (by simp [Op.eval, rvMem, valid_of_inWindow hw, alignedFor, Width.bytes])
     (WinOk.of_opn hf hi (by simpa [opWin, Width.bytes] using hw)) h
 
 /-- A doubleword store, in a window, 8-byte aligned and over no code. -/
@@ -125,9 +122,12 @@ end Rv64mc.TotalRv
 
 /-- The state's register values computed: each `Expr.eval` of a register write unfolded, and a read of a register
     file through its writes resolved, so that the register file stays a chain of writes of values over the entry's.
-    Also the side goals' addresses, and `noCodeAt` through a store. -/
-macro "tnorm" : tactic => `(tactic| simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply,
-  reduceCtorEq, ↓reduceIte, BitVec.add_zero, BitVec.zero_add, Lprog.RiscV.noCodeAt_setMem])
+    Also the side goals' addresses, and `noCodeAt` through a store. `tnorm at h` does the same in `h`. -/
+syntax "tnorm" (Lean.Parser.Tactic.location)? : tactic
+
+macro_rules
+  | `(tactic| tnorm $[$loc]?) => `(tactic| simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply,
+      reduceCtorEq, ↓reduceIte, BitVec.add_zero, BitVec.zero_add, Lprog.RiscV.noCodeAt_setMem] $[$loc]?)
 
 /-- A side goal about numbers: `tnorm`, then `omega` on what is left. -/
 macro "tomega" : tactic => `(tactic| ((try tnorm) <;> omega))
@@ -146,7 +146,7 @@ macro "tsteps " hp:term : tactic => `(tactic| repeat tstep $hp)
     `tnorm` run on it and an unsigned comparison or one with zero stated over `toNat`. -/
 macro "tcond " hp:term " as " h:ident : tactic =>
   `(tactic| (refine Rv64mc.TotalRv.cond $hp rfl rfl rfl (fun $h => ?_) (fun $h => ?_) <;>
-    try simp only [Lprog.Expr.eval, Lprog.BinOp.eval, Lprog.updReg_apply, reduceCtorEq, ↓reduceIte, BitVec.add_zero,
-      BitVec.zero_add, Rv64mc.TotalRv.ult_eq_true, Rv64mc.TotalRv.ult_eq_false, Rv64mc.TotalRv.not_ult_eq_true,
+    (try tnorm at $h:ident) <;>
+    try simp only [Rv64mc.TotalRv.ult_eq_true, Rv64mc.TotalRv.ult_eq_false, Rv64mc.TotalRv.not_ult_eq_true,
       Rv64mc.TotalRv.not_ult_eq_false, Rv64mc.TotalRv.beq_zero_eq_true, Rv64mc.TotalRv.beq_zero_eq_false,
       Rv64mc.TotalRv.bne_zero_eq_true, Rv64mc.TotalRv.bne_zero_eq_false] at $h:ident))

@@ -42,3 +42,7 @@ theorem MainSpecB.mainSpecT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} 
   fun words hw => (h words hw).mono_stop fun _ _ _ _ _ hs => hs.1
 
 end Rv64mc
+
+/-- info: 'Rv64mc.MainSpecB.mainSpecT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.MainSpecB.mainSpecT

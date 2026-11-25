@@ -7,7 +7,7 @@
 
   The reader and the words it points to are the caller's, so their windows and alignment are in
   the precondition (`WordPreT`): the reader 8-byte aligned and below the stack window's end, its
-  slice from an 8-byte aligned pointer at or above the input window's start, its `8 * len` bytes
+  slice, unless empty, from an 8-byte aligned pointer at or above the input window's start, its `8 * len` bytes
   ending within the heap. `main`'s reader over the input satisfies it (`inputBase`, at most
   `inputCapacity` words), and a return keeps it: the pointer moves up by 8 as the length drops by
   one.
@@ -32,13 +32,15 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime Rv64mc.Proof.Runtime
 open Rv64mc.Gen.VerifierRv64.Input.Word (Link tmpl)
 open Rv64mc.Proof.Runtime.InputWord (inputPtrAt_eq inputLenAt_eq ne_add8)
 
-/-- `Input::word`'s total precondition: `WordPre`, the reader 8-byte aligned and below the stack window's end, and
-    its slice's `8 * len` bytes from an 8-byte aligned pointer at or above the input window's start to at most the
-    heap's end. -/
+/-- `Input::word`'s total precondition: `WordPre`, the reader 8-byte aligned and below the stack window's end, and,
+    unless its slice is empty, the slice's `8 * len` bytes from an 8-byte aligned pointer at or above the input
+    window's start to at most the heap's end. -/
 def WordPreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   WordPre env regs m ∧ (regs .x10).toNat % 8 = 0 ∧ (regs .x10).toNat + Layouts.Input.byteSize ≤ 0xc0000000 ∧
-    0x10000000 ≤ (m.getMem (inputPtrAt (regs .x10))).toNat ∧ (m.getMem (inputPtrAt (regs .x10))).toNat % 8 = 0 ∧
-    (m.getMem (inputPtrAt (regs .x10))).toNat + 8 * (m.getMem (inputLenAt (regs .x10))).toNat ≤ env.heapEnd.toNat
+    ((m.getMem (inputLenAt (regs .x10))).toNat ≠ 0 →
+      0x10000000 ≤ (m.getMem (inputPtrAt (regs .x10))).toNat ∧ (m.getMem (inputPtrAt (regs .x10))).toNat % 8 = 0 ∧
+      (m.getMem (inputPtrAt (regs .x10))).toNat + 8 * (m.getMem (inputLenAt (regs .x10))).toNat ≤
+        env.heapEnd.toNat)
 
 /-- Where `Input::word` may end the run: `a0 = 2`, and the reader's slice was empty. -/
 def WordStop (regs : Reg → Word) (m : MachineState) (r' : Reg → Word) (_m' : MachineState) : Prop :=
@@ -63,33 +65,33 @@ theorem wordPreT_input {regs : Reg → Word} {m : MachineState} {n : Nat}
   simp only [WordPreT, WordPre, inputPtrAt_eq, inputLenAt_eq, hq, hl, hn', Layouts.Input.byteSize,
     show inputBase.toNat = 0x10000000 by decide]
   unfold inputCapacity at hn
-  exact ⟨⟨hlo, by omega⟩, hal, hhi, le_rfl, trivial, by omega⟩
+  exact ⟨⟨hlo, by omega⟩, hal, hhi, fun _ => ⟨le_rfl, trivial, by omega⟩⟩
 
 /-- **`Input::word` is total**, with no stack, from `halt`'s `Aborts`. -/
 theorem total (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : Aborts env p L.halt.idx 0) :
     InputWordSpecT env p i 0 := by
   intro Q ret top rest regs m hpre hstop hk
-  have ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨⟨hlo, hhi⟩, hal8, hrd, hqlo, hqal, hqhi⟩, hal⟩, hwin⟩ := hpre
-  simp only [inputPtrAt_eq, inputLenAt_eq] at hqlo hqal hqhi
+  have ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, ⟨⟨hlo, hhi⟩, hal8, hrd, hsl⟩, hal⟩, hwin⟩ := hpre
+  simp only [inputPtrAt_eq, inputLenAt_eq] at hsl
   have hlay := env.layout
   simp only [Layouts.Input.byteSize] at hhi hrd
   have h8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
   have hw0 : inWindow (regs .x10) 8 = true := hwin.stackObj hlo (by omega)
   have hw8 : inWindow (regs .x10 + 8#64) 8 = true := hwin.stackObj (by omega) (by omega)
   tsteps hp
-  refine TotalRv.ld8 hp rfl (by simpa [Expr.eval, BinOp.eval] using hw8)
-    (by simp only [Expr.eval, BinOp.eval]; omega) ?_
+  refine TotalRv.ld8 hp rfl (by tnorm; exact hw8) (by tomega) ?_
   tsteps hp
   tcond hp as hc
   -- an empty slice: `halt`
   · tsteps hp
-    refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by simp [updReg_apply]))
-      (by simp [updReg_apply, hsp]) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
+    refine Aborts.call hhalt hpre hp rfl (callee_site hL.halt hL.s0 (by tnorm))
+      (by tnorm; exact hsp) fun fr st r' m' h2 ha => hstop fr st r' m' ⟨h2, ?_⟩ ha
     rw [inputLenAt_eq]
     exact BitVec.eq_of_toNat_eq hc
   -- the next word: `q` the slice's pointer, `l ≠ 0` its length
   · have hl0 : m.getMem (regs .x10 + 8#64) ≠ 0 := fun h => hc (by rw [h]; rfl)
     have hl1 : 1 ≤ (m.getMem (regs .x10 + 8#64)).toNat := Nat.one_le_iff_ne_zero.2 hc
+    have ⟨hqlo, hqal, hqhi⟩ := hsl hc
     have hwq : inWindow (m.getMem (regs .x10)) 8 = true := hwin.heapObj hqlo (by omega)
     tsteps hp
     refine TotalRv.ld8 hp rfl (by tnorm; exact hw0) (by tomega) ?_

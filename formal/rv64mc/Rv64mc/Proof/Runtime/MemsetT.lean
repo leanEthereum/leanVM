@@ -55,11 +55,13 @@ def MemsetSafeT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
 
 /-! ## Stores into the destination -/
 
+/-- A subrange of a range in a window is in it. -/
 theorem InWin.sub {a x : Word} {n w : Nat} (h : InWin env a n) (hlo : a.toNat ≤ x.toNat)
     (hhi : x.toNat + w ≤ a.toNat + n) : InWin env x w := by
   unfold InWin at h ⊢
   omega
 
+/-- A range in `InWin` passes the access check `inWindow`. -/
 theorem InWin.inWindow {a : Word} {n : Nat} {top : Word} {m : MachineState} (h : InWin env a n)
     (hw : Windows env top m) : inWindow a n = true := by
   rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
@@ -80,6 +82,7 @@ theorem InWin.apart {a b : Word} {n : Nat} (h : InWin env a n) (hb1 : a.toNat �
 def Kept (env : Env) (top dst : Word) (n : Nat) (m m' : MachineState) : Prop :=
   env.Frame top (DwordsOf dst n) m m' ∧ env.Static m' ∧ m'.code = m.code
 
+/-- A byte store into the destination keeps `Kept`. -/
 theorem Kept.setByte {top dst x : Word} {n : Nat} {m m' : MachineState} (h : Kept env top dst n m m')
     (hw : InWin env dst n) (hx1 : dst.toNat ≤ x.toNat) (hx2 : x.toNat < dst.toNat + n) (c : BitVec 8) :
     Kept env top dst n m (m'.setByte x c) := by
@@ -90,6 +93,7 @@ theorem Kept.setByte {top dst x : Word} {n : Nat} {m m' : MachineState} (h : Kep
   rw [ha, toNat_alignToDword]
   omega
 
+/-- An aligned doubleword store into the destination keeps `Kept`. -/
 theorem Kept.setMem {top dst x : Word} {n : Nat} {m m' : MachineState} (h : Kept env top dst n m m')
     (hw : InWin env dst n) (hal : x.toNat % 8 = 0) (hx1 : dst.toNat ≤ x.toNat) (hx2 : x.toNat + 8 ≤ dst.toNat + n)
     (v : Word) : Kept env top dst n m (m'.setMem x v) := by
@@ -113,6 +117,7 @@ def Base (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (
   r .x1 = ret ∧ AbiRegs top regs r ∧ r .x10 = regs .x10 ∧ r .x11 = regs .x11 ∧
     Kept env top (regs .x10) (regs .x12).toNat m m'
 
+/-- A write of a scratch register (`x12` to `x16`) keeps `Base`. -/
 theorem Base.upd {ret top : Word} {regs r : Reg → Word} {m m' : MachineState} (h : Base env ret top regs m r m')
     {d : Reg} (hd : d ∈ [.x12, .x13, .x14, .x15, .x16]) (v : Word) : Base env ret top regs m (updReg r d v) m' := by
   obtain ⟨h1, ha, h10, h11, hk⟩ := h
@@ -120,6 +125,7 @@ theorem Base.upd {ret top : Word} {regs r : Reg → Word} {m m' : MachineState} 
   refine ⟨?_, (AbiRegs.updReg_iff (by rcases hd with rfl | rfl | rfl | rfl | rfl <;> decide)).2 ha, ?_, ?_, hk⟩ <;>
     rcases hd with rfl | rfl | rfl | rfl | rfl <;> simpa [updReg_apply]
 
+/-- `Base` holds of a register file agreeing with one it holds of outside the scratch registers. -/
 theorem Base.of_agree {ret top : Word} {regs r r' : Reg → Word} {m m' : MachineState}
     (h : Base env ret top regs m r m') (hr : ∀ x, x ≠ .x12 → x ≠ .x13 → x ≠ .x14 → x ≠ .x15 → x ≠ .x16 → r' x = r x) :
     Base env ret top regs m r' m' := by
@@ -135,16 +141,13 @@ theorem Base.of_agree {ret top : Word} {regs r r' : Reg → Word} {m m' : Machin
     e .x27 (by decide)]
   exact ⟨h1, ha, h10, h11, hk⟩
 
+/-- `Base` with its memory replaced by another that `Kept` relates to the entry's. -/
 theorem Base.mem {ret top : Word} {regs r : Reg → Word} {m m' m'' : MachineState} (h : Base env ret top regs m r m')
     (hk : Kept env top (regs .x10) (regs .x12).toNat m m'') : Base env ret top regs m r m'' :=
   ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, hk⟩
 
-theorem toNat_add_one {x : Word} (h : x.toNat + 1 < 2 ^ 64) : (x + 1#64).toNat = x.toNat + 1 := by
-  rw [BitVec.toNat_add]
-  simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]
-  omega
-
-theorem toNat_sub_one {x : Word} (h : 0 < x.toNat) : (x + 18446744073709551615#64).toNat = x.toNat - 1 := by
+/-- `x - 1` as a number, for `x ≠ 0`. -/
+private theorem toNat_sub_one {x : Word} (h : 0 < x.toNat) : (x + 18446744073709551615#64).toNat = x.toNat - 1 := by
   rw [BitVec.toNat_add]
   simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]
   omega
@@ -171,11 +174,13 @@ def HeadInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState
     (r .x16).toNat + k = (r .x14).toNat ∧ (r .x14).toNat = (regs .x10).toNat + (r .x13).toNat ∧
     (r .x14).toNat % 8 = 0 ∧ (r .x13).toNat ≤ 7 ∧ (r .x12).toNat = (regs .x12).toNat ∧ 16 ≤ (regs .x12).toNat
 
-theorem toNat_and_not7 (y : Word) : (y &&& 18446744073709551608#64).toNat = y.toNat - y.toNat % 8 := by
+/-- `y` rounded down to a multiple of 8, as the code computes it. -/
+private theorem toNat_and_not7 (y : Word) : (y &&& 18446744073709551608#64).toNat = y.toNat - y.toNat % 8 := by
   rw [show (18446744073709551608#64 : Word) = ~~~7#64 by decide]
   exact toNat_alignToDword y
 
-theorem toNat_neg_and7 (x : Word) : (0#64 - x &&& 7#64).toNat = (8 - x.toNat % 8) % 8 := by
+/-- The bytes from `x` to the next multiple of 8, as the code computes them. -/
+private theorem toNat_neg_and7 (x : Word) : (0#64 - x &&& 7#64).toNat = (8 - x.toNat % 8) % 8 := by
   rw [Proof.Runtime.Alloc.and7, BitVec.toNat_sub]
   simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.zero_mod, Nat.add_zero]
   omega
@@ -211,7 +216,7 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
       (hb.2.2.2.2.setByte hw hlo (by omega) ((r .x11).truncate 8))
     tcond hp as hc
     · have h1 := toNat_sub_one (x := r .x12) (by omega)
-      have hx := toNat_add_one (x := r .x13) (by unfold InWin at hw; omega)
+      have hx := toNat_add_ofNat (a := r .x13) (k := 1) (by unfold InWin at hw; omega)
       refine ih (k - 1) _ _ (by omega) ⟨hb', ?_, ?_, ?_, ?_⟩ <;>
         tomega
     · tstep hp
@@ -242,11 +247,7 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
       fun k r m' ⟨hb, hal8, hlo, hend, hk0, hk8, hend3⟩ ih => ?_
     have hw : InWin env (regs .x10) (regs .x12).toNat := hwin0.resolve_left (by omega)
     have hw8 := (hw.sub (x := r .x14) (w := 8) hlo (by omega)).inWindow hwin
-    have hx : (r .x14 + 8#64).toNat = (r .x14).toNat + 8 := by
-      rw [BitVec.toNat_add]
-      unfold InWin at hw
-      simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]
-      omega
+    have hx : (r .x14 + 8#64).toNat = (r .x14).toNat + 8 := toNat_add_ofNat (by unfold InWin at hw; omega)
     have hb' := (hb.upd (d := .x14) (by decide) (r .x14 + 8#64)).mem
       (hb.2.2.2.2.setMem (v := r .x15) hw hal8 hlo (by omega))
     tsteps hp
@@ -291,7 +292,7 @@ theorem total (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (
     have hw : InWin env (regs .x10) (regs .x12).toNat := hwin0.resolve_left (by omega)
     have hw1 := (hw.sub (x := r .x16) (w := 1) hlo (by omega)).inWindow hwin
     have h1 := toNat_sub_one (x := r .x15) (by omega)
-    have hx := toNat_add_one (x := r .x16) (by unfold InWin at hw; omega)
+    have hx := toNat_add_ofNat (a := r .x16) (k := 1) (by unfold InWin at hw; omega)
     have hb' := ((hb.upd (d := .x15) (by decide) (r .x15 + 18446744073709551615#64)).upd (d := .x16) (by decide)
       (r .x16 + 1#64)).mem (hb.2.2.2.2.setByte hw hlo (by omega) ((r .x11).truncate 8))
     tsteps hp
