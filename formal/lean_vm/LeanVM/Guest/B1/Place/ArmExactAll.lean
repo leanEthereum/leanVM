@@ -19,6 +19,8 @@ public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.B1.Whir.Sound
 public import LeanVM.Guest.B1.Whir.WinEx
 public import LeanVM.Guest.B2C.Table
+public import LeanVM.Guest.B1.Place.FreeExactOk
+public import LeanVM.Guest.B1.Place.FreeLp
 
 /-!
 # The arms, exact at every node
@@ -69,7 +71,7 @@ theorem flatNodeT_every {μ : ℕ} (hm : μ - minOpenLog < 11) {fn : Fn} {pre : 
     t.Every (ExactAt coreProgram rd) := by
   obtain ⟨σ, bufs, ks, es, vs, rfl, hw, hc, hQ, hK⟩ := h
   obtain ⟨j, hj⟩ := armExact_all hm
-  refine armExact_every (Ts := Ts σ rd) hj hv (fun fn' es' vs' hf' hw' => ?_) fun fn' es' vs' hf' hw' => ?_
+  refine armExact_every ⟨armExactNeed_ok, armLpNeed_ok⟩ (Ts := Ts σ rd) hj hv (fun fn' es' vs' hf' hw' => ?_) fun fn' es' vs' hf' hw' => ?_
   · rw [hf, Option.some.injEq] at hf'
     subst hf'
     exact hW σ es' vs' hQ hw'

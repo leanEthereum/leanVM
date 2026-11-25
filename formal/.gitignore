@@ -47,6 +47,11 @@ __pycache__/
 /lean_vm/LeanVM/Guest/B1/Bits/QueryWindowsData.lean
 /lean_vm/LeanVM/Guest/B1/Opening/QueriesBody[0-9]*.lean
 /lean_vm/LeanVM/Guest/B1/Opening/QueriesPlacedE.lean
+/lean_vm/LeanVM/Guest/B1/Place/FreeExact*.lean
+/lean_vm/LeanVM/Guest/B1/Place/FreeLp.lean
+/lean_vm/LeanVM/Guest/B1/Place/FreeLq.lean
+/lean_vm/LeanVM/Guest/B1/Place/FreeMaskData.lean
+/lean_vm/LeanVM/Guest/B1/Place/FreeNoWit*.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/Air.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/CountTotal.lean
 /lean_vm/LeanVM/Guest/B1/Tables/Vt/FormsDiff.lean

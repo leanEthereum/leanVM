@@ -20,10 +20,10 @@ joins them, `bufsAt_out`: all of them are `OsOutA`'s allocations.
 
 `osStFrom`, `osStAt`, `osLvsEnd`: the states entering the levels and after them.
 
-`BodyStatic c` (decided per arm and rate in `Whir/CHonAlloc{0..3}`): the head's, each level's
-(`lvAllocsV`: a non-final level's `sent`, the final level's normalized lane) and the closing
-rounds' allocation statements, and the sizes of the buffers they allocate. `osLevels_split`: the
-levels' statements are each level's at its state `osStAt`.
+`BodyStatic c`: the head's, each level's (`lvAllocsV`: a non-final level's `sent`, the final
+level's normalized lane) and the closing rounds' allocation statements (`BodyAllocs c`), and the
+sizes of the buffers they allocate (`BodySizes c`). `osLevels_split`: the levels' statements are
+each level's at its state `osStAt`.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -117,15 +117,23 @@ def headAllocsV : List (V × (ℕ ⊕ V)) :=
     [(.n osPosTab, .inl ligNRates), (.n osQpos, .inr (.n (31 + ligNRates))),
       (.n osQbp, .inr (.n (31 + ligNRates)))]
 
-/-- **The body's allocation statements and sizes at a configuration.** -/
-def BodyStatic (c : OsCfg) : Prop :=
+/-- The body's allocation statements, the costly part: the same at every rate
+(`Whir/CHonAllocRate`), so decided at the first rate alone (`Whir/CHonAlloc0`). -/
+def BodyAllocs (c : OsCfg) : Prop :=
+  (osHead c).1.filterMap Stmt.allocSz = headAllocsV ∧
+  (∀ l < c.levels.length,
+    (osLevel c l (c.levels.getD l default) (osStAt c l)).1.filterMap Stmt.allocSz = lvAllocsV c l) ∧
+  (osTail c (osLvsEnd c)).1.filterMap Stmt.allocSz =
+    [(.n ((osLvsEnd c).k + 1), .inr (.n (osLvsEnd c).k))]
+
+instance (c : OsCfg) : Decidable (BodyAllocs c) := by
+  unfold BodyAllocs; infer_instance
+
+/-- The sizes of the buffers the body allocates, decided at every rate (`Whir/CHonAlloc1`). -/
+def BodySizes (c : OsCfg) : Prop :=
   let n := c.levels.length
   let y := c.yrLevel
   let sz := osSizesL c
-  (osHead c).1.filterMap Stmt.allocSz = headAllocsV ∧
-  (∀ l < n, (osLevel c l (c.levels.getD l default) (osStAt c l)).1.filterMap Stmt.allocSz = lvAllocsV c l) ∧
-  (osTail c (osLvsEnd c)).1.filterMap Stmt.allocSz =
-    [(.n ((osLvsEnd c).k + 1), .inr (.n (osLvsEnd c).k))] ∧
   sz.length = 20 + y ∧ y + 1 = n ∧
   (∀ j < 12, sz.getD j 0 = (headSizes c (osPosTotal c)).getD j 0) ∧
   (∀ l < y, sz.getD (12 + l) 0 = 2 + (c.levels.getD l default).folds) ∧
@@ -135,8 +143,11 @@ def BodyStatic (c : OsCfg) : Prop :=
   sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = n ∧ sz.getD (19 + y) 0 = 2 * n ∧
   (∀ j < sz.length, sz.getD j 0 < 2 ^ 64 - 1)
 
-instance (c : OsCfg) : Decidable (BodyStatic c) := by
-  unfold BodyStatic; dsimp only; infer_instance
+instance (c : OsCfg) : Decidable (BodySizes c) := by
+  unfold BodySizes; dsimp only; infer_instance
+
+/-- **The body's allocation statements and sizes at a configuration.** -/
+def BodyStatic (c : OsCfg) : Prop := BodyAllocs c ∧ BodySizes c
 
 end
 end LeanVM.Guest.B1.Whir

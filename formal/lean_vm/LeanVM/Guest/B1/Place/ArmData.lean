@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.TableKeys
+public import LeanVM.Guest.B1.Whir.RateFree
 
 /-!
 # The arms' decided facts
@@ -22,7 +23,7 @@ the rate's selector over four names, and the body takes no frame address. `LvFac
 `l`'s helpers are entries of their tables (`level_positions` with its loop `lpLoopA c l`), its
 positions' slice sits at its offset (`posOff`) and holds its queries, its `opening_queries` shape matches its row, and its words fit
 their buffers. `armBody_ok`, `armLv_ok`: both at every arm `m < 11` and rate `ri < 4`, by the
-kernel.
+kernel (`BodyOk` at the first rate alone: the body is the same at every rate, `bodyOk_rate`).
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -153,38 +154,66 @@ instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) :=
   decidable_of_iff (LvFactsS (oqShapeK (osOqKey c l (osLvA c l))) c l) <| by
     rw [lvFacts_iff, oqShapeOf_osOqName]
 
-set_option maxRecDepth 100000 in
-theorem armBody_0 : ∀ ri < 4, BodyOk (osCfgR 0 ri) := by decide +kernel
+/-! ## The body at every rate
+
+The body is the same at every rate's levels (`osBody_rate`), so its facts are decided at the first
+rate alone (`armBody_0` ...) and hold at every rate (`bodyOk_rate`). -/
+
+theorem osBodyPre_wl (c : OsCfg) (L : List OsLv) :
+    osBodyPre (c.withLevels L) = osBodyPre (c.withLevels (L.map OsLv.rf)) := by
+  simp only [osBodyPre, osTlA, osHead, osTail, osLevels_wl, List.length_map, getD_rf, OsLv.rf_folds,
+    List.map_map]
+  simp only [Function.comp_def, OsLv.rf_rf]
+
+theorem osBodyA_rate (m ri : ℕ) : osBodyA (osCfgR m ri) = osBodyA (osCfgR m 0) := by
+  have h := (osBody_rate m ri).symm.trans (osBody_rate m 0)
+  rw [osBody_eq, osBody_eq] at h
+  exact (List.append_inj' h (List.length_singleton.trans List.length_singleton.symm)).1
+
+theorem osBodyPre_rate (m ri : ℕ) : osBodyPre (osCfgR m ri) = osBodyPre (osCfgR m 0) := by
+  have h : (osLevelsR m ri).map OsLv.rf = (osLevelsR m 0).map OsLv.rf := by
+    simp only [osLevelsR, List.map_map]; rfl
+  unfold osCfgR
+  rw [osBodyPre_wl, h, ← osBodyPre_wl]
+
+/-- **The body's facts at the first rate are its facts at every rate.** -/
+theorem bodyOk_rate {m : ℕ} (h : BodyOk (osCfgR m 0)) (ri : ℕ) : BodyOk (osCfgR m ri) := by
+  unfold BodyOk at h ⊢
+  rw [osBodyA_rate, osBodyPre_rate, osCfgR_levels_length]
+  rwa [osCfgR_levels_length] at h
 
 set_option maxRecDepth 100000 in
-theorem armBody_1 : ∀ ri < 4, BodyOk (osCfgR 1 ri) := by decide +kernel
+theorem armBody_0 : BodyOk (osCfgR 0 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_2 : ∀ ri < 4, BodyOk (osCfgR 2 ri) := by decide +kernel
+theorem armBody_1 : BodyOk (osCfgR 1 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_3 : ∀ ri < 4, BodyOk (osCfgR 3 ri) := by decide +kernel
+theorem armBody_2 : BodyOk (osCfgR 2 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_4 : ∀ ri < 4, BodyOk (osCfgR 4 ri) := by decide +kernel
+theorem armBody_3 : BodyOk (osCfgR 3 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_5 : ∀ ri < 4, BodyOk (osCfgR 5 ri) := by decide +kernel
+theorem armBody_4 : BodyOk (osCfgR 4 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_6 : ∀ ri < 4, BodyOk (osCfgR 6 ri) := by decide +kernel
+theorem armBody_5 : BodyOk (osCfgR 5 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_7 : ∀ ri < 4, BodyOk (osCfgR 7 ri) := by decide +kernel
+theorem armBody_6 : BodyOk (osCfgR 6 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_8 : ∀ ri < 4, BodyOk (osCfgR 8 ri) := by decide +kernel
+theorem armBody_7 : BodyOk (osCfgR 7 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_9 : ∀ ri < 4, BodyOk (osCfgR 9 ri) := by decide +kernel
+theorem armBody_8 : BodyOk (osCfgR 8 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem armBody_10 : ∀ ri < 4, BodyOk (osCfgR 10 ri) := by decide +kernel
+theorem armBody_9 : BodyOk (osCfgR 9 0) := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem armBody_10 : BodyOk (osCfgR 10 0) := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem armLv_0 : ∀ ri < 4, ∀ l < (osCfgR 0 ri).levels.length, LvFacts (osCfgR 0 ri) l := by
@@ -231,19 +260,19 @@ theorem armLv_10 : ∀ ri < 4, ∀ l < (osCfgR 10 ri).levels.length, LvFacts (os
   decide +kernel
 
 /-- **Every arm's body has its decided facts at every rate.** -/
-theorem armBody_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) : BodyOk (osCfgR m ri) := by
+theorem armBody_ok {m ri : ℕ} (hm : m < 11) (_hri : ri < 4) : BodyOk (osCfgR m ri) := by
   interval_cases m
-  · exact armBody_0 ri hri
-  · exact armBody_1 ri hri
-  · exact armBody_2 ri hri
-  · exact armBody_3 ri hri
-  · exact armBody_4 ri hri
-  · exact armBody_5 ri hri
-  · exact armBody_6 ri hri
-  · exact armBody_7 ri hri
-  · exact armBody_8 ri hri
-  · exact armBody_9 ri hri
-  · exact armBody_10 ri hri
+  · exact bodyOk_rate armBody_0 ri
+  · exact bodyOk_rate armBody_1 ri
+  · exact bodyOk_rate armBody_2 ri
+  · exact bodyOk_rate armBody_3 ri
+  · exact bodyOk_rate armBody_4 ri
+  · exact bodyOk_rate armBody_5 ri
+  · exact bodyOk_rate armBody_6 ri
+  · exact bodyOk_rate armBody_7 ri
+  · exact bodyOk_rate armBody_8 ri
+  · exact bodyOk_rate armBody_9 ri
+  · exact bodyOk_rate armBody_10 ri
 
 /-- **Every arm's levels have their decided facts at every rate.** -/
 theorem armLv_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) :
