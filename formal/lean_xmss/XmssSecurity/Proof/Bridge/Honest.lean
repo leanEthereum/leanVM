@@ -19,8 +19,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 /-! ## The model key over a table -/
 
 /-- The bottom chain starts: chain `i` of key `idx` is half `i mod 2` of derivation `(idx, i / 2)`. -/

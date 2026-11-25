@@ -149,8 +149,6 @@ noncomputable def globalFilteredCausalLeafHashPlan
           else .fresh
 
 
-set_option maxRecDepth 1000000
-
 noncomputable def globalFilteredCausalUncachedAttackerHashPlan
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
@@ -350,8 +348,6 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
         (globalCausalRecordedState secretKey input state)
 
 
-set_option maxRecDepth 1000000
-
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -484,8 +480,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
   exact relTriple_pure_pure ⟨rfl, hnext⟩
 
 
-set_option maxRecDepth 1000000
-
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -583,8 +577,6 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
   · exact hleft
   · rfl
 
-
-set_option maxRecDepth 1000000
 
 def GlobalFilteredHashUntilHitRelation
     (left : ProgrammedGlobalChainKeygenView)

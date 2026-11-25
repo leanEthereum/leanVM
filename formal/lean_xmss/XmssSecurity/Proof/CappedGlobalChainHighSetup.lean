@@ -12,7 +12,6 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 1000000
 set_option linter.constructorNameAsVariable false
 
 noncomputable def programmedGlobalChainTrajectoryMaterialWithBaseHigh
@@ -229,7 +228,6 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh
       hrightMaterialSupport, hrunRel⟩, hhighFinal, hmatches.mono hcacheLe⟩
 
 
-set_option maxRecDepth 2000000
 set_option linter.constructorNameAsVariable false
 
 noncomputable def coupledGlobalChainKeygenWithBaseHighFull :
@@ -419,8 +417,6 @@ theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
     relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
 
-
-set_option maxRecDepth 1000000
 
 noncomputable def globalFilteredCausalKeygenState
     (view : ProgrammedGlobalChainKeygenView) : GlobalCausalHashState := by
@@ -726,8 +722,6 @@ def GlobalFilteredHashResultRelation
     GlobalFilteredCausalStateRelation left right leftResult.2 rightResult.1.2
 
 
-set_option maxRecDepth 1000000
-
 structure GlobalFilteredResultRelation (Output : Type)
     (parameter : PublicParameter)
     (leftBase initialLeft initialRight : QueryCache HashSpec)
@@ -805,8 +799,6 @@ theorem relTriple_globalEncodingHash_run_filtered
     hresult.left_le, hresult.right_le, hresult.filtered⟩
 
 
-set_option maxRecDepth 1000000
-
 theorem programmedGlobal_filteredKeygen_stateRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -861,8 +853,6 @@ theorem programmedGlobal_filteredKeygen_stateRelation
   · intro index value hvalue
     simp [globalFilteredCausalKeygenState] at hvalue
 
-
-set_option maxRecDepth 1000000
 
 noncomputable def globalChainValueHighTableOfEdges
     (high : GlobalChainEdgeIndex → Digest) :
@@ -1369,8 +1359,6 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
   · exact hequal (by assumption)
   · rfl
 
-
-set_option maxRecDepth 1000000
 
 theorem globalChainTableEdgeInput_not_signingComparable
     (parameter : PublicParameter)

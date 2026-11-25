@@ -8,8 +8,6 @@ open OracleComp ENNReal
 
 namespace XmssSecurity
 
-set_option maxRecDepth 100000
-
 namespace TargetSum
 
 def ValidDigest (digest : Digest) : Prop :=

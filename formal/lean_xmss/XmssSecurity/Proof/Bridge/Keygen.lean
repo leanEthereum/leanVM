@@ -20,8 +20,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 /-! ## Chain starts from pair derivations -/
 
 /-- The two halves of a derivation start chains `2t` and `2t + 1`. -/

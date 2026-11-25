@@ -22,8 +22,6 @@ namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 /-- At most `2^128` guesses of a 256-bit seed cost one unit. -/
 theorem guesses_le {n : Nat} (hn : n ≤ 2 ^ 128) :
     (n : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=

@@ -77,7 +77,6 @@ open OracleComp OracleSpec ENNReal
 namespace FORS.Security.Prefix
 
 variable [Params]
-set_option backward.isDefEq.respectTransparency false
 
 /-- Source-side hash calls, excluding private uniform samples. -/
 def SourceHash : OracleWorld.Domain → Prop
@@ -178,7 +177,6 @@ namespace FORS.Security.Prefix
 
 variable [Params]
 open Concrete
-set_option backward.isDefEq.respectTransparency false
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.signLayer
   Seeded.forsOpen Seeded.forsKey sequenceFin chainWalk

@@ -15,12 +15,9 @@ bound counts no call of the signer.
 -/
 
 open OracleComp OracleSpec ENNReal
-set_option backward.isDefEq.respectTransparency false
 open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
-
-set_option maxRecDepth 1000000
 
 /-- One adversary query spends its cost from the own budget. -/
 theorem ownBudget_step (input : (OracleWorld + SigningSpec).Domain)

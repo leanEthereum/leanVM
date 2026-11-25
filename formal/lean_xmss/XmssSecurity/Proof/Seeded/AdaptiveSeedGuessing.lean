@@ -9,8 +9,6 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Seeded
 
-set_option backward.isDefEq.respectTransparency false
-
 open scoped Classical in
 theorem probOutput_stopBefore_seed_le {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)
     {α : Type} (computation : OracleComp OracleWorld α)

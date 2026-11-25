@@ -26,8 +26,6 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness HiddenGraph Assembly SeedModel Reduce Eager
   HiddenCost GraphView
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### Support transfer in the stopped world -/

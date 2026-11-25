@@ -10,8 +10,6 @@ namespace XmssSecurity.Seeded
 
 open Common.RomTable
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem exists_seed_not_hit {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)
     (inputs : List HashInput) (hsize : inputs.length < 2 ^ 256) :
     ∃ seed, ¬SeedHitLog hit inputs seed := by

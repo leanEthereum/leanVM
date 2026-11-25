@@ -12,11 +12,8 @@ public import XmssSecurity.Proof.LossDecomposition
 @[expose] public section
 
 open OracleComp OracleSpec ENNReal
-set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity
-
-set_option maxRecDepth 100000
 
 theorem CappedSuffix.keygenChainTargetInput_encodingInput_eq_self
     (secretKey : SecretKey) (cache : QueryCache HashSpec)

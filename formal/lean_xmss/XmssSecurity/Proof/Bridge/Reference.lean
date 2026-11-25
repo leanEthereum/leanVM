@@ -22,8 +22,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 theorem worldHandler_randomOracle : worldHandler randomOracle = romImpl := rfl
 
 theorem prob_table_le_memo (adversary : Adversary) (randomizers : RandomizerOutputs)

@@ -8,14 +8,11 @@ public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 @[expose] public section
 
 open OracleComp OracleSpec ENNReal
-set_option backward.isDefEq.respectTransparency false
 open OracleComp.ProgramLogic.Relational
 
 variable {α : Type}
 
 namespace XmssSecurity.CappedChain
-
-set_option maxRecDepth 1000000
 
 theorem verifierHashQueryCost_eq_if (input : OracleWorld.Domain) :
     verifierHashQueryCost input =
@@ -761,8 +758,6 @@ theorem SourceFirstLaneExactGoodStateRelation.appendVerification
       firstLaneAppendVerificationState] using happendSub
   · simpa [firstLaneAppendVerificationState] using hvalidFinal
 
-set_option maxRecDepth 1000000
-
 abbrev GlobalFirstLaneExactCoupledProgramResult :=
   (((ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) ×
@@ -902,7 +897,6 @@ theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
         RevealProbeOracleSimulation.eagerTableSample
       rfl
 
-set_option maxRecDepth 2000000
 set_option linter.constructorNameAsVariable false
 
 def liftGlobalChainTrace

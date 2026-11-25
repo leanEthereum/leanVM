@@ -18,8 +18,6 @@ variable [Params]
 open FORS.Base
 open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner FORS.LoopWalk Common.LoopWalk
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 

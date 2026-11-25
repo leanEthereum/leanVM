@@ -14,8 +14,6 @@ namespace FORS.Security.GraphCorrectness
 
 variable [Params]
 open Concrete Completeness Graph PrunedGraph
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 set_option allowUnsafeReducibility true
 attribute [local reducible] digestBits HashSpec Id

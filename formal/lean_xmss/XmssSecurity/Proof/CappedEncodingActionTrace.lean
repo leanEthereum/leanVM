@@ -11,8 +11,6 @@ variable {α : Type}
 
 namespace XmssSecurity
 
-set_option maxRecDepth 100000
-
 def ValidFreshSigningCollisionsRepresented
     (secretKey : SecretKey) (signingTrace : SigningCacheTrace)
     (actions : EncodingActionTrace) : Prop :=

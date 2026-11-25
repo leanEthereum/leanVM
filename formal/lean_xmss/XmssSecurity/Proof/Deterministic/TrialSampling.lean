@@ -13,9 +13,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
-set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 4096
-
 attribute [local irreducible] Concrete.precomputedSignAttempt
 
 variable {State : Type}

@@ -15,8 +15,6 @@ namespace XmssSecurity.CappedChain
 variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
   (edgeHigh : GlobalChainEdgeIndex → Digest)
 
-set_option maxRecDepth 1000000
-
 noncomputable def globalHighDirectUniformImpl :
     QueryImpl unifSpec
       (StateT GlobalCausalHashState
@@ -358,8 +356,6 @@ def globalHighMonitoredDirectProjection
   (result.1.1.2,
     (((result.1.1.1, result.1.2),
       (result.2.1, result.2.2.1.causal)), result.2.2.1.trace))
-
-set_option maxRecDepth 1000000
 
 def globalHighDirectErasedResult
     (result : GlobalHighDirectResult) :

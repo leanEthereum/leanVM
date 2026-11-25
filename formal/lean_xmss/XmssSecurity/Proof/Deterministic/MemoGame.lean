@@ -10,8 +10,6 @@ namespace XmssSecurity.Seeded
 
 open DeterministicSigning
 
-set_option backward.isDefEq.respectTransparency false
-
 noncomputable def evaluateSource {α : Type} (sign : SignRequest → OracleComp HashSpec (Option Signature))
     (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec) : ProbComp α :=
   (simulateQ romImpl (runSigning sign computation)).run' cache
