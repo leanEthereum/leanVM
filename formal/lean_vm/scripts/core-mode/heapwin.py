@@ -11,7 +11,7 @@ windows cover a loop helper's body without its tail (`loopBody`), or a function'
 its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/<fn>/` (`loopcc.py`):
 
 * `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures as `CFun.sigOf` reads
-  them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
+  them), which the context reads by the names' keys (`sigK`, `hsigK`, `SigIx.lean`: no string compared); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
   certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
   context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
   rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at most `SPART` characters
@@ -444,6 +444,19 @@ HEADER = genfiles.header('core-mode/heapwin.py')
 DATA = 'public meta import LeanVM.Guest.DataLit\n'
 
 
+def core_name(k):
+    """The name `core.name` holds: the core IR's, of which `k` is the stable alias (`infer.callee`)."""
+    return next((n for n, s in I.STABLE.items() if s == k and n != k), k)
+
+
+def str_key(name):
+    """`CoreMode.strKey`: the name's UTF-8 bytes as a number, base 256 from the last byte, over a leading 1."""
+    n = 1
+    for b in reversed(name.encode()):
+        n = n * 256 + b
+    return n
+
+
 def repack(text):
     """Code lines over 120 characters packed (`pack`), at their indentation plus four."""
     out = []
@@ -622,14 +635,20 @@ def emit(k, H, sts, cs, po, splits, gen):
         cx += ''.join(f'public import {base}.CxH{j}\n' for j in range(len(groups)))
     else:
         cx += f'public import {prev}\n' if prev else head
-    cx += DATA
+    cx += 'public import LeanVM.Guest.CoreMode.SigIx\n' + DATA
     cx += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
     cx += '\n' + ''.join(cur) if cur else ''
     cx += thm(groups[0]) if len(groups) == 1 else ''
+    # the callees' signatures read by their names' keys (`SigIx.lean`), the keys stated once
+    own, keys = str_key(core_name(k)), ', '.join(str(str_key(f)) for f in gen['names'])
+    cx += (f'\n/-- The keys of the callees\' names (`strKey`). -/\nnoncomputable def sigKeys : List ℕ :=\n  data% [{keys}]\n'
+           f'\n/-- The callees\' signatures, read by key. -/\ntheorem hsigK : sigW = sigK {own} hcert.sig sigKeys csigs :=\n'
+           '  sigK_eq (by decide +kernel) (by decide +kernel)\n')
     cx += (f'\n/-- The context, its tries stated. -/\nnoncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
-           'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
-    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
-           'hcxHV hcxEQ\n')
+           f'cxRS, cxDV, cxHV, hcert.gargs, sigK {own} hcert.sig sigKeys csigs, hcert.sig, core.params, [], cxEQ, '
+           'hcert.fas, hcert.ders⟩\n')
+    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL := by\n  rw [hsigK]\n  exact cxOf_lit hcxR hcxP '
+           'hcxC hcxT hcxRS hcxDV hcxHV hcxEQ\n')
     cx += f'\nend\nend {ns}.{sub}\n'
     mods.append(('Cx', repack(cx)))
     # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
