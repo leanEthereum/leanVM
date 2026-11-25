@@ -30,20 +30,22 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B1 LeanVM.Guest.B1.Whir
 @[expose] public section
 
 /-- **The arm `m`'s body is mute in `armS`.** -/
+theorem armMuteNeed_ok : ArmMuteNeedOk := ⟨armNoWitNeed_ok, armLqNeed_ok⟩
+
 theorem armMute_all {m : ℕ} (hm : m < 11) :
     ∃ fn, coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn ∧ Stmt.muteList armS fn.body = true := by
   interval_cases m
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute0
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute1
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute2
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute3
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute4
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute5
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute6
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute7
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute8
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute9
-  · exact armMute_find ⟨armNoWitNeed_ok, armLqNeed_ok⟩ armMute10
+  · exact armMute_find armMuteNeed_ok armMute0
+  · exact armMute_find armMuteNeed_ok armMute1
+  · exact armMute_find armMuteNeed_ok armMute2
+  · exact armMute_find armMuteNeed_ok armMute3
+  · exact armMute_find armMuteNeed_ok armMute4
+  · exact armMute_find armMuteNeed_ok armMute5
+  · exact armMute_find armMuteNeed_ok armMute6
+  · exact armMute_find armMuteNeed_ok armMute7
+  · exact armMute_find armMuteNeed_ok armMute8
+  · exact armMute_find armMuteNeed_ok armMute9
+  · exact armMute_find armMuteNeed_ok armMute10
 
 /-- **A named callee is not `level_queries`.** -/
 theorem lqNameB_of_kind {g : String} {K : OsKind} (h : osKindOf g = some K) : lqNameB g = false :=

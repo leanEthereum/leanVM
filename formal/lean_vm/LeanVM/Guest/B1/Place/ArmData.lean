@@ -180,8 +180,7 @@ theorem osBodyPre_rate (m ri : ℕ) : osBodyPre (osCfgR m ri) = osBodyPre (osCfg
 theorem bodyOk_rate {m : ℕ} (h : BodyOk (osCfgR m 0)) (ri : ℕ) : BodyOk (osCfgR m ri) := by
   unfold BodyOk at h ⊢
   rw [osBodyA_rate, osBodyPre_rate, osCfgR_levels_length]
-  rw [osCfgR_levels_length] at h
-  exact h
+  rwa [osCfgR_levels_length] at h
 
 set_option maxRecDepth 100000 in
 theorem armBody_0 : BodyOk (osCfgR 0 0) := by decide +kernel

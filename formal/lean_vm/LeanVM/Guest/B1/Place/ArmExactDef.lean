@@ -65,12 +65,7 @@ theorem armExact_find (hN : ArmExactNeedOk) {name : String} {j : ℕ} (h : armEx
   · next fn hj =>
     simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at h
     obtain ⟨⟨hn, hp⟩, hc⟩ := h
-    refine ⟨fn, coreProgram_find?_at hj hn, hp, fun g hg ↦ ?_⟩
-    obtain ⟨k, hk, hk', hg'⟩ := maskCallee_mem armCalleeMask_exact (hc g hg)
-    rcases List.mem_append.mp hk with hk | hk
-    · obtain ⟨d, hd⟩ := hN.1 k hk
-      exact .inr ⟨d, k, hk', hd⟩
-    · exact .inl (by simpa [hg'] using hN.2 k hk)
+    exact ⟨fn, coreProgram_find?_at hj hn, hp, fun g hg ↦ maskCallee_append armCalleeMask_exact hN.1 hN.2 (hc g hg)⟩
   · exact absurd h Bool.false_ne_true
 
 /-- **A valid node of an arm passing the check is exact at every node** when its window hints are exact and each

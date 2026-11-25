@@ -137,15 +137,12 @@ def files():
         body = ''
         for d, cs in enumerate(cs_all, 1):
             prev = '0' if d == 1 else f'arm{f}M{d - 1}'
-            body += f'theorem arm{f}Lv{d}_ok : ∀ j ∈ arm{f}Lv{d}, stepOk {P} {prev} j = true := by\n'
-            body += f'  simp only [arm{f}Lv{d}, List.append_assoc, List.mem_append]\n'
-            body += '  intro k hk\n'
-            if len(cs) > 1:
-                body += '  rcases hk with ' + ' | '.join('h' for _ in cs) + '\n'
-                body += ''.join(f'  · exact arm{f}Lv{d}C{c}_ok k h\n' for c in range(len(cs)))
-            else:
-                body += f'  exact arm{f}Lv{d}C0_ok k hk\n'
-            body += '\n'
+            # The depth's chunks joined: one fact, or their conjunction (`List.forall_mem_append`).
+            head = f'theorem arm{f}Lv{d}_ok : ∀ j ∈ arm{f}Lv{d}, stepOk {P} {prev} j = true :='
+            oks = ', '.join(f'arm{f}Lv{d}C{c}_ok' for c in range(len(cs)))
+            assoc = 'List.append_assoc, ' if len(cs) > 2 else ''
+            body += (f'{head}\n  {oks}\n\n' if len(cs) == 1 else
+                     f'{head} by\n  simp only [arm{f}Lv{d}, {assoc}List.forall_mem_append]\n  exact ⟨{oks}⟩\n\n')
         top = len(cs_all)
         chain = f'recJ_level (D := 0) (fun _ h ↦ by simp at h) arm{f}M1_eq arm{f}Lv1_ok'
         for d in range(2, top + 1):

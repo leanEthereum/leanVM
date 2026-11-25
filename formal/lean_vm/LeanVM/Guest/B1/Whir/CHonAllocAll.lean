@@ -17,7 +17,7 @@ namespace LeanVM.Guest.B1.Whir
 /-- **Every arm at every rate**: its statements at the first rate (`CHonAlloc0`, the same at every
 rate, `bodyAllocs_rate`), its sizes at each (`CHonAlloc1`). -/
 theorem bodyStatic_all (m ri : ℕ) (hm : m < 11) (hr : ri < 4) : BodyStatic (osCfgR m ri) := by
-  refine bodyStatic_of ((bodyAllocs_rate m ri).mpr ?_) (bodySizes_all m hm ri hr)
+  refine ⟨(bodyAllocs_rate m ri).mpr ?_, bodySizes_all m hm ri hr⟩
   interval_cases m
   · exact bodyAllocs_0
   · exact bodyAllocs_1

@@ -17,7 +17,8 @@ A caller's check per callee name (`noWitCallee j g`, `exactCallee j g`, a table 
 reruns, for every caller and every call, the callee's whole subtree check or a string search. When
 the callees' facts are decided once over the list `ks` of their indices (`∀ k ∈ ks, ∃ d, noWitJ d k`,
 ...), a caller checks each callee by its index's bit in `listMask ks` (`maskCallee`): one name
-lookup (`calleeIdx`) and a bit test. `maskCallee_mem`: a callee passing it is named by an index of `ks`.
+lookup (`calleeIdx`) and a bit test. `maskCallee_mem`: a callee passing it is named by an index of `ks`;
+`maskCallee_append`: over two lists of indices with different facts, it has its list's.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -59,19 +60,17 @@ theorem maskCallee_mem {ks : List ℕ} {N j : ℕ} {g : String} (hN : N = listMa
     exact ⟨k, mem_of_testBit_listMask h, calleeIdx_spec hk, hn⟩
   · exact absurd h Bool.false_ne_true
 
-
-/-- A callee passing the mask of `ks`, whose indices pass `exactJ`, is exact for free. -/
-theorem exactFreeG_of_maskCallee {ks : List ℕ} {N j : ℕ} {g : String} (hN : N = listMask ks)
-    (hks : ∀ k ∈ ks, ∃ d, exactJ d k = true) (h : maskCallee N j g = true) : ExactFreeG g := by
-  obtain ⟨k, hk, hn, -⟩ := maskCallee_mem hN h
-  obtain ⟨d, hd⟩ := hks k hk
-  exact ⟨d, k, hn, hd⟩
-
-/-- A callee passing the mask of `ks`, whose indices' names pass `p`, passes `p`. -/
-theorem of_maskCallee {ks : List ℕ} {N j : ℕ} {g : String} {p : String → Bool} (hN : N = listMask ks)
-    (hks : ∀ k ∈ ks, (Data.nameT.find k).all p = true) (h : maskCallee N j g = true) : p g = true := by
-  obtain ⟨k, hk, -, hn⟩ := maskCallee_mem hN h
-  simpa [hn] using hks k hk
+/-- **A callee passing the mask of `A ++ B`** passes `p` when `B`'s names do, or is a function of `A`
+passing `J` at some depth when `A`'s do. -/
+theorem maskCallee_append {A B : List ℕ} {N j : ℕ} {g : String} {J : ℕ → ℕ → Bool} {p : String → Bool}
+    (hN : N = listMask (A ++ B)) (hA : ∀ k ∈ A, ∃ d, J d k = true)
+    (hB : ∀ k ∈ B, (Data.nameT.find k).all p = true) (h : maskCallee N j g = true) :
+    p g = true ∨ ∃ d k, (coreProgram[k]?).map Fn.name = some g ∧ J d k = true := by
+  obtain ⟨k, hk, hn, hn'⟩ := maskCallee_mem hN h
+  rcases List.mem_append.mp hk with hk | hk
+  · obtain ⟨d, hd⟩ := hA k hk
+    exact .inr ⟨d, k, hn, hd⟩
+  · exact .inl (by simpa [hn'] using hB k hk)
 
 /-! ## Subtrees by call depth
 

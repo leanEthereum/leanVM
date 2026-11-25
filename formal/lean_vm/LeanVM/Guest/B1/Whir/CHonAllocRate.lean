@@ -36,10 +36,14 @@ theorem getD_rf_eq (i : ℕ) : (L.getD i default).rf = (L'.getD i default).rf :=
 theorem take_rf_eq (l : ℕ) : (L.take l).map OsLv.rf = (L'.take l).map OsLv.rf := by
   rw [List.map_take, List.map_take, h]
 
+theorem folds_getD_eq (i : ℕ) : (L.getD i default).folds = (L'.getD i default).folds :=
+  (congrArg OsLv.folds (getD_rf_eq h i) :)
+
+theorem foldsOff_getD_eq (i : ℕ) : (L.getD i default).foldsOff = (L'.getD i default).foldsOff :=
+  (congrArg OsLv.foldsOff (getD_rf_eq h i) :)
+
 theorem osHead_rf : osHead (c.withLevels L) = osHead (c.withLevels L') := by
-  have h2 : ∀ i, (L.getD i default).folds = (L'.getD i default).folds := fun i ↦ by
-    rw [← OsLv.rf_folds, getD_rf_eq h i, OsLv.rf_folds]
-  simp only [osHead, length_eq_of_rf h, h2]
+  simp only [osHead, length_eq_of_rf h, folds_getD_eq h]
 
 theorem osStAt_rf (l : ℕ) : osStAt (c.withLevels L) l = osStAt (c.withLevels L') l := by
   simp only [osStAt, osStFrom, osLevels_wl, osHead_rf c h]
@@ -56,12 +60,8 @@ theorem osLevelAt_rf (l : ℕ) :
   simp only [OsCfg.withLevels, getD_rf_eq h]
 
 theorem lvAllocsV_rf (l : ℕ) : lvAllocsV (c.withLevels L) l = lvAllocsV (c.withLevels L') l := by
-  have e1 : ∀ i, (L.getD i default).folds = (L'.getD i default).folds := fun i ↦ by
-    rw [← OsLv.rf_folds, getD_rf_eq h i, OsLv.rf_folds]
-  have e2 : ∀ i, (L.getD i default).foldsOff = (L'.getD i default).foldsOff := fun i ↦ by
-    rw [← OsLv.rf_foldsOff, getD_rf_eq h i, OsLv.rf_foldsOff]
   simp only [lvAllocsV, osRates_wl, osFinalMsg_wl, osPositions_wl, osStAt_rf c h]
-  simp only [OsCfg.withLevels, e1, e2, getD_rf_eq h]
+  simp only [OsCfg.withLevels, folds_getD_eq h, foldsOff_getD_eq h, getD_rf_eq h]
 
 omit h in
 theorem osTail_wl (s : OsSt) : osTail (c.withLevels L) s = osTail c s := rfl

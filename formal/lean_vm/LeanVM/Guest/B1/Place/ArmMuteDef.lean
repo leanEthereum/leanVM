@@ -52,12 +52,9 @@ theorem armMute_find (hN : ArmMuteNeedOk) {name : String} {j : ℕ} (h : armMute
     simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at h
     obtain ⟨⟨hn, hw⟩, hc⟩ := h
     refine ⟨fn, coreProgram_find?_at hj hn, Stmt.muteList_of_noWit fn.body hw fun g hg ↦ ?_⟩
-    obtain ⟨k, hk, hk', hg'⟩ := maskCallee_mem armCalleeMask_mute (hc g hg)
-    rcases List.mem_append.mp hk with hk | hk
-    · obtain ⟨d, hd⟩ := hN.1 k hk
-      simp [armS, noWitS_iff.mpr ⟨d, k, hk', hd⟩]
-    · have hq : lqNameB g = true := by simpa [hg'] using hN.2 k hk
-      simp [armS, hq]
+    rcases maskCallee_append armCalleeMask_mute hN.1 hN.2 (hc g hg) with h | h
+    · simp [armS, h]
+    · simp [armS, noWitS_iff.mpr h]
   · exact absurd h Bool.false_ne_true
 
 end
