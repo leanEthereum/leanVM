@@ -1237,8 +1237,8 @@ noncomputable def dspJ (Cf : CFun) (k od of : ℕ) : Bool :=
         fs.all fun f ↦ pcs.any fun t ↦ Cf.X.entOk t f
     | _, _, _ => false
 
-/-- `t.get n`, the key read by `Nat.rec` and `Nat.beq`, in about half the kernel's steps: a check reading a
-trie at every offset of a function's code reads it so. -/
+/-- `t.get n`, the key read by `Nat.rec` and `Nat.beq`, which the kernel reduces without unfolding `BEq ℕ`:
+a check reading a trie at every offset of a function's code reads it so. -/
 noncomputable def getQ {α : Type} (t : Exec.Trie α) : ℕ → Option α :=
   Exec.Trie.rec (motive := fun _ ↦ ℕ → Option α) (fun _ ↦ none)
     (fun v _ _ gl gr n ↦ Nat.rec (motive := fun _ ↦ Option α) v
