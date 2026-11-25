@@ -123,18 +123,15 @@ theorem call (h : HoldsT env p f need Pre Post Out Stop) {fn pc : Nat} {fd : Lfu
     (hc : rvIsa.callee p regs tgt = some f) (hstack : env.stackLimit.toNat + need ≤ (regs .x2).toNat)
     (hst : env.Static m) (hnext : (env.next m).toNat ≤ env.heapEnd.toNat) (hpre : Pre (updReg regs .x1 ret) m)
     (halign : (regs .x2).toNat % 16 = 0)
-    (hstop : ∀ fr st r' m', Stop (updReg regs .x1 ret) m r' m' → r' .x5 = 0 → Q ⟨fr :: st, r', m'⟩)
+    (hstop : ∀ fr st r' m', Stop (updReg regs .x1 ret) m r' m' → rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ →
+      Q ⟨fr :: st, r', m'⟩)
     (hk : ∀ r' m', AbiRegs (regs .x2) (updReg regs .x1 ret) r' →
       env.Frame (regs .x2) (Out (updReg regs .x1 ret) m) m m' → env.Static m' →
       Post (updReg regs .x1 ret) m r' m' → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, r', m'⟩) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
   Total.call_contract hf hi h hc (WinOk.of_ne hf hi nofun)
     ⟨⟨by simp [updReg_apply], by simp [updReg_apply]⟩, hstack, hst, hnext, hpre, halign⟩
-    (fun _ _ _ _ hs ha => hstop _ _ _ _ hs (by
-      rcases ha with h | ⟨_, _, h⟩
-      · cases h
-      · exact h))
-    fun r' m' ⟨ha, hfr, hs, hp⟩ => hk r' m' ha hfr hs hp
+    hstop fun r' m' ⟨ha, hfr, hs, hp⟩ => hk r' m' ha hfr hs hp
 
 /-- **More stack than a contract needs is enough.** -/
 theorem mono_need (h : HoldsT env p f need Pre Post Out Stop) {need' : Nat} (hn : need ≤ need') :
