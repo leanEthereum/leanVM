@@ -74,7 +74,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     all_goals try (show _ → _ % 8 = 0
                    first
                      | (intro hT; rw [res3_tag] at hT; done)
-                     | (intro _; rw [res3_ptr ho]; assumption)
+                     | (intro _; rwa [res3_ptr ho])
                      | (exfalso; have := hb.1; rw [hc] at this; simp only [Nat.mul_comm] at this hpre_11
                         rw [show (0#64 : Word).toNat = 0 by decide] at this; omega))
     -- no block (`new_cap * size = 0`): not reached, the precondition asks for a nonzero size
