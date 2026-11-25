@@ -39,8 +39,10 @@ import genfiles
 # the windows' sizes (`windows.py`)
 BUDGET, WIN, ATOMS, FIXW = windows.HEAP_BUDGET, windows.HEAP_WIN, windows.HEAP_ATOMS, windows.HEAP_FIXW
 CXPART, CXDEC, SPART = windows.HEAP_CXPART, windows.HEAP_CXDEC, windows.HEAP_SPART
-# the callees from which a context reads their signatures by key (`SigIx.lean`): with fewer, the keys cost the kernel
-# more than the scan of the names
+# the callees' signatures as `CFun.sigOf` reads them (`sigW`), and the number of callees from which a context reads
+# them by the names' keys instead (`sigK`, `SigIx.lean`'s `sigK_eq`, whose left side is `SIGW`): with fewer, the keys
+# cost the kernel more than the scan of the names
+SIGW = '(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})'
 SIGK = 100
 # The kernel's work, in thousands of heartbeats (the heartbeat limit's unit), estimated from `heapc.py`'s pass: per
 # line it executes (`Meter`), per atom (the ghost check), per character of the certificate (the context's tries), per
@@ -457,11 +459,8 @@ def core_name(k):
 
 
 def str_key(name):
-    """`CoreMode.strKey`: the name's UTF-8 bytes as a number, base 256 from the last byte, over a leading 1."""
-    n = 1
-    for b in reversed(name.encode()):
-        n = n * 256 + b
-    return n
+    """`CoreMode.strKey`: the name's UTF-8 bytes as base-256 digits, the first the least significant, under a 1."""
+    return int.from_bytes(name.encode() + b'\x01', 'little')
 
 
 def repack(text):
@@ -583,12 +582,12 @@ def wprf(d):
 
 def emit(k, H, sts, cs, po, splits, gen):
     """The modules of one function: `[(name, text)]`. `gen`, a dict of `root` (the modules' prefix), `sub` (the
-    namespace under the function's), `data` (the certificate's modules), `sigw` (the callees' signatures, as Lean),
+    namespace under the function's), `data` (the certificate's modules), `names` (the callees),
     `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`); for an arm
     of a split certificate (`HCert.arms`), `ns` and `base` (its namespace, where `core` and `hcert` are the arm's, and
     its modules' prefix), `lpre` (the prefix of its lists' declarations) and `one` (the theorem `heapOkC1`'s)."""
     pack, core_mod = po[k][0], po[k][1]
-    data, sub, sigw = gen['data'], gen['sub'], gen['sigw']
+    data, sub = gen['data'], gen['sub']
     ns = gen.get('ns', f'LeanVM.Guest.Fn.«{k}»')
     base = gen.get('base', f'{gen["root"]}.«{k}»')
     mods = []
@@ -602,7 +601,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     fl = lcx(H, pre=gen.get('pre', 'sig_pre'), lpre=gen.get('lpre', ''))
     head = (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
             ''.join(f'public import {m}\n' for m in data) + imps)
-    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
+    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {SIGW}\n'
     # the equations, in groups of at most `CXDEC` characters of the certificate's lists they read (`CxH<j>`, each
     # importing the definitions) if more than one, else in `Cx`
     groups, g = [], []
@@ -658,8 +657,9 @@ def emit(k, H, sts, cs, po, splits, gen):
     cx += (f'\n/-- The context, its tries stated. -/\n'
            f'noncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
            f'cxRS, cxDV, cxHV, hcert.gargs, {sig}, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
-    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=' + (' by\n  rw [hsigK]\n  exact' if sigk else '\n ')
-           + ' cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ\n')
+    lit = 'cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ'
+    prf = f' by\n  rw [hsigK]\n  exact {lit}' if sigk else f'\n  {lit}'
+    cx += f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :={prf}\n'
     cx += f'\nend\nend {ns}.{sub}\n'
     mods.append(('Cx', repack(cx)))
     # the states, in modules of at most `SPART` characters (`S<j>`, each importing the last), each sharing the
@@ -744,7 +744,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     if one:
         thm = thm.replace('heapOkC', 'heapOkC1')
     ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC{one} Fn.«{k}».pows\n'
-           f'    {sigw}\n    core hcert = true :=\n'
+           f'    {SIGW}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) {sub}.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'{sub}.{last}\n')
     ok += f'\nend\nend {ns}\n'
