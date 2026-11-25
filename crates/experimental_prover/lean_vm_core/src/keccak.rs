@@ -21,6 +21,7 @@ use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
+use std::mem::MaybeUninit;
 use verifier::layout::keccak_cell_lanes;
 
 /// Rounds between two committed states.
@@ -241,7 +242,7 @@ impl Blocks {
     /// all-zero steps. `q_keccak` is the states' part of the committed block, its first [`SLOTS`]
     /// slots: the spare slots past them belong to the columns that ride there and are written by
     /// their own fill.
-    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> Reduction {
+    pub(crate) fn place(self, steps: usize, q_keccak: &mut [MaybeUninit<F64>]) -> Reduction {
         assert_eq!(self.steps, steps, "the blocks are of another run");
         let shape = shape(self.steps);
         assert_eq!(
@@ -267,7 +268,9 @@ mod tests {
     fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
         let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
         let states = SLOTS * (1 << n_steps_log(instances.len()));
-        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak[..states]);
+        // SAFETY: the witness writes only words.
+        let states = unsafe { primitives::as_uninit_mut(&mut q_keccak[..states]) };
+        let witness = Witness::generate(shape(instances.len()), instances, states);
         (q_keccak, witness)
     }
 
@@ -297,7 +300,8 @@ mod tests {
             });
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
             let states = SLOTS * (1 << n_steps_log(n));
-            let witness = blocks.place(n, &mut q_keccak[..states]);
+            // SAFETY: the witness writes only words.
+            let witness = blocks.place(n, unsafe { primitives::as_uninit_mut(&mut q_keccak[..states]) });
             assert_eq!(q_keccak[..states], expected[..states], "{n} steps");
             // What the columns riding the spare slots left there is none of the reduction's
             // business, but both openings fold it, so the two runs have to see the same.

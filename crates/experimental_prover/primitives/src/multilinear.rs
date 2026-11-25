@@ -6,6 +6,8 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F128`), so the first
 //! fold of a committed table also lifts it into `E`.
 
+use core::mem::MaybeUninit;
+
 use crate::field::{F64, F128, Weights8, dot_base, mul4};
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
@@ -41,7 +43,7 @@ pub fn eq_table_serial(r: &[F128]) -> Vec<F128> {
     unsafe { crate::filled_vec(1usize << r.len(), |eq| fill_eq_doubling(r, F128::ONE, eq)) }
 }
 
-/// Fill `out` with `seed * eq(r, .)`, in LSB-first order. The old contents of `out` are never read.
+/// Fill `out` with `seed * eq(r, .)`, in LSB-first order, writing every element.
 ///
 /// A small table doubles a level at a time on the calling thread.
 ///
@@ -53,7 +55,7 @@ pub fn eq_table_serial(r: &[F128]) -> Vec<F128> {
 ///
 /// `low` stays in L1, so each entry costs one product and one store, with no level-by-level rereads.
 /// A caller inside a dispatch must keep the table below `EQ_PAR_LEN`.
-pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
+pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [MaybeUninit<F128>]) {
     assert_eq!(out.len(), 1usize << r.len(), "out must have length 2^r.len()");
     if out.len() < EQ_PAR_LEN {
         return fill_eq_doubling(r, seed, out);
@@ -67,7 +69,7 @@ pub fn fill_eq_table(r: &[F128], seed: F128, out: &mut [F128]) {
         for (row, &w) in chunk.chunks_exact_mut(low.len()).zip(&high[c * rows..]) {
             for (dst, src) in row.as_chunks_mut::<4>().0.iter_mut().zip(low.as_chunks::<4>().0) {
                 let p = mul4([w; 4], *src);
-                *dst = p;
+                *dst = p.map(MaybeUninit::new);
             }
         }
     });
@@ -82,23 +84,25 @@ const EQ_LOW_VARS: usize = 10;
 /// The level-by-level `eq` build: each level writes the high half from the low half, then rewrites the low half.
 ///
 /// In characteristic 2 the low child is the high child plus the parent, so each pair costs one product.
-fn fill_eq_doubling(r: &[F128], seed: F128, out: &mut [F128]) {
-    out[0] = seed;
+fn fill_eq_doubling(r: &[F128], seed: F128, out: &mut [MaybeUninit<F128>]) {
+    out[0].write(seed);
     for (i, &rk) in r.iter().enumerate() {
         let half = 1usize << i;
         let (lo, hi) = out[..2 * half].split_at_mut(half);
+        // SAFETY: `out[0]` and the levels before this one wrote `lo`, the first `half` elements.
+        let lo = unsafe { lo.assume_init_mut() };
         let (lo4, lo_tail) = lo.as_chunks_mut::<4>();
         let (hi4, hi_tail) = hi.as_chunks_mut::<4>();
         for (l, h) in lo4.iter_mut().zip(hi4) {
             let p = mul4([rk; 4], *l);
-            *h = p;
+            *h = p.map(MaybeUninit::new);
             for (l, p) in l.iter_mut().zip(p) {
                 *l += p;
             }
         }
         for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
             let p = *l * rk;
-            *h = p;
+            h.write(p);
             *l += p;
         }
     }

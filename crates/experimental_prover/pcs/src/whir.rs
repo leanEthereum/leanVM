@@ -29,6 +29,7 @@ use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
 use primitives::multilinear::{eq_table, interp};
 use primitives::transcript::ProverState;
+use std::mem::MaybeUninit;
 
 pub use super::whir_config::{
     LOG_INV_RATE_0, LevelShapes, ProverConfig, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
@@ -290,18 +291,21 @@ impl RoundQuad {
     }
 }
 
-/// `out[j] = interp(x[2j], x[2j + 1], r)`.
-#[inline]
-fn fold_adjacent(out: &mut [F128], x: &[F128], r: F128) {
+/// `out[j] = interp(x[2j], x[2j + 1], r)`. Returns `out`, written.
+#[inline(always)]
+fn fold_adjacent<'o>(out: &'o mut [MaybeUninit<F128>], x: &[F128], r: F128) -> &'o mut [F128] {
+    assert_eq!(x.len(), 2 * out.len(), "a pair per output");
     let (o8, o_r) = out.as_chunks_mut::<8>();
     let (x16, x_r) = x.as_chunks::<16>();
     for (d, c) in o8.iter_mut().zip(x16) {
         let (even, odd) = deinterleave(c);
-        *d = fold_pairs8_ext(&even, &odd, r);
+        *d = fold_pairs8_ext(&even, &odd, r).map(MaybeUninit::new);
     }
     for (d, p) in o_r.iter_mut().zip(x_r.as_chunks::<2>().0.iter()) {
-        *d = interp(p[0], p[1], r);
+        d.write(interp(p[0], p[1], r));
     }
+    // SAFETY: `x` holds a pair per output, so the eights and the rest cover `out`, each element written once.
+    unsafe { out.assume_init_mut() }
 }
 
 /// The even and the odd elements of sixteen consecutive ones.
@@ -385,16 +389,16 @@ fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, S
     // `half` is a power of two and so are `ROUND_CHUNK` and `FOLD_STAGE`: every window has even
     // length and starts at an even index, so no message pair straddles one.
     let stream = half >= STREAM_FOLD_MIN;
-    let task = |ci: usize, fc: &mut [F128], bc: &mut [F128]| {
+    let task = |ci: usize, fc: &mut [MaybeUninit<F128>], bc: &mut [MaybeUninit<F128>]| {
         let base = ci * ROUND_CHUNK;
         let len = fc.len();
         let mut acc = (Acc8::ZERO, Acc8::ZERO);
-        let fold = |fo: &mut [F128], bo: &mut [F128], at: std::ops::Range<usize>| {
-            fold_adjacent(fo, &f[at.clone()], r);
-            fold_adjacent(bo, &b[at], r);
+        let fold = |fo: &mut [MaybeUninit<F128>], bo: &mut [MaybeUninit<F128>], at: std::ops::Range<usize>| {
+            let fo = fold_adjacent(fo, &f[at.clone()], r);
+            let bo = fold_adjacent(bo, &b[at], r);
             adjacent_dots(fo, bo)
         };
-        let (mut sf, mut sb) = ([F128::ZERO; FOLD_STAGE], [F128::ZERO; FOLD_STAGE]);
+        let (mut sf, mut sb) = ([MaybeUninit::uninit(); FOLD_STAGE], [MaybeUninit::uninit(); FOLD_STAGE]);
         let st = primitives::stream::Stream::new();
         for s in (0..len).step_by(FOLD_STAGE) {
             let k = FOLD_STAGE.min(len - s);
@@ -402,8 +406,10 @@ fn fold_and_msg_lsb(f: &[F128], b: &[F128], r: F128) -> (Vec<F128>, Vec<F128>, S
             let (u_0, u_2) = if stream {
                 // Folded in L1, then streamed: an output this large is not read back from cache.
                 let d = fold(&mut sf[..k], &mut sb[..k], at);
-                st.copy(&mut fc[s..s + k], &sf[..k]);
-                st.copy(&mut bc[s..s + k], &sb[..k]);
+                // SAFETY: `fold` wrote the first `k` elements of both stages.
+                let (sf, sb) = unsafe { (sf[..k].assume_init_ref(), sb[..k].assume_init_ref()) };
+                st.copy(&mut fc[s..s + k], sf);
+                st.copy(&mut bc[s..s + k], sb);
                 d
             } else {
                 fold(&mut fc[s..s + k], &mut bc[s..s + k], at)
@@ -443,10 +449,10 @@ const ROUND_CHUNK: usize = 2048;
 /// combine by XOR and `reduce` is linear, so both paths land on the same message.
 #[inline]
 fn accumulate_msg_chunks(
-    f: &mut [F128],
-    b: &mut [F128],
+    f: &mut [MaybeUninit<F128>],
+    b: &mut [MaybeUninit<F128>],
     chunk: usize,
-    task: impl Fn(usize, &mut [F128], &mut [F128]) -> (Acc8, Acc8) + Sync,
+    task: impl Fn(usize, &mut [MaybeUninit<F128>], &mut [MaybeUninit<F128>]) -> (Acc8, Acc8) + Sync,
 ) -> (Acc8, Acc8) {
     if f.len() < PAR_THRESHOLD {
         let (mut u_0, mut u_2) = (Acc8::ZERO, Acc8::ZERO);
@@ -580,9 +586,8 @@ impl Dense {
             || [F128Unreduced::ZERO; 4],
             |t| {
                 let cols = t * per..((t + 1) * per).min(low);
-                // SAFETY: `mul_x` writes every element.
-                let mut xf = unsafe { primitives::uninit_vec(cols.len() * pairs) };
-                crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
+                let mut xf = primitives::uninit_vec(cols.len() * pairs);
+                let xf = crate::xmul::mul_x(f, s, 2, cols.start, &mut xf);
                 let mut acc = [F128Unreduced::ZERO; 4];
                 for (i, xf) in xf.chunks_exact(pairs).enumerate() {
                     let c = cols.start + i;
@@ -612,12 +617,14 @@ impl Dense {
         let per = self.cols_per_task();
         let FoldChallenges { alpha, beta } = *ch;
         let f = &self.f;
-        // SAFETY: the fill writes every element before it reads any.
+        // SAFETY: the fill writes every element before it reads any: `mul_x` writes a task's whole columns.
         let next = unsafe {
             primitives::filled_vec((n_cols + 1) * pairs, |out| {
                 parallel::chunks_mut(out, per * pairs, |t, out| {
                     let first = t * per;
                     crate::xmul::mul_x(f, s, 2, first, out);
+                    // SAFETY: `mul_x` wrote the task's whole columns.
+                    let out = out.assume_init_mut();
                     for (i, out) in out.chunks_exact_mut(pairs).enumerate() {
                         let c = first + i;
                         if c == n_cols {
@@ -1086,12 +1093,12 @@ mod tests {
             for m in 0..s / 2 {
                 let (f, g) = (lane(&dense.f, 2 * m, n_cols), lane(&dense.f, 2 * m + 1, n_cols));
                 let (w0, w1) = (lane(&dense.w, 2 * m, low), lane(&dense.w, 2 * m + 1, low));
-                let mut xf = vec![F128::ZERO; n_cols + 1];
-                crate::xmul::mul_x(&f, 1, 1, 0, &mut xf);
+                let mut xf = primitives::uninit_vec(n_cols + 1);
+                let xf = crate::xmul::mul_x(&f, 1, 1, 0, &mut xf);
                 let ip = |w: &[F128], v: &[F128]| w.iter().zip(v).map(|(&a, &b)| a * b).sum::<F128>();
                 for (s, v) in want
                     .iter_mut()
-                    .zip([ip(&w0, &g), ip(&w0, &f) + ip(&w1, &f), ip(&w0, &xf), ip(&w1, &xf)])
+                    .zip([ip(&w0, &g), ip(&w0, &f) + ip(&w1, &f), ip(&w0, xf), ip(&w1, xf)])
                 {
                     *s += v;
                 }

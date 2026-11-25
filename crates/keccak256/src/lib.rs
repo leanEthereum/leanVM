@@ -93,7 +93,9 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many, lanes};
+pub use lanes::{
+    digest_halves_from, first_nonce, hash_many, hash_many_from_state, hash_many_from_state_uninit, keccak_f_many, lanes,
+};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;

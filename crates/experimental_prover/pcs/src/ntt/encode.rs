@@ -108,7 +108,7 @@ impl AdditiveNttF64 {
             primitives::filled_vec((held * msg_rows) * num_ntts, |data| {
                 for first in (0..1usize << log_inv_rate).step_by(held).rev() {
                     let src = Source::Lanes(Lanes { words: msg, n_lanes });
-                    let mut win = Window::new(data, num_ntts, first * msg_rows);
+                    let mut win = Window::uninit(data, num_ntts, first * msg_rows);
                     done = Some(self.transform(&mut win, log_inv_rate, src, Some(on_rows), defer_deep));
                 }
             })
@@ -145,7 +145,7 @@ impl AdditiveNttF64 {
         // SAFETY: the fill writes every element before it reads any.
         let data = unsafe {
             primitives::filled_vec(msg.len() << log_inv_rate, |data| {
-                let mut win = Window::new(data, num_ntts, 0);
+                let mut win = Window::uninit(data, num_ntts, 0);
                 done = Some(self.transform(&mut win, log_inv_rate, Source::Rows(msg), Some(on_rows), defer_deep));
             })
         };
@@ -251,7 +251,9 @@ impl AdditiveNttF64 {
     /// Hand every row of the buffer to the sink, in parallel blocks of four a worker.
     fn hand_over(win: &mut Window, plan: &Plan, sink: &RowSink<'_>) {
         let (log_rows, first) = (plan.log_handover_rows(), win.first_row());
-        parallel::chunks_mut(win.words_mut(), plan.num_ntts << log_rows, |i, rows| {
+        // SAFETY: the transform's passes have written every word by the hand-over.
+        let words = unsafe { win.words_mut() };
+        parallel::chunks_mut(words, plan.num_ntts << log_rows, |i, rows| {
             sink(first + (i << log_rows), rows)
         });
     }

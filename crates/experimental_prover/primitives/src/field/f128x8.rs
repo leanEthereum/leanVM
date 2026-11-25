@@ -428,7 +428,7 @@ mod avx2 {
 
         /// Stores the lanes `a0 b0 a1 b1 … a7 b7`.
         #[inline(always)]
-        pub fn store_interleaved(a: Self, b: Self, dst: &mut [F128; 16]) {
+        pub fn store_interleaved(a: Self, b: Self, dst: &mut [core::mem::MaybeUninit<F128>; 16]) {
             let q = dst.as_mut_ptr().cast::<__m256i>();
             for h in 0..2 {
                 let ([a0, a1], [b0, b1]) = (a.0[h].0, b.0[h].0);
@@ -889,9 +889,14 @@ mod tests {
                 not(target_feature = "avx512f")
             ))]
             {
-                let mut stored = [F128::ZERO; 16];
+                let mut stored = [core::mem::MaybeUninit::uninit(); 16];
                 F128x8::store_interleaved(even, odd, &mut stored);
-                assert_eq!(stored, core::array::from_fn(|i| if i < 8 { x0[i] } else { x1[i - 8] }));
+                // SAFETY: `store_interleaved` writes all sixteen.
+                let stored = unsafe { stored.assume_init_ref() };
+                assert_eq!(
+                    stored,
+                    core::array::from_fn::<_, 16, _>(|i| if i < 8 { x0[i] } else { x1[i - 8] })
+                );
                 let [lo, hi] = xa.halves();
                 assert_eq!([lo.to_array(), hi.to_array()].concat(), x0);
                 let runs: [F128; 64] = core::array::from_fn(|_| rng.ext());

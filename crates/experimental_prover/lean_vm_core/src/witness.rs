@@ -5,6 +5,7 @@
 //! the column's offset.
 
 use primitives::field::F64;
+use std::mem::MaybeUninit;
 
 /// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column has no
 /// placement of its own: either its words are committed inside another column, and its
@@ -84,14 +85,11 @@ const FILL_CHUNK: usize = 1 << 16;
 /// The uninitialized stacked witness: [`StackShape::committed_len`] slots, the
 /// placed columns rounded up to a whole lane rather than all the way to `2^mu`.
 ///
-/// # Safety
-/// Every slot must be written before it is read. [`split_stack`] hands out one
-/// window per committed column and zeroes the pad tail, which together cover the
-/// whole allocation, so the obligation reduces to each column's fill writing its
-/// own window.
-pub unsafe fn alloc_stack(shape: StackShape) -> Vec<F64> {
-    // SAFETY: forwarded to the caller by the contract above.
-    unsafe { primitives::uninit_vec::<F64>(shape.committed_len()) }
+/// [`split_stack`] hands out one window per committed column and zeroes the pad
+/// tail, which together cover the whole allocation, so it is written once each
+/// column's fill has written its own window.
+pub fn alloc_stack(shape: StackShape) -> Vec<MaybeUninit<F64>> {
+    primitives::uninit_vec::<F64>(shape.committed_len())
 }
 
 /// Carve the stack into one mutable window per committed column, in column order,
@@ -103,14 +101,14 @@ pub unsafe fn alloc_stack(shape: StackShape) -> Vec<F64> {
 /// second time for nothing, and allocating the stack zeroed
 /// would memset all `2^m` slots only for the columns to overwrite them.
 ///
-/// Safe despite [`alloc_stack`]'s uninitialized allocation: [`placements_of`]
-/// tiles the columns from offset 0, checked here, so consecutive `split_at_mut`
-/// hands out disjoint windows covering `[0, placed)` and this zeroes the rest.
-pub fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
+/// [`placements_of`] tiles the columns from offset 0, checked here, so consecutive
+/// `split_at_mut` hands out disjoint windows covering `[0, placed)` and this zeroes
+/// the rest.
+pub fn split_stack<'a>(q: &'a mut [MaybeUninit<F64>], placements: &[Placement]) -> Vec<&'a mut [MaybeUninit<F64>]> {
     let mut order: Vec<usize> = (0..placements.len()).filter(|&i| !placements[i].is_virtual()).collect();
     order.sort_unstable_by_key(|&i| placements[i].offset);
 
-    let mut windows: Vec<&mut [F64]> = Vec::with_capacity(placements.len());
+    let mut windows: Vec<&mut [MaybeUninit<F64>]> = Vec::with_capacity(placements.len());
     windows.resize_with(placements.len(), || &mut []);
     let mut rest = q;
     let mut placed = 0usize;
@@ -124,7 +122,7 @@ pub fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mu
         rest = tail;
         placed += 1 << placements[i].n_vars;
     }
-    parallel::chunks_mut(rest, FILL_CHUNK, |_, pad| pad.fill(F64::ZERO));
+    parallel::chunks_mut(rest, FILL_CHUNK, |_, pad| pad.fill(MaybeUninit::new(F64::ZERO)));
     windows
 }
 

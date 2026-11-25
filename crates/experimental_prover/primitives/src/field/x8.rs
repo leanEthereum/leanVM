@@ -7,6 +7,7 @@
 //! that is itself summed across lanes ([`Sum8`]) skips the interleave and the reduction.
 
 use core::arch::x86_64::*;
+use core::mem::MaybeUninit;
 use core::ops::{Add, AddAssign, BitXor, BitXorAssign, Mul};
 
 use super::gf2_64::{F64, reduce};
@@ -94,9 +95,24 @@ impl F128x8 {
     /// The lanes as eight consecutive elements.
     #[inline(always)]
     pub fn store(self, dst: &mut [F128; 8]) {
-        let q = dst.as_mut_ptr().cast::<u64>();
-        let [c0, c1] = self.0;
         // SAFETY: the block is 16 writable qwords.
+        unsafe { self.store_raw(dst.as_mut_ptr().cast()) }
+    }
+
+    /// [`store`](Self::store) into memory not yet written.
+    #[inline(always)]
+    pub fn write(self, dst: &mut [MaybeUninit<F128>; 8]) {
+        // SAFETY: the block is 16 writable qwords.
+        unsafe { self.store_raw(dst.as_mut_ptr().cast()) }
+    }
+
+    /// # Safety
+    ///
+    /// `q` is valid for 16 qword writes.
+    #[inline(always)]
+    unsafe fn store_raw(self, q: *mut u64) {
+        let [c0, c1] = self.0;
+        // SAFETY: by the caller's contract.
         unsafe {
             _mm512_storeu_si512(q.cast(), select(c0, LO, c1));
             _mm512_storeu_si512(q.add(8).cast(), select(c0, HI, c1));
@@ -132,10 +148,10 @@ impl F128x8 {
 
     /// Stores the lanes `a0 b0 a1 b1 … a7 b7`, the inverse of [`even_odd`](Self::even_odd).
     #[inline(always)]
-    pub fn store_interleaved(a: Self, b: Self, dst: &mut [F128; 16]) {
+    pub fn store_interleaved(a: Self, b: Self, dst: &mut [MaybeUninit<F128>; 16]) {
         let (halves, _) = dst.as_chunks_mut::<8>();
-        Self(std::array::from_fn(|k| select(a.0[k], LO, b.0[k]))).store(&mut halves[0]);
-        Self(std::array::from_fn(|k| select(a.0[k], HI, b.0[k]))).store(&mut halves[1]);
+        Self(std::array::from_fn(|k| select(a.0[k], LO, b.0[k]))).write(&mut halves[0]);
+        Self(std::array::from_fn(|k| select(a.0[k], HI, b.0[k]))).write(&mut halves[1]);
     }
 
     /// The even-lane and odd-lane unreduced products, y-folded.
@@ -335,9 +351,10 @@ mod tests {
             let both: Vec<F128> = a.iter().chain(&b).copied().collect();
             assert_eq!(even.to_array(), std::array::from_fn(|i| both[2 * i]));
             assert_eq!(odd.to_array(), std::array::from_fn(|i| both[2 * i + 1]));
-            let mut stored = [F128::ZERO; 16];
+            let mut stored = [MaybeUninit::uninit(); 16];
             F128x8::store_interleaved(even, odd, &mut stored);
-            assert_eq!(stored.to_vec(), both);
+            // SAFETY: `store_interleaved` writes all sixteen.
+            assert_eq!(unsafe { stored.assume_init_ref() }, both);
 
             let c = rng.ext();
             let k: [F64; 8] = std::array::from_fn(|_| F64(rng.ext().c0));

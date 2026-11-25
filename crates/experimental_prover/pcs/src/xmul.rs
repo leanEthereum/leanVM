@@ -10,6 +10,7 @@
 //! reading zero past the end of `h`, so `X h` has one coefficient more than `h`. It pulls each entry from two, so
 //! any range of it is computed from `h` alone, and an entry at or above `2^mu` only feeds entries at or above `2^mu`.
 
+use std::mem::MaybeUninit;
 use std::sync::OnceLock;
 
 use primitives::field::{F64, F64x8, F128, F128x8};
@@ -69,26 +70,35 @@ pub(crate) fn coeff(c: usize) -> F64 {
 }
 
 /// `out[i * (stride / step) + m] = (X h_(m step))[first + i]` for every `step`-th lane of `h`, stored column by column
-/// (coefficient `c` of lane `l` at `c * stride + l`), over the columns `out` covers.
-pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, step: usize, first: usize, out: &mut [T]) {
+/// (coefficient `c` of lane `l` at `c * stride + l`), over the columns `out` covers. Returns `out`, written.
+pub(crate) fn mul_x<'o, T: Coef>(
+    h: &[T],
+    stride: usize,
+    step: usize,
+    first: usize,
+    out: &'o mut [MaybeUninit<T>],
+) -> &'o mut [T] {
     let width = stride / step;
-    debug_assert!(h.len().is_multiple_of(stride) && out.len().is_multiple_of(width));
+    debug_assert!(h.len().is_multiple_of(stride));
+    assert!(out.len().is_multiple_of(width), "`out` is whole columns");
     let get = |c: usize, m: usize| h.get(c * stride + m * step).copied().unwrap_or(T::ZERO);
     for (i, col) in out.chunks_exact_mut(width).enumerate() {
         let c = first + i;
         if c == 0 {
-            col.fill(T::ZERO);
+            col.fill(MaybeUninit::new(T::ZERO));
         } else if c & 1 == 1 {
             for (m, o) in col.iter_mut().enumerate() {
-                *o = get(c - 1, m) + get(c, m);
+                o.write(get(c - 1, m) + get(c, m));
             }
         } else {
             let (a, far) = (coeff(c), c + (1 << c.trailing_zeros()) - 1);
             for (m, o) in col.iter_mut().enumerate() {
-                *o = (get(c - 1, m) + get(far, m)).scale(a);
+                o.write((get(c - 1, m) + get(far, m)).scale(a));
             }
         }
     }
+    // SAFETY: `out` is whole columns, asserted above, and every column wrote all its elements.
+    unsafe { out.assume_init_mut() }
 }
 
 /// The exponents `t` of the columns `c0 + j` of an aligned eight, `(X h)[c] = A_t s[c]`: the trailing zeros of an even
@@ -211,14 +221,14 @@ mod tests {
                 let h = random_k(&mut rng, n);
                 let want = by_evaluation(&h, mu + 1);
                 assert!(want[n + 1..].iter().all(|v| v.is_zero()), "mu={mu}, high={high}");
-                let mut got = vec![F64(7); n + 1];
-                mul_x(&h, 1, 1, 0, &mut got);
-                assert_eq!(got, want[..n + 1], "strided, mu={mu}, high={high}");
+                let mut got = primitives::uninit_vec(n + 1);
+                let got = mul_x(&h, 1, 1, 0, &mut got);
+                assert_eq!(*got, want[..n + 1], "strided, mu={mu}, high={high}");
                 for (first, len) in [(0, 1), (1, n), (2, n - 1), (n / 2, n + 1 - n / 2), (n, 1)] {
-                    let mut got = vec![F64(7); len];
-                    mul_x(&h, 1, 1, first, &mut got);
+                    let mut got = primitives::uninit_vec(len);
+                    let got = mul_x(&h, 1, 1, first, &mut got);
                     assert_eq!(
-                        got,
+                        *got,
                         want[first..first + len],
                         "range {first}+{len}, mu={mu}, high={high}"
                     );
@@ -245,8 +255,8 @@ mod tests {
                         F128::new(lo[i / stride].0, hi[i / stride].0)
                     })
                     .collect();
-                let mut got = vec![F128::ONE; (n + 1) * stride];
-                mul_x(&h, stride, 1, 0, &mut got);
+                let mut got = primitives::uninit_vec((n + 1) * stride);
+                let got = mul_x(&h, stride, 1, 0, &mut got);
                 for (l, [lo, hi]) in lanes.iter().enumerate() {
                     let (lo, hi) = (by_evaluation(lo, mu + 1), by_evaluation(hi, mu + 1));
                     for c in 0..=n {
@@ -258,9 +268,9 @@ mod tests {
                     }
                 }
                 let first = n / 2;
-                let mut part = vec![F128::ONE; (n + 1 - first) * stride];
-                mul_x(&h, stride, 1, first, &mut part);
-                assert_eq!(part, got[first * stride..], "E range, mu={mu}, high={high}");
+                let mut part = primitives::uninit_vec((n + 1 - first) * stride);
+                let part = mul_x(&h, stride, 1, first, &mut part);
+                assert_eq!(*part, got[first * stride..], "E range, mu={mu}, high={high}");
             }
         }
     }

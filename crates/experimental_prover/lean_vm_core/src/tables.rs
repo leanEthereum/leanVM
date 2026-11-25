@@ -18,6 +18,7 @@ use crate::cpu::{Jrow, Memory, Op, Rows, Trace};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F128, mul_by_g};
+use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 
 // ---- the identities ----------------------------------------------------------
@@ -180,7 +181,7 @@ pub struct FillCtx<'a> {
 
 /// Where one column's values go: its window in the stacked witness, or a private
 /// buffer if the column is virtual.
-pub(crate) type ColumnOut<'a> = &'a mut [F64];
+pub(crate) type ColumnOut<'a> = &'a mut [MaybeUninit<F64>];
 
 /// Rows a fill gathers before streaming them out: whole cache lines of each column.
 const RUN: usize = 32;
@@ -247,7 +248,7 @@ impl<'a> FillCtx<'a> {
         let dst: [Option<parallel::SendPtr<F64>>; N] = std::array::from_fn(|c| {
             (!out[c].is_empty()).then(|| {
                 assert_eq!(out[c].len(), n, "column {c} has the wrong window length");
-                parallel::SendPtr(out[c].as_mut_ptr())
+                parallel::SendPtr(out[c].as_mut_ptr().cast::<F64>())
             })
         });
         self.filled.store(N, Relaxed);
