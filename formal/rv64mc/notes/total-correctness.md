@@ -2,6 +2,8 @@
 
 `HaltsSafely image` (`Rv64mc/EndStatement.lean`): on every input of fewer than `2^16` words, the loaded image runs, every step taken by the statement's `step`, to the halting `ECALL` with `a0` in `{0, 1, 2}`. Its end theorem is `rv64_halts_of_main` (`Final/EndT.lean`), whose one hypothesis is `main`'s total contract `MainSpecT` (`Final/MainSpecT.lean`).
 
+`BoolVerdict image` adds that `a0 = 2` only on an input that does not decode. Its end theorem is `rv64_boolVerdict` (`Final/Headline.lean`), from `main`'s partial contract `MainSpec` and its total contract `MainSpecB` (`Final/MainSpecB.lean`): `MainSpecT` with the stopping set `MainStopB words`, `a0 = 2` and `decodeInput words = none`. `MainSpecB` implies `MainSpecT`. Both end theorems are instances of `rv64_halts_with` (`Final/EndT.lean`), over `main`'s stopping set and the exit codes the run may end with, through `Start.totalWith` and `halts_of_main_with` (`Final/StartT.lean`).
+
 ## The pieces
 
 * `Rv64mc/Total/` (namespace `Lprog`, on `lprog` alone): `Ascent.Total R accept G Q s`, the inductive "every run reaches an accepting state satisfying `Q`, and every state before it satisfies `G`, steps, and neither traps nor goes `wrong`"; `Isa.Total` at Lprog; one rule per instruction (`Total.label`, `opn`, `set`, `goto`, `cond`, `call`, `tail`, `ret`, `ext`, `ext_done`, `returned`); `Total.loop` (strong induction on a measure at a loop head); `Isa.TContract`, a total contract with a stopping set `Stop` (where the callee may end the run: at an accepting state with a nonempty stack) and the obligation `G` fixed, and `Total.call_contract`, `tail_contract`, `TContract.measure`.
@@ -9,6 +11,8 @@
 * `Final/HoldsTWitness.lean`: guards. `frameFn_total` (a function storing to and loading from its frame keeps a `HoldsT`, from `Windows` alone), `loadFn_next`, `loadFn_data` (a load of `NEXT` or of a static data word), `countdownFn_total` (a loop by `Total.loop`), `not_total_ecall`; `Total/Excludes.lean`: a state that only traps, only goes `wrong`, has no step or loops forever is total nowhere.
 * `Final/Transfer.lean`: `halts_of_total`, from `Isa.Total` under machine-checked's `Sim` to `Halts` over `step`, reusing `Sim.split`, `back_instr` and `trap_instr`.
 * `Proof/Runtime/HaltT.lean`, `PanicsT.lean`: `Aborts` (never returns, ends the run with `a0 = 2`) for `halt` and the panic chain, the pattern for a function that does not return.
+* `Proof/Runtime/AllocT.lean`, `InputWordT.lean`, `MemsetT.lean`: total contracts of runtime functions that return or abort. `AllocSpecT`: the bump allocator returns `AllocSpec`'s block, or ends the run with `a0 = 2` exactly when no block of the size at the first multiple of 8 at or above `NEXT` ends within the heap (`AllocStop`). `InputWordSpecT`: `Input::word` returns `InputWordSpec`'s word, or ends the run with `a0 = 2` exactly when the reader's slice is empty (`WordStop`); its `WordPreT` puts the reader and its slice in windows, which `main`'s reader over the input satisfies (`wordPreT_input`). `MemsetSafeT`: `compiler_builtins`' `memset` and its C wrapper return `dst`, writing at most the doublewords of `[dst, dst + n)`, for a destination in a window (`InWin`); three loops by `Total.loop`. It does not state the bytes written, which is `MemsetSpec`'s partial `SetPost`.
+* `Tactic/TStep.lean`: the stepping rules and macros below.
 
 ## Proving a function total
 
@@ -20,3 +24,13 @@ What differs from a `Holds` proof, and so what `rv_sym` needs to step `rvIsa.Tot
 * A loop needs a measure that decreases on every iteration, not only an invariant: `Total.loop` at its head, the induction hypothesis applied where `rv_sym` stops at the head again. A recursive function: `TContract.measure` (or `Ascent.budget_induction` over a table).
 * A call through `HoldsT.call` (or `Total.call_contract` with `h.contract`) has one more goal than `Holds.call`: `Q` at every halt in the callee's `Stop`. For a caller whose own `Stop` contains the callee's, it is the caller's `hstop`.
 * A function that ends the run: `Total.ext_done` at the halting `Lext`, with `stmtCtx.accept` (`t0 = 0`) and `Q` there.
+
+## Stepping total goals: `Tactic/TStep.lean`
+
+`rv_sym` steps `SafeN` goals only. For `rvIsa.Total p stmtCtx (WinOk p) Q` goals, `TStep.lean` gives the `Total.*` rules with `WinOk` discharged in each (`TotalRv.label`, `set`, `goto`, `cond`, `ret`), and one rule per memory access the runtime uses with the operation's result given (`ld8`, `lbu`, `sd8`, `sb`), whose side goals are the address's window (`inWindow`), its alignment and, for a store, `noCodeAt`. SP1's range check follows from the window (`valid_of_inWindow`). The macros:
+
+* `tstep hp`, `tsteps hp`: one step, or as many as apply, at a label, a register write or a jump, each followed by `tnorm`, which computes the new register value (unfolding `Expr.eval`, reading a register through the writes before it), so that the register file stays a chain of writes of values over the entry's rather than of expressions over earlier files, which grows with every step. `tsteps` passes a loop's head label too: to stop at a head, `iterate n tstep hp`.
+* `tcond hp as h`: a branch into its two outcomes, `h` the comparison over `toNat` for an unsigned comparison or one with zero.
+* `tomega`: `tnorm`, then `omega`, for a side goal about numbers.
+
+What is left by hand, and what an `rv_sym` for total goals would add: a load or store (`TotalRv.ld8 hp rfl hw hal ?_`, with `hw` from `Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, and `noCodeAt` from `Windows.noCodeAt` at the current memory, via `Windows.after`); a call (`HoldsT.call`, `Aborts.call`, with the callee found by `callee_site`); a return (`TotalRv.ret` and the continuation's postcondition); a loop (`Total.loop` with an invariant, entered at its head). A load reads memory as `getMem` of the address, not through earlier stores as `rv_sym` does: a proof that loads what it stored rewrites by `getMem_setMem` itself.
