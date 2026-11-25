@@ -545,17 +545,14 @@ def run(check):
             cs = '[' + ', '.join(f'Fn.«{lk[c][0]}».idx' for c in frd[j][0]) + ']'
             return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true', prf)]
 
-        def thm(j, k):
-            pre = [] if win else body_thm(j, k) + fr_thm(j, k)
-            # the kernel runs the code's check over its jumps listed once (`Bridge.allocRest_of_fast`)
-            fast = 'rw [alignCtxEq]\napply Bridge.allocRest_of_fast\ndecide +kernel' if win else \
-                ':= Bridge.allocRest_of_fast (by decide +kernel)'
-            return (shape(k) if not win else []) + pre + [
-                (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
-                 fast)]
         def thm1(j, k):
-            # the common case in one command (`Bridge/ChkLit.lean`)
-            if win or prf != 'decide +kernel': return thm(j, k)
+            if win:
+                # the window's shape, body and frame checks are modules of their own (below); the code's check runs
+                # over its jumps listed once (`Bridge.allocRest_of_fast`)
+                return [(k, 'allocOk',
+                         f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
+                         'rw [alignCtxEq]\napply Bridge.allocRest_of_fast\ndecide +kernel')]
+            # the four checks in one command (`Bridge/ChkLit.lean`)
             return ['alloc_chk%% «%s» [%s]\n' % (k, ', '.join('«%s»' % lk[c][0] for c in frd[j][0]))]
         body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (

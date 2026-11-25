@@ -57,6 +57,12 @@ def hint_frame(h):
     return []
 
 
+def hint_buf(h):
+    """`Bridge.hintBuf`'s pointer: the buffer a computed hint writes, or a `log2Ceil` reads (`[]` if none)."""
+    d = {'bits': 4, 'bitsExp': 3, 'digitsExp': 7, 'windowsExp': 5, 'log2Ceil': 1}.get(h[0])
+    return [h[d][1]] if d is not None and h[d][0] == 'heap' else []
+
+
 def hint_atoms(ss):
     for s in ss:
         if s[0] == 'atom' and s[1] == 'hint':
@@ -69,12 +75,17 @@ def hint_atoms(ss):
                 yield from hint_atoms(a)
 
 
+# below this many steps of walks the trie gains nothing measurable (`PairChk.P24`), so the check keeps the plain form
+TRIE_MIN_WALK = 10 ** 4
+
+
 def by_trie(k, cores, bund):
     """Whether `k`'s check reads its cells from a trie (`Bridge.pairChkF`): when its lookups' walks of the cell list
-    (each to its value's index) outweigh packing the list, four times its length."""
+    (each to its value's index: the frame values and the buffer pointer, `cellOk`) outweigh packing the list, four
+    times its length, and `TRIE_MIN_WALK`."""
     walk = sum(v for h in hint_atoms(data.body_of(cores[k])) if h[0] not in ('witness', 'alloc', 'allocDyn')
-               for v in hint_frame(h))
-    return walk > 4 * len(bund[k]['locs'])
+               for v in hint_frame(h) + hint_buf(h))
+    return walk > max(4 * len(bund[k]['locs']), TRIE_MIN_WALK)
 
 
 def run(check):
