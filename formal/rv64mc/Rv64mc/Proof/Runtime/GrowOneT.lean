@@ -85,7 +85,8 @@ theorem total {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op R
   -- the return
   · have hok := hret1_16 (hc.trans rfl)
     rw [hsz', show (1#64 : Word).toNat = 1 from rfl] at hok
-    exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, (Env.Frame.setMem_stack hpre_5 hb8 (by rw [h8]; omega)).trans hret1_14
+    exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩,
+      (Env.Frame.setMem_stack hpre_5 hb8 (by rw [h8]; omega)).trans hret1_14
         (by rw [h16]; omega) fun a h => Or.inr (Or.inr (Or.inr h)), hret1_15,
       grown_of_store hown hpre_11 hslot hb8 hpre_5 (by simpa only [rvCapAt_eq] using hok),
       hret1_17, hret1_18, by rw [← hsz']; exact hret1_19, by rw [← hsz']; exact hret1_20⟩

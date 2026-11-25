@@ -71,8 +71,9 @@ theorem kVecU16_total (L : RawVecTKVecU16E.GrowOne.Link) (hp : p[i]? = some (Raw
     GrowOneSpecT env Layouts.KVecU16.byteAlign Layouts.KVecU16.byteSize p i (16 + nga) :=
   GrowOneT.total hp rfl hL.growAmortized hL.handleError hL.s0 hL.s1 (by decide) (by decide) hGa hHe
 
-theorem stackClaim_total (L : RawVecTStackWeightEE.GrowOne.Link) (hp : p[i]? = some (RawVecTStackWeightEE.GrowOne.tmpl L))
-    (hL : L.WF p) (hGa : GrowAmortizedSpecT env p L.growAmortized.idx nga)
+theorem stackClaim_total (L : RawVecTStackWeightEE.GrowOne.Link)
+    (hp : p[i]? = some (RawVecTStackWeightEE.GrowOne.tmpl L)) (hL : L.WF p)
+    (hGa : GrowAmortizedSpecT env p L.growAmortized.idx nga)
     (hHe : Aborts env p L.handleError.idx nga) :
     GrowOneSpecT env Layouts.StackClaim.byteAlign Layouts.StackClaim.byteSize p i (16 + nga) :=
   GrowOneT.total hp rfl hL.growAmortized hL.handleError hL.s0 hL.s1 (by decide) (by decide) hGa hHe
