@@ -391,11 +391,12 @@ def render():
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
         t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
+        # the nonzero facts by the indexed check (`Fam/CarryIdx.lean`), equal to `carryNzG`
+        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryIdx\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
                  'public section\n\ntheorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d := by\n'
                  '  unfold RangeOk; decide +kernel\n\n'
-                 'theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
+                 'theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
+                 '  rangeOk_carryNz (by unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]
