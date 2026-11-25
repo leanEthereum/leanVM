@@ -48,7 +48,7 @@ theorem halt_aborts (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Veri
 theorem forward_aborts {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd : Lfundef (Op Reg) Reg}
     (hp : p[i]? = some fd) {s : Site} {c : Callee} {ret : Word} (hb : fd.body = forwardBody s c ret)
     (hc : c.WF p) (hs : s.WF c) (h : Aborts env p c.idx need) : Aborts env p i need := by
-  intro Q ret' top rest regs m ⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩ hstop _
+  intro Q ret' top rest regs m ⟨⟨⟨hra, hsp⟩, hstk, hst, hnx, _, hal⟩, hwin⟩ hstop _
   obtain ⟨name, addr, depth, body⟩ := fd
   simp only at hb
   subst hb
@@ -57,6 +57,6 @@ theorem forward_aborts {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} {fd :
   refine Total.label hp rfl (WinOk.of_ne hp rfl nofun) ?_
   refine HoldsT.call h hp rfl (callee_site hc hs (by simp [updReg_apply, Expr.eval]))
     (by simpa [updReg_apply, hsp] using hstk) hst hnx trivial (by simpa [updReg_apply, hsp] using hal)
-    hstop (fun _ _ _ _ _ h => h.elim)
+    (by simpa [updReg_apply, hsp] using hwin) hstop (fun _ _ _ _ _ _ h => h.elim)
 
 end Rv64mc.Proof.Runtime

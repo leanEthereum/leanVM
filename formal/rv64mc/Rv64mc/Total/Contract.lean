@@ -7,13 +7,15 @@
 
   From its entry, with a precondition on the return address, the stack pointer, the registers
   and the memory, the function either returns in a state satisfying the postcondition, or ends
-  the whole run inside the call at an accepting state in its stopping set `Stop`: the way a
-  function that never returns (`halt`, a panic handler, an allocator's failure path) ends a
-  program. Every state it passes satisfies the obligation `G`, which is the contract's
-  parameter and not quantified, since it is the callee that discharges it. In continuation
-  form, for every `Q`: if every accepting state in `Stop`, inside the call, satisfies `Q`, and
-  the run is total for `Q` from every state the function returns in with `Post`, it is total
-  from the function's entry.
+  the whole run at an accepting state with a nonempty stack whose registers and memory are in
+  its stopping set `Stop`: the way a function that never returns (`halt`, a panic handler, an
+  allocator's failure path) ends a program. The contract asks only that this stack be nonempty,
+  not that it extend the caller's; since it holds for every caller's stack, the empty one
+  included, a function that returns must return with `Post`. Every state it passes satisfies the
+  obligation `G`, which is the contract's parameter and not quantified, since it is the callee
+  that discharges it. In continuation form, for every `Q`: if `Q` holds at every accepting state
+  with a nonempty stack in `Stop`, and the run is total for `Q` from every state the function
+  returns in with `Post`, it is total from the function's entry.
 
   Contracts compose at calls and tail calls (`Total.call_contract`, `Total.tail_contract`), a
   caller's `Stop` taking in its callees'. Recursive functions compose by strong induction on a
@@ -39,7 +41,7 @@ namespace Isa
 
 /-- **A total contract of the function at index `f`**: from its entry, with the return address
     `ret` and the stack pointer `top` of its frame, where `Pre ret top regs m` holds, the run is
-    total for `G` and any `Q`, if `Q` holds at every accepting state inside the call whose
+    total for `G` and any `Q`, if `Q` holds at every accepting state with a nonempty stack whose
     registers and memory satisfy `Stop`, and the run is total from every state `⟨rest, r', m'⟩`
     it may return to with `Post ret top regs m r' m'`. -/
 def TContract (I : Isa) (p : Lprog I.Op I.Reg) {E : Type} (c : Context I E) (G : State I → Prop)
@@ -71,7 +73,7 @@ theorem run (h : I.TContract p c G f Pre Post Stop) {Q : State I → Prop} {ret 
     I.Total p c G Q ⟨⟨f, 0, ret, top⟩ :: rest, regs, m⟩ :=
   h Q ret top rest regs m hpre hstop hk
 
-/-- A weaker precondition, a stronger postcondition and a larger stopping set. -/
+/-- A stronger precondition, a weaker postcondition and a larger stopping set. -/
 theorem mono (h : I.TContract p c G f Pre Post Stop)
     {Pre' : BitVec 64 → BitVec 64 → (I.Reg → BitVec 64) → I.M → Prop}
     {Post' Stop' : BitVec 64 → BitVec 64 → (I.Reg → BitVec 64) → I.M → (I.Reg → BitVec 64) → I.M → Prop}
@@ -95,7 +97,8 @@ theorem measure {Pre : Nat → BitVec 64 → BitVec 64 → (I.Reg → BitVec 64)
   | ind k ih => exact h k ih
 
 /-- **What a contract says of a run from the entry** of an outermost call: it is total, and
-    ends either returned, with `Post`, or inside the call, at an accepting state in `Stop`. -/
+    ends either returned, with `Post`, or at an accepting state with a nonempty stack, in
+    `Stop`. -/
 theorem total (h : I.TContract p c G f Pre Post Stop) {ret top : BitVec 64}
     {regs : I.Reg → BitVec 64} {m : I.M} (hpre : Pre ret top regs m)
     (hG : ∀ r' m', G ⟨[], r', m'⟩) :

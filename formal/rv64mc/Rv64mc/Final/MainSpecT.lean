@@ -7,7 +7,9 @@
   words, `main` returns `0` (`ACCEPT`) or `1` (`REJECT`), or ends the run at the halting `ECALL`
   with `a0 = 2` (`halt(ABORT)`: malformed input, the allocator out of heap, a panic); every load
   and store it makes lies in a window, and it does not trap or run forever (`HoldsT`). With
-  `HoldsT`'s calling convention, stack bound and frame, as `MainSpec` has them. It says nothing of
+  `HoldsT`'s calling convention, stack bound and frame, as `MainSpec` has them, and `HoldsT`'s
+  `Windows`: it is asked of every stack top at most the stack window's end (`_start` calls it at
+  `stackTop`) and every code map between the windows (the loaded image's). It says nothing of
   which verdict: `MainSpec` keeps that, for a return with `0`.
 -/
 
