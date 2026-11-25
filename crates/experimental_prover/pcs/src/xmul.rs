@@ -20,6 +20,8 @@ pub(crate) trait Coef: Copy + Send + Sync + std::ops::Add<Output = Self> {
     fn scale(self, k: F64) -> Self;
     /// `v[j] * k[j]`, where `k[j]` is one at every odd `j`.
     fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8];
+    /// Scale every element of `dst` in place by `k`.
+    fn scale_slice(dst: &mut [Self], k: F64);
 }
 
 impl Coef for F64 {
@@ -31,6 +33,12 @@ impl Coef for F64 {
     #[inline(always)]
     fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8] {
         std::array::from_fn(|j| if j % 2 == 0 { v[j] * k[j] } else { v[j] })
+    }
+    #[inline(always)]
+    fn scale_slice(dst: &mut [Self], k: F64) {
+        for x in dst {
+            *x *= k;
+        }
     }
 }
 
@@ -46,6 +54,20 @@ impl Coef for F128 {
             .mul_base_unreduced(F64x8::from_array(&k))
             .reduce_lanes()
             .to_array()
+    }
+    #[inline(always)]
+    fn scale_slice(dst: &mut [Self], k: F64) {
+        let kv = F64x8::from_array(&[k; 8]);
+        let (chunks, tail) = dst.as_chunks_mut::<8>();
+        for chunk in chunks {
+            *chunk = F128x8::from_array(chunk)
+                .mul_base_unreduced(kv)
+                .reduce_lanes()
+                .to_array();
+        }
+        for x in tail {
+            *x = x.mul_base(k);
+        }
     }
 }
 
@@ -72,21 +94,40 @@ pub(crate) fn coeff(c: usize) -> F64 {
 /// (coefficient `c` of lane `l` at `c * stride + l`), over the columns `out` covers.
 pub(crate) fn mul_x<T: Coef>(h: &[T], stride: usize, step: usize, first: usize, out: &mut [T]) {
     let width = stride / step;
+    let n_cols = h.len() / stride;
     debug_assert!(h.len().is_multiple_of(stride) && out.len().is_multiple_of(width));
-    let get = |c: usize, m: usize| h.get(c * stride + m * step).copied().unwrap_or(T::ZERO);
+    let copy_or_add = |col: &mut [T], a: usize, b: usize| {
+        let pa = (a < n_cols).then(|| &h[a * stride..(a + 1) * stride]);
+        let pb = (b < n_cols).then(|| &h[b * stride..(b + 1) * stride]);
+        match (pa, pb) {
+            (Some(pa), Some(pb)) => {
+                for (m, o) in col.iter_mut().enumerate() {
+                    *o = pa[m * step] + pb[m * step];
+                }
+            }
+            (Some(pa), None) => {
+                for (m, o) in col.iter_mut().enumerate() {
+                    *o = pa[m * step];
+                }
+            }
+            (None, Some(pb)) => {
+                for (m, o) in col.iter_mut().enumerate() {
+                    *o = pb[m * step];
+                }
+            }
+            (None, None) => col.fill(T::ZERO),
+        }
+    };
     for (i, col) in out.chunks_exact_mut(width).enumerate() {
         let c = first + i;
         if c == 0 {
             col.fill(T::ZERO);
         } else if c & 1 == 1 {
-            for (m, o) in col.iter_mut().enumerate() {
-                *o = get(c - 1, m) + get(c, m);
-            }
+            copy_or_add(col, c - 1, c);
         } else {
             let (a, far) = (coeff(c), c + (1 << c.trailing_zeros()) - 1);
-            for (m, o) in col.iter_mut().enumerate() {
-                *o = (get(c - 1, m) + get(far, m)).scale(a);
-            }
+            copy_or_add(col, c - 1, far);
+            T::scale_slice(col, a);
         }
     }
 }

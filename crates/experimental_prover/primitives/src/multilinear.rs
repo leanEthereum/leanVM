@@ -122,10 +122,19 @@ fn fold_low_k(table: &[F64], chi: F128) -> Vec<F128> {
 pub fn shrink_eq_high(table: &mut Vec<F128>) {
     let half = table.len() / 2;
     {
-        // Split once, so the loop pays no reload or bounds check.
         let (lo, hi) = (**table).split_at_mut(half);
-        for (l, h) in lo.iter_mut().zip(&*hi) {
-            *l += *h;
+        if half >= PAR_THRESHOLD {
+            let chunk = parallel::recommended_chunk_size(half);
+            parallel::chunks_mut(lo, chunk, |c, lo| {
+                let hi = &hi[c * chunk..c * chunk + lo.len()];
+                for (l, h) in lo.iter_mut().zip(hi) {
+                    *l += *h;
+                }
+            });
+        } else {
+            for (l, h) in lo.iter_mut().zip(&*hi) {
+                *l += *h;
+            }
         }
     }
     table.truncate(half);
