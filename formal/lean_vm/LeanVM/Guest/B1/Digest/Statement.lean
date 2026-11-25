@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Digest.Basic
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«statement_digest»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `statement_digest`
@@ -87,8 +88,8 @@ def sdAtoms : List Atom :=
 
 set_option maxRecDepth 100000 in
 theorem sd_body : Fn.body fn% «statement_digest» = sdAtoms.map Stmt.atom ++ [.ret [.n (val% «statement_digest» "s12#0"),
-    .n (val% «statement_digest» "s12#0[1]")]] :=
-  stmtsEqb_sound (by decide +kernel)
+    .n (val% «statement_digest» "s12#0[1]")]] := by
+  kernel_rfl
 
 theorem sd_params : Fn.params fn% «statement_digest» =
     [.n (val% «statement_digest» "seed_0"), .n (val% «statement_digest» "seed_1"), .n (val% «statement_digest» "xd_0"), .n (val% «statement_digest» "xd_1"), .n (val% «statement_digest» "sd_0"), .n (val% «statement_digest» "sd_1"), .n (val% «statement_digest» "da_0"), .n (val% «statement_digest» "da_1"), .n (val% «statement_digest» "defer")] := rfl

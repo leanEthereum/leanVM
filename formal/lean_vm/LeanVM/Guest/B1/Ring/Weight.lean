@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Eq.RsEqRun
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `ring_switch_weight` (TRIAGE G #66)
@@ -134,7 +135,7 @@ def rswT : List Stmt :=
   [.call "rs_eq_run" [.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ++
   ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n (val% «ring_switch_weight» "s3#0")) (.n (val% «ring_switch_weight» "rs_weight@64"))), .ret [.n (val% «ring_switch_weight» "s3#0")]]
 
-theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := stmtsEqb_sound (by decide +kernel)
+theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := by kernel_rfl
 
 theorem find_rsw : coreProgram.find? "ring_switch_weight" = some fn% «ring_switch_weight» :=
   coreProgram_find?_at (j := idx% «ring_switch_weight») rfl

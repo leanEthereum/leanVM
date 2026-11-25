@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L»
 import LeanVM.Guest.Data.ValNames.«batch_sumcheck__L23»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `batch_sumcheck` (TRIAGE #32)
@@ -722,8 +723,8 @@ theorem bs_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
     rfl
 
 set_option maxRecDepth 100000 in
-theorem bs23_body : Fn.body fn% «batch_sumcheck__L23» = bsBody 23 :=
-  stmtsEqb_sound (by decide +kernel)
+theorem bs23_body : Fn.body fn% «batch_sumcheck__L23» = bsBody 23 := by
+  kernel_rfl
 
 set_option maxRecDepth 100000 in
 /-- **`batch_sumcheck`'s core IR is its meaning.** -/

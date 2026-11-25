@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«fold_final_msg__L»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `fold_final_msg` (TRIAGE #24)
@@ -74,17 +75,17 @@ def ffBody (L fin : ℕ) : List Stmt :=
     (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
 
-theorem fold_final_msg_L2_body : Fn.body fn% «fold_final_msg__L2» = ffBody 1 22 :=
-  stmtsEqb_sound (by decide +kernel)
+theorem fold_final_msg_L2_body : Fn.body fn% «fold_final_msg__L2» = ffBody 1 22 := by
+  kernel_rfl
 
-theorem fold_final_msg_L3_body : Fn.body fn% «fold_final_msg__L3» = ffBody 2 42 :=
-  stmtsEqb_sound (by decide +kernel)
+theorem fold_final_msg_L3_body : Fn.body fn% «fold_final_msg__L3» = ffBody 2 42 := by
+  kernel_rfl
 
-theorem fold_final_msg_L4_body : Fn.body fn% «fold_final_msg__L4» = ffBody 3 78 :=
-  stmtsEqb_sound (by decide +kernel)
+theorem fold_final_msg_L4_body : Fn.body fn% «fold_final_msg__L4» = ffBody 3 78 := by
+  kernel_rfl
 
-theorem fold_final_msg_L5_body : Fn.body fn% «fold_final_msg__L5» = ffBody 4 146 :=
-  stmtsEqb_sound (by decide +kernel)
+theorem fold_final_msg_L5_body : Fn.body fn% «fold_final_msg__L5» = ffBody 4 146 := by
+  kernel_rfl
 
 /-! ## What it asks -/
 

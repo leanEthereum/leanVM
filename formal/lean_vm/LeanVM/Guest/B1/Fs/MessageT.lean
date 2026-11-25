@@ -16,6 +16,7 @@ import LeanVM.Guest.Data.ValNames.«opening_message__L20_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L36_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L6_L1»
 import LeanVM.Guest.Data.ValNames.«opening_message__L8_L1»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `opening_message`'s body
@@ -139,42 +140,42 @@ theorem om_found_1_1 : coreProgram.find? (omName (1, 1)) = some fn% «opening_me
     (fn% «opening_message__L1_L1»).params = [.n (val% «opening_message__L1_L1» "fs0"), .n (val% «opening_message__L1_L1» "fs1"), .n (val% «opening_message__L1_L1» "fs2"), .n (val% «opening_message__L1_L1» "fs3"), .n (val% «opening_message__L1_L1» "fs4"), .n (val% «opening_message__L1_L1» "cursor"), .n (val% «opening_message__L1_L1» "out")] ∧
       (fn% «opening_message__L1_L1»).body = omBody 1 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L1_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_6_1 : coreProgram.find? (omName (6, 1)) = some fn% «opening_message__L6_L1» ∧
     (fn% «opening_message__L6_L1»).params = [.n (val% «opening_message__L6_L1» "fs0"), .n (val% «opening_message__L6_L1» "fs1"), .n (val% «opening_message__L6_L1» "fs2"), .n (val% «opening_message__L6_L1» "fs3"), .n (val% «opening_message__L6_L1» "fs4"), .n (val% «opening_message__L6_L1» "cursor"), .n (val% «opening_message__L6_L1» "out")] ∧
       (fn% «opening_message__L6_L1»).body = omBody 6 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L6_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_8_1 : coreProgram.find? (omName (8, 1)) = some fn% «opening_message__L8_L1» ∧
     (fn% «opening_message__L8_L1»).params = [.n (val% «opening_message__L8_L1» "fs0"), .n (val% «opening_message__L8_L1» "fs1"), .n (val% «opening_message__L8_L1» "fs2"), .n (val% «opening_message__L8_L1» "fs3"), .n (val% «opening_message__L8_L1» "fs4"), .n (val% «opening_message__L8_L1» "cursor"), .n (val% «opening_message__L8_L1» "out")] ∧
       (fn% «opening_message__L8_L1»).body = omBody 8 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L8_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_12_1 : coreProgram.find? (omName (12, 1)) = some fn% «opening_message__L12_L1» ∧
     (fn% «opening_message__L12_L1»).params = [.n (val% «opening_message__L12_L1» "fs0"), .n (val% «opening_message__L12_L1» "fs1"), .n (val% «opening_message__L12_L1» "fs2"), .n (val% «opening_message__L12_L1» "fs3"), .n (val% «opening_message__L12_L1» "fs4"), .n (val% «opening_message__L12_L1» "cursor"), .n (val% «opening_message__L12_L1» "out")] ∧
       (fn% «opening_message__L12_L1»).body = omBody 12 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L12_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_20_1 : coreProgram.find? (omName (20, 1)) = some fn% «opening_message__L20_L1» ∧
     (fn% «opening_message__L20_L1»).params = [.n (val% «opening_message__L20_L1» "fs0"), .n (val% «opening_message__L20_L1» "fs1"), .n (val% «opening_message__L20_L1» "fs2"), .n (val% «opening_message__L20_L1» "fs3"), .n (val% «opening_message__L20_L1» "fs4"), .n (val% «opening_message__L20_L1» "cursor"), .n (val% «opening_message__L20_L1» "out")] ∧
       (fn% «opening_message__L20_L1»).body = omBody 20 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L20_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 set_option maxRecDepth 100000 in
 theorem om_found_36_1 : coreProgram.find? (omName (36, 1)) = some fn% «opening_message__L36_L1» ∧
     (fn% «opening_message__L36_L1»).params = [.n (val% «opening_message__L36_L1» "fs0"), .n (val% «opening_message__L36_L1» "fs1"), .n (val% «opening_message__L36_L1» "fs2"), .n (val% «opening_message__L36_L1» "fs3"), .n (val% «opening_message__L36_L1» "fs4"), .n (val% «opening_message__L36_L1» "cursor"), .n (val% «opening_message__L36_L1» "out")] ∧
       (fn% «opening_message__L36_L1»).body = omBody 36 1 :=
   ⟨coreProgram_find?_at (j := idx% «opening_message__L36_L1») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+    (by kernel_rfl)⟩
 
 end
 end LeanVM.Guest.B1

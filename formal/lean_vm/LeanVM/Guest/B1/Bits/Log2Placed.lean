@@ -17,6 +17,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 import LeanVM.Guest.Value.FieldBits
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed
@@ -72,10 +73,10 @@ def lcBody (fl : ℕ) : List Stmt :=
     .ite (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin, .atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]]
 
 theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
-    lcBody 0 := stmtsEqb_sound (by decide +kernel)
+    lcBody 0 := by kernel_rfl
 
 theorem log2_ceil_in_the_exponent_L16_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» =
-    lcBody 16 := stmtsEqb_sound (by decide +kernel)
+    lcBody 16 := by kernel_rfl
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 

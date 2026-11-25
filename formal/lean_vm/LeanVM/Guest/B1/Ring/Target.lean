@@ -15,6 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target»
 import LeanVM.Guest.Data.ValNames.«ring_switch_target_loop0»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `ring_switch_target` (TRIAGE G #64, #65)
@@ -189,8 +190,8 @@ def loop13T : List Stmt :=
     .atom (.const (.n (val% «ring_switch_target_loop0» "s8#4")) (word 2 0)), .atom (.mul (.n (val% «ring_switch_target_loop0» "s8#5")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "s8#4"))),
     .callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"), .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")], .ret []]
 
-theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T :=
-  stmtsEqb_sound (by decide +kernel)
+theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T := by
+  kernel_rfl
 
 theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some
     fn% «ring_switch_target_loop0» :=
@@ -326,7 +327,7 @@ def rstT : List Stmt :=
   [.atom (.const (.n (val% «ring_switch_target» "s6#1")) (word 9223372036854775808 0)), .atom (.mul (.n (val% «ring_switch_target» "s6#0")) (.n (val% «ring_switch_target» "total@8")) (.n (val% «ring_switch_target» "s6#1"))),
     .ret [.n (val% «ring_switch_target» "s6#0")]]
 
-theorem rst_body : (fn% «ring_switch_target»).body = rstT := stmtsEqb_sound (by decide +kernel)
+theorem rst_body : (fn% «ring_switch_target»).body = rstT := by kernel_rfl
 
 theorem find_rst : coreProgram.find? "ring_switch_target" = some fn% «ring_switch_target» :=
   coreProgram_find?_at (j := idx% «ring_switch_target») rfl

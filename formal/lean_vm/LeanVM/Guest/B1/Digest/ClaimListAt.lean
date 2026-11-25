@@ -15,6 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 import LeanVM.Guest.Data.ValNames.«claim_list_chain»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `claim_list_digest`, placed
@@ -93,13 +94,13 @@ noncomputable def chPost : List Stmt := chainFlat.drop (pos% «claim_list_chain�
 noncomputable def chChk : List Stmt := chPost.dropLast.dropLast
 
 set_option maxRecDepth 100000 in
-theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost :=
-  stmtsEqb_sound (by decide +kernel)
+theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost := by
+  kernel_rfl
 
 set_option maxRecDepth 100000 in
 theorem chPost_eq :
-    chPost = chChk ++ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] :=
-  stmtsEqb_sound (by decide +kernel)
+    chPost = chChk ++ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by
+  kernel_rfl
 
 set_option maxRecDepth 100000 in
 theorem chChk_atoms : chChk.all isAtomS = true := by decide +kernel

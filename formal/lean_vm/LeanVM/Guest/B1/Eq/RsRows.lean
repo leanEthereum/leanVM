@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `rs_eq_rows` (lean_ethereum.py)
@@ -119,24 +120,24 @@ def rrBody (n : ℕ) : List Stmt :=
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
 theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n (val% «rs_eq_rows__L0» "s2#0")) (.n (val% «rs_eq_rows__L0» "row"))),
-    .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 :=
-  stmtsEqb_sound (by decide +kernel)
+    .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] := by
+  kernel_rfl
+theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 := by
+  kernel_rfl
+theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 := by
+  kernel_rfl
+theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 := by
+  kernel_rfl
+theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 := by
+  kernel_rfl
+theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 := by
+  kernel_rfl
+theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 := by
+  kernel_rfl
+theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 := by
+  kernel_rfl
+theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 := by
+  kernel_rfl
 
 /-! ## The conditions -/
 

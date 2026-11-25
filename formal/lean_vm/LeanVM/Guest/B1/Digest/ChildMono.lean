@@ -19,6 +19,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
 import LeanVM.Guest.B1.Common.Find
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # `child_claim_list_mono`
@@ -528,8 +529,8 @@ noncomputable def monoFlat : List Stmt := (Fn.body fn% «child_claim_list_mono»
 
 set_option maxRecDepth 100000 in
 theorem child_claim_list_mono_shape : Fn.body fn% «child_claim_list_mono» = monoFlat ++ [.ret [.n
-    (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]] :=
-  stmtsEqb_sound (by decide +kernel)
+    (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]] := by
+  kernel_rfl
 
 /-- The body: the zero state at `chain = .n 16`, `region` and `entries` at `chain · g^13`,
 `chain · g^14`, the big frames' loop, `mid = chain · bigs^15`, the groups' loop,

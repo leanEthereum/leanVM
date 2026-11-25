@@ -14,6 +14,7 @@ public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
+meta import LeanVM.Guest.B1.Common.KernelRfl
 
 /-!
 # The walk by hinted indices, the parts
@@ -64,13 +65,13 @@ noncomputable def anyP1 : List Stmt := anyFlat.take (pos% «child_claim_list_any
 noncomputable def anyPost : List Stmt := anyFlat.drop (pos% «child_claim_list_any» "s9#0")
 
 set_option maxRecDepth 100000 in
-theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost :=
-  stmtsEqb_sound (by decide +kernel)
+theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost := by
+  kernel_rfl
 
 set_option maxRecDepth 100000 in
 theorem anyPost_eq : anyPost = [.atom (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))), .atom (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))),
-    .atom (.copy (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))), .atom (.copy (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))] :=
-  stmtsEqb_sound (by decide +kernel)
+    .atom (.copy (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))), .atom (.copy (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))] := by
+  kernel_rfl
 
 theorem anyPost_straight : anyPost.all Main.Stmt.straight = true := by rw [anyPost_eq]; rfl
 
