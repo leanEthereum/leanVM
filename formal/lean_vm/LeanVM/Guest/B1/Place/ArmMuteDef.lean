@@ -42,7 +42,7 @@ noncomputable def armMuteOk (name : String) (j : ℕ) : Bool :=
 
 /-- The arms' callees' facts the mute check reads, decided once (`Place/FreeNoWitOk`, `Place/FreeLq`). -/
 def ArmMuteNeedOk : Prop :=
-  (∀ k ∈ armNoWitNeed, noWitJ 8 k = true) ∧ ∀ k ∈ armLqNeed, (Data.nameT.find k).all lqNameB = true
+  (∀ k ∈ armNoWitNeed, ∃ d, noWitJ d k = true) ∧ ∀ k ∈ armLqNeed, (Data.nameT.find k).all lqNameB = true
 
 theorem armMute_find (hN : ArmMuteNeedOk) {name : String} {j : ℕ} (h : armMuteOk name j = true) :
     ∃ fn, coreProgram.find? name = some fn ∧ Stmt.muteList armS fn.body = true := by
@@ -54,7 +54,8 @@ theorem armMute_find (hN : ArmMuteNeedOk) {name : String} {j : ℕ} (h : armMute
     refine ⟨fn, coreProgram_find?_at hj hn, Stmt.muteList_of_noWit fn.body hw fun g hg ↦ ?_⟩
     obtain ⟨k, hk, hk', hg'⟩ := maskCallee_mem armCalleeMask_mute (hc g hg)
     rcases List.mem_append.mp hk with hk | hk
-    · simp [armS, noWitS_iff.mpr ⟨8, k, hk', hN.1 k hk⟩]
+    · obtain ⟨d, hd⟩ := hN.1 k hk
+      simp [armS, noWitS_iff.mpr ⟨d, k, hk', hd⟩]
     · have hq : lqNameB g = true := by simpa [hg'] using hN.2 k hk
       simp [armS, hq]
   · exact absurd h Bool.false_ne_true

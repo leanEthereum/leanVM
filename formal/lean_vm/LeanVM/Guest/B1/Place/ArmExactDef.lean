@@ -55,7 +55,7 @@ noncomputable def armExactOk (name : String) (j : ℕ) : Bool :=
 
 /-- The arms' callees' facts the exactness check reads, decided once (`Place/FreeExactOk`, `Place/FreeLp`). -/
 def ArmExactNeedOk : Prop :=
-  (∀ k ∈ armExactNeed, exactJ 8 k = true) ∧ ∀ k ∈ armLpNeed, (Data.nameT.find k).all armExactS = true
+  (∀ k ∈ armExactNeed, ∃ d, exactJ d k = true) ∧ ∀ k ∈ armLpNeed, (Data.nameT.find k).all armExactS = true
 
 theorem armExact_find (hN : ArmExactNeedOk) {name : String} {j : ℕ} (h : armExactOk name j = true) :
     ∃ fn, coreProgram.find? name = some fn ∧ Stmt.blockNextOk isComputedNW pinsInverse fn.body = true ∧
@@ -68,7 +68,8 @@ theorem armExact_find (hN : ArmExactNeedOk) {name : String} {j : ℕ} (h : armEx
     refine ⟨fn, coreProgram_find?_at hj hn, hp, fun g hg ↦ ?_⟩
     obtain ⟨k, hk, hk', hg'⟩ := maskCallee_mem armCalleeMask_exact (hc g hg)
     rcases List.mem_append.mp hk with hk | hk
-    · exact .inr ⟨8, k, hk', hN.1 k hk⟩
+    · obtain ⟨d, hd⟩ := hN.1 k hk
+      exact .inr ⟨d, k, hk', hd⟩
     · exact .inl (by simpa [hg'] using hN.2 k hk)
   · exact absurd h Bool.false_ne_true
 

@@ -5,9 +5,10 @@ distinct callee once, from the generated callee table (`Guest/Memory/GuestCallee
 
     python3 -I scripts/arm-masks [--check]
 
-`Place/FreeMaskData.lean`: the callees' indices by what the arms need of them, in chunks, and the
-masks. `Place/FreeNoWit{i}.lean`, `Place/FreeExact{i}.lean`: the subtree checks (`noWitJ 8`, `exactJ 8`)
-of arm `i`'s callees not an earlier arm's, a module each so that they build at once. `Place/FreeLq.lean`,
+`Place/FreeMaskData.lean`: the callees' indices by what the arms need of them, the functions below
+them by call depth, in chunks, and the masks. `Place/FreeNoWitL{d}C{c}.lean`,
+`Place/FreeExactL{d}C{c}.lean`: a chunk of call depth `d` passes its body check with its callees in
+the mask of the depths below (`stepOk`), a module each so that they build at once. `Place/FreeLq.lean`,
 `Place/FreeLp.lean`: the names of the `level_queries`, `is_zero` and `level_positions` callees.
 `Place/FreeNoWitOk.lean`, `Place/FreeExactOk.lean`: the chunks joined. Nothing here is trusted: a wrong index fails its kernel
 check.
@@ -18,6 +19,7 @@ from pathlib import Path
 CALLEES = Path('LeanVM/Guest/Memory/GuestCallees.lean')
 PLACE = Path('LeanVM/Guest/B1/Place')
 ARMS = 11
+LV_CHUNK = 50
 HEAD = '''/-
   LeanVM.Guest.B1.Place.{name}
 
@@ -56,33 +58,61 @@ def module(name, what, imports, body):
     return HEAD.format(name=name, what=what, imports=imp) + body + TAIL
 
 
+FAMILIES = (  # name, the subtree check, its body check, what a passing callee is
+    ('NoWit', 'noWitJ', 'Stmt.noWitList', 'has no witness hint below it'),
+    ('Exact', 'exactJ', '(Stmt.blockNextOk isComputed pinsInverse)', 'is exact for free'))
+
+
 def files():
     names, cal = tables()
     idx = {v: k for k, v in names.items()}
-    by_arm = [[k for k in cal[idx[f'open_stacked__L{m}']] if k != idx[f'open_stacked__L{m}']] for m in range(ARMS)]
-    callees = sorted({k for ks in by_arm for k in ks})
+    arms = [idx[f'open_stacked__L{m}'] for m in range(ARMS)]
+    callees = sorted({k for j in arms for k in cal[j] if k != j})
     is_lq = lambda k: names[k].startswith('level_queries__')
     is_lp = lambda k: names[k] == 'is_zero' or names[k].startswith('level_positions__')
     need = {'NoWit': [k for k in callees if not is_lq(k)], 'Exact': [k for k in callees if not is_lp(k)]}
     lq, lp = [k for k in callees if is_lq(k)], [k for k in callees if is_lp(k)]
-    # A chunk an arm's callees not in an earlier arm's: one kernel check shares the subtrees an arm's callees share.
-    parts = {}
-    for f in need:
-        seen, parts[f] = set(), []
-        for ks in by_arm:
-            c = [k for k in ks if k in set(need[f]) and k not in seen]
-            seen.update(c)
-            if c:
-                parts[f].append(c)
-        need[f] = [k for c in parts[f] for k in c]
-    out = {}
-    body = ''
-    for f, cs in parts.items():
-        for i, c in enumerate(cs):
-            body += f'/-- Chunk {i} of the arms\' callees that must pass `{f[0].lower() + f[1:]}J 8`. -/\n'
-            body += f'def arm{f}Need{i} : List ℕ := {lit(c)}\n\n'
-        body += f'def arm{f}Need : List ℕ := ' + ' ++ '.join(f'arm{f}Need{i}' for i in range(len(cs))) + '\n\n'
-    body += f'/-- The arms\' `level_queries` callees. -/\ndef armLqNeed : List ℕ := {lit(lq)}\n\n'
+    rank = {}
+
+    def depth(j):
+        if j not in rank:
+            rank[j] = 1 + max((depth(k) for k in cal.get(j, []) if k != j), default=0)
+        return rank[j]
+
+    out, body, chunked = {}, '', {}
+    # A family's callees' subtrees by call depth, callees first: a function's check reads the mask of
+    # the depths below its own, so every chunk of every depth builds at once.
+    for f, jn, _, what in FAMILIES:
+        reach, stack = set(), list(need[f])
+        while stack:
+            j = stack.pop()
+            if j not in reach:
+                reach.add(j)
+                stack += [k for k in cal.get(j, []) if k != j]
+        levels = [sorted(j for j in reach if depth(j) == d) for d in range(1, max(map(depth, reach)) + 1)]
+        chunked[f] = [[lv[i:i + LV_CHUNK] for i in range(0, len(lv), LV_CHUNK)] for lv in levels]
+        body += f'/-- The arms\' callees that must pass `{jn}`. -/\ndef arm{f}Need : List ℕ := {lit(need[f])}\n\n'
+        upto = set()
+        for d, cs in enumerate(chunked[f], 1):
+            for c, ks in enumerate(cs):
+                body += f'/-- The functions of call depth {d} below the `{jn}` callees, chunk {c}. -/\n'
+                body += f'def arm{f}Lv{d}C{c} : List ℕ := {lit(ks)}\n\n'
+            body += f'def arm{f}Lv{d} : List ℕ := ' + ' ++ '.join(f'arm{f}Lv{d}C{c}' for c in range(len(cs))) + '\n\n'
+            upto |= set(levels[d - 1])
+            prev = '0' if d == 1 else f'arm{f}M{d - 1}'
+            body += f'/-- The mask of the functions of call depth at most {d} below the `{jn}` callees. -/\n'
+            body += f'def arm{f}M{d} : ℕ := {sum(1 << k for k in upto)}\n\n'
+            body += f'theorem arm{f}M{d}_eq : arm{f}M{d} = {prev} ||| listMask arm{f}Lv{d} := by decide +kernel\n\n'
+        top = len(chunked[f])
+        body += f'theorem arm{f}Need_in : ∀ k ∈ arm{f}Need, arm{f}M{top}.testBit k = true := by decide +kernel\n\n'
+    keys = []
+    for k in lq:
+        ns = names[k][len('level_queries__L'):].split('_L')
+        keys.append(f'({k}, [{", ".join(str(int(n)) for n in ns)}])')
+    rows = ',\n    '.join(keys)
+    body += ('/-- The arms\' `level_queries` callees, each with the numbers of its name (`keyStr`). -/\n'
+             f'def armLqKeys : List (ℕ × List ℕ) := [\n    {rows}]\n\n'
+             'def armLqNeed : List ℕ := armLqKeys.map Prod.fst\n\n')
     body += f'/-- The arms\' `is_zero` and `level_positions` callees. -/\ndef armLpNeed : List ℕ := {lit(lp)}\n\n'
     body += '/-- The mask of the arms\' callees. -/\n'
     body += f'def armCalleeMask : ℕ := {sum(1 << k for k in callees)}\n\n'
@@ -90,30 +120,58 @@ def files():
         body += f'theorem armCalleeMask_{nm} : armCalleeMask = listMask ({a} ++ {b}) := by decide +kernel\n\n'
     out['FreeMaskData'] = module('FreeMaskData', 'The arms\' callees by what the arms need of them, and their masks.',
                                  ['LeanVM.Guest.B1.Place.FreeMask'], body.rstrip('\n') + '\n')
-    for f, cs in parts.items():
-        j = 'noWitJ' if f == 'NoWit' else 'exactJ'
-        for i in range(len(cs)):
-            out[f'Free{f}{i}'] = module(
-                f'Free{f}{i}', f'Chunk {i} of the arms\' callees passes `{j} 8`, by the kernel.',
-                ['LeanVM.Guest.B1.Place.FreeMaskData'],
-                f'theorem arm{f}Need{i}_ok : ∀ k ∈ arm{f}Need{i}, {j} 8 k = true := by decide +kernel\n')
-    out['FreeLq'] = module('FreeLq', 'The arms\' `level_queries` callees are entries of `lqTable`, by the kernel.',
-                           ['LeanVM.Guest.B1.Place.FreeMaskData', 'LeanVM.Guest.B1.Place.ArmMuteDef'],
-                           'theorem armLqNeed_ok : ∀ k ∈ armLqNeed, (Data.nameT.find k).all lqNameB = true := by\n'
-                           '  decide +kernel\n')
+    for f, jn, P, what in FAMILIES:
+        cs_all = chunked[f]
+        for d, cs in enumerate(cs_all, 1):
+            prev = '0' if d == 1 else f'arm{f}M{d - 1}'
+            for c in range(len(cs)):
+                out[f'Free{f}L{d}C{c}'] = module(
+                    f'Free{f}L{d}C{c}', f'Chunk {c} of call depth {d} below the `{jn}` callees passes its check, by the kernel.',
+                    ['LeanVM.Guest.B1.Place.FreeMaskData'],
+                    f'theorem arm{f}Lv{d}C{c}_ok : ∀ j ∈ arm{f}Lv{d}C{c}, stepOk {P} {prev} j = true := by\n'
+                    '  decide +kernel\n')
+        body = ''
+        for d, cs in enumerate(cs_all, 1):
+            prev = '0' if d == 1 else f'arm{f}M{d - 1}'
+            body += f'theorem arm{f}Lv{d}_ok : ∀ j ∈ arm{f}Lv{d}, stepOk {P} {prev} j = true := by\n'
+            body += f'  simp only [arm{f}Lv{d}, List.append_assoc, List.mem_append]\n'
+            body += '  intro k hk\n'
+            if len(cs) > 1:
+                body += '  rcases hk with ' + ' | '.join('h' for _ in cs) + '\n'
+                body += ''.join(f'  · exact arm{f}Lv{d}C{c}_ok k h\n' for c in range(len(cs)))
+            else:
+                body += f'  exact arm{f}Lv{d}C0_ok k hk\n'
+            body += '\n'
+        top = len(cs_all)
+        chain = f'recJ_level (D := 0) (fun _ h ↦ by simp at h) arm{f}M1_eq arm{f}Lv1_ok'
+        for d in range(2, top + 1):
+            chain = f'recJ_level ({chain})\n    arm{f}M{d}_eq arm{f}Lv{d}_ok'
+        body += f'theorem arm{f}M_ok : ∀ k, arm{f}M{top}.testBit k = true → recJ {P} {top} k = true :=\n  {chain}\n\n'
+        body += (f'/-- **Each callee of `arm{f}Need` {what}**: its subtree passes `{jn}`. -/\n'
+                 f'theorem arm{f}Need_ok : ∀ k ∈ arm{f}Need, ∃ d, {jn} d k = true := fun k hk ↦\n'
+                 f'  ⟨{top}, ({jn}_eq_recJ {top} k).trans (arm{f}M_ok k (arm{f}Need_in k hk))⟩\n')
+        out[f'Free{f}Ok'] = module(f'Free{f}Ok', f'The arms\' callees pass `{jn}`, the depths joined.',
+                                   [f'LeanVM.Guest.B1.Place.Free{f}L{d}C{c}' for d, cs in enumerate(cs_all, 1)
+                                    for c in range(len(cs))], body)
+    out['FreeLq'] = module(
+        'FreeLq', 'The arms\' `level_queries` callees are entries of `lqTable`, by their names\' numbers.',
+        ['LeanVM.Guest.B1.Place.FreeMaskData', 'LeanVM.Guest.B1.Place.ArmMuteDef', 'LeanVM.Guest.B1.Whir.TableKeys'],
+        '/-- Each callee is named by its numbers, which are an entry\'s of `lqTable` (numbers compared,\n'
+        'one name built and compared per callee). -/\n'
+        'theorem armLqKeys_ok : ∀ x ∈ armLqKeys, Data.nameT.find x.1 = some (Whir.keyStr "level_queries__L" x.2) ∧\n'
+        '    x.2 ∈ Whir.lqTable.map (Whir.lqKey ·.2) := by\n'
+        '  decide +kernel\n\n'
+        'theorem armLqNeed_ok : ∀ k ∈ armLqNeed, (Data.nameT.find k).all lqNameB = true := by\n'
+        '  intro k hk\n'
+        '  obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hk\n'
+        '  obtain ⟨h1, h2⟩ := armLqKeys_ok x hx\n'
+        '  obtain ⟨e, he, hk2⟩ := List.mem_map.mp h2\n'
+        '  simp only [h1, Option.all_some, lqNameB, List.any_eq_true, beq_iff_eq]\n'
+        '  exact ⟨e, he, by rw [Whir.lq_names e he]; exact congrArg _ hk2⟩\n')
     out['FreeLp'] = module('FreeLp', 'The arms\' `is_zero` and `level_positions` callees pass `armExactS`, by the kernel.',
                            ['LeanVM.Guest.B1.Place.FreeMaskData', 'LeanVM.Guest.B1.Place.ArmExactDef'],
                            'theorem armLpNeed_ok : ∀ k ∈ armLpNeed, (Data.nameT.find k).all armExactS = true := by\n'
                            '  decide +kernel\n')
-    for f, cs in parts.items():
-        j = 'noWitJ' if f == 'NoWit' else 'exactJ'
-        body = f'theorem arm{f}Need_ok : ∀ k ∈ arm{f}Need, {j} 8 k = true := by\n'
-        body += f'  simp only [arm{f}Need, List.append_assoc, List.mem_append]\n'
-        body += '  intro k hk\n'
-        body += '  rcases hk with ' + ' | '.join('h' for _ in cs) + '\n'
-        body += ''.join(f'  · exact arm{f}Need{i}_ok k h\n' for i in range(len(cs)))
-        out[f'Free{f}Ok'] = module(f'Free{f}Ok', f'The arms\' callees pass `{j} 8`, the chunks joined.',
-                                   [f'LeanVM.Guest.B1.Place.Free{f}{i}' for i in range(len(cs))], body)
     return out
 
 

@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.NoWitness
 
 A caller's check per callee name (`noWitCallee j g`, `exactCallee j g`, a table lookup by name)
 reruns, for every caller and every call, the callee's whole subtree check or a string search. When
-the callees' facts are decided once over the list `ks` of their indices (`∀ k ∈ ks, noWitJ 8 k`,
+the callees' facts are decided once over the list `ks` of their indices (`∀ k ∈ ks, ∃ d, noWitJ d k`,
 ...), a caller checks each callee by its index's bit in `listMask ks` (`maskCallee`): one name
 lookup (`calleeIdx`) and a bit test. `maskCallee_mem`: a callee passing it is named by an index of `ks`.
 -/
@@ -59,23 +59,87 @@ theorem maskCallee_mem {ks : List ℕ} {N j : ℕ} {g : String} (hN : N = listMa
     exact ⟨k, mem_of_testBit_listMask h, calleeIdx_spec hk, hn⟩
   · exact absurd h Bool.false_ne_true
 
-/-- A callee passing the mask of `ks`, whose indices pass `noWitJ 8`, has no witness hint below it. -/
-theorem noWitG_of_maskCallee {ks : List ℕ} {N j : ℕ} {g : String} (hN : N = listMask ks)
-    (hks : ∀ k ∈ ks, noWitJ 8 k = true) (h : maskCallee N j g = true) : NoWitG g := by
-  obtain ⟨k, hk, hn, -⟩ := maskCallee_mem hN h
-  exact ⟨8, k, hn, hks k hk⟩
 
-/-- A callee passing the mask of `ks`, whose indices pass `exactJ 8`, is exact for free. -/
+/-- A callee passing the mask of `ks`, whose indices pass `exactJ`, is exact for free. -/
 theorem exactFreeG_of_maskCallee {ks : List ℕ} {N j : ℕ} {g : String} (hN : N = listMask ks)
-    (hks : ∀ k ∈ ks, exactJ 8 k = true) (h : maskCallee N j g = true) : ExactFreeG g := by
+    (hks : ∀ k ∈ ks, ∃ d, exactJ d k = true) (h : maskCallee N j g = true) : ExactFreeG g := by
   obtain ⟨k, hk, hn, -⟩ := maskCallee_mem hN h
-  exact ⟨8, k, hn, hks k hk⟩
+  obtain ⟨d, hd⟩ := hks k hk
+  exact ⟨d, k, hn, hd⟩
 
 /-- A callee passing the mask of `ks`, whose indices' names pass `p`, passes `p`. -/
 theorem of_maskCallee {ks : List ℕ} {N j : ℕ} {g : String} {p : String → Bool} (hN : N = listMask ks)
     (hks : ∀ k ∈ ks, (Data.nameT.find k).all p = true) (h : maskCallee N j g = true) : p g = true := by
   obtain ⟨k, hk, -, hn⟩ := maskCallee_mem hN h
   simpa [hn] using hks k hk
+
+/-! ## Subtrees by call depth
+
+`noWitJ` and `exactJ` are `recJ P` for the body checks `P = Stmt.noWitList` and
+`P = Stmt.blockNextOk isComputed pinsInverse` (`noWitJ_eq_recJ`, `exactJ_eq_recJ`). Deciding it for each of many callees walks the subtrees they share again;
+`recJ_level` walks them once, by call depth: when every function of the mask `M` passes `recJ P D`
+and each function of `L` passes `stepOk P M` (its body passes `P`, its callees but itself are
+`M`'s), every function of `M ||| listMask L` passes `recJ P (D + 1)`. -/
+
+/-- **Function `j` and its callees, `d` calls deep, pass `P` on their bodies.** -/
+noncomputable def recJ (P : List Stmt → Bool) : ℕ → ℕ → Bool
+  | 0, _ => false
+  | d + 1, j => match coreProgram[j]? with
+    | none => false
+    | some fn => P fn.body && (Stmt.blockCallees fn.body).all (fun g => (calleeIdx j g).isSome) &&
+        (Data.calleesJ j).all fun k => k == j || recJ P d k
+
+theorem noWitJ_eq_recJ : ∀ d j, noWitJ d j = recJ Stmt.noWitList d j
+  | 0, _ => rfl
+  | d + 1, j => by
+    rw [noWitJ, recJ]
+    rcases coreProgram[j]? with _ | fn
+    · rfl
+    · simp only [noWitJ_eq_recJ d]
+
+theorem exactJ_eq_recJ : ∀ d j, exactJ d j = recJ (Stmt.blockNextOk isComputed pinsInverse) d j
+  | 0, _ => rfl
+  | d + 1, j => by
+    rw [exactJ, recJ]
+    rcases coreProgram[j]? with _ | fn
+    · rfl
+    · simp only [exactJ_eq_recJ d]
+
+theorem recJ_succ (P : List Stmt → Bool) : ∀ {d j}, recJ P d j = true → recJ P (d + 1) j = true
+  | 0, _, h => by simp [recJ] at h
+  | d + 1, j, h => by
+    rw [recJ] at h ⊢
+    rcases hj : coreProgram[j]? with _ | fn
+    · simp [hj] at h
+    · simp only [hj, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true] at h ⊢
+      exact ⟨h.1, fun k hk => (h.2 k hk).imp_right (recJ_succ P)⟩
+
+/-- Function `j`'s body passes `P`, its callees have indices, and those but `j` are the mask `M`'s. -/
+noncomputable def stepOk (P : List Stmt → Bool) (M j : ℕ) : Bool :=
+  match coreProgram[j]? with
+  | none => false
+  | some fn => P fn.body && (Stmt.blockCallees fn.body).all (fun g => (calleeIdx j g).isSome) &&
+      (Data.calleesJ j).all fun k => k == j || M.testBit k
+
+theorem recJ_of_step {P : List Stmt → Bool} {M j D : ℕ} (hM : ∀ k, M.testBit k = true → recJ P D k = true)
+    (h : stepOk P M j = true) : recJ P (D + 1) j = true := by
+  unfold stepOk at h
+  rw [recJ]
+  rcases hj : coreProgram[j]? with _ | fn
+  · simp [hj] at h
+  · simp only [hj, Bool.and_eq_true, List.all_eq_true, Bool.or_eq_true] at h ⊢
+    exact ⟨h.1, fun k hk => (h.2 k hk).imp_right (hM k)⟩
+
+/-- **One call depth more.** -/
+theorem recJ_level {P : List Stmt → Bool} {M M' D : ℕ} {L : List ℕ}
+    (hM : ∀ k, M.testBit k = true → recJ P D k = true) (heq : M' = M ||| listMask L)
+    (hL : ∀ j ∈ L, stepOk P M j = true) : ∀ k, M'.testBit k = true → recJ P (D + 1) k = true := by
+  intro k hk
+  subst heq
+  rw [Nat.testBit_or, Bool.or_eq_true] at hk
+  rcases hk with hk | hk
+  · exact recJ_succ P (hM k hk)
+  · exact recJ_of_step hM (hL k (mem_of_testBit_listMask hk))
 
 end
 end LeanVM.Guest.Memory
