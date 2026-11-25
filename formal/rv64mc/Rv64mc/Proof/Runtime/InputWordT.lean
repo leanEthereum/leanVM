@@ -7,10 +7,10 @@
 
   The reader and the words it points to are the caller's, so their windows and alignment are in
   the precondition (`WordPreT`): the reader 8-byte aligned and below the stack window's end, its
-  slice, unless empty, from an 8-byte aligned pointer at or above the input window's start, its `8 * len` bytes
-  ending within the heap. `main`'s reader over the input satisfies it (`inputBase`, at most
-  `inputCapacity` words), and a return keeps it: the pointer moves up by 8 as the length drops by
-  one.
+  slice, unless empty, from an 8-byte aligned pointer at or above the input window's start, its
+  `8 * len` bytes ending within the heap. `main`'s reader over the input satisfies it
+  (`inputBase`, at most `inputCapacity` words), and a return keeps it: the pointer moves up by 8
+  as the length drops by one.
 
   ## Main definitions
 
