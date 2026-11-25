@@ -20,10 +20,11 @@ joins them, `bufsAt_out`: all of them are `OsOutA`'s allocations.
 
 `osStFrom`, `osStAt`, `osLvsEnd`: the states entering the levels and after them.
 
-`BodyStatic c` (decided per arm and rate in `Whir/CHonAlloc{0..3}`): the head's, each level's
+`BodyStatic c`: the head's, each level's
 (`lvAllocsV`: a non-final level's `sent`, the final level's normalized lane) and the closing
 rounds' allocation statements, and the sizes of the buffers they allocate. `osLevels_split`: the
-levels' statements are each level's at its state `osStAt`.
+levels' statements are each level's at its state `osStAt`. `BodyAllocs c`, `BodySizes c`: its
+statements and its sizes (`bodyStatic_of`).
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -135,8 +136,37 @@ def BodyStatic (c : OsCfg) : Prop :=
   sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = n ∧ sz.getD (19 + y) 0 = 2 * n ∧
   (∀ j < sz.length, sz.getD j 0 < 2 ^ 64 - 1)
 
-instance (c : OsCfg) : Decidable (BodyStatic c) := by
-  unfold BodyStatic; dsimp only; infer_instance
+/-- `BodyStatic`'s allocation statements, the costly part: the same at every rate
+(`Whir/CHonAllocRate`), so decided at the first rate alone (`Whir/CHonAlloc0`). -/
+def BodyAllocs (c : OsCfg) : Prop :=
+  (osHead c).1.filterMap Stmt.allocSz = headAllocsV ∧
+  (∀ l < c.levels.length,
+    (osLevel c l (c.levels.getD l default) (osStAt c l)).1.filterMap Stmt.allocSz = lvAllocsV c l) ∧
+  (osTail c (osLvsEnd c)).1.filterMap Stmt.allocSz =
+    [(.n ((osLvsEnd c).k + 1), .inr (.n (osLvsEnd c).k))]
+
+instance (c : OsCfg) : Decidable (BodyAllocs c) := by
+  unfold BodyAllocs; infer_instance
+
+/-- `BodyStatic`'s sizes, decided at every rate (`Whir/CHonAlloc1`). -/
+def BodySizes (c : OsCfg) : Prop :=
+  let n := c.levels.length
+  let y := c.yrLevel
+  let sz := osSizesL c
+  sz.length = 20 + y ∧ y + 1 = n ∧
+  (∀ j < 12, sz.getD j 0 = (headSizes c (osPosTotal c)).getD j 0) ∧
+  (∀ l < y, sz.getD (12 + l) 0 = 2 + (c.levels.getD l default).folds) ∧
+  sz.getD (12 + y) 0 = c.yrLen + (c.levels.getD y default).folds ∧
+  sz.getD (13 + y) 0 = yrLogCap ∧ sz.getD (14 + y) 0 = pointCap ∧
+  sz.getD (15 + y) 0 = pointCap ∧ sz.getD (16 + y) 0 = n * ligColsCap ∧
+  sz.getD (17 + y) 0 = n ∧ sz.getD (18 + y) 0 = n ∧ sz.getD (19 + y) 0 = 2 * n ∧
+  (∀ j < sz.length, sz.getD j 0 < 2 ^ 64 - 1)
+
+instance (c : OsCfg) : Decidable (BodySizes c) := by
+  unfold BodySizes; dsimp only; infer_instance
+
+theorem bodyStatic_of {c : OsCfg} (ha : BodyAllocs c) (hs : BodySizes c) : BodyStatic c :=
+  ⟨ha.1, ha.2.1, ha.2.2, hs⟩
 
 end
 end LeanVM.Guest.B1.Whir
