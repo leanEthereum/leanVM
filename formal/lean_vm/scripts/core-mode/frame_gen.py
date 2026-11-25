@@ -2,8 +2,9 @@
 `LeanVM/Guest/CoreMode/Pack/<pack>/Frame{k}.lean`, each function's data (`CoreMode.FFun`: its
 executor facts, its signature and its callees', its hints, residual divisors, table targets, the
 oracle) with the kernel's check of its walk (`frameOk … = true := by decide +kernel`); a long
-function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
-`frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
+function in windows (`frameWin`), each its own module `FrameD{k}W{m}.lean`, from the cut states
+`frame.py` computes (its data `FrameD{k}.lean`, the check that its oracle's list is the pairing's
+`FrameO{k}.lean`, the chain `FrameL{k}.lean`). For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
 (`sigc.py`) and nonzero residuals). A function takes its oracle and stores from its pairing and its residual divisors
 from its own walk (`frame_run.own_nz`). The frame signatures are the frame layout's (`compiled.fsig`).
@@ -182,13 +183,16 @@ def fnData(D, n, cuts):
         for k, ps in sorted(tab.items()):
             names[(nm, k)] = '%s%d' % (nm, k)
             defs.append('def %s%d : List ℕ := data%% %s\n' % (nm, k, lst(ps, f)))
-    cutT = '.nil'
+    cutT, cutW = '.nil', 1
     if cuts:
+        # the cuts at multiples of the stride, by index (`FFun.cutAt`)
+        cutW = cuts[0]
+        assert all(i % cutW == 0 for i in cuts)
         cn = {}
         for i in cuts:
-            cn[i] = 'frameCut%d' % len(cn)
+            cn[i // cutW] = 'frameCut%d' % len(cn)
             defs.append('/-- `%s`: its walk at offset %d. -/\nnoncomputable def %s : Option CoreMode.FSt × List (ℕ × List ℕ × '
-                        'CoreMode.FSt) :=\n  data%% %s\n\n' % (n, i, cn[i], cutLit(w.cutSt[i])))
+                        'CoreMode.FSt) :=\n  data%% %s\n\n' % (n, i, cn[i // cutW], cutLit(w.cutSt[i])))
         cutT = MG.trie(cn, lambda x: x)
     O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
     nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
@@ -213,9 +217,9 @@ def fnData(D, n, cuts):
         assert ln == f['count']
         return ('frame_fn%% %s %d [%s]%s\n' % (q(n), ln, ', '.join(callees), ''.join(' ' + c for c in cl))), defs, packs
     defs += envDefs(D, n, nzr)
-    lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, data%% %s, %s, %s⟩' % (
+    lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, data%% %s, %s, %d, %s⟩' % (
         facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O,
-        lst(sorted(O_)), S, cutT))
+        lst(sorted(O_)), S, cutW, cutT))
     return lit, defs, packs
 
 
@@ -409,7 +413,7 @@ def main(argv):
                    '  decide +kernel\n\n/-- `%s`: its frame walk accepts its code, its windows chained. -/\n'
                    'theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by\n'
                    '  have hl : frameFun.len = code.chunks.flatten.length := by rw [frameLen]; rfl\n'
-                   '  have hc0 : frameFun.cuts.get 0 = none := rfl\n'
+                   '  have hc0 : frameFun.cutAt 0 = none := rfl\n'
                    '  refine CoreMode.frameAcc_of_wins frameOracle frameHints hl %s 0 _\n    (by rw [frameLen]; decide) rfl\n'
                    '    ⟨_, by simp [CoreMode.winStart, hc0], fun _ _ ↦ rfl⟩ ?_\n'
                    '  rw [frameLen]\n  show ∀ p ∈ %s, CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true\n'

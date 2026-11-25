@@ -6,10 +6,9 @@ public import LeanVM.Guest.CoreMode.FramePass
 # A long function's frame walk, from its windows
 
 A long function's walk is checked in windows (`frameWin`), from the cut at each inner bound to the
-next; `framePass_of_wins` chains them into the whole pass (`FramePassOk`), and `frameAcc_of_wins` adds the
-oracle, checked once (`FrameAcc`). At a cut the pass goes on
-from the cut's state whatever it had (`cutF`), so the windows' runs are the pass's
-(`frameRunH_cut`).
+next; `framePass_of_wins` chains them into the whole pass (`FramePassOk`), and `frameAcc_of_wins`
+adds the oracle, checked once (`FrameAcc`). At a cut the pass goes on from the cut's state whatever
+it had (`cutF`), so the windows' runs are the pass's (`frameRunH_cut`).
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -47,7 +46,7 @@ theorem pendSub_reset : ∀ P : FPend, pendSub P (P.map fun g ↦ (g.1, g.2.1, g
     simp only [List.map_cons, pendSub, beq_self_eq_true, Bool.true_and, Bool.and_eq_true]
     exact ⟨fst_sub_reset S, pendSub_reset P⟩
 
-theorem cutF_cutSt {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.cuts.get a = some c) :
+theorem cutF_cutSt {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.cutAt a = some c) :
     cutF Fn a (cutSt c).1 (cutSt c).2 = some (cutSt c) := by
   unfold cutF
   rw [hc]
@@ -61,7 +60,7 @@ theorem cutF_cutSt {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.cuts
   rfl
 
 /-- **At a cut** the pass goes on from the cut's state. -/
-theorem frameRunH_cut {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.cuts.get a = some c)
+theorem frameRunH_cut {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.cutAt a = some c)
     {cur : Option FSt} {pend : FPend} (h : cutF Fn a cur pend = some (cutSt c)) (ins : OffsetInstruction)
     (l : List OffsetInstruction) :
     frameRunH Fn (ins :: l) a cur pend = frameRunH Fn (ins :: l) a (cutSt c).1 (cutSt c).2 := by
@@ -71,19 +70,16 @@ theorem frameRunH_cut {Fn : FFun} {a : ℕ} {c : Option FSt × FPend} (hc : Fn.c
 
 /-- Where a window starts: its cut's state, or the entry state at offset `0`. -/
 noncomputable def winStart (Fn : FFun) (a : ℕ) : Option (Option FSt × FPend) :=
-  match Fn.cuts.get a with
+  match Fn.cutAt a with
   | some c => some (cutSt c)
   | none => if a = 0 then some (some (entryF Fn), []) else none
 
 theorem frameWin_spec {Fn : FFun} {code : List OffsetInstruction} (hd : Mode.pcsIncr Fn.hints = true)
     {a b : ℕ} (h : frameWin Fn code a b = true) :
-    envOk Fn = true ∧ armsOk Fn = true ∧ ∃ S R, winStart Fn a = some S ∧
+    ∃ S R, winStart Fn a = some S ∧
       frameRunH Fn ((code.drop a).take (b - a)) a S.1 S.2 = some R ∧
       (b < Fn.len → (cutF Fn b R.1 R.2).isSome = true) ∧ (Fn.len ≤ b → R = (none, [])) := by
   unfold frameWin at h
-  simp only [Bool.and_eq_true] at h
-  obtain ⟨⟨he, ha⟩, h⟩ := h
-  refine ⟨he, ha, ?_⟩
   have hst : ∀ S, winStart Fn a = some S →
       (match frameRun Fn ((code.drop a).take (b - a)) a Fn.hints S.1 S.2 with
         | some (cur, pend) =>
@@ -135,7 +131,7 @@ theorem framePass_of_wins {Fn : FFun} {code : List OffsetInstruction} (hd : Mode
       FramePassOk Fn code
   | [], a, R, hinc, hR, ⟨S, hS, hRS⟩, hw => by
     have hal : a < code.length := by simpa [incrF] using hinc
-    obtain ⟨-, -, S', R', hS', hrun, -, hend⟩ := frameWin_spec hd (hw (a, code.length) (by simp))
+    obtain ⟨S', R', hS', hrun, -, hend⟩ := frameWin_spec hd (hw (a, code.length) (by simp))
     rw [hS] at hS'; cases hS'
     have hR' := hend (by omega)
     subst hR'
@@ -153,7 +149,7 @@ theorem framePass_of_wins {Fn : FFun} {code : List OffsetInstruction} (hd : Mode
     have hbl : b < code.length := by
       have := incrF_lt (t := b) (ts := bs ++ [code.length]) (by simpa using hinc') code.length (by simp)
       exact this
-    obtain ⟨-, -, S', R', hS', hrun, hcut, -⟩ := frameWin_spec hd (hw (a, b) (by simp))
+    obtain ⟨S', R', hS', hrun, hcut, -⟩ := frameWin_spec hd (hw (a, b) (by simp))
     rw [hS] at hS'; cases hS'
     have hR' : frameRunH Fn (code.take b) 0 (some (entryF Fn)) [] = some R' := by
       rw [take_append_slice code hab.le, frameRunH_append, hR, Option.bind_some, List.length_take,
@@ -163,10 +159,10 @@ theorem framePass_of_wins {Fn : FFun} {code : List OffsetInstruction} (hd : Mode
         simp at this; omega
       · rw [e] at hrun; rw [hRS, hrun]
     refine framePass_of_wins hd hlen bs b R' hinc' hR' ?_ (fun p hp ↦ hw p (List.mem_cons_of_mem _ hp))
-    obtain ⟨-, -, Sb, -, hSb, -⟩ := frameWin_spec hd (hw (b, (bs ++ [code.length]).head (by simp)) (by
+    obtain ⟨Sb, -, hSb, -⟩ := frameWin_spec hd (hw (b, (bs ++ [code.length]).head (by simp)) (by
       rcases bs with _ | ⟨b', bs⟩ <;> simp))
     unfold winStart at hSb
-    rcases hcb : Fn.cuts.get b with _ | c
+    rcases hcb : Fn.cutAt b with _ | c
     · rw [hcb] at hSb; simp only at hSb; split_ifs at hSb; omega
     rw [hcb] at hSb
     cases hSb
