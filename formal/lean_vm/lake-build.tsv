@@ -275,6 +275,6 @@ LeanVM.Guest.JumpTable.Code	20.0	20.0	4500	3100
 LeanVM.Guest.Lift.XmssLeaf	20.0	20.0	6700	5400
 LeanVM.Guest.Mode.JumpTables	20.0	20.0	4500	3200
 LeanVM.Guest.Pack.P42.Checked	60.0	60.0	2900	1800
-LeanVM.Guest.Pack.P43.Bundle	70.0	90.0	6500	5300
+LeanVM.Guest.Pack.P43.Bundle	40.1	46.5	2019	962
 LeanVM.Guest.Pack.opening_queries__L1_L6_L32_L24_L0_L0_L0_L0_L0.Shared0	110.0	110.0	4600	3500
 LeanVM.Protocol.Keccak.Rmfe	30.0	30.0	6900	5600
