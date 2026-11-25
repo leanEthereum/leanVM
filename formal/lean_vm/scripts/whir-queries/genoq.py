@@ -39,12 +39,10 @@ for k, part in enumerate(parts):
         loopT = ('oqLoop1T %s.oq name%% «%s»' % (sh, loop)) if d['base'] == 1 else \
                 ('oqLoop0T %s.oq name%% «%s»' % (sh, loop))
         out.append('''set_option linter.style.nameCheck false in
-set_option maxRecDepth 100000 in
 /-- `%s`. -/
 kernel_rfl oqBody_%s : (Fn.«%s».core).body = oqMainT %s.oq name%% «%s»
 
 set_option linter.style.nameCheck false in
-set_option maxRecDepth 100000 in
 /-- `%s`. -/
 kernel_rfl oqLoopBody_%s : (Fn.«%s».core).body = %s
 ''' % (d['name'], gen.key_of(d['name']), gen.key_of(d['name']), sh, loop, loop, gen.key_of(d['name']), loop,

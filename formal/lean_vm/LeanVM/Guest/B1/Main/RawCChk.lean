@@ -43,7 +43,6 @@ def l4Pre : List Stmt :=
     .atom (.const (.n (val% «main_loop3» "s5#3")) (word 2 0)), .atom (.mul (.n (val% «main_loop3» "s5#4")) (.n (val% «main_loop3» "xj")) (.n (val% «main_loop3» "s5#3"))),
     .callIf (.n (val% «main_loop3» "s5#2")) name% «main_loop3» [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")]]
 
-set_option maxRecDepth 100000 in
 kernel_rfl l4_body : Fn.body (coreProgram.getD idx% «main_loop3» default) = l4Pre ++ [.ret []]
 
 set_option maxRecDepth 100000 in

@@ -157,7 +157,6 @@ def vbR9 : List Stmt :=
   (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «verify_bus_gkr» "s39#0") + k)) (.n (val% «verify_bus_gkr» "last")) k)) ⧺
   [.atom (.copy (.n (val% «verify_bus_gkr» "s39#0[5]")) (.n (val% «verify_bus_gkr» "cursor@2"))), .atom (.copy (.n (val% «verify_bus_gkr» "s39#0[6]")) (.n (val% «verify_bus_gkr» "leaves")))]
 
-set_option maxRecDepth 10000 in
 kernel_rfl vbgPre_eq' :
     vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9
 

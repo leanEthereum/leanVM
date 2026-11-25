@@ -16,8 +16,9 @@ public import LeanVM.Guest.B1.Common.Basic
 `FnIsP P name ps body`: the program `P` holds the function `name` with the parameters `ps` and
 the body `body`; `OsDataP P m`: it holds `open_stacked__L{m}` as the template at size `m`.
 `Whir/Data{m}.lean` (a definitional equality the kernel checks) and `Whir/HelperData*.lean` (by
-kernel evaluation) prove them from the functions' own modules (`Guest/Fn/<key>/Core.lean`), for every `P` that finds them (`Finds`);
-`Whir/DataSpec.lean` states them for the guest. `scripts/whir-data` writes the data.
+kernel evaluation) prove them from the functions' own modules (`Guest/Fn/<key>/Core.lean`), for
+every `P` that finds them (`Finds`); `Whir/DataSpec.lean` states them for the guest.
+`scripts/whir-data` writes the data.
 -/
 
 namespace LeanVM.Guest.B1.Whir

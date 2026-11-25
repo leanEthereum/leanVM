@@ -82,7 +82,6 @@ def l5Tail : Stmt :=
       .n (val% «main_loop4» "da_digests"), .n
     (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")]
 
-set_option maxRecDepth 100000 in
 kernel_rfl l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail,
     .ret []]
 

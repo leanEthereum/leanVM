@@ -52,7 +52,6 @@ noncomputable def mAgg : List Stmt := match (Fn.body fn% «main»).getD (pos% «
   | _ => []
 noncomputable def mPost : List Stmt := ((Fn.body fn% «main»).drop (pos% «main» "own_0~2")).dropLast
 
-set_option maxRecDepth 100000 in
 kernel_rfl main_shape : Fn.body fn% «main» =
     mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++ mPost ++ [.ret []]
 
