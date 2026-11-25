@@ -8,12 +8,13 @@ module
 
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.CoreNamesMod
+public import LeanVM.Guest.NameIx
 
 /-!
 # Distinct function names
 
 Strings are compared slowly in the kernel, so names are never compared with each other: each is
-encoded once as a number (`encS`), reduced modulo `namesMod`, and the residues are checked
+encoded once as a number (`encS`, `NameIx.lean`), reduced modulo `namesMod`, and the residues are checked
 pairwise distinct in one pass through a bit set (`nodupBits`, `coreProgram_codes_nodup`); equal
 names would give equal residues (`coreProgram_names_nodup`). `namesMod` is the smallest modulus
 under which the residues differ (`CoreNamesMod.lean`, written by `scripts/core-names-modulus` when the guest's
@@ -25,14 +26,6 @@ namespace LeanVM.Guest
 open Core
 
 @[expose] public section
-
-/-- The bytes of a name as digits in base `2^9`, each shifted by one. -/
-def encL : List UInt8 → ℕ
-  | [] => 0
-  | c :: cs => (c.toNat + 1) + 2 ^ 9 * encL cs
-
-/-- The encoding of a name. -/
-def encS (s : String) : ℕ := encL s.toByteArray.data.toList
 
 /-- Pairwise distinctness through the bit set `seen`: each entry's bit is clear, then set. -/
 def nodupBits : List ℕ → ℕ → Bool

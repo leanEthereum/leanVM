@@ -63,6 +63,21 @@ public section
 theorem alignA_of {f : String} {j : ℕ} (h : B2C.idxOf f = some j) : alignA f = fnAl j := by
   simp [alignA, h]
 
+/-- A callee's entry of `entsOf`, by its core IR and code. -/
+theorem ents_cons {c : ℕ} {cs : List ℕ} {cf : Core.Fn} {f : CompiledFunction} {en : List (String × ℕ)}
+    (hcf : coreOf c = cf) (hf : fnOf c = f) (h : cs.map (fun c ↦ ((coreOf c).name, (fnOf c).entryPc)) = en) :
+    (c :: cs).map (fun c ↦ ((coreOf c).name, (fnOf c).entryPc)) = (cf.name, f.entryPc) :: en := by
+  rw [List.map_cons, h, hcf, hf]
+
+/-- **A function's tables' entries**, its callees' names and entries by their core IR and code
+(`ents_cons`), which the kernel reads without walking the program to each. -/
+theorem tab_of {j : ℕ} {cs : List ℕ} {ex : List (ℕ × ℕ)} {en : List (String × ℕ)}
+    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : (calleesOf j, extraOf j, adviceOf j) = (cs, ex, d))
+    (hen : cs.map (fun c ↦ ((coreOf c).name, (fnOf c).entryPc)) = en) :
+    (extraOf j, entsOf j, adviceOf j) = (ex, en, d) := by
+  simp only [Prod.mk.injEq] at h
+  rw [entsOf, h.1, h.2.1, h.2.2, hen]
+
 /-- **A function's check from its pack's**, by its code, core IR, certificate, plumbing and tables. -/
 theorem fnAlOk_of {j : ℕ} {f : CompiledFunction} {cf : Core.Fn} {C : Check.Cert} {P : B2C.Plumb}
     {ex : List (ℕ × ℕ)} {en : List (String × ℕ)} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} {main : Bool}

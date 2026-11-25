@@ -422,7 +422,7 @@ theorem ctxOf_ent {j t : ℕ} {g : String} (h : (Bridge.ctxOf j).entOk t g = tru
     exact Bridge.entry_key (Bridge.calleesOf_mem hc).2
   split at h
   · rename_i g' hg
-    have hgg : g' = g := by simpa using h
+    have hgg : g' = g := nameEq_iff.mp h
     subst hgg
     have hm := Bridge.trieOf_mem hb hg
     simp only [Bridge.entsOf, List.map_map, List.mem_map, Function.comp_apply, Prod.mk.injEq] at hm
