@@ -81,7 +81,8 @@ theorem ofNat_add_toNat (a : Word) (k : Nat) : BitVec.ofNat 64 (a.toNat + k) = a
 /-- The continuation a part of the body is proved against: the contract's, at the return. -/
 abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret top : Word) (rest : List Frame)
     (regs : Reg → Word) (m : MachineState) : Prop :=
-  ∀ r' m', HoldsT.post env (CopyPostT env) CopyOut ret top regs m r' m' → rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
+  ∀ r' m', HoldsT.post env (CopyPostT env) CopyOut ret top regs m r' m' →
+    rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
 
 /-- The return, with every byte copied. -/
 theorem ret_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top)
@@ -236,7 +237,8 @@ theorem lastWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o : Nat} {r : Reg → Word} {M : MachineState}
     (hR : Regs ret top regs r) (hI : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
-    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat) (hoj : o ≤ (regs .x11).toNat + j)
+    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat)
+    (hoj : o ≤ (regs .x11).toNat + j)
     (h5 : ∀ t, o ≤ t → t < 8 → extractByte (r .x5) t = bat m ((regs .x11).toNat + j - o + t))
     (hS : ∀ t, t < o → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j + 8 - o + t))
     (h17 : (r .x17).toNat = 8 * o) (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j + 8)
@@ -278,7 +280,8 @@ theorem lastByte_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o : Nat} {r : Reg → Word} {M : MachineState}
     (hR : Regs ret top regs r) (hI : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
-    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat) (hoj : o ≤ (regs .x11).toNat + j)
+    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat)
+    (hoj : o ≤ (regs .x11).toNat + j)
     (h5 : ∀ t, o ≤ t → t < 8 → extractByte (r .x5) t = bat m ((regs .x11).toNat + j - o + t))
     (h17 : (r .x17).toNat = 8 * o) (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j + 8)
     (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + 8))
@@ -331,7 +334,8 @@ theorem bit0_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o : Nat} {r : Reg → Word} {M : MachineState}
     (hR : Regs ret top regs r) (hI : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
-    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat) (hoj : o ≤ (regs .x11).toNat + j)
+    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat)
+    (hoj : o ≤ (regs .x11).toNat + j)
     (h5 : ∀ t, o ≤ t → t < 8 → extractByte (r .x5) t = bat m ((regs .x11).toNat + j - o + t))
     (h17 : (r .x17).toNat = 8 * o) (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j + 8)
     (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + 8)) (h11o : (r .x11).toNat % 8 = o)
@@ -369,7 +373,8 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o : Nat} {r : Reg → Word} {M : MachineState}
     (hR : Regs ret top regs r) (hI : Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
-    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat) (hoj : o ≤ (regs .x11).toNat + j)
+    (h13 : (r .x13).toNat = (regs .x10).toNat + j + 8) (hj : j + 8 ≤ (regs .x12).toNat)
+    (hoj : o ≤ (regs .x11).toNat + j)
     (h6 : (r .x6).toNat + o = (regs .x11).toNat + j) (ha6 : (r .x6).toNat % 8 = 0)
     (h5 : ∀ t, o ≤ t → t < 8 → extractByte (r .x5) t = bat m ((regs .x11).toNat + j - o + t))
     (h16 : (r .x16).toNat = o) (h17 : (r .x17).toNat = 8 * o) (h11o : (r .x11).toNat % 8 = o)
@@ -410,7 +415,8 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
   have cp0 := fun (w : Width) (hw : w = .b2 ∨ w = .b4) (hwo : w.bytes ≤ o) =>
     slot_copy (w := w) (X := r .x2 + 8#64) (i := 0)
       (v := (UnOp.sext w).eval (Tactic.loadVal w (Tactic.storeMem .b8 M (r .x2 + 8#64) 0#64) (r .x6 + 8#64)))
-      hI1 F.doff (by omega) hdn hroom (by omega) hS0 (by rw [hs8]; rfl) (by rcases hw with rfl | rfl <;> (rw [hs8]; show _ % _ = 0; simp only [Width.bytes]; omega))
+      hI1 F.doff (by omega) hdn hroom (by omega) hS0 (by rw [hs8]; rfl)
+      (by rcases hw with rfl | rfl <;> (rw [hs8]; show _ % _ = 0; simp only [Width.bytes]; omega))
       (by rcases hw with rfl | rfl <;> decide) (fun u hu => by
         have := extractByte_load (M := Tactic.storeMem .b8 M (r .x2 + 8#64) 0#64) (x := r .x6 + 8#64) (u := u) true
           (by rcases hw with rfl | rfl <;> (rw [h6']; simp only [Width.bytes]; omega)) hu
@@ -607,7 +613,8 @@ theorem endWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
     (h15 : (r .x15).toNat = N) (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + N))
     (h6 : (r .x6).toNat = top.toNat - 8 + o) (h17 : (r .x17).toNat = c)
-    (hS : ∀ t, o ≤ t → t < o + c → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t)) (hc4 : o + c + 4 = 8) :
+    (hS : ∀ t, o ≤ t → t < o + c → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t))
+    (hc4 : o + c + 4 = 8) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 68, ret, top⟩ :: rest, r, M⟩ := by
   have hsw := inWindow_iff.1 F.swin
   have hdw := F.dwin
@@ -645,7 +652,8 @@ theorem endBit2_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
     (h15 : (r .x15).toNat = N) (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + N))
     (h6 : (r .x6).toNat = top.toNat - 8 + o) (h17 : (r .x17).toNat = c)
-    (hS : ∀ t, o ≤ t → t < o + c → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t)) (h5 : (r .x5).toNat = 8 - o) (hcv : c = (8 - o) % 4) :
+    (hS : ∀ t, o ≤ t → t < o + c → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t))
+    (h5 : (r .x5).toNat = 8 - o) (hcv : c = (8 - o) % 4) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 64, ret, top⟩ :: rest, r, M⟩ := by
   have hx2 := hR.2.1.1
   rv_symT hp stop [68, 76] with [hx2]
