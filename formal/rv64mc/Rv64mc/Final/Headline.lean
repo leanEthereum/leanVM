@@ -1,14 +1,16 @@
 import Rv64mc.Final.End
 import Rv64mc.Final.EndT
 import Rv64mc.Final.HaltsSafely
+import Rv64mc.Final.MainSpecB
 
 /-!
 # The headline for the concrete image
 
 `rv64_safeVerdict`: `SafeVerdict image` from `main`'s two contracts, the partial `MainSpec` (for `Sound`) and the
-total `MainSpecT` (for `HaltsSafely`). `BoolVerdict` is the target; it needs `main`'s total contract to stop with
-`a0 = 2` only on an input that does not decode. `BoolVerdict.safeVerdict` and `BoolVerdict.bool` say what it gives:
-`SafeVerdict`, and on a well-formed input one run, ending with `a0` equal to `0` or `1`.
+total `MainSpecT` (for `HaltsSafely`). `rv64_boolVerdict`: the target `BoolVerdict image` from `MainSpec` and
+`MainSpecB`, `main`'s total contract stopping with `a0 = 2` only on an input that does not decode
+(`Final/MainSpecB.lean`). `BoolVerdict.safeVerdict` and `BoolVerdict.bool` say what it gives: `SafeVerdict`, and on
+a well-formed input one run, ending with `a0` equal to `0` or `1`.
 -/
 
 namespace Rv64mc
@@ -45,5 +47,19 @@ theorem BoolVerdict.bool {img : Image} (h : BoolVerdict img) {words : List Word}
 /-- info: 'Rv64mc.rv64_safeVerdict' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.rv64_safeVerdict
+
+/-- **The targeted headline**, conditional on `main`'s partial contract and its total contract with abort only on
+    malformed input. -/
+theorem rv64_boolVerdict (hmain : MainSpec env (liftProg Gen.fns) Gen.Start.link.main.idx need)
+    (hmainB : MainSpecB env (liftProg Gen.fns) Gen.Start.link.main.idx need) : BoolVerdict image := by
+  intro words s hlen hl
+  obtain ⟨n, v, hh, hv⟩ := rv64_halts_with (Stop := MainStopB)
+    (V := fun words v => v = 0 ∨ v = 1 ∨ (v = 2 ∧ decodeInput words = none))
+    (fun _ => ⟨.inl rfl, .inr (.inl rfl)⟩) (fun _ _ _ _ _ h => .inr (.inr h)) hmainB hlen hl
+  exact ⟨n, v, hh, hv, fun h => (rv64_sound hmain).2 words s n hl (h ▸ hh)⟩
+
+/-- info: 'Rv64mc.rv64_boolVerdict' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.rv64_boolVerdict
 
 end Rv64mc

@@ -37,7 +37,7 @@
 
   ## Main results
 
-  * `HoldsT.call`, `HoldsT.mono_need`
+  * `HoldsT.call`, `HoldsT.mono_need`, `HoldsT.mono_stop`
   * `WinOk.of_ne`, `WinOk.of_opn`, `WinOk.of_set`, `WinOk.nil`
   * `inWindow_iff`, `Windows.stack`, `stackObj`, `heap`, `heapObj`, `nextAddr`, `data`, `dataSub`, `noCodeAt`,
     `callee`, `after`
@@ -258,6 +258,14 @@ theorem mono_need (h : HoldsT env p f need Pre Post Out Stop) {need' : Nat} (hn 
     HoldsT env p f need' Pre Post Out Stop :=
   fun Q ret top rest regs m ⟨⟨he, hs, hrest⟩, hw⟩ hstop hk =>
     h Q ret top rest regs m ⟨⟨he, by omega, hrest⟩, hw⟩ hstop hk
+
+/-- **A larger stopping set**, where the precondition holds. -/
+theorem mono_stop (h : HoldsT env p f need Pre Post Out Stop)
+    {Stop' : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop}
+    (hs : ∀ regs m r' m', Pre regs m → Stop regs m r' m' → Stop' regs m r' m') :
+    HoldsT env p f need Pre Post Out Stop' :=
+  Isa.TContract.mono h (fun _ _ _ _ hp => hp) (fun _ _ _ _ _ _ _ hp => hp)
+    fun _ _ _ _ _ _ hp hst => hs _ _ _ _ hp.1.2.2.2.2.1 hst
 
 end HoldsT
 

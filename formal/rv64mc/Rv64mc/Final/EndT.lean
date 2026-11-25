@@ -8,7 +8,8 @@
   image (its code between the windows, `NEXT` and the static data in a window and 8-byte
   aligned) are five more such checks. `loaded_bounded`: `Loaded image words` is satisfiable for
   every input `HaltsSafely` covers, so `HaltsSafely image` is not vacuous by its loader. Until
-  `MainSpecT` is proved, it is the one hypothesis.
+  `MainSpecT` is proved, it is the one hypothesis. `rv64_halts_with` is the same over `main`'s
+  stopping set and the exit codes the run may end with, for `BoolVerdict` (`Final/Headline.lean`).
 -/
 
 import Rv64mc.Final.StartT
@@ -64,25 +65,41 @@ theorem env_windows : 0xa0000000 ≤ env.nextAddr.toNat ∧ env.nextAddr.toNat %
 theorem loaded_bounded (words : List Word) (h : words.length < maxInputWords) : ∃ s, Loaded image words s :=
   loaded_nonempty words (Nat.lt_of_lt_of_le h (by decide)).le
 
-/-- **Every run of the image on an input of fewer than `2^16` words ends at a verdict**, if `main` keeps its total
-    contract. -/
-theorem rv64_halts_of_main (hmain : MainSpecT env (liftProg Gen.fns) Gen.Start.link.main.idx need) :
-    HaltsSafely image := by
-  have hw := wordsIn_of_check words_in_check
+/-- **Every run of the image on an input of fewer than `2^16` words ends with `a0` in `V words`**, if `main` keeps a
+    total contract with stopping set `Stop words` on each, where `V words` holds of `0`, `1` and `a0` in it. -/
+theorem rv64_halts_with {Stop : List Word → (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop}
+    {V : List Word → Word → Prop} (hV : ∀ words, V words 0 ∧ V words 1)
+    (hSV : ∀ words regs m r' m', Stop words regs m r' m' → V words (r' .x10))
+    (hmain : ∀ words : List Word, words.length < maxInputWords →
+      HoldsT env (liftProg Gen.fns) Gen.Start.link.main.idx need (MainPre env words) MainPostT (Stop := Stop words))
+    {words : List Word} {s : MachineState} (hw : words.length < maxInputWords) (hl : Loaded image words s) :
+    ∃ n v, Halts s n v ∧ V words v := by
+  have hwi := wordsIn_of_check words_in_check
   have := Gen.Start.tmpl_eq
   simp only [liftProg, List.getElem?_map, Option.map_eq_some_iff] at this
   obtain ⟨fn, hg, -⟩ := this
-  have hl := layout_facts
-  exact haltsSafely_of_main (fns := Gen.fns) (env := env) (need := need) (by rw [fns_eq]; exact progOk_of_wordsIn hw)
-    (by rw [fns_eq]; exact fnsIn_of_wordsIn hw) hg Gen.Start.tmpl_eq (by simpa using entry_check) Gen.Start.wf
-    (fun _ h p hp _ => h p hp) (by simpa [env] using next_check) hl.2.2.2
-    (by simp only [env, need]; omega) env_windows (fun _ h => code_between h) hmain
+  have hlf := layout_facts
+  exact halts_of_main_with (fns := Gen.fns) (env := env) (need := need) (by rw [fns_eq]; exact progOk_of_wordsIn hwi)
+    (by rw [fns_eq]; exact fnsIn_of_wordsIn hwi) hg Gen.Start.tmpl_eq (by simpa using entry_check) Gen.Start.wf
+    (fun _ h p hp _ => h p hp) (by simpa [env] using next_check) hlf.2.2.2
+    (by simp only [env, need]; omega) env_windows (fun _ h => code_between h) hV hSV hmain hw hl
+
+/-- **Every run of the image on an input of fewer than `2^16` words ends at a verdict**, if `main` keeps its total
+    contract. -/
+theorem rv64_halts_of_main (hmain : MainSpecT env (liftProg Gen.fns) Gen.Start.link.main.idx need) :
+    HaltsSafely image :=
+  fun _ _ hw hl => rv64_halts_with (Stop := fun _ => MainStopT) (V := fun _ => IsVerdict)
+    (fun _ => ⟨.inl rfl, .inr (.inl rfl)⟩) (fun _ _ _ _ _ h2 => .inr (.inr h2)) hmain hw hl
 
 end Rv64mc
 
 /-- info: 'Rv64mc.rv64_halts_of_main' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.rv64_halts_of_main
+
+/-- info: 'Rv64mc.rv64_halts_with' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.rv64_halts_with
 
 /-- info: 'Rv64mc.loaded_bounded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
