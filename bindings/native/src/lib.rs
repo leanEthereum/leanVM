@@ -245,6 +245,19 @@ pub unsafe extern "C" fn lpq_xmss_secret_key_prepare(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_set_bottom_tree_cache_size(
+    key: *mut XmssSecretKeyHandle,
+    size: usize,
+) -> c_int {
+    ffi(|| {
+        handle(key, "secret-key")?
+            .0
+            .set_bottom_tree_cache_size(size);
+        Ok(())
+    })
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lpq_xmss_secret_key_sign(
     key: *mut XmssSecretKeyHandle,
     message: *const u8,

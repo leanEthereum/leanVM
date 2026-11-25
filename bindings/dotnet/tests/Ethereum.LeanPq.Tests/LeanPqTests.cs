@@ -49,6 +49,7 @@ public class LeanPqTests
     {
         byte[] message = Bytes(7);
         using XmssSecretKey xmss = XmssSecretKey.FromSeed(Bytes(7));
+        xmss.SetBottomTreeCacheSize(2);
         xmss.Prepare(3);
         byte[] cache = xmss.CacheToBytes();
         byte[] publicKey = xmss.GetPublicKey();

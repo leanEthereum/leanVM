@@ -33,6 +33,10 @@ fn native_abi_signs_verifies_and_aggregates() {
             assert_eq!(lpq_xmss_secret_key_public_key(xmss_key, &mut buffer), OK);
             let xmss_pk = take(buffer);
             assert_eq!(xmss_pk.len(), 32);
+            assert_eq!(
+                lpq_xmss_secret_key_set_bottom_tree_cache_size(xmss_key, 2),
+                OK
+            );
             assert_eq!(lpq_xmss_secret_key_prepare(xmss_key, 5), OK);
             let mut buffer = LpqBuffer::default();
             assert_eq!(

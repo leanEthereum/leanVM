@@ -67,6 +67,16 @@ public final class XmssSecretKey implements AutoCloseable {
         }
     }
 
+    /** Sets how many recently used bottom trees the key caches, 8 by default. */
+    public void setBottomTreeCacheSize(int size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("size must not be negative");
+        }
+        try (NativeHandle.Borrow borrowed = handle.borrow()) {
+            Native.xmssSetBottomTreeCacheSize(borrowed.pointer(), size);
+        }
+    }
+
     /** Signs a 32-byte message at an unsigned 32-bit leaf index, returning a 2404-byte signature. */
     public byte[] sign(byte[] message, long leafIndex) {
         Native.requireLength(message, Native.MESSAGE_LENGTH, "message");

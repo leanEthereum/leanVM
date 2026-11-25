@@ -17,9 +17,9 @@ pub use in_process::{AggregateError, AggregateProof, aggregate, lean_da, setup};
 
 pub mod lean_xmss {
     pub use lean_xmss::{
-        LOG_LIFETIME, LeafIndex, LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature,
-        MAX_CACHED_BOTTOM_TREES, MESSAGE_LEN, Message, PUB_KEY_SIZE, SECRET_KEY_LEN, SIG_SIZE, SecretKey, key_gen,
-        sign, verify,
+        DEFAULT_BOTTOM_TREE_CACHE_SIZE, LOG_LIFETIME, LeafIndex, LeanXmssExpandedSecretKey, LeanXmssPublicKey,
+        LeanXmssSignature, MESSAGE_LEN, Message, PUB_KEY_SIZE, SECRET_KEY_LEN, SIG_SIZE, SecretKey, key_gen, sign,
+        verify,
     };
 }
 

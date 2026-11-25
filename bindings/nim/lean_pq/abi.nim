@@ -106,6 +106,8 @@ proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}
 proc lpqXmssSecretKeyPrepare*(key: ptr LpqXmssSecretKey, leafIndex: uint32): int32 {.
   importc: "lpq_xmss_secret_key_prepare", header: lpqHeader.}
+proc lpqXmssSecretKeySetBottomTreeCacheSize*(key: ptr LpqXmssSecretKey, size: csize_t): int32 {.
+  importc: "lpq_xmss_secret_key_set_bottom_tree_cache_size", header: lpqHeader.}
 proc lpqXmssSecretKeySign*(
   key: ptr LpqXmssSecretKey, message: ptr byte, messageLen: csize_t, leafIndex: uint32,
   output: ptr LpqBuffer): int32 {.

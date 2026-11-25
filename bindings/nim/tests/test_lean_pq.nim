@@ -39,6 +39,7 @@ suite "lean_pq":
     let
       key = XmssSecretKey.fromSeed(filled(1)).expect("key")
       publicKey = key.publicKey().expect("public key")
+    check key.setBottomTreeCacheSize(2).isOk()
     check key.prepare(7).isOk()
     let signature = key.sign(message, 7).expect("signature")
 

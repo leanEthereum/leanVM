@@ -119,6 +119,10 @@ impl PyXmssSecretKey {
         py.detach(|| self.inner.prepare(leaf_index));
     }
 
+    fn set_bottom_tree_cache_size(&self, size: usize) {
+        self.inner.set_bottom_tree_cache_size(size);
+    }
+
     fn sign<'py>(
         &self,
         py: Python<'py>,

@@ -73,6 +73,9 @@ internal static unsafe partial class Native
     [LibraryImport(Library, EntryPoint = "lpq_xmss_secret_key_prepare")]
     internal static partial int XmssPrepare(XmssKeyHandle key, uint leafIndex);
 
+    [LibraryImport(Library, EntryPoint = "lpq_xmss_secret_key_set_bottom_tree_cache_size")]
+    internal static partial int XmssSetBottomTreeCacheSize(XmssKeyHandle key, nuint size);
+
     [LibraryImport(Library, EntryPoint = "lpq_xmss_secret_key_sign")]
     internal static partial int XmssSign(XmssKeyHandle key, byte* message, nuint messageLength, uint leafIndex, out Buffer output);
 

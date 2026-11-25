@@ -8,6 +8,7 @@ test "leanXMSS signs and verifies" {
     var key = try lpq.XmssSecretKey.fromSeed([_]u8{1} ** 32);
     defer key.deinit();
     const public_key = try key.publicKey();
+    try key.setBottomTreeCacheSize(2);
     try key.prepare(7);
     const signature = try key.sign(message, 7);
 

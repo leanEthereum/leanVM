@@ -27,6 +27,7 @@ export declare class XmssSecretKey {
   cacheToBytes(): Buffer
   get publicKey(): Buffer
   prepare(leafIndex: number): Promise<void>
+  setBottomTreeCacheSize(size: number): void
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
 }
 

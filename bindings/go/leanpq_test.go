@@ -64,6 +64,9 @@ func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
 	seed := bytes32(8)
 
 	key := mustXmssKey(t, seed)
+	if err := key.SetBottomTreeCacheSize(2); err != nil {
+		t.Fatal(err)
+	}
 	if err := key.Prepare(3); err != nil {
 		t.Fatal(err)
 	}

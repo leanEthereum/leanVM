@@ -58,6 +58,7 @@ final class Native {
     private static final MethodHandle XMSS_FROM_CACHE_BYTES = downcall("lpq_xmss_secret_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_PUBLIC_KEY = downcall("lpq_xmss_secret_key_public_key", HANDLE_TO_BUFFER);
     private static final MethodHandle XMSS_PREPARE = downcall("lpq_xmss_secret_key_prepare", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+    private static final MethodHandle XMSS_SET_BOTTOM_TREE_CACHE_SIZE = downcall("lpq_xmss_secret_key_set_bottom_tree_cache_size", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE));
     private static final MethodHandle XMSS_SIGN = downcall("lpq_xmss_secret_key_sign", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_DESTROY = downcall("lpq_xmss_secret_key_destroy", DESTROY);
     private static final MethodHandle XMSS_VERIFY = downcall("lpq_xmss_verify", VERIFY);
@@ -135,6 +136,10 @@ final class Native {
 
     static void xmssPrepare(MemorySegment key, long leafIndex) {
         check(status(XMSS_PREPARE, key, u32(leafIndex, "leafIndex")));
+    }
+
+    static void xmssSetBottomTreeCacheSize(MemorySegment key, int size) {
+        check(status(XMSS_SET_BOTTOM_TREE_CACHE_SIZE, key, (long) size));
     }
 
     static byte[] xmssSign(MemorySegment key, byte[] message, long leafIndex) {

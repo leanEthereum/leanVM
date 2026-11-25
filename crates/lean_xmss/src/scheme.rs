@@ -1,6 +1,6 @@
 //! Keys, signing and verification. The secret key holds the top tree and builds
 //! a bottom tree, with the top layer's signature of its root, the first time it
-//! signs in it or prepares it, keeping the [`MAX_CACHED_BOTTOM_TREES`] it used last.
+//! signs in it or prepares it, caching the ones it used last.
 //! It stores one level of each tree and recomputes the rest per path.
 
 #[cfg(feature = "std")]
@@ -128,13 +128,12 @@ pub struct LeanXmssExpandedSecretKey {
     key_seed: SecretKey,
     public_key: LeanXmssPublicKey,
     top: LayerTree,
-    /// The bottom trees the key used last, least recently used first.
-    bottoms: Mutex<VecDeque<Arc<BottomTree>>>,
+    bottoms: Mutex<BottomCache>,
 }
 
-/// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches.
+/// How many recently used bottom trees a [`LeanXmssExpandedSecretKey`] caches by default.
 #[cfg(feature = "std")]
-pub const MAX_CACHED_BOTTOM_TREES: usize = 4;
+pub const DEFAULT_BOTTOM_TREE_CACHE_SIZE: usize = 8;
 
 #[cfg(feature = "std")]
 impl core::fmt::Debug for LeanXmssExpandedSecretKey {
@@ -151,10 +150,34 @@ struct BottomTree {
     top_signature: LayerSignature,
 }
 
+/// The bottom trees a key used last, least recently used first, at most `size` of them.
+#[cfg(feature = "std")]
+struct BottomCache {
+    trees: VecDeque<Arc<BottomTree>>,
+    size: usize,
+}
+
+#[cfg(feature = "std")]
+impl BottomCache {
+    /// Bottom tree `index` if cached, moved to the most recently used end.
+    fn get(&mut self, index: u32) -> Option<Arc<BottomTree>> {
+        let at = self.trees.iter().position(|b| b.tree.index == index)?;
+        let bottom = self.trees.remove(at)?;
+        self.trees.push_back(Arc::clone(&bottom));
+        Some(bottom)
+    }
+
+    /// Drops the least recently used trees beyond `size`.
+    fn evict(&mut self) {
+        let excess = self.trees.len().saturating_sub(self.size);
+        self.trees.drain(..excess);
+    }
+}
+
 /// A tree's nodes, in bytes.
-const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
+pub const CACHED_TREE_SIZE: usize = CACHED_NODES * N;
 /// A cached bottom tree, in bytes.
-const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
+pub const CACHED_BOTTOM_SIZE: usize = size_of::<u32>() + LAYER_SIG_SIZE + CACHED_TREE_SIZE;
 const _: () = assert!(CACHED_TREE_SIZE == 4096 && CACHED_BOTTOM_SIZE == 5300);
 
 /// computes the expanded secret key (for fast signing), and the public key, from a given secret key
@@ -201,14 +224,17 @@ impl LeanXmssExpandedSecretKey {
                 public_param,
             },
             top,
-            bottoms: Mutex::new(VecDeque::with_capacity(MAX_CACHED_BOTTOM_TREES + 1)),
+            bottoms: Mutex::new(BottomCache {
+                trees: VecDeque::new(),
+                size: DEFAULT_BOTTOM_TREE_CACHE_SIZE,
+            }),
         }
     }
 
     /// The cached trees, which hold no secret.
     pub fn cache_to_bytes(&self) -> Vec<u8> {
         let mut out = self.top.nodes.as_flattened().to_vec();
-        for bottom in self.bottoms.lock().unwrap().iter() {
+        for bottom in &self.bottoms.lock().unwrap().trees {
             out.extend(bottom.tree.index.to_le_bytes());
             out.extend(bottom.top_signature.parts().concat());
             out.extend(bottom.tree.nodes.as_flattened());
@@ -221,7 +247,8 @@ impl LeanXmssExpandedSecretKey {
     ///
     /// Each tree's stored level is checked: the top tree's must hash to the public key's root, and
     /// each bottom tree's to a root its top-layer signature signs under the public key. The levels
-    /// below are recomputed from the seed, so a loaded key signs as a built one.
+    /// below are recomputed from the seed, so a loaded key signs as a built one. Its cache size is
+    /// the number of loaded bottom trees, at least [`DEFAULT_BOTTOM_TREE_CACHE_SIZE`].
     pub fn from_cache_bytes(key_seed: &SecretKey, public_key: &LeanXmssPublicKey, bytes: &[u8]) -> Option<Self> {
         let (top, bottoms) = bytes.split_at_checked(CACHED_TREE_SIZE)?;
         let (bottoms, []) = bottoms.as_chunks::<CACHED_BOTTOM_SIZE>() else {
@@ -231,6 +258,7 @@ impl LeanXmssExpandedSecretKey {
         if sk.public_key != *public_key {
             return None;
         }
+        sk.set_bottom_tree_cache_size(bottoms.len().max(DEFAULT_BOTTOM_TREE_CACHE_SIZE));
         let pp = &public_key.public_param;
         for bottom in bottoms {
             let mut rest = &bottom[..];
@@ -253,9 +281,17 @@ impl LeanXmssExpandedSecretKey {
     }
 
     /// Makes the future signing at `leaf_index` faster (by precomputing and caching the bottom tree).
-    /// The cache size is [`MAX_CACHED_BOTTOM_TREES`] bottom trees.
+    /// See [`Self::set_bottom_tree_cache_size`] for how many bottom trees stay cached.
     pub fn prepare(&self, leaf_index: LeafIndex) {
         self.bottom_tree(leaf_index);
+    }
+
+    /// Sets how many recently used bottom trees the key caches, [`DEFAULT_BOTTOM_TREE_CACHE_SIZE`]
+    /// by default. Each takes about 5 KiB. At 0 it caches none, so [`Self::prepare`] saves nothing.
+    pub fn set_bottom_tree_cache_size(&self, size: usize) {
+        let mut bottoms = self.bottoms.lock().unwrap();
+        bottoms.size = size;
+        bottoms.evict();
     }
 
     /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
@@ -263,7 +299,7 @@ impl LeanXmssExpandedSecretKey {
     /// held to read or update the cache.
     fn bottom_tree(&self, leaf_index: LeafIndex) -> Arc<BottomTree> {
         let index = layer_index(leaf_index, 1);
-        if let Some(bottom) = use_cached(&mut self.bottoms.lock().unwrap(), index) {
+        if let Some(bottom) = self.bottoms.lock().unwrap().get(index) {
             return bottom;
         }
         let (pp, seed) = (&self.public_key.public_param, &scheme_seed(&self.key_seed));
@@ -283,24 +319,13 @@ impl LeanXmssExpandedSecretKey {
     /// Caches `bottom`, or returns the one another thread cached first.
     fn cache(&self, bottom: Arc<BottomTree>) -> Arc<BottomTree> {
         let mut bottoms = self.bottoms.lock().unwrap();
-        if let Some(cached) = use_cached(&mut bottoms, bottom.tree.index) {
+        if let Some(cached) = bottoms.get(bottom.tree.index) {
             return cached;
         }
-        bottoms.push_back(Arc::clone(&bottom));
-        if bottoms.len() > MAX_CACHED_BOTTOM_TREES {
-            bottoms.pop_front();
-        }
+        bottoms.trees.push_back(Arc::clone(&bottom));
+        bottoms.evict();
         bottom
     }
-}
-
-/// Bottom tree `index` if cached, moved to the most recently used end.
-#[cfg(feature = "std")]
-fn use_cached(bottoms: &mut VecDeque<Arc<BottomTree>>, index: u32) -> Option<Arc<BottomTree>> {
-    let at = bottoms.iter().position(|b| b.tree.index == index)?;
-    let bottom = bottoms.remove(at)?;
-    bottoms.push_back(Arc::clone(&bottom));
-    Some(bottom)
 }
 
 /// verifies a signature for a given message and public key

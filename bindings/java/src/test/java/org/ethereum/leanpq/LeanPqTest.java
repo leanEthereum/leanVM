@@ -51,6 +51,7 @@ class LeanPqTest {
     void xmssKeyLoadsFromItsTreeCache() {
         byte[] message = bytes(7);
         try (XmssSecretKey xmss = XmssSecretKey.fromSeed(bytes(7))) {
+            xmss.setBottomTreeCacheSize(2);
             xmss.prepare(3);
             byte[] cache = xmss.cacheToBytes();
             byte[] publicKey = xmss.publicKey();

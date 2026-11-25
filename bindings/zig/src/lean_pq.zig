@@ -142,6 +142,11 @@ pub const XmssSecretKey = struct {
         try checkStatus(c.lpq_xmss_secret_key_prepare(self.handle, leaf_index));
     }
 
+    /// Sets how many recently used bottom trees the key caches, 8 by default.
+    pub fn setBottomTreeCacheSize(self: *const XmssSecretKey, size: usize) Error!void {
+        try checkStatus(c.lpq_xmss_secret_key_set_bottom_tree_cache_size(self.handle, size));
+    }
+
     /// Never sign two different messages at the same `leaf_index`.
     pub fn sign(self: *const XmssSecretKey, message: Message, leaf_index: u32) Error!XmssSignature {
         var output: c.lpq_buffer = .{ .data = null, .len = 0 };

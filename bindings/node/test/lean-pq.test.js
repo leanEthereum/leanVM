@@ -41,6 +41,7 @@ test('round trips secret keys through bytes', async () => {
 test('loads a leanXMSS key from its tree cache', async () => {
   const message = Buffer.alloc(32, 7)
   const key = await lpq.XmssSecretKey.fromSeed(seed(7))
+  key.setBottomTreeCacheSize(2)
   await key.prepare(3)
   const cache = key.cacheToBytes()
 

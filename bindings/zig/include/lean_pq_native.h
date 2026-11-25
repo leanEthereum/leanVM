@@ -46,6 +46,8 @@ int32_t lpq_xmss_secret_key_cache_to_bytes(lpq_xmss_secret_key *key, lpq_buffer 
 int32_t lpq_xmss_secret_key_from_cache_bytes(const uint8_t *seed, size_t seed_len, const uint8_t *public_key, size_t public_key_len, const uint8_t *cache, size_t cache_len, lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_public_key(lpq_xmss_secret_key *key, lpq_buffer *out);
 int32_t lpq_xmss_secret_key_prepare(lpq_xmss_secret_key *key, uint32_t leaf_index);
+/* Sets how many recently used bottom trees the key caches, 8 by default. Each takes about 5 KiB. */
+int32_t lpq_xmss_secret_key_set_bottom_tree_cache_size(lpq_xmss_secret_key *key, size_t size);
 int32_t lpq_xmss_secret_key_sign(lpq_xmss_secret_key *key, const uint8_t *message, size_t message_len, uint32_t leaf_index, lpq_buffer *out);
 void lpq_xmss_secret_key_destroy(lpq_xmss_secret_key *key);
 /* Returns 0 when the signature verifies and 1, with lpq_last_error set, when it does not. */

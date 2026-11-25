@@ -10,6 +10,7 @@ OTHER_MESSAGE = b"\x43" * 32
 
 def test_xmss_signs_and_verifies():
     key = lpq.XmssSecretKey.from_seed(b"\x01" * 32)
+    key.set_bottom_tree_cache_size(2)
     key.prepare(3)
     signature = key.sign(MESSAGE, 3)
 

@@ -186,6 +186,21 @@ func (key *XmssSecretKey) Prepare(leafIndex uint32) error {
 	})
 }
 
+// SetBottomTreeCacheSize sets how many recently used bottom trees the key caches, 8 by default.
+func (key *XmssSecretKey) SetBottomTreeCacheSize(size int) error {
+	if size < 0 {
+		return errors.New("leanpq: size must not be negative")
+	}
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return errClosed("leanXMSS secret key")
+	}
+	return call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_set_bottom_tree_cache_size(key.handle, C.size_t(size))
+	})
+}
+
 // Sign signs message at leafIndex.
 func (key *XmssSecretKey) Sign(message [32]byte, leafIndex uint32) (XmssSignature, error) {
 	var signature XmssSignature
