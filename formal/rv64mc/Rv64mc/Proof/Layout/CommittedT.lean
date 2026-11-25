@@ -52,10 +52,8 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     simp only [Layouts.ResultPlacement.byteSize] at hpre_10 hpre_12
     have hW : InWin env (regs .x10) 24 := hpre_12
     have n0 : regs .x10 ≠ env.nextAddr := hW.ne_next (Nat.le_refl _) (by omega)
-    have n8 : regs .x10 + 8#64 ≠ env.nextAddr :=
-      hW.ne_next (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega)
-    have n16 : regs .x10 + 16#64 ≠ env.nextAddr :=
-      hW.ne_next (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega)
+    have n8 : regs .x10 + 8#64 ≠ env.nextAddr := hW.ne_next_add (by omega)
+    have n16 : regs .x10 + 16#64 ≠ env.nextAddr := hW.ne_next_add (by omega)
   all_goals try ((repeat' apply frame_true_setMem) <;> first | exact frame_true rfl hpre_5 | assumption)
   all_goals
     simp only [Layouts.OptionPlacement.byteSize] at hpre_7
@@ -65,12 +63,10 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
         | (rw [BitVec.lt_def, BitVec.toNat_ofNat] at hc_1; omega)
     have hn : (regs .x12).toNat = ps.length := by rw [hpre_6, BitVec.toNat_ofNat]; omega
     obtain ⟨hS, hSa⟩ := hpre_11.resolve_left (by omega)
-    have hx := elem_toNat24 (q := regs .x11) (x := regs .x13) (by unfold InWin at hS; omega)
+    have hx := elem_toNat24 (q := regs .x11) (x := regs .x13) (by have := hS.lt; omega)
     have hd0 := hS.dword hpre_15 hSa hx (by omega) (by omega)
-    have hd8 := hS.dword hpre_15 hSa ((toNat_add_ofNat (k := 8) (by rw [hx]; unfold InWin at hS; omega)).trans
-      ((congrArg (· + 8) hx).trans (Nat.add_assoc _ _ _))) (by omega) (by omega)
-    have hd16 := hS.dword hpre_15 hSa ((toNat_add_ofNat (k := 16) (by rw [hx]; unfold InWin at hS; omega)).trans
-      ((congrArg (· + 16) hx).trans (Nat.add_assoc _ _ _))) (by omega) (by omega)
+    have hd8 := hS.dword_add hpre_15 hSa hx (k := 8) (by omega) (by omega)
+    have hd16 := hS.dword_add hpre_15 hSa hx (k := 16) (by omega) (by omega)
   · exact hd0.1
   · exact hd0.2
   · exact hd8.1

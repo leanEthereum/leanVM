@@ -55,8 +55,7 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     simp only [Layouts.ResultE.byteSize, Layouts.Transcript.byteSize] at hpre_8 hpre_10 hpre_13 hpre_15
     have hW : InWin env (regs .x10) 24 := hpre_15
     have n0 : regs .x10 ≠ env.nextAddr := hW.ne_next (Nat.le_refl _) (by omega)
-    have n8 : regs .x10 + 8#64 ≠ env.nextAddr :=
-      hW.ne_next (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega)
+    have n8 : regs .x10 + 8#64 ≠ env.nextAddr := hW.ne_next_add (by omega)
   -- past the stream: `Err` stored
   · exact frame_true_setMem (frame_true_setMem (frame_true rfl hpre_5) n0) n8
   -- within it: the element's two doublewords, then `Ok` and the offset stored
@@ -66,20 +65,16 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
       rw [BitVec.lt_def] at hc; omega
     obtain ⟨hS, hSa⟩ := hpre_19.resolve_left (by omega)
     have hx := elem_toNat (s := 4) (q := MachineState.getMem m (MachineState.getMem m (regs .x11 + 328#64) + 8#64))
-      (o := MachineState.getMem m (regs .x11 + 336#64)) (by unfold InWin at hS; omega)
-    have hx8 := (toNat_add_ofNat (k := 8) (by rw [hx]; unfold InWin at hS; omega)).trans
-      (congrArg (· + 8) hx)
+      (o := MachineState.getMem m (regs .x11 + 336#64)) (by have := hS.lt; omega)
     have hd0 := hS.dword hpre_21 hSa hx (by omega) (by omega)
-    have hd8 := hS.dword hpre_21 hSa (hx8.trans (Nat.add_assoc _ _ _)) (by omega) (by omega)
+    have hd8 := hS.dword_add hpre_21 hSa hx (k := 8) (by omega) (by omega)
   · exact hd8.1
   · exact hd8.2
   · exact hd0.1
   · exact hd0.2
   · have hT : InWin env (regs .x11) 360 := hpre_13
-    exact frame_true_setMem (frame_true_setMem (frame_true_setMem (frame_true rfl hpre_5)
-      (hT.ne_next (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega)))
-      (hW.ne_next (by rw [toNat_add_ofNat (by omega)]; omega) (by rw [toNat_add_ofNat (by omega)]; omega))) n0
-      |> fun h => frame_true_setMem h n8
+    exact frame_true_setMem (frame_true_setMem (frame_true_setMem (frame_true_setMem (frame_true rfl hpre_5)
+      (hT.ne_next_add (by omega))) (hW.ne_next_add (by omega))) n0) n8
 
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     (need : Nat) : specT env p i need := fun t =>

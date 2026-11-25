@@ -52,9 +52,6 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   have hal' : HoldsT env p L.alloc.idx needA AllocPre (AllocPost env) (Stop := AbortStop) :=
     hal.mono_stop fun _ _ _ _ _ h => h.1
   rv_autoT hp stop [48] with [hL] using [hal', hcp]
-  all_goals
-    simp only [Layouts.ResultBlockTryReserve.byteSize] at *
-    have hW : InWin env (regs .x10) 24 := hpre_14
   · rv_symT hp stop [74] with [hL] using [hal', hcp]
     all_goals try (rv_symT hp stop [76] with [hL] using [hal', hcp])
     all_goals try (rv_symT hp with [hL] using [hal', hcp])

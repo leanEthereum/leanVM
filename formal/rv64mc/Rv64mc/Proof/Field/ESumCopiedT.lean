@@ -68,12 +68,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         rw [show es.length - 1 - k = j + 1 by omega]
         rv_closeT
         · exact step_ptr _ _
-        · rw [← body_val (j := j) hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
-        · rw [← body_val (j := j) hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
-    · rw [← acc_len, ← (end_iff hq (by omega)).1 hc,
-        ← body_val hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
-    · rw [← acc_len, ← (end_iff hq (by omega)).1 hc,
-        ← body_val hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
+        all_goals rw [← body_val (j := j) hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
+    all_goals rw [← acc_len, ← (end_iff hq (by omega)).1 hc, ← body_val hI_19 hpre_5 hpre_6 hpre_8 (by omega)]
   · refine ⟨rfl, by omega, ?_⟩
     rw [show es.length - 1 - (es.length - 1) = 0 by omega]
     rv_closeT
