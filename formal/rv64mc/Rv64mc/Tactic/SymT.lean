@@ -119,13 +119,11 @@ def withArith {α : Type} (x : MetaM α) : MetaM α := withOptions (rv_sym.heap.
 partial def codeWalk (M T : Expr) : MetaM (Option Expr) := do
   let M := M.consumeMData
   if M == T then return some (← mkEqRefl (← mkAppM ``MachineState.code #[M]))
-  let store : Option Name :=
-    if M.isAppOfArity ``MachineState.setMem 3 then some ``MachineState.code_setMem
-    else if M.isAppOfArity ``MachineState.setByte 3 then some ``MachineState.code_setByte
-    else if M.isAppOfArity ``MachineState.setHalfword 3 then some ``MachineState.code_setHalfword
-    else if M.isAppOfArity ``MachineState.setWord32 3 then some ``MachineState.code_setWord32
-    else none
-  if let some c := store then
+  let stores := [(``MachineState.setMem, ``MachineState.code_setMem),
+    (``MachineState.setByte, ``MachineState.code_setByte),
+    (``MachineState.setHalfword, ``MachineState.code_setHalfword),
+    (``MachineState.setWord32, ``MachineState.code_setWord32)]
+  if let some (_, c) := stores.find? (M.isAppOfArity ·.1 3) then
     let N := M.appFn!.appFn!.appArg!
     let some p ← codeWalk N T | return none
     let p1 ← mkAppOptM c #[N, M.appFn!.appArg!, M.appArg!]
@@ -269,9 +267,7 @@ partial def closeSideT (g : MVarId) (split : Bool := false) : MetaM (List MVarId
   if ty.isAppOf ``Rv64mc.HoldsT.pre || ty.isAppOf ``Rv64mc.HoldsT.post then
     let some ty' ← unfoldDefinition? ty | return [g]
     return ← closeSideT (← g.replaceTargetDefEq ty'.headBeta) split
-  if ty.isAppOfArity ``Rv64mc.Windows 3 then
-    if let some l ← windowsGoal g ty then return l
-    return [g]
+  if ty.isAppOfArity ``Rv64mc.Windows 3 then return (← windowsGoal g ty).getD [g]
   if ty.isAppOfArity ``Eq 3 then
     let l := ty.appFn!.appArg!.consumeMData
     let r := ty.appArg!.consumeMData
@@ -420,11 +416,23 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
     if ins.isAppOf ``Lprog.LinstrR.Lcall || ins.isAppOf ``Lprog.LinstrR.Ltail then calls := k
     let step ← g.withContext do
       let args := ins.getAppArgs
+      -- a rule whose one continuation is the next instruction's goal at `R'` and `M'`, after the side goals
+      let fall (c : Name) (R' M' : Expr) (xs : List (Name × Expr)) (side : List MVarId) :
+          MetaM (Option (List MVarId)) := do
+        let h ← newGoal g (a.goal (a.pc + 1) R' M')
+        g.assign (← appN c (base ++ xs ++ [(`h, h)]))
+        return some (side ++ [h.mvarId!])
+      -- a call or tail call through a total contract: the side goals, `hstop`, then after the return
+      let viaContract (c : Name) (pre : List (Name × Expr)) (side : MetaM (List MVarId)) :
+          MetaM (Option (List MVarId)) := do
+        let hstop ← newGoal g (← nextBinder c pre)
+        let hk ← newGoal g (← nextBinder c (pre ++ [(`hstop, hstop)]))
+        g.assign (← appN c (pre ++ [(`hstop, hstop), (`hk, hk)]))
+        let side := (← side) ++ (← closeSideTSafe hstop.mvarId!)
+        return some (side ++ (← afterCallT hk.mvarId! k).toList)
       match ins.getAppFn.constName? with
       | some ``Lprog.LinstrR.Llabel =>
-        let h ← newGoal g (a.goal (a.pc + 1) a.R a.M)
-        g.assign (← appN ``Rv64mc.Tactic.stepT_label (base ++ [(`kd, (args[2]!)), (`l, (args[3]!)), (`h, h)]))
-        pure (some [h.mvarId!])
+        fall ``Rv64mc.Tactic.stepT_label a.R a.M [(`kd, (args[2]!)), (`l, (args[3]!))] []
       | some ``Lprog.LinstrR.Lgoto =>
         let some l ← evalNat (args[2]!) | pure none
         let some j ← labelIdx? cfg.body l | pure none
@@ -439,88 +447,59 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         | some ``Lprog.Op.set =>
           let (v, hv) ← evalE a.R (oargs[2]!)
           let (R', hR) ← writeReg a.R (oargs[1]!) v
-          let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
-          g.assign (← appN ``Rv64mc.Tactic.stepT_set (base ++ [(`rd, (oargs[1]!)), (`e, (oargs[2]!)), (`v, v),
-            (`R', R'), (`hv, hv), (`hR, hR), (`h, h)]))
-          pure (some [h.mvarId!])
+          fall ``Rv64mc.Tactic.stepT_set R' a.M [(`rd, (oargs[1]!)), (`e, (oargs[2]!)), (`v, v), (`R', R'),
+            (`hv, hv), (`hR, hR)] []
         | some ``Lprog.Op.load =>
           let w := (oargs[2]!).consumeMData
           let s := (oargs[3]!).consumeMData
           let some nb := widthBytes w | pure none
           let (x, ha) ← evalE a.R (oargs[4]!)
           let (acc, side) ← accessFacts g x nb none
+          let load (c : Name) (v hv : Expr) (xs : List (Name × Expr)) : MetaM (Option (List MVarId)) := do
+            let (R', hR) ← writeReg a.R (oargs[1]!) v
+            fall c R' a.M (xs ++ [(`rd, (oargs[1]!)), (`a, (oargs[4]!)), (`x, x), (`v, v), (`R', R'), (`ha, ha),
+              (`hv, hv), (`hR, hR)] ++ acc) side
           if w.isConstOf ``Lprog.Width.b8 && s.isConstOf ``Bool.false then
             let (v, pv) ← match ← dataRead a.M x with
               | some (v, p) => pure (v, some p)
               | none => readMem a.M x
-            let hv ← orRefl pv v
-            let (R', hR) ← writeReg a.R (oargs[1]!) v
-            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
-            g.assign (← appN ``Rv64mc.Tactic.stepT_ld (base ++ [(`rd, (oargs[1]!)), (`a, (oargs[4]!)), (`x, x),
-              (`v, v), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
-          else if let some (val, hv) ← (if ← heapOn then dataLoad a.M x w s else pure none) then
-            let (R', hR) ← writeReg a.R (oargs[1]!) val
-            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
-            g.assign (← appN ``Rv64mc.Tactic.stepT_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
-              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
-          else if let some (bv, pb) ← (do
-              unless (← heapOn) && w.isConstOf ``Lprog.Width.b1 do return none
-              let (bv, pb?) ← readByte a.M x
-              let some pb := pb? | return none
-              return some (bv, pb)) then
-            let ext (t : Expr) : Expr := mkApp3 (mkConst ``BitVec.zeroExtend) (mkRawNatLit 8) (mkRawNatLit 64) t
-            let lv := ext bv
-            let lvM := mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x
-            let p1 ← mkExpectedTypeHint (← mkCongrArg (← lam (mkApp (mkConst ``BitVec) (mkRawNatLit 8)) (pure ∘ ext)) pb)
-              (← mkEq lvM lv)
-            let f ← lam word fun t => do
-              mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) t, t]
-            let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
-              else lv
-            let ite ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval)
-              (mkApp (mkConst ``UnOp.sext) w) lvM, lvM]
-            let hv ← mkExpectedTypeHint (← mkCongrArg f p1) (← mkEq ite val)
-            let (R', hR) ← writeReg a.R (oargs[1]!) val
-            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
-            g.assign (← appN ``Rv64mc.Tactic.stepT_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
-              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
+            load ``Rv64mc.Tactic.stepT_ld v (← orRefl pv v) []
           else
-            let lv ← whnfCore (← unfoldDefinition (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x))
-            let val := if s.isConstOf ``Bool.true then mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) lv
-              else lv
-            let ite ← mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), mkApp2 (mkConst ``UnOp.eval)
-              (mkApp (mkConst ``UnOp.sext) w) (mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x),
-              mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x]
-            let hv ← mkExpectedTypeHint (← mkEqRefl val) (← mkEq ite val)
-            let (R', hR) ← writeReg a.R (oargs[1]!) val
-            let h ← newGoal g (a.goal (a.pc + 1) R' a.M)
-            g.assign (← appN ``Rv64mc.Tactic.stepT_loadw (base ++ [(`rd, (oargs[1]!)), (`w, w), (`s, s),
-              (`a, (oargs[4]!)), (`x, x), (`v, val), (`R', R'), (`ha, ha), (`hv, hv), (`hR, hR), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
+            -- the value `if s then sext lv else lv` of a read `lv` of `loadVal w M x`, and its proof
+            let sext (t : Expr) : Expr := mkApp2 (mkConst ``UnOp.eval) (mkApp (mkConst ``UnOp.sext) w) t
+            let pick (t : Expr) : Expr := if s.isConstOf ``Bool.true then sext t else t
+            let choose (t : Expr) : MetaM Expr := do mkAppM ``ite #[← mkEq s (mkConst ``Bool.true), sext t, t]
+            let lvM := mkApp3 (mkConst ``Rv64mc.Tactic.loadVal) w a.M x
+            let (val, hv) ← do
+              if let some r ← (if ← heapOn then dataLoad a.M x w s else pure none) then pure r
+              else if let some (bv, pb) ← (do
+                  unless (← heapOn) && w.isConstOf ``Lprog.Width.b1 do return none
+                  let (bv, pb?) ← readByte a.M x
+                  let some pb := pb? | return none
+                  return some (bv, pb)) then
+                let ext (t : Expr) : Expr := mkApp3 (mkConst ``BitVec.zeroExtend) (mkRawNatLit 8) (mkRawNatLit 64) t
+                let lv := ext bv
+                let p1 ← mkExpectedTypeHint
+                  (← mkCongrArg (← lam (mkApp (mkConst ``BitVec) (mkRawNatLit 8)) (pure ∘ ext)) pb) (← mkEq lvM lv)
+                pure (pick lv, ← mkExpectedTypeHint (← mkCongrArg (← lam word choose) p1)
+                  (← mkEq (← choose lvM) (pick lv)))
+              else
+                let lv ← whnfCore (← unfoldDefinition lvM)
+                pure (pick lv, ← mkExpectedTypeHint (← mkEqRefl (pick lv)) (← mkEq (← choose lvM) (pick lv)))
+            load ``Rv64mc.Tactic.stepT_loadw val hv [(`w, w), (`s, s)]
         | some ``Lprog.Op.store =>
           let w := (oargs[1]!).consumeMData
           let some nb := widthBytes w | pure none
           let (x, ha) ← evalE a.R (oargs[2]!)
           let (v, hv) ← evalE a.R (oargs[3]!)
           let (acc, side) ← accessFacts g x nb (some a.M)
+          let xs := [(`a, (oargs[2]!)), (`e, (oargs[3]!)), (`x, x), (`v, v), (`ha, ha), (`hv, hv)] ++ acc
           if w.isConstOf ``Lprog.Width.b8 then
-            let h ← newGoal g (a.goal (a.pc + 1) a.R (← mkAppM ``MachineState.setMem #[a.M, x, v]))
-            g.assign (← appN ``Rv64mc.Tactic.stepT_sd (base ++ [(`a, (oargs[2]!)), (`e, (oargs[3]!)), (`x, x),
-              (`v, v), (`ha, ha), (`hv, hv), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
+            fall ``Rv64mc.Tactic.stepT_sd a.R (← mkAppM ``MachineState.setMem #[a.M, x, v]) xs side
           else
             let m' ← whnfCore (← unfoldDefinition (mkApp4 (mkConst ``Rv64mc.Tactic.storeMem) w a.M x v))
-            let h ← newGoal g (a.goal (a.pc + 1) a.R m')
-            g.assign (← appN ``Rv64mc.Tactic.stepT_storew (base ++ [(`w, w), (`a, (oargs[2]!)), (`e, (oargs[3]!)),
-              (`x, x), (`v, v), (`ha, ha), (`hv, hv), (`h, h)] ++ acc))
-            pure (some (side ++ [h.mvarId!]))
-        | some ``Lprog.Op.skip =>
-          let h ← newGoal g (a.goal (a.pc + 1) a.R a.M)
-          g.assign (← appN ``Rv64mc.Tactic.stepT_skip (base ++ [(`h, h)]))
-          pure (some [h.mvarId!])
+            fall ``Rv64mc.Tactic.stepT_storew a.R m' ((`w, w) :: xs) side
+        | some ``Lprog.Op.skip => fall ``Rv64mc.Tactic.stepT_skip a.R a.M [] []
         | _ => pure none
       | some ``Lprog.LinstrR.Lcond =>
         let cnd := (args[2]!).consumeMData
@@ -598,13 +577,7 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let hpre ← newGoal g (mkApp4 Pre ret sp R1 a.M).headBeta
         let pre := base ++ [(`ret, ret), (`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post), (`Stop, Stop),
           (`hcon, hcon), (`hc, hc), (`hpre, hpre)]
-        let hstop ← newGoal g (← nextBinder ``Rv64mc.Tactic.stepT_call pre)
-        let hk ← newGoal g (← nextBinder ``Rv64mc.Tactic.stepT_call (pre ++ [(`hstop, hstop)]))
-        g.assign (← appN ``Rv64mc.Tactic.stepT_call (pre ++ [(`hstop, hstop), (`hk, hk)]))
-        let side ← closeSideTSafe hpre.mvarId! (split := true)
-        let side := side ++ (← closeSideTSafe hstop.mvarId!)
-        let g' ← afterCallT hk.mvarId! k
-        pure (some (side ++ g'.toList))
+        viaContract ``Rv64mc.Tactic.stepT_call pre (closeSideTSafe hpre.mvarId! (split := true))
       | some ``Lprog.LinstrR.Ltail =>
         let tgt := args[2]!
         let some f ← targetIdx tgt
@@ -617,13 +590,8 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         let hpre ← newGoal g (mkApp4 Pre a.rv a.top a.R a.M).headBeta
         let pre := base ++ [(`tgt, tgt), (`f, f), (`Pre, Pre), (`Post, Post), (`Stop, Stop), (`hcon, hcon),
           (`hc, hc), (`hsp, hsp), (`hpre, hpre)]
-        let hstop ← newGoal g (← nextBinder ``Rv64mc.Tactic.stepT_tail pre)
-        let hk ← newGoal g (← nextBinder ``Rv64mc.Tactic.stepT_tail (pre ++ [(`hstop, hstop)]))
-        g.assign (← appN ``Rv64mc.Tactic.stepT_tail (pre ++ [(`hstop, hstop), (`hk, hk)]))
-        let side := (← closeSideTSafe hsp.mvarId!) ++ (← closeSideTSafe hpre.mvarId! (split := true)) ++
-          (← closeSideTSafe hstop.mvarId!)
-        let g' ← afterCallT hk.mvarId! k
-        pure (some (side ++ g'.toList))
+        viaContract ``Rv64mc.Tactic.stepT_tail pre
+          (do return (← closeSideTSafe hsp.mvarId!) ++ (← closeSideTSafe hpre.mvarId! (split := true)))
       | some ``Lprog.LinstrR.Lret =>
         let h ← newGoal g (mkAppN a.head (a.pre.push (mkApp3 a.stMk a.rest a.R a.M)))
         let hra ← newGoal g (← mkEq (mkApp a.R (mkConst ``RiscvZkvm.Rv64.Reg.x1)) a.rv)

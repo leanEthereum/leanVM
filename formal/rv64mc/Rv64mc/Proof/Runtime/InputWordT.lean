@@ -90,10 +90,7 @@ theorem total (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p) (hhalt : Abo
     have hf2 := Env.Frame.setMem_out (top := top) (out := WordOut regs m)
       (v := m.getMem (regs .x10 + 8#64) + 18446744073709551615#64) hf1.2.1 (Or.inr (inputLenAt_eq _).symm) hn8
   · exact hf1.trans hf2 (Nat.le_refl _) fun a h => Or.inr (Or.inr (Or.inr h))
-  · have hs0 : (regs .x10).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10).toNat := by omega
-    have hs8 : (regs .x10 + 8#64).toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ (regs .x10 + 8#64).toNat := by
-      omega
-    exact Env.static_setMem (Env.static_setMem hpre_4 hs0) hs8
+  · exact Env.static_setMem (Env.static_setMem hpre_4 (by omega)) (by omega)
   · refine ⟨hc, trivial, ?_, ?_⟩
     · simp [MachineState.getMem, MachineState.setMem, ne_add8 (regs .x10)]
     · rw [BitVec.sub_eq_add_neg]

@@ -41,8 +41,7 @@ theorem code_storeMem (w : Width) (m : MachineState) (x v : Word) : (storeMem w 
 /-- **A store in a window hits no code**, in a memory whose code map is the entry's, where `Windows` held. -/
 theorem noCodeAt_of_windows {env : Env} {top0 : Word} {m0 M : MachineState} (hw : Windows env top0 m0)
     (hc : M.code = m0.code) {x : Word} {n : Nat} (hx : inWindow x n = true) (hn : 0 < n) : noCodeAt M x n = true := by
-  have := hw.noCodeAt hx hn
-  simpa only [RiscvZkvm.Rv64.noCodeAt, hc] using this
+  simpa only [RiscvZkvm.Rv64.noCodeAt, hc] using hw.noCodeAt hx hn
 
 /-! ## The operations -/
 
@@ -53,17 +52,6 @@ theorem stepT_set {rd : Reg} {e : Lprog.Expr Reg} (v : Word) (R' : Reg → Word)
     rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
   subst hv hR
   exact Total.set hf hi (WinOk.of_set hf hi) h
-
-/-- A doubleword load at `x` in a window and 8-byte aligned, which reads `v`. -/
-theorem stepT_ld {rd : Reg} {a : Lprog.Expr Reg} (x v : Word) (R' : Reg → Word) (hf : p[fn]? = some fd)
-    (hi : fd.body[pc]? = some (.Lopn (.load rd .b8 false a))) (ha : a.eval regs = x) (hv : m.getMem x = v)
-    (hR : updReg regs rd v = R') (hw : inWindow x 8 = true) (hal : x.toNat % 8 = 0)
-    (h : rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, R', m⟩) :
-    rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
-  subst ha hv hR
-  exact Total.opn hf hi
-    (by simp [Op.eval, rvMem, TotalRv.valid_of_inWindow hw, alignedFor, isAligned8, hal, Width.bytes])
-    (WinOk.of_opn hf hi (by simpa [opWin, Width.bytes] using hw)) h
 
 /-- A load of any width at `x` in a window and aligned for its width, the value as the memory's accessor reads
     it. -/
@@ -80,16 +68,13 @@ theorem stepT_loadw {rd : Reg} {w : Width} {s : Bool} {a : Lprog.Expr Reg} (x v 
   exact Total.opn hf hi (by simp only [rvIsa, Isa.ofOps, Op.eval, hl, Option.map_some])
     (WinOk.of_opn hf hi (by simpa [opWin] using hw)) h
 
-/-- A doubleword store of `v` at `x`, in a window, 8-byte aligned and over no code. -/
-theorem stepT_sd {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? = some fd)
-    (hi : fd.body[pc]? = some (.Lopn (.store .b8 a e))) (ha : a.eval regs = x) (hv : e.eval regs = v)
-    (hw : inWindow x 8 = true) (hal : x.toNat % 8 = 0) (hnc : noCodeAt m x 8 = true)
-    (h : rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, regs, m.setMem x v⟩) :
-    rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ := by
-  subst ha hv
-  exact Total.opn hf hi
-    (by simp [Op.eval, rvMem, TotalRv.valid_of_inWindow hw, alignedFor, isAligned8, hal, hnc, Width.bytes])
-    (WinOk.of_opn hf hi (by simpa [opWin, Width.bytes] using hw)) h
+/-- A doubleword load at `x` in a window and 8-byte aligned, which reads `v`. -/
+theorem stepT_ld {rd : Reg} {a : Lprog.Expr Reg} (x v : Word) (R' : Reg → Word) (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lopn (.load rd .b8 false a))) (ha : a.eval regs = x) (hv : m.getMem x = v)
+    (hR : updReg regs rd v = R') (hw : inWindow x 8 = true) (hal : x.toNat % 8 = 0)
+    (h : rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, R', m⟩) :
+    rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
+  stepT_loadw (w := .b8) (s := false) x v R' hf hi ha hv hR hw hal h
 
 /-- A store of any width of `v` at `x`, in a window, aligned for its width and over no code. -/
 theorem stepT_storew {w : Width} {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? = some fd)
@@ -103,6 +88,14 @@ theorem stepT_storew {w : Width} {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]
     cases w <;> rfl
   exact Total.opn hf hi (by simp only [rvIsa, Isa.ofOps, Op.eval, hs, Option.map_some])
     (WinOk.of_opn hf hi (by simpa [opWin] using hw)) h
+
+/-- A doubleword store of `v` at `x`, in a window, 8-byte aligned and over no code. -/
+theorem stepT_sd {a e : Lprog.Expr Reg} (x v : Word) (hf : p[fn]? = some fd)
+    (hi : fd.body[pc]? = some (.Lopn (.store .b8 a e))) (ha : a.eval regs = x) (hv : e.eval regs = v)
+    (hw : inWindow x 8 = true) (hal : x.toNat % 8 = 0) (hnc : noCodeAt m x 8 = true)
+    (h : rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, regs, m.setMem x v⟩) :
+    rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc, rv, top⟩ :: rest, regs, m⟩ :=
+  stepT_storew (w := .b8) x v hf hi ha hv hw hal hnc h
 
 theorem stepT_skip (hf : p[fn]? = some fd) (hi : fd.body[pc]? = some (.Lopn .skip))
     (h : rvIsa.Total p c (WinOk p) Q ⟨⟨fn, pc + 1, rv, top⟩ :: rest, regs, m⟩) :
