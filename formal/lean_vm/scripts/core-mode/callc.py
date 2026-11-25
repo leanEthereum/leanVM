@@ -1089,6 +1089,7 @@ GEN = os.path.join(GUEST, 'CoreMode', 'Gen')
 head = genfiles.header('core-mode/callc.py --emit')
 HEADER = """public import LeanVM.Guest.CoreMode.Defs
 public import LeanVM.Guest.CoreMode.WitOf
+public meta import LeanVM.Guest.DataLit
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -1190,11 +1191,12 @@ namespace LeanVM.Guest.CoreMode.HcSig
 """
 
 
-def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
+def ldata(k, r, shared=frozenset(), sigs=None, refs={}, data=False):
     """A function's certificate and its callees' signatures as Lean, its auxiliary declarations first. `shared`,
-    `refs`: `sig_shared`'s; `sigs` (if given) collects the functions whose signature module the text names."""
+    `refs`: `sig_shared`'s; `sigs` (if given) collects the functions whose signature module the text names; `data`: the
+    long lists written `data% …` (the module imports `LeanVM.Guest.DataLit`)."""
     EM = _em()
-    aux, body = EM.lcert(r['cert'])
+    aux, body = EM.lcert(r['cert'], data=data)
     used = set()
     if in_sigs(k, r, shared):
         # its own signature the one its callers name (`Gen/<pack>/Sig.lean`)
@@ -1306,7 +1308,7 @@ def emit(R, check):
                     f"{len(ks) - 1} more (bodies with calls), their callees' heap signatures.") + HEADER]
         used = set()
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs)}'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs, data=True)}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         imps = sorted({po[c][0] for c in used})
         out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n' +
