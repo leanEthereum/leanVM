@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.B1.Tables.Squares
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«index_mle__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `index_mle` (TRIAGE G #44)
@@ -88,7 +89,7 @@ def imBlk (t : ℕ) : List Stmt :=
 /-- `index_mle__L{n}`'s statements before its `ret`. -/
 def imPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 1) (word 1 0))]
-  else ((List.range n).map imBlk).flatten ++ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
+  else ((List.range n).map imBlk).flatten ⧺ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
 
 /-- The value `index_mle__L{n}` returns. -/
 def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n

@@ -19,6 +19,7 @@ public import LeanVM.Guest.B1.Bits.GrindT
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The template of `open_stacked` (TRIAGE G #42)
@@ -372,11 +373,11 @@ def osRoundCore (b p cb co claim i : ℕ) (cap : List ℕ) : List Stmt :=
   let D := C + 13
   ((List.range 4).map fun t ↦
       [osLd (b + 5 + 3 * t) cb (co + t), osCp (b + 6 + 3 * t) (b + 5 + 3 * t),
-        osCst (b + 7 + 3 * t) (word 0 1)]).flatten ++
+        osCst (b + 7 + 3 * t) (word 0 1)]).flatten ⧺
     [osKeccak ([b + 6, b + 7, b + 9, b + 10, b + 12, b + 13, b + 15, b + 16] ++ cap) A,
       osLd (b + 30) cb (co + 4), osCp (b + 31) (b + 30), osCst (b + 32) (word 0 4),
-      osKeccak [b + 31, b + 32, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, A + 8, A + 9, A + 10, A + 11, A + 12] B] ++
-    gcInlineT foldGrind (b + 46) (.n (B + 1)) (.n osTabs) ++
+      osKeccak [b + 31, b + 32, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, A + 8, A + 9, A + 10, A + 11, A + 12] B] ⧺
+    gcInlineT foldGrind (b + 46) (.n (B + 1)) (.n osTabs) ⧺
     [osKeccak [p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, B + 8, B + 9, B + 10, B + 11, B + 12] C,
       osLd B osFch i, osLd B osCoefs (2 * i), osLd C osCoefs (2 * i + 1),
       osMul D C (b + 11), osAdd (D + 1) (b + 5) D, osAdd (D + 2) (b + 5) claim, osMul (D + 3) B (b + 8),
@@ -842,10 +843,10 @@ def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
-    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
-    osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
-    rs.1 ++ od.1 ++
+    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ⧺
+    pts.1 ⧺ osHeap (n * ligColsCap) pts.2 ⧺ osHeap n (pts.2 + 2) ⧺ osHeap n (pts.2 + 4) ⧺ bs.1 ⧺
+    osHeap (2 * n) bs.2 ⧺ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ⧺
+    rs.1 ⧺ od.1 ⧺
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
       osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat,
       .ret [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]]
@@ -855,7 +856,7 @@ def osBody (c : OsCfg) : List Stmt :=
   let h := osHead c
   let lv := osLevels c 0 c.levels h.2
   let tl := osTail c lv.2
-  h.1 ++ lv.1 ++ tl.1 ++ osFinish c tl.2.1 tl.2.2
+  h.1 ⧺ lv.1 ⧺ tl.1 ⧺ osFinish c tl.2.1 tl.2.2
 
 /-! ## The loop helpers' templates at a level's row
 
@@ -872,14 +873,14 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
   let p1 := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
   let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
   let e := p2.2.2 + 1
-  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ++
-    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ++
+  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ⧺
+    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ⧺
     [osCst 15 (word 1 0), osCst 16 (word 0 0), osCst 17 (word 0 0), osCst 18 (word 0 0),
-      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ++
-    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
-    pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
+      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ⧺
+    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ⧺
+    pw.1 ⧺ p1.1 ⧺ [osMul p1.2.2 p1.2.1 pw.2] ⧺ p2.1 ⧺ [osMul p2.2.2 p2.2.1 pw.2] ⧺
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ++
+      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ⧺
     osLoopTail name 6 e
 
 /-- The residual loop's body, at `xr, N, qpos, basis_d, level_hs, chain, μ` (values
@@ -891,9 +892,9 @@ def resLoopBody (lvl : ℕ) (lv : OsLv) (name : String) : List Stmt :=
   let y := x + batchLen
   let st := osResSteps y 3 (lvl * ligColsCap) 4 (lvl * hsStride) lv.vanish lv.logCols lv.folds
     lv.highBits 6 (List.range resBatch) (y + 3) (y + 4) (y + 5)
-  pp.1 ++ (osBatchPow x).1 ++ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
-    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
-    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
+  pp.1 ⧺ (osBatchPow x).1 ⧺ [osMul y pp.2.1 (osBatchPow x).2, osMul (y + 1) 5 0,
+    osMul (y + 2) (y + 1) 0, osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ⧺ st.1 ⧺
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ⧺
     osLoopTail name 7 st.2.2.2
 
 end

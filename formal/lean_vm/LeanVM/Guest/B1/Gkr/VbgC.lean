@@ -17,6 +17,7 @@ public import LeanVM.Guest.Word
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_bus_gkr`'s body, completely
@@ -69,7 +70,7 @@ def vbR1b : List Stmt :=
     .atom (.mul (.n (val% «verify_bus_gkr» "rounds~0")) (.n (val% «verify_bus_gkr» "gkr_sizes")) (.n (val% «verify_bus_gkr» "g_bus_mu"))), .atom (.load (.n (val% «verify_bus_gkr» "rounds~1")) (.n (val% «verify_bus_gkr» "rounds~0")) 0),
     .atom (.hint (.allocDyn (.n (val% «verify_bus_gkr» "rounds")) (.n (val% «verify_bus_gkr» "rounds~1")))),
     .atom (.mul (.n (val% «verify_bus_gkr» "gkr_pts~0")) (.n (val% «verify_bus_gkr» "gkr_sizes")) (.n (val% «verify_bus_gkr» "g_bus_mu"))), .atom (.load (.n (val% «verify_bus_gkr» "gkr_pts~1")) (.n (val% «verify_bus_gkr» "gkr_pts~0")) 33),
-    .atom (.hint (.allocDyn (.n (val% «verify_bus_gkr» "gkr_pts")) (.n (val% «verify_bus_gkr» "gkr_pts~1"))))] ++
+    .atom (.hint (.allocDyn (.n (val% «verify_bus_gkr» "gkr_pts")) (.n (val% «verify_bus_gkr» "gkr_pts~1"))))] ⧺
   (List.range 5).map (fun k ↦ .atom (.copy (.n ((val% «verify_bus_gkr» "sp[0]") + k)) (.n k)))
 
 /-- The depth's powers, the allocations, the sizes, the range check, the capacity's copies. -/
@@ -77,8 +78,8 @@ def vbR1 : List Stmt := vbR1a ++ ((List.range 33).map vbSz).flatten ++ vbR1b
 
 /-- The two roots. -/
 def vbR2 : List Stmt :=
-  fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 0 (val% «verify_bus_gkr» "x@1") ++ [.atom (.copy (.n (val% «verify_bus_gkr» "vals[0]")) (.n (val% «verify_bus_gkr» "x@1"))), .atom (.copy (.n (val% «verify_bus_gkr» "vals[1]")) (.n (val% «verify_bus_gkr» "x@1")))] ++
-  fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 1 (val% «verify_bus_gkr» "x@2") ++ [.atom (.copy (.n (val% «verify_bus_gkr» "vals[2]")) (.n (val% «verify_bus_gkr» "x@2")))]
+  fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 0 (val% «verify_bus_gkr» "x@1") ⧺ [.atom (.copy (.n (val% «verify_bus_gkr» "vals[0]")) (.n (val% «verify_bus_gkr» "x@1"))), .atom (.copy (.n (val% «verify_bus_gkr» "vals[1]")) (.n (val% «verify_bus_gkr» "x@1")))] ⧺
+  fsNextT (.n (val% «verify_bus_gkr» "cursor@1")) 1 (val% «verify_bus_gkr» "x@2") ⧺ [.atom (.copy (.n (val% «verify_bus_gkr» "vals[2]")) (.n (val% «verify_bus_gkr» "x@2")))]
 
 /-- The count asserted nonzero, the combiner, the claim, . -/
 def vbR3 : List Stmt :=
@@ -88,7 +89,7 @@ def vbR3 : List Stmt :=
     .atom (.const (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]")) (word 0 0)), .atom (.const (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]")) (word 0 0)),
     .atom (.const (.n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")) (word 0 0)),
     keccakA ([.n (val% «verify_bus_gkr» "rate[0]@1"), .n (val% «verify_bus_gkr» "rate[1]@1"), .n (val% «verify_bus_gkr» "rate[2]@1"), .n (val% «verify_bus_gkr» "rate[3]@1"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[1]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[2]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[3]"), .n (val% «verify_bus_gkr» "s15.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s3.t.s0#0[4]")] ++
-      (List.range 5).map fun k ↦ .n ((val% «verify_bus_gkr» "sp[0]") + k)) (lyOuts (val% «verify_bus_gkr» "nxt[0]@1"))] ++
+      (List.range 5).map fun k ↦ .n ((val% «verify_bus_gkr» "sp[0]") + k)) (lyOuts (val% «verify_bus_gkr» "nxt[0]@1"))] ⧺
   [.atom (.mul (.n (val% «verify_bus_gkr» "claim@1~0")) (.n (val% «verify_bus_gkr» "nxt[0]@1")) (.n (val% «verify_bus_gkr» "vals[2]"))), .atom (.add (.n (val% «verify_bus_gkr» "claim@1")) (.n (val% «verify_bus_gkr» "vals[1]")) (.n (val% «verify_bus_gkr» "claim@1~0"))),
     .atom (.mul (.n (val% «verify_bus_gkr» "claim@2~0")) (.n (val% «verify_bus_gkr» "nxt[0]@1")) (.n (val% «verify_bus_gkr» "claim@1"))), .atom (.add (.n (val% «verify_bus_gkr» "claim@2")) (.n (val% «verify_bus_gkr» "vals[0]")) (.n (val% «verify_bus_gkr» "claim@2~0")))]
 
@@ -152,8 +153,8 @@ def vbR9 : List Stmt :=
     .atom (.hint (.alloc (.n (val% «verify_bus_gkr» "leaves")) 3)),
     .atom (.load (.n (val% «verify_bus_gkr» "s38.u0.s0#0")) (.n (val% «verify_bus_gkr» "last")) 6), .atom (.load (.n (val% «verify_bus_gkr» "s38.u0.s0#0")) (.n (val% «verify_bus_gkr» "leaves")) 0),
     .atom (.load (.n (val% «verify_bus_gkr» "s38.u1.s0#0")) (.n (val% «verify_bus_gkr» "last")) 7), .atom (.load (.n (val% «verify_bus_gkr» "s38.u1.s0#0")) (.n (val% «verify_bus_gkr» "leaves")) 1),
-    .atom (.load (.n (val% «verify_bus_gkr» "s38.u2.s0#0")) (.n (val% «verify_bus_gkr» "last")) 8), .atom (.load (.n (val% «verify_bus_gkr» "s38.u2.s0#0")) (.n (val% «verify_bus_gkr» "leaves")) 2)] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «verify_bus_gkr» "s39#0") + k)) (.n (val% «verify_bus_gkr» "last")) k)) ++
+    .atom (.load (.n (val% «verify_bus_gkr» "s38.u2.s0#0")) (.n (val% «verify_bus_gkr» "last")) 8), .atom (.load (.n (val% «verify_bus_gkr» "s38.u2.s0#0")) (.n (val% «verify_bus_gkr» "leaves")) 2)] ⧺
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «verify_bus_gkr» "s39#0") + k)) (.n (val% «verify_bus_gkr» "last")) k)) ⧺
   [.atom (.copy (.n (val% «verify_bus_gkr» "s39#0[5]")) (.n (val% «verify_bus_gkr» "cursor@2"))), .atom (.copy (.n (val% «verify_bus_gkr» "s39#0[6]")) (.n (val% «verify_bus_gkr» "leaves")))]
 
 set_option maxRecDepth 10000 in

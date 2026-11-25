@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsT
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_lean_xmss` as a template
@@ -39,8 +40,8 @@ def xTarget : E := word 118747255799808 0
 
 /-- The prologue (`lean_ethereum.py`). -/
 def xPrologue : List Stmt :=
-  [loadS (.n 1) (.n 0) 1, hintW "leaf_index_bits" (runV 2 32)] ++ booleans 2 32 ++ shifts 2 32 34 ++
-    (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0)) ++
+  [loadS (.n 1) (.n 0) 1, hintW "leaf_index_bits" (runV 2 32)] ⧺ booleans 2 32 ⧺ shifts 2 32 34 ⧺
+    (List.range 10).map (fun s => cst (128 + s) (word (2 ^ s) 0)) ⧺
     (List.range 58).map (fun i => cst (138 + i) (word i 0))
 
 /-- leanXMSS's chain step: `keccak([P, steps s], [v, i], walks[o:o + 1])` (`walk`,
@@ -56,15 +57,15 @@ def xDigest0 (b : Nat) : List Stmt :=
   [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0), addS (.n (b + 2)) (xNode 0) (.n (b + 1)),
     loadS (.n (b + 3)) (.n 0) 2, loadS (.n (b + 4)) (.n 0) 3, copyS (.n (b + 5)) (.n b),
     cst (b + 6) (word 1 0), cst (b + 7) (word 0 0), cst (b + 8) (word 0 0),
-    cst (b + 9) (word (2 ^ 63) 0)] ++
-  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ++
+    cst (b + 9) (word (2 ^ 63) 0)] ⧺
+  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ⧺
   [kecS [.n 1, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
     .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def xDigest1 (b : Nat) (root : V) : List Stmt :=
   [cst b (word lxTop 0), addS (.n (b + 1)) (xNode 16) (.n b), hintW "randomizer" [.n (b + 2)],
-    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
+    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ⧺
   k64 xPad (.n 1) (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
 /-- The three step addresses from base `b`, at `n(b + 2s + 1)`. -/
@@ -105,7 +106,7 @@ def xLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
 def xBody : List Stmt :=
   let l0 := xLayer 0 196 (.n 0)
   let l1 := xLayer 1 l0.2.1 l0.2.2
-  xPrologue ++ l0.1 ++ l1.1 ++
+  xPrologue ⧺ l0.1 ⧺ l1.1 ⧺
     [loadS (.n l1.2.1) (.n 0) 0, .atom (.assertEq l1.2.2 (.n l1.2.1)), .ret []]
 
 end

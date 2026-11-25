@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.SelPartial
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«block_selector_tab__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `block_selector_tab` (TRIAGE G #49)
@@ -57,7 +58,7 @@ def btNibT (n k : ℕ) : List Stmt :=
   [.atom (.load (.n c) (.n (valf% «block_selector_tab» "digits")) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0)),
     .atom (.rangeCheck (.n c) (.n (c + 2)) (.n (c + 3)) (.n (c + 4)) (.n (c + 1))),
     .atom (.mul (.n (c + 5)) (.n (valf% «block_selector_tab» "eq_tab")) (.n c)),
-    .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ++
+    .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ⧺
   if k = 0 then
     [.atom (.mul (.n (c + 7)) (.n (valf% «block_selector_tab» "g_tab")) (.n c)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * k))]
   else
@@ -68,7 +69,7 @@ def btNibT (n k : ℕ) : List Stmt :=
 /-- `block_selector_tab__L{n}`'s statements before its `ret`. -/
 def btPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 3) (word 1 0)), .atom (.const (.n 4) (word 1 0))]
-  else ((List.range (btN n)).map (btNibT n)).flatten ++
+  else ((List.range (btN n)).map (btNibT n)).flatten ⧺
     [.atom (.copy (.n (btC (btN n))) (.n (btSel (btN n - 1)))),
       .atom (.copy (.n (btC (btN n) + 1)) (.n (btRb (btN n - 1))))]
 

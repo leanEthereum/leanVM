@@ -12,6 +12,7 @@ public import LeanVM.Guest.Data.Consts
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `check_opening_terminal`, as a template
@@ -108,7 +109,7 @@ def termHeadT : List Stmt :=
 /-- Committed column `c`'s selector: its offset, its `g^κ`, `sel_g = g_squares·g^34`
 and the dispatch on `κ`. -/
 def selBlockT (c : ℕ) : List Stmt :=
-  [.atom (.load (.n (selStart c)) (.n (val% «check_opening_terminal» "col_offsets")) c)] ++ (selKap c).1 ++
+  [.atom (.load (.n (selStart c)) (.n (val% «check_opening_terminal» "col_offsets")) c)] ⧺ (selKap c).1 ⧺
     [.atom (.const (.n (selKap c).2.2) (word 17179869184 0)),
       .atom (.mul (.n ((selKap c).2.2 + 1)) (.n (val% «check_opening_terminal» "g_squares")) (.n (selKap c).2.2)),
       .dispatch (.n (selKap c).2.1) colSelNames
@@ -210,7 +211,7 @@ def termClaims : List Stmt × ℕ × ℕ × ℕ := claimsT (List.range Tables.nC
 
 /-- **`check_opening_terminal`'s body.** -/
 def termT : List Stmt :=
-  termHeadT ++ selsT ++ termClaims.1 ++
+  termHeadT ⧺ selsT ⧺ termClaims.1 ⧺
     termTailT termClaims.2.1 termClaims.2.2.1 termClaims.2.2.2
 
 end

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerW
 public import LeanVM.Protocol.Keccak.Rmfe
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The product polynomial
@@ -62,12 +63,12 @@ def readerOut (muB : ℕ) (idx : List ℕ) (rb : ℕ) : ℕ :=
 
 /-- Position `k`. -/
 def prodPosT (cur : V) (muB k : ℕ) (p : PPos) : List Stmt :=
-  [.atom (.load (.n p.a) cur k)] ++
+  [.atom (.load (.n p.a) cur k)] ⧺
     (match p.kc with
       | some (ins, o) => [keccakA (ins.map .n) ((List.range 13).map fun j ↦ .n (o + j))]
-      | none => []) ++
-    fsPackT (.n p.a) p.fb dsObserve ++ readerT muB p.idx p.rb ++
-    [.atom (.mul (.n p.r) (.n (readerOut muB p.idx p.rb)) (.n p.a))] ++
+      | none => []) ⧺
+    fsPackT (.n p.a) p.fb dsObserve ⧺ readerT muB p.idx p.rb ⧺
+    [.atom (.mul (.n p.r) (.n (readerOut muB p.idx p.rb)) (.n p.a))] ⧺
     (match p.accPrev with
       | some q => [.atom (.add (.n p.acc) (.n q) (.n p.r))]
       | none => [])

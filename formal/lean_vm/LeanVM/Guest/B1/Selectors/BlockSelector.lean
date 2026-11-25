@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Selectors.Interface
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«block_selector__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `block_selector` (TRIAGE G #50)
@@ -63,7 +64,7 @@ def bsBlk (k : ℕ) : List Stmt :=
 /-- `block_selector__L{n}`'s statements before its `ret`. -/
 def bsPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 3) (word 1 0)), .atom (.const (.n 4) (word 1 0))]
-  else ((List.range n).map bsBlk).flatten ++
+  else ((List.range n).map bsBlk).flatten ⧺
     [.atom (.copy (.n (10 * n + 1)) (.n (bsEq (n - 1)))),
       .atom (.copy (.n (10 * n + 2)) (.n (bsRb (n - 1))))]
 

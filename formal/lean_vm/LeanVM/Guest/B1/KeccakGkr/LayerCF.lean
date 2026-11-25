@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCE
 public import LeanVM.Guest.B1.KeccakGkr.LayerCD
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The tail, completely
@@ -67,16 +68,16 @@ def tailTop (o W : ℕ) : List Stmt :=
 
 /-- The return's copies. -/
 def tailP3 (o W : ℕ) : List Stmt :=
-  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ++
+  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ⧺
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
     .atom (.mul (.n (topV W + 311)) (.n (o + 807)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311)))]
 
 /-- The tail before its flips. -/
 def tailA1 (o W wv : ℕ) : List Stmt :=
-  tailP1 o W wv ++ tailP2 o W ++
-    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++ [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ++
-    tailEqf o W ++ tailTop o W
+  tailP1 o W wv ⧺ tailP2 o W ⧺
+    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ⧺ [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ⧺
+    tailEqf o W ⧺ tailTop o W
 
 /-- The tail after its flips, but its return. -/
 def tailA3 (o W : ℕ) : List Stmt := .atom (.load (.n (topV W + 3)) (.n (valf% «keccak_layer» "out")) 5) :: tailP3 o W

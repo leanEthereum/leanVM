@@ -16,6 +16,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
@@ -72,7 +73,7 @@ def glcA : List Stmt := glcPre ++ (gkPre true 8).map glcMap ++ glcPost
 
 /-- The loop's body, calling `nm`. -/
 def glcBody (nm : String) : List Stmt :=
-  glcA ++ [.callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
+  glcA ⧺ [.callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
 
 /-- The loop's parameters. -/
 def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]

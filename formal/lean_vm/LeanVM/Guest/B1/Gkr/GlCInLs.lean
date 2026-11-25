@@ -15,6 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The radix-four layers' dispatch, loading from a region
@@ -98,7 +99,7 @@ theorem glcChain_loadS (o : ℕ) (hd : List V) (x0 c0 r : ℕ) :
 
 /-- `gkr_last_layers__L{r}_L{o}`'s statements before its `ret`. -/
 def glcLastPre (r o : ℕ) : List Stmt :=
-  glcChain o [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four")] 4 9 r ++ [.atom (.const (.n (9 + 2 * (r - 1))) (word 0 0))]
+  glcChain o [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four")] 4 9 r ⧺ [.atom (.const (.n (9 + 2 * (r - 1))) (word 0 0))]
 
 /-- **`gkr_last_layers__L{r}_L{o}` loads from `R`**, its layers `4n + p`, `p < r`, loading from
 `R`. -/
