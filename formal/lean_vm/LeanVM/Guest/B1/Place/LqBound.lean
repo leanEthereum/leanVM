@@ -184,7 +184,7 @@ theorem lq_fresh {s : Oq} {cd q : ℕ} {rounds : List FoldRound} {hsv : List E} 
       have := hWi (k * Wn + i) (by rw [lW]; exact hkW k hk i hi)
       simp only [hwinW, List.getElem_map, List.getElem_range, (hdm k hk i hi).1,
         (hdm k hk i hi).2] at this
-      rw [← loadHolds_mul_gen_pow, Value.ofK_addressOfIndex_mul_gen_pow] at this
+      rw [← loadHolds_mul_gen_pow, ofK_addressOfIndex_mul_gen_pow] at this
       exact this
 
 set_option maxHeartbeats 800000 in

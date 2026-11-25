@@ -188,7 +188,7 @@ theorem bcShare_run (weights low : List E) (s : Fs) {bcW : List E} (hl : bcW.len
   have h1 := runsTo_readE s (bcW.getD 0 0)
   have h2 := bc_run (bcS0 s bcW) (bcW.getD 0 0) (bcWs_length hl)
   have h3 := runsTo_readE (bcRec (bcS0 s bcW) (bcW.getD 0 0) (bcWs bcW) busBits).1 (bcW.getD 9 0)
-  have h4 := tb_runsTo_require hreq (bcEnd s bcW)
+  have h4 := runsTo_require hreq (bcEnd s bcW)
   have h5 := runsTo_ret (bcW.getD 0 0, low ++ bcSlots s bcW, bcW.getD 9 0) (bcEnd s bcW)
   unfold bytecodeShare
   exact RunsTo.of_eq (h1.bind (h2.bind (h3.bind (h4.bind h5)))) rfl (bcW_eq hl) rfl rfl
@@ -469,7 +469,7 @@ theorem vt_spec {H : VtHonest} (h : H.Ok) :
   have c4 : ∃ sp, TCar H.s3 none sp := RunsTo.carries ht c3
   obtain ⟨u, y1, y2, t6, g6, hy', o1, o2⟩ := RunsG.unbind n2 c4
   have hreq2 := RunsG.require_inv o1 c4
-  obtain ⟨-, et6, eg6, ey1⟩ := RunsG.det o1 (RunsTo.toG (tb_runsTo_require hreq2 H.s3)) c4
+  obtain ⟨-, et6, eg6, ey1⟩ := RunsG.det o1 (RunsTo.toG (runsTo_require hreq2 H.s3)) c4
     (r1 := y2) (r2 := y1 ++ y2) (by simp)
   have ey1' : y1 = [] := by simpa using ey1
   subst et6 eg6 ey1'

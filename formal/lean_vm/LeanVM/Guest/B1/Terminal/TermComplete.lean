@@ -50,14 +50,14 @@ theorem memL_agree {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : Mem
   obtain ⟨q, hq, h1, h2⟩ := hi
   have l := (h q hq (i - q.1) (by omega)).2
   have l' := (h' q hq (i - q.1) (by omega)).2
-  rw [Value.limb0_ofK_addressOfIndex_mul, Nat.add_sub_cancel' h1] at l l'
+  rw [limb0_ofK_addressOfIndex_mul, Nat.add_sub_cancel' h1] at l l'
   exact l.trans l'.symm
 
 theorem readsAt_transfer {rd rd' : Reader} {L : Main.Layout} (h : MemL rd L) (h' : MemL rd' L)
     {b : ℕ} {xs : List E} (hr : ReadsAt rd (ofK (addressOfIndex b)) xs)
     (hreg : ∀ k < xs.length, RegionL L (b + k)) : ReadsAt rd' (ofK (addressOfIndex b)) xs :=
         fun k hk =>
-  ⟨(hr k hk).1, by rw [Value.limb0_ofK_addressOfIndex_mul, ← memL_agree h h' (hreg k hk), ← Value.limb0_ofK_addressOfIndex_mul]; exact (hr k hk).2⟩
+  ⟨(hr k hk).1, by rw [limb0_ofK_addressOfIndex_mul, ← memL_agree h h' (hreg k hk), ← limb0_ofK_addressOfIndex_mul]; exact (hr k hk).2⟩
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -170,12 +170,12 @@ theorem check_opening_terminal_completeAt (κ : ℕ) (hκ : 6 ≤ κ) (B : TermB
     · intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
-      rw [Value.ofK_addressOfIndex_mul_gen_pow] at hgt
+      rw [ofK_addressOfIndex_mul_gen_pow] at hgt
       exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
-      rw [← Value.ofK_addressOfIndex_mul_gen_pow]; exact hrp
+      rw [← ofK_addressOfIndex_mul_gen_pow]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct
   · exact term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)

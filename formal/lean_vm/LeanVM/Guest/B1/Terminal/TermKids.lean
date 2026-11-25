@@ -210,7 +210,7 @@ theorem low_rc {κ : ℕ} (hκ : 6 ≤ κ) {rd : Reader} (hl : LowDef κ rd) {n 
   have l1 := hl n (by omega)
   have l2 := hl (40 - n) (by omega)
   have a : ∀ a, (gen ^ a).limb 0 * addressOfIndex 0 = addressOfIndex a := fun a => by
-    rw [gen_pow_eq_ofK, Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+    rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨t1, h1⟩ := Option.isSome_iff_exists.mp l1
   obtain ⟨t2, h2⟩ := Option.isSome_iff_exists.mp l2
   exact ⟨gen ^ (40 - n), t1, t2, ⟨gen_pow_isInK n, by rw [a]; exact h1⟩,

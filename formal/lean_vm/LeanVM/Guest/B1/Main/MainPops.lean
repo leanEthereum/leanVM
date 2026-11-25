@@ -135,7 +135,7 @@ theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVa
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
-      exact Value.gen_pow_inj (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
+      exact gen_pow_inj (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
   have h418 : σ (.n (val% «main» "s63#1")) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]

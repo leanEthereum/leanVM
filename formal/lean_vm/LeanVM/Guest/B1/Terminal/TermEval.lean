@@ -155,7 +155,7 @@ theorem head_complete (hS : StoresAtPi S) {b0 : ℕ} {outs : List (List E × Mai
     have := hpk 1 hm1
     rwa [piW_getD hm1, ite_eq_right (by omega), Finset.Ico_self, Finset.prod_empty, mul_one] at this
   have a24 : ∀ k ≤ m, AddrIn R (σ (.n (val% «check_opening_terminal» "pi_chain"))) k := fun k hk =>
-    ⟨b0 + 70 + k, by rw [e26, Value.limb0_ofK_addressOfIndex_mul], api k hk⟩
+    ⟨b0 + 70 + k, by rw [e26, limb0_ofK_addressOfIndex_mul], api k hk⟩
   have hw2 : word 2 0 = gen := word_gen
   refine ⟨fun s hs => ?_, fun q hq => ?_, e20, e21, e22, e23, e24, e25, e26,
     by rw [e31, e30, e6], e32, e34, ekb, e43⟩

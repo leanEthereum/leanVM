@@ -43,6 +43,18 @@ theorem Placement.stackPoint_eq_drop (p : Placement) (point : List E) (stackLog 
       point ++ (selectorPoint p.index stackLog).drop p.variableCount := by
   rw [selectorPoint_drop, Placement.stackPoint]
 
+/-- `stack_offsets` gives each block an offset. -/
+theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
+  have : ∀ (order : List ℕ) (acc : List ℕ × ℕ),
+      (order.foldl (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
+        acc).1.length = acc.1.length := by
+    intro order
+    induction order with
+    | nil => intro acc; rfl
+    | cons k order ih => intro acc; rw [List.foldl_cons, ih, List.length_set]
+  unfold stackOffsets
+  simp only [this, List.length_replicate]
+
 open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash
 
 /-- `E(0, 1)`, the generator `y` of `E` over `K`, `y^2 = x·y + 1`. -/

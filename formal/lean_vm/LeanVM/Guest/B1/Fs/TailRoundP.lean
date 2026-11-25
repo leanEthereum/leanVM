@@ -70,8 +70,6 @@ theorem tailRound_run (cap : List E) (c0 c2 claim : E) :
   rw [tail_eval]
   rfl
 
-theorem word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
-
 /-- The sponge of the round: two scalars waiting on the capacity. -/
 theorem tail_sponge (cap : List E) (c0 c2 : E) :
     (⟨cap, []⟩ : Fs).absorbAll [c0, c2] dsObserve = ⟨cap, [(c0, dsObserve), (c2, dsObserve)]⟩ := by

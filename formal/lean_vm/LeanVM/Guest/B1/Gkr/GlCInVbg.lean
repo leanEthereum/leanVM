@@ -96,13 +96,13 @@ theorem vbg_layers_relIn {depth : ℕ} (hd : depth ≤ 32) {cap0 xs : List E}
     have hpb : gkPos sh k + j / 4 + 1 ≤ gkRecCount depth := gkPos_fits depth (by omega) j hj
     refine ⟨gen ^ (7 * gkPos sh k), ofK (addressOfIndex ec) * gen ^ (gkSl cap0 xs sh k).2.2, ?_,
       by rw [hLk]; exact hpos, by rw [hLk]; exact hcur, ?_, ?_, ?_⟩
-    · rw [hLk, Value.ofK_addressOfIndex_mul_gen_pow]
+    · rw [hLk, ofK_addressOfIndex_mul_gen_pow]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRL _ (by omega)
-    · rw [hLk, Value.ofK_addressOfIndex_mul_gen_pow]
+    · rw [hLk, ofK_addressOfIndex_mul_gen_pow]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRr _ (by omega)
-    · rw [Value.ofK_addressOfIndex_mul_gen_pow]
+    · rw [ofK_addressOfIndex_mul_gen_pow]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRR _ (by omega)
-    · rw [hLk, Value.ofK_addressOfIndex_mul_gen_pow]
+    · rw [hLk, ofK_addressOfIndex_mul_gen_pow]
       exact ptrIn_ofK fun i hi ↦ by rw [Nat.add_assoc]; exact hRx _ (by omega)
   refine gls_relIn (by omega) (by omega) (fun j hj hgl ↦ ?_) h
   obtain ⟨m, p, hp, rfl⟩ : ∃ m p, p < 4 ∧ j = 4 * m + p :=

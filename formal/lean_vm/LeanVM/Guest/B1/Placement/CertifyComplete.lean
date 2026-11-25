@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Placement.CompleteBase
 public import LeanVM.Guest.B1.Placement.Kappas
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.CoreData
+import LeanVM.Facts.Verifier
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 
@@ -442,7 +443,7 @@ noncomputable def cpOffRd (Q : ℕ → ℕ) : Reader := fun x ↦
 
 theorem cpOffRd_load (Q : ℕ → ℕ) {c : ℕ} (hc : c < 94) :
     LoadHolds (cpOffRd Q) (ofK (addressOfIndex 0)) c (gen ^ Q c) := by
-  refine ⟨Value.ofK_isInK _, ?_⟩
+  refine ⟨ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul, Nat.zero_add]
   have h : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c := ⟨c, hc, rfl⟩
   have he : ∀ h' : ∃ c', c' < 94 ∧ addressOfIndex c' = addressOfIndex c,
@@ -505,7 +506,7 @@ end
 theorem ldef_load {k : ℕ} {rd : Reader} (hlow : LowDefB k rd) {a : ℕ} (ha : a < 2 ^ k) :
     LoadHolds rd (gen ^ a) 0 (rdv rd a) := by
   rw [gen_pow_eq_ofK]
-  refine ⟨Value.ofK_isInK _, ?_⟩
+  refine ⟨ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
   rw [rdv, hv]; rfl
@@ -526,7 +527,7 @@ theorem wRankBound_eq : wRankBound = gen ^ 8397 := by
 theorem tb_load_ofK_add {rd : Reader} {a b k : ℕ} {w : E} :
     LoadHolds rd (ofK (addressOfIndex (a + b))) k w ↔
       LoadHolds rd (ofK (addressOfIndex a)) (b + k) w := by
-  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, Value.ofK_isInK, true_and, Nat.add_assoc]
+  simp only [LoadHolds, limb0_ofK_addressOfIndex_mul, ofK_isInK, true_and, Nat.add_assoc]
 
 section
 variable {lm : ℕ} {hs : List ℕ} {ekb esq e10 e11 e136 e137 e293 : ℕ} {rd : Reader}
@@ -562,7 +563,7 @@ theorem cp_reads (hl : hs.length = 6)
   have rrk := hi (esq + 178, rankKeysList) (by simp [cpLin])
   refine ⟨fun s hs8 => ?_, fun k hk => ?_, fun k hk => ?_, fun g hg => ?_,
     fun g hg => ?_, fun r hr => ?_, fun g hg => ?_,
-    fun c hc => r295 c (by rw [tb_stackOffsets_length, cpKs_length]; exact hc)⟩
+    fun c hc => r295 c (by rw [stackOffsets_length, cpKs_length]; exact hc)⟩
   · have := rkb s (by simp [hl]; omega)
     have hb : (1 :: gen ^ lm :: hs.map (gen ^ ·))[s]'(by simp [hl]; omega) =
         gen ^ cpEb lm hs s := by

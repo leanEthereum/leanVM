@@ -131,7 +131,7 @@ theorem sideW_holds {stp j : ℕ} {os : ℕ → ℕ} {cells : List E} {L : ℕ}
     simp only [sideW, Bool.and_eq_true, decide_eq_true_eq] at hs
     obtain ⟨⟨hky, rfl⟩, rfl⟩ := hs
     obtain ⟨he32, e', he', hlim⟩ := (hrec j hj).1
-    have hLe : L = os j + e' + 1 := Value.gen_pow_inj (by omega) (by omega) hlim
+    have hLe : L = os j + e' + 1 := gen_pow_inj (by omega) (by omega) hlim
     simp only [Good] at hg
     rw [ite_eq_left hky] at hg
     obtain ⟨h1, h2, h3⟩ := hg

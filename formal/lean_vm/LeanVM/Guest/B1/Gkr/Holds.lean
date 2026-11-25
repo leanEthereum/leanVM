@@ -438,7 +438,7 @@ theorem verify_bus_gkr_holds {μ : ℕ} (hμ : μ ≤ 32)
   have hph : RunsTo (gkrPhase depth) ⟨[σ (.n (val% «verify_bus_gkr» "fs0")), σ (.n (val% «verify_bus_gkr» "fs1")), σ (.n (val% «verify_bus_gkr» "fs2")), σ (.n (val% «verify_bus_gkr» "fs3")), σ (.n (val% «verify_bus_gkr» "fs4"))], []⟩
       ([σ (.n (val% «verify_bus_gkr» "x@1"))] ++ ([σ (.n (val% «verify_bus_gkr» "x@2"))] ++ (xs ++ [])) ++ ([] ++ []))
       (σ (.n (val% «verify_bus_gkr» "x@2")), st.point, st.values) s :=
-    hv.bind ((tb_runsTo_require hcnt s).bind (runsTo_ret _ _))
+    hv.bind ((runsTo_require hcnt s).bind (runsTo_ret _ _))
   rw [hs] at hph
   refine ⟨depth, _, _, s.cap, σ (.n (val% «verify_bus_gkr» "leaves")), hg, hd, ?_, hph, hpl, hvl, hz, ?_, ?_⟩
   · simp only [List.append_nil, List.singleton_append]

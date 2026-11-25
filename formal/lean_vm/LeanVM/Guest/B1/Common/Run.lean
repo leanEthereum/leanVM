@@ -21,7 +21,7 @@ import LeanVM.Protocol.WithHash
 * `RunsTo.bind`, `runsTo_ret`: runs compose (`RunsTo.bindG`, `RunsToG.bindFrom`,
   `RunsFromG.bind` through a ground challenge); `runsTo_readE`, `runsTo_readN`, `runsTo_sampleE`,
   `runsTo_sampleN`: the Spec's reads and samples as runs on the carried sponge
-  (`Fs.absorb … dsObserve`, `Fs.squeeze`).
+  (`Fs.absorb … dsObserve`, `Fs.squeeze`); `runsTo_require`: a check that holds reads nothing.
 * `runsToG_grind`: a proof of work, the nonce absorbed with `dsPowNonce` and permuted, `powOk`
   of the permutation's lane `2`, its challenge left ground; `runsFromG_sample` returns it.
 * `grindSample bits`, `grindWords bits n`, `runsTo_grindSample`: a grind of `bits` then a
@@ -101,6 +101,11 @@ theorem run_bind {α β : Type} (p : VerifierProgram α) (f : α → VerifierPro
 
 theorem runsTo_ret {α : Type} (a : α) (s : Fs) : RunsTo (pure a : VerifierProgram α) s [] a s :=
   fun sp h _ _ _ => ⟨sp, h, rfl⟩
+
+theorem runsTo_require {c : Prop} [Decidable c] (hc : c) (s : Fs) :
+    RunsTo (VerifierProgram.require c) s [] () s := by
+  simp only [VerifierProgram.require, hc, ↓reduceIte]
+  exact runsTo_ret () s
 
 theorem RunsTo.bind {α β : Type} {p : VerifierProgram α} {f : α → VerifierProgram β} {s s1 s2 : Fs}
     {xs ys : List E}

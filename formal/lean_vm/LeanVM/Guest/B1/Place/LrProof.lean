@@ -528,7 +528,7 @@ theorem lr_key {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
     have hk' : k < 2 * (q % resBatch + 1) := by rw [rsC_length] at hk; exact hk
     have := hCHm rd h (2 * (q / resBatch) + k) (by rw [hWl]; omega)
     rw [List.getElem_eq_getD 0, lrW_rsC hk', ← List.getElem_eq_getD 0,
-      ← loadHolds_mul_gen_pow, Value.ofK_addressOfIndex_mul_gen_pow] at this
+      ← loadHolds_mul_gen_pow, ofK_addressOfIndex_mul_gen_pow] at this
     exact this
   obtain ⟨Lk, hLk⟩ : ∃ L, L = Lb ++ Lin := ⟨_, rfl⟩
   have hregK : ∀ i, RegionL Lk i → RegionL Lin i ∨ (b ≤ i ∧ i < b + W.length) := by

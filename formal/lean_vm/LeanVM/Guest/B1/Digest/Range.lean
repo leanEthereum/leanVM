@@ -53,7 +53,7 @@ theorem rc_const {rd : Reader} (hm : MemOk rd) {x y t1 t2 k : E} {c : ℕ} (hc :
     (hk : k = gen ^ c) (h : LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2) :
     ∃ e ≤ c, x = gen ^ e := by
   obtain ⟨e, e', he, he', hx, hk'⟩ := rc_sound hm h
-  have := Value.gen_pow_inj (by omega) (by omega) (hk.symm.trans hk')
+  have := gen_pow_inj (by omega) (by omega) (hk.symm.trans hk')
   exact ⟨e, by omega, hx⟩
 
 set_option maxRecDepth 100000 in
@@ -75,7 +75,7 @@ theorem rc_below {rd : Reader} (hm : MemOk rd) {x y t1 t2 k b : E} (hk : k = b *
 theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h : BelowLog b e) :
     e < M := by
   obtain ⟨he, e', he', hb'⟩ := h
-  have := Value.gen_pow_inj (by omega) (by omega) (hb.symm.trans hb')
+  have := gen_pow_inj (by omega) (by omega) (hb.symm.trans hb')
   omega
 
 /-! ## Compile-time powers of `g` -/

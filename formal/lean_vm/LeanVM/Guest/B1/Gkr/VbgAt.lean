@@ -251,7 +251,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
   have r402 := good_read (g (.load (.n (val% «verify_bus_gkr» "rem_g")) (.n (val% «verify_bus_gkr» "rem_g~0")) 0) (by decide +kernel)) (by decide +kernel)
     (by rw [e401]; exact tab hM)
   have c168 : σ (.n (val% «verify_bus_gkr» "start_g~0")) = gen ^ 2 := by
-    rw [← tb_word_four]; exact g (.const (.n (val% «verify_bus_gkr» "start_g~0")) (word 4 0)) (by decide +kernel)
+    rw [← word_four]; exact g (.const (.n (val% «verify_bus_gkr» "start_g~0")) (word 4 0)) (by decide +kernel)
   have e169 : σ (.n (val% «verify_bus_gkr» "start_g")) = gen ^ (2 - depth % 2) := by
     have h := g (.mul (.n (val% «verify_bus_gkr» "start_g~0")) (.n (val% «verify_bus_gkr» "start_g")) (.n (val% «verify_bus_gkr» "odd_g"))) (by decide +kernel)
     have hn : ¬ ((V.n (val% «verify_bus_gkr» "start_g")).idx < (V.n (val% «verify_bus_gkr» "start_g~0")).idx ∧ (V.n (val% «verify_bus_gkr» "odd_g")).idx < (V.n (val% «verify_bus_gkr» "start_g~0")).idx) := by
@@ -350,7 +350,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
       obtain ⟨n, h⟩ := hv.2 hne
       simp only [List.map_cons, List.map_nil, c426, e6, e7, e423] at h ⊢
       rw [show (1 : E) = gen ^ 0 from (pow_zero _).symm] at h ⊢
-      rw [Value.ofK_addressOfIndex_mul_gen_pow] at h ⊢
+      rw [ofK_addressOfIndex_mul_gen_pow] at h ⊢
       exact vbz_relIn (ptrIn_ofK hReg.z) (ptrIn_ofK fun i hi ↦ by
         rw [Nat.add_assoc]; exact hReg.r _ (by omega)) n 0 (by omega) h
   · -- the loads

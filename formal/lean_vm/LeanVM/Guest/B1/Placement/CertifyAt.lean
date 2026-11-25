@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Placement.CertifyComplete
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Facts.Verifier
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 
@@ -53,7 +54,7 @@ theorem cp_bufL (lm : ℕ) (hs : List ℕ) (b : ℕ) :
 
 theorem cp_own_len (lm : ℕ) (hs : List ℕ) :
     List.Forall₂ (fun c s => c.length ≤ s) (cpOwnL lm hs) cpSizes := by
-  simp [cpOwnL, cpGOrd_length, tb_stackOffsets_length, cpKs_length]
+  simp [cpOwnL, cpGOrd_length, stackOffsets_length, cpKs_length]
 
 theorem cp_flat : cpPre.all Stmt.flat = true := by decide +kernel
 
@@ -157,7 +158,7 @@ theorem cp_loads_ok {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm �
       (by simp [cpOwn]) (by simp; omega)
   have h293 : ∀ c < 94, RegionL (cpOwn lm hs e10 e11 e136 e137 e293) (e293 + c) := fun c hc ↦
     cp_regionL (q := (e293, (stackOffsets (cpKs lm hs)).1.map (gen ^ ·))) (by simp [cpOwn])
-      (by simp [tb_stackOffsets_length, cpKs_length]; omega)
+      (by simp [stackOffsets_length, cpKs_length]; omega)
   have hκ : ∀ gi, cpKg lm hs gi < 34 := fun gi ↦ cpKc_lt hl hlm hhs h5 _
   have hp0 := cpPi_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
   have hptr : ∀ gi < 9, σ (.n (cpQ gi + 4)) = ofK (addressOfIndex esq) * gen ^ cpKg lm hs gi ∧

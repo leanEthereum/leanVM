@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Placement.Interface
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
+import LeanVM.Facts.Verifier
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
 
@@ -654,7 +655,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     rfl
   · rw [hκ, e407]
     refine readsAt_map_iff.mpr fun c hc ↦ ?_
-    rw [tb_stackOffsets_length, List.length_map, List.length_range] at hc
+    rw [stackOffsets_length, List.length_map, List.length_range] at hc
     exact hoffs c hc
 
 end

@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Tables.Vt.CountTotal
 public import LeanVM.Guest.B1.Tables.Vt.SelBlocks
 public import LeanVM.Guest.B1.Tables.Vt.Sort
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
+import LeanVM.Facts.Verifier
 
 /-!
 # The block selectors
@@ -100,7 +101,7 @@ theorem vt_stackOffsets_lt (sizes : List ℕ) (hl : sizes.length ≤ 64)
     calc _ ≤ min r ord.length * 2 ^ 34 := hle
       _ ≤ 64 * 2 ^ 34 := Nat.mul_le_mul_right _ (by omega)
       _ < 2 ^ 62 := by norm_num
-  · rw [List.getD_eq_default _ _ (by rw [tb_stackOffsets_length]; exact hb)]
+  · rw [List.getD_eq_default _ _ (by rw [stackOffsets_length]; exact hb)]
     norm_num
 
 /-- An aligned block's `eqAbove` is its `blockSel`. -/

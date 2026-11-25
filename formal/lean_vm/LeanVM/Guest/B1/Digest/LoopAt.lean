@@ -170,7 +170,7 @@ theorem loopA_stepAt {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
         rw [hcv]
         refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
           fun h he => h ?_⟩
-        exact Value.gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
+        exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
       have hcalls : calls ((pre ++ [Stmt.callIf c g args]).flatMap (Main.slEvs σ)) =
           [] ++ [⟨g, args, [], decide (k + 1 ≠ m)⟩] := by
         rw [hpc, List.filterMap_append, hpreC]

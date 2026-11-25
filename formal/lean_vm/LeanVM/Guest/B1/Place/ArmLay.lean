@@ -46,7 +46,7 @@ theorem osPtrA_eq (c : OsCfg) (b j : ℕ) : osPtrA c b j = ofK (addressOfIndex (
 
 theorem osPtrA_mul (c : OsCfg) (b j o : ℕ) :
     osPtrA c b j * gen ^ o = ofK (addressOfIndex (baseA c b j + o)) :=
-  Value.ofK_addressOfIndex_mul_gen_pow _ _
+  ofK_addressOfIndex_mul_gen_pow _ _
 
 theorem baseA_eq (c : OsCfg) (b : ℕ) {j : ℕ} (hj : j < (osSizesL c).length) :
     baseA c b j = b + ((osSizesL c).take j).sum :=

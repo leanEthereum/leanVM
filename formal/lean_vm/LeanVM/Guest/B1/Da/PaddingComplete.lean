@@ -54,7 +54,7 @@ theorem da_padding_complete : da_padding_complete_Spec := by
   have hne : gen ^ r + word 1 0 ≠ 0 := by
     rw [word_one, Ne, e_add_eq_zero_iff, ← pow_zero gen]
     intro h
-    have := Value.gen_pow_inj (by omega) (by omega) h
+    have := gen_pow_inj (by omega) (by omega) h
     omega
   refine (rel_iff_sem find_da_padding _ _).mpr ⟨Val.ofArgs [gen ^ r, word 1 0, gen ^ r + word 1 0,
     (gen ^ r + word 1 0)⁻¹, (gen ^ r + word 1 0) * (gen ^ r + word 1 0)⁻¹,

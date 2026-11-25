@@ -101,7 +101,7 @@ theorem lay_same {L : TLay} (hd : DisjLay L) (hl : LowLay L) {q q' : ℕ × List
 /-- **`layRd` holds a layout of runs apart, below the order of `g`.** -/
 theorem memLay_layRd {L : TLay} (hd : DisjLay L) (hl : LowLay L) : MemLay (layRd L) L := by
   intro q hq j hj
-  refine ⟨Value.ofK_isInK _, ?_⟩
+  refine ⟨ofK_isInK _, ?_⟩
   rw [limb0_ofK_addressOfIndex_mul]
   have ha : InLay L (addressOfIndex (q.1 + j)) := ⟨q, hq, j, hj, rfl⟩
   unfold layRd

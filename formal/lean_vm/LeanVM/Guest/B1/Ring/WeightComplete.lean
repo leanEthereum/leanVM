@@ -332,7 +332,7 @@ theorem rsw_hσ {bz bp bc count : ℕ} {zs ps cs : List E} (hz : zs.length = cou
   · intro q hq
     obtain ⟨hoff, hp'⟩ := rsw_loads_ok hq
     rcases hp' with h | h <;> rw [h]
-    · rw [e2, Value.limb0_ofK_addressOfIndex_mul]
+    · rw [e2, limb0_ofK_addressOfIndex_mul]
       exact ⟨_, rfl, Or.inl ⟨(bc, cs), by simp, by simp [hc]; omega⟩⟩
     · rw [e4, rt_addr_mul]
       refine ⟨_, rfl, Or.inr (Or.inl ⟨rfl, (b, rsChain zs ps count), by rw [ho2]; simp, by omega, ?_⟩)⟩

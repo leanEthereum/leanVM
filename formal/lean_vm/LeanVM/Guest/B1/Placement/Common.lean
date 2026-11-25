@@ -146,14 +146,6 @@ theorem tb_stackOffsets_fst (sizes : List ℕ) (r : ℕ)
   rw [hst]
   exact h.2.2 r (by omega)
 
-theorem tb_stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
-  set ord := (List.range sizes.length).mergeSort (stackLe (sizes.getD · 0))
-  have hperm : ord.Perm (List.range sizes.length) := List.mergeSort_perm _ _
-  have h := tb_stackFold_take (sizes.getD · 0) sizes.length ord (hperm.nodup_iff.mpr List.nodup_range)
-    (fun i hi => List.mem_range.mp (hperm.subset hi)) ord.length le_rfl
-  rw [List.take_length] at h
-  exact h.2.1
-
 /-! ## Stacking orders -/
 
 /-- `g^33`, as the data writes it: the range check below `SIZE_BITS = 34`. -/

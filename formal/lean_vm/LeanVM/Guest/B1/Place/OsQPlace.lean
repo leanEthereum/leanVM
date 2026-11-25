@@ -109,7 +109,7 @@ theorem sqW_ptr {fs : String → ℕ} {cert : String → V → ℕ} {lv : OsLv} 
   rw [ofK_addr_shift] at this
   have e : qwPtrAt cert (sqDecName lv) (sqDecPos fs lv L n p (k / sqPer lv)) lv.depth lv.capDepth
       (k % sqPer lv) = ofK (Parameters.addressOfIndex (sqEb fs cert lv L n p k)) := by
-    rw [qwPtrAt, Value.ofK_addressOfIndex_mul_gen_pow]; rfl
+    rw [qwPtrAt, ofK_addressOfIndex_mul_gen_pow]; rfl
   rw [e] at this
   refine (loadHolds_ofK_iff ?_).mp this
   have := Nat.div_add_mod k (sqPer lv)

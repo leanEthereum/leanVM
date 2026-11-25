@@ -101,6 +101,8 @@ theorem word_gen : word 2 0 = gen := by rw [word_eOfNat]; rfl
 theorem word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := by
   rw [word_eOfNat, gen_pow_eq_eOfNat h]
 
+theorem word_four : word 4 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
+
 theorem word_y : word 0 1 = y := by rw [y_eq]; rfl
 
 /-- `Y_INV = x + y`, the data's `word 2 1`. -/

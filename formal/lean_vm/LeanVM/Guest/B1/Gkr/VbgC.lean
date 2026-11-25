@@ -160,9 +160,6 @@ theorem vbgPre_eq' :
     vbgPre = vbR1 ++ vbR2 ++ vbR3 ++ vbR5 ++ vbR6 ++ vbR7 ++ vbR8 ++ vbR9 :=
   stmtsEqb_sound (by decide +kernel)
 
-theorem tb_word_four : word 4 0 = gen ^ 2 := by
-  rw [show (4 : ℕ) = 2 ^ 2 by norm_num, word_two_pow (by norm_num)]
-
 theorem tb_list5_eq {l : List E} (h : l.length = 5) :
     ∃ a0 a1 a2 a3 a4, l = [a0, a1, a2, a3, a4] := by
   match l, h with
@@ -570,7 +567,7 @@ theorem vbg_body_of {depth : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) {cap0 
       show ¬ (239 < 238 ∧ 237 < 238); omega
     simpa only [Good, hn, ↓reduceIte] using h
   have e135 : σ (.n (val% «verify_bus_gkr» "start_g")) = gen ^ (2 - sh) := by
-    rw [d135, c134, tb_word_four, e133]
+    rw [d135, c134, word_four, e133]
     have hs : sh ≤ 2 := by omega
     rw [show (gen : E) ^ 2 = gen ^ (2 - sh) * gen ^ sh by rw [← pow_add, Nat.sub_add_cancel hs],
       mul_assoc, mul_inv_cancel₀ (gen_pow_ne_zero _), mul_one]

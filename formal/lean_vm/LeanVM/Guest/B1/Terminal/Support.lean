@@ -122,18 +122,6 @@ theorem committedKappas_small {kappas : List ℕ} (hl : kappas.length = 158) {c 
     ← List.getD_eq_getElem _ 0 hlen, committedCols_getD (show c < 94 by omega)]
   simp [colOfCommitted, hc]
 
-theorem stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
-  unfold stackOffsets
-  simp only
-  have : ∀ (order : List ℕ) (acc : List ℕ × ℕ),
-      (order.foldl (fun (acc : List ℕ × ℕ) i ↦ (acc.1.set i acc.2, acc.2 + 2 ^ sizes.getD i 0))
-        acc).1.length = acc.1.length := by
-    intro order
-    induction order with
-    | nil => intro acc; rfl
-    | cons k order ih => intro acc; rw [List.foldl_cons, ih, List.length_set]
-  rw [this]; simp
-
 /-! ## The selectors -/
 
 /-- **Committed column `c`'s selector**, its `g^κ` at `kb[src]·g^adj`, its offset `g^o` with `o` a

@@ -179,7 +179,7 @@ theorem exists_of_length_succ {α : Type} {l : List α} {n : ℕ} (h : l.length 
 
 theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = addressOfIndex (b +
     k) := by
-  rw [gen_pow_eq_ofK, Value.limb0_ofK_addressOfIndex_mul]
+  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul]
 
 
 /-! ## Shared by the completeness proofs -/

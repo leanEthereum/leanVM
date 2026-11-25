@@ -141,7 +141,7 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
   have hPb := readsAt_flatMap_eq (w := 40) _ (depth / 2 + 2)
     (fun c _ ↦ vbgRowBlock_length hd hpl c) hP
   have hmid := (readsAt_append.mp (readsAt_append.mp hR).1).2
-  simp only [List.length_replicate, Value.ofK_addressOfIndex_mul_gen_pow] at hmid
+  simp only [List.length_replicate, ofK_addressOfIndex_mul_gen_pow] at hmid
   unfold vbgLay
   rw [memLay_append, memLay_append, memLay_append]
   refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩
@@ -150,7 +150,7 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hq
     have hi' : i < depth / 2 + depth % 2 := by simpa using hi
     have := hLb (2 * (i + 1 - depth % 2) + depth % 2) (by omega)
-    rw [Value.ofK_addressOfIndex_mul_gen_pow] at this
+    rw [ofK_addressOfIndex_mul_gen_pow] at this
     unfold vbgLayBlock at this
     have hc : (2 * (i + 1 - depth % 2) + depth % 2) % 2 = depth % 2 ∧
         1 ≤ 2 * (i + 1 - depth % 2) + depth % 2 ∧ 2 * (i + 1 - depth % 2) + depth % 2 ≤ depth :=
@@ -164,7 +164,7 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hq
     have hi' : i < depth / 2 + depth % 2 := by simpa using hi
     have := hPb (i + 1 - depth % 2 + depth % 2) (by omega)
-    rw [Value.ofK_addressOfIndex_mul_gen_pow] at this
+    rw [ofK_addressOfIndex_mul_gen_pow] at this
     unfold vbgRowBlock at this
     rw [show i + 1 - depth % 2 + depth % 2 - depth % 2 = i + 1 - depth % 2 by omega] at this
     simp only [Nat.le_add_left, show i + 1 - depth % 2 ≤ depth / 2 by omega, and_self,
@@ -186,9 +186,9 @@ theorem vbg_memLay {rd : Reader} (hd : depth ≤ 32) (hcl : cap0.length = 5)
       apply List.map_congr_left
       intro i _
       exact vbgRecRun_length i
-    rw [e, Value.ofK_addressOfIndex_mul_gen_pow] at hr
+    rw [e, ofK_addressOfIndex_mul_gen_pow] at hr
     have hb := readsAt_flatMap_eq (w := 7) _ (j / 4 + 1) (fun _ _ ↦ by simp) hr y hy
-    rw [Value.ofK_addressOfIndex_mul_gen_pow] at hb
+    rw [ofK_addressOfIndex_mul_gen_pow] at hb
     show ReadsAt rd (ofK (addressOfIndex (eR + 7 * (gkPos (depth % 2) (j + 1 - depth % 2) + y))))
       _
     rw [gkPos_loop (by omega),
