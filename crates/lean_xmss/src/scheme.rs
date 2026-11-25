@@ -50,6 +50,11 @@ impl LayerSignature {
         &self.chain_values
     }
 
+    /// The sibling of each node on the path, from the leaf up.
+    pub fn path(&self) -> &[Digest; LAYER_HEIGHT] {
+        &self.path
+    }
+
     /// Its encoding, in order.
     fn parts(&self) -> [&[u8]; 3] {
         [

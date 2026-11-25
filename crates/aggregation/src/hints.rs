@@ -111,13 +111,14 @@ fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> 
 
 /// One leanXMSS signature's witness: its leaf index shifted by each multiple of
 /// `LX_WINDOW` and those windows in the exponent, then per layer, bottom first, the
-/// randomizer, the codeword's digits, the chain values they start from, and the
-/// sibling of every node on the path.
+/// sibling of every node on the path, the randomizer, the codeword's digits and the
+/// chain values they start from.
 pub(super) fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
 ) -> Result<SubHints, AggregateError> {
+    use lean_xmss::internals::{codeword, layer_index, layer_root, message_digest, sig_bottom, sig_top};
     let pp = lean_xmss::internals::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
@@ -128,30 +129,22 @@ pub(super) fn lean_xmss_hints(
             windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),
         ),
     ];
-    let mut root: Vec<u8> = message.to_vec();
-    let mut level = 0;
-    for (layer, layer_sig) in [
-        lean_xmss::internals::sig_bottom(sig),
-        lean_xmss::internals::sig_top(sig),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let e = lean_xmss::internals::layer_index(sig.leaf_index(), layer);
-        let (codeword, reached) = lean_xmss::internals::layer_root(pp, layer, e, &root, layer_sig, |pair| {
-            hints.push((
-                "lx_path",
-                vec![pack_16_bytes(&pair[usize::from(index >> level & 1 == 0)])],
-            ));
-            level += 1;
-        })
-        .ok_or(AggregateError::InvalidSignature)?;
+    let (bottom, top) = (sig_bottom(sig), sig_top(sig));
+    let e = |layer| layer_index(sig.leaf_index(), layer);
+    let (bottom_codeword, root) =
+        layer_root(pp, 0, e(0), message, bottom, |_| {}).ok_or(AggregateError::InvalidSignature)?;
+    // The top layer's root is the key's, which the guest checks against the claim: only its codeword is needed.
+    let top_codeword =
+        codeword(&message_digest(pp, 1, e(1), top.randomizer(), &root)).ok_or(AggregateError::InvalidSignature)?;
+    for (layer_sig, codeword) in [(bottom, bottom_codeword), (top, top_codeword)] {
+        for sibling in layer_sig.path() {
+            hints.push(("lx_path", vec![pack_16_bytes(sibling)]));
+        }
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
         hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
         for value in layer_sig.chain_values() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
-        root = reached.to_vec();
     }
     Ok(hints)
 }
