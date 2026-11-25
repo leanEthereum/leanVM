@@ -388,7 +388,7 @@ theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α),
     simp only [sequenceFin, Id.run_bind, Id.run_pure] at ih ⊢
     cases i using Fin.cases with
     | zero => rfl
-    | succ j => simp only [Fin.cases_succ]; exact congrFun ih j
+    | succ j => exact congrFun ih j
 
 /-- **A chain walk is `walkW`.** -/
 theorem chainWalk_eq (P : PublicParameter) (layer : Layer) (key : KeyIndex) (i : ChainIndex)

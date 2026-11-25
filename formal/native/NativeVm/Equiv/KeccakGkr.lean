@@ -2,12 +2,13 @@ module
 
 public import NativeVm.Equiv.KeccakPure
 public import NativeVm.Equiv.Transcript
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 6: the model simulates `keccakPhase`
 
 `Sim` for each transcript-reading function of `NativeVm/Model/KeccakGkr.lean` against the
-statement's of the same name (`Statement/LeanVmVerifier.lean`): `sim_keccakOpen`,
+statement's of the same name (`Statement/Verifier/Keccak.lean`, `Statement/Verifier/Lib.lean`): `sim_keccakOpen`,
 `sim_verifyKeccakLayer`, `sim_keccakLayers`, `sim_verifyKeccak` and `sim_keccakPhase`. Each is
 the composition of its steps' simulations (`Sim.bind` over `Sim.readScalars`, `Sim.grind`,
 `Sim.sampleChallenge(s)`, `Sim.sumcheck`, `Sim.require`), its pure steps by

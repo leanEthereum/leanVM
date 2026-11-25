@@ -3,6 +3,7 @@ module
 public import NativeVm.Equiv.LayoutSpec
 public import NativeVm.Equiv.Transcript
 public import NativeVm.Model.Stack
+public import Statement.Verifier.Whir
 
 /-!
 # Phase 2: the stack's commitment and its out-of-domain sample

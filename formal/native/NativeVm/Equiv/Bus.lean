@@ -2,6 +2,7 @@ module
 
 public import NativeVm.Equiv.Gkr
 public import NativeVm.Equiv.BusPure
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 3: the bus simulates the statement's

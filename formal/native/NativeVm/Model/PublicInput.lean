@@ -5,7 +5,7 @@ public import NativeVm.Model.Tables
 /-!
 # Phase 5: the public input
 
-Models `publicInputPhase` (`Statement/LeanVmVerifier.lean`, `lib.rs`).
+Models `publicInputPhase` (`Statement/Verifier/Lib.lean`, `lib.rs`).
 
 **Takes** the layout and the public input's four words `w`. **Samples** one challenge `c`, with no
 grind; reads nothing. **Returns** the two memory columns' claims at `(c, 0, …, 0)` (the memory's

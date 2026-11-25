@@ -2,6 +2,7 @@ module
 
 public import NativeVm.Equiv.LayoutBuild
 public import NativeVm.Equiv.Transcript
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 1: the announced sizes and the layout

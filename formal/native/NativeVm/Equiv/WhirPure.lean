@@ -4,6 +4,7 @@ public import NativeVm.Model.Whir
 public import NativeVm.Equiv.Folds
 public import NativeVm.Equiv.LayoutSpec
 public import NativeVm.Equiv.Transcript
+public import Statement.Verifier.Whir
 
 /-!
 # Phase 7b's pure steps, the model against the statement

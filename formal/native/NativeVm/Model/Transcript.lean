@@ -2,13 +2,14 @@ module
 
 public import NativeVm.Model.Field
 public import Native.Keccak.Words
+public import Statement.Verifier.Transcript
 public import Statement.LeanVmVerifier
 
 /-!
 # The transcript
 
 The compiled reading of the verifier language (`LeanVM.Protocol.Compile.run`,
-`Statement/LeanVmVerifier.lean`) as a state threaded through the verifier: the duplex sponge
+`Statement/Verifier/Transcript.lean`) as a state threaded through the verifier: the duplex sponge
 (`SpongeW`: the 25 lanes, the waiting scalars with their tags, the ground challenge), the stream and
 its cursor, the openings and the cursor of the next phase, and the roots read so far (`TState`).
 A step that rejects is `none` (`VM`). Each operation models the language's constructor of the same

@@ -13,6 +13,8 @@ package native where
 
 require statement from "../Statement"
 
+require fast_fields from "../fast_fields"
+
 require «lean-vm» from "../lean_vm"
 
 require Kraken from git "https://github.com/kevaundray/kraken" @ "6930e39c710ac5e5307612e985f97520858023ab"

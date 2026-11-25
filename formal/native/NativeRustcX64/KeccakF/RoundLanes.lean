@@ -6,7 +6,7 @@ public import NativeRustcX64.KeccakF.Blocks
 /-!
 # Each half of the unrolled loop computes `permute`'s round (x86-64)
 
-The cut at `firstHalf.length` exposes a completed round before the second round starts.
+The cut at `firstHalf.length`, after the rotated parity in `r9`, exposes a completed round.
 The scalar lane and parity summaries use a proved bitvector representation of `roundCL` and
 normalize XOR reassociation under rotations and AND-NOT. The current pair of constants is a
 16-byte region, so both indexed constant loads have fixed offsets.
@@ -115,8 +115,8 @@ macro "first_lane" hx:ident hm:ident hb:ident hregs:ident hslots:ident hpar:iden
     rw [firstBody] at $hx:ident
     cases ($hx)
     simp only [AllOf, laneRegs, laneSlots, parRegs] at $hregs:ident $hslots:ident $hpar:ident
-    obtain ⟨h3, h4, h12, h18, h20, h22, h24, -⟩ := $hregs
-    obtain ⟨h0, h1, h2, h5, h6, h7, h8, h9, h10, h11, h13, h14, h15, h16, h17, h19, h21, h23, -⟩ := $hslots
+    obtain ⟨h0, h1, h3, h12, h16, h18, h22, h24, -⟩ := $hregs
+    obtain ⟨h2, h4, h5, h6, h7, h8, h9, h10, h11, h13, h14, h15, h17, h19, h20, h21, h23, -⟩ := $hslots
     obtain ⟨c0, c1, c2, c3, c4, -⟩ := $hpar
     $projection:tactic
     clear $hm:ident
@@ -136,19 +136,7 @@ theorem first_reg_rsi [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .rsi = (roundCL a c rc 6).toBitVec := by
-  first_lane hx hm hb hregs hslots hpar hrc reg
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_reg_r10 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r10 = (roundCL a c rc 20).toBitVec := by
+    m.regs.get64 .rsi = (roundCL a c rc 15).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
@@ -160,7 +148,7 @@ theorem first_reg_rdi [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .rdi = (roundCL a c rc 21).toBitVec := by
+    m.regs.get64 .rdi = (roundCL a c rc 24).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
@@ -172,7 +160,7 @@ theorem first_reg_rbp [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .rbp = (roundCL a c rc 22).toBitVec := by
+    m.regs.get64 .rbp = (roundCL a c rc 23).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
@@ -184,7 +172,7 @@ theorem first_reg_r14 [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r14 = (roundCL a c rc 23).toBitVec := by
+    m.regs.get64 .r14 = (roundCL a c rc 20).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
@@ -196,7 +184,7 @@ theorem first_reg_r12 [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r12 = (roundCL a c rc 24).toBitVec := by
+    m.regs.get64 .r12 = (roundCL a c rc 18).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
@@ -213,6 +201,18 @@ theorem first_slot_232 [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
+theorem first_slot_184 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    WordAt m.dmem (b + BitVec.ofNat 64 184) (roundCL a c rc 1).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
 theorem first_slot_208 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
@@ -220,31 +220,19 @@ theorem first_slot_208 [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 208) (roundCL a c rc 1).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 208) (roundCL a c rc 2).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_200 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_16 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 200) (roundCL a c rc 2).toBitVec := by
-  first_lane hx hm hb hregs hslots hpar hrc slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_slot_136 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 136) (roundCL a c rc 3).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 16) (roundCL a c rc 3).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -261,26 +249,14 @@ theorem first_slot_128 [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_80 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_48 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 80) (roundCL a c rc 5).toBitVec := by
-  first_lane hx hm hb hregs hslots hpar hrc slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_slot_32 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 32) (roundCL a c rc 7).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 48) (roundCL a c rc 5).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -292,55 +268,55 @@ theorem first_slot_24 [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 24) (roundCL a c rc 8).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 24) (roundCL a c rc 6).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_192 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 8) (roundCL a c rc 9).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 192) (roundCL a c rc 7).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_64 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_200 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 64) (roundCL a c rc 10).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 200) (roundCL a c rc 8).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_176 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_152 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 176) (roundCL a c rc 11).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 152) (roundCL a c rc 9).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_16 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_32 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 16) (roundCL a c rc 12).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 32) (roundCL a c rc 10).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -352,7 +328,31 @@ theorem first_slot_0 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Ex
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 0) (roundCL a c rc 13).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 0) (roundCL a c rc 11).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_slot_120 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    WordAt m.dmem (b + BitVec.ofNat 64 120) (roundCL a c rc 12).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_slot_40 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    WordAt m.dmem (b + BitVec.ofNat 64 40) (roundCL a c rc 13).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -369,50 +369,26 @@ theorem first_slot_88 [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_72 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_96 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 72) (roundCL a c rc 15).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 96) (roundCL a c rc 15).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_40 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_80 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 40) (roundCL a c rc 16).toBitVec := by
-  first_lane hx hm hb hregs hslots hpar hrc slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_slot_104 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 104) (roundCL a c rc 17).toBitVec := by
-  first_lane hx hm hb hregs hslots hpar hrc slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_slot_120 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 120) (roundCL a c rc 18).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 80) (roundCL a c rc 16).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -424,43 +400,55 @@ theorem first_slot_56 [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 56) (roundCL a c rc 19).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 56) (roundCL a c rc 17).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_184 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 184) (roundCL a c rc 20).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 8) (roundCL a c rc 19).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_112 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_136 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 112) (roundCL a c rc 21).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 136) (roundCL a c rc 20).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_slot_96 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_slot_144 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    WordAt m.dmem (b + BitVec.ofNat 64 96) (roundCL a c rc 23).toBitVec := by
+    WordAt m.dmem (b + BitVec.ofNat 64 144) (roundCL a c rc 21).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_slot_72 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    WordAt m.dmem (b + BitVec.ofNat 64 72) (roundCL a c rc 23).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc slot
 
 set_option linter.unusedSimpArgs false in
@@ -472,32 +460,56 @@ theorem first_reg_rdx [Labels] {env : Env} {m : MachineData} {S : SState} {x : E
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .rdx = (roundCL a c rc 0).toBitVec := by
+    m.regs.get64 .rdx = (roundCL a c rc 16).toBitVec := by
   first_lane hx hm hb hregs hslots hpar hrc reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_parity_r9 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_reg_r13 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r9 = (newPar a c rc 0).toBitVec := by
+    m.regs.get64 .r13 = (roundCL a c rc 22).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc reg
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_reg_rcx [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    m.regs.get64 .rcx = (roundCL a c rc 0).toBitVec := by
+  first_lane hx hm hb hregs hslots hpar hrc reg
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_parity_rax [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    m.regs.get64 .rax = (newPar a c rc 0).toBitVec := by
   have h0 := first_slot_232 hx hm hb hregs hslots hpar hrc
-  have h5 := first_slot_80 hx hm hb hregs hslots hpar hrc
-  have h10 := first_slot_64 hx hm hb hregs hslots hpar hrc
-  have h15 := first_slot_72 hx hm hb hregs hslots hpar hrc
-  have h20 := first_reg_r10 hx hm hb hregs hslots hpar hrc
+  have h5 := first_slot_48 hx hm hb hregs hslots hpar hrc
+  have h10 := first_slot_32 hx hm hb hregs hslots hpar hrc
+  have h15 := first_slot_96 hx hm hb hregs hslots hpar hrc
+  have h20 := first_slot_136 hx hm hb hregs hslots hpar hrc
   rw [firstBody] at hx
   cases hx
   have e0 := wordAt_eq (wordAt_write hm hb (o := 232) (by decide) rfl) h0
-  have e5 := wordAt_eq (wordAt_write hm hb (o := 80) (by decide) rfl) h5
-  have e10 := wordAt_eq (wordAt_write hm hb (o := 64) (by decide) rfl) h10
-  have e15 := wordAt_eq (wordAt_write hm hb (o := 72) (by decide) rfl) h15
-  have e20 := (hm.regs .r10 _ rfl).symm.trans h20
-  refine (hm.regs .r9 _ rfl).trans ?_
+  have e5 := wordAt_eq (wordAt_write hm hb (o := 48) (by decide) rfl) h5
+  have e10 := wordAt_eq (wordAt_write hm hb (o := 32) (by decide) rfl) h10
+  have e15 := wordAt_eq (wordAt_write hm hb (o := 96) (by decide) rfl) h15
+  have e20 := wordAt_eq (wordAt_write hm hb (o := 136) (by decide) rfl) h20
+  refine (hm.regs .rax _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e0, ← e5, ← e10, ← e15, ← e20]
   clear hm
@@ -506,27 +518,27 @@ theorem first_parity_r9 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_parity_r13 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_parity_r10 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r13 = (newPar a c rc 1).toBitVec := by
-  have h1 := first_slot_208 hx hm hb hregs hslots hpar hrc
-  have h6 := first_reg_rsi hx hm hb hregs hslots hpar hrc
-  have h11 := first_slot_176 hx hm hb hregs hslots hpar hrc
-  have h16 := first_slot_40 hx hm hb hregs hslots hpar hrc
-  have h21 := first_reg_rdi hx hm hb hregs hslots hpar hrc
+    m.regs.get64 .r10 = (newPar a c rc 1).toBitVec := by
+  have h1 := first_slot_184 hx hm hb hregs hslots hpar hrc
+  have h6 := first_slot_24 hx hm hb hregs hslots hpar hrc
+  have h11 := first_slot_0 hx hm hb hregs hslots hpar hrc
+  have h16 := first_slot_80 hx hm hb hregs hslots hpar hrc
+  have h21 := first_slot_144 hx hm hb hregs hslots hpar hrc
   rw [firstBody] at hx
   cases hx
-  have e1 := wordAt_eq (wordAt_write hm hb (o := 208) (by decide) rfl) h1
-  have e6 := (hm.regs .rsi _ rfl).symm.trans h6
-  have e11 := wordAt_eq (wordAt_write hm hb (o := 176) (by decide) rfl) h11
-  have e16 := wordAt_eq (wordAt_write hm hb (o := 40) (by decide) rfl) h16
-  have e21 := (hm.regs .rdi _ rfl).symm.trans h21
-  refine (hm.regs .r13 _ rfl).trans ?_
+  have e1 := wordAt_eq (wordAt_write hm hb (o := 184) (by decide) rfl) h1
+  have e6 := wordAt_eq (wordAt_write hm hb (o := 24) (by decide) rfl) h6
+  have e11 := wordAt_eq (wordAt_write hm hb (o := 0) (by decide) rfl) h11
+  have e16 := wordAt_eq (wordAt_write hm hb (o := 80) (by decide) rfl) h16
+  have e21 := wordAt_eq (wordAt_write hm hb (o := 144) (by decide) rfl) h21
+  refine (hm.regs .r10 _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e1, ← e6, ← e11, ← e16, ← e21]
   clear hm
@@ -535,58 +547,29 @@ theorem first_parity_r13 [Labels] {env : Env} {m : MachineData} {S : SState} {x 
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_parity_r11 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_parity_rbx [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r11 = (newPar a c rc 2).toBitVec := by
-  have h2 := first_slot_200 hx hm hb hregs hslots hpar hrc
-  have h7 := first_slot_32 hx hm hb hregs hslots hpar hrc
-  have h12 := first_slot_16 hx hm hb hregs hslots hpar hrc
-  have h17 := first_slot_104 hx hm hb hregs hslots hpar hrc
-  have h22 := first_reg_rbp hx hm hb hregs hslots hpar hrc
+    m.regs.get64 .rbx = (newPar a c rc 2).toBitVec := by
+  have h2 := first_slot_208 hx hm hb hregs hslots hpar hrc
+  have h7 := first_slot_192 hx hm hb hregs hslots hpar hrc
+  have h12 := first_slot_120 hx hm hb hregs hslots hpar hrc
+  have h17 := first_slot_56 hx hm hb hregs hslots hpar hrc
+  have h22 := first_reg_r13 hx hm hb hregs hslots hpar hrc
   rw [firstBody] at hx
   cases hx
-  have e2 := wordAt_eq (wordAt_write hm hb (o := 200) (by decide) rfl) h2
-  have e7 := wordAt_eq (wordAt_write hm hb (o := 32) (by decide) rfl) h7
-  have e12 := wordAt_eq (wordAt_write hm hb (o := 16) (by decide) rfl) h12
-  have e17 := wordAt_eq (wordAt_write hm hb (o := 104) (by decide) rfl) h17
-  have e22 := (hm.regs .rbp _ rfl).symm.trans h22
-  refine (hm.regs .r11 _ rfl).trans ?_
+  have e2 := wordAt_eq (wordAt_write hm hb (o := 208) (by decide) rfl) h2
+  have e7 := wordAt_eq (wordAt_write hm hb (o := 192) (by decide) rfl) h7
+  have e12 := wordAt_eq (wordAt_write hm hb (o := 120) (by decide) rfl) h12
+  have e17 := wordAt_eq (wordAt_write hm hb (o := 56) (by decide) rfl) h17
+  have e22 := (hm.regs .r13 _ rfl).symm.trans h22
+  refine (hm.regs .rbx _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e2, ← e7, ← e12, ← e17, ← e22]
-  clear hm
-  simp only [eval_xor]
-  ac_rfl
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem first_parity_r15 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
-    (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r15 = (newPar a c rc 3).toBitVec := by
-  have h3 := first_slot_136 hx hm hb hregs hslots hpar hrc
-  have h8 := first_slot_24 hx hm hb hregs hslots hpar hrc
-  have h13 := first_slot_0 hx hm hb hregs hslots hpar hrc
-  have h18 := first_slot_120 hx hm hb hregs hslots hpar hrc
-  have h23 := first_reg_r14 hx hm hb hregs hslots hpar hrc
-  rw [firstBody] at hx
-  cases hx
-  have e3 := wordAt_eq (wordAt_write hm hb (o := 136) (by decide) rfl) h3
-  have e8 := wordAt_eq (wordAt_write hm hb (o := 24) (by decide) rfl) h8
-  have e13 := wordAt_eq (wordAt_write hm hb (o := 0) (by decide) rfl) h13
-  have e18 := wordAt_eq (wordAt_write hm hb (o := 120) (by decide) rfl) h18
-  have e23 := (hm.regs .r14 _ rfl).symm.trans h23
-  refine (hm.regs .r15 _ rfl).trans ?_
-  simp only [newPar, UInt64.toBitVec_xor]
-  rw [← e3, ← e8, ← e13, ← e18, ← e23]
   clear hm
   simp only [eval_xor]
   ac_rfl
@@ -600,20 +583,49 @@ theorem first_parity_r8 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .r8 = (newPar a c rc 4).toBitVec := by
+    m.regs.get64 .r8 = (newPar a c rc 3).toBitVec := by
+  have h3 := first_slot_16 hx hm hb hregs hslots hpar hrc
+  have h8 := first_slot_200 hx hm hb hregs hslots hpar hrc
+  have h13 := first_slot_40 hx hm hb hregs hslots hpar hrc
+  have h18 := first_reg_r12 hx hm hb hregs hslots hpar hrc
+  have h23 := first_slot_72 hx hm hb hregs hslots hpar hrc
+  rw [firstBody] at hx
+  cases hx
+  have e3 := wordAt_eq (wordAt_write hm hb (o := 16) (by decide) rfl) h3
+  have e8 := wordAt_eq (wordAt_write hm hb (o := 200) (by decide) rfl) h8
+  have e13 := wordAt_eq (wordAt_write hm hb (o := 40) (by decide) rfl) h13
+  have e18 := (hm.regs .r12 _ rfl).symm.trans h18
+  have e23 := wordAt_eq (wordAt_write hm hb (o := 72) (by decide) rfl) h23
+  refine (hm.regs .r8 _ rfl).trans ?_
+  simp only [newPar, UInt64.toBitVec_xor]
+  rw [← e3, ← e8, ← e13, ← e18, ← e23]
+  clear hm
+  simp only [eval_xor]
+  ac_rfl
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem first_parity_r11 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
+    (hrc : env.load 1 0 8 = rc.toBitVec) :
+    m.regs.get64 .r11 = (newPar a c rc 4).toBitVec := by
   have h4 := first_slot_128 hx hm hb hregs hslots hpar hrc
-  have h9 := first_slot_8 hx hm hb hregs hslots hpar hrc
+  have h9 := first_slot_152 hx hm hb hregs hslots hpar hrc
   have h14 := first_slot_88 hx hm hb hregs hslots hpar hrc
-  have h19 := first_slot_56 hx hm hb hregs hslots hpar hrc
-  have h24 := first_reg_r12 hx hm hb hregs hslots hpar hrc
+  have h19 := first_slot_8 hx hm hb hregs hslots hpar hrc
+  have h24 := first_reg_rdi hx hm hb hregs hslots hpar hrc
   rw [firstBody] at hx
   cases hx
   have e4 := wordAt_eq (wordAt_write hm hb (o := 128) (by decide) rfl) h4
-  have e9 := wordAt_eq (wordAt_write hm hb (o := 8) (by decide) rfl) h9
+  have e9 := wordAt_eq (wordAt_write hm hb (o := 152) (by decide) rfl) h9
   have e14 := wordAt_eq (wordAt_write hm hb (o := 88) (by decide) rfl) h14
-  have e19 := wordAt_eq (wordAt_write hm hb (o := 56) (by decide) rfl) h19
-  have e24 := (hm.regs .r12 _ rfl).symm.trans h24
-  refine (hm.regs .r8 _ rfl).trans ?_
+  have e19 := wordAt_eq (wordAt_write hm hb (o := 8) (by decide) rfl) h19
+  have e24 := (hm.regs .rdi _ rfl).symm.trans h24
+  refine (hm.regs .r11 _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e4, ← e9, ← e14, ← e19, ← e24]
   clear hm
@@ -622,18 +634,18 @@ theorem first_parity_r8 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem first_rot_rbx [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem first_rot_r9 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec firstHalf startBody = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) laneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) laneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
-    m.regs.get64 .rbx = (newPar a c rc 3).toBitVec.rotateLeft 1 := by
-  have hc := first_parity_r15 hx hm hb hregs hslots hpar hrc
+    m.regs.get64 .r9 = (newPar a c rc 3).toBitVec.rotateLeft 1 := by
+  have hc := first_parity_r8 hx hm hb hregs hslots hpar hrc
   rw [firstBody] at hx
   cases hx
-  rw [← hc, hm.regs .rbx _ rfl, hm.regs .r15 _ rfl]
+  rw [← hc, hm.regs .r9 _ rfl, hm.regs .r8 _ rfl]
   exact eval_rol_one env _
 
 theorem first_regs [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
@@ -645,12 +657,13 @@ theorem first_regs [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit
     (hrc : env.load 1 0 8 = rc.toBitVec) :
     AllOf (fun p : Reg64 × Nat => m.regs.get64 p.1 = (roundCL a c rc p.2).toBitVec) midLaneRegs :=
   ⟨first_reg_rsi hx hm hb hregs hslots hpar hrc,
-    first_reg_r10 hx hm hb hregs hslots hpar hrc,
-    first_reg_rdi hx hm hb hregs hslots hpar hrc,
-    first_reg_rbp hx hm hb hregs hslots hpar hrc,
-    first_reg_r14 hx hm hb hregs hslots hpar hrc,
-    first_reg_r12 hx hm hb hregs hslots hpar hrc,
     first_reg_rdx hx hm hb hregs hslots hpar hrc,
+    first_reg_r12 hx hm hb hregs hslots hpar hrc,
+    first_reg_r14 hx hm hb hregs hslots hpar hrc,
+    first_reg_r13 hx hm hb hregs hslots hpar hrc,
+    first_reg_rbp hx hm hb hregs hslots hpar hrc,
+    first_reg_rdi hx hm hb hregs hslots hpar hrc,
+    first_reg_rcx hx hm hb hregs hslots hpar hrc,
     trivial⟩
 
 theorem first_slots [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
@@ -663,27 +676,27 @@ theorem first_slots [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exi
     AllOf (fun p : Nat × Nat => WordAt m.dmem (b + BitVec.ofNat 64 p.1)
       (roundCL a c rc p.2).toBitVec) midLaneSlots :=
   ⟨first_slot_232 hx hm hb hregs hslots hpar hrc,
-    first_slot_208 hx hm hb hregs hslots hpar hrc,
-    first_slot_200 hx hm hb hregs hslots hpar hrc,
-    first_slot_136 hx hm hb hregs hslots hpar hrc,
-    first_slot_128 hx hm hb hregs hslots hpar hrc,
-    first_slot_80 hx hm hb hregs hslots hpar hrc,
-    first_slot_32 hx hm hb hregs hslots hpar hrc,
-    first_slot_24 hx hm hb hregs hslots hpar hrc,
-    first_slot_8 hx hm hb hregs hslots hpar hrc,
-    first_slot_64 hx hm hb hregs hslots hpar hrc,
-    first_slot_176 hx hm hb hregs hslots hpar hrc,
-    first_slot_16 hx hm hb hregs hslots hpar hrc,
-    first_slot_0 hx hm hb hregs hslots hpar hrc,
-    first_slot_88 hx hm hb hregs hslots hpar hrc,
-    first_slot_72 hx hm hb hregs hslots hpar hrc,
-    first_slot_40 hx hm hb hregs hslots hpar hrc,
-    first_slot_104 hx hm hb hregs hslots hpar hrc,
-    first_slot_120 hx hm hb hregs hslots hpar hrc,
-    first_slot_56 hx hm hb hregs hslots hpar hrc,
     first_slot_184 hx hm hb hregs hslots hpar hrc,
-    first_slot_112 hx hm hb hregs hslots hpar hrc,
+    first_slot_208 hx hm hb hregs hslots hpar hrc,
+    first_slot_16 hx hm hb hregs hslots hpar hrc,
+    first_slot_128 hx hm hb hregs hslots hpar hrc,
+    first_slot_48 hx hm hb hregs hslots hpar hrc,
+    first_slot_24 hx hm hb hregs hslots hpar hrc,
+    first_slot_192 hx hm hb hregs hslots hpar hrc,
+    first_slot_200 hx hm hb hregs hslots hpar hrc,
+    first_slot_152 hx hm hb hregs hslots hpar hrc,
+    first_slot_32 hx hm hb hregs hslots hpar hrc,
+    first_slot_0 hx hm hb hregs hslots hpar hrc,
+    first_slot_120 hx hm hb hregs hslots hpar hrc,
+    first_slot_40 hx hm hb hregs hslots hpar hrc,
+    first_slot_88 hx hm hb hregs hslots hpar hrc,
     first_slot_96 hx hm hb hregs hslots hpar hrc,
+    first_slot_80 hx hm hb hregs hslots hpar hrc,
+    first_slot_56 hx hm hb hregs hslots hpar hrc,
+    first_slot_8 hx hm hb hregs hslots hpar hrc,
+    first_slot_136 hx hm hb hregs hslots hpar hrc,
+    first_slot_144 hx hm hb hregs hslots hpar hrc,
+    first_slot_72 hx hm hb hregs hslots hpar hrc,
     trivial⟩
 
 theorem first_par [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
@@ -694,11 +707,11 @@ theorem first_par [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) parRegs)
     (hrc : env.load 1 0 8 = rc.toBitVec) :
     AllOf (fun p : Reg64 × Nat => m.regs.get64 p.1 = (newPar a c rc p.2).toBitVec) midParRegs :=
-  ⟨first_parity_r9 hx hm hb hregs hslots hpar hrc,
-    first_parity_r13 hx hm hb hregs hslots hpar hrc,
-    first_parity_r11 hx hm hb hregs hslots hpar hrc,
-    first_parity_r15 hx hm hb hregs hslots hpar hrc,
+  ⟨first_parity_rax hx hm hb hregs hslots hpar hrc,
+    first_parity_r10 hx hm hb hregs hslots hpar hrc,
+    first_parity_rbx hx hm hb hregs hslots hpar hrc,
     first_parity_r8 hx hm hb hregs hslots hpar hrc,
+    first_parity_r11 hx hm hb hregs hslots hpar hrc,
     trivial⟩
 
 
@@ -711,68 +724,29 @@ macro "second_lane" hx:ident hm:ident hb:ident hregs:ident hslots:ident hpar:ide
     rw [secondBody] at $hx:ident
     cases ($hx)
     simp only [AllOf, midLaneRegs, midLaneSlots, midParRegs] at $hregs:ident $hslots:ident $hpar:ident
-    obtain ⟨h6, h20, h21, h22, h23, h24, h0r, -⟩ := $hregs
-    obtain ⟨h0, h1, h2, h3, h4, h5, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, s20, s21, s23, -⟩ := $hslots
+    obtain ⟨h15r, h16r, h18, h20r, h22, h23r, h24, h0r, -⟩ := $hregs
+    obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h19, h20, h21, h23, -⟩ := $hslots
     obtain ⟨c0, c1, c2, c3, c4, -⟩ := $hpar
     $projection:tactic
     clear $hm:ident
     simp +instances (disch := decide) only [Sym.eval, SBool.eval, BinOp.apply, UnOp.apply, TernOp.apply,
       CmpOp.apply, low_W64, ext_W64, bytesOf, shiftCount_lit, Width.bits]
-    simp only [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, c0, c1, c2, c3, c4, ($hrc), ($hrot), s20, s21, s23, h0r]
+    simp only [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, c0, c1, c2, c3, c4, ($hrc), ($hrot), h15r, h16r, h20r, h23r, h0r]
     round_simp
     simp +instances only [Width.bits, BitVec.xor_comm, BitVec.and_comm]
     all_goals ac_rfl))
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_reg_r11 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_r13 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r11 = (roundCL a c rc 3).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot reg
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_reg_r15 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r15 = (roundCL a c rc 4).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot reg
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_reg_rsi [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .rsi = (roundCL a c rc 12).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot reg
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_reg_r8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r8 = (roundCL a c rc 18).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r13 = (roundCL a c rc 0).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
@@ -784,21 +758,21 @@ theorem second_reg_r10 [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r10 = (roundCL a c rc 20).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r10 = (roundCL a c rc 1).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_reg_rax [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_r8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .rax = (roundCL a c rc 22).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r8 = (roundCL a c rc 3).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
@@ -810,86 +784,73 @@ theorem second_reg_rbx [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .rbx = (roundCL a c rc 24).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .rbx = (roundCL a c rc 12).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_88 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_rdx [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 88) (roundCL a c rc 0).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .rdx = (roundCL a c rc 16).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_144 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_r12 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 144) (roundCL a c rc 1).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r12 = (roundCL a c rc 18).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_152 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_r11 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 152) (roundCL a c rc 2).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r11 = (roundCL a c rc 22).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_40 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_reg_r9 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 40) (roundCL a c rc 5).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r9 = (roundCL a c rc 24).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot reg
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_slot_64 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 8) (roundCL a c rc 6).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_16 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 16) (roundCL a c rc 7).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 64) (roundCL a c rc 2).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
@@ -901,86 +862,8 @@ theorem second_slot_160 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 160) (roundCL a c rc 8).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_48 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 48) (roundCL a c rc 9).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_32 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 32) (roundCL a c rc 10).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_56 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 56) (roundCL a c rc 11).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_64 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 64) (roundCL a c rc 13).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_24 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 24) (roundCL a c rc 14).toBitVec := by
-  second_lane hx hm hb hregs hslots hpar hrc hrot slot
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_slot_168 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 168) (roundCL a c rc 15).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 160) (roundCL a c rc 4).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
@@ -992,34 +875,99 @@ theorem second_slot_80 [Labels] {env : Env} {m : MachineData} {S : SState} {x : 
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 80) (roundCL a c rc 16).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 80) (roundCL a c rc 5).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_72 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_slot_16 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 72) (roundCL a c rc 17).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 16) (roundCL a c rc 6).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_slot_0 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_slot_32 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 0) (roundCL a c rc 19).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 32) (roundCL a c rc 7).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_168 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 168) (roundCL a c rc 8).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_24 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 24) (roundCL a c rc 9).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_48 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 48) (roundCL a c rc 10).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_56 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 56) (roundCL a c rc 11).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_40 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 40) (roundCL a c rc 13).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
@@ -1031,8 +979,60 @@ theorem second_slot_112 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 112) (roundCL a c rc 21).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 112) (roundCL a c rc 14).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_72 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 72) (roundCL a c rc 15).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_8 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 8) (roundCL a c rc 17).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_0 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 0) (roundCL a c rc 19).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_88 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 88) (roundCL a c rc 20).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
 
 set_option linter.unusedSimpArgs false in
@@ -1044,9 +1044,52 @@ theorem second_slot_104 [Labels] {env : Env} {m : MachineData} {S : SState} {x :
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    WordAt m.dmem (b + BitVec.ofNat 64 104) (roundCL a c rc 23).toBitVec := by
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 104) (roundCL a c rc 21).toBitVec := by
   second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_slot_96 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    WordAt m.dmem (b + BitVec.ofNat 64 96) (roundCL a c rc 23).toBitVec := by
+  second_lane hx hm hb hregs hslots hpar hrc hrot slot
+
+set_option linter.unusedSimpArgs false in
+set_option linter.unusedVariables false in
+theorem second_parity_rax [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
+    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
+    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
+    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
+    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
+    (hrc : env.load 1 8 8 = rc.toBitVec)
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .rax = (newPar a c rc 0).toBitVec := by
+  have h0 := second_reg_r13 hx hm hb hregs hslots hpar hrc hrot
+  have h5 := second_slot_80 hx hm hb hregs hslots hpar hrc hrot
+  have h10 := second_slot_48 hx hm hb hregs hslots hpar hrc hrot
+  have h15 := second_slot_72 hx hm hb hregs hslots hpar hrc hrot
+  have h20 := second_slot_88 hx hm hb hregs hslots hpar hrc hrot
+  rw [secondBody] at hx
+  cases hx
+  have e0 := (hm.regs .r13 _ rfl).symm.trans h0
+  have e5 := wordAt_eq (wordAt_write hm hb (o := 80) (by decide) rfl) h5
+  have e10 := wordAt_eq (wordAt_write hm hb (o := 48) (by decide) rfl) h10
+  have e15 := wordAt_eq (wordAt_write hm hb (o := 72) (by decide) rfl) h15
+  have e20 := wordAt_eq (wordAt_write hm hb (o := 88) (by decide) rfl) h20
+  refine (hm.regs .rax _ rfl).trans ?_
+  simp only [newPar, UInt64.toBitVec_xor]
+  rw [← e0, ← e5, ← e10, ← e15, ← e20]
+  clear hm
+  simp only [eval_xor]
+  ac_rfl
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
@@ -1057,81 +1100,50 @@ theorem second_parity_r14 [Labels] {env : Env} {m : MachineData} {S : SState} {x
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r14 = (newPar a c rc 0).toBitVec := by
-  have h0 := second_slot_88 hx hm hb hregs hslots hpar hrc hrot
-  have h5 := second_slot_40 hx hm hb hregs hslots hpar hrc hrot
-  have h10 := second_slot_32 hx hm hb hregs hslots hpar hrc hrot
-  have h15 := second_slot_168 hx hm hb hregs hslots hpar hrc hrot
-  have h20 := second_reg_r10 hx hm hb hregs hslots hpar hrc hrot
-  rw [secondBody] at hx
-  cases hx
-  have e0 := wordAt_eq (wordAt_write hm hb (o := 88) (by decide) rfl) h0
-  have e5 := wordAt_eq (wordAt_write hm hb (o := 40) (by decide) rfl) h5
-  have e10 := wordAt_eq (wordAt_write hm hb (o := 32) (by decide) rfl) h10
-  have e15 := wordAt_eq (wordAt_write hm hb (o := 168) (by decide) rfl) h15
-  have e20 := (hm.regs .r10 _ rfl).symm.trans h20
-  refine (hm.regs .r14 _ rfl).trans ?_
-  simp only [newPar, UInt64.toBitVec_xor]
-  rw [← e0, ← e5, ← e10, ← e15, ← e20]
-  clear hm
-  simp only [eval_xor]
-  ac_rfl
-
-set_option linter.unusedSimpArgs false in
-set_option linter.unusedVariables false in
-theorem second_parity_r9 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
-    (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
-    {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
-    (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
-    (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
-    (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
-    (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r9 = (newPar a c rc 1).toBitVec := by
-  have h1 := second_slot_144 hx hm hb hregs hslots hpar hrc hrot
-  have h6 := second_slot_8 hx hm hb hregs hslots hpar hrc hrot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r14 = (newPar a c rc 1).toBitVec := by
+  have h1 := second_reg_r10 hx hm hb hregs hslots hpar hrc hrot
+  have h6 := second_slot_16 hx hm hb hregs hslots hpar hrc hrot
   have h11 := second_slot_56 hx hm hb hregs hslots hpar hrc hrot
-  have h16 := second_slot_80 hx hm hb hregs hslots hpar hrc hrot
-  have h21 := second_slot_112 hx hm hb hregs hslots hpar hrc hrot
+  have h16 := second_reg_rdx hx hm hb hregs hslots hpar hrc hrot
+  have h21 := second_slot_104 hx hm hb hregs hslots hpar hrc hrot
   rw [secondBody] at hx
   cases hx
-  have e1 := wordAt_eq (wordAt_write hm hb (o := 144) (by decide) rfl) h1
-  have e6 := wordAt_eq (wordAt_write hm hb (o := 8) (by decide) rfl) h6
+  have e1 := (hm.regs .r10 _ rfl).symm.trans h1
+  have e6 := wordAt_eq (wordAt_write hm hb (o := 16) (by decide) rfl) h6
   have e11 := wordAt_eq (wordAt_write hm hb (o := 56) (by decide) rfl) h11
-  have e16 := wordAt_eq (wordAt_write hm hb (o := 80) (by decide) rfl) h16
-  have e21 := wordAt_eq (wordAt_write hm hb (o := 112) (by decide) rfl) h21
-  refine (hm.regs .r9 _ rfl).trans ?_
+  have e16 := (hm.regs .rdx _ rfl).symm.trans h16
+  have e21 := wordAt_eq (wordAt_write hm hb (o := 104) (by decide) rfl) h21
+  refine (hm.regs .r14 _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e1, ← e6, ← e11, ← e16, ← e21]
   clear hm
   simp only [eval_xor]
-  ac_rfl
 
 set_option linter.unusedSimpArgs false in
 set_option linter.unusedVariables false in
-theorem second_parity_r13 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
+theorem second_parity_r15 [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
     (hx : exec secondHalf startMid = some (S, x)) (hm : Match env S m)
     {b : BitVec 64} (hb : env.regions[0]? = some (b, 296)) {a c : Nat → UInt64} {rc : UInt64}
     (hregs : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (a p.2).toBitVec) midLaneRegs)
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
-    m.regs.get64 .r13 = (newPar a c rc 2).toBitVec := by
-  have h2 := second_slot_152 hx hm hb hregs hslots hpar hrc hrot
-  have h7 := second_slot_16 hx hm hb hregs hslots hpar hrc hrot
-  have h12 := second_reg_rsi hx hm hb hregs hslots hpar hrc hrot
-  have h17 := second_slot_72 hx hm hb hregs hslots hpar hrc hrot
-  have h22 := second_reg_rax hx hm hb hregs hslots hpar hrc hrot
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
+    m.regs.get64 .r15 = (newPar a c rc 2).toBitVec := by
+  have h2 := second_slot_64 hx hm hb hregs hslots hpar hrc hrot
+  have h7 := second_slot_32 hx hm hb hregs hslots hpar hrc hrot
+  have h12 := second_reg_rbx hx hm hb hregs hslots hpar hrc hrot
+  have h17 := second_slot_8 hx hm hb hregs hslots hpar hrc hrot
+  have h22 := second_reg_r11 hx hm hb hregs hslots hpar hrc hrot
   rw [secondBody] at hx
   cases hx
-  have e2 := wordAt_eq (wordAt_write hm hb (o := 152) (by decide) rfl) h2
-  have e7 := wordAt_eq (wordAt_write hm hb (o := 16) (by decide) rfl) h7
-  have e12 := (hm.regs .rsi _ rfl).symm.trans h12
-  have e17 := wordAt_eq (wordAt_write hm hb (o := 72) (by decide) rfl) h17
-  have e22 := (hm.regs .rax _ rfl).symm.trans h22
-  refine (hm.regs .r13 _ rfl).trans ?_
+  have e2 := wordAt_eq (wordAt_write hm hb (o := 64) (by decide) rfl) h2
+  have e7 := wordAt_eq (wordAt_write hm hb (o := 32) (by decide) rfl) h7
+  have e12 := (hm.regs .rbx _ rfl).symm.trans h12
+  have e17 := wordAt_eq (wordAt_write hm hb (o := 8) (by decide) rfl) h17
+  have e22 := (hm.regs .r11 _ rfl).symm.trans h22
+  refine (hm.regs .r15 _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e2, ← e7, ← e12, ← e17, ← e22]
   clear hm
@@ -1147,20 +1159,20 @@ theorem second_parity_rbp [Labels] {env : Env} {m : MachineData} {S : SState} {x
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
     m.regs.get64 .rbp = (newPar a c rc 3).toBitVec := by
-  have h3 := second_reg_r11 hx hm hb hregs hslots hpar hrc hrot
-  have h8 := second_slot_160 hx hm hb hregs hslots hpar hrc hrot
-  have h13 := second_slot_64 hx hm hb hregs hslots hpar hrc hrot
-  have h18 := second_reg_r8 hx hm hb hregs hslots hpar hrc hrot
-  have h23 := second_slot_104 hx hm hb hregs hslots hpar hrc hrot
+  have h3 := second_reg_r8 hx hm hb hregs hslots hpar hrc hrot
+  have h8 := second_slot_168 hx hm hb hregs hslots hpar hrc hrot
+  have h13 := second_slot_40 hx hm hb hregs hslots hpar hrc hrot
+  have h18 := second_reg_r12 hx hm hb hregs hslots hpar hrc hrot
+  have h23 := second_slot_96 hx hm hb hregs hslots hpar hrc hrot
   rw [secondBody] at hx
   cases hx
-  have e3 := (hm.regs .r11 _ rfl).symm.trans h3
-  have e8 := wordAt_eq (wordAt_write hm hb (o := 160) (by decide) rfl) h8
-  have e13 := wordAt_eq (wordAt_write hm hb (o := 64) (by decide) rfl) h13
-  have e18 := (hm.regs .r8 _ rfl).symm.trans h18
-  have e23 := wordAt_eq (wordAt_write hm hb (o := 104) (by decide) rfl) h23
+  have e3 := (hm.regs .r8 _ rfl).symm.trans h3
+  have e8 := wordAt_eq (wordAt_write hm hb (o := 168) (by decide) rfl) h8
+  have e13 := wordAt_eq (wordAt_write hm hb (o := 40) (by decide) rfl) h13
+  have e18 := (hm.regs .r12 _ rfl).symm.trans h18
+  have e23 := wordAt_eq (wordAt_write hm hb (o := 96) (by decide) rfl) h23
   refine (hm.regs .rbp _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e3, ← e8, ← e13, ← e18, ← e23]
@@ -1177,20 +1189,20 @@ theorem second_parity_rcx [Labels] {env : Env} {m : MachineData} {S : SState} {x
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
     m.regs.get64 .rcx = (newPar a c rc 4).toBitVec := by
-  have h4 := second_reg_r15 hx hm hb hregs hslots hpar hrc hrot
-  have h9 := second_slot_48 hx hm hb hregs hslots hpar hrc hrot
-  have h14 := second_slot_24 hx hm hb hregs hslots hpar hrc hrot
+  have h4 := second_slot_160 hx hm hb hregs hslots hpar hrc hrot
+  have h9 := second_slot_24 hx hm hb hregs hslots hpar hrc hrot
+  have h14 := second_slot_112 hx hm hb hregs hslots hpar hrc hrot
   have h19 := second_slot_0 hx hm hb hregs hslots hpar hrc hrot
-  have h24 := second_reg_rbx hx hm hb hregs hslots hpar hrc hrot
+  have h24 := second_reg_r9 hx hm hb hregs hslots hpar hrc hrot
   rw [secondBody] at hx
   cases hx
-  have e4 := (hm.regs .r15 _ rfl).symm.trans h4
-  have e9 := wordAt_eq (wordAt_write hm hb (o := 48) (by decide) rfl) h9
-  have e14 := wordAt_eq (wordAt_write hm hb (o := 24) (by decide) rfl) h14
+  have e4 := wordAt_eq (wordAt_write hm hb (o := 160) (by decide) rfl) h4
+  have e9 := wordAt_eq (wordAt_write hm hb (o := 24) (by decide) rfl) h9
+  have e14 := wordAt_eq (wordAt_write hm hb (o := 112) (by decide) rfl) h14
   have e19 := wordAt_eq (wordAt_write hm hb (o := 0) (by decide) rfl) h19
-  have e24 := (hm.regs .rbx _ rfl).symm.trans h24
+  have e24 := (hm.regs .r9 _ rfl).symm.trans h24
   refine (hm.regs .rcx _ rfl).trans ?_
   simp only [newPar, UInt64.toBitVec_xor]
   rw [← e4, ← e9, ← e14, ← e19, ← e24]
@@ -1205,15 +1217,16 @@ theorem second_regs [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exi
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
     AllOf (fun p : Reg64 × Nat => m.regs.get64 p.1 = (roundCL a c rc p.2).toBitVec) laneRegs :=
-  ⟨second_reg_r11 hx hm hb hregs hslots hpar hrc hrot,
-    second_reg_r15 hx hm hb hregs hslots hpar hrc hrot,
-    second_reg_rsi hx hm hb hregs hslots hpar hrc hrot,
-    second_reg_r8 hx hm hb hregs hslots hpar hrc hrot,
+  ⟨second_reg_r13 hx hm hb hregs hslots hpar hrc hrot,
     second_reg_r10 hx hm hb hregs hslots hpar hrc hrot,
-    second_reg_rax hx hm hb hregs hslots hpar hrc hrot,
+    second_reg_r8 hx hm hb hregs hslots hpar hrc hrot,
     second_reg_rbx hx hm hb hregs hslots hpar hrc hrot,
+    second_reg_rdx hx hm hb hregs hslots hpar hrc hrot,
+    second_reg_r12 hx hm hb hregs hslots hpar hrc hrot,
+    second_reg_r11 hx hm hb hregs hslots hpar hrc hrot,
+    second_reg_r9 hx hm hb hregs hslots hpar hrc hrot,
     trivial⟩
 
 theorem second_slots [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
@@ -1223,27 +1236,26 @@ theorem second_slots [Labels] {env : Env} {m : MachineData} {S : SState} {x : Ex
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
     AllOf (fun p : Nat × Nat => WordAt m.dmem (b + BitVec.ofNat 64 p.1)
       (roundCL a c rc p.2).toBitVec) laneSlots :=
-  ⟨second_slot_88 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_144 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_152 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_40 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_8 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_16 hx hm hb hregs hslots hpar hrc hrot,
+  ⟨second_slot_64 hx hm hb hregs hslots hpar hrc hrot,
     second_slot_160 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_48 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_32 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_56 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_64 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_24 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_168 hx hm hb hregs hslots hpar hrc hrot,
     second_slot_80 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_72 hx hm hb hregs hslots hpar hrc hrot,
-    second_slot_0 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_16 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_32 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_168 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_24 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_48 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_56 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_40 hx hm hb hregs hslots hpar hrc hrot,
     second_slot_112 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_72 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_8 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_0 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_88 hx hm hb hregs hslots hpar hrc hrot,
     second_slot_104 hx hm hb hregs hslots hpar hrc hrot,
+    second_slot_96 hx hm hb hregs hslots hpar hrc hrot,
     trivial⟩
 
 theorem second_par [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit}
@@ -1253,11 +1265,11 @@ theorem second_par [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit
     (hslots : AllOf (fun p : Nat × Nat => env.load 0 p.1 8 = (a p.2).toBitVec) midLaneSlots)
     (hpar : AllOf (fun p : Reg64 × Nat => env.regs p.1 = (c p.2).toBitVec) midParRegs)
     (hrc : env.load 1 8 8 = rc.toBitVec)
-    (hrot : env.regs .rbx = (c 3).toBitVec.rotateLeft 1) :
+    (hrot : env.regs .r9 = (c 3).toBitVec.rotateLeft 1) :
     AllOf (fun p : Reg64 × Nat => m.regs.get64 p.1 = (newPar a c rc p.2).toBitVec) parRegs :=
-  ⟨second_parity_r14 hx hm hb hregs hslots hpar hrc hrot,
-    second_parity_r9 hx hm hb hregs hslots hpar hrc hrot,
-    second_parity_r13 hx hm hb hregs hslots hpar hrc hrot,
+  ⟨second_parity_rax hx hm hb hregs hslots hpar hrc hrot,
+    second_parity_r14 hx hm hb hregs hslots hpar hrc hrot,
+    second_parity_r15 hx hm hb hregs hslots hpar hrc hrot,
     second_parity_rbp hx hm hb hregs hslots hpar hrc hrot,
     second_parity_rcx hx hm hb hregs hslots hpar hrc hrot,
     trivial⟩

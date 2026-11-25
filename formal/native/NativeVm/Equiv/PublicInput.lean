@@ -3,6 +3,7 @@ module
 public import NativeVm.Equiv.LayoutSpec
 public import NativeVm.Equiv.Transcript
 public import NativeVm.Model.PublicInput
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 5: the public input

@@ -1,11 +1,12 @@
 module
 
 public import NativeVm.Model.Transcript
+public import Statement.Verifier.Layout
 
 /-!
 # Phase 1: the announced sizes and the layout
 
-Models `readAnnouncedSizes` and `buildLayout` (`Statement/LeanVmVerifier.lean`, `layout.rs`).
+Models `readAnnouncedSizes` and `buildLayout` (`Statement/Verifier/Lib.lean`, `Statement/Verifier/Layout.lean`, `layout.rs`).
 
 **Takes** the bytecode's words and the transcript at the stream's start. **Reads** `2 + 6`
 scalars. **Returns** `(LayoutW, logInverseRate)`: the memory's and the bytecode's log-sizes, the

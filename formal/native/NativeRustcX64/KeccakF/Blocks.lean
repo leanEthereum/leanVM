@@ -35,12 +35,12 @@ def startPro : SState := init [296, 200] [(.rsp, .ptr 0 288), (.rdi, .ptr 1 0)]
 /-- The loop head's. -/
 def startBody : SState :=
   init [296, 16] [(.rsp, .ptr 0 128)] [] []
-    [(.bin .add .W64 (.reg .rdi) (.label NativeRustcX64.roundConstantsLabel), 1, 8)]
+    [(.bin .add .W64 (.load 0 176 8) (.label NativeRustcX64.roundConstantsLabel), 1, 8)]
 
 /-- The second round, with its counter saved in the frame. -/
 def startMid : SState :=
   init [296, 16] [(.rsp, .ptr 0 128)] [] []
-    [(.bin .add .W64 (.load 0 192 8) (.label NativeRustcX64.roundConstantsLabel), 1, 8)]
+    [(.bin .add .W64 (.load 0 176 8) (.label NativeRustcX64.roundConstantsLabel), 1, 8)]
 
 def firstHalf : List Directive := Common.KeccakF.b1.take 245
 def secondHalf : List Directive := Common.KeccakF.b1.drop 245

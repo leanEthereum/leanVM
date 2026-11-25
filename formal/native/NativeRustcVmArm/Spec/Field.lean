@@ -9,7 +9,7 @@ public import NativeRustcVmArm.Code.Vm.Kmul.Names
 public import NativeRustcVmArm.Code.Vm.Kpow.Names
 public import NativeRustcArm.Spec.Keccak
 public import NativeVm.Model.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Multilinear
 
 /-!
 # The contracts of `field.rs`'s functions on AArch64

@@ -77,50 +77,49 @@ theorem epilogue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : Machin
   have hregs := hA.regs
   have hslots := hA.slots
   simp only [AllOf, laneRegs, laneSlots] at hregs hslots
-  obtain ⟨h3, h4, h12, h18, h20, h22, h24, -⟩ := hregs
-  obtain ⟨h0, h1, h2, h5, h6, h7, h8, h9, h10, h11, h13, h14, h15, h16, h17, h19, h21, h23, -⟩ := hslots
-  have e3 : env.regs .r11 = (Keccak.lane (stAfter m0 24) 3).toBitVec := h3
-  have e4 : env.regs .r15 = (Keccak.lane (stAfter m0 24) 4).toBitVec := h4
-  have e12 : env.regs .rsi = (Keccak.lane (stAfter m0 24) 12).toBitVec := h12
-  have e18 : env.regs .r8 = (Keccak.lane (stAfter m0 24) 18).toBitVec := h18
-  have e20 : env.regs .r10 = (Keccak.lane (stAfter m0 24) 20).toBitVec := h20
-  have e22 : env.regs .rax = (Keccak.lane (stAfter m0 24) 22).toBitVec := h22
-  have e24 : env.regs .rbx = (Keccak.lane (stAfter m0 24) 24).toBitVec := h24
-  have e0 : env.load 0 88 8 = (Keccak.lane (stAfter m0 24) 0).toBitVec :=
-    load_of_wordAt (r := 0) h0
-  have e1 : env.load 0 144 8 = (Keccak.lane (stAfter m0 24) 1).toBitVec :=
-    load_of_wordAt (r := 0) h1
-  have e2 : env.load 0 152 8 = (Keccak.lane (stAfter m0 24) 2).toBitVec :=
+  obtain ⟨h0, h1, h3, h12, h16, h18, h22, h24, -⟩ := hregs
+  obtain ⟨h2, h4, h5, h6, h7, h8, h9, h10, h11, h13, h14, h15, h17, h19, h20, h21, h23, -⟩ := hslots
+  have e0 : env.regs .r13 = (Keccak.lane (stAfter m0 24) 0).toBitVec := h0
+  have e1 : env.regs .r10 = (Keccak.lane (stAfter m0 24) 1).toBitVec := h1
+  have e3 : env.regs .r8 = (Keccak.lane (stAfter m0 24) 3).toBitVec := h3
+  have e12 : env.regs .rbx = (Keccak.lane (stAfter m0 24) 12).toBitVec := h12
+  have e16 : env.regs .rdx = (Keccak.lane (stAfter m0 24) 16).toBitVec := h16
+  have e18 : env.regs .r12 = (Keccak.lane (stAfter m0 24) 18).toBitVec := h18
+  have e22 : env.regs .r11 = (Keccak.lane (stAfter m0 24) 22).toBitVec := h22
+  have e24 : env.regs .r9 = (Keccak.lane (stAfter m0 24) 24).toBitVec := h24
+  have e2 : env.load 0 64 8 = (Keccak.lane (stAfter m0 24) 2).toBitVec :=
     load_of_wordAt (r := 0) h2
-  have e5 : env.load 0 40 8 = (Keccak.lane (stAfter m0 24) 5).toBitVec :=
+  have e4 : env.load 0 160 8 = (Keccak.lane (stAfter m0 24) 4).toBitVec :=
+    load_of_wordAt (r := 0) h4
+  have e5 : env.load 0 80 8 = (Keccak.lane (stAfter m0 24) 5).toBitVec :=
     load_of_wordAt (r := 0) h5
-  have e6 : env.load 0 8 8 = (Keccak.lane (stAfter m0 24) 6).toBitVec :=
+  have e6 : env.load 0 16 8 = (Keccak.lane (stAfter m0 24) 6).toBitVec :=
     load_of_wordAt (r := 0) h6
-  have e7 : env.load 0 16 8 = (Keccak.lane (stAfter m0 24) 7).toBitVec :=
+  have e7 : env.load 0 32 8 = (Keccak.lane (stAfter m0 24) 7).toBitVec :=
     load_of_wordAt (r := 0) h7
-  have e8 : env.load 0 160 8 = (Keccak.lane (stAfter m0 24) 8).toBitVec :=
+  have e8 : env.load 0 168 8 = (Keccak.lane (stAfter m0 24) 8).toBitVec :=
     load_of_wordAt (r := 0) h8
-  have e9 : env.load 0 48 8 = (Keccak.lane (stAfter m0 24) 9).toBitVec :=
+  have e9 : env.load 0 24 8 = (Keccak.lane (stAfter m0 24) 9).toBitVec :=
     load_of_wordAt (r := 0) h9
-  have e10 : env.load 0 32 8 = (Keccak.lane (stAfter m0 24) 10).toBitVec :=
+  have e10 : env.load 0 48 8 = (Keccak.lane (stAfter m0 24) 10).toBitVec :=
     load_of_wordAt (r := 0) h10
   have e11 : env.load 0 56 8 = (Keccak.lane (stAfter m0 24) 11).toBitVec :=
     load_of_wordAt (r := 0) h11
-  have e13 : env.load 0 64 8 = (Keccak.lane (stAfter m0 24) 13).toBitVec :=
+  have e13 : env.load 0 40 8 = (Keccak.lane (stAfter m0 24) 13).toBitVec :=
     load_of_wordAt (r := 0) h13
-  have e14 : env.load 0 24 8 = (Keccak.lane (stAfter m0 24) 14).toBitVec :=
+  have e14 : env.load 0 112 8 = (Keccak.lane (stAfter m0 24) 14).toBitVec :=
     load_of_wordAt (r := 0) h14
-  have e15 : env.load 0 168 8 = (Keccak.lane (stAfter m0 24) 15).toBitVec :=
+  have e15 : env.load 0 72 8 = (Keccak.lane (stAfter m0 24) 15).toBitVec :=
     load_of_wordAt (r := 0) h15
-  have e16 : env.load 0 80 8 = (Keccak.lane (stAfter m0 24) 16).toBitVec :=
-    load_of_wordAt (r := 0) h16
-  have e17 : env.load 0 72 8 = (Keccak.lane (stAfter m0 24) 17).toBitVec :=
+  have e17 : env.load 0 8 8 = (Keccak.lane (stAfter m0 24) 17).toBitVec :=
     load_of_wordAt (r := 0) h17
   have e19 : env.load 0 0 8 = (Keccak.lane (stAfter m0 24) 19).toBitVec :=
     load_of_wordAt (r := 0) h19
-  have e21 : env.load 0 112 8 = (Keccak.lane (stAfter m0 24) 21).toBitVec :=
+  have e20 : env.load 0 88 8 = (Keccak.lane (stAfter m0 24) 20).toBitVec :=
+    load_of_wordAt (r := 0) h20
+  have e21 : env.load 0 104 8 = (Keccak.lane (stAfter m0 24) 21).toBitVec :=
     load_of_wordAt (r := 0) h21
-  have e23 : env.load 0 104 8 = (Keccak.lane (stAfter m0 24) 23).toBitVec :=
+  have e23 : env.load 0 96 8 = (Keccak.lane (stAfter m0 24) 23).toBitVec :=
     load_of_wordAt (r := 0) h23
   have t240 : env.load 0 240 8 = m0.regs.get64 .rbx := load_of_wordAt (r := 0) s240
   have t248 : env.load 0 248 8 = m0.regs.get64 .r12 := load_of_wordAt (r := 0) s248

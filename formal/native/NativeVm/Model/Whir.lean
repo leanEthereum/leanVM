@@ -5,7 +5,7 @@ public import NativeVm.Model.RingSwitch
 /-!
 # Phase 7b: the stacked opening
 
-Models `verifyStackedOpening`, `verifyWhir` and `whirLevels` (`Statement/LeanVmVerifier.lean`,
+Models `verifyStackedOpening`, `verifyWhir` and `whirLevels` (`Statement/Verifier/Whir.lean`,
 `lib.rs`, `whir.rs`), with `sampleQueries`, `extRow`, `subspaceRoots`, `subspaceAt`, `novelBasis`,
 `novelEval`, `foldRound`, `foldLanes`, `foldRow`, `inducedWeight` and `glueLevel`.
 

@@ -6,7 +6,7 @@ public import NativeVm.Model.Layout
 # Forms and bus blocks: the model's words as the statement's values
 
 `FormW.toForm` reads a model form (`FormW`, `NativeVm/Model/Layout.lean`) as the statement's `Form`
-(`Statement/LeanVmVerifier.lean`): its terms in order, each monomial as a list, each coefficient
+(`Statement/Verifier/Layout.lean`): its terms in order, each monomial as a list, each coefficient
 through `EW.toE`. `BusBlockW.toSpec` reads a bus block the same way.
 -/
 

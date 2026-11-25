@@ -10,7 +10,7 @@ public import NativeRustcX64.KeccakF.Blocks
 inevitably reaches the round loop's head with the loop invariant before the first round
 (`At m0 0`): the prologue (`prologue`, run in the environment of the entry state with the frame
 and the state as regions) pushes the callee-saved registers, stores the state pointer, initializes
-the register counter to 8, loads the 25 lanes into registers and frame slots, and XORs the column
+the counter slot to 8, loads the lanes into registers and frame slots, and XORs the column
 parities.
 -/
 
@@ -97,15 +97,15 @@ theorem prologue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : Machin
   refine exec_then hk prologue hwf nofun hm fun st hm' hpc => .done _ ⟨?_, hpc⟩
   refine ⟨(hm'.regs .rsp _ rfl).trans rfl, ?_, ?_, ?_, ?_, ?_, ?_,
     same_region hm' hwf hb0 (by decide) (by decide), hm'.kept hwf⟩
-  · exact (hm'.regs .rdi _ rfl).trans rfl
+  · exact wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) rfl
   · refine wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) ?_
     exact BitVec.add_zero _
   all_goals simp only [AllOf, laneRegs, laneSlots, parRegs, savedSlots]
-  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
+  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
     · refine (hm'.regs _ _ rfl).trans ?_
       sym_simp
       simp only [hl0, hl1, hl2, hl3, hl4, hl5, hl6, hl7, hl8, hl9, hl10, hl11, hl12, hl13, hl14, hl15, hl16, hl17, hl18, hl19, hl20, hl21, hl22, hl23, hl24]
-  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
+  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
     · refine wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) ?_
       sym_simp
       simp only [hl0, hl1, hl2, hl3, hl4, hl5, hl6, hl7, hl8, hl9, hl10, hl11, hl12, hl13, hl14, hl15, hl16, hl17, hl18, hl19, hl20, hl21, hl22, hl23, hl24]

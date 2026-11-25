@@ -101,14 +101,14 @@ theorem prologue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : Machin
     simp only [Sym.eval]
     rw [show BitVec.ofInt 64 0 = 0#64 from rfl, BitVec.add_zero]
     rfl
-  · rw [hm'.regs .X27 _ rfl]
+  · rw [hm'.regs .X17 _ rfl]
     rfl
   all_goals simp only [AllOf, laneRegs, laneSlots, parRegs, savedSlots]
-  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
+  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
     · refine (hm'.regs _ _ rfl).trans ?_
       sym_simp
       simp only [hl0, hl1, hl2, hl3, hl4, hl5, hl6, hl7, hl8, hl9, hl10, hl11, hl12, hl13, hl14, hl15, hl16, hl17, hl18, hl19, hl20, hl21, hl22, hl23, hl24]
-  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
+  · refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
     · refine wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) ?_
       sym_simp
       simp only [hl0, hl1, hl2, hl3, hl4, hl5, hl6, hl7, hl8, hl9, hl10, hl11, hl12, hl13, hl14, hl15, hl16, hl17, hl18, hl19, hl20, hl21, hl22, hl23, hl24]

@@ -5,15 +5,11 @@ public import NativeVm.Model.KeccakGkr
 /-!
 # The embedding's tables as literals
 
-`rmfeEmbed` and `rmfeProject` (`Statement/LeanVmVerifier.lean`, `rmfe`) are the statement's
-search: per factor of `rmfeFactors`, an inverse found by `List.find?` over at most `31` candidates,
-the Chinese remainder lift, and the projection's masks. The kernel evaluates it in a fraction of a
-second (`decide +kernel`, on natural-number literals and no Keccak), so the certificate is the
-literals themselves: `rmfeEmbed_eq` and `rmfeProject_eq`, as `lean_vm`'s
-`LeanVM.Protocol.KeccakGkr.rmfeEmbed_eq` states them. The model's words (`rmfeEmbedW`,
-`rmfeProjectW`) are then the literal word tables the native code holds (`rmfeEmbedW_eq`,
-`rmfeProjectW_eq`), and a word's bit is the number's (`testBitW_toUInt64`): every entry is below
-`2^64`, so its bits below `64` are the number's.
+`rmfeEmbed` and `rmfeProject` (`Statement/Verifier/Keccak.lean`, `rmfe`) are the statement's
+literal tables. `rmfeEmbed_eq` and `rmfeProject_eq` identify them with their decimal forms.
+The model's words (`rmfeEmbedW`, `rmfeProjectW`) are then the literal word tables the native
+code holds (`rmfeEmbedW_eq`, `rmfeProjectW_eq`), and a word's bit is the number's
+(`testBitW_toUInt64`): every entry is below `2^64`, so its bits below `64` are the number's.
 -/
 
 public section
@@ -32,11 +28,9 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier NativeVm.Model
   60819261648545, 20682647020959, 30409630824272, 11891857888673, 6939470531743, 76314673122000,
   70368744177664]
 
-set_option maxRecDepth 100000 in
-theorem rmfeEmbed_eq : rmfeEmbed = rmfeEmbedLit := by decide +kernel
+theorem rmfeEmbed_eq : rmfeEmbed = rmfeEmbedLit := by rfl
 
-set_option maxRecDepth 100000 in
-theorem rmfeProject_eq : rmfeProject = rmfeProjectLit := by decide +kernel
+theorem rmfeProject_eq : rmfeProject = rmfeProjectLit := by rfl
 
 theorem rmfeEmbed_length : rmfeEmbed.length = 16 := by rw [rmfeEmbed_eq]; rfl
 

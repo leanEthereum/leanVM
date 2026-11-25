@@ -12,8 +12,8 @@ public meta import NativeRustcX64.Code.Common.KeccakF
 
 The loop body of rustc's x86-64 `keccak_f` (`NativeRustcX64.Common.KeccakF.b1`) computes two
 rounds, with stack traffic below and above RSP and memory operands in `xor`. Region 0 is its
-stack frame (RSP at offset 128), region 1 the round-constant table, and RDI the next round's
-constant offset.
+stack frame (RSP at offset 128), region 1 the round-constant table, and stack offset 176 holds
+the next round's constant offset.
 -/
 
 namespace NativeRustcX64.Sym.Test.Keccak
@@ -23,10 +23,10 @@ set_option Elab.async false
 open NativeRustcX64.Common.KeccakF
 
 
-/-- Before rounds `i` and `i + 1`: RSP at offset 128, RDI `8 * i + 8`, the constants in region 1. -/
+/-- Before rounds `i` and `i + 1`: RSP at offset 128, the saved counter `8 * i + 8`. -/
 def atRound (i : Nat) : SState :=
-  init [296, 192] [(.rsp, .ptr 0 128), (.rdi, .lit (8 * i + 8))]
-    [(NativeRustcX64.roundConstantsLabel, 1)]
+  { init [296, 192] [(.rsp, .ptr 0 128)] [(NativeRustcX64.roundConstantsLabel, 1)] with
+    known := [⟨0, 176, 8, .lit (8 * i + 8)⟩] }
 
 sym_block round0_exec := exec b1 (atRound 0)
 

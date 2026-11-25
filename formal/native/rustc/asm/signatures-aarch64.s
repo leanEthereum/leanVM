@@ -2835,26 +2835,26 @@ sphincs_verify:
 	cset	w0, eq
 	b	.LBB3_92
 .LBB3_87:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_88:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x25
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_89:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.12
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x25
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_90:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x24
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
@@ -2886,21 +2886,21 @@ sphincs_verify:
 	ret
 .LBB3_93:
 	.cfi_restore_state
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.12
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x24
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_94:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x23
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB3_95:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.12
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x23
 	mov	w2, #136
@@ -3379,138 +3379,138 @@ _RNvCsndc0WgnAaH_9keccak2568keccak_f:
 	.cfi_offset w28, -80
 	.cfi_offset w30, -96
 	ldp	x15, x8, [x0, #32]
-	mov	x27, xzr
-	ldp	x5, x12, [x0, #112]
-	str	x0, [sp, #8]
+	mov	x17, xzr
+	ldp	x5, x18, [x0, #112]
+	ldr	x27, [x0, #192]
 	ldp	x9, x10, [x0]
-	ldp	x11, x2, [x0, #80]
+	str	x0, [sp, #8]
 	mov	x22, x15
+	str	x8, [sp, #72]
+	ldp	x11, x2, [x0, #80]
 	ldp	x4, x13, [x0, #48]
-	str	x8, [sp, #80]
 	eor	x8, x8, x9
-	str	x12, [sp, #40]
 	ldp	x19, x3, [x0, #128]
-	stp	x11, x9, [sp, #48]
-	eor	x9, x11, x12
-	stp	x30, x10, [sp, #96]
+	stp	x10, x30, [sp, #88]
+	stp	x11, x9, [sp, #40]
+	eor	x9, x11, x18
 	ldp	x11, x14, [x0, #16]
 	eor	x8, x8, x9
 	ldp	x1, x7, [x0, #96]
 	eor	x9, x4, x10
-	ldp	x25, x21, [x0, #144]
+	ldp	x25, x20, [x0, #144]
 	eor	x10, x2, x19
 	ldp	x12, x6, [x0, #64]
 	eor	x9, x9, x10
-	str	x11, [sp, #88]
+	str	x11, [sp, #80]
 	eor	x10, x13, x11
 	eor	x11, x1, x3
-	stp	x14, x13, [sp, #64]
+	ldp	x23, x21, [x0, #160]
 	eor	x10, x10, x11
-	eor	x13, x7, x25
+	stp	x14, x13, [sp, #56]
+	ldp	x16, x24, [x0, #176]
 	eor	x11, x12, x14
-	ldp	x23, x18, [x0, #160]
-	ldp	x16, x20, [x0, #176]
+	eor	x13, x7, x25
+	eor	x14, x5, x20
 	eor	x11, x11, x13
 	eor	x13, x6, x15
-	eor	x14, x5, x21
-	eor	x13, x13, x14
-	ldr	x14, [x0, #192]
 	eor	x28, x8, x23
-	eor	x30, x9, x18
+	eor	x13, x13, x14
+	eor	x30, x9, x21
 	eor	x8, x10, x16
-	eor	x15, x11, x20
-	eor	x0, x13, x14
+	eor	x15, x11, x24
+	eor	x0, x13, x27
 .LBB9_1:
-	str	x5, [sp, #32]
+	stp	x24, x5, [sp, #16]
 	mov	x24, x2
 	eor	x2, x0, x30, ror #63
 	mov	x26, x3
 	eor	x3, x30, x15, ror #63
 	eor	x30, x28, x8, ror #63
 	eor	x5, x8, x0, ror #63
-	ldr	x8, [sp, #56]
-	stp	x12, x18, [sp, #16]
+	ldr	x8, [sp, #48]
+	str	x21, [sp, #32]
+	mov	x21, x12
 	eor	x15, x15, x28, ror #63
 	eor	x9, x1, x3
-	ldr	x13, [sp, #104]
 	eor	x12, x8, x2
 	eor	x8, x4, x30
 	eor	x10, x25, x5
 	ror	x4, x8, #20
+	ldr	x8, [sp, #56]
 	ror	x1, x10, #43
-	ldr	x8, [sp, #64]
-	ldr	x10, [sp, #48]
-	eor	x11, x14, x15
+	ldr	x10, [sp, #40]
+	str	x17, [sp, #104]
+	eor	x11, x27, x15
 	ror	x17, x9, #21
-	eor	x9, x6, x15
-	ror	x18, x11, #50
 	eor	x8, x8, x5
+	eor	x9, x6, x15
+	ldr	x13, [sp, #88]
+	mov	x28, x18
+	ror	x18, x11, #50
 	eor	x11, x10, x2
-	ror	x10, x9, #44
-	eor	x9, x16, x3
 	ror	x6, x8, #36
+	ror	x10, x9, #44
 	eor	x8, x19, x30
+	eor	x9, x16, x3
 	eor	x16, x13, x30
+	ror	x13, x8, #19
 	ror	x14, x9, #3
 	eor	x9, x7, x5
-	ror	x13, x8, #19
 	ror	x19, x16, #63
-	ldr	x8, [sp, #72]
+	eor	x0, x20, x15
 	ror	x16, x9, #39
-	ldp	x9, x7, [sp, #80]
-	eor	x0, x21, x15
+	ldp	x8, x9, [sp, #64]
 	eor	x8, x8, x3
-	ror	x21, x0, #56
-	eor	x0, x22, x15
-	ror	x25, x8, #58
-	eor	x8, x23, x2
-	eor	x23, x26, x3
-	eor	x3, x7, x3
 	ldr	x7, [sp, #16]
+	ror	x25, x8, #58
+	ror	x20, x0, #56
+	eor	x8, x23, x2
+	eor	x0, x22, x15
 	eor	x22, x9, x2
 	ror	x9, x8, #46
 	ror	x8, x0, #37
 	ror	x0, x22, #28
 	eor	x22, x24, x30
-	eor	x24, x20, x5
-	eor	x5, x7, x5
-	ldr	x7, [sp, #32]
+	eor	x24, x7, x5
+	ldr	x7, [sp, #80]
+	eor	x23, x26, x3
+	eor	x5, x21, x5
 	ror	x26, x22, #54
+	eor	x3, x7, x3
+	ldr	x7, [sp, #24]
 	ror	x22, x23, #49
 	ror	x23, x24, #8
-	ror	x3, x3, #2
-	ror	x24, x5, #9
+	ror	x24, x3, #2
+	ror	x27, x5, #9
 	eor	x15, x7, x15
 	bic	x5, x1, x17
-	ror	x11, x11, #61
-	ror	x20, x15, #25
-	ldr	x15, [sp, #40]
+	eor	x2, x28, x2
+	ror	x21, x15, #25
+	ldr	x15, [sp, #32]
 	eor	x7, x5, x4
-	adrp	x5, .Lanon.47fac95803119c4a094797088418c9d4.1
-	add	x5, x5, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.1
-	str	x3, [sp, #32]
-	eor	x2, x15, x2
-	ldr	x15, [sp, #24]
-	ldr	x5, [x5, x27]
-	ror	x28, x2, #23
-	bic	x2, x18, x1
-	str	x7, [sp, #104]
+	adrp	x5, .Lanon.47fac95803119c4a094797088418c9d4.6
+	add	x5, x5, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.6
+	ror	x11, x11, #61
 	eor	x3, x15, x30
-	eor	x2, x2, x17
-	bic	x17, x17, x4
+	ldr	x15, [sp, #104]
+	ror	x28, x2, #23
 	ror	x30, x3, #62
+	bic	x2, x18, x1
 	bic	x3, x12, x18
-	add	x27, x27, #8
+	ldr	x5, [x5, x15]
+	eor	x2, x2, x17
 	eor	x3, x3, x1
 	bic	x1, x4, x12
+	bic	x17, x17, x4
+	str	x7, [sp, #88]
 	eor	x12, x5, x12
 	eor	x15, x18, x1
+	bic	x18, x13, x11
 	eor	x5, x17, x12
 	bic	x17, x11, x10
-	bic	x18, x13, x11
+	eor	x4, x18, x10
 	eor	x1, x17, x6
 	bic	x17, x14, x13
-	eor	x4, x18, x10
 	bic	x10, x10, x6
 	eor	x17, x17, x11
 	bic	x11, x6, x14
@@ -3518,15 +3518,15 @@ _RNvCsndc0WgnAaH_9keccak2568keccak_f:
 	bic	x14, x19, x9
 	eor	x12, x11, x13
 	eor	x11, x7, x4
-	eor	x7, x14, x21
-	bic	x14, x21, x16
-	stp	x1, x2, [sp, #80]
+	eor	x7, x14, x20
+	bic	x14, x20, x16
+	stp	x1, x2, [sp, #72]
 	eor	x13, x2, x17
 	eor	x2, x14, x25
 	bic	x14, x25, x19
-	stp	x5, x3, [sp, #56]
+	stp	x5, x3, [sp, #48]
 	eor	x10, x5, x1
-	bic	x18, x9, x21
+	bic	x18, x9, x20
 	eor	x5, x9, x14
 	bic	x9, x26, x0
 	eor	x1, x18, x16
@@ -3538,67 +3538,67 @@ _RNvCsndc0WgnAaH_9keccak2568keccak_f:
 	eor	x19, x9, x0
 	bic	x9, x0, x8
 	bic	x8, x8, x23
-	str	x17, [sp, #72]
+	str	x17, [sp, #64]
 	eor	x17, x3, x12
 	eor	x3, x14, x26
 	eor	x25, x8, x22
 	eor	x8, x16, x18
-	eor	x21, x23, x9
+	eor	x20, x23, x9
+	eor	x9, x2, x19
 	eor	x8, x10, x8
 	eor	x10, x1, x3
+	eor	x14, x5, x20
 	eor	x10, x13, x10
-	mov	x22, x15
 	eor	x13, x15, x6
-	eor	x14, x5, x21
-	ldr	x15, [sp, #32]
-	eor	x9, x2, x19
-	eor	x13, x13, x14
-	bic	x14, x20, x24
 	eor	x9, x11, x9
 	eor	x11, x7, x25
-	eor	x23, x14, x15
-	bic	x14, x28, x20
-	stp	x18, x16, [sp, #40]
+	eor	x13, x13, x14
+	bic	x14, x21, x27
 	eor	x11, x17, x11
 	bic	x17, x30, x28
-	eor	x18, x14, x24
-	bic	x14, x24, x15
-	bic	x15, x15, x30
-	eor	x16, x17, x20
-	eor	x20, x15, x28
-	eor	x14, x30, x14
+	eor	x23, x14, x24
+	bic	x14, x28, x21
+	str	x16, [sp, #40]
+	eor	x16, x17, x21
+	eor	x21, x14, x27
+	bic	x14, x27, x24
+	mov	x22, x15
+	eor	x27, x30, x14
+	ldr	x14, [sp, #104]
+	bic	x15, x24, x30
+	eor	x24, x15, x28
 	eor	x28, x8, x23
-	eor	x30, x9, x18
-	cmp	x27, #192
+	eor	x30, x9, x21
+	add	x17, x14, #8
 	eor	x8, x10, x16
-	eor	x15, x11, x20
-	eor	x0, x13, x14
+	eor	x15, x11, x24
+	cmp	x17, #192
+	eor	x0, x13, x27
 	b.ne	.LBB9_1
+	ldp	x9, x11, [sp, #80]
 	ldr	x8, [sp, #8]
-	ldr	x10, [sp, #56]
-	ldp	x30, x9, [sp, #96]
-	ldp	x28, x27, [sp, #112]
-	stp	x10, x9, [x8]
-	ldr	x10, [sp, #88]
-	ldr	x9, [sp, #64]
-	stp	x19, x3, [x8, #128]
-	stp	x10, x9, [x8, #16]
-	ldp	x9, x10, [sp, #72]
-	stp	x25, x21, [x8, #144]
+	ldr	x30, [sp, #96]
+	stp	x18, x19, [x8, #120]
+	str	x9, [x8, #16]
+	ldp	x10, x9, [sp, #48]
+	stp	x10, x11, [x8]
+	stp	x9, x22, [x8, #24]
+	ldp	x9, x10, [sp, #64]
+	stp	x3, x25, [x8, #136]
 	ldp	x26, x25, [sp, #128]
-	stp	x23, x18, [x8, #160]
-	ldp	x24, x23, [sp, #144]
-	stp	x22, x10, [x8, #32]
-	ldp	x22, x21, [sp, #160]
-	stp	x4, x9, [x8, #48]
-	ldp	x9, x10, [sp, #40]
-	stp	x16, x20, [x8, #176]
+	stp	x20, x23, [x8, #152]
 	ldp	x20, x19, [sp, #176]
-	stp	x12, x6, [x8, #64]
-	stp	x10, x2, [x8, #80]
-	stp	x1, x7, [x8, #96]
-	stp	x5, x9, [x8, #112]
-	str	x14, [x8, #192]
+	stp	x9, x12, [x8, #56]
+	ldr	x9, [sp, #40]
+	stp	x21, x16, [x8, #168]
+	ldp	x22, x21, [sp, #160]
+	stp	x24, x27, [x8, #184]
+	ldp	x24, x23, [sp, #144]
+	stp	x10, x4, [x8, #40]
+	ldp	x28, x27, [sp, #112]
+	stp	x6, x9, [x8, #72]
+	stp	x2, x1, [x8, #88]
+	stp	x7, x5, [x8, #104]
 	add	sp, sp, #192
 	.cfi_def_cfa_offset 0
 	.cfi_restore w19
@@ -3736,8 +3736,8 @@ _RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update:
 	ret
 .LBB10_7:
 	.cfi_restore_state
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .Lfunc_end10:
@@ -3859,17 +3859,17 @@ _RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize:
 	ret
 .LBB11_3:
 	.cfi_restore_state
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.12
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x20
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB11_4:
-	adrp	x0, .Lanon.47fac95803119c4a094797088418c9d4.8
-	add	x0, x0, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.8
-	adrp	x2, .Lanon.47fac95803119c4a094797088418c9d4.9
-	add	x2, x2, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.9
+	adrp	x0, .Lanon.47fac95803119c4a094797088418c9d4.12
+	add	x0, x0, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x2, .Lanon.47fac95803119c4a094797088418c9d4.13
+	add	x2, x2, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.13
 	mov	w1, #99
 	bl	_RNvNtCs8l20omZJ7ql_4core9panicking9panic_fmt
 .Lfunc_end11:
@@ -4680,13 +4680,13 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	b.ne	.LBB13_9
 	b	.LBB13_7
 .LBB13_25:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
 .LBB13_26:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.11
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.11
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x26
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
@@ -4762,8 +4762,8 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	strb	w8, [x11]
 	b	.LBB13_6
 .LBB13_28:
-	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.12
-	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.12
+	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
+	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x26
 	mov	w2, #136
@@ -4794,48 +4794,48 @@ _RNvNtCs7Pyp4CbMBld_9lean_xmss4wots9wots_leaf:
 	.asciz	"\022range start index \300\" out of range for slice of length \300"
 	.size	.Lanon.46a40f786ce4ddedc5d90764d599cb89.205, 57
 
-	.type	.Lanon.47fac95803119c4a094797088418c9d4.1,@object
-	.section	.rodata..Lanon.47fac95803119c4a094797088418c9d4.1,"a",@progbits
+	.type	.Lanon.47fac95803119c4a094797088418c9d4.6,@object
+	.section	.rodata..Lanon.47fac95803119c4a094797088418c9d4.6,"a",@progbits
 	.p2align	3, 0x0
-.Lanon.47fac95803119c4a094797088418c9d4.1:
+.Lanon.47fac95803119c4a094797088418c9d4.6:
 	.ascii	"\001\000\000\000\000\000\000\000\202\200\000\000\000\000\000\000\212\200\000\000\000\000\000\200\000\200\000\200\000\000\000\200\213\200\000\000\000\000\000\000\001\000\000\200\000\000\000\000\201\200\000\200\000\000\000\200\t\200\000\000\000\000\000\200\212\000\000\000\000\000\000\000\210\000\000\000\000\000\000\000\t\200\000\200\000\000\000\000\n\000\000\200\000\000\000\000\213\200\000\200\000\000\000\000\213\000\000\000\000\000\000\200\211\200\000\000\000\000\000\200\003\200\000\000\000\000\000\200\002\200\000\000\000\000\000\200\200\000\000\000\000\000\000\200\n\200\000\000\000\000\000\000\n\000\000\200\000\000\000\200\201\200\000\200\000\000\000\200\200\200\000\000\000\000\000\200\001\000\000\200\000\000\000\000\b\200\000\200\000\000\000\200"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.1, 192
-
-	.type	.Lanon.47fac95803119c4a094797088418c9d4.3,@object
-	.section	.rodata.str1.1,"aMS",@progbits,1
-.Lanon.47fac95803119c4a094797088418c9d4.3:
-	.asciz	"crates/keccak256/src/lib.rs"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.3, 28
-
-	.type	.Lanon.47fac95803119c4a094797088418c9d4.8,@object
-	.section	.rodata..Lanon.47fac95803119c4a094797088418c9d4.8,"a",@progbits
-.Lanon.47fac95803119c4a094797088418c9d4.8:
-	.ascii	"a final block holds fewer than RATE message bytes"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.8, 49
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.6, 192
 
 	.type	.Lanon.47fac95803119c4a094797088418c9d4.9,@object
-	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.9,"aw",@progbits
-	.p2align	3, 0x0
+	.section	.rodata.str1.1,"aMS",@progbits,1
 .Lanon.47fac95803119c4a094797088418c9d4.9:
-	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
-	.asciz	"\033\000\000\000\000\000\000\000\200\000\000\000\005\000\000"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.9, 24
-
-	.type	.Lanon.47fac95803119c4a094797088418c9d4.11,@object
-	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.11,"aw",@progbits
-	.p2align	3, 0x0
-.Lanon.47fac95803119c4a094797088418c9d4.11:
-	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
-	.asciz	"\033\000\000\000\000\000\000\000\247\000\000\000\025\000\000"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.11, 24
+	.asciz	"crates/keccak256/src/lib.rs"
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.9, 28
 
 	.type	.Lanon.47fac95803119c4a094797088418c9d4.12,@object
-	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.12,"aw",@progbits
-	.p2align	3, 0x0
+	.section	.rodata..Lanon.47fac95803119c4a094797088418c9d4.12,"a",@progbits
 .Lanon.47fac95803119c4a094797088418c9d4.12:
-	.xword	.Lanon.47fac95803119c4a094797088418c9d4.3
+	.ascii	"a final block holds fewer than RATE message bytes"
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.12, 49
+
+	.type	.Lanon.47fac95803119c4a094797088418c9d4.13,@object
+	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.13,"aw",@progbits
+	.p2align	3, 0x0
+.Lanon.47fac95803119c4a094797088418c9d4.13:
+	.xword	.Lanon.47fac95803119c4a094797088418c9d4.9
+	.asciz	"\033\000\000\000\000\000\000\000\200\000\000\000\005\000\000"
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.13, 24
+
+	.type	.Lanon.47fac95803119c4a094797088418c9d4.15,@object
+	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.15,"aw",@progbits
+	.p2align	3, 0x0
+.Lanon.47fac95803119c4a094797088418c9d4.15:
+	.xword	.Lanon.47fac95803119c4a094797088418c9d4.9
+	.asciz	"\033\000\000\000\000\000\000\000\247\000\000\000\025\000\000"
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.15, 24
+
+	.type	.Lanon.47fac95803119c4a094797088418c9d4.16,@object
+	.section	.data.rel.ro..Lanon.47fac95803119c4a094797088418c9d4.16,"aw",@progbits
+	.p2align	3, 0x0
+.Lanon.47fac95803119c4a094797088418c9d4.16:
+	.xword	.Lanon.47fac95803119c4a094797088418c9d4.9
 	.asciz	"\033\000\000\000\000\000\000\000\264\000\000\0002\000\000"
-	.size	.Lanon.47fac95803119c4a094797088418c9d4.12, 24
+	.size	.Lanon.47fac95803119c4a094797088418c9d4.16, 24
 
 	.type	.Lanon.bee145f0cb2eac5728ff95be1b200579.0,@object
 	.section	.rodata.str1.1,"aMS",@progbits,1

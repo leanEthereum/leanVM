@@ -2,7 +2,7 @@ module
 
 public import NativeRustcX64.Spec.Keccak
 public import NativeVm.Model.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Multilinear
 public import NativeRustcVmX64.Code.Vm.BitLength.Names
 public import NativeRustcVmX64.Code.Vm.EWMul.Names
 public import NativeRustcVmX64.Code.Vm.EWSqIter.Names

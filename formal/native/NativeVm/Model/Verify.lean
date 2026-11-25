@@ -6,7 +6,7 @@ public import NativeVm.Model.Whir
 # The verifier, after decoding
 
 Models `verifyWith (m := Id) keccakF1600 bytecode publicInput proof`
-(`Statement/LeanVmVerifier.lean`): the seed (`spongeSeedWith`), the walk (`verifyExecution
+(`Statement/Verifier/Lib.lean`): the seed (`spongeSeedWith`), the walk (`verifyExecution
 computedBytecodeValue`), and the end check (`runProof`: the stream and the openings consumed).
 
 **The seed.** The IV is Keccak-256 of the tag `leanvm-v1` then the bytecode's words, as one run of

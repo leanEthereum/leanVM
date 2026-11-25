@@ -2,6 +2,7 @@ module
 
 public import NativeRustcVm.Field.Rust
 public import NativeVm.Model.Transcript
+public import Statement.Verifier.Multilinear
 
 /-!
 # `bit_length` and its uses

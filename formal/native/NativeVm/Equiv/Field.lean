@@ -2,7 +2,7 @@ module
 
 public import NativeVm.Model.Field
 public import LeanVM.Parameters.Field
-public import Statement.LeanVmVerifier
+public import Statement.Verifier.Multilinear
 
 /-!
 # The model's field arithmetic is the statement's

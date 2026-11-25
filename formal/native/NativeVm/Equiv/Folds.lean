@@ -14,8 +14,6 @@ the elements; `foldl_forall₂` does the same over two lists related pointwise. 
 
 namespace NativeVm.Equiv
 
-open NativeVm.Model LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Compile
-
 /-! ## Folds -/
 
 theorem foldl_forall₂ {α β α' β' : Type} (φ : α → α') {Q : β → β' → Prop} {f : α → β → α}

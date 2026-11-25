@@ -3,6 +3,7 @@ module
 public import NativeVm.Equiv.LayoutBuild
 public import NativeVm.Equiv.BusPure
 public import NativeVm.Model.Tables
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 4's pure steps: the model's are the statement's

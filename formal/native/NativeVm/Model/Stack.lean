@@ -5,7 +5,7 @@ public import NativeVm.Model.Claims
 /-!
 # Phase 2: the stack's commitment and its out-of-domain sample
 
-Models `commitStack` and `readOod` (`Statement/LeanVmVerifier.lean`, `lib.rs`).
+Models `commitStack` and `readOod` (`Statement/Verifier/Whir.lean`, `lib.rs`).
 
 * `commitStack stackLog logInverseRate`: **reads** the stack's root (commitment `0`), its shape the
   one level `0` of the ladder (`Whir.ladder`, the statement's parameter table) opens it at;

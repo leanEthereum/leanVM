@@ -1,11 +1,12 @@
 module
 
 public import NativeVm.Model.Stack
+public import Statement.Verifier.Bus
 
 /-!
 # Phase 3a: the bus's GKR walk
 
-Models `gkrStep`, `gkrLayers` and `verifyGkrGrandProducts` (`Statement/LeanVmVerifier.lean`,
+Models `gkrStep`, `gkrLayers` and `verifyGkrGrandProducts` (`Statement/Verifier/Bus.lean`,
 `bus.rs`).
 
 `verifyGkrGrandProducts depth` **reads** the shared and count roots, then walks the push, pull and

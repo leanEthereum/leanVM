@@ -5,7 +5,7 @@ public import NativeVm.Model.Gkr
 /-!
 # Phase 3: the bus
 
-Models `verifyBusBalance computedBytecodeValue` (`Statement/LeanVmVerifier.lean`, `bus.rs`), with
+Models `verifyBusBalance computedBytecodeValue` (`Statement/Verifier/Bus.lean`, `Statement/Verifier/Lib.lean`, `bus.rs`), with
 `busLayout`, `fingerprints`, `blockForm`, `accumulateSide`, `bytecodeShare` and
 `computedBytecodeValue`.
 

@@ -10,7 +10,7 @@ public import NativeRustcX64.KeccakF.RoundLanes
 `round_step`: from the loop head after `i` rounds, with two rounds left, the machine reaches
 the invariant after `i + 2` rounds, back at the loop head or at the epilogue after round 24.
 The round-constant region is the current 16-byte subrange of the table; the indexed address
-aliases its offset 8. The body computes both rounds, advances the register counter, and keeps
+aliases its offset 8. The body computes both rounds, advances the saved counter, and keeps
 the state pointer, pushed registers and memory outside the frame.
 -/
 
@@ -103,12 +103,12 @@ theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
   let env := roundEnv m0 m i
   have hwf : env.WF := roundEnv_wf hpre hi hA.kept hA.same
   have hb0 : env.regions[0]? = some (frame m0, 296) := rfl
-  have hctr : env.regs .rdi = BitVec.ofNat 64 (8 * i + 8) := hA.ctr
+  have hctr : env.load 0 176 8 = BitVec.ofNat 64 (8 * i + 8) := load_of_wordAt (r := 0) hA.ctr
   have hm : Match env startBody m := by
     refine match_ofMachine ⟨rfl, rfl, trivial⟩
       ⟨show rspOf m = _ from hA.rsp.trans rfl, trivial⟩ trivial trivial ⟨?_, trivial⟩
     sym_simp
-    change env.regs .rdi + rcAddr = env.base 1 + 8#64
+    change env.load 0 176 8 + rcAddr = env.base 1 + 8#64
     rw [hctr]
     change BitVec.ofNat 64 (8 * i + 8) + rcAddr =
       (rcAddr + BitVec.ofNat 64 (8 * i)) + 8#64
@@ -123,7 +123,7 @@ theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
     have hregs := first_regs firstBody hm' hb0 hA.regs hslots₀ hA.par hrcl
     have hslots := first_slots firstBody hm' hb0 hA.regs hslots₀ hA.par hrcl
     have hpar := first_par firstBody hm' hb0 hA.regs hslots₀ hA.par hrcl
-    have hrot := first_rot_rbx firstBody hm' hb0 hA.regs hslots₀ hA.par hrcl
+    have hrot := first_rot_r9 firstBody hm' hb0 hA.regs hslots₀ hA.par hrcl
     have hl : ∀ p ∈ midLaneRegs, p.2 < 25 := by decide
     have hs : ∀ p ∈ midLaneSlots, p.2 < 25 := by decide
     have hc : ∀ p ∈ midParRegs, p.2 < 5 := by decide
@@ -137,9 +137,8 @@ theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
         wordAt_keep hm' hb0 (by decide) rfl s4, wordAt_keep hm' hb0 (by decide) rfl s5, trivial⟩,
       fun p hp => (same_region hm' hwf hb0 (by decide) (by decide) p hp).trans (hA.same p hp),
       fun p h => hm'.kept hwf p (hA.kept p h)⟩
-    · refine wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) ?_
-      sym_simp
-      simpa only [Nat.mul_add, Nat.mul_one] using hctr
+    · simpa only [Nat.mul_add, Nat.mul_one] using
+        wordAt_keep hm' hb0 (by decide) rfl hA.ctr
     · exact allOf_imp (fun p hp h => by
         rw [stAfter_succ m0 (by omega), lane_round _ _ (hl p hp)]
         exact h) hregs
@@ -164,13 +163,13 @@ theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineD
   let env := roundEnv m0 m i
   have hwf : env.WF := roundEnv_wf hpre hi hA.kept hA.same
   have hb0 : env.regions[0]? = some (frame m0, 296) := rfl
-  have hctr : env.load 0 192 8 = BitVec.ofNat 64 (8 * (i + 1)) :=
+  have hctr : env.load 0 176 8 = BitVec.ofNat 64 (8 * (i + 1)) :=
     load_of_wordAt (r := 0) hA.ctr
   have hm : Match env startMid m := by
     refine match_ofMachine ⟨rfl, rfl, trivial⟩
       ⟨show rspOf m = _ from hA.rsp.trans rfl, trivial⟩ trivial trivial ⟨?_, trivial⟩
     sym_simp
-    change env.load 0 192 8 + rcAddr = env.base 1 + 8#64
+    change env.load 0 176 8 + rcAddr = env.base 1 + 8#64
     rw [hctr]
     change BitVec.ofNat 64 (8 * (i + 1)) + rcAddr =
       (rcAddr + BitVec.ofNat 64 (8 * i)) + 8#64
@@ -204,7 +203,7 @@ theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineD
         wordAt_keep hm' hb0 (by decide) rfl s4, wordAt_keep hm' hb0 (by decide) rfl s5, trivial⟩,
       fun p hp => (same_region hm' hwf hb0 (by decide) (by decide) p hp).trans (hA.same p hp),
       fun p h => hm'.kept hwf p (hA.kept p h)⟩
-    · refine (hm'.regs .rdi _ rfl).trans ?_
+    · refine wordAt_of_eq (wordAt_write hm' hb0 (by decide) rfl) ?_
       sym_simp
       rw [hctr, BitVec.ofNat_add_ofNat]
       congr 1

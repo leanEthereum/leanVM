@@ -44,12 +44,12 @@ theorem body_lanes [Labels] {env : Env} {m : MachineData} {S : SState} {x : Exit
   rw [body] at hx
   cases hx
   simp only [AllOf, laneRegs, laneSlots, parRegs] at hregs hslots hpar ⊢
-  obtain ⟨h4, h6, h8, h9, h11, h12, h13, h14, h16, h17, h18, h19, h20, h21, h22, h23, h24, -⟩ :=
+  obtain ⟨h4, h6, h8, h9, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20, h21, h22, h23, h24, -⟩ :=
     hregs
-  obtain ⟨h0, h1, h2, h3, h5, h7, h10, h15, -⟩ := hslots
+  obtain ⟨h0, h1, h2, h3, h5, h7, h10, -⟩ := hslots
   obtain ⟨c0, c1, c2, c3, c4, -⟩ := hpar
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩,
-    ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ⟨?_, ?_, ?_, ?_, ?_, trivial⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩,
+    ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ⟨?_, ?_, ?_, ?_, ?_, trivial⟩⟩
   all_goals first
     | refine (hm.regs _ _ rfl).trans ?_
     | refine wordAt_of_eq (wordAt_write hm hb (by decide) rfl) ?_

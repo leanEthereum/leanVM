@@ -7,8 +7,8 @@ public import NativeRustcArm.KeccakF.Bytes
 
 At the head of the round loop `.LKeccakF_1` (after `i` rounds, from the machine state `m0` at
 `keccak_f`'s entry): SP is the frame's base (`frame`, 192 bytes below the entry's SP), the
-counter X27 is `8 i`; the 25 lanes of the state after `i` rounds (`stAfter`) are in 17
-registers (`laneRegs`) and 8 frame slots (`laneSlots`), its 5 column parities in registers
+counter X17 is `8 i`; the lanes of the state after `i` rounds (`stAfter`) are in
+registers (`laneRegs`) and frame slots (`laneSlots`), its column parities in registers
 (`parRegs`); the frame slots `savedSlots` hold the entry's state pointer X0, its return address
 X30 and its callee-saved X19 to X28; X29 is the entry's; memory outside the frame is the entry's,
 and every byte mapped at entry is mapped (`At`).
@@ -33,12 +33,12 @@ def stAfter (m0 : MachineData) (i : Nat) : KeccakState :=
 /-- The registers that hold lanes at the loop head, with the lanes' indices. -/
 def laneRegs : List (XReg × Nat) :=
   [(.X22, 4), (.X4, 6), (.X12, 8), (.X6, 9), (.X2, 11), (.X1, 12), (.X7, 13), (.X5, 14),
-    (.X19, 16), (.X3, 17), (.X25, 18), (.X21, 19), (.X23, 20), (.X18, 21), (.X16, 22),
-    (.X20, 23), (.X14, 24)]
+    (.X18, 15), (.X19, 16), (.X3, 17), (.X25, 18), (.X20, 19), (.X23, 20), (.X21, 21),
+    (.X16, 22), (.X24, 23), (.X27, 24)]
 
 /-- The frame slots that hold lanes at the loop head, with the lanes' indices. -/
 def laneSlots : List (Nat × Nat) :=
-  [(56, 0), (104, 1), (88, 2), (64, 3), (80, 5), (72, 7), (48, 10), (40, 15)]
+  [(48, 0), (88, 1), (80, 2), (56, 3), (72, 5), (64, 7), (40, 10)]
 
 /-- The registers that hold the column parities at the loop head, with the columns. -/
 def parRegs : List (XReg × Nat) := [(.X28, 0), (.X30, 1), (.X8, 2), (.X15, 3), (.X0, 4)]
@@ -51,7 +51,7 @@ def savedSlots : List (Nat × XReg) :=
 /-- **The loop invariant** after `i` rounds, from the entry's state `m0`. -/
 structure At (m0 : MachineData) (i : Nat) (m : MachineData) : Prop where
   sp : m.regs.SP.toBitVec = frame m0
-  ctr : (m.regs.getXReg .X27).toBitVec = BitVec.ofNat 64 (8 * i)
+  ctr : (m.regs.getXReg .X17).toBitVec = BitVec.ofNat 64 (8 * i)
   regs : AllOf (fun p : XReg × Nat =>
     (m.regs.getXReg p.1).toBitVec = (Keccak.lane (stAfter m0 i) p.2).toBitVec) laneRegs
   slots : AllOf (fun p : Nat × Nat => WordAt m.dmem (frame m0 + BitVec.ofNat 64 p.1)

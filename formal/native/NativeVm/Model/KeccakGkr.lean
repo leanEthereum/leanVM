@@ -1,11 +1,12 @@
 module
 
 public import NativeVm.Model.PublicInput
+public import Statement.Verifier.Keccak
 
 /-!
 # Phase 6: `KECCAK`'s validity, by GKR over its rounds
 
-Models `keccakPhase` and `verifyKeccak` (`Statement/LeanVmVerifier.lean`, `keccak.rs`), with
+Models `keccakPhase` and `verifyKeccak` (`Statement/Verifier/Lib.lean`, `Statement/Verifier/Keccak.lean`, `keccak.rs`), with
 `verifyKeccakLayer`, `keccakLayers`, `keccakSlotWeights`, `keccakOpen`, `keccakFirstClaim`,
 `keccakLinearTranspose` and `keccakInstanceWeights`.
 

@@ -2,6 +2,7 @@ module
 
 public import NativeVm.Equiv.Transcript
 public import NativeVm.Model.Verify
+public import Statement.Verifier.Lib
 import Mathlib.Tactic.IntervalCases
 
 /-!

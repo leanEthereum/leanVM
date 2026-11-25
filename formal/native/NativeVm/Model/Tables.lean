@@ -6,7 +6,7 @@ public import NativeVm.Model.Bus
 # Phase 4: the table sumcheck
 
 Models `tablePhase`, `tableSumcheck`, `tableWeights`, `tableTerms` and `tableColumnClaims`
-(`Statement/LeanVmVerifier.lean`, `bus.rs`, `lib.rs`).
+(`Statement/Verifier/Bus.lean`, `Statement/Verifier/Lib.lean`, `bus.rs`, `lib.rs`).
 
 **Takes** the layout and the bus's result. **Reads** a grind and `ξ`, a plain sumcheck of degree
 three over the tallest table's log-height (its challenges reversed the point), then every table's

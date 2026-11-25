@@ -8,7 +8,7 @@ public import NativeRustcX64.KeccakF.Bytes
 The frame contains the 288 bytes below the entry's RSP and its return address. The loop's RSP
 is `frame + 128`; six saved registers occupy offsets 240 through 280.
 
-At the loop head after `i` rounds (`At m0 i m`), RDI is `8 * i + 8`, the state pointer is at
+At the loop head after `i` rounds (`At m0 i m`), frame slot 176 holds `8 * i + 8`, the state pointer is at
 offset 216, and the lanes and column parities occupy `laneRegs`, `laneSlots` and `parRegs`.
 Each turn computes two rounds. Memory outside the frame's first 288 bytes is unchanged, and
 every byte mapped at entry remains mapped.
@@ -32,15 +32,15 @@ def stAfter (m0 : MachineData) (i : Nat) : KeccakState :=
 
 /-- The registers that hold lanes at the loop head, with the lanes' indices. -/
 def laneRegs : List (Reg64 × Nat) :=
-  [(.r11, 3), (.r15, 4), (.rsi, 12), (.r8, 18), (.r10, 20), (.rax, 22), (.rbx, 24)]
+  [(.r13, 0), (.r10, 1), (.r8, 3), (.rbx, 12), (.rdx, 16), (.r12, 18), (.r11, 22), (.r9, 24)]
 
 /-- The frame slots that hold lanes at the loop head, with the lanes' indices. -/
 def laneSlots : List (Nat × Nat) :=
-  [(88, 0), (144, 1), (152, 2), (40, 5), (8, 6), (16, 7), (160, 8), (48, 9), (32, 10),
-    (56, 11), (64, 13), (24, 14), (168, 15), (80, 16), (72, 17), (0, 19), (112, 21), (104, 23)]
+  [(64, 2), (160, 4), (80, 5), (16, 6), (32, 7), (168, 8), (24, 9), (48, 10), (56, 11),
+    (40, 13), (112, 14), (72, 15), (8, 17), (0, 19), (88, 20), (104, 21), (96, 23)]
 
 /-- The registers that hold the column parities at the loop head, with the columns. -/
-def parRegs : List (Reg64 × Nat) := [(.r14, 0), (.r9, 1), (.r13, 2), (.rbp, 3), (.rcx, 4)]
+def parRegs : List (Reg64 × Nat) := [(.rax, 0), (.r14, 1), (.r15, 2), (.rbp, 3), (.rcx, 4)]
 
 /-- The frame slots of the pushed registers. -/
 def savedSlots : List (Nat × Reg64) :=
@@ -49,7 +49,7 @@ def savedSlots : List (Nat × Reg64) :=
 /-- **The loop invariant** after `i` rounds, from the entry's state `m0`. -/
 structure At (m0 : MachineData) (i : Nat) (m : MachineData) : Prop where
   rsp : rspOf m = frame m0 + 128#64
-  ctr : m.regs.get64 .rdi = BitVec.ofNat 64 (8 * i + 8)
+  ctr : WordAt m.dmem (frame m0 + BitVec.ofNat 64 176) (BitVec.ofNat 64 (8 * i + 8))
   ptr : WordAt m.dmem (frame m0 + BitVec.ofNat 64 216) (m0.regs.get64 .rdi)
   regs : AllOf (fun p : Reg64 × Nat =>
     m.regs.get64 p.1 = (Keccak.lane (stAfter m0 i) p.2).toBitVec) laneRegs
@@ -64,20 +64,20 @@ structure At (m0 : MachineData) (i : Nat) (m : MachineData) : Prop where
 
 /-- Lanes at the cut between the two unrolled rounds. -/
 def midLaneRegs : List (Reg64 × Nat) :=
-  [(.rsi, 6), (.r10, 20), (.rdi, 21), (.rbp, 22), (.r14, 23), (.r12, 24), (.rdx, 0)]
+  [(.rsi, 15), (.rdx, 16), (.r12, 18), (.r14, 20), (.r13, 22), (.rbp, 23), (.rdi, 24), (.rcx, 0)]
 
 def midLaneSlots : List (Nat × Nat) :=
-  [(232, 0), (208, 1), (200, 2), (136, 3), (128, 4), (80, 5), (32, 7), (24, 8),
-    (8, 9), (64, 10), (176, 11), (16, 12), (0, 13), (88, 14), (72, 15), (40, 16),
-    (104, 17), (120, 18), (56, 19), (184, 20), (112, 21), (96, 23)]
+  [(232, 0), (184, 1), (208, 2), (16, 3), (128, 4), (48, 5), (24, 6), (192, 7), (200, 8),
+    (152, 9), (32, 10), (0, 11), (120, 12), (40, 13), (88, 14), (96, 15), (80, 16),
+    (56, 17), (8, 19), (136, 20), (144, 21), (72, 23)]
 
 def midParRegs : List (Reg64 × Nat) :=
-  [(.r9, 0), (.r13, 1), (.r11, 2), (.r15, 3), (.r8, 4)]
+  [(.rax, 0), (.r10, 1), (.rbx, 2), (.r8, 3), (.r11, 4)]
 
-/-- The first round is complete; RBX already holds the rotated third column parity. -/
+/-- The first round is complete; R9 already holds column 3's parity rotated by one. -/
 structure MidAt (m0 : MachineData) (i : Nat) (m : MachineData) : Prop where
   rsp : rspOf m = frame m0 + 128#64
-  ctr : WordAt m.dmem (frame m0 + BitVec.ofNat 64 192) (BitVec.ofNat 64 (8 * i))
+  ctr : WordAt m.dmem (frame m0 + BitVec.ofNat 64 176) (BitVec.ofNat 64 (8 * i))
   ptr : WordAt m.dmem (frame m0 + BitVec.ofNat 64 216) (m0.regs.get64 .rdi)
   regs : AllOf (fun p : Reg64 × Nat =>
     m.regs.get64 p.1 = (Keccak.lane (stAfter m0 i) p.2).toBitVec) midLaneRegs
@@ -85,7 +85,7 @@ structure MidAt (m0 : MachineData) (i : Nat) (m : MachineData) : Prop where
     (Keccak.lane (stAfter m0 i) p.2).toBitVec) midLaneSlots
   par : AllOf (fun p : Reg64 × Nat =>
     m.regs.get64 p.1 = (par (stAfter m0 i) p.2).toBitVec) midParRegs
-  rot : m.regs.get64 .rbx = (NativeRustc.Keccak.par (stAfter m0 i) 3).toBitVec.rotateLeft 1
+  rot : m.regs.get64 .r9 = (NativeRustc.Keccak.par (stAfter m0 i) 3).toBitVec.rotateLeft 1
   saved : AllOf (fun p : Nat × Reg64 => WordAt m.dmem (frame m0 + BitVec.ofNat 64 p.1)
     (m0.regs.get64 p.2)) savedSlots
   same : SameOutside m0.dmem m.dmem (InRange (frame m0) keccakFStack)

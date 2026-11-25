@@ -1,11 +1,12 @@
 module
 
 public import NativeVm.Model.KeccakGkr
+public import Statement.Verifier.RingSwitch
 
 /-!
 # Phase 7a: ring switching
 
-Models `ringSwitch` and `ringSwitchClaim` (`Statement/LeanVmVerifier.lean`, `ring_switch.rs`),
+Models `ringSwitch` and `ringSwitchClaim` (`Statement/Verifier/RingSwitch.lean`, `Statement/Verifier/Lib.lean`, `ring_switch.rs`),
 with `frobenius8`, `ringPsi`, `ringTarget` and `ringCoefficients`.
 
 **Takes** `q_keccak`'s point and its 64 slices from phase 6. **Reads** a grind and the map's 16

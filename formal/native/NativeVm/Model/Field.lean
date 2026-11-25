@@ -110,7 +110,7 @@ def gpow (index : Nat) : EW := EW.ofK (gpowK index)
 
 /-! ## Arrays of `E` (`multilinear.rs`, `field.rs`)
 
-Each is the function of the same name in `Statement/LeanVmVerifier.lean` on arrays, in its loop
+Each is the function of the same name in `Statement/Verifier/Multilinear.lean` on arrays, in its loop
 order. -/
 
 /-- `sumE`. -/

@@ -95,7 +95,7 @@ theorem round_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
     have hs : ∀ p ∈ laneSlots, p.2 < 25 := by decide
     have hc : ∀ p ∈ parRegs, p.2 < 5 := by decide
     refine ⟨(Match.sp_eq hm hm' rfl ▸ hA.sp), ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · rw [hm'.regs .X27 _ rfl]
+    · rw [hm'.regs .X17 _ rfl]
       sym_simp
       rw [show env.vars 0 = BitVec.ofNat 64 (8 * i) from rfl, BitVec.ofNat_add_ofNat]
       congr 1

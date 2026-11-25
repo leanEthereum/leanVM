@@ -4,6 +4,7 @@ public import NativeVm.Model.RingSwitch
 public import NativeVm.Equiv.Folds
 public import NativeVm.Equiv.LayoutSpec
 public import NativeVm.Equiv.Transcript
+public import Statement.Verifier.Lib
 
 /-!
 # Phase 7a: ring switching, the model against the statement

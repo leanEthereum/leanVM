@@ -1,6 +1,7 @@
 module
 
 public import NativeVm.Model.Transcript
+public import Statement.Verifier.Bus
 
 /-!
 # The model against the statement: the correspondence and the simulation judgement
