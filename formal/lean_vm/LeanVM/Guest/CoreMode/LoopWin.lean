@@ -90,14 +90,14 @@ theorem isBS_of_isBW {nm : String} {s : Stmt} (h : isBW s = true) : isBS nm s = 
 /-- **A slice of the body before the tail call**: its statements (nested ones included) atoms, calls,
 branches and `match`es (`isBW`) meeting `winP`, its top-level ones `topOk`, its `match`es' lengths `ml`. -/
 noncomputable def winL (Cf : CFun) (l : List Stmt) (ml : List (ℕ × ℕ)) : Bool :=
-  (stmtsOf l).all (fun s ↦ isBW s && winP Cf s) && l.all topOk && decide (matchLens l = ml)
+  stmtsAll (fun s ↦ isBW s && winP Cf s) l && l.all topOk && decide (matchLens l = ml)
 
 theorem matchLens_append (x y : List Stmt) : matchLens (x ++ y) = matchLens x ++ matchLens y := by
   simp [matchLens_eq, stmtsOf_append, List.filterMap_append]
 
 theorem winL_append {Cf : CFun} {x y : List Stmt} {mx my : List (ℕ × ℕ)} (hx : winL Cf x mx = true)
     (hy : winL Cf y my = true) : winL Cf (x ++ y) (mx ++ my) = true := by
-  simp only [winL, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hx hy ⊢
+  simp only [winL, stmtsAll_eq, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hx hy ⊢
   refine ⟨⟨fun s hs ↦ ?_, fun s hs ↦ ?_⟩, by rw [matchLens_append, hx.2, hy.2]⟩
   · rw [stmtsOf_append] at hs
     rcases List.mem_append.mp hs with hs | hs
@@ -115,7 +115,7 @@ theorem lwins_spec {Cf : CFun} {l : List Stmt} {e : ℕ} :
     ∀ {a : ℕ} {cs : List (ℕ × List (ℕ × ℕ))}, LWins Cf l e a cs →
       a ≤ e ∧ winL Cf (slice l a e) (cs.map (·.2)).flatten = true := fun h ↦
   wins_fold (Q := fun (a : ℕ) (cs : List (ℕ × List (ℕ × ℕ))) ↦ winL Cf (slice l a e) (cs.map (·.2)).flatten = true)
-    (by simp [winL, slice_self, matchLens_eq, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
+    (by simp [winL, stmtsAll_eq, slice_self, matchLens_eq, stmtsOf]) (fun {a x cs} hab hbe hw hq ↦ by
       rw [slice_split l hab hbe, List.map_cons, List.flatten_cons]
       exact winL_append hw hq) h
 
@@ -216,7 +216,7 @@ structure LoopWins (K : Mode.Cert) (Cf : CFun) (ml : List (ℕ × ℕ)) (cs : Li
   tail : tailL Cf = true
   code : CWins Cf K.E ml K.code K.code.length 0 ccs
   rest : loopShapeRest Cf = true
-  ptr : (Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty || (stmtsOf Cf.fn.body).all rdFree) = true
+  ptr : (Cf.H.sig.prePR.isEmpty && Cf.H.sig.postPR.isEmpty || stmtsAll rdFree Cf.fn.body) = true
 
 theorem stmtsOf_all_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) :
     (stmtsOf l).all p = true := List.all_eq_true.mpr h
@@ -225,7 +225,7 @@ theorem stmtsOf_all_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsO
 theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} {cs : List (ℕ × List (ℕ × ℕ))}
     {ccs : List ℕ} (h : LoopWins K Cf ml cs ccs) :
     loopBB Cf.fn = true ∧ callsBL Cf = true ∧ Cf.fn.body.all topOk = true ∧
-      ((stmtsOf Cf.fn.body).all rdFree || noPtrL Cf) = true ∧ (stmtsOf Cf.fn.body).all (calleePtrOk Cf) = true ∧
+      (stmtsAll rdFree Cf.fn.body || noPtrL Cf) = true ∧ stmtsAll (calleePtrOk Cf) Cf.fn.body = true ∧
       noFA Cf.fn.body = true ∧ tgtOk Cf K.code = true ∧ jtdOk Cf K.E K.code = true ∧ loopShapeOkC Cf = true := by
   obtain ⟨hml, hb, ht, hc, hr, hp⟩ := h
   obtain ⟨-, hw⟩ := lwins_spec hb
@@ -234,7 +234,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   set pre := slice Cf.fn.body 0 (Cf.fn.body.length - 2) with hpre
   have hbody : Cf.fn.body = pre ++ [.callIf c Cf.fn.name args, .ret []] := by
     rw [hpre, slice, List.drop_zero, Nat.sub_zero, ← hd, List.take_append_drop]
-  simp only [winL, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hw
+  simp only [winL, stmtsAll_eq, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hw
   obtain ⟨⟨hst, htop⟩, hmlE⟩ := hw
   -- each statement of the body
   have hall : ∀ s ∈ stmtsOf Cf.fn.body, (isBW s = true ∧ winP Cf s = true) ∨ s = .callIf c Cf.fn.name args ∨
@@ -266,7 +266,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     | _ => rfl
   obtain ⟨-, htg, hjt⟩ := cwins_spec le_rfl hc
   rw [slice_all] at htg hjt
-  refine ⟨hBB, stmtsOf_all_of fun s hs ↦ ?_, ?_, ?_, stmtsOf_all_of fun s hs ↦ ?_, ?_,
+  refine ⟨hBB, stmtsAll_of fun s hs ↦ ?_, ?_, ?_, stmtsAll_of fun s hs ↦ ?_, ?_,
     ?_, ?_, ?_⟩
   · rcases hall s hs with ⟨hbw, hp⟩ | rfl | rfl
     · cases s with
@@ -288,7 +288,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     right
     simp only [Bool.and_eq_true] at hp
     simp only [noPtrL, hp.1, hp.2, Bool.true_and]
-    refine List.all_eq_true.mpr fun s hs ↦ ?_
+    refine stmtsAll_of fun s hs ↦ ?_
     rcases hall s hs with ⟨hbw, hp⟩ | rfl | rfl
     · cases s with
       | call g args' rets => simp only [winP, Bool.and_eq_true] at hp; exact hp.1.1.2
@@ -310,12 +310,12 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
     | _ => rfl
   · rw [tgtOk, Exec.listSeq_eq, hML]; exact htg
   · rw [jtdOk, Exec.listSeq_eq, Exec.listSeq_eq, hML, hDL]; exact hjt
-  · have e : loopShapeOkC Cf = ((loopShapeRest0 Cf && (stmtsOf Cf.fn.body).all fun s ↦ match s with
+  · have e : loopShapeOkC Cf = ((loopShapeRest0 Cf && stmtsAll (fun s ↦ match s with
         | .callIf c _ _ => !Cf.X.nzAt (Cf.X.locAt c.idx)
-        | _ => true) && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.sig.ghosts Cf.H.res) := rfl
+        | _ => true) Cf.fn.body) && hiRes Cf.frame.sig Cf.gl Cf.fn.params.length Cf.H.sig.ghosts Cf.H.res) := rfl
     rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
     rw [e, Bool.and_eq_true, Bool.and_eq_true]
-    refine ⟨⟨hr.1.1, List.all_eq_true.mpr fun s hs ↦ ?_⟩, hr.2⟩
+    refine ⟨⟨hr.1.1, stmtsAll_of fun s hs ↦ ?_⟩, hr.2⟩
     have := hP s hs
     cases s with
     | callIf c' g' a' => simp only [winP, Bool.and_eq_true] at this; simpa using this.2

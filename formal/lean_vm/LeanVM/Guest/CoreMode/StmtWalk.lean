@@ -148,6 +148,10 @@ theorem subAll_eq (p : Stmt → Bool) (s : Stmt) : subAll p s = (stmtsSub s).all
 theorem stmtsFM_eq {β : Type} (f : Stmt → Option β) (l : List Stmt) (acc : List β) :
     stmtsFM f l acc = (stmtsOf l).filterMap f ++ acc := stmtsFM_eq' f l acc
 
+/-- A check of every statement of a body, by the recursor, from each statement's. -/
+theorem stmtsAll_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) : stmtsAll p l = true := by
+  rw [stmtsAll_eq]; exact List.all_eq_true.mpr h
+
 /-- A check of every statement of a body, by the recursor. -/
 theorem all_of_stmtsAll {p : Stmt → Bool} {l : List Stmt} (h : stmtsAll p l = true) : (stmtsOf l).all p = true :=
   stmtsAll_eq p l ▸ h
