@@ -93,7 +93,8 @@ theorem bkt_eq (key : Atom → Option ℕ) (as : List Atom) (v : V) :
 
 /-! ## Scans of a bucket -/
 
-theorem findSome?_filter_of {α β : Type} {p : α → Bool} {f : α → Option β} (h : ∀ a, (f a).isSome → p a = true) :
+private theorem findSome?_filter_of {α β : Type} {p : α → Bool} {f : α → Option β}
+    (h : ∀ a, (f a).isSome → p a = true) :
     ∀ l : List α, (l.filter p).findSome? f = l.findSome? f
   | [] => rfl
   | a :: l => by
@@ -104,7 +105,7 @@ theorem findSome?_filter_of {α β : Type} {p : α → Bool} {f : α → Option 
       | some _ => exact absurd (h a (by rw [hf]; rfl)) (by rw [hp]; decide)
     · simp only [↓reduceIte, List.findSome?_cons, findSome?_filter_of h l]
 
-theorem any_filter_of {α : Type} {p f : α → Bool} (h : ∀ a, f a = true → p a = true) :
+private theorem any_filter_of {α : Type} {p f : α → Bool} (h : ∀ a, f a = true → p a = true) :
     ∀ l : List α, (l.filter p).any f = l.any f
   | [] => rfl
   | a :: l => by
