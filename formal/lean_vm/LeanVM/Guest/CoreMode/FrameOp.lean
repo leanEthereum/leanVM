@@ -240,10 +240,13 @@ theorem fval_one {fp : ℕ} {A : FSt} (hv : FVal img fp A) {a b c pc : ℕ}
     rw [he] at hx
     exact hv.one c' x hx
 
-theorem fval_addOuts {fp : ℕ} {A : FSt} (hv : FVal img fp A) (out : ℕ) :
-    ∀ n, FVal img fp (addOuts A out n)
-  | 0 => hv
-  | n + 1 => (fval_addOuts hv out n).addW _
+theorem has_keccakMask {m0 m1 m2 m3 tail b8 cap j : ℕ} (hj : j ∈ keccakIns m0 m1 m2 m3 tail b8 cap) :
+    Bits.has (keccakMask m0 m1 m2 m3 tail b8 cap) j = true := by
+  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hj
+  have hc : c < 13 := List.mem_range.mp hc
+  have h15 : ∀ k < 4, Nat.testBit 15 k = true := by decide
+  interval_cases c <;>
+    simp [keccakInOff, keccakMask, Bits.has, Nat.testBit_or, Nat.testBit_two_pow, Nat.testBit_shiftLeft, h15]
 
 /-- **The value facts after a non-`JUMP`** the frame rule accepts, the instruction holding of the
 reference. -/
@@ -309,7 +312,7 @@ theorem stepF_val {O : ℕ} {S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {i
     simp only [stepF] at h
     split_ifs at h
     cases h
-    exact fval_addOuts hv out _
+    exact ⟨hv.st, hv.nz, hv.hs, hv.cp, hv.one⟩
   | jump => simp [stepF] at h
 
 theorem fval_addCopies {fp : ℕ} : ∀ {A : FSt} {fs : List Exec.Atom}, FVal img fp A →
@@ -357,10 +360,14 @@ theorem execF_wr {F : Exec.Facts} {pc : ℕ} {s : Prover.Exec.St} {A : FSt} {ins
 
 /-! ## Written cells after an instruction -/
 
-theorem fwr_addOuts {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out : ℕ} :
-    ∀ n, (∀ j < n, s.mem.written (s.fp + (out + j)) = true) → FWr s (addOuts A out n)
-  | 0, _ => hw
-  | n + 1, hn => (fwr_addOuts hw n fun j hj ↦ hn j (by omega)).addW (hn n (by omega))
+theorem fwr_addRun {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out n : ℕ}
+    (hn : ∀ j < n, s.mem.written (s.fp + (out + j)) = true) : FWr s { A with w := Bits.addRun A.w out n } where
+  w o ho := by
+    rcases Bits.has_addRun ho with ho | ⟨h1, h2, -⟩
+    · exact hw.w o ho
+    · have := hn (o - out) (by omega)
+      rwa [Nat.add_sub_cancel' h1] at this
+  hq := hw.hq
 
 /-- **The written cells after a non-`JUMP`** the frame rule accepts. -/
 theorem stepF_wr {C : Prover.Exec.Ctx} {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
@@ -377,7 +384,7 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} 
     split_ifs at h
     cases h
     obtain ⟨hle, hf, hp, hk⟩ := Mode.keccak_writes hs e
-    refine ⟨fwr_addOuts (hw.mono hle hf) _ fun j hj ↦ ?_, hf, hp, hle⟩
+    refine ⟨fwr_addRun (hw.mono hle hf) fun j hj ↦ ?_, hf, hp, hle⟩
     rw [hf]; exact hk j hj
   | xor a b c =>
     obtain ⟨h1, h2, h3⟩ := Mode.runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
@@ -473,7 +480,7 @@ theorem stepF_reads (hκ : κ ≤ 28) {O : ℕ} {S : Exec.Trie Unit} {i pc : ℕ
     split_ifs at h with hall
     intro j hj
     have hj' : j ∈ keccakIns m0 m1 m2 m3 tail b8 cap := by simpa using hj
-    exact hW j (List.all_eq_true.mp hall j hj')
+    exact hW j (Bits.has_of_sub hall (has_keccakMask hj'))
   | mul a b c =>
     obtain ⟨sa, sb, sc⟩ := hsm a b c rfl
     obtain ⟨vA, vB, hA', hB', hC'⟩ := hh

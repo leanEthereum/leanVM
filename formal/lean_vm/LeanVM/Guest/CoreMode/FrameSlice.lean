@@ -28,7 +28,7 @@ open LeanVM.Guest.Bridge (PCut slice sliceOk restL slice_rest lenTR lenTR_eq)
 
 /-- `frameWin`'s check of a window, over the window's instructions `piece`. -/
 noncomputable def frameWinOn (Fn : FFun) (piece : List OffsetInstruction) (a b : ℕ) : Bool :=
-  envOk Fn && armsOk Fn && ((match Fn.cuts.get a with
+  (match Fn.cutAt a with
     | some c => some (cutSt c)
     | none => if a = 0 then some (some (entryF Fn), []) else none).elim false fun S ↦
   match frameRun Fn piece a Fn.hints S.1 S.2 with
@@ -37,7 +37,7 @@ noncomputable def frameWinOn (Fn : FFun) (piece : List OffsetInstruction) (a b :
     else match cur, pend with
       | none, [] => true
       | _, _ => false
-  | none => false)
+  | none => false
 
 /-- **A window of the frame walk over a slice**: offsets `a` to `b`, the slice of the code's chunks
 `C` between the cuts `ca` and `cb`, of length `b - a`. -/
