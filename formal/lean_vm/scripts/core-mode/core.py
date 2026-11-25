@@ -63,8 +63,7 @@ HON_SPLIT = 2000
 # `PTR_TRIE` steps a cell
 PTR_TRIE = 64
 # a body with a frame run of more values than `FA_RUN` has its frame run cells at returns checked in a declaration of
-# its own. One evaluation, not chunks of the run (`CoreMode.faRetOk_of_kchunks`): each chunk recomputes the frame at
-# every return (`retSt`), which costs more than the run's cells
+# its own, in one evaluation: the frame at every return (`retSt`) costs more than the run's cells, so it is not split
 FA_RUN = 64
 
 
@@ -218,35 +217,24 @@ def common(k):
             f'pows := Exec.PowTree.ok_of_okW Fn.«{k}».pows_ok, fpows := Exec.PowTree.ok_of_okW Fn.«{k}».fpows_ok')
 
 
-_SIGS = {}
-
-
 def sig_split(k):
-    """A long body with calls, no heap contract: its signature check in parts (`CoreMode.ownOk_of`); the number of its
-    promised runs, else None."""
-    if not long_body(k):
-        return None
-    if 'S' not in _SIGS:
-        _SIGS['S'] = route.sigs()
-    G = _SIGS['S'].get(k)
-    return None if G is None else len(G['postR'])
+    """Whether `k`'s signature check is in parts (`CoreMode.ownOk_of`): a long body with calls, no heap contract."""
+    return long_body(k) and k in route.sigs()
 
 
 def sig_check(k, split):
     """`core_sig`: one kernel evaluation, or a long body's parts (`sig_split`, a body with calls)."""
     a = 'funC.sig cfun cfun.fn.params.length (CoreMode.retN cfun.fn.body)'
-    n = sig_split(k) if split else None
-    if n is None:
+    if not (split and sig_split(k)):
         return thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true')
-    out = (thm(k, 'core_hc', 'cfun.hc = false') +
-           thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
-           thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
-           thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true'))
-    # its promised runs in one evaluation, not one by one (`CoreMode.all_of_chunks`): the runs share most of the work
-    out += (thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true') +
+    # the promised runs share most of their work, so `core_sigR` checks them all in one evaluation
+    return (thm(k, 'core_hc', 'cfun.hc = false') +
+            thm(k, 'core_sigP', f'CoreMode.sigOkPre {a} (Mode.jtRng envC) = true') +
+            thm(k, 'core_sigC', f'CoreMode.sigOkPost {a} = true') +
+            thm(k, 'core_sigG', 'CoreMode.sigOkGh cfun cfun.fn.params.length = true') +
+            thm(k, 'core_sigR', f'CoreMode.sigOkPostR {a} = true') +
             thm(k, 'core_sig', f'CoreMode.ownOk {a} (Mode.jtRng envC) = true',
                 'CoreMode.ownOk_of core_hc core_sigP core_sigC core_sigR core_sigG'))
-    return out
 
 
 def checks(k, j, frame, heap, split=False):
@@ -659,7 +647,7 @@ def main(check=False):
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0])
-                if sig_split(k) is not None:
+                if sig_split(k):
                     imps.add('LeanVM.Guest.CoreMode.SigSplit')
                 if heap_win(k):
                     imps.add(heap_win(k))

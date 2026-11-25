@@ -18,8 +18,8 @@ product or sum `x` (`mulOf`, `bitPow`), a `DEREF` through `x` (`derefAt`). The k
 to the matching atom or the list's end, several for each residual and each step of `expM`. `AtomIx`
 keeps the atoms in buckets by the index of the value each scan keys on, each bucket a trie entry
 (`bucketT`, built lazily, so the kernel builds it once per check and reads a bucket in the depth of
-the trie). A bucket is the atoms of its key in their order (`AtomIx.bkt_eq`), so a scan of it finds
-what the scan of all the atoms does (`findSome?_filter_of`, `any_filter_of`); `resFamX` is `resFam`
+the trie). A bucket is the atoms of its key in their order (`bkt_eq`), so a scan of it finds
+what the scan of all the atoms does (`findSome?_bkt`, `any_bkt`); `resFamX` is `resFam`
 over the buckets, and `resFamX_of` says it is the same check.
 -/
 
@@ -46,8 +46,7 @@ theorem bucketT_get {α : Type} : ∀ (d : ℕ) (l : List (ℕ × α)) (n : ℕ)
   | 0, _, n, h => by simp at h
   | d + 1, [], _, _ => rfl
   | d + 1, q :: l, n, h => by
-    have hb : ∀ a b, Nat.beq a b = decide (a = b) := fun a b ↦ by
-      cases h : Nat.beq a b <;> simp_all [Nat.ne_of_beq_eq_false]
+    have hb : ∀ a b, Nat.beq a b = decide (a = b) := fun a b ↦ Bool.eq_iff_iff.2 (by simp)
     have e : bucketT (d + 1) (q :: l) =
         .node (some ((q :: l).filterMap fun p ↦ if p.1 = 0 then some p.2 else none))
           (bucketT d ((q :: l).filterMap fun p ↦ if p.1 % 2 = 1 then some (p.1 / 2, p.2) else none))
@@ -115,6 +114,16 @@ private theorem any_filter_of {α : Type} {p f : α → Bool} (h : ∀ a, f a = 
       · exact any_filter_of h l
       · exact absurd (h a hf) (by rw [hp]; decide)
     · simp only [↓reduceIte, List.any_cons, any_filter_of h l]
+
+/-- A scan that finds only atoms of key `v.idx` finds in `v`'s bucket what it finds in `as`. -/
+private theorem findSome?_bkt {β : Type} {key : Atom → Option ℕ} {f : Atom → Option β} (as : List Atom) {v : V}
+    (h : ∀ a, (f a).isSome → key a = some v.idx) : (bkt key (keyT key as) as v).findSome? f = as.findSome? f := by
+  rw [bkt_eq, findSome?_filter_of (fun a ha ↦ by simp [h a ha])]
+
+/-- `findSome?_bkt` for `List.any`. -/
+private theorem any_bkt {key : Atom → Option ℕ} {f : Atom → Bool} (as : List Atom) {v : V}
+    (h : ∀ a, f a = true → key a = some v.idx) : (bkt key (keyT key as) as v).any f = as.any f := by
+  rw [bkt_eq, any_filter_of (fun a ha ↦ by simp [h a ha])]
 
 /-! ## The index -/
 
@@ -252,42 +261,25 @@ section Eq
 
 variable (as : List Atom)
 
-theorem constOfI_of (k : V) : constOfI (AtomIx.of as) k = Res.constOf as k := by
-  rw [constOfI, AtomIx.csts, AtomIx.of, bkt_eq, findSome?_filter_of _ as]
-  · rfl
-  · intro a; cases a <;> simp only [cstKey, Option.isSome_none, Bool.false_eq_true, false_imp_iff]
-    split <;> simp_all
+theorem constOfI_of (k : V) : constOfI (AtomIx.of as) k = Res.constOf as k :=
+  (findSome?_bkt as fun a ↦ by cases a <;> simp_all [cstKey]).trans rfl
 
 theorem rcBoundI_of (v : V) : rcBoundI (AtomIx.of as) v = Res.rcBound as v := by
   simp only [rcBoundI, constOfI_of]
-  rw [AtomIx.rcs, AtomIx.of, bkt_eq, findSome?_filter_of _ as]
-  · rfl
-  · intro a; cases a <;> simp only [rcKey, Option.isSome_none, Bool.false_eq_true, false_imp_iff]
-    split <;> simp_all
+  exact (findSome?_bkt as fun a ↦ by cases a <;> simp_all [rcKey]; split <;> simp_all).trans rfl
 
-theorem derefAtI_of (p : V) : derefAtI (AtomIx.of as) p = derefAt as p := by
-  rw [derefAtI, AtomIx.lds, AtomIx.of, bkt_eq, any_filter_of _ as]
-  · rfl
-  · intro a; cases a <;> simp only [ldKey, Bool.false_eq_true, false_imp_iff]
-    · split <;> simp_all
-    · simp_all
+theorem derefAtI_of (p : V) : derefAtI (AtomIx.of as) p = derefAt as p :=
+  (any_bkt as fun a ↦ by cases a <;> simp_all [ldKey]; split <;> simp_all).trans rfl
 
-theorem mulOfI_of (x : V) : mulOfI (AtomIx.of as) x = mulOf as x := by
-  rw [mulOfI, AtomIx.muls, AtomIx.of, bkt_eq, findSome?_filter_of _ as]
-  · rfl
-  · intro a; cases a <;> simp only [mulKey, Option.isSome_none, Bool.false_eq_true, false_imp_iff]
-    split <;> simp_all
+theorem mulOfI_of (x : V) : mulOfI (AtomIx.of as) x = mulOf as x :=
+  (findSome?_bkt as fun a ↦ by cases a <;> simp_all [mulKey]).trans rfl
 
 theorem muls_of (b : V) : Atom.mul b b b ∈ (AtomIx.of as).muls b ↔ Atom.mul b b b ∈ as := by
-  rw [AtomIx.muls, AtomIx.of, bkt_eq, List.mem_filter]
-  simp [mulKey]
+  simp [AtomIx.muls, AtomIx.of, bkt_eq, mulKey]
 
 theorem bitPowI_of (x : V) : bitPowI (AtomIx.of as) x = bitPow as x := by
   simp only [bitPowI, constOfI_of, mulOfI_of, muls_of]
-  rw [AtomIx.adds, AtomIx.of, bkt_eq, findSome?_filter_of _ as]
-  · rfl
-  · intro a; cases a <;> simp only [addKey, Option.isSome_none, Bool.false_eq_true, false_imp_iff]
-    split <;> simp_all
+  exact (findSome?_bkt as fun a ↦ by cases a <;> simp_all [addKey]; split <;> simp_all).trans rfl
 
 theorem expMI_of : ∀ (f : ℕ) (x : V), expMI (AtomIx.of as) f x = expM as f x
   | 0, _ => rfl
@@ -302,9 +294,8 @@ theorem topProdI_of (fn : Fn) :
 
 theorem rcvI_of (x p : ℕ) : rcvI (AtomIx.of as) x p = as.any fun
     | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && decide (k = V.n p)
-    | _ => false := by
-  rw [rcvI, AtomIx.rcs, AtomIx.of, bkt_eq, any_filter_of _ as]
-  intro a; cases a <;> simp_all [rcKey]
+    | _ => false :=
+  any_bkt as fun a ↦ by cases a <;> simp_all [rcKey]
 
 theorem rcnMulI_of (k : V) (p : ℕ) : rcnMulI (AtomIx.of as) k p = as.any fun
     | .mul k' p' w => decide (k' = k) && decide (p' = V.n p) &&
@@ -313,8 +304,7 @@ theorem rcnMulI_of (k : V) (p : ℕ) : rcnMulI (AtomIx.of as) k p = as.any fun
         | none => false)
     | _ => false := by
   simp only [rcnMulI, constOfI_of]
-  rw [AtomIx.muls, AtomIx.of, bkt_eq, any_filter_of _ as]
-  intro a; cases a <;> simp_all [mulKey]
+  exact any_bkt as fun a ↦ by cases a <;> simp_all [mulKey]
 
 theorem rcnI_of (x p : ℕ) : rcnI (AtomIx.of as) x p = as.any fun
     | .rangeCheck x' _ _ _ k => decide (x' = V.n x) && as.any fun
@@ -325,8 +315,7 @@ theorem rcnI_of (x p : ℕ) : rcnI (AtomIx.of as) x p = as.any fun
         | _ => false
     | _ => false := by
   simp only [rcnI, rcnMulI_of]
-  rw [AtomIx.rcs, AtomIx.of, bkt_eq, any_filter_of _ as]
-  intro a; cases a <;> simp_all [rcKey]
+  exact any_bkt as fun a ↦ by cases a <;> simp_all [rcKey]
 
 end Eq
 
