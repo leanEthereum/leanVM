@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SelBlock
 public import LeanVM.Guest.B1.Selectors.BlockSelector
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The framework blocks' selectors
@@ -50,7 +51,7 @@ def vtFwSelT (w b kv : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.mul (.n (w + 7)) (.n (w + 6)) (.n kv)), .atom (.mul (.n (w + 8)) (.n (val% «verify_tables» "zeta1")) (.n kv)),
     .atom (.mul (.n (w + 9)) (.n (val% «verify_tables» "idxc_tab")) (.n kv)),
     .dispatch (.n w) vtBsNames [.n (w + 7), .n (w + 8), .n (w + 9)] [.n (w + 10), .n (w + 11)],
-    .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ++
+    .atom (.assertEq (.n (w + 11)) (.n (vtBoffV b)))] ⧺
   vtFwTail w prev
 
 theorem vtFw0_check : stmtsEqb (vtFwSelT 823 0 26 none)

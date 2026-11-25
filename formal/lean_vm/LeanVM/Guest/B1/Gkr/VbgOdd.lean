@@ -14,6 +14,8 @@ public import LeanVM.Guest.B1.Gkr.Root
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 public import LeanVM.Guest.B1.Gkr.Holds
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The root-most layer, completely
@@ -90,9 +92,9 @@ def rtVal (b u v off : ℕ) : List Stmt :=
 
 /-- The binary arm. -/
 def rtTwoL : List Stmt :=
-  ((List.range 4).map (chT (.n 5) 2 288)).flatten ++
-  [keccakA (chRate 288 0 ++ lyCap 46) (lyOuts 304)] ++
-  chT (.n 5) 2 288 4 ++ chT (.n 5) 2 288 5 ++
+  ((List.range 4).map (chT (.n 5) 2 288)).flatten ⧺
+  [keccakA (chRate 288 0 ++ lyCap 46) (lyOuts 304)] ⧺
+  chT (.n 5) 2 288 4 ⧺ chT (.n 5) 2 288 5 ⧺
   [.atom (.mul (.n 325) (.n 320) (.n 324)), .atom (.const (.n 326) (word 0 0)),
     .atom (.mul (.n 327) (.n 46) (.n 326)), .atom (.add (.n 328) (.n 325) (.n 327)),
     .atom (.mul (.n 329) (.n 299) (.n 303)), .atom (.mul (.n 330) (.n 46) (.n 328)),
@@ -100,25 +102,24 @@ def rtTwoL : List Stmt :=
     .atom (.mul (.n 333) (.n 46) (.n 331)), .atom (.add (.n 334) (.n 332) (.n 333)),
     .atom (.assertEq (.n 62) (.n 334)),
     keccakA ([.n 318, .n 319, .n 322, .n 323, .n 42, .n 43, .n 44, .n 45] ++ lyCap 304)
-      (lyOuts 335)] ++
+      (lyOuts 335)] ⧺
   [.atom (.load (.n 335) (.n 22) 40), .atom (.const (.n 348) (word 0 0)),
-    .atom (.load (.n 348) (.n 22) 41)] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (343 + k)) (.n 139) k)) ++
+    .atom (.load (.n 348) (.n 22) 41)] ⧺
+  (List.range 5).map (fun k ↦ .atom (.load (.n (343 + k)) (.n 139) k)) ⧺
   [.atom (.const (.n 349) (word 256 0)), .atom (.mul (.n 350) (.n 5) (.n 349)),
-    .atom (.load (.n 350) (.n 139) 5)] ++
-  rtVal 351 291 295 6 ++ rtVal 354 299 303 7 ++ rtVal 357 320 324 8 ++
+    .atom (.load (.n 350) (.n 139) 5)] ⧺
+  rtVal 351 291 295 6 ⧺ rtVal 354 299 303 7 ⧺ rtVal 357 320 324 8 ⧺
   [.atom (.const (.n 360) (word 128 0)), .atom (.load (.n 360) (.n 139) 9)]
 
-set_option maxRecDepth 10000 in
-theorem rtTwoL_eq : rtTwo = rtTwoL := stmtsEqb_sound (by decide +kernel)
+kernel_rfl rtTwoL_eq : rtTwo = rtTwoL
 
 /-- The radix-four arm. -/
 def rtFourL : List Stmt :=
-  ((List.range 4).map (chT (.n 5) 2 142)).flatten ++
-  [keccakA (chRate 142 0 ++ lyCap 46) (lyOuts 158)] ++
-  ((List.range 4).map fun i ↦ chT (.n 5) 2 142 (4 + i)).flatten ++
-  [keccakA (chRate 142 1 ++ lyCap 158) (lyOuts 187)] ++
-  ((List.range 4).map fun i ↦ chT (.n 5) 2 142 (8 + i)).flatten ++
+  ((List.range 4).map (chT (.n 5) 2 142)).flatten ⧺
+  [keccakA (chRate 142 0 ++ lyCap 46) (lyOuts 158)] ⧺
+  ((List.range 4).map fun i ↦ chT (.n 5) 2 142 (4 + i)).flatten ⧺
+  [keccakA (chRate 142 1 ++ lyCap 158) (lyOuts 187)] ⧺
+  ((List.range 4).map fun i ↦ chT (.n 5) 2 142 (8 + i)).flatten ⧺
   [.atom (.mul (.n 216) (.n 203) (.n 207)), .atom (.mul (.n 217) (.n 216) (.n 211)),
     .atom (.mul (.n 218) (.n 217) (.n 215)), .atom (.const (.n 219) (word 0 0)),
     .atom (.mul (.n 220) (.n 46) (.n 219)), .atom (.add (.n 221) (.n 218) (.n 220)),
@@ -128,18 +129,17 @@ def rtFourL : List Stmt :=
     .atom (.mul (.n 228) (.n 227) (.n 153)), .atom (.mul (.n 229) (.n 228) (.n 157)),
     .atom (.mul (.n 230) (.n 46) (.n 226)), .atom (.add (.n 231) (.n 229) (.n 230)),
     .atom (.assertEq (.n 62) (.n 231)),
-    keccakA (chRate 142 2 ++ lyCap 187) (lyOuts 232)] ++
-  [keccakA ([.n 42, .n 42, .n 42, .n 42, .n 42, .n 43, .n 44, .n 45] ++ lyCap 232) (lyOuts 245)] ++
-  [.atom (.load (.n 232) (.n 22) 40), .atom (.load (.n 245) (.n 22) 41)] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n (253 + k)) (.n 139) k)) ++
+    keccakA (chRate 142 2 ++ lyCap 187) (lyOuts 232)] ⧺
+  [keccakA ([.n 42, .n 42, .n 42, .n 42, .n 42, .n 43, .n 44, .n 45] ++ lyCap 232) (lyOuts 245)] ⧺
+  [.atom (.load (.n 232) (.n 22) 40), .atom (.load (.n 245) (.n 22) 41)] ⧺
+  (List.range 5).map (fun k ↦ .atom (.load (.n (253 + k)) (.n 139) k)) ⧺
   [.atom (.const (.n 258) (word 16384 0)), .atom (.mul (.n 259) (.n 5) (.n 258)),
-    .atom (.load (.n 259) (.n 139) 5)] ++
-  chValT 142 232 245 139 0 260 6 ++ chValT 142 232 245 139 1 269 7 ++
-  chValT 142 232 245 139 2 278 8 ++
+    .atom (.load (.n 259) (.n 139) 5)] ⧺
+  chValT 142 232 245 139 0 260 6 ⧺ chValT 142 232 245 139 1 269 7 ⧺
+  chValT 142 232 245 139 2 278 8 ⧺
   [.atom (.const (.n 287) (word 128 0)), .atom (.load (.n 287) (.n 139) 9)]
 
-set_option maxRecDepth 10000 in
-theorem rtFourL_eq : rtFour = rtFourL := stmtsEqb_sound (by decide +kernel)
+kernel_rfl rtFourL_eq : rtFour = rtFourL
 
 section Eval
 

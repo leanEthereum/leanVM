@@ -14,6 +14,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Facts.Verifier
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `certify_placement` (TRIAGE G #67)
@@ -152,8 +153,8 @@ def cpKeyS (gi : ℕ) : List Stmt :=
 /-- The key's store, the size's chain and its store. -/
 def cpSizeS (gi : ℕ) : List Stmt :=
   [.atom (.load (.n (cpZ gi - 1)) (.n (val% «certify_placement» "group_key")) gi), .atom (.mul (.n (cpZ gi)) (.n (val% «certify_placement» "g_squares")) (.n (cpKv gi))),
-    .atom (.load (.n (cpZ gi + 1)) (.n (cpZ gi)) 0)] ++
-  cpChain (cpZ gi + 1) (cpCh gi) ++
+    .atom (.load (.n (cpZ gi + 1)) (.n (cpZ gi)) 0)] ⧺
+  cpChain (cpZ gi + 1) (cpCh gi) ⧺
   [.atom (.load (.n (cpZ gi + 1 + (cpCh gi).length)) (.n (val% «certify_placement» "group_size")) gi)]
 
 /-- Group `gi`: its `g^κ`, key and size. -/
@@ -196,21 +197,21 @@ def cpCols (gi : ℕ) : List Stmt :=
   [.atom (.mul (.n (cpD gi)) (.n (val% «certify_placement» "g_squares")) (.n (2 + cpSrc gi))),
     .atom (.load (.n (cpD gi + 1)) (.n (cpD gi)) (cpAdj gi)),
     .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "group_base")) gi),
-    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi))] ++
+    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi))] ⧺
   ((List.range (cpLen gi - 1)).map fun j ↦
     [.atom (.mul (.n (cpD gi + 3 + j)) (.n (cpD gi + 2 + j)) (.n (cpD gi + 1))),
       .atom (.load (.n (cpD gi + 3 + j)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi + 1 + j))]).flatten
 
 /-- `certify_placement`'s statements before its `ret`. -/
 def cpPre : List Stmt :=
-  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n ((val% «certify_placement» "kb[0]") + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ++
-    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ++
-    ((List.range 9).map cpGroup).flatten ++
+  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n ((val% «certify_placement» "kb[0]") + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ⧺
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ⧺
+    ((List.range 9).map cpGroup).flatten ⧺
     [.atom (.hint (.alloc (.n (val% «certify_placement» "group_order")) 9)),
       .atom (.hint (.witness "col_group_order" (.heap (.n (val% «certify_placement» "group_order")) 0 9))),
-      .atom (.hint (.alloc (.n (val% «certify_placement» "group_base")) 9))] ++
-    cpRank0 ++ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ++
-    [.atom (.hint (.alloc (.n (val% «certify_placement» "col_off_g")) 94))] ++ ((List.range 9).map cpCols).flatten ++
+      .atom (.hint (.alloc (.n (val% «certify_placement» "group_base")) 9))] ⧺
+    cpRank0 ⧺ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ⧺
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "col_off_g")) 94))] ⧺ ((List.range 9).map cpCols).flatten ⧺
     [.atom (.copy (.n (val% «certify_placement» "s13#0")) (.n (val% «certify_placement» "g_total@9"))), .atom (.copy (.n (val% «certify_placement» "s13#0[1]")) (.n (val% «certify_placement» "col_off_g")))]
 
 /-- The function found by name is the template. -/

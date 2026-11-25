@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkT
+meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -14,7 +15,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-theorem vk_body : (fn% «verify_keccak»).body = vkT := stmtsEqb_sound (by decide +kernel)
+kernel_rfl vk_body : (fn% «verify_keccak»).body = vkT
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Bits.QueryWindowsAt
 public import LeanVM.Guest.B1.Whir.SqLoop
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The squeeze loop, placed
@@ -62,7 +63,7 @@ def sqTailArgs (lv : OsLv) : List V :=
 
 /-- The squeeze loop's body before its final `ret []`. -/
 def sqLoopPre (lv : OsLv) (name : String) : List Stmt :=
-  (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ++ [.callIf (.n (sqLoopE lv + 2)) name (sqTailArgs lv)]
+  (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ⧺ [.callIf (.n (sqLoopE lv + 2)) name (sqTailArgs lv)]
 
 theorem sqLoopBody_pre (lv : OsLv) (name : String) :
     sqLoopBody lv name = sqLoopPre lv name ++ [.ret []] := by

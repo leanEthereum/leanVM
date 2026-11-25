@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A radix-four layer, loading from a region
@@ -44,7 +45,7 @@ theorem ptrIn_pow {R : ℕ → Prop} {p : E} {a B B' : ℕ} (h : PtrIn R p B) (h
 
 /-- The loop's next record and guard. -/
 def glLoopPostA : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ⧺
   [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
     .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 12), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 13),
     .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
@@ -56,7 +57,7 @@ def glLoopNext (nm : String) : Stmt := .callIf (.n (valf% «gkr_layer» «_loop0
 
 /-- The loop's statements before its `ret`. -/
 def glLoopPreK (nm : String) : List Stmt :=
-  glLoopPre ++ glLoopRounds ++ glLoopPostA ++ [glLoopNext nm]
+  glLoopPre ⧺ glLoopRounds ⧺ glLoopPostA ⧺ [glLoopNext nm]
 
 theorem glLoopBody_eq (nm : String) : glLoopBody nm = glLoopPreK nm ++ [.ret []] := by
   simp [glLoopBody, glLoopPreK, glLoopPostA, glLoopNext, glLoopPost]

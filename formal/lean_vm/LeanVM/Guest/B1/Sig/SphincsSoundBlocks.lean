@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.SphincsT
 public import LeanVM.Guest.B1.Sig.KeccakMsg
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs` around its calls
@@ -46,10 +47,10 @@ def sLayerK (l : Nat) (a0 signed : V) : List Stmt × Nat × Nat :=
 /-- Layer `l` before its call: the counter hinted and read, `enc_at = a1 + WOTS_ENC`, the
 encoding, the call's `A0`. -/
 def sLayerPre (l : Nat) (a0 a1 signed : V) : List Stmt :=
-  [hintW "sp_counter" (runV (sLayerBase l) 4)] ++ (sLayerCtr l).1 ++
+  [hintW "sp_counter" (runV (sLayerBase l) 4)] ⧺ (sLayerCtr l).1 ⧺
     [cst (sLayerCtr l).2.1 (lit (7 * 2 ^ 24)),
-      addS (.n ((sLayerCtr l).2.1 + 1)) a1 (.n (sLayerCtr l).2.1)] ++
-    a0Pre (sAcOf l) ((sLayerCtr l).2.1 + 2) ++ (sLayerK l a0 signed).1 ++
+      addS (.n ((sLayerCtr l).2.1 + 1)) a1 (.n (sLayerCtr l).2.1)] ⧺
+    a0Pre (sAcOf l) ((sLayerCtr l).2.1 + 2) ⧺ (sLayerK l a0 signed).1 ⧺
     a0Pre (sAcOf l) (sLayerK l a0 signed).2.1
 
 /-- Layer `l`'s call of `sp_wots`. -/
@@ -96,15 +97,15 @@ def sBlockA : List Stmt := sDigestBlock ++ sForsAddrs ++ sForsB.1 ++ sLayerPre 0
 
 /-- The bottom path, the middle layer's addresses, counter and encoding. -/
 def sBlockB : List Stmt :=
-  (sLayerPath 0 sA0B sForsPk).1 ++ sMidAddrs ++ sLayerPre 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
+  (sLayerPath 0 sA0B sForsPk).1 ⧺ sMidAddrs ⧺ sLayerPre 1 (sA0Of 1) (sA1Of 1) sLayerB.2.2
 
 /-- The middle path, the top layer's addresses, counter and encoding. -/
 def sBlockC : List Stmt :=
-  (sLayerPath 1 (sA0Of 1) sLayerB.2.2).1 ++ sTopAddrs ++ sLayerPre 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2
+  (sLayerPath 1 (sA0Of 1) sLayerB.2.2).1 ⧺ sTopAddrs ⧺ sLayerPre 2 (sA0Of 2) (sA1Of 2) sLayerM.2.2
 
 /-- The top path and the root's check. -/
 def sBlockD : List Stmt :=
-  (sLayerPath 2 (sA0Of 2) sLayerM.2.2).1 ++ [.atom (.assertEq sLayerT.2.2 sRoot)]
+  (sLayerPath 2 (sA0Of 2) sLayerM.2.2).1 ⧺ [.atom (.assertEq sLayerT.2.2 sRoot)]
 
 theorem sLayerB_root : sLayerB.2.2 = (sLayerPath 0 sA0B sForsPk).2.2 := by
   rw [sLayerB, sLayerAt_eq]

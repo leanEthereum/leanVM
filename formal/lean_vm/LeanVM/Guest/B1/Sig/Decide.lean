@@ -118,14 +118,6 @@ def armsDecEq : (a b : List (List Stmt)) → Decidable (a = b)
       | _, isFalse h2 => isFalse (by intro e; cases e; exact h2 rfl)
 end
 
-/-- Two lists agreeing on a slice from `a` and from its end on agree from `a`: the data modules
-check a body in slices. -/
-theorem drop_eq_of_take {α : Type} {l r : List α} {a n : Nat}
-    (ht : (l.drop a).take n = (r.drop a).take n) (hd : l.drop (a + n) = r.drop (a + n)) :
-    l.drop a = r.drop a := by
-  rw [← List.take_append_drop n (l.drop a), ← List.take_append_drop n (r.drop a), ht, List.drop_drop,
-    List.drop_drop, hd]
-
 /-- Whether a statement is a `match`. -/
 def isMatch : Stmt → Bool
   | .match_ _ _ => true

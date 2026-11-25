@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.PackLoop
 public import LeanVM.Guest.B1.KeccakGkr.LayerSpec
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The rounds over the bit position
@@ -31,10 +32,10 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- Round `i` of the bit-position sumcheck, from the value `a`. -/
 def localRoundT (cur loc vIn : V) (capV : List V) (i a : ℕ) : List Stmt :=
-  fsNextT cur (3 * i) a ++ fsNextT cur (3 * i + 1) (a + 3) ++ fsNextT cur (3 * i + 2) (a + 6) ++
+  fsNextT cur (3 * i) a ⧺ fsNextT cur (3 * i + 1) (a + 3) ⧺ fsNextT cur (3 * i + 2) (a + 6) ⧺
     [.atom (.const (.n (a + 9)) (word 0 0)), .atom (.const (.n (a + 10)) (word 0 0)),
       keccakA ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5), .n (a + 7), .n (a + 8),
-        .n (a + 9), .n (a + 10)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 11 + k))] ++
+        .n (a + 9), .n (a + 10)] ++ capV) ((List.range 13).map fun k ↦ .n (a + 11 + k))] ⧺
     [.atom (.load (.n (a + 11)) loc i), .atom (.const (.n (a + 24)) (word 1 0)),
       .atom (.add (.n (a + 25)) (.n (a + 24)) (.n (a + 11))),
       .atom (.mul (.n (a + 26)) (.n (a + 25)) (.n (a + 6))),

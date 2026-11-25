@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«padding_weight__L»
 import LeanVM.Guest.Data.ValNames.«padding_weight__L0»
 import LeanVM.Guest.Data.ValNames.«padding_weight__L1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `padding_weight` (TRIAGE G #51)
@@ -105,9 +106,9 @@ def pwTail (τ : ℕ) : List Stmt :=
 
 /-- The expansion of `padding_weight` at `τ ≥ 2`. -/
 def pwBody (τ : ℕ) : List Stmt :=
-  pwHead τ ++ pwStep0 τ ++ ((List.range (τ - 1)).map fun i => pwStep τ (i + 1)).flatten ++
-    [.atom (.mul (.n (4 + τ)) (.n (4 + τ)) (.n (4 + τ)))] ++
-    ((List.range (τ - 2)).map (pwHorner τ)).flatten ++ pwTail τ
+  pwHead τ ⧺ pwStep0 τ ⧺ ((List.range (τ - 1)).map fun i => pwStep τ (i + 1)).flatten ⧺
+    [.atom (.mul (.n (4 + τ)) (.n (4 + τ)) (.n (4 + τ)))] ⧺
+    ((List.range (τ - 2)).map (pwHorner τ)).flatten ⧺ pwTail τ
 
 /-! ## Bits and words -/
 

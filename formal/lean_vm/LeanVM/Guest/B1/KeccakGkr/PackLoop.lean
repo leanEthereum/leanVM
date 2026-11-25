@@ -14,6 +14,8 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
+meta import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The pack rounds' loops (`keccak_layer`)
@@ -268,7 +270,7 @@ theorem pack8Pre_atoms : pack8Pre.all isAtom = true := by decide +kernel
 
 /-- The loop body, the self-call named `name`. -/
 def pack8T (name : String) : List Stmt :=
-  pack8Pre ++ [.callIf (.n (valf% «keccak_layer» «_loop0» "s12#2")) name [.n (valf% «keccak_layer» «_loop0» "s12#4"), .n (valf% «keccak_layer» «_loop0» "bound"), .n (valf% «keccak_layer» «_loop0» "rounds"), .n (valf% «keccak_layer» «_loop0» "prev_point"), .n (valf% «keccak_layer» «_loop0» "point"), .n (valf% «keccak_layer» «_loop0» "tabs")], .ret []]
+  pack8Pre ⧺ [.callIf (.n (valf% «keccak_layer» «_loop0» "s12#2")) name [.n (valf% «keccak_layer» «_loop0» "s12#4"), .n (valf% «keccak_layer» «_loop0» "bound"), .n (valf% «keccak_layer» «_loop0» "rounds"), .n (valf% «keccak_layer» «_loop0» "prev_point"), .n (valf% «keccak_layer» «_loop0» "point"), .n (valf% «keccak_layer» «_loop0» "tabs")], .ret []]
 
 /-- The remainder loop's atoms: one round on the record `rounds·x`. -/
 def packRemPre : List Stmt :=
@@ -322,7 +324,7 @@ theorem packRemPre_atoms : packRemPre.all isAtom = true := by decide +kernel
 
 /-- The remainder loop's body, the self-call named `name`. -/
 def packRemT (name : String) : List Stmt :=
-  packRemPre ++ [.callIf (.n (valf% «keccak_layer» «_loop1» "s15#2")) name [.n (valf% «keccak_layer» «_loop1» "s15#4"), .n (valf% «keccak_layer» «_loop1» "bound"), .n (valf% «keccak_layer» «_loop1» "rem_rounds"), .n (valf% «keccak_layer» «_loop1» "rem_prev"), .n (valf% «keccak_layer» «_loop1» "tabs"), .n (valf% «keccak_layer» «_loop1» "rem_point")], .ret []]
+  packRemPre ⧺ [.callIf (.n (valf% «keccak_layer» «_loop1» "s15#2")) name [.n (valf% «keccak_layer» «_loop1» "s15#4"), .n (valf% «keccak_layer» «_loop1» "bound"), .n (valf% «keccak_layer» «_loop1» "rem_rounds"), .n (valf% «keccak_layer» «_loop1» "rem_prev"), .n (valf% «keccak_layer» «_loop1» "tabs"), .n (valf% «keccak_layer» «_loop1» "rem_point")], .ret []]
 
 /-- The two helpers' names, by `keccak_layer` specialization: the eight-round loop. -/
 def packLoopName : ℕ → String
@@ -334,16 +336,12 @@ def remLoopName : ℕ → String
   | 1 => name% «keccak_layer__L1_loop1»
   | _ => name% «keccak_layer__L0_loop1»
 
-theorem pack8_body456 : (fn% «keccak_layer__L1_loop0»).body = pack8T name% «keccak_layer__L1_loop0»
-    := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body458 : (fn% «keccak_layer__L0_loop0»).body = pack8T name% «keccak_layer__L0_loop0»
-    := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body457 : (fn% «keccak_layer__L1_loop1»).body = packRemT
-    name% «keccak_layer__L1_loop1» :=
-  stmtsEqb_sound (by decide +kernel)
-theorem packRem_body459 : (fn% «keccak_layer__L0_loop1»).body = packRemT
-    name% «keccak_layer__L0_loop1» :=
-  stmtsEqb_sound (by decide +kernel)
+kernel_rfl pack8_body456 : (fn% «keccak_layer__L1_loop0»).body = pack8T name% «keccak_layer__L1_loop0»
+kernel_rfl pack8_body458 : (fn% «keccak_layer__L0_loop0»).body = pack8T name% «keccak_layer__L0_loop0»
+kernel_rfl packRem_body457 : (fn% «keccak_layer__L1_loop1»).body = packRemT
+    name% «keccak_layer__L1_loop1»
+kernel_rfl packRem_body459 : (fn% «keccak_layer__L0_loop1»).body = packRemT
+    name% «keccak_layer__L0_loop1»
 
 theorem find_pack8_456 : coreProgram.find? name% «keccak_layer__L1_loop0» = some
     fn% «keccak_layer__L1_loop0» :=
