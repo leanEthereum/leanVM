@@ -16,7 +16,7 @@ and the compiled form of structural recursion, then walks it; the kernel reduces
 core certificate runs such a check on a long body several times. `stmtsFold g body acc` is
 `(stmtsOf body).foldr g acc` in one pass of the recursor, `stmtsFold_eq` the equality. The checks
 `stmtsAll` (`(stmtsOf body).all p`), `subAll` (`(stmtsSub s).all p`) and `stmtsFM`
-(`(stmtsOf body).filterMap f ++ acc`) are its instances.
+(`(stmtsOf body).filterMap f`) are its instances.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -47,11 +47,11 @@ noncomputable def stmtsAll (p : Stmt → Bool) (l : List Stmt) : Bool := stmtsFo
 /-- `(stmtsSub s).all p`, by the recursor. -/
 noncomputable def subAll (p : Stmt → Bool) (s : Stmt) : Bool := subFold (fun s acc ↦ p s && acc) s true
 
-/-- `(stmtsOf l).filterMap f ++ acc`, by the recursor. -/
-noncomputable def stmtsFM {β : Type} (f : Stmt → Option β) (l : List Stmt) (acc : List β) : List β :=
+/-- `(stmtsOf l).filterMap f`, by the recursor. -/
+noncomputable def stmtsFM {β : Type} (f : Stmt → Option β) (l : List Stmt) : List β :=
   stmtsFold (fun s acc ↦ match f s with
     | some b => b :: acc
-    | none => acc) l acc
+    | none => acc) l []
 
 end
 
@@ -92,13 +92,13 @@ private theorem foldr_and (p : Stmt → Bool) : ∀ L : List Stmt, L.foldr (fun 
   | [] => rfl
   | _ :: L => by rw [List.foldr_cons, foldr_and p L, List.all_cons]
 
-private theorem foldr_fm {β : Type} (f : Stmt → Option β) (acc : List β) : ∀ L : List Stmt,
+private theorem foldr_fm {β : Type} (f : Stmt → Option β) : ∀ L : List Stmt,
     L.foldr (fun s acc ↦ match f s with
       | some b => b :: acc
-      | none => acc) acc = L.filterMap f ++ acc
+      | none => acc) [] = L.filterMap f
   | [] => rfl
   | s :: L => by
-    rw [List.foldr_cons, foldr_fm f acc L, List.filterMap_cons]
+    rw [List.foldr_cons, foldr_fm f L, List.filterMap_cons]
     cases f s <;> rfl
 
 end
@@ -114,13 +114,12 @@ theorem stmtsAll_eq (p : Stmt → Bool) (l : List Stmt) : stmtsAll p l = (stmtsO
 theorem subAll_eq (p : Stmt → Bool) (s : Stmt) : subAll p s = (stmtsSub s).all p := by
   rw [subAll, subFold_eq', foldr_and]
 
-theorem stmtsFM_eq {β : Type} (f : Stmt → Option β) (l : List Stmt) (acc : List β) :
-    stmtsFM f l acc = (stmtsOf l).filterMap f ++ acc := by
+theorem stmtsFM_eq {β : Type} (f : Stmt → Option β) (l : List Stmt) : stmtsFM f l = (stmtsOf l).filterMap f := by
   rw [stmtsFM, stmtsFold_eq, foldr_fm]
 
 /-- A check of every statement of a body, by the recursor, from each statement's. -/
-theorem stmtsAll_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) : stmtsAll p l = true := by
-  rw [stmtsAll_eq]; exact List.all_eq_true.mpr h
+theorem stmtsAll_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) : stmtsAll p l = true :=
+  (stmtsAll_eq p l).trans (List.all_eq_true.mpr h)
 
 end
 

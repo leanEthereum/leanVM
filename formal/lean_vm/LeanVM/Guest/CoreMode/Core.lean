@@ -172,10 +172,6 @@ noncomputable def noFA (body : List Stmt) : Bool :=
     | .atom (.frameAddr ..) => false
     | _ => true) body
 
-theorem noFA_eq (body : List Stmt) : noFA body = (stmtsOf body).all fun s ↦ match s with
-    | .atom (.frameAddr ..) => false
-    | _ => true := stmtsAll_eq _ _
-
 /-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
 def noPost (h : HSig) : Bool :=
   h.post.isEmpty && h.postR.isEmpty && h.postP.isEmpty && h.postPR.isEmpty && h.postQ.isEmpty &&
@@ -1091,22 +1087,17 @@ noncomputable def callsB (Cf : CFun) : Bool :=
         Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
     | _ => true) Cf.fn.body
 
-theorem callsB_eq (Cf : CFun) : callsB Cf = (stmtsOf Cf.fn.body).all fun s ↦ match s with
-    | .call g args _ => callChkM Cf g args
-    | .callIf _ g args => callChkM Cf g args
-    | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
-        Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
-    | _ => true := stmtsAll_eq _ _
-
 /-- **A dispatch checked as `callsB` does**: its callees by `callChkM`, the ones `dsp` lists at its sites. -/
 noncomputable def dspB (Cf : CFun) : Stmt → Bool
   | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
       Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
   | _ => true
 
-theorem dspB_of_callsB {Cf : CFun} (h : callsB Cf = true) : (stmtsOf Cf.fn.body).all (dspB Cf) = true :=
-  List.all_eq_true.mpr fun s hs ↦ by
-    have := List.all_eq_true.mp (callsB_eq Cf ▸ h) s hs
+theorem dspB_of_callsB {Cf : CFun} (h : callsB Cf = true) : (stmtsOf Cf.fn.body).all (dspB Cf) = true := by
+  rw [callsB, stmtsAll_eq] at h
+  exact List.all_eq_true.mpr fun s hs ↦ by
+    have := List.all_eq_true.mp h s hs
+    clear h
     cases s <;> simp_all [dspB]
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
@@ -1178,30 +1169,17 @@ and returns, no branch or arm returning. -/
 noncomputable def bodyCore (body : List Stmt) : Bool :=
   stmtsAll ctrlOk body && body.all topOk
 
-theorem bodyCore_eq (body : List Stmt) : bodyCore body = ((stmtsOf body).all ctrlOk && body.all topOk) := by
-  rw [bodyCore, stmtsAll_eq]
-
 /-- The `match`es of a body, nested ones included: selector number, number of arms. -/
 noncomputable def matchLens (body : List Stmt) : List (ℕ × ℕ) :=
   stmtsFM (fun s ↦ match s with
     | .match_ x arms => some (x.idx, arms.length)
-    | _ => none) body []
-
-theorem matchLens_eq (body : List Stmt) : matchLens body = (stmtsOf body).filterMap fun s ↦ match s with
-    | .match_ x arms => some (x.idx, arms.length)
-    | _ => none := by
-  rw [matchLens, stmtsFM_eq, List.append_nil]
+    | _ => none) body
 
 /-- The body's `dispatch`es: selector, callee count, arguments' and returned values' indices. -/
 noncomputable def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × List ℕ) :=
   stmtsFM (fun s ↦ match s with
     | .dispatch x fs args rets => some (x, fs.length, args.map (·.idx), rets.map (·.idx))
-    | _ => none) body []
-
-theorem dspLens_eq (body : List Stmt) : dspLens body = (stmtsOf body).filterMap fun s ↦ match s with
-    | .dispatch x fs args rets => some (x, fs.length, args.map (·.idx), rets.map (·.idx))
-    | _ => none := by
-  rw [dspLens, stmtsFM_eq, List.append_nil]
+    | _ => none) body
 
 /-- The slots of table `a` that every `match` of the selector it reads has, at offsets of `ts` past
 the entry `e`. -/
@@ -1248,17 +1226,12 @@ theorem getQ_eq {α : Type} (t : Exec.Trie α) (n : ℕ) : getQ t n = t.get n :=
   induction t generalizing n with
   | nil => rfl
   | node v l r ihl ihr =>
-    rw [Exec.Trie.get_node]
     cases n with
     | zero => rfl
     | succ m =>
       change (bif Nat.beq (m % 2) 0 then getQ l (m / 2) else getQ r (m / 2)) = _
-      rw [ihl, ihr]
-      rcases Nat.mod_two_eq_zero_or_one m with h | h
-      · rw [h, show (m + 1) % 2 = 1 by omega, show (m + 1) / 2 = m / 2 by omega]
-        rfl
-      · rw [h, show (m + 1) % 2 = 0 by omega, show (m + 1) / 2 - 1 = m / 2 by omega]
-        rfl
+      rw [ihl, ihr, Exec.Trie.get_node]
+      rcases Nat.mod_two_eq_zero_or_one m with h | h <;> simp [h, Nat.add_mod] <;> congr 1 <;> omega
 
 /-- From offset `i`: each `JUMP` the frame walk reads a table for (`tgt`) is a table jump through a
 target cell the alignment's context gives a table (`arms`), no pc and not `0`, the walk's table the
@@ -1366,14 +1339,6 @@ noncomputable def dstIn (body : List Stmt) (v : V) : Bool :=
   !stmtsAll (fun s ↦ match s with
     | .atom a => !(atomDst a).contains v
     | _ => true) body
-
-theorem dstIn_eq (body : List Stmt) (v : V) : dstIn body v = (stmtsOf body).any fun s ↦ match s with
-    | .atom a => (atomDst a).contains v
-    | _ => false := by
-  rw [dstIn, stmtsAll_eq, List.any_eq_not_all_not]
-  congr 2
-  funext s
-  cases s <;> simp
 
 /-- **A frame run's cells at a return state `A`**: from its first value's cell `c` on, each cell `c + k` whose value an
 atom of the body defines is written, and each cell `c + i` past the run the certificate's frame run cells `fas` list

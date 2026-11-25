@@ -255,9 +255,10 @@ theorem pow_of_ofK {a b : ℕ} (h : ofK ((g : K) ^ a) = ofK (g ^ b)) : (g : K) ^
 /-- A body without `frameAddr` atoms guarantees no frame run cell (`FAW`). -/
 theorem noFAW {body : List Stmt} (h : noFA body = true) {σ : Val} {es : List Ev} {vs : List V}
     (hw : walk σ body = .ret es vs) {fas : List (ℕ × ℕ)} (x : K) : ¬ FAW σ fas es x := by
+  rw [noFA, stmtsAll_eq] at h
   rintro (⟨p, run, i, v, he, -⟩ | ⟨kp, i, run, -, he, -⟩) <;>
   · have hs := Bridge.walk_atomS body (by rw [hw]; exact he)
-    have := List.all_eq_true.mp (noFA_eq body ▸ h) _ hs
+    have := List.all_eq_true.mp h _ hs
     simp at this
 
 theorem postOkW_of {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E} {es : List Ev}
@@ -298,7 +299,7 @@ theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List
     (hs : Stmt.call f a r ∈ stmtsOf Cf.fn.body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf Cf.fn.body) ∨
       ∃ x fs, Stmt.dispatch x fs a r ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
     callChkM Cf f a = true := by
-  rw [callsB_eq] at hcb
+  rw [callsB, stmtsAll_eq] at hcb
   rcases hs with hs | ⟨-, c, hs⟩ | ⟨x, fs, hs, hf⟩
   · exact List.all_eq_true.mp hcb _ hs
   · exact List.all_eq_true.mp hcb _ hs
@@ -453,7 +454,7 @@ theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
   cases hk with
   | m1 _ _ hstr0 _ _ _ =>
     simp only [Bool.and_eq_true, stmtsAll_eq] at hstr0
-    rw [callsB_eq]
+    rw [callsB, stmtsAll_eq]
     refine List.all_eq_true.mpr fun s hs ↦ ?_
     have := List.all_eq_true.mp hstr0.1.1.1.1.1 s hs
     cases s <;> simp_all [isCall]
