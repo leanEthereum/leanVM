@@ -15,9 +15,10 @@ public meta import Lean.Elab.Command
 `alloc_chk% «k» [«c₀», …]` is `k`'s four allocation checks (`allocShapeOk`, `curBodyOk`, `frOk`
 with its callees `c₀, …` by index, `allocOk`, the last over the code's jumps listed once,
 `Bridge.allocRest_of_fast`), each `… = true` by the kernel. `align_chk% «k»` is its
-alignment checks (`alignCellsOk`, `alignOk`). Unhygienic: each expands to the text the generators
-wrote before, its names resolved where it is written (in `namespace LeanVM.Guest`), so its
-elaboration is the same.
+alignment checks (`alignCellsOk`, `alignOk`). Unhygienic: names resolve where the macro is
+written (in `namespace LeanVM.Guest`). `align_chk%` and the first three allocation checks are each
+a plain `decide +kernel` of the check; `allocOk` decides the fast form over the jump list and
+concludes through `Bridge.allocRest_of_fast`.
 -/
 
 public section
