@@ -2,7 +2,7 @@
   LeanVM.Guest.CoreMode.TrieOf
 
   A set of keys as a trie of units, from the list of its keys: how generated data writes the frame
-  walk's cut states' sets (`FSt.w`, `nz`, `hq`, `hs`).
+  walk's cut states' heap sets (`FSt.hq`, `hs`).
 -/
 
 module

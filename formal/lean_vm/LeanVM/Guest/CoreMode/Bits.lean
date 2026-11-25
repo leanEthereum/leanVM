@@ -87,7 +87,8 @@ theorem has_of_sub {a b n : ℕ} (hs : sub a b = true) (h : has a n = true) : ha
 
 theorem sub_refl (a : ℕ) : sub a a = true := by simp [sub, Nat.and_self]
 
-theorem has_ofList_aux : ∀ (l : List ℕ) (s : ℕ) {n : ℕ}, has (l.foldl add s) n = true → n ∈ l ∨ has s n = true
+private theorem has_ofList_aux : ∀ (l : List ℕ) (s : ℕ) {n : ℕ},
+    has (l.foldl add s) n = true → n ∈ l ∨ has s n = true
   | [], _, _, h => Or.inr h
   | o :: l, s, n, h => by
     rw [List.foldl_cons] at h
@@ -102,7 +103,7 @@ theorem has_ofList {l : List ℕ} {n : ℕ} (h : has (ofList l) n = true) : n �
   · exact h
   · rw [has_zero] at h; cases h
 
-theorem has_ofNats_aux : ∀ (l : List ℕ) (s : ℕ) {n : ℕ},
+private theorem has_ofNats_aux : ∀ (l : List ℕ) (s : ℕ) {n : ℕ},
     has (l.foldl (fun s o ↦ s ||| 2 ^ o) s) n = true → n ∈ l ∨ has s n = true
   | [], _, _, h => Or.inr h
   | o :: l, s, n, h => by
