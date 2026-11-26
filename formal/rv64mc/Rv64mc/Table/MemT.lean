@@ -5,11 +5,16 @@
   copied) and `memset` (`MemsetSafeT`), each at its index and its generator's stack need. Both are leaves, so no
   hypothesis is left.
 
+  `memcpy`'s partial contract follows from its total one (`HoldsT.holds`): `memcpyHolds`, `CopyPost` under
+  `CopyPreT` and `Windows`. It is not `MemcpySpec`, whose precondition does not give `Windows` nor `CopyPreT`'s
+  windows, so the partial instances that take `memcpy` keep it as a hypothesis.
+
   ## Main results
 
-  * `memcpyT`, `memsetT`
+  * `memcpyT`, `memsetT`, `memcpyHolds`
 -/
 
+import Rv64mc.Core.HoldsOfHoldsT
 import Rv64mc.Proof.Runtime.MemcpyT
 import Rv64mc.Proof.Runtime.MemsetT
 import Rv64mc.Gen.Needs
@@ -31,6 +36,13 @@ theorem memsetT : Proof.Runtime.MemsetT.MemsetSafeT env (liftProg fns) Idx.Compi
     Needs.CompilerBuiltins.Mem.Memset :=
   HoldsT.mono_need (Proof.Runtime.MemsetT.total _ _ _ CompilerBuiltins.Mem.Memset.tmpl_eq) (Nat.zero_le _)
 
+/-- **`compiler_builtins`' `memcpy`'s partial contract at the image, from its total one**: the bytes copied and
+    `CopyPost`'s frame, under the total contract's precondition and `Windows`. -/
+theorem memcpyHolds : Holds env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy
+    (fun regs m => Spec.Runtime.CopyPreT false env regs m ∧ Windows env (regs .x2) m) (Spec.Runtime.CopyPost env)
+    Spec.Runtime.CopyOut :=
+  (memcpyT env).holds
+
 end Rv64mc.Table.MemT
 
 /-- info: 'Rv64mc.Table.MemT.memcpyT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -40,3 +52,7 @@ end Rv64mc.Table.MemT
 /-- info: 'Rv64mc.Table.MemT.memsetT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.MemT.memsetT
+
+/-- info: 'Rv64mc.Table.MemT.memcpyHolds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.MemT.memcpyHolds
