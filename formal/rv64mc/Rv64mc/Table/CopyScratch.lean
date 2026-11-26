@@ -12,8 +12,10 @@
   (`Isa.lrunReturns`, `Contract.not_of_lrun`) from `stackTop`: `memcpy` copies 16 or 24 bytes from a source 4 bytes
   past an 8-byte boundary, `memmove` copies none. The corrected precondition holds with bytes to copy
   (`copySpec_pre_inhabited`), and from that state `memcpy` and `memmove` copy a misaligned source right (`copies`);
-  so do `memcpy` to a destination at or above the stack pointer and `memmove` with overlapping ranges. These runs check
-  `a0`, the copied bytes and the 8 bytes on either side of the destination, not the rest of `Holds`' postcondition.
+  so do `memcpy` to a destination above the stack pointer and `memmove` with overlapping ranges, from states meeting
+  the same precondition (`guards_pre_inhabited`). These runs start from `scrambled` memory, so that neighbouring
+  bytes differ, and check `a0`, the copied bytes and the 8 bytes on either side of the destination, not the rest of
+  `Holds`' postcondition.
 
   The entry state holds the image's static data words (`StaticData`, through `Image.WF`'s distinct addresses), so
   that it meets `Holds`' precondition at `env`; every other doubleword is the witness's.
@@ -21,8 +23,8 @@
   ## Main results
 
   * `memcpy_byteFrame_false`, `memmove_byteFrame_false`, `memcpy_srcOnStack_false`, `memcpy_dstOnStack_false`
-  * `copySpec_pre_inhabited`, `copies`, `memcpy_copies_aboveTop`, `memmove_copies_overlap`: guards of the corrected
-    contracts
+  * `copySpec_pre_inhabited`, `guards_pre_inhabited`, `copies`, `memcpy_copies_aboveTop`, `memmove_copies_overlap`:
+    guards of the corrected contracts
   * `memcpySpec_of_keepAll`, `memmoveSpec_of_keepAll`: the contracts as they were imply `MemcpySpec`, `MemmoveSpec`
 -/
 
@@ -119,7 +121,7 @@ theorem entryM_next (st : Word → Word) : env.next (entryM st) = heapStart := b
   exact dataAt_of_mem hn
 
 /-- `CopyPre` at the entry: neither range wraps, and for `memcpy` the ranges lie apart. -/
-theorem entry_copyPre {o : Bool} {dst src n : Word} {st : Word → Word} (hd : dst.toNat + n.toNat < 2 ^ 64)
+private theorem entry_copyPre {o : Bool} {dst src n : Word} {st : Word → Word} (hd : dst.toNat + n.toNat < 2 ^ 64)
     (hs : src.toNat + n.toNat < 2 ^ 64)
     (hap : o = false → dst.toNat + n.toNat ≤ src.toNat ∨ src.toNat + n.toNat ≤ dst.toNat) :
     CopyPre o (entryRegs dst src n) (entryM st) :=
@@ -136,9 +138,9 @@ theorem entry_pre {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat)
   ⟨⟨rfl, rfl⟩, hn, entryM_static st, by rw [entryM_next]; show heapStart.toNat ≤ heapEnd.toNat; decide, h,
     by decide⟩
 
-/-- **A copy's contract at the image is refuted by a run** of function `f`'s body from the entry with `dst`, `src`,
-    `n` and `st` that returns in a state satisfying `P`, if `P` excludes `Post`. -/
-theorem not_holds {f need : Nat} {fd : Lfundef (Op Reg) Reg} (hp : (liftProg Gen.fns)[f]? = some fd)
+/-- A copy's contract at the image is refuted by a run of function `f`'s body from the entry with `dst`, `src`, `n`
+    and `st` that returns in a state satisfying `P`, if `P` excludes `Post`. -/
+private theorem not_holds {f need : Nat} {fd : Lfundef (Op Reg) Reg} (hp : (liftProg Gen.fns)[f]? = some fd)
     (hn : stackLimit.toNat + need ≤ stackTop.toNat) {Pre : (Reg → Word) → MachineState → Prop}
     {Post : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop} (dst src n : Word) (st : Word → Word)
     (hpre : Pre (entryRegs dst src n) (entryM st)) (P : (Reg → Word) → MachineState → Bool)
@@ -170,7 +172,7 @@ theorem memmove_byteFrame_false {need : Nat} (hn : stackLimit.toNat + need ≤ s
     fun _ _ hb ⟨_, _, hf⟩ => bne_iff_ne.1 hb (hf slot (by simp [InRange, entryRegs]))
 
 /-- A copy from the entry is refuted by a destination byte other than the source's at entry. -/
-theorem not_copied {dst src n : Word} {st : Word → Word} {m' : MachineState}
+private theorem not_copied {dst src n : Word} {st : Word → Word} {m' : MachineState}
     (hc : ∀ k, k < (entryRegs dst src n .x12).toNat →
       m'.getByte (entryRegs dst src n .x10 + BitVec.ofNat 64 k) =
         (entryM st).getByte (entryRegs dst src n .x11 + BitVec.ofNat 64 k))
@@ -222,28 +224,48 @@ theorem copySpec_pre_inhabited (st : Word → Word) :
   exact ⟨entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) fun _ => by decide, ha⟩,
     entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) nofun, ha⟩⟩
 
-/-- A copy's run from `entryM id` is right: it returns `dst`, `[dst, dst + n)` holds what `[src, src + n)` held,
-    and the 8 bytes on either side of the destination are kept. -/
+/-- **The other guard runs' states meet the same preconditions**: `memcpy` of 24 bytes to `stackTop + 8` from
+    `0x1fffff84`, and `memmove` of 24 bytes between `0x1fffff00` and `0x1fffff04`, either way. -/
+theorem guards_pre_inhabited (st : Word → Word) :
+    Holds.pre env Gen.Needs.CompilerBuiltins.Mem.Memcpy (fun regs m => CopyPre false regs m ∧ CopyApart env regs m)
+      0x1000#64 stackTop (entryRegs (stackTop + 8#64) 0x1fffff84#64 24#64) (entryM st) ∧
+    Holds.pre env Gen.Needs.CompilerBuiltins.Mem.Memmove (fun regs m => CopyPre true regs m ∧ CopyApart env regs m)
+      0x1000#64 stackTop (entryRegs 0x1fffff00#64 0x1fffff04#64 24#64) (entryM st) ∧
+    Holds.pre env Gen.Needs.CompilerBuiltins.Mem.Memmove (fun regs m => CopyPre true regs m ∧ CopyApart env regs m)
+      0x1000#64 stackTop (entryRegs 0x1fffff04#64 0x1fffff00#64 24#64) (entryM st) := by
+  refine ⟨entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) fun _ => by decide,
+      .inr ⟨⟨.inr (by decide), by decide⟩, .inl (by decide)⟩⟩,
+    entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) nofun,
+      .inr ⟨⟨.inl (by rw [entryM_next]; decide), by decide⟩, .inl (by decide)⟩⟩,
+    entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) nofun,
+      .inr ⟨⟨.inl (by rw [entryM_next]; decide), by decide⟩, .inl (by decide)⟩⟩⟩
+
+/-- A memory whose doublewords are an odd multiple of their address plus a constant, so that neighbouring bytes
+    differ. -/
+def scrambled (a : Word) : Word := a * 0x9E3779B97F4A7C15#64 + 0x0123456789abcdef#64
+
+/-- A copy's run from `entryM scrambled` is right: it returns `dst`, `[dst, dst + n)` holds what `[src, src + n)`
+    held, and the 8 bytes on either side of the destination are kept. -/
 noncomputable def CopiedRight (dst src : Word) (n : Nat) (r' : Reg → Word) (m' : MachineState) : Bool :=
   r' .x10 == dst &&
     ((List.range n).all fun k =>
-      m'.getByte (dst + BitVec.ofNat 64 k) == (entryM id).getByte (src + BitVec.ofNat 64 k)) &&
+      m'.getByte (dst + BitVec.ofNat 64 k) == (entryM scrambled).getByte (src + BitVec.ofNat 64 k)) &&
     (List.range 8).all fun k =>
-      m'.getByte (dst - 8#64 + BitVec.ofNat 64 k) == (entryM id).getByte (dst - 8#64 + BitVec.ofNat 64 k) &&
-      m'.getByte (dst + BitVec.ofNat 64 (n + k)) == (entryM id).getByte (dst + BitVec.ofNat 64 (n + k))
+      m'.getByte (dst - 8#64 + BitVec.ofNat 64 k) == (entryM scrambled).getByte (dst - 8#64 + BitVec.ofNat 64 k) &&
+      m'.getByte (dst + BitVec.ofNat 64 (n + k)) == (entryM scrambled).getByte (dst + BitVec.ofNat 64 (n + k))
 
-/-- `memcpy(dst, src, n)` from `stackTop` and `entryM id` returns with `CopiedRight`. -/
+/-- `memcpy(dst, src, n)` from `stackTop` and `entryM scrambled` returns with `CopiedRight`. -/
 noncomputable def memcpyRight (dst src n : Word) : Bool :=
   Isa.lrunReturns (I := rvIsa) (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
-    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM id) (CopiedRight dst src n.toNat)
+    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM scrambled) (CopiedRight dst src n.toNat)
 
-/-- `memmove(dst, src, n)` from `stackTop` and `entryM id` returns with `CopiedRight`. -/
+/-- `memmove(dst, src, n)` from `stackTop` and `entryM scrambled` returns with `CopiedRight`. -/
 noncomputable def memmoveRight (dst src n : Word) : Bool :=
   Isa.lrunReturns (I := rvIsa) (Gen.CompilerBuiltins.Mem.Memmove.tmpl Gen.CompilerBuiltins.Mem.Memmove.link).body
-    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM id) (CopiedRight dst src n.toNat)
+    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM scrambled) (CopiedRight dst src n.toNat)
 
 set_option maxRecDepth 100000 in
-/-- **`memcpy` and `memmove` copy from that state**, with every other doubleword holding its address. -/
+/-- **`memcpy` and `memmove` copy from `copySpec_pre_inhabited`'s state**, with `scrambled` memory. -/
 theorem copies : memcpyRight 0x1fffff00#64 0x1fffff84#64 16#64 = true ∧
     memmoveRight 0x1fffff00#64 0x1fffff84#64 16#64 = true := by
   decide
@@ -281,6 +303,10 @@ end Rv64mc.Table.CopyScratch
 /-- info: 'Rv64mc.Table.CopyScratch.copySpec_pre_inhabited' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.CopyScratch.copySpec_pre_inhabited
+
+/-- info: 'Rv64mc.Table.CopyScratch.guards_pre_inhabited' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.CopyScratch.guards_pre_inhabited
 
 /-- info: 'Rv64mc.Table.CopyScratch.copies' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
