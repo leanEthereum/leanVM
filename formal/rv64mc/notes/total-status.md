@@ -22,6 +22,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 A total proof steps through each call with the callee's total contract, so its callee's `Pre` is a closed goal there. Where the caller is not yet total, the callee's `Pre` was checked against the image's call sites by reading the templates, and becomes a goal of the caller's proof. Some of those goals need a fact from another function's postcondition; the ones named so far:
 
 * ~~`from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for.~~ Met: `FromElemT.FromElemSpecT`'s postcondition is `CloneT.ClonePostT env 16` (`VecT`, `vecLen` the count `a2`, the buffer fresh unless empty). `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`; `walk`'s proof discharges it there.
+* `spec_from_iter_nested` for `Vec<Option<E>>` (141): its `SrcT` asks the source `[a1, a2)` to be whole 16-byte elements in a window, 8-byte aligned. `verify_gkr_grand_products` (152, template step 106: `(x25, x25 + x12)`) and `keccak::verify_layer` (138, step 201: the slice at `x27 + 0x20`) pass a vector's elements; their proofs discharge it from that vector's `VecT` (`BufT.of_le`), so the vector's builder's post must give `VecT`.
 
 ## By function
 

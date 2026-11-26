@@ -132,6 +132,7 @@ theorem loop {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     all_goals rv_closeT
 
 set_option rv_sym.heap true in
+/-- **From `reserve`'s return**: `n < 2` straight to the copy, else into the loop. -/
 theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
     {need : Nat} (hn : 64 ≤ need) {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
     {regs : Reg → Word} {m : MachineState}
