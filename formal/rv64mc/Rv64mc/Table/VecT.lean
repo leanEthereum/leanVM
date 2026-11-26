@@ -6,14 +6,16 @@
   `try_allocate_in` with `TryAllocPost`'s zeroed bytes (`TryAllocateInZT`), each at its index with the generated
   link, the stack `Gen.Needs` gives, and its callees' total theorems. Left as hypotheses, as in `RuntimeT`: the
   environment's two facts about the image that `alloc` reads. Also the drops over a vector's elements
-  (`DropSliceT`).
+  (`DropSliceT`) and `<Vec<T> as Clone>::clone` for `usize` and `E` (`CloneT`).
 
   ## Main results
 
-  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`
+  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`, `cloneUsize`, `cloneE`
 -/
 
 import Rv64mc.Table.RuntimeT
+import Rv64mc.Table.CopyUseT
+import Rv64mc.Proof.Runtime.CloneT
 import Rv64mc.Proof.Runtime.MemsetBytesT
 import Rv64mc.Proof.Runtime.TryAllocateInZT
 import Rv64mc.Proof.Runtime.DropSliceT
@@ -24,6 +26,7 @@ open MachineChecked.RiscV.Lift Rv64mc.Gen Rv64mc.Proof.Runtime
 open Rv64mc.Proof.Runtime.MemsetBytesT (MemsetSpecT)
 open Rv64mc.Proof.Runtime.TryAllocateInZT (TryAllocSpecZT)
 open Rv64mc.Proof.Runtime.DropSliceT (DropSliceSpecT)
+open Rv64mc.Proof.Runtime.CloneT (CloneSpecT)
 
 variable (env : Env)
 
@@ -52,6 +55,26 @@ theorem dropVecBusBlock :
   DropSliceT.vecBusBlock_total env _ _ Core.Ptr.DropGlueVecBusBlock.link Core.Ptr.DropGlueVecBusBlock.tmpl_eq
     Core.Ptr.DropGlueVecBusBlock.wf (by decide) (RuntimeT.dropVecForm env)
 
+section Alloc
+
+variable (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+  (hend : env.heapEnd = 0x78000000#64)
+include hnext hend
+
+theorem cloneUsize :
+    CloneSpecT env 8 (liftProg fns) Idx.Alloc.Vec.VecUsize.AsClone.Clone Needs.Alloc.Vec.VecUsize.AsClone.Clone :=
+  CloneT.usize_total env _ _ Alloc.Vec.VecUsize.AsClone.Clone.link Alloc.Vec.VecUsize.AsClone.Clone.tmpl_eq
+    Alloc.Vec.VecUsize.AsClone.Clone.wf (by decide) (by decide) (by decide) (RuntimeT.alloc env hnext hend)
+    (CopyUseT.memcpy env) (RuntimeT.handleError env)
+
+theorem cloneE :
+    CloneSpecT env 16 (liftProg fns) Idx.Alloc.Vec.VecE.AsClone.Clone Needs.Alloc.Vec.VecE.AsClone.Clone :=
+  CloneT.e_total env _ _ Alloc.Vec.VecE.AsClone.Clone.link Alloc.Vec.VecE.AsClone.Clone.tmpl_eq
+    Alloc.Vec.VecE.AsClone.Clone.wf (by decide) (by decide) (by decide) (RuntimeT.alloc env hnext hend)
+    (CopyUseT.memcpy env) (RuntimeT.handleError env)
+
+end Alloc
+
 end Rv64mc.Table.VecT
 
 /-- info: 'Rv64mc.Table.VecT.memsetBuiltin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -73,3 +96,11 @@ end Rv64mc.Table.VecT
 /-- info: 'Rv64mc.Table.VecT.dropVecBusBlock' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.VecT.dropVecBusBlock
+
+/-- info: 'Rv64mc.Table.VecT.cloneUsize' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.VecT.cloneUsize
+
+/-- info: 'Rv64mc.Table.VecT.cloneE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.VecT.cloneE
