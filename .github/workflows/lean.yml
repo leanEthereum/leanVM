@@ -395,7 +395,8 @@ jobs:
         timeout-minutes: 230
         run: python3 -I ../lake-build.py . LeanVM LeanVMTests
       - name: Save the Lake build's progress
-        if: always() && steps.build.outcome == 'failure' && steps.lake-cache.outputs.cache-hit != 'true'
+        # A new push cancels a pull request's run: its progress is kept too.
+        if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
