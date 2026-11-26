@@ -115,7 +115,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | yes | Proof/Transcript/DuplexT (over SpongeReprT) | TranscriptT2.duplex | keccak tables (InData) |
 | 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | no | - | - | - |
 | 4 | 142 | `core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<...` | 110 | D | yes | Proof/Keccak/TryFromFnT | BuildT.tryFromFnLanes | clmul table; lane constant (InData) |
-| 4 | 148 | `verifier::layout::jump_constraints` | 67 | D | no | - | - | - |
+| 4 | 148 | `verifier::layout::jump_constraints` | 67 | D | yes | Proof/Layout/JumpConstraintsT | LayoutT2.jumpConstraints | env; clmul table |
 | 4 | 157 | `verifier::layout::gpow` | 2 | A | yes | Proof/Layout/GpowT | LayoutT.gpow | clmul table |
 | 4 | 162 | `verifier::layout::constant` | 14 | A | yes | Proof/Layout/ConstantT | LayoutT.constant | env |
 | 4 | 177 | `<verifier::layout::Table>::count_columns` | 12 | A | yes | Proof/Layout/TableT | LayoutT.countColumns | COUNT_COLUMNS tables (InData, CountColumnsData) |
