@@ -53,7 +53,7 @@ jobs:
         run: |
           ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
               | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|EthLib\.[A-Za-z0-9_.]*$|all[[:space:]]+Statement\.Data\.)' &&
-          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib\..*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake formal/Statement &&
+          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib(\.[A-Za-z0-9_]+)*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake formal/Statement &&
           ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/fast_fields \
               | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'
       - name: Restore the Lake build

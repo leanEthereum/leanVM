@@ -136,7 +136,7 @@ statement() {
       | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|EthLib\.[A-Za-z0-9_.]*$|all[[:space:]]+Statement\.Data\.)'; then
     fail "Statement imports more than Mathlib, VCVio, CompPoly, EthLib's specification, fast_fields and itself, or \`import all\` beyond Statement.Data"
   fi
-  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib\..*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake Statement; then
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib(\.[A-Za-z0-9_]+)*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake Statement; then
     fail "Statement imports an EthLib proof module"
   fi
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
