@@ -5,22 +5,25 @@
   `compiler_builtins`' `memset` and the C wrapper with `SetPost` (`MemsetBytesT`), and the verifier's
   `try_allocate_in` with `TryAllocPost`'s zeroed bytes (`TryAllocateInZT`), each at its index with the generated
   link, the stack `Gen.Needs` gives, and its callees' total theorems. Left as hypotheses, as in `RuntimeT`: the
-  environment's two facts about the image that `alloc` reads.
+  environment's two facts about the image that `alloc` reads. Also the drops over a vector's elements
+  (`DropSliceT`).
 
   ## Main results
 
-  * `memsetBuiltin`, `memset`, `tryAllocateIn`
+  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`
 -/
 
 import Rv64mc.Table.RuntimeT
 import Rv64mc.Proof.Runtime.MemsetBytesT
 import Rv64mc.Proof.Runtime.TryAllocateInZT
+import Rv64mc.Proof.Runtime.DropSliceT
 
 namespace Rv64mc.Table.VecT
 
 open MachineChecked.RiscV.Lift Rv64mc.Gen Rv64mc.Proof.Runtime
 open Rv64mc.Proof.Runtime.MemsetBytesT (MemsetSpecT)
 open Rv64mc.Proof.Runtime.TryAllocateInZT (TryAllocSpecZT)
+open Rv64mc.Proof.Runtime.DropSliceT (DropSliceSpecT)
 
 variable (env : Env)
 
@@ -39,6 +42,16 @@ theorem tryAllocateIn (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT
     Alloc.RawVec.RawVecInner.TryAllocateInInVerifier.tmpl_eq Alloc.RawVec.RawVecInner.TryAllocateInInVerifier.wf
     (by decide) (by decide) (RuntimeT.alloc env hnext hend) (memset env)
 
+theorem dropVecVecForm :
+    DropSliceSpecT env 24 (liftProg fns) Idx.Core.Ptr.DropGlueVecVecForm Needs.Core.Ptr.DropGlueVecVecForm :=
+  DropSliceT.vecVecForm_total env _ _ Core.Ptr.DropGlueVecVecForm.link Core.Ptr.DropGlueVecVecForm.tmpl_eq
+    Core.Ptr.DropGlueVecVecForm.wf (by decide) (RuntimeT.dropVecForm env)
+
+theorem dropVecBusBlock :
+    DropSliceSpecT env 48 (liftProg fns) Idx.Core.Ptr.DropGlueVecBusBlock Needs.Core.Ptr.DropGlueVecBusBlock :=
+  DropSliceT.vecBusBlock_total env _ _ Core.Ptr.DropGlueVecBusBlock.link Core.Ptr.DropGlueVecBusBlock.tmpl_eq
+    Core.Ptr.DropGlueVecBusBlock.wf (by decide) (RuntimeT.dropVecForm env)
+
 end Rv64mc.Table.VecT
 
 /-- info: 'Rv64mc.Table.VecT.memsetBuiltin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -52,3 +65,11 @@ end Rv64mc.Table.VecT
 /-- info: 'Rv64mc.Table.VecT.tryAllocateIn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.VecT.tryAllocateIn
+
+/-- info: 'Rv64mc.Table.VecT.dropVecVecForm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.VecT.dropVecVecForm
+
+/-- info: 'Rv64mc.Table.VecT.dropVecBusBlock' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.VecT.dropVecBusBlock
