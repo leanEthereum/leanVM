@@ -142,7 +142,7 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
     rw [← lastRet_spec hl, slice, List.drop_zero, Nat.sub_zero, List.take_append_drop]
   rw [List.take_zero] at hsel
   refine ⟨?_, List.all_eq_true.mpr fun s hs ↦ (hcb.1 s hs).1, List.all_eq_true.mpr fun s hs ↦ (hcb.1 s hs).2, ?_⟩
-  · simp only [bodyCore, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true]
+  · simp only [bodyCore, stmtsAll_eq, Bool.or_eq_true, Bool.and_eq_true, List.all_eq_true]
     exact Or.inl ⟨fun s _ ↦ by cases s <;> rfl, hcb.2⟩
   · simp only [Bool.or_eq_true]
     left

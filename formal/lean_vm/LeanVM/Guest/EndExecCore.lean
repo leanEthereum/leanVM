@@ -134,8 +134,8 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       cases s with
       | ret _ | call _ _ _ | dispatch _ _ _ _ | atom _ | callIf _ _ _ => simp [stmtsSub] at hs
       | _ =>
-        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false] at h1
-        exact absurd rfl (h1.2 _ hs)
+        simp only [CoreMode.topOk, CoreMode.subAll_eq, Bool.and_eq_true, List.all_eq_true] at h1
+        simpa [CoreMode.isDsp] using h1.2 _ hs
     rcases hm with hm | hm | hm
     · -- the head
       subst hm
