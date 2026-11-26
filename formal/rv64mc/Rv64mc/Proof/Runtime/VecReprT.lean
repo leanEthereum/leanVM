@@ -11,6 +11,10 @@
   Every block the bump allocator returns satisfies `BufT` (`bufT_of_alloc`), and so does an empty vector, so the
   predicates are not vacuous.
 
+  `RawVecT` does not say the buffer is disjoint from the header or from other live objects. For a header on the
+  stack the windows give it; for a header inside a heap object (`group_by_word`'s inner `Vec<u16>`), a caller that
+  stores into the buffer and reads the header again must show it separately.
+
   ## Main definitions
 
   * `BufT`, `RawVecT`, `VecT`
