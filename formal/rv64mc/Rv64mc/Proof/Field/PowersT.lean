@@ -112,13 +112,8 @@ theorem slots {top : Word} {S : Nat} (h : S + 96 ≤ top.toNat) :
     (top + 18446744073709551576#64).toNat = top.toNat - 40 ∧ (top + 18446744073709551568#64).toNat = top.toNat - 48 ∧
     (top + 18446744073709551560#64).toNat = top.toNat - 56 ∧ (top + 18446744073709551552#64).toNat = top.toNat - 64 ∧
     (top + 18446744073709551544#64).toNat = top.toNat - 72 ∧ (top + 18446744073709551536#64).toNat = top.toNat - 80 ∧
-    (top + 18446744073709551528#64).toNat = top.toNat - 88 ∧ (top + 18446744073709551520#64).toNat = top.toNat - 96 :=
-  ⟨slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide),
-    slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide),
-    slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide),
-    slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide),
-    slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide),
-    slot_toNat (by decide) (by omega) (by decide), slot_toNat (by decide) (by omega) (by decide)⟩
+    (top + 18446744073709551528#64).toNat = top.toNat - 88 ∧ (top + 18446744073709551520#64).toNat = top.toNat - 96 := by
+  and_intros <;> exact slot_toNat (by decide) (by omega) (by decide)
 
 /-- **The prologue's saves and the header**: in the frame, `env.Static` and `NEXT` kept. -/
 theorem pro_frame {env : Env} {N m : MachineState} {top c q l : Word} (hlim : env.stackLimit.toNat + 96 ≤ top.toNat)
@@ -302,7 +297,6 @@ theorem step_mem {env : Env} {M m1 S : MachineState} {top q c v0 v1 : Word} {j :
   have ht80 : (top + 18446744073709551536#64).toNat = top.toNat - 80 :=
     Multilinear.slot_toNat (by decide) (by omega) (by decide)
   have hb : q.toNat + 16 * (j + 1) < 2 ^ 64 := by have := env.heapEnd.isLt; omega
-  have ne : ∀ x y : Word, x.toNat ≠ y.toNat → x ≠ y := fun x y h e => h (by rw [e])
   have hnx : env.next (((M.setMem (q + BitVec.ofNat 64 (16 * j)) v0).setMem
       (q + BitVec.ofNat 64 (16 * j) + 8#64) v1).setMem (top + 18446744073709551536#64)
       (BitVec.ofNat 64 j + 1#64)) = env.next M := by

@@ -88,16 +88,10 @@ theorem saved_ok {env : Env} {m : MachineState} {top ret : Word} {regs : Reg →
   have := top.isLt
   simp only [saved]
   refine ⟨?_, ?_, rfl⟩
-  · refine Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
-      (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
-      (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_refl hnx)
-      ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_ <;>
-      (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
-  · refine Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack
-      (Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack
-      (Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack (Env.static_setMem_stack
-      (Env.static_setMem_stack hs ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_) ?_ <;>
-      (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
+  · repeat (first | refine Tactic.frame_store ?_ ?_ ?_ | exact Tactic.frame_refl hnx)
+    all_goals (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
+  · repeat (first | refine Env.static_setMem_stack ?_ ?_ | exact hs)
+    all_goals (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
 
 /-- The values' elements `0` and `1` words, past the check that there is one, in a window and aligned. -/
 theorem val0_ok {env : Env} {top : Word} {m : MachineState} {C P Lw : Word} (hW : Windows env top m)
@@ -174,15 +168,7 @@ theorem mid {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
     (h1 : CloneT env m M n c1 q1) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 96, ret, top⟩ :: rest, R, M⟩ := by
   have hlay := env.layout
-  have hKeep : ∀ a : Word, (a.toNat + 8 ≤ (env.next m).toNat ∨ top.toNat ≤ a.toNat) → M.getMem a = m.getMem a :=
-    fun a ha => hF.2.2 a fun hw => by
-      have := hF.1
-      have := hF.2.1
-      rcases hw with hw | hw | hw | hw
-      · omega
-      · omega
-      · rw [hw] at ha; omega
-      · exact hw
+  have hKeep := SpecExtendT.keep_of_frame hF (by omega)
   have hnmM := hF.1
   have hFn := hF.2.1
   have hK' := hK
@@ -254,14 +240,11 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have hlim : env.stackLimit.toNat + 112 ≤ top.toNat := by omega
     have hVb : BufT env m (m.getMem (m.getMem (regs .x11 + 24#64)))
         (m.getMem (m.getMem (regs .x11 + 24#64) + 8#64)) 16 := by
-      have := hpre_18
-      simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero] at this
-      exact this
+      simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero] at hpre_18
+      exact hpre_18
     have hVl : (m.getMem (m.getMem (regs .x11 + 24#64) + 16#64)).toNat ≤
         (m.getMem (m.getMem (regs .x11 + 24#64))).toNat := by
-      have := hpre_20
-      rw [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at this
-      exact this
+      rwa [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at hpre_20
     have hVo : (m.getMem (regs .x11 + 24#64)).toNat + 24 ≤ (env.next m).toNat ∨
         top.toNat ≤ (m.getMem (regs .x11 + 24#64)).toNat := by rw [← hpre_2]; exact hpre_21
     have hsv := saved_ok (ret := ret) (regs := regs) hlim hpre_5 hpre_4

@@ -58,9 +58,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     rw [h0]
   · exact .inl rfl
   · decide
-  · have h := hret1_21
-    rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq] at h
-    exact h
+  · rwa [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq] at hret1_21
   · exact .inr ⟨hret1_22, hret1_23⟩
 
 end Rv64mc.Proof.Layout.ConstraintsT

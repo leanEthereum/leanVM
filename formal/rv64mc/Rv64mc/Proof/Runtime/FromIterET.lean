@@ -165,10 +165,9 @@ theorem saved_frame {env : Env} {m : MachineState} {top ret : Word} {regs : Reg 
     (hlim : env.stackLimit.toNat + 96 ≤ top.toNat) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) :
     env.Frame top Tactic.F m (saved m top ret regs) := by
   have := top.isLt
-  refine Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
-    (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_refl hnx)
-    ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_ <;>
-    (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
+  simp only [saved]
+  repeat (first | exact Tactic.frame_refl hnx | refine Tactic.frame_store ?_ ?_ ?_)
+  all_goals (rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega)
 
 /-- The header's stores stay in the frame. -/
 theorem hdr_frame {env : Env} {m N : MachineState} {top c q : Word} (hlim : env.stackLimit.toNat + 96 ≤ top.toNat)
@@ -256,15 +255,7 @@ theorem loop {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   have hfr2 := hfr.2
   obtain ⟨-, -, -, -, -, -, -, -, -, -, hk1, hi1, hj1, hx23, hX, hK, hF, hS, hcode, hnM⟩ := id hI
   clear hK
-  have hKeep : ∀ a : Word, (a.toNat + 8 ≤ (env.next m).toNat ∨ top.toNat ≤ a.toNat) → M.getMem a = m.getMem a :=
-    fun a ha => hF.2.2 a fun hw => by
-      have := hF.1
-      have := hF.2.1
-      rcases hw with hw | hw | hw | hw
-      · omega
-      · omega
-      · rw [hw] at ha; omega
-      · exact hw
+  have hKeep := SpecExtendT.keep_of_frame hF (by omega)
   have hnmM := hF.1
   rv_introT hI
   simp only [hdr, saved] at hI_16
@@ -394,14 +385,11 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         top.toNat ≤ (m.getMem (regs .x11 + 8#64)).toNat := by rw [← hpre_2]; exact hpre_22
     have hVb : BufT env m (m.getMem (m.getMem (regs .x11 + 8#64)))
         (m.getMem (m.getMem (regs .x11 + 8#64) + 8#64)) 16 := by
-      have := hpre_19
-      simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero] at this
-      exact this
+      simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero] at hpre_19
+      exact hpre_19
     have hVl : (m.getMem (m.getMem (regs .x11 + 8#64) + 16#64)).toNat ≤
         (m.getMem (m.getMem (regs .x11 + 8#64))).toNat := by
-      have := hpre_21
-      rw [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at this
-      exact this
+      rwa [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at hpre_21
   on_goal 11 =>
     refine tail hp hL (by omega) hnM hnP hmul hpb hk hstop hpre_3 hpre_5 hown hpre_8 hpre_9 hpre_25 hpre_24
       hpre_25.next_ge hpre_14 hpre_15 hpre_16 hpre_18 hVo hVb hVl rfl rfl (cnt_toNat _ _) hov.2 _ _

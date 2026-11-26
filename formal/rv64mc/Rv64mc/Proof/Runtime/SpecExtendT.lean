@@ -268,6 +268,20 @@ theorem vecPtr_eq (m : MachineState) (a : Word) : vecPtr m a = m.getMem (a + 8#6
 theorem ushr4_toNat (w : Word) : (w >>> 4).toNat = w.toNat / 16 := by
   rw [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
 
+/-- A word below `NEXT` at entry, or at or above the stack top, is kept by a frame that writes nothing else. -/
+theorem keep_of_frame {env : Env} {top : Word} {m M : MachineState} (hF : env.Frame top Tactic.F m M)
+    (hlim : env.stackLimit.toNat ≤ top.toNat) :
+    ∀ a : Word, (a.toNat + 8 ≤ (env.next m).toNat ∨ top.toNat ≤ a.toNat) → M.getMem a = m.getMem a :=
+  fun a ha => hF.2.2 a fun hw => by
+    have := env.layout
+    have := hF.1
+    have := hF.2.1
+    rcases hw with hw | hw | hw | hw
+    · omega
+    · omega
+    · rw [hw] at ha; omega
+    · exact hw
+
 /-- The header's `Owned` at the stack pointer, with the stack top for it. -/
 theorem own_top {env : Env} {m : MachineState} {regs : Reg → Word} {top : Word} (h2 : regs .x2 = top)
     (h : env.Owned m (regs .x2) (regs .x10) Layouts.Vec.byteSize) :
@@ -306,7 +320,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     | exact hpre_9
     | exact hpre_10
     | exact hpre_9.imp id fun h => h.2.1
-    | (have hle := hpre_11; rw [ReserveT.vecCap_eq, ReserveT.vecLen_eq] at hle; exact hle)
+    | (rwa [ReserveT.vecCap_eq, ReserveT.vecLen_eq] at hpre_11)
   -- after `reserve`: the frame's slots kept, the header's words as numbers
   all_goals
     have hown := hwith_1
@@ -333,13 +347,10 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
       saved_get (by omega) (by rw [hx16]; omega)
     simp only [saved] at hl0
     have hlen1 : (m1.getMem (regs .x10 + 16#64)).toNat = (m.getMem (regs .x10 + 16#64)).toNat := by
-      have := hret1_16
-      rw [ReserveT.vecLen_eq, ReserveT.vecLen_eq, hl0] at this
-      rw [this]
+      rw [ReserveT.vecLen_eq, ReserveT.vecLen_eq, hl0] at hret1_16
+      rw [hret1_16]
     have hle1 : (m1.getMem (regs .x10 + 16#64)).toNat ≤ (m1.getMem (regs .x10)).toNat := by
-      have := hret1_24
-      rw [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at this
-      exact this
+      rwa [ReserveT.vecLen_eq, ReserveT.vecCap_eq] at hret1_24
   -- `begin = end`: nothing to copy
   · show m1.getMem (top + 18446744073709551608#64) = ret
     rw [hk1 _ (by decide)]
@@ -419,7 +430,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · show m2.getMem (top + 18446744073709551608#64) = ret
     rw [hk2 _ (by decide), hk1 _ (by decide)]
     rv_closeT
-  · have hN01 : (env.next m).toNat ≤ (env.next m1).toNat := by have := hret1_14.1; rw [hSn] at this; exact this
+  · have hN01 : (env.next m).toNat ≤ (env.next m1).toNat := by have := hret1_14.1; rwa [hSn] at this
     have hkeep : ∀ j : Nat, j < 24 → j % 8 = 0 →
         m2.getMem (regs .x10 + BitVec.ofNat 64 j) = m1.getMem (regs .x10 + BitVec.ofNat 64 j) := fun j hj _ => by
       have hj' : (regs .x10 + BitVec.ofNat 64 j).toNat = (regs .x10).toNat + j := toNat_add_ofNat (by omega)
