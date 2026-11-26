@@ -38,11 +38,11 @@ theorem bwins_spec {α : Type} {F : List α → Bool} (hF : ∀ x y, F x = true 
 
 /-- The cells' checks and the top-level statements', over statements. -/
 noncomputable def cellsB (j : ℕ) (l : List Stmt) : Bool :=
-  (stmtsOf l).all (fun s ↦ ptrCellB j s && retCellB j s) && l.all topOk
+  stmtsAll (fun s ↦ ptrCellB j s && retCellB j s) l && l.all topOk
 
 theorem cellsB_append {j : ℕ} (x y : List Stmt) (hx : cellsB j x = true) (hy : cellsB j y = true) :
     cellsB j (x ++ y) = true := by
-  simp only [cellsB, Bool.and_eq_true, List.all_eq_true] at hx hy ⊢
+  simp only [cellsB, stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hx hy ⊢
   refine ⟨fun s hs ↦ ?_, fun s hs ↦ ?_⟩
   · rw [stmtsOf_append] at hs
     rcases List.mem_append.mp hs with hs | hs
@@ -134,9 +134,9 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
     (hl : lastRet fn.body = true) :
     (bodyCore fn.body || loopBC fn) = true ∧ (stmtsOf fn.body).all (ptrCellB j) = true ∧
       (stmtsOf fn.body).all (retCellB j) = true ∧ (selGo j fn.params fn.body [] fn.body || loopBC fn) = true := by
-  obtain ⟨-, hcb⟩ := bwins_spec cellsB_append (by simp [cellsB, stmtsOf]) hc
+  obtain ⟨-, hcb⟩ := bwins_spec cellsB_append rfl hc
   rw [slice_all] at hcb
-  simp only [cellsB, Bool.and_eq_true, List.all_eq_true] at hcb
+  simp only [cellsB, stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hcb
   obtain ⟨-, -, hsel⟩ := swins_spec hs
   have hb : fn.body = slice fn.body 0 (fn.body.length - 1) ++ [.ret []] := by
     rw [← lastRet_spec hl, slice, List.drop_zero, Nat.sub_zero, List.take_append_drop]
