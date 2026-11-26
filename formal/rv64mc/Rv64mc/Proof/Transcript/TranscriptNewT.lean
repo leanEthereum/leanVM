@@ -139,9 +139,12 @@ theorem kept (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
         simp only [Spec.Whir.SretOut, InRange, Lprog.updReg_apply, Tactic.rf, reduceCtorEq, ↓reduceIte, e8, e16,
           Layouts.Sponge.byteSize]
         omega)]
-    rw [MachineState.getMem_setMem_ne (fun h => by have := congrArg BitVec.toNat h; simp only [e8, e16, h24] at this; omega),
-      MachineState.getMem_setMem_ne (fun h => by have := congrArg BitVec.toNat h; simp only [e8, e16, h16] at this; omega),
-      MachineState.getMem_setMem_ne (fun h => by have := congrArg BitVec.toNat h; simp only [e8, e16, h8] at this; omega)]
+    rw [MachineState.getMem_setMem_ne (fun h => by
+        have := congrArg BitVec.toNat h; simp only [e8, e16, h24] at this; omega),
+      MachineState.getMem_setMem_ne (fun h => by
+        have := congrArg BitVec.toNat h; simp only [e8, e16, h16] at this; omega),
+      MachineState.getMem_setMem_ne (fun h => by
+        have := congrArg BitVec.toNat h; simp only [e8, e16, h8] at this; omega)]
 
 /-- `PostK` gives `PostT`, under `PreT` and `NEXT` not lowered. -/
 theorem postT_of {env : Env} {regs r' : Reg → Word} {m m' : MachineState} (hP : PreT env regs m)

@@ -93,9 +93,11 @@ theorem fin_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p
   have o0 : NextScalar.Out Layouts.Vec.byteSize regs m (regs .x10) := Or.inl ⟨Nat.le_refl _, by
     simp only [Layouts.Vec.byteSize]; omega⟩
   have o8 : NextScalar.Out Layouts.Vec.byteSize regs m (regs .x10 + 8#64) := Or.inl ⟨by
-    rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; simp only [Layouts.Vec.byteSize]; omega⟩
+    rw [toNat_add_ofNat (by omega)]; omega, by
+    rw [toNat_add_ofNat (by omega)]; simp only [Layouts.Vec.byteSize]; omega⟩
   have o16 : NextScalar.Out Layouts.Vec.byteSize regs m (regs .x10 + 16#64) := Or.inl ⟨by
-    rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; simp only [Layouts.Vec.byteSize]; omega⟩
+    rw [toNat_add_ofNat (by omega)]; omega, by
+    rw [toNat_add_ofNat (by omega)]; simp only [Layouts.Vec.byteSize]; omega⟩
   have n0 : regs .x10 ≠ env.nextAddr := hw.ne_next (Nat.le_refl _) (by omega)
   have n8 : regs .x10 + 8#64 ≠ env.nextAddr := hw.ne_next_add (by omega)
   have n16 : regs .x10 + 16#64 ≠ env.nextAddr := hw.ne_next_add (by omega)
@@ -216,8 +218,8 @@ theorem after_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp :
         env.next M := fun _ _ => by
       rw [Tactic.next_setMem (fun h => by have := congrArg BitVec.toNat h; omega),
         Tactic.next_setMem (fun h => by have := congrArg BitVec.toNat h; rw [hx8] at this; omega)]
-    refine fin_ok env p i L hp hk hstk hn80 hal hW hw ha8 hos hap (q := q) rfl hov _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ ?_
+    refine fin_ok env p i L hp hk hstk hn80 hal hW hw ha8 hos hap (q := q) rfl hov _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ ?_
     all_goals try simp only [Tactic.rf]
     case refine_11 =>
       refine Multilinear.frame_store_heap (Multilinear.frame_store_heap hI_16 ?_ ?_) ?_ ?_
@@ -388,7 +390,8 @@ set_option rv_sym.heap true in
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needA needR needH needS : Nat} (hnA : 80 + needA ≤ need) (hnR : 80 + needR ≤ need)
     (hnH : 80 + needH ≤ need) (hnS : 80 + needS ≤ need)
-    (hal : Runtime.AllocT.AllocSpecT env p L.alloc.idx needA) (hres : Runtime.ReserveT.ReserveSpecT env 8 16 p L.reserve.idx needR)
+    (hal : Runtime.AllocT.AllocSpecT env p L.alloc.idx needA)
+    (hres : Runtime.ReserveT.ReserveSpecT env 8 16 p L.reserve.idx needR)
     (hhe : Aborts env p L.handleError.idx needH) (hsa : SampleT.specT env p L.sample.idx needS) :
     specT env p i need := by
   have hal' : HoldsT env p L.alloc.idx needA AllocPre (AllocPost env) (Stop := AbortStop) :=

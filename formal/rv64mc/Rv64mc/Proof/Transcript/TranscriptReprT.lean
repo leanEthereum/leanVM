@@ -3,15 +3,16 @@
 
   The representation the total contracts of `Transcript`'s methods share, for safety: `TranscriptT env m a`, the
   transcript at `a` (`Layouts.Transcript`, `360` bytes) in a window with its sponge `SpongeT`, and the `Proof` it
-  points to (its address at offset `328`, `proofAddr`'s) apart from it, in a window, 8-byte aligned, with its stream's buffer in a window unless
-  empty (`NextT.StreamWin`); `OwnedT env m top a`, both owned by the caller whose stack top is `top` (`Env.Owned`:
-  below `NEXT`, or in a caller's frame). Every access the methods make is inside these, and every index they compute
-  is checked by the code, so nothing else is needed. No functional ghost: the sponge's lanes after a permutation are
-  `keccak_f`'s, whose functional contract is not total (`KeccakFSafeT`).
+  points to (its address at offset `328`, `proofAddr`'s) apart from it, in a window, 8-byte aligned, with its
+  stream's buffer in a window unless empty (`NextT.StreamWin`); `OwnedT env m top a`, both owned by the caller
+  whose stack top is `top` (`Env.Owned`: below `NEXT`, or in a caller's frame). Every access the methods make
+  is inside these, and every index they compute is checked by the code, so nothing else is needed. No functional
+  ghost: the sponge's lanes after a permutation are `keccak_f`'s, whose functional contract is not total
+  (`KeccakFSafeT`).
 
   `TranscriptT` reads five words (`of_get`): the ground tag and the count of the sponge, the proof's address, the
   stream's pointer and length. A call whose `out` misses them keeps it, the transcript and its proof owned
-  (`frame`, `frameF`).
+  (`frame`, `frameF`), and one that leaves the sponge `SpongeT` (`frameS`).
 
   ## Main definitions
 
@@ -43,7 +44,8 @@ def ProofT (env : Env) (m : MachineState) (q : Word) : Prop :=
     points to apart from it and `ProofT`. -/
 def TranscriptT (env : Env) (m : MachineState) (a : Word) : Prop :=
   SpongeT env m a ∧ InWin env a Layouts.Transcript.byteSize ∧
-    Apart (m.getMem (a + 328#64)) Layouts.Proof.byteSize a Layouts.Transcript.byteSize ∧ ProofT env m (m.getMem (a + 328#64))
+    Apart (m.getMem (a + 328#64)) Layouts.Proof.byteSize a Layouts.Transcript.byteSize ∧
+    ProofT env m (m.getMem (a + 328#64))
 
 /-- The transcript at `a` and its proof owned by a caller whose stack top is `top`. -/
 def OwnedT (env : Env) (m : MachineState) (top a : Word) : Prop :=

@@ -35,8 +35,8 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
 def PostT (env : Env) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   SpongeT env m' (regs .x10)
 
-/-- **The total contract of `Sponge::absorb_nonce`**: `PreT` to `PostT`, writing at most the sponge, or ending the run with
-    `a0 = 2`. -/
+/-- **The total contract of `Sponge::absorb_nonce`**: `PreT` to `PostT`, writing at most the sponge, or ending the
+    run with `a0 = 2`. -/
 def specT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   HoldsT env p i need (PreT env) (PostT env) AbsorbNonce.Out (Stop := AbortStop)
 

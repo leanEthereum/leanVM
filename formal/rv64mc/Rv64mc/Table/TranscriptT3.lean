@@ -58,7 +58,8 @@ theorem absorbNonce (hd : HashT.KeccakTables env) :
 
 /-- `Transcript::next`'s second total contract (`NextSafeT`), beside `TranscriptT.next`. -/
 theorem nextSafe :
-    NextSafeT.specT env (liftProg fns) Idx.Verifier.Transcript.Transcript.Next Needs.Verifier.Transcript.Transcript.Next :=
+    NextSafeT.specT env (liftProg fns) Idx.Verifier.Transcript.Transcript.Next
+      Needs.Verifier.Transcript.Transcript.Next :=
   NextSafeT.total env _ _ _ Verifier.Transcript.Transcript.Next.tmpl_eq _
 
 theorem transcriptNew (hd : HashT.KeccakTables env) :

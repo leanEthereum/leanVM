@@ -78,9 +78,11 @@ theorem tail_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
   have o0 : NextScalar.Out Layouts.ResultE.byteSize regs m (regs .x10) := Or.inl ⟨Nat.le_refl _, by
     simp only [Layouts.ResultE.byteSize]; omega⟩
   have o8 : NextScalar.Out Layouts.ResultE.byteSize regs m (regs .x10 + 8#64) := Or.inl ⟨by
-    rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; simp only [Layouts.ResultE.byteSize]; omega⟩
+    rw [toNat_add_ofNat (by omega)]; omega, by
+    rw [toNat_add_ofNat (by omega)]; simp only [Layouts.ResultE.byteSize]; omega⟩
   have o16 : NextScalar.Out Layouts.ResultE.byteSize regs m (regs .x10 + 16#64) := Or.inl ⟨by
-    rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; simp only [Layouts.ResultE.byteSize]; omega⟩
+    rw [toNat_add_ofNat (by omega)]; omega, by
+    rw [toNat_add_ofNat (by omega)]; simp only [Layouts.ResultE.byteSize]; omega⟩
   have n0 : regs .x10 ≠ env.nextAddr := hw.ne_next (Nat.le_refl _) (by omega)
   have n8 : regs .x10 + 8#64 ≠ env.nextAddr := hw.ne_next_add (by omega)
   have n16 : regs .x10 + 16#64 ≠ env.nextAddr := hw.ne_next_add (by omega)

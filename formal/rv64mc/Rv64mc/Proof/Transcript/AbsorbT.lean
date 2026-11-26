@@ -5,9 +5,9 @@
   with the sponge `SpongeT` again, writing nothing outside it and its stack, or ends the run with `a0 = 2` on a
   waiting ground challenge (`panic_fmt`) or a count past three after the permutation (`panic_bounds_check`).
   Safety only, as `DuplexT`: the partial contract's sponge (`Absorb.lean`) is `duplex`'s permuted one. The body is
-  cut where the slot's address is computed (instruction 25, its first store): the slot `a + 24 n` is then a word `s` with its value as a
-  number (`hs`), so the three stores into it and the count's store are stepped with their addresses compared by
-  `omega` on numbers.
+  cut where the slot's address is computed (instruction 25, its first store): the slot `a + 24 n` is then a word
+  `s` with its value as a number (`hs`), so the three stores into it and the count's store are stepped with their
+  addresses compared by `omega` on numbers.
 
   ## Main definitions
 
@@ -76,7 +76,8 @@ theorem tail_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
     (hn48 : 48 ≤ need) (hal : top.toNat % 16 = 0) (hW : Windows env top m)
     (ha8 : (regs .x10).toNat % 8 = 0) (hw : InWin env (regs .x10) 328) (ho : env.Owned m top (regs .x10) 328)
     {s n : Word} (hn : n.toNat ≤ 3) (hs : s.toNat = (regs .x10).toNat + 24 * n.toNat) :
-    ∀ R M, TailInv env ret top regs m s n R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 50, ret, top⟩ :: rest, R, M⟩ := by
+    ∀ R M, TailInv env ret top regs m s n R M →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 50, ret, top⟩ :: rest, R, M⟩ := by
   intro R M hinv
   have hlt := hw.lt
   have hne : regs .x10 ≠ env.nextAddr := hw.ne_next (Nat.le_refl _) (by omega)
