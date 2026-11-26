@@ -1,0 +1,7 @@
+guest/target/
+guest/verifier-nostd/
+out/
+Rv64mc/Gen/
+Rv64mc/Gen.lean
+# Lean language server scratch files
+_mcp_serial_*.lean

@@ -1,0 +1,8 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Walk.VerifyExecution	2	0	7	1	proved: a tail call of walk (checked folded to true in walk), by Runtime.tail_ok with walk's spec as hypothesis.
+Proof.Walk.Verdict	0	0	75	3	Model-to-Verdict bridge, no machine code: decodeInput's leaf indices are words (Reader bind/pure decomposition), then mainVerdictRust_sound.
+Table.Walk	0	0	20	2	verify_execution at the image from walk's Table contract; rv64_sound_of_main: rv64_sound from MainSpec at Needs.Main (holds_need_mono, kernel_eq Needs.Main <= need).
+Verifier.Walk	762	16	0	0	specified only (Spec/Walk/Execution.lean): 36 callees, most without a Spec (verify_bus_balance, table_sumcheck, verify_keccak, build_layout, verify_stacked_opening, Transcript::new, ...).
+Main	287	7	0	77	in progress (wave 3): entry segment rv_auto stop [148, 186] with TryAllocRv64Spec and the slice facts in with, 77 s, 3.3 GB; its callee preconditions closed but for Bytecode::new's slice WordsAt (rv_mem does not read lit + ofNat (8k) through the prologue's stack stores); Base at the entry's cut points and the 9 later cut points not done. TryAllocSpec was the wrong instance for main (see notes/status.md).
+Proof.Walk.MainStream	0	1	203	8	main's stream loop (instruction 74) proved against its continuation at 93: InvS (Base + 16 registers + EListAt of scal), stepS (two stores keep Base, EListAt.snoc), induction on scalars left; manual: invariant, Base.store chain, address lemmas without simp on 64-bit literals.
+Proof.Walk.MainBase	0	0	131	3	Base (what main's cut points keep), Writable, Base.store, Base.call, Base.input; literal arithmetic (sub_lit, add_lit, ofNat_eq_iff).

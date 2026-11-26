@@ -1,0 +1,36 @@
+# Function boundaries of the guest's verifier. scripts/nostd-verifier.sh gives every function with a body in the
+# no_std copy `#[inline(always)]` if it is listed here and `#[inline(never)]` otherwise, replacing any `#[inline]` the
+# source has, so that which functions exist in the image does not depend on LLVM's size heuristics.
+#
+# One function per line: the file, then the function as `name` (free), `Type::name` (inherent) or
+# `Trait for Type::name` (trait impl), with the impl's header as written after `impl<..>`. Listed here: straight-line
+# bodies without loops or allocation, inlined so that a caller's proof executes them in place. Field multiplication
+# (`base_mul`, `Mul for E::mul`) stays a function: it is what other proofs call by contract.
+field.rs K::to_bytes
+field.rs K::square
+field.rs Add for K::add
+field.rs Mul for K::mul
+field.rs times_x
+field.rs E::new
+field.rs E::frobenius
+field.rs From<K> for E::from
+field.rs Add for E::add
+field.rs AddAssign for E::add_assign
+field.rs Mul<K> for E::mul
+field.rs MulAssign for E::mul_assign
+bytecode.rs Bytecode::fiat_shamir_iv
+bytecode.rs Bytecode::len
+bytecode.rs Bytecode::is_empty
+keccak.rs KeccakShape::segments
+keccak.rs KeccakShape::pack_bits
+keccak.rs KeccakShape::slot_bits
+keccak.rs along
+layout.rs Table::width
+layout.rs spare_local
+lib.rs require
+multilinear.rs log2_ceil
+multilinear.rs log2_strict
+transcript.rs Sponge::observe
+transcript.rs Transcript<'a>::checked
+transcript.rs Transcript<'a>::sample
+transcript.rs Transcript<'a>::stream_offset

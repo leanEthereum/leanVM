@@ -1,0 +1,12 @@
+--- a/crates/verifier/src/transcript.rs
++++ b/crates/verifier/src/transcript.rs
+@@ -24,8 +24,8 @@
+ /// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
+ #[derive(Clone, Debug)]
+ pub struct Sponge {
++    pending: [(E, u64); RATE_SCALARS],
+     state: [u64; STATE_LANES],
+-    pending: [(E, u64); RATE_SCALARS],
+     n_pending: usize,
+     /// The challenge a grind's permutation drew, which the next [`Self::sample`] returns.
+     ground: Option<E>,

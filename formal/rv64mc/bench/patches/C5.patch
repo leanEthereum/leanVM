@@ -1,0 +1,107 @@
+diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
+index acb758fcf..2f0cc2dd2 100644
+--- a/crates/verifier/src/layout.rs
++++ b/crates/verifier/src/layout.rs
+@@ -111,17 +111,6 @@ pub struct Layout<'a> {
+     pub keccak: KeccakShape,
+ }
+ 
+-impl Layout<'_> {
+-    /// Where a committed column sits: a column nothing commits is refused.
+-    pub fn committed(&self, column: usize) -> Result<Placement, VerifierError> {
+-        self.placements
+-            .get(column)
+-            .copied()
+-            .flatten()
+-            .ok_or(VerifierError::CommittedSize)
+-    }
+-}
+-
+ pub fn gpow(index: u64) -> E {
+     GEN.pow(index)
+ }
+@@ -594,16 +583,13 @@ fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table
+ /// one of its slots, 2^height words, whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An
+ /// output lane is not committed at all, nothing ever opening it.
+ fn stacked_blocks(columns: usize) -> Vec<usize> {
++    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
++    let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
+     (0..columns)
+-        .filter(|&column| qkeccak_slot(column).is_none() && !is_output_lane(column))
++        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
+         .collect()
+ }
+ 
+-fn is_output_lane(column: usize) -> bool {
+-    let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
+-    (base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES).contains(&column)
+-}
+-
+ /// The stack of columns of these log sizes: each column's offset, `None` for one with no block of its own, and the
+ /// stack's log size, floored at the PCS minimum.
+ fn stack(kappas: &[usize]) -> (Vec<Option<u64>>, usize) {
+@@ -669,20 +655,17 @@ pub fn build_layout<'a>(
+     let keccak = keccak_shape(&table_log_heights);
+     let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
+     let (offsets, stack_log) = stack(&kappas);
+-    // Every column but a q_keccak slot and an output lane has a block of its own: a missing one is refused.
+-    let offset = |column: usize| offsets[column].ok_or(VerifierError::CommittedSize);
+     let placement = |(column, &kappa): (usize, &usize)| {
+         let index = match qkeccak_slot(column) {
+-            Some(slot) => offset(QKECCAK)? + ((slot as u64) << kappa),
+-            None if is_output_lane(column) => return Ok(None),
+-            None => offset(column)?,
++            Some(slot) => offsets[QKECCAK]? + ((slot as u64) << kappa),
++            None => offsets[column]?,
+         };
+-        Ok(Some(Placement {
++        Some(Placement {
+             variables: kappa,
+             index,
+-        }))
++        })
+     };
+-    let placements = kappas.iter().enumerate().map(placement).collect::<Result<_, _>>()?;
++    let placements = kappas.iter().enumerate().map(placement).collect();
+     Ok(Layout {
+         log_memory,
+         log_bytecode,
+diff --git a/crates/verifier/src/lib.rs b/crates/verifier/src/lib.rs
+index e666aac5c..f08e46e4d 100644
+--- a/crates/verifier/src/lib.rs
++++ b/crates/verifier/src/lib.rs
+@@ -233,11 +233,8 @@ pub fn verify_keccak_batch(
+     log_inv_rate: usize,
+     proof: &Proof,
+ ) -> Result<(), VerifierError> {
+-    // A batch past the largest stack fails the next check too: bounding it first keeps the sum below from overflowing.
+     require(
+-        (layout::KECCAK_MIN_STEPS_LOG..=MAX_STACKED_LOG).contains(&log_steps)
+-            && depth > 0
+-            && ROUNDS.is_multiple_of(depth),
++        log_steps >= layout::KECCAK_MIN_STEPS_LOG && depth > 0 && ROUNDS.is_multiple_of(depth),
+         VerifierError::CommittedSize,
+     )?;
+     let shape = KeccakShape { log_steps, depth };
+@@ -341,7 +338,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
+     // evaluates itself, so the prover sends nothing. A line: numerator one, no grind.
+     let public_challenge = transcript.sample();
+     let (first, second) = public_input.halves();
+-    let mut public_point = vec![ZERO; layout.committed(MEMORY_0)?.variables];
++    let mut public_point = vec![ZERO; layout.placements[MEMORY_0].expect("memory is committed").variables];
+     public_point[0] = public_challenge;
+     let public_pairs = [(first.c0, second.c0), (first.c1, second.c1)];
+     for (column, (low, high)) in [MEMORY_0, MEMORY_1].into_iter().zip(public_pairs) {
+@@ -376,10 +373,8 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
+     let (ringswitch_target, ringswitch_weight) = ring_switch(point, &slices, &mut transcript)?;
+     // That claim is supported on q_keccak's region of the stack, so its weight carries the
+     // placement's selector, and it leads the batch, taking the first power.
+-    let ringswitch: StackClaim = (
+-        StackWeight::PlacedRing(layout.committed(QKECCAK)?, ringswitch_weight),
+-        ringswitch_target,
+-    );
++    let qkeccak = layout.placements[QKECCAK].expect("q_keccak is committed");
++    let ringswitch: StackClaim = (StackWeight::PlacedRing(qkeccak, ringswitch_weight), ringswitch_target);
+     let mut stack_claims = vec![ringswitch];
+     stack_claims.extend(claims.iter().filter_map(|claim| claim.on_stack(&layout)));
+     stack_claims.push((StackWeight::Eq(ood_point), ood_value));

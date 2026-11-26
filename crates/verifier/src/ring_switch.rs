@@ -67,23 +67,31 @@ fn ring_weight(r: &[E], r_prime: &[E], coefficients: &[E]) -> E {
     total
 }
 
+/// `W`, by the claim's point and the map's Frobenius coefficients.
+pub struct RingWeight {
+    point: Vec<E>,
+    coefficients: Vec<E>,
+}
+
+impl RingWeight {
+    pub fn evaluate(&self, r_prime: &[E]) -> E {
+        ring_weight(&self.point, r_prime, &self.coefficients)
+    }
+}
+
 /// The 64 claims s\[i\] = z(i, point) become the one dense claim `sum_u W(u) qkeccak(u) = target`.
 ///
 /// Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
-/// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure.
+/// MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W.
 ///
 /// One grind covers the map's challenges and the stacked opening's batching challenge, drawn next.
-pub fn ring_switch(
-    point: Vec<E>,
-    s: &[E],
-    transcript: &mut Transcript,
-) -> Result<(E, impl Fn(&[E]) -> E + use<>), VerifierError> {
+pub fn ring_switch(point: Vec<E>, s: &[E], transcript: &mut Transcript) -> Result<(E, RingWeight), VerifierError> {
     transcript.grind_check(BATCH_GRINDING_BITS)?;
     let challenges = transcript.samples(2 * RING_MAP_WIDTH);
     let (f, g) = challenges.split_at(RING_MAP_WIDTH);
     let coefficients = ring_coefficients(f, g);
     let target = ring_target(s, f, g);
-    Ok((target, move |r_prime: &[E]| ring_weight(&point, r_prime, &coefficients)))
+    Ok((target, RingWeight { point, coefficients }))
 }
 
 #[cfg(test)]

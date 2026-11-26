@@ -1,0 +1,44 @@
+name = "rv64mc"
+version = "0.1.0"
+defaultTargets = ["Rv64mc"]
+# The lifted image's modules are deep literals; machine-checked's own setting.
+moreLeanArgs = ["--tstack=400000"]
+
+[leanOptions]
+warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+# The statement: the verifier `verify` that the RV64IM image is proved to implement.
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# The decoder, lift and transfer theorems to riscv-zkvm's machine, at a pinned commit.
+[[require]]
+name = "machine-checked"
+git = "https://github.com/Verified-zkEVM/machine-checked"
+rev = "10df1b2e9c623eb86a8ab92ddf1817fa90f650cc"
+
+# Mathlib last (Lake: the last require wins), so that the workspace takes Statement's v4.36.0 rather than
+# machine-checked's v4.36.0-rc2.
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "Rv64mc"
+globs = ["Rv64mc.+"]
+
+# The end statement's machine run on an image and an input (`notes/non-vacuity.md`).
+[[lean_exe]]
+name = "rv64mc-run"
+root = "RunImage"
+
+# The Model mirror of `main` beside the statement's `verify` on an input (`notes/non-vacuity.md`).
+[[lean_exe]]
+name = "rv64mc-model"
+root = "RunModel"

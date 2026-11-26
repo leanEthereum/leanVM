@@ -1,0 +1,20 @@
+# The link modules (scripts/gen.py): a function's link goes to Rv64mc/Gen/Link/<P>.lean for the longest P below that
+# is a proper prefix of its module path, else to Link/Misc.lean. Table and Final files import them by name.
+Alloc
+Alloc.RawVec
+Alloc.Vec
+Core
+Verifier
+Verifier.Bus
+Verifier.Bytecode
+Verifier.Field
+Verifier.Field.E
+Verifier.Hash
+Verifier.Keccak
+Verifier.Layout
+Verifier.Layout.Flushes
+Verifier.Layout.Form
+Verifier.Multilinear
+Verifier.RingSwitch
+Verifier.Transcript
+Verifier.Whir

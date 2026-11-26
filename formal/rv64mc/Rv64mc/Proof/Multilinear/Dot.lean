@@ -1,0 +1,140 @@
+/-
+  Rv64mc.Proof.Multilinear.Dot
+
+  `dot` keeps its contract (`Spec.Multilinear.Dot.spec`), over any program holding its template, from the contracts
+  of `E::mul` and of `assert_failed` (which does not return). `rv_auto` runs the entry to the loop's head
+  (instruction 30, the target of the back edge) and closes the length check's failure; the loop is `loop`, by
+  induction on the elements left, its invariant `Inv` the fold of `Model.dotRust` over the first `j` pairs.
+-/
+
+import Rv64mc.Spec.Multilinear.Dot
+import Rv64mc.Spec.Runtime.Panic
+import Rv64mc.Core.ReprLemmas
+import Rv64mc.Proof.Multilinear.SliceLoop
+import Rv64mc.Gen.Tmpl.Verifier.Multilinear.Dot
+import Rv64mc.Tactic.Sym
+
+namespace Rv64mc.Proof.Multilinear.Dot
+
+open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters Rv64mc.Spec.Multilinear.Dot Rv64mc.Proof.Multilinear
+open Rv64mc.Gen.Verifier.Multilinear.Dot (Link tmpl)
+
+/-- The sum over the first `j` pairs: `result` after `j` passes of the loop. -/
+def acc (xs ys : List E) (j : Nat) : E := ((xs.zip ys).take j).foldl (fun r xy => r + xy.1 * xy.2) 0
+
+theorem acc_succ {xs ys : List E} {j : Nat} (hx : j < xs.length) (hy : j < ys.length) :
+    acc xs ys (j + 1) = acc xs ys j + xs[j] * ys[j] := by
+  rw [acc, List.take_add_one, List.foldl_append, List.getElem?_eq_getElem (by simp; omega)]
+  simp [acc, List.getElem_zip]
+
+theorem dotRust_acc {xs ys : List E} (h : xs.length = ys.length) :
+    Model.dotRust xs ys = some (acc xs ys xs.length) := by
+  rw [Model.dotRust, ite_eq_left_of_eq_true _ _ (eq_true h), acc,
+    List.take_of_length_le (by simp only [List.length_zip]; omega)]
+
+/-- One pass of the body on limbs: the product's limbs added to the sum's, in the order the code XORs them. -/
+theorem step_limbs (a x y : E) :
+    Model.limbs (a + x * y) = ((Model.eMul (Model.limbs x) (Model.limbs y)).1 ^^^ (Model.limbs a).1,
+      (Model.eMul (Model.limbs x) (Model.limbs y)).2 ^^^ (Model.limbs a).2) := by
+  rw [Model.eMul_eq, ← Model.eAdd_eq, Model.eAdd, BitVec.xor_comm (Model.limbs a).1,
+    BitVec.xor_comm (Model.limbs a).2]
+
+/-- The loop's invariant at its head after `j` elements. -/
+def Inv (env : Env) (xs ys : List E) (ret top : Word) (regs : Reg → Word) (m : MachineState) (j : Nat)
+    (R : Reg → Word) (M : MachineState) : Prop :=
+  R .x2 = top + 0xffffffffffffffc0#64 ∧
+    R .x18 = regs .x12 + BitVec.ofNat 64 (16 * j) + 8#64 ∧ R .x19 = regs .x10 + BitVec.ofNat 64 (16 * j) + 8#64 ∧
+    R .x20 = regs .x12 + 8#64 + BitVec.ofNat 64 (List.map Model.limbs xs).length <<< 4 ∧
+    R .x9 = (Model.limbs (acc xs ys j)).1 ∧ R .x8 = (Model.limbs (acc xs ys j)).2 ∧
+    R .x21 = regs .x21 ∧ R .x22 = regs .x22 ∧ R .x23 = regs .x23 ∧
+    R .x24 = regs .x24 ∧ R .x25 = regs .x25 ∧ R .x26 = regs .x26 ∧ R .x27 = regs .x27 ∧
+    env.Frame top Tactic.F m M ∧
+    ∀ a, top + 0xffffffffffffffc0#64 ≤ a → M.getMem a =
+      ((((((m.setMem (top + 0xfffffffffffffff8#64) ret).setMem (top + 0xfffffffffffffff0#64) (regs .x8)).setMem
+        (top + 0xffffffffffffffe8#64) (regs .x9)).setMem (top + 0xffffffffffffffe0#64) (regs .x18)).setMem
+        (top + 0xffffffffffffffd8#64) (regs .x19)).setMem (top + 0xffffffffffffffd0#64) (regs .x20)).getMem a
+
+/-- What one pass computes, from the elements the loop loads through the frame. -/
+theorem body_val {env : Env} {top : Word} {m M : MachineState} {xs ys : List E} {regs : Reg → Word} {j : Nat}
+    (hf : env.Frame top Tactic.F m M) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hx : EListAt m (regs .x10) (xs.map Model.limbs)) (hy : EListAt m (regs .x12) (ys.map Model.limbs))
+    (hlx : env.Live m (regs .x10) (Layouts.E.byteSize * xs.length))
+    (hly : env.Live m (regs .x12) (Layouts.E.byteSize * ys.length)) (hjx : j < xs.length) (hjy : j < ys.length) :
+    ((Model.eMul (M.getMem (regs .x10 + BitVec.ofNat 64 (16 * j)), M.getMem (regs .x10 + BitVec.ofNat 64 (16 * j) + 8#64))
+        (M.getMem (regs .x12 + BitVec.ofNat 64 (16 * j)), M.getMem (regs .x12 + BitVec.ofNat 64 (16 * j) + 8#64))).1 ^^^
+        (Model.limbs (acc xs ys j)).1,
+      (Model.eMul (M.getMem (regs .x10 + BitVec.ofNat 64 (16 * j)), M.getMem (regs .x10 + BitVec.ofNat 64 (16 * j) + 8#64))
+        (M.getMem (regs .x12 + BitVec.ofNat 64 (16 * j)), M.getMem (regs .x12 + BitVec.ofNat 64 (16 * j) + 8#64))).2 ^^^
+        (Model.limbs (acc xs ys j)).2) =
+      Model.limbs (acc xs ys (j + 1)) := by
+  have ex := EListAt.load (j := j) hf hnx hx (by simpa using hlx) (by simpa using hjx)
+  have ey := EListAt.load (j := j) hf hnx hy (by simpa using hly) (by simpa using hjy)
+  simp only [List.getElem_map] at ex ey
+  rw [ex.1, ex.2, ey.1, ey.2, acc_succ hjx hjy, step_limbs]
+
+/-- **The loop**, from its head with `k + 1` elements to go. -/
+theorem loop (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (xs ys : List E)
+    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need needM : Nat} (hnM : 64 + needM ≤ need)
+    (hmul : Spec.Field.EMul.spec env p L.mul.idx needM)
+    {G : State rvIsa → Prop} {n : Nat} {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame}
+    {regs : Reg → Word} {m : MachineState}
+    (hk : ∀ r' m', Holds.post env (Post xs ys) (fun _ _ _ => False) ret top regs m r' m' →
+      rvIsa.SafeN p sp1Ctx G n Q ⟨rest, r', m'⟩) (hal : top.toNat % 16 = 0)
+    (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hx : EListAt m (regs .x10) (xs.map Model.limbs)) (hy : EListAt m (regs .x12) (ys.map Model.limbs))
+    (hlx : env.Live m (regs .x10) (Layouts.E.byteSize * xs.length))
+    (hly : env.Live m (regs .x12) (Layouts.E.byteSize * ys.length)) (hlen : xs.length = ys.length) :
+    ∀ k j R M, j + k + 1 = xs.length → Inv env xs ys ret top regs m j R M →
+      rvIsa.SafeN p sp1Ctx G n Q ⟨⟨i, 30, ret, top⟩ :: rest, R, M⟩ := by
+  have hq : (regs .x12).toNat + 16 * (List.map Model.limbs xs).length + 8 < 2 ^ 64 := by
+    simpa [hlen] using live_bound hly hnx
+  intro k
+  induction k with
+  | zero =>
+    intro j R M hj hinv
+    rv_intro hinv
+    rv_sym hp with [hL] using [hmul]
+    · exact absurd ((end_iff hq (by simp; omega)).2 (by simp; omega)) hc
+    intro v hv
+    rw [dotRust_acc hlen, Option.some.injEq] at hv
+    subst hv
+    rw [show xs.length = j + 1 by omega, ← body_val hinv_14 hnx hx hy hlx hly (by omega) (by omega)]
+    exact ⟨rfl, rfl⟩
+  | succ k ih =>
+    intro j R M hj hinv
+    rv_intro hinv
+    rv_sym hp with [hL] using [hmul]
+    · apply ih (j + 1) _ _ (by omega)
+      rv_close
+      · exact step_ptr _ _
+      · exact step_ptr _ _
+      · rw [← body_val hinv_14 hnx hx hy hlx hly (by omega) (by omega)]
+      · rw [← body_val hinv_14 hnx hx hy hlx hly (by omega) (by omega)]
+    exact absurd ((end_iff hq (by simp; omega)).1 hc) (by simp; omega)
+
+/-- **`dot` keeps its contract.** -/
+theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
+    {need needM needF : Nat} (hnM : 64 + needM ≤ need) (hnF : 64 + needF ≤ need)
+    (hmul : Spec.Field.EMul.spec env p L.mul.idx needM)
+    (hfail : Spec.Runtime.NoReturn env p L.assertFailedUsizeUsize.idx needF) : spec env p i need := by
+  intro xs ys
+  rv_auto hp with [hL] using [hmul, hfail]
+  all_goals have hlx := live_bound hpre_10 hpre_5
+  all_goals have hly := live_bound hpre_11 hpre_5
+  all_goals simp only [Layouts.E.byteSize] at hlx hly
+  all_goals have hlen : xs.length = ys.length := by simpa using len_eq (by simp; omega) (by simp; omega) hc_1
+  · intro v hv
+    rw [dotRust_acc hlen, Option.some.injEq] at hv
+    subst hv
+    have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
+    simp [acc, h0, Model.limbs_zero, Model.eZero]
+  have h0 : xs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
+  refine loop env p i L xs ys hp hL hnM hmul hk (by assumption) hpre_3 hpre_4 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 hlen
+    (xs.length - 1) 0 _ _ (by omega) ?_
+  rv_close
+  all_goals first
+    | exact start_ptr _
+    | (rw [show acc xs ys 0 = 0 from rfl, Model.limbs_zero]; rfl)
+
+end Rv64mc.Proof.Multilinear.Dot

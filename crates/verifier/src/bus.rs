@@ -6,10 +6,10 @@ use crate::layout::{
     MEMORY_FINAL_COUNTERS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
 use crate::multilinear::{
-    Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
+    Placement, dot, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
 };
 use crate::transcript::{Transcript, grinding_bits, sumcheck};
-use crate::{StackClaim, VerifierError, require};
+use crate::{StackClaim, StackWeight, VerifierError, require};
 
 /// The grind before the fingerprint `(weights, beta)`: unequal push and pull multisets pass the product check with
 /// probability at most `2^mu / |E|`, `mu` the push depth.
@@ -110,9 +110,9 @@ pub struct ColumnClaim {
 
 impl ColumnClaim {
     /// `None` for a column nothing commits, whose claim never reaches the stack.
-    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim<'static>> {
+    pub fn on_stack(&self, layout: &Layout) -> Option<StackClaim> {
         let point = layout.placements[self.column]?.stack_point(&self.point, layout.stack_log);
-        Some((Box::new(move |x| eq_eval(&point, x)), self.value))
+        Some((StackWeight::Eq(point), self.value))
     }
 }
 
@@ -285,7 +285,7 @@ pub fn table_sumcheck(
             let n_constraints = table.n_constraints();
             let summand = dot(
                 &constraint_powers[cursor..cursor + n_constraints],
-                &(table.constraints)(evaluations),
+                &table.constraints(evaluations),
             );
             let form_values: Vec<E> = forms.iter().map(|form| form.evaluate(evaluations)).collect();
             terminal += weight * (summand + dot(form_powers, &form_values));

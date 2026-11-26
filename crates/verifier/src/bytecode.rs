@@ -5,7 +5,6 @@ use crate::hash::{Digest, keccak_hash};
 use crate::layout::{BUS_BITS, MAX_LOG_BYTECODE, OP_DEREF, OP_KECCAK, TAG};
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
-use std::collections::BTreeMap;
 
 /// The stacked bytecode multilinear, prepared to be evaluated, and the Fiat-Shamir IV it gives every transcript.
 ///
@@ -45,20 +44,7 @@ impl Bytecode {
                 .collect();
             keccak_hash(&iv_preimage)
         };
-        let blocks = stacked_bytecode
-            .chunks(1 << BLOCK_LOG)
-            .map(|block| {
-                let mut members = BTreeMap::<u64, Vec<u16>>::new();
-                for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
-                    members.entry(word).or_default().push(position as u16);
-                }
-                // Fewest positions first: the sum over a value's positions then runs one length many times over, so
-                // its loop exit is predicted.
-                let mut members: Vec<(K, Vec<u16>)> = members.into_iter().map(|(word, at)| (K(word), at)).collect();
-                members.sort_by_key(|(_, at)| at.len());
-                members
-            })
-            .collect();
+        let blocks = stacked_bytecode.chunks(1 << BLOCK_LOG).map(block_members).collect();
         Ok(Self {
             len: stacked_bytecode.len(),
             fiat_shamir_iv,
@@ -99,6 +85,59 @@ impl Bytecode {
                 .map(|(block, &weight)| weight * block_value(block)),
         ))
     }
+}
+
+/// A block's distinct nonzero words, each with its positions in increasing order: fewest positions first, equal counts
+/// in increasing word order. The sum over a value's positions then runs one length many times over, so its loop exit is
+/// predicted.
+fn block_members(block: &[u64]) -> Vec<(K, Vec<u16>)> {
+    let mut members = group_by_word(block);
+    let order: Vec<usize> = (0..members.len()).collect();
+    let order = counting_sort(&order, block.len() + 1, |&index| members[index].1.len());
+    order
+        .into_iter()
+        .map(|index| (members[index].0, std::mem::take(&mut members[index].1)))
+        .collect()
+}
+
+/// A block's distinct nonzero words in increasing order, each with its positions in increasing order.
+fn group_by_word(block: &[u64]) -> Vec<(K, Vec<u16>)> {
+    let mut pairs: Vec<(u64, u16)> = block
+        .iter()
+        .enumerate()
+        .filter(|&(_, &word)| word != 0)
+        .map(|(position, &word)| (word, position as u16))
+        .collect();
+    // Ordered by word, a byte at a time from the lowest, each pass keeping the order of equal bytes.
+    for byte in 0..8 {
+        pairs = counting_sort(&pairs, 1 << 8, |&(word, _)| (word >> (8 * byte)) as u8 as usize);
+    }
+    let mut members: Vec<(K, Vec<u16>)> = Vec::new();
+    for (word, position) in pairs {
+        match members.last_mut() {
+            Some((last, at)) if last.0 == word => at.push(position),
+            _ => members.push((K(word), vec![position])),
+        }
+    }
+    members
+}
+
+/// `items` in increasing order of `key`, each below `keys`, equal keys keeping their order.
+fn counting_sort<T: Copy>(items: &[T], keys: usize, key: impl Fn(&T) -> usize) -> Vec<T> {
+    let mut starts = vec![0; keys + 1];
+    for item in items {
+        starts[key(item) + 1] += 1;
+    }
+    for k in 1..=keys {
+        starts[k] += starts[k - 1];
+    }
+    let mut sorted = items.to_vec();
+    for item in items {
+        let k = key(item);
+        sorted[starts[k]] = *item;
+        starts[k] += 1;
+    }
+    sorted
 }
 
 fn is_valid_encoding_of_a_leanisa_program(stacked_bytecode: &[u64]) -> bool {

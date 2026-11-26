@@ -1,0 +1,33 @@
+module	instr	loops	proof_lines	cpu_s	manual_notes
+Proof.Field.Reduce	14	0	3	2.3	Model.reduce on the two words of a u128 (setWidth_append), XOR order by simp (most of the cost)
+Proof.Field.EMul	61	0	3	1.0	u128 words folded back (hi128_xor, lo128_shl1, ...), XOR order by simp
+Proof.Multilinear.EqEval	40	1	63	2.9	loop lemma (Inv: pointers, fold prefix acc, frame); back edge: 2 pointer steps, 2 fold steps (body_val); exit test end_iff; slice loads by EListAt.load
+VerifierRv64.Halt	4	0	23	9.3	(runtime rows: cpu_s is `lake env lean` of the whole file, user + sys, including about 5 s of import loading) Proof/Runtime/Halt.lean; lsym then SafeN.ext by hand (lsym stops at Lext); sp1Ecall_halt copied from Final/Start (6 lines)
+Rustc.RustBeginUnwind	2	0	3	shared	Proof/Runtime/Panics.lean (11 functions, 66 lines, 11.0 cpu_s) through forward_ok (Forward.lean, 48 lines with tail_ok, 10.0 cpu_s)
+Core.Panicking.PanicFmt	2	0	3	shared	forward_ok instance, template body by rfl
+Core.Panicking.PanicNounwindFmt	2	0	3	shared	forward_ok instance
+Core.Panicking.PanicBoundsCheck	2	0	3	shared	forward_ok instance
+Core.Panicking.AssertFailedInner	2	0	3	shared	forward_ok instance
+Core.Slice.Index.SliceIndexFail	2	0	3	shared	forward_ok instance
+Alloc.Vec.VecAnyAny.Remove.AssertFailed	2	0	3	shared	forward_ok instance
+Alloc.Vec.VecAnyAny.SplitOff.AssertFailed	2	0	3	shared	forward_ok instance
+Alloc.RawVec.CapacityOverflow	2	0	3	shared	forward_ok instance
+Core.Panicking.AssertFailedUsizeUsize	3	0	7	shared	lsym, callee precondition closed by hand
+Alloc.RawVec.HandleError	5	0	9	shared	lsym over both branches
+Memcpy	2	0	4	shared	Proof/Runtime/MemWrappers.lean (3 functions, 22 lines, 5.9 cpu_s) through tail_ok; callee is a hypothesis (MemcpySpec), compiler_builtins memcpy not proved
+Memmove	2	0	4	shared	tail_ok instance; compiler_builtins memmove not proved
+Memset	2	0	4	shared	tail_ok instance; compiler_builtins memset not proved
+VerifierRv64.Bump.AsGlobalAlloc.Alloc	18	0	72	15.3	Proof/Runtime/Alloc.lean; round-up lemma by bv_decide and omega; two runs hit 12 to 13 GB and were killed: simpa and omega on small goals inside the lsym context; fixed by stating them as separate lemmas and closing register reads by show/defeq
+Memcmp	12	1	87	13.0	Proof/Runtime/Memcmp.lean; loop lemma by induction on bytes left, stop at the loop head; a helper proved by bare simp on a 64-bit literal sum ran to 14 GB (killed), rewritten with toNat lemmas and omega
+VerifierRv64.Input.Word	12	0	42	10.6	Proof/Runtime/InputWord.lean; two stores into the caller's reader through Frame.setMem_out
+Alloc.RawVec.RawVecInner.GrowAmortized	41	0	239	48.3	Proof/Runtime/GrowAmortized.lean from FinishGrowSpec (stated, not proved); cut at the merged capacity choice (stop [42]), the call segment a lemma over an abstract register file, 8 paths into it closed by one tactic block; lsym stopped at one Lret (ra read through stores it could not order) and that return was taken by SafeN.ret by hand; a `show` over a memory read made the kernel hit deep recursion (elaboration fine), replaced by simp only over the register file; most lines are frame plumbing (saved slots, header slots apart from the fresh block, NEXT and static untouched)
+Alloc.RawVec.*.GrowOne (13 instances)	15 each	0	147 + 5 each	17.2 + 6.2	Proof/Runtime/GrowOne.lean, one proof over the body with T's align and size as parameters; GrowOnes.lean, 13 instances by rfl at their templates (4.3 s for all 13); a 13 GB run (killed): simp on a setMem read and a defeq on literal stack arithmetic, fixed by getMem_setMem_eq and rfl
+CompilerBuiltins.Mem.Memcpy	127	10	0	-	not proved (spec MemcpySpec only)
+CompilerBuiltins.Mem.Memmove	268	20	0	-	not proved (spec MemmoveSpec only)
+CompilerBuiltins.Mem.Memset	38	3	0	-	not proved (spec MemsetSpec only)
+Alloc.RawVec.RawVecInner.FinishGrow	68	0	0	-	not proved (FinishGrowSpec stated: fresh block of new_cap * size bytes holding the old bytes first; Err payload below 2^63); FINDING: as stated it is not provable for elements aligned below 8 when NEXT is not 8-aligned: alloc then returns q = NEXT unaligned, memcpy's byte stores change the doubleword at alignToDword q, which lies below NEXT, and Env.Frame (word-granular, fresh region = [NEXT, NEXT')) forbids that; fix either in the guest (Bump rounds blocks to 8 bytes, NEXT stays 8-aligned) or in Env.MayWrite (the doubleword holding NEXT, bytes below NEXT kept)
+Alloc.RawVec.RawVecInner.TryAllocateIn*	57, 48	1	0	-	not proved
+(infrastructure) Core/Repr.lean	-	-	195	12.6	footprints, watermark, Owned, value predicates with keep lemmas, byte lemmas, AbiRegs.updReg_iff, Holds.pre_call
+(infrastructure) scripts/type-layouts.sh	-	-	-	132	one run: guest build with -Zprint-type-sizes and two cargo checks with rustc_dump_layout probes (119 user + 13 sys, 138 s wall); --check reproduces byte for byte
+Proof.Field.ClmulLow	72	0	2	0.6	the class mask 0x8888... from DataRef.Words (read by rv_auto); masks by decide +kernel, ac_rfl
+Proof.Field.Clmul	156	0	9	1.5	three lowered reverse_bits matched to reverse_net (Proof/Field/Reverse.lean, 44 CPU-s once, bit by bit); u128 halves by lo128_join, hi128_join

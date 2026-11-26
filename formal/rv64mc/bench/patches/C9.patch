@@ -1,0 +1,45 @@
+--- a/crates/verifier/src/multilinear.rs
++++ b/crates/verifier/src/multilinear.rs
+@@ -108,7 +108,7 @@
+ 
+ /// A polynomial at `point`, by Horner over its coefficients, constant first.
+ pub fn poly_eval(coefficients: &[E], point: E) -> E {
+-    coefficients.iter().rev().fold(ZERO, |acc, &c| acc * point + c)
++    coefficients.iter().fold(ZERO, |acc, &c| acc * point + c)
+ }
+ 
+ /// Where something sits in the stacked cube: a claim's point fills the low `variables` coordinates, the bits of `index` fixing the rest.
+--- a/formal/Statement/LeanVmVerifier.lean
++++ b/formal/Statement/LeanVmVerifier.lean
+@@ -544,10 +544,10 @@
+ /-- `index_mle(point)` (`multilinear.rs`). -/
+ def indexMle (point : List E) : E := indexMleFrom gen point 1
+ 
+-/-- `poly_eval(coefficients, point)`: Horner's rule over the coefficients, constant first
++/-- `poly_eval(coefficients, point)`: Horner's rule over the coefficients, leading first
+ (`multilinear.rs`). -/
+ def polyEval (coefficients : List E) (point : E) : E :=
+-  coefficients.foldr (fun c acc ↦ acc * point + c) 0
++  coefficients.foldl (fun acc c ↦ acc * point + c) 0
+ 
+ /-- `selector_point(selector, length)`: the low `length` bits of `selector` as `0/1` elements,
+ lowest first (`multilinear.rs`). -/
+--- a/formal/rv64mc/Rv64mc/Model/Multilinear.lean
++++ b/formal/rv64mc/Rv64mc/Model/Multilinear.lean
+@@ -108,13 +108,12 @@
+     exact (Option.some.inj h).symm
+   · simp [eqEvalRust, hl] at h
+ 
+-/-- `poly_eval`: Horner over the reversed coefficients. -/
++/-- `poly_eval`: Horner over the coefficients, leading first. -/
+ def polyEvalRust (coefficients : List E) (point : E) : E :=
+-  coefficients.reverse.foldl (fun acc c ↦ acc * point + c) 0
++  coefficients.foldl (fun acc c ↦ acc * point + c) 0
+ 
+ theorem polyEvalRust_eq (coefficients : List E) (point : E) :
+-    polyEvalRust coefficients point = polyEval coefficients point := by
+-  simp only [polyEvalRust, polyEval, List.foldl_reverse]
++    polyEvalRust coefficients point = polyEval coefficients point := rfl
+ 
+ /-- `index_mle`: `result *= 1 + c·(1 + g)`, then `g = g.square()`, from `(ONE, GEN)`. -/
+ def indexMleRust (point : List E) : E :=
