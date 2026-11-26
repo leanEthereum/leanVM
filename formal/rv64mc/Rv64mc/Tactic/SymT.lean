@@ -18,12 +18,13 @@
     contains the callee's (`closeStop`); a callee's postcondition gives the code map kept, which the walk uses;
   * at a return, the code map kept (`HoldsT.post`).
 
-  It stops where `rv_sym` stops: at a program counter in `stop`, at a loop's head (for `Total.loop`), at a call
-  without a contract, and where the function returns, which the contract's continuation closes.
+  It stops where `rv_sym` stops: at a program counter in `stop`, at a loop's head (for `Total.loop`) unless `through`
+  names it (`through *`: every one), where a path comes back to a program counter it has passed, at a call without a
+  contract, and where the function returns, which the contract's continuation closes.
 
   ## Main results
 
-  * `rv_symT hp stop [pcs] with [facts] using [contracts]`: step a goal `Total … ⟨⟨fn, pc, …⟩ :: …⟩`
+  * `rv_symT hp stop [pcs] through [heads] with [facts] using [contracts]`: step a goal `Total … ⟨⟨fn, pc, …⟩ :: …⟩`
   * `rv_autoT hp …`: a total contract (`HoldsT`, `Isa.TContract`), from the entry
   * `rv_introT h`: a loop invariant's facts into the register file
   * `rv_closeT`: the side goals' closer
@@ -399,7 +400,9 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         if let some gp := gp? then left := left ++ (← closeSideTSafe gp) else left := left.push g
         continue
     if ((cfg.stops.contains a.pc || cfg.heads.contains a.pc) && g != g0) || seen.contains a.pc then
-      trace[rv_sym] "left at {a.pc}: a stop or a loop's head"
+      let why := if seen.contains a.pc then "a program counter it has passed" else if cfg.stops.contains a.pc then
+        "a stop" else "a loop's head"
+      trace[rv_sym] "left at {a.pc}: {why}"
       left := left.push g; continue
     let seen := a.pc :: seen
     let some ins := cfg.body[a.pc]? | left := left.push g; continue
@@ -617,8 +620,9 @@ partial def runT (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
 
 /-! ## The tactics -/
 
-/-- **`rv_symT hp stop [pcs] with [facts] using [contracts]`**: step the total goal `Total … ⟨⟨fn, pc, …⟩ :: …⟩`
-    through the body of the template `hp : p[fn]? = some fd` names, calls through the total contracts given. -/
+/-- **`rv_symT hp stop [pcs] through [heads] with [facts] using [contracts]`**: step the total goal
+    `Total … ⟨⟨fn, pc, …⟩ :: …⟩` through the body of the template `hp : p[fn]? = some fd` names, calls through the
+    total contracts given, not stopping at the loop heads in `through` (`through *`: at none). -/
 syntax (name := rvSymT) "rv_symT " term rvSymArgs : tactic
 
 @[tactic rvSymT] def evalRvSymT : Tactic := fun stx => do
@@ -644,10 +648,11 @@ def openContractT (g : MVarId) : MetaM MVarId := do
     let g ← g.tryClear (fvs[6]!)
     absorbFactsT g (hs.map mkFVar)
 
-/-- **`rv_autoT hp stop [pcs] with [facts] using [contracts]`**: a total contract (`HoldsT`, or a definition unfolding
-    to `rvIsa.TContract p c (WinOk p) fn Pre Post Stop`) for the template `hp : p[fn]? = some fd`, stepped from the
-    entry as `rv_auto` steps a partial one. What is left is `rv_auto`'s, and the side goals `rv_symT` does not close:
-    an address's window or alignment, a callee's `Windows`, `Q` at a callee's stopping state not in the function's. -/
+/-- **`rv_autoT hp stop [pcs] through [heads] with [facts] using [contracts]`**: a total contract (`HoldsT`, or a
+    definition unfolding to `rvIsa.TContract p c (WinOk p) fn Pre Post Stop`) for the template `hp : p[fn]? = some fd`,
+    stepped from the entry as `rv_auto` steps a partial one. What is left is `rv_auto`'s, and the side goals `rv_symT`
+    does not close: an address's window or alignment, a callee's `Windows`, `Q` at a callee's stopping state not in the
+    function's. -/
 syntax (name := rvAutoT) "rv_autoT " term rvSymArgs : tactic
 
 @[tactic rvAutoT] def evalRvAutoT : Tactic := fun stx => do
