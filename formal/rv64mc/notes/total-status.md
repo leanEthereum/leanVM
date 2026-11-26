@@ -173,7 +173,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 6 | 200 | `<verifier::layout::Flushes>::pair` | 54 | D | no | - | - | - |
 | 6 | 218 | `verifier::bytecode::group_by_word` | 193 | D | no | - | - | - |
 | 7 | 36 | `verifier::keccak::linear_transpose::<verifier::field::E> @verifier` | 196 | A | no | - | - | - |
-| 7 | 51 | `<verifier::transcript::Transcript>::grind_check` | 42 | A | no | - | - | - |
+| 7 | 51 | `<verifier::transcript::Transcript>::grind_check` | 42 | A | yes | Proof/Transcript/GrindCheckT (safety, `TranscriptT` kept) | TranscriptT3.grindCheck | keccak tables (InData) |
 | 7 | 58 | `<verifier::field::E as alloc::vec::spec_from_elem::SpecFromElem>::f...` | 72 | C | yes | Proof/Runtime/FromElemT | VecT2.fromElemE | env |
 | 7 | 82 | `verifier::whir::ext_row` | 57 | C | no | - | - | - |
 | 7 | 84 | `<core::option::Option<verifier::field::E> as alloc::vec::spec_from_...` | 89 | D | yes | Proof/Runtime/FromElemOptT | VecT2.fromElemOptionE | env; from_elem bound (InData) |
