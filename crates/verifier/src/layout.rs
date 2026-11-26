@@ -630,8 +630,9 @@ mod tests {
     use super::*;
     use crate::bus::{bus_block_sizes, framework_log_rows};
 
+    /// Block sizes only grow with the size limits, so the limits are the worst case for `stack_offsets`.
     #[test]
-    fn verifier_stack_offsets_arithmetic_at_size_limits() {
+    fn stack_offsets_fit_at_size_limits() {
         let check = |caller: &str, sizes: Vec<usize>| {
             assert!(sizes.len() >= 2, "{caller} must pass at least two blocks");
             let mut total = 0u64;
