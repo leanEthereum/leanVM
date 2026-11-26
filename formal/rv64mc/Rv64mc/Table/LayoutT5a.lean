@@ -8,13 +8,15 @@
 
   ## Main results
 
-  * `columnKappas`
+  * `columnKappas`, `stackedBlocks`
 -/
 
 import Rv64mc.Table.AllocT
 import Rv64mc.Table.LayoutT
 import Rv64mc.Table.CopyUseT
+import Rv64mc.Table.LayoutLeafT
 import Rv64mc.Proof.Layout.ColumnKappasT
+import Rv64mc.Proof.Layout.StackedBlocksT
 import Rv64mc.Gen.Link.Verifier.Layout
 
 namespace Rv64mc.Table.LayoutT5a
@@ -35,8 +37,20 @@ theorem columnKappas (hd : DataRef.InData env [(Verifier.Layout.ColumnKappas.lin
     (Table.AllocT.tryAllocateIn env hnext hend) (Table.AllocT.reserveUsize env hnext hend) (Table.CopyUseT.memcpy env)
     (Table.RuntimeT.handleError env) (Table.RuntimeT.panicNounwindFmt env) (Table.RuntimeT.panicBoundsCheck env)
 
+/-- **`stacked_blocks` at the image** (function 186). -/
+theorem stackedBlocks :
+    StackedBlocksT.SpecT env (liftProg fns) Idx.Verifier.Layout.StackedBlocks Needs.Verifier.Layout.StackedBlocks :=
+  StackedBlocksT.total env _ _ Verifier.Layout.StackedBlocks.link Verifier.Layout.StackedBlocks.tmpl_eq
+    Verifier.Layout.StackedBlocks.wf (by decide) (by decide) (by decide) (by decide) (by decide)
+    (Table.LayoutLeafT.qkeccakSlot env) (Table.LayoutLeafT.isOutputLane env) (Table.RuntimeT.alloc env hnext hend)
+    (Table.AllocT.reserveUsize env hnext hend) (Table.RuntimeT.handleError env)
+
 end Rv64mc.Table.LayoutT5a
 
 /-- info: 'Rv64mc.Table.LayoutT5a.columnKappas' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.LayoutT5a.columnKappas
+
+/-- info: 'Rv64mc.Table.LayoutT5a.stackedBlocks' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.LayoutT5a.stackedBlocks
