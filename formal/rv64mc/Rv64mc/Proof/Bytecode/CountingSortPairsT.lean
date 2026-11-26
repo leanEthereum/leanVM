@@ -37,7 +37,7 @@ open Rv64mc.Proof.Runtime.VecReprT (BufT RawVecT VecT)
 open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.MemcpyT (MemcpySpecT)
 open Rv64mc.Proof.Runtime.CloneT (ClonePostT)
-open Rv64mc.Proof.Bytecode.CountingSortUsizeT (word_ok rvCapAt_eq vecCap_eq hdr_keep hdr_keep0 copyOut_in)
+open Rv64mc.Proof.Bytecode.CountingSortUsizeT (word_ok hdr_keep hdr_keep0 copyOut_in post_ok)
 open Rv64mc.Gen.Verifier.Bytecode.CountingSortTU64U16EGroupByWordClosure2 (Link tmpl)
 
 /-- The total precondition: the result's slot a caller's, in a window and 8-byte aligned; the items (`a1`, `a2`,
@@ -169,29 +169,6 @@ theorem saved_ok {env : Env} {m : MachineState} {top ret : Word} {regs : Reg →
         have h' := congrArg BitVec.toNat h
         simp only [e1, e2, e3, e4, e5, e6, e7, e8, e9] at h'; omega)])
 
-/-- **The result from its header's words**, for elements of 16 bytes. -/
-theorem post_ok {env : Env} {regs : Reg → Word} {m M : MachineState} {P : Word}
-    (hwin : InWin env (regs .x10) 24) (hal : (regs .x10).toNat % 8 = 0)
-    (h0 : M.getMem (regs .x10) = regs .x12) (h8 : M.getMem (regs .x10 + 8#64) = P)
-    (h16 : M.getMem (regs .x10 + 16#64) = regs .x12)
-    (hP : (regs .x12).toNat = 0 ∨ (0x10000000 ≤ P.toNat ∧ (env.next m).toNat ≤ P.toNat ∧
-      P.toNat + (regs .x12).toNat * 16 ≤ (env.next M).toNat ∧ P.toNat % 8 = 0))
-    (hn : (regs .x12).toNat * 16 < 2 ^ 63) {r : Reg → Word} : ClonePostT env 16 regs m r M := by
-  have hc : rvCapAt (regs .x10) = regs .x10 := rvCapAt_eq _
-  have hp : rvPtrAt (regs .x10) = regs .x10 + 8#64 := rfl
-  refine ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
-    hal, ?_, by rw [hc, h0]; exact hn⟩,
-    by rw [show vecLen M (regs .x10) = M.getMem (regs .x10 + 16#64) from rfl, vecCap_eq, h0, h16]⟩,
-    by rw [show vecLen M (regs .x10) = M.getMem (regs .x10 + 16#64) from rfl, h16], ?_⟩
-  · rw [hc, hp, h0, h8]
-    rcases hP with h | ⟨h1, -, h3, h4⟩
-    · exact .inl h
-    · exact .inr ⟨h1, by unfold Env.Live; omega, h4⟩
-  · rw [show vecPtr M (regs .x10) = M.getMem (regs .x10 + 8#64) from rfl, h8]
-    rcases hP with h | ⟨-, h2, h3, -⟩
-    · exact .inl h
-    · exact .inr ⟨h2, by omega⟩
-
 set_option rv_sym.heap true in
 /-- **The return**, from instruction 174, the result's header written. -/
 theorem exit {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
@@ -228,38 +205,20 @@ theorem hdr3 {env : Env} {m M : MachineState} {top ret h v0 v1 v2 : Word} {regs 
   have h24 := hown.2
   have e8 : (h + 8#64).toNat = h.toNat + 8 := toNat_add_ofNat (by omega)
   have e16 : (h + 16#64).toNat = h.toNat + 16 := toNat_add_ofNat (by omega)
-  have hn : ∀ b : Word, h.toNat ≤ b.toNat → b.toNat < h.toNat + 24 → b ≠ env.nextAddr := fun b h1 h2 e => by
-    rw [e] at h1 h2; unfold InWin at hwin; omega
-  have hst : ∀ b : Word, h.toNat ≤ b.toNat → b.toNat < h.toNat + 24 →
-      b.toNat < env.staticLo.toNat ∨ env.staticHi.toNat ≤ b.toNat := fun b h1 h2 => by
-    unfold InWin at hwin; omega
-  have es : ∀ c : Word, ∀ k, c.toNat + k = 2 ^ 64 → k ≤ 80 → (top + c).toNat = top.toNat - k :=
-    fun c k hc hk => Runtime.CloneT.toNat_add_neg hc (by omega)
-  have e1 := es 18446744073709551608#64 8 rfl (by omega)
-  have e2 := es 18446744073709551600#64 16 rfl (by omega)
-  have e3 := es 18446744073709551592#64 24 rfl (by omega)
-  have e4 := es 18446744073709551584#64 32 rfl (by omega)
-  have e5 := es 18446744073709551576#64 40 rfl (by omega)
-  have e6 := es 18446744073709551568#64 48 rfl (by omega)
-  have e7 := es 18446744073709551560#64 56 rfl (by omega)
-  have e8' := es 18446744073709551552#64 64 rfl (by omega)
-  have e9 := es 18446744073709551544#64 72 rfl (by omega)
-  have hsep : h.toNat + 24 ≤ top.toNat - 72 ∨ top.toNat ≤ h.toNat := by rcases hown.1 with h1 | h1 <;> omega
+  have hsep : ∀ k, k ≤ 16 → h.toNat + k + 8 ≤ top.toNat - 72 ∨ top.toNat ≤ h.toNat + k :=
+    fun k hk => by rcases hown.1 with h1 | h1 <;> omega
+  have ho : ∀ k : Nat, k ≤ 16 → ∀ b : Word, b.toNat = h.toNat + k → out b :=
+    fun k hk b hb => hout _ ⟨by omega, by omega⟩
+  have hw : ∀ k : Nat, k ≤ 16 → ∀ b : Word, b.toNat = h.toNat + k → InWin env b 8 :=
+    fun k hk b hb => Runtime.MemsetT.InWin.sub hwin (by omega) (by omega)
+  obtain ⟨s1, f1, t1, c1, n1⟩ :=
+    out_store (v := v0) hlim (ho 0 (by omega) _ rfl) (hw 0 (by omega) _ rfl) (hsep 0 (by omega)) hF hS hc hsl
+  obtain ⟨s2, f2, t2, c2, n2⟩ := out_store (v := v1) hlim (ho 8 (by omega) _ e8) (hw 8 (by omega) _ e8)
+    (by rw [e8]; exact hsep 8 (by omega)) f1 t1 c1 s1
+  obtain ⟨s3, f3, t3, c3, n3⟩ := out_store (v := v2) hlim (ho 16 (by omega) _ e16) (hw 16 (by omega) _ e16)
+    (by rw [e16]; exact hsep 16 (by omega)) f2 t2 c2 s2
   have ne : ∀ a b : Word, a.toNat ≠ b.toNat → a ≠ b := fun a b hab e => hab (by rw [e])
-  refine ⟨?_, ?_, ?_, by simp only [MachineState.code_setMem, hc], ?_, ?_, ?_, MachineState.getMem_setMem_eq⟩
-  · obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := hsl
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-      repeat rw [MachineState.getMem_setMem_ne (fun e => by
-        have h' := congrArg BitVec.toNat e
-        simp only [e8, e16, e1, e2, e3, e4, e5, e6, e7, e8', e9] at h'; omega)]
-    exacts [s1, s2, s3, s4, s5, s6, s7, s8, s9]
-  · refine Tactic.frame_out (Tactic.frame_out (Tactic.frame_out hF (hout _ ⟨le_refl _, by omega⟩)
-      (hn _ (le_refl _) (by omega))) (hout _ ⟨by omega, by omega⟩) (hn _ (by omega) (by omega)))
-      (hout _ ⟨by omega, by omega⟩) (hn _ (by omega) (by omega))
-  · exact Tactic.static_store (Tactic.static_store (Tactic.static_store hS (hst _ (le_refl _) (by omega)))
-      (hst _ (by omega) (by omega))) (hst _ (by omega) (by omega))
-  · rw [Tactic.next_setMem (hn _ (by omega) (by omega)), Tactic.next_setMem (hn _ (by omega) (by omega)),
-      Tactic.next_setMem (hn _ (le_refl _) (by omega))]
+  refine ⟨s3, f3, t3, c3, by rw [n3, n2, n1], ?_, ?_, MachineState.getMem_setMem_eq⟩
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_ne (ne _ _ (by omega)),
       MachineState.getMem_setMem_eq]
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_eq]
