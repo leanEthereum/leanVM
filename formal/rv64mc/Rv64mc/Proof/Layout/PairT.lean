@@ -638,3 +638,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         Or.inr (Or.inr (Or.inr (Or.inl (growOut_in (k := 0) (by exact rfl) (by omega) (by omega) hb))))
 
 end Rv64mc.Proof.Layout.PairT
+
+/-- info: 'Rv64mc.Proof.Layout.PairT.total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Proof.Layout.PairT.total
