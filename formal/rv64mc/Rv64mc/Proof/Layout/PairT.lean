@@ -7,7 +7,9 @@
   elements kept (moved with the buffer when it grew, by `grow_one`'s `Grown` bytes) and its last one the three words
   of `push` (`pull`) at entry (`PushedT`); the run ends with the guest's abort (`AbortStop`) where `grow_one` does.
   What it writes besides its stack and fresh blocks is `self`'s 48 bytes and each vector's next slot when it has room
-  (`OutT`), so a caller keeps whatever its pushed headers point to.
+  (`OutT`), so a caller keeps what its pushed headers point to where it lies apart from those slots. Each buffer is
+  the entry's (pointer and capacity) or allocated since the entry (`KeptOrFresh`), so a block allocated before the call
+  lies apart from a buffer that grew in it, and across repeated calls from that buffer's slots.
 
   The precondition: `self`'s two vectors `VecT` with their buffers apart and its 48 bytes a caller's frame object
   (`FlushesT`), `push` and `pull` caller's frame objects apart from `self`, all aligned. Each buffer lies in the heap
@@ -22,7 +24,7 @@
 
   ## Main definitions
 
-  * `FlushesT`, `BufsApart`, `PreT`, `ElemsEq`, `PushedT`, `PostT`, `OutT`, `SpecT`
+  * `FlushesT`, `BufsApart`, `PreT`, `ElemsEq`, `PushedT`, `KeptOrFresh`, `PostT`, `OutT`, `SpecT`
 
   ## Main results
 
@@ -31,6 +33,7 @@
 
 import Rv64mc.Proof.Layout.PlacementNextT
 import Rv64mc.Proof.Runtime.GrowOneT
+import Rv64mc.Proof.Runtime.VecHdrT
 import Rv64mc.Proof.Transcript.Bytes
 import Rv64mc.Gen.Tmpl.Verifier.Layout.Flushes.Pair
 
@@ -40,6 +43,7 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (BufT RawVecT VecT)
 open Rv64mc.Proof.Runtime.GrowOneT (GrowOneSpecT)
+open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq)
 open Rv64mc.Proof.Layout.PlacementNextT (StackObj)
 open Rv64mc.Gen.Verifier.Layout.Flushes.Pair (Link tmpl)
 
@@ -76,14 +80,21 @@ def PushedT (m m' : MachineState) (v src : Word) : Prop :=
     ∀ j, j < 3 → m'.getMem (vecPtr m' v + BitVec.ofNat 64 (24 * (vecLen m v).toNat + 8 * j)) =
       m.getMem (src + BitVec.ofNat 64 (8 * j))
 
-/-- `PostT` at the stack pointer `sp`: `self` `FlushesT` again, each vector one longer, `push` and `pull` pushed. -/
+/-- The vector at `v` in `m'` has the buffer it had in `m` (pointer and capacity), or one allocated since `m`. -/
+def KeptOrFresh (env : Env) (m m' : MachineState) (v : Word) : Prop :=
+  (vecPtr m' v = vecPtr m v ∧ vecCap m' v = vecCap m v) ∨ (env.next m).toNat ≤ (vecPtr m' v).toNat
+
+/-- `PostT` at the stack pointer `sp`: `self` `FlushesT` again, each vector one longer, `push` and `pull` pushed,
+    each buffer the entry's or fresh. -/
 def PostM (env : Env) (regs : Reg → Word) (m : MachineState) (sp : Word) (m' : MachineState) : Prop :=
   FlushesT env m' sp (regs .x10) ∧
     (vecLen m' (regs .x10)).toNat = (vecLen m (regs .x10)).toNat + 1 ∧
     (vecLen m' (regs .x10 + 24#64)).toNat = (vecLen m (regs .x10 + 24#64)).toNat + 1 ∧
-    PushedT m m' (regs .x10) (regs .x11) ∧ PushedT m m' (regs .x10 + 24#64) (regs .x12)
+    PushedT m m' (regs .x10) (regs .x11) ∧ PushedT m m' (regs .x10 + 24#64) (regs .x12) ∧
+    KeptOrFresh env m m' (regs .x10) ∧ KeptOrFresh env m m' (regs .x10 + 24#64)
 
-/-- The total postcondition: `self` `FlushesT` again, each vector one longer, `push` and `pull` pushed. -/
+/-- The total postcondition: `self` `FlushesT` again, each vector one longer, `push` and `pull` pushed, each buffer
+    the entry's or fresh. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (r' : Reg → Word) (m' : MachineState) : Prop :=
   PostM env regs m (r' .x2) m'
 
@@ -213,9 +224,10 @@ theorem vecT_mk {env : Env} {m : MachineState} {v : Word} (hw : InWin env v 24) 
     (hp8 : (m.getMem (v + 8#64)).toNat % 8 = 0) : VecT env m v 24 := by
   have hc0 : rvCapAt v = v := by simp [rvCapAt]
   have hp0 : rvPtrAt v = v + 8#64 := rfl
-  refine ⟨hw, ⟨Runtime.MemsetT.InWin.sub hw (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega), h8, ?_, by rw [hc0]; exact hc⟩, ?_⟩
+  refine ⟨hw, ⟨Runtime.MemsetT.InWin.sub hw (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
+    h8, ?_, by rw [hc0]; exact hc⟩, ?_⟩
   · rw [hc0, hp0]; exact .inr ⟨hp, by unfold Env.Live; omega, hp8⟩
-  · rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq]; exact hl
+  · rw [vecLen_eq, vecCap_eq]; exact hl
 
 /-- **One store into a buffer of 24-byte elements** `[P, P + 24 C)` below `NEXT`: into `out`, or into a block
     allocated since the entry. -/
@@ -265,10 +277,6 @@ theorem get_elem {env : Env} {A b v1 v2 v3 : Word} {N : MachineState}
 theorem add24_8 (a : Word) : a + 24#64 + 8#64 = a + 32#64 := by rw [BitVec.add_assoc]; rfl
 
 theorem add24_16 (a : Word) : a + 24#64 + 16#64 = a + 40#64 := by rw [BitVec.add_assoc]; rfl
-
-theorem vp (m : MachineState) (a : Word) : vecPtr m a = m.getMem (a + 8#64) := rfl
-
-theorem vl (m : MachineState) (a : Word) : vecLen m a = m.getMem (a + 16#64) := rfl
 
 /-- The prologue keeps `[a, a + n)` at or above the stack top or below the frame. -/
 theorem keeps_saved {m : MachineState} {top ret a : Word} {regs : Reg → Word} {n : Nat} (h48 : 48 ≤ top.toNat)
@@ -345,7 +353,7 @@ theorem pull_live {env : Env} {m : MachineState} {a : Word} (h : VecT env m (a +
       ((m.getMem (a + 24#64)).toNat = 0 ∨ ((m.getMem (a + 32#64)).toNat + (m.getMem (a + 24#64)).toNat * 24 ≤
         (env.next m).toNat ∧ (m.getMem (a + 32#64)).toNat % 8 = 0)) := by
   have hl := h.2.2
-  rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq, add24_16] at hl
+  rw [vecLen_eq, vecCap_eq, add24_16] at hl
   have hb := h.2.1.2.2.1
   have hc := h.2.1.2.2.2
   simp only [Runtime.GrowOne.rvCapAt_eq, Runtime.GrowOne.rvPtrAt_eq, add24_8] at hb hc
@@ -376,7 +384,8 @@ def Cont2 (m : MachineState) (regs : Reg → Word) (R : Reg → Word) (M : Machi
     Loaded R .x12 .x13 .x15 m (regs .x12) ∧ BufsApart M (regs .x10)
 
 /-- The state at instruction 86, past `self.pull`'s check: `self.push` one longer, its buffer in the heap with room
-    for it; `self.pull` with room, its buffer in the heap, the entry's or fresh; the element's address in `x10`. -/
+    for it, the entry's or fresh; `self.pull` with room, its buffer in the heap, the entry's or fresh; the element's
+    address in `x10`. -/
 def SInv2 (env : Env) (m : MachineState) (top ret : Word) (regs : Reg → Word) (R : Reg → Word)
     (M : MachineState) : Prop :=
   R .x2 = top + 18446744073709551568#64 ∧ R .x8 = regs .x10 ∧
@@ -395,7 +404,9 @@ def SInv2 (env : Env) (m : MachineState) (top ret : Word) (regs : Reg → Word) 
     ((M.getMem (regs .x10 + 32#64) = m.getMem (regs .x10 + 32#64) ∧
         M.getMem (regs .x10 + 24#64) = m.getMem (regs .x10 + 24#64)) ∨
       (env.next m).toNat ≤ (M.getMem (regs .x10 + 32#64)).toNat) ∧
-    Slots M top ret regs ∧ env.Frame top (OutT regs m) m M ∧ env.Static M ∧ M.code = m.code
+    Slots M top ret regs ∧ env.Frame top (OutT regs m) m M ∧ env.Static M ∧ M.code = m.code ∧
+    ((M.getMem (regs .x10 + 8#64) = m.getMem (regs .x10 + 8#64) ∧ M.getMem (regs .x10) = m.getMem (regs .x10)) ∨
+      (env.next m).toNat ≤ (M.getMem (regs .x10 + 8#64)).toNat)
 
 set_option rv_sym.heap true in
 /-- **From instruction 86 to the return**: `pull` stored into `self.pull`, its length stored. -/
@@ -454,28 +465,30 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
     have hs40 : (regs .x10 + 40#64).toNat < (M.getMem (regs .x10 + 8#64)).toNat ∨
         (M.getMem (regs .x10 + 8#64)).toNat + 24 * ((m.getMem (regs .x10 + 16#64)).toNat + 1) ≤
           (regs .x10 + 40#64).toNat := by omega
-    refine hPost _ _ rfl ⟨⟨?_, ?_, ⟨ha, ha2⟩, ?_⟩, ?_, ?_, ?_, ?_⟩
+    refine hPost _ _ rfl ⟨⟨?_, ?_, ⟨ha, ha2⟩, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · refine vecT_mk (.inr ⟨by omega, by omega⟩) ha8 ?_ ?_ ?_ ?_ ?_ <;>
         simp only [r0, r8, r16, hnext] <;> omega
     · refine vecT_mk (.inr ⟨by rw [tk 24 (by omega)]; omega, by rw [tk 24 (by omega)]; omega⟩)
         (by rw [tk 24 (by omega)]; omega) ?_ ?_ ?_ ?_ ?_ <;>
         simp only [add24_8, add24_16, r24, r32, r40, hnext, hl1] <;> omega
     · simp only [BufsApart, r0, r8, r24, r32]; exact c4
-    · rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecLen_eq, r16]; omega
-    · rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecLen_eq, add24_16, r40, hl1]
-    · refine c1.keep ?_ (by rw [vp, vp, r8]) ?_ <;> simp only [vp, vl]
+    · rw [vecLen_eq, vecLen_eq, r16]; omega
+    · rw [vecLen_eq, vecLen_eq, add24_16, r40, hl1]
+    · refine c1.keep ?_ (by rw [vecPtr_eq, vecPtr_eq, r8]) ?_ <;> simp only [vecPtr_eq, vecLen_eq]
       · exact keeps_stores (by omega) (by omega) hs40
       · omega
-    · refine ⟨?_, fun j hj => ?_⟩ <;> simp only [vp, vl, add24_8, add24_16, r32]
+    · refine ⟨?_, fun j hj => ?_⟩ <;> simp only [vecPtr_eq, vecLen_eq, add24_8, add24_16, r32]
       · exact c2.keep (keeps_stores (by omega) (by omega) (by omega)) (by omega)
       · have eB : (M.getMem (regs .x10 + 32#64) + BitVec.ofNat 64 (24 * (m.getMem (regs .x10 + 40#64)).toNat +
             8 * j)).toNat = (M.getMem (regs .x10 + 32#64)).toNat + (24 * (m.getMem (regs .x10 + 40#64)).toNat +
             8 * j) := toNat_add_ofNat (by omega)
         rw [MachineState.getMem_setMem_ne (fun e => by rw [e] at eB; omega)]
         exact get3 hj (by omega) (by omega) l0 l8 l16
+    · simp only [KeptOrFresh, vecPtr_eq, vecCap_eq, r8, r0]; exact hI_33
+    · simp only [KeptOrFresh, vecPtr_eq, vecCap_eq, add24_8, r32, r24]; exact hI_24
 
-/-- The state at instruction 60, `push` and `self.push`'s length stored: `self.push` one longer, `self.pull`'s
-    header the entry's, its capacity and length in `x16`, `x18`. -/
+/-- The state at instruction 60, `push` and `self.push`'s length stored: `self.push` one longer, its buffer the
+    entry's or fresh, `self.pull`'s header the entry's, its capacity and length in `x16`, `x18`. -/
 def SInv60 (env : Env) (m : MachineState) (top ret : Word) (regs : Reg → Word) (R : Reg → Word)
     (M : MachineState) : Prop :=
   R .x2 = top + 18446744073709551568#64 ∧ R .x8 = regs .x10 ∧ R .x9 = regs .x12 ∧
@@ -490,7 +503,9 @@ def SInv60 (env : Env) (m : MachineState) (top ret : Word) (regs : Reg → Word)
     M.getMem (regs .x10 + 24#64) = m.getMem (regs .x10 + 24#64) ∧
     M.getMem (regs .x10 + 32#64) = m.getMem (regs .x10 + 32#64) ∧
     M.getMem (regs .x10 + 40#64) = m.getMem (regs .x10 + 40#64) ∧
-    Slots M top ret regs ∧ env.Frame top (OutT regs m) m M ∧ env.Static M ∧ M.code = m.code
+    Slots M top ret regs ∧ env.Frame top (OutT regs m) m M ∧ env.Static M ∧ M.code = m.code ∧
+    ((M.getMem (regs .x10 + 8#64) = m.getMem (regs .x10 + 8#64) ∧ M.getMem (regs .x10) = m.getMem (regs .x10)) ∨
+      (env.next m).toNat ≤ (M.getMem (regs .x10 + 8#64)).toNat)
 
 set_option rv_sym.heap true in
 /-- **From instruction 60 to 86**: `grow_one(self.pull)` when it is full, `pull`'s element's address. -/
@@ -524,7 +539,7 @@ theorem call {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   have p8 := c3 (regs .x12 + 8#64) ⟨by omega, by omega⟩
   have p16 := c3 (regs .x12 + 16#64) ⟨by omega, by omega⟩
   have hlen : (m.getMem (regs .x10 + 40#64)).toNat ≤ (m.getMem (regs .x10 + 24#64)).toNat := by
-    have := hV2.2.2; rwa [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq, add24_16] at this
+    have := hV2.2.2; rwa [vecLen_eq, vecCap_eq, add24_16] at this
   have hc24 : M.getMem (rvCapAt (regs .x10 + 24#64)) = m.getMem (rvCapAt (regs .x10 + 24#64)) := by
     rw [Runtime.GrowOne.rvCapAt_eq]; exact hI_20
   have hp32 : M.getMem (rvPtrAt (regs .x10 + 24#64)) = m.getMem (rvPtrAt (regs .x10 + 24#64)) := by
@@ -544,7 +559,7 @@ theorem call {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     unfold Env.Live at hb2
     refine fin hp hL hn hk hstk hnx hW h16 ha ha2 ha8 hPost _ _
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, hI_14, hI_15, hI_16, hI_17, hI_18, hI_19, ?_, ?_,
-        ?_, ?_, ?_, Or.inl ⟨hI_21, hI_20⟩, ⟨hI_23, hI_24, hI_25, hI_26, hI_27⟩, hI_28, hI_29, hI_30⟩
+        ?_, ?_, ?_, Or.inl ⟨hI_21, hI_20⟩, ⟨hI_23, hI_24, hI_25, hI_26, hI_27⟩, hI_28, hI_29, hI_30, hI_31⟩
       ⟨c1, by rw [hI_21]; exact ElemsEq.of_keeps c2 (by omega),
         ⟨by simp only [Tactic.rf]; exact p0, by simp only [Tactic.rf]; exact p8,
           by simp only [Tactic.rf]; exact p16⟩, c4⟩
@@ -588,9 +603,11 @@ theorem call {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     have hlt1 := (env.next m1).isLt
     refine fin hp hL hn hk hstk hnx hW h16 ha ha2 ha8 hPost _ _
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hret1_22, hb1, ?_, hb3,
-        Or.inr (by have := hI_28.1; omega), ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hret1_15, hret1_23.trans hI_30⟩
-      ⟨c1.keep (fun b hb => hH b (by simp only [InRange, vp, vl] at hb; omega)) (by rw [vp, vp, k8])
-          (by simp only [vp, vl]; omega),
+        Or.inr (by have := hI_28.1; omega), ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hret1_15, hret1_23.trans hI_30,
+        by rw [k8, k0]; exact hI_31⟩
+      ⟨c1.keep (fun b hb => hH b (by simp only [InRange, vecPtr_eq, vecLen_eq] at hb; omega))
+          (by rw [vecPtr_eq, vecPtr_eq, k8])
+          (by simp only [vecPtr_eq, vecLen_eq]; omega),
         ElemsEq.grown (ElemsEq.of_keeps c2 (by omega)) hret1_18 (by omega) (by omega) (by omega)
           (fun h => by rcases hb2' with h0 | ⟨-, h8⟩ <;> omega) hb3,
         ⟨by simp only [Tactic.rf]; rw [q0, p0], by simp only [Tactic.rf]; rw [q8, p8],
@@ -706,10 +723,10 @@ theorem stores {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p
     omega
   refine call hp hL hn hnG hg hk hstop hstk hnx hW h16 ha ha2 ha8 hq hq2 hq8 hap2 hV2 hPost _ _
     ⟨rfl, rfl, rfl, hI_22, hI_24, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, by simp only [MachineState.code_setMem, hI_32]⟩
-    ⟨⟨by simp only [vp, vl, r8]; exact c1.keep (keeps_stores (by omega) (by omega) (by omega)) (by omega),
+      ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, by simp only [MachineState.code_setMem, hI_32], ?_⟩
+    ⟨⟨by simp only [vecPtr_eq, vecLen_eq, r8]; exact c1.keep (keeps_stores (by omega) (by omega) (by omega)) (by omega),
         fun j hj => by
-          simp only [vp, vl, r8]
+          simp only [vecPtr_eq, vecLen_eq, r8]
           have eB : (M.getMem (regs .x10 + 8#64) + BitVec.ofNat 64 (24 * (m.getMem (regs .x10 + 16#64)).toNat +
               8 * j)).toNat = (M.getMem (regs .x10 + 8#64)).toNat + (24 * (m.getMem (regs .x10 + 16#64)).toNat +
               8 * j) := toNat_add_ofNat (by omega)
@@ -739,6 +756,7 @@ theorem stores {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p
       | (left; omega)
       | (left; rw [toNat_add_ofNat (by omega)]; omega)
       | (right; rw [e16]; omega)
+  · rw [r8, r0]; exact hI_21
 
 set_option rv_sym.heap true in
 /-- **From instruction 30 to 52**: the element's address. -/
@@ -805,7 +823,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have hB := hpre_9
     simp only [Runtime.GrowOne.rvCapAt_eq, Runtime.GrowOne.rvPtrAt_eq, Env.Live] at hB hpre_10
     have hlen := hpre_11
-    rw [Runtime.ReserveT.vecLen_eq, Runtime.ReserveT.vecCap_eq] at hlen
+    rw [vecLen_eq, vecCap_eq] at hlen
     have ks1 : Keeps m (saved m top ret regs) (m.getMem (regs .x10 + 8#64))
         (24 * (m.getMem (regs .x10 + 16#64)).toNat) := keeps_saved (by omega) (by omega)
     have ks2 : Keeps m (saved m top ret regs) (m.getMem (regs .x10 + 32#64))

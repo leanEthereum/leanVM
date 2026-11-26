@@ -191,8 +191,8 @@ theorem empty {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
       (((M.setMem (regs .x10) 0#64).setMem (regs .x10 + 8#64) 8#64).setMem (regs .x10 + 16#64) 0#64) := fun r =>
     ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega), hal,
       .inl (by rw [rc]; rfl), by rw [rc]; decide⟩,
-      by rw [Runtime.ReserveT.vecLen_eq, r16, Runtime.ReserveT.vecCap_eq, r0]⟩,
-      .inl (by rw [Runtime.ReserveT.vecCap_eq, r0]; rfl)⟩
+      by rw [Runtime.VecHdrT.vecLen_eq, r16, Runtime.VecHdrT.vecCap_eq, r0]⟩,
+      .inl (by rw [Runtime.VecHdrT.vecCap_eq, r0]; rfl)⟩
   obtain ⟨⟨t1, t2, t3, t4, t5, t6, t7, t8⟩, -, -, hc0⟩ := hM
   have h24 := hown.2
   have := hW.heapEnd_le
@@ -313,11 +313,11 @@ theorem after_resv1 {env : Env} {m M m1 : MachineState} {top ret : Word} {regs :
     · rw [h, cap_at]; exact .inl e88
     · rw [h, ptr_at]; exact .inr e80
   rw [len_at, len_at] at h16
-  rw [Runtime.ReserveT.vecCap_eq, Runtime.ReserveT.vecCap_eq, len_at, vptr_at, vptr_at] at h17
-  rw [Runtime.ReserveT.vecCap_eq, len_at] at h18
+  rw [Runtime.VecHdrT.vecCap_eq, Runtime.VecHdrT.vecCap_eq, len_at, vptr_at, vptr_at] at h17
+  rw [Runtime.VecHdrT.vecCap_eq, len_at] at h18
   rw [cap_at, ptr_at] at h22
   rw [cap_at] at h23
-  rw [len_at, Runtime.ReserveT.vecCap_eq] at h24
+  rw [len_at, Runtime.VecHdrT.vecCap_eq] at h24
   refine ⟨⟨slots_keep (by omega) (fun a h1 h2 => hkeep a (BitVec.le_def.2 (by rw [e96]; omega)) fun ha => by
       rcases hout' a ha with h | h <;> omega) hsl,
     hF0.trans hF (by rw [e96]; omega) fun b hb => Or.inl (by rcases hout' b hb with h | h <;> omega), hSt,

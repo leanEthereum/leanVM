@@ -176,13 +176,13 @@ theorem post_ok {env : Env} {regs : Reg → Word} {m M : MachineState} {C P n : 
     (hnC : n.toNat ≤ C.toNat) (hC : C.toNat * 8 < 2 ^ 63) (hP1 : 0x10000000 ≤ P.toNat)
     (hP2 : (env.next m).toNat ≤ P.toNat) (hP3 : P.toNat + 8 * C.toNat ≤ (env.next M).toNat) (hP8 : P.toNat % 8 = 0)
     {r : Reg → Word} : PostT env regs m r M := by
-  have hc : vecCap M (regs .x10) = C := by rw [Runtime.ReserveT.vecCap_eq, h0]
+  have hc : vecCap M (regs .x10) = C := by rw [Runtime.VecHdrT.vecCap_eq, h0]
   have hc' : M.getMem (rvCapAt (regs .x10)) = C := by
     rw [show rvCapAt (regs .x10) = regs .x10 from Runtime.GrowOne.rvCapAt_eq _, h0]
   have hp : vecPtr M (regs .x10) = P := h8
   have hp' : M.getMem (rvPtrAt (regs .x10)) = P := h8
   refine ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
-    hal, ?_, by rw [hc']; exact hC⟩, by rw [Runtime.ReserveT.vecLen_eq, h16, hc]; exact hnC⟩, ?_⟩
+    hal, ?_, by rw [hc']; exact hC⟩, by rw [Runtime.VecHdrT.vecLen_eq, h16, hc]; exact hnC⟩, ?_⟩
   · rw [hc', hp']; exact .inr ⟨hP1, by unfold Env.Live; omega, hP8⟩
   · rw [hc, hp]; exact .inr ⟨hP2, by omega⟩
 
@@ -247,7 +247,7 @@ theorem len_at (m : MachineState) (top : Word) :
 
 theorem vcap_at (m : MachineState) (top : Word) :
     vecCap m (top + 18446744073709551464#64) = m.getMem (top + 18446744073709551464#64) :=
-  Runtime.ReserveT.vecCap_eq _ _
+  Runtime.VecHdrT.vecCap_eq _ _
 
 theorem vptr_at (m : MachineState) (top : Word) :
     vecPtr m (top + 18446744073709551464#64) = m.getMem (top + 18446744073709551472#64) := by
@@ -686,7 +686,7 @@ theorem after_tmp_resv {M7 m9 : MachineState} {top w P : Word} {n : Nat} (hn : n
   have ep : ∀ X : MachineState, vecPtr X (top + 18446744073709551488#64) = X.getMem (top + 18446744073709551496#64) :=
     fun X => by unfold vecPtr; rw [BitVec.add_assoc]; rfl
   rw [el, el, hl0] at h16
-  rw [Runtime.ReserveT.vecCap_eq, Runtime.ReserveT.vecCap_eq, el, ep, ep, hc0, hl0, hp0] at h17
+  rw [Runtime.VecHdrT.vecCap_eq, Runtime.VecHdrT.vecCap_eq, el, ep, ep, hc0, hl0, hp0] at h17
   exact ⟨h16, (h17 (by simp; omega)).2⟩
 
 set_option rv_sym.heap true in
