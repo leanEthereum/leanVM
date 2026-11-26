@@ -8,8 +8,9 @@
   and `is_output_lane` on the count, reading `offsets[4]` or `offsets[count]` (each checked against the vector's
   length, else `panic_bounds_check`); a `None` offset stores the error (`28`) at `r` and returns tag `2`, any other
   outcome a placement or `None` (tags `1`, `0`). The run ends with the guest's abort (`AbortStop`) where a bounds
-  check does. Safety only: it states the end or the cursor's advance, and its writes (`OutT`) leave the slice's `end`
-  alone, which its caller's loop needs to end; not the placement.
+  check does. Safety only: it states the end or the cursor's advance, not the placement. Its writes (`OutT`) leave the
+  slice's `end` alone when `sret`'s 24 bytes and `r`'s word also miss it (`IterT` does not force this; the caller's
+  frame offsets do), which its caller's loop needs to end.
 
   The precondition (`IterT`): the shunt's 40 bytes in a caller's frame (at or above the stack pointer), in a window,
   aligned; the slice `[cur, end)` whole words, in a window unless empty; `c` and `r` in windows and aligned, `r` a
