@@ -82,12 +82,20 @@ struct BusLayout {
     tables: Vec<Placement>,    // one per block a table owns, in the side's own block order
 }
 
-fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
-    let sizes: Vec<usize> = framework_log_rows
+pub(crate) fn framework_log_rows(log_memory: usize, log_bytecode: usize) -> [usize; 3] {
+    [0, log_memory, log_bytecode] // state, memory, bytecode
+}
+
+pub(crate) fn bus_block_sizes(framework_log_rows: &[usize], blocks: &[BusBlock]) -> Vec<usize> {
+    framework_log_rows
         .iter()
         .copied()
         .chain(blocks.iter().map(|block| block.log_rows))
-        .collect();
+        .collect()
+}
+
+fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
+    let sizes = bus_block_sizes(framework_log_rows, blocks);
     let (offsets, depth) = stack_offsets(&sizes);
     let mut framework: Vec<Placement> = sizes
         .iter()
@@ -130,7 +138,7 @@ pub struct BusResult {
 /// The bus, in stream order: the grind and the fingerprint `(weights, beta)`, a weight per tuple slot; the batched GKR;
 /// the framework blocks' committed columns at zeta; the bytecode's share and its sumcheck.
 pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Result<BusResult, VerifierError> {
-    let framework_log_rows = [0, layout.log_memory, layout.log_bytecode]; // state, memory, bytecode
+    let framework_log_rows = framework_log_rows(layout.log_memory, layout.log_bytecode);
     let push_layout = bus_layout(&framework_log_rows, &layout.push);
     let pull_layout = bus_layout(&framework_log_rows, &layout.pull);
     let count_layout = bus_layout(&[], &layout.count);

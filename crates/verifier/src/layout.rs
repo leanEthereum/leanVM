@@ -500,6 +500,33 @@ fn keccak_shape(table_log_heights: &[usize]) -> KeccakShape {
     }
 }
 
+/// A table's height is the least power of two holding its rows, floored at its minimum.
+fn table_log_heights(table_rows: &[u64]) -> Vec<usize> {
+    table_rows
+        .iter()
+        .zip(TABLE_LOG_FLOORS)
+        .map(|(&rows, floor)| log2_ceil(rows).max(floor))
+        .collect()
+}
+
+fn table_bus_blocks(tables: &[Table], table_log_heights: &[usize], table_rows: &[u64]) -> [Vec<BusBlock>; 3] {
+    let mut push = Vec::new();
+    let mut pull = Vec::new();
+    let mut count = Vec::new();
+    for ((table, &height), &rows) in tables.iter().zip(table_log_heights).zip(table_rows) {
+        let block = |coordinates: &Vec<Form>| BusBlock {
+            log_rows: height,
+            rows,
+            coordinates: coordinates.clone(),
+            owner: table.opcode,
+        };
+        push.extend(table.flushes.push.iter().map(block));
+        pull.extend(table.flushes.pull.iter().map(block));
+        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
+    }
+    [push, pull, count]
+}
+
 /// Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
 fn column_kappas(tables: &[Table], log_memory: usize, log_bytecode: usize, table_log_heights: &[usize]) -> Vec<usize> {
     let keccak = keccak_shape(table_log_heights);
@@ -564,28 +591,10 @@ pub fn build_layout<'a>(
     )?;
     let log_bytecode = log_bytecode - BUS_BITS;
     let log_memory = log_memory as usize;
-    // A table's height is the least power of two holding its rows.
-    let table_log_heights: Vec<usize> = table_rows
-        .iter()
-        .zip(TABLE_LOG_FLOORS)
-        .map(|(&rows, floor)| log2_ceil(rows).max(floor))
-        .collect();
+    let table_log_heights = table_log_heights(table_rows);
 
     let tables = tables();
-    let mut push = Vec::new();
-    let mut pull = Vec::new();
-    let mut count = Vec::new();
-    for ((table, &height), &rows) in tables.iter().zip(&table_log_heights).zip(table_rows) {
-        let block = |coordinates: &Vec<Form>| BusBlock {
-            log_rows: height,
-            rows,
-            coordinates: coordinates.clone(),
-            owner: table.opcode,
-        };
-        push.extend(table.flushes.push.iter().map(block));
-        pull.extend(table.flushes.pull.iter().map(block));
-        count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
-    }
+    let [push, pull, count] = table_bus_blocks(&tables, &table_log_heights, table_rows);
 
     let keccak = keccak_shape(&table_log_heights);
     let kappas = column_kappas(&tables, log_memory, log_bytecode, &table_log_heights);
@@ -614,4 +623,46 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bus::{bus_block_sizes, framework_log_rows};
+
+    /// Block sizes only grow with the size limits, so the limits are the worst case for `stack_offsets`.
+    #[test]
+    fn stack_offsets_fit_at_size_limits() {
+        let check = |caller: &str, sizes: Vec<usize>| {
+            assert!(sizes.len() >= 2, "{caller} must pass at least two blocks");
+            let mut total = 0u64;
+            for exponent in sizes {
+                assert!(
+                    exponent < u64::BITS as usize,
+                    "{caller} block exponent {exponent} exceeds the shift range"
+                );
+                total = total
+                    .checked_add(1u64 << exponent)
+                    .unwrap_or_else(|| panic!("{caller} block sizes exceed u64"));
+            }
+        };
+
+        let tables = tables();
+        let table_rows = [1u64 << MAX_TABLE_LOG; N_TABLES];
+        let table_log_heights = table_log_heights(&table_rows);
+        let kappas = column_kappas(&tables, MAX_LOG_MEMORY, MAX_LOG_BYTECODE, &table_log_heights);
+        check(
+            "layout",
+            stacked_blocks(kappas.len())
+                .into_iter()
+                .map(|column| kappas[column])
+                .collect(),
+        );
+
+        let framework_log_rows = framework_log_rows(MAX_LOG_MEMORY, MAX_LOG_BYTECODE);
+        let [push, pull, count] = table_bus_blocks(&tables, &table_log_heights, &table_rows);
+        check("bus push", bus_block_sizes(&framework_log_rows, &push));
+        check("bus pull", bus_block_sizes(&framework_log_rows, &pull));
+        check("bus count", bus_block_sizes(&[], &count));
+    }
 }
