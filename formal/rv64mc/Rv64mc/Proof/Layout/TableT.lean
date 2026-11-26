@@ -42,13 +42,14 @@ theorem nConstraints_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat)
     {need : Nat} (hpanic : Aborts env p L.panicBoundsCheck.idx need) (hL : L.WF p) :
     nConstraintsSpecT env p i need := by
   have hw := hdata.words (List.mem_singleton_self _)
+  have hl : Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words.length = 6 := rfl
   rv_autoT hp with [hL] using [hpanic]
   all_goals
     obtain ⟨e, hk⟩ := shl_small hc 3
     rw [e, show 2 ^ 3 * (regs .x10).toNat = 8 * (regs .x10).toNat from rfl]
-  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by simp [Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words]; omega))).1
-  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by simp [Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words]; omega))).2
-  · rw [hw.get hpre_4 _ (by simp [Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words]; omega)]
+  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by rw [hl]; omega))).1
+  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by rw [hl]; omega))).2
+  · rw [hw.get hpre_4 _ (by rw [hl]; omega)]
     simp only [Model.nConstraintsRust, Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words]
     rcases (by omega : (regs .x10).toNat = 0 ∨ (regs .x10).toNat = 1 ∨ (regs .x10).toNat = 2 ∨
       (regs .x10).toNat = 3 ∨ (regs .x10).toNat = 4 ∨ (regs .x10).toNat = 5) with h | h | h | h | h | h <;>
