@@ -37,7 +37,6 @@ def prodSpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
     (fun regs m r' m' => Post env (Model.prodRust (regs .x11).toNat (regs .x12).toNat (regs .x13).toNat) regs m r' m')
     Term.Out AbortStop
 
-set_option maxHeartbeats 1000000 in
 set_option rv_sym.heap true in
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i need needG : Nat) (L : Link) (hp : p[i]? = some (tmpl L))
     (hL : L.WF p) (halloc : AllocSpecT env p L.alloc.idx 0)

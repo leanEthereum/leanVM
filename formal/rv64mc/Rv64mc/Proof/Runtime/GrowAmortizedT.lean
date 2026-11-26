@@ -47,7 +47,6 @@ def GrowAmortizedSpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Pro
 
 variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link}
 
-set_option maxHeartbeats 1000000 in
 set_option rv_sym.heap true in
 /-- **From the choice of the new capacity `nc` to the return.** -/
 theorem after (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {nfg : Nat}

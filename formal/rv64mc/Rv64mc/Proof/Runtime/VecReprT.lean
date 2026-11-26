@@ -18,7 +18,8 @@
   ## Main results
 
   * `BufT.inWin`, `BufT.mono`, `BufT.of_fresh`, `bufT_of_alloc`, `BufT.live`
-  * `RawVecT.keep`, `RawVecT.lt`
+  * `RawVecT.keep`, `RawVecT.lt`, `RawVecT.of_empty`, `RawVecT.of_alloc`: the predicates hold of an empty vector and
+    of a block `alloc` returned
 -/
 
 import Rv64mc.Proof.Runtime.WinT
@@ -91,6 +92,19 @@ variable {m m' : MachineState} {a : Word} {size : Nat}
 
 /-- The header's words. -/
 theorem lt (h : RawVecT env m a size) : a.toNat + 16 < 2 ^ 64 := h.1.lt
+
+/-- An empty vector's header (capacity `0`), in a window and 8-byte aligned. -/
+theorem of_empty (hw : InWin env a 16) (hal : a.toNat % 8 = 0) (h0 : m.getMem (rvCapAt a) = 0#64) :
+    RawVecT env m a size :=
+  ⟨hw, hal, by rw [h0]; exact .inl rfl, by rw [h0]; simp⟩
+
+/-- **A header naming a block `alloc` returned** with the capacity asked for, in a window and 8-byte aligned. -/
+theorem of_alloc {regs r' : Reg → Word} {m0 : MachineState} (hw : InWin env a 16) (hal : a.toNat % 8 = 0)
+    (h : AllocPost env regs m0 r' m) (hn : (regs .x10).toNat = (m.getMem (rvCapAt a)).toNat * size)
+    (hp : m.getMem (rvPtrAt a) = r' .x10) (hge : 0x10000000 ≤ (env.next m0).toNat)
+    (hend : env.heapEnd.toNat ≤ 0x78000000) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) :
+    RawVecT env m a size :=
+  ⟨hw, hal, by rw [hp]; exact bufT_of_alloc h hn hge, by have := h.2.2; omega⟩
 
 /-- A header whose two words are kept, after `NEXT` grew. -/
 theorem keep (h : RawVecT env m a size) (hc : m'.getMem (rvCapAt a) = m.getMem (rvCapAt a))
