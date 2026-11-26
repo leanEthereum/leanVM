@@ -76,15 +76,10 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     ← hk (regs .x11 + 8#64) ⟨by rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; omega⟩,
     ← hk (regs .x11 + 16#64) ⟨by rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; omega⟩]
   refine chain_post hP (vec_keep hF hpre_5 htop hpre_6 hpre_7 ⟨hpre_11, hpre_12⟩) ?_ ?_ ?_ (by omega) (by omega) htop
-  · rcases hpre_7 with h0 | ⟨h1, h2⟩
-    · exact Or.inl h0
-    · exact Or.inr ⟨h1, by omega⟩
-  · rcases hpre_7 with h0 | ⟨h1, h2⟩
-    · exact Or.inl h0
-    · exact Or.inr (by omega)
-  · rcases hpre_7 with h0 | ⟨h1, h2⟩
-    · exact Or.inl h0
-    · simp only [Layouts.Form.byteSize] at hpre_15; omega
+  · exact hpre_7.imp id fun ⟨h1, h2⟩ => ⟨h1, by omega⟩
+  · exact hpre_7.imp id fun ⟨_, h2⟩ => by omega
+  · simp only [Layouts.Form.byteSize] at hpre_15
+    exact hpre_7.imp id fun ⟨_, h2⟩ => by omega
 
 end Rv64mc.Proof.Layout.TermT
 

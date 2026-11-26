@@ -47,8 +47,9 @@ theorem nConstraints_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat)
   all_goals
     obtain ⟨e, hk⟩ := shl_small hc 3
     rw [e, show 2 ^ 3 * (regs .x10).toNat = 8 * (regs .x10).toNat from rfl]
-  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by rw [hl]; omega))).1
-  · exact (hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by rw [hl]; omega))).2
+    have hd := hpre_7.data_ok _ (hdata _ (List.mem_singleton_self _) (regs .x10).toNat (by rw [hl]; omega))
+  · exact hd.1
+  · exact hd.2
   · rw [hw.get hpre_4 _ (by rw [hl]; omega)]
     simp only [Model.nConstraintsRust, Gen.Verifier.Layout.Table.NConstraints.d_c48_401b839e_words]
     rcases (by omega : (regs .x10).toNat = 0 ∨ (regs .x10).toNat = 1 ∨ (regs .x10).toNat = 2 ∨

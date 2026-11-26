@@ -13,7 +13,7 @@
 
   ## Main results
 
-  * `total`
+  * `ra_store`, `total`
 -/
 
 import Rv64mc.Proof.Runtime.GrowOne
@@ -30,6 +30,33 @@ open Rv64mc.Proof.Runtime.GrowAmortizedT (GrowPreT GrowAmortizedSpecT)
 def GrowOneSpecT (env : Env) (align size : Nat) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   HoldsT env p i need (GrowPreT env align size)
     (fun regs m r' m' => GrowOnePost env size regs m r' m' ∧ RawVecT env m' (regs .x10) size) GrowOut AbortStop
+
+/-- **`ra`'s store at `top - 8`**, below a header the caller owns: the slot's offsets, the header's two words kept,
+    the slot outside `GrowOut`. -/
+theorem ra_store {env : Env} {m : MachineState} {top ret : Word} {regs : Reg → Word}
+    (hown : env.Owned m top (regs .x10) 16) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hlim : env.stackLimit.toNat + 16 ≤ top.toNat) :
+    (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 ∧ (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 ∧
+      env.stackLimit.toNat ≤ (top + 0xfffffffffffffff8#64).toNat ∧
+      (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvCapAt (regs .x10)) = m.getMem (rvCapAt (regs .x10)) ∧
+      (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvPtrAt (regs .x10)) = m.getMem (rvPtrAt (regs .x10)) ∧
+      ¬ GrowOut regs m (top + 0xfffffffffffffff8#64) := by
+  have hlay := env.layout
+  have hw := hown.2
+  have hslot := slot_notin hown hnx hlim
+  have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := by
+    rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
+  have hne : regs .x10 ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
+    rw [← h]; exact ⟨Nat.le_refl _, by omega⟩)
+  have hneP : rvPtrAt (regs .x10) ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
+    rw [← h, rvPtrAt_eq]
+    exact ⟨by rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; omega⟩)
+  refine ⟨h8, ?_, by rw [h8]; omega, by rw [rvCapAt_eq]; exact MachineState.getMem_setMem_ne hne,
+    MachineState.getMem_setMem_ne hneP, ?_⟩
+  · rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
+  · rintro (h | h)
+    · exact hne (by rw [h, rvCapAt_eq])
+    · exact hneP h.symm
 
 set_option rv_sym.heap true in
 /-- **`grow_one` is total**, with 16 bytes of stack beyond its callees'. -/
@@ -48,23 +75,10 @@ theorem total {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op R
   all_goals
     have hlay := env.layout
     have hown : env.Owned m top (regs .x10) 16 := ⟨by rw [← hpre_2]; exact hpre_6, hpre_7⟩
-    have hw : (regs .x10).toNat + 16 < 2 ^ 64 := hown.2
-    have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have hslot := slot_notin hown hpre_5 (by omega)
-    have hb8 : env.stackLimit.toNat ≤ (top + 0xfffffffffffffff8#64).toNat := by rw [h8]; omega
-    have hne : regs .x10 ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
-      rw [← h]; exact ⟨Nat.le_refl _, by omega⟩)
+    have hlim : env.stackLimit.toNat + 16 ≤ top.toNat := by omega
+    have hslot := slot_notin hown hpre_5 hlim
+    obtain ⟨h8, h16, hb8, hcap1, hptr1, hout⟩ := ra_store (ret := ret) hown hpre_5 hlim
     have hnx1 := Env.next_setMem_stack (env := env) (m := m) (v := ret) hb8
-    have hcap1 : (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvCapAt (regs .x10)) =
-        m.getMem (rvCapAt (regs .x10)) := by rw [rvCapAt_eq]; exact MachineState.getMem_setMem_ne hne
-    have hneP : rvPtrAt (regs .x10) ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
-      rw [← h, rvPtrAt_eq]
-      exact ⟨by rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; omega⟩)
-    have hptr1 : (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvPtrAt (regs .x10)) =
-        m.getMem (rvPtrAt (regs .x10)) := MachineState.getMem_setMem_ne hneP
     have hal' : (BitVec.ofNat 64 align).toNat = align := by rw [BitVec.toNat_ofNat]; omega
     have hsz' : (BitVec.ofNat 64 size).toNat = size := by rw [BitVec.toNat_ofNat]; omega
   -- `grow_amortized(self, cap, 1, align, size)`'s precondition, after `ra`'s store
@@ -76,11 +90,7 @@ theorem total {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {fd : Lfundef (Op R
   · rw [hcap1, hptr1, hsz']; exact VecReprT.BufT.mono hpre_15 (by rw [hnx1])
   · rw [hcap1, hsz']; exact hpre_12
   -- `ra`, read back from its slot, which `grow_amortized` keeps
-  · have hout : ¬ GrowOut regs m (top + 0xfffffffffffffff8#64) := by
-      rintro (h | h)
-      · exact hne (by rw [h, rvCapAt_eq])
-      · exact hneP h.symm
-    rw [hret1_14.getMem_above (by rw [h16]; omega) (by rw [h16, h8]; omega) hout]
+  · rw [hret1_14.getMem_above (by rw [h16]; omega) (by rw [h16, h8]; omega) hout]
     exact MachineState.getMem_setMem_eq
   -- the return
   · have hok := hret1_16 (hc.trans rfl)

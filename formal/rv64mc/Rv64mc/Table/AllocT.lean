@@ -35,28 +35,29 @@ open Rv64mc.Proof.Runtime.ReserveT (ReserveSpecT)
 open Rv64mc.Proof.Runtime.BoxNewUninitT (BoxNewUninitSpecT)
 open Rv64mc.Proof.Runtime.TryAllocateInT (TryAllocRv64SpecT TryAllocSpecT)
 
-variable (env : Env)
+variable (env : Env) (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+  (hend : env.heapEnd = 0x78000000#64)
+include hnext hend
 
-theorem finishGrowA (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+section Memcpy
+
+variable (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy)
+include hm
+
+theorem finishGrowA :
     FinishGrowSpecAT env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.FinishGrow
       Needs.Alloc.RawVec.RawVecInner.FinishGrow :=
   FinishGrowAT.total env _ _ Alloc.RawVec.RawVecInner.FinishGrow.link Alloc.RawVec.RawVecInner.FinishGrow.tmpl_eq
     Alloc.RawVec.RawVecInner.FinishGrow.wf (by decide) (by decide) (RuntimeT.alloc env hnext hend)
     (RuntimeT.memcpy env hm)
 
-theorem growAmortized (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growAmortized :
     GrowAmortizedSpecT env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.GrowAmortized
       Needs.Alloc.RawVec.RawVecInner.GrowAmortized :=
   GrowAmortizedT.total Alloc.RawVec.RawVecInner.GrowAmortized.tmpl_eq Alloc.RawVec.RawVecInner.GrowAmortized.wf
     (finishGrowA env hnext hend hm)
 
-theorem growOneColumnClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneColumnClaim :
     GrowOneSpecT env Layouts.ColumnClaim.byteAlign Layouts.ColumnClaim.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecColumnClaim.GrowOne
       Needs.Alloc.RawVec.RawVecColumnClaim.GrowOne :=
@@ -64,18 +65,14 @@ theorem growOneColumnClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d
     Alloc.RawVec.RawVecColumnClaim.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneE :
     GrowOneSpecT env Layouts.E.byteAlign Layouts.E.byteSize (liftProg fns) Idx.Alloc.RawVec.RawVecE.GrowOne
       Needs.Alloc.RawVec.RawVecE.GrowOne :=
   GrowOnesT.e_total Alloc.RawVec.RawVecE.GrowOne.link Alloc.RawVec.RawVecE.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecE.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneFoldRound (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneFoldRound :
     GrowOneSpecT env Layouts.FoldRound.byteAlign Layouts.FoldRound.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecFoldRound.GrowOne
       Needs.Alloc.RawVec.RawVecFoldRound.GrowOne :=
@@ -83,9 +80,7 @@ theorem growOneFoldRound (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_N
     Alloc.RawVec.RawVecFoldRound.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneGluedClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneGluedClaim :
     GrowOneSpecT env Layouts.GluedClaim.byteAlign Layouts.GluedClaim.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecGluedClaim.GrowOne
       Needs.Alloc.RawVec.RawVecGluedClaim.GrowOne :=
@@ -93,18 +88,14 @@ theorem growOneGluedClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_
     Alloc.RawVec.RawVecGluedClaim.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneK (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneK :
     GrowOneSpecT env Layouts.K.byteAlign Layouts.K.byteSize (liftProg fns) Idx.Alloc.RawVec.RawVecK.GrowOne
       Needs.Alloc.RawVec.RawVecK.GrowOne :=
   GrowOnesT.k_total Alloc.RawVec.RawVecK.GrowOne.link Alloc.RawVec.RawVecK.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecK.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneKVecU16 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneKVecU16 :
     GrowOneSpecT env Layouts.KVecU16.byteAlign Layouts.KVecU16.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecTKVecU16E.GrowOne
       Needs.Alloc.RawVec.RawVecTKVecU16E.GrowOne :=
@@ -112,9 +103,7 @@ theorem growOneKVecU16 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEX
     Alloc.RawVec.RawVecTKVecU16E.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneStackClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneStackClaim :
     GrowOneSpecT env Layouts.StackClaim.byteAlign Layouts.StackClaim.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecTStackWeightEE.GrowOne
       Needs.Alloc.RawVec.RawVecTStackWeightEE.GrowOne :=
@@ -123,9 +112,7 @@ theorem growOneStackClaim (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_
     Alloc.RawVec.RawVecTStackWeightEE.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneVecEVecE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneVecEVecE :
     GrowOneSpecT env Layouts.VecEVecE.byteAlign Layouts.VecEVecE.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecTVecEVecEE.GrowOne
       Needs.Alloc.RawVec.RawVecTVecEVecEE.GrowOne :=
@@ -133,9 +120,7 @@ theorem growOneVecEVecE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NE
     Alloc.RawVec.RawVecTVecEVecEE.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneVecUsizeE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneVecUsizeE :
     GrowOneSpecT env Layouts.VecUsizeE.byteAlign Layouts.VecUsizeE.byteSize (liftProg fns)
       Idx.Alloc.RawVec.RawVecTVecUsizeEE.GrowOne
       Needs.Alloc.RawVec.RawVecTVecUsizeEE.GrowOne :=
@@ -143,45 +128,35 @@ theorem growOneVecUsizeE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_N
     Alloc.RawVec.RawVecTVecUsizeEE.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneU16 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneU16 :
     GrowOneSpecT env 2 2 (liftProg fns) Idx.Alloc.RawVec.RawVecU16.GrowOne
       Needs.Alloc.RawVec.RawVecU16.GrowOne :=
   GrowOnesT.u16_total Alloc.RawVec.RawVecU16.GrowOne.link Alloc.RawVec.RawVecU16.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecU16.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneU64 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneU64 :
     GrowOneSpecT env 8 8 (liftProg fns) Idx.Alloc.RawVec.RawVecU64.GrowOne
       Needs.Alloc.RawVec.RawVecU64.GrowOne :=
   GrowOnesT.u64_total Alloc.RawVec.RawVecU64.GrowOne.link Alloc.RawVec.RawVecU64.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecU64.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneUsize (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneUsize :
     GrowOneSpecT env 8 8 (liftProg fns) Idx.Alloc.RawVec.RawVecUsize.GrowOne
       Needs.Alloc.RawVec.RawVecUsize.GrowOne :=
   GrowOnesT.usize_total Alloc.RawVec.RawVecUsize.GrowOne.link Alloc.RawVec.RawVecUsize.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecUsize.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem growOneVecForm (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem growOneVecForm :
     GrowOneSpecT env Layouts.Vec.byteAlign Layouts.Vec.byteSize (liftProg fns) Idx.Alloc.RawVec.RawVecVecForm.GrowOne
       Needs.Alloc.RawVec.RawVecVecForm.GrowOne :=
   GrowOnesT.vecForm_total Alloc.RawVec.RawVecVecForm.GrowOne.link Alloc.RawVec.RawVecVecForm.GrowOne.tmpl_eq
     Alloc.RawVec.RawVecVecForm.GrowOne.wf (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem doReserve (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem doReserve :
     DoReserveSpecT env (liftProg fns) Idx.Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal
       Needs.Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal :=
   DoReserveT.total env _ _ Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal.link
@@ -189,73 +164,58 @@ theorem doReserve (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.add
     Alloc.RawVec.RawVecInnerAny.Reserve.DoReserveAndHandleGlobal.wf (by decide) (growAmortized env hnext hend hm)
     (HoldsT.mono_need (RuntimeT.handleError env) (by decide))
 
-theorem reserveE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveE :
     ReserveSpecT env 8 16 (liftProg fns) Idx.Alloc.Vec.VecE.Reserve Needs.Alloc.Vec.VecE.Reserve :=
   ReserveT.e_total Alloc.Vec.VecE.Reserve.link Alloc.Vec.VecE.Reserve.tmpl_eq Alloc.Vec.VecE.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveForm (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveForm :
     ReserveSpecT env 8 24 (liftProg fns) Idx.Alloc.Vec.VecForm.Reserve Needs.Alloc.Vec.VecForm.Reserve :=
   ReserveT.form_total Alloc.Vec.VecForm.Reserve.link Alloc.Vec.VecForm.Reserve.tmpl_eq Alloc.Vec.VecForm.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveOptionE (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveOptionE :
     ReserveSpecT env 8 24 (liftProg fns) Idx.Alloc.Vec.VecOptionE.Reserve Needs.Alloc.Vec.VecOptionE.Reserve :=
   ReserveT.optionE_total Alloc.Vec.VecOptionE.Reserve.link Alloc.Vec.VecOptionE.Reserve.tmpl_eq
     Alloc.Vec.VecOptionE.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveBusBlock (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveBusBlock :
     ReserveSpecT env 8 48 (liftProg fns) Idx.Alloc.Vec.VecBusBlock.Reserve Needs.Alloc.Vec.VecBusBlock.Reserve :=
   ReserveT.busBlock_total Alloc.Vec.VecBusBlock.Reserve.link Alloc.Vec.VecBusBlock.Reserve.tmpl_eq
     Alloc.Vec.VecBusBlock.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveK (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveK :
     ReserveSpecT env 8 8 (liftProg fns) Idx.Alloc.Vec.VecK.Reserve Needs.Alloc.Vec.VecK.Reserve :=
   ReserveT.k_total Alloc.Vec.VecK.Reserve.link Alloc.Vec.VecK.Reserve.tmpl_eq Alloc.Vec.VecK.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveU8 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveU8 :
     ReserveSpecT env 1 1 (liftProg fns) Idx.Alloc.Vec.VecU8.Reserve Needs.Alloc.Vec.VecU8.Reserve :=
   ReserveT.u8_total Alloc.Vec.VecU8.Reserve.link Alloc.Vec.VecU8.Reserve.tmpl_eq Alloc.Vec.VecU8.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem reserveUsize (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64)
-    (hm : MemcpySpecT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memcpy Needs.CompilerBuiltins.Mem.Memcpy) :
+theorem reserveUsize :
     ReserveSpecT env 8 8 (liftProg fns) Idx.Alloc.Vec.VecUsize.Reserve Needs.Alloc.Vec.VecUsize.Reserve :=
   ReserveT.usize_total Alloc.Vec.VecUsize.Reserve.link Alloc.Vec.VecUsize.Reserve.tmpl_eq Alloc.Vec.VecUsize.Reserve.wf
     (doReserve env hnext hend hm)
 
-theorem boxNewUninit (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64) :
+end Memcpy
+
+theorem boxNewUninit :
     BoxNewUninitSpecT env 80 (liftProg fns) Idx.Alloc.Boxed.BoxNewUninit Needs.Alloc.Boxed.BoxNewUninit :=
   BoxNewUninitT.total env _ _ Alloc.Boxed.BoxNewUninit.link Alloc.Boxed.BoxNewUninit.tmpl_eq
     Alloc.Boxed.BoxNewUninit.wf (by decide) (RuntimeT.alloc env hnext hend) (RuntimeT.panicNounwindFmt env)
 
-theorem tryAllocateInRv64 (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64) :
+theorem tryAllocateInRv64 :
     TryAllocRv64SpecT env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.TryAllocateInInVerifierRv64
       Needs.Alloc.RawVec.RawVecInner.TryAllocateInInVerifierRv64 :=
   TryAllocateInT.rv64_total env _ _ Alloc.RawVec.RawVecInner.TryAllocateInInVerifierRv64.link
     Alloc.RawVec.RawVecInner.TryAllocateInInVerifierRv64.tmpl_eq Alloc.RawVec.RawVecInner.TryAllocateInInVerifierRv64.wf
     (by decide) (RuntimeT.alloc env hnext hend)
 
-theorem tryAllocateIn (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
-    (hend : env.heapEnd = 0x78000000#64) :
+theorem tryAllocateIn :
     TryAllocSpecT env (liftProg fns) Idx.Alloc.RawVec.RawVecInner.TryAllocateInInVerifier
       Needs.Alloc.RawVec.RawVecInner.TryAllocateInInVerifier :=
   TryAllocateInT.total env _ _ Alloc.RawVec.RawVecInner.TryAllocateInInVerifier.link

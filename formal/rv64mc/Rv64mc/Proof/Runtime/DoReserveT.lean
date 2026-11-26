@@ -16,7 +16,7 @@
 -/
 
 import Rv64mc.Proof.Runtime.DoReserve
-import Rv64mc.Proof.Runtime.GrowAmortizedT
+import Rv64mc.Proof.Runtime.GrowOneT
 import Rv64mc.Proof.Runtime.HaltT
 import Rv64mc.Tactic.SymT
 
@@ -46,22 +46,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have hown : env.Owned m top (regs .x10) 16 := ⟨by rw [← hpre_2]; exact hpre_6, hpre_7⟩
     have hlim : env.stackLimit.toNat + 16 ≤ top.toNat := by omega
     have hslot := GrowOne.slot_notin hown hpre_5 hlim
-    have h8 : (top + 0xfffffffffffffff8#64).toNat = top.toNat - 8 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have h16 : (top + 0xfffffffffffffff0#64).toNat = top.toNat - 16 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have hb8 : env.stackLimit.toNat ≤ (top + 0xfffffffffffffff8#64).toNat := by rw [h8]; omega
-    have hne : regs .x10 ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
-      rw [← h]; exact ⟨Nat.le_refl _, by have := hown.2; omega⟩)
-    have hneP : rvPtrAt (regs .x10) ≠ top + 0xfffffffffffffff8#64 := fun h => hslot (by
-      rw [← h, GrowOne.rvPtrAt_eq]
-      have := hown.2
-      exact ⟨by rw [toNat_add_ofNat (by omega)]; omega, by rw [toNat_add_ofNat (by omega)]; omega⟩)
-    have hcap1 : (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvCapAt (regs .x10)) =
-        m.getMem (rvCapAt (regs .x10)) := by
-      rw [GrowOne.rvCapAt_eq]; exact MachineState.getMem_setMem_ne hne
-    have hptr1 : (m.setMem (top + 0xfffffffffffffff8#64) ret).getMem (rvPtrAt (regs .x10)) =
-        m.getMem (rvPtrAt (regs .x10)) := MachineState.getMem_setMem_ne hneP
+    obtain ⟨h8, h16, hb8, hcap1, hptr1, hout⟩ := GrowOneT.ra_store (ret := ret) hown hpre_5 hlim
     have hnx1 : env.next (m.setMem (top + 0xfffffffffffffff8#64) ret) = env.next m := Env.next_setMem_stack hb8
   -- `grow_amortized`'s precondition, after `ra`'s store
   · rw [hcap1, hptr1]; unfold Env.Live; rw [hnx1]; exact hpre_11
@@ -69,11 +54,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · rw [hcap1, hptr1]; exact VecReprT.BufT.mono hpre_15 (by rw [hnx1])
   · rw [hcap1]; exact hpre_12
   -- `ra`, read back
-  · have hout : ¬ GrowOut regs m (top + 0xfffffffffffffff8#64) := by
-      rintro (h | h)
-      · exact hne (by rw [h, GrowOne.rvCapAt_eq])
-      · exact hneP h.symm
-    rw [hret1_14.getMem_above (by rw [h16]; omega) (by rw [h16, h8]; omega) hout]
+  · rw [hret1_14.getMem_above (by rw [h16]; omega) (by rw [h16, h8]; omega) hout]
     exact MachineState.getMem_setMem_eq
   -- the return
   · exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩,
