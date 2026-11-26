@@ -21,7 +21,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 
 A total proof steps through each call with the callee's total contract, so its callee's `Pre` is a closed goal there. Where the caller is not yet total, the callee's `Pre` was checked against the image's call sites by reading the templates, and becomes a goal of the caller's proof. Some of those goals need a fact from another function's postcondition; the ones named so far:
 
-* `from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for. `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`.
+* ~~`from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for.~~ Met: `FromElemT.FromElemSpecT`'s postcondition is `CloneT.ClonePostT env 16` (`VecT`, `vecLen` the count `a2`, the buffer fresh unless empty). `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`; `walk`'s proof discharges it there.
 
 ## By function
 
@@ -171,7 +171,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 6 | 218 | `verifier::bytecode::group_by_word` | 193 | D | no | - | - | - |
 | 7 | 36 | `verifier::keccak::linear_transpose::<verifier::field::E> @verifier` | 196 | A | no | - | - | - |
 | 7 | 51 | `<verifier::transcript::Transcript>::grind_check` | 42 | A | no | - | - | - |
-| 7 | 58 | `<verifier::field::E as alloc::vec::spec_from_elem::SpecFromElem>::f...` | 72 | C | no | - | - | - |
+| 7 | 58 | `<verifier::field::E as alloc::vec::spec_from_elem::SpecFromElem>::f...` | 72 | C | yes | Proof/Runtime/FromElemT | VecT2.fromElemE | env |
 | 7 | 82 | `verifier::whir::ext_row` | 57 | C | no | - | - | - |
 | 7 | 84 | `<core::option::Option<verifier::field::E> as alloc::vec::spec_from_...` | 89 | D | no | - | - | - |
 | 7 | 102 | `verifier::multilinear::selector_point` | 67 | A | no | - | - | - |
