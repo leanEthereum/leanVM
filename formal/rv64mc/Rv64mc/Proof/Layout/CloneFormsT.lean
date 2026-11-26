@@ -45,6 +45,8 @@ open Rv64mc.Proof.Runtime.VecReprT (BufT RawVecT VecT)
 open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.CloneT (ClonePostT CloneSpecT)
 open Rv64mc.Proof.Layout.FormReprT
+open Rv64mc.Proof.Runtime.GrowOne (rvCapAt_eq rvPtrAt_eq)
+open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq post_ok)
 open Rv64mc.Gen.Alloc.Vec.VecForm.AsClone.Clone (Link tmpl d_c8_d6dfd6bc_words d_c8_51ab739d_words)
 
 /-- The total precondition: the result's slot a caller's, in a window and 8-byte aligned; the source (`a1`, `a2`)
@@ -227,28 +229,6 @@ theorem hdr3 {env : Env} {m M : MachineState} {top ret v0 v1 v2 : Word} {regs : 
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_eq]
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_ne (ne _ _ (by omega)),
       MachineState.getMem_setMem_ne (ne _ _ (by omega))]
-
-/-- **The result from its header's words**: capacity and length `n`, the buffer `D` of `n` `Form`s fresh since `m`
-    unless `n = 0`. -/
-theorem post_ok {env : Env} {regs : Reg → Word} {m M : MachineState} {D : Word}
-    (hwin : InWin env (regs .x10) 24) (hal : (regs .x10).toNat % 8 = 0)
-    (h0 : M.getMem (regs .x10) = regs .x12) (h8 : M.getMem (regs .x10 + 8#64) = D)
-    (h16 : M.getMem (regs .x10 + 16#64) = regs .x12)
-    (hD : (regs .x12).toNat = 0 ∨ (0x10000000 ≤ D.toNat ∧ (env.next m).toNat ≤ D.toNat ∧
-      D.toNat + (regs .x12).toNat * 24 ≤ (env.next M).toNat ∧ D.toNat % 8 = 0))
-    (hn : (regs .x12).toNat * 24 < 2 ^ 63) {r : Reg → Word} : ClonePostT env 24 regs m r M := by
-  have hc : rvCapAt (regs .x10) = regs .x10 := rvCapAt_eq _
-  have hp : rvPtrAt (regs .x10) = regs .x10 + 8#64 := rfl
-  refine ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
-    hal, ?_, by rw [hc, h0]; exact hn⟩, by rw [vecLen_eq, vecCap_eq, h0, h16]⟩, by rw [vecLen_eq, h16], ?_⟩
-  · rw [hc, hp, h0, h8]
-    rcases hD with h | ⟨h1, -, h3, h4⟩
-    · exact .inl h
-    · exact .inr ⟨h1, by unfold Env.Live; omega, h4⟩
-  · rw [vecPtr_eq, h8]
-    rcases hD with h | ⟨-, h2, h3, -⟩
-    · exact .inl h
-    · exact .inr ⟨h2, by omega⟩
 
 /-- The registers the return reads: the stack pointer, `sret`, the length, the result's block. -/
 def XRegs (top D : Word) (regs R : Reg → Word) : Prop :=

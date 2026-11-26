@@ -186,7 +186,7 @@ theorem empty {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
   obtain ⟨hM', hn', r0, r8, r16⟩ := hdr3 (v0 := 0#64) (v1 := 8#64) (v2 := 0#64) hstk hown hwin hM
   obtain ⟨⟨s1, s2, s3, s4, s5, s6, s7, s8⟩, hF, hS, hc⟩ := hM'
   have rc : (((M.setMem (regs .x10) 0#64).setMem (regs .x10 + 8#64) 8#64).setMem (regs .x10 + 16#64) 0#64).getMem
-      (rvCapAt (regs .x10)) = 0#64 := by rw [Bytecode.CountingSortUsizeT.rvCapAt_eq]; exact r0
+      (rvCapAt (regs .x10)) = 0#64 := by rw [Runtime.GrowOne.rvCapAt_eq]; exact r0
   have hPost : ∀ r, PostT env regs m r
       (((M.setMem (regs .x10) 0#64).setMem (regs .x10 + 8#64) 8#64).setMem (regs .x10 + 16#64) 0#64) := fun r =>
     ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega), hal,
@@ -261,7 +261,7 @@ theorem frame_store {env : Env} {m M : MachineState} {top ret a v : Word} {regs 
     fun b hb => MachineState.getMem_setMem_ne hb⟩
 
 theorem cap_at (top : Word) : rvCapAt (top + 18446744073709551528#64) = top + 18446744073709551528#64 :=
-  Bytecode.CountingSortUsizeT.rvCapAt_eq _
+  Runtime.GrowOne.rvCapAt_eq _
 
 theorem ptr_at (top : Word) : rvPtrAt (top + 18446744073709551528#64) = top + 18446744073709551536#64 := by
   unfold rvPtrAt; rw [BitVec.add_assoc]; rfl

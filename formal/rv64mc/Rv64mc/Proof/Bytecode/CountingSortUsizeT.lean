@@ -30,6 +30,7 @@ import Rv64mc.Proof.Runtime.TryAllocateInT
 import Rv64mc.Proof.Runtime.MemcpyT
 import Rv64mc.Proof.Runtime.CloneT
 import Rv64mc.Proof.Runtime.HaltT
+import Rv64mc.Proof.Runtime.VecHdrT
 import Rv64mc.Gen.Tmpl.Verifier.Bytecode.CountingSortUsizeBlockMembersClosure0
 
 namespace Rv64mc.Proof.Bytecode.CountingSortUsizeT
@@ -42,6 +43,7 @@ open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.MemcpyT (MemcpySpecT)
 open Rv64mc.Proof.Runtime.TryAllocateInT (TryAllocSpecT)
 open Rv64mc.Proof.Runtime.CloneT (ClonePostT)
+open Rv64mc.Proof.Runtime.VecHdrT (post_ok copyOut_in)
 open Rv64mc.Gen.Verifier.Bytecode.CountingSortUsizeBlockMembersClosure0 (Link tmpl)
 
 /-- The total precondition: the result's slot a caller's, in a window and 8-byte aligned; the items (`a1`, `a2`) and
@@ -162,35 +164,6 @@ def LInv2 (env : Env) (m : MachineState) (top ret S : Word) (regs : Reg → Word
   Common env m top ret S regs R M ∧ R .x21 = regs .x11 ∧ R .x22 = regs .x12 <<< 3 ∧ R .x24 = regs .x24 ∧
     R .x11 = S + 8#64 + regs .x13 <<< 3 ∧
     ∃ j, j + k + 1 = (regs .x13).toNat ∧ (R .x10).toNat = S.toNat + 8 + 8 * j
-
-theorem rvCapAt_eq (a : Word) : rvCapAt a = a := by
-  simp only [rvCapAt, Layouts.RawVecInner.cap]; exact BitVec.add_zero a
-
-theorem vecCap_eq (m : MachineState) (a : Word) : vecCap m a = m.getMem a := by
-  simp only [vecCap, Layouts.Vec.cap]; exact congrArg _ (BitVec.add_zero a)
-
-/-- **The result from its header's words**: capacity and length `n`, the buffer `P` of `n` elements of `s` bytes
-    fresh since `m` unless `n = 0`. -/
-theorem post_ok {env : Env} {regs : Reg → Word} {m M : MachineState} {P : Word} {s : Nat}
-    (hwin : InWin env (regs .x10) 24) (hal : (regs .x10).toNat % 8 = 0)
-    (h0 : M.getMem (regs .x10) = regs .x12) (h8 : M.getMem (regs .x10 + 8#64) = P)
-    (h16 : M.getMem (regs .x10 + 16#64) = regs .x12)
-    (hP : (regs .x12).toNat = 0 ∨ (0x10000000 ≤ P.toNat ∧ (env.next m).toNat ≤ P.toNat ∧
-      P.toNat + (regs .x12).toNat * s ≤ (env.next M).toNat ∧ P.toNat % 8 = 0))
-    (hn : (regs .x12).toNat * s < 2 ^ 63) {r : Reg → Word} : ClonePostT env s regs m r M := by
-  have hc : rvCapAt (regs .x10) = regs .x10 := rvCapAt_eq _
-  have hp : rvPtrAt (regs .x10) = regs .x10 + 8#64 := rfl
-  refine ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega), hal,
-    ?_, by rw [hc, h0]; exact hn⟩, by rw [show vecLen M (regs .x10) = M.getMem (regs .x10 + 16#64) from rfl, vecCap_eq, h0, h16]⟩,
-    by rw [show vecLen M (regs .x10) = M.getMem (regs .x10 + 16#64) from rfl, h16], ?_⟩
-  · rw [hc, hp, h0, h8]
-    rcases hP with h | ⟨h1, -, h3, h4⟩
-    · exact .inl h
-    · exact .inr ⟨h1, by unfold Env.Live; omega, h4⟩
-  · rw [show vecPtr M (regs .x10) = M.getMem (regs .x10 + 8#64) from rfl, h8]
-    rcases hP with h | ⟨-, h2, h3, -⟩
-    · exact .inl h
-    · exact .inr ⟨h2, by omega⟩
 
 /-- A store into a block allocated since `m` keeps the result's header, a caller's 24 bytes. -/
 theorem hdr_keep {env : Env} {m M : MachineState} {top a h : Word} (hown : env.Owned m top h 24)
@@ -366,13 +339,6 @@ theorem hdr3 {env : Env} {m M : MachineState} {top ret h v0 v1 v2 : Word} {regs 
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_ne (ne _ _ (by omega)),
       MachineState.getMem_setMem_eq]
   · rw [MachineState.getMem_setMem_ne (ne _ _ (by omega)), MachineState.getMem_setMem_eq]
-
-/-- A word `memcpy` may write, to `P` aligned, lies in `[P, P + n)`. -/
-theorem copyOut_in {R : Reg → Word} {M : MachineState} {b P : Word} {n : Nat} (hR10 : R .x10 = P)
-    (hR12 : (R .x12).toNat = n) (hP8 : P.toNat % 8 = 0) (hb : CopyOut R M b) : P.toNat ≤ b.toNat ∧ b.toNat < P.toNat + n := by
-  unfold CopyOut DwordsOf InRange at hb
-  rw [toNat_alignToDword, hR10, hR12] at hb
-  omega
 
 set_option rv_sym.heap true in
 /-- **From instruction 114**: the sorted copy (`alloc`, `memcpy`) and the result's header, then the placing loop; or,

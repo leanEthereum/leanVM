@@ -178,7 +178,7 @@ theorem post_ok {env : Env} {regs : Reg → Word} {m M : MachineState} {C P n : 
     {r : Reg → Word} : PostT env regs m r M := by
   have hc : vecCap M (regs .x10) = C := by rw [Runtime.ReserveT.vecCap_eq, h0]
   have hc' : M.getMem (rvCapAt (regs .x10)) = C := by
-    rw [show rvCapAt (regs .x10) = regs .x10 from Bytecode.CountingSortUsizeT.rvCapAt_eq _, h0]
+    rw [show rvCapAt (regs .x10) = regs .x10 from Runtime.GrowOne.rvCapAt_eq _, h0]
   have hp : vecPtr M (regs .x10) = P := h8
   have hp' : M.getMem (rvPtrAt (regs .x10)) = P := h8
   refine ⟨⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
@@ -236,7 +236,7 @@ def Args (env : Env) (m : MachineState) (top : Word) (regs : Reg → Word) : Pro
     (regs .x11).toNat + 80 * (regs .x12).toNat < 2 ^ 64
 
 theorem cap_at (top : Word) : rvCapAt (top + 18446744073709551464#64) = top + 18446744073709551464#64 :=
-  Bytecode.CountingSortUsizeT.rvCapAt_eq _
+  Runtime.GrowOne.rvCapAt_eq _
 
 theorem ptr_at (top : Word) : rvPtrAt (top + 18446744073709551464#64) = top + 18446744073709551472#64 := by
   unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
@@ -464,7 +464,7 @@ theorem copy {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     obtain ⟨hM1, hV1⟩ := after_copy (v := M.getMem (top + 18446744073709551480#64) + R .x21) (n := (R .x21).toNat)
       (by omega) hM ⟨v1, v2, v3, v4, v5, v6⟩ hr (Runtime.Alloc.toNat_add_ofNat' (by omega)) hret1_14
       (fun b hb => by
-        have := Bytecode.CountingSortUsizeT.copyOut_in
+        have := Runtime.VecHdrT.copyOut_in
           (P := M.getMem (top + 18446744073709551472#64) + M.getMem (top + 18446744073709551480#64) <<< 3)
           (by exact rfl) (by exact hs) (by rw [eD]; omega) hb
         rw [eD] at this; omega) hret1_15 hret1_19 keep1_1
@@ -624,7 +624,7 @@ theorem fill {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
       (by simp only [Tactic.rf]; rw [g3, g4, g1, g2]; exact hsep)
 
 theorem tcap_at (top : Word) : rvCapAt (top + 18446744073709551488#64) = top + 18446744073709551488#64 :=
-  Bytecode.CountingSortUsizeT.rvCapAt_eq _
+  Runtime.GrowOne.rvCapAt_eq _
 
 theorem tptr_at (top : Word) : rvPtrAt (top + 18446744073709551488#64) = top + 18446744073709551496#64 := by
   unfold rvPtrAt; rw [BitVec.add_assoc]; rfl

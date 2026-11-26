@@ -37,7 +37,8 @@ open Rv64mc.Proof.Runtime.VecReprT (BufT RawVecT VecT)
 open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.MemcpyT (MemcpySpecT)
 open Rv64mc.Proof.Runtime.CloneT (ClonePostT)
-open Rv64mc.Proof.Bytecode.CountingSortUsizeT (word_ok hdr_keep hdr_keep0 copyOut_in post_ok)
+open Rv64mc.Proof.Bytecode.CountingSortUsizeT (word_ok hdr_keep hdr_keep0)
+open Rv64mc.Proof.Runtime.VecHdrT (copyOut_in post_ok)
 open Rv64mc.Gen.Verifier.Bytecode.CountingSortTU64U16EGroupByWordClosure2 (Link tmpl)
 
 /-- The total precondition: the result's slot a caller's, in a window and 8-byte aligned; the items (`a1`, `a2`,

@@ -19,12 +19,15 @@
 
 import Rv64mc.Proof.Runtime.VecReprT
 import Rv64mc.Proof.Runtime.DropSliceT
+import Rv64mc.Proof.Runtime.VecHdrT
 
 namespace Rv64mc.Proof.Layout.FormReprT
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (BufT RawVecT VecT)
+open Rv64mc.Proof.Runtime.GrowOne (rvCapAt_eq rvPtrAt_eq)
+open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq)
 
 variable {env : Env}
 
@@ -39,18 +42,6 @@ def FormT (env : Env) (m : MachineState) (a : Word) : Prop :=
 /-- **`n` `Form`s from `q`**, 24 bytes each, as a `Vec<Form>`'s buffer holds them. -/
 def FormsT (env : Env) (m : MachineState) (q : Word) (n : Nat) : Prop :=
   ∀ i, i < n → FormT env m (q + BitVec.ofNat 64 (24 * i))
-
-theorem vecCap_eq (m : MachineState) (a : Word) : vecCap m a = m.getMem a := by
-  simp only [vecCap, Layouts.Vec.cap]; exact congrArg _ (BitVec.add_zero a)
-
-theorem rvCapAt_eq (a : Word) : rvCapAt a = a := by
-  simp only [rvCapAt, Layouts.RawVecInner.cap]; exact BitVec.add_zero a
-
-theorem rvPtrAt_eq (a : Word) : rvPtrAt a = a + 8#64 := rfl
-
-theorem vecPtr_eq (m : MachineState) (a : Word) : vecPtr m a = m.getMem (a + 8#64) := rfl
-
-theorem vecLen_eq (m : MachineState) (a : Word) : vecLen m a = m.getMem (a + 16#64) := rfl
 
 /-- A vector's header words, as numbers: `a + 8` and `a + 16` do not wrap. -/
 theorem vecT_lt {m : MachineState} {a : Word} {s : Nat} (h : VecT env m a s) : a.toNat + 24 < 2 ^ 64 := by

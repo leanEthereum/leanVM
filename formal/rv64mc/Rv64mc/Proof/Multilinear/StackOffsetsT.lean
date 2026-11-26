@@ -25,7 +25,9 @@
   * `total`
 -/
 
-import Rv64mc.Proof.Bytecode.CountingSortUsizeT
+import Rv64mc.Proof.Runtime.TryAllocateInT
+import Rv64mc.Proof.Runtime.HaltT
+import Rv64mc.Proof.Runtime.VecHdrT
 import Rv64mc.Spec.Whir.Basic
 import Rv64mc.Gen.Tmpl.Verifier.Multilinear.StackOffsets
 
@@ -161,7 +163,7 @@ theorem exit {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   obtain ⟨⟨s1, s2, s3, s4⟩, hF, hS, hc⟩ := hM'
   have hPost : ∀ r, ClonePostT env 8 regs m r ((((M.setMem (regs .x10) (regs .x12)).setMem (regs .x10 + 8#64) (R .x12)).setMem
       (regs .x10 + 16#64) (regs .x12)).setMem (regs .x10 + 24#64) (R .x11)) := fun r =>
-    Bytecode.CountingSortUsizeT.post_ok (Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by omega)) hal r0 r8 r16
+    Runtime.VecHdrT.post_ok (Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by omega)) hal r0 r8 r16
       (by rcases hbuf with h0 | ⟨h1, h2, h3, h4⟩
           · exact .inl h0
           · exact .inr ⟨by rw [hP]; exact h1, by rw [hP]; exact h2, by rw [hn', hP]; omega, by rw [hP]; exact h4⟩) hn8
