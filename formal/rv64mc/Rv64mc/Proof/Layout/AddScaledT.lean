@@ -751,6 +751,101 @@ theorem ins {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tm
       ⟨hret3_19, hret3_20, hret3_21, hret3_22⟩
     exact h208 _ _ n w rfl rfl rfl rfl rfl rfl rfl rfl rfl hw hm3 hkf3 hF3 g16' hlt3 hC3
 
+/-! ## After the search: the term there equal, or the insertion -/
+
+/-- **A call writing nothing** from the frame's bottom: `MemOk` and `self` kept, every word below `NEXT` or at or
+    above `top - 144` kept. -/
+theorem call0 {m M m1 : MachineState} {top ret : Word} {regs : Reg → Word}
+    (hlim : env.stackLimit.toNat + 144 ≤ top.toNat) (hA : Args env m top regs) (hM : MemOk env m top ret regs M)
+    (hkf : KeptOrFresh env m M (regs .x10)) (hF : FormT env M (regs .x10))
+    (hF1 : env.Frame (top + 18446744073709551472#64) (fun _ => False) M m1) (hS1 : env.Static m1)
+    (hc1 : m1.code = M.code) :
+    MemOk env m top ret regs m1 ∧ (env.next M).toNat ≤ (env.next m1).toNat ∧ KeptOrFresh env m m1 (regs .x10) ∧
+      FormT env m1 (regs .x10) ∧
+      ∀ b : Word, (b.toNat < (env.next M).toNat ∨ top.toNat - 144 ≤ b.toNat) → m1.getMem b = M.getMem b := by
+  have hlay := env.layout
+  obtain ⟨-, hW, -, hx2, -, hown, -, -, -, -⟩ := id hA
+  rw [hx2] at hown
+  have hnm := hM.2.1.1
+  have hnM := hM.2.1.2.1
+  have e144 := CloneFormsT.es (top := top) (c := 18446744073709551472#64) (k := 144) rfl (by omega)
+  obtain ⟨m1', n1, k1⟩ := call_keep hlim hM hF1 hS1 hc1 (fun b hb => hb.elim) (fun a h1 h2 => by
+      rcases h1 with h1 | h1
+      · exact hF1.getMem_below_next hnM h1 h2
+      · exact hF1.getMem_above (by omega) h1 h2)
+  have kp : ∀ b : Word, (b.toNat < (env.next M).toNat ∨ top.toNat - 144 ≤ b.toNat) → m1.getMem b = M.getMem b :=
+    fun b h => k1 b h id
+  have hlt := vecT_lt hF.1
+  have hhdr : ∀ b : Word, (regs .x10).toNat ≤ b.toNat → b.toNat < (regs .x10).toNat + 24 → m1.getMem b = M.getMem b :=
+    fun b h1 h2 => kp b (by rcases hown.1 with h | h <;> omega)
+  have a8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
+  refine ⟨m1', n1, ?_, hF.keep n1 hhdr fun b h1 h2 => kp b (.inl (by
+    rcases hF.foot with h | ⟨-, h3, -⟩
+    · omega
+    · omega)), kp⟩
+  have ep : vecPtr m1 (regs .x10) = vecPtr M (regs .x10) := hhdr (regs .x10 + 8#64) (by omega) (by omega)
+  have ec : vecCap m1 (regs .x10) = vecCap M (regs .x10) := by
+    rw [vecCap_eq, vecCap_eq]; exact hhdr (regs .x10) (by omega) (by omega)
+  unfold KeptOrFresh; rw [ep, ec]; exact hkf
+
+/-- **The weighted coefficient added** to term `j` at `T = P + 40 j`, below the length: `MemOk`, `NEXT`, `self` a
+    `Form`, its buffer kept. -/
+theorem coef_mem {m M : MachineState} {top ret T v1 v2 : Word} {regs : Reg → Word} {j : Nat}
+    (hlim : env.stackLimit.toNat + 144 ≤ top.toNat) (hA : Args env m top regs) (hM : MemOk env m top ret regs M)
+    (hkf : KeptOrFresh env m M (regs .x10)) (hF : FormT env M (regs .x10))
+    (hT : T.toNat = (M.getMem (regs .x10 + 8#64)).toNat + 40 * j) (hj : j < (M.getMem (regs .x10 + 16#64)).toNat) :
+    let M2 := (M.setMem (T + 24#64) v1).setMem (T + 32#64) v2
+    MemOk env m top ret regs M2 ∧ env.next M2 = env.next M ∧ FormT env M2 (regs .x10) ∧
+      KeptOrFresh env m M2 (regs .x10) ∧ M2.getMem (regs .x10 + 8#64) = M.getMem (regs .x10 + 8#64) := by
+  intro M2
+  have hlay := env.layout
+  have hha := hdr_apart hA hM hkf hF.1
+  have hnM := hM.2.1.2.1
+  have hlt := vecT_lt hF.1
+  have hl := hF.1.2.2
+  rw [vecLen_eq, vecCap_eq] at hl
+  obtain ⟨hP1, hP2, hP8⟩ := (buf_foot hF.1).resolve_left (by omega)
+  replace hha : Apart (regs .x10) 24 (M.getMem (regs .x10 + 8#64)) (40 * (M.getMem (regs .x10)).toNat) := by
+    rcases hha with h | h
+    · omega
+    · exact h
+  unfold Apart at hha
+  have hkf' : (M.getMem (regs .x10 + 8#64) = vecPtr m (regs .x10) ∧ M.getMem (regs .x10) = vecCap m (regs .x10)) ∨
+      (env.next m).toNat ≤ (M.getMem (regs .x10 + 8#64)).toNat := by
+    rw [← vecPtr_eq, ← vecCap_eq]; exact hkf
+  have e24 : (T + 24#64).toNat = T.toNat + 24 := toNat_add_ofNat (by omega)
+  have e32 : (T + 32#64).toNat = T.toNat + 32 := toNat_add_ofNat (by omega)
+  obtain ⟨m1, n1, k1⟩ := buf_store (b := T + 24#64) (v := v1) hlim hM hkf' (by omega) (by omega) hP2
+  obtain ⟨m2, n2, k2⟩ := buf_store (b := T + 32#64) (v := v2) hlim m1 hkf' (by omega) (by omega)
+    (by rw [n1]; exact hP2)
+  have ne : ∀ a b : Word, a.toNat ≠ b.toNat → a ≠ b := fun a b hab e => hab (by rw [e])
+  have hN : env.next M2 = env.next M := by rw [n2, n1]
+  have hk : ∀ x : Word, (x.toNat < T.toNat + 24 ∨ T.toNat + 40 ≤ x.toNat) → M2.getMem x = M.getMem x :=
+    fun x h => by rw [k2 x (ne _ _ (by omega)), k1 x (ne _ _ (by omega))]
+  have a8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
+  have a16 : (regs .x10 + 16#64).toNat = (regs .x10).toNat + 16 := toNat_add_ofNat (by omega)
+  have hhdr : ∀ b : Word, (regs .x10).toNat ≤ b.toNat → b.toNat < (regs .x10).toNat + 24 → M2.getMem b = M.getMem b :=
+    fun b h1 h2 => hk b (by omega)
+  have g8 := hhdr (regs .x10 + 8#64) (by omega) (by omega)
+  have g0 := hhdr (regs .x10) (by omega) (by omega)
+  refine ⟨m2, hN, ⟨vecT_keep hF.1 (by rw [hN]) hhdr, ?_⟩, ?_, g8⟩
+  · have hterms := hF.2
+    rw [vecPtr_eq, vecLen_eq] at hterms ⊢
+    rw [g8, hhdr _ (by omega) (by omega)]
+    intro t ht
+    have et : (M.getMem (regs .x10 + 8#64) + BitVec.ofNat 64 (40 * t)).toNat =
+        (M.getMem (regs .x10 + 8#64)).toNat + 40 * t := toNat_add_ofNat (by omega)
+    refine vecT_keep (hterms t ht) (by rw [hN]) fun x h1 h2 => hk x ?_
+    rw [et] at h1 h2
+    rcases Nat.lt_or_ge t j with h | h
+    · omega
+    · rcases Nat.lt_or_ge j t with h' | h'
+      · omega
+      · omega
+  · have ep : vecPtr M2 (regs .x10) = vecPtr M (regs .x10) := g8
+    have ec : vecCap M2 (regs .x10) = vecCap M (regs .x10) := by rw [vecCap_eq, vecCap_eq]; exact g0
+    unfold KeptOrFresh; rw [ep, ec]; exact hkf
+
 /-! ## The return -/
 
 set_option rv_sym.heap true in
@@ -845,5 +940,227 @@ theorem store {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (
     clear hc
     exact h50 hk0 _ _ ⟨rfl, rfl, rfl, g8.symm, h22, t + 1, by omega, h26, m6, hF6, hkf6⟩
   · exact hex _ _ rfl m6 hF6 hkf6
+
+/-! ## After the search -/
+
+set_option rv_sym.heap true in
+/-- **A term at the index**, from instruction 58 (pc 116), the index `w` below the length: an equal monomial
+    (`memcmp`) gets the weighted coefficient (`E::mul`), then the next of `other`'s terms (25) or the return; else
+    the insertion (87). -/
+theorem at116 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
+    {need needM needE : Nat} (hnM : 144 + needM ≤ need) (hnE : 144 + needE ≤ need)
+    (hcmp : MemcmpSpecT env p L.memcmp.idx needM) (hmul : Field.EMulT.specT env p L.mul.idx needE)
+    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
+    (hk : ∀ r' m', HoldsT.post env (PostT env) OutT ret top regs m r' m' →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩)
+    (hneed : env.stackLimit.toNat + need ≤ top.toNat) (hA : Args env m top regs) {k t : Nat} {o e : Word}
+    (h50 : 0 < k → ∀ R M, OInv env m top ret regs (k - 1) R M →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 50, ret, top⟩ :: rest, R, M⟩)
+    (h174 : ∀ (R : Reg → Word) (M : MachineState) (o' n w : Word),
+      R .x2 = top + 18446744073709551472#64 → R .x18 = regs .x10 → R .x19 = o' → R .x23 = 1#64 → R .x25 = n →
+      R .x27 = w → R .x21 = w <<< 3 → R .x8 = w <<< 5 → R .x22 = e → R .x26 = o + 40#64 →
+      R .x12 = M.getMem (o' + 16#64) →
+      w.toNat ≤ n.toNat → MemOk env m top ret regs M → KeptOrFresh env m M (regs .x10) → FormT env M (regs .x10) →
+      M.getMem (regs .x10 + 16#64) = n → VecT env M o' 8 → InWin env o' 40 →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 174, ret, top⟩ :: rest, R, M⟩) :
+    ∀ R M (w : Word), SKeep (top + 18446744073709551472#64) (regs .x10) o e (M.getMem (regs .x10 + 8#64))
+        (M.getMem (regs .x10 + 16#64)) R → R .x27 = w → R .x26 = o + 40#64 → R .x21 = w <<< 3 → R .x8 = w <<< 5 →
+      w.toNat < (M.getMem (regs .x10 + 16#64)).toNat →
+      o.toNat = (regs .x11).toNat + 40 * t → t + k + 1 = (regs .x12).toNat →
+      e.toNat = (regs .x11).toNat + 40 * (regs .x12).toNat → MemOk env m top ret regs M →
+      FormT env M (regs .x10) → KeptOrFresh env m M (regs .x10) →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 116, ret, top⟩ :: rest, R, M⟩ := by
+  intro R M w ⟨k2, k18, k19, k22, k23, k24, k25⟩ k27 k26 k21 k8 hw ho htk he hM hF hkf
+  have hR := And.intro k2 (And.intro k18 (And.intro k19 (And.intro k22 (And.intro k23 (And.intro k24 (And.intro k25
+    (And.intro k27 (And.intro k26 (And.intro k21 k8)))))))))
+  clear k2 k18 k19 k22 k23 k24 k25 k27 k26 k21 k8
+  have hlay := env.layout
+  obtain ⟨hstk, hW, h16, -, -, -, hsrc, -, -, -⟩ := id hA
+  have := hW.nextAddr_ge
+  have hW1 := hW.heapEnd_le
+  have hcM : M.code = m.code := hM.2.2.2
+  have hnM := hM.2.1.2.1
+  have hnm := hM.2.1.1
+  have hS : env.Static M := hM.2.2.1
+  have hsrc' : (regs .x11).toNat ≥ 0x10000000 ∧ (regs .x11).toNat + 40 * (regs .x12).toNat ≤ (env.next m).toNat := by
+    rcases hsrc with h | ⟨h1, h2, -⟩
+    · omega
+    · unfold Env.Live at h2; omega
+  have hoe : o = regs .x11 + BitVec.ofNat 64 (40 * t) := BitVec.eq_of_toNat_eq (by rw [ho, toNat_add_ofNat (by omega)])
+  have hVo : VecT env M o 8 := hoe ▸ oth_terms hA hM t (by omega)
+  have hoW : InWin env o 40 := .inl ⟨by omega, by omega⟩
+  have hlo := vecT_lt hVo
+  have wo8 : inWindow (o + 8#64) 8 = true := inWin_word hVo.1 (by decide) hW1 this
+  have wo16 : inWindow (o + 16#64) 8 = true := inWin_word hVo.1 (by decide) hW1 this
+  have wo24 : inWindow (o + 24#64) 8 = true := inWin_word hoW (by decide) hW1 this
+  have wo32 : inWindow (o + 32#64) 8 = true := inWin_word hoW (by decide) hW1 this
+  have hao := hVo.2.1.2.1
+  have hlt := vecT_lt hF.1
+  have hl := hF.1.2.2
+  rw [vecLen_eq, vecCap_eq] at hl
+  have hn40 : 40 * (M.getMem (regs .x10 + 16#64)).toNat < 2 ^ 64 := by
+    have := hF.1.2.1.2.2.2; rw [rvCapAt_eq] at this; omega
+  have hterms := hF.2
+  rw [vecPtr_eq, vecLen_eq] at hterms
+  have hT := termT hterms hw hn40
+  have e40 := sh40' (x := w) (by omega)
+  obtain ⟨hP1, hP2, hP8⟩ := (buf_foot hF.1).resolve_left (by omega)
+  have eT : (M.getMem (regs .x10 + 8#64) + (w <<< 5 + w <<< 3)).toNat =
+      (M.getMem (regs .x10 + 8#64)).toNat + 40 * w.toNat := by rw [BitVec.toNat_add, e40]; omega
+  have hTW : InWin env (M.getMem (regs .x10 + 8#64) + (w <<< 5 + w <<< 3)) 40 := .inl ⟨by omega, by omega⟩
+  have hTl := vecT_lt hT
+  have wT8 := inWin_word (k := 8) hT.1 (by decide) hW1 this
+  have wT16 := inWin_word (k := 16) hT.1 (by decide) hW1 this
+  have wT24 := inWin_word (k := 24) hTW (by decide) hW1 this
+  have wT32 := inWin_word (k := 32) hTW (by decide) hW1 this
+  have hTa := hT.2.1.2.1
+  obtain ⟨hb1, -, -⟩ := vecT_buf hT
+  rw [vecLen_eq, vecPtr_eq] at hb1
+  obtain ⟨hb2, -, -⟩ := vecT_buf hVo
+  rw [vecLen_eq, vecPtr_eq] at hb2
+  have hM' : True → MemOk env m top ret regs M := fun _ => hM
+  have hkf' : True → KeptOrFresh env m M (regs .x10) := fun _ => hkf
+  have hF' : True → FormT env M (regs .x10) := fun _ => hF
+  have hVo' : True → VecT env M o 8 := fun _ => hVo
+  have hA' : True → Args env m top regs := fun _ => hA
+  have hT' : True → VecT env M (M.getMem (regs .x10 + 8#64) + (w <<< 5 + w <<< 3)) 8 := fun _ => hT
+  have hlo8 : (M.getMem (o + 16#64)).toNat * 8 < 2 ^ 63 := by
+    have h1 := (vecT_buf hVo).2
+    rw [vecLen_eq, vecCap_eq] at h1
+    have h2 := hVo.2.1.2.2.2
+    rw [rvCapAt_eq] at h2
+    omega
+  have hoN : o.toNat + 40 ≤ (env.next M).toNat := by omega
+  have haN : (regs .x10 + 16#64).toNat < (env.next M).toNat ∨ top.toNat - 144 ≤ (regs .x10 + 16#64).toNat := by
+    obtain ⟨-, -, -, hx2, -, hown, -⟩ := hA
+    rw [hx2] at hown
+    rw [toNat_add_ofNat (by omega)]
+    rcases hown.1 with h | h <;> omega
+  have haN8 : (regs .x10 + 8#64).toNat < (env.next M).toNat ∨ top.toNat - 144 ≤ (regs .x10 + 8#64).toNat := by
+    obtain ⟨-, -, -, hx2, -, hown, -⟩ := hA
+    rw [hx2] at hown
+    rw [toNat_add_ofNat (by omega)]
+    rcases hown.1 with h | h <;> omega
+  have e40o : (o + 40#64).toNat = (regs .x11).toNat + 40 * (t + 1) := by rw [toNat_add_ofNat (by omega)]; omega
+  have hb1' := fun (_ : True) => hb1
+  have hb2' := fun (_ : True) => hb2
+  have hoW' := fun (_ : True) => hoW
+  have hTW' := fun (_ : True) => hTW
+  clear hM hkf hF hVo hA hsrc hterms hT hb1 hb2 hoW hTW hsrc'
+  rv_introT hR
+  rv_symT hp stop [174, 50, 324] with [hL] using [hcmp, hmul]
+  · exact wo16
+  · -- lengths differ: the insertion
+    exact h174 _ _ o (M.getMem (regs .x10 + 16#64)) w rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl (by omega)
+      (hM' trivial) (hkf' trivial) (hF' trivial) rfl (hVo' trivial) (hoW' trivial)
+  · exact wo8
+  · -- `memcmp`'s two strings, each in its buffer
+    rw [hc]
+    have h8 : (M.getMem (o + 16#64) <<< 3).toNat = (M.getMem (o + 16#64)).toNat * 8 := by
+      rw [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by omega)]
+    rw [h8]
+    have hb1 := hb1' trivial
+    rw [hc] at hb1
+    have hb2 := hb2' trivial
+    rcases Nat.eq_zero_or_pos (M.getMem (o + 16#64)).toNat with h0 | h0
+    · left; omega
+    · right
+      rcases hb1 with h | ⟨h1, h2, -⟩
+      · omega
+      rcases hb2 with h | ⟨h3, h4, -⟩
+      · omega
+      unfold Env.Live at h2 h4
+      exact ⟨.inl ⟨h1, by omega⟩, .inl ⟨h3, by omega⟩⟩
+  · -- the monomials differ: the insertion
+    obtain ⟨hm1, n1, hkf1, hF1, k1⟩ := call0 hstk (hA' trivial) (hM' trivial) (hkf' trivial) (hF' trivial) hret1_14
+      hret1_15 hret1_17
+    have go := k1 (o + 16#64) (.inl (by rw [toNat_add_ofNat (by omega)]; omega))
+    exact h174 _ _ o (M.getMem (regs .x10 + 16#64)) w rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
+      (by rw [go]; exact hc_1) (by omega) hm1 hkf1 hF1 (k1 _ haN)
+      (vecT_keep (hVo' trivial) n1 fun b _ h2 => k1 b (.inl (by omega))) (hoW' trivial)
+  · exact wo24
+  · exact wo32
+  all_goals
+    obtain ⟨hm1, n1, hkf1, hF1, k1⟩ := call0 hstk (hA' trivial) (hM' trivial) (hkf' trivial) (hF' trivial) hret1_14
+      hret1_15 hret1_17
+    obtain ⟨hm2, n2, hkf2, hF2, k2⟩ := call0 hstk (hA' trivial) hm1 hkf1 hF1 hret2_14 hret2_15 hret2_18
+    have g8 : m2.getMem (regs .x10 + 8#64) = M.getMem (regs .x10 + 8#64) :=
+      (k2 _ (haN8.imp (fun h => by omega) id)).trans (k1 _ haN8)
+    have g16 : m2.getMem (regs .x10 + 16#64) = M.getMem (regs .x10 + 16#64) :=
+      (k2 _ (haN.imp (fun h => by omega) id)).trans (k1 _ haN)
+    obtain ⟨hm3, -, hF3, hkf3, g8'⟩ := coef_mem (j := w.toNat) hstk (hA' trivial) hm2 hkf2 hF2 (by rw [g8]; exact eT)
+      (by rw [g16]; exact hw)
+  · -- equal: the coefficient added, then the next of `other`'s terms
+    have hk0 : 0 < k := by
+      rcases Nat.eq_zero_or_pos k with h | h
+      · exact absurd (BitVec.eq_of_toNat_eq (by rw [e40o, he]; omega)) hc
+      · exact h
+    exact h50 hk0 _ _ ⟨rfl, rfl, rfl, (g8'.trans g8).symm, he, t + 1, by omega, e40o, hm3, hF3, hkf3⟩
+  · -- the last of `other`'s terms: the return
+    exact exit hp hk (hA' trivial) _ _ rfl hm3 hF3 hkf3
+
+set_option rv_sym.heap true in
+/-- **After the search**, from instruction 54 (pc 108), the index `x27` at most the length: a term there (58), or
+    the insertion (87). -/
+theorem at108 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
+    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
+    (hA : Args env m top regs) {k t : Nat} {o e : Word}
+    (h116 : ∀ R M (w : Word), SKeep (top + 18446744073709551472#64) (regs .x10) o e (M.getMem (regs .x10 + 8#64))
+        (M.getMem (regs .x10 + 16#64)) R → R .x27 = w → R .x26 = o + 40#64 → R .x21 = w <<< 3 → R .x8 = w <<< 5 →
+      w.toNat < (M.getMem (regs .x10 + 16#64)).toNat →
+      o.toNat = (regs .x11).toNat + 40 * t → t + k + 1 = (regs .x12).toNat →
+      e.toNat = (regs .x11).toNat + 40 * (regs .x12).toNat → MemOk env m top ret regs M →
+      FormT env M (regs .x10) → KeptOrFresh env m M (regs .x10) →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 116, ret, top⟩ :: rest, R, M⟩)
+    (h174 : ∀ (R : Reg → Word) (M : MachineState) (o' n w : Word),
+      R .x2 = top + 18446744073709551472#64 → R .x18 = regs .x10 → R .x19 = o' → R .x23 = 1#64 → R .x25 = n →
+      R .x27 = w → R .x21 = w <<< 3 → R .x8 = w <<< 5 → R .x22 = e → R .x26 = o + 40#64 →
+      R .x12 = M.getMem (o' + 16#64) →
+      w.toNat ≤ n.toNat → MemOk env m top ret regs M → KeptOrFresh env m M (regs .x10) → FormT env M (regs .x10) →
+      M.getMem (regs .x10 + 16#64) = n → VecT env M o' 8 → InWin env o' 40 →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 174, ret, top⟩ :: rest, R, M⟩) :
+    ∀ R M, SKeep (top + 18446744073709551472#64) (regs .x10) o e (M.getMem (regs .x10 + 8#64))
+        (M.getMem (regs .x10 + 16#64)) R → (R .x27).toNat ≤ (M.getMem (regs .x10 + 16#64)).toNat →
+      o.toNat = (regs .x11).toNat + 40 * t → t + k + 1 = (regs .x12).toNat →
+      e.toNat = (regs .x11).toNat + 40 * (regs .x12).toNat → MemOk env m top ret regs M →
+      FormT env M (regs .x10) → KeptOrFresh env m M (regs .x10) →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 108, ret, top⟩ :: rest, R, M⟩ := by
+  intro R M hK h27 ho htk he hM hF hkf
+  obtain ⟨k2, k18, k19, k22, k23, k24, k25⟩ := hK
+  have hR := And.intro k2 (And.intro k18 (And.intro k19 (And.intro k22 (And.intro k23 (And.intro k24 k25)))))
+  clear k2 k18 k19 k22 k23 k24 k25
+  have hlay := env.layout
+  obtain ⟨hstk, hW, h16, -, -, -, hsrc, -, -, -⟩ := id hA
+  have hlt := vecT_lt hF.1
+  have hl := hF.1.2.2
+  rw [vecLen_eq, vecCap_eq] at hl
+  obtain ⟨hl', -⟩ := And.intro hl hl
+  have hsrc' : (regs .x11).toNat ≥ 0x10000000 ∧ (regs .x11).toNat + 40 * (regs .x12).toNat ≤ (env.next m).toNat := by
+    rcases hsrc with h | ⟨h1, h2, -⟩
+    · omega
+    · unfold Env.Live at h2; omega
+  have hW1 := hW.heapEnd_le
+  have hna := hW.nextAddr_ge
+  have hoe : o = regs .x11 + BitVec.ofNat 64 (40 * t) := BitVec.eq_of_toNat_eq (by rw [ho, toNat_add_ofNat (by omega)])
+  have hVo : VecT env M o 8 := hoe ▸ oth_terms hA hM t (by omega)
+  have hoW : InWin env o 40 := .inl ⟨by omega, by have := hM.2.1.1; have := hM.2.1.2.1; omega⟩
+  have hlo := vecT_lt hVo
+  have wo16 : inWindow (o + 16#64) 8 = true := inWin_word hVo.1 (by decide) hW1 hna
+  have hao := hVo.2.1.2.1
+  have hM' : True → MemOk env m top ret regs M := fun _ => hM
+  have hkf' : True → KeptOrFresh env m M (regs .x10) := fun _ => hkf
+  have hF' : True → FormT env M (regs .x10) := fun _ => hF
+  have hVo' : True → VecT env M o 8 := fun _ => hVo
+  have hA' : True → Args env m top regs := fun _ => hA
+  clear hM hkf hF hVo hA hsrc
+  rv_introT hR
+  rv_symT hp stop [116, 174]
+  · -- the index at the length: the insertion
+    rw [BitVec.le_def] at hc
+    exact h174 _ _ o (M.getMem (regs .x10 + 16#64)) (R .x27) rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
+      (by omega) (hM' trivial) (hkf' trivial) (hF' trivial) rfl (hVo' trivial) hoW
+  · rw [BitVec.lt_def] at hc
+    exact h116 _ _ (R .x27) ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ rfl rfl rfl rfl hc ho htk he (hM' trivial)
+      (hF' trivial) (hkf' trivial)
 
 end Rv64mc.Proof.Layout.AddScaledT
