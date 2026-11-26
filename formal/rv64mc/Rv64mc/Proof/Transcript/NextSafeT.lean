@@ -1,13 +1,13 @@
 /-
   Rv64mc.Proof.Transcript.NextSafeT
 
-  `Transcript::next`'s second total contract (`specT`), beside `NextT.specT`: from a transcript `TranscriptT`
+  `Transcript::next`'s second total contract (`specT`), beside `NextT.specT`: from a transcript `TranscriptAtT`
   (`TranscriptReprT`) owned with its proof (`OwnedT`), with no functional ghost, and a result's slot in a window
-  apart from both, it returns with the transcript `TranscriptT` and owned again and its proof's address kept,
+  apart from both, it returns with the transcript `TranscriptAtT` and owned again and its proof's address kept,
   writing at most the slot and the stream offset. `NextT.specT` asks the transcript `TranscriptAt` at a ghost state,
   which a transcript whose sponge went through a permutation no longer has (`SpongeReprT`), so the total contracts
   of `next`'s callers use this one. `safe` is `NextT.safe`'s proof from `PreS`, `NextT.PreT`'s conjuncts without
-  `Next.Pre` (`preS_of_nextT`); `total` adds the frame's consequence for the transcript (`TranscriptT.frame`).
+  `Next.Pre` (`preS_of_nextT`); `total` adds the frame's consequence for the transcript (`TranscriptAtT.frame`).
 
   ## Main definitions
 
@@ -29,17 +29,17 @@ open Rv64mc.Proof.Runtime.WinT
 open Rv64mc.Proof.Transcript.SpongeReprT Rv64mc.Proof.Transcript.TranscriptReprT
 open Rv64mc.Gen.Verifier.Transcript.Transcript.Next (Link tmpl)
 
-/-- The total precondition: the transcript `TranscriptT` and owned with its proof (`OwnedT`), the result's slot in a
+/-- The total precondition: the transcript `TranscriptAtT` and owned with its proof (`OwnedT`), the result's slot in a
     window, 8-byte aligned, apart from the transcript and its proof. -/
 def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
-  TranscriptT env m (regs .x11) ∧ OwnedT env m (regs .x2) (regs .x11) ∧
+  TranscriptAtT env m (regs .x11) ∧ OwnedT env m (regs .x2) (regs .x11) ∧
     InWin env (regs .x10) Layouts.ResultE.byteSize ∧ (regs .x10).toNat % 8 = 0 ∧
     Apart (regs .x10) Layouts.ResultE.byteSize (regs .x11) Layouts.Transcript.byteSize ∧
     Apart (regs .x10) Layouts.ResultE.byteSize (m.getMem (regs .x11 + 328#64)) Layouts.Proof.byteSize
 
-/-- The total postcondition: the transcript `TranscriptT` and owned again, its proof's address kept. -/
+/-- The total postcondition: the transcript `TranscriptAtT` and owned again, its proof's address kept. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
-  TranscriptT env m' (regs .x11) ∧ OwnedT env m' (regs .x2) (regs .x11) ∧
+  TranscriptAtT env m' (regs .x11) ∧ OwnedT env m' (regs .x2) (regs .x11) ∧
     m'.getMem (regs .x11 + 328#64) = m.getMem (regs .x11 + 328#64)
 
 /-- **`Transcript::next`'s second total contract**: `PreT` to `PostT`, writing at most the slot and the stream
@@ -95,7 +95,7 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     exact Tactic.frame_out (Tactic.frame_out (Tactic.frame_out (Tactic.frame_out (Env.Frame.refl hpre_5)
       (Or.inr rfl) (hT.ne_next_add (by omega))) o16 (hW.ne_next_add (by omega))) o0 n0) o8 n8
 
-/-- `Next.Out` misses the five words `TranscriptT` reads, the slot apart from the transcript and its proof. -/
+/-- `Next.Out` misses the five words `TranscriptAtT` reads, the slot apart from the transcript and its proof. -/
 theorem out_miss {env : Env} {regs : Reg → Word} {m : MachineState} (h : PreT env regs m) :
     (∀ k, (k = 0 ∨ k = 320 ∨ k = 328) → ¬ Next.Out regs m (regs .x11 + BitVec.ofNat 64 k)) ∧
       ∀ k, (k = 8 ∨ k = 16) →
@@ -115,7 +115,8 @@ theorem out_miss {env : Env} {regs : Reg → Word} {m : MachineState} (h : PreT 
   · have := congrArg BitVec.toNat he
     rw [toNat_add_ofNat (by omega), toNat_add_ofNat (by omega)] at this; omega
 
-/-- **`Transcript::next` keeps an owned `TranscriptT`**, from `safe` and `Next.Out`'s frame (`TranscriptT.frame`). -/
+/-- **`Transcript::next` keeps an owned `TranscriptAtT`**, from `safe` and `Next.Out`'s frame
+    (`TranscriptAtT.frame`). -/
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (need : Nat) :
     specT env p i need :=
   Isa.TContract.mono (safe env p i L hp need)

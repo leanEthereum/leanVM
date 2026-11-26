@@ -1,8 +1,8 @@
 /-
   Rv64mc.Proof.Transcript.GrindCheckT
 
-  `Transcript::grind_check` is total (`specT`): from a transcript `TranscriptT` (`TranscriptReprT`) owned with its
-  proof (`OwnedT`), it returns with the transcript `TranscriptT` and owned again, its proof's address kept, writing at
+  `Transcript::grind_check` is total (`specT`): from a transcript `TranscriptAtT` (`TranscriptReprT`) owned with its
+  proof (`OwnedT`), it returns with the transcript `TranscriptAtT` and owned again, its proof's address kept, writing at
   most the sponge and the stream offset, or ends the run with `a0 = 2` where `Sponge::absorb_nonce` does. Safety only:
   the partial contract's verdict (`GrindCheck.lean`) is over `absorb_nonce`'s functional lane, from `duplex`'s
   permuted lanes. Cut as `NextScalarT`: before `next`'s call (`mid_ok`) and after its return (`tail_ok`).
@@ -28,13 +28,13 @@ open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Transcript.SpongeReprT Rv64mc.Proof.Transcript.TranscriptReprT
 open Rv64mc.Gen.Verifier.Transcript.Transcript.GrindCheck (Link tmpl)
 
-/-- The total precondition: the transcript `TranscriptT`, owned with its proof. -/
+/-- The total precondition: the transcript `TranscriptAtT`, owned with its proof. -/
 def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
-  TranscriptT env m (regs .x10) ∧ OwnedT env m (regs .x2) (regs .x10)
+  TranscriptAtT env m (regs .x10) ∧ OwnedT env m (regs .x2) (regs .x10)
 
-/-- The total postcondition: the transcript `TranscriptT` and owned again, its proof's address kept. -/
+/-- The total postcondition: the transcript `TranscriptAtT` and owned again, its proof's address kept. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
-  TranscriptT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧
+  TranscriptAtT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧
     m'.getMem (regs .x10 + 328#64) = m.getMem (regs .x10 + 328#64)
 
 /-- **The total contract of `Transcript::grind_check`**: `PreT` to `PostT`, writing at most the sponge and the
@@ -84,7 +84,7 @@ theorem tail_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
     simpa only [AbsorbNonce.Out, Lprog.updReg_apply, Tactic.rf, reduceCtorEq, ↓reduceIte] using hb
 
 /-- The state before `next`'s call (instruction 11): the registers, the frame, the code, the static data, the saved
-    registers' slots, the transcript `TranscriptT` and owned. -/
+    registers' slots, the transcript `TranscriptAtT` and owned. -/
 def MidInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (R : Reg → Word)
     (M : MachineState) : Prop :=
   R .x2 = top + 18446744073709551552#64 ∧ R .x9 = regs .x11 ∧ R .x18 = regs .x10 ∧
@@ -94,7 +94,7 @@ def MidInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState)
     env.Frame top Tactic.F m M ∧ M.code = m.code ∧ env.Static M ∧
     M.getMem (top + 18446744073709551608#64) = ret ∧ M.getMem (top + 18446744073709551600#64) = regs .x8 ∧
     M.getMem (top + 18446744073709551592#64) = regs .x9 ∧ M.getMem (top + 18446744073709551584#64) = regs .x18 ∧
-    TranscriptT env M (regs .x10) ∧ OwnedT env M top (regs .x10)
+    TranscriptAtT env M (regs .x10) ∧ OwnedT env M top (regs .x10)
 
 set_option hygiene false in
 /-- A saved register's slot of the frame is kept by `next`, which writes its result's slot and the stream offset. -/
@@ -170,7 +170,7 @@ theorem kept (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     (hnx : NextSafeT.specT env p L.next.idx needN) (han : AbsorbNonceT.specT env p L.absorbNonce.idx needA) :
     HoldsT env p i need (PreT env) (PostK env) GrindCheck.Out (Stop := AbortStop) := by
   rv_autoT hp stop [22] with [hL, (by omega : env.stackLimit.toNat + 64 ≤ top.toNat)]
-  have hT : TranscriptT env m (regs .x10) :=
+  have hT : TranscriptAtT env m (regs .x10) :=
     ⟨⟨hpre_6, hpre_7, hpre_8, hpre_9⟩, hpre_10, hpre_11, hpre_12, hpre_13, hpre_14⟩
   have hO : OwnedT env m top (regs .x10) := hpre_2 ▸ ⟨⟨hpre_15, hpre_16⟩, ⟨hpre_17, hpre_18⟩⟩
   refine mid_ok env p i L hp hL hnN hnA hnx han hstop hk hpre_3 hpre_5 hpre_19 hpre_20 hpre_10 _ _ ?_
@@ -200,7 +200,7 @@ theorem out_miss {env : Env} {regs : Reg → Word} {m : MachineState} (h : PreT 
   · have := congrArg BitVec.toNat he
     rw [toNat_add_ofNat (by omega), h336] at this; omega
 
-/-- **`Transcript::grind_check` is total**, from `kept` and `GrindCheck.Out`'s frame (`TranscriptT.frameS`). -/
+/-- **`Transcript::grind_check` is total**, from `kept` and `GrindCheck.Out`'s frame (`TranscriptAtT.frameS`). -/
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needN needA : Nat} (hnN : 64 + needN ≤ need) (hnA : 64 + needA ≤ need)
     (hnx : NextSafeT.specT env p L.next.idx needN) (han : AbsorbNonceT.specT env p L.absorbNonce.idx needA) :

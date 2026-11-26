@@ -97,7 +97,8 @@ theorem postT_of_postR {env : Env} {regs r' : Reg → Word} {m m' : MachineState
   · simp only [vecLen, vecCap, Layouts.Vec.len, Layouts.Vec.cap, BitVec.add_zero]
     rw [hc, show (16 : Nat) = 16 from rfl, hl]
 
-/- One straight-line path through four calls, with no loop head to cut at: the default heartbeats do not cover it. -/
+/- One straight-line path through five calls (alloc, gpow, three dots), with no loop head to cut at: the default
+   heartbeats do not cover it. -/
 set_option maxHeartbeats 1600000 in
 set_option rv_sym.heap true in
 /-- The steps, to `PostR`. -/

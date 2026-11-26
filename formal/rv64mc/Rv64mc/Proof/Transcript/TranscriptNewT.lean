@@ -3,7 +3,7 @@
 
   `Transcript::new` is total (`specT`): into a slot its caller owns, in a window and 8-byte aligned, from a proof
   `ProofT` it owns, apart from the slot, and two digests in windows apart from the stack below the stack pointer, it
-  returns with the slot a transcript `TranscriptT` (`TranscriptReprT`) owned with its proof (`OwnedT`), whose proof's
+  returns with the slot a transcript `TranscriptAtT` (`TranscriptReprT`) owned with its proof (`OwnedT`), whose proof's
   address is the argument's. Safety only: the sponge's lanes are `Sponge::new`'s permuted ones (`SpongeNewT`), so
   the partial contract's `TranscriptAt` (`New.lean`) is not kept.
 
@@ -39,10 +39,10 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
     inWindow (regs .x12) Layouts.Digest.byteSize = true ∧ OffStack env (regs .x2) (regs .x12) Layouts.Digest.byteSize ∧
     inWindow (regs .x13) Layouts.Digest.byteSize = true ∧ OffStack env (regs .x2) (regs .x13) Layouts.Digest.byteSize
 
-/-- The total postcondition: the slot a transcript `TranscriptT`, owned with its proof, whose proof is the
+/-- The total postcondition: the slot a transcript `TranscriptAtT`, owned with its proof, whose proof is the
     argument. -/
 def PostT (env : Env) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
-  TranscriptT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧ m'.getMem (regs .x10 + 328#64) = regs .x11
+  TranscriptAtT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧ m'.getMem (regs .x10 + 328#64) = regs .x11
 
 /-- **The total contract of `Transcript::new`**: `PreT` to `PostT`, writing at most the slot. -/
 def specT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=

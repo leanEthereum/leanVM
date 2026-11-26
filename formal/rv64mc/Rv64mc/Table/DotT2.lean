@@ -1,5 +1,5 @@
 /-
-  Rv64mc.Table.MultilinearT2
+  Rv64mc.Table.DotT2
 
   `dot`'s second total contract at the image (`liftProg Gen.fns`), next to `MultilinearT.lean`'s `dot`: over slices
   owned by the caller (`DotOwnT`), with the generated link, the stack `Gen.Needs` gives and its callees' total
@@ -16,7 +16,7 @@ import Rv64mc.Table.RuntimeT
 import Rv64mc.Proof.Multilinear.DotOwnT
 import Rv64mc.Gen.Link.Verifier.Multilinear
 
-namespace Rv64mc.Table.MultilinearT2
+namespace Rv64mc.Table.DotT2
 
 open MachineChecked.RiscV.Lift Rv64mc.Gen Rv64mc.Proof.Multilinear
 
@@ -27,8 +27,8 @@ theorem dotOwn : DotOwnT.specT env (liftProg fns) Idx.Verifier.Multilinear.Dot N
   DotOwnT.total env _ _ _ Verifier.Multilinear.Dot.tmpl_eq Verifier.Multilinear.Dot.wf (by decide) (by decide)
     (FieldT.eMul env hd) (RuntimeT.assertFailedUsizeUsize env)
 
-end Rv64mc.Table.MultilinearT2
+end Rv64mc.Table.DotT2
 
-/-- info: 'Rv64mc.Table.MultilinearT2.dotOwn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Rv64mc.Table.DotT2.dotOwn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms Rv64mc.Table.MultilinearT2.dotOwn
+#print axioms Rv64mc.Table.DotT2.dotOwn

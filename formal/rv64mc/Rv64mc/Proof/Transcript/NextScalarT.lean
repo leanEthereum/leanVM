@@ -1,8 +1,8 @@
 /-
   Rv64mc.Proof.Transcript.NextScalarT
 
-  `Transcript::next_scalar` is total (`specT`): from a transcript `TranscriptT` (`TranscriptReprT`) owned with its
-  proof (`OwnedT`), and a result's slot in a window apart from both, it returns with the transcript `TranscriptT` and
+  `Transcript::next_scalar` is total (`specT`): from a transcript `TranscriptAtT` (`TranscriptReprT`) owned with its
+  proof (`OwnedT`), and a result's slot in a window apart from both, it returns with the transcript `TranscriptAtT` and
   owned again, its proof's address kept, writing at most the slot, the sponge and the stream offset, or ends the run
   with `a0 = 2` where `Sponge::absorb` does. Safety only: the partial contract's transcript (`NextScalar.lean`) is
   `absorb`'s functional one, over `duplex`'s permuted lanes.
@@ -99,7 +99,7 @@ theorem tail_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
   · exact Tactic.frame_out (Tactic.frame_out (Tactic.frame_out hinv_12 o0 n0) o8 n8) o16 n16
 
 /-- The state before `next`'s call (instruction 9): the registers, the frame, the code, the static data, the saved
-    registers' slots, the transcript `TranscriptT` and owned. -/
+    registers' slots, the transcript `TranscriptAtT` and owned. -/
 def MidInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (R : Reg → Word)
     (M : MachineState) : Prop :=
   R .x2 = top + 18446744073709551552#64 ∧ R .x8 = regs .x10 ∧ R .x10 = top + 18446744073709551552#64 ∧
@@ -108,7 +108,7 @@ def MidInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState)
     env.Frame top Tactic.F m M ∧ M.code = m.code ∧ env.Static M ∧
     M.getMem (top + 18446744073709551608#64) = ret ∧ M.getMem (top + 18446744073709551600#64) = regs .x8 ∧
     M.getMem (top + 18446744073709551592#64) = regs .x9 ∧ M.getMem (top + 18446744073709551584#64) = regs .x18 ∧
-    M.getMem (top + 18446744073709551576#64) = regs .x19 ∧ TranscriptT env M (regs .x11) ∧
+    M.getMem (top + 18446744073709551576#64) = regs .x19 ∧ TranscriptAtT env M (regs .x11) ∧
     OwnedT env M top (regs .x11)
 
 set_option hygiene false in
@@ -188,7 +188,7 @@ theorem kept (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     (hnx : NextSafeT.specT env p L.next.idx needN) (hab : AbsorbT.specT env p L.absorb.idx needA) :
     HoldsT env p i need (PreT env) (PostK env) (NextScalar.Out Layouts.ResultE.byteSize) (Stop := AbortStop) := by
   rv_autoT hp stop [18] with [hL, (by omega : env.stackLimit.toNat + 64 ≤ top.toNat)]
-  have hT : TranscriptT env m (regs .x11) :=
+  have hT : TranscriptAtT env m (regs .x11) :=
     ⟨⟨hpre_6, hpre_7, hpre_8, hpre_9⟩, hpre_10, hpre_11, hpre_12, hpre_13, hpre_14⟩
   have hO : OwnedT env m top (regs .x11) := hpre_2 ▸ ⟨⟨hpre_15, hpre_16⟩, ⟨hpre_17, hpre_18⟩⟩
   refine mid_ok env p i L hp hL hnN hnA hnx hab hstop hk hpre_3 hpre_5 hpre_25 hpre_26 hpre_19 hpre_20 hpre_21
@@ -224,7 +224,7 @@ theorem out_miss {env : Env} {regs : Reg → Word} {m : MachineState} (h : NextS
   · have := congrArg BitVec.toNat he
     rw [toNat_add_ofNat (by omega), h336] at this; omega
 
-/-- **`Transcript::next_scalar` is total**, from `kept` and `NextScalar.Out`'s frame (`TranscriptT.frameS`). -/
+/-- **`Transcript::next_scalar` is total**, from `kept` and `NextScalar.Out`'s frame (`TranscriptAtT.frameS`). -/
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needN needA : Nat} (hnN : 64 + needN ≤ need) (hnA : 64 + needA ≤ need)
     (hnx : NextSafeT.specT env p L.next.idx needN) (hab : AbsorbT.specT env p L.absorb.idx needA) :
