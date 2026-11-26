@@ -109,9 +109,6 @@ theorem le_of_inWin {env : Env} {top q : Word} {n : Nat} {m : MachineState} (hW 
   unfold InWin at h
   omega
 
-theorem cnt_step (j : Nat) : BitVec.ofNat 64 j + 1#64 = BitVec.ofNat 64 (j + 1) :=
-  (BitVec.ofNat_add j 1).symm
-
 /-- A word of the frame read after a call that keeps it and four stores at other offsets of the stack pointer. -/
 theorem slot_read {top c d0 d1 d2 d3 v0 v1 v2 v3 : Word} {M m1 : MachineState} {P : Word → Prop}
     (hkeep : ∀ a, top + 18446744073709551504#64 ≤ a → ¬ P a → m1.getMem a = M.getMem a)
@@ -181,12 +178,12 @@ local macro "pass_tail" : tactic => `(tactic| (
   · have hk0 : k ≠ 0 := by
       intro h0
       apply hc
-      rw [cnt_step, show n - (k + 1) + 1 = n by omega]
+      rw [Transcript.ofNat_succ, show n - (k + 1) + 1 = n by omega]
     refine ih (k - 1) _ _ (by omega) ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
       ?_, ?_, ?_⟩
     all_goals try simp only [Tactic.rf]
     case refine_3 => rw [cur_step, show n - (k - 1 + 1) = n - (k + 1) + 1 by omega]
-    case refine_4 => rw [cnt_step, show n - (k - 1 + 1) = n - (k + 1) + 1 by omega]
+    case refine_4 => rw [Transcript.ofNat_succ, show n - (k - 1 + 1) = n - (k + 1) + 1 by omega]
     case refine_6 => omega
     case refine_10 => slot_p 8 18446744073709551608#64 hI_10
     case refine_11 => slot_p 16 18446744073709551600#64 hI_11

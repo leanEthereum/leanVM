@@ -27,6 +27,7 @@ import Rv64mc.Proof.Runtime.MemcpyT
 import Rv64mc.Proof.Runtime.HaltT
 import Rv64mc.Proof.Runtime.WinT
 import Rv64mc.Proof.Multilinear.Heap
+import Rv64mc.Proof.Whir.Arith
 import Rv64mc.Tactic.SymT
 import Rv64mc.Gen.Tmpl.Verifier.RingSwitch.RingWeight
 
@@ -102,17 +103,9 @@ def LInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (
     M.getMem (top + 18446744073709551480#64) = regs .x14 + regs .x15 <<< 4 ∧
     M.getMem (top + 18446744073709551488#64) = regs .x11 ∧ Saved ret top regs M
 
-theorem cnt_dec (k : Nat) : BitVec.ofNat 64 (k + 1) + 18446744073709551615#64 = BitVec.ofNat 64 k := by
-  rw [BitVec.ofNat_add, BitVec.add_assoc,
-    show (BitVec.ofNat 64 1 + 18446744073709551615#64 : Word) = 0#64 from by decide, BitVec.add_zero]
-
 theorem shl4 (x : Word) : x <<< 4 = BitVec.ofNat 64 (16 * x.toNat) := by
   apply BitVec.eq_of_toNat_eq
   rw [BitVec.toNat_shiftLeft, BitVec.toNat_ofNat, Nat.shiftLeft_eq, Nat.mul_comm]
-
-theorem cur_step (q : Word) (j : Nat) :
-    q + BitVec.ofNat 64 (16 * j) + 16#64 = q + BitVec.ofNat 64 (16 * (j + 1)) := by
-  rw [BitVec.add_assoc, ← BitVec.ofNat_add, show 16 * j + 16 = 16 * (j + 1) by omega]
 
 /- Each pass goes through `E::mul` and `E::square`, whose results stay in the register file: the default heartbeats
    do not cover the two paths. -/
@@ -199,7 +192,7 @@ theorem inner (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
 /-- The cursor after the step to the next coefficient, `k` of `n` left before it, `k - 1` after. -/
 theorem cur_back (q : Word) {k n : Nat} (hk : k ≠ 0) (hkn : k + 1 ≤ n) :
     q + BitVec.ofNat 64 (16 * (n - (k + 1))) + 16#64 = q + BitVec.ofNat 64 (16 * (n - (k - 1 + 1))) := by
-  rw [cur_step, show n - (k + 1) + 1 = n - (k - 1 + 1) by omega]
+  rw [ptr_step, show n - (k + 1) + 1 = n - (k - 1 + 1) by omega]
 
 set_option rv_sym.heap true in
 /-- **The outer loop**, from the step to the next coefficient: the cursor moved, the return after the last one,
@@ -232,8 +225,8 @@ theorem outer (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   have hj : (regs .x14 + BitVec.ofNat 64 (16 * ((regs .x15).toNat - (k + 1)))).toNat =
       (regs .x14).toNat + 16 * ((regs .x15).toNat - (k + 1)) := toNat_add_ofNat (by omega)
   rv_symT hp stop [84, 106] with [hL, (by omega : env.stackLimit.toNat + 144 ≤ top.toNat)] using [hmu, hsq]
-  all_goals try rw [hI_11, cur_step, hsh] at hc
-  all_goals try rw [hI_11, cur_step, hsh] at hc_1
+  all_goals try rw [hI_11, ptr_step, hsh] at hc
+  all_goals try rw [hI_11, ptr_step, hsh] at hc_1
   all_goals try have hk0 : k ≠ 0 := fun h0 => hc (by
     rw [h0, show (regs .x15).toNat - (0 + 1) + 1 = (regs .x15).toNat by omega])
   all_goals try have hk0 : k ≠ 0 := fun h0 => hc_1 (by
@@ -262,7 +255,7 @@ theorem outer (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
       ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
         ?_, ?_⟩
     all_goals try simp only [Tactic.rf]
-    case refine_2 => rw [cur_step, show (regs .x15).toNat - (k + 1) + 1 = (regs .x15).toNat - k by omega]
+    case refine_2 => rw [ptr_step, show (regs .x15).toNat - (k + 1) + 1 = (regs .x15).toNat - k by omega]
     case refine_3 => omega
     case refine_4 => omega
     case refine_8 => rw [toNat_add_ofNat (by omega)]; omega
