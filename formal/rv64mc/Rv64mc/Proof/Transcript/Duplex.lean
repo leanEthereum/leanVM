@@ -86,6 +86,7 @@ theorem tail (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
         omega
   -- the permutation's and the copy's preconditions
   all_goals try (rw [Model.duplexLanes_length]; exact hs.inv.1)
+  all_goals try (refine .inr ⟨⟨.inr ?_, ?_⟩, .inr ?_⟩ <;> (try simp only [BitVec.toNat_ofNat]) <;> omega)
   all_goals try exact Or.inr (Nat.le_refl _)
   all_goals try (simp only [Spec.Hash.KeccakF.stateBytes]; omega)
   all_goals try exact hret1_14.2.1
@@ -154,6 +155,7 @@ theorem ok_at (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have ha24 : (regs .x10 + 24#64).toNat = (regs .x10).toNat + 24 := toNat_add_ofNat (by omega)
   -- the copy's and the fill's preconditions
   all_goals try (simp only [BitVec.toNat_ofNat]; omega)
+  all_goals try (refine .inr ⟨⟨.inr ?_, ?_⟩, .inr ?_⟩ <;> (try simp only [BitVec.toNat_ofNat]) <;> omega)
   all_goals try exact hret1_14.2.1
   all_goals try exact hret2_14.2.1
   all_goals try

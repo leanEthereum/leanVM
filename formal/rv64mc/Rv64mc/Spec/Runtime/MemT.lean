@@ -4,11 +4,11 @@
   The total contracts of `compiler_builtins`' `memcpy` and `memmove`: `Mem.lean`'s `CopyPre` and the bytes copied,
   with the windows a total proof needs and a byte frame that leaves out the stack below the stack pointer.
 
-  `CopyPost`'s `ByteFrame` keeps every byte outside the destination, the callee's own stack included. Both functions
-  keep scratch in a stack slot (`load_aligned_partial` assembles a partial word there when the source is not 8-byte
-  aligned), so it does not hold of their templates. `CopyPostT` keeps every byte outside the destination and outside
-  the stack below the stack pointer at entry (`OffStack`), which is all a caller can read afterwards: its objects lie
-  at or above its own stack pointer, in the heap, or in the static data.
+  Both functions keep scratch in a stack slot (`load_aligned_partial` assembles a partial word there when the source
+  is not 8-byte aligned), so a byte frame that keeps the callee's own stack does not hold of their templates.
+  `CopyPostT` is `CopyPost` (`Mem.lean`): it keeps every byte outside the destination and outside the stack below the
+  stack pointer at entry (`OffStack`), which is all a caller can read afterwards: its objects lie at or above its own
+  stack pointer, in the heap, or in the static data.
 
   The destination lies in a window apart from the static data and `NEXT` (`InWin`), the source in a window
   (`inWindow`: `keccak_f` copies its round constants out of the static data), both apart from the stack below the
@@ -16,7 +16,7 @@
 
   ## Main definitions
 
-  * `InWin`, `OffStack`, `CopyPreT`, `CopyPostT`
+  * `InWin`, `CopyPreT`, `CopyPostT`
 -/
 
 import Rv64mc.Spec.Runtime.Mem
@@ -25,10 +25,6 @@ import Rv64mc.Core.HoldsT
 namespace Rv64mc.Spec.Runtime
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV
-
-/-- The bytes `[a, a + n)` lie below the stack's limit or at or above `sp`: apart from the stack below `sp`. -/
-def OffStack (env : Env) (sp a : Word) (n : Nat) : Prop :=
-  a.toNat + n ≤ env.stackLimit.toNat ∨ sp.toNat ≤ a.toNat
 
 /-- A copy's total precondition: `CopyPre`, and unless there are no bytes, the destination in the heap window up to
     the heap's end or in the stack window, the source in a window, both apart from the stack below the stack
