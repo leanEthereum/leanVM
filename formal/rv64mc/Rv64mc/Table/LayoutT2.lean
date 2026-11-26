@@ -8,13 +8,14 @@
 
   ## Main results
 
-  * `placementNext`, `jumpConstraints`
+  * `placementNext`, `jumpConstraints`, `constraints`
 -/
 
 import Rv64mc.Table.RuntimeT
 import Rv64mc.Table.LayoutLeafT
 import Rv64mc.Proof.Layout.PlacementNextT
 import Rv64mc.Proof.Layout.JumpConstraintsT
+import Rv64mc.Proof.Layout.ConstraintsT
 import Rv64mc.Table.FieldT
 
 namespace Rv64mc.Table.LayoutT2
@@ -42,6 +43,14 @@ theorem jumpConstraints (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NE
     (Table.RuntimeT.alloc env hnext hend) (Table.FieldT.eMul env hd) (Table.RuntimeT.panicNounwindFmt env)
     (Table.RuntimeT.panicBoundsCheck env)
 
+/-- **`Table::constraints` at the image** (function 145). -/
+theorem constraints (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) (hd : Table.FieldT.ClmulTable env) :
+    ConstraintsT.SpecT env (liftProg fns) Idx.Verifier.Layout.Table.Constraints
+      Needs.Verifier.Layout.Table.Constraints :=
+  ConstraintsT.total env _ _ Verifier.Layout.Table.Constraints.link Verifier.Layout.Table.Constraints.tmpl_eq
+    Verifier.Layout.Table.Constraints.wf ((jumpConstraints env hnext hend hd).mono_need (by decide))
+
 end Rv64mc.Table.LayoutT2
 
 /-- info: 'Rv64mc.Table.LayoutT2.placementNext' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -51,3 +60,7 @@ end Rv64mc.Table.LayoutT2
 /-- info: 'Rv64mc.Table.LayoutT2.jumpConstraints' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.LayoutT2.jumpConstraints
+
+/-- info: 'Rv64mc.Table.LayoutT2.constraints' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.LayoutT2.constraints
