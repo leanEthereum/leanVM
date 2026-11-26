@@ -8,11 +8,11 @@ Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 92 | 3151 (15.1%) |
-| of which no open hypothesis | 42 | 1181 |
-| of which only environment facts open | 91 | 3149 |
+| total, with a `Table` instance | 104 | 3803 (18.2%) |
+| of which no open hypothesis | 46 | 1459 |
+| of which only environment facts open | 103 | 3801 |
 | stated, not proved here | 1 | 268 |
-| no total contract | 136 | 17459 |
+| no total contract | 124 | 16807 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
@@ -23,6 +23,8 @@ A total proof steps through each call with the callee's total contract, so its c
 
 * ~~`from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for.~~ Met: `FromElemT.FromElemSpecT`'s postcondition is `CloneT.ClonePostT env 16` (`VecT`, `vecLen` the count `a2`, the buffer fresh unless empty). `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`; `walk`'s proof discharges it there.
 * `spec_from_iter_nested` for `Vec<Option<E>>` (141): its `SrcT` asks the source `[a1, a2)` to be whole 16-byte elements in a window, 8-byte aligned. `verify_gkr_grand_products` (152, template step 106: `(x25, x25 + x12)`) and `keccak::verify_layer` (138, step 201: the slice at `x27 + 0x20`) pass a source that is a vector's elements or empty (152's first pass has `x20 := 0`, `x25 := 8`: the empty slice `[8, 8)`, which `SrcT`'s `b = e` case covers); not checked further here: their proofs discharge it, from that vector's `VecT` (`BufT.of_le`) where it is one, so the vector's builder's post must give `VecT`.
+* `Sponge::absorb` (112), `sample` (52), `absorb_nonce` (149): each calls `Sponge::duplex` (113), whose `DuplexT.PreT` asks the sponge `SpongeT` (`Proof/Transcript/SpongeReprT`: 8-byte aligned, its `328` bytes in a window, `n_pending` at most `4`, the ground tag `0` or `1`) and `Owned` at the call's stack pointer. Every sponge sits in a `Transcript` (`Layouts.Transcript.sponge = 0`), which the partial contracts keep in a caller's frame (`InFrame`), so `Owned` holds by its second disjunct. Of `SpongeT`'s conjuncts, the alignment is `SpongeAt.aligned`; `n_pending ≤ 4` and the ground tag follow from the partial `SpongeAt` (`SpongeRust.Inv`, `OptionEAt`); `InWin a 328` does not follow from `InFrame` (which gives only `a + 328 < 2 ^ 64`, not the stack window's `a + 328 ≤ 0xc0000000`), so the caller's own total precondition must carry the transcript's window (its frame's, or an `InWin` conjunct on the transcript).
+* `verify_bus_balance::{closure#2}` (158), `verify_keccak` (60): each calls `dot` (28) with a slice in its own frame: 158 passes `x12 = sp + 0x8`, `sp + 0x38`, `sp + 0x88` (template steps 47, 80, 99: the array literals of `bus.rs`'s `framework` closure), 60 passes `x10 = sp + 0x160` (template step 578). `DotT.PreT` keeps the partial `Dot.Pre`, whose `env.Live m ptr (16 * len)` asks `ptr + 16 len ≤ NEXT`, and every stack address is at or above `stackLimit > NEXT` (`Env.layout`, `NEXT ≤ heapEnd`), so at these four sites the callee's precondition is unsatisfiable and neither `dot`'s partial nor its total contract can be used. Proposed: a second total contract of `dot` beside `DotT` (no existing statement changes) whose precondition admits each slice either `Live` or in the caller's frame (`env.Live m ptr n ∨ InFrame top ptr n`, or `Owned`), the frame case's loads by `Tactic.frame_above`. The same reading is still owed for the `Live` of `eq_eval`'s, `poly_eval`'s, `index_mle`'s, `padding_weight`'s and `ring_psi`'s preconditions.
 
 ## By function
 
@@ -85,27 +87,27 @@ A total proof steps through each call with the callee's total contract, so its c
 | 3 | 56 | `<verifier::hash::Digest>::halves` | 19 | A | yes | Proof/Hash/DigestHalvesT | HashT.digestHalvesT | none |
 | 3 | 63 | `alloc::boxed::box_new_uninit` | 11 | A | yes | Proof/Runtime/BoxNewUninitT | AllocT.boxNewUninit | env |
 | 3 | 70 | `core::ptr::drop_glue::<verifier::layout::Layout> @verifier` | 23 | A | no | - | - | - |
-| 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | no | - | - | - |
+| 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | yes | Proof/Multilinear/PolyEvalT | MultilinearT.polyEval | clmul table |
 | 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | yes | Proof/Hash/KeccakHashT | HashT.keccakHashT | keccak tables (InData) |
 | 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
-| 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | no | - | - | - |
+| 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | yes | Proof/Whir/RingPsiT | MultilinearT.ringPsi | clmul table |
 | 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | yes | Proof/Bus/ClaimsFromT | VecT.claimsFrom | env |
-| 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | no | - | - | - |
-| 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | no | - | - | - |
+| 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | yes | Proof/Multilinear/IndexMleT | MultilinearT.indexMle | clmul table |
+| 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | yes | Proof/Multilinear/PaddingWeightT | MultilinearT.paddingWeight | clmul table |
 | 3 | 167 | `<verifier::layout::Form>::term` | 35 | A | yes | Proof/Layout/TermT | LayoutT.term | env |
 | 3 | 170 | `<verifier::field::E>::pow` | 45 | A | yes | Proof/Field/EPowT | LayoutT.ePow | clmul table |
 | 3 | 213 | `<verifier::transcript::Sponge>::new` | 37 | C | no | - | - | - |
 | 4 | 8 | `alloc::raw_vec::handle_error` | 5 | A | yes | Proof/Runtime/PanicsT | RuntimeT.handleError | none |
 | 4 | 14 | `core::panicking::assert_failed::<usize, usize> @core` | 3 | A | yes | Proof/Runtime/PanicsT | RuntimeT.assertFailedUsizeUsize | none |
-| 4 | 26 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 30 | D | no | - | - | - |
+| 4 | 26 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 30 | D | yes | Proof/Field/ESumU16T | SumT.eSumU16 | none |
 | 4 | 29 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 51 | D | no | - | - | - |
-| 4 | 30 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 36 | C | no | - | - | - |
-| 4 | 31 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 35 | D | no | - | - | - |
+| 4 | 30 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 36 | C | yes | Proof/Field/ESumEmbedBitsT | SumT.eSumEmbedBits | none |
+| 4 | 31 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 35 | D | yes | Proof/Field/ESumRcBitsT | SumT.eSumRcBits | none |
 | 4 | 33 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 72 | D | no | - | - | - |
 | 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | no | - | - | - |
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
-| 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | no | - | - | - |
-| 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | no | - | - | - |
+| 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | yes | Proof/Field/ScaledMulT | MultilinearT.scaledMul | none |
+| 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | yes | Proof/Transcript/DuplexT (over SpongeReprT) | TranscriptT2.duplex | keccak tables (InData) |
 | 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | no | - | - | - |
 | 4 | 142 | `core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<...` | 110 | D | no | - | - | - |
 | 4 | 148 | `verifier::layout::jump_constraints` | 67 | D | no | - | - | - |
@@ -116,7 +118,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 183 | `<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<...` | 78 | D | no | - | - | - |
 | 4 | 216 | `verifier::bytecode::is_valid_encoding_of_a_leanisa_program` | 287 | A | no | - | - | - |
 | 5 | 24 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 60 | D | no | - | - | - |
-| 5 | 28 | `verifier::multilinear::dot` | 44 | A | no | - | - | - |
+| 5 | 28 | `verifier::multilinear::dot` | 44 | A | yes | Proof/Multilinear/DotT (`Pre` unsatisfiable at four call sites, see Obligations) | MultilinearT.dot | clmul table |
 | 5 | 32 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::op...` | 69 | D | no | - | - | - |
 | 5 | 39 | `<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<...` | 11 | A | yes | Proof/Runtime/DoReserveT | AllocT.doReserve | env |
 | 5 | 52 | `<verifier::transcript::Sponge>::sample` | 19 | A | no | - | - | - |
@@ -127,8 +129,8 @@ A total proof steps through each call with the callee's total contract, so its c
 | 5 | 83 | `verifier::whir::fold_row` | 104 | C | no | - | - | - |
 | 5 | 91 | `<alloc::raw_vec::RawVec<verifier::field::E>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneE | env |
 | 5 | 92 | `<alloc::raw_vec::RawVec<verifier::whir::FoldRound>>::grow_one @veri...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneFoldRound | env |
-| 5 | 94 | `<verifier::multilinear::Scaler>::mul` | 17 | A | no | - | - | - |
-| 5 | 98 | `verifier::multilinear::eq_eval` | 40 | A | no | - | - | - |
+| 5 | 94 | `<verifier::multilinear::Scaler>::mul` | 17 | A | yes | Proof/Multilinear/ScalerMulT | MultilinearT.scalerMul | clmul table |
+| 5 | 98 | `verifier::multilinear::eq_eval` | 40 | A | yes | Proof/Multilinear/EqEvalT | MultilinearT.eqEval | clmul table |
 | 5 | 103 | `verifier::ring_switch::ring_weight` | 106 | C | no | - | - | - |
 | 5 | 112 | `<verifier::transcript::Sponge>::absorb` | 43 | A | no | - | - | - |
 | 5 | 118 | `<alloc::raw_vec::RawVec<verifier::field::K>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneK | env |
