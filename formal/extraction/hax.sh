@@ -123,7 +123,25 @@ check() {
     echo "error: Aeneas left a \`sorry\` in the files above; formal/extraction/repair.py extract marks such items opaque" >&2
     exit 1
   fi
+  proofs
   formal/extraction/report.sh
+}
+
+# The proofs about the extractions (formal/extraction/proofs/<crate>): they build, by nothing but
+# proof, and their end theorem rests on the axioms its `axioms` file lists and no others.
+proofs() {
+  local dir
+  for dir in formal/extraction/proofs/*/; do
+    (cd "$dir" && lake build)
+    if grep -rnwE 'sorry|admit|native_decide|bv_decide|axiom|set_option|unsafe|implemented_by' "$dir" --include='*.lean' --exclude-dir=.lake; then
+      echo "error: an escape in $dir, above" >&2
+      exit 1
+    fi
+    if ! (cd "$dir" && lake env lean Axioms.lean | tr -d '\n ' | diff - <(tr -d '\n ' < axioms)); then
+      echo "error: the axioms of $dir's theorem are not those in ${dir}axioms" >&2
+      exit 1
+    fi
+  done
 }
 
 patched() {

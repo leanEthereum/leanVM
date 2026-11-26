@@ -34,10 +34,11 @@ formal/extraction/
   wire.py                                 wires every package into this workspace (run by hax.sh)
   report.sh                               what each extraction takes on trust, as a table
   CoreModelsExt/                          models of standard-library items the hax Lean library lacks
+  proofs/<crate>/                         proofs about an extraction, a Lake package of their own (proofs/lean_sphincs/README.md)
   lakefile.toml, Extraction/              generated and gitignored: the workspace, written by wire.py
 ```
 
-Committed: the scenarios, the patches, the scripts and `CoreModelsExt`. Generated: everything under a `lean/` directory, and this workspace's lakefile, manifest and `Extraction/` roots. The one committed lock of the Lean dependencies is `CoreModelsExt/lake-manifest.json`, which every generated manifest copies; `lake update` in `CoreModelsExt` moves it.
+Committed: the scenarios, the patches, the scripts, `CoreModelsExt` and the proofs. Generated: everything under a `lean/` directory, and this workspace's lakefile, manifest and `Extraction/` roots. The one committed lock of the Lean dependencies is `CoreModelsExt/lake-manifest.json`, which every generated manifest copies; `lake update` in `CoreModelsExt` moves it.
 
 A scenario's `opaque` list names the items extracted as signatures only (axioms in `Assumptions/`), and its `exclude` list the items left out altogether. Each entry sits under a comment saying what stops it, so the lists are also the work left.
 
@@ -108,6 +109,10 @@ Then `formal/extraction/repair.py extract crates/<crate>`, which fills the two l
 - **The assumptions.** Opaque items are axioms with no body; the models in `CoreModelsExt` are as good as their definitions, and its `opaque`s are assumptions too.
 - **The patches.** The Lean describes the patched Rust; the tests are the evidence that it computes what the committed Rust does.
 - **The portable paths.** The SIMD and other hardware-specific code the crates run on x86-64 and aarch64 is not extracted.
+
+## Proofs
+
+`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), given what `keccak256::absorb` and `digest_of` compute. Its README says what the theorem rests on and what proving it found. `hax.sh check` builds it, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares the theorem's axioms with the committed list.
 
 ## Versions
 
