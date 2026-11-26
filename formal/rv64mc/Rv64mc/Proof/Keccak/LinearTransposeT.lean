@@ -1,17 +1,29 @@
 /-
   Rv64mc.Proof.Keccak.LinearTransposeT
 
-  `linear_transpose::<E>`'s partial proof (`LinearTranspose.lean`) ported to `HoldsT`, loop by loop: each loop of
-  the partial proof, there an induction on the positions left with a continuation, is `Total.loop` here with them as
-  the measure, the partial invariant and the code map kept.
+  `linear_transpose::<E>` is total: it returns `LinearTranspose.Post`'s vector (`Spec.Keccak.LinearTranspose`),
+  which is also a vector's (`VecReprT.VecT`), or the run ends with the guest's abort (`AbortStop`): `assert_eq!` on
+  a slice of another length than `1600`, `alloc`, `handle_error`, or the bounds check (dead). Over any program
+  holding its template, from the total contracts of `memset` (with its bytes, `MemsetBytesT`), `alloc`,
+  `Vec::reserve`, `panic_bounds_check`, `assert_failed` and `handle_error`, and its three constant tables in the
+  static data (`DataRef.InData`; `KECCAK_RHO` also as `u32`s, `RhoAt`).
+
+  The partial proof (`LinearTranspose.lean`) ported segment by segment: each loop, there an induction on the
+  positions left with a continuation, is `Total.loop` here with them as the measure, over the partial invariant and
+  the code map kept (`LInv1`, `LInv2`, `LInv3`). A load whose address the code computes by `mulhu`, masks or a
+  table read is stepped to a stop just before it, where the partial's normalizing lemma (`idx_eq`, `cols_addr`,
+  `maskA*`, `colA_eq`, ...) rewrites the register file, so that the window's arithmetic is linear. `total` steps
+  the prologue and `g`'s `memset` and chains `loop1`, `loop2`, `mid`, `loop3`, `fin`.
 
   ## Main definitions
 
-  * `LInv2`
+  * `PreT`, `PostT`, `SpecT`, `LInv1`, `LInv2`, `LInv3`
 
   ## Main results
 
-  * `loop2`: the column sums
+  * `total`
+  * `loop1`, `loop2`, `mid`, `loop3`, `fin`: the segments
+  * `table_win`: a part of a constant table's word in a window and aligned
 -/
 
 import Rv64mc.Proof.Keccak.LinearTranspose
@@ -433,5 +445,77 @@ theorem loop1 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {ws : Li
     · exact start_ofs top 18446744073709546424
     · exact start_ofs8 top 18446744073709546424
     · exact start_ofs8 top 18446744073709520824
+
+set_option rv_sym.heap true in
+/-- **`linear_transpose::<E>` is total**, with `30816` bytes of stack beyond its callees'. -/
+theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
+    {need nMs nAl nRes nPb nAf nHe : Nat} (hnMs : 30816 + nMs ≤ need) (hnAl : 30816 + nAl ≤ need)
+    (hnRes : 30816 + nRes ≤ need) (hnPb : 30816 + nPb ≤ need) (hnAf : 30816 + nAf ≤ need)
+    (hnHe : 30816 + nHe ≤ need)
+    (hms : Runtime.MemsetBytesT.MemsetSpecT env p L.memset.idx nMs)
+    (hal : Runtime.AllocT.AllocSpecT env p L.alloc.idx nAl)
+    (hres : Runtime.ReserveT.ReserveSpecT env 8 16 p L.reserve.idx nRes)
+    (hpb : Runtime.Aborts env p L.panicBoundsCheck.idx nPb)
+    (haf : Runtime.Aborts env p L.assertFailedUsizeUsize.idx nAf)
+    (hhe : Runtime.Aborts env p L.handleError.idx nHe)
+    (hpi : DataRef.InData env [(L.d_c200_f4afdee4, Gen.Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)])
+    (hrhoD : DataRef.InData env [(L.d_c100_179d68cc, Gen.Verifier.Keccak.LinearTransposeE.d_c100_179d68cc_words)])
+    (hrho : RhoAt env L.d_c100_179d68cc)
+    (hmagic : DataRef.InData env [(L.d_c8_e5d50e4a, Gen.Verifier.Keccak.LinearTransposeE.d_c8_e5d50e4a_words)]) :
+    SpecT env p i need := by
+  intro ws
+  have hal' : HoldsT env p L.alloc.idx nAl Spec.Runtime.AllocPre (Spec.Runtime.AllocPost env) (Stop := AbortStop) :=
+    hal.mono_stop fun _ _ _ _ _ h => h.1
+  rv_autoT hp stop [58, 78] with [hL] using [hms, hal', hres, hpb, haf, hhe]
+  have htop : env.stackLimit.toNat + 30816 ≤ top.toNat := by omega
+  have := top.isLt
+  have hlen : ws.length = 1600 := by
+    have h7 := hpre_7.1
+    simp only [List.length_map, Layouts.E.byteSize] at h7 hc
+    exact (ofNat_inj (by omega) (by decide)).1 hc
+  have hx12 : (regs .x12).toNat = 1600 := by rw [hpre_6]; simp [hlen]
+  obtain ⟨hsl, hw8⟩ := hpre_14.resolve_left (by omega)
+  rw [hx12] at hsl
+  have hlay := env.layout
+  have tp := table_win hpre_16 hpi (k := 0) (j := 0) (w := 8) (by decide) (by omega) (Or.inr rfl) rfl
+  have tr := table_win hpre_16 hrhoD (k := 0) (j := 0) (w := 4) (by decide) (by omega) (Or.inl rfl) rfl
+  simp only [Nat.mul_zero, Nat.add_zero, BitVec.add_zero] at tp tr
+  rv_symT hp stop [78] with [hL] using [hms, hpb]
+  · exact tp.1
+  · exact tr.1
+  rw [rho_load0 hrho hret2_15]
+  have hge := hpre_16.next_ge
+  have hown : env.Owned m top (regs .x10) Layouts.Vec.byteSize := ⟨by rw [← hpre_2]; exact hpre_9, hpre_10⟩
+  -- the prologue's stores, then `g`'s `memset`
+  have f0 : env.Frame top Tactic.F m ((((((m.setMem (top + 18446744073709551608#64) ret).setMem
+      (top + 18446744073709551600#64) (regs .x8)).setMem (top + 18446744073709551592#64) (regs .x9)).setMem
+      (top + 18446744073709551584#64) (regs .x18)).setMem (top + 18446744073709551576#64) (regs .x19)).setMem
+      (top + 18446744073709551568#64) (regs .x20)) := by
+    refine Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
+      (Tactic.frame_store (Tactic.frame_refl hpre_5) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_) ?_ ?_ <;>
+      rw [toNat_top (by decide) (by omega)] <;> omega
+  obtain ⟨f1, s1, -⟩ := memset_frame (ret := ret) (regs := regs) htop f0 (fun a _ => rfl) hret2_14
+    (a := top + 18446744073709520824#64) (len := 25600)
+    (fun b hb => by
+      simp only [Spec.Runtime.CopyOut, Spec.Runtime.DwordsOf, Lprog.updReg_apply, Tactic.rf, reduceCtorEq,
+        ite_false] at hb
+      have hal8 : (top + 18446744073709520824#64).toNat % 8 = 0 := by rw [gBase_toNat (by omega)]; omega
+      rw [alignToDword_self hal8, hal8] at hb
+      exact hb)
+    (by rw [toNat_top (by decide) (by omega), gBase_toNat (by omega)]; omega)
+    (by rw [gBase_toNat (by omega)]; omega)
+  have h3 := fun (P : Word) (hP8 : P.toNat % 8 = 0) => loop3 (cap := 1600) hp htop hpre_16 hpre_15 hge hP8
+    (fin hp htop hpre_16 hpre_15 hge hP8 (by decide) hpre_4 hpre_5 hown hpre_12 hpre_13 hlen hk)
+  have h2 := mid hp hL hnAl hnRes hnHe hal' hres hhe hmagic hstop hpre_3 hpre_4 hpre_5 hpre_15 hpre_16 hge h3
+  have h1 := loop2 hp htop hpre_16 hpre_15 h2
+  refine loop1 hp hL hnMs hnPb hms hpb hpi hrhoD hrho hstop hpre_3 hpre_4 hpre_5 hpre_15 hpre_16 hpre_7 hpre_8 hlen
+    hsl hw8 (fun R M h hc => h1 1599 R M ⟨0, by omega, h, hc⟩) 1599 _ _
+    ⟨0, 0, by omega, by omega, ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, f1, s1⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      ?_, fun k hk => absurd hk (Nat.not_lt_zero _)⟩, hret2_19⟩
+  all_goals rv_closeT
+  · simp only [Tactic.rf]; exact start_ofs8 top 18446744073709520824
+  · rw [DataRef.Words.get0 (hpi.words (List.mem_singleton_self _)) hret2_15 (by decide)]
+    decide +kernel
+  · simp only [Tactic.rf]; exact start_ofs8 top 18446744073709520824
 
 end Rv64mc.Proof.Keccak.LinearTransposeT
