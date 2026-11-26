@@ -249,6 +249,15 @@ theorem dwords_bounds {d a : Word} {n : Nat} (h : DwordsOf d n a) (hd : d.toNat 
   rw [toNat_alignToDword] at h
   omega
 
+/-- What a copy into the frame at `top - o`, 8-byte aligned, writes lies in it. -/
+theorem copyOut_frame {top c a : Word} {R : Reg → Word} {M : MachineState} {o : Nat}
+    (hc : (top + c).toNat = top.toNat - o) (hal : (top.toNat - o) % 8 = 0) (h10 : R .x10 = top + c)
+    (ha : CopyOut R M a) : top.toNat - o ≤ a.toNat ∧ a.toNat < top.toNat - o + (R .x12).toNat := by
+  unfold CopyOut at ha
+  rw [h10] at ha
+  rw [← hc]
+  exact dwords_bounds ha (by rw [hc]; exact hal)
+
 /-- A callee's frame keeps a word of the stack at or above the callee's stack top and not in its `out`. -/
 theorem frame_keep {t a : Word} {out : Word → Prop} {M M' : MachineState} (hf : env.Frame t out M M')
     (ht : t.toNat ≤ a.toNat) (hs : env.stackLimit.toNat ≤ a.toNat) (hout : ¬ out a) : M'.getMem a = M.getMem a := by
@@ -275,13 +284,8 @@ theorem memset_out {top a : Word} {R : Reg → Word} {M : MachineState} (h16 : t
     {n : Nat} (hroom : env.stackLimit.toNat + (0x290 + n) ≤ top.toNat) (h10 : R .x10 = top + 0xfffffffffffffed0#64)
     (h12 : R .x12 = 200#64) (ha : CopyOut R M a) :
     env.stackLimit.toNat ≤ a.toNat ∧ a.toNat + 0x68 < top.toNat := by
-  have e : (top + 0xfffffffffffffed0#64).toNat = top.toNat - 0x130 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  have ha' : DwordsOf (top + 0xfffffffffffffed0#64) (200#64).toNat a := by
-    unfold CopyOut at ha; rw [h10, h12] at ha; exact ha
-  have hb := dwords_bounds ha' (by rw [e]; omega)
-  rw [e] at hb
-  have : (200#64).toNat = 200 := rfl
+  have := copyOut_frame (o := 0x130) (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (by omega) h10 ha
+  rw [h12, show (200#64).toNat = 200 from rfl] at this
   omega
 
 /-- The round counter's slot. -/
@@ -322,13 +326,8 @@ theorem cnt_memset {top : Word} {R : Reg → Word} {M M' : MachineState} {n : Na
   have e := cnt_toNat (top := top) (by omega)
   refine frame_keep hf ?_ (by omega) fun ha => ?_
   · rw [e, BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  · have := memset_out h16 hroom h10 h12 ha
-    have e2 : (top + 0xfffffffffffffed0#64).toNat = top.toNat - 0x130 := by
-      rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-    have ha' : DwordsOf (top + 0xfffffffffffffed0#64) (200#64).toNat (cnt top) := by
-      unfold CopyOut at ha; rw [h10, h12] at ha; exact ha
-    have hb := dwords_bounds ha' (by rw [e2]; omega)
-    rw [e2, e] at hb
+  · have := copyOut_frame (o := 0x130) (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (by omega) h10 ha
+    rw [e, h12, show (200#64).toNat = 200 from rfl] at this
     omega
 
 /-- A table index's step. -/
@@ -385,13 +384,8 @@ theorem memcpy_out {top a : Word} {R : Reg → Word} {M : MachineState} (h16 : t
     {n : Nat} (hroom : env.stackLimit.toNat + (0x290 + n) ≤ top.toNat) (h10 : R .x10 = top + 0xfffffffffffffe10#64)
     (h12 : R .x12 = 192#64) (ha : CopyOut R M a) :
     env.stackLimit.toNat ≤ a.toNat ∧ a.toNat + 0x68 < top.toNat := by
-  have e : (top + 0xfffffffffffffe10#64).toNat = top.toNat - 0x1f0 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  have ha' : DwordsOf (top + 0xfffffffffffffe10#64) (192#64).toNat a := by
-    unfold CopyOut at ha; rw [h10, h12] at ha; exact ha
-  have hb := dwords_bounds ha' (by rw [e]; omega)
-  rw [e] at hb
-  have : (192#64).toNat = 192 := rfl
+  have := copyOut_frame (o := 0x1f0) (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (by omega) h10 ha
+  rw [h12, show (192#64).toNat = 192 from rfl] at this
   omega
 
 /-- The continuation every part is proved against: the contract's, at the return. -/
@@ -438,6 +432,19 @@ local macro "mem_close " F:term:max hM:term:max : tactic => `(tactic| (
 local macro "cnt_close " F:term:max h:term:max : tactic => `(tactic| (
   repeat (first | rw [cnt_state0 $F] | rw [cnt_state $F (by decide)] | rw [cnt_stack (by decide)])
   exact $h))
+
+set_option hygiene false in
+/-- A round's part from `Body` to the next part at `pc`, through stores into the state and the stack. -/
+local macro "round_part " C:term:max hb:term:max hB:term:max pc:num next:ident : tactic => `(tactic| (
+  obtain ⟨⟨h2, h8, hM⟩, h23, h13, hk0⟩ := $hB
+  fx_facts $C hM
+  have hR := And.intro h2 (And.intro h8 h23)
+  rv_introT hR
+  rv_symT hp stop [$pc]
+  refine $next $C $hb ⟨⟨?_, ?_, ?mem⟩, ?_, ?cnt, hk0⟩
+  case mem => mem_close F hM
+  case cnt => cnt_close F h13
+  all_goals rv_closeT))
 
 /-- The round loop's head, `k` rounds left: the round counter in `a3`. -/
 def Head (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (k : Nat) (r : Reg → Word)
@@ -509,45 +516,21 @@ set_option rv_sym.heap true in
 theorem p6_ok (C : Ctx env p i L needC Q ret top rest regs m) {k : Nat} (hb : Back env p i Q ret top rest regs m k)
     {r : Reg → Word} {M : MachineState} (hB : Body env ret top regs m k r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 660, ret, top⟩ :: rest, r, M⟩ := by
-  obtain ⟨⟨h2, h8, hM⟩, h23, h13, hk0⟩ := hB
-  fx_facts C hM
-  have hR := And.intro h2 (And.intro h8 h23)
-  rv_introT hR
-  rv_symT hp stop [740]
-  refine p7_ok C hb ⟨⟨?_, ?_, ?mem⟩, ?_, ?cnt, hk0⟩
-  case mem => mem_close F hM
-  case cnt => cnt_close F h13
-  all_goals rv_closeT
+  round_part C hb hB 740 p7_ok
 
 set_option rv_sym.heap true in
 /-- A round from label 280. -/
 theorem p5_ok (C : Ctx env p i L needC Q ret top rest regs m) {k : Nat} (hb : Back env p i Q ret top rest regs m k)
     {r : Reg → Word} {M : MachineState} (hB : Body env ret top regs m k r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 560, ret, top⟩ :: rest, r, M⟩ := by
-  obtain ⟨⟨h2, h8, hM⟩, h23, h13, hk0⟩ := hB
-  fx_facts C hM
-  have hR := And.intro h2 (And.intro h8 h23)
-  rv_introT hR
-  rv_symT hp stop [660]
-  refine p6_ok C hb ⟨⟨?_, ?_, ?mem⟩, ?_, ?cnt, hk0⟩
-  case mem => mem_close F hM
-  case cnt => cnt_close F h13
-  all_goals rv_closeT
+  round_part C hb hB 660 p6_ok
 
 set_option rv_sym.heap true in
 /-- A round after the `π` loop. -/
 theorem p4_ok (C : Ctx env p i L needC Q ret top rest regs m) {k : Nat} (hb : Back env p i Q ret top rest regs m k)
     {r : Reg → Word} {M : MachineState} (hB : Body env ret top regs m k r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 430, ret, top⟩ :: rest, r, M⟩ := by
-  obtain ⟨⟨h2, h8, hM⟩, h23, h13, hk0⟩ := hB
-  fx_facts C hM
-  have hR := And.intro h2 (And.intro h8 h23)
-  rv_introT hR
-  rv_symT hp stop [560]
-  refine p5_ok C hb ⟨⟨?_, ?_, ?mem⟩, ?_, ?cnt, hk0⟩
-  case mem => mem_close F hM
-  case cnt => cnt_close F h13
-  all_goals rv_closeT
+  round_part C hb hB 560 p5_ok
 
 set_option rv_sym.heap true in
 /-- **The `π` loop**, by `Total.loop` with the lanes left as the measure. -/

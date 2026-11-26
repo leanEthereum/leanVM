@@ -284,13 +284,8 @@ theorem state_out' {top a : Word} {R : Reg → Word} {M : MachineState} {n : Nat
     (hroom : env.stackLimit.toNat + (0x180 + n) ≤ top.toNat) (h10 : R .x10 = top + 0xfffffffffffffe80#64)
     (h12 : R .x12 = 200#64) (ha : CopyOut R M a) :
     env.stackLimit.toNat ≤ a.toNat ∧ a.toNat + 0x30 < top.toNat := by
-  have e : (top + 0xfffffffffffffe80#64).toNat = top.toNat - 0x180 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  have ha' : DwordsOf (top + 0xfffffffffffffe80#64) (200#64).toNat a := by
-    unfold CopyOut at ha; rw [h10, h12] at ha; exact ha
-  unfold DwordsOf InRange at ha'
-  rw [toNat_alignToDword, e] at ha'
-  have : (200#64).toNat = 200 := rfl
+  have := KeccakFT.copyOut_frame (o := 0x180) (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (by omega) h10 ha
+  rw [h12, show (200#64).toNat = 200 from rfl] at this
   omega
 
 /-- What a copy into the frame's buffer at `sp + 0xc8` writes lies below the saved slots. -/
@@ -298,12 +293,7 @@ theorem buf_out {top a : Word} {R : Reg → Word} {M : MachineState} {n : Nat} (
     (hroom : env.stackLimit.toNat + (0x180 + n) ≤ top.toNat) (h10 : R .x10 = top + 0xffffffffffffff48#64)
     (h12 : (R .x12).toNat ≤ 136) (ha : CopyOut R M a) :
     env.stackLimit.toNat ≤ a.toNat ∧ a.toNat + 0x30 < top.toNat := by
-  have e : (top + 0xffffffffffffff48#64).toNat = top.toNat - 0xb8 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  have ha' : DwordsOf (top + 0xffffffffffffff48#64) (R .x12).toNat a := by
-    unfold CopyOut at ha; rw [h10] at ha; exact ha
-  unfold DwordsOf InRange at ha'
-  rw [toNat_alignToDword, e] at ha'
+  have := KeccakFT.copyOut_frame (o := 0xb8) (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) (by omega) h10 ha
   omega
 
 /-- The callee-saved registers the function never writes. -/
@@ -359,7 +349,7 @@ set_option rv_sym.heap true in
 theorem fin2_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Fin env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 256, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have hr := hT.2.2.1; have hM := hT.2.2.2
+  obtain ⟨h2, h8, hr, hM⟩ := hT
   fx_facts C hM
   obtain ⟨s1, s2, s3, s4, s5, s6⟩ := saves_get (m := m) (top := top) (ret := ret) (regs := regs)
   have hR := And.intro h2 (And.intro h8 hr)
@@ -375,7 +365,7 @@ set_option rv_sym.heap true in
 theorem finB_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Fin env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 192, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have hr := hT.2.2.1; have hM := hT.2.2.2
+  obtain ⟨h2, h8, hr, hM⟩ := hT
   fx_facts C hM
   have hR := And.intro h2 (And.intro h8 hr)
   rv_introT hR
@@ -389,7 +379,7 @@ set_option rv_sym.heap true in
 theorem fin_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Fin env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 128, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have hr := hT.2.2.1; have hM := hT.2.2.2
+  obtain ⟨h2, h8, hr, hM⟩ := hT
   fx_facts C hM
   have hR := And.intro h2 (And.intro h8 hr)
   rv_introT hR
@@ -403,7 +393,7 @@ set_option rv_sym.heap true in
 theorem tail3_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Fin env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 114, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have hr := hT.2.2.1; have hM := hT.2.2.2
+  obtain ⟨h2, h8, hr, hM⟩ := hT
   fx_facts C hM
   have hR := And.intro h2 (And.intro h8 hr)
   rv_introT hR
@@ -421,8 +411,7 @@ set_option rv_sym.heap true in
 theorem tail2_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Tail2 env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 100, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have h19 := hT.2.2.1; have h9 := hT.2.2.2.1; have hr := hT.2.2.2.2.1
-  have hM := hT.2.2.2.2.2
+  obtain ⟨h2, h8, h19, h9, hr, hM⟩ := hT
   fx_facts C hM
   have e1 : (top + 0xffffffffffffff48#64).toNat = top.toNat - 0xb8 := by
     rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
@@ -443,8 +432,7 @@ set_option rv_sym.heap true in
 theorem tail_ok (C : Ctx env p i L needC Q ret top rest regs m) {r : Reg → Word} {M : MachineState}
     (hT : Tail env ret top regs m r M) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 78, ret, top⟩ :: rest, r, M⟩ := by
-  have h2 := hT.1; have h8 := hT.2.1; have h18 := hT.2.2.1; have h9 := hT.2.2.2.1; have hr := hT.2.2.2.2.1
-  have hM := hT.2.2.2.2.2
+  obtain ⟨h2, h8, h18, h9, hr, hM⟩ := hT
   fx_facts C hM
   have hR := And.intro h2 (And.intro h8 (And.intro h18 (And.intro h9 hr)))
   rv_introT hR
@@ -476,8 +464,7 @@ set_option rv_sym.heap true in
 theorem loop_ok (C : Ctx env p i L needC Q ret top rest regs m) :
     ∀ k r M, LInv env ret top regs m k r M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 58, ret, top⟩ :: rest, r, M⟩ := by
   refine Total.loop (I := rvIsa) (LInv env ret top regs m) fun k r M ⟨hT, h20, hk0, hkq, h11⟩ ih => ?_
-  have h2 := hT.1; have h8 := hT.2.1; have h18 := hT.2.2.1; have h9 := hT.2.2.2.1; have hr := hT.2.2.2.2.1
-  have hM := hT.2.2.2.2.2
+  obtain ⟨h2, h8, h18, h9, hr, hM⟩ := hT
   fx_facts C hM
   have hR := And.intro h2 (And.intro h8 (And.intro h18 (And.intro h9 hr)))
   rv_introT hR
@@ -499,8 +486,8 @@ theorem loop_ok (C : Ctx env p i L needC Q ret top rest regs m) :
     case h20 => rw [Tactic.rf_get_x20, e20]; omega
     case h11 => rw [Tactic.rf_get_x11, e11]; omega
     all_goals rv_closeT
-  · exact tail_ok C ⟨by rv_closeT, by rv_closeT, by rv_closeT, by rv_closeT,
-      ⟨by rv_closeT, by rv_closeT, by rv_closeT, by rv_closeT, by rv_closeT, by rv_closeT, by rv_closeT⟩, hM'⟩
+  · refine tail_ok C ⟨?_, ?_, ?_, ?_, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, hM'⟩
+    all_goals rv_closeT
 
 set_option rv_sym.heap true in
 /-- **`keccak_hash` is total**, with its `0x180`-byte frame and the stack its callees need. -/
