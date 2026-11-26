@@ -615,3 +615,49 @@ pub fn build_layout<'a>(
         keccak,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verifier_stack_offsets_arithmetic_at_size_limits() {
+        let check = |caller: &str, sizes: Vec<usize>| {
+            assert!(sizes.len() >= 2, "{caller} must pass at least two blocks");
+            let mut total = 0u64;
+            for exponent in sizes {
+                assert!(
+                    exponent < u64::BITS as usize,
+                    "{caller} block exponent {exponent} exceeds the shift range"
+                );
+                total = total
+                    .checked_add(1u64 << exponent)
+                    .unwrap_or_else(|| panic!("{caller} block sizes exceed u64"));
+            }
+        };
+
+        let tables = tables();
+        let table_log_heights = TABLE_LOG_FLOORS.map(|floor| floor.max(MAX_TABLE_LOG));
+        let kappas = column_kappas(&tables, MAX_LOG_MEMORY, MAX_LOG_BYTECODE, &table_log_heights);
+        check(
+            "layout",
+            stacked_blocks(kappas.len())
+                .into_iter()
+                .map(|column| kappas[column])
+                .collect(),
+        );
+
+        let mut push = vec![0, MAX_LOG_MEMORY, MAX_LOG_BYTECODE];
+        let mut pull = push.clone();
+        let mut count = Vec::new();
+        for table in &tables {
+            let height = table_log_heights[table.opcode];
+            push.extend(std::iter::repeat_n(height, table.flushes.push.len()));
+            pull.extend(std::iter::repeat_n(height, table.flushes.pull.len()));
+            count.extend(table.count_columns().map(|_| height));
+        }
+        check("bus push", push);
+        check("bus pull", pull);
+        check("bus count", count);
+    }
+}
