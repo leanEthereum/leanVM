@@ -309,6 +309,23 @@ def check_linked_elf(ref, linked, entry="sphincs_verify"):
         except ValueError as exc:
             errors.append(f"{fn_name}+{off:#x}: rodata {sec['name']}: {exc}")
             return
+        if sec["name"].startswith(".data.rel.ro"):
+            # Relocated read-only metadata (e.g. panic::Location structs holding string pointers).
+            # Check all non-relocated bytes against the reference section.
+            sec_rels = ref.sec_relocs.get(ref_shndx, {})
+            masked = bytearray(len(sec["data"]))
+            for roff in sec_rels:
+                for k in range(8):
+                    if roff + k < len(masked):
+                        masked[roff + k] = 1
+            for i in range(len(sec["data"])):
+                if not masked[i] and actual[i] != sec["data"][i]:
+                    errors.append(
+                        f"{fn_name}+{off:#x}: {sec['name']}+{i:#x} mismatch at {base_vaddr:#x}"
+                    )
+                    return
+            checked_rodata.add((sec["name"], base_vaddr, len(sec["data"])))
+            return
         if flags & PF_W:
             errors.append(f"{fn_name}+{off:#x}: rodata {sec['name']} at {base_vaddr:#x} is writable")
         if actual != sec["data"]:
