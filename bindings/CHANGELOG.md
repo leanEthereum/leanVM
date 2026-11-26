@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.19.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.18.0...bindings-v0.19.0) (2026-11-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* `lean_xmss::MAX_CACHED_BOTTOM_TREES` (and its `lean_vm::lean_xmss` re-export) is renamed `DEFAULT_BOTTOM_TREE_CACHE_SIZE`.
+
+### Features
+
+* leanXMSS keys cache 8 bottom trees by default, tunable per key ([3d84ffc](https://github.com/leanEthereum/leanVM/commit/3d84ffc3c866d66f4c632848f8fc6f30a3350f76))
+* PROTOCOL_VERSION ([3f51bd5](https://github.com/leanEthereum/leanVM/commit/3f51bd5cd4ace29196705369cf2934fedc3af922))
+
+
+### Bug Fixes
+
+* **experimental:** type unwritten buffers as MaybeUninit ([20a75c1](https://github.com/leanEthereum/leanVM/commit/20a75c102288b6016b5ff8057f8c51c80a222f77))
+
+
+### Performance Improvements
+
+* **aggregation:** skip the top leanXMSS layer's walk in its hints ([12d9a7d](https://github.com/leanEthereum/leanVM/commit/12d9a7d2da1de41227ca37919705c21522f8849f))
+* **lean_xmss:** hash a signature's chain steps in batches ([c5a6c88](https://github.com/leanEthereum/leanVM/commit/c5a6c88f7c494694815cb06e8b6a63b99e4505cc))
+
 ## [0.18.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.17.0...bindings-v0.18.0) (2026-11-24)
 
 
