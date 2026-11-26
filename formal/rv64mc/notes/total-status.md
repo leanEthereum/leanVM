@@ -79,7 +79,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 3 | 63 | `alloc::boxed::box_new_uninit` | 11 | A | no | - | - | - |
 | 3 | 70 | `core::ptr::drop_glue::<verifier::layout::Layout> @verifier` | 23 | A | no | - | - | - |
 | 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | no | - | - | - |
-| 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | no | - | - | - |
+| 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | yes | Proof/Hash/KeccakHashT | HashT.keccakHashT | keccak tables (InData) |
 | 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
 | 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | no | - | - | - |
 | 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | no | - | - | - |

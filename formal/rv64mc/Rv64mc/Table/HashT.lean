@@ -2,18 +2,20 @@
   Rv64mc.Table.HashT
 
   The total contracts of the hash functions proved total, at the image: `xor_block` (`XorBlockSafeT`), a leaf, and
-  `keccak_f` (`KeccakFSafeT`), over the C wrappers `memcpy` and `memset`, and `Digest::halves`, over
-  `Digest::words`. Left as a hypothesis: `keccak_f`'s three
-  constant tables in the image's static data (`KeccakTables`, `DataRef.InData`), an environment fact.
+  `keccak_f` (`KeccakFSafeT`), over the C wrappers `memcpy` and `memset`, `Digest::halves`, over
+  `Digest::words`, and `keccak_hash` (`KeccakHashSafeT`), over `memcpy`, `memset`, `xor_block` and `keccak_f`.
+  Left as a hypothesis: `keccak_f`'s three constant tables in the image's static data (`KeccakTables`,
+  `DataRef.InData`), an environment fact.
 
   ## Main results
 
-  * `xorBlockT`, `keccakFT`, `digestHalvesT`
+  * `xorBlockT`, `keccakFT`, `digestHalvesT`, `keccakHashT`
 -/
 
 import Rv64mc.Proof.Hash.XorBlockT
 import Rv64mc.Proof.Hash.KeccakFT
 import Rv64mc.Proof.Hash.DigestHalvesT
+import Rv64mc.Proof.Hash.KeccakHashT
 import Rv64mc.Table.CopyUseT
 import Rv64mc.Gen.Needs
 import Rv64mc.Gen.Link.Verifier.Hash
@@ -44,6 +46,15 @@ theorem digestHalvesT : Proof.Hash.DigestHalvesT.specT env (liftProg fns) Idx.Ve
   Proof.Hash.DigestHalvesT.total env _ _ _ Verifier.Hash.Digest.Halves.tmpl_eq Verifier.Hash.Digest.Halves.wf
     (by decide) (CopyUseT.digestWords env)
 
+/-- **`keccak_hash` at the image** (function 122), over `keccak_f`'s tables. -/
+theorem keccakHashT (hd : KeccakTables env) :
+    Proof.Hash.KeccakHashT.KeccakHashSafeT env (liftProg fns) Idx.Verifier.Hash.KeccakHash
+      Needs.Verifier.Hash.KeccakHash :=
+  HoldsT.mono_need (Proof.Hash.KeccakHashT.total (needC := 672) Verifier.Hash.KeccakHash.tmpl_eq
+    Verifier.Hash.KeccakHash.wf (HoldsT.mono_need (CopyUseT.memcpy env) (by decide))
+    (HoldsT.mono_need (RuntimeT.memset env) (by decide)) (HoldsT.mono_need (xorBlockT env) (by decide))
+    (keccakFT env hd)) (by decide)
+
 end Rv64mc.Table.HashT
 
 /-- info: 'Rv64mc.Table.HashT.xorBlockT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -57,3 +68,7 @@ end Rv64mc.Table.HashT
 /-- info: 'Rv64mc.Table.HashT.digestHalvesT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.HashT.digestHalvesT
+
+/-- info: 'Rv64mc.Table.HashT.keccakHashT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.HashT.keccakHashT
