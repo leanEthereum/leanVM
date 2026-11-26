@@ -104,7 +104,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 30 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 36 | C | yes | Proof/Field/ESumEmbedBitsT | SumT.eSumEmbedBits | none |
 | 4 | 31 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 35 | D | yes | Proof/Field/ESumRcBitsT | SumT.eSumRcBits | none |
 | 4 | 33 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 72 | D | no | - | - | - |
-| 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | no | - | - | - |
+| 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | yes | Proof/Transcript/TranscriptNewT (safety, `TranscriptT` given) | TranscriptT3.transcriptNew | keccak tables (InData) |
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
 | 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | yes | Proof/Field/ScaledMulT | MultilinearT.scaledMul | none |
 | 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | yes | Proof/Transcript/DuplexT (over SpongeReprT) | TranscriptT2.duplex | keccak tables (InData) |

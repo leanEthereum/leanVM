@@ -8,7 +8,7 @@
 
   ## Main results
 
-  * `spongeNew`, `absorb`, `sample`, `absorbNonce`, `nextSafe`
+  * `spongeNew`, `absorb`, `sample`, `absorbNonce`, `nextSafe`, `transcriptNew`
 -/
 
 import Rv64mc.Table.HashT
@@ -19,6 +19,7 @@ import Rv64mc.Proof.Transcript.AbsorbT
 import Rv64mc.Proof.Transcript.SampleT
 import Rv64mc.Proof.Transcript.AbsorbNonceT
 import Rv64mc.Proof.Transcript.NextSafeT
+import Rv64mc.Proof.Transcript.TranscriptNewT
 import Rv64mc.Table.TranscriptT2
 import Rv64mc.Gen.Link.Verifier.Transcript
 
@@ -55,6 +56,12 @@ theorem nextSafe :
     NextSafeT.specT env (liftProg fns) Idx.Verifier.Transcript.Transcript.Next Needs.Verifier.Transcript.Transcript.Next :=
   NextSafeT.total env _ _ _ Verifier.Transcript.Transcript.Next.tmpl_eq _
 
+theorem transcriptNew (hd : HashT.KeccakTables env) :
+    TranscriptNewT.specT env (liftProg fns) Idx.Verifier.Transcript.Transcript.New
+      Needs.Verifier.Transcript.Transcript.New :=
+  TranscriptNewT.total env _ _ _ Verifier.Transcript.Transcript.New.tmpl_eq Verifier.Transcript.Transcript.New.wf
+    (by decide) (spongeNew env hd)
+
 end Rv64mc.Table.TranscriptT3
 
 /-- info: 'Rv64mc.Table.TranscriptT3.spongeNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -76,3 +83,7 @@ end Rv64mc.Table.TranscriptT3
 /-- info: 'Rv64mc.Table.TranscriptT3.nextSafe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.TranscriptT3.nextSafe
+
+/-- info: 'Rv64mc.Table.TranscriptT3.transcriptNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.TranscriptT3.transcriptNew
