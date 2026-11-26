@@ -16,11 +16,11 @@
   caller's frame, the point a vector's buffer and the values the vector at `sp + 0x1e0`.
 
   The executor stops at the joins the two clones' empty cases reach by backward jumps (instructions 86, 96, 124,
-  134): `fin` steps the stores from `134`, `mid` the second clone from `96`, each over a clone's buffer `CloneT`.
+  134): `fin` steps the stores from `134`, `mid` the second clone from `96`, each over a clone's buffer `CloneBufT`.
 
   ## Main definitions
 
-  * `ClosureT`, `PreT`, `ClaimT`, `PostT`, `SpecT`, `CloneT`
+  * `ClosureT`, `PreT`, `ClaimT`, `PostT`, `SpecT`, `CloneBufT`
 
   ## Main results
 
@@ -51,23 +51,25 @@ def ClosureT (env : Env) (m : MachineState) (sp f : Word) : Prop :=
 /-- The total precondition: the result's slot a caller's object in a window, 8-byte aligned; the closure
     `ClosureT`. -/
 def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
-  env.Owned m (regs .x2) (regs .x10) 96 ∧ InWin env (regs .x10) 96 ∧ (regs .x10).toNat % 8 = 0 ∧
+  env.Owned m (regs .x2) (regs .x10) (2 * Layouts.ColumnClaim.byteSize) ∧
+    InWin env (regs .x10) (2 * Layouts.ColumnClaim.byteSize) ∧ (regs .x10).toNat % 8 = 0 ∧
     ClosureT env m (regs .x2) (regs .x11)
 
 /-- Claim `j`'s point a vector's of the point's length, fresh unless empty, and its column `j`. -/
 def ClaimT (env : Env) (m m' : MachineState) (a n : Word) (j : Nat) : Prop :=
   VecT env m' a 16 ∧ vecLen m' a = n ∧ (n.toNat = 0 ∨ env.Fresh m m' (vecPtr m' a) (n.toNat * 16)) ∧
-    m'.getMem (a + 24#64) = BitVec.ofNat 64 j
+    m'.getMem (a + BitVec.ofNat 64 Layouts.ColumnClaim.column) = BitVec.ofNat 64 j
 
-/-- The total postcondition: both claims `ClaimT`, at `sret` and `sret + 48`. -/
+/-- The total postcondition: both claims `ClaimT`, at `sret` and the next `ColumnClaim`. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   ClaimT env m m' (regs .x10) (m.getMem (regs .x11 + 16#64)) 0 ∧
-    ClaimT env m m' (regs .x10 + 48#64) (m.getMem (regs .x11 + 16#64)) 1
+    ClaimT env m m' (regs .x10 + BitVec.ofNat 64 Layouts.ColumnClaim.byteSize) (m.getMem (regs .x11 + 16#64)) 1
 
 /-- **The total contract of `<[usize; 2]>::try_map` with `verify_bus_balance`'s claim closure**, writing the two
     claims. -/
 def SpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
-  HoldsT env p i need (PreT env) (PostT env) (fun regs _ => InRange (regs .x10) 96) AbortStop
+  HoldsT env p i need (PreT env) (PostT env) (fun regs _ => InRange (regs .x10) (2 * Layouts.ColumnClaim.byteSize))
+    AbortStop
 
 /-- The prologue's thirteen saved words over `m`. -/
 def saved (m : MachineState) (top ret : Word) (regs : Reg → Word) : MachineState :=
@@ -107,7 +109,7 @@ theorem val0_ok {env : Env} {top : Word} {m : MachineState} {C P Lw : Word} (hW 
     hw.dword hW hal (o := 8) (toNat_add_ofNat (by omega)) (by omega) (by omega)⟩
 
 /-- A clone's buffer: none (capacity `0`) for an empty point, else `n` elements allocated since the entry. -/
-def CloneT (env : Env) (m M : MachineState) (n c q : Word) : Prop :=
+def CloneBufT (env : Env) (m M : MachineState) (n c q : Word) : Prop :=
   (n.toNat = 0 ∧ c.toNat = 0) ∨
     (c.toNat = n.toNat ∧ 0x10000000 ≤ q.toNat ∧ env.Fresh m M q (n.toNat * 16) ∧ q.toNat % 8 = 0)
 
@@ -128,7 +130,7 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
       R .x27 = c2 ∧ R .x21 = n)
     (hK : ∀ a, top + 18446744073709551504#64 ≤ a → M.getMem a = (saved m top ret regs).getMem a)
     (hF : env.Frame top Tactic.F m M) (hS : env.Static M) (hcode : M.code = m.code)
-    (h1 : CloneT env m M n c1 q1) (h2 : CloneT env m M n c2 q2) :
+    (h1 : CloneBufT env m M n c1 q1) (h2 : CloneBufT env m M n c2 q2) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 134, ret, top⟩ :: rest, R, M⟩ := by
   have hFn := hF.2.1
   simp only [saved] at hK
@@ -165,7 +167,7 @@ theorem mid {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
       R .x20 = V ∧ R .x21 = n ∧ R .x24 = c1)
     (hK : ∀ a, top + 18446744073709551504#64 ≤ a → M.getMem a = (saved m top ret regs).getMem a)
     (hF : env.Frame top Tactic.F m M) (hS : env.Static M) (hcode : M.code = m.code)
-    (h1 : CloneT env m M n c1 q1) :
+    (h1 : CloneBufT env m M n c1 q1) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 96, ret, top⟩ :: rest, R, M⟩ := by
   have hlay := env.layout
   have hKeep := SpecExtendT.keep_of_frame hF (by omega)
