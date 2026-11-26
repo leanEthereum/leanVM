@@ -3,8 +3,8 @@
 
   The verifier's ring-switching computations over F128 (the drawn map's inner stage, its
   Frobenius coefficients and the target by Horner sums at `z_p = x^(2^(64 - 8p))`), proved equal
-  to the two-stage map `Φ` of `ToArkLib/FrobeniusMap.lean`; soundness of the reduction, as a
-  field lemma.
+  to the two-stage map `Φ` of `ToArkLib/FrobeniusMap.lean`; the weight `W(u) = Φ(eq(r, u))` and its
+  multilinear extension; completeness and soundness of the reduction, as field lemmas.
 -/
 
 module
@@ -37,9 +37,15 @@ with `z_p = x^(2^(64 - 8p))`. The definitions below transcribe the Rust function
   `Φ(a) = Σ_k c_k a^(2^k)`, `idxSum` being the weighted sum over a list's positions;
 * `ringTarget_eq`: the target is `Σ_i x^i Φ(s_i)` (equation `eq:complete`): the `p`-th Horner sum
   raised to `2^(8p)` is `Σ_i x^i Ψ(s_i)^(2^(8p))`, since `z_p^(2^(8p)) = x^(2^64) = x`;
-* `card_ringTarget_bad_le`: slice claims `s ≠ ẑ` give the honest target at no more than
-  `2·|E|^15` of the challenges (§A.4).
+* `frobPhi_eqP`, `sum_eqP_mul_eqP`, `ringWeight_mle`: on the cube `Φ(eq(r, u)) = Σ_k c_k eq(r^(2^k), u)`,
+  the Frobenius passing through `eq` at a bit, and the extension of `u ↦ Φ(eq(r, u))` at `r'` is
+  `Σ_k c_k eq(r^(2^k), r')`, what `ring_weight` computes;
+* `ring_complete`: for a column `q(u) = Σ_i Q_i(u) x^i`, `Σ_u Φ(eq(r, u)) q(u) = Σ_i x^i Φ(Q̂_i(r))`
+  (equation `eq:complete`): the opening's honest value is the target at honest slice claims;
+* `card_ringTarget_bad_le`, `ringTarget_bad_ratio_le`: slice claims `s ≠ ẑ` give the honest
+  target at no more than `2·|E|^15` of the challenges, a fraction `2/|E|` (§A.4).
 
+Point coordinates are `Fin μ → E`, a cube point `bitV u` for `u : Fin μ → Bool`.
 -/
 
 namespace LeanVM.Protocol.Ring
@@ -303,7 +309,86 @@ theorem ringTarget_eq (s : Fin 64 → E) (f g : Fin 8 → E) :
   simp only [Function.comp_apply, ringPsi_ofFn]
   ring
 
-/-! ## Soundness -/
+/-! ## The weight -/
+
+/-- `eq(a, b) = Π_n (1 + a_n + b_n)`. -/
+def eqP {μ : ℕ} (a b : Fin μ → E) : E := ∏ n, (1 + a n + b n)
+
+/-- The cube point of `u`. -/
+def bitV {μ : ℕ} (u : Fin μ → Bool) : Fin μ → E := fun n ↦ if u n then 1 else 0
+
+/-- A point raised coordinatewise to `2^k`. -/
+def frobPt {μ : ℕ} (r : Fin μ → E) (k : ℕ) : Fin μ → E := fun n ↦ r n ^ 2 ^ k
+
+private theorem bit_frob (b : Bool) (k : ℕ) : (if b then (1 : E) else 0) ^ 2 ^ k = if b then 1 else 0 := by
+  cases b <;> simp
+
+/-- **The Frobenius passes through `eq` at a cube point**: `eq(r, u)^(2^k) = eq(r^(2^k), u)`. -/
+theorem eqP_frob {μ : ℕ} (r : Fin μ → E) (u : Fin μ → Bool) (k : ℕ) :
+    eqP r (bitV u) ^ 2 ^ k = eqP (frobPt r k) (bitV u) := by
+  simp only [eqP, ← Finset.prod_pow, add_pow_char_pow, one_pow, frobPt, bitV, bit_frob]
+
+/-- **The weight on the cube**: `Φ(eq(r, u)) = Σ_k c_k eq(r^(2^k), u)`, what `ring_weight` sums. -/
+theorem frobPhi_eqP {μ : ℕ} (f g : Fin 8 → E) (r : Fin μ → E) (u : Fin μ → Bool) :
+    frobPhi 8 f g (eqP r (bitV u)) =
+      idxSum (ringCoefficients (List.ofFn f) (List.ofFn g)) fun k ↦ eqP (frobPt r k) (bitV u) := by
+  rw [frobPhi_eq_idxSum]
+  simp only [eqP_frob]
+
+/-- **`eq` is its own multilinear extension**: `Σ_u eq(a, u) eq(u, b) = eq(a, b)`. -/
+theorem sum_eqP_mul_eqP {μ : ℕ} (a b : Fin μ → E) :
+    ∑ u : Fin μ → Bool, eqP a (bitV u) * eqP (bitV u) b = eqP a b := by
+  simp only [eqP, bitV, ← Finset.prod_mul_distrib]
+  rw [← Fintype.prod_sum (fun n (x : Bool) ↦
+    (1 + a n + if x then 1 else 0) * (1 + (if x then 1 else 0) + b n))]
+  refine Finset.prod_congr rfl fun n _ ↦ ?_
+  rw [Fintype.sum_bool]
+  simp only [↓reduceIte, Bool.false_eq_true, add_zero]
+  have h2 : (2 : E) = 0 := CharTwo.two_eq_zero
+  linear_combination (a n * b n + a n + b n + 2) * h2
+
+/-- **The ring weight is the extension of `u ↦ Φ(eq(r, u))`**: at `r'` it is
+`Σ_k c_k eq(r^(2^k), r')`, what `ring_weight(r, r', c)` computes. -/
+theorem ringWeight_mle {μ : ℕ} (f g : Fin 8 → E) (r r' : Fin μ → E) :
+    ∑ u : Fin μ → Bool, frobPhi 8 f g (eqP r (bitV u)) * eqP (bitV u) r' =
+      idxSum (ringCoefficients (List.ofFn f) (List.ofFn g)) fun k ↦ eqP (frobPt r k) r' := by
+  simp only [frobPhi_eqP, idxSum_eq_sum_range, Finset.sum_mul]
+  rw [Finset.sum_comm]
+  refine Finset.sum_congr rfl fun k _ ↦ ?_
+  simp only [mul_assoc, ← Finset.mul_sum, sum_eqP_mul_eqP]
+
+/-! ## Completeness and soundness -/
+
+/-- Bit `i` of a word, in `E`. -/
+def bitOf (a : K) (i : Fin 64) : E := if a.toBitVec.getLsbD i then 1 else 0
+
+/-- Slice `i` of a column `q`, extended at `r`: `Q̂_i(r) = Σ_u eq(r, u) Q_i(u)`. -/
+def sliceExt {μ : ℕ} (q : (Fin μ → Bool) → K) (r : Fin μ → E) (i : Fin 64) : E :=
+  ∑ u : Fin μ → Bool, eqP r (bitV u) * bitOf (q u) i
+
+/-- A word of `K` in `E` is its bits packed by the powers of `x`. -/
+theorem ofK_eq_sum_bitOf (a : K) : ofK a = ∑ i : Fin 64, ringW i * bitOf a i := by
+  conv_lhs => rw [K.eq_sum_bits a]
+  change algebraMap K E _ = _
+  rw [map_sum (algebraMap K E)]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  unfold ringW bitOf
+  split <;> simp
+
+/-- An `F_2`-linear map commutes with a bit. -/
+private theorem frobPhi_mul_bit (f g : Fin 8 → E) (e : E) (b : Bool) :
+    frobPhi 8 f g (e * if b then 1 else 0) = (if b then 1 else 0) * frobPhi 8 f g e := by
+  cases b <;> simp [frobPhi_zero]
+
+/-- **Completeness** (equation `eq:complete`): for a column `q(u) = Σ_i Q_i(u) x^i`,
+`Σ_u Φ(eq(r, u)) q(u) = Σ_i x^i Φ(Q̂_i(r))`: the honest opening value is the target at the
+honest slice claims. -/
+theorem ring_complete {μ : ℕ} (f g : Fin 8 → E) (q : (Fin μ → Bool) → K) (r : Fin μ → E) :
+    ∑ u : Fin μ → Bool, frobPhi 8 f g (eqP r (bitV u)) * ofK (q u) =
+      ∑ i : Fin 64, ringW i * frobPhi 8 f g (sliceExt q r i) := by
+  simp only [ofK_eq_sum_bitOf, Finset.mul_sum, sliceExt, frobPhi_sum, bitOf, frobPhi_mul_bit]
+  rw [Finset.sum_comm]
+  exact Finset.sum_congr rfl fun i _ ↦ Finset.sum_congr rfl fun u _ ↦ by ring
 
 /-- The target at claims `s` against the honest value: the gap is `Σ_i x^i Φ(s_i - ẑ_i)`. -/
 theorem ringTarget_sub (s z : Fin 64 → E) (f g : Fin 8 → E) :
@@ -322,6 +407,21 @@ theorem card_ringTarget_bad_le {s z : Fin 64 → E} (h : s ≠ z) :
   have hδ : (fun i ↦ s i - z i) ≠ 0 := fun h0 ↦
     h (funext fun i ↦ sub_eq_zero.mp (congrFun h0 i))
   refine le_trans ?_ (card_ringSwitch_zero_le hδ)
+  refine Nat.card_le_card_of_injective (fun fg ↦ ⟨fg.1, ?_⟩)
+    fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
+  rw [← ringTarget_sub, fg.2, sub_self]
+
+/-- **Soundness** (§A.4): slice claims `s ≠ z` meet the honest value at a fraction `2/|E|` of the
+challenges at most. -/
+theorem ringTarget_bad_ratio_le {s z : Fin 64 → E} (h : s ≠ z) :
+    (Nat.card {fg : (Fin 8 → E) × (Fin 8 → E) //
+        ringTarget (List.ofFn s) (List.ofFn fg.1) (List.ofFn fg.2) =
+          ∑ i : Fin 64, ringW i * frobPhi 8 fg.1 fg.2 (z i)} : ℝ≥0∞) /
+      (Nat.card ((Fin 8 → E) × (Fin 8 → E)) : ℝ≥0∞) ≤ 2 / (Nat.card E : ℝ≥0∞) := by
+  have hδ : (fun i ↦ s i - z i) ≠ 0 := fun h0 ↦
+    h (funext fun i ↦ sub_eq_zero.mp (congrFun h0 i))
+  refine le_trans ?_ (ringSwitch_zero_ratio_le hδ)
+  gcongr
   refine Nat.card_le_card_of_injective (fun fg ↦ ⟨fg.1, ?_⟩)
     fun _ _ h ↦ Subtype.ext (congrArg Subtype.val h :)
   rw [← ringTarget_sub, fg.2, sub_self]

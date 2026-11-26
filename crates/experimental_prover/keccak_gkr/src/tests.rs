@@ -55,7 +55,7 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
         .collect();
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    let witness = Witness::generate(shape, &inputs, &mut committed);
+    let witness = Witness::generate_over(shape, &inputs, &mut committed);
     let outputs: Vec<_> = (0..shape.segments())
         .map(|m| state_after(&witness, depth * (m + 1)))
         .collect();
@@ -96,7 +96,7 @@ fn prove(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &[primitives::f
     use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    let witness = Witness::generate(shape, inputs, &mut honest);
+    let witness = Witness::generate_over(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (prover_data, ood) = commit_stack(&mut ps, shape, committed, LOG_INV_RATE_0);
@@ -163,7 +163,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
         .collect();
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    Witness::generate(shape, &inputs, &mut committed);
+    Witness::generate_over(shape, &inputs, &mut committed);
     // Other columns ride the slots the states leave free (§cpu). The reduction weighs nothing
     // there, but its openings are claims on the whole committed block, so they have to fold
     // whatever sits in them: junk here, and the checks against the commitment below are what
@@ -196,7 +196,7 @@ fn spare_slots_must_be_the_committed_ones() {
     let shape = Shape::new(n, depth);
     let states = shape.slots() * shape.n();
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    let witness = Witness::generate(shape, &inputs, &mut committed[..states]);
+    let witness = Witness::generate_over(shape, &inputs, &mut committed[..states]);
     for word in &mut committed[states..] {
         *word = primitives::field::F64(rng.next_u64());
     }
@@ -244,7 +244,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
         let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(n, depth);
         let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-        let padded = Witness::generate(shape, &inputs, &mut committed);
+        let padded = Witness::generate_over(shape, &inputs, &mut committed);
         let stream = |witness: &Witness| {
             let mut ps = ProverState::from_label(LABEL);
             let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
@@ -266,7 +266,7 @@ fn a_broken_committed_state_is_rejected() {
     let inputs: Vec<[u64; STATE_LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(inputs.len(), 6);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    Witness::generate(shape, &inputs, &mut committed);
+    Witness::generate_over(shape, &inputs, &mut committed);
     let accepts = |committed: &[primitives::field::F64], lane_error: F128| {
         verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()
     };

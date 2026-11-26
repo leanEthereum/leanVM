@@ -12,6 +12,7 @@ public import Statement.Prover.Gkr
 public import LeanVM.Prover.Mle
 public import LeanVM.Prover.Sumcheck
 public import LeanVM.Protocol.EndToEnd.Complete.Gkr
+import LeanVM.ToMathlib.Array
 
 /-!
 # The GKR step's rounds
@@ -20,9 +21,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Gkr
   and the composition of `Corr` along a script whose results have it (the fresh coordinates of a
   step have `step` entries);
 * `corr_sumcheckBy_lt`: the stateful sumcheck makes the specification's moves when the round's
-  coefficients evaluate as the claim while coordinates remain (the variant of `corr_sumcheckBy`
-  whose invariant need not hold after the last round's claim), and it draws one challenge per
-  round;
+  coefficients evaluate as the claim while coordinates remain (the invariant need not hold after
+  the last round's claim), and it draws one challenge per round;
 * `polyEval_mulLine`, `polyEval_addScaled`, `foldLines`, `foldAdd`: coefficient lists;
 * `multilinearEval_affine`: an extension is affine in any one coordinate;
 * `TabInv`: a folded layer, entry `j + 2^h·b` the layer's extension at the child bits `j`, the
@@ -303,7 +303,7 @@ theorem tabInv_fold {C : List E} {T : Array E} {h r : ℕ} {pre : List E}
       rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hj]
     have hdiv : (j + 2 ^ h * b) / 2 ^ h = b := by
       rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hj, zero_add]
-    rw [foldStride, getD_ofFn _ _ hlt]
+    rw [foldStride, Array.getD_ofFn _ hlt]
     simp only [hmod, hdiv]
     obtain ⟨e0, e1⟩ := tabInv_pair hI hj hb
     rw [e0, e1, show boolPoint h j ++ (pre ++ [c]) ++ boolPoint r b =

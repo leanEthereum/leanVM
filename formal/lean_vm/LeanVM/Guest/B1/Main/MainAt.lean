@@ -16,12 +16,11 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
 import LeanVM.Guest.LitRef
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main`, placed
 
-`main_relAtIn`: at `fp`, with `main`'s honest valuation (`main_core`) on a memory holding its
+`main_relAtInT_core`: at `fp`, with `main`'s honest valuation (`main_core`) on a memory holding its
 buffers, `exponent_tables`' tables, its callees' layouts and its header (words `0` and `1`), `main`
 holds by a tree placed at `fp` loading outside its own data only its header; its callees are
 `exponent_tables` (`et_at`) and the `CompleteAtD` callees `mKids` (hypothesis `hok`, whichever are
@@ -34,7 +33,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
-open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT kidsFromInT_of_kidsDT KidsDTB kidsFromInT_of_kidsDTB kidsBoundL Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
+open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT KidsDTB kidsFromInT_of_kidsDTB kidsBoundL Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
   disj_append kidsFromIn_of_kidsD regionsOk_of within_append bufL bufL_within bufL_disj bufL_region)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul exists_of_length_succ)
 
@@ -59,9 +58,9 @@ noncomputable def mEvs (σ : Val) : List Ev :=
 
 theorem walk_main (σ : Val) : walk σ (Fn.body fn% «main») = .ret (mEvs σ) [] := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
-  rw [main_shape, show mPre ⧺ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ⧺ mMid ⧺ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ⧺
-      mPost ⧺ [.ret []] = mPre ++ (.ite (.n (val% «main» "s50#1")) mDa mDaZ :: (mMid ++ (.ite (.n (val% «main» "s63#1")) mLeaf mAgg ::
-        (mPost ⧺ [.ret []])))) by simp,
+  rw [main_shape, show mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++
+      mPost ++ [.ret []] = mPre ++ (.ite (.n (val% «main» "s50#1")) mDa mDaZ :: (mMid ++ (.ite (.n (val% «main» "s63#1")) mLeaf mAgg ::
+        (mPost ++ [.ret []])))) by simp,
     B1.walk_pre_straight σ _ mPre s1, walk_ite_straight σ _ _ _ _ s2 s2',
     B1.walk_pre_straight σ _ mMid s3, walk_ite_straight σ _ _ _ _ s4 s5,
     Main.walk_straight σ [] mPost s6]
@@ -226,7 +225,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
-      exact gen_pow_inj (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
+      exact gen_pow_inj' (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
   have h404 : σ (.n (val% «main» "s63#1")) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
@@ -237,10 +236,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           mPost.flatMap (Main.slEvs σ))))) := by
     unfold mEvs
     by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0
-    · rw [ite_eq_left (h338.mpr a), ite_eq_left (h404.mpr b), ite_eq_left a, ite_eq_left b]
-    · rw [ite_eq_left (h338.mpr a), ite_eq_right (fun h => b (h404.mp h)), ite_eq_left a, ite_eq_right b]
-    · rw [ite_eq_right (fun h => a (h338.mp h)), ite_eq_left (h404.mpr b), ite_eq_right a, ite_eq_left b]
-    · rw [ite_eq_right (fun h => a (h338.mp h)), ite_eq_right (fun h => b (h404.mp h)), ite_eq_right a, ite_eq_right b]
+    · rw [ite_pos' (h338.mpr a), ite_pos' (h404.mpr b), ite_pos' a, ite_pos' b]
+    · rw [ite_pos' (h338.mpr a), ite_neg' (fun h => b (h404.mp h)), ite_pos' a, ite_neg' b]
+    · rw [ite_neg' (fun h => a (h338.mp h)), ite_pos' (h404.mpr b), ite_neg' a, ite_pos' b]
+    · rw [ite_neg' (fun h => a (h338.mp h)), ite_neg' (fun h => b (h404.mp h)), ite_neg' a, ite_neg' b]
   rw [hes] at hw
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
   obtain ⟨k1, k2, k2', k3, k4, k5, k6⟩ := mBlocks_kind
@@ -437,7 +436,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [(q6 (by assumption)).1]; rfl
     · split
       · rename_i hnd1
-        rw [ite_eq_left hnd1] at hoB
+        rw [ite_pos' hnd1] at hoB
         have lB0 := hoB.length
         obtain ⟨b1, tb1, rfl, lB1⟩ := exists_of_length_succ lB0
         obtain rfl := List.eq_nil_of_length_eq_zero lB1
@@ -454,7 +453,7 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
           obtain rfl := List.eq_nil_of_length_eq_zero l2
           simp [mOrc, h0']
       · rename_i hnd1
-        rw [ite_eq_right hnd1] at hoB
+        rw [ite_neg' hnd1] at hoB
         have lB := hoB.length
         obtain rfl := List.eq_nil_of_length_eq_zero lB
         trivial
@@ -470,11 +469,11 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · rw [(r5 (by assumption)).1]; rfl
     · split
       · rename_i hnc0
-        rw [ite_eq_left hnc0] at hoD
+        rw [ite_pos' hnc0] at hoD
         obtain rfl := List.eq_nil_of_length_eq_zero hoD.length
         trivial
       · rename_i hnc0
-        rw [ite_eq_right hnc0] at hoD
+        rw [ite_neg' hnc0] at hoD
         have lD0 := hoD.length
         obtain ⟨g1, td, rfl, lD1⟩ := exists_of_length_succ lD0
         obtain rfl := List.eq_nil_of_length_eq_zero lD1
@@ -602,81 +601,10 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
       · refine ⟨1, ?_, Or.inr (Or.inl (by norm_num))⟩
         rw [hv.v484, ← pow_one gen, limb0_gen_pow_mul]
 
-/-- **`main` at `fp`, its callees' trees satisfying `Ts`.** -/
-theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
-    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
-    (Ts : List (Tree → Prop))
-    (hok : KidsDT fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
-    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
-        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
-            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
-            calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
-  obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 _ Ts hok (etB fs (mK0 d fs fp) + lit% B1.expTabN)
-  obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb (fun _ => Ts) Nk Lk outs hoo hW hD hKids hmm
-  exact ⟨_, L, h⟩
-
 /-- **`main`'s words**: its frame, its buffers, `exponent_tables`' frame and tables, its other
 callees' bounds (`kidsBoundL`). -/
 def mainB (fs : String → ℕ) (d : MainData) (ks : List Kid) (Bs : List ℕ) : ℕ :=
   fs "main" + (mSizes d).sum + (fs "exponent_tables" + lit% B1.expTabN + kidsBoundL fs ks Bs)
-
-/-- **`main` at `fp` within its words**: `main_relAtInT`, its callees within the bounds `Bs`, its
-size at most `mainB`. -/
-theorem main_relAtInTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
-    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
-    (Ts : List (Tree → Prop)) (Bs : List ℕ)
-    (hok : KidsDTB fs cert 23 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts Bs)
-    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ mainB fs d (mKids (d.toIn fs fp)
-        (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Bs ∧ Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
-        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
-            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks ∧
-            calls (mEvs σ) = mCalls σ (d.toIn fs fp) ∧ bufs = mSizes d) := by
-  obtain ⟨Nk, Lk, outs, hNk, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromInT_of_kidsDTB (fs := fs) (cert := cert) 23 _ Ts Bs hok (etB fs (mK0 d fs fp) + lit% B1.expTabN)
-  obtain ⟨L, h⟩ := main_relAtInT_core fs cert fp d own hfit hb (fun _ => Ts) Nk Lk outs hoo hW hD hKids hmm
-  exact ⟨_, L, by unfold mainB; omega, h⟩
-
-theorem kidsDT_nil {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} : ∀ (ks : List Kid),
-    (∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out) → KidsDT fs cert κ ks []
-  | [], _ => trivial
-  | k :: ks, h => ⟨fun ht => (h k (by simp) ht).toT, kidsDT_nil ks fun k' hk' => h k' (by simp [hk'])⟩
-
-/-- **`main` at `fp`**, its node at a valuation with `main`'s honest values (`MVals`). -/
-theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
-    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
-    (hb : MainBounds (2 ^ 23) (d.toIn fs fp))
-    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
-      k.taken = true → CompleteAtD fs cert 23 k.f k.Lin k.args k.Out)
-    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
-      LoadHolds rd 1 0 (digestHalves d.sdg).1 → LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
-      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestHalves d.sdg).1 →
-        LoadHolds rd gen 0 (digestHalves d.sdg).2 →
-        RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun σ => MVals rd σ (d.toIn fs fp)) :=
-  let ⟨n, L, h1, h1', h2, h3, h4⟩ := main_relAtInT fs cert fp d own hfit hb [] (kidsDT_nil _ hok) hmm
-  ⟨n, L, h1, h1', h2, h3, fun rd hl hm h0 h1 =>
-    let ⟨t, ht, σ, bufs, ks, he, hv, _⟩ := h4 rd hl hm h0 h1
-    ⟨t, ht, σ, bufs, ks, he, hv⟩⟩
 
 end
 end LeanVM.Guest.B1.Main

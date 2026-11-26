@@ -26,6 +26,7 @@
 use primitives::field::{F64, F64x8, F128, F128x8, mul_base_splat8};
 use primitives::multilinear::interp;
 use primitives::stream::Stream;
+use std::mem::MaybeUninit;
 
 use crate::stack_open::{SWEEP, Terms};
 use crate::whir::{FoldChallenges, FoldTable, InitialBasis};
@@ -111,11 +112,11 @@ impl Folded<'_> {
     /// `P_i` over the `out.len()` coefficients from `first`, a power of two that divides `first`, inside the low part.
     ///
     /// `X` multiplies column `c` by `A_t` after summing two coefficients, so a multiple of `X` enters as the sums, the
-    /// `A_t` folded into its challenge.
-    fn block(&self, i: usize, first: usize, out: &mut [F128]) {
+    /// `A_t` folded into its challenge. Returns `out`, written.
+    fn block<'o>(&self, i: usize, first: usize, out: &'o mut [MaybeUninit<F128>]) -> &'o mut [F128] {
         let n = out.len();
         let alpha = self.ch.alpha;
-        let out = out.as_chunks_mut::<8>().0;
+        let eights = out.as_chunks_mut::<8>().0;
         let cx = |t0: usize| F128x8::from_array(&exponents8(t0).map(|t| self.cx[t]));
         match self.pairs {
             Pairs::Stack => {
@@ -124,27 +125,33 @@ impl Folded<'_> {
                     .stack_lane(2 * i + 1)
                     .map(|g| g[first..first + n].as_chunks::<8>().0);
                 let (fb, f8) = (&f[first..first + n], f[first..first + n].as_chunks::<8>().0);
-                for (q, o) in out.iter_mut().enumerate() {
+                for (q, o) in eights.iter_mut().enumerate() {
                     let (sf, t0) = sums8(fb, q, first, outside(f));
                     let sum = mul_base_splat8(alpha, &f8[q]) ^ cx(t0).mul_base_unreduced(F64x8::from_array(&sf));
-                    *o = sum.reduce_lanes().to_array();
+                    let mut v = sum.reduce_lanes().to_array();
                     if let Some(g) = g {
-                        o.iter_mut().zip(g[q]).for_each(|(o, g)| *o += F128::from(g));
+                        v.iter_mut().zip(g[q]).for_each(|(v, g)| *v += F128::from(g));
                     }
+                    *o = v.map(MaybeUninit::new);
                 }
             }
             Pairs::Stored { f, g, len } => {
                 let (f, g) = (&f[i * len..(i + 1) * len], &g[i * len..(i + 1) * len]);
                 let (fb, alpha) = (&f[first..first + n], F128x8::splat(alpha));
                 let (f8, g8) = (fb.as_chunks::<8>().0, g[first..first + n].as_chunks::<8>().0);
-                for (q, o) in out.iter_mut().enumerate() {
+                for (q, o) in eights.iter_mut().enumerate() {
                     let (sf, t0) = sums8(fb, q, first, outside(f));
                     let sum =
                         alpha.mul_unreduced(F128x8::from_array(&f8[q])) ^ cx(t0).mul_unreduced(F128x8::from_array(&sf));
-                    *o = (F128x8::from_array(&g8[q]) + sum.reduce_lanes()).to_array();
+                    *o = (F128x8::from_array(&g8[q]) + sum.reduce_lanes())
+                        .to_array()
+                        .map(MaybeUninit::new);
                 }
             }
         }
+        assert!(n.is_multiple_of(8), "a block is whole eights");
+        // SAFETY: `out` is whole eights, and the loop wrote every one.
+        unsafe { out.assume_init_mut() }
     }
 }
 
@@ -261,13 +268,11 @@ impl LaneRounds {
         let (low, block) = (terms.low_vars(), 1usize << terms.low_vars());
         // The stack lanes under a pair's `F`, and the words of `X F` a repeat of theirs leaves free.
         let (group, head) = (1usize << (self.round - 1), self.round);
-        // SAFETY: the pass writes every low coefficient and the loop after it every high one, before any is read.
-        let (mut f, mut g) = unsafe {
-            (
-                primitives::uninit_vec(n_pairs * len),
-                primitives::uninit_vec(n_pairs * len),
-            )
-        };
+        // The pass writes every low coefficient and the loop after it every high one.
+        let (mut f, mut g) = (
+            primitives::uninit_vec(n_pairs * len),
+            primitives::uninit_vec(n_pairs * len),
+        );
         let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
         let live = |m: usize, slot: usize| match slot {
             0 | 1 => &needs[m * nt..][..nt],
@@ -276,7 +281,10 @@ impl LaneRounds {
         let rows = tracing::info_span!("Project", lanes = n_pairs).in_scope(|| {
             terms.project_rows(n_pairs, SLOTS, live, |m, blocks, feed| {
                 let stream = Stream::new();
-                let [mut pa, mut pb, mut xf] = [0; 3].map(|_| vec![F128::ZERO; block]);
+                let (mut sa, mut sb) = (primitives::uninit_vec(block), primitives::uninit_vec(block));
+                let mut xf = vec![F128::ZERO; block];
+                // The last pair of an odd count has no second lane.
+                let zeros = (2 * m + 1 >= count).then(|| vec![F128::ZERO; block]);
                 // The limbs of `X F` and of the pair's lanes, each where it projects some term.
                 let mut limbs = [0, 2, 4].map(|slot| {
                     live(m, slot)
@@ -297,26 +305,25 @@ impl LaneRounds {
                     let sweep = start..(start + SWEEP).min(blocks.end);
                     for (k, b) in sweep.clone().enumerate() {
                         let first = b << low;
-                        folded.block(2 * m, first, &mut pa);
-                        if 2 * m + 1 < count {
-                            folded.block(2 * m + 1, first, &mut pb);
-                        } else {
-                            pb.fill(F128::ZERO);
-                        }
+                        let pa = folded.block(2 * m, first, &mut sa);
+                        let pb: &[F128] = match &zeros {
+                            Some(zeros) => zeros,
+                            None => folded.block(2 * m + 1, first, &mut sb),
+                        };
                         // SAFETY: each task owns its blocks of its pair.
                         unsafe {
-                            stream.copy(fp.slice(m * len + first, block), &pa);
-                            stream.copy(gp.slice(m * len + first, block), &pb);
+                            stream.copy(fp.slice(m * len + first, block), pa);
+                            stream.copy(gp.slice(m * len + first, block), pb);
                         }
                         let outside = |c: usize| match last {
                             Some((before, _)) if c + 1 == first => before,
                             _ => folded.at(2 * m, c),
                         };
-                        mul_x_block(&pa, first, outside, &mut xf);
+                        mul_x_block(pa, first, outside, &mut xf);
                         let words: [F128; HEAD] = xf[..HEAD].try_into().expect("a block holds its head");
                         tags[k] = last.is_some_and(|(_, w)| w == words) && repeats(b);
                         last = Some((pa[block - 1], words));
-                        for (limbs, values) in limbs.iter_mut().zip([&xf, &pa, &pb]) {
+                        for (limbs, values) in limbs.iter_mut().zip([&*xf, &*pa, pb]) {
                             if let Some([lo, hi]) = limbs {
                                 for ((lo, hi), v) in lo[k << low..].iter_mut().zip(&mut hi[k << low..]).zip(values) {
                                     let [l, h] = v.to_limbs();
@@ -339,10 +346,12 @@ impl LaneRounds {
         });
         for m in 0..n_pairs {
             for c in lb..len {
-                f[m * len + c] = folded.at(2 * m, c);
-                g[m * len + c] = folded.at(2 * m + 1, c);
+                f[m * len + c].write(folded.at(2 * m, c));
+                g[m * len + c].write(folded.at(2 * m + 1, c));
             }
         }
+        // SAFETY: the projection's blocks cover every pair's low coefficients, and the loop above its high ones.
+        let (f, g) = unsafe { (primitives::assume_init_vec(f), primitives::assume_init_vec(g)) };
         // A projection from its limbs' in slots `slot` and `slot + 1` of pair `m`.
         let join = |m: usize, slot: usize, t: usize| {
             rows[(m * SLOTS + slot) * nt + t] + F128::Y * rows[(m * SLOTS + slot + 1) * nt + t]
@@ -457,13 +466,13 @@ impl LaneRounds {
             let cols = COLS.min(lb);
             // SAFETY: the fill writes every element, and reads none.
             unsafe {
-                primitives::filled_vec(len, |out: &mut [F128]| {
+                primitives::filled_vec(len, |out: &mut [MaybeUninit<F128>]| {
                     let (low, high) = out.split_at_mut(lb);
                     parallel::chunks_mut(low, cols, |t, out| {
                         folded.block(0, t * cols, out);
                     });
                     for (c, o) in (lb..).zip(high) {
-                        *o = folded.at(0, c);
+                        o.write(folded.at(0, c));
                     }
                 })
             }

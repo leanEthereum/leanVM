@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Tables.RunF
 
 An accepting run from a carried sponge is the carried run (`RunsTo.toT`), which is deterministic:
 the reads, samples, `require`s, the equality-mode sumcheck (`gkrRun`) and a step of the walk read
-back from it (`runT_readN_some`, `runT_sumcheck5_some`, `gkrStep_inv`).
+back from it (`runT_readN_some`, `runT_sumcheck5_some`, `gkrStep_invT`).
 
 `GkStepD`: a step's words, the rounds' coefficients and the three trees' children; from the
 sponge and the state before it, its rounds (`run`), the sponge after its children (`sb`), the new
@@ -40,18 +40,6 @@ theorem RunsTo.toT {α : Type} {p : VerifierProgram α} {s s' : Fs} {xs : List E
   obtain ⟨sp', hc', he⟩ := h sp hc rest [] []
   obtain ⟨e1, e2⟩ := eq_fsOfT (g := none) hc'
   rw [runT_of_runId p ⟨s, none, xs ++ rest, [], []⟩ sp hc a _ he, ← e1, ← e2]
-
-/-- **Two accepting runs of one program** from one carried sponge, the second's words extending
-the first's, are one. -/
-theorem RunsTo.det {α : Type} {p : VerifierProgram α} {s s1 s2 : Fs} {xs ys : List E} {a b : α}
-    (h1 : RunsTo p s xs a s1) (h2 : RunsTo p s (xs ++ ys) b s2) (hc : ∃ sp, s.Carries sp) :
-    ys = [] ∧ a = b ∧ s1 = s2 := by
-  obtain ⟨sp, hsp⟩ := hc
-  have e1 := RunsTo.toT h1 hsp ys
-  have e2 := RunsTo.toT h2 hsp []
-  rw [List.append_nil, e1] at e2
-  simp only [Option.some.injEq, Prod.mk.injEq, TSt.mk.injEq, and_true, true_and] at e2
-  exact ⟨e2.2.2, e2.1, e2.2.1⟩
 
 /-! ## The carried run, read back -/
 

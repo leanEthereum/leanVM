@@ -102,9 +102,7 @@ set_option maxRecDepth 100000 in
 cost_compile addEntryC := addEntry
 set_option maxRecDepth 100000 in
 cost_compile pcTableTC := pcTableT
-set_option maxRecDepth 100000 in
 cost_compile entryKeyTC := entryKeyT
-set_option maxRecDepth 100000 in
 cost_compile frameWordAtC := frameWordAt
 
 /-! ## The entry table as one sorted array
@@ -162,15 +160,11 @@ def frameAtA (table : Array (CallKey × K)) (rd : Reader) (j : ℕ) (args rets :
 
 cost_compile keyCmpC := keyCmp
 cost_compile pairOfC := pairOf
-set_option maxRecDepth 100000 in
 cost_compile statePairsC := statePairs
-set_option maxRecDepth 100000 in
 cost_compile entryPairsC measure fun _ _ _ l ↦ l.length := entryPairs
 cost_compile keyLeC := keyLe
 cost_compile dedupFirstC measure fun l ↦ l.length := dedupFirst
-set_option maxRecDepth 100000 in
 cost_compile entryArrayTC := entryArrayT
-set_option maxRecDepth 100000 in
 cost_compile frameAtAC := frameAtA
 
 /-! ### A frame looked up once
@@ -197,7 +191,6 @@ theorem frameAtA_eq_frameValAt (table : Array (CallKey × K)) (rd : Reader) (j :
   unfold frameAtA frameValAt frameFpA
   rfl
 
-set_option maxRecDepth 100000 in
 cost_compile frameFpAC := frameFpA
 cost_compile frameValAtC := frameValAt
 

@@ -23,7 +23,7 @@ adversary itself and at most `maxRequests` signing requests, success at most
 * `stronglyUnforgeable_of_romBoundAdv`: the statement's adversary, read with the Keccak-256 oracle
   (`embedS`), on bytes (`relabelS`) and with its permutation queries answered by the
   indifferentiability simulator (`romAdv`), is a ROM adversary with the same own calls and the
-  same requests (`romAdv_advHashCalls`, `romAdv_requestCalls`); the sponge's indifferentiability
+  same requests (`romAdvOf_advHashCalls`, `romAdvOf_requestCalls`); the sponge's indifferentiability
   costs `Q² / 2^509` for the game's total `Q` of permutation calls, which worst-case bounds on key
   generation, the signer and the verifier (`forgeryGame_cost`) keep below `2^129`, so that term is
   less than one unit `2^-bits`.
@@ -38,25 +38,6 @@ namespace Common
 section Weight
 
 variable {ι ι' : Type} {spec : OracleSpec.{0, 0} ι} {spec' : OracleSpec.{0, 0} ι'} {α : Type}
-
-/-- Nothing weighs nothing. -/
-theorem QueryCostAtMost.zero_weight (oa : OracleComp spec α) :
-    QueryCostAtMost oa (fun _ ↦ 0) 0 := by
-  induction oa using OracleComp.inductionOn with
-  | pure a => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff]
-    exact ⟨le_rfl, fun u ↦ ih u⟩
-
-/-- **Two weights' bounds add.** -/
-theorem QueryCostAtMost.add_weight {oa : OracleComp spec α} {w₁ w₂ : ι → ℕ} {a b : ℕ}
-    (h₁ : QueryCostAtMost oa w₁ a) (h₂ : QueryCostAtMost oa w₂ b) :
-    QueryCostAtMost oa (fun t ↦ w₁ t + w₂ t) (a + b) := by
-  induction oa using OracleComp.inductionOn generalizing a b with
-  | pure x => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at h₁ h₂ ⊢
-    exact ⟨by omega, fun u ↦ (ih u (h₁.2 u) (h₂.2 u)).mono (by omega)⟩
 
 /-- **A weight's bound scales.** -/
 theorem QueryCostAtMost.mul_weight {oa : OracleComp spec α} {w : ι → ℕ} {a : ℕ} (k : ℕ)

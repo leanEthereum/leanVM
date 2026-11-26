@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.B1.Common.Find
 
 /-!
-# LeanDA: meanings (TRIAGE G #90-93)
+# LeanDA: meanings
 
 For each function of the guest (`guests/lean_ethereum.py`, G
 below) its meaning on its argument and return words, and `…_sound_Spec`: its core
@@ -45,9 +45,6 @@ open LeanVM.Guest.B1.Digest
 
 /-! ## Shared vocabulary -/
 
-/-- The table of `g^(2^j)` at `q`, `j < 34` (`exponent_tables`' second table, `g_squares`). -/
-def SquaresAt (rd : Reader) (q : E) : Prop := ∀ j < 34, LoadHolds rd q j (gen ^ 2 ^ j)
-
 /-- The two cells of a tree node from its children's: their digest. -/
 def nodeCells (l r : E × E) : E × E := digestHalves (keccak256 (cellsBytes [l.1, l.2, r.1, r.2]))
 
@@ -63,7 +60,7 @@ def cellRoot : ℕ → List (E × E) → E × E
 /-- The cells of a list of nodes, two a node. -/
 def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, p.2]
 
-/-! ## `da_verify` (TRIAGE #90) -/
+/-! ## `da_verify` -/
 
 /-- **The count table** at `bb`: `bb[g^v] = v` for every count `v ≤ LeanDa.maxRows`, the words
 `da_verify` reads its count's off (`main`'s `byte_bits`). -/
@@ -76,12 +73,7 @@ def MeaningDaVerify (rd : Reader) : List E → List E → Prop
       w.Opens root z ∧ rets = digestCells root ++ [z]
   | _, _ => False
 
-/-- `da_verify`'s core IR gives its meaning, on a memory image. -/
-def da_verify_sound_Spec : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
-    coreProgram.Rel rd "da_verify" args rets → MeaningDaVerify rd args rets
-
-/-! ## `da_padding` (TRIAGE #91) -/
+/-! ## `da_padding` -/
 
 /-- **`da_padding(n_blob_g)`**: `n_blob = g^r` for `1 ≤ r ≤ LeanDa.maxRows`, and the function
 returns `g^(LeanDa.maxRows - r)`, the padding rows' count. -/
@@ -94,24 +86,9 @@ def da_padding_sound_Spec : Prop :=
   ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
     coreProgram.Rel rd "da_padding" args rets → MeaningDaPadding rd args rets
 
-/-! ## `da_verify_cell` (TRIAGE #92) -/
+/-! ## `da_verify_cell` -/
 
-/-- **`da_verify_cell(lvals)`**: some `128` symbols of `E` (the hint), their digest's two cells
-(LeanDA's cell digest, sixteen bytes a symbol) and their dot product with the `128` weights at
-`lvals`. -/
-def MeaningDaVerifyCell (rd : Reader) : List E → List E → Prop
-  | [lv], rets => ∃ (syms ws : List E), syms.length = LeanDa.cellSymbols ∧
-      ReadsAt rd lv ws ∧ ws.length = LeanDa.cellSymbols ∧
-      rets = digestCells (keccak256 (syms.flatMap E.toBytes)) ++
-        [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
-  | _, _ => False
-
-/-- `da_verify_cell`'s core IR gives its meaning. -/
-def da_verify_cell_sound_Spec : Prop :=
-  ∀ (rd : Reader) (args rets : List E),
-    coreProgram.Rel rd "da_verify_cell" args rets → MeaningDaVerifyCell rd args rets
-
-/-! ## `da_levels` (TRIAGE #92) -/
+/-! ## `da_levels` -/
 
 /-- The name of `da_levels`' specialization at `2^k` leaves, `da_levels__L{2^k}_L{k}`, for `k` up to
 a row's own tree (`DlDepth`). -/
@@ -127,9 +104,6 @@ instance (k : ℕ) : Decidable (DlDepth k) := inferInstanceAs (Decidable (_ ∨ 
 
 /-- **The Statement's row cap is the guest's**: `LeanDa.maxRows` is `DA_MAX_ROWS`. -/
 theorem maxRows_eq : LeanDa.maxRows = guest_const% DA_MAX_ROWS := by decide
-
-/-- Its log is `DA_LOG_MAX_ROWS`. -/
-theorem logMaxRows_eq : LeanDa.logMaxRows = guest_const% DA_LOG_MAX_ROWS := rfl
 
 /-- **`da_levels(tree, 2^k, k)`**: the `2^k` leaves at `tree` (two cells each), and the function
 returns the root's cells (`cellRoot`). -/

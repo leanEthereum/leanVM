@@ -95,7 +95,7 @@ theorem fresh_eq (hbl : bytecode.length = 2 ^ 23) :
     have e1 : c.freshClaim.bytecodePoint = S.rG.2.1.take 19 ++ S.H.slots := h1.symm
     have e2 : c.freshClaim.bytecodeValue = S.H.bv := h2.symm
     rw [← e1, ← e2]
-  · simp [runId, Compile.runWithHash] at h
+  · simp [Tables.tbRun, Compile.runWithHash] at h
 
 end ChildSegs
 

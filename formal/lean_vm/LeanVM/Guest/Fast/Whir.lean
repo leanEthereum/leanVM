@@ -8,7 +8,7 @@ public import LeanVM.Guest.Fast.FunctionNames
 public import LeanVM.Guest.B1.VerifySub.Proof
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
-public import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.List
 
 /-!
 # `verify_sub`'s child proof reader, computable
@@ -403,7 +403,7 @@ theorem vsPiOfA_tabs (rd : Reader) (σ : Val) (Vn : NFrames) (cl : E → E → �
   have hl : levelOsA gLanes rd = levelOsN rd := funext fun σ ↦ funext fun Vn ↦ funext fun c ↦
     levelOsA_eq rd σ Vn c
   simp only [vsPiOfA, vsPiOfS, vsPiOfM, vsPiOfAt, vsPiOfN, whirTabs, logGTWith_gLanes,
-    getD_toArray, hl, ← wordsAt_eq_wordsFrom, readN_eq_wordsAt]
+    List.getD_toArray, hl, ← wordsAt_eq_wordsFrom, readN_eq_wordsAt]
 
 end
 end LeanVM.Guest.Fast

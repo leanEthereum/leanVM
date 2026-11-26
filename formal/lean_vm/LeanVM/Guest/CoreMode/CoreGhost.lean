@@ -8,7 +8,8 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
-public import LeanVM.Guest.CoreMode.HeapCTree
+public import LeanVM.Guest.CoreMode.HeapCSound
+public import LeanVM.Guest.Memory.Retemp
 
 /-!
 # Ghost words on the core route
@@ -24,6 +25,38 @@ namespace LeanVM.Guest.CoreMode
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Bridge (stmtsOf Zip zok_stmts)
+
+public section
+
+/-- **A valuation with ghost words**: the values `V.n (GB + j)`, `j` below their count, hold `gw[j]`. -/
+def setG (σ : Val) (gw : List E) : Val := fun v ↦
+  if v.path = [] ∧ v.tag = 0 ∧ GB ≤ v.idx then (gw[v.idx - GB]?).getD (σ v) else σ v
+
+theorem setG_eq {σ : Val} {gw : List E} {v : V} (h : v.idx < GB) : setG σ gw v = σ v := by
+  unfold setG
+  split_ifs with h'
+  · omega
+  · rfl
+
+theorem ownG_setG {σ : Val} {gw : List E} {G : HSig} (h : gw.length = G.ghosts) : ownG G (setG σ gw) = gw := by
+  refine List.ext_getElem (by simp [ownG, h]) fun j h1 h2 ↦ ?_
+  simp only [ownG, List.getElem_map, List.getElem_range, vw, setG, V.n]
+  simp [h2]
+
+/-- A heap hint's pointer is a value it names. -/
+theorem hintHeap_uses {h : Hint} {p : V} {off len : ℕ} (hh : hintHeap h = some (p, off, len)) : p ∈ hintUses h := by
+  cases h <;> simp only [hintHeap] at hh <;> (try split at hh) <;> simp_all [hintUses, destUses]
+
+/-- An event's check depends only on the values it names. -/
+theorem holds_congr {rd : Reader} {σ σ' : Val} {e : Ev} (h : ∀ v ∈ e.uses ++ e.tmps, σ' v = σ v) :
+    e.Holds rd σ' ↔ e.Holds rd σ := by
+  cases e with
+  | atom a => exact Memory.atom_holds_congr a h
+  | inK c => simp only [Ev.Holds, h c (by simp [Ev.uses])]
+  | call _ _ _ => exact Iff.rfl
+  | skip _ _ => exact Iff.rfl
+
+end
 
 @[expose] public section
 

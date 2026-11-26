@@ -27,7 +27,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use fiat_shamir::merkle::{Hash, MerklePath};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
+use primitives::hash::{OUT_LEN, RATE, STATE_LANES, hash_many_from_state_uninit, lanes, zero_prefix_state};
 use primitives::{cast_slice, cast_slice_mut};
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -101,11 +101,9 @@ impl MerkleBuilder {
                 self.leaves.hash(rows, &mut a[..chunk]);
                 let (mut src, mut dst, mut m) = (a, b, chunk);
                 for _ in 0..self.cut {
-                    hash_many(
-                        digests_as_bytes(&mut src[..m]),
-                        2 * OUT_LEN,
-                        digests_as_bytes(&mut dst[..m / 2]),
-                    );
+                    // The leaves, then each level the loop wrote last, are written.
+                    let children = written_bytes(&src[..m]);
+                    hash_many_from_state_uninit(children, 2 * OUT_LEN, &ZERO_STATE, digest_bytes(&mut dst[..m / 2]));
                     (src, dst, m) = (dst, src, m / 2);
                 }
                 self.nodes
@@ -129,7 +127,7 @@ impl MerkleBuilder {
             return unsafe { self.nodes.climb(level, 0, n, n.ilog2() as usize) };
         }
         // Climb while every level still fills whole batches.
-        let height = (n / LANES).max(1).ilog2() as usize;
+        let height = (n / lanes()).max(1).ilog2() as usize;
         // SAFETY: forwarded.
         unsafe { self.nodes.climb(level, first, n, height) };
         let (level, first, n) = (level + height, first >> height, n >> height);
@@ -225,7 +223,9 @@ impl Nodes {
         for j in level..level + height {
             // SAFETY: level `j` of the subtree is initialized, and level `j + 1` is ours to write.
             let (children, parents) = unsafe { (self.level_mut(j, first, n), self.level_mut(j + 1, first / 2, n / 2)) };
-            hash_many(digests_as_bytes(children), 2 * OUT_LEN, digests_as_bytes(parents));
+            // SAFETY: level `j` is initialized, as above.
+            let children = unsafe { written_bytes(children) };
+            hash_many_from_state_uninit(children, 2 * OUT_LEN, &ZERO_STATE, digest_bytes(parents));
             (first, n) = (first / 2, n / 2);
         }
     }
@@ -428,7 +428,7 @@ impl LeafHasher {
     fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
         match *self {
             Self::Direct { row_bytes, state } => {
-                hash_many_from_state(rows, row_bytes, &state, digests_as_bytes(out));
+                hash_many_from_state_uninit(rows, row_bytes, &state, digest_bytes(out));
             }
             Self::Staged {
                 row_bytes,
@@ -437,15 +437,16 @@ impl LeafHasher {
             } => {
                 // Whole batches per tile.
                 let per_tile = STAGE_TILE_BYTES / image;
-                let per_tile = if per_tile >= LANES {
-                    per_tile / LANES * LANES
+                let lanes = lanes();
+                let per_tile = if per_tile >= lanes {
+                    per_tile / lanes * lanes
                 } else {
                     per_tile
                 };
                 let mut tile = Tile::new();
                 for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
                     let images = tile.extend(rows, row_bytes, image);
-                    hash_many_from_state(images, image, &state, digests_as_bytes(out));
+                    hash_many_from_state_uninit(images, image, &state, digest_bytes(out));
                 }
             }
         }
@@ -473,9 +474,23 @@ impl Tile {
     }
 }
 
-fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
-    // SAFETY: a digest is 32 bytes with no padding, and the hasher only writes.
+/// The sponge state before any input, from which [`hash_many_from_state_uninit`] hashes as `hash_many` does.
+const ZERO_STATE: [u64; STATE_LANES] = [0; STATE_LANES];
+
+/// The bytes of digests to be written.
+fn digest_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [MaybeUninit<u8>] {
+    // SAFETY: a digest is `OUT_LEN` bytes with no padding, and the bytes stay unwritten until the hasher writes them.
     unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len() * OUT_LEN) }
+}
+
+/// The bytes of digests already written.
+///
+/// # Safety
+///
+/// Every digest of `digests` is written.
+unsafe fn written_bytes(digests: &[MaybeUninit<Hash>]) -> &[u8] {
+    // SAFETY: forwarded to the caller.
+    unsafe { digests.assume_init_ref() }.as_flattened()
 }
 
 #[cfg(test)]

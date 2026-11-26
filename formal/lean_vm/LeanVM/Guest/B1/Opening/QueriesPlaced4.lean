@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced3
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Where a query reads; a body with one branch
@@ -58,16 +57,6 @@ theorem oqQLoad_in {R : ℕ → Prop} {d : QD} {σ : Val} (hv : d.Hv σ) {coefs 
   · rw [d.ptr_flag hv]; exact hreg.f
   · rw [d.ptr_cap hv]; exact hreg.c off ho
 
-/-- `KidsFromIn` grows with the data earlier kids claimed. -/
-theorem kidsFromIn_dacc {P : Program} {fs : String → ℕ} {cert : String → V → ℕ} {rd : Reader} {σ : Val}
-    {R : ℕ → Prop} : ∀ (cs : List Call) {Dacc Dacc' : ℕ → Prop} {b n : ℕ} {Dend : ℕ → Prop},
-    (∀ i, Dacc i → Dacc' i) → KidsFromIn P fs cert rd σ R Dacc cs b n Dend →
-      KidsFromIn P fs cert rd σ R Dacc' cs b n Dend
-  | [], _, _, _, _, _, h, ⟨hn, hd⟩ => ⟨hn, fun i hi ↦ h i (hd i hi)⟩
-  | _ :: cs, _, _, _, _, _, h, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ =>
-    ⟨m, n', Rk, Dk, hn, fun i hi ↦ (hR i hi).imp_right (h i), hc,
-      kidsFromIn_dacc cs (fun i hi ↦ hi.imp (h i) id) hk⟩
-
 /-! ## One branch -/
 
 theorem walk_flatM_fall (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.flatM = true →
@@ -84,7 +73,7 @@ theorem walk_ite_flatM (σ : Val) (c : V) (z n post : List Stmt) (vs : List V)
     (hbm : ∀ s ∈ (if σ c = 0 then z else n), MatchOk σ s)
     (hp : post.all Stmt.flatM = true) (hpm : ∀ s ∈ post, MatchOk σ s) :
     ∀ pre : List Stmt, pre.all Stmt.flatM = true → (∀ s ∈ pre, MatchOk σ s) →
-    walk σ (pre ++ .ite c z n :: (post ⧺ [.ret vs])) =
+    walk σ (pre ++ .ite c z n :: (post ++ [.ret vs])) =
       .ret (pre.flatMap (fmEvs σ) ++ .inK c :: ((if σ c = 0 then z else n).flatMap (fmEvs σ) ++
         post.flatMap (fmEvs σ))) vs
   | [], _, _ => by

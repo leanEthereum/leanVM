@@ -9,3 +9,6 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 lean-pq = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+allocator = { workspace = true }

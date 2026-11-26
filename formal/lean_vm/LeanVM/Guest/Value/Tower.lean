@@ -12,8 +12,8 @@ public import LeanVM.Parameters.Field
 import LeanVM.Guest.Value.FieldBits
 public import Statement.Verifier.Lib
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 import CompPoly.Fields.Binary.BF64.Impl
 
 /-!
@@ -130,10 +130,6 @@ theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b := by
   rw [pack64x2_eq (ofK_isInK a) (ofK_isInK b)]
   simp
 
-/-- `y · E(t)`: the word whose `y` limb is `t` (`Y_TOWER * tag`, a rate cell's tag). -/
-theorem y_mul_ofK (t : K) : y * ofK t = E.ofLimbs 0 t := by
-  rw [← ofK_add_y_mul_ofK, ofK_zero, zero_add]
-
 /-! ## Splitting a word (`split_limbs`) -/
 
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/
@@ -169,18 +165,6 @@ def eOfNat128 (n : ℕ) : E := E.ofLimbs (K.ofBits n) (K.ofBits (n / 2 ^ 64))
 /-- `COORD_BASIS[i]` (`placeholder_map`): the `i`-th coordinate basis vector. -/
 def coordBasis (i : ℕ) : E := eOfNat128 (2 ^ i)
 
-theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
-  simp only [K.ofBits, BitVec.ofNat_xor]
-  rfl
-
-theorem ofBits_one : K.ofBits 1 = 1 := rfl
-
-theorem ofBits_inj {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : K.ofBits a = K.ofBits b) :
-    a = b := by
-  have := congrArg (fun z : K ↦ z.toBitVec.toNat) h
-  simp only [K.ofBits, BF64.toBitVec_ofBitVec, BitVec.toNat_ofNat] at this
-  rwa [Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb] at this
-
 theorem kToNat_ofBits (n : ℕ) : kToNat (K.ofBits n) = n % 2 ^ 64 := by
   simp [kToNat, K.ofBits]
 
@@ -192,25 +176,20 @@ theorem kToNat_lt (a : K) : kToNat a < 2 ^ 64 := a.toBitVec.isLt
 
 theorem eOfNat_eq_ofLimbs (n : ℕ) : eOfNat n = E.ofLimbs (K.ofBits n) 0 := ofK_eq_ofLimbs _
 
-theorem eOfNat_zero : eOfNat 0 = 0 := by rw [eOfNat, ofBits_zero, ofK_zero]
+theorem eOfNat_zero : eOfNat 0 = 0 := by rw [eOfNat, K.ofBits_zero, ofK_zero]
 
-theorem eOfNat_one : eOfNat 1 = 1 := by rw [eOfNat, ofBits_one, ofK_one]
+theorem eOfNat_one : eOfNat 1 = 1 := by rw [eOfNat, K.ofBits_one, ofK_one]
 
 /-- Integer XOR is field addition. -/
 theorem eOfNat_xor (a b : ℕ) : eOfNat (a ^^^ b) = eOfNat a + eOfNat b := by
-  rw [eOfNat, ofBits_xor, ofK_add]
+  rw [eOfNat, K.ofBits_xor, ofK_add]
   rfl
 
 theorem eOfNat_isInK (n : ℕ) : IsInK (eOfNat n) := ofK_isInK _
 
 theorem eOfNat_inj {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : eOfNat a = eOfNat b) :
     a = b :=
-  ofBits_inj ha hb (ofK_injective h)
-
-theorem ofBits_mod (n : ℕ) : K.ofBits (n % 2 ^ 64) = K.ofBits n := by
-  apply BF64.toBitVec_injective
-  apply BitVec.eq_of_toNat_eq
-  simp [K.ofBits]
+  K.ofBits_injOn ha hb (ofK_injective h)
 
 /-- Two integers below `2^64` add to zero exactly when they are equal. -/
 theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
@@ -219,7 +198,7 @@ theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
   exact ⟨eOfNat_inj ha hb, fun h ↦ h ▸ rfl⟩
 
 theorem eOfNat128_xor (a b : ℕ) : eOfNat128 (a ^^^ b) = eOfNat128 a + eOfNat128 b := by
-  simp only [eOfNat128, Nat.xor_div_two_pow, ofBits_xor, ofLimbs_add]
+  simp only [eOfNat128, Nat.xor_div_two_pow, K.ofBits_xor, ofLimbs_add]
 
 theorem eOfNat128_of_lt {n : ℕ} (h : n < 2 ^ 64) : eOfNat128 n = eOfNat n := by
   rw [eOfNat128, eOfNat_eq_ofLimbs, Nat.div_eq_of_lt h]
@@ -240,7 +219,7 @@ theorem eOfNat128_eToNat (x : E) : eOfNat128 (eToNat x) = x := by
   have h1 := kToNat_lt (x.limb 1)
   have e0 : eToNat x % 2 ^ 64 = kToNat (x.limb 0) := by unfold eToNat; omega
   have e1 : eToNat x / 2 ^ 64 % 2 ^ 64 = kToNat (x.limb 1) := by unfold eToNat; omega
-  rw [eOfNat128, ← ofBits_mod (eToNat x), e0, ← ofBits_mod (eToNat x / 2 ^ 64), e1,
+  rw [eOfNat128, ← K.ofBits_mod (eToNat x), e0, ← K.ofBits_mod (eToNat x / 2 ^ 64), e1,
     ofBits_kToNat, ofBits_kToNat, ← eq_ofLimbs]
 
 /-- Below the first limb, a coordinate basis vector is `E(2^i)`. -/
@@ -293,7 +272,7 @@ theorem ofLimbs_mul_ofK (a b v : K) : E.ofLimbs a b * ofK v = E.ofLimbs (a * v) 
 /-- A word in the `y` limb. -/
 theorem eOfNat128_two_pow_64_mul (X : ℕ) :
     eOfNat128 (2 ^ 64 * X) = E.ofLimbs 0 (K.ofBits X) := by
-  rw [eOfNat128, ofLimbs_inj, ← ofBits_mod (2 ^ 64 * X), Nat.mul_mod_right,
+  rw [eOfNat128, ofLimbs_inj, ← K.ofBits_mod (2 ^ 64 * X), Nat.mul_mod_right,
     Nat.mul_div_cancel_left _ (Nat.two_pow_pos 64)]
   exact ⟨rfl, rfl⟩
 

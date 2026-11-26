@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.Final
 
-  B1 for `main` (TRIAGE #96): `main_sound_w`, a run of `main` establishes `NodeRelation` of
+  B1 for `main` (TRIAGE #96): `main_sound_C`, a run of `main` establishes `NodeRelation` of
   what its decoders read.
 -/
 
@@ -16,8 +16,9 @@ import LeanVM.Guest.Data.ValNames.«main»
 /-!
 # `main`, soundly
 
-`main_sound_w bytecode : main_sound_Spec bytecode`: on a memory image whose public input cells hold
-`D`, given the callees' contracts with witness functions (`CalleesW`), a run of `main`'s body gives
+`main_sound_C`: on a memory image whose public input cells hold `D`, under a call relation `C` that
+unfolds and lies below `coreProgram.Rel`, given the callees' contracts on `C`'s calls with witness
+functions (`CalleesWC`), a run of `main`'s body gives
 the decoded seed and statement of digest `D` (`own_digest`), and `NodeRelation` of the decoded witness:
 the deferred claim's shape, every child's proof accepted by the deferring verifier for the child's
 decoded statement (`kid_sub`, `kid_digest`), every raw signature verifying and every declared
@@ -149,7 +150,7 @@ theorem main_sound_C {bytecode : List K}
     · have hnil : (decWit σ rd wX wS wD wV wA).children = [] := by
         show (List.range (nKids σ)).map _ = []
         rw [nKids_eq, h6]; rfl
-      rw [ite_eq_left hnil]
+      rw [ite_pos' hnil]
       show (deferOfCells (readCells rd (σ (.n (val% «main» "defer_stmt"))) 24)).bytecodePoint = _
       rw [hlog]
       unfold deferOfCells
@@ -165,7 +166,7 @@ theorem main_sound_C {bytecode : List K}
         rw [nKids_eq]
         simp only [ne_eq, List.map_eq_nil_iff, List.range_eq_nil]
         exact h6
-      rw [ite_eq_right hne]
+      rw [ite_neg' hne]
       obtain ⟨htab, hcall⟩ := MF.agg h6
       have hwin : WinTabs rd (σ (.n (val% «main» "s63.e.s0#1"))) := by
         rw [htab, word_g236]; exact winTabs_of_expWinTab MF.win
@@ -198,14 +199,6 @@ theorem main_sound_C {bytecode : List K}
       · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).cells
         rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]
         exact k.defreads
-
-/-- **`main`, soundly, its witness decoded** (`coreProgram.Rel`'s instance of `main_sound_C`). -/
-theorem main_sound_w (bytecode : List K) :
-    main_sound_Spec bytecode := by
-  intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
-  exact main_sound_C hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
-    ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, fun rets h hcw => cw.da _ rets h hcw, cw.sub, cw.agg⟩
-      hp0 hp1 hb
 
 end
 end LeanVM.Guest.B1.Main

@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.KSeqComplete
+public import LeanVM.Guest.B1.Sig.CompleteKit
 public import LeanVM.Guest.B1.Sig.SphincsBytes
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»

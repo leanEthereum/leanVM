@@ -12,15 +12,14 @@ module
 public import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import LeanVM.Protocol.Compile.Prog
 public import Statement.Prover.Run
 public import LeanVM.Protocol.KeccakHash
 import LeanVM.Parameters.Field
 public import LeanVM.Protocol.ToArkLib.Merkle
 public import LeanVM.Protocol.RunWithHash
-import LeanVM.Protocol.WithHash
 public import CompPoly.Univariate.Basic
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core

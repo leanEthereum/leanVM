@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatGB
 public import LeanVM.Guest.B1.Da.FlatOut
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed callees, returned buffers
@@ -128,7 +127,7 @@ own buffers and its callees' returned buffers. -/
 theorem completeAt_flatGOutB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (rets : ℕ → List ℕ → List E) (Res : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))
@@ -177,42 +176,13 @@ theorem completeAt_flatGOutB {f : String} {fn : Fn} (hf : coreProgram.find? f = 
   have hto : MemL rd T := fun q hq => hLk q (takenOuts_sub hI q hq)
   obtain ⟨hlins, hreg, σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ :=
     hσ fp fps outs hlen hge ho rd hlow hB hLin hto
-  have hw := walk_flat σ vs pre hst hdo
-  rw [← hb] at hw
-  obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
-  have hsat := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
-  rw [hw] at hsat
-  have hes : ∀ e ∈ pre.flatMap (flEvs σ), e.Holds rd σ := fun e he => (hsat.1 e he).1
-  have hr : vs.map σ = rets fp fps := hsat.2
-  have hal : allocs σ (pre.flatMap (flEvs σ)) = sizes := by rw [i2, hsz]
-  have hown' : ∀ i, RegionL B i →
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i :=
-    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp fps) i hi)
-  have hk := hK rd σ (calls (pre.flatMap (flEvs σ))) (fun i => RegionL Lin i ∨
-      ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (flEvs σ))) (pre.flatMap (flEvs σ)) i)
-    (fun _ => False) (by rw [i4]; exact hcm) hlow hLk hlins
-    (regionsOk_mono (fun i h => h.imp_right (hown' i)) hreg)
-  have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (flEvs σ))).sum := by
-    rw [hal]
-  rw [hb'] at hk
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
-    (D := RegionL (B ++ T))
-    (Dk := fun i => False ∨ outRegion (atAllG [] (kids fp) fps) outs i) (N := N) (fp := fp)
-    coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, i1]; exact hbuf)
-    (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => ?_)
-  · rw [hal] at h
-    exact h
-  · rw [i5, flatMap_loadsEv σ pre hnl] at hA
-    obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
-    obtain ⟨i, hi, h | h | h⟩ := hld q hq
-    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
-    · exact ⟨i, hi, Or.inl (hown' i h)⟩
-    · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩
-  · obtain ⟨q, hq, h1, h2⟩ := hi
-    rcases List.mem_append.mp hq with hq | hq
-    · exact Or.inl (hown' i ⟨q, hq, h1, h2⟩)
-    · rw [hTdef, takenOuts_eq_outsL] at hq
-      exact Or.inr (Or.inr (outRegion_of_outsL ⟨q, hq, h1, h2⟩))
+  exact relAtIn_flat hf hl hb hst haddrs (hown fp fps) hp hdo hh hsz hbuf
+    (hK rd σ _ _ _ hcm hlow hLk hlins hreg)
+    (fun q hq => (hld q (by rwa [flatMap_loadsEv σ pre hnl] at hq)).imp fun _ h =>
+      ⟨h.1, h.2.imp_right (Or.imp_right Or.inr)⟩)
+    (fun i ⟨q, hq, h1, h2⟩ => (List.mem_append.mp hq).elim (fun hq => Or.inl ⟨q, hq, h1, h2⟩) fun hq => by
+      rw [hTdef, takenOuts_eq_outsL] at hq
+      exact Or.inr (Or.inr (outRegion_of_outsL ⟨q, hq, h1, h2⟩)))
 
 end
 end LeanVM.Guest.B1

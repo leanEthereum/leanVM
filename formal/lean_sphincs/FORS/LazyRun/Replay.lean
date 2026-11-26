@@ -1,6 +1,6 @@
 module
 
-public import FORS.LazyRun.InterpreterFacts
+public import FORS.ScanSigner.LazySigner
 
 @[expose] public section
 
@@ -17,7 +17,6 @@ variable [Params]
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]

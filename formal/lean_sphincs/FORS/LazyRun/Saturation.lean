@@ -21,7 +21,6 @@ variable [Params]
 open HiddenOutside HiddenReveal
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]

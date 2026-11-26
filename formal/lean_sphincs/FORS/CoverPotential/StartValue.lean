@@ -1,9 +1,5 @@
 module
 
-public import FORS.LazyRun.PreparedRun
-public import FORS.Reduction.Memo
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 
 @[expose] public section
@@ -19,9 +15,7 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenReveal FORS.Base.Domination
 
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
-
 
 section TotalO
 

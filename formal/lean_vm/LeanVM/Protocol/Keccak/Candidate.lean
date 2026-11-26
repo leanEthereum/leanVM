@@ -2,8 +2,8 @@
   LeanVM.Protocol.Keccak.Candidate
 
   A candidate `q_keccak` column and what the reduction says of it: its states per segment and
-  step, the claims the reduction starts from and ends with, and a generic multilinear zero test
-  for the phase that draws the table point.
+  step, the claims the reduction starts from and ends with, `RegionValid`, and a generic
+  multilinear zero test for the phase that draws the table point.
 -/
 
 module
@@ -12,6 +12,7 @@ import LeanVM.Protocol.Keccak.Words
 import LeanVM.Protocol.Keccak.Layer
 public import LeanVM.Protocol.Keccak.Rounds
 public import LeanVM.Protocol.Keccak.LayerAlg
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Candidates
@@ -24,13 +25,16 @@ lane `ℓ` of the committed state after twelve rounds (`doc/leanvm` §`keccak:se
   `statesAt col d`: the states `12 - d` rounds into each segment, as bits (depth `d`);
   `statesAt_round`: depth `d` is the round `12(m + 1) - d - 1` of depth `d + 1`
   (`afterRound`), so a layer's specification applies (`claimTrue_round`).
-* The statements: `outClaimsTrueMid` (the table's `25` output-lane claims at `inst`, against the
-  second segment from the committed middle state), `midAgree` (the first segment's output and
-  the committed middle state agree at `inst`, lane by lane); `colTrue`, `slicesTrue`: the claims
-  the reduction leaves on `q_keccak`.
+* The statements: `outClaimsTrue` (the table's `25` output-lane claims at `inst`, against
+  `keccakF1600` of the inputs), `outClaimsTrueMid` (against the second segment from the committed
+  middle state), `midAgree` (the first segment's output and the committed middle state agree at
+  `inst`, lane by lane), `RegionValid` (they agree at every step); `colTrue`, `slicesTrue`: the
+  claims the reduction leaves on `q_keccak`.
 * `ZeroOn δ acc n`: the multilinear extension of the table `δ` on `n` bits, with its first
   `|acc|` coordinates bound to `acc`, is identically zero; `zeroOn_escape`: a coordinate drawn
-  uniformly makes a nonzero partial extension zero with probability at most `1/|E|`.
+  uniformly makes a nonzero partial extension zero with probability at most `1/|E|`. This is the
+  escape the phase drawing `inst` (the table sumcheck) charges, `h/|E|` per candidate, to turn
+  `RegionValid` into `midAgree`.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -77,6 +81,10 @@ def stepMle (pt : List E) (f : ℕ → K) : E := ∑ x ∈ range (2 ^ h), eqAt p
 /-- Lane `l` of a state as a word. -/
 def laneWord (a : KeccakState) (l : ℕ) : K := K.ofLane (Keccak.lane a l)
 
+/-- **The table's output-lane claims** at `inst`: lane `l` of `keccakF1600` of each step's input. -/
+def outClaimsTrue (col : ℕ → K) (inst output : List E) : Prop :=
+  ∀ l < 25, stepMle h inst (fun x ↦ laneWord (keccakF1600 (inState h col 0 x)) l) = output.getD l 0
+
 /-- The output-lane claims against the second segment, from the committed middle state. -/
 def outClaimsTrueMid (col : ℕ → K) (inst output : List E) : Prop :=
   ∀ l < 25, stepMle h inst (fun x ↦ laneWord (roundsFrom 12 12 (inState h col 1 x)) l) =
@@ -86,6 +94,10 @@ def outClaimsTrueMid (col : ℕ → K) (inst output : List E) : Prop :=
 def midAgree (col : ℕ → K) (inst : List E) : Prop :=
   ∀ l < 25, stepMle h inst (fun x ↦ laneWord (roundsFrom 0 12 (inState h col 0 x)) l) =
     stepMle h inst (fun x ↦ col (x + 2 ^ h * (25 + l)))
+
+/-- **The committed middle state is twelve rounds of the input**, at every step. -/
+def RegionValid (col : ℕ → K) : Prop :=
+  ∀ x < 2 ^ h, inState h col 1 x = roundsFrom 0 12 (inState h col 0 x)
 
 /-- A column claim on `q_keccak` holds: the column's multilinear extension (step bits low, the
 six slot bits high) at the claim's point. -/
@@ -120,7 +132,7 @@ theorem foldT_snoc (δ : ℕ → E) (acc : List E) (c : E) (v : ℕ) :
     foldT δ (acc ++ [c]) v = (1 + c) * foldT δ acc (2 * v) + c * foldT δ acc (2 * v + 1) := by
   unfold foldT
   rw [List.length_append, List.length_singleton, pow_succ, mul_comm (2 ^ acc.length) 2,
-    sum_range_mul 2 (2 ^ acc.length), Finset.sum_range_succ, Finset.sum_range_succ,
+    Finset.sum_range_mul 2 (2 ^ acc.length), Finset.sum_range_succ, Finset.sum_range_succ,
     Finset.sum_range_zero, zero_add, Finset.mul_sum, Finset.mul_sum]
   refine congrArg₂ (· + ·) ?_ ?_
   · refine Finset.sum_congr rfl fun w hw ↦ ?_

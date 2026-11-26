@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Front.KeccakLayout
 import LeanVM.Protocol.EndToEnd.Complete.Gkr
-import LeanVM.Protocol.Keccak.Candidate
 public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
 public import LeanVM.Protocol.Keccak.Multilinear
 public import LeanVM.Protocol.Keccak.Linear
@@ -125,6 +124,19 @@ structure RingLayoutHyp (layout : Verifier.Layout) (h off : ℕ) : Prop where
   /-- The block lies inside the stack. -/
   fits : off + 2 ^ (h + 6) ≤ 2 ^ layout.stackLog
 
+/-- `eq_eval` against a cube point on as many coordinates is the equality weight `eqAt`. -/
+theorem eqEval_boolPoint_eqAt : ∀ (p : List E) (y : ℕ), eqEval p (boolPoint p.length y) = eqAt p y
+  | [], _ => by simp [eqEval, boolPoint]
+  | r :: p, y => by
+    rw [List.length_cons, Whir.Complete.boolPoint_succ, Whir.Complete.eqEval_cons,
+      eqEval_boolPoint_eqAt p, eqAt_cons]
+    congr 1
+    rw [Nat.testBit_zero]
+    rcases Nat.mod_two_eq_zero_or_one y with hy | hy
+    · simp [hy]
+    · simp only [hy, decide_true, ↓reduceIte]
+      linear_combination CharTwo.add_self_eq_zero (1 : E)
+
 /-- **An aligned placement's weight at a cube point**: the indicator of the block times the
 equality weight of the offset inside it. -/
 theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 2 ^ μ) (hx : x < 2 ^ μ)
@@ -142,7 +154,7 @@ theorem eqAbove_mul_eqEval_boolPoint {v off μ x : ℕ} (hfit : off + 2 ^ v ≤ 
   simp only [Placement.eqAbove, length_boolPoint, selectorPoint_eq_boolPoint,
     Nat.shiftRight_eq_div_pow, drop_boolPoint]
   rw [Complete.eqEval_boolPoint_boolPoint _ _ _ hoff hxv, take_boolPoint μ v x hv, ← hp,
-    ← boolPoint_mod, Whir.Complete.eqEval_boolPoint_eqAt, hp]
+    ← boolPoint_mod, eqEval_boolPoint_eqAt, hp]
   by_cases h : x / 2 ^ v = off / 2 ^ v
   · simp [h]
   · simp [h, Ne.symm h]

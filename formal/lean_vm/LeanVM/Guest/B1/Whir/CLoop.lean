@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Loops
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Loops, honestly
@@ -54,7 +53,7 @@ theorem allOk_relN {σ : Val} : ∀ (A : List Stmt), A.all Stmt.flat = true →
 /-- **A loop, honestly**: its body holding at every iteration, entered behind its guard. -/
 theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
     {A : List Stmt} (hflat : A.all Stmt.flat = true) {c : ℕ} {args : List V}
-    (hb : fn.body = A ⧺ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E} {n : ℕ}
+    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E} {n : ℕ}
     (hn0 : 0 < n) (hN : N = gen ^ n)
     (hstep : ∀ j < n, ∃ σ : Val, fn.params.map σ = gen ^ j :: N :: rest ∧
       AllOk (P.Rel rd) rd σ A ∧ σ (.n c) = gen ^ j * gen + N ∧
@@ -71,7 +70,7 @@ theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
       obtain ⟨σ, hp, hA, hc, ha⟩ := hstep (n - 1) (by omega)
       obtain ⟨D, hD⟩ := allOk_relN A hflat hA
       refine ⟨D + 1, (relN_succ_iff hf D _ _).mpr ⟨σ, hp, ?_⟩⟩
-      rw [hb, show A ⧺ [.callIf (.n c) f args, .ret []] = (A ⧺ [.callIf (.n c) f args]) ⧺ [.ret []]
+      rw [hb, show A ++ [.callIf (.n c) f args, .ret []] = (A ++ [.callIf (.n c) f args]) ++ [.ret []]
         by simp, holdsList_flat_ret _ (by simp [hflat, Stmt.flat])]
       refine ⟨allOk_append.mpr ⟨hD, ?_⟩, rfl⟩
       have h0 : σ (.n c) = 0 := by
@@ -84,14 +83,14 @@ theorem loop_complete {f : String} {fn : Fn} (hf : P.find? f = some fn)
       obtain ⟨σ, hp, hA, hc, ha⟩ := hstep (n - 1 - (i + 1)) (by omega)
       obtain ⟨D, hD⟩ := allOk_relN A hflat hA
       refine ⟨max D d' + 1, (relN_succ_iff hf (max D d') _ _).mpr ⟨σ, hp, ?_⟩⟩
-      rw [hb, show A ⧺ [.callIf (.n c) f args, .ret []] = (A ⧺ [.callIf (.n c) f args]) ⧺ [.ret []]
+      rw [hb, show A ++ [.callIf (.n c) f args, .ret []] = (A ++ [.callIf (.n c) f args]) ++ [.ret []]
         by simp, holdsList_flat_ret _ (by simp [hflat, Stmt.flat])]
       refine ⟨allOk_append.mpr ⟨allOk_mono (relN_mono P (le_max_left D d')) hD, ?_⟩, rfl⟩
       refine allOk_cons.mpr ⟨⟨by rw [hc]; exact hK _, fun _ ↦ ?_⟩, allOk_nil⟩
       rw [ha, gen_pow_mul_gen, show n - 1 - (i + 1) + 1 = n - 1 - i by omega]
       exact relN_mono P (le_max_right D d') _ _ _ hd'
   refine ⟨by
-    rw [hN]; exact one_add_gen_pow_isInK n,
+    rw [hN]; exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK n),
     fun _ ↦ ?_⟩
   obtain ⟨d, hd⟩ := key (n - 1) (by omega)
   rw [show n - 1 - (n - 1) = 0 by omega, pow_zero] at hd

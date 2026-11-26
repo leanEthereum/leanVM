@@ -35,7 +35,7 @@ program's query bound, each query at most `2^32` permutation calls. `batch_rpm_b
 and `QV ≤ 2^96`, at most `(QA + QV + 1) · max(2M - 3, 8) · 2^-130 + 5 (QA + QV)² · 2^-256`, the
 per-query `max(2M - 3, 8) · 2^-130` being `batchε M`: a round's `2/|E|`, or `λ`'s `(2M - 3)/|E|`
 through its proof of work of `2` bits (`RomSpec.lean`); `batch_sound_holds` is it as
-the end statement `BatchingSound` of `Statement/LeanVmGuestBatching.lean` states it: the verifier written out
+the end statement `BatchingSound` of `Statement/LeanVmGuestCompleteness.lean` states it: the verifier written out
 (`runBatching`, the seeding `F(H(label) ‖ 0)` then the program).
 
 The proof is `Rpm.detRun_le_rom` with `batch_rom` (and, for an adversary with coins, first
@@ -61,8 +61,7 @@ theorem movesOK_readCount (M : ℕ) : BMoves (readChildCount M) := by
 
 theorem movesOK_readChild (nB : ℕ) : BMoves (readChild nB) := by
   unfold readChild
-  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦
-    (Moves.liftOption _).mono (fun _ h ↦ h) id (fun _ _ ↦ trivial) fun _ h ↦ h
+  exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (movesOK_require _ _) fun _ _ ↦ trivial
 
 theorem movesOK_readChildren (nB : ℕ) : ∀ n, BMoves (readChildren nB n)
   | 0 => trivial
@@ -248,6 +247,17 @@ theorem batch_bound_le {QA QV M : ℕ} (hQA : QA ≤ 2 ^ 128) (hQV : QV ≤ 2 ^ 
     _ = (((QA + QV : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130 +
         5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by ring
 
+/-- **Past `2^128` adversary queries the batching's bound exceeds one**: its first term alone is
+at least `2^128 · 8 · 2^-130 = 4`. -/
+theorem one_le_batchingBound {QA QV M : ℕ} (hQA : 2 ^ 128 < QA) :
+    1 ≤ (((QA + QV : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ 130 +
+      5 * ((QA + QV : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256 := by
+  refine le_add_right (Common.one_le_mul_inv_two_pow ?_)
+  have : 2 ^ 130 ≤ (QA + QV + 1) * max (2 * M - 3) 8 :=
+    calc 2 ^ 130 = 2 ^ 128 * 4 := by norm_num
+      _ ≤ _ := Nat.mul_le_mul (by omega) (le_max_of_le_right (by norm_num))
+  exact_mod_cast this
+
 /-! ## The end statements -/
 
 /-- The batching's statement family run on a proof is the batching's verifier
@@ -260,16 +270,20 @@ theorem verifierFam_eq_batchRun (M : ℕ) (bytecode : List K) :
   simp only [verifierComp, Rom.verify, Seed.run, batchSeedOf, Seed.hsRun, runBatchingWithHash,
     bind_assoc, pure_bind, List.nil_append, List.getD_cons_zero]
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestBatching.lean`): the adversary's coins do not
-help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`. -/
+/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the adversary's coins do not
+help (`rpmRun_le_det`), then `batch_rpm` and `batch_bound_le`; past `2^128` adversary queries the
+bound exceeds one (`one_le_batchingBound`). -/
 theorem batchingSoundWithHash_holds : BatchingSoundWithHash := by
-  intro M bytecode hb hM B QA hB hQA hQV
-  rw [← verifierFam_eq_batchRun]
-  obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
-    (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
-  exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV))
+  intro M bytecode hb hM B QA hB hQV
+  rcases le_or_gt QA (2 ^ 128) with hQA | hQA
+  · rw [← verifierFam_eq_batchRun]
+    obtain ⟨A, hA, hle⟩ := rpmRun_le_det hB
+      (verifierFam batchSeeds (boundedBatchingProgram M bytecode))
+      (fun z ↦ z.2 = true ∧ SomeChildClaimFalse bytecode M z.1.2)
+    exact hle.trans ((batch_rpm hb hM A QA hA).trans (batch_bound_le hQA hQV))
+  · exact (prEvent_le_one _).trans (one_le_batchingBound hQA)
 
-/-- **`BatchingSound`** (`Statement/LeanVmGuestBatching.lean`): the game over `π` is the experiment with
+/-- **`BatchingSound`** (`Statement/LeanVmGuestCompleteness.lean`): the game over `π` is the experiment with
 the two calls (`batchingSound_of_withHash`). -/
 theorem batch_sound_holds : BatchingSound :=
   batchingSound_of_withHash batchingSoundWithHash_holds

@@ -27,7 +27,7 @@ def vkCurs : List ℕ :=
 /-- The order of `g`: exponents are taken modulo it. -/
 def gOrd : ℕ := 2 ^ 64 - 1
 
-/-- **`verify_keccak`'s values' exponents at `τ`** (`EndExec.vk_exps`), `y = τ - 3`: `tau_g`, `g^-4` (modulo the
+/-- **`verify_keccak`'s values' exponents at `τ`**, `y = τ - 3`: `tau_g`, `g^-4` (modulo the
 order), `pack_g`, `y_g`, the pack rounds' step `g^(y / 8)` and remainder `g^(y % 8)`, and their bits' factors. -/
 def vkTab (τ : ℕ) : List (ℕ × ℕ) :=
   [(val% «verify_keccak» "tau_g", τ), (val% «verify_keccak» "pack_g~0", gOrd - 4), (val% «verify_keccak» "pack_g", τ - 4),

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.Algebra
 public import LeanVM.Guest.B1.KeccakGkr.Lib
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eqtree_frame`
@@ -20,7 +19,7 @@ times `r_t` (the last level cut at `count`). In the core IR, from the value `b`:
 `r₀` (`b`), `1` (`b + 1`), `1 + r₀` (`b + 2`, entry `0`) and a copy of `r₀` (`b + 3`, entry `1`);
 level `t ≥ 1` from its base `B` is `r_t`, `1`, `1 + r_t`, then per parent `i` the product with
 `1 + r_t` and, while `i < k` (`k = 2^t` but at a cut last level), the product with `r_t`
-(`eqfLevelT`). Entry `j` of level `t` is `eqAt (r₀ .. r_t) j` (`eqf_level`).
+(`eqfLevelT`). Entry `j` of level `t` is `eqAt (r₀ .. r_t) j` (`eqfLevelT_holds`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -45,8 +44,8 @@ def eqfEnt (t B k j : ℕ) : ℕ :=
 /-- Level `t ≥ 1` from `B`, its parents' values `pw`, `k` products with `r_t`. -/
 def eqfLevelT (pt : V) (off t B k : ℕ) (pw : ℕ → ℕ) : List Stmt :=
   [.atom (.load (.n B) pt (off + t)), .atom (.const (.n (B + 1)) (word 1 0)),
-    .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ⧺
-  ((List.range (2 ^ t)).map fun i ↦ [.atom (.mul (.n (eqfEnt t B k i)) (.n (pw i)) (.n (B + 2)))] ⧺
+    .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ++
+  ((List.range (2 ^ t)).map fun i ↦ [.atom (.mul (.n (eqfEnt t B k i)) (.n (pw i)) (.n (B + 2)))] ++
     if i < k then [.atom (.mul (.n (B + 4 + 2 * i)) (.n (pw i)) (.n B))] else []).flatten
 
 theorem eqfLevel0T_holds {pt : V} {off b : ℕ} {next : Prop} {kret : List E → Prop}
@@ -109,7 +108,7 @@ def eqfVal (b n count : ℕ) : ℕ → ℕ → ℕ
 
 /-- The first `m + 1` levels of the tree. -/
 def eqfTm (pt : V) (off n count b : ℕ) (m : ℕ) : List Stmt :=
-  eqfLevel0T pt off b ⧺ ((List.range m).map fun s ↦
+  eqfLevel0T pt off b ++ ((List.range m).map fun s ↦
     eqfLevelT pt off (s + 1) (eqfBase b (s + 1)) (eqfK n count (s + 1)) (eqfVal b n count s)).flatten
 
 /-- **`eqtree_frame(point·g^off, out, n, count)`** from the value `b`. -/

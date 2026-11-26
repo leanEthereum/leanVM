@@ -159,8 +159,6 @@ end XRun
 
 variable {prog : LeanIsaProgram} {input : PublicInput}
 
-/-! ## The candidates -/
-
 /-! ## The memory image -/
 
 /-- Halting runs of equal images are equal. -/
@@ -259,7 +257,7 @@ noncomputable def logged2 {α : Type} (A : OracleComp KeccakCalls α)
 theorem logExperiment_eq_logged2 {α : Type} (A : OracleComp KeccakCalls α)
     (V : α → OracleComp KeccakCalls Bool) :
     logExperiment A V = (fun w ↦ ((w.1.1, w.2.1), w.2.2)) <$> logged2 A V := by
-  rw [logExperiment, OracleComp.run_simulateQ_bind, logged2, map_bind]
+  rw [logExperiment, Rom.run_simulateQ_bind, logged2, map_bind]
   refine bind_congr fun p ↦ ?_
   rw [simulateQ_map, StateT.run_map, Functor.map_map]
 

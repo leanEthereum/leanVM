@@ -10,11 +10,11 @@ The extractor indexes the `2^κ` addresses `g^i` in a `Std.HashMap` from the lan
 lane (`powTable`), read by binary search (`findLane`): `O(log 2^κ)` comparisons per lookup,
 worst-case.
 
-* `findLane_some`, `findLane_complete`: on a table sorted by lane, the search finds a pair with
+* `findLane_sound`, `findLane_complete`: on a table sorted by lane, the search finds a pair with
   the key whenever there is one, and only such pairs;
 * `gLogTable_eq`: on at most `2^63` words the lookup is `gLogIn (powIndex κ)` (the lanes of `g^i`,
   `i < 2^κ`, are distinct: `lane_gpow_inj`);
-* `stepTable`, `haltLoopTable`, `haltingRunTable`, `candidateExecutionTable`: the halting search
+* `stepTable`, `haltLoopTable`, `candidateExecutionTable`: the halting search
   with the tables, equal to the statement's with `powIndex` (`candidateExecutionTable_eq`).
 -/
 

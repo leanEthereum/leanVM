@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.verify_bus_gkr.ResGkrQ
+public import LeanVM.Guest.CoreMode.Fam.ResF
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 
@@ -61,13 +62,13 @@ theorem gll_next {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {σ : Core.
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hA
   obtain ⟨m6, m7, m8, m9, m10, l17, c339, m340, l340⟩ := hA
   simp only [Atom.Holds] at m6 m7 m8 m9 m10 l17 c339 m340 l340
-  rw [word_two_pow (by norm_num)] at c339
+  rw [tb_word_two_pow (by norm_num)] at c339
   have hrd : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7 := by
     rw [m10, m9, m8, m7, m6]; ring
   rw [hrd] at l17 l340
-  obtain rfl : σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur := loadHolds_unique l17 h0
+  obtain rfl : σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur := tb_loadHolds_unique l17 h0
   refine ⟨rfl, ?_⟩
-  have h := (loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 7 5 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
+  have h := (tb_loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 7 5 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
     (by rw [← c339, ← m340]; exact l340)
   rwa [mul_assoc, ← mul_pow] at h
 
@@ -144,7 +145,7 @@ theorem glLQ_step (hr : r.Ok) :
       have hw2 := hw
       rw [hbL] at hw2
       have := hh _ (topAtoms_on_path hw2 (List.contains_iff_mem.mp hat))
-      simpa [Ev.Holds, Atom.Holds, word_one] using this
+      simpa [Ev.Holds, Atom.Holds, tb_word_one] using this
     have hhd : J.hdr.2 = ofK (addressOfIndex I.fp) := by rw [hhdr, hH]
     obtain ⟨rest, hrest⟩ := glLoopArgs_eq p
     rw [hargs, hrest] at hpar
@@ -160,17 +161,9 @@ theorem glLQ_step (hr : r.Ok) :
   · -- the loop's tail call
     subst h
     obtain rfl := Option.some.inj (hfI.symm.trans hfn)
-    obtain ⟨p0, prest, i0, hps, hargs, hi0, hlen⟩ := loop_tail hfI hlp hnc hw hh hci hcf
+    obtain ⟨i0, p0, prest, hps, hargs, hi0, hH⟩ := loop_tail_hdr hfI hlp hnc hIt hw hh hci hcf
     rw [hp', glLoopParams_eq] at hps
     obtain ⟨rfl, rfl⟩ := List.cons.inj hps
-    obtain ⟨j, hj⟩ := B2C.idxOf_of_find hfI
-    obtain ⟨i2, hji2, hi2, -, hf2, hc2, -⟩ := fn_of_idx hj
-    have hcj := hc2.trans (Option.some.inj (hf2.symm.trans hfI))
-    have hH := B2C.H_eq_kidHdr hIt hj (by rw [hcj]; exact hw) i
-    unfold kidHdr at hH
-    rw [hci] at hH
-    dsimp only at hH
-    rw [ite_eq_left (show (coreOf j).loop = true ∧ _ from ⟨by rw [hcj]; exact hlp, hlen⟩)] at hH
     rw [hargs] at hpar
     simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
     obtain ⟨p0, p1, p2, -⟩ := hpar

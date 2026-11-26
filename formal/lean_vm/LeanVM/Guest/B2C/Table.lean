@@ -17,8 +17,7 @@ An instance of `main` that runs has the jump table among its candidates (`nodeE`
 and every other candidate lies below the table's first slot `Data.mainCells`: its values' certificate cells,
 its fixed cells, call sites and table jumps (`mainSmall`, by the kernel), and no frame run, since
 `main`'s body has no `frameAddr` (`main_noRun`, through `walk_blockAtoms`: a path's atoms are its
-block's). So each slot is the first candidate at its cell (`tableC_node`), and the honest memory
-holds the table (`jumpTables_honestC`). A phantom of `main` does not have it; none is honest.
+block's). So each slot is the first candidate at its cell (`tableC_node`). A phantom of `main` does not have it; none is honest.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -124,7 +123,6 @@ def noRun : Atom → Bool
   | .frameAddr _ (_ :: _) => false
   | _ => true
 
-set_option maxRecDepth 100000 in
 theorem main_noRun : (blockAtoms Data.core0.body).all noRun = true := by decide +kernel
 
 /-- `main`'s certificate cells, fixed cells, call sites and table jumps lie below `Data.mainCells`. -/
@@ -133,7 +131,6 @@ noncomputable def mainSmallB : Bool :=
     (plumbOf 1).sites.all (fun s => Nat.blt s.q Data.mainCells && Nat.blt s.tgt Data.mainCells) &&
     (plumbOf 1).arms.all (fun a => Nat.blt a.2.1 Data.mainCells) && (plumbOf 1).chains.isEmpty
 
-set_option maxRecDepth 100000 in
 theorem mainSmall : mainSmallB = true := by decide +kernel
 
 theorem main_idx : idxOf "main" = some 1 := by decide +kernel
@@ -264,12 +261,6 @@ theorem jumpTables_cover {hdr : E × E} {T : Memory.Tree} {rd : Reader}
   have hC := tableC_node (I := I) (by rw [hIt, hT]) hq
   have := hL.read_C hH hI hC
   rwa [hfp, addressOfIndex, pow_zero, one_mul] at this
-
-/-- **The honest memory holds the jump table**, at `B2C.C`. -/
-theorem jumpTables_honestC {hdr : E × E} {T : Memory.Tree} {rd : Reader}
-    (hH : Honest coreProgram fs H C hdr T rd [] []) (hname : T.name = "main") :
-    End.JumpTables (honest coreProgram fs H C hdr T) :=
-  jumpTables_cover hH hH.covers hname
 
 end
 end LeanVM.Guest.B2C

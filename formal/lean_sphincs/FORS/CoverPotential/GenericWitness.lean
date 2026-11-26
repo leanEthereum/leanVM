@@ -21,7 +21,6 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner FORS.Base.Domination
 
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### Witnesses and their prices -/

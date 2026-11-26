@@ -5,7 +5,15 @@ import all LeanVM.Protocol.Whir.Sound.DescentC
 import all LeanVM.Protocol.Whir.Params.Check
 import all LeanVM.Protocol.ToArkLib.Whir.AffineCombinerDeployedTable
 import all LeanVM.Protocol.Extraction.AS.TraceShape
-import Statement.Verifier.Lib
+import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 
 /-!
 # Bounds: the descent's worst price at every shape

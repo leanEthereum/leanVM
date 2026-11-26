@@ -10,12 +10,14 @@ module
 import LeanVM.Protocol.EndToEnd.Complete.BusTables
 public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
-public import LeanVM.Protocol.Verifier.Phases.Bus
+import LeanVM.ToMathlib.List
 
 /-!
 # The verifier's bus blocks
 
-The table blocks of the three sides at the leanISA instance's sizes (`pushBlocks`, `pullBlocks`,
+The tail of `verify_bus_balance` (`crates/verifier/src/bus.rs`)
+after its reads (`busOut`, `verifyBusBalance_eq`);
+the table blocks of the three sides at the leanISA instance's sizes (`pushBlocks`, `pullBlocks`,
 `countBlocks`: each table's at its log-height and row count, `layout_push`, …), the bus's depth
 (`busDepth`) and the bounds on it; the empty forms the bus starts from (`forms0_*`) and the
 blocks' owners (`*_owned`).
@@ -28,6 +30,53 @@ open LeanVM.Protocol.LeanIsa LeanVM.Protocol.EndToEnd LeanVM.Protocol.EndToEnd.F
 open LeanVM.Protocol.Whir.Complete Finset
 
 @[expose] public section
+
+/-- The tail of `verify_bus_balance` after the reads: the claims, the bytecode's point, the GKR
+point, the forms and the totals (`bus.rs`), from the slot weights, `β`, the GKR's point and
+tree values, the memory limbs and finalize counts read, and the bytecode's share and point. -/
+def busOut (layout : Verifier.Layout) (weights : List E) (beta : E)
+    (point treeValues memory : List E) (memoryFinal bytecodeFinal share : E)
+    (bytecodePoint : List E) : BusResult :=
+  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
+  let pushLayout := busLayout frameworkLogRows layout.push
+  let pullLayout := busLayout frameworkLogRows layout.pull
+  let countLayout := busLayout [] layout.count
+  let memoryLow := point.take layout.logMemory
+  let bytecodeLow := point.take layout.logBytecode
+  let claims : List Verifier.ColumnClaim :=
+    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1] memory) ++
+    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
+      bytecodeFinal⟩]
+  let fp := fingerprints weights memory memoryLow bytecodeLow share
+  let pcFinal := Verifier.gpow (2 ^ layout.logBytecode - 1)
+  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
+  let r1 := accumulateSide forms0 0 layout.push pushLayout (fp (Verifier.gpow 0) 1 1)
+    weights beta point (treeValues.getD 0 0)
+  let r2 := accumulateSide r1.1 1 layout.pull pullLayout
+    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
+  let r3 := accumulateSide r2.1 2 layout.count countLayout [] [1] 0 point (treeValues.getD 2 0)
+  ⟨claims, bytecodePoint, point, r3.1, [r1.2, r2.2, r3.2]⟩
+
+/-- `verify_bus_balance` reads, then computes `busOut`. -/
+theorem verifyBusBalance_eq (layout : Verifier.Layout) :
+    verifyBusBalance computedBytecodeValue layout = (do
+      VerifierProgram.require
+        ((busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth < 64)
+      VerifierProgram.grindProofOfWork
+        (busGrindingBits (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth)
+      let weights ← VerifierProgram.sampleChallenges (2 ^ busBits)
+      let beta ← VerifierProgram.sampleChallenge
+      let g ← verifyGkrGrandProducts
+        (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
+      VerifierProgram.require (g.1 ≠ 0)
+      let memory ← VerifierProgram.readScalars 2
+      let memoryFinal ← VerifierProgram.readScalar
+      let bytecodeFinal ← VerifierProgram.readScalar
+      let (share, bytecodePoint, value) ← bytecodeShare weights (g.2.1.take layout.logBytecode)
+      computedBytecodeValue layout.bytecode bytecodePoint value
+      return busOut layout weights beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal share
+        bytecodePoint) := by
+  rfl
 
 /-! ## The blocks and the depth -/
 
@@ -68,15 +117,8 @@ def fwLogs (prog : LeanIsaProgram) (s : Sizes) : List ℕ := [0, s.logMem, prog.
 def busDepth (prog : LeanIsaProgram) (s : Sizes) : ℕ :=
   log2Ceil (blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)))
 
-theorem map_range_getD {α β' : Type} (l : List α) (d : α) (f : α → β') :
-    (List.range l.length).map (fun b ↦ f (l.getD b d)) = l.map f := by
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp only [List.getElem_map, List.getElem_range]
-  rw [List.getD_eq_getElem _ _ (by simpa using h1)]
-
 theorem blockTotal_eq (sizes : List ℕ) : blockTotal sizes = (sizes.map (2 ^ ·)).sum := by
-  rw [blockTotal, map_range_getD sizes 0 (2 ^ ·)]
+  rw [blockTotal, List.map_range_getD sizes 0 (2 ^ ·)]
 
 theorem blockTotal_sideSizes (fw : List ℕ) (blocks : List BusBlock) :
     blockTotal (sideSizes fw blocks) =

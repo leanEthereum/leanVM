@@ -238,7 +238,7 @@ theorem Step.of_occ {st st' : SSt} {Ψ : ℕ → E} (h : ∀ c, st.occ.testBit c
 variable {cg rd σ}
 
 theorem isPend_iff {st : SSt} {v : ℕ} : isPend st v = true ↔ ∃ p ∈ st.pend, p.v = v := by
-  simp only [isPend_def, List.any_eq_true]
+  simp only [isPend, List.any_eq_true]
   exact exists_congr fun p ↦ and_congr_right fun _ ↦ ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl _⟩
 
 theorem isNamed_eq (st : SSt) (n : ℕ) : isNamed st n = st.named.testBit n := bitN_eq _ _
@@ -360,10 +360,10 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ)} {st : SSt} {pre : List V} {
           · rw [List.mem_singleton.mp hu, ← hcg]; exact ho
         · rcases List.mem_append.mp hu with hu | hu
           · refine hI.good u hu hc ?_
-            simp only [isPend_def, List.any_cons, Bool.or_eq_false_iff] at hpe ⊢
+            simp only [isPend, List.any_cons, Bool.or_eq_false_iff] at hpe ⊢
             exact hpe.2
           · rw [List.mem_singleton.mp hu] at hpe
-            simp [isPend_def] at hpe
+            simp [isPend] at hpe
         · intro p hp
           rcases List.mem_cons.mp hp with rfl | hp
           · exact ⟨by rw [hcv, hcg], h2', ho, (fun _ h ↦ by cases h), (fun _ h ↦ by cases h),
@@ -408,9 +408,9 @@ variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st : SSt} {pre : List V}
     {Ψ : ℕ → E}, Inv cg rd σ st pre Ψ → FitV loc cg vs → (∀ v ∈ vs, ∀ x, kc v.idx = some x → σ v = tw x) →
     ∃ Ψ', Inv cg rd σ (nameAll loc sh kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc sh kc st vs) Ψ'
-  | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll_nil] using hI, Step.refl st Ψ⟩
+  | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll] using hI, by simpa [nameAll] using Step.refl st Ψ⟩
   | v :: vs, st, pre, Ψ, hI, hf, hk => by
-    simp only [nameAll_cons, SSt.seq_eq]
+    rw [nameAll_cons]
     obtain ⟨hv, hc⟩ := hf v List.mem_cons_self
     obtain ⟨Ψ1, hI1, hs1⟩ := nameV_inv (sh := sh) hI hv hc (hk v List.mem_cons_self)
     obtain ⟨Ψ2, hI2, hs2⟩ := nameAll_inv vs hI1 (hf.mono fun u hu ↦ List.mem_cons_of_mem _ hu)
@@ -418,13 +418,11 @@ theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ)} : ∀ (vs : List V) {st :
     exact ⟨Ψ2, by simpa using hI2, hs1.trans hs2⟩
 
 
-theorem ofBits_one : K.ofBits 1 = 1 := by decide
-
 theorem tw_limbs (x : E) : tw (limbNat x 0, limbNat x 1) = x :=
   (eq_imm_of_limbs rfl rfl).symm
 
 theorem tw_one : tw (1, 0) = 1 := by
-  rw [tw, imm_of_ofBits ofBits_one, ofK_one]
+  rw [tw, imm_of_ofBits K.ofBits_one, ofK_one]
 
 /-- The values of an atom are named by their numbers. -/
 def VnA (a : Core.Atom) : Prop := ∀ u ∈ Memory.atomUses a, u = V.n u.idx
@@ -524,7 +522,7 @@ theorem eqsOf_sound {a : Core.Atom} {v x : ℕ} (ha : a.Holds rd σ) (hvn : VnA 
 
 theorem isPend_addFacts {a : Core.Atom} {st : SSt} {v : ℕ} :
     isPend ⟨st.occ, st.cst, st.keys, st.named, addFacts a st.pend⟩ v = isPend st v := by
-  simp only [isPend_def, addFacts, List.any_map]
+  simp only [isPend, addFacts, List.any_map]
   rfl
 
 /-- **An atom's facts** about the pending values hold. -/
@@ -558,7 +556,7 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
     σ (V.n p.v) = Ψ p.c := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hI.pend p hp
   simp only [pfOk, Bool.or_eq_true, List.any_eq_true] at h
-  rcases h with (h | ⟨k, hk, hok⟩) | ⟨x, hx, hok⟩
+  rcases h with (h | ⟨x, hx, hok⟩) | ⟨k, hk, hok⟩
   · cases hkc : p.kc with
     | none => rw [hkc] at h; simp at h
     | some x =>
@@ -570,8 +568,13 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
         simp only [beq_iff_eq] at h
         subst h
         rw [h4 x hkc, (hI.kc p.c x ho).2]
+  · simp only [Bool.and_eq_true, nbeq_iff] at hok
+    obtain ⟨hn, hc⟩ := hok
+    have hc' : cellN loc x = cg (V.n x) := hA _ (show 2 ≤ cellN loc x by rw [hc]; exact h2)
+    rw [h6 x hx, ← hc, hc']
+    exact (hI.named x hn (by rw [← hc', hc]; exact h2)).1
   · simp only [keyOk, Bool.and_eq_true, List.all_eq_true, List.any_eq_true] at hok
-    obtain ⟨hin, k', hk', hkk⟩ := hok
+    obtain ⟨⟨k', hk', hkk⟩, hin⟩ := hok
     simp only [nbeq_iff, beq_iff_eq] at hkk
     obtain ⟨hop, hcs⟩ := hkk
     have hK := (hI.keys p.c k' hk').1
@@ -585,11 +588,6 @@ theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ �
       exact ((hI.named u this.1 (hc ▸ this.2)).1).symm
     rw [hmap] at hK
     exact (h5 k hk).unique hK
-  · simp only [Bool.and_eq_true, nbeq_iff] at hok
-    obtain ⟨hn, hc⟩ := hok
-    have hc' : cellN loc x = cg (V.n x) := hA _ (show 2 ≤ cellN loc x by rw [hc]; exact h2)
-    rw [h6 x hx, ← hc, hc']
-    exact (hI.named x hn (by rw [← hc', hc]; exact h2)).1
 
 
 theorem splitPend_spec (st : SSt) : ∀ (ps : List PF) {ok rest : List PF},
@@ -718,7 +716,7 @@ theorem cellKeys_sound {a : Core.Atom} (ha : a.Holds rd σ) {c op : ℕ} {ins : 
       keyHolds_mul.mpr ha⟩
   | keccak ins outs inOdd outOdd =>
     obtain ⟨-, ⟨oc, hlo⟩, O, hk, hw⟩ := keccak_holds_full ha
-    simp only [cellKeys, mapR_eq, zipIdxR_eq, List.mem_map, Prod.mk.injEq] at h
+    simp only [cellKeys, List.mem_map, Prod.mk.injEq] at h
     obtain ⟨⟨o, j⟩, hq, rfl, rfl, rfl⟩ := h
     obtain ⟨hj, ho⟩ := List.mem_zipIdx' hq
     have ho' : o = outs[j]'hj := ho
@@ -799,7 +797,7 @@ theorem record_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
     (hI : Inv cg rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a)
     (hfit : FitV loc cg (Memory.atomUses a)) :
     Inv cg rd σ (record loc sh a st) pre Ψ ∧ Step st Ψ (record loc sh a st) Ψ := by
-  rw [record_def]
+  unfold record
   cases hall : (Memory.atomUses a).all fun v ↦ isNamed st v.idx
   · rw [Bool.cond_false]; exact ⟨hI, Step.refl _ _⟩
   rw [Bool.cond_true]
@@ -916,7 +914,7 @@ theorem joinSt_inv {st1 b : SSt} {bs : List SSt} {pre1 preb : List V} {Ψ1 Ψb :
   refine ⟨⟨hIb.vn, fun u hu hc ↦ hsome _ (hIb.occ u hu hc), fun u hu hc _ ↦ ?_, fun n hn hc ↦ ?_,
     fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp' ↦ by simp [joinSt] at hp'⟩,
     fun c hc ↦ ⟨hsome1 c hc, (hs c hc).2⟩⟩
-  · exact hIb.good u hu hc (by simp [isPend_def, hp])
+  · exact hIb.good u hu hc (by simp [isPend, hp])
   · have hnb : isNamed b n = true := by
       rw [isNamed_eq] at hn ⊢
       simp only [joinSt] at hn
@@ -1756,7 +1754,7 @@ theorem chain_sound (hS : ShareOk j)
       · exact hpre v hv
       · exact hus e he' v hv
       · exact hvs v hv
-    exact hI'.good v hv' hc (by simp [isPend_def, hpe'])
+    exact hI'.good v hv' hc (by simp [isPend, hpe'])
   | succ k ih =>
     intro i hi pre Ψ hI es vs hw he
     have hiN : i < (snapsOf j).length := by omega
@@ -1786,7 +1784,7 @@ theorem chain_sound (hS : ShareOk j)
         · exact hpre v hv
         · exact hus e he' v hv
         · exact hvs v hv
-      exact hI'.good v hv' hc (by simp [isPend_def, hpe'])
+      exact hI'.good v hv' hc (by simp [isPend, hpe'])
     | fall es1 =>
       rw [hW] at hw
       simp only [Out.seq] at hw
@@ -1811,7 +1809,7 @@ theorem chain_sound (hS : ShareOk j)
         refine ⟨Ψf, fun v hv hc ↦ ?_, fun c hc ↦ ?_⟩
         · have old : v ∈ pre' → σ v = Ψf (cellJ j v) := fun hv' ↦ by
             rw [hkeep _ (hI'.occ v hv' hc)]
-            exact hI'.good v hv' hc (by simp [isPend_def, hpe])
+            exact hI'.good v hv' hc (by simp [isPend, hpe])
           rcases List.mem_append.mp hv with hv | hv
           · rcases List.mem_append.mp hv with hv | hv
             · exact old (hpre v hv)

@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Terminal.SelComplete
 public import LeanVM.Guest.Exact.Kids
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `column_selector`, exact
@@ -38,11 +37,11 @@ def csHintA (κ : ℕ) : Atom :=
 
 theorem cs_sites_all : (List.range 31).all (fun κ => Stmt.blockNextOk
     (fun a => isComputed a && !decide (a ∈ [csHintA κ])) pinsInverse
-    (Tables.csPre κ ⧺ [.ret [.n (Tables.csRet κ)]])) = true := by
+    (Tables.csPre κ ++ [.ret [.n (Tables.csRet κ)]])) = true := by
   decide +kernel
 
 theorem cs_sites {κ : ℕ} (hκ : κ < 31) : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [csHintA κ]))
-    pinsInverse (Tables.csPre κ ⧺ [.ret [.n (Tables.csRet κ)]]) = true :=
+    pinsInverse (Tables.csPre κ ++ [.ret [.n (Tables.csRet κ)]]) = true :=
   List.all_eq_true.mp cs_sites_all κ (List.mem_range.mpr hκ)
 
 /-- **The digits hint is exact** at the honest valuation. -/
@@ -133,19 +132,19 @@ theorem cs_completeAtDTBRH (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {
       refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
-      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
+      rw [e]; exact cs_addr_mul _ _ _
     · have e : σ (.n (Tables.csC κ j + if j = 0 then 6 else 7)) =
           ofK (addressOfIndex bg) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
         by_cases hj0 : j = 0
         · subst hj0
-          rw [ite_eq_left rfl, Tables.cskVal_at hκ' hj (by simp)]
+          rw [ite_pos' rfl, Tables.cskVal_at hκ' hj (by simp)]
           simp [Tables.cskRole]
-        · rw [ite_eq_right hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
+        · rw [ite_neg' hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩
-      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
+      rw [e]; exact cs_addr_mul _ _ _
 
 
 /-- **`column_selector__L{κ}`, placed within its frame, exact at every node.** -/

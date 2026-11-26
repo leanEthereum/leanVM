@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Placement.InterfaceP
 public import LeanVM.Guest.B1.KeccakGkr.InterfaceP
 
 /-!
-# `check_opening_terminal` (TRIAGE G #70): the interface
+# `check_opening_terminal`: the interface
 
 `check_opening_terminal(g_squares, zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g,
 kappa_base, lam_cl, col_offsets, z_vals, c_table, point, point1, inner_total, yr_at_tail,
@@ -109,7 +109,7 @@ def TermPre (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Col
       bus.point.length ≤ 40 ∧ layout.tableLogHeights.length = 6 ∧
       (∀ h ∈ layout.tableLogHeights, h < 33) ∧
       glm = gen ^ layout.logMemory ∧ gtau = gen ^ τ ∧
-      ReadsAt rd kb (1 :: gen ^ layout.logMemory :: layout.tableLogHeights.map (gen ^ ·)) ∧
+      Tables.TbReadsAt rd kb (1 :: gen ^ layout.logMemory :: layout.tableLogHeights.map (gen ^ ·)) ∧
       Tables.GTabsAt rd (gsq * gen ^ 34) ∧ lamCl = lam ∧
       out.column = qkeccak ∧ out.point.length = τ + qkeccakSlotBits ∧ ReadsAt rd zv out.point ∧
       ringPoint.length = τ + qkeccakSlotBits ∧ ReadsAt rd (zv * gen ^ qkeccakVarsCap) ringPoint ∧
@@ -130,7 +130,7 @@ def MeaningTerminal (rd : Reader) (args rets : List E) : Prop :=
           stackWeight layout (openedClaims claims [out]) ringPoint coeffs oodPoint lam x) *
         args.getD 16 0 = args.getD 17 0
 
-/-- **`check_opening_terminal` is sound** (TRIAGE #70). -/
+/-- **`check_opening_terminal` is sound**. -/
 def check_opening_terminal_SpecP (P : Program) (rd : Reader) : Prop :=
   ∀ args rets, P.Rel rd "check_opening_terminal" args rets → MeaningTerminal rd args rets
 

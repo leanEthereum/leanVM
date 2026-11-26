@@ -23,17 +23,17 @@ public section
 
 variable (P : MachineProgram)
 
-/-- `List.any`: `11` per element and the predicate's price, `3`. -/
-theorem anyC_cost (hP : Includes P Auto.List.any.costDeps) {α : Type} [MachineEncoding α]
+/-- `List.any` (`any.c293`): `11` per element and the predicate's price, `3`. -/
+theorem anyC_cost (hP : Includes P Auto.List.any.c293.costDeps) {α : Type} [MachineEncoding α]
     (p : α → Bool) (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ l : List α, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.any.costIdx [encodeValue l, pVal] ≤ (B + 11) * l.length + 3 := by
+      machineCost P Auto.List.any.c293.costIdx [encodeValue l, pVal] ≤ (B + 11) * l.length + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.any.costEq_nil P hP p pVal hp]; omega
+  | nil => intro _; rw [Auto.List.any.c293.costEq_nil P hP p pVal hp]; omega
   | cons a l ih =>
     intro hB
-    rw [Auto.List.any.costEq_cons P hP a l p pVal hp]
+    rw [Auto.List.any.c293.costEq_cons P hP a l p pVal hp]
     have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
     have h2 := hB a (by simp)
     simp only [List.length_cons]
@@ -47,17 +47,18 @@ theorem foldCA_cost (hP : Includes P foldCAC.costDeps) (y : E) (r : FoldRound) (
     (ho : o.size < 2 ^ 62) :
     machineCost P foldCAC.costIdx [encodeValue y, encodeValue r, encodeValue o] ≤
       113 * o.size + 320 := by
-  rw [foldCAC.costEq P hP, ofFnFrom_length]
-  limbs
+  rw [foldCAC.costEq P hP, limbs_of_lt (by omega : o.size + 1 < 2 ^ 64),
+    limbs_of_lt (by omega : o.size < 2 ^ 64), ofFnFrom_length]
   have := ofFnFrom_cost P (by includes) (n := (o.size + 1) / 2) (by omega) _
     (.closure foldCAC.lam0.costIdx [encodeValue o, encodeValue (r.alpha + r.beta * y),
       encodeValue (r.beta * y)])
     (fun k ↦ RunsApp.of_spec (foldCAC.lam0.costSpec P (by includes) o _ _ k)) 208
     (fun k ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        foldCAC.lam0.costEq P]
+        foldCAC.lam0.costEq P (by includes)]
       have hk := k.isLt
-      limbs
+      rw [limbs_of_lt (by omega : 2 * (k : ℕ) < 2 ^ 64), limbs_of_lt (by omega : (k : ℕ) < 2 ^ 64),
+        limbs_of_lt (by omega : 2 * (k : ℕ) + 1 < 2 ^ 64)]
       simp) 0 (Nat.zero_le _)
   simp only [Nat.sub_zero] at this
   omega
@@ -84,7 +85,7 @@ theorem foldsCA_cost (hP : Includes P foldsCAC.costDeps) (y : E) (rounds : List 
     (fun o _ ↦ o.size ≤ W)
     (fun o r _ h ↦ by
       refine ⟨by rw [size_foldCA]; omega, ?_⟩
-      rw [appCost_fn, List.cons_append, List.nil_append, foldsCAC.lam0.costEq P]
+      rw [appCost_fn, List.cons_append, List.nil_append, foldsCAC.lam0.costEq P (by includes)]
       have := foldCA_cost P (by includes) y r o (by omega)
       simp only [List.length_cons, List.length_nil]
       nlinarith) rounds o hW
@@ -112,8 +113,7 @@ theorem foldsAC_cost (hP : Includes P foldsACC.costDeps) (n : ℕ) (rounds : Lis
     ((113 * W + 340) * rounds.length + 30)
     (fun x ↦ by
       rw [appCost_fn, List.cons_append, List.cons_append, List.cons_append, List.nil_append,
-        foldsACC.lam0.costEq P]
-      limbs
+        foldsACC.lam0.costEq P (by includes), limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64)]
       have := foldsCA_cost P (by includes) (ptE x) rounds (OA.getD x #[]) W (hW x x.isLt) hW'
       simp only [List.length_cons, List.length_nil]
       omega) 0 (Nat.zero_le _)
@@ -134,7 +134,9 @@ theorem agreeC_cost (hP : Includes P agreeCC.costDeps) (n m : ℕ) (r : FoldRoun
     (fun x ↦ RunsApp.of_spec (agreeCC.lam0.costSpec P (by includes) n m r VA QA x))
     (113 * W + 56 * 2 ^ m + 400) (List.finRange n)
     (fun x _ ↦ by
-      cost_app [agreeCC.lam0.costEq P, limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64),
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [agreeCC.lam0.costEq P (by includes), limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64),
         limbs_of_lt (by omega : m < 2 ^ 64),
         limbs_of_lt (by rw [Nat.shiftLeft_eq, one_mul]; omega : 1 <<< m < 2 ^ 64)]
       have h1 := foldCA_cost P (by includes) (ptE x) r (QA.getD x #[]) (by
@@ -146,7 +148,9 @@ theorem agreeC_cost (hP : Includes P agreeCC.costDeps) (n m : ℕ) (r : FoldRoun
           encodeValue (foldCA (ptE x) r (QA.getD x #[])), encodeValue (VA.getD x #[])])
         (fun k ↦ RunsApp.of_spec (agreeCC.lam0.lam0.costSpec P (by includes) m _ _ k)) 32
         (List.finRange (2 ^ m)) (fun k _ ↦ by
-          cost_app [agreeCC.lam0.lam0.costEq P]
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [agreeCC.lam0.lam0.costEq P (by includes)]
           split_ifs <;> omega)
       simp only [List.length_finRange, Nat.sub_zero] at h3 h4
       have h5 : 113 * (QA.getD x #[]).size ≤ 113 * W := Nat.mul_le_mul_left _ h2
@@ -166,15 +170,15 @@ theorem winPtsC_cost (hP : Includes P winPtsCC.costDeps) {n : ℕ} (d : ℕ) (QA
     (cols : List (Fin n)) (k : ℕ) (hd : d + 3 < 2 ^ 62) (hn : n < 2 ^ 62) :
     machineCost P winPtsCC.costIdx [encodeValue n, encodeValue d, encodeValue QA, encodeValue cols,
       encodeValue k] ≤ 53 * (d + 3) + 22 := by
-  rw [winPtsCC.costEq P hP]
-  limbs
+  rw [winPtsCC.costEq P hP, limbs_of_lt (by omega : d + 3 < 2 ^ 64), limbs_of_lt (by omega : d < 2 ^ 64)]
   have ht := take_cost P (by includes) (d + 3) cols (by omega)
   have hm := map_cost P (by includes) _ (.closure winPtsCC.lam0.costIdx [encodeValue n,
       encodeValue QA, encodeValue k])
     (fun x ↦ RunsApp.of_spec (winPtsCC.lam0.costSpec P (by includes) QA k x)) 21 (cols.take (d + 3))
     (fun x _ ↦ by
-      cost_app [winPtsCC.lam0.costEq P]
-      limbs)
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [winPtsCC.lam0.costEq P (by includes), limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64)])
   have hl : (cols.take (d + 3)).length ≤ d + 3 := by simp
   simp only [max_self]
   nlinarith
@@ -206,7 +210,9 @@ theorem decFs_cost (hP : Includes P decFsC.costDeps) {n : ℕ} (d m : ℕ) (QA :
     (fun k ↦ RunsApp.of_spec (decFsC.lam0.costSpec P (by includes) d m QA cols k))
     (600 * (d + 3) ^ 2 + 8053 * (d + 3) + 10035)
     (fun k ↦ by
-      cost_app [decFsC.lam0.costEq P]
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [decFsC.lam0.costEq P (by includes)]
       have h1 := winPtsC_cost P (by includes) d QA cols k (by omega) hn
       have h2 := decode1K_cost P (by includes) d (winPtsC d QA cols k)
         (length_winPtsC d QA cols k hc) (by omega)
@@ -226,7 +232,9 @@ theorem valsOf_cost (hP : Includes P valsOfC.costDeps) (n m : ℕ)
     (fun x ↦ RunsApp.of_spec (valsOfC.lam0.costSpec P (by includes) n m fs x))
     ((206 * L + 58) * 2 ^ (m + 1) + 25)
     (fun x ↦ by
-      cost_app [valsOfC.lam0.costEq P, limbs_of_lt (by omega : m + 1 < 2 ^ 64),
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [valsOfC.lam0.costEq P (by includes), limbs_of_lt (by omega : m + 1 < 2 ^ 64),
         limbs_of_lt (by omega : m < 2 ^ 64),
         limbs_of_lt (by rw [Nat.shiftLeft_eq, one_mul]; omega : 1 <<< (m + 1) < 2 ^ 64),
         ofFnFrom_length]
@@ -236,8 +244,9 @@ theorem valsOf_cost (hP : Includes P valsOfC.costDeps) (n m : ℕ)
         (fun k ↦ RunsApp.of_spec (valsOfC.lam0.lam0.costSpec P (by includes) n m fs x k))
         (206 * L + 41)
         (fun k ↦ by
-          cost_app [valsOfC.lam0.lam0.costEq P]
-          limbs
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [valsOfC.lam0.lam0.costEq P (by includes), limbs_of_lt (by omega : (x : ℕ) < 2 ^ 64)]
           have h1 := nEvalK_go_cost P (by includes) ((fs.getD k none).getD ([], [])).1
             ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
           have h2 := hL k
@@ -261,7 +270,9 @@ theorem badCols_cost (hP : Includes P badColsC.costDeps) {n : ℕ} (m : ℕ) (QA
     (fun x ↦ RunsApp.of_spec (badColsC.lam0.costSpec P (by includes) m QA V x))
     (58 * 2 ^ (m + 1) + 45) cols
     (fun x _ ↦ by
-      cost_app [badColsC.lam0.costEq P, limbs_of_lt (by omega : m + 1 < 2 ^ 64),
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [badColsC.lam0.costEq P (by includes), limbs_of_lt (by omega : m + 1 < 2 ^ 64),
         limbs_of_lt (by omega : m < 2 ^ 64),
         limbs_of_lt (by rw [Nat.shiftLeft_eq, one_mul]; omega : 1 <<< (m + 1) < 2 ^ 64)]
       have h1 := finRangeFrom_cost P (by includes) (2 ^ (m + 1)) (by omega) 0 (Nat.zero_le _)
@@ -270,7 +281,9 @@ theorem badCols_cost (hP : Includes P badColsC.costDeps) {n : ℕ} (m : ℕ) (QA
           encodeValue (QA.getD x #[])])
         (fun k ↦ RunsApp.of_spec (badColsC.lam0.lam0.costSpec P (by includes) m _ _ k)) 34
         (List.finRange (2 ^ (m + 1))) (fun k _ ↦ by
-          cost_app [badColsC.lam0.lam0.costEq P]
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [badColsC.lam0.lam0.costEq P (by includes)]
           split_ifs <;> omega)
       simp only [List.length_finRange, Nat.sub_zero] at h1 h2
       simp only [max_self]
@@ -288,7 +301,7 @@ theorem checkStage_cost (hP : Includes P checkStageC.costDeps) {n : ℕ} (m : �
   have h1 := badCols_cost P (by includes) m QA cols V hn hm
   have hb := length_badCols m QA cols V
   have h2 := length_cost P (by includes) (badCols m QA cols V) (by omega)
-  limbs
+  rw [limbs_of_lt (by omega : (badCols m QA cols V).length < 2 ^ 64)]
   split_ifs <;> nlinarith
 
 theorem decStage_cost (hP : Includes P decStageC.costDeps) (n m : ℕ) (QA : AV) (cols : List (Fin n))
@@ -302,7 +315,7 @@ theorem decStage_cost (hP : Includes P decStageC.costDeps) (n m : ℕ) (QA : AV)
   have h1 := all_cost P (by includes) _ (.closure decStageC.lam0.costIdx [])
     (fun x ↦ RunsApp.of_spec (decStageC.lam0.costSpec P (by includes) x)) 4 fs.toList
     (fun x _ ↦ by
-      rw [appCost_fn, List.nil_append, decStageC.lam0.costEq P]
+      rw [appCost_fn, List.nil_append, decStageC.lam0.costEq P (by includes)]
       cases x <;> simp)
   have h2 := valsOf_cost P (by includes) n m fs L hL hn hm
   have h3 := checkStage_cost P (by includes) m QA cols (valsOf n m fs) hn hm (by omega)
@@ -333,8 +346,8 @@ theorem newtonDecC_cost (hP : Includes P newtonDecCC.costDeps) (n d m : ℕ) (QA
       encodeValue cols] ≤
       (600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 + (206 * (d + 3) + 116) * n) * 2 ^ (m + 1) +
         130 * n + 200 := by
-  rw [newtonDecCC.costEq P hP]
-  limbs
+  rw [newtonDecCC.costEq P hP, limbs_of_lt (by omega : d + 3 < 2 ^ 64),
+    limbs_of_lt (by omega : d < 2 ^ 64), limbs_of_lt (by omega : cols.length < 2 ^ 64)]
   have hl := length_cost P (by includes) cols (by omega)
   split_ifs with h
   · have h1 := decFs_cost P (by includes) d m QA cols hd hm hn h
@@ -391,22 +404,22 @@ theorem pow_le_pow_add (F a t : ℕ) : F * 2 ^ a ≤ F * 2 ^ (a + t) :=
 /-- **The descent within a level, its recursive worker, priced**: with `F = stepF n d` the
 lane-dependent and `G = stepG n W R` the lane-independent price of a round, the rounds `rs` from
 `2^m` lanes cost at most `F·(2^(m+1+|rs|) − 2^(m+1)) + G·|rs| + 9`. -/
-theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC.costDeps)
+theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costDeps)
     (n d A ℓ : ℕ) (OA : AV) (W R : ℕ) (hn : n < 2 ^ 62) (hd : d + 3 < 2 ^ 40)
     (hW : ∀ x < n, (OA.getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) (hA : A < 2 ^ 62)
     (hℓ : ℓ < 2 ^ 62) :
     ∀ (rs : List FoldRound) (m : ℕ) (VA : AV), rs.length ≤ R → m + rs.length < 59 →
-      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descRevC.costIdx [encodeValue n,
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costIdx [encodeValue n,
         encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue rs, encodeValue m,
         encodeValue VA] + stepF n d * 2 ^ (m + 1) ≤
         stepF n d * 2 ^ (m + 1 + rs.length) + stepG n W R * rs.length + 9
   | [], m, VA, _, _ => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.costEq_nil P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costEq_nil P hP]
     simp only [List.length_nil, Nat.add_zero, Nat.mul_zero]
     omega
   | r :: tail, m, VA, hR, hm => by
     simp only [List.length_cons] at hR hm ⊢
-    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.costEq_cons P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.costEq_cons P hP]
     have c₁ := reverseAux_cost P (by includes) tail []
     have c₂ := foldsAC_cost P (by includes) n tail.reverse OA W hn hW hW'
     rw [List.length_reverse] at c₂
@@ -415,7 +428,11 @@ theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC
     have c₄ := length_cost P (by includes) tail (by omega)
     have hag := length_agreeC n m r VA (foldsAC n tail.reverse OA)
     have c₅ := length_cost P (by includes) (agreeC n m r VA (foldsAC n tail.reverse OA)) (by omega)
-    limbs
+    rw [limbs_of_lt (by omega : tail.length + 1 < 2 ^ 64), limbs_of_lt (by omega : tail.length < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ < 2 ^ 64), limbs_of_lt (by omega : A < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ - (tail.length + 1) < 2 ^ 64),
+      limbs_of_lt (by omega : A - (ℓ - (tail.length + 1)) < 2 ^ 64),
+      limbs_of_lt (by omega : (agreeC n m r VA (foldsAC n tail.reverse OA)).length < 2 ^ 64)]
     have ih := fun VA' ↦ descRevGo_cost hP n d A ℓ OA W R hn hd hW hW' hA hℓ tail (m + 1) VA'
       (by omega) (by omega)
     set rec := stepF n d * 2 ^ (m + 1 + 1 + tail.length) + stepG n W R * tail.length + 9 -
@@ -427,19 +444,23 @@ theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC
     · have c₆ := newtonDecC_cost P (by includes) n d m (foldsAC n tail.reverse OA)
         (agreeC n m r VA (foldsAC n tail.reverse OA)) hd (by omega) hn hag
       have c₇ := bind_cost P (by includes) (fun TA ↦ descRevC n d A ℓ OA tail (m + 1) TA)
-        (.closure Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costIdx [encodeValue tail,
+        (.closure Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costIdx [encodeValue tail,
           encodeValue n, encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue m])
-        (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costSpec P
+        (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costSpec P
           (by includes) tail n d A ℓ OA m TA))
         (rec + 24) (fun TA ↦ by
-          cost_app [Auto.LeanVM.Protocol.Whir.Sound.descRevC.lam0.costEq P]
-          limbs
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costEq P (by includes),
+            limbs_of_lt (by omega : m + 1 < 2 ^ 64),
+            limbs_of_lt (by omega : m < 2 ^ 64)]
           have := ih TA
           omega) (newtonDecC n d m (foldsAC n tail.reverse OA)
             (agreeC n m r VA (foldsAC n tail.reverse OA)))
       have := descStep_le n d W R tail.length m _ _ _ _ _ _ _ rec _ (by omega) hag c₁ c₂ c₃ c₄
         c₅ c₆ c₇ hrec'
       simp only [max_self]
+      rw [show (302 : ℕ) = Auto.LeanVM.Protocol.Whir.Sound.descRevC.c301.lam0.costIdx from rfl]
       omega
     · have := descStep_le n d W R tail.length m _ _ _ _ _ 0 0 rec _ (by omega) hag c₁ c₂ c₃ c₄
         c₅ (Nat.zero_le _) (Nat.zero_le _) hrec'

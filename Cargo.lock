@@ -222,6 +222,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "experimental_dispatch"
+version = "0.1.0"
+dependencies = [
+ "experimental_lean_vm_core",
+ "experimental_lean_vm_core_armaes",
+ "experimental_lean_vm_core_armsha3",
+ "experimental_lean_vm_core_x86avx2",
+ "experimental_lean_vm_core_x86v3clmul",
+ "experimental_lean_vm_core_x86v3gfni",
+ "experimental_lean_vm_core_x86v4",
+ "experimental_lean_vm_core_x86v4gfni",
+ "isa",
+ "verifier",
+]
+
+[[package]]
 name = "experimental_keccak_gkr"
 version = "0.1.0"
 dependencies = [
@@ -238,6 +254,90 @@ dependencies = [
 ]
 
 [[package]]
+name = "experimental_keccak_gkr_armaes"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_armaes",
+ "experimental_primitives_armaes",
+ "fiat_shamir_prover_armaes",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_armsha3"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_armsha3",
+ "experimental_primitives_armsha3",
+ "fiat_shamir_prover_armsha3",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_x86avx2"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_x86avx2",
+ "experimental_primitives_x86avx2",
+ "fiat_shamir_prover_x86avx2",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_x86v3clmul"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_x86v3clmul",
+ "experimental_primitives_x86v3clmul",
+ "fiat_shamir_prover_x86v3clmul",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_x86v3gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_x86v3gfni",
+ "experimental_primitives_x86v3gfni",
+ "fiat_shamir_prover_x86v3gfni",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_x86v4"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_x86v4",
+ "experimental_primitives_x86v4",
+ "fiat_shamir_prover_x86v4",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_keccak_gkr_x86v4gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_pcs_x86v4gfni",
+ "experimental_primitives_x86v4gfni",
+ "fiat_shamir_prover_x86v4gfni",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
 name = "experimental_lean_vm_core"
 version = "0.1.0"
 dependencies = [
@@ -246,6 +346,104 @@ dependencies = [
  "experimental_pcs",
  "experimental_primitives",
  "fiat_shamir_prover",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_armaes"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_armaes",
+ "experimental_parallel",
+ "experimental_pcs_armaes",
+ "experimental_primitives_armaes",
+ "fiat_shamir_prover_armaes",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_armsha3"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_armsha3",
+ "experimental_parallel",
+ "experimental_pcs_armsha3",
+ "experimental_primitives_armsha3",
+ "fiat_shamir_prover_armsha3",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_x86avx2"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_x86avx2",
+ "experimental_parallel",
+ "experimental_pcs_x86avx2",
+ "experimental_primitives_x86avx2",
+ "fiat_shamir_prover_x86avx2",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_x86v3clmul"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_x86v3clmul",
+ "experimental_parallel",
+ "experimental_pcs_x86v3clmul",
+ "experimental_primitives_x86v3clmul",
+ "fiat_shamir_prover_x86v3clmul",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_x86v3gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_x86v3gfni",
+ "experimental_parallel",
+ "experimental_pcs_x86v3gfni",
+ "experimental_primitives_x86v3gfni",
+ "fiat_shamir_prover_x86v3gfni",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_x86v4"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_x86v4",
+ "experimental_parallel",
+ "experimental_pcs_x86v4",
+ "experimental_primitives_x86v4",
+ "fiat_shamir_prover_x86v4",
+ "isa",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_lean_vm_core_x86v4gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_keccak_gkr_x86v4gfni",
+ "experimental_parallel",
+ "experimental_pcs_x86v4gfni",
+ "experimental_primitives_x86v4gfni",
+ "fiat_shamir_prover_x86v4gfni",
  "isa",
  "tracing",
  "verifier",
@@ -273,6 +471,83 @@ dependencies = [
 ]
 
 [[package]]
+name = "experimental_pcs_armaes"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_armaes",
+ "fiat_shamir_prover_armaes",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_armsha3"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_armsha3",
+ "fiat_shamir_prover_armsha3",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_x86avx2"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_x86avx2",
+ "fiat_shamir_prover_x86avx2",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_x86v3clmul"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_x86v3clmul",
+ "fiat_shamir_prover_x86v3clmul",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_x86v3gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_x86v3gfni",
+ "fiat_shamir_prover_x86v3gfni",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_x86v4"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_x86v4",
+ "fiat_shamir_prover_x86v4",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_pcs_x86v4gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives_x86v4gfni",
+ "fiat_shamir_prover_x86v4gfni",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
 name = "experimental_primitives"
 version = "0.1.0"
 dependencies = [
@@ -284,10 +559,129 @@ dependencies = [
 ]
 
 [[package]]
+name = "experimental_primitives_armaes"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_armaes",
+ "keccak256_armaes",
+]
+
+[[package]]
+name = "experimental_primitives_armsha3"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_armsha3",
+ "keccak256_armsha3",
+]
+
+[[package]]
+name = "experimental_primitives_x86avx2"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_x86avx2",
+ "keccak256_x86avx2",
+]
+
+[[package]]
+name = "experimental_primitives_x86v3clmul"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_x86v3clmul",
+ "keccak256_x86v3clmul",
+]
+
+[[package]]
+name = "experimental_primitives_x86v3gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_x86v3gfni",
+ "keccak256_x86v3gfni",
+]
+
+[[package]]
+name = "experimental_primitives_x86v4"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_x86v4",
+ "keccak256_x86v4",
+]
+
+[[package]]
+name = "experimental_primitives_x86v4gfni"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover_x86v4gfni",
+ "keccak256_x86v4gfni",
+]
+
+[[package]]
 name = "fiat_shamir_prover"
 version = "0.1.0"
 dependencies = [
  "keccak256",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_armaes"
+version = "0.1.0"
+dependencies = [
+ "keccak256_armaes",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_armsha3"
+version = "0.1.0"
+dependencies = [
+ "keccak256_armsha3",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_x86avx2"
+version = "0.1.0"
+dependencies = [
+ "keccak256_x86avx2",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_x86v3clmul"
+version = "0.1.0"
+dependencies = [
+ "keccak256_x86v3clmul",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_x86v3gfni"
+version = "0.1.0"
+dependencies = [
+ "keccak256_x86v3gfni",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_x86v4"
+version = "0.1.0"
+dependencies = [
+ "keccak256_x86v4",
+ "verifier",
+]
+
+[[package]]
+name = "fiat_shamir_prover_x86v4gfni"
+version = "0.1.0"
+dependencies = [
+ "keccak256_x86v4gfni",
  "verifier",
 ]
 
@@ -358,6 +752,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "keccak256_armaes"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_armsha3"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_x86avx2"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_x86v3clmul"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_x86v3gfni"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_x86v4"
+version = "0.1.0"
+
+[[package]]
+name = "keccak256_x86v4gfni"
+version = "0.1.0"
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -388,13 +810,12 @@ version = "0.1.0"
 dependencies = [
  "aggregation",
  "claims",
- "experimental_lean_vm_core",
+ "experimental_dispatch",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_vrf",
  "lean_xmss",
- "sidecar",
  "stable_lean_vm_core",
  "verifier",
 ]
@@ -422,7 +843,7 @@ dependencies = [
  "allocator",
  "bench_harness",
  "clap",
- "experimental_lean_vm_core",
+ "experimental_dispatch",
  "isa",
  "lean_da",
  "lean_sphincs",
@@ -432,19 +853,6 @@ dependencies = [
  "tracing",
  "verifier",
  "zkdsl_compiler",
-]
-
-[[package]]
-name = "leanvm-sidecar"
-version = "0.1.0"
-dependencies = [
- "aggregation",
- "allocator",
- "clap",
- "experimental_lean_vm_core",
- "lean_vm",
- "sidecar",
- "stable_lean_vm_core",
 ]
 
 [[package]]
@@ -604,20 +1012,6 @@ name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
-
-[[package]]
-name = "sidecar"
-version = "0.1.0"
-dependencies = [
- "aggregation",
- "claims",
- "isa",
- "lean_da",
- "lean_sphincs",
- "lean_xmss",
- "libc",
- "verifier",
-]
 
 [[package]]
 name = "smallvec"

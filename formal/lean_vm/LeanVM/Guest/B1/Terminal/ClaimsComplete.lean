@@ -61,7 +61,7 @@ theorem good_load_eq (hS : StoresAtPi S) {d p : V} {off : ℕ} (hp : p ≠ .n (v
 theorem goodS_mul {d x y : ℕ} (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y))))
     (hx : x < d) (hy : y < d) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_eq_left (show (Core.V.n x).idx < (Core.V.n d).idx ∧ (Core.V.n y).idx < (Core.V.n d).idx from
+  rwa [ite_pos' (show (Core.V.n x).idx < (Core.V.n d).idx ∧ (Core.V.n y).idx < (Core.V.n d).idx from
     ⟨hx, hy⟩)] at h
 
 theorem good_add {d x y : ℕ} (h : GoodS rd S w σ (.atom (.add (.n d) (.n x) (.n y)))) :

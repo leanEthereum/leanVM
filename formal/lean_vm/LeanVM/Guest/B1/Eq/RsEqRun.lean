@@ -12,8 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
+import LeanVM.ToMathlib.List
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)
@@ -23,7 +22,7 @@ pins them by booleanity and `q_g^8 · r_g = count_g` (`r_g` from bits `0 .. 2`, 
 `3 .. 5`, so `count = 8q + r`), allocates its chain (`HeapBuf` of `64 (q + 2)` words, `rsAlloc`),
 writes row `0`'s ones (`rsInits`), runs `rs_eq_run_loop0` over the `q` full chunks
 (`rs_eq_rows__L8` each), and dispatches the remainder's `rs_eq_rows__L{r}` on the row
-`chain·g^(64q)`; it returns that call's return, the last row (`rs_eq_run_holds`).
+`chain·g^(64q)`; it returns that call's return, the last row (`rs_eq_run_sound`).
 
 The rows from the chunks and back: `rows_of_chunks`, `chunks_of_rows` (chunk `t` is coordinates
 `8t ..` and row `t`, `ChunkOk`).
@@ -110,9 +109,9 @@ def rsD : Stmt :=
 def rsT : List Stmt := rsG ++ rsT0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))]
 
 /-- The expansion of `rs_eq_run`. -/
-def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ⧺ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
+def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ++ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
 
-theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := by kernel_rfl
+theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some fn% «rs_eq_run» :=
   coreProgram_find?_at (j := idx% «rs_eq_run») rfl
@@ -270,16 +269,12 @@ theorem take_min_length {xs : List E} {n a : ℕ} (h : xs.length = n) :
   · rw [min_eq_left ha]
   · rw [min_eq_right ha, List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
 
-theorem getD_map_range (f : ℕ → E) {n k : ℕ} (hk : k < n) :
-    ((List.range n).map f).getD k 0 = f k := by
-  simp [List.getD_eq_getElem?_getD, hk]
-
 /-- The words from `a·g^(8t)`: eight from `8t`, or the rest. -/
 theorem readsAt_drop_take {rd : Reader} {a : E} {xs : List E} (h : ReadsAt rd a xs) (t : ℕ) :
     ReadsAt rd (a * gen ^ (8 * t)) ((xs.drop (8 * t)).take 8) := by
   refine readsAt_mul_gen_pow.mpr fun i hi ↦ ?_
   simp only [List.length_take, List.length_drop] at hi
-  have := readsAt_getD h (k := 8 * t + i) (by omega)
+  have := readsAt_getD h (i := 8 * t + i) (by omega)
   rwa [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt (by omega), List.getElem?_drop,
     ← List.getD_eq_getElem?_getD]
 
@@ -298,7 +293,7 @@ theorem chunks_of_rows {rd : Reader} {chain z p : E} {count : ℕ} {zs ps c : Li
     intro k hk
     rcases Nat.eq_zero_or_pos t with h0 | h0
     · subst h0
-      have := readsAt_getD (hc (by omega)) (k := k) (by omega)
+      have := readsAt_getD (hc (by omega)) (i := k) (by omega)
       rwa [rsR, Nat.mul_zero, ringRow_nil, Nat.zero_add]
     · have := hr t h0 (by omega) k hk
       rwa [min_eq_left (by omega)] at this
@@ -307,9 +302,9 @@ theorem chunks_of_rows {rd : Reader} {chain z p : E} {count : ℕ} {zs ps c : Li
   refine ⟨readsAt_drop_take hz t, readsAt_drop_take hp t, by simp, ?_, fun k hk ↦ ?_⟩
   · refine readsAt_mul_gen_pow.mpr fun k hk ↦ ?_
     simp only [List.length_map, List.length_range] at hk
-    rw [getD_map_range _ hk]
+    rw [List.getD_map_range _ hk]
     exact hrow k hk
-  · rw [getD_map_range _ hk, rsR, ← ringRow_append _ _ _ _ _ _ hlen, ← List.take_add,
+  · rw [List.getD_map_range _ hk, rsR, ← ringRow_append _ _ _ _ _ _ hlen, ← List.take_add,
       ← List.take_add, loadHolds_mul_gen_pow, show 64 * t + (64 + k) = 64 * (t + 1) + k by ring]
     have := hr (t + 1) (by omega) (by omega) k hk
     rwa [take_min_length lz, take_min_length lp, show 8 * (t + 1) = 8 * t + 8 by ring] at this
@@ -438,7 +433,7 @@ theorem rs_eq_run_sound (rd : Reader) (args rets : List E)
   refine ⟨8 * q + r, by omega, hcg, σ (.n (val% «rs_eq_run» "chain")), _, _, lz, lp, rz, rp, hone, fun h h1 h2 k hk ↦ ?_, ?_⟩
   · have hrow := rows h h1 h2 k hk
     have hc1 : ((List.range 64).map fun k ↦ (C 0).getD k 0).getD k 0 = 1 := by
-      have := readsAt_getD (rc (by omega)) (k := k) (by rw [lc]; exact hk)
+      have := readsAt_getD (rc (by omega)) (i := k) (by rw [lc]; exact hk)
       exact loadHolds_unique this (hone k hk)
     rwa [hc1] at hrow
   · rw [← hret, h58, h57]
@@ -619,22 +614,6 @@ theorem rs_honest {rd : Reader} {z p chain : E} {count : ℕ} {zs ps : List E} (
     show coreProgram.Rel rd _ [chain * t53, z * t47, p * t47] [res]
     rw [e53, e47]
     exact hdisp
-
-/-- **`rs_eq_run`'s meaning gives its core IR**: its honest valuation (`rs_honest`). -/
-theorem rs_eq_run_complete (rd : Reader) (args rets : List E) (hm : MeaningRsEqRun rd args rets) :
-    coreProgram.Rel rd "rs_eq_run" args rets := by
-  obtain ⟨z, p, cg, rfl⟩ : ∃ z p cg, args = [z, p, cg] := by
-    match args, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
-  obtain ⟨count, hcount, rfl, chain, zs, ps, lz, lp, hz, hpp, hone, hr, rfl⟩ := hm
-  obtain ⟨σ, hpar, hh, -⟩ := rs_honest hcount lz lp hz hpp hone hr
-  rw [rel_iff_sem find_rs_eq_run, show Fn.params fn% «rs_eq_run» = [.n (val% «rs_eq_run» "z_vals"), .n (val% «rs_eq_run» "point1"), .n (val% «rs_eq_run» "count_g")] from rfl,
-    rs_eq_run_body]
-  exact ⟨σ, by simp only [List.map_cons, List.map_nil]; exact hpar, hh⟩
-
-/-- **`rs_eq_run`'s core IR is its meaning.** -/
-theorem rs_eq_run_holds : rs_eq_run_Spec := fun rd args rets ↦
-  ⟨rs_eq_run_sound rd args rets, rs_eq_run_complete rd args rets⟩
 
 end
 end LeanVM.Guest.B1

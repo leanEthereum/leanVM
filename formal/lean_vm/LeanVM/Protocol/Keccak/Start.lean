@@ -11,6 +11,7 @@ import LeanVM.Protocol.Keccak.SlotWeights
 public import LeanVM.Protocol.Keccak.Candidate
 public import LeanVM.Protocol.Keccak.Layer
 import LeanVM.Protocol.Keccak.Words
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The first claim
@@ -18,7 +19,7 @@ import LeanVM.Protocol.Keccak.Words
 `verify_keccak` (`crates/verifier/src/keccak.rs`) draws the segment challenge `r_seg` and
 five lane challenges, reads `committed` and forms the first claim at the point `(r_pack, r_seg)`
 with instance weights `eq(r_low, ·)` and position weights `eq(r_lane, ℓ)·x^z` (`firstClaim`). On a
-candidate (`firstClaim_true`), the claim's sum is
+candidate (`firstClaim_sum`), the claim's sum is
 
   `Σ_m eq(r_seg, m) Σ_ℓ eq(r_lane, ℓ) · stepMle inst (lane ℓ of segment m's output)`,
 
@@ -26,8 +27,8 @@ a random combination of the fifty lane claims of the two segments (`doc/leanvm`
 §`keccak:segments`, "The first claim"). The candidate is alive after `committed` when that value
 opens the committed middle state (`OpenTrue`) and the first claim holds; before, when the
 mismatch table `startDelta` (the fifty differences between the lanes' claimed and true values)
-has a zero extension at the challenges drawn (`ZeroOn`). `startSpec`: the six challenges escape
-at `L₀/|E|` each.
+has a zero extension at the challenges drawn (`ZeroOn`). The six challenges escape at `L₀/|E|`
+each (`gkrSpec`).
 
 `sum_split`: the claims' (pack, segment) and instance sums are a sum over the steps with the
 equality weights of `(r_low, r_pack)`, the reading of every claim on the committed states.
@@ -50,10 +51,10 @@ theorem sum_split {P : ℕ} {a b seg : List E} (ha : a.length = 4) (hb : b.lengt
     ∑ z ∈ range (2 ^ (P + 1)), eqAt (b ++ seg) z *
         ∑ i ∈ range 16, eqAt a i * G (z / 2 ^ P) (i + 16 * (z % 2 ^ P)) =
       ∑ m ∈ range 2, eqAt seg m * ∑ x ∈ range (2 ^ (P + 4)), eqAt (a ++ b) x * G m x := by
-  rw [pow_succ, mul_comm (2 ^ P) 2, sum_range_mul 2 (2 ^ P)]
+  rw [pow_succ, mul_comm (2 ^ P) 2, Finset.sum_range_mul 2 (2 ^ P)]
   refine Finset.sum_congr rfl fun m hm ↦ ?_
   have hm' := Finset.mem_range.1 hm
-  rw [show 2 ^ (P + 4) = 2 ^ P * 16 by rw [pow_add]; rfl, sum_range_mul (2 ^ P) 16,
+  rw [show 2 ^ (P + 4) = 2 ^ P * 16 by rw [pow_add]; rfl, Finset.sum_range_mul (2 ^ P) 16,
     Finset.mul_sum]
   refine Finset.sum_congr rfl fun y hy ↦ ?_
   have hy' := Finset.mem_range.1 hy
@@ -109,7 +110,7 @@ theorem firstClaim_shape {P : ℕ} {inst segment lanesPt output : List E} (commi
 theorem sum_firstWeights {lanesPt : List E} (hl : lanesPt.length = 5) (a : KeccakState) :
     ∑ j ∈ range 1600, (firstWeights lanesPt).getD j 0 * bitE (sbit a j) =
       ∑ l ∈ range 25, eqAt lanesPt l * ofK (laneWord a l) := by
-  rw [show 1600 = 25 * 64 from rfl, sum_range_mul]
+  rw [show 1600 = 25 * 64 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun l hl' ↦ ?_
   have hl'' := Finset.mem_range.1 hl'
   rw [laneWord, ofK_ofLane, Finset.mul_sum]
@@ -209,7 +210,7 @@ theorem zeroOn_of_first (P : ℕ) (hP : h = P + 4) (col : ℕ → K) {inst segme
   rw [ClaimTrue, firstClaim_sum h P hP col hi hl] at htrue
   have hdot : dot ((eqKernel lanesPt).take 25) output =
       ∑ l ∈ range 25, eqAt lanesPt l * output.getD l 0 := by
-    rw [dot_eq_sum _ _ (by simp [eqKernel_length, hl, ho])]
+    rw [dot_eq _ _ (by simp [eqKernel_length, hl, ho])]
     simp only [List.length_take, eqKernel_length, hl]
     refine Finset.sum_congr rfl fun l hl' ↦ ?_
     have hl'' := Finset.mem_range.1 hl'
@@ -224,7 +225,7 @@ theorem zeroOn_of_first (P : ℕ) (hP : h = P + 4) (col : ℕ → K) {inst segme
   have hsplit : ∑ w ∈ range (2 ^ 6), eqAt (segment ++ lanesPt) w * startDelta h col inst output w =
       ∑ m ∈ range 2, eqAt segment m * ∑ l ∈ range 32, eqAt lanesPt l *
         startDelta h col inst output (2 * l + m) := by
-    rw [show 2 ^ 6 = 32 * 2 from rfl, sum_range_mul 32 2, Finset.sum_comm]
+    rw [show 2 ^ 6 = 32 * 2 from rfl, Finset.sum_range_mul 32 2, Finset.sum_comm]
     refine Finset.sum_congr rfl fun m hm ↦ ?_
     rw [Finset.mul_sum]
     refine Finset.sum_congr rfl fun l _ ↦ ?_

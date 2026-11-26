@@ -1,8 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.PaddingComplete
 
-  `da_padding`, completely: a row count `1 ≤ r ≤ LeanDa.maxRows` gives the core IR relation
-  (TRIAGE G #91).
+  `da_padding`, completely: a row count `1 ≤ r ≤ LeanDa.maxRows` gives the core IR relation.
 -/
 
 module
@@ -14,7 +13,6 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_padding»
-meta import LeanVM.Guest.KernelLit
 
 /-!
 # `da_padding`, completely
@@ -43,7 +41,8 @@ theorem da_padding_body : Fn.body fn% «da_padding» = [
     .atom (.const (.n (val% «da_padding» "s1#0")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
     .atom (.rangeCheck (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s1#1")) (.n (val% «da_padding» "s1#2")) (.n (val% «da_padding» "s1#3")) (.n (val% «da_padding» "s1#0"))),
     .atom (.const (.n (val% «da_padding» "s2#1")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
-    .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] := by kernel_rfl
+    .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 1000 in
 /-- **`da_padding` is complete** on a memory defined below `2^16`. -/
@@ -54,7 +53,7 @@ theorem da_padding_complete : da_padding_complete_Spec := by
   have hne : gen ^ r + word 1 0 ≠ 0 := by
     rw [word_one, Ne, e_add_eq_zero_iff, ← pow_zero gen]
     intro h
-    have := gen_pow_inj (by omega) (by omega) h
+    have := gen_pow_inj' (by omega) (by omega) h
     omega
   refine (rel_iff_sem find_da_padding _ _).mpr ⟨Val.ofArgs [gen ^ r, word 1 0, gen ^ r + word 1 0,
     (gen ^ r + word 1 0)⁻¹, (gen ^ r + word 1 0) * (gen ^ r + word 1 0)⁻¹,

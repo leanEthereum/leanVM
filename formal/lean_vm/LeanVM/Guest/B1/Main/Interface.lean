@@ -29,11 +29,11 @@ absorbs the children's count and every child's words, checks the proof of work o
 nonce, squeezes the challenge `λ`, and one sumcheck (`batch_sumcheck`) reduces the children's
 claims on the bytecode to the claim written at `defer_stmt`: `Node.batch` of the children whose
 words the memory holds (`ChildWordsAt`) returns that claim, for the hints `bc_sumcheck_msgs` (the
-nonce first) and `bc_star_hint` (`MeaningAggregateClaims`), given the grind's window tables at
+nonce first) and `bc_star_hint` (`Aggregate.lean`'s `MeaningAggregateClaimsW`), given the grind's window tables at
 its last argument (`WinTabs`).
 
 **`main`**. Its callees with a witness, each through a witness function of
-the call's words (`CalleesW`): a leanXMSS signature `wX args` for the raw iteration of
+the call's words (`CalleesWC`, `LoopsC.lean`): a leanXMSS signature `wX args` for the raw iteration of
 `main_loop2` at `args` (the leanXMSS check is inline there at 40f877dc: `Loop2Out`, its segment read
 as `Sig.XmssOut` at its signer), a leanSPHINCS signature `wS p` (`verify_sig_lean_sphincs`,
 `Sig.SphincsOut`, with the byte table), a matrix `wD args rets` (`da_verify`, `Da.MatrixWitness.Opens`),
@@ -58,10 +58,9 @@ whose `…_Spec`s are stated in `Digest/Interface`, `Da/Interface`, `Bits/Meanin
   `rawSphincs`); the matrix `da_verify` checks, with the claim it returns, when `n_direct_da = g`;
   and the batching's hints `wA`.
 
-**The statement** (`main_sound_Spec`): on a memory image, given the callees' contracts, a run of
-`main`'s body whose public input cells hold the digest `D` gives `statementDigest (decSeed σ)
-(decStmt σ rd) = D` and `NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit …)`. Its proof,
-`main_sound_w`, composes the `…_Spec`s of every family.
+**The statement** (`Final.lean`'s `main_sound_C`): on a memory image, given the callees' contracts, a
+run of `main`'s body whose public input cells hold the digest `D` gives `statementDigest (decSeed σ)
+(decStmt σ rd) = D` and `NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit …)`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -115,29 +114,9 @@ def ChildWordsAt (rd : Reader) (cpi cfresh ccarried : E) (c : ℕ) (cc : ChildCl
     ReadsAt rd (cfresh * gen ^ (24 * c)) (DeferredBytecodeClaim.cells cc.freshClaim) ∧
     ReadsAt rd (ccarried * gen ^ (24 * c)) cc.carriedClaim.cells
 
-/-- **`aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_stmt, tabs)`**,
-for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`: it returns nothing, and
-for some hints the claim written at `defer_stmt` (`23` coordinates, then the value) is the
-batching (`Node.batch`) of every list of `m` children whose words the memory holds. -/
-def MeaningAggregateClaims (rd : Reader) : List E → List E → Prop
-  | [ncg, cpi, cfresh, ccarried, dst, tabs], rets => WinTabs rd tabs →
-      ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
-      rets = [] ∧ ∃ (h : BatchingHints) (out : DeferredBytecodeClaim),
-        out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
-        ∀ cs : List ChildClaims, cs.length = m →
-          (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs h = some out
-  | _, _ => False
-
-/-- `aggregate_claims`' core IR gives its meaning, on a memory image. -/
-def aggregate_claims_sound_Spec : Prop :=
-  ∀ (rd : Reader), MemOk rd → ∀ (args rets : List E),
-    coreProgram.Rel rd "aggregate_claims" args rets → MeaningAggregateClaims rd args rets
-
 /-! ## What `main` asks of its callees with a witness -/
 
-/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`;
-`VerifySub.MeaningVerifySub`): its first four cells hold a public input and a seed, its sixth
+/-- **What a `verify_sub` call establishes for the proof `π`** (B1-d's `verify_sub`): its first four cells hold a public input and a seed, its sixth
 argument the child proof's claim on the bytecode (`23` coordinates, then the value), and the
 deferring verifier accepts `π` for the public input under the seed. -/
 def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop :=
@@ -154,36 +133,6 @@ def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signatu
   ∃ σ : Val, (fn% «main_loop2»).params.map σ = args ∧
     Stmt.HoldsList C rd σ (Sig.l2Pre ++ Sig.l2Post) False (fun rs => rs = []) ∧
     (Sig.LxTagsHold (fun j => σ (.n (5 + j))) → Sig.XmssOut rd (σ (.n (val% «main_loop2» "s3#2"))) sig)
-
-/-- **The callees' contracts with witness functions**, on the call relation `coreProgram.Rel`. -/
-structure CalleesW (bytecode : List K) (rd : Reader) (wX : List E → LeanXmss.Signature)
-    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
-    (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
-  /-- A raw leanXMSS iteration (`main_loop2`, the leanXMSS check inline): its body around the
-  segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
-  xmss : ∀ args, coreProgram.Rel rd name% «main_loop2» args [] → Loop2Out (coreProgram.Rel rd) rd
-      args (wX args)
-  /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
-  sphincs : ∀ p bb, coreProgram.Rel rd "verify_sig_lean_sphincs" [p, bb] [] →
-    Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
-  /-- The DA check with the count table: the matrix `wD [bb] rets` opens the returned claim, the
-  root's cells and the challenge (`Da.MeaningDaVerify`). -/
-  da : ∀ bb rets, coreProgram.Rel rd "da_verify" [bb] rets → Da.CountWords rd bb →
-    ∃ (root : Digest) (z : E), (wD [bb] rets).Opens root z ∧ rets = digestCells root ++ [z]
-  /-- A child proof's check with the exponent and window tables: the proof `wV args`. -/
-  sub : ∀ pi0 pi1 s0 s1 gsq out,
-    coreProgram.Rel rd "verify_sub" [pi0, pi1, s0, s1, gsq, out] [] →
-      ExpTables rd gsq ∧ ExpWinTab rd gsq →
-    VerifySubOut bytecode rd [pi0, pi1, s0, s1, gsq, out] (wV [pi0, pi1, s0, s1, gsq, out])
-  /-- The batching, for `n_children_g = g^m`, `1 ≤ m ≤ 16`, with the window tables at `tabs`,
-  with the hints `wA args`. -/
-  agg : ∀ ncg cpi cfresh ccarried dst tabs, coreProgram.Rel rd "aggregate_claims"
-    [ncg, cpi, cfresh, ccarried, dst, tabs] [] → WinTabs rd tabs → ∀ m, 1 ≤ m → m ≤ 16 →
-      ncg = gen ^ m →
-      ∃ out : DeferredBytecodeClaim, out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
-        ∀ cs : List ChildClaims, cs.length = m →
-          (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
-          batch cs (wA [ncg, cpi, cfresh, ccarried, dst, tabs]) = some out
 
 /-! ## The decoders
 
@@ -208,7 +157,6 @@ noncomputable def xmssAt (rd : Reader) (p : E) (s : ℕ) : LeanXmssClaim :=
 noncomputable def sphincsAt (rd : Reader) (p : E) (s : ℕ) : LeanSphincsClaim :=
   let c := slotCells rd p s
   Sig.sphincsClaimOf (c.getD 0 0) (c.getD 1 0) (c.getD 2 0) (c.getD 3 0)
-
 
 /-- The mark in coverage slot `s`, as a log. -/
 noncomputable def markOf (rd : Reader) (σ : Val) (s : ℕ) : ℕ := gLog (cellAt rd (σ (.n (val% «main» "cover"))) s)
@@ -320,25 +268,6 @@ noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Sign
       some (dvClaim σ, wD [σ (.n (val% «main» "byte_bits"))] [σ (.n (val% «main» "root_0")), σ (.n (val% «main» "root_1")), σ (.n (val% «main» "z"))])
     else none,
     wA [σ (.n (val% «main» "meta[6]")), σ (.n (val% «main» "child_pi")), σ (.n (val% «main» "child_fresh")), σ (.n (val% «main» "child_carried")), σ (.n (val% «main» "defer_stmt")), σ (.n (val% «main» "s63.e.s0#1"))]⟩
-
-/-! ## The statement -/
-
-/-- **`main`, soundly, its witness decoded** (TRIAGE #96): on a memory image whose
-public input cells (`[1]`, `[g]`) hold the digest `D`, given the callees' contracts with the
-witness functions, every run of `main`'s body (under `coreProgram.Rel`) gives the seed
-`decSeed σ` and the statement `decStmt σ rd` of digest `D`, which the witness
-`decWit σ rd wX wS wD wV wA` holds (`NodeRelation`) for the guest's bytecode of `2^23` words. -/
-def main_sound_Spec (bytecode : List K) : Prop :=
-  bytecode.length = 2 ^ bytecodeVars →
-  ∀ (rd : Reader), MemOk rd →
-  ∀ (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature)
-    (wD : List E → List E → LeanVM.Da.MatrixWitness) (wV : List E → Proof) (wA : List E → BatchingHints),
-    CalleesW bytecode rd wX wS wD wV wA →
-  ∀ (D : Digest) (σ : Val), LoadHolds rd 1 0 (digestHalves D).1 →
-    LoadHolds rd 1 1 (digestHalves D).2 →
-    Stmt.HoldsList (coreProgram.Rel rd) rd σ (fn% «main»).body False (fun rs => rs = []) →
-      statementDigest (decSeed σ) (decStmt σ rd) = D ∧
-        NodeRelation bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA)
 
 /-! ## The functions, found -/
 

@@ -73,17 +73,6 @@ theorem RelAtInCPE.relAtInPE {R D : ℕ → Prop} {fp B n : ℕ} {f : String} {a
     RelAtInPE P fs cert rd Q R D fp (B + n) f args rets ps :=
   RelAtInCT.relAtInT h
 
-theorem KidsFromInPE.toP {R : ℕ → Prop} : ∀ {cs : List Call} {pss : List (List Pop)} {Dacc : ℕ → Prop} {b n : ℕ}
-    {Dend : ℕ → Prop}, KidsFromInPE P fs cert rd σ Q R Dacc cs pss b n Dend →
-    KidsFromInP P fs cert rd σ R Dacc cs pss b n Dend
-  | [], [], _, _, _, _, h => h
-  | c :: cs, p :: pss, _, _, _, _, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ => by
-      refine ⟨m, n', Rk, Dk, hn, hR, ?_, hk.toP⟩
-      by_cases ht : c.taken = true
-      · rw [ite_eq_left ht] at hc ⊢; exact hc.toP
-      · rw [ite_eq_right ht] at hc ⊢; exact hc
-  | [], _ :: _, _, _, _, _, h | _ :: _, [], _, _, _, _, h => h.elim
-
 /-- `KidsFromInPE` is `KidsFromInT` by the trees popping the entries and satisfying `Every Q`, a skipped call's
 entries `[]`. -/
 theorem KidsFromInPE.toT {R : ℕ → Prop} : ∀ {cs : List Call} {pss : List (List Pop)} {Dacc : ℕ → Prop} {b n : ℕ}
@@ -162,24 +151,11 @@ theorem RelAtInT.and_every {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args 
   let ⟨t, ht, hT⟩ := h
   ⟨t, ht, hT, hQ t ht.1 ht.2.1⟩
 
-theorem RelAtInCT.and_every {R D : ℕ → Prop} {fp c B n : ℕ} {f : String} {args rets : List E} {T : Tree → Prop}
-    (h : RelAtInCT P fs cert rd R D fp c B n f args rets T)
-    (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
-    RelAtInCT P fs cert rd R D fp c B n f args rets fun t => T t ∧ t.Every Q :=
-  let ⟨t, ht, hT⟩ := h
-  ⟨t, ht, hT, hQ t ht.1 ht.2.1⟩
-
 theorem RelAtInP.withEvery {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E} {ps : List Pop}
     (h : RelAtInP P fs cert rd R D fp n f args rets ps)
     (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
     RelAtInPE P fs cert rd Q R D fp n f args rets ps :=
   RelAtInT.and_every h hQ
-
-theorem RelAtInCP.withEvery {R D : ℕ → Prop} {fp c B n : ℕ} {f : String} {args rets : List E} {ps : List Pop}
-    (h : RelAtInCP P fs cert rd R D fp c B n f args rets ps)
-    (hQ : ∀ t : Tree, t.name = f → t.Valid P rd args rets → t.Every Q) :
-    RelAtInCPE P fs cert rd Q R D fp c B n f args rets ps :=
-  RelAtInCT.and_every h hQ
 
 /-! ## Composition -/
 

@@ -14,8 +14,6 @@ namespace FORS.Security.H0
 
 open FORS.Base.H0
 
-set_option linter.unusedSectionVars false
-
 /-! ### Extension slopes -/
 
 /-- The extension slope of a leaf table with cap `cap`. -/

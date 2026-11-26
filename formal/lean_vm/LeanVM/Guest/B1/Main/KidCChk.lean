@@ -12,7 +12,6 @@ public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop4»
-meta import LeanVM.Guest.KernelLit
 
 /-!
 # A child's block, evaluated
@@ -82,8 +81,10 @@ def l5Tail : Stmt :=
       .n (val% «main_loop4» "da_digests"), .n
     (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")]
 
-kernel_rfl l5_body :
-    Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail, .ret []]
+set_option maxRecDepth 100000 in
+theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail,
+    .ret []] :=
+  stmtsEqb_sound (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n
@@ -93,9 +94,6 @@ theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (Lis
 /-- `main_loop4`'s stores. -/
 def l5S : List Atom :=
   [.load (.n (val% «main_loop4» "pi_0")) (.n (val% «main_loop4» "s16#0")) 0, .load (.n (val% «main_loop4» "pi_1")) (.n (val% «main_loop4» "s17#0")) 1, .load (.n (val% «main_loop4» "s19#0")) (.n (val% «main_loop4» "s19#1")) 1]
-
-/-- The block's atoms but the stores. -/
-def l5A' : List Atom := (atomsIn l5Pre).filter fun a => decide (a ∉ l5S)
 
 /-- The calls of the block. -/
 def l5Calls : List Stmt :=

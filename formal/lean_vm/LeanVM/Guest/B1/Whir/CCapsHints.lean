@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CCaps
 public import LeanVM.Guest.B1.Merkle.QueryPops
+import LeanVM.ToMathlib.List
 
 /-!
 # The honest cap is the generator's
@@ -182,15 +183,6 @@ theorem touched_iff (hq : ∀ o ∈ phase, o.leafIndex < 2 ^ depth ∧ o.path.le
 theorem digestCells_zero : Hints.digestCells (Vector.replicate 4 0) = [0, 0] := by
   simp [Hints.digestCells, digestHalves, Value.zero_eq_ofLimbs]
 
-/-- A run of `2n` cells, two at a time. -/
-theorem range_two_mul {α : Type} (f : ℕ → α) : ∀ n : ℕ,
-    (List.range (2 * n)).map f = (List.range n).flatMap fun v => [f (2 * v), f (2 * v + 1)]
-  | 0 => rfl
-  | n + 1 => by
-    rw [show 2 * (n + 1) = 2 * n + 2 by ring, List.range_add, List.map_append, range_two_mul f n,
-      List.range_succ (n := n), List.flatMap_append]
-    simp [List.range_succ]
-
 /-- **The generator's cap and flags are the honest cap's**, at openings that climb from their leaf indices and agree. -/
 theorem levelCapPushes_eq {count : ℕ}
     (hq : ∀ o ∈ phase, o.leafIndex < 2 ^ depth ∧ o.path.length = depth)
@@ -244,7 +236,7 @@ theorem levelCapPushes_eq {count : ℕ}
   obtain ⟨Fa, hFa, hFaP⟩ := hact
   rw [hF, hFa]
   refine congrArg₂ (fun a b => [("merkle_caps", a), ("merkle_cap_active", b)]) ?_ ?_
-  · rw [show 4 * 2 ^ cd = 2 * (2 * 2 ^ cd) by ring, range_two_mul (capCell depth B), List.flatMap_map]
+  · rw [show 4 * 2 ^ cd = 2 * (2 * 2 ^ cd) by ring, List.map_range_two_mul (capCell depth B), List.flatMap_map]
     refine List.flatMap_congr fun v hv => ?_
     have hv' := List.mem_range.mp hv
     have ht := touched_iff hq (cd := cd) hv'

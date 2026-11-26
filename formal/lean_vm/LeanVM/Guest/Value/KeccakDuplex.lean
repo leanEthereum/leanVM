@@ -8,26 +8,25 @@
 module
 
 public import LeanVM.Guest.Value.KeccakLayout
-public import Statement.Verifier.Sponge
+public import Statement.Verifier.Transcript
 import LeanVM.Guest.Value.Tower
 import LeanVM.Guest.Value.KeccakEval
 
 /-!
 # The duplex sponge in cells
 
-The verifier's transcript (`Statement/Verifier/Sponge.lean`, `Sponge`, `duplex`, `absorb`,
-`squeeze`) is a duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its
-two limbs, a zero lane and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after
-them, and lanes `16..25` are kept (`duplexInput`). The guest (`guests/lean_ethereum.py`, G below)
-holds the sponge as the thirteen-cell output of its last permutation, of which only the five cells
-`8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x` with tag `t` is two rate cells,
-`x` itself and `y·t` (`fs_pack`); a permutation is `keccak(a, b, out, tail=, cap=sp)` (`fs_perm`),
-lowered as one `KECCAK` in the even layouts whose eight rate cells are the waiting cells (zeros past
-them) and whose cells `8..12` are `sp`'s last five.
+The verifier's transcript (`Statement/Verifier/Transcript.lean`, `Sponge`, `duplex`, `absorb`, `squeeze`) is a
+duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its two limbs, a
+zero lane and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and
+lanes `16..25` are kept (`duplexInput`). The guest (`guests/lean_ethereum.py`,
+G below) holds the sponge as the thirteen-cell output of its last permutation, of which only the
+five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x` with tag `t` is two
+rate cells, `x` itself and `y·t` (`fs_pack`); a permutation is `keccak(a, b, out, tail=, cap=sp)`
+(`fs_perm`), lowered as one `KECCAK` in the even layouts whose eight rate cells are the waiting
+cells (zeros past them) and whose cells `8..12` are `sp`'s last five.
 
-* `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
-* `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at
-  `m = Id`, `F = keccakF`;
+* `keccak_duplex`: that `KECCAK` writes the cells of `keccakF1600 (duplexInput ⟨S, pending⟩)`;
+* `squeeze_id`, `absorb_id_full`: the Spec's operations at `m = Id`, `F = keccakF1600`;
 * `challengeOf_cells`: `challenge_from_state` reads `challengeOf`, the state's cell `0`;
 * `powLane_cells`: the proof of work, lane `2`, is the low limb of cell `1` (`grind_check`).
 -/
@@ -127,7 +126,7 @@ theorem stateOfCells_duplex {S : KeccakState} {pending : List (E × ℕ)} {I : F
 /-- **The guest's duplex step is the Spec's** (`keccak(…, cap=sp)`, `fs_perm`,
 `fs_perm_pending`): a `KECCAK` in the even layouts whose rate cells `0..7` are the waiting
 scalars' (`rateCell`) and whose cells `8..12` are those of a state `S` writes the cells of
-`keccakF (duplexInput ⟨S, pending⟩)`. -/
+`keccakF1600 (duplexInput ⟨S, pending⟩)`. -/
 theorem keccak_duplex {S : KeccakState} {pending : List (E × ℕ)} {I O : Fin 13 → E}
     (hrate : ∀ c : Fin 13, c.val < 8 → I c = rateCell pending c)
     (hcap : ∀ c : Fin 13, 8 ≤ c.val → I c = cellsOfState S false c)
@@ -141,13 +140,6 @@ theorem squeeze_id (sp : Compile.Sponge) (hg : sp.ground = none) :
     Compile.squeeze (m := Id) keccakF1600 sp =
       (Compile.challengeOf (keccakF1600 (Compile.duplexInput sp)),
         ⟨keccakF1600 (Compile.duplexInput sp), [], none⟩) := by
-  obtain ⟨st, p, g⟩ := sp
-  subst hg
-  rfl
-
-/-- `squeeze` returns a ground challenge and clears it. -/
-theorem squeeze_id_ground (sp : Compile.Sponge) (c : E) (hg : sp.ground = some c) :
-    Compile.squeeze (m := Id) keccakF1600 sp = (c, { sp with ground := none }) := by
   obtain ⟨st, p, g⟩ := sp
   subst hg
   rfl
@@ -167,11 +159,6 @@ theorem absorb_id_full (sp : Compile.Sponge) (x : E) (t : ℕ) (h : sp.pending.l
 theorem challengeOf_cells (S : KeccakState) : Compile.challengeOf S = cellsOfState S false 0 := by
   simp [Compile.challengeOf, cellsOfState, cellLanes]
 
-/-- The first limb of a challenge is cell `0`'s. -/
-theorem challengeOf_limb0 (S : KeccakState) :
-    (Compile.challengeOf S).limb 0 = (cellsOfState S false 0).limb 0 := by
-  rw [challengeOf_cells]
-
 /-- **The proof of work** (`absorbNonce`'s lane `2`) is the low limb of cell `1` (`grind_check`
 reads it from `nxt[1]`). -/
 theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S false 1).limb 0).lane := by
@@ -179,6 +166,5 @@ theorem powLane_cells (S : KeccakState) : Keccak.lane S 2 = ((cellsOfState S fal
 
 /-- A `K` literal's lane. -/
 @[simp] theorem ofLane_toUInt64 (t : ℕ) : K.ofLane t.toUInt64 = K.ofBits t := rfl
-
 end
 end LeanVM.Guest.Value.Keccak

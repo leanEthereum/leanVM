@@ -8,7 +8,6 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
-import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
@@ -17,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
 # `rs_eq_rows` (lean_ethereum.py)
 
 `rs_eq_rows(row, zs, ps, n)` at `n = 0` returns `row`. Otherwise it reads the `n` coordinates
-`zs[i]`, `ps[i]` (`rrHead`), and for each `k < 64` the row word `row[k]`, multiplies it by
+`zs[i]`, `ps[i]` (`rrHeadBlk`), and for each `k < 64` the row word `row[k]`, multiplies it by
 `zs[i]^(2^k) + ps[i]` for `i < n` (the Frobenius powers squared along `k`, values `rrZ`), and
 stores the product at `row·g^(64 + k)` (`rrRow k`); it returns `row·g^64` (`g^64` the word
 `27`). Row `k`'s values start at `rrS n k`, three a coordinate (two in the last row, which
@@ -41,6 +40,12 @@ theorem noRetList_append' (a b : List Stmt) :
   induction a with
   | nil => simp [Stmt.noRetList]
   | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
+
+theorem noRetList_flatten_range (n : ℕ) (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList (f i) = true) :
+    Stmt.noRetList ((List.range n).map f).flatten = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [List.range_succ, List.map_append, List.flatten_append, noRetList_append', ih]; simp [h]
 
 /-- A word of a run of lists, all of one length before the `k`-th. -/
 theorem getD_flatMap_range {α : Type} (len : ℕ) (d : α) :
@@ -115,6 +120,22 @@ def rrBody (n : ℕ) : List Stmt :=
 
 theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n (val% «rs_eq_rows__L0» "s2#0")) (.n (val% «rs_eq_rows__L0» "row"))),
     .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 :=
+  stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 :=
   stmtsEqb_sound (by decide +kernel)
 
 /-! ## The conditions -/
@@ -326,6 +347,11 @@ theorem readsAt_range {rd : Reader} {p : E} {n : ℕ} {f : ℕ → E}
   simp only [List.length_map, List.length_range] at hi
   simpa using h i hi
 
+theorem readsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {i : ℕ}
+    (hi : i < xs.length) : LoadHolds rd p i (xs.getD i 0) := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
+  exact h i hi
+
 theorem ringRow_take_length (c : E) (zs ps : List E) (k : ℕ) (n : ℕ) (hz : zs.length = n)
     (hp : ps.length = n) : ringRow c (zs.take n) (ps.take n) k = ringRow c zs ps k := by
   rw [← hz, List.take_length, show zs.length = ps.length by omega, List.take_length]
@@ -445,19 +471,28 @@ theorem rr0_iff (rd : Reader) (args rets : List E) :
       | [_, _, _], Or.inr ⟨h, _⟩ => omega
     exact ⟨setl (Val.ofArgs [row, z, p]) 3 [row], rfl, by b1_look, by b1_look⟩
 
-/-- The deployed `rs_eq_rows__L{n}`, `1 ≤ n ≤ 8`, are the template. -/
-private theorem rs_eq_rows_found :
-    coreRunB (idxs% «rs_eq_rows__L» 1 9) (fun i ↦ rsEqRowsNames.getD (i + 1) "")
-      (shapeB [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"),
-        .n (valf% «rs_eq_rows» "ps")] fun i ↦ rrBody (i + 1)) = true :=
-  coreRunB_iff.mpr fun i (_ : i < 8) ↦ by interval_cases i <;> decide +kernel
-
+set_option maxRecDepth 100000 in
 /-- **`rs_eq_rows__L{n}`'s core IR is its meaning**, `n ≤ 8`. -/
 theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
-  rintro (_ | n) hn rd args rets
+  intro n hn rd args rets
+  interval_cases n
   · exact rr0_iff rd args rets
-  · obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape rs_eq_rows_found (show n < 8 by omega)
-    exact rr_iff (n + 1) n.succ_pos hf hp hb rd args rets
+  · exact rr_iff 1 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L1») rfl) rfl
+      rs_eq_rows_L1_body rd args rets
+  · exact rr_iff 2 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L2») rfl) rfl
+      rs_eq_rows_L2_body rd args rets
+  · exact rr_iff 3 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L3») rfl) rfl
+      rs_eq_rows_L3_body rd args rets
+  · exact rr_iff 4 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L4») rfl) rfl
+      rs_eq_rows_L4_body rd args rets
+  · exact rr_iff 5 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L5») rfl) rfl
+      rs_eq_rows_L5_body rd args rets
+  · exact rr_iff 6 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L6») rfl) rfl
+      rs_eq_rows_L6_body rd args rets
+  · exact rr_iff 7 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L7») rfl) rfl
+      rs_eq_rows_L7_body rd args rets
+  · exact rr_iff 8 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L8») rfl) rfl
+      rs_eq_rows_L8_body rd args rets
 
 end
 end LeanVM.Guest.B1

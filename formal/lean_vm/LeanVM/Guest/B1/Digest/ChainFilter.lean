@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Digest.Lists
 # Chains without loads
 
 `check_filter`: for a filter `q` keeping every atom but loads, `s.check (atoms.filter q) =
-s.check atoms`, and `keccakBlocks` is unchanged (`keccakBlocks_filter`). A completeness proof
+s.check atoms`. A completeness proof
 thus runs `chain_final` on a block without its stores, whose relations it knows first.
 -/
 

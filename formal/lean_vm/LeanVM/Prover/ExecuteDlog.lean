@@ -50,7 +50,8 @@ theorem baby_ok : IdxOk baby := fill_ok g 1 (pow_one g).symm _ 0 1 ∅ (pow_zero
 
 /-! ## Searches -/
 
-theorem gInv_mul_g : gInv * g = 1 := by rw [mul_comm]; exact g_mul_inv_word
+theorem gInv_mul_g : gInv * g = 1 := by
+  rw [mul_comm]; exact LeanVM.Parameters.FieldModulus.x_mul_inv_word
 
 theorem giant_mul : giant * g ^ 2 ^ 17 = 1 := by
   rw [giant, ← mul_pow, gInv_mul_g, one_pow]

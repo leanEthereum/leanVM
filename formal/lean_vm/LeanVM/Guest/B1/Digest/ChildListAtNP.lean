@@ -13,7 +13,15 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 /-!
 # The walk by hinted indices, placed with its pops
 
-`child_claim_list_any_completeAtTBP`: `child_claim_list_any_completeAtTB` popping its claims' indices (`anyPss`).
+`child_claim_list_any_completeAtTBP`: for `n = 136a + 17b + c < 136 · 2^20` honest records
+(`RecMem`: slots `o j` below `L`, marks `base · g^j` at `region · g^(o j)`, cells at
+`entries · g^(4 o j)`) among the caller's words, with `L ≤ 2^κ` (the range checks read below
+`2^κ`), `child_claim_list_any` on `[g^eP, g^rg, base, g^L, g^a, g^b, g^c]` is complete returning
+the cells' digest: its chain buffer (`chainCells`, `13 (a + b + 1)` words) after its frame, then
+`child_claim_list_any_loop0` over the `a` big frames, `child_claim_list_any_loop1` over the `b`
+groups (`anyLoop_completeAtBP`), `child_claim_list_last__L{c}` (`ccl_completeAtBP`); by a tree of
+honest shape `anyHonest n` (`anyQ`, `anyCalls`, `anyBufs`), within `anyB fs n` words, popping its claims'
+indices (`anyPss`).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -232,9 +240,9 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, hV.v16, List.append_nil]
     rw [logG_gen_pow (show 13 * (a + b + 1) < 2 ^ 64 - 1 by omega)]
   have h32 : decide (σ (.n (val% «child_claim_list_any» "s3#1")) ≠ 0) = decide (a ≠ 0) := by
-    rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
+    rw [hV.v32]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
   have h50 : decide (σ (.n (val% «child_claim_list_any» "s6#1")) ≠ 0) = decide (b ≠ 0) := by
-    rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_pow_ne_zero_iff (by omega))
+    rw [hV.v50]; exact decide_eq_decide.mpr (one_add_gen_ne (by omega))
   have hcalls : calls es = [⟨name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"),
       .n (val% «child_claim_list_any» "base"), .n (val% «child_claim_list_any» "last_g")], [],
         decide (a ≠ 0)⟩,
@@ -320,7 +328,6 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
     refine ⟨b0 + c, by rw [hV.v17, hchain, limb0_gen_pow_mul], Or.inl ?_⟩
     rw [hal]
     exact hown _ (by omega) (by omega)
-
 
 end
 end LeanVM.Guest.B1.Digest

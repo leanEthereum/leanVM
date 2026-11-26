@@ -8,6 +8,7 @@ use proptest::prelude::*;
 #[test]
 fn signs_and_verifies_at_the_boundary_leaf_indices() {
     let key = SecretKey::from_seed([1; 32]);
+    key.set_bottom_tree_cache_size(2);
     let message = [0x42; 32];
 
     // Leaf index = bottom tree (high 16 bits) | leaf in it (low 16 bits).
@@ -24,6 +25,8 @@ fn signs_and_verifies_at_the_boundary_leaf_indices() {
         assert_eq!(signature.leaf_index(), leaf_index);
         key.public_key().verify(&message, &signature).unwrap();
     }
+    // The cache holds the top tree and the two bottom trees used last.
+    assert_eq!(key.cache_to_bytes().len(), 4096 + 2 * 5300);
 }
 
 #[test]

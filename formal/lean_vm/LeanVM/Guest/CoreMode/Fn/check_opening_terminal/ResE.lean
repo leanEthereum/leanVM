@@ -65,7 +65,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit witOk constOf powOf inFr expFacts expOf baseAt ltFactB dimFacts dimShape dimB
+open LeanVM.Guest.Res (Wit expFacts dimFacts
   claimPairs busPairs tabPairs TermFront)
 open LeanVM.Protocol.Verifier (gen Layout BusResult ColumnClaim)
 open LeanVM.Prover.Exec

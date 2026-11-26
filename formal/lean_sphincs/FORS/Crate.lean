@@ -15,7 +15,7 @@ expansion (`ExpandedKey::new`, `SK.prf` then `PK.seed`), the trees built level b
 the randomizer, the digest, each FORS tree built once (`fors_open`), and the layers from the bottom
 up, each a WOTS+C signature followed by its tree's levels (the top layer reusing key generation's).
 
-FORS's own key generation and signer (`Seeded.keygen`, `Seeded.sign`, upstream's) compute the same
+FORS's own key generation and signer (`Seeded.keygen`, `Seeded.sign`) compute the same
 public key and the same signatures on every answer function, with at most the crate's hash calls
 (`CrateStatic.lean`).
 -/

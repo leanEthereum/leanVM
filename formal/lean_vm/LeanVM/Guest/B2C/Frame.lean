@@ -431,17 +431,6 @@ theorem read_valL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rw [addressOfIndex, pow_add]
   exact hL.read_C h hI hmem
 
-/-- **The honest memory reads each named value at its cell.** -/
-theorem read_val {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
-    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
-    (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ)
-    {v : V} (hv : v ∈ namedOf (coreOf j).params es vs) (h2 : 2 ≤ cellJ j v) (hn : cellJ j v < fsN j) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + cellJ j v)) = some (σ v) := by
-  apply read_valL h h.covers <;> assumption
-
 end Val
 
 /-! ## The fixed cells, the temporaries, the table targets -/
@@ -538,18 +527,6 @@ theorem read_statL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rw [addressOfIndex, pow_add]
   exact hL.read_C h hI hmem
 
-/-- **The honest memory reads each fixed cell's word.** -/
-theorem read_stat {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
-    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
-    (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ)
-    {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) (h2 : 2 ≤ q.1) (hn : q.1 < fsN j) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + q.1)) = some (q.2.word
-        I.fp) := by
-  apply read_statL h h.covers <;> assumption
-
 /-- **A memory covering the honest writes reads each temporary of the path at its cell.** -/
 theorem read_tmpL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (h : Honest coreProgram fs H C hdr T rd args rets) {κ : ℕ} {L : MemoryImage κ}
@@ -617,17 +594,6 @@ theorem read_tmpL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rw [addressOfIndex, pow_add]
   exact hL.read_C h hI hmem
 
-/-- **The honest memory reads each temporary of the path at its cell.** -/
-theorem read_tmp {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
-    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
-    (hw : walk σ (coreOf j).body = .ret es vs) {t : V} (htm : t ∈ coreProgram.temps f)
-    (h2 : 2 ≤ cellJ j t) (hn : cellJ j t < fsN j) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + cellJ j t)) = some (σ t) := by
-  apply read_tmpL h h.covers <;> assumption
-
 /-- **A memory covering the honest writes reads each table jump's target.** -/
 theorem read_armL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     (h : Honest coreProgram fs H C hdr T rd args rets) {κ : ℕ} {L : MemoryImage κ}
@@ -685,18 +651,6 @@ theorem read_armL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rw [addressOfIndex, pow_add]
   exact hL.read_C h hI hmem
 
-/-- **The honest memory reads each table jump's target.** -/
-theorem read_arm {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
-    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
-    (hw : walk σ (coreOf j).body = .ret es vs)
-    {a : ℕ × ℕ × ℕ} (ha : a ∈ (plumbOf j).arms) (h2 : 2 ≤ a.2.1) (hn : a.2.1 < fsN j) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + a.2.1)) = some (armWord σ a.1
-        a.2.2) := by
-  apply read_armL h h.covers <;> assumption
-
 /-- **A memory covering the honest writes reads a chained `match`'s target**, on the arm the path takes, as the
 next table's word at the next selector. -/
 theorem read_chainL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
@@ -753,20 +707,6 @@ theorem read_chainL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
       · cases hx
   rw [addressOfIndex, pow_add]
   exact hL.read_C h hI hmem
-
-/-- **The honest memory reads a chained `match`'s target**, on the arm the path takes, as the
-next table's word at the next selector. -/
-theorem read_chain {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
-    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
-    (hw : walk σ (coreOf j).body = .ret es vs)
-    {ch : ℕ × ℕ × List ℕ × ℕ × ℕ} (hch : ch ∈ (plumbOf j).chains) {k t : ℕ} (hkt : ch.2.2.1[k]? = some t)
-    (hσk : σ (V.n ch.2.1) = ofK (addressOfIndex k)) (h2 : 2 ≤ t) (hn : t < fsN j) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (I.fp + t)) =
-      some (armWord σ ch.2.2.2.1 ch.2.2.2.2) := by
-  apply read_chainL h h.covers <;> assumption
 
 end Others
 
@@ -845,17 +785,6 @@ theorem read_argsL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
     rw [addressOfIndex, pow_add, ht]
     exact hL.read_C h hJ hmem
 
-/-- **A callee's frame holds its arguments** at cells `2 + k`, whether it runs or not. -/
-theorem read_args {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {J : Inst} (hJ : J ∈ honestInsts coreProgram fs H hdr T) {g : String} (hj : idxOf g = some j)
-    (hgood : (∃ σ bufs kids es vs, J.t = .node g σ bufs kids ∧
-      walk σ (coreOf j).body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ) ∨ ∃ σ, J.t = .phantom g σ)
-    (k : ℕ) (hk : k < (coreOf j).params.length) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (J.fp + (2 + k))) = some (J.t.val (coreOf j).params[k]) := by
-  apply read_argsL h h.covers <;> assumption
-
 /-- The fixed cells lie in the frame. -/
 theorem stat_in (hS : ShareOk j) {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) : 2 ≤ q.1 ∧ q.1 < fsN j := by
   obtain ⟨hlists, -, -, -⟩ := shareStatic_spec hS.1
@@ -899,19 +828,6 @@ theorem read_selfL {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
       · rfl
     rw [addressOfIndex, pow_add]
     exact hL.read_C h hJ hmem
-
-/-- **A callee's frame holds its frame pointer** in its entry environment's cells, whether it runs
-or not. -/
-theorem read_self {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
-    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j) (hC : ChainApart j)
-    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
-    {J : Inst} (hJ : J ∈ honestInsts coreProgram fs H hdr T) {g : String} (hj : idxOf g = some j)
-    (hgood : (∃ σ bufs kids es vs, J.t = .node g σ bufs kids ∧
-      walk σ (coreOf j).body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ) ∨ ∃ σ, J.t = .phantom g σ)
-    {o : ℕ} (ho : o ∈ (certOf j).facts.env.map Prod.fst) :
-    (honest coreProgram fs H C hdr T).read (addressOfIndex (J.fp + o)) = some (ofK (addressOfIndex
-        J.fp)) := by
-  apply read_selfL h h.covers <;> assumption
 
 end Args
 

@@ -44,14 +44,9 @@ execution is extracted, or the decoder program `guestWitnessDecoder`, run on it 
 (`LeanVmGuest.lean`), outputs the encoding of no decoding that explains `statement`
 (`ExplainsStatement`). It composes `KnowledgeSoundness`, `GuestKnowledgeSoundness` and
 `StatementDigestBinds`; its probability is at most the bound of `KnowledgeSoundness`,
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`.
-
-Keccak-256 and Keccak-f[1600] outside the executed program are built from `π`, so the verifier
-seeds its transcript with the IV over `π`; the statement's digest, its seed (`deployedSeed`, the IV
-over the deployed Keccak-f[1600]) and the collisions are of the deployed Keccak-256, which the guest
-program computes. A child's claims carry knowledge only through its fresh claim, which this
-statement does not make true: the root's deferred claim holds, but the batching that ties it to the
-children's fresh claims is sound only outside the circuit (`LeanVmGuest.lean`). -/
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, for `Q` queries to `π`, `π⁻¹`. The
+digest, the seed and the collisions are of the deployed Keccak-256 (`statement.tex`: two Keccaks
+meet here). -/
 def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.MachineProgram)
     (extractor : StraightLineExtractor) : Prop :=
   ∀ (adversary : RandomPermutationAdversary) (Q : ℕ),
@@ -81,8 +76,7 @@ open OracleComp OracleSpec in
 /-- **The guest's prover makes a proof the verifier accepts, or a child's proof exhibits a
 collision.** On every node `GuestExecutionComplete` covers (`NodeRelation` under the deployed seed,
 `DeployedLimits`), unless some child's proof exhibits a Keccak-256 collision (`OpeningsCollide`), in
-the random-permutation model, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4` (`MIN_LOG_INV_RATE`,
-`MAX_LOG_INV_RATE`, `whir.rs`), with `2^35` nonces per proof
+the random-permutation model, at an inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, with `2^35` nonces per proof
 of work: the guest's prover (`LeanVM.Guest.guestProve`, `LeanVmGuestProver.lean`: the advice from
 the statement and the witness, the executor, then the honest prover) makes no proof, or the verifier
 rejects it, with probability at most `2^-256`. From `GuestExecutionComplete` and `Completeness`. -/

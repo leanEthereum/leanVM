@@ -18,7 +18,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
 
 attribute [local instance] Classical.propDecidable
 
-
 section Program
 
 variable (parameter : PublicParameter) (data : PublicData)

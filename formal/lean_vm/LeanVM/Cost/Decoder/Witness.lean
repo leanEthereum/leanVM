@@ -17,7 +17,7 @@ import all LeanVM.Guest.Glob
   `decWitStaged` (`Staged.lean`) with each callee's witness off its frame (`Frames.lean`), by
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
-* **`main`'s valuation** off the reader (`mainVal`: `EndFinal.mainValWith`'s word, by the
+* **`main`'s valuation** off the reader (`mainVal`: `End.mainValWith`'s word, by the
   certificate's cells, read off the packed table, `locAt`).
 -/
 
@@ -51,7 +51,6 @@ def guestLocsTable : Array (Array ℕ) := guestLocsLit
 
 theorem guestLanes_eq_table : guestLanes = guestLocsTable := rfl
 
-set_option maxRecDepth 100000 in
 cost_compile guestLocsTableC := guestLocsTable
 cost_rewrite guestLanes_eq_table
 
@@ -61,8 +60,8 @@ cost_compile locAtC := locAt
 /-! ## `main`'s valuation -/
 
 /-- The word of `main`'s value `v` at `fp = 1`, read with `rd`: its cell's location read off
-the packed table of the certificates' cells (`locAt 1`), in `O(1)` whatever `v` (`Equations.lean`:
-`mainVal_eq_cert`, the certificate's cells `cert1_w0_0 ++ cert1_w1_0`, and `mainVal_eq`). -/
+the packed table of the certificates' cells (`locAt 1`), in `O(1)` whatever `v` (`mainVal_eq`,
+`Equations.lean`). -/
 def mainVal (rd : Reader) (v : V) : E :=
   LeanVM.Guest.Located.wordWith rd 1 (locAt 1 v.idx)
 

@@ -13,10 +13,11 @@ public import LeanVM.Guest.B1.Main.KidsT
 /-!
 # The callees' weights and words
 
-`kids_weight_le`, `kids_total_le`: for the callees `ks` of the calls `cs` (`Tree.KidsValid`), the
+`kids_weight_leT`, `kids_total_leT`: for the callees `ks` of the calls `cs` (`Tree.KidsValid`), the
 weight is at most the sum over the entered calls of a bound `W c` on their callees' valid trees at
-the call's arguments, and the words at most the sum of a bound `T c` over the entered calls and of
-the callee's tail over the others (a phantom allocates its tail, `fs (tailKey f)`).
+the call's arguments satisfying its predicate, and the words at most the sum of a bound `T c` over
+the entered calls and of the callee's tail over the others (a phantom allocates its tail,
+`fs (tailKey f)`); `kids_weight_leL`: the weight, the bounds as a list aligned with the calls.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -155,18 +156,6 @@ theorem NodeHonest.weight_le {f : String} {Q : Val → Prop} {cs : Val → List 
   obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
   exact ⟨σ, hQ, node_weight_le ω (W σ) Ts hv hb hc hl hT (hB σ hQ)⟩
 
-/-- **A node of honest shape allocates at most** its frame, its `HeapBuf`s and its callees'
-bounds. -/
-theorem NodeHonest.total_le {f : String} {Q : Val → Prop} {cs : Val → List Call}
-    {bs : Val → List ℕ} {Ts : List (Tree → Prop)} {t : Tree} {args rets : List E}
-    (fs : String → ℕ) (T : Val → Call → ℕ) (h : NodeHonest P f Q cs bs Ts t)
-    (hv : t.Valid P rd args rets) (hb : t.BufsOk P)
-    (hB : ∀ σ, Q σ → ∀ c R, (c, R) ∈ (cs σ).zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E),
-      t.name = c.f → t.Valid P rd (c.args.map σ) rets → t.BufsOk P → R t → t.total fs ≤ T σ c) :
-    ∃ σ, Q σ ∧ t.total fs ≤ fs f + callsT fs (T σ) (cs σ) + (bs σ).sum := by
-  obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
-  exact ⟨σ, hQ, node_total_le fs (T σ) Ts hv hb hc hl hT (hB σ hQ)⟩
-
 /-! ## Bounds by position
 
 The callees' bounds as a list aligned with the calls (`Ws[i]` for call `i`), the form a chain of
@@ -198,38 +187,6 @@ theorem kids_weight_leL (ω : String → ℕ) :
       obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
       rw [Tree.weight]
       omega
-
-theorem kids_total_leL (fs : String → ℕ) :
-    ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Ws : List ℕ) (ks : List Tree),
-      Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks → KidsT cs Ts ks →
-      cs.length ≤ Ts.length → cs.length ≤ Ws.length →
-      (∀ i (hi : i < cs.length) (hW : i < Ws.length), cs[i].taken = false →
-        fs (tailKey cs[i].f) ≤ Ws[i]) →
-      (∀ i (hi : i < cs.length) (hT : i < Ts.length) (hW : i < Ws.length), cs[i].taken = true →
-        ∀ (t : Tree) (rets : List E), t.name = cs[i].f → t.Valid P rd (cs[i].args.map σ) rets →
-          t.BufsOk P → Ts[i] t → t.total fs ≤ Ws[i]) →
-      Tree.totalKids fs ks ≤ Ws.sum
-  | [], _, Ws, [], _, _, _, _, _, _, _ => by simp [Tree.totalKids]
-  | [], _, _, _ :: _, hk, _, _, _, _, _, _ => hk.elim
-  | _ :: _, _, _, [], hk, _, _, _, _, _, _ => hk.elim
-  | _ :: _, [], _, _ :: _, _, _, _, hl, _, _, _ => by simp at hl
-  | _ :: _, _ :: _, [], _ :: _, _, _, _, _, hw, _, _ => by simp at hw
-  | c :: cs, T :: Ts, w :: Ws, k :: ks, ⟨hn, hk, hks⟩, ⟨hb, hbs⟩, ⟨hT, hTs⟩, hl, hw, hU, hB => by
-    have ih := kids_total_leL fs cs Ts Ws ks hks hbs hTs (by simpa using hl) (by simpa using hw)
-      (fun i hi hWi => hU (i + 1) (by simpa using hi) (by simpa using hWi))
-      fun i hi hTi hWi => hB (i + 1) (by simpa using hi) (by simpa using hTi) (by simpa using hWi)
-    rw [Tree.totalKids, List.sum_cons]
-    refine Nat.add_le_add ?_ ih
-    by_cases ht : c.taken = true
-    · simp only [ht, ↓reduceIte] at hk
-      exact hB 0 (by simp) (by simp) (by simp) ht k _ hn hk hb (hT ht)
-    · simp only [Bool.not_eq_true] at ht
-      simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk
-      obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
-      simp only [Tree.name] at hn
-      subst hn
-      rw [Tree.total]
-      exact hU 0 (by simp) (by simp) ht
 
 end
 end LeanVM.Guest.Budget

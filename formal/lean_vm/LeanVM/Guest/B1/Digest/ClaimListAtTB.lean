@@ -8,7 +8,11 @@
 module
 
 public import LeanVM.Guest.B1.Digest.ClaimListAt
-public import LeanVM.Guest.B1.Digest.LoopAtB
+public import LeanVM.Guest.B1.Digest.PlacedLib
+public import LeanVM.Guest.B1.Digest.LoopComplete
+public import LeanVM.Guest.B1.Digest.ClaimListCChk
+public import LeanVM.Guest.B1.Main.KidsT
+public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings

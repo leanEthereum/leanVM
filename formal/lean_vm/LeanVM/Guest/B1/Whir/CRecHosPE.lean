@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.B1.Whir.CRecHosP
+public import LeanVM.Guest.B1.Whir.CRecHos
+public import LeanVM.Guest.B1.Place.ArmPops
+public import LeanVM.Guest.B1.Place.OsFinal
 public import LeanVM.Guest.B1.VerifySub.CompleteBTE
 public import LeanVM.Guest.B1.Exact.Terminal
 public import LeanVM.Guest.B1.Exact.VerifyTables
@@ -16,14 +18,17 @@ public import LeanVM.Guest.B1.Place.ArmExactAll
 /-!
 # `verify_sub`, popping its hints, every node exact
 
-`open_stacked_completeAtBPE_Spec`: `open_stacked_completeAtBP_Spec` by trees also exact; `open_stacked_completeAtBPE`
+`open_stacked_completeAtBPE_Spec`: `open_stacked` complete within its bound by trees popping its levels' entries
+(`OsPopsT`), exact at every node; `open_stacked_completeAtBPE`
 proves it (the arm's node of `Arm.open_stacked_completeAtOT_of`, exact at every node by `Arm.flatNodeT_every`, its
 callees' trees satisfying `armXT`: `Arm.armTs_xt`, its window hints the honest valuation's:
-`Arm.winHint_exact_of_winEx`); `vs_hos_ofE`, `vs_hos_of`'s from it. `VsKidsExact`: `verify_keccak`
+`Arm.winHint_exact_of_winEx`); `vs_hos_ofE`: from it, on segments whose query steps are
+the child's, the `hos` `verify_sub_completeBTPE` takes. `VsKidsExact`: `verify_keccak`
 (`VkCompleteAtBKE`) and `open_stacked` by trees exact on the memory, and `verify_tables`' own computed hints exact at
 its honest valuation (`VtOwnExact`; its callees are `vt_callees_ok`, the terminal `ChildSegs.term_kidBWE`);
-`vs_kids_exact_of_vk`: from `verify_keccak`'s alone. `verify_sub_completeBTPE`, `verify_sub_completeBTSE`:
-`verify_sub_completeBTP`, `verify_sub_completeBTS` by a tree also exact (`verify_sub_completeBTGE`).
+`vs_kids_exact_of_vk`: from `verify_keccak`'s alone. `verify_sub_completeBTPE`: `verify_sub` complete
+on an honest child by a node popping `childHints` and exact (`verify_sub_completeBTGE`, `vs_hon_child_pops`);
+`verify_sub_completeBTSE`: with its `hos` discharged.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -34,7 +39,8 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-- **`open_stacked_completeAtBP_Spec` by a tree also exact on the memory.** -/
+/-- **`open_stacked` complete placed within its bound by a tree popping its levels' `level_queries` entries, exact at
+every node on the memory.** -/
 def open_stacked_completeAtBPE_Spec : Prop :=
   ∀ (μ r : ℕ), Whir.minOpenLog ≤ μ → μ ≤ 30 → 1 ≤ r → r ≤ 4 →
     ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (Bnd : String → ℕ),
@@ -49,13 +55,6 @@ def open_stacked_completeAtBPE_Spec : Prop :=
             (Whir.rateSel r :: capOf S ++ [target, (digestHalves root).1, (digestHalves root).2, cur, tabs])
             (OsOut μ w) (fun rd t => OsPopsT μ r target S root xs os w rd t ∧ t.Every (ExactAt coreProgram rd))
             (osBosAt fs Bnd μ)
-
-theorem open_stacked_completeAtBPE_Spec.toBP (h : open_stacked_completeAtBPE_Spec) :
-    open_stacked_completeAtBP_Spec :=
-  fun μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
-    Lin hLin =>
-  (h μ r h1 h2 h3 h4 fs cert κ Bnd hrf hcons hκ hleaf hfs htl S root target cur tabs xs os w s' roots' hrun hcaps
-    Lin hLin).mono le_rfl fun _ _ h => h.1
 
 /-- **`open_stacked` is complete placed within its bound by a tree popping its levels' `level_queries` entries and
 exact at every node.** -/

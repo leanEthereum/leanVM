@@ -1,25 +1,27 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainOriginProbability
-public import XmssSecurity.Proof.ChainKey
+public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 
 @[expose] public section
+
+/-!
+# A forged chain value from key generation is a table value
+
+`WinningOutcomeChainValueHasKeygenOrigin` is a winning chain bad event whose forged value has its
+origin in key generation (`OutcomeChainValueHasKeygenOrigin`). Such a value is the honest value
+`keygenChainValueTable` at the forged leaf index's coordinate under the forgery's decoded encoding
+(`winningOutcomeChainValueHasKeygenOrigin_eq_table`); `CappedGlobalChainHighCoverage` uses it.
+-/
 
 open OracleSpec
 
 namespace XmssSecurity.CappedChain
 
-abbrev ChainValueIndex := ChainKey × Digit
-
-def chainStepDigit (step : ChainStep) : Digit :=
-  ⟨step.val, step.isLt.trans (by decide)⟩
-
-noncomputable def keygenChainValueTable
-    (keygenCache : QueryCache HashSpec) (secretKey : SecretKey)
-    (chain : ChainIndex) : ChainValueIndex → Digest := fun index =>
-  Wots.walk
-    (Concrete.CacheView.keyChainStep keygenCache secretKey.parameter index.1 chain)
-    0 index.2.val (secretKey.keyChainStart index.1 chain)
+noncomputable def WinningOutcomeChainValueHasKeygenOrigin
+    (keygenCache finalCache : QueryCache HashSpec) (secretKey : SecretKey)
+    (outcome : GameOutcome) (chain : ChainIndex) : Prop :=
+  WinningOutcomeBadEventOccurs finalCache outcome (.chain chain) ∧
+    OutcomeChainValueHasKeygenOrigin keygenCache finalCache secretKey outcome chain
 
 theorem outcomeChainValueHasKeygenOrigin_eq_table
     (keygenCache finalCache : QueryCache HashSpec) (secretKey : SecretKey)
@@ -66,37 +68,5 @@ theorem winningOutcomeChainValueHasKeygenOrigin_eq_table
           (.inl outcome.forgery.leafIndex, encoding chain) :=
   outcomeChainValueHasKeygenOrigin_eq_table keygenCache finalCache secretKey
     outcome chain horigin.2
-
-/-- The coordinates a returned signature sends at a chain of either layer: the bottom one at its
-leaf index and the top one of its bottom tree. -/
-def ReturnedChainValueIndex
-    (cache : QueryCache HashSpec) (secretKey : SecretKey)
-    (log : QueryLog SigningSpec) (chain : ChainIndex) (index : ChainValueIndex) : Prop :=
-  (∃ request signature encoding,
-    SigningTranscript.Returned log request signature ∧
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash cache secretKey.parameter request.leafIndex
-          (request.message, signature.randomness)) = some encoding ∧
-      index.1 = .inl request.leafIndex ∧ encoding chain ≤ index.2) ∨
-  (∃ request signature randomness topEncoding,
-    SigningTranscript.Returned log request signature ∧
-      secretKey.topSigned (topKeyOf request.leafIndex) = some (randomness, topEncoding) ∧
-      index.1 = .inr (topKeyOf request.leafIndex) ∧ topEncoding chain ≤ index.2)
-
-/-- Coordinates sent by the signer, together with every later coordinate that can be derived by walking the chain forward. -/
-noncomputable def returnedChainValueIndices
-    (cache : QueryCache HashSpec) (secretKey : SecretKey)
-    (log : QueryLog SigningSpec) (chain : ChainIndex) : Finset ChainValueIndex := by
-  classical
-  exact Finset.univ.filter (ReturnedChainValueIndex cache secretKey log chain)
-
-@[simp]
-theorem mem_returnedChainValueIndices_iff
-    (cache : QueryCache HashSpec) (secretKey : SecretKey)
-    (log : QueryLog SigningSpec) (chain : ChainIndex) (index : ChainValueIndex) :
-    index ∈ returnedChainValueIndices cache secretKey log chain ↔
-      ReturnedChainValueIndex cache secretKey log chain index := by
-  classical
-  simp only [returnedChainValueIndices, Finset.mem_filter, Finset.mem_univ, true_and]
 
 end XmssSecurity.CappedChain

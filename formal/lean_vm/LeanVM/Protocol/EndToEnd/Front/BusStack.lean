@@ -21,8 +21,8 @@ public import VCVio.OracleComp.Constructions.SampleableType
 
 A list `L` of blocks with log-sizes `κ`: the verifier stacks the indices `0, …, n-1` by
 `stack_offsets` (larger first, ties by index) and places block `i` at its offset; the protocol
-sorts `L` largest first, stably (`sortedL`), and lays the blocks end to end (`blocksL`, the shape of
-`Bus.blocks`). They are one layout:
+sorts `L` largest first, stably (`sortedL`), and lays the blocks end to end (a `Blocks` of the
+sorted sizes, the shape of `Bus.blocks`; `offsetNat_sortedL`). They are one layout:
 
 * `sortedL_eq_map_ordL`: the sorted blocks are `L` read in the verifier's order `ordL`;
 * `stackOffsets_getD_ordL`: the verifier's offset of the block at sorted position `b` is the

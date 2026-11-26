@@ -1,6 +1,7 @@
 //! Streaming stores for x86 buffers written once and read in a later pass. Other targets use ordinary copies.
 
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 use crate::Plain;
 
@@ -25,17 +26,17 @@ impl Stream {
         Self(PhantomData)
     }
 
-    /// Copy `src` over `dst` without fetching `dst` first. Whole cache lines
+    /// Copy `src` over `dst`, which need not be written yet, without fetching `dst` first. Whole cache lines
     /// stream; a ragged head or tail is stored normally.
     #[inline]
-    pub fn copy<T: Plain>(&self, dst: &mut [T], src: &[T]) {
+    pub fn copy<T: Plain>(&self, dst: &mut [MaybeUninit<T>], src: &[T]) {
         assert_eq!(dst.len(), src.len(), "a streaming copy is elementwise");
         // SAFETY: distinct slices are valid for `size_of_val(src)` bytes each
         // and cannot overlap.
         unsafe { copy_raw(dst.as_mut_ptr().cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
 
-    /// [`copy`](Self::copy) into a destination that is not yet initialised.
+    /// [`copy`](Self::copy) through a raw pointer.
     ///
     /// # Safety
     /// `dst` must be valid for `src.len()` elements and disjoint from `src`.
@@ -142,7 +143,8 @@ mod tests {
                 let mut want = got.clone();
                 {
                     let stream = Stream::new();
-                    stream.copy(&mut got[head..], &src[..len]);
+                    // SAFETY: the copy writes only elements of `src`.
+                    stream.copy(unsafe { crate::as_uninit_mut(&mut got[head..]) }, &src[..len]);
                 }
                 want[head..].copy_from_slice(&src[..len]);
                 assert_eq!(got, want, "head {head}, len {len}");

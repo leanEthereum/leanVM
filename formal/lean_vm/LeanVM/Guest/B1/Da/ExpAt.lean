@@ -17,7 +17,6 @@ public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Memory.UniformF
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_expand__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_expand`, placed
@@ -27,7 +26,7 @@ at `rb = fp + cert f (.n (expB D + 1))`, its fresh words zero, then the leaves' 
 `g^(rb + 2^D)`. Node `2^d + y` is `expandLeaf … d y` (`exp_node`), which the run's words hold
 (`expRunVals`, `expRun_get`), so the `frameAddr` holds. `exp_completeAtFB`: complete, placed, within
 its frame, returning the run at its leaves, at `rb` (`expOutAt`); `exp_completeAtB`: the run somewhere
-(`expOut`); `expTop_completeAtB`, `expCell_completeAtB`: the two specializations.
+(`expOut`); `expTop_completeAtB`: the top specialization.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -336,7 +335,7 @@ theorem exp_completeAtFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
   · exact absurd hok (by simp)
 
 theorem blockAtoms_atoms : ∀ (as : List Atom) (vs : List V),
-    Lift.blockAtoms (as.map Stmt.atom ⧺ [.ret vs]) = as
+    Lift.blockAtoms (as.map Stmt.atom ++ [.ret vs]) = as
   | [], _ => rfl
   | a :: as, vs => by
     rw [List.map_cons, List.cons_append, Lift.blockAtoms, blockAtoms_atoms as vs]
@@ -399,22 +398,6 @@ theorem expTop_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E
     (by rw [Program.loop_of_find? find_da_expand_L13_L7]; decide +kernel) expTop_ok expTop_cok
     (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L13_L7 expTop_ok (by norm_num))
     hF hZ hS hFr hZr hSr
-
-/-- **`da_expand__L6_L7`**, placed: the tree inside a cell (bits `6 … 0`). -/
-theorem expCell_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}
-    {F Z S : ℕ → E}
-    (hF : ∀ rd, MemL rd Lin → ∀ n, 1 ≤ n → n < 2 ^ 7 → LoadHolds rd (gen ^ cf) n (F n))
-    (hZ : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cz) (6 - d) (Z (6 - d)))
-    (hS : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cs) (6 - d) (S (6 - d)))
-    (hFr : ∀ n, 1 ≤ n → n < 2 ^ 7 → RegionL Lin (cf + n))
-    (hZr : ∀ d < 7, RegionL Lin (cz + (6 - d))) (hSr : ∀ d < 7, RegionL Lin (cs + (6 - d))) :
-    CompleteAtDTB fs cert 16 "da_expand__L6_L7" Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
-      (expOut root F Z S 6 7) (fun _ => True) (fs "da_expand__L6_L7") :=
-  exp_completeAtB fs cert find_da_expand_L6_L7
-    (by rw [Program.loop_of_find? find_da_expand_L6_L7]; decide +kernel) expCell_ok expCell_cok
-    (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L6_L7 expCell_ok (by norm_num))
-    hF hZ hS hFr hZr hSr
-
 
 /-- **`da_expand__L6_L7`, placed, its run at a fixed offset of its frame**. -/
 theorem expCell_completeAtFB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}

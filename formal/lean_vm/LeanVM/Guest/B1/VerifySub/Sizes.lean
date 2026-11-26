@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.InterfaceP
 public import LeanVM.Guest.B1.Common.Run
+import LeanVM.ToMathlib.List
 
 /-!
 # The sizes and the layout's logarithms
@@ -41,20 +42,13 @@ theorem placed_snd (sz : ℕ → ℕ) : ∀ (l : List ℕ) (acc : List ℕ × �
     simp only
     omega
 
-theorem map_range_getD (sizes : List ℕ) (f : ℕ → ℕ) :
-    (List.range sizes.length).map (fun i ↦ f (sizes.getD i 0)) = sizes.map f := by
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp only [List.getElem_map, List.getElem_range]
-  rw [List.getD_eq_getElem _ _ (by simpa using h1)]
-
 /-- **`stack_offsets`' log-size** is `log2Ceil` of the blocks' total. -/
 theorem stackOffsets_snd (sizes : List ℕ) :
     (stackOffsets sizes).2 = log2Ceil ((sizes.map (2 ^ ·)).sum) := by
   unfold stackOffsets
   simp only
   rw [placed_snd, zero_add, ((List.mergeSort_perm _ _).map _).sum_eq,
-    map_range_getD sizes (2 ^ ·)]
+    List.map_range_getD sizes 0 (2 ^ ·)]
 
 /-! ## The layout's logarithms -/
 

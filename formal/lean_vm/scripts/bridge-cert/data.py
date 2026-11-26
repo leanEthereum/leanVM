@@ -18,6 +18,21 @@ def _halt():
 HALT = _halt()
 
 
+IMPORT = re.compile(r'^(?:public )?(?:meta )?import ', re.M)
+
+
+def quiet(files):
+    """`files` (path to text) with the linters off after each module's imports, unless it turns them off itself: they
+    find nothing in a generated module, and each runs in the interpreter on every declaration."""
+    def one(text):
+        ms = list(IMPORT.finditer(text))
+        if 'set_option linter.all false' in text or not ms:
+            return text
+        end = text.index('\n', ms[-1].start()) + 1
+        return text[:end] + '\nset_option linter.all false\n' + text[end:]
+    return {p: one(t) for p, t in files.items()}
+
+
 def advice_text():
     """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
     names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
@@ -321,8 +336,7 @@ def defs(text):
         end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
         body = text[m.end():end]
         body = re.split(r'\n/--|\nend\b|\nnamespace |\n@\[|\nopen ', body)[0]
-        # `data% t` (`Guest/DataLit.lean`) is the literal `t`
-        out[m.group(1)] = re.sub(r'^\s*data% ', ' ', body)
+        out[m.group(1)] = body
     return out
 
 
@@ -334,8 +348,16 @@ _TEXTS = {}
 def read_text(p):
     if p not in _TEXTS:
         with open(p, encoding='utf-8') as fh:
-            _TEXTS[p] = fh.read().replace('data% ', '')  # the data literals' `data%` (`Guest/DataLit.lean`)
+            _TEXTS[p] = fh.read()
     return _TEXTS[p]
+
+
+def unlit(t):
+    """A pack's `Bundle.lean` text with its numerals as written before `(nat_lit n)` (`GuestCert.natLits`)."""
+    return NAT_LIT.sub(r'\1', t)
+
+
+NAT_LIT = re.compile(r'\(nat_lit (\w+)\)')
 
 
 def core_paths():
@@ -389,7 +411,7 @@ def bundle_blocks():
     out = {}
     for b in sorted(glob.glob(ROOT + '/Pack/*/Bundle.lean')):
         pack = b.split('/')[-2]
-        for blk in read_text(b).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
+        for blk in unlit(read_text(b)).split('\nnamespace LeanVM.Guest.Fn.')[1:]:
             out[blk.split('\n', 1)[0].strip().strip('«»')] = (pack, blk)
     return out
 
@@ -519,16 +541,13 @@ def isa_hint(e):
 
 def fn_thms(thms, ns='LeanVM.Guest'):
     """Per-function theorems in one section of namespace `ns`: each `(k, name, stmt, prf)` declared as
-    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined),
-    or a term (`:= t`)."""
+    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined)."""
     out = []
     for t in thms:
         if isinstance(t, str):
             # a command of its own (`Bridge/ChkLit.lean`'s `alloc_chk%`, `align_chk%`)
             out.append(t); continue
         k, name, stmt, prf = t
-        if prf.startswith(':= '):
-            out.append(f'theorem Fn.«{k}».{name} : {stmt} {prf}\n'); continue
         tac = '; '.join(x.strip() for x in prf.strip().split('\n'))
         out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
     return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +

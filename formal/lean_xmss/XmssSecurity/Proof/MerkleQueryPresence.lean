@@ -1,10 +1,19 @@
 module
 
-public import XmssSecurity.Proof.MerkleQueryBound
 public import XmssSecurity.Proof.QueryPresence
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
+
+/-!
+# Merkle queries cached by key generation
+
+A lazy random-oracle run of a bottom tree caches the Merkle input of every node inside it, so key
+generation caches, at every Merkle address of the bottom forest (level `ℓ`, node below
+`2^(2h - ℓ - 1)`), the input made of the two replayed children
+(`Concrete.keygen_cache_has_merkleInput`). That input is the only one cached at the address
+(`Concrete.keygen_cache_merkleInput_eq_none_of_ne_in_largerCache`), and the replayed children are
+the same in every larger cache (`Concrete.keygen_merkleChildren_eq_of_cache_le`).
+-/
 
 open OracleComp OracleSpec
 

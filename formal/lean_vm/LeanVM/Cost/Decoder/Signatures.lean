@@ -50,7 +50,6 @@ cost_compile spForsBitsC := spForsBits
 cost_compile spPathKidsC := spPathKids
 cost_compile spPathBitsC := spPathBits
 cost_compile osWordsTabC := osWordsTab
-set_option maxRecDepth 100000 in
 cost_compile osCallsTabC := osCallsTab
 cost_compile tabAC := tabA
 cost_compile offAtAC := offAtA

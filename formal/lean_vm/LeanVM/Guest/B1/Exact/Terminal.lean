@@ -19,7 +19,7 @@ import LeanVM.Guest.LitRef
 `termKids_completeBE`: `termKids_completeB` by trees exact on the memory (`termPsE`): the column selectors by
 `cs_completeAtDTBRE`, the prefix chains, `check_opening_terminal_loop0`, `selector_tables` and `ring_switch_weight`
 (`rsw_exactOk`) exact on every valid tree (`KidsDepB.toE`). `check_opening_terminal_completeAtBWE`:
-`check_opening_terminal_completeAtBW` by a tree also exact (`completeAt_flatDepRBPR`, the terminal's own body without a
+`check_opening_terminal` complete within its bound by a tree within its weights and also exact (`completeAt_flatDepRBPR`, the terminal's own body without a
 computed hint); `ChildSegs.term_kidBWE`: so on an honest child.
 -/
 
@@ -125,7 +125,7 @@ theorem selKids_E (κ : ℕ) (hκ : 6 ≤ κ) (D : TermData) (hxl : D.x.length �
     have hL : (selKid D c pv).Lin =
         csLin D.B.pt D.B.pt1 ese (D.B.gsq + 34) (pt32 D.x) (pt132 D.x) := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
-      rw [ite_eq_left (h := (Classical.propDecidable _)) ⟨ese, h1, h2⟩, h2]; rfl
+      rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ ⟨ese, h1, h2⟩, h2]; rfl
     have ha : (selKid D c pv).args = [gen ^ D.OF.getD c 0, ofK (addressOfIndex ese), ofK
         (addressOfIndex (D.B.gsq + 34))] := by
       show [_, (stRes pv).1.getD 0 0, _] = _
@@ -227,7 +227,7 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
   have hSL28 : layout.stackLog ≤ 32 := by omega
   obtain ⟨chis, -, hgmu, hchR, hgzc, hchL, -⟩ := hT
   obtain ⟨hkap, -⟩ := hPC
-  have hncl : chis.length = nc := gen_pow_inj (by omega) (by omega) (hgzc.symm.trans hgz)
+  have hncl : chis.length = nc := gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
   subst hncl
   have hchis : ∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd (ofK (addressOfIndex B.chi)) chis :=
     fun rd _ hm => readsAt_transfer hm0 hm hchR fun k hk => hreg _ (by simp only [TermRegion]; omega)
@@ -315,12 +315,12 @@ theorem check_opening_terminal_completeAtBWE (κ : ℕ) (hκ : 6 ≤ κ) (B : Te
     · intro q hq
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
       subst hq
-      rw [ofK_addressOfIndex_mul_gen_pow] at hgt
+      rw [ofK_gpow_mul_gen] at hgt
       exact reads_of_gTabs hgt
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
     · show ReadsAt rd (ofK (addressOfIndex (B.zv + 39))) ringPoint
-      rw [← ofK_addressOfIndex_mul_gen_pow]; exact hrp
+      rw [← ofK_gpow_mul_gen]; exact hrp
     · exact readsAt_take hpt1 _
     · exact hct
   · obtain ⟨σ, hσ⟩ := term_sigma B Lin (fp + fs "check_opening_terminal") outs rd (hpre rd hl hLin)

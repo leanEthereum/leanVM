@@ -13,8 +13,8 @@ public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 import Statement.LeanVm
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Compile.Rom.Decode
 

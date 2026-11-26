@@ -11,6 +11,7 @@ import LeanVM.Protocol.Keccak.Layers
 public import LeanVM.Protocol.Keccak.Start
 public import LeanVM.Protocol.Keccak.SlotWeights
 import LeanVM.Protocol.Keccak.Words
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The committed outputs' opening
@@ -29,8 +30,9 @@ ending at the slot point `ρ` on `W̃(ρ)·Q̃(ρ)`; the verifier computes `W̃(
 
 * `cube_plainFamily`: a sum over the cube of a summand of degree `d` in each coordinate is a
   plain sumcheck family of degree `d`;
-* `openOutSpec`: the sumcheck as a specification, from doom of `committed = Fo q []` to doom of
-  `value = W̃(ρ)·Q̃_q(ρ)`, with the verifier's `W̃(ρ)`.
+* `Fo`, `Fo_plainFamily`: the sumcheck's family, plain of degree `2`; `Fo_nil`: before the slot
+  challenges it is the middle-state value; `fold_out`: the verifier's slot weight after the fold
+  is `W̃(ρ)`. `Gkr.lean` runs the sumcheck as `sumcheckSpec` on `Fo`.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -88,7 +90,7 @@ theorem polyLE_mle_mul (f g : ℕ → E) (N M : ℕ) (pre post : List E) :
 theorem col_split {h : ℕ} {a s : List E} (ha : a.length = h) (F : ℕ → E) :
     ∑ n ∈ range (2 ^ (h + s.length)), eqAt (a ++ s) n * F n =
       ∑ o ∈ range (2 ^ s.length), eqAt s o * ∑ x ∈ range (2 ^ h), eqAt a x * F (x + 2 ^ h * o) := by
-  rw [pow_add, mul_comm, sum_range_mul]
+  rw [pow_add, mul_comm, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun o _ ↦ ?_
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun x hx ↦ ?_
@@ -165,9 +167,6 @@ theorem Fo_nil (col : ℕ → K) (inst : List E) {segment lanesPt : List E}
   rw [slotW_out hs hl, ite_eq_left (by omega), show 25 + l - 25 = l by omega, midMle]
   ring
 
-theorem headD_eq_getD (r : List E) : r.headD 0 = r.getD 0 0 := by
-  cases r <;> rfl
-
 /-- **The verifier's slot weight** at slice `0` after the fold is `W̃(ρ)`. -/
 theorem fold_out {P : ℕ} {inst segment lanesPt output : List E} (hi : inst.length = P + 4)
     (committed : E) {slot : List E} (hslot : slot.length = 6) :
@@ -177,7 +176,7 @@ theorem fold_out {P : ℕ} {inst segment lanesPt output : List E} (hi : inst.len
     (by norm_num)
   obtain ⟨-, -, h3⟩ := foldAll_eq slot _ (by rw [hrows, hslot]; rfl) fun o ho ↦
     slotWeights_row_length _ _ 1 1 (by norm_num) (by omega)
-  rw [headD_eq_getD, h3 0 (by norm_num), Wo, hslot]
+  rw [List.headD_eq_getD, h3 0 (by norm_num), Wo, hslot]
   refine Finset.sum_congr rfl fun o ho ↦ ?_
   rw [slotWeights_getD _ _ 1 1 (by norm_num) (Finset.mem_range.1 ho), firstClaim_point,
     firstClaim_weights, show P + 4 - 4 = P by omega,

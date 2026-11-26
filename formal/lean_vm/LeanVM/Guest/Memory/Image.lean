@@ -69,18 +69,6 @@ theorem image_read (hκ : κ < 64) (hc : Consistent ws) {q : Write} (hq : q ∈ 
     have := List.find?_eq_none.mp hn q hq
     simp [hi] at this
 
-/-- Where nothing is written, an image holds `0`. -/
-theorem image_read_zero (hκ : κ < 64) (i : Fin (2 ^ κ)) (hn : ∀ q ∈ ws, q.1 ≠ addressOfIndex i) :
-    (image κ ws).read (addressOfIndex i) = some 0 := by
-  classical
-  rw [MemoryImage.read_gpow hκ]
-  congr 1
-  unfold image
-  split
-  · rename_i q hq
-    exact absurd (by simpa using List.find?_some hq) (hn q (List.mem_of_find?_eq_some hq))
-  · rfl
-
 /-- Writes all read back from one reader are consistent. -/
 theorem consistent_of_read {rd : K → Option E} (h : ∀ q ∈ ws, rd q.1 = some q.2) :
     Consistent ws := fun a ha b hb hab =>

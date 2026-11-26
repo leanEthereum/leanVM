@@ -61,6 +61,21 @@ theorem sigOk_of {G : Mode.Sig} {Cf : CFun} {np nr : ℕ} {jt : Mode.Rng} (h1 : 
   simp only [sigOk, Bool.and_eq_true]
   exact ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4.1⟩, h4.2⟩
 
+/-- Entry `i` of `l` satisfies `p` (none past its end). -/
+def chunkAll {α : Type} (p : α → Bool) (l : List α) (i : ℕ) : Bool := ((l.drop i).take 1).all p
+
+/-- **A list whose entries all satisfy `p`**, entry by entry. -/
+theorem all_of_chunks {α : Type} {p : α → Bool} {l : List α} (n : ℕ) (hn : l.length ≤ n)
+    (h : ∀ i < n, chunkAll p l i = true) : l.all p = true := by
+  rw [List.all_eq_true]
+  intro x hx
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hx
+  have := h i (by omega)
+  simp only [chunkAll, List.all_eq_true] at this
+  refine this _ ?_
+  rw [List.drop_eq_getElem_cons hi, List.take_succ_cons, List.take_zero]
+  exact List.mem_singleton_self _
+
 /-- **A long body's own signature check**, in parts (no heap contract). -/
 theorem ownOk_of {G : Mode.Sig} {Cf : CFun} {np nr : ℕ} {jt : Mode.Rng} (hc : Cf.hc = false)
     (h1 : sigOkPre G Cf np nr jt = true) (h2 : sigOkPost G Cf np nr = true) (h3 : sigOkPostR G Cf np nr = true)

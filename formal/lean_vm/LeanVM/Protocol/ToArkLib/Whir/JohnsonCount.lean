@@ -23,7 +23,8 @@ evaluates (`crates/pcs/src/whir_config/affine_mca.rs`, `johnson_list(n, a, r)`):
   count `Finset.card_mul_sq_sub_card_mul_le_of_inter_card_le` (`|L| (a² - n r) ≤ n (a - r)`),
   divided.
 
-It depends on Mathlib and one Mathlib-only ArkLib file, so that the affine-combiner files do.
+It depends on Mathlib and one Mathlib-only ArkLib file, so that the affine-combiner files do; the
+real and interleaved forms are in `LeanVM.Protocol.ToArkLib.Whir.Johnson`.
 -/
 
 namespace LeanVM.Protocol.Whir

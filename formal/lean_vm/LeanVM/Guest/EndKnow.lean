@@ -95,7 +95,7 @@ noncomputable def decodeWith (W : Val → Reader → FrameMap → NodeWitness) :
 soundness over any call relation that unfolds along a
 frame map. -/
 structure SoundHyps (W : Val → Reader → FrameMap → NodeWitness) : Prop where
-  /-- B2 (`b2_step`, `b2_mainL`; `EndSound.b2SoundL_of`). -/
+  /-- B2 (`b2_step`, `b2_mainL`; `b2SoundL_of`). -/
   b2 : B2SoundL
   /-- `main`'s soundness with the witness `W` (B1-f, B1-d, B1-b). -/
   main : Located.MainSoundV bytecode W

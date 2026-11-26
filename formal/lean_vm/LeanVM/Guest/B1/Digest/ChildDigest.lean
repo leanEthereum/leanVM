@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Digest.ChildMono
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.KernelLit
+import LeanVM.ToMathlib.List
 
 /-!
 # `child_claim_list_digest`
@@ -35,6 +35,7 @@ noncomputable def cc25Zero : List Stmt := match Fn.body fn% «child_claim_list_d
   | [_, _, .ite _ z _, _, _, _] => z
   | _ => []
 
+set_option maxRecDepth 100000 in
 theorem child_claim_list_digest_shape : Fn.body fn% «child_claim_list_digest» =
     [.atom (.const (.n (val% «child_claim_list_digest» "s1#0")) (word 1 0)), .atom (.add (.n (val% «child_claim_list_digest» "s1#1")) (.n (val% «child_claim_list_digest» "n_g")) (.n (val% «child_claim_list_digest» "s1#0"))),
      .ite (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero
@@ -46,7 +47,8 @@ theorem child_claim_list_digest_shape : Fn.body fn% «child_claim_list_digest» 
          .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@1"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@1")))]
         [.call "child_claim_list_any" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")],
          .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@2"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@2")))]],
-     .atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))), .ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]] := by kernel_rfl
+     .atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))), .ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]] :=
+  stmtsEqb_sound (by decide +kernel)
 
 /-- The empty list's chain: the empty message from the zero state. -/
 noncomputable def cc25ZSpec : ChainSpec := ⟨[], 0, true, none, keccakBlocks (atomsIn cc25Zero)⟩
@@ -72,7 +74,7 @@ theorem childListOut_of_any {rd : Reader} {entries region base limit : E} {n : �
   obtain ⟨h1, h2, h3⟩ := hc j hj
   refine ⟨h1, by simpa using h2, fun c hcc => ?_⟩
   have := h3 c hcc
-  rwa [getD_drop'] at this
+  rwa [List.getD_drop] at this
 
 /-- The gap walk gives `ChildListOut` (every mark `base`, the slots strictly increasing). -/
 theorem childListOut_of_mono {rd : Reader} (hm : MemOk rd) {entries region base limit : E}

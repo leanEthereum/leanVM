@@ -20,14 +20,13 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 For weights `ω i` (one per index `i`, an opcode's instructions per frame): `vtKidW ω Wss W10`,
 a callee's tree, if `shared_selector_tables`', within `Wss i`, if `verify_tables_loop0`'s, within
-`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables_completeAtTBW`: `verify_tables`
+`W10 i`, on every valid run (`Budget.WeighsLe`). `verify_tables`
 complete, placed, within its bound (`ABound`), by a node of honest shape (`Budget.NodeHonest`) whose entered callees
 are `vtKidW`, the shared tables' within `Wss` on every run length `g^n`, `n < 64`, the rounds loop
 `K10w` an iteration (`Budget.LoopW`) at the honest round count `H.n ≤ 32`.
 `vt_weight_le`: such a node, valid, weighs at most its frame's weight and
 `vtBs (Kw i) (Wss i) (32 · K10w i)`, its other callees within their certificates'
-`Kw i`. `verify_tables_completeAtTBW'`: by a tree within those
-weights. `verify_tables_completeAtTBWR`, `verify_tables_completeAtTBWR'`: the same by a node whose valuation is the honest one at its own buffers, which the memory holds (`vtQn`: the group order's pointer, the round count), for what it pops.
+`Kw i`. `verify_tables_completeAtTBWR`, `verify_tables_completeAtTBWR'`: by a tree within those weights, by a node whose valuation is the honest one at its own buffers, which the memory holds (`vtQn`: the group order's pointer, the round count), for what it pops.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -300,7 +299,7 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
         gen_pow_eq_ofK] at this
       rw [logG_spec (by omega)] at this
       unfold vtRunB
-      rw [ite_eq_right (show ¬H.n = 0 by omega)]
+      rw [ite_neg' (show ¬H.n = 0 by omega)]
       exact this
     | dispatch x fs' a rr =>
       simp only [Stmt.callSF, Option.some.injEq] at hst
@@ -316,30 +315,6 @@ theorem verify_tables_completeAtTBWR {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest}
       exact (hKf _ (hok.1 _ (List.getElem_mem hj)) k1 k9 k2 rd' t _ r hn hv hbo).trans
         (le_foldr_max (List.mem_map.mpr ⟨_, List.getElem_mem hj, rfl⟩))
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
-
-
-/-- **`verify_tables` is complete, placed, within its bound, by a node of honest shape whose
-callees are within their weights.** -/
-theorem verify_tables_completeAtTBW {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
-    (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» →
-        g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
-      TotalLe coreProgram fs g (fun _ ↦ Kf g))
-    (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
-      (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»))
-    {ι : Type} (ω : ι → String → ℕ) (Wss K10w : ι → ℕ)
-    (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-      (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
-    (h10w : ∀ i, Budget.LoopW (ω i) name% «verify_tables_loop0» (K10w i)) :
-    CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
-      (Budget.NodeHonest coreProgram "verify_tables" (fun σ ↦ ∀ s ∈ vtPre, DispOk σ s)
-        (flatCalls vtPre) (fun _ ↦ H.sizes) (List.replicate 119 (vtKidW ω Wss fun i ↦ 32 * K10w i)))
-      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) :=
-  (verify_tables_completeAtTBWR hκ h hs B Kf Ksh K10 hKf hsh h10 ω Wss K10w hssw h10w).toDTB
-    fun _ _ ht ↦ nodeHonest_monoQ ht fun _ h ↦ h.1
 
 /-- **A call's weight bound by its callee**: the shared tables' `Wss`, the rounds loop's `W10`, the
 others' `Kw`. -/
@@ -464,34 +439,7 @@ theorem vt_weight_le {ι : Type} (ω : ι → String → ℕ) (Kw : ι → Strin
       exact le_foldr_max (List.mem_map.mpr ⟨_, List.getElem_mem hj, rfl⟩)
     | _ => simp [Stmt.callSF, Main.Stmt.callS] at hst
 
-/-- **`verify_tables` is complete, placed, within its bound, by a tree within its weights**:
-`ω i "verify_tables" + (vtBs (Kw i) (Wss i) (32 · K10w i)).sum` at each `ω i`. -/
-theorem verify_tables_completeAtTBW' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
-    (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)
-    (hKf : ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» →
-        g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
-      TotalLe coreProgram fs g (fun _ ↦ Kf g))
-    (hsh : TotalLeOn coreProgram fs "shared_selector_tables"
-      (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh))
-    (h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre
-      (fun a ↦ logG (a.getD 1 0) * K10 + fs name% «verify_tables_loop0»))
-    {ι : Type} (ω : ι → String → ℕ) (Kw : ι → String → ℕ) (Wss K10w : ι → ℕ)
-    (hKw : ∀ i, ∀ g ∈ vtKidS, g ≠ name% «verify_tables_loop0» →
-        g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
-      WeightLe coreProgram (ω i) g (fun _ ↦ Kw i g))
-    (hssw : ∀ i (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
-      (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → t.weight (ω i) ≤ Wss i)
-    (h10w : ∀ i, Budget.LoopW (ω i) name% «verify_tables_loop0» (K10w i)) :
-    CompleteAtDTB fs cert κ "verify_tables" (H.linL B) (H.args B) (Returns (H.retsH B))
-      (fun t ↦ ∀ i, Budget.WeighsLe coreProgram (ω i)
-        (ω i "verify_tables" + (vtBs (Kw i) (Wss i) (32 * K10w i)).sum) t)
-      (fs "verify_tables" + H.sizes.sum + ((vtBs Kf Ksh (vtRunB fs K10 H.n)).sum + ifFrames fs vtPre)) :=
-  (verify_tables_completeAtTBW hκ h hs B Kf Ksh K10 hKf hsh h10 ω Wss K10w hssw h10w).mono le_rfl
-    fun _ ht i _ _ _ hv hb ↦ vt_weight_le ω Kw Wss K10w hKw ht hv hb i
-
-
-/-- **`verify_tables_completeAtTBW'` by its honest node**: its valuation the honest one at its own buffers, which the
+/-- **`verify_tables` within its bound, by a tree within its weights, by its honest node**: its valuation the honest one at its own buffers, which the
 memory holds (`vtQn`). -/
 theorem verify_tables_completeAtTBWR' {κ : ℕ} (hκ : 14 ≤ κ) {H : VtHonest} (h : H.Ok)
     (hs : VtShape H) (B : VtBases) (Kf : String → ℕ) (Ksh K10 : ℕ)

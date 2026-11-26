@@ -12,14 +12,12 @@ public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Eq.RsEqRun
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
 
 /-!
-# `ring_switch_weight` (TRIAGE G #66)
+# `ring_switch_weight`
 
 `ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)` (`fn% «ring_switch_weight»`)
-calls `rs_eq_run`, whose last row holds `ringRow 1 r p k` (`Π (r_n^(2^k) + p_n)`, B1-a's
+calls `rs_eq_run`, whose last row holds `ringRow 1 r p k` (`Π (r_n^(2^k) + p_n)`,
 `MeaningRsEqRun`), and sums `c_table[k] · row[k]` (`rswTerm`).
 With `p = 1 + r'` the factor is `1 + r_n^(2^k) + r'_n`, so the sum is
 `ringWeight r r' c_table` (`ringWeight_eq`).
@@ -97,7 +95,7 @@ theorem foldl_mul_start : ∀ (l : List E) (c : E), l.foldl (· * ·) c = c * l.
     rw [List.foldl_cons, List.foldl_cons, foldl_mul_start l (c * x), foldl_mul_start l (1 * x),
       one_mul, mul_assoc]
 
-/-- With `r' = 1 + p`, a product of `ringWeight` is `ringRow` (B1-a's, `rs_eq_run`'s rows):
+/-- With `r' = 1 + p`, a product of `ringWeight` is `ringRow` (`rs_eq_run`'s rows):
 `1 + v + (1 + p) = v + p` in characteristic two. -/
 theorem rwProd_eq_ringRow (k : ℕ) :
     ∀ (rs ps : List E) (c : E), rs.length = ps.length →
@@ -133,10 +131,10 @@ def rswTerm (k : ℕ) : List Stmt :=
 
 /-- `ring_switch_weight`'s body. -/
 def rswT : List Stmt :=
-  [.call "rs_eq_run" [.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ⧺
-  ((List.range 64).map rswTerm).flatten ⧺ [.atom (.copy (.n (val% «ring_switch_weight» "s3#0")) (.n (val% «ring_switch_weight» "rs_weight@64"))), .ret [.n (val% «ring_switch_weight» "s3#0")]]
+  [.call "rs_eq_run" [.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ++
+  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n (val% «ring_switch_weight» "s3#0")) (.n (val% «ring_switch_weight» "rs_weight@64"))), .ret [.n (val% «ring_switch_weight» "s3#0")]]
 
-theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := by kernel_rfl
+theorem rsw_body : (fn% «ring_switch_weight»).body = rswT := stmtsEqb_sound (by decide +kernel)
 
 theorem find_rsw : coreProgram.find? "ring_switch_weight" = some fn% «ring_switch_weight» :=
   coreProgram_find?_at (j := idx% «ring_switch_weight») rfl

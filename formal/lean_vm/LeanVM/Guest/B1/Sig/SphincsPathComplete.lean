@@ -411,35 +411,6 @@ theorem sPath_atoms (pad : Nat) (pp a0 : V) (ac : Option E) (bit val : Nat → V
         sPath_atoms pad pp a0 ac bit val off m (z + 1)]
       rfl
 
-/-- **A whole path completes** to the root `pFold` of `pNodeE` from `cur`, the siblings `sib`. -/
-theorem sPath_complete_val {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Nat → V} {off e height : Nat}
-    (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} {cur : V} {x : Nat} (σ : Val)
-    (hpx : pad + 5 ≤ x) (hpp : NBv x pp) (ha0 : ac = none → NBv x a0)
-    (hbn : ∀ j < height, NBv x (bit (off + j))) (hvn : ∀ j < height, NBv x (val (off + j)))
-    (hcur : NBv x cur) (hp : PadOK σ pad)
-    (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
-    (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) :
-    Completes C rd x (sPath pad pp a0 ac bit val off height 0 cur x).2.1
-      (sPath pad pp a0 ac bit val off height 0 cur x).1 σ
-      (fun σ' => AgreeBelow x σ σ' ∧
-        σ' (sPath pad pp a0 ac bit val off height 0 cur x).2.2 =
-          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height (σ cur)) := by
-  have h := (sPath_complete (C := C) (rd := rd) (ac := ac) (sib := sib) hh he height 0 cur x σ (by omega) hpx hpp ha0
-    hbn hvn hcur hp hbit hval).withAtoms (sPath_atoms ..)
-  refine h.mono le_rfl le_rfl (fun σ' ⟨⟨hag, hs⟩, hA⟩ => ⟨hag, ?_⟩)
-  have t : ∀ v, NBv x v → σ' v = σ v := fun v hv => hag.apply hv
-  have ta : a0Val σ' a0 ac = a0Val σ a0 ac := by
-    cases ac with
-    | none => exact t _ (ha0 rfl)
-    | some _ => rfl
-  rw [sPath_sound (hp.congr hpx hag) hh he
-    (fun j hj => by rw [t _ (hbn j hj)]; exact hbit j hj)
-    (fun j hj => by rw [t _ (hvn j hj)]; exact hval j hj) height 0 cur x (by omega) hA,
-    ← nIter_zero, t _ hpp, ta, t _ hcur]
-  refine nIter_congr_lt _ _ _ fun j _ hj => ?_
-  unfold pNodeE
-  rw [hs j (by omega) (by omega)]
-
 /-- **A whole path completes popping its levels' children**: the root `pFold` of `pNodeE` from `cur`, the siblings `sib`, and the path pops `climbPops` of the same nodes. -/
 theorem sPath_complete_pops {pad : Nat} {pp a0 : V} {ac : Option E} {bit val : Nat → V} {off e height : Nat}
     (hh : height ≤ 16) (he : e < 2 ^ height) {sib : Nat → E} {cur : V} {x : Nat} (σ : Val) (hpx : pad + 5 ≤ x)

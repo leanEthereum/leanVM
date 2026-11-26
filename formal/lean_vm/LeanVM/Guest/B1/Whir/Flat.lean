@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.Whir.DataSpecP
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies
@@ -133,7 +132,7 @@ theorem stmtOk_dispatch {x : V} {fs : List String} {args rets : List V} {i : ℕ
 returns are its words. -/
 theorem holdsList_flat_ret (ss : List Stmt) (h : ss.all Stmt.flat = true) (vs : List V)
     (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (ss ⧺ [.ret vs]) False kret ↔ AllOk C rd σ ss ∧ kret (vs.map σ) := by
+    Stmt.HoldsList C rd σ (ss ++ [.ret vs]) False kret ↔ AllOk C rd σ ss ∧ kret (vs.map σ) := by
   rw [holdsList_append, holdsList_flat ss h]
   simp [Stmt.HoldsList, Stmt.Holds]
 
@@ -153,7 +152,11 @@ theorem stmtOk_call (f : String) (args rets : List V) :
 
 /-- The template's g-power words. -/
 theorem gw_eq {e : ℕ} (h : e < u128Bound) : gw e = gen ^ e := by
-  rw [gw, gpowK_eq h, gen_pow_eq_ofK, ofK_eq_ofLimbs]
+  have hk : (bif Nat.blt e (2 ^ 20) then K.ofBits (Pow.gpowN e) else gpowK e) = gpowK e := by
+    cases hb : Nat.blt e (2 ^ 20)
+    · rfl
+    · rw [Bool.cond_true, Pow.ofBits_gpowN, Pow.gpowW_eq (Nat.blt_eq.mp hb), gpowK_eq h]
+  rw [gw, hk, gpowK_eq h, gen_pow_eq_ofK, ofK_eq_ofLimbs]
 
 /-- A materialized pointer is the base times `gen ^ off`. -/
 theorem osMat_val {base off k : ℕ} (h : off < u128Bound)

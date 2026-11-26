@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Fwd.Eval
 import LeanVM.Guest.Value.KeccakLayout
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Holding an evaluated body
@@ -49,7 +48,7 @@ theorem atoms_holds {σ : Val} {atoms : List Atom} (hg : ∀ a ∈ atoms, Good r
     | mul d x y =>
       simp only [needsSide, Bool.not_eq_false', Bool.and_eq_true, decide_eq_true_eq] at hns
       simp only [Side]
-      rw [ite_eq_left hns]
+      rw [ite_pos' hns]
       trivial
     | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
     | _ => trivial
@@ -74,7 +73,7 @@ theorem holds_of_pure {σ : Val} {a : Atom} (hp : pureB a = true) (hg : Good rd 
   | mul d x y =>
     simp only [pureB, Bool.and_eq_true, decide_eq_true_eq] at hp
     simp only [Good] at hg
-    rwa [ite_eq_left hp] at hg
+    rwa [ite_pos' hp] at hg
   | _ => simp [pureB] at hp
 
 theorem pure_holds {σ : Val} {atoms : List Atom} (hg : ∀ a ∈ atoms, Good rd S w σ a) :
@@ -113,7 +112,7 @@ def SHolds (C : CallRel) (rd : Reader) (σ : Val) : Stmt → Prop
 theorem holdsList_straight {C : CallRel} {σ : Val} :
     ∀ (ss : List Stmt) (vs : List V) (next : Prop) (kret : List E → Prop),
       (∀ s ∈ ss, SHolds C rd σ s) → kret (vs.map σ) →
-        Stmt.HoldsList C rd σ (ss ⧺ [.ret vs]) next kret
+        Stmt.HoldsList C rd σ (ss ++ [.ret vs]) next kret
   | [], vs, next, kret, _, hr => by
     simp only [List.nil_append, Stmt.HoldsList, Stmt.Holds]
     exact hr

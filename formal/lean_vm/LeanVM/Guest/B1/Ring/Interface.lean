@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.B1.Eq.Meaning
 
 /-!
-# The ring switch (TRIAGE G #64-66): the interface
+# The ring switch: the interface
 
 The ring switch (`ringSwitch`, `ring_switch.rs`) turns the 64 claims on `q_keccak`'s bit
 slices into one claim on the committed column: the target `ringTarget s f g` and the weight
@@ -40,7 +40,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## `ring_switch_target` -/
 
-/-- **`ring_switch_target(slices, map_challenges)`** (TRIAGE #64, #65): the 64 slices `s` at
+/-- **`ring_switch_target(slices, map_challenges)`**: the 64 slices `s` at
 `slices` and the sixteen map challenges `f ++ g` at `map_challenges`; it returns
 `ringTarget s f g`. -/
 def MeaningRingTarget (rd : Reader) : List E → List E → Prop
@@ -56,7 +56,7 @@ def ring_switch_target_Spec : Prop :=
 
 /-! ## `ring_switch_weight` -/
 
-/-- **`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)`** (TRIAGE #66):
+/-- **`ring_switch_weight(z_vals, point1, c_table, qkeccakv_g)`**:
 `qkeccakv_g = g^n`, `n < 64`; the `n` words `r` at `z_vals`, the `n` words `p₁` at `point1` (the
 opening point's `1 + r'`), the 64 coefficients `c` at `c_table`; it returns
 `ringWeight r (p₁.map (1 + ·)) c`. -/

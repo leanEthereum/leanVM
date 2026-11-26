@@ -97,7 +97,6 @@ theorem keccak_of_fs {rd : Reader} {σ : Val} {ins : List V} {O : ℕ} {s : Fs}
   refine keccakA_of hlen (by simp [run13]) (funext fun c ↦ ?_)
   rw [cells13_run13, hO c, hins, perm_eq_cells _ hs]
 
-
 /-! ## Evaluating the honest valuation -/
 
 section Eval
@@ -200,7 +199,6 @@ theorem grp_getD1 {xs : List E} {g : ℕ} (h : xs.length = 4 * g + 1) :
     simp only [List.length_cons, List.length_nil] at h2
     interval_cases i
     exact (e _ (by omega)).symm
-
 
 theorem stCap_length (cap xs : List E) (hc : cap.length = 5) : ∀ g, (stCap cap xs g).length = 5
   | 0 => hc

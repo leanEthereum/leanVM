@@ -20,8 +20,7 @@ The honest share from the sponge `F0` after the four framework words and the ten
 stream holds after them (`S`, the first round's `c0`, `c2`, the three tail rounds' two words each,
 the value): `vtBcF` absorbs the first three, `vtBcR0` is the first challenge, `vtBcCl1` the first
 round's claim at it, `vtBcR1 .. vtBcR3` the tail rounds (`bcRound`: the capacity after, the claim,
-the challenge), `vtBcPoint` the four challenges. `vtBc_run`: when the last claim is the slot
-weights' fold at the point times the value, `bytecodeShare` runs on `w` from `F0`.
+the challenge), `vtBcPoint` the four challenges.
 
 `vtB_fresh`: on a memory holding the four framework words and `w` at the cursor, the honest
 valuation reads them, and its first challenge and the capacity after it are `F0`'s.
@@ -81,50 +80,6 @@ theorem vt_list10 (w : List E) (hw : w.length = 10) :
   match w, hw with
   | [_, _, _, _, _, _, _, _, _, _], _ => rfl
 
-/-- **The bytecode share runs** on `w` from `F0` when its last claim is accepted. -/
-theorem vtBc_run (F0 : Fs) (w : List E) (hwl : w.length = 10) (weights low : List E)
-    (hacc : (vtBcR3 F0 w).2.1 = dot (eqKernel (vtBcPoint F0 w)) weights * w.getD 9 0) :
-    RunsTo (bytecodeShare weights low) F0 w (w.getD 0 0, low ++ vtBcPoint F0 w, w.getD 9 0)
-      ((⟨(vtBcR3 F0 w).1, []⟩ : Fs).absorb (w.getD 9 0) dsObserve) := by
-  have sq : ∀ s : Fs, s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := fun s ↦ rfl
-  have hR4 := runsTo_sumcheck_nil (⟨(vtBcR3 F0 w).1, []⟩ : Fs) (vtBcR3 F0 w).2.1 3
-  have hR3 := vt_tail_cons (vtBcR2 F0 w).1 (w.getD 7 0) (w.getD 8 0) (vtBcR2 F0 w).2.1
-    (rest := []) (ys := []) (pt := []) (fin := (vtBcR3 F0 w).2.1)
-    (s2 := ⟨(vtBcR3 F0 w).1, []⟩) (by rw [sq]; exact hR4)
-  have hR2 := vt_tail_cons (vtBcR1 F0 w).1 (w.getD 5 0) (w.getD 6 0) (vtBcR1 F0 w).2.1
-    (by rw [sq]; exact hR3)
-  have hR1 := vt_tail_cons (vtBcF F0 w).squeeze.2.cap (w.getD 3 0) (w.getD 4 0) (vtBcCl1 F0 w)
-    (by rw [sq]; exact hR2)
-  have hF : ((F0.absorb (w.getD 0 0) dsObserve).absorb (w.getD 1 0) dsObserve).absorbAll
-      [w.getD 2 0] dsObserve = vtBcF F0 w := by
-    rw [vtBcF, vt_list10 w hwl]
-    simp [Fs.absorbAll]
-  have hR0 := runsTo_sumcheck_cons
-    (runsTo_roundPolyNone (F0.absorb (w.getD 0 0) dsObserve) (w.getD 0 0) (w.getD 1 0)
-      [w.getD 2 0] 3 rfl (by decide))
-    (by rw [hF, sq, ← tail_eval]; exact hR1)
-  rw [hF] at hR0
-  have hR0' : RunsTo (sumcheck (w.getD 0 0) 3 (List.replicate busBits none))
-      (F0.absorb (w.getD 0 0) dsObserve)
-      ([w.getD 1 0, w.getD 2 0] ++ ([w.getD 3 0, w.getD 4 0] ++ ([w.getD 5 0, w.getD 6 0] ++
-        ([w.getD 7 0, w.getD 8 0] ++ []))))
-      (vtBcPoint F0 w, (vtBcR3 F0 w).2.1) ⟨(vtBcR3 F0 w).1, []⟩ := by
-    refine RunsTo.of_eq hR0 rfl rfl ?_ rfl
-    simp only [vtBcPoint, vtBcR0, vtBcR1, vtBcR2, vtBcR3, bcRound]
-  have hS := runsTo_readE F0 (w.getD 0 0)
-  have hv := runsTo_readE (⟨(vtBcR3 F0 w).1, []⟩ : Fs) (w.getD 9 0)
-  have hq := runsTo_require hacc ((⟨(vtBcR3 F0 w).1, []⟩ : Fs).absorb (w.getD 9 0) dsObserve)
-  have hw : w = [w.getD 0 0] ++ (([w.getD 1 0, w.getD 2 0] ++ ([w.getD 3 0, w.getD 4 0] ++
-      ([w.getD 5 0, w.getD 6 0] ++ ([w.getD 7 0, w.getD 8 0] ++ [])))) ++ ([w.getD 9 0] ++ ([] ++ []))) := by
-    simpa using vt_list10 w hwl
-  refine RunsTo.of_eq ?_ rfl hw.symm rfl rfl
-  unfold bytecodeShare
-  refine hS.bind ?_
-  refine hR0'.bind ?_
-  refine hv.bind ?_
-  refine hq.bind ?_
-  exact runsTo_ret _ _
-
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
@@ -132,7 +87,7 @@ local notation "σv" => vtσ rd wo args
 
 /-- An atom that holds by evaluation alone, read at `vtAt`. -/
 theorem vtB_pureAt (hl : args.length = 21) (n : ℕ) (a : Atom)
-    (heq : stmtsEqb [.atom a] ((vtAt n).take 1) = true) (hp : pureB a = true := by decide) :
+    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true) (hp : pureB a = true := by decide) :
     a.Holds rd σv := by
   have hg := vt_goodAt (rd := rd) (w := wo) hl n _ heq
   rw [fixNe_atom] at hg
@@ -147,10 +102,10 @@ def vtF0 (args xs : List E) : Fs :=
 
 /-- A stream read's word and its two cells, from the cursor's words. -/
 theorem vtB_next (hl : args.length = 21) {pos off b : ℕ} {x : E}
-    (hcheck : stmtsEqb (fsNextT (.n (val% «verify_tables» "cursor@1")) off b) ((vtAt pos).take 3) = true)
+    (hcheck : tbStmtsEqb (fsNextT (.n (val% «verify_tables» "cursor@1")) off b) ((vtAt pos).take 3) = true)
     (hS : Atom.load (.n b) (.n (val% «verify_tables» "cursor@1")) off ∉ vtSL) (hx : LoadHolds rd (args.getD 5 0) off x) :
     σv (.n b) = x ∧ FsPackOk σv (.n b) (b + 1) dsObserve := by
-  have hc : stmtsEqb (fsNextT (.n (val% «verify_tables» "cursor@1")) off b)
+  have hc : tbStmtsEqb (fsNextT (.n (val% «verify_tables» "cursor@1")) off b)
       ((vtPre.drop pos).take (fsNextT (.n (val% «verify_tables» "cursor@1")) off b).length) = true := by
     rw [vtPre_drop]; exact hcheck
   obtain ⟨-, e, hv⟩ := vtc_fsNext (wo := wo) hl hc hS (by rw [vt_param hl (by norm_num)]; exact hx)
@@ -165,7 +120,7 @@ set_option maxRecDepth 10000 in
 the share's three at the cursor are read; the first challenge (`1551`) and the capacity after it
 (`1559 .. 1563`) are `F0`'s. -/
 theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
-    (hwl : w.length = 10) (hcur : ReadsAt rd (args.getD 5 0) (xs ++ w)) :
+    (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w)) :
     [σv (.n (val% «verify_tables» "x@1")), σv (.n (val% «verify_tables» "x@2")), σv (.n (val% «verify_tables» "x@3")), σv (.n (val% «verify_tables» "x@4"))] = xs ∧
       σv (.n (val% «verify_tables» "x@5")) = w.getD 0 0 ∧ σv (.n (val% «verify_tables» "x@6")) = w.getD 1 0 ∧ σv (.n (val% «verify_tables» "x@7")) = w.getD 2 0 ∧
       σv (.n (val% «verify_tables» "nxt[0]@2")) = vtBcR0 (vtF0 args xs) w ∧
@@ -199,7 +154,7 @@ theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
   have d43 := vtB_pureAt (rd := rd) (wo := wo) hl 1614 (.copy (.n (val% «verify_tables» "bc_msg[0]")) (.n (val% «verify_tables» "x@5"))) (by decide +kernel)
   have d47 := vtB_pureAt (rd := rd) (wo := wo) hl 1618 (.copy (.n (val% «verify_tables» "bc_msg[1]")) (.n (val% «verify_tables» "x@6"))) (by decide +kernel)
   have d51 := vtB_pureAt (rd := rd) (wo := wo) hl 1622 (.copy (.n (val% «verify_tables» "bc_msg[2]")) (.n (val% «verify_tables» "x@7"))) (by decide +kernel)
-  simp only [Atom.Holds, word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
+  simp only [Atom.Holds, tb_word_zero] at c20 c21 c22 c23 c24 z6 z7 d43 d47 d51
   have p : ∀ i < (val% «verify_tables» "sp[0]@1"), σv (.n i) = args.getD i 0 := fun i hi ↦ vt_param hl hi
   generalize vtσ rd wo args = σ at *
   obtain ⟨hP1, hC1⟩ := vt_keccak k1
@@ -274,7 +229,7 @@ theorem vtB_fresh (hl : args.length = 21) {xs w : List E} (hxl : xs.length = 4)
 
 /-- A call's returns are the oracle's. -/
 theorem vtB_callRets (hl : args.length = 21) (n : ℕ) {f : String} {as rs : List V}
-    (heq : stmtsEqb [.call f as rs] ((vtAt n).take 1) = true) :
+    (heq : tbStmtsEqb [.call f as rs] ((vtAt n).take 1) = true) :
     rs.map σv = rs.map fun v ↦ wo v.idx := by
   have g := vt_goodAt (rd := rd) (w := wo) hl n _ heq
   exact List.map_congr_left fun v hv ↦ g v hv
@@ -291,9 +246,9 @@ returning the three tail rounds' words, and the last claim accepted, the share's
 hold; the share, the value, the last round's capacity and the cursor after it are the honest
 ones. -/
 theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length = 4)
-    (hwl : w.length = 10) (hcur : ReadsAt rd (args.getD 5 0) (xs ++ w))
-    (hW16 : weights.length = 16) (hW : ReadsAt rd (args.getD 13 0) weights)
-    (hpt : ReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args xs) w))
+    (hwl : w.length = 10) (hcur : TbReadsAt rd (args.getD 5 0) (xs ++ w))
+    (hW16 : weights.length = 16) (hW : TbReadsAt rd (args.getD 13 0) weights)
+    (hpt : TbReadsAt rd (args.getD 19 0) (vtBcPoint (vtF0 args xs) w))
     (hw1 : (List.range 8).map (fun i ↦ wo (1572 + i)) = (vtBcR1 (vtF0 args xs) w).1 ++
       [args.getD 5 0 * gen ^ 7 * gen ^ 2, (vtBcR1 (vtF0 args xs) w).2.1,
         (vtBcR1 (vtF0 args xs) w).2.2])
@@ -454,9 +409,9 @@ theorem vtB_bc (hl : args.length = 21) {xs w weights : List E} (hxl : xs.length 
   have p5 := p 5 (by norm_num)
   generalize vtσ rd wo args = σ at *
   have h1875 : σ (.n (val% «verify_tables» "bfs0@1~9")) = args.getD 5 0 * gen ^ 7 := by
-    rw [a1939, a1938, p5, show (128 : ℕ) = 2 ^ 7 by norm_num, word_two_pow (by norm_num)]
+    rw [a1939, a1938, p5, show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
   have h1873 : σ (.n (val% «verify_tables» "bc_claim@1")) = vtBcCl1 (vtF0 args xs) w := by
-    rw [a1937, a1936, a1935, a1934, a1933, a1932, word_one, d43, d47, d51, e40, e44, e48, e67,
+    rw [a1937, a1936, a1935, a1934, a1933, a1932, tb_word_one, d43, d47, d51, e40, e44, e48, e67,
       vtBcCl1]
   have e1972 : σ (.n (val% «verify_tables» "w_fold[14]")) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
       (vtBcPoint (vtF0 args xs) w) := by

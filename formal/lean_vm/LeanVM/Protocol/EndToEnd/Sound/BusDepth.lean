@@ -1,8 +1,8 @@
 /-
   LeanVM.Protocol.EndToEnd.Sound.BusDepth
 
-  The leanISA instance's push leaves and constraint count: size facts the bus and table phases'
-  specifications take as hypotheses.
+  The leanISA instance's bus depth, degree bound and constraint count, at the verifier's layout:
+  the size facts the bus and table phases' specifications take as hypotheses.
 -/
 
 module
@@ -11,13 +11,15 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusLayout
 import LeanVM.Protocol.EndToEnd.Front.LayoutStack
 
 /-!
-# The leanISA instance's push leaves and constraint count
+# The bus depth and the table sumcheck's sizes of the leanISA instance
 
-Two size facts of the leanISA instance `leanIsaInstance prog s`, at every size, which the bus and
-table phases' specification asks:
+The bus and table phases' specification (`Front.busTableSpec`) is stated over an abstract
+instance and a verifier layout, and asks size facts of them. For the leanISA instance
+`leanIsaInstance prog s`, at every size:
 
-* `pushLeaves_leanIsa`: the push side's leaves are the three seeds' (state, memory, bytecode),
-  then each opcode table's push flushes at its height;
+* `pushLeaves_leanIsa`: the push side's leaves are the three seeds' (state, memory and bytecode,
+  of log-heights `0`, `log_mem` and the program's) and each opcode table's push flushes, which are
+  Clean's (`length_pySide_push`, through `refFlush_eval`).
 * `B_leanIsa`: the sumcheck tables have two constraints, `JUMP`'s.
 
 No hypothesis on the sizes is needed: the facts hold of the instance as built.
@@ -31,6 +33,13 @@ open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete
 @[expose] public section
 
 /-! ## The push side's leaves -/
+
+/-- Each opcode table pushes as often in the verifier's tables as in the instance. -/
+theorem length_pySide_push (t : Fin 6) :
+    (refSide t .push).length =
+      ((LeanIsa.flushes (opIdx t)).filter fun f ↦ decide (f.1 = Side.push)).length := by
+  have h := congrArg List.length (refFlush_eval t .push fun _ ↦ 0)
+  simpa only [List.length_map] using h
 
 /-- The instance's push leaves: the three seeds' (state, memory, bytecode), then each opcode
 table's push flushes. -/

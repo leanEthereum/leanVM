@@ -333,7 +333,7 @@ theorem osLevelMid_sound {V : FrameMap} (hU : UnfoldsV rd C V)
     ring
   -- the reads
   have hxs1 : ReadsAt rd (st.cur σ) (xs0 ++ (x0 :: x1 :: high ++ [n1, y0, nn])) :=
-    readsAt_append.mpr ⟨hrd0, by rw [hx0, ← hcur0]; exact hC.reads⟩
+    readsAt_append hrd0 (by rw [hx0, ← hcur0]; exact hC.reads)
   have hrts' : g.2.rts = st.rts ++ [[st.k + 1 + 2 * 0 + 1, st.k + 1 + 2 * 1 + 1,
       st.k + 1 + 2 * 2 + 1, st.k + 1 + 2 * 3 + 1]] := (hgrts.trans hfrts).trans (osRates_rts c lvl st)
   refine ⟨xs0 ++ (x0 :: x1 :: high ++ [n1, y0, nn]), ws', r, root', ?_, hxs1, ?_, ?_, ?_, ?_,

@@ -74,9 +74,9 @@ theorem ls_size_le {e : String × ℕ × ℕ × ℕ × ℕ × String × String �
     intro q hq t ht
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl | rfl
-    · exact ⟨0 + t, Value.limb0_ofK_addressOfIndex_mul _ _, (0, posW), by simp [hLin0], by omega, by simp only [hlP]; omega⟩
-    · exact ⟨Q + t, Value.limb0_ofK_addressOfIndex_mul _ _, (Q, fW), by simp [hLin0], by omega, by simp only [hlF]; omega⟩
-    · exact ⟨Q + pre + t, Value.limb0_ofK_addressOfIndex_mul _ _, (Q + pre, tW), by simp [hLin0], by omega,
+    · exact ⟨0 + t, Main.addr_ofK _ _, (0, posW), by simp [hLin0], by omega, by simp only [hlP]; omega⟩
+    · exact ⟨Q + t, Main.addr_ofK _ _, (Q, fW), by simp [hLin0], by omega, by simp only [hlF]; omega⟩
+    · exact ⟨Q + pre + t, Main.addr_ofK _ _, (Q + pre, tW), by simp [hLin0], by omega,
         by simp only [hlT]; omega⟩
   have hmem : ∀ rd, LowDef κ rd → MemL rd Lin0 →
       (∀ k < Q, LoadHolds rd (ofK (addressOfIndex 0)) k ((fun _ ↦ (0 : E)) k)) ∧

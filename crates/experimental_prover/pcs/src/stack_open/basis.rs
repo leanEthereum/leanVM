@@ -17,6 +17,7 @@
 use primitives::bit_fold::BitFold;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::field::{Acc8, F64, F128, F128x8, Weights8, dot_base, msg_lone8_ext, xor_into8};
+use std::mem::MaybeUninit;
 
 use super::{RingSwitchOpen, StackClaim};
 use crate::ring_switch::{RingWeight, coordinate_basis};
@@ -279,6 +280,7 @@ impl Terms {
     /// ring weights. A block is built at a time, and the dense patterns share one reduction per vector.
     pub(crate) fn lift(&self, a: &[F128]) -> Vec<F128> {
         let block = 1usize << self.low_vars;
+        assert!(block.is_multiple_of(8), "a block is whole eights");
         let rings: Vec<_> = self
             .rings
             .iter()
@@ -297,12 +299,12 @@ impl Terms {
             primitives::filled_vec((1 << (self.lane_vars - self.low_vars)) * n_patterns, |gs| {
                 parallel::chunks_mut(gs, n_patterns.max(1), |h, row| {
                     for (g, pattern) in row.iter_mut().zip(&self.patterns) {
-                        *g = pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum();
+                        g.write(pattern.claims.iter().map(|&c| a[c] * self.gamma(c)[h]).sum());
                     }
                 });
             })
         };
-        // SAFETY: the fill writes every element before it reads any.
+        // SAFETY: the fill writes every element before it reads any, and `out` once its eights are written.
         unsafe {
             primitives::filled_vec(1 << self.lane_vars, |b| {
                 parallel::chunks_mut(b, block, |h, out| {
@@ -316,8 +318,11 @@ impl Terms {
                         let products = live().map(|(pattern, &g)| pattern.low.table[k].mul_unreduced(F128x8::splat(g)));
                         *o = products
                             .reduce(|acc, p| acc ^ p)
-                            .map_or([F128::ZERO; 8], |acc| acc.reduce_lanes().to_array());
+                            .map_or([F128::ZERO; 8], |acc| acc.reduce_lanes().to_array())
+                            .map(MaybeUninit::new);
                     }
+                    // SAFETY: `block` is whole eights, asserted above, and the loop wrote every one.
+                    let out = out.assume_init_mut();
                     for (weight, offset, len) in &rings {
                         let (lo, hi) = ((h * block).max(*offset), ((h + 1) * block).min(offset + len));
                         if lo < hi {

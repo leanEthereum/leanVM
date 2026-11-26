@@ -12,11 +12,10 @@ public import LeanVM.Guest.CoreLemmas
 public import Statement.LeanVmGuest
 public import LeanXmss.Scheme
 public import Statement.LeanSphincs
-public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.B1.Main.FramesP
 public import LeanVM.Guest.Pack.verify_sig_lean_sphincs.Core
@@ -42,11 +41,11 @@ valuation and the frames of its calls.
 **The decoding of a claim.** A cell `c` is the 128-bit value of its two limbs, limb `0` the
 low (`cellVal`); the message is
 the two cells, the first low (`cellPairVal`). `xmssClaimOf a b c d`, `sphincsClaimOf a b c d` are
-the claims of the four cells, as `Node.XmssClaim`, `Node.SphincsClaim`.
+the claims of the four cells, as `Node.LeanXmssClaim`, `Node.LeanSphincsClaim`.
 
 **What a call establishes for a signature** (`XmssOut rd p sig`, `SphincsOut rd p sig`): the four
-words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`,
-`Node.sphincsVerify`). `XmssSigned`, `SphincsSigned` are their existentials.
+words at `p` are a claim that `sig` verifies under Keccak-256 (`LeanXmss.verifyWithKeccak`,
+`Sphincs.verifyWithKeccak`).
 
 **The statements** (`…_Spec`, each a `Prop`; the proofs land as `…_holds`):
 
@@ -55,7 +54,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
   valuation, verifies the claim at the pointer `σ (.n 65)`. The decoder of the end theorem reads
   the signature this way, through the frame of the loop's iteration.
 * `verify_sig_lean_sphincs_sound_SpecP P sigOf`: the same for leanSPHINCS in any program `P`
-  (`Interface.lean` states it at `coreProgram`), under a call relation that unfolds at a frame map
+  under a call relation that unfolds at a frame map
   `V`, the signature `sigOf σ V` read off the valuation and the frames of
   its `sp_wots` calls, on a memory image of at most `2^32` words (the range checks of
   `sp_from_bytes` are bounded discrete logarithms there, `rangeCheck_iff`), when its `byte_bits`
@@ -67,10 +66,7 @@ words at `p` are a claim that `sig` verifies under Keccak-256 (`Node.xmssVerify`
   values (`Completes`), under any call relation.
   leanSPHINCS's completeness statements are in `SphincsCompleteSpec`.
 
-From them, the check gives the claim signed (`verify_lean_xmss_signed`, here) and the call
-relation (`coreProgram.Rel`) gives it for leanSPHINCS (`verify_sig_lean_sphincs_signed`,
-`Interface.lean`), from the `Spec`s as hypotheses. This module holds no guest data but
-`verify_sig_lean_sphincs`'s core module.
+This module holds no guest data but `verify_sig_lean_sphincs`'s core module.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -78,7 +74,6 @@ namespace LeanVM.Guest.B1.Sig
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
-
 
 /-! ## Cells as the schemes' values -/
 
@@ -115,12 +110,6 @@ def XmssOut (rd : Reader) (p : E) (sig : LeanXmss.Signature) : Prop :=
 def SphincsOut (rd : Reader) (p : E) (sig : Sphincs.Signature) : Prop :=
   ∃ a b c d, ClaimAt rd p a b c d ∧
     Sphincs.verifyWithKeccak (sphincsClaimOf a b c d).1 (sphincsClaimOf a b c d).2 sig = true
-
-/-- Some leanXMSS signature verifies the claim at `p`. -/
-def XmssSigned (rd : Reader) (p : E) : Prop := ∃ sig, XmssOut rd p sig
-
-/-- Some leanSPHINCS signature verifies the claim at `p`. -/
-def SphincsSigned (rd : Reader) (p : E) : Prop := ∃ sig, SphincsOut rd p sig
 
 /-! ## Preconditions -/
 
@@ -169,21 +158,6 @@ def verify_lean_xmss_complete_Spec : Prop :=
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) →
     LeanXmss.verifyWithKeccak pk m sig = true →
       Completes C rd 66 (xEnd + 1) xSeg σ (fun _ => True)
-
-/-! ## The check, from the statement -/
-
-variable {rd : Reader}
-
-/-- **The check in `main_loop2`**: `rest` holds, and with the carried chain indices held the claim
-at
-the pointer is signed. -/
-theorem verify_lean_xmss_signed {sigOf : Val → LeanXmss.Signature}
-    (hs : verify_lean_xmss_sound_Spec sigOf) {C : CallRel} {σ : Val} {rest : List Stmt}
-    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (xSeg ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧
-      (LxTagsHold (fun j => σ (sTagParam j)) → XmssSigned rd (σ sSigner)) :=
-  let r := hs C rd σ rest next kret h
-  ⟨r.1, fun ht => ⟨_, r.2 ht⟩⟩
 
 end
 end LeanVM.Guest.B1.Sig

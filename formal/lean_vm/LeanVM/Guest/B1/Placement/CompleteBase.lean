@@ -28,5 +28,11 @@ def LowDefB (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (addressOfIndex
 /-- The word at `g^a`, or `0`. -/
 noncomputable def rdv (rd : Reader) (a : ℕ) : E := (rd (addressOfIndex a)).getD 0
 
+theorem tb_ite_neg {c : Prop} [Decidable c] (h : ¬c) {α : Type} {a b : α} :
+    (if c then a else b) = b := by simp [h]
+
+theorem tb_ite_pos {c : Prop} [Decidable c] (h : c) {α : Type} {a b : α} :
+    (if c then a else b) = a := by simp [h]
+
 end
 end LeanVM.Guest.B1.Tables

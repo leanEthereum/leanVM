@@ -21,7 +21,7 @@ each run of pure steps between them (checks, `let`s, `liftOption`, the returned 
 `liftOption (xOf …)`, where `xOf` transcribes those steps in their order. The `_eq` lemma is proved
 by `phase_nf` (`simp` with the collapsing rules, then `rfl`), and a spec structure says what a value
 `xOf` returns satisfies. The proofs about a phase (each family's lemma: `allRet_*`, `costs_*`,
-`moves_*`, `reads_*`, `noCommit_*`, the `*Pure` runs) rewrite with the `_eq` lemma and read the spec,
+`moves_*`, `reads_*`, `noOpen_*`, the `*Pure` runs) rewrite with the `_eq` lemma and read the spec,
 so a change to a phase's checks or returned value changes its `xOf`, here, and nothing else. A new
 message, or a check between two messages where the phase had no pure steps, changes the lemma's
 statement.
@@ -34,10 +34,8 @@ statement.
   `verifyStackedOpening`: its checks as one `require (StackedOk claims)`, the challenge, then WHIR
   (`verifyStackedOpening_nf`).
 
-Step 3, the bus (`verifyBusBalance`), is in `LeanVM.Protocol.Verifier.Phases.Bus`: its messages,
-then `busOf` (`verifyBusBalance_eq`), and the split along the guest's sub-programs
-(`verifyBusBalance_split`). The table sumcheck (`tablePhase`) and the Keccak reduction
-(`keccakPhase`) are not in normal form yet.
+The bus (`verifyBusBalance`), the table sumcheck (`tablePhase`) and the Keccak reduction
+(`keccakPhase`) call sub-protocols between their checks and are not in normal form yet.
 -/
 
 namespace LeanVM.Protocol.Verifier

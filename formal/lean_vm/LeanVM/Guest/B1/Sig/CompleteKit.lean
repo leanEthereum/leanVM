@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Sig.MerkleComplete
 * `Completes.nil'`, `Completes.checks`, `Completes.hint`, `Completes.seq`, `Completes.load`: a
   block of checks, a hint, a sequential block or a load, then the rest;
 * `seqB`: a checker for `SeqOK`, `seqB_ok`;
-* `cwPos_lt`, `cwBase_lt`, `mBase_lt`: a codeword's starts and digits and a path's children lie
-  below the block's end.
+* `kMsg_out`, `kMsg_le`, `kMsg_numBelow`: a Keccak message's output and its values lie below the
+  block's end.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -110,119 +110,7 @@ theorem seqB_ok : ∀ {b : Nat} {ss : List Stmt} {b' : Nat}, seqB b ss b' = true
   | _, .ite .. :: _, _, h | _, .match_ .. :: _, _, h | _, .call .. :: _, _, h
   | _, .callIf .. :: _, _, h | _, .dispatch .. :: _, _, h | _, .ret _ :: _, _, h => by simp [seqB] at h
 
-/-! ## Where the hints lie -/
-
-theorem cwBase_lt (W : WotsT) {G q : Nat} (target : E) (d0 : V) (b : Nat) (hq : q ≤ G) :
-    (cwState W b q).2.2 < (codewordT W G target d0 b).2.1 := by
-  have hle := cwState_le W b q (G - q)
-  rw [show q + (G - q) = G by omega] at hle
-  have hend := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
-  rw [codewordT_snd]
-  rw [groupStart_eq] at hend
-  omega
-
-theorem cwPos_lt (W : WotsT) {G : Nat} {K : Nat → Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 < G)
-    (hK : ∀ q ≤ G, K q < 4 ^ cwN G q) {i : Nat} (hi : i < 3 * G + 1) :
-    ∃ j, cwPos W G b K i = .n j ∧ j < (codewordT W G target d0 b).2.1 := by
-  rw [codewordT_snd]
-  have hiq : i = 3 * (i / 3) + i % 3 := by omega
-  rcases Nat.lt_or_ge (i / 3) G with hq | hq
-  · have hn3 : cwN G (i / 3) = 3 := by simp [cwN, hq]
-    rw [hiq, cwPos_eq W G b K (i / 3) (i % 3) (Nat.mod_lt _ (by norm_num))]
-    obtain ⟨j, ej, -, hj, -⟩ := grpPos_spec W (3 * (i / 3)) (cwN G (i / 3)) (i / 3 == 0)
-      (cwState W b (i / 3)).1 (cwState W b (i / 3)).2.1 (cwState W b (i / 3)).2.2 (K (i / 3)) (i % 3)
-      (hK _ (by omega)) (by rw [hn3]; exact Nat.mod_lt _ (by norm_num))
-    refine ⟨j, ej, ?_⟩
-    have hle := cwState_le W b (i / 3 + 1) (G - (i / 3 + 1))
-    rw [show i / 3 + 1 + (G - (i / 3 + 1)) = G by omega, cwState_succ, groupT_snd_eq] at hle
-    rw [hn3] at hj
-    have hend := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
-    rw [groupStart_eq] at hend
-    omega
-  · have h1 : i / 3 = G := by omega
-    have h2 : i % 3 = 0 := by omega
-    rw [hiq, h1, h2, cwPos_eq W G b K G 0 (by omega)]
-    obtain ⟨j, ej, -, hj, -⟩ := grpPos_spec W (3 * G) (cwN G G) (G == 0) (cwState W b G).1
-      (cwState W b G).2.1 (cwState W b G).2.2 (K G) 0 (hK G le_rfl) (by simp [cwN])
-    refine ⟨j, ej, ?_⟩
-    have hnG : cwN G G = 1 := by simp [cwN]
-    rw [groupT_snd_eq]
-    rw [hnG] at hj
-    have hfG : (G == 0) = false := by simp; omega
-    rw [hfG] at hj
-    omega
-
-theorem mBase_lt (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V) (addrOf : Nat → Nat) :
-    ∀ (m l : Nat) (cur : V) (b j : Nat), j < m →
-      mBase nodeOf l j b + 2 ≤ (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
-  | 0, _, _, _, _, hj => absurd hj (by omega)
-  | m + 1, l, cur, b, 0, _ => by
-      simp only [mBase, merkleT]
-      have h5 : b + 2 ≤ b + 5 + 2 := by omega
-      have h6 : b + 2 ≤ b + 6 + 2 := by omega
-      split
-      · exact le_trans h5 (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
-      · exact le_trans h6 (merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) _ _)
-  | m + 1, l, cur, b, j + 1, hj => by
-      simp only [mBase]
-      cases hn : nodeOf l with
-      | none =>
-          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 5 + 1)) (b + 5 + 2) j (by omega)
-          simp only [merkleT, hn, mNext]
-          exact this
-      | some nd =>
-          have := mBase_lt pad pp bitOf nodeOf addrOf m (l + 1) (.n (b + 6 + 1)) (b + 6 + 2) j (by omega)
-          simp only [merkleT, hn, mNext]
-          exact this
-
 /-! ## The codeword's and the message's bounds -/
-
-theorem codewordT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {G : Nat} {target : E} {d0 : V}
-    {b : Nat} (hb0 : 0 < b) (hB : B ≤ b) (hpw : ∀ j, NBv B (W.power j)) (hd0 : NBv b d0) :
-    NumBelow (codewordT W G target d0 b).2.1 (Stmt.valsList (codewordT W G target d0 b).1) := by
-  rw [codewordT_eq, codewordT_snd]
-  have hbG := cwState_mono W b G
-  obtain ⟨hpiG, heiG⟩ := cwState_in W hb0 G
-  have hnbG := groupsT_numBelow hW hb0 hB hpw G 0
-  simp only [Nat.zero_add] at hnbG
-  have hnbL := groupT_numBelow (first := 3 * G) (n := 1) (fold := false) hW
-    (show B ≤ (cwState W b G).2.2 by omega) hpiG heiG (fun j => (hpw j).mono' (by omega))
-  have hendL := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
-  rw [groupStart_eq] at hendL
-  rw [valsList_append, valsList_append]
-  refine ((hnbG.mono (by omega)).append (hnbL.mono (by omega))).append ?_
-  intro x hx
-  simp only [copyS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
-    List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hx
-  rcases hx with rfl | rfl | rfl | rfl | rfl
-  · obtain ⟨j, hj, rfl⟩ := hd0
-    exact ⟨j, by omega, rfl⟩
-  · exact ⟨_, by rw [groupStart_eq]; omega, rfl⟩
-  · exact ⟨_, by omega, rfl⟩
-  · exact ⟨_, by rw [groupStart_eq]; omega, rfl⟩
-  · exact ⟨_, by omega, rfl⟩
-
-theorem cwTip_lt (W : WotsT) {G : Nat} (target : E) (d0 : V) (b : Nat) (hG : 0 < G) {i : Nat}
-    (hi : i < 3 * G + 1) : ∃ j, cwTip W b i = .n j ∧ j < (codewordT W G target d0 b).2.1 := by
-  refine ⟨_, rfl, ?_⟩
-  rw [codewordT_snd]
-  have hs := (slot_bounds W (i / 3 == 0) (cwState W b (i / 3)).2.2 (i % 3) 2 (by norm_num)).2
-  have hendL := groupT_end W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2
-  rw [groupStart_eq] at hendL
-  rcases Nat.lt_or_ge (i / 3) G with hq | hq
-  · have hle := cwState_le W b (i / 3 + 1) (G - (i / 3 + 1))
-    rw [show i / 3 + 1 + (G - (i / 3 + 1)) = G by omega] at hle
-    have hend := groupT_end W (3 * (i / 3)) 3 (i / 3 == 0) (cwState W b (i / 3)).1
-      (cwState W b (i / 3)).2.1 (cwState W b (i / 3)).2.2
-    rw [← cwState_succ] at hend
-    have : chainStride W * (i % 3 + 1) ≤ chainStride W * 3 := Nat.mul_le_mul_left _ (by omega)
-    omega
-  · have h1 : i / 3 = G := by omega
-    have h2 : i % 3 = 0 := by omega
-    have hfG : (G == 0) = false := by simp; omega
-    rw [h1, h2, hfG] at hs ⊢
-    rw [groupStart_eq] at hs
-    omega
 
 theorem kBlocks_end (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (n : Nat) :
     ∀ (m k : Nat) (st : Option (List V)) (b : Nat), 0 < m → k + m = B →
@@ -302,49 +190,6 @@ theorem kMsg_numBelow {pad : Nat} {cells : List KC} {len : Nat} {tailRun : Bool}
     (fun s hs => by simp at hs)
   rw [valsList_append]
   exact (hs.numBelow.mono n2).append n1
-
-/-- **A path's values lie below its end.** -/
-theorem merkleT_numBelow {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
-    {addrOf : Nat → Nat} :
-    ∀ (m l : Nat) (cur : V) (b : Nat), pad + 5 ≤ b → NBv b pp → NBv b cur →
-      (∀ j < m, NBv b (bitOf (l + j))) → (∀ l' nd, nodeOf l' = some nd → NBv b nd) →
-      NumBelow (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.1
-        (Stmt.valsList (merkleT pad pp bitOf nodeOf addrOf m l cur b).1)
-  | 0, _, _, _, _, _, _, _, _ => NumBelow.nil _
-  | m + 1, l, cur, b, hpb, hpp, hcur, hbits, hnodes => by
-      have h0 := hbits 0 (by omega)
-      rw [Nat.add_zero] at h0
-      have hall : ∀ (c : Nat) (nodeL : List Stmt), b + 5 ≤ c →
-          SeqOK (b + 4) ([cst (b + 4) (word (addrOf l) 0)] ++ nodeL) c →
-          merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b =
-            ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-              addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-              cst (b + 4) (word (addrOf l) 0)] ++ nodeL ++ k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.1,
-              (merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)).2.2) →
-          NumBelow (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).2.1
-            (Stmt.valsList (merkleT pad pp bitOf nodeOf addrOf (m + 1) l cur b).1) := by
-        intro c nodeL hc hseq heq
-        rw [heq]
-        have hl := level_numBelow hpb hpp h0 hcur hseq hc
-        have hr := merkleT_numBelow (pad := pad) (pp := pp) (bitOf := bitOf) (nodeOf := nodeOf)
-          (addrOf := addrOf) m (l + 1) (.n (c + 1)) (c + 2) (by omega) (hpp.mono' (by omega))
-          ⟨c + 1, by omega, rfl⟩
-          (fun j hj => by
-            rw [show l + 1 + j = l + (j + 1) by omega]
-            exact NBv.mono' (hbits (j + 1) (by omega)) (show b ≤ c + 2 by omega))
-          (fun l' nd h => NBv.mono' (hnodes l' nd h) (show b ≤ c + 2 by omega))
-        have hge := merkleT_snd_ge pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
-        dsimp only
-        rw [valsList_append]
-        exact (hl.mono hge).append hr
-      cases hn : nodeOf l with
-      | none => exact hall (b + 5) [] (by omega) ⟨rfl, rfl⟩ (by simp [merkleT, hn])
-      | some nd =>
-          exact hall (b + 6) [addS (.n (b + 5)) (.n (b + 4)) nd] (by omega)
-            ⟨rfl, ⟨rfl, ⟨b + 4, by omega, rfl⟩, (hnodes l nd hn).mono' (by omega)⟩, rfl⟩
-            (by simp [merkleT, hn])
 
 end
 end LeanVM.Guest.B1.Sig

@@ -1,27 +1,33 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingExpectedBound
+public import XmssSecurity.Proof.CappedEncodingSourceImpl
 public import XmssSecurity.Proof.CappedUnifiedStructuralCollision
-public import XmssSecurity.Proof.CacheReplayEval
-public import XmssSecurity.Proof.DetailedExecution
-public import XmssSecurity.Proof.CappedChain.EncodingQueryBound
-public import XmssSecurity.Proof.IdealStatement
-public import XmssSecurity.Proof.StatementLemmas
-public import XmssSecurity.Proof.LossDecomposition
 
 @[expose] public section
+
+/-!
+# The structural collisions' bound on the source game
+
+`keygenStructuralTargetInput` fixes every encoding input, so an encoding hash query is never a moved
+query (`encodingHashQuery_structuralQuery_disjoint`). The structural collisions' probability is at
+most `expectedPostKeygenStructuralQueries` over `2^digestBits`
+(`winningStructuralCollision_probability_le_expectedPostKeygenStructuralQueries`), the expected
+number of moved queries after key generation counted on the unlogged source game
+(`cappedSourceUnloggedDetailedGameAfterKeygen`), a map of the detailed game and so with the same
+count (`expectedStructuralQueries_detailed_eq_source`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-theorem CappedSuffix.keygenChainTargetInput_encodingInput_eq_self
+theorem keygenChainTargetInput_encodingInput_eq_self
     (secretKey : SecretKey) (cache : QueryCache HashSpec)
     (leafIndex : LeafIndex) (payload : Message × Randomness) :
-    CappedSuffix.keygenChainTargetInput secretKey cache
+    keygenChainTargetInput secretKey cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
     Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload := by
-  unfold CappedSuffix.keygenChainTargetInput
+  unfold keygenChainTargetInput
   split
   · rename_i h
     obtain ⟨value, hinput⟩ := h.choose_spec
@@ -65,7 +71,7 @@ theorem keygenStructuralTargetInput_encodingInput
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
     Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload := by
   unfold keygenStructuralTargetInput
-  rw [CappedSuffix.keygenChainTargetInput_encodingInput_eq_self,
+  rw [keygenChainTargetInput_encodingInput_eq_self,
     CappedLeaf.keygenLeafTargetInput_encodingInput_eq_self,
     CappedMerkle.keygenMerkleTargetInput_encodingInput_eq_self,
     CappedTop.keygenTopTargetInput_encodingInput]

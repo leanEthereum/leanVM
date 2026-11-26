@@ -8,9 +8,22 @@ import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section
 
-open OracleComp OracleSpec ENNReal
+/-!
+# The detailed game with the capped signer's cache trace
 
-variable {α : Type}
+`cappedCacheTracedMappedAdversaryImpl` runs the adversary with the lazy random oracle and the capped
+signer, recording a `SigningCacheTrace`, and `cappedDetailedGameWithSigningTrace` is the detailed
+game run with it: its caches and its log project to `detailedGameWithCache`
+(`cappedDetailedGameWithSigningTrace_cache_projection`,
+`cappedCacheTracedMappedAdversaryImpl_log_projection_eq_mapped`). Along a run the trace's caches
+stay below the game's, every successful signature's encoding input is cached
+(`cappedDetailedGameWithSigningTrace_invariants`), and a signing never caches another valid encoding
+input that was absent before it (`SigningCacheTrace.PreservesOtherValidEncodingInputs`). So a fresh
+forged-encoding collision whose forged input decodes, at a signing whose own input was fresh, is a
+post-signing one (`SigningCacheEntry.postSigningFreshForgedEncodingCollision_of_valid_fresh`).
+-/
+
+open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
@@ -190,8 +203,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_cachesLe
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.CachesLe result.2.1 := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.CachesLe result.2.1 :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.CachesLe state.1)
     (by
@@ -209,8 +222,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_successfulEncodingsCached
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.SuccessfulEncodingsCached secretKey := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.SuccessfulEncodingsCached secretKey :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.SuccessfulEncodingsCached secretKey)
     (by
@@ -228,8 +241,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_preservesOtherValidEncodingInputs
     (hmem : result ∈ support
       ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         computation).run (initialCache, initialTrace))) :
-    result.2.2.PreservesOtherValidEncodingInputs secretKey := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.2.PreservesOtherValidEncodingInputs secretKey :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.2.PreservesOtherValidEncodingInputs secretKey)
     (by
@@ -305,8 +318,8 @@ theorem cappedCacheTracedMappedAdversaryImpl_cache_projection
         (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
           computation).run (initialCache, initialTrace) =
       (simulateQ (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-        computation).run initialCache := by
-  exact OracleComp.extendState_run_proj_eq
+        computation).run initialCache :=
+  OracleComp.extendState_run_proj_eq
     (cappedUnloggedMappedAdversaryImpl publicKey secretKey) signingCacheTraceUpdate
     computation initialCache initialTrace
 

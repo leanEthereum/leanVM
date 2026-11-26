@@ -29,7 +29,7 @@ thirteen values, a `state=` run) and its blocks' input and output values. `check
 Boolean that the kernel evaluates (`decide +kernel`): every block is a `KECCAK` atom of the list
 in the layouts `inLayout k`, `outLayout B k`, and every input cell is, by an atom of the list,
 the previous output's cell plus the padded message cell (`rateOk`), or the previous output's
-capacity cell (`capOk`). It is sound for every valuation satisfying the atoms:
+capacity cell (`capAt`). It is sound for every valuation satisfying the atoms:
 
 * `chain_final` (`final`): the last output's cells `0`, `1` are the digest of `pre ++` the
   message's bytes, after a prefix `pre` of whole blocks absorbed into the initial state;
@@ -255,15 +255,15 @@ def padNat (len i : ℕ) : ℕ × ℕ :=
   (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
 theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) = word a b + word c d := by
-  simp only [word, ofBits_xor, ofLimbs_add]
+  simp only [word, K.ofBits_xor, ofLimbs_add]
 
 theorem word_byteNat (pos v i : ℕ) :
     word (byteNat pos v i).1 (byteNat pos v i).2 = if i = pos / 16 then byteCell pos v else 0 := by
   unfold byteNat byteCell
   by_cases h : pos / 16 = i
-  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_pos' h, ite_pos' h.symm]
     split <;> rfl
-  · rw [ite_eq_right h, ite_eq_right (Ne.symm h), word_zero]
+  · rw [ite_neg' h, ite_neg' (Ne.symm h), word_zero]
 
 theorem word_padNat (len i : ℕ) :
     word (padNat len i).1 (padNat len i).2 =
@@ -288,16 +288,16 @@ theorem padCells_getD (cells : List E) (len : ℕ) {i : ℕ} (hi : i < padRead l
     rcases Nat.lt_or_ge i cells.length with h | h
     · rw [List.getD_eq_getElem?_getD, List.getElem?_append_left h, List.getD_eq_getElem?_getD]
     · rw [List.getD_eq_getElem?_getD, List.getElem?_append_right h, List.getElem?_replicate,
-        ite_eq_left (by omega)]
+        ite_pos' (by omega)]
       simp [List.getD_eq_getElem?_getD, List.getElem?_eq_none h]
   unfold padCells xorByte
   rw [getD_modify' _ _ _ _ _ (by rw [List.length_modify]; exact hlen), getD_modify' _ _ _ _ _ hlen,
     hbase]
   by_cases h1 : len / 16 = i <;> by_cases h2 : (rate * (len / rate + 1) - 1) / 16 = i
-  · rw [ite_eq_left h2, ite_eq_left h1, ite_eq_left h1.symm, ite_eq_left h2.symm, add_assoc]
-  · rw [ite_eq_right h2, ite_eq_left h1, ite_eq_left h1.symm, ite_eq_right (Ne.symm h2), add_zero]
-  · rw [ite_eq_left h2, ite_eq_right h1, ite_eq_right (Ne.symm h1), ite_eq_left h2.symm, zero_add]
-  · rw [ite_eq_right h2, ite_eq_right h1, ite_eq_right (Ne.symm h1), ite_eq_right (Ne.symm h2), add_zero,
+  · rw [ite_pos' h2, ite_pos' h1, ite_pos' h1.symm, ite_pos' h2.symm, add_assoc]
+  · rw [ite_neg' h2, ite_pos' h1, ite_pos' h1.symm, ite_neg' (Ne.symm h2), add_zero]
+  · rw [ite_pos' h2, ite_neg' h1, ite_neg' (Ne.symm h1), ite_pos' h2.symm, zero_add]
+  · rw [ite_neg' h2, ite_neg' h1, ite_neg' (Ne.symm h1), ite_neg' (Ne.symm h2), add_zero,
       add_zero]
 
 /-! ## The checker -/
@@ -499,10 +499,10 @@ theorem prevV_val (h : s.check atoms = true) (hat : ∀ a ∈ atoms, a.Holds rd 
     srcVal σ (s.prevV k c) = s.O σ k ⟨c, hc⟩ := by
   by_cases hk0 : k = 0
   · unfold prevV O initCell
-    rw [ite_eq_left hk0, ite_eq_left hk0]
+    rw [ite_pos' hk0, ite_pos' hk0]
     cases s.init <;> rfl
   · unfold prevV
-    rw [ite_eq_right hk0, srcVal]
+    rw [ite_neg' hk0, srcVal]
     have := out_of_check h hat (k := k - 1) (by omega) ⟨c, hc⟩
       (by rw [outs_13 h (by omega)]; exact hc)
     rwa [Nat.sub_add_cancel (by omega)] at this

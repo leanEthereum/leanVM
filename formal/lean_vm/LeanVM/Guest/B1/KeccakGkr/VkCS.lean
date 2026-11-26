@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCR
 /-!
 # The callees' words
 
-`kid_lin_mem`: on the layout, the memory holds each callee's words (`KidG.Lin` at the frame
-pointers so far); `kid_lin_region`: they lie in the caller's words, the buffers or the earlier
+`kids_lin_mem`: on the layout, the memory holds each callee's words (`KidG.Lin` at the frame
+pointers so far); `kids_lin_region`: they lie in the caller's words, the buffers or the earlier
 layers' buffers.
 -/
 

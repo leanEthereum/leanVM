@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.C.ValsB
 public import LeanVM.Guest.B1.Bits.GrindPlaced
-import LeanVM.Guest.B1.Common.KeyTrie
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 
@@ -23,7 +22,7 @@ buffers the body reads or stores into holding their words (`table_rows`, `dims_g
 challenges, `c_table`, the pooled claims, the deferred claim's cells), and the callees' powers
 of `g` (the rate, the memory's log, the bus depth, the stack's log).
 
-`vsSideA`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
+`vsSidePieces`: the atoms of the body whose side condition is not automatic, by the kernel (reads,
 stores, range checks, two quotients); `vs_sideHolds` proves each from the data, `vs_dispIdx` the
 three dispatches' indices, and `vsCPre_complete`: every statement of `verify_sub` but its `ret`
 holds under the trivial call relation.
@@ -100,12 +99,7 @@ def vsSideOk : Stmt → Bool
   | .atom a => !needsSide a || vsSidePieces.any (atomEqb a)
   | _ => true
 
-theorem vs_sideCls : vsCPre.all vsSideOk = true := by
-  rw [show vsSideOk = fun s ↦ (match s with | .atom a => !needsSide a | _ => true) ||
-      vsSidePieces.any (match s with | .atom a => atomEqb a | _ => fun _ ↦ false) from
-    funext fun s ↦ by cases s <;> rfl]
-  exact all_or_any_of_allMatch (kx := fun | .atom a => atomKey a | _ => 0) (ky := atomKey)
-    (d := 12) (by decide +kernel)
+theorem vs_sideCls : vsCPre.all vsSideOk = true := by decide +kernel
 
 theorem vs_side_mem {a : Atom} (hs : Stmt.atom a ∈ vsCPre) (hn : needsSide a = true) :
     a ∈ vsSidePieces := by
@@ -225,11 +219,11 @@ theorem vs_rc_holds {κ : ℕ} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ
     (Atom.rangeCheck x y t1 t2 k).Holds rd σ := by
   have hy : σ y = gen ^ (c - a) := by
     simp only [Good] at hg
-    rw [ite_eq_left hk] at hg
+    rw [ite_pos' hk] at hg
     rw [hg.2.2, hkv, hx, ← pow_sub₀ _ gen_ne_zero hac]
   refine holds_of_good hg ?_
   simp only [Side]
-  rw [ite_eq_left hk, hx, hy]
+  rw [ite_pos' hk, hx, hy]
   exact ⟨gen_pow_isInK a, vs_gen_defined hlow (by omega), gen_pow_isInK _,
     vs_gen_defined hlow (by omega), pow_ne_zero _ gen_ne_zero⟩
 
@@ -238,7 +232,7 @@ theorem vs_quot_holds {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {
     (Atom.mul d x y).Holds rd σ := by
   refine holds_of_good hg ?_
   simp only [Side]
-  rw [ite_eq_right hd]
+  rw [ite_neg' hd]
   exact hy
 
 /-- `(range n).flatMap F` at `8 p + b`, blocks of eight. -/
@@ -582,7 +576,7 @@ theorem vs_dispIdx (D : VsSecData rd w args) : ∀ x fs as rs, Stmt.dispatch x f
   · exact ⟨D.d - 20, by omega, by omega, by rw [h322, gen_pow_eq_ofK]⟩
   · exact ⟨D.m - 20, by omega, by omega, by rw [h278, gen_pow_eq_ofK]⟩
 
-/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepR`'s `DispOk`). -/
+/-- **The dispatches' selectors** name one of their callees (`completeAt_flatDepRBPR`'s `DispOk`). -/
 theorem vs_dispOk (D : VsSecData rd w args) : ∀ s ∈ vsCPre, DispOk ς s := by
   intro s hs
   cases s with

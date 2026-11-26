@@ -28,7 +28,7 @@ on that run (`Check.EnteredAt`).
   `check_opening_terminal`, those and the bounds of the `8` entries of `kappa_base` from
   `VsKnown`, over the exponent table its precondition carries; in the windowed Merkle walks,
   `WalkKnown`.
-* `b2_main`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
+* `b2_mainL`: `main`'s relation from a halting run from its entry at `fp = 1`, the jump table
   written. Its second window starts after `exponent_tables`, whose return it knows to be the
   table (`ExpTablesSound`).
 

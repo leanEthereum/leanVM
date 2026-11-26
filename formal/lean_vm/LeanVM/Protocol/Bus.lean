@@ -17,6 +17,7 @@ public import LeanVM.Protocol.ToArkLib.Typed.SampleChallenge
 public import LeanVM.Protocol.Spine.Slots
 import CompPoly.Multivariate.Operations
 import CompPoly.Multivariate.MvPolyEquiv.Eval
+import LeanVM.ToMathlib.List
 
 /-!
 # The bus phase
@@ -282,19 +283,13 @@ private theorem length_filter_finRange {α : Type} (l : List α) (p : α → Boo
   rw [List.filter_map, List.length_map]
   rfl
 
-private theorem sum_flatMap {α : Type} (l : List α) (f : α → List ℕ) :
-    (l.flatMap f).sum = (l.map fun a ↦ (f a).sum).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => rw [List.flatMap_cons, List.sum_append, ih, List.map_cons, List.sum_cons]
-
 /-- The push side's leaves are the instance's count of push leaves. -/
 private theorem leafCount_push : leafCount I 0 = I.pushLeaves := by
   rw [leafCount, M3Instance.pushLeaves]
   change ((sideSources I .push).map _).sum = _
   rw [sideSources, List.map_append, List.sum_append, List.map_map]
   congr 1
-  rw [List.map_flatMap, sum_flatMap]
+  rw [List.map_flatMap, List.sum_flatMap]
   refine congrArg List.sum (List.map_congr_left fun j _ ↦ ?_)
   rw [List.map_map]
   simp only [Function.comp_def, Source.κ, List.map_const', List.sum_replicate, smul_eq_mul]
@@ -562,7 +557,19 @@ variable {I}
 
 private theorem prod_flatMap {M α β : Type} [CommMonoid M] (l : List α) (f : α → List β)
     (g : β → M) : ((l.flatMap f).map g).prod = (l.map fun a ↦ ((f a).map g).prod).prod := by
-  rw [List.map_flatMap, List.flatMap_def, List.prod_flatten, List.map_map]; rfl
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+    rw [List.flatMap_cons, List.map_append, List.prod_append, ih, List.map_cons, List.prod_cons]
+
+/-- A product over a list splits along a predicate. -/
+private theorem prod_map_filter {M α : Type} [CommMonoid M] (l : List α) (p : α → Bool)
+    (g : α → M) :
+    (l.map g).prod = ((l.filter p).map g).prod * ((l.filter fun a ↦ !p a).map g).prod := by
+  induction l with
+  | nil => simp
+  | cons a l ih =>
+    cases hp : p a <;> simp [hp, ih] <;> ac_rfl
 
 /-- The padding rows are the rows that are not executed. -/
 private theorem padRows_eq (j : Fin I.ntab) :
@@ -575,8 +582,7 @@ private theorem padRows_eq (j : Fin I.ntab) :
 /-- The executed and padding rows of a table, together. -/
 private theorem prod_rows {M : Type} [CommMonoid M] (j : Fin I.ntab) (g : Fin (2 ^ I.τ j) → M) :
     ∏ x, g x = ((I.executed j).map g).prod * ((padRows j).map g).prod := by
-  rw [Fin.prod_univ_def, ← List.prod_map_filter_mul_prod_map_filter_not fun x ↦ x.val < I.rows j]
-  simp only [Nat.not_lt]
+  rw [Fin.prod_univ_def, prod_map_filter _ fun x ↦ decide (x.val < I.rows j), padRows_eq]
   rfl
 
 /-- A table has as many rows as executed and padding rows. -/

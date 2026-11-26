@@ -22,8 +22,7 @@ the level-0 OOD sample call:
 | `opening_message__L{n}_L{nonce}` | `n` stream words read, absorbed and stored at `out`, then (`nonce = 1`) a grinding nonce, then the permutation; it returns that permutation's cells `0` (the next challenge) and `1` (its proof of work), its capacity and the cursor (`MeaningOpeningMessage`) |
 | `squeeze_point_from__L{n}` | the first challenge given (a message's permutation drew it), `n - 1` more (`MeaningSqueezePointFrom`) |
 
-The Spec runs (`omRun`, `omGrind_run`, `squeezePoint_run`): a message without a nonce, then a
-sample, is `readScalars n` then `sampleChallenge`; with a nonce, `readScalars n` then a grind
+In the Spec, a message without a nonce, then a sample, is `readScalars n` then `sampleChallenge`; with a nonce, `readScalars n` then a grind
 leaves the challenge ground (`RunsToG`), which the next sample returns (`runsFromG_sample`); the
 caller checks the proof of work (`grind_check` on cell `1`, `grindOk_iff`).
 -/
@@ -101,47 +100,6 @@ def spfName (n : ℕ) : String :=
 def squeeze_point_from_SpecP (P : Program) : Prop :=
   ∀ n ∈ spfDeployed, ∀ (rd : Reader) (args rets : List E),
     P.Rel rd (spfName n) args rets ↔ MeaningSqueezePointFrom n rd args rets
-
-/-! ## The Spec runs -/
-
-/-- **A message without a nonce, then a sample**: the words read and absorbed, then the
-permutation's challenge (`omState … none`). -/
-theorem omRun (cap xs : List E) :
-    RunsTo (do
-        let ws ← VerifierProgram.readScalars xs.length
-        let c ← VerifierProgram.sampleChallenge
-        return (ws, c)) ⟨cap, []⟩ xs (xs, challengeOf (omState cap xs none))
-      ⟨capOf (omState cap xs none), []⟩ := by
-  have h := (runsTo_readN ⟨cap, []⟩ xs).bind (f := fun ws ↦ do
-      let c ← VerifierProgram.sampleChallenge
-      return (ws, c))
-    ((runsTo_sampleE _).bind (f := fun c ↦ (pure (xs, c) : VerifierProgram (List E × E)))
-      (runsTo_ret _ _))
-  exact h.of_eq rfl (by simp) rfl rfl
-
-/-- **A message with a nonce**: the words read and absorbed, then a grind of `bits ≠ 0` whose
-proof of work passes; the permutation's challenge is left ground (`RunsToG`) at its capacity. -/
-theorem omGrind_run (cap xs : List E) (nn : E) {bits : ℕ} (hb : bits ≠ 0)
-    (hok : powOk bits (Keccak.lane (omState cap xs (some nn)) 2) = true) :
-    RunsToG (do
-        let ws ← VerifierProgram.readScalars xs.length
-        VerifierProgram.grindProofOfWork bits
-        return ws) ⟨cap, []⟩ (xs ++ [nn]) xs (capOf (omState cap xs (some nn)))
-      (challengeOf (omState cap xs (some nn))) := by
-  have h := (runsTo_readN ⟨cap, []⟩ xs).bindG (f := fun ws ↦ do
-      VerifierProgram.grindProofOfWork bits
-      return ws)
-    (fun sp hs rest os roots ↦ by
-      obtain ⟨sp', hc, e⟩ := runsToG_grind hb _ nn hok sp hs rest os roots
-      refine ⟨sp', hc, ?_⟩
-      rw [prog_bind_eq, run_bind, e]
-      rfl)
-  exact h
-
-/-- **`n` samples** from a carried sponge (`runsTo_sampleN`), the run `squeeze_point_from`'s squeezes mirror. -/
-theorem squeezePoint_run (n : ℕ) (s : Fs) :
-    RunsTo (VerifierProgram.sampleChallenges n) s [] (s.squeezeN n).1 (s.squeezeN n).2 :=
-  runsTo_sampleN n s
 
 end
 end LeanVM.Guest.B1

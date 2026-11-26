@@ -1,15 +1,24 @@
 module
 
-public import XmssSecurity.Proof.CappedGlobalKeygen
 public import XmssSecurity.Proof.CappedGlobalTreeCacheCorrespondence
-public import XmssSecurity.Proof.EvalDistEq
 import all Init.Data.Array.Basic
 
 @[expose] public section
 
-open OracleComp OracleSpec
+/-!
+# Presampling every chain from a tape of hash outputs
 
-variable {α β γ : Type} {n : ℕ}
+The programmed presampling of every chain samples a digest pair per step;
+`outputGlobalChainTrajectoryMaterial` samples a whole hash output instead and caches it, with the
+same distribution (`evalDist_programmedGlobalChainTrajectoryMaterial_eq_output`).
+`outputGlobalChainTrajectoryMaterialTrace` also logs those outputs in order: the chain starts and
+the tape are uniform (`evalDist_outputTraceRandomness_eq_uniform`), and the tape, read as a table
+over the chain edges, is what the cache holds at each edge's input
+(`globalChainEdgeOutputTableOfOutputTrace_eq_cached`). `CappedGlobalChainOutputUniformity` uses
+both.
+-/
+
+open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain
 
@@ -126,8 +135,8 @@ theorem evalDist_programmedFixedSeedChainTrajectories_eq_output
               (start key chain) cache >>= fun first =>
             programmedFixedSeedChainTrajectoriesFromCache parameter start chain
               steps first.2 keys >>= fun rest =>
-            pure (first.1 :: rest.1, rest.2)) := by
-          exact (evalDist_programmedChainTrajectory_eq_output parameter key chain 0
+            pure (first.1 :: rest.1, rest.2)) :=
+          (evalDist_programmedChainTrajectory_eq_output parameter key chain 0
             steps (start key chain) cache).bind_left _
         _ =ᵈ _ := by
           apply EvalDistEq.bind_right
@@ -181,8 +190,8 @@ theorem evalDist_programmedAllChainTrajectories_eq_output
               chain (chainLength - 1) cache allChainKeys >>= fun first =>
             programmedAllChainTrajectoriesFromCache parameter start first.2
               chains >>= fun rest =>
-            pure (Function.update rest.1 chain first.1, rest.2)) := by
-          exact (evalDist_programmedFixedSeedChainTrajectories_eq_output parameter
+            pure (Function.update rest.1 chain first.1, rest.2)) :=
+          (evalDist_programmedFixedSeedChainTrajectories_eq_output parameter
             start chain (chainLength - 1) allChainKeys cache).bind_left _
         _ =ᵈ _ := by
           apply EvalDistEq.bind_right
@@ -389,8 +398,8 @@ theorem evalDist_outputTrace_bind_snd
     _ =ᵈ (((outputs ++ ·) <$>
           uniformSnocList HashOutput firstCount) >>= fun leftOutputs =>
         (leftOutputs ++ ·) <$>
-          uniformSnocList HashOutput secondCount) := by
-      exact hfirst.bind_left _
+          uniformSnocList HashOutput secondCount) :=
+      hfirst.bind_left _
     _ =ᵈ ((outputs ++ ·) <$>
         (do
           let left ← uniformSnocList HashOutput firstCount
@@ -586,8 +595,8 @@ theorem evalDist_outputChainTrajectoryTrace_snd
           simp [map_eq_bind_pure_comp, bind_assoc]
         _ =ᵈ (((outputs ++ ·) <$>
               uniformSnocList HashOutput steps) >>= fun prior =>
-            ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) := by
-          exact (ih value cache outputs (by omega)).bind_left _
+            ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) :=
+          (ih value cache outputs (by omega)).bind_left _
         _ =ᵈ ((outputs ++ ·) <$>
               uniformSnocList HashOutput (steps + 1)) := by
           simp [uniformSnocList, map_eq_bind_pure_comp, bind_assoc,

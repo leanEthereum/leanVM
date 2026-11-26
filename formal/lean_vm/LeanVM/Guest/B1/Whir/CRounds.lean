@@ -17,9 +17,7 @@ public import LeanVM.Guest.B1.Whir.Folds
 * `osCurS_blk`, `osMatS_blk`: a materialized pointer (the cursor; a fixed buffer's, as the plan
   says) at its values (`matVal`, `matPVal`), the base times `g^off`, the materializations kept.
 * `roundRets`: what a fold round returns on the carried capacity, the cursor, the claim and its
-  five words (`opening_round`'s meaning's formula); `round_meaning`: on memory holding the words at
-  the cursor, `α` at the challenges' slot and `α, β` at the coefficients', with the grind passing,
-  `MeaningOpeningRound` holds at it.
+  five words (`opening_round`'s meaning's formula).
 * `roundsTr`: the capacity and claim after `n` rounds; `RoundsMem`: what the memory holds for them;
   `RoundsOut`: what they leave (`Whir/CRoundsA` proves the inline rounds).
 -/
@@ -142,20 +140,6 @@ def roundChs (fs xs : List E) : E × E × E :=
 def RoundGrinds (fs xs : List E) : Prop :=
   (rdS2 fs [xs.getD 0 0, xs.getD 1 0, xs.getD 2 0, xs.getD 3 0]).GrindOk
     _root_.LeanVM.Parameters.Whir.foldGrindingBits (xs.getD 4 0)
-
-/-- **`opening_round`'s meaning at its returns**, on memory holding its words, its challenges'
-slots and its grind passing. -/
-theorem round_meaning {f0 f1 f2 f3 f4 cur claim tabs gp cp : E} {xs : List E} (hxl : xs.length = 5)
-    (hrd : ReadsAt rd cur xs) (hg : RoundGrinds [f0, f1, f2, f3, f4] xs)
-    (hγ : LoadHolds rd gp 0 (roundChs [f0, f1, f2, f3, f4] xs).1)
-    (hα : LoadHolds rd cp 0 (roundChs [f0, f1, f2, f3, f4] xs).2.1)
-    (hβ : LoadHolds rd cp 1 (roundChs [f0, f1, f2, f3, f4] xs).2.2) :
-    MeaningOpeningRound rd [f0, f1, f2, f3, f4, cur, claim, tabs, gp, cp]
-      (roundRets [f0, f1, f2, f3, f4] cur claim xs) := by
-  obtain ⟨u0, w, c0, c1, n2, rfl⟩ : ∃ u0 w c0 c1 n2, xs = [u0, w, c0, c1, n2] := by
-    match xs, hxl with
-    | [a, b, c, d, e], _ => exact ⟨a, b, c, d, e, rfl⟩
-  exact ⟨u0, w, c0, c1, n2, hrd, hg, hγ, hα, hβ, rfl⟩
 
 theorem osMat_ptr_lt (base off k : ℕ) (hb : base < k) : (osMat base off k).2.1 < (osMat base off k).2.2 := by
   unfold osMat; split_ifs <;> dsimp only <;> omega

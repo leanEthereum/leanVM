@@ -27,7 +27,9 @@ reduction (`exists_reducedFactor`). The `(Y, Z)`-degrees add up to at most `yzDe
 on at most `deg_Y C` lines, and each reduced factor has at most `h (h - 1)` excluded lines
 (`card_excludedLines_le`).
 
-`card_excSet_le_nAff'`: the affine MCA count, with no hypothesis beyond admissibility.
+`card_excSet_le_nAff'`, `card_foldBad_le_nAff'` and `card_foldBadR_le_nAff'`: the affine MCA count
+and the fold round's escape count, plain and relativised (`card_foldBadR_le`), with no hypothesis
+beyond admissibility.
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -203,6 +205,36 @@ theorem card_excSet_le_nAff' (p : ℕ) [Fact p.Prime] [CharP F p] (dom : ι ↪ 
     (hadm : Admissible (Fintype.card ι) d A m D B) (f g : ρ → ι → F) :
     ((excSet dom f g d A).card : ℚ) ≤ nAff (Fintype.card F) (Fintype.card ι) d A m D B :=
   card_excSet_le_nAff_of_lemma43 dom hadm (lemma43 (p := p) D _) f g
+
+/-- **One affine fold round, unconditional** (Annex B, `lem:fold-list`, counting form). -/
+theorem card_foldBad_le_nAff' [DecidableEq F] (p : ℕ) [Fact p.Prime] [CharP F p] (dom : ι ↪ F) (f g : ρ → ι → F) {d A m D B : ℕ}
+    (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
+    (hadm : Admissible (Fintype.card ι) d A m D B)
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
+    (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ) ≤
+      nAff (Fintype.card F) (Fintype.card ι) d A m D B +
+        2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) :=
+  card_foldBad_le_nAff_of_lemma43 dom f g hgap hadm (lemma43 (p := p) D _) Λ₀ Λ₁ c hviol
+    u₀ v c₀ c₁
+
+/-- **One affine fold round, relativised and unconditional**: at most
+`nAff + 2 jl n (A - 1) d |F|` escapes. -/
+theorem card_foldBadR_le_nAff' [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {A d : ℕ}
+    (p : ℕ) [Fact p.Prime] [CharP F p] {m D B : ℕ}
+    (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
+    (hadm : Admissible (Fintype.card ι) d A m D B)
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F) (Bp : (ρ → F[X]) × (ρ → F[X]) → Prop)
+    (hviol : ∀ q ∈ pairList dom f g (A - 1) d, Bp q → Λ₀ q.1 + Λ₁ q.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    ((foldBadR dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ Bp).card : ℚ) ≤
+      nAff (Fintype.card F) (Fintype.card ι) d A m D B +
+        2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by
+  have h := card_foldBadR_le dom f g hgap Λ₀ Λ₁ c Bp hviol u₀ v c₀ c₁
+  have hmca := card_excSet_le_nAff' p dom hadm g f
+  calc ((foldBadR dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ Bp).card : ℚ)
+      ≤ ((excSet dom g f d A).card : ℚ) +
+          2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by exact_mod_cast h
+    _ ≤ _ := by gcongr
 
 end Final
 

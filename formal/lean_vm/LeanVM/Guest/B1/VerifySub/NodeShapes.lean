@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.VerifySub.NodeShapes
 
-  Where `verify_sub`, `certify_placement` and `verify_tables` pop: their bodies' witness hints and noisy calls by position, every block between them free of witness hints, its callees passing `noWitness` (kernel evaluation).
+  Where `verify_sub`, `certify_placement` and `verify_tables` pop: their bodies' witness hints and noisy calls by position, every block between them free of witness hints, its callees passing `noWitJ` (kernel evaluation).
 -/
 
 module

@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Cost
-public import FORS.GraphView.HashCalls
 import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section
@@ -12,7 +11,7 @@ section
 signature and its original hash cost on a fixed answer function. Internal graph work is charged
 even when encoding exhausts. -/
 
-open OracleComp OracleSpec Common.QueryCount
+open OracleComp OracleSpec
 
 namespace FORS.Security.GraphView
 
@@ -31,9 +30,9 @@ theorem fixedWorldCost_lift_hash (f : QueryImpl HashSpec Id)
   apply WriterT.ext
   have hcount : (simulateQ (fixedWorldCost f)
       (liftM computation : OracleComp OracleWorld α)).run =
-      simulateQ (fixedHashWorld f) (counted SourceHash
+      simulateQ (fixedHashWorld f) (QueryCap.counted SourceHash
         (liftM computation : OracleComp OracleWorld α)) := by
-    rw [simulate_withCost]
+    rw [QueryCap.simulate_withCost]
     congr 2
     funext input
     cases input <;> simp only [fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

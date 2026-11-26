@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Whir.Complete.Tables
 * `toList_foldPairsA`: a fold on the array is `foldPairs` on its list;
 * `mleA_eq`, `mleK_eq`: the evaluation on the array is `multilinearEval` on its list;
 * `sumRange_eq`: the loop is the sum;
-* `getD_toList`, `toList_ofFn_range`: arrays read as lists.
+* `getD_toList`: arrays read as lists.
 -/
 
 namespace LeanVM.Prover
@@ -31,11 +31,6 @@ open LeanVM.Protocol.EndToEnd
 /-- An array read at an index is its list read there. -/
 theorem getD_toList {α : Type} (a : Array α) (i : ℕ) (d : α) : a.getD i d = a.toList.getD i d := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-
-/-- An array of a function of the indices, read in range. -/
-theorem getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (h : i < n) (d : α) :
-    (Array.ofFn f).getD i d = f ⟨i, h⟩ := by
-  simp [Array.getD_eq_getD_getElem?, h]
 
 /-- The equality table is the verifier's `eqKernel`. -/
 theorem toList_eqTable (p : List E) : (eqTable p).toList = eqKernel p := by
@@ -53,7 +48,7 @@ theorem toList_eqTable (p : List E) : (eqTable p).toList = eqKernel p := by
   exact h p #[1]
 
 theorem size_eqTable (p : List E) : (eqTable p).size = 2 ^ p.length := by
-  rw [← Array.length_toList, toList_eqTable, eqKernel_length]
+  rw [← Array.length_toList, toList_eqTable, length_eqKernel]
 
 /-- Entry `j` of the equality table is `eq(j, p)`. -/
 theorem getD_eqTable (p : List E) (j : ℕ) (hj : j < 2 ^ p.length) :

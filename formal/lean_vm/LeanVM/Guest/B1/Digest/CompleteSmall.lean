@@ -14,10 +14,9 @@ import LeanVM.Guest.B1.Common.Vc
 /-!
 # Small functions, completely
 
-* `memOK_of_image`: a memory image of `2^κ` words is defined at every `g^i`, `i < 2^κ`.
-  (B1-e's `MemOK`), so a range check of `g^k` against `g^(K-1)`, `K ≤ 2^16`, reads defined words
-  (`rc_holds`);
-* `list_split_complete : list_split_complete_Spec`.
+* `rc_holds'`: on a memory defined below `2^16` (B1-e's `MemOK`), a range check of `g^k` against
+  `g^K`, `k ≤ K < 2^16`, holds;
+* `list_split_complete'`: `list_split` is complete on a memory defined below `2^20`.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -28,10 +27,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 variable {rd : Reader}
-
-theorem memOK_of_image {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) : Sig.MemOK L.read (2 ^ κ) := by
-  intro i hi
-  exact Option.isSome_iff_exists.mpr ⟨L ⟨i, hi⟩, (read_some_iff (by omega) L _ _).mpr ⟨⟨i, hi⟩, rfl, rfl⟩⟩
 
 /-- **A range check of `g^k` against `g^K` holds** on a memory defined below `2^16`, `k ≤ K < 2^16`,
 its witness `g^(K - k)`. -/
@@ -59,10 +54,6 @@ theorem list_split_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 20)) (args re
     h3, e_add_eq_zero_iff.mpr ?_, rfl⟩
   rw [claimBig, claimGroup]
   ring
-
-/-- **`list_split` is complete**, on a memory image. -/
-theorem list_split_complete : list_split_complete_Spec := fun rd hm =>
-  list_split_complete' rd hm
 
 end
 end LeanVM.Guest.B1.Digest

@@ -1,6 +1,7 @@
 module
 
 public import XmssSecurity.Scan.Phase
+public import XmssSecurity.Scan.Frame
 
 @[expose] public section
 
@@ -14,8 +15,6 @@ later query repeats, with probability at most the source game's expected encodin
 -/
 
 open OracleComp OracleSpec ENNReal
-
-variable {α β : Type}
 
 namespace XmssSecurity.Ghost
 

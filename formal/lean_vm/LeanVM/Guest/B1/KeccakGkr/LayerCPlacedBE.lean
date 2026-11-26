@@ -128,7 +128,7 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
       outs hout rd hlow hB hLin
 
 /-- **`keccak_layer` is complete, placed, within `layerWords fs first D.y KP KR` words**, for
-its two specializations: `layer_completeAtF` with the pack loop's run at most `KP` words per
+its two specializations, the pack loop's run at most `KP` words per
 iteration and its frame, the remainder loop's at most `KR` and its frame. -/
 theorem layer_completeAtFB {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
     (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E} {KP KR : ℕ}

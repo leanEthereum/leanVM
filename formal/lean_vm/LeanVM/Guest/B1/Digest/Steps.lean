@@ -52,6 +52,26 @@ theorem readsAt_memRun {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs)
 @[simp] theorem length_memRun (rd : Reader) (p : E) (n : ℕ) : (memRun rd p n).length = n := by
   simp [memRun]
 
+/-- A run read in two parts. -/
+theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} :
+    ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
+  constructor
+  · intro h
+    refine ⟨fun k hk => ?_, fun k hk => ?_⟩
+    · have := h k (by rw [List.length_append]; omega)
+      rwa [List.getElem_append_left hk] at this
+    · have := h (xs.length + k) (by rw [List.length_append]; omega)
+      rw [List.getElem_append_right (by omega)] at this
+      simp only [Nat.add_sub_cancel_left] at this
+      exact (loadHolds_mul_gen_pow rd p _ k _).mpr this
+  · rintro ⟨h1, h2⟩ k hk
+    rw [List.length_append] at hk
+    by_cases hkx : k < xs.length
+    · rw [List.getElem_append_left hkx]; exact h1 k hkx
+    · rw [List.getElem_append_right (by omega)]
+      have := (loadHolds_mul_gen_pow rd p _ _ _).mp (h2 (k - xs.length) (by omega))
+      rwa [show xs.length + (k - xs.length) = k by omega] at this
+
 /-! ## Sponge states in memory -/
 
 /-- The thirteen cells of the state `S` (even layout) at `p · g^off`, …, `p · g^(off + 12)`. -/

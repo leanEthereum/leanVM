@@ -21,6 +21,7 @@ expression, so the code and the price of the whole are what the rule's conclusio
 namespace LeanVM.Cost
 
 open LeanVM.Parameters
+open LeanVM.Protocol.Verifier (carryless)
 
 @[expose] public section
 
@@ -192,8 +193,6 @@ variable {α β : Type} [MachineEncoding α] [MachineEncoding β]
 theorem enc_bool (b : Bool) : encodeValue b = MachineValue.ofBool b := rfl
 
 end MachineEncoding
-
-/-! ## Rules -/
 
 /-! ## Dependent functions of `Fin 3`
 

@@ -31,6 +31,9 @@ open LeanVM.Protocol.KeccakGkr LeanVM.Guest.B1.Fwd Finset
 
 variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
+theorem one_add_gen_pow_inK (k : ℕ) : IsInK (1 + gen ^ k) :=
+  isInK_add ((isInK_iff _).mpr ⟨1, ofK_one.symm⟩) ((isInK_iff _).mpr ⟨_, gen_pow_eq_ofK k⟩)
+
 /-- **The committed outputs' opening, completely.** -/
 theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOutT, GoodS rd vkSt w σ st)
     {τ : ℕ} (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4)) {wd : E}
@@ -46,7 +49,7 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
       σ (.n (val% «verify_keccak» "s57#1")) = 1 + σ (.n (val% «verify_keccak» "pack_g")) ∧ σ (.n (val% «verify_keccak» "s57#2")) = 1 ∧ σ (.n (val% «verify_keccak» "s57#4")) = σ (.n (val% «verify_keccak» "z_vals")) * gen ^ 4 ∧
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkOutT next kret := by
-  obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vkOut_ker
+  obtain ⟨k1, k2, k4, k5, k6, k8, k9⟩ := vk_ker.1
   have mFN : ∀ st ∈ fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 (val% «verify_keccak» "x@2"), st ∈ vkOutT := fun st h ↦ by
     rw [vkOutT]; exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
       (List.mem_append_left _ (List.mem_append_right _ h))))
@@ -126,7 +129,7 @@ theorem vkOut_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkOu
   refine ⟨m3691, c3692, c3693, trivial, FN ⟨m3711, SL (DL ⟨m3969, ?_, c3970, a3971, c3972, c3973,
     m3974, ?_, fun _ ↦ trivial, hn⟩)⟩⟩
   · rw [e3969]; exact e_add_self _
-  · rw [a3971, c3970, word_one, h17]; exact one_add_gen_pow_isInK _
+  · rw [a3971, c3970, word_one, h17]; exact one_add_gen_pow_inK _
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -53,7 +53,7 @@ theorem head_allocs {c : OsCfg} (hS : BodyStatic c) {σ' : Val} {P : ℕ → E} 
     (hv : ∀ j < osPadV + 5 - 11, σ' (.n (11 + j)) =
       (headVals c P (gen ^ ri) (gw (c.posTotal.getD ri 0))).getD j 0) :
     AllocsAt σ' (osHead c).1 = (List.range 12).map fun i ↦ (P i, (osSizesL c).getD i 0) := by
-  obtain ⟨⟨hH, -, -⟩, hlen, -, hHs, -, -, -, -, -, -, -, -, -, hlt⟩ := hS
+  obtain ⟨hH, -, -, hlen, -, hHs, -, -, -, -, -, -, -, -, -, hlt⟩ := hS
   have hpv : osPadV + 5 - 11 = 32 := by simp [osPadV, ligNRates]
   simp only [AllocsAt, hH, headAllocsV, List.map_append, List.map_map]
   rw [show List.range 12 = List.range 9 ++ [9, 10, 11] from rfl, List.map_append]
@@ -162,7 +162,7 @@ theorem body_of {h : OsHD} {b : ℕ} {args : List E} {cur tabs : E} {xs : List E
   set c := h.c with hc
   set n := c.levels.length with hn
   have hS' := hS
-  obtain ⟨⟨-, -, hTl⟩, hlen, hyr, -, -, -, hs13, -, -, -, -, -, -, hlt⟩ := hS
+  obtain ⟨-, -, hTl, hlen, hyr, -, -, -, hs13, -, -, -, -, -, -, hlt⟩ := hS
   have hyr' : c.yrLevel + 1 = n := hyr
   have hlen' : (osSizesL c).length = 20 + c.yrLevel := hlen
   have hs13' : (osSizesL c).getD (13 + c.yrLevel) 0 = yrLogCap := hs13

@@ -20,7 +20,7 @@ output's first cell `f i s` of its input value (the step of chain `i` leaving po
   start (`walkStartV`: the hinted value, the tip itself at `d = 3`);
 * `armT_sound`: arm `k` walks each chain from its digit `k / 4^r % 4`, multiplies the product by
   `g^(digit sum)` and adds `k · 4^first` to the encoding;
-* `groupT_sound`: a group's dispatch runs one arm `k < 4^n`, its selector `g^k`.
+* `groupD_sound`: a group's dispatch runs one arm `k < 4^n`, its selector `g^k`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -104,21 +104,21 @@ theorem mem_walksT (W : WotsT) (slots : Nat → Nat → Nat) (first k stride : N
       simpa [walkBase, show r + 1 + j = r + (j + 1) by omega] using hx
 
 theorem word_two : word 2 0 = LeanVM.Protocol.Verifier.gen := by
-  simp only [word, LeanVM.Protocol.Verifier.gen, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
+  simp only [word, LeanVM.Protocol.Verifier.gen, LeanVM.Protocol.Verifier.eOfNat, K.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
 
 theorem word_eq_eOfNat (n : Nat) : word n 0 = LeanVM.Protocol.Verifier.eOfNat n := by
-  simp only [word, LeanVM.Protocol.Verifier.eOfNat, Value.ofBits_zero]
+  simp only [word, LeanVM.Protocol.Verifier.eOfNat, K.ofBits_zero]
   exact (ofK_eq_ofLimbs _).symm
 
 theorem word_zero : word 0 0 = 0 := by
-  simp only [word, Value.ofBits_zero]
+  simp only [word, K.ofBits_zero]
   exact Value.zero_eq_ofLimbs.symm
 
 /-- The literal `lit c` is the 128-bit word of `c < 2^128`. -/
 theorem lit_eq (c : Nat) (hc : c < 2 ^ 128) : lit c = Value.eOfNat128 c := by
   simp only [lit, word, Value.eOfNat128]
-  rw [Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega), Value.ofBits_mod]
+  rw [Nat.mod_eq_of_lt (a := c / 2 ^ 64) (by omega), K.ofBits_mod]
 
 /-- What arm `k` establishes, chain `r` starting at `start r`. -/
 structure ArmOK (W : WotsT) (f : Nat → Nat → E → E) (σ : Val) (slots : Nat → Nat → Nat)
@@ -266,18 +266,6 @@ theorem groupD_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool
   have ha' := (holdsList_noRet _ (noRetList_of_atomsOnly (armT_atoms hW _ _ _ _ _ _ _ _ _ _)) _ _).mp ha
   exact ⟨ha'.2, atomsHold_of_holdsList hpre h1.1, j, hj, hx,
     atomsHold_of_holdsList (armT_atoms hW _ _ _ _ _ _ _ _ _ _) ha'.1⟩
-
-/-- **A group's dispatch takes one arm**: some `k < 4^n` is the selector's exponent, and arm `k`'s
-atoms hold, from its base. -/
-theorem groupT_sound {W : WotsT} (hW : StepAtoms W) {first n : Nat} {fold : Bool} {prodIn encIn : V}
-    {b : Nat} {rest : List Stmt} {next : Prop}
-    (h : Stmt.HoldsList C rd σ ((groupT W first n fold prodIn encIn b).1 ++ rest) next kret) :
-    Stmt.HoldsList C rd σ rest next kret ∧ ∃ k < 4 ^ n, σ (.n b) = ofK (addressOfIndex k) ∧
-      AtomsHold rd σ (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
-        (encT W fold n b) k (armBase W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
-          (encT W fold n b) 0 k (b + 6))).1 :=
-  let r := groupD_sound (pre := []) hW rfl h
-  ⟨r.1, r.2.2⟩
 
 end
 end LeanVM.Guest.B1.Sig

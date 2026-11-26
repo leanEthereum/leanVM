@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.CompleteP
 /-!
 # Bounded completeness with predicates of the memory
 
-* `KidsDTBR ks Ts Bs`: `KidsDTB` with the callees' predicates a function of the memory, `Ts rd` the list on `rd`; `KidsDTB.toR`: a constant one. `kidsFromInT_of_kidsDTBR`: `kidsFromInT_of_kidsDTB`, the callees' trees satisfying `Ts rd` on each memory `rd`.
+* `KidsDTBR ks Ts Bs`: `KidsDTB` with the callees' predicates a function of the memory, `Ts rd` the list on `rd`. `kidsFromInT_of_kidsDTBR`: `kidsFromInT_of_kidsDTB`, the callees' trees satisfying `Ts rd` on each memory `rd`.
 * `CompleteAtDTB.withPops`, `CompleteAtDTBR.withPops`: a tree predicate and validity, on the memories the callee serves, giving the pops `ps rd` add them to the predicate; `CompleteAtDTBR.lowMono`.
 * `completeAtDTBR_of_relAtInP`: a callee placed at every frame pointer in a size fixed before the memory, popping `ps rd`, its valid trees within `B` words (`TotalLe`, `TotalLeOn`), is complete within `B` by trees popping `ps rd`.
 -/
@@ -32,12 +32,6 @@ def KidsDTBR (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
   | [], _, _ => True
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
-
-/-- Predicates of the tree alone are predicates of the memory. -/
-theorem KidsDTB.toR {κ : ℕ} : ∀ {ks : List Kid} {Ts : List (Tree → Prop)} {Bs : List ℕ},
-    KidsDTB fs cert κ ks Ts Bs → KidsDTBR fs cert κ ks (fun _ => Ts) Bs
-  | [], _, _, _ => trivial
-  | _ :: _, _, _, ⟨h, hs⟩ => ⟨fun ht => (h ht).toR, hs.toR⟩
 
 /-- **The callees at their running offsets, within their bounds, by trees of their predicates of the memory.** -/
 theorem kidsFromInT_of_kidsDTBR (κ : ℕ) : ∀ (ks : List Kid) (Ts : Reader → List (Tree → Prop)) (Bs : List ℕ),

@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Da.AtBase
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
 import LeanVM.Guest.LitRef
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `exponent_tables`, placed
@@ -42,29 +41,13 @@ theorem etBlks_eq : ∀ l : List ℕ, (l.map etBlk).flatten = (l.flatMap fun t =
     simp only [List.map_cons, List.flatten_cons, List.flatMap_cons, etBlks_eq l, etBlk,
       List.cons_append, List.nil_append]
 
-theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ⧺ [.ret [.n (val% «exponent_tables» "s8#0")]] := by
+theorem et_split : Fn.body fn% «exponent_tables» = etAs.map Stmt.atom ++ [.ret [.n (val% «exponent_tables» "s8#0")]] := by
   rw [exponent_tables_body, etBody, etBlks_eq, etAs]
   simp only [List.map_append, List.map_cons, List.map_nil, List.append_assoc, List.cons_append,
     List.nil_append]
 
 theorem et_straight : (etAs.map Stmt.atom).all Main.Stmt.straight = true := by
   simp [Main.Stmt.straight]
-
-theorem length_expTableWords : expTableWords.length = 236 := by
-  simp [expTableWords, length_etWordsN]
-
-/-- The table's first `34` words are the squares `g^(2^j)`. -/
-theorem expTableWords_sq {j : ℕ} (hj : j < 34) :
-    expTableWords[j]'(by rw [length_expTableWords]; omega) = gen ^ 2 ^ j := by
-  rw [← List.getD_eq_getElem _ 0, expTableWords_getD j (by omega), etListK_sq j hj, ofK_pow,
-    ← gen_eq_ofK]
-
-/-- The whole table's first `34` words are the squares `g^(2^j)`. -/
-theorem expTabAllWords_sq {j : ℕ} (hj : j < 34) :
-    expTabAllWords[j]'(by rw [length_expTabAllWords]; omega) = gen ^ 2 ^ j := by
-  rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_eq_left (by omega), expTabWord,
-    ite_eq_left (by omega), List.getD_eq_getElem _ _ (by rw [length_expTableWords]; omega),
-    expTableWords_sq hj]
 
 /-- The table's first word at `fp`. -/
 abbrev etB (fs : String → ℕ) (fp : ℕ) : ℕ := fp + fs "exponent_tables"
@@ -74,7 +57,7 @@ theorem expTables_of_reads {rd : Reader} {b : ℕ} (h : ReadsAt rd (gen ^ b) exp
   (expTabAll_iff rd _).2 fun o ho => by
     have := h o (by rw [length_expTabAllWords]; exact ho)
     have e : expTabAllWords[o]'(by rw [length_expTabAllWords]; exact ho) = expTabWord o := by
-      rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_eq_left ho]
+      rw [← List.getD_eq_getElem _ 0, expTabAllWords_getD, ite_pos' ho]
     rwa [e] at this
 
 set_option maxRecDepth 20000 in

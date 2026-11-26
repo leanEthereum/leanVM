@@ -9,7 +9,8 @@ module
 
 public import LeanVM.Prover.Keccak.Rounds
 public import LeanVM.Prover.Keccak.States
-public import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The openings
@@ -117,7 +118,7 @@ theorem phiTable_getD (hcol : ColAgree P col' col) (claim : KeccakClaim)
   have hx : i + 16 * (z % 2 ^ P) < 2 ^ (P + 4) := by rw [pow_add]; omega
   rw [eqTable_getD_lt _ (by rw [hpt]; exact hz'), sumRange_eq]
   refine congrArg (eqAt claim.point z * ·) ?_
-  rw [show 1600 = 25 * 64 from rfl, sum_range_mul]
+  rw [show 1600 = 25 * 64 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun l hl ↦ ?_
   have hl' := Finset.mem_range.1 hl
   rw [array_getD_ofFn_lt _ hl', wordDot_laneTabs]

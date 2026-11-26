@@ -18,7 +18,7 @@ open Lean Elab Command in
     `LeanVM.Guest.B1, `LeanVM.Protocol, `LeanVM.Facts.Verifier, `LeanVM.Guest.Logic,
     `LeanVM.Guest.Bytecode, `LeanVM.Prover, `LeanXmss, `Sphincs, `LeanDa, `Common, `Statement.LeanVm,
     `Statement.LeanVmGuest, `Statement.LeanXmss, `Statement.LeanSphincs, `Statement.LeanDa,
-    `Statement.Fast.Schemes, `Statement.CostMachine, `Statement.Theorems, `Statement.Corollaries]
+    `Statement.CostMachine, `Statement.Theorems, `Statement.Corollaries]
   let reached := env.header.moduleNames.filter fun m ↦
     forbidden.any (·.isPrefixOf m) ||
       ((`Statement.Prover).isPrefixOf m && m != `Statement.Prover.Execute)

@@ -14,7 +14,6 @@ public import LeanVM.Guest.B1.VerifySub.Bus
 public import LeanVM.Guest.B1.VerifySub.Tail
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The front, honestly
@@ -74,17 +73,14 @@ theorem vsg_mul {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y 
     (hy : y < d) (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_eq_left (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨hx, hy⟩)] at h
+  rwa [ite_pos' (show (V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx from ⟨hx, hy⟩)] at h
 
 theorem vsg_quot {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ} (hx : d < x)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) :
     σ (.n x) = σ (.n d) * (σ (.n y))⁻¹ := by
   simp only [GoodS, Good] at h
-  rwa [ite_eq_right (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
+  rwa [ite_neg' (show ¬((V.n x).idx < (V.n d).idx ∧ (V.n y).idx < (V.n d).idx) from
     fun h' ↦ by simp only at h'; omega)] at h
-
-theorem vsg_add {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d x y : ℕ}
-    (h : GoodS rd S w σ (.atom (.add (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) + σ (.n y) := h
 
 /-- A read through a pointer, of a word the memory holds. -/
 theorem vsg_read {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {d p : V} {off : ℕ} {v : E}
@@ -111,19 +107,16 @@ theorem vsg_fsPack {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val} {x :
 
 /-- The tail but its `ret`. -/
 def vsTailP : List Stmt :=
-  [vsConst 1988 (word 2 0), vsMul 1989 630 1988] ⧺ vsTabsT 1990 1991 ⧺
+  [vsConst 1988 (word 2 0), vsMul 1989 630 1988] ++ vsTabsT 1990 1991 ++
   [.dispatch (.n (val% «verify_sub» "size_sel")) vsOpenNames
       [.n (val% «verify_sub» "rate_sel"), .n (val% «verify_sub» "nxt[8]@36"), .n (val% «verify_sub» "nxt[9]@36"), .n (val% «verify_sub» "nxt[10]@36"), .n (val% «verify_sub» "nxt[11]@36"), .n (val% «verify_sub» "nxt[12]@36"), .n (val% «verify_sub» "target@136"), .n (val% «verify_sub» "x@9"), .n (val% «verify_sub» "x@10"), .n (val% «verify_sub» "sumcheck_target~2"),
         .n (val% «verify_sub» "sumcheck_target~4")]
       (vsRun 1992 5),
     vsCall "check_opening_terminal" [4, 254, 604, 616, 253, 614, 72, 618, 83, 1433, 275, 619, 919,
-      1993, 1994, 1995, 1996, 1992, 355, 276] []] ⧺
-  (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ⧺
-  (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ⧺
+      1993, 1994, 1995, 1996, 1992, 355, 276] []] ++
+  (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ++
+  (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ++
   [vsLd 615 5 23]
-
-theorem vsTailT_split : vsTailT = vsTailP ⧺ [.ret []] := by
-  simp only [vsTailT, vsTailP, List.append_assoc, List.cons_append, List.nil_append]
 
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 

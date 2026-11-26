@@ -1,19 +1,36 @@
 module
 
-public import XmssSecurity.Proof.CappedChain.ChainRevealFiltering
-public import XmssSecurity.Proof.ChainOraclePresampling
-public import XmssSecurity.Proof.HashOutputHigh
-public import XmssSecurity.Proof.UniformFiniteTable
-public import XmssSecurity.Proof.CausalKeygenCoupling
 public import XmssSecurity.Proof.CausalTreeCoupling
-public import XmssSecurity.Proof.TopKeygenFacts
+public import XmssSecurity.Proof.CausalKeygenCoupling
+public import XmssSecurity.Proof.ChainTableTrajectories
 
 @[expose] public section
 
+/-!
+# Key generation with every chain presampled
+
+`GlobalChainValueIndex` names every chain value of key generation at both layers (a chain, a chain
+key and a digit), and `globalKeygenChainValueTable` reads that table from key generation's cache.
+Key generation (`actualGlobalChainKeygen`) equals in distribution the run that first walks every
+chain, sampling and programming each fresh step, and then runs key generation from the warm cache
+(`evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories`). The table this presampling
+yields is uniform (`evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform`), and uniform
+chain starts and chain outputs give the table and the outputs' high halves (`hashOutputHigh`) as an
+independent uniform pair (`evalDist_globalChainKeygenRandomnessView_eq_independent`).
+`coupledGlobalChainKeygen` and `ProgrammedGlobalChainKeygenRelation` set up the coupling of two key
+generations over different tables that `CappedGlobalTreeCacheCorrespondence` and
+`CappedGlobalCausalSetup` use.
+-/
+
+namespace XmssSecurity
+
+def hashOutputHigh (output : HashOutput) : Digest :=
+  (Rom.hashOutputEquivDigestPair output).1
+
+end XmssSecurity
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
-
-variable {n : ℕ}
 
 namespace XmssSecurity.CappedChain
 
@@ -140,6 +157,12 @@ structure ProgrammedGlobalChainKeygenView where
   cache : QueryCache HashSpec
   table : GlobalChainValueIndex → Digest
 
+/-- A key generation view with a table of chain values: the right side of the keygen coupling. -/
+abbrev KeygenViewWithBase := ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)
+
+/-- A `KeygenViewWithBase` with a table of chain step outputs. -/
+abbrev KeygenViewWithBaseHigh := KeygenViewWithBase × (GlobalChainEdgeIndex → Digest)
+
 def globalChainTableEdgeInput
     (parameter : PublicParameter) (table : GlobalChainValueIndex → Digest)
     (edge : GlobalChainEdgeIndex) : HashInput :=
@@ -246,8 +269,8 @@ theorem evalDist_split_uniformGlobalChainTable_eq_independent :
 noncomputable def allChains : List ChainIndex :=
   Finset.univ.toList
 
-theorem allChains_nodup : allChains.Nodup := by
-  exact Finset.nodup_toList _
+theorem allChains_nodup : allChains.Nodup :=
+  Finset.nodup_toList _
 
 theorem mem_allChains (chain : ChainIndex) : chain ∈ allChains := by
   simp [allChains]
@@ -265,7 +288,6 @@ attribute [local semireducible] Concrete.sampleTopSecret in
 theorem Concrete.sampleTopSecret_eq :
     Concrete.sampleTopSecret = $ᵗ (TopIndex → ChainIndex → Digest) := rfl
 
-set_option maxRecDepth 100000 in
 theorem Concrete.evalDist_sampleChainStarts_eq_uniform :
     Concrete.sampleChainStarts =ᵈ ($ᵗ (ChainKey → ChainIndex → Digest)) := by
   have hmap : Concrete.sampleChainStarts =
@@ -495,8 +517,8 @@ noncomputable def globalTrajectoryEdgeOrder : List GlobalChainEdgeIndex :=
   allChains ×ˢ (allChainKeys ×ˢ trajectoryChainSteps)
 
 theorem globalTrajectoryEdgeOrder_nodup :
-    globalTrajectoryEdgeOrder.Nodup := by
-  exact allChains_nodup.product
+    globalTrajectoryEdgeOrder.Nodup :=
+  allChains_nodup.product
     (allChainKeys_nodup.product trajectoryChainSteps_nodup)
 
 theorem mem_globalTrajectoryEdgeOrder (edge : GlobalChainEdgeIndex) :
@@ -650,7 +672,6 @@ noncomputable def uniformGlobalChainKeygenRandomness :
   Prod.mk <$> Concrete.sampleChainStarts <*>
     ($ᵗ GlobalChainEdgeOutputTable)
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
     uniformGlobalChainKeygenRandomness =ᵈ
       ($ᵗ ((ChainKey → ChainIndex → Digest) × GlobalChainEdgeOutputTable)) := by
@@ -658,7 +679,6 @@ theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
   exact (prod_seq_evalDistEq_left Concrete.evalDist_sampleChainStarts_eq_uniform _).trans
     uniformSample_prod_evalDistEq_seq.symm
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_independent :
     (globalChainKeygenRandomnessView <$>
       ($ᵗ ((ChainKey → ChainIndex → Digest) ×
@@ -682,8 +702,8 @@ theorem evalDist_globalChainKeygenRandomnessView_eq_independent :
   calc
     _ =ᵈ (globalChainKeygenRandomnessView <$>
           ($ᵗ ((ChainKey → ChainIndex → Digest) ×
-            GlobalChainEdgeOutputTable))) := by
-      exact evalDist_uniformGlobalChainKeygenRandomness_eq_uniform.map _
+            GlobalChainEdgeOutputTable))) :=
+      evalDist_uniformGlobalChainKeygenRandomness_eq_uniform.map _
     _ =ᵈ _ := evalDist_uniformGlobalChainKeygenRandomness_eq_independent
 
 abbrev AllChainTrajectories := ChainIndex → List FullChainTrajectory
@@ -724,8 +744,6 @@ theorem Concrete.allChainTrajectoriesFromCache_cons
           first.2 chains
         pure (Function.update rest.1 chain first.1, rest.2)) := rfl
 
-set_option maxRecDepth 100000 in
-set_option linter.constructorNameAsVariable false in
 theorem Concrete.allChainTrajectoriesFromCache_support_info
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec)
@@ -847,7 +865,6 @@ def AllChainAddressesAbsent
     AtHashAddress parameter (key.chainDomain chain step) input →
       cache input = none
 
-set_option maxRecDepth 100000 in
 theorem Concrete.fixedSeedChainTrajectories_preserves_otherChain_none
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (selected other : ChainIndex) (hne : selected ≠ other)
@@ -920,8 +937,6 @@ theorem programmedAllChainTrajectoriesFromCache_cons
           first.2 chains
         pure (Function.update rest.1 chain first.1, rest.2)) := rfl
 
-set_option maxHeartbeats 2400000 in
-set_option maxRecDepth 100000 in
 theorem evalDist_allChainTrajectories_eq_programmed
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
@@ -953,8 +968,8 @@ theorem evalDist_allChainTrajectories_eq_programmed
         _ =ᵈ (programmedFirst >>= fun first =>
               Concrete.allChainTrajectoriesFromCache parameter start first.2
                 chains >>= fun rest =>
-              pure (Function.update rest.1 chain first.1, rest.2)) := by
-          exact hfirst.bind_left _
+              pure (Function.update rest.1 chain first.1, rest.2)) :=
+          hfirst.bind_left _
         _ =ᵈ (programmedFirst >>= fun first =>
               programmedAllChainTrajectoriesFromCache parameter start first.2
                 chains >>= fun rest =>
@@ -1040,8 +1055,8 @@ theorem evalDist_uniformTrajectoryFromSeed_tailTape
                 ($ᵗ Digest) >>= fun next =>
                 pure (prior ++ [next])) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
-            _ =ᵈ _ := by
-              exact ih.bind_left _
+            _ =ᵈ _ :=
+              ih.bind_left _
 
 def trajectoryDrawTape {steps : Nat}
     (trajectory : Vector Digest (steps + 1)) : List Digest :=
@@ -1070,12 +1085,12 @@ theorem evalDist_uniformTrajectoryFromSeed_drawTape
       rw [Functor.map_map]
       rfl
     _ =ᵈ (List.reverse <$>
-          uniformSnocList Digest steps) := by
-      exact (evalDist_uniformTrajectoryFromSeed_tailTape steps seed).map _
+          uniformSnocList Digest steps) :=
+      (evalDist_uniformTrajectoryFromSeed_tailTape steps seed).map _
     _ =ᵈ (List.reverse <$>
           (List.reverse <$>
-            OracleComp.drawList ($ᵗ Digest) steps)) := by
-      exact (evalDist_uniformSnocList_eq_reverse_drawList Digest steps).map _
+            OracleComp.drawList ($ᵗ Digest) steps)) :=
+      (evalDist_uniformSnocList_eq_reverse_drawList Digest steps).map _
     _ =ᵈ (OracleComp.drawList ($ᵗ Digest) steps) := by
       simp [Functor.map_map]
 
@@ -1137,10 +1152,9 @@ theorem evalDist_programmedChainExtension_fst
           (Prod.fst <$> Rom.sampledHashOutputWithDigest)) := by
       simp [Functor.map_map]
     _ =ᵈ ((fun next : Digest => values.push next) <$>
-          ($ᵗ Digest)) := by
-      exact evalDist_sampledHashOutputWithDigest_fst_eq_uniform.map _
+          ($ᵗ Digest)) :=
+      evalDist_sampledHashOutputWithDigest_fst_eq_uniform.map _
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedChainTrajectory_fst_eq_uniform
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (position : Nat) : ∀ (steps : Nat) (seed : Digest)
@@ -1176,8 +1190,8 @@ theorem evalDist_programmedChainTrajectory_fst_eq_uniform
         _ =ᵈ (uniformTrajectoryFromSeed steps seed >>=
               fun priorValues =>
               (fun next : Digest => priorValues.push next) <$>
-                ($ᵗ Digest)) := by
-          exact (ih seed cache (by omega)).bind_left _
+                ($ᵗ Digest)) :=
+          (ih seed cache (by omega)).bind_left _
         _ =ᵈ (uniformTrajectoryFromSeed (steps + 1) seed) := by
           simp [uniformTrajectoryFromSeed_succ, map_eq_bind_pure_comp]
 
@@ -1239,8 +1253,8 @@ theorem evalDist_uniformFixedChainTrajectories_drawTape
           simp [map_eq_bind_pure_comp, bind_assoc]
         _ =ᵈ (OracleComp.drawList ($ᵗ Digest) steps >>= fun first =>
             OracleComp.drawList ($ᵗ Digest) (keys.length * steps) >>=
-              fun rest => pure (first ++ rest)) := by
-          exact ((evalDist_uniformTrajectoryFromSeed_drawTape steps
+              fun rest => pure (first ++ rest)) :=
+          ((evalDist_uniformTrajectoryFromSeed_drawTape steps
               (start key chain)).bind_left _).trans
             (EvalDistEq.bind_right _ fun _ => ih.bind_left _)
         _ =ᵈ (OracleComp.drawList ($ᵗ Digest)
@@ -1253,7 +1267,6 @@ theorem evalDist_uniformFixedChainTrajectories_drawTape
           simp only [List.length_cons]
           simp [Nat.add_mul, Nat.add_comm]
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1) :
@@ -1288,8 +1301,8 @@ theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
                       start chain steps first.2 keys)) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
             _ =ᵈ ((fun rest => first.1 :: rest) <$>
-                  uniformFixedChainTrajectories start chain steps keys) := by
-              exact (ih first.2).map _
+                  uniformFixedChainTrajectories start chain steps keys) :=
+              (ih first.2).map _
             _ = _ := by
               simp [map_eq_bind_pure_comp]
         _ =ᵈ ((Prod.fst <$> firstProgram) >>= fun first =>
@@ -1301,8 +1314,8 @@ theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
               fun first =>
               uniformFixedChainTrajectories start chain steps keys >>=
                 fun rest =>
-              pure (first :: rest)) := by
-          exact (evalDist_programmedChainTrajectory_fst_eq_uniform parameter key
+              pure (first :: rest)) :=
+          (evalDist_programmedChainTrajectory_fst_eq_uniform parameter key
               chain 0 steps (start key chain) cache (by simpa using hsteps)).bind_left _
         _ = _ := by
           simp only [bind_pure_comp]
@@ -1568,8 +1581,8 @@ theorem evalDist_uniformAllChainTrajectories_drawTape
             fun first =>
             OracleComp.drawList ($ᵗ Digest)
               (chains.length * blockSize) >>= fun rest =>
-            pure (first ++ rest)) := by
-          exact ((evalDist_uniformFixedChainTrajectories_drawTape start chain
+            pure (first ++ rest)) :=
+          ((evalDist_uniformFixedChainTrajectories_drawTape start chain
               (chainLength - 1) allChainKeys).bind_left _).trans
             (EvalDistEq.bind_right _ fun _ => (ih htailNodup).bind_left _)
         _ =ᵈ (OracleComp.drawList ($ᵗ Digest)
@@ -1647,8 +1660,6 @@ theorem evalDist_uniformGlobalTrajectoryEdgeTableTape_eq_drawList :
       evalDist_listOfFn_uniform_eq_drawList
         globalTrajectoryEdgeOrder.length
 
-set_option maxHeartbeats 1000000 in
-set_option maxRecDepth 1000000 in
 theorem evalDist_globalTrajectoryEdgeTableOfTape_drawList_eq_uniform :
     (globalTrajectoryEdgeTableOfTape <$>
       OracleComp.drawList ($ᵗ Digest)
@@ -1731,7 +1742,6 @@ theorem globalTrajectoryEdgeTableOfTape_drawTape
   exact globalTrajectoryEdgeTableOfTape_map
     (globalChainEdgeTableOfTrajectories trajectories)
 
-set_option maxRecDepth 100000 in
 theorem evalDist_uniformAllChainTrajectories_edgeTable_eq_uniform
     (start : ChainKey → ChainIndex → Digest) :
     (globalChainEdgeTableOfTrajectories <$>
@@ -1754,8 +1764,8 @@ theorem evalDist_uniformAllChainTrajectories_edgeTable_eq_uniform
     _ =ᵈ (globalTrajectoryEdgeTableOfTape <$>
           OracleComp.drawList ($ᵗ Digest)
             (allChains.length *
-              (allChainKeys.length * (chainLength - 1)))) := by
-      exact (evalDist_uniformAllChainTrajectories_drawTape start allChains
+              (allChainKeys.length * (chainLength - 1)))) :=
+      (evalDist_uniformAllChainTrajectories_drawTape start allChains
           allChains_nodup).map _
     _ =ᵈ (globalTrajectoryEdgeTableOfTape <$>
           OracleComp.drawList ($ᵗ Digest)
@@ -1789,15 +1799,11 @@ noncomputable def sampleSecretGlobalChainMaterial :
   Prod.mk <$> Concrete.sampleChainStarts <*>
     ($ᵗ (GlobalChainEdgeIndex → Digest))
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 2000000 in
 theorem evalDist_sampleSecretGlobalChainMaterial_eq_independent :
     sampleSecretGlobalChainMaterial =ᵈ independentGlobalChainTableMaterial := by
   rw [sampleSecretGlobalChainMaterial, independentGlobalChainTableMaterial]
   exact prod_seq_evalDistEq_left Concrete.evalDist_sampleChainStarts_eq_uniform _
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 2000000 in
 theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
     uniformGlobalChainTableFromTrajectories =ᵈ ($ᵗ (GlobalChainValueIndex → Digest)) := by
   unfold uniformGlobalChainTableFromTrajectories
@@ -1827,8 +1833,8 @@ theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
           sampleSecretGlobalChainMaterial) := by
       simp [sampleSecretGlobalChainMaterial, monad_norm]
     _ =ᵈ (globalChainTableMaterialEquiv.symm <$>
-          independentGlobalChainTableMaterial) := by
-      exact EvalDistEq.map
+          independentGlobalChainTableMaterial) :=
+      EvalDistEq.map
         evalDist_sampleSecretGlobalChainMaterial_eq_independent
         globalChainTableMaterialEquiv.symm
     _ =ᵈ ($ᵗ (GlobalChainValueIndex → Digest)) := by
@@ -1837,7 +1843,6 @@ theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
         globalChainTableMaterialEquiv.symm
       simpa [Functor.map_map] using h.symm
 
-set_option maxRecDepth 100000 in
 theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
@@ -1869,8 +1874,8 @@ theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
                       first.2 chains)) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
             _ =ᵈ ((fun rest => Function.update rest chain first.1) <$>
-                  uniformAllChainTrajectories start chains) := by
-              exact (ih first.2).map _
+                  uniformAllChainTrajectories start chains) :=
+              (ih first.2).map _
             _ = _ := by
               simp [map_eq_bind_pure_comp]
         _ =ᵈ ((Prod.fst <$> firstProgram) >>= fun first =>
@@ -1880,8 +1885,8 @@ theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
         _ =ᵈ (uniformFixedChainTrajectories start chain
               (chainLength - 1) allChainKeys >>= fun first =>
               uniformAllChainTrajectories start chains >>= fun rest =>
-              pure (Function.update rest chain first)) := by
-          exact (evalDist_programmedFixedChainTrajectories_fst_eq_uniform parameter
+              pure (Function.update rest chain first)) :=
+          (evalDist_programmedFixedChainTrajectories_fst_eq_uniform parameter
               start chain (chainLength - 1) le_rfl allChainKeys cache).bind_left _
         _ = _ := by
           simp only [bind_pure_comp]
@@ -1978,8 +1983,8 @@ theorem evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories :
         allChainTrajectoryKeygen) :=
       evalDist_actualGlobalChainKeygen_eq_allChainTrajectoryKeygen
     _ =ᵈ (eraseAllChainTrajectories <$>
-        programmedAllChainTrajectoryKeygen) := by
-      exact evalDist_allChainTrajectoryKeygen_eq_programmed.map _
+        programmedAllChainTrajectoryKeygen) :=
+      evalDist_allChainTrajectoryKeygen_eq_programmed.map _
 
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_component_support
     (parameter : PublicParameter) (start : ChainKey → ChainIndex → Digest)
@@ -2232,9 +2237,6 @@ def globalChainTrajectoryMaterialBase
       (GlobalChainValueIndex → Digest)) :
     GlobalChainValueIndex → Digest := result.2
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 1000000 in
-set_option linter.constructorNameAsVariable false in
 theorem evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
     (parameter : PublicParameter) :
     (globalChainTrajectoryMaterialTable <$>
@@ -2315,15 +2317,15 @@ theorem programmedGlobalChainTrajectoryMaterial_initialRelation
         chainKey.chainDomain chain step ≠ key.leafDomain := by
       intro chainKey chain step heq
       cases chainKey <;> cases key <;> simp [ChainKey.chainDomain, ChainKey.leafDomain] at heq
-    unfold hashCacheLookup
-    rw [programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter left hleft
-        key.leafDomain hdomain (Concrete.CacheView.keyLeafInput parameter key
-          (Concrete.CacheReplay.keyOneTimePublicKey left.2.2 parameter left.1 key))
-          ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl),
-      programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter right hright
-        key.leafDomain hdomain (Concrete.CacheView.keyLeafInput parameter key
-          (Concrete.CacheReplay.keyOneTimePublicKey right.2.2 parameter right.1 key))
-          ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl)]
+    -- Both sides at `Option HashOutput`: `none` at the two inputs' `Range`s would make the kernel
+    -- compare the inputs by evaluating them.
+    have hnone (material : GlobalChainTrajectoryMaterial)
+        (hmaterial : material ∈ support (programmedGlobalChainTrajectoryMaterial parameter)) :
+        hashCacheLookup material.2.2 (Concrete.CacheView.keyLeafInput parameter key
+          (Concrete.CacheReplay.keyOneTimePublicKey material.2.2 parameter material.1 key)) = none :=
+      programmedGlobalChainTrajectoryMaterial_none_of_notChain parameter material hmaterial
+        key.leafDomain hdomain _ ((atHashAddress_tweakableHashInput_iff parameter _ _ _).2 rfl)
+    rw [hnone left hleft, hnone right hright]
 
 structure CoupledGlobalChainKeygenView where
   start : ChainKey → ChainIndex → Digest
@@ -2364,8 +2366,6 @@ noncomputable def coupledGlobalChainKeygen :
   let view ← coupledGlobalChainKeygenExperiment parameter
   pure (view.toProgrammedView parameter)
 
-set_option maxHeartbeats 2000000 in
-set_option maxRecDepth 1000000 in
 theorem evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories :
     coupledGlobalChainKeygen =ᵈ (eraseAllChainTrajectories <$>
         programmedAllChainTrajectoryKeygen) := by
@@ -2403,8 +2403,7 @@ theorem evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories :
 
 def ProgrammedGlobalChainKeygenRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) : Prop :=
+    (right : KeygenViewWithBase) : Prop :=
   left.table = right.2 ∧
     left.publicKey = right.1.publicKey ∧
     left.secretKey.topSigned = right.1.secretKey.topSigned ∧

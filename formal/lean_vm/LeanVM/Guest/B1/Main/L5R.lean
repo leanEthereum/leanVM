@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.L5R
 
-  `main`'s honest children loop within its bound, its callees' trees satisfying predicates of the memory: `l5_stepAtTB`,
-  `l5_completeAtTB`, `mainGoalL5TB` (same proofs) over `CompleteAtDTBR`.
+  `main`'s honest children loop within its bound, its callees' trees satisfying predicates of the memory
+  (`CompleteAtDTBR`), and with predicates independent of it (`mainGoalL5TB`).
 -/
 
 module
@@ -15,9 +15,10 @@ import LeanVM.Guest.Data.ValNames.«main_loop4»
 /-!
 # The children loop, its callees' predicates of the memory
 
-`l5_stepAtTBR`, `l5_completeAtTBR`: `l5_stepAtTB`, `l5_completeAtTB` with the callees `CompleteAtDTBR`.
-`VerifySubGoalsTBR`, `ChildListGoalsTBR`: each child's `verify_sub` call and claim lists' digests so;
-`mainGoalL5TBR`: `mainGoalL5TB` with them.
+`l5_stepAtTBR`, `l5_completeAtTBR`: child `c` and the rest of the loop, and the loop from every counter,
+within `l5ChainB`, the callees `CompleteAtDTBR`. `VerifySubGoalsTBR`, `ChildListGoalsTBR`: each child's
+`verify_sub` call and claim lists' digests so; `mainGoalL5TBR`: the loop from the counter `0` with them.
+`mainGoalL5TB`: the same with predicates independent of the memory.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -41,8 +42,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 variable (fs cert)
 
-/-- **One child of `main_loop4` within its bound, placed, its tree exposed**: `l5_stepAtTB` (same proof), its
-callees' and tail call's trees satisfying predicates of the memory. -/
+/-- **One child of `main_loop4` within its bound, placed, its tree exposed**: its callees within their
+bounds, the tail call within `Bt`, their trees satisfying predicates of the memory. -/
 theorem l5_stepAtTBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bt Bv Bx Bs : ℕ} {Lin : Layout} {W D Pi Cr nk c : ℕ}
@@ -148,7 +149,7 @@ theorem l5_stepAtTBR (SB : String → ℕ)
     rw [hV.v59]
     refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
       fun h he => h ?_⟩
-    exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
+    exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
   have hcalls : calls ((l5Pre ++ [l5Tail]).flatMap (Main.slEvs σ)) =
       [⟨"child_claim_list_digest", [.n (val% «main_loop4» "lx_table"), .n (val% «main_loop4» "cover"), .n (val% «main_loop4» "base"), .n (val% «main_loop4» "lx_slots_g"), .n (val% «main_loop4» "child_meta[0]")], [.n (val% «main_loop4» "cx_0"), .n (val% «main_loop4» "cx_1")], true⟩,
         ⟨"child_claim_list_digest", [.n (val% «main_loop4» "lean_sphincs_table"), .n (val% «main_loop4» "sp_cover"), .n (val% «main_loop4» "cs_0~2"), .n (val% «main_loop4» "lean_sphincs_slots_g"), .n (val% «main_loop4» "child_meta[1]")], [.n (val% «main_loop4» "cs_0"), .n (val% «main_loop4» "cs_1")], true⟩,
@@ -273,8 +274,8 @@ theorem l5_stepAtTBR (SB : String → ℕ)
     · refine ⟨W + c + 1, ?_, Or.inr (Or.inl rW1)⟩
       rw [hV.v56]; exact hW' 1
 
-/-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: `l5_completeAtTB`, the callees'
-trees satisfying predicates of the memory. -/
+/-- **`main_loop4` is complete within `l5ChainB`, placed, its trees exposed**: each iteration's callees
+within their bounds, their trees satisfying predicates of the memory. -/
 theorem l5_completeAtTBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {Lin : Layout} {W D Pi Cr nk : ℕ}
@@ -353,8 +354,8 @@ def ChildListGoalsTBR (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
 
 variable (fs cert)
 
-/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed**: `mainGoalL5TB`, the callees'
-trees satisfying predicates of the memory. -/
+/-- **`main`'s honest children loop is complete within `l5B`, its trees exposed**: from the counter `0`,
+each child's callees by trees satisfying predicates of the memory. -/
 theorem mainGoalL5TBR (SB : String → ℕ)
     (hSD : TotalLe coreProgram fs "statement_digest" (fun _ => SB "statement_digest"))
     {Bv Bxs Bss : ℕ → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement} {w : NodeWitness}

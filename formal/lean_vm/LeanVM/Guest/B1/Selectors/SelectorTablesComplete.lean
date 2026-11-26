@@ -15,7 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
 
 /-!
-# `selector_tables`, completely (TRIAGE G #69)
+# `selector_tables`, completely
 
 The point and its complements are the runs `(ept, p)`, `(ept1, p1)` (`stLin`); the buffer's base
 is `ese` (`256` words). The honest valuation `stVal` is the body evaluated on `layRd` of the point
@@ -114,8 +114,8 @@ theorem st_rdAt {rd : Reader} {L : TLay} (hm : MemLay rd L) {q : ℕ × List E} 
     rdAt (layRd L) (ofK (addressOfIndex q.1)) o = q.2.getD o 0 ∧
       LoadHolds rd (ofK (addressOfIndex q.1)) o (q.2.getD o 0) := by
   have hr := memLay_read hm hq ho
-  refine ⟨?_, ofK_isInK _, by rw [limb0_ofK_addressOfIndex_mul]; exact hr⟩
-  rw [rdAt, limb0_ofK_addressOfIndex_mul, layRd_agree hm ⟨q, hq, o, ho, rfl⟩, hr]
+  refine ⟨?_, tb_isInK_ofK _, by rw [tb_addr_ofK]; exact hr⟩
+  rw [rdAt, tb_addr_ofK, layRd_agree hm ⟨q, hq, o, ho, rfl⟩, hr]
   rfl
 
 theorem stVal_param (ept ept1 ese : ℕ) (p p1 : List E) :
@@ -192,7 +192,7 @@ theorem st_holds (ept ept1 ese : ℕ) (p p1 : List E) (hl : p.length = 32)
   obtain ⟨e0, e1⟩ := stVal_param ept ept1 ese p p1
   obtain ⟨-, e291⟩ := stVal_bufs ept ept1 ese p p1
   have hat := st_sholds ept ept1 ese p p1 hl hl1 rd hm
-  refine (rel_iff_sem hf _ _).mpr ⟨stVal ept ept1 ese p p1, by rw [hp]; simp [e0, e1], ?_⟩
+  refine (tb_rel_iff_sem hf _ _).mpr ⟨stVal ept ept1 ese p p1, by rw [hp]; simp [e0, e1], ?_⟩
   rw [hb]
   refine holdsList_straight stPre _ _ _ hat ?_
   simp [e291]

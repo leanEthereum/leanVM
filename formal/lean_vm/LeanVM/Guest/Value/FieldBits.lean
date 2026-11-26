@@ -28,8 +28,6 @@ open LeanVM.Parameters
 theorem e_add_eq_zero_iff {a b : E} : a + b = 0 ↔ a = b := by
   rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq]
 
-theorem ofBits_zero : K.ofBits 0 = 0 := rfl
-
 /-- The word `2^s` is `1 <<< s`. -/
 private theorem ofNat_two_pow_mul {s v : ℕ} :
     BitVec.ofNat 64 (2 ^ s * v) = BitVec.ofNat 64 v <<< s := by
@@ -42,7 +40,7 @@ product the guest's query positions (`decode_query_bits`) rely on. -/
 theorem ofBits_two_pow_mul {s v : ℕ} (h : 2 ^ s * v < 2 ^ 64) :
     K.ofBits (2 ^ s) * K.ofBits v = K.ofBits (2 ^ s * v) := by
   rcases Nat.eq_zero_or_pos v with rfl | hv
-  · rw [ofBits_zero, mul_zero, Nat.mul_zero, ofBits_zero]
+  · rw [K.ofBits_zero, mul_zero, Nat.mul_zero, K.ofBits_zero]
   have hs : s < 64 := by
     by_contra hs
     have : 2 ^ 64 ≤ 2 ^ s * v :=

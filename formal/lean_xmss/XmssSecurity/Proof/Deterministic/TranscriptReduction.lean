@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.Deterministic.TableSigner
 
 @[expose] public section
 
+/-!
+# Memoization keeps a win
+
+`sourceGame` runs the adversary with its signing requests logged, then checks the forgery against
+the log (`transcriptWin`). `transcriptReduction` runs two games at once: its first output is the
+memoized source game (`fst_transcriptReduction`), its second the source game of `memoAdversary`
+(`snd_transcriptReduction`), and a win of the first is a win of the second, the forwarded log being
+a sublist of the full one (`transcriptReduction_win`). With the table signer, the source game is the
+rest of the security game (`runSigning_sourceGame`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded

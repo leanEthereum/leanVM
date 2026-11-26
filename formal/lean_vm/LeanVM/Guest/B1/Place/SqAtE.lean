@@ -12,13 +12,13 @@ public import LeanVM.Guest.Exact.Free
 public import LeanVM.Guest.Memory.PopsNil
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The squeeze loop, placed and exact
 
 The loop helper's body has no hint (`sqLoopPre_hints`), so its paths pop nothing and are exact (`evs_noHint`); its
-decoders are exact by `QwDecodeAtDE`. `sqLoop_iterE`, `sqLoop_relAtInE`: `sqLoop_iter`, `sqLoop_relAtIn` by such trees.
+decoders are exact by `QwDecodeAtDE`. `sqLoop_iterE`: one iteration from its decoder's and
+its tail's placed relations; `sqLoop_relAtInE`: the loop, by such trees.
 -/
 
 namespace LeanVM.Guest.B1
@@ -120,7 +120,7 @@ theorem sqLoop_iterE (fs : String → ℕ) (cert : String → V → ℕ) {lv : O
     RelAtInCPE coreProgram fs cert rd (ExactAt coreProgram rd) R (fun i => Dd i ∨ (X * gen + N ≠ 0 ∧ Dt i)) fp c
       (fs name + Bt) (fs (sqDecName lv) + m) name [X, N, sqz, qpos, qbp, tabs] [] [] := by
   obtain ⟨σ, hpar, hA, h8, hdargs, hg, hta⟩ := hit rd X N sqz qpos qbp tabs cap hcl hrow hnext
-  have hpre : fn.body = sqLoopPre lv name ⧺ [.ret []] := hb.trans (sqLoopBody_pre lv name)
+  have hpre : fn.body = sqLoopPre lv name ++ [.ret []] := hb.trans (sqLoopBody_pre lv name)
   have hst := sqLoopPre_straight lv name
   set es := (sqLoopPre lv name).flatMap (Main.slEvs σ) with hes_def
   have hw : walk σ fn.body = .ret es [] := by rw [hpre]; exact Main.walk_straight σ [] _ hst

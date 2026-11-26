@@ -102,7 +102,7 @@ theorem block_holds {B : List Stmt} (hall : B.all isAtom = true)
       | mul d x y =>
         simp only [needsSide, Bool.not_eq_false', Bool.and_eq_true, decide_eq_true_eq] at hns
         simp only [Side]
-        rw [ite_eq_left hns]
+        rw [ite_pos' hns]
         trivial
       | load | assertEq | assertInK | assertNe | rangeCheck | frameAddr | touch => simp [needsSide] at hns
       | _ => trivial

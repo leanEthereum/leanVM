@@ -54,7 +54,7 @@ theorem selPts_holds (hw : walk σ fn.body = .ret es vs) {r : CRes} (h : selPts 
       refine ⟨_, hm, ?_⟩
       simp only [CCell.addrW, CCell.valW, prodW, vw, pow_one, mul_one, he]
       rw [← Exec.ofK_gpow_mul o e]
-      ring
+      ring_nf
   · cases h
 
 end

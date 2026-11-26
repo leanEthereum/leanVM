@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Digest.CompleteSmall
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed completeness of the claim lists, the shared part
@@ -18,8 +17,7 @@ import LeanVM.Guest.StmtsAppend
 * `walk_ite`: a straight run, a branch whose taken arm falls through, a straight run and a `ret`
   walk the run's events, the condition, the arm's events, then the run's.
 * `pure_one`: a function whose body places nothing and calls only itself is pure on its own.
-* `list_split_completeAt`: `list_split` (a leaf without loads, its range checks reading below
-  `2^20`) is `CompleteAtD` with its split's returns, reading no caller's word.
+* `list_split_leafOk`, `list_split_pure`: `list_split` is a leaf without loads, pure on its own.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -36,7 +34,7 @@ theorem walk_ite (σ : Val) (post : List Stmt) (hpost : post.all Main.Stmt.strai
     (c : V) (z n : List Stmt) (vs : List V) (esb : List Ev)
     (hb : (if σ c = 0 then walk σ z else walk σ n) = .fall esb) : ∀ pre : List Stmt,
     pre.all Main.Stmt.straight = true →
-    walk σ (pre ++ .ite c z n :: (post ⧺ [.ret vs])) =
+    walk σ (pre ++ .ite c z n :: (post ++ [.ret vs])) =
       .ret (pre.flatMap (Main.slEvs σ) ++ .inK c :: (esb ++ post.flatMap (Main.slEvs σ))) vs
   | [], _ => by
     rw [List.nil_append, walk, walk1, hb, Main.walk_straight σ vs post hpost]
@@ -78,21 +76,6 @@ theorem list_split_leafOk : Lift.Stmt.leafOkList noLoad (fn% «list_split»).bod
 
 theorem list_split_pure : coreProgram.PureIn ["list_split"] :=
   Lift.pureIn_of_leafOk find_list_split list_split_leafOk
-
-/-- **`list_split` is complete, placed**: its split's returns, no caller's word read. -/
-theorem list_split_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {a b c : ℕ}
-    (ha : a < bigFramesCap) (hb : b < bigGroups) (hc : c < claimGroup) :
-    CompleteAtD fs cert 20 "list_split" [] [gen ^ (claimBig * a + claimGroup * b + c)]
-      (Returns [gen ^ a, gen ^ b, gen ^ c]) :=
-  Lift.completeAtD_of_relIn list_split_pure (List.mem_singleton_self _) fun rd hl _ =>
-    Lift.relIn_of_leaf find_list_split list_split_leafOk
-      (fun σ es vs _ hw A hA => by
-        have hall : (Out.ret es vs).All (Lift.EvLeafOk noLoad) := by
-          have := Lift.walk_leafOk (σ := σ) (fn% «list_split»).body list_split_leafOk
-          exact (show walk σ (fn% «list_split»).body = .ret es vs from hw) ▸ this
-        rw [loads_none hall] at hA
-        exact absurd hA List.not_mem_nil)
-      (list_split_complete' rd hl _ _ ⟨a, ha, b, hb, c, hc, rfl, rfl⟩)
 
 /-! ## The events of a body with a dispatch -/
 

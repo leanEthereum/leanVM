@@ -1,10 +1,20 @@
 module
 
-public import Common.QueryCount
+public import XmssSecurity.Proof.QueryCounting
 public import VCVio.OracleComp.QueryTracking.SubSpec
-public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
+
+/-!
+# A hash query bound along the lazy random oracle's runs
+
+`countHashQueries` counts a computation's hash queries, and `HashQueryBound computation cache q`
+says that every run of it under the lazy random oracle from `cache` makes at most `q` of them. The
+bound splits over a bind (`hashQueryBound_bind`, `hashQueryBound_query_bind`): the head's runs stay
+within `q`, and each continuation within what is left from the cache the head ends in. Sampling
+costs nothing (`hashQueryBound_of_sampling_bind`).
+-/
 
 namespace XmssSecurity
 
@@ -12,7 +22,7 @@ open OracleComp OracleSpec
 
 noncomputable def countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     OracleComp OracleWorld (α × Nat) :=
-  Common.QueryCount.counted (fun input : OracleWorld.Domain => input matches .inr _) computation
+  QueryCounting.counted (fun input : OracleWorld.Domain => input matches .inr _) computation
 
 def HashQueryBound {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (q : Nat) : Prop :=
@@ -34,7 +44,7 @@ theorem countHashQueries_bind {α β : Type} (first : OracleComp OracleWorld α)
       let a ← countHashQueries first
       let b ← countHashQueries (next a.1)
       pure (b.1, a.2 + b.2)) :=
-  Common.QueryCount.counted_bind (fun input : OracleWorld.Domain => input matches .inr _) first next
+  QueryCounting.counted_bind (fun input : OracleWorld.Domain => input matches .inr _) first next
 
 theorem probComp_support_nonempty {α : Type} (computation : ProbComp α) :
     (support computation).Nonempty := by
@@ -96,14 +106,14 @@ theorem hashQueryBound_of_sampling_bind {α β : Type} (first : ProbComp α)
 
 theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
     simulateQ romImpl (countHashQueries computation) = (simulateQ countedRomImpl computation).run := by
-  rw [countHashQueries, Common.QueryCount.simulate_withCost]
+  rw [countHashQueries, QueryCounting.simulate_withCost]
   congr 2
   funext input
   cases input <;> simp [countedRomImpl, QueryImpl.withAddCost_apply]
 
 theorem countHashQueries_forget {α : Type} (computation : OracleComp OracleWorld α) :
     Prod.fst <$> countHashQueries computation = computation :=
-  Common.QueryCount.counted_forget _ computation
+  QueryCounting.counted_forget _ computation
 
 theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α}
     {cache : QueryCache HashSpec} {q r : Nat} (hbound : HashQueryBound computation cache q)

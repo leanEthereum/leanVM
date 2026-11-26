@@ -24,11 +24,9 @@ says there are as many writers as slots, so the writers fill every slot exactly 
 `verify_tables` and `col_sort_order` in `certify_placement` (G for
 `guests/lean_ethereum.py` at leanVM `542b035`).
 
-The corollaries: a bijection's ranks list `List.range n` up to order
-(`perm_range_of_bijective`); a list of ranks that is a permutation and adjacent-sorted by the
-guest's checks (sizes non-increasing, ties ascending) is `stackOffsets`'s `mergeSort`
-(`eq_mergeSort_of_adjacent`, `stackOffsets`); and a cover holds every claim,
-`List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRelation`).
+The corollary: a list of ranks that is a permutation and adjacent-sorted by the guest's checks
+(sizes non-increasing, ties ascending) is `stackOffsets`'s `mergeSort` (`eq_mergeSort_of_adjacent`,
+`stackOffsets`).
 -/
 
 namespace LeanVM.Guest.Value
@@ -134,8 +132,6 @@ theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
   intro a b _ _ hab hba
   simp only [stackLe, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at hab hba
   omega
-
-/-! ## Coverage as `List.Forall₂` -/
 
 end
 end LeanVM.Guest.Value

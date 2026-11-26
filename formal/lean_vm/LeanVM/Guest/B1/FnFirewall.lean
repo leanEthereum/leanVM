@@ -27,7 +27,6 @@ import LeanVM.Guest.B1.Sig.Frame
 import LeanVM.Guest.B1.Sig.FwdComplete
 import LeanVM.Guest.B1.Sig.InterfaceP
 import LeanVM.Guest.B1.Sig.KMsgComplete
-import LeanVM.Guest.B1.Sig.KSeqComplete
 import LeanVM.Guest.B1.Sig.KeccakMsg
 import LeanVM.Guest.B1.Sig.Merkle
 import LeanVM.Guest.B1.Sig.MerkleComplete
@@ -57,7 +56,11 @@ import LeanVM.Guest.B1.Sig.SphincsCompleteConv
 import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 import LeanVM.Guest.B1.Sig.SphincsData
+import LeanVM.Guest.B1.Sig.SphincsData0
+import LeanVM.Guest.B1.Sig.SphincsData1
+import LeanVM.Guest.B1.Sig.SphincsData2
 import LeanVM.Guest.B1.Sig.SphincsDigestComplete
+import LeanVM.Guest.B1.Sig.SphincsDigestData
 import LeanVM.Guest.B1.Sig.SphincsDigestT
 import LeanVM.Guest.B1.Sig.SphincsFields
 import LeanVM.Guest.B1.Sig.SphincsFieldsComplete
@@ -94,7 +97,6 @@ import LeanVM.Guest.B1.Sig.XmssBound
 import LeanVM.Guest.B1.Sig.XmssCore
 import LeanVM.Guest.B1.Sig.XmssGroups
 import LeanVM.Guest.B1.Sig.XmssLayer
-import LeanVM.Guest.B1.Sig.XmssLoop2
 import LeanVM.Guest.B1.Sig.XmssScheme
 import LeanVM.Guest.B1.Sig.XmssSegArms
 import LeanVM.Guest.B1.Sig.XmssSegCodeC
@@ -102,6 +104,40 @@ import LeanVM.Guest.B1.Sig.XmssSegComplete
 import LeanVM.Guest.B1.Sig.XmssSegCoreC
 import LeanVM.Guest.B1.Sig.XmssSegCwC
 import LeanVM.Guest.B1.Sig.XmssSegData
+import LeanVM.Guest.B1.Sig.XmssSegData1
+import LeanVM.Guest.B1.Sig.XmssSegData10
+import LeanVM.Guest.B1.Sig.XmssSegData11
+import LeanVM.Guest.B1.Sig.XmssSegData12
+import LeanVM.Guest.B1.Sig.XmssSegData13
+import LeanVM.Guest.B1.Sig.XmssSegData14
+import LeanVM.Guest.B1.Sig.XmssSegData15
+import LeanVM.Guest.B1.Sig.XmssSegData16
+import LeanVM.Guest.B1.Sig.XmssSegData17
+import LeanVM.Guest.B1.Sig.XmssSegData18
+import LeanVM.Guest.B1.Sig.XmssSegData19
+import LeanVM.Guest.B1.Sig.XmssSegData2
+import LeanVM.Guest.B1.Sig.XmssSegData20
+import LeanVM.Guest.B1.Sig.XmssSegData21
+import LeanVM.Guest.B1.Sig.XmssSegData22
+import LeanVM.Guest.B1.Sig.XmssSegData23
+import LeanVM.Guest.B1.Sig.XmssSegData24
+import LeanVM.Guest.B1.Sig.XmssSegData25
+import LeanVM.Guest.B1.Sig.XmssSegData26
+import LeanVM.Guest.B1.Sig.XmssSegData27
+import LeanVM.Guest.B1.Sig.XmssSegData28
+import LeanVM.Guest.B1.Sig.XmssSegData29
+import LeanVM.Guest.B1.Sig.XmssSegData3
+import LeanVM.Guest.B1.Sig.XmssSegData30
+import LeanVM.Guest.B1.Sig.XmssSegData31
+import LeanVM.Guest.B1.Sig.XmssSegData32
+import LeanVM.Guest.B1.Sig.XmssSegData33
+import LeanVM.Guest.B1.Sig.XmssSegData34
+import LeanVM.Guest.B1.Sig.XmssSegData4
+import LeanVM.Guest.B1.Sig.XmssSegData5
+import LeanVM.Guest.B1.Sig.XmssSegData6
+import LeanVM.Guest.B1.Sig.XmssSegData7
+import LeanVM.Guest.B1.Sig.XmssSegData8
+import LeanVM.Guest.B1.Sig.XmssSegData9
 import LeanVM.Guest.B1.Sig.XmssSegDigestC
 import LeanVM.Guest.B1.Sig.XmssSegEnds
 import LeanVM.Guest.B1.Sig.XmssSegLayerC
@@ -230,6 +266,7 @@ import LeanVM.Guest.B1.Bits.QueryWindowsBody1
 import LeanVM.Guest.B1.Eq.EqTree
 import LeanVM.Guest.B1.Eq.MeaningP
 import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.B1.Tables.Basic
 import LeanVM.Guest.B1.Tables.CoordPadding
 import LeanVM.Guest.B1.Tables.GroupCert
 import LeanVM.Guest.B1.Tables.InterfaceP
@@ -264,7 +301,6 @@ import LeanVM.Guest.B1.Da.DualMath
 import LeanVM.Guest.B1.Main.FramesP
 import LeanVM.Guest.B1.Main.IterK
 import LeanVM.Guest.B1.Main.Plan
-import LeanVM.Guest.B1.Main.RelAtW
 import LeanVM.Guest.B1.Terminal.Blocks
 import LeanVM.Guest.B1.Terminal.Claims
 import LeanVM.Guest.B1.Terminal.EqMath
@@ -331,8 +367,8 @@ open Lean Elab Command in
   -- single modules (not their numbered siblings), and the functions whose core modules each may read
   let single : List (Name × List Name) := [
     (`LeanVM.Guest.B1.Merkle.CapRef, []),
-    (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.CapMaps, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
+    (`LeanVM.Guest.B1.Merkle.CapLinks, [`verify_merkle_cap__L2, `verify_merkle_cap__L3, `verify_merkle_cap__L4, `verify_merkle_cap__L5, `verify_merkle_cap__L6, `verify_merkle_cap__L7, `verify_merkle_cap__L8]),
     (`LeanVM.Guest.B1.Merkle.Climb, []),
     (`LeanVM.Guest.B1.Merkle.Meaning, []),
     (`LeanVM.Guest.B1.Opening.FoldAlg, []),
@@ -437,6 +473,7 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Eq.EqTree, []),
     (`LeanVM.Guest.B1.Eq.MeaningP, []),
     (`LeanVM.Guest.B1.Tables.Base, []),
+    (`LeanVM.Guest.B1.Tables.Basic, []),
     (`LeanVM.Guest.B1.Tables.CoordPadding, []),
     (`LeanVM.Guest.B1.Tables.GroupCert, []),
     (`LeanVM.Guest.B1.Tables.InterfaceP, []),
@@ -471,7 +508,6 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Main.FramesP, []),
     (`LeanVM.Guest.B1.Main.IterK, []),
     (`LeanVM.Guest.B1.Main.Plan, []),
-    (`LeanVM.Guest.B1.Main.RelAtW, []),
     (`LeanVM.Guest.B1.Terminal.Blocks, []),
     (`LeanVM.Guest.B1.Terminal.Claims, []),
     (`LeanVM.Guest.B1.Terminal.EqMath, []),
@@ -500,9 +536,9 @@ open Lean Elab Command in
     (`LeanVM.Guest.B1.Common.Run, []),
     (`LeanVM.Guest.B1.Common.Sponge, []),
     (`LeanVM.Guest.B1.Bits.Templates, []),
+    (`LeanVM.Guest.Ref.Lang, []),
     (`LeanVM.Guest.Ref.Elab, []),
     (`LeanVM.Guest.Ref.Keccak, []),
-    (`LeanVM.Guest.Ref.Lang, []),
     (`LeanVM.Guest.Ref.Link, []),
     (`LeanVM.Guest.Ref.Verified, [])]
   let families : List (Name × Option (List Name) × List Name) := [

@@ -60,7 +60,7 @@ theorem forced_load_region {κ : ℕ} {Lin : Main.Layout} {p : E} {off : ℕ} {v
     refine ⟨hk1, ?_⟩
     have hne : (ofK (addressOfIndex q.1)).limb 0 * addressOfIndex k ≠
         p.limb 0 * addressOfIndex off := by
-      rw [Value.limb0_ofK_addressOfIndex_mul]
+      rw [Main.addr_ofK]
       intro he
       exact hn ⟨q.1 + k, he.symm, q, hq, by omega, by omega⟩
     simp only [rd, hne, ↓reduceIte]; exact hk2

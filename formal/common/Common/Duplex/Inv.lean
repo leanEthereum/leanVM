@@ -17,7 +17,7 @@ set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
 open Common
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 
 namespace Common.SeedDuplex
 
@@ -37,14 +37,8 @@ theorem answer_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root ×
 theorem log_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
     (s.record D x y lbl).log = (x, y, lbl) :: s.log := rfl
 
-theorem x0_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
-    (s.record D x y lbl).x0 = s.x0 := rfl
-
 theorem iv_record (s : SimSt Dg St Root n) (x y : St) (lbl : Option (Root × Fin n)) :
     (s.record D x y lbl).iv = s.iv := rfl
-
-theorem labOf_record_none (s : SimSt Dg St Root n) (x y : St) (x' : St) :
-    (s.record D x y none).labOf x' = s.labOf x' := rfl
 
 theorem mem_children {r : Root} {y : St} {p : St × (Root × Fin n)} :
     p ∈ children D r y ↔ ∃ k : Fin n, k.val ≠ 0 ∧ p = (D.next k y, (r, k)) := by
@@ -198,15 +192,6 @@ theorem answer_of_cap (hk : ∀ e ∈ s.log, D.cap y ≠ D.cap e.1) {x' : St}
   simp only [SimSt.answer, Option.map_eq_none_iff, List.find?_eq_none, decide_eq_true_eq]
   intro e he hex
   exact hk e he (hex ▸ hx').symm
-
-/-- A state whose capacity is that of the fresh answer has no registered challenge. -/
-theorem labOf_of_cap (hI : Inv D g iv s) (hv : ∀ e ∈ s.log, D.cap y ≠ D.cap e.2.1) {x' : St}
-    (hx' : D.cap x' = D.cap y) : s.labOf x' = none := by
-  simp only [SimSt.labOf, Option.map_eq_none_iff, List.find?_eq_none, decide_eq_true_eq]
-  intro p hp hpx
-  obtain ⟨-, e', he', -, hpe⟩ := hI.lab p hp
-  apply hv e' he'
-  rw [← hx', ← hpx, hpe, cap_next']
 
 theorem efflab_record_of (P : Option (Root × Fin n)) {x' : St}
     (hl : (s.record D x y P).labOf x' = s.labOf x') :

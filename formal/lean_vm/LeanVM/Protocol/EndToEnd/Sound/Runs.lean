@@ -9,7 +9,6 @@
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-import LeanVM.Protocol.Compile.Rom.Sound
 import LeanVM.Protocol.EndToEnd.Sound.Frame
 public import LeanVM.Protocol.Compile.Rom.History
 public import CompPoly.Univariate.Basic

@@ -64,10 +64,10 @@ theorem gen_pow_div {a K : ℕ} (ha : a ≤ K) : gen ^ K * (gen ^ a)⁻¹ = gen 
 theorem lowDefB_load {κ : ℕ} (hlow : LowDefB κ rd) {a : ℕ} (ha : a < 2 ^ κ) :
     LoadHolds rd (gen ^ a) 0 (rdAt rd (gen ^ a) 0) := by
   rw [gen_pow_eq_ofK]
-  refine ⟨ofK_isInK _, ?_⟩
-  rw [limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+  refine ⟨tb_isInK_ofK _, ?_⟩
+  rw [tb_addr_ofK, Nat.add_zero]
   obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hlow a ha)
-  rw [rdAt, limb0_ofK_addressOfIndex_mul, Nat.add_zero, hv]; rfl
+  rw [rdAt, tb_addr_ofK, Nat.add_zero, hv]; rfl
 
 /-- **A range check of `g^a` against `g^K`** holds from its equations. -/
 theorem rc_holds {κ a K : ℕ} (hlow : LowDefB κ rd) {x y t1 t2 k : V}
@@ -90,6 +90,7 @@ theorem vtW23_gen : vtW23 = gen ^ 23 := by rw [vtW23_eq, gen_pow_eq_ofK]
 theorem vtW8397_gen : vtW8397 = gen ^ 8397 := by rw [vtW8397_eq, gen_pow_eq_ofK]
 theorem vtW33_gen : vtW33 = gen ^ 33 := by rw [vt_word_g33, gen_pow_eq_ofK]
 theorem vtW30_gen : vtW30 = gen ^ 30 := by rw [vtW30_eq, gen_pow_eq_ofK]
+theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := tb_gen_pow_isInK a
 
 /-- An `ite`'s branches' equations. -/
 theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {c : V}

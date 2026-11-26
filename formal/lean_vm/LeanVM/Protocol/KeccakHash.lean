@@ -9,8 +9,8 @@ module
 public import LeanVM.Semantics.Lemmas
 import LeanVM.Protocol.KeccakAbsorb
 public import Statement.Field
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 
 /-!
 # Lemmas about the digest encoding

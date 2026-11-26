@@ -16,6 +16,11 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 bindings_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 manifest="$bindings_dir/native/Cargo.toml"
 target_dir=${CARGO_TARGET_DIR:-"$bindings_dir/target"}
+# Compiles the prover's CPU tiers (scripts/tier-rustc), except on a Windows host, which cannot run the wrapper.
+case "$(uname -s)" in
+MINGW* | MSYS* | CYGWIN*) ;;
+*) export RUSTC_WRAPPER="$bindings_dir/../scripts/tier-rustc" ;;
+esac
 platform=$1
 out_dir="$2/$platform"
 

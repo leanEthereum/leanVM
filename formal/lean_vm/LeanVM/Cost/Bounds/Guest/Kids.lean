@@ -20,7 +20,7 @@ valuation and `W` of the child proofs' reader `wV`; every count, mark and slot b
   reads), a child's statement off its lists' slots (`kidStmtAt_cost`), its segment
   (`kidStmtSeg_cost`: the slots off the tables, `kidSlotsIn_cost`, `Search.lean`), **`kidStmt_cost`** (`kidStmtPrice G R S N`), `subArgs_cost`,
   **`decKid_cost`** (`decKidPrice G R S W N`), the regions' tables of at most `N ≤ 2^34` marks
-  (`regionTable_size_le`: a region's slots; `2^34` on any memory, `65535` on a valid run), so
+  (`regionTable_size_le`: a region's slots; `2^34` on any memory, `2^κ` on a valid run), so
   at most `N` claims of each scheme a child. The children's list is `Raw.lean`'s
   `kidsT_cost`.
 -/
@@ -34,8 +34,6 @@ open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 public section
 
 variable (P : MachineProgram) {G : ℕ}
-
-/-! ## Facts of the tables -/
 
 /-! ## The tables -/
 
@@ -51,10 +49,10 @@ theorem markPair_cost (D : DiscreteLogTables) (hP : Includes P markPairC.costDep
     (hG : GLogBound P D G) (cover : E) (lo s : ℕ) (h : lo + s < 2 ^ 40) :
     machineCost P markPairC.costIdx [encodeValue D, rdV, encodeValue cover, encodeValue lo,
       encodeValue s] ≤ G + R + 2984 := by
-  rw [markPairC.costEq P hP D rd rdV hrd, markPairOfC.costEq P]
+  rw [markPairC.costEq P hP D rd rdV hrd, markPairOfC.costEq P (by includes)]
   have := cellAt_cost P hrd hR (by includes) cover (lo + s) h
   have := hG (cellAt rd cover (lo + s))
-  limbs
+  limbs_one
   omega
 
 /-- The coverage table's price for a region of `len` slots. -/
@@ -124,7 +122,7 @@ theorem xmssSlotClaim_cost (hP : Includes P xmssSlotClaimC.costDeps) (p52 : E) (
   have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * s) 36 (by norm_num) (by norm_num)
     (by omega)
   have h3 := xmssAtK_cost P hrd hR (by includes) (p52.limb 0 * Parameters.g ^ (4 * s))
-  limbs
+  limbs_one
   omega
 
 /-- **A child's leanSPHINCS claim at slot `s`** (`sphincsSlotClaimC`), as `xmssSlotClaim_cost`. -/
@@ -136,7 +134,7 @@ theorem sphincsSlotClaim_cost (hP : Includes P sphincsSlotClaimC.costDeps) (p55 
   have h2 := powSqK_cost_lt P (by includes) Parameters.g (4 * s) 36 (by norm_num) (by norm_num)
     (by omega)
   have h3 := sphincsAtK_cost P hrd hR (by includes) (p55.limb 0 * Parameters.g ^ (4 * s))
-  limbs
+  limbs_one
   omega
 
 section Val
@@ -186,7 +184,7 @@ theorem kidStmtAt_cost (hP : Includes P kidStmtAtC.costDeps) (p52 p55 : E) (c : 
     24 (by norm_num)
   have h7 := deferOfCells_cost P (by includes)
     (readCellsK rd ((σ (.n (val% «main» "child_carried"))).limb 0 * Parameters.g ^ (24 * c)) 24)
-  limbs
+  limbs_one
   unfold kidStmtAtPrice
   have : (4 * R + 15012 + 13) * N + (4 * R + 15012 + 13) * N = (8 * R + 30050) * N := by ring
   omega
@@ -212,7 +210,7 @@ theorem kidStmtSeg_cost (hP : Includes P kidStmtSegC.costDeps) (p52 p55 : E)
     ((kidSlotsIn_length_le tx.1 tx.2 a b).trans htxN)
     ((kidSlotsIn_length_le ts.1 ts.2 _ b).trans htsN)
     (kidSlotsIn_lt htx a b) (kidSlotsIn_lt hts _ b)
-  limbs
+  limbs_one
   omega
 
 /-- A child's statement's price. -/
@@ -233,7 +231,7 @@ theorem kidStmt_cost (D : DiscreteLogTables) (hP : Includes P kidStmtC.costDeps)
   have h3 := kidStmtSeg_cost P hrd hR hσ hS (by includes) p53 p56 tx ts htx hts c
     (countAtW D rd w380 c) (countAtW D rd w380 (c + 1)) hc (gLogD_lt D _) (gLogD_lt D _) N hN htxN
     htsN
-  limbs
+  limbs_one
   unfold kidStmtPrice
   omega
 
@@ -247,7 +245,7 @@ theorem subArgs_cost (hP : Includes P subArgsC.costDeps) (c : ℕ) (hc : c < 2 ^
   have h4 := mulK_cost P (by includes) (σ (.n (val% «main» "child_fresh"))) (Parameters.g ^ (24 * c))
   have := hS (.n (val% «main» "child_pi")); have := hS (.n (val% «main» "fs_seed[0]")); have := hS (.n (val% «main» "fs_seed[1]")); have := hS (.n (val% «main» "g_squares"))
   have := hS (.n (val% «main» "child_fresh"))
-  limbs
+  limbs_one
   omega
 
 section Proof
@@ -278,7 +276,7 @@ theorem decKid_cost (D : DiscreteLogTables) (hP : Includes P decKidC.costDeps)
     (readCellsK rd ((σ (.n (val% «main» "child_fresh"))).limb 0 * Parameters.g ^ (24 * c)) 24)
   have h5 := subArgs_cost P hrd hR hσ hS (by includes) c hc
   have := hS (.n (val% «main» "child_fresh"))
-  limbs
+  limbs_one
   unfold decKidPrice
   omega
 

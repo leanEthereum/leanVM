@@ -1,12 +1,12 @@
 /-
   LeanVM.Guest.B1.Da.CellRef
 
-  `da_verify_cell`'s reference function and its meaning.
+  `da_verify_cell`'s reference function: what its commands give, and its honest run.
 -/
 
 module
 
-public import LeanVM.Guest.Ref.Verified
+public import LeanVM.Guest.Ref.Link
 public import LeanVM.Guest.Ref.Keccak
 public import LeanVM.Guest.B1.Da.Interface
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
@@ -18,8 +18,8 @@ import LeanVM.Guest.Data.Source
 `cellRef` is `da_verify_cell(lvals)` of `guests/lean_ethereum.py` read line by line
 (`LeanVM.Guest.Ref.Lang`): the hinted symbols are the names `sym e`; the loop's reads of the
 weights are commands and its arithmetic the returned term `dotTm`; `keccak_cells(sym, st)` into the
-two cells of `st` is `sponge`. `cellRef_sem` is its meaning, `cellRef_honest` its honest run;
-`CellLink.lean` ties the compiled function to it.
+two cells of `st` is `sponge`. `cellRef_sat` is what its commands give, `cellRef_honest` its
+honest run; `CellLink.lean` ties the compiled function to it.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -135,26 +135,6 @@ theorem cellRef_honest {rd : Reader} {lv : E} {syms ws : List E}
     · simp [Tm.eval, cellVal, hsl, c.isLt]
     · rfl
   · simp [cellRef, Tm.eval, eval_dotTm, cellVal, digestCells, LeanDa.cellSymbols]
-
-/-- **`da_verify_cell`'s reference function is its meaning.** -/
-theorem cellRef_sem (rd : Reader) (args rets : List E) :
-    cellRef.Sem rd args rets ↔ MeaningDaVerifyCell rd args rets := by
-  constructor
-  · rintro ⟨ρ, rfl, hb, rfl⟩
-    obtain ⟨hr, hd⟩ := cellRef_sat hb
-    exact ⟨symsOf ρ, wsOf ρ, by simp [symsOf, LeanDa.cellSymbols], hr,
-      by simp [wsOf, LeanDa.cellSymbols], hd⟩
-  · intro hm
-    obtain ⟨lv, rfl⟩ : ∃ lv, args = [lv] := by
-      match args, hm with
-      | [lv], _ => exact ⟨lv, rfl⟩
-    obtain ⟨syms, ws, hsl, hr, hwl, rfl⟩ := hm
-    obtain ⟨ρ, hp, hs, hrets, -⟩ := cellRef_honest hsl hr hwl
-    exact ⟨ρ, hp, hs, hrets⟩
-
-/-- `da_verify_cell`, verified. -/
-def cellVerified : Verified Unit CellName :=
-  ⟨fun _ ↦ cellRef, fun _ ↦ MeaningDaVerifyCell, fun _ ↦ cellRef_sem⟩
 
 end
 end LeanVM.Guest.B1.Da

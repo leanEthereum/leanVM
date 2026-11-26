@@ -554,7 +554,7 @@ theorem keccak256With_rpm (data : List UInt8) :
 
 end Sponge
 
-/-- Keccak-256 over `keccakF` is the deployed Keccak-256. -/
+/-- Keccak-256 over `keccakF1600` is the deployed Keccak-256. -/
 theorem keccak256With_keccakF (data : List UInt8) :
     keccak256With (m := Id) keccakF1600 data = keccak256 data := rfl
 
@@ -905,67 +905,8 @@ theorem isWeightBound_relabel {α : Type} {G : OracleComp KSpecH α} {Q : ℕ}
   isWeightBound_relabel' permCallsH permCallsB (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
     (fun q ↦ by cases q <;> exact le_rfl) h
 
-/-- **A game on bytes read on lanes**: the inverse of `relabel`. -/
-def unrelabel : QueryImpl KSpecB (OracleComp KSpecH)
-  | .inl n => liftM (KSpecH.query (.inl n))
-  | .inr (.inl m) => liftM (KSpecH.query (.inr (.inl m)))
-  | .inr (.inr q) => KState.toRpm <$> liftM (KSpecH.query (.inr (.inr (mapQ stateEquiv.symm q))))
-
 /-- An adversary with its queries read on bytes. -/
 def relabelAdv {X β : Type} (A : X → OracleComp KSpecH β) : X → OracleComp KSpecB β :=
   fun x ↦ simulateQ relabel (A x)
-
-/-- An adversary on bytes with its queries read on lanes. -/
-def unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) : X → OracleComp KSpecH β :=
-  fun x ↦ simulateQ unrelabel (A x)
-
-theorem mapQ_mapQ_symm (q : PermutationQuery KState) : mapQ stateEquiv (mapQ stateEquiv.symm q) = q := by
-  cases q <;> simp [mapQ, toRpm_ofRpm]
-
-/-- Reading on lanes, then on bytes, changes nothing. -/
-theorem simulateQ_relabel_unrelabel {α : Type} (X : OracleComp KSpecB α) :
-    simulateQ relabel (simulateQ unrelabel X) = X := by
-  rw [← QueryImpl.simulateQ_compose]
-  conv_rhs => rw [← simulateQ_id' X]
-  congr 1
-  funext t
-  rcases t with n | m | q
-  · simp [relabel, unrelabel]
-  · simp [relabel, unrelabel]
-  · simp only [QueryImpl.apply_compose, unrelabel, relabel, simulateQ_map, simulateQ_spec_query,
-      Functor.map_map]
-    rw [mapQ_mapQ_symm]
-    simp [toRpm_ofRpm]
-
-theorem relabelAdv_unrelabelAdv {X β : Type} (A : X → OracleComp KSpecB β) :
-    relabelAdv (unrelabelAdv A) = A := by
-  funext x
-  exact simulateQ_relabel_unrelabel (A x)
-
-/-- **A game on lanes weighs what it weighs on bytes**, in permutation calls. -/
-theorem isWeightBound_relabel_iff {α : Type} (G : OracleComp KSpecH α) (Q : ℕ) :
-    QueryCostAtMost (simulateQ relabel G) permCallsB Q ↔ QueryCostAtMost G permCallsH Q := by
-  refine ⟨fun h ↦ ?_, isWeightBound_relabel⟩
-  induction G using OracleComp.inductionOn generalizing Q with
-  | pure a => trivial
-  | query_bind t k ih =>
-    rw [simulateQ_query_bind] at h
-    rw [isWeightBound_query_bind_iff]
-    rcases t with n | m | q
-    · change QueryCostAtMost (liftM (KSpecB.query (.inl n)) >>= fun u ↦ simulateQ relabel (k u))
-        permCallsB Q at h
-      rw [isWeightBound_query_bind_iff] at h
-      exact ⟨h.1, fun u ↦ ih u _ (h.2 u)⟩
-    · change QueryCostAtMost (liftM (KSpecB.query (.inr (.inl m))) >>= fun u ↦
-        simulateQ relabel (k u)) permCallsB Q at h
-      rw [isWeightBound_query_bind_iff] at h
-      exact ⟨h.1, fun u ↦ ih u _ (h.2 u)⟩
-    · change QueryCostAtMost ((KState.ofRpm <$>
-        liftM (KSpecB.query (.inr (.inr (mapQ stateEquiv q))))) >>= fun u ↦
-          simulateQ relabel (k u)) permCallsB Q at h
-      rw [bind_map_left, isWeightBound_query_bind_iff] at h
-      refine ⟨h.1, fun u ↦ ih u _ ?_⟩
-      have := h.2 (KState.toRpm u)
-      rwa [ofRpm_toRpm] at this
 
 end Common

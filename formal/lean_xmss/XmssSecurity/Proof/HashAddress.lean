@@ -1,10 +1,17 @@
 module
 
-public import XmssSecurity.Proof.CacheQuerySupport
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.HashInputLemmas
 
 @[expose] public section
+
+/-!
+# Hash addresses
+
+`AtHashAddress parameter domain` holds of the inputs whose 32-byte prefix is the parameter and the
+domain's tweak and which end with the domain's suffix. An input lies at one address at most
+(`atHashAddress_unique`), a tweakable hash input at its own domain's, so one tweakable-hash call
+makes one query at its address and none at any other.
+-/
 
 open OracleComp OracleSpec
 
@@ -30,8 +37,8 @@ theorem atHashAddress_unique
     (hleft : AtHashAddress parameter left input)
     (hright : AtHashAddress parameter right input) :
     left = right := by
-  have htweaks : tweakBytes left = tweakBytes right := by
-    exact List.append_right_injective (bytesLE 16 parameter)
+  have htweaks : tweakBytes left = tweakBytes right :=
+    List.append_right_injective (bytesLE 16 parameter)
       (hleft.1.symm.trans hright.1)
   obtain ⟨hlength, hdomain⟩ := domain_eq_of_hashDomainFields_eq (fieldBytes_injective htweaks)
   exact hdomain (suffix_eq_of_length_eq hleft.2 hright.2 hlength)

@@ -8,42 +8,38 @@
 module
 
 public import Mathlib.Basic.ENNReal.Inv
-public import LeanVM.Protocol.Verifier.Cost
 
 /-!
 # The errors the proofs establish
 
 With Keccak-256 and Keccak-f[1600] two independent random functions, the proofs bound knowledge
-soundness by `soundnessErrorAS Q` (`LeanVM.Protocol.LeanVMSoundAS`) and completeness by
-`completenessError fuel`; building both functions from one random permutation costs `rpmError q`
-more, `q` the experiment's permutation calls (at most `verifierPermCalls` for the verifier,
-`completenessPermCalls fuel` for the honest prover and the verifier). The counts are the verifier
-program's, `leanVmQueryBound` queries and a cost of `leanVmCost` (`LeanVM.Protocol.Verifier.Cost`);
-the bounds in bits read them through the budgets of `LeanVM.Protocol.Verifier.Budget`
-(`completenessQueries_le_budget`). The end statements bound the sums in bits:
-`LeanVM.soundnessRpmAS_le_statement` (`LeanVM.Protocol.LeanVMSoundAS`),
-`LeanVM.Rpm.completenessRpm_le`.
+soundness by `soundnessErrorAS Q` (`LeanVM.Protocol.LeanVMSoundAS`) and completeness by `completenessError fuel`; building both
+functions from one random permutation costs `rpmError q` more, `q` the experiment's permutation
+calls (at most `verifierPermCalls` for the verifier, `completenessPermCalls fuel` for the honest
+prover and the verifier). The end statements bound the sums in bits:
+`LeanVM.soundnessRpmAS_le_statement` (`LeanVM.Protocol.LeanVMSoundAS`), `LeanVM.Rpm.completenessRpm_le`.
 -/
 
 namespace LeanVM
 
-open LeanVM.Protocol.Verifier
 open scoped ENNReal
 
 @[expose] public section
 
+/-- The verifier's oracle queries, at most, on every statement and proof: `13708` queries to
+Keccak-256 and Keccak-f together (the IV, the seed's
+permutation, the sponge's permutations, one per challenge and one per four absorbed scalars, and
+every Merkle hash of the openings), the bound the proof establishes over every admissible shape
+(`LeanVM.Protocol.Verifier.leanVmQueryBound`). The bound is not tight: it charges every WHIR
+opening at the largest commitment height, and bounds the bus depth, the table heights and the
+Keccak reduction's point by the window of the announced sizes. -/
+def verifierQueries : ℕ := 13708
+
 /-- The oracle queries of the honest prover and the verifier together, at most, at a fuel of `fuel`
 nonces per proof of work: the seed's hash and permutation, then per quarter of the program's cost
-`leanVmCost` one tree of at most `2^29` hashes or one search of `fuel` nonces at two queries each
-(`proverFactor`), and the verifier's `leanVmQueryBound`. -/
-def completenessQueries (fuel : ℕ) : ℕ :=
-  2 + leanVmCost * (2 ^ 29 + 2 * fuel + 2) + leanVmQueryBound
-
-/-- The queries, within the budgets `verifierCost` and `verifierQueries`. -/
-theorem completenessQueries_le_budget (fuel : ℕ) :
-    completenessQueries fuel ≤ 2 + verifierCost * (2 ^ 29 + 2 * fuel + 2) + verifierQueries := by
-  have := leanVmQueryBound_add_three_le
-  exact Nat.add_le_add (Nat.add_le_add_left (Nat.mul_le_mul_right _ leanVmCost_le) _) (by omega)
+(`leanVmCost = 54825`) one tree of at most `2^29` hashes or one search of `fuel` nonces at two
+queries each (`proverFactor`), and the verifier's `13708`. -/
+def completenessQueries (fuel : ℕ) : ℕ := 13710 + 54825 * (2 ^ 29 + 2 * fuel + 2)
 
 /-- **The completeness error** at a fuel of `fuel` nonces per proof of work, with two independent
 random functions: each of the `Q` queries of the honest prover and the verifier may complete a
@@ -55,11 +51,11 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   completenessQueries fuel * (1 - (2 : ℝ≥0∞)⁻¹ ^ 27 * (1 - (2 : ℝ≥0∞)⁻¹ ^ 64)) ^ fuel
 
 /-- The permutation calls of the verifier, at most, on every statement and proof: its
-`leanVmQueryBound` queries, each a permutation or a Keccak-256 hash of at most `2^37 + 9` bytes
-(the IV's preimage: the `9`-byte version tag, then the bytecode, `16` words of `8` bytes per
-instruction, at most `2^30` instructions), which is at most `⌊(2^37 + 9) / 136⌋ + 1 ≤ 2^30` blocks,
-one permutation each. -/
-def verifierPermCalls : ℕ := leanVmQueryBound * 2 ^ 30
+`verifierQueries = 13708` queries, each a permutation or a Keccak-256 hash of at most
+`2^37 + 9` bytes (the IV's preimage: the `9`-byte version tag, then the bytecode, `16` words of `8`
+bytes per instruction, at most `2^30` instructions), which is at most `⌊(2^37 + 9) / 136⌋ + 1 ≤
+2^30` blocks, one permutation each. -/
+def verifierPermCalls : ℕ := verifierQueries * 2 ^ 30
 
 /-- The permutation calls of the honest prover and the verifier together, at most: the
 `completenessQueries fuel` queries of `completenessError`, each at most `2^30` blocks. -/

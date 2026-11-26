@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Sig.XmssScheme
 
-  leanXMSS verification with Keccak-256 (`Node.xmssVerify`) as pure functions of the guest's cells.
+  leanXMSS verification with Keccak-256 (`LeanXmss.verifyWithKeccak`) as pure functions of the guest's cells.
 -/
 
 module
@@ -11,11 +11,12 @@ public import LeanVM.Guest.B1.Sig.Shapes
 public import Common.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
+import Common.SequenceFin
 
 /-!
 # leanXMSS over cells
 
-`Node.xmssVerify` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
+`LeanXmss.verifyWithKeccak` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
 lemmas
 here are stated for any oracle instance on `Id` with the hypothesis `XQ` that it is Keccak-256: the
 kernel then never compares the instance with another term, which would unfold the hash. Each
@@ -65,7 +66,7 @@ theorem tweakableHash_cells (hq : XQ inst) {P : PublicParameter} {dom : HashDoma
 theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequenceFin f = f
   | 0, f => funext fun i => i.elim0
   | n + 1, f => by
-      simp only [sequenceFin]
+      simp only [Common.sequenceFin_succ]
       have := sequenceFin_id (fun i : Fin n => f i.succ)
       rw [this]
       funext i

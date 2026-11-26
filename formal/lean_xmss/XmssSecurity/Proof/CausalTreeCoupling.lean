@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Proof.TreeCacheVocabulary
 public import XmssSecurity.Proof.CacheAgreement
+public import XmssSecurity.Proof.ChainOraclePresampling
+public import XmssSecurity.Proof.FreshHashQuery
 
 @[expose] public section
 
@@ -28,11 +30,6 @@ def ChainsWarm (parameter : PublicParameter) (start : ChainKey → ChainIndex �
   ∀ key chain steps, steps ≤ chainLength - 1 →
     RunsBelow (Concrete.keyChainWalk parameter key chain 0 steps (start key chain) :
       OracleComp HashSpec Digest) cache
-
-theorem ChainsWarm.mono {parameter : PublicParameter} {start : ChainKey → ChainIndex → Digest}
-    {cache larger : QueryCache HashSpec} (hwarm : ChainsWarm parameter start cache)
-    (hle : cache ≤ larger) : ChainsWarm parameter start larger :=
-  fun key chain steps hsteps => (hwarm key chain steps hsteps).mono hle
 
 theorem ChainsWarm.keyChainWalk_run_eq {parameter : PublicParameter}
     {start : ChainKey → ChainIndex → Digest} {warm cache : QueryCache HashSpec}
@@ -206,24 +203,28 @@ theorem relTriple_randomOracle_retained
         QueryImpl.withCaching_run_some _ hright]
       exact relTriple_pure_pure ⟨rfl, hleftLe, hrightLe, hcorr⟩
 
-theorem relTriple_randomOracle_leafPair
-    {leftCache rightCache : QueryCache HashSpec}
-    (hrel : KeygenRunRelation parameter leftStart rightStart leftWarm rightWarm
-      leftCache rightCache) (key : ChainKey) :
+/-- `relTriple_randomOracle_leafPair` over any endpoints. The proof compares the two queries' result
+types, the left and right inputs' `Range`s; over the warm caches' one-time public keys the kernel
+would evaluate both inputs to do so. -/
+theorem relTriple_randomOracle_leafPair_of
+    {leftEndpoints rightEndpoints : ChainKey → ChainIndex → Digest}
+    {leftCache rightCache : QueryCache HashSpec} (hleftLe : leftWarm ≤ leftCache)
+    (hrightLe : rightWarm ≤ rightCache)
+    (hcorr : GlobalTreeCacheCorrespondence parameter leftEndpoints rightEndpoints leftCache
+      rightCache) (key : ChainKey) :
     RelTriple
-      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key
-        (keyOneTimePublicKey leftWarm parameter leftStart key))).run leftCache)
-      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key
-        (keyOneTimePublicKey rightWarm parameter rightStart key))).run rightCache)
-      (KeygenRunResult parameter leftStart rightStart leftWarm rightWarm) := by
-  obtain ⟨hleftLe, hrightLe, hcorr⟩ := hrel
+      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key (leftEndpoints key))).run
+        leftCache)
+      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key (rightEndpoints key))).run
+        rightCache)
+      (fun left right => left.1 = right.1 ∧ leftWarm ≤ left.2 ∧ rightWarm ≤ right.2 ∧
+        GlobalTreeCacheCorrespondence parameter leftEndpoints rightEndpoints left.2 right.2) := by
   have hlookup := hcorr.leaves key
   unfold hashCacheLookup at hlookup
-  cases hleft : leftCache (Concrete.CacheView.keyLeafInput parameter key
-      (keyOneTimePublicKey leftWarm parameter leftStart key)) with
+  cases hleft : leftCache (Concrete.CacheView.keyLeafInput parameter key (leftEndpoints key)) with
   | none =>
       have hright : rightCache (Concrete.CacheView.keyLeafInput parameter key
-          (keyOneTimePublicKey rightWarm parameter rightStart key)) = none := by
+          (rightEndpoints key)) = none := by
         rw [← hlookup]
         exact hleft
       rw [randomOracle, QueryImpl.withCaching_run_none _ hleft,
@@ -238,12 +239,24 @@ theorem relTriple_randomOracle_leafPair
         hcorr.cacheQuery_leafPair key leftOutput⟩
   | some output =>
       have hright : rightCache (Concrete.CacheView.keyLeafInput parameter key
-          (keyOneTimePublicKey rightWarm parameter rightStart key)) = some output := by
+          (rightEndpoints key)) = some output := by
         rw [← hlookup]
         exact hleft
       rw [randomOracle, QueryImpl.withCaching_run_some _ hleft,
         QueryImpl.withCaching_run_some _ hright]
       exact relTriple_pure_pure ⟨rfl, hleftLe, hrightLe, hcorr⟩
+
+theorem relTriple_randomOracle_leafPair
+    {leftCache rightCache : QueryCache HashSpec}
+    (hrel : KeygenRunRelation parameter leftStart rightStart leftWarm rightWarm
+      leftCache rightCache) (key : ChainKey) :
+    RelTriple
+      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key
+        (keyOneTimePublicKey leftWarm parameter leftStart key))).run leftCache)
+      ((randomOracle (Concrete.CacheView.keyLeafInput parameter key
+        (keyOneTimePublicKey rightWarm parameter rightStart key))).run rightCache)
+      (KeygenRunResult (α := HashOutput) parameter leftStart rightStart leftWarm rightWarm) :=
+  relTriple_randomOracle_leafPair_of hrel.1 hrel.2.1 hrel.2.2 key
 
 theorem Concrete.simulateQ_tweakableHash_run (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) (cache : QueryCache HashSpec) :

@@ -30,7 +30,7 @@ The specification is stated for a set `S` of candidates (the assembly passes the
 candidates left by the OOD sample, `oodCands`, at most one), a predicate `G` of the claims they
 must also meet, each candidate's true slices `z q`, and a reading `RC` of the returned ring claim
 on a candidate, assumed to hold only at a bad challenge list (`RingClaimBad`; for the verifier's
-claim on the stack, `RingFidelity.ringClaim_holds_iff`):
+claim on the stack, `Front.ringClaim_holds_iff`):
 
 * `RingPre`: no candidate meets `G` with true slices equal to the claims;
 * `RingPost`: no candidate meets `G` and the ring claim;

@@ -1,10 +1,20 @@
 module
 
-public import XmssSecurity.Proof.RandomizedStatement
 public import XmssSecurity.Proof.EvalDistEq
-public import Common.RomTable
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 @[expose] public section
+
+/-!
+# A random table read only at fresh requests
+
+`FreshRequests used computation` says no branch of the computation repeats a request (nor makes one
+in `used`). For such a computation, answering request `r` with `sign r (table r)` from a uniform
+table (`tableRun`) has the distribution of sampling an independent tape at each request
+(`freshRun`): `FreshRequests.evalDist_tableRun`. The state may carry query costs.
+-/
 
 open OracleComp OracleSpec
 
@@ -133,8 +143,8 @@ theorem evalDist_table_refresh {α : Type} (request : Request)
     (do let table ← $ᵗ (Request → Tape); next table) =ᵈ (do
         let tape ← $ᵗ Tape
         let table ← $ᵗ (Request → Tape)
-        next (Function.update table request tape)) := by
-  exact (Common.RomTable.evalDistEq_uniformSample_bind_update request next).symm
+        next (Function.update table request tape)) :=
+  (evalDistEq_uniformSample_bind_update request next).symm
 
 /-- Independent tapes may be sampled when a request first appears. The state can include query costs. -/
 theorem FreshRequests.evalDist_tableRun {α : Type} {used : Set Request}

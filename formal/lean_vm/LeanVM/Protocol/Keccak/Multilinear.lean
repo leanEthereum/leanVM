@@ -9,18 +9,20 @@ module
 
 import LeanVM.Protocol.Keccak.Linear
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
-public import LeanVM.Protocol.Verifier.EqKernel
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Multilinear sums
 
-The verifier's points are lists, the first coordinate the lowest bit of an index (`eq_kernel`,
-`crates/verifier/src/multilinear.rs`); the equality weights `eqAt` and the kernel's lemmas are
-`LeanVM.Protocol.Verifier.EqKernel`'s. Here:
+The verifier's points are lists, the first coordinate the lowest bit of an index
+(`eq_kernel`, `crates/verifier/src/multilinear.rs`). Here:
 
+* `eqAt pt w = Π_k eq(pt_k, bit k of w)`, defined coordinate by coordinate from the first;
+  `eqKernel_getD`: the verifier's `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;
+  `sum_eqAt`: the weights sum to one; `eqAt_append`: a point split in two;
 * `bitsE z m`: the hypercube point of index `z`, `eqAt_bitsE_lt`: equality weights at a cube point
   are an indicator;
-* `multilinearEval_eq`: the verifier's evaluation as an equality-weighted sum;
+* `multilinearEval_eq`, `dot_eqKernel`: the verifier's evaluation and inner product as sums;
 * `polyLE_eqAt`: `eqAt` is affine in each coordinate, so a sum of products of `k` multilinear
   extensions is a polynomial of degree `k` in any one coordinate (`PolyLE`).
 -/
@@ -30,6 +32,99 @@ namespace LeanVM.Protocol.KeccakGkr
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd.Complete Finset
 
 @[expose] public section
+
+/-! ## Equality weights -/
+
+/-- The equality weight of index `w` at the point `pt`, the first coordinate on the lowest bit. -/
+def eqAt : List E → ℕ → E
+  | [], _ => 1
+  | r :: rs, w => (if w % 2 = 1 then r else 1 + r) * eqAt rs (w / 2)
+
+@[simp] theorem eqAt_nil (w : ℕ) : eqAt [] w = 1 := rfl
+
+theorem eqAt_cons (r : E) (rs : List E) (w : ℕ) :
+    eqAt (r :: rs) w = (if w % 2 = 1 then r else 1 + r) * eqAt rs (w / 2) := rfl
+
+/-- Only the low `|pt|` bits matter. -/
+theorem eqAt_mod : ∀ (pt : List E) (w : ℕ), eqAt pt w = eqAt pt (w % 2 ^ pt.length)
+  | [], _ => rfl
+  | r :: rs, w => by
+    rw [eqAt_cons, eqAt_cons, List.length_cons, pow_succ, mul_comm (2 ^ rs.length) 2,
+      Nat.mod_mul_right_mod, Nat.mod_mul_right_div_self, ← eqAt_mod rs]
+
+/-- A point split in two. -/
+theorem eqAt_append : ∀ (a b : List E) (w : ℕ), eqAt (a ++ b) w = eqAt a w * eqAt b (w / 2 ^ a.length)
+  | [], b, w => by simp
+  | r :: a, b, w => by
+    rw [List.cons_append, eqAt_cons, eqAt_cons, eqAt_append a b, List.length_cons, pow_succ,
+      Nat.div_div_eq_div_mul, mul_comm (2 ^ a.length) 2, mul_assoc]
+
+/-- Sums over the cube of `m + 1` coordinates split on the first. -/
+theorem sum_cube_succ (m : ℕ) (F : ℕ → E) :
+    ∑ w ∈ range (2 ^ (m + 1)), F w = ∑ w ∈ range (2 ^ m), (F (2 * w) + F (2 * w + 1)) := by
+  rw [pow_succ, mul_comm, Finset.sum_range_two_mul]
+
+/-- The equality weights sum to one. -/
+theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w = 1
+  | [] => by simp
+  | r :: rs => by
+    rw [List.length_cons, sum_cube_succ, ← sum_eqAt rs, Finset.sum_congr rfl fun w _ ↦ ?_]
+    rw [eqAt_cons, eqAt_cons]
+    have h1 : 2 * w % 2 = 0 := by omega
+    have h2 : (2 * w + 1) % 2 = 1 := by omega
+    have h3 : 2 * w / 2 = w := by omega
+    have h4 : (2 * w + 1) / 2 = w := by omega
+    simp only [h1, h2, h3, h4, ite_true, zero_ne_one, ite_false]
+    rw [← add_mul, add_assoc, CharTwo.add_self_eq_zero, add_zero, one_mul]
+
+/-! ## `eq_kernel` -/
+
+theorem eqKernel_append (pt : List E) (r : E) :
+    eqKernel (pt ++ [r]) = (eqKernel pt).map (· * (1 + r)) ++ (eqKernel pt).map (· * r) := by
+  unfold eqKernel
+  rw [List.foldl_concat]
+
+theorem eqKernel_length : ∀ pt : List E, (eqKernel pt).length = 2 ^ pt.length := by
+  intro pt
+  induction pt using List.reverseRecOn with
+  | nil => rfl
+  | append_singleton pt r ih =>
+    rw [eqKernel_append, List.length_append, List.length_map, List.length_map, ih,
+      List.length_append, List.length_singleton, pow_succ]
+    ring
+
+theorem getD_map_mul (l : List E) (c : E) (w : ℕ) :
+    (l.map (· * c)).getD w 0 = l.getD w 0 * c := by
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases l[w]? <;> simp
+
+/-- **`eq_kernel` lists the equality weights.** -/
+theorem eqKernel_getD : ∀ (pt : List E) (w : ℕ),
+    (eqKernel pt).getD w 0 = if w < 2 ^ pt.length then eqAt pt w else 0 := by
+  intro pt
+  induction pt using List.reverseRecOn with
+  | nil =>
+    intro w
+    rcases w with _ | w
+    · rfl
+    · simp [eqKernel, List.getD_eq_getElem?_getD]
+  | append_singleton pt r ih =>
+    intro w
+    have hlen := eqKernel_length pt
+    have hp : 2 ^ (pt.length + 1) = 2 ^ pt.length + 2 ^ pt.length := by rw [pow_succ]; ring
+    rw [eqKernel_append, List.length_append, List.length_singleton, eqAt_append]
+    by_cases hw : w < 2 ^ pt.length
+    · rw [List.getD_append _ _ _ _ (by simpa [hlen] using hw), getD_map_mul, ih,
+        ite_eq_left hw, ite_eq_left (by omega), Nat.div_eq_of_lt hw]
+      simp [eqAt]
+    · rw [List.getD_append_right _ _ _ _ (by simp [hlen]; omega), List.length_map, hlen,
+        getD_map_mul, ih]
+      by_cases hw2 : w < 2 ^ (pt.length + 1)
+      · have hq : w / 2 ^ pt.length = 1 := Nat.div_eq_of_lt_le (by omega) (by omega)
+        rw [ite_eq_left hw2, hq, ite_eq_left (by omega), eqAt_mod pt w,
+          eqAt_mod pt (w - 2 ^ pt.length), ← Nat.mod_eq_sub_mod (by omega)]
+        simp [eqAt]
+      · rw [ite_eq_right hw2, ite_eq_right (by omega), zero_mul]
 
 /-! ## Cube points -/
 
@@ -76,7 +171,7 @@ theorem sum_eqAt_bitsE {m z : ℕ} (hz : z < 2 ^ m) (F : ℕ → E) :
     rw [eqAt_bitsE_lt hz (Finset.mem_range.1 hw), ite_eq_right hne, zero_mul]
   · intro h; exact absurd (Finset.mem_range.2 hz) h
 
-/-! ## `multilinear_eval` -/
+/-! ## The verifier's evaluations -/
 
 theorem foldPairs_getD (r : E) : ∀ (l : List E) (w : ℕ), 2 * w + 1 < l.length →
     (foldPairs r l).getD w 0 = l.getD (2 * w) 0 * (1 + r) + l.getD (2 * w + 1) 0 * r
@@ -118,6 +213,31 @@ theorem multilinearEval_eq : ∀ (pt mle : List E), mle.length = 2 ^ pt.length �
     have h4 : (2 * w + 1) / 2 = w := by omega
     simp only [h1, h2, h3, h4, ite_true, zero_ne_one, ite_false]
     ring
+
+/-- `dot` of two lists of the same length is the sum of the products. -/
+theorem dot_eq : ∀ (a b : List E), a.length = b.length →
+    dot a b = ∑ j ∈ range a.length, a.getD j 0 * b.getD j 0 := by
+  intro a b h
+  unfold dot
+  rw [← sumE, sumE_eq_sum]
+  induction a generalizing b with
+  | nil => simp
+  | cons x a ih =>
+    rcases b with _ | ⟨y, b⟩
+    · simp at h
+    · simp only [List.zipWith_cons_cons, List.sum_cons, List.length_cons, Finset.sum_range_succ']
+      rw [ih b (by simpa using h)]
+      simp [add_comm]
+
+/-- **The verifier's `dot(eq[:n], w)`**: the equality-weighted sum of `w`. -/
+theorem dot_eqKernel (pt w : List E) (hn : w.length ≤ 2 ^ pt.length) :
+    dot ((eqKernel pt).take w.length) w = ∑ j ∈ range w.length, eqAt pt j * w.getD j 0 := by
+  rw [dot_eq _ _ (by simp [eqKernel_length, hn]), List.length_take, eqKernel_length,
+    min_eq_left hn]
+  refine Finset.sum_congr rfl fun j hj ↦ ?_
+  have hj' := Finset.mem_range.1 hj
+  rw [List.getD_eq_getElem?_getD, List.getElem?_take, ite_eq_left hj', ← List.getD_eq_getElem?_getD,
+    eqKernel_getD, ite_eq_left (by omega)]
 
 /-! ## Degrees in one coordinate -/
 

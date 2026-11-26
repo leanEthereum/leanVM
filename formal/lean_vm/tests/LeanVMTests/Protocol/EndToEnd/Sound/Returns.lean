@@ -18,12 +18,8 @@ open LeanVM.Protocol.EndToEnd.Sound
 
 /-! ## Statement locks -/
 
-example : LeanVM.Protocol.Verifier.tableWidths.sum = 153 :=
-  LeanVM.Protocol.Verifier.Claims.tableWidths_sum
-
 example (layout : LeanVM.Protocol.Verifier.Layout) :
-    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦
-        claims.length ≤ 4 + LeanVM.Protocol.Verifier.tableWidths.sum)
+    RetOK (fun claims : List LeanVM.Protocol.Verifier.ColumnClaim ↦ claims.length ≤ 157)
       ((LeanVM.Protocol.Verifier.verifyBusBalance LeanVM.Protocol.Verifier.computedBytecodeValue layout).bind
         (LeanVM.Protocol.Verifier.tablePhaseClaims layout)) :=
   retOK_busTable _ layout

@@ -15,7 +15,7 @@ import LeanVM.Guest.B1.Common.Run
 /-!
 # The GKR walk on the carried sponge
 
-* `gkrRun` (B1-a's, `B1/Sumcheck/Meaning`): equality-mode rounds of four coefficients each, the
+* `gkrRun` (`B1/Sumcheck/Meaning`): equality-mode rounds of four coefficients each, the
   derived `c0 = claim + e·Σ c`, a squeeze per round; `gkr_sumcheck_run`: it is `sumcheck _ 5`
   over the eq factors, as a run.
 * `gkrStep_run`: one step of `step ≤ 2` levels (`gkrStep`), from its combiner, rounds, children
@@ -117,6 +117,11 @@ theorem gkrStep_last {step : ℕ} (hs : step ≤ 2) (last : Bool) (st : GkrState
     gkrStep step last st = gkrStep step false st := by
   rw [gkrStep_eq hs, gkrStep_eq hs]
 
+theorem tb_runsTo_require {c : Prop} [Decidable c] (hc : c) (s : Fs) :
+    RunsTo (VerifierProgram.require c) s [] () s := by
+  simp only [VerifierProgram.require, hc, ↓reduceIte]
+  exact runsTo_ret () s
+
 /-- **One step of the walk as a run**: from the sponge `s`, the step samples its combiner, runs
 its sumcheck (`hsc`, reading `xs` to the challenges `x` and the claim `claim'`), reads the three
 trees' children, checks them, samples `y`, and returns their values at `y` with the point
@@ -143,7 +148,7 @@ theorem gkrStep_run {step : ℕ} (hs : step ≤ 2) (last : Bool) {st : GkrState}
   rw [h0] at r0
   rw [h1] at r1
   rw [h2] at r2
-  have hq := runsTo_require hcheck
+  have hq := tb_runsTo_require hcheck
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)
   have hy := runsTo_sampleN step
     (((s1.absorbAll ch0 dsObserve).absorbAll ch1 dsObserve).absorbAll ch2 dsObserve)

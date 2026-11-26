@@ -12,11 +12,11 @@ import LeanVM.Protocol.Whir.Sound.Code
 public import LeanVM.Protocol.Whir.ColumnWeight
 public import LeanVM.Protocol.EndToEnd.Claims
 import LeanVM.Protocol.Verifier
-public import LeanVM.Protocol.Verifier.EqKernel
 import LeanVM.Protocol.Whir.SubspaceAt
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import Mathlib.Tactic
+import LeanVM.ToMathlib.List
 
 /-!
 # The verifier's weights
@@ -29,12 +29,20 @@ This module proves what the round-by-round analysis needs of each:
 * **products of affine factors** are multiaffine (`isMultiaffine_prod`);
 * `eqEval z` (the out-of-domain claim's weight) is multiaffine (`isMultiaffine_eqEval`), and its
   inner product with a message is the message's multilinear extension at `z`
-  (`sum_eqEval_mul_eq_evalMle`);
+  (`sum_eqEval_vec`, `Sound/Escape.lean`);
 * the verifier's `inducedWeight` (`induced_weight`) is the column-weight sum of Annex D
-  `lem:colweight` (`inducedWeight_eq_sum`), hence multiaffine (`isMultiaffine_inducedWeight`), and
-  its inner product with a message is the batched codeword entries, `Σ_q w_q Enc(G)[x_q]`
-  (`sum_inducedWeight_mul`);
-* rotating the point keeps a weight multiaffine (`isMultiaffine_rotL`).
+  `lem:colweight` (`inducedWeight_eq_sum`, through `LeanVM.Protocol.Whir.inducedWeight_eq`; the
+  verifier's own `subspaceRoots` is the Annex's roots, `subspaceRoots_eq`), hence
+  multiaffine (`isMultiaffine_inducedWeight`), and its inner product with a message is the batched
+  codeword entries, `Σ_q w_q Enc(G)[x_q]` (`sum_inducedWeight_mul`);
+* the opening weight read at the rotated point, `w(p[ℓ₀:] ++ p[:ℓ₀])`, is multiaffine when `w` is
+  the multilinear extension of its cube values (`IsMultilinearFn`, `isMultiaffine_rotL`);
+* `dot(row, eq_kernel(folds))`, the lane fold of an opened row, is the row folded
+  by `foldsN` (`dot_eqKernel`).
+
+`joinMsg` regroups a message split into lanes and message bits into one message on the full
+cube, `sum_joinMsg` relating the two inner products: the level interface, where the next
+oracle's lanes are the first variables of the current level's message.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -81,7 +89,7 @@ theorem isMultiaffine_prod (n : ℕ) (f : ℕ → E → E) (hf : ∀ i, IsAffine
 /-- `eq_eval(z, x)` is the product of its coordinate factors. -/
 theorem eqEval_eq_prod (z x : List E) (h : x.length = z.length) :
     eqEval z x = ∏ i : Fin z.length, (1 + z.getD i 0 + x.getD i 0) := by
-  rw [eqEval, foldl_mul_eq, one_mul]
+  rw [eqEval, List.foldl_mul_eq_mul_prod, one_mul]
   induction z generalizing x with
   | nil => simp
   | cons a z ih =>

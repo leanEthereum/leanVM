@@ -20,7 +20,7 @@ group `p` walks chain `4p + r` at digit `k / 4^r % 4`, folds `DIGIT_SUMS[k % 4^n
 product, in the exponent, and `(k % 4^n) · 4^(4p)` into the encoding.
 
 * `lxN p`: group `p`'s digits; `lxDigit K i`: chain `i`'s digit when group `p` takes arm `K p`;
-* `digitSum_mod`: `DIGIT_SUMS` over `4^4` entries is the digit sum of a group's own digits;
+* `digitSum_four`, `digitSum_two`, `lx_digitSum_le`: a group's digit sum, at most `3` per digit;
 * `lx_digitSum_total`: the groups' digit sums add up to the digits' sum;
 * `lx_enc_total`, `lx_enc_lt`, `lx_enc_step`: the groups' encodings add up, without carries, to the
   digits' base-4 number, a `lit` of each running sum.
@@ -45,12 +45,6 @@ theorem digitSum_four (k : Nat) : digitSum k 4 = k % 4 + k / 4 % 4 + k / 16 % 4 
 
 theorem digitSum_two (k : Nat) : digitSum k 2 = k % 4 + k / 4 % 4 := by
   simp [digitSum]; omega
-
-/-- **`DIGIT_SUMS[k % 4^n]`**, the table's sum of four digits, is the sum of `k`'s low `n`. -/
-theorem digitSum_mod (k : Nat) {n : Nat} (hn : n = 2 ∨ n = 4) : digitSum (k % 4 ^ n) 4 = digitSum k n := by
-  rcases hn with rfl | rfl
-  · rw [digitSum_four, digitSum_two]; norm_num; omega
-  · rw [digitSum_four, digitSum_four]; norm_num; omega
 
 theorem lx_digitSum_le (k n : Nat) : digitSum k n ≤ 3 * n := by
   induction n with

@@ -204,7 +204,7 @@ theorem kid13_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       have e : ((S.kids bs sqE).getD 13 noKid pv).Lin =
           (ChildSegs.cpRes pv).2 ++ (ChildSegs.osRes pv).2 ++ S.termLin bs sqE := by
         show @ite _ _ (Classical.propDecidable _) _ _ = _
-        rw [ite_eq_left (h := (Classical.propDecidable _)) hok]
+        rw [@ite_pos' _ _ (Classical.propDecidable _) _ _ hok]
       rw [← e]; exact hq
     simp only [List.mem_append] at hq'
     rcases hq' with (h | h) | h
@@ -223,7 +223,7 @@ theorem kid13_lin_sub {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       · exact Or.inr (Or.inl (own 6 (by norm_num)))
   · have e : ((S.kids bs sqE).getD 13 noKid pv).Lin = [] := by
       show @ite _ _ (Classical.propDecidable _) _ _ = _
-      rw [ite_eq_right (h := (Classical.propDecidable _)) hok]
+      rw [@ite_neg' _ _ (Classical.propDecidable _) _ _ hok]
     rw [e] at hq
     simp at hq
 

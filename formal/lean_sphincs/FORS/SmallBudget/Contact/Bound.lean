@@ -1,6 +1,6 @@
 module
 
-public import FORS.SmallBudget.Contact.Signing
+public import FORS.SmallBudget.Contact.PaidPotential
 
 @[expose] public section
 
@@ -21,8 +21,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open HiddenReveal PotentialA
 
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### The event -/

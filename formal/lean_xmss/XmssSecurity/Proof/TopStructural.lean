@@ -1,10 +1,8 @@
 module
 
 public import XmssSecurity.Proof.GlobalBadEvent
-public import XmssSecurity.Proof.AdaptiveFreshTarget
 public import XmssSecurity.Proof.TopKeygenCache
-public import XmssSecurity.Proof.TopVerificationQueryPresence
-public import XmssSecurity.Proof.CappedSuffixEventProbability
+public import XmssSecurity.Proof.CappedSuffixOrientation
 
 @[expose] public section
 

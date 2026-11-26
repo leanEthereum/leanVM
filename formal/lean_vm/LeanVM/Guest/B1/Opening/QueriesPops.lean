@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B1.Opening.WalkPops
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `opening_queries`' pops
@@ -17,11 +16,7 @@ A query (`oqQueryT`), its windows' words arms of their matches (`WinSel`), pops 
 one `merkle_leaf_rows` entry (`rowPop`), then its siblings' cells, one `merkle_children` entry
 (`queryPops`); nothing else in the function or its loop helper is a witness hint.
 
-* `oqQuery_fallPops`: a query;
-* `oqLoop1_pops`, `oqLoop0_pops`: a loop helper's call instance pops its queries' entries, then its
-  next iteration's;
-* `oqMain_pops`: the function's call instance pops, at level 0 when `odd_g + 1 ≠ 0`, its odd first
-  query's entries, then its loop's.
+* `oqQuery_fallPops`: a query.
 -/
 
 namespace LeanVM.Guest.B1
@@ -73,8 +68,6 @@ theorem oqFinT_noWit (s : Oq) (x hs : V) (v : ℕ) : noWit (oqFinT s x hs v) = t
     unfold oqNovel nvLevel0T; dsimp only
     simp only [noWit_append, Bool.and_eq_true]; exact ⟨noWit_flatten_map fun _ _ => rfl, nvLevelsT_noWit _ _ _ _ _⟩
   unfold oqFinT; simp only [noWit_append, Bool.and_eq_true]; exact ⟨⟨h1, h2⟩, rfl⟩
-
-/-! ## Calls -/
 
 /-! ## A query -/
 
@@ -149,38 +142,6 @@ theorem oqLoop0A_fallPops (s : Oq) (h1 : WinSel σ s (oqCh s 14 true)) :
   simp only [List.append_assoc, List.nil_append, List.append_nil] at h
   simpa only [oqLoop0A, List.append_assoc] using h
 
-/-- **A level-0 iteration pops its two queries' entries, then its next iteration's.** -/
-theorem oqLoop1_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn) {s : Oq}
-    (hb : fn.body = oqLoop1T s name) (τ : Val) (bufs : List ℕ)
-    (h1 : WinSel τ s (oqCh s 15 true)) (h2 : WinSel τ s (oqCh s (oqE1 s + 2) false))
-    {kids : List Tree} {kn : List Pop} (hk : Tree.popsKids P rd kids = [kn]) :
-    (Memory.Tree.node name τ bufs kids).pops P rd =
-      queryPops τ s 15 true ++ queryPops τ s (oqE1 s + 2) false ++ kn := by
-  have hx : SplicePops rd τ (oqLoop1A s ⧺ [.callIf (.n (oqG1 s + 2)) name (oqNextArgs (oqG1 s))])
-      (Tree.popsKids P rd kids) (queryPops τ s 15 true ++ queryPops τ s (oqE1 s + 2) false ++ kn) := by
-    rw [hk]
-    exact SplicePops.congr_ks ((SplicePops.of_fallPops (oqLoop1A_fallPops s h1 h2)).append
-      (SplicePops.callIf _ _ _ kn)) rfl
-  obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf
-    (ys := [.ret []]) (by rw [hb, oqLoop1T, oqNextT_eq]; simp) hx (es := []) (vs := [])
-    (by simp [walk, walk1, Out.seq]) rfl
-  rw [he]; simp [evPops]
-
-/-- **A deeper iteration pops its query's entries, then its next iteration's.** -/
-theorem oqLoop0_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn) {s : Oq}
-    (hb : fn.body = oqLoop0T s name) (τ : Val) (bufs : List ℕ) (h1 : WinSel τ s (oqCh s 14 true))
-    {kids : List Tree} {kn : List Pop} (hk : Tree.popsKids P rd kids = [kn]) :
-    (Memory.Tree.node name τ bufs kids).pops P rd = queryPops τ s 14 true ++ kn := by
-  have hx : SplicePops rd τ (oqLoop0A s ⧺ [.callIf (.n (oqG0 s + 2)) name (oqNextArgs (oqG0 s))])
-      (Tree.popsKids P rd kids) (queryPops τ s 14 true ++ kn) := by
-    rw [hk]
-    exact SplicePops.congr_ks ((SplicePops.of_fallPops (oqLoop0A_fallPops s h1)).append
-      (SplicePops.callIf _ _ _ kn)) rfl
-  obtain ⟨es, -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf
-    (ys := [.ret []]) (by rw [hb, oqLoop0T, oqNextT_eq]; simp) hx (es := []) (vs := [])
-    (by simp [walk, walk1, Out.seq]) rfl
-  rw [he]; simp [evPops]
-
 /-! ## The function -/
 
 /-- The start's entries: at level 0 when `odd_g + 1 ≠ 0`, the odd first query's. -/
@@ -208,35 +169,6 @@ theorem oqMainA_fallPops (s : Oq) (hodd : s.base = 1 → σ (.n 13) ≠ 0 → Wi
     by_cases h0 : σ (.n 13) = 0 <;> simp [startPops, hb, h0]
   · refine fallPops_eq (fallPops_noWit σ ?_) (by simp [startPops, hb])
     simp [oqMainA, hb]; rfl
-
-/-- **`opening_queries` pops its odd first query's entries, then its loop's.** -/
-theorem oqMain_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn) {s : Oq}
-    {loop : String} (hb : fn.body = oqMainT s loop) (τ : Val) (bufs : List ℕ)
-    (hodd : s.base = 1 → τ (.n 13) ≠ 0 → WinSel τ s (oqCh s 17 true))
-    {kids : List Tree} {kl : List Pop} (hk : Tree.popsKids P rd kids = [kl]) :
-    (Memory.Tree.node name τ bufs kids).pops P rd = startPops τ s ++ kl := by
-  have hx : SplicePops rd τ (oqMainA s ⧺ [.callIf (.n (oqMK s + 1)) loop
-      [.n (oqMK s + 2), .n oqMN, .n (if s.base = 1 then oqMK s - 2 else oqMPos),
-        .n (if s.base = 1 then oqMK s - 1 else oqMQp), .n oqMCap, .n oqMFlags, .n oqMCoefs, .n oqMHs, .n 11,
-        .n oqMLamInv]]) (Tree.popsKids P rd kids) (startPops τ s ++ kl) := by
-    rw [hk]
-    exact SplicePops.congr_ks ((SplicePops.of_fallPops (oqMainA_fallPops s hodd)).append
-      (SplicePops.callIf _ _ _ kl)) rfl
-  have hy : ∃ es vs, walk τ (if s.final = 1 then [.atom (.const (.n (oqMK s + 3)) (word 0 0)),
-      .ret [.n (oqMK s + 3)]] else [.atom (.mul (.n (oqMK s + 3)) (.n 11) (.n oqMN)),
-      .atom (.load (.n (oqMK s + 4)) (.n (oqMK s + 3)) 0), .atom (.copy (.n (oqMK s + 5))
-      (.n (oqMK s + 4))), .ret [.n (oqMK s + 5)]]) = .ret es vs ∧ calls es = [] ∧ evPops rd τ es = [] := by
-    split
-    · exact ⟨[.atom (.const (.n (oqMK s + 3)) (word 0 0))], [.n (oqMK s + 3)],
-        by simp [walk, walk1, Out.seq, Out.pre], rfl, rfl⟩
-    · exact ⟨[.atom (.mul (.n (oqMK s + 3)) (.n 11) (.n oqMN)),
-        .atom (.load (.n (oqMK s + 4)) (.n (oqMK s + 3)) 0),
-        .atom (.copy (.n (oqMK s + 5)) (.n (oqMK s + 4)))], [.n (oqMK s + 5)],
-        by simp [walk, walk1, Out.seq, Out.pre], rfl, rfl⟩
-  obtain ⟨es, vs, hw, hc, hp⟩ := hy
-  obtain ⟨es', -, he⟩ := Tree.pops_of_splice (bufs := bufs) hf
-    (by rw [hb, oqMainT, List.append_assoc]) hx hw hc
-  rw [he, hp, List.append_nil]
 
 end
 end LeanVM.Guest.B1

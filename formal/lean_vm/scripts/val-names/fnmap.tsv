@@ -57,7 +57,6 @@ LeanVM/Guest/B1/VerifySub/NodeShapes.lean@vtZcA verify_tables
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@vsPops_honest verify_sub
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@vs_child_pops verify_sub
 LeanVM/Guest/B1/VerifySub/ChildPops.lean@cpPop_honest certify_placement
-LeanVM/Guest/B1/VerifySub/ChildPops.lean@vtPops_honest verify_tables
 LeanVM/Guest/B1/VerifySub/CompleteBP.lean@cpσ_136 certify_placement
 LeanVM/Guest/B1/VerifySub/C/ValsB.lean@vs_maps verify_sub
 # Opening: the loop's parameters and guard, the main function's frame (every specialization names them alike)
@@ -250,11 +249,8 @@ LeanVM/Guest/B1/Exact/VtOwn.lean verify_tables
 # Place: the level functions' proofs over their families
 LeanVM/Guest/B1/Place/LpProof.lean level_positions__L
 LeanVM/Guest/B1/Place/LqProof.lean level_queries__L
-LeanVM/Guest/B1/Place/OsMeanB.lean@round_relIn opening_round
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqEb decode_query_windows__L
 LeanVM/Guest/B1/Place/OsQPlace.lean@sqGroupRuns_mem decode_query_windows__L
-LeanVM/Guest/B1/Place/OsRound.lean opening_round
-LeanVM/Guest/B1/Place/LqExact.lean level_queries__L
 LeanVM/Guest/B1/Place/LqProofP.lean level_queries__L
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop1_iter level_residual__L_loop0
 LeanVM/Guest/B1/Place/LrLoops.lean@lrLoop2_iter level_residual__L_loop1
@@ -285,8 +281,6 @@ LeanVM/Guest/B1/Whir/HelperT.lean@lrBody level_residual__L
 LeanVM/Guest/B1/Whir/LpSound.lean level_positions__L
 LeanVM/Guest/B1/Whir/LqSound.lean level_queries__L
 LeanVM/Guest/B1/Whir/LrSound.lean@lr_sound level_residual__L
-LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_eq0 level_residual__L
-LeanVM/Guest/B1/Whir/LrSound.lean@lrBody_ne0 level_residual__L
 LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop1_step level_residual__L_loop0
 LeanVM/Guest/B1/Whir/LrSound.lean@lrLoop2_step level_residual__L_loop1
 LeanVM/Guest/B1/Whir/Template.lean@sqLoopBody level_positions__L_loop0
@@ -432,8 +426,7 @@ LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsLQ gkr_layers__L_loop0
 LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@GlsQ gkr_layers__L
 LeanVM/Guest/CoreMode/Fn/verify_bus_gkr/ResGkrQ.lean@VbgQ verify_bus_gkr
 LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@VkQ verify_keccak
-LeanVM/Guest/CoreMode/Fn/verify_keccak/ResSt.lean@front_carried verify_sub
-LeanVM/Guest/CoreMode/Fn/verify_sub/ResVs.lean@vs_cells verify_sub
+LeanVM/Guest/CoreMode/Fn/verify_sub/Front.lean verify_sub
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@VtQ verify_tables
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_cur13 verify_tables
 LeanVM/Guest/CoreMode/Fn/verify_tables/ResVt.lean@vt_zc_front verify_tables
@@ -527,7 +520,6 @@ LeanVM/Guest/B1/Place/SqAt.lean@sqDecArgs level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loadsEq level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@sqLoopPre_loads level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAt.lean@SqIterC level_positions__L_loop0
-LeanVM/Guest/B1/Place/SqAt.lean@sqLoop_iter level_positions__L_loop0
 LeanVM/Guest/B1/Place/SqAtE.lean@sqLoop_iterE level_positions__L_loop0
 LeanVM/Guest/B1/Main/HintsX.lean@dupPre main_loop0,main_loop1
 LeanVM/Guest/B1/Main/HintsX.lean@dupStep main_loop0,main_loop1
@@ -569,19 +561,15 @@ LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqPath_complete walk_path__L
 LeanVM/Guest/B1/Opening/QueriesComplete3.lean@oqCap_complete walk_path__L
 LeanVM/Guest/B1/Opening/QueriesComplete3.lean@walk_block walk_path__L
 LeanVM/Guest/B1/KeccakGkr/PackLoop.lean@pkZs keccak_layer__L_loop0
-LeanVM/Guest/B1/Opening/WalkPops.lean@win_fallPops walk_path__L
-LeanVM/Guest/B1/Opening/WalkPops.lean@wp_fallPops walk_path__L
 LeanVM/Guest/B1/Gkr/GlCInZeta.lean@vbz_calls verify_bus_gkr_loop0
 LeanVM/Guest/B1/Gkr/VbgC.lean@vbR7 verify_bus_gkr
 LeanVM/Guest/Exact/SphincsPinned.lean@sBitsAtoms verify_sig_lean_sphincs
 LeanVM/Guest/Lift/XmssLeaf.lean@segLoad main_loop2
 LeanVM/Guest/Lift/Sig.lean@loads_seg main_loop2
 LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage_vals verify_sig_lean_sphincs
-LeanVM/Guest/B1/Sig/SphincsTopComplete.lean@layer_stage verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_cells verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsSoundHt.lean@sLayerPre_sound verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete_vals verify_sig_lean_sphincs
-LeanVM/Guest/B1/Sig/SphincsHtComplete.lean@sLayerBlk_complete verify_sig_lean_sphincs
 LeanVM/Guest/B1/Sig/SphincsBytes.lean@sFromMarks_sound verify_sig_lean_sphincs
 LeanVM/Cost/Decoder/Raw.lean main
 LeanVM/Cost/Decoder/Kids.lean main
@@ -612,7 +600,6 @@ LeanVM/Cost/Bounds/Guest/Valid.lean@cursor_le_stream verify_sub
 LeanVM/Cost/Bounds/Guest/DecTop.lean@sphincsAtFrameT_cost main
 LeanVM/Guest/Budget/MainCount.lean@mainCallW main
 LeanVM/Guest/Budget/MvCount.lean da_pad
-LeanVM/Guest/Fast/Whir.lean@oqIterN opening_queries__L_loop0
 LeanVM/Guest/Fast/Whir.lean@oqIterA opening_queries__L_loop0
 LeanVM/Guest/Fast/Whir.lean@oqsOfN opening_queries__L
 LeanVM/Guest/Fast/Whir.lean@oqsOfA opening_queries__L
@@ -658,6 +645,5 @@ LeanVM/Guest/CoreMode/Fn/verify_tables/ResVtL.lean@l10_next verify_tables_loop0
 LeanVM/Guest/CoreMode/Fn/check_opening_terminal/ResE.lean check_opening_terminal
 LeanVM/Guest/CoreMode/Fam/TermDefs.lean column_selector__L
 LeanVM/Guest/WalkKnown.lean@loop_cutsKnown opening_queries__L_loop0
-LeanVM/Guest/WalkKnown.lean@wp_cutsKnown walk_path__L
 LeanVM/Guest/WalkOs.lean@os_tup open_stacked__L
 LeanVM/Guest/WalkOs.lean@os_cutsKnown open_stacked__L

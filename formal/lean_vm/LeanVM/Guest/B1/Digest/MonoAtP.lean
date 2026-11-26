@@ -9,7 +9,6 @@ module
 public import LeanVM.Guest.B1.Digest.MonoAt
 public import LeanVM.Guest.B1.Digest.LoopAtP
 public import LeanVM.Guest.B1.Digest.ValidPops
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The gap walk's helpers, with their pops
@@ -17,8 +16,9 @@ import LeanVM.Guest.StmtsAppend
 * `atomsPops_wit`: on a valuation good for an oracle `w`, atoms whose witness hints are `L`'s stack hints pop their
   oracle's words; `relAtInP_atoms`: `relAtIn_atoms` by a tree popping its atoms' entries;
 * `gapPops o s m`: claims `s ..< s + m`'s gaps (`mGap o`); `gapPops_append`, `gapPops_flatMap`;
-* `monoLoop_blocksP`, `monoLoop_completeAtBP`, `mlc_completeAtBP`: `monoLoop_blocks`, `monoLoop_completeAtB`,
-  `mlc_completeAtB` by trees popping their claims' gaps (`mono_core`'s, `mlc_core`'s oracle).
+* `monoLoop_blocksP`: a frame loop's frames; `monoLoop_completeAtBP`: the loop over `M` frames is complete, placed,
+  within `M` frames and the tail; `mlc_completeAtBP`: `child_claim_list_mono_last__L{k}`, a leaf within its frame;
+  each by trees popping their claims' gaps (`mono_core`'s, `mlc_core`'s oracle).
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -57,7 +57,7 @@ theorem atomsPops_wit {as : List Atom} {S : List Atom} {w : ℕ → E} {σ : Val
 
 /-- **`relAtIn_atoms` by a tree popping its atoms' entries.** -/
 theorem relAtInP_atoms {fs : String → ℕ} {cert : String → V → ℕ} {f : String} {fn : Fn} {as : List Atom}
-    {vs : List V} (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ⧺ [.ret vs])
+    {vs : List V} (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ++ [.ret vs])
     (hl : coreProgram.loop f = false) (hna : as.all (fun a => !atomAllocB a) = true)
     {σ : Val} {args rets : List E} {fp : ℕ} {R D : ℕ → Prop}
     (hp : fn.params.map σ = args) (hh : ∀ a ∈ as, a.Holds rd σ) (hr : vs.map σ = rets)
@@ -124,8 +124,7 @@ theorem ml_wits (k : ℕ) (hk : k < 17) : (mlAtoms k).flatMap atomWit =
     ((List.range k).map fun i => ("child_claim_gap", [V.n (6 + 10 * i)])).map fun x => (x.1, .stack x.2) :=
   of_decide_eq_true (ml_wits_all k hk)
 
-/-- **A frame loop of the gap walk, its frames, with their pops**: `monoLoop_blocks`, frame `q` popping its claims'
-gaps. -/
+/-- **A frame loop of the gap walk, its frames, with their pops**: frame `q` popping its claims' gaps. -/
 theorem monoLoop_blocksP {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
     (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
     (hc : mcOk (coreProgram.getD j default) f m p0 st0 cw ew = true)

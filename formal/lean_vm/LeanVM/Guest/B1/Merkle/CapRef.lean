@@ -111,16 +111,16 @@ theorem capRef_sem (D : ℕ) (rd : Reader) (args rets : List E) :
         · have := (hA n (by omega) (by omega)).2
           rwa [show 2 * (n - 1) + 1 = 2 * n + 1 - 2 by omega] at this
       · have := hB k (by omega) hk
-        rw [ite_eq_right (by omega)] at this
+        rw [ite_neg' (by omega)] at this
         exact ⟨this.1, this.2.1⟩
       · have := hB k h1 hk
         by_cases e : k = 1
-        · rw [ite_eq_left e] at this
+        · rw [ite_pos' e] at this
           convert this using 3 <;> omega
-        · rw [ite_eq_right e] at this
+        · rw [ite_neg' e] at this
           convert this.2.2.2 (hf.resolve_left e) using 3 <;> omega
       · have := hB k (by omega) (by omega)
-        rw [ite_eq_right (by omega), ite_eq_left hk, word_zero] at this
+        rw [ite_neg' (by omega), ite_pos' hk, word_zero] at this
         exact this.2.2.1 hf
   · intro hm
     obtain ⟨cap, flags, rfl⟩ : ∃ cap flags, args = [cap, flags] := by
@@ -141,9 +141,9 @@ theorem capRef_sem (D : ℕ) (rd : Reader) (args rets : List E) :
       · rw [show 2 * (n - 1) + 1 + 2 = 2 * n + 1 by omega]
         exact hcell _ (by omega) (by omega)
       · by_cases e : n = 1
-        · rw [ite_eq_left e]
+        · rw [ite_pos' e]
           convert hhash n h1 h2 (.inl e) using 2 <;> omega
-        · rw [ite_eq_right e]
+        · rw [ite_neg' e]
           refine ⟨(hfl n (by omega) h2).1, (hfl n (by omega) h2).2, fun h0 ↦ ?_, fun hne ↦ ?_⟩
           · split_ifs with h2n
             simpa only [word_zero] using hpin n (by omega) h2n h0

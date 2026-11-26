@@ -2,9 +2,9 @@
   LeanVM.Protocol.EndToEnd.Complete.Statement
 
   Completeness in the two-oracle random-oracle model (`LeanVM/Protocol/Rom/Statement.lean`, a step
-  of the proof of `Statement/LeanVmCompleteness.lean`'s) proved: the honest prover, run as the
-  adversary of the random-oracle experiment, makes the verifier reject with probability at most
-  `completenessError fuel`.
+  of the proof of `Statement/LeanVm.lean`'s) proved: the honest prover, run as the adversary of the
+  random-oracle experiment, makes the verifier reject with probability at
+  most `completenessError fuel`.
 -/
 
 module
@@ -22,8 +22,11 @@ verdict, the final cache and the adversary's cache. Forgetting the adversary's c
 random-oracle theorem's experiment (`experiment_map_romExperiment`), so `romComplete_leanVm`
 bounds the probability that the verifier rejects the honest prover's proof
 (`completeness_le`), by the statement's `completenessError`, which is `completenessError`
-(`completenessError_eq`), below `2^-257` at a fuel of `2^35` nonces per proof of work
-(`statement_completenessError_le`).
+evaluated (`completenessError_eq`):
+
+  `completenessError fuel = (13710 + 54825 · (2^27 + 2·fuel + 2)) · (1 - 2^-25)^fuel`,
+
+below `2^-257` at a fuel of `2^35` nonces per proof of work (`statement_completenessError_le`).
 `completeness_holds` is `LeanVM.CompletenessRom`, with the honest prover `honestProverRom`.
 -/
 
@@ -55,9 +58,14 @@ noncomputable def honestProverRom (prog : LeanIsaProgram) (input : PublicInput) 
     (ρ fuel : ℕ) : LeanVM.Adversary :=
   (fun proof ↦ ((prog, input), proof)) <$> honestComp prog input t ρ fuel
 
-/-- The statement's completeness error is `completenessError`. -/
+/-- The statement's completeness error is `completenessError`, evaluated. -/
 theorem completenessError_eq (fuel : ℕ) :
-    LeanVM.completenessError fuel = completenessError fuel :=
+    LeanVM.completenessError fuel = completenessError fuel := by
+  have hc : leanVmCost = 54825 := by decide
+  have hQ : completenessQueries fuel = 13710 + 54825 * (2 ^ 29 + 2 * fuel + 2) := by
+    rw [completenessQueries, proverFactor, costHeight, hc, leanVmQueryBound_eq]
+    ring
+  rw [LeanVM.completenessError, completenessError, hQ]
   rfl
 
 /-- **Completeness in the statement's experiment.** For a valid execution whose committed size

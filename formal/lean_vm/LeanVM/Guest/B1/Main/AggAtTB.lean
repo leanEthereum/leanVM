@@ -25,10 +25,9 @@ import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 `aggregate_claims_loop0`/`aggregate_claims_loop1`/`aggregate_claims_loop2` from `1` to `g^m` within
 `m` times their per-iteration words `iterK fs SK` and their runs' phantom frames, `batch_sumcheck__L23`
 within its static bound `SB`. `aggB fs SB SK m`: its frame, its
-`HeapBuf`s (`aggSizes m`) and those. `aggregate_claims_completeAtTBR`: its tree also pops the batching's hints
-(`aggregate_claims_complete_pops` on its valuation and own buffers); `aggregate_claims_completeAtTBRE`: also every
-node exact on the memory (its own inlined `grind_check` by `AggVals.gexact`, the callees for free);
-`aggregate_claims_completeAtTB`.
+`HeapBuf`s (`aggSizes m`) and those. `aggregate_claims_completeAtTBRE`: complete within `aggB`, its tree of honest
+shape popping the batching's hints (`aggregate_claims_complete_pops` on its valuation and own buffers), every node
+exact on the memory (its own inlined `grind_check` by `AggVals.gexact`, the callees for free).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -125,7 +124,7 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
   have hcw' : ∀ rd, Main.MemL rd (Own ++ Lin) → ∀ c (hc : c < cs.length),
       ChildWordsAt rd cpi cfresh ccarried c cs[c] :=
     fun rd hm => hcw rd (Main.memL_append.mp hm).2
-  have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_pow_ne_zero_iff (by omega)).mpr (by omega)
+  have hne : (1 : E) + gen ^ m ≠ 0 := (one_add_gen_ne (by omega)).mpr (by omega)
   -- the callees
   let ks : List Kid :=
     [⟨name% «aggregate_claims_loop0», true, [1, gen ^ m, P.absorb, cfresh, P.lf, ccarried, P.lc,
@@ -366,55 +365,6 @@ theorem aggregate_claims_completeAtTBRE (fs : String → ℕ) (cert : String →
     · obtain ⟨e, he, hpe⟩ := hV.gptrs p hp
       obtain ⟨i, hi, hR⟩ := htR e he
       exact ⟨i, by show (σ p).limb 0 * addressOfIndex 0 = _; rw [hpe]; exact hi, Or.inr (Or.inl hR)⟩
-/-- **`aggregate_claims` is complete, placed, its tree of honest shape popping the batching's hints, within `aggB`**
-(`aggregate_claims_completeAtTBRE`, its exactness forgotten). -/
-theorem aggregate_claims_completeAtTBR (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
-          name% «aggregate_claims_loop0»))
-    (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
-          name% «aggregate_claims_loop1»))
-    (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
-          name% «aggregate_claims_loop2»))
-    (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
-    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
-    {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
-    (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
-    (htR : ∀ e < 2 ^ 11, ∃ i, (tabs * gen ^ e).limb 0 * addressOfIndex 0 = addressOfIndex i ∧ Main.RegionL Lin i)
-    (hdst : (ds, out.cells) ∈ Lin) :
-    CompleteAtDTBR fs cert 16 "aggregate_claims" Lin [gen ^ m, cpi, cfresh, ccarried, gen ^ ds, tabs]
-      (Returns []) (fun rd t => aggHonest m t ∧ t.pops coreProgram rd = Hints.batchPushes h) (aggB fs SB SK m) :=
-  (aggregate_claims_completeAtTBRE fs cert SB SK h25 h26 h27 hbs hm1 hm16 hcl hrl hb hcw htabs htR hdst).mono le_rfl
-    fun _ _ h => h.1
-
-/-- **`aggregate_claims` is complete, placed, its tree of honest shape, within `aggB`** (`aggregate_claims_completeAtTBR`,
-the pops forgotten). -/
-theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V → ℕ) (SB SK : String → ℕ)
-    (h25 : TotalLeOn coreProgram fs name% «aggregate_claims_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop0» + fs
-          name% «aggregate_claims_loop0»))
-    (h26 : TotalLeOn coreProgram fs name% «aggregate_claims_loop1» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop1» + fs
-          name% «aggregate_claims_loop1»))
-    (h27 : TotalLeOn coreProgram fs name% «aggregate_claims_loop2» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «aggregate_claims_loop2» + fs
-          name% «aggregate_claims_loop2»))
-    (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
-    (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
-    {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
-    (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
-    (htR : ∀ e < 2 ^ 11, ∃ i, (tabs * gen ^ e).limb 0 * addressOfIndex 0 = addressOfIndex i ∧ Main.RegionL Lin i)
-    (hdst : (ds, out.cells) ∈ Lin) :
-    CompleteAtDTB fs cert 16 "aggregate_claims" Lin [gen ^ m, cpi, cfresh, ccarried, gen ^ ds, tabs]
-      (Returns []) (aggHonest m) (aggB fs SB SK m) :=
-  (aggregate_claims_completeAtTBR fs cert SB SK h25 h26 h27 hbs hm1 hm16 hcl hrl hb hcw htabs htR hdst).toDTB
-    fun _ _ h => h.1
 
 end
 end LeanVM.Guest.B1.Main

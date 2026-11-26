@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Releases pass -p:Version=X.Y.Z; local builds are 0.0.0-dev. -->
+    <Version>0.0.0-dev</Version>
+    <PackageId>Ethereum.LeanPq</PackageId>
+    <!-- Not Ethereum.LeanPq: a namespace named like its LeanPq class would hide the class from code in Ethereum.* namespaces. -->
+    <RootNamespace>Ethereum.PostQuantum</RootNamespace>
+    <Authors>leanEthereum</Authors>
+    <Description>.NET bindings for leanXMSS and leanSPHINCS post-quantum signatures, their leanVM aggregation, and the consensus VRF tree</Description>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/leanEthereum/leanVM/tree/main/bindings/dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/leanEthereum/leanVM.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>ethereum;post-quantum;xmss;sphincs;signatures;aggregation;vrf</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!--
+    The package carries the native library as runtimes/<rid>/native/<library>, which the runtime
+    loads. Releases pass -p:LeanPqNativeDir=DIR, laid out as DIR/<platform>/<library> as
+    bindings/java/scripts/build-native.sh stages it, and bundle every platform DIR holds. Local
+    builds build and bundle only the host library, and copy it beside the assembly so tests and
+    project references load it.
+  -->
+  <PropertyGroup>
+    <LeanPqBindingsDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</LeanPqBindingsDir>
+    <LeanPqHostLibrary Condition="$([MSBuild]::IsOSPlatform('OSX'))">liblean_pq_native.dylib</LeanPqHostLibrary>
+    <LeanPqHostLibrary Condition="$([MSBuild]::IsOSPlatform('Windows'))">lean_pq_native.dll</LeanPqHostLibrary>
+    <LeanPqHostLibrary Condition="'$(LeanPqHostLibrary)' == ''">liblean_pq_native.so</LeanPqHostLibrary>
+    <!-- The host build holds only the host's architecture, so it is labeled with its RID, never the universal osx. -->
+    <LeanPqHostPackageRid>$(NETCoreSdkPortableRuntimeIdentifier)</LeanPqHostPackageRid>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(LeanPqNativeDir)' != ''">
+    <None Include="$(LeanPqNativeDir)/linux-x86_64/liblean_pq_native.so" Condition="Exists('$(LeanPqNativeDir)/linux-x86_64/liblean_pq_native.so')" Pack="true" LeanPqNative="true" PackagePath="runtimes/linux-x64/native/" Visible="false" />
+    <None Include="$(LeanPqNativeDir)/linux-aarch64/liblean_pq_native.so" Condition="Exists('$(LeanPqNativeDir)/linux-aarch64/liblean_pq_native.so')" Pack="true" LeanPqNative="true" PackagePath="runtimes/linux-arm64/native/" Visible="false" />
+    <None Include="$(LeanPqNativeDir)/macos-universal/liblean_pq_native.dylib" Condition="Exists('$(LeanPqNativeDir)/macos-universal/liblean_pq_native.dylib')" Pack="true" LeanPqNative="true" PackagePath="runtimes/osx/native/" Visible="false" />
+    <None Include="$(LeanPqNativeDir)/windows-x86_64/lean_pq_native.dll" Condition="Exists('$(LeanPqNativeDir)/windows-x86_64/lean_pq_native.dll')" Pack="true" LeanPqNative="true" PackagePath="runtimes/win-x64/native/" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(LeanPqNativeDir)' == ''">
+    <None Include="$(LeanPqBindingsDir)/target/release/$(LeanPqHostLibrary)" Pack="true" PackagePath="runtimes/$(LeanPqHostPackageRid)/native/" Link="$(LeanPqHostLibrary)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <!-- MSBuild resolves a relative LeanPqNativeDir against this project, so a wrong one would otherwise pack no library. -->
+  <Target Name="CheckLeanPqNativeDir" BeforeTargets="BeforeBuild" Condition="'$(LeanPqNativeDir)' != ''">
+    <Error Condition="'@(None->WithMetadataValue('LeanPqNative', 'true'))' == ''" Text="LeanPqNativeDir=$(LeanPqNativeDir) holds no library at linux-x86_64/, linux-aarch64/, macos-universal/ or windows-x86_64/ (a relative path is resolved against $(MSBuildProjectDirectory)); pass an absolute path." />
+  </Target>
+
+  <!-- Run from bindings/ so cargo reads bindings/.cargo/config.toml, the portable CPU baseline. -->
+  <Target Name="BuildLeanPqNative" BeforeTargets="BeforeBuild" Condition="'$(LeanPqNativeDir)' == ''">
+    <Exec Command="cargo build --release -p lean-pq-native" WorkingDirectory="$(LeanPqBindingsDir)" IgnoreStandardErrorWarningFormat="true" />
+  </Target>
+
+</Project>

@@ -10,8 +10,7 @@ module
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.CoreData
-public import LeanVM.Guest.B1.Tables.Base
-meta import LeanVM.Guest.KernelLit
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The root-most layer
@@ -54,10 +53,12 @@ noncomputable def rtTwo : List Stmt := Stmt.renameList rtUn (core% «verify_bus_
 noncomputable def rtFour : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s388_t)
 
 /-- The else arm is `rtTwo` in the body's numbering. -/
-kernel_rfl rtTwo_eq : (core% «verify_bus_gkr» s388_e) = Stmt.renameList rtSh rtTwo
+theorem rtTwo_eq : (core% «verify_bus_gkr» s388_e) = Stmt.renameList rtSh rtTwo :=
+  tbStmtsEqb_sound (by decide +kernel)
 
 /-- The then arm is `rtFour` in the body's numbering. -/
-kernel_rfl rtFour_eq : (core% «verify_bus_gkr» s388_t) = Stmt.renameList rtSh rtFour
+theorem rtFour_eq : (core% «verify_bus_gkr» s388_t) = Stmt.renameList rtSh rtFour :=
+  tbStmtsEqb_sound (by decide +kernel)
 
 theorem rtTwo_noRet : Stmt.noRetList rtTwo = true := by decide +kernel
 
@@ -65,18 +66,18 @@ theorem rtFour_noRet : Stmt.noRetList rtFour = true := by decide +kernel
 
 /-- The first radix-four record's position, `GEN ** ROUND_SLOTS`. -/
 theorem tb_word_128 : word 128 0 = gen ^ 7 := by
-  rw [show (128 : ℕ) = 2 ^ 7 by norm_num, word_two_pow (by norm_num)]
+  rw [show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
 
 /-- Child `i`'s read's first statement in a root arm. -/
 def rtPos (i : ℕ) : ℕ := 4 * i + i / 4
 
 theorem rtTwo_check : ∀ i < 6,
-    stmtsEqb (chT (.n 5) 2 288 i) ((rtTwo.drop (rtPos i)).take (chT (.n 5) 2 288 i).length) =
+    tbStmtsEqb (chT (.n 5) 2 288 i) ((rtTwo.drop (rtPos i)).take (chT (.n 5) 2 288 i).length) =
       true := by
   decide +kernel
 
 theorem rtFour_check : ∀ i < 12,
-    stmtsEqb (chT (.n 5) 2 142 i) ((rtFour.drop (rtPos i)).take (chT (.n 5) 2 142 i).length) =
+    tbStmtsEqb (chT (.n 5) 2 142 i) ((rtFour.drop (rtPos i)).take (chT (.n 5) 2 142 i).length) =
       true := by
   decide +kernel
 
@@ -107,7 +108,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
 /-- A read at `p` past the roots is a read at `p·g^2`. -/
 theorem rt_read {p w : E} {i : ℕ} (h : LoadHolds rd p (2 + i) w) :
     LoadHolds rd (p * gen ^ 2) i w := by
-  rw [loadHolds_mul_gen_pow]; exact h
+  rw [tb_loadHolds_mul_gen_pow]; exact h
 
 /-- **The binary root layer** (an odd depth): from the sponge `s` the roots wait in, one step of
 one level to the slot of `L = 1`, the cursor past the roots `σ 5·g^2`. -/
@@ -118,12 +119,12 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     (hcap : (lyCap 46).map σ = capOf s.perm)
     (z42 : σ (.n 42) = 0) (z43 : σ (.n 43) = 0) (z44 : σ (.n 44) = 0) (z45 : σ (.n 45) = 0) :
     ∃ (xs : List E) (st' : GkrState) (s' : Fs), RunsTo (gkrStep 1 false st) s xs st' s' ∧
-      ReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
+      TbReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
       GkSlot rd (σ (.n 16)) 1 s' (σ (.n 5) * gen ^ 2 * gen ^ xs.length) st'
         (σ (.n 22) * gen ^ 40) (gen ^ 7) := by
   have hnr := rtTwo_noRet
-  have a := fun n a heq => holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have EV : ∀ i < 6, _ := fun i hi => ch_ev (holds_slice hnr h (rtPos i) (chT (.n 5) 2 288 i)
+  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
+  have EV : ∀ i < 6, _ := fun i hi => ch_ev (tb_holds_slice hnr h (rtPos i) (chT (.n 5) 2 288 i)
     (rtTwo_check i hi))
   have hp : ∀ i < 6, FsPackOk σ (.n (chB 288 i)) (chB 288 i + 1) dsObserve :=
     fun i hi => (EV i hi).2.1
@@ -172,7 +173,7 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     have m336 := a 33 (.mul (.n 333) (.n 46) (.n 331)) (by decide +kernel)
     have a337 := a 34 (.add (.n 334) (.n 332) (.n 333)) (by decide +kernel)
     have q := a 35 (.assertEq (.n 62) (.n 334)) (by decide +kernel)
-    simp only [Atom.Holds, word_zero] at m328 c329 m330 a331 m332 m333 a334 m335 m336 a337 q
+    simp only [Atom.Holds, tb_word_zero] at m328 c329 m330 a331 m332 m333 a334 m335 m336 a337 q
     have q' := e_add_eq_zero_iff.mp q
     rw [h63, a337, m336, a334, m333, a331, m330, c329, m328, m332, m335, q0, q1, q2, q3, q4, q5,
       h59] at q'
@@ -221,10 +222,10 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     · exact (EV 5 (by omega)).1
   -- the slot of `L = 1`
   have ld : ∀ k w, LoadHolds rd (σ (.n 139)) k w → LoadHolds rd (σ (.n 16)) (10 * 1 + k) w :=
-    fun k w hw => by rw [h140, loadHolds_mul_gen_pow] at hw; exact hw
-  have hcs := holds_slice hnr h 40 ((List.range 5).map fun k ↦
+    fun k w hw => by rw [h140, tb_loadHolds_mul_gen_pow] at hw; exact hw
+  have hcs := tb_holds_slice hnr h 40 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (343 + k)) (.n 139) k)) (by decide +kernel)
-  rw [holdsList_mapAtoms] at hcs
+  rw [tb_holdsList_mapAtoms] at hcs
   simp only [Atom.Holds] at hcs
   have l351 := a 37 (.load (.n 335) (.n 22) 40) (by decide +kernel)
   have c353 := a 45 (.const (.n 349) (word 256 0)) (by decide +kernel)
@@ -234,7 +235,7 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
   have l364 := a 61 (.load (.n 360) (.n 139) 9) (by decide +kernel)
   simp only [Atom.Holds] at l351 c353 m354 l354 c364 l364
   rw [tb_word_128] at c364
-  rw [show (256 : ℕ) = 2 ^ 8 by norm_num, word_two_pow (by norm_num)] at c353
+  rw [show (256 : ℕ) = 2 ^ 8 by norm_num, tb_word_two_pow (by norm_num)] at c353
   have VAL : ∀ t < 3, ∀ b u v off : ℕ, Stmt.HoldsList C rd σ
       [.atom (.add (.n b) (.n u) (.n v)), .atom (.mul (.n (b + 1)) (.n 335) (.n b)),
         .atom (.add (.n (b + 2)) (.n u) (.n (b + 1))), .atom (.load (.n (b + 2)) (.n 139) off)]
@@ -244,9 +245,9 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     obtain ⟨e0, e1, e2, l⟩ := hv
     rw [e2, e1, e0] at l
     exact l
-  have V0 := VAL 0 (by omega) 351 291 295 6 (holds_slice hnr h 48 _ (by decide +kernel))
-  have V1 := VAL 1 (by omega) 354 299 303 7 (holds_slice hnr h 52 _ (by decide +kernel))
-  have V2 := VAL 2 (by omega) 357 320 324 8 (holds_slice hnr h 56 _ (by decide +kernel))
+  have V0 := VAL 0 (by omega) 351 291 295 6 (tb_holds_slice hnr h 48 _ (by decide +kernel))
+  have V1 := VAL 1 (by omega) 354 299 303 7 (tb_holds_slice hnr h 52 _ (by decide +kernel))
+  have V2 := VAL 2 (by omega) 357 320 324 8 (tb_holds_slice hnr h 56 _ (by decide +kernel))
   rw [q0, q1] at V0
   rw [q2, q3] at V1
   rw [q4, q5] at V2
@@ -269,7 +270,7 @@ theorem rt_two (h : Stmt.HoldsList C rd σ rtTwo True kret)
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk
     obtain rfl : k = 0 := by omega
-    rw [loadHolds_mul_gen_pow]
+    rw [tb_loadHolds_mul_gen_pow]
     exact l351
   · rw [c364] at l364; exact ld _ _ l364
 
@@ -282,12 +283,12 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
     (hcap : (lyCap 46).map σ = capOf s.perm)
     (z42 : σ (.n 42) = 0) (z43 : σ (.n 43) = 0) (z44 : σ (.n 44) = 0) (z45 : σ (.n 45) = 0) :
     ∃ (xs : List E) (st' : GkrState) (s' : Fs), RunsTo (gkrStep 2 false st) s xs st' s' ∧
-      ReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
+      TbReadsAt rd (σ (.n 5) * gen ^ 2) xs ∧
       GkSlot rd (σ (.n 16)) 2 s' (σ (.n 5) * gen ^ 2 * gen ^ xs.length) st'
         (σ (.n 22) * gen ^ 40) (gen ^ 7) := by
   have hnr := rtFour_noRet
-  have a := fun n a heq => holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
-  have EV : ∀ i < 12, _ := fun i hi => ch_ev (holds_slice hnr h (rtPos i) (chT (.n 5) 2 142 i)
+  have a := fun n a heq => tb_holds_atom (C := C) (rd := rd) (σ := σ) (kret := kret) hnr h n a heq
+  have EV : ∀ i < 12, _ := fun i hi => ch_ev (tb_holds_slice hnr h (rtPos i) (chT (.n 5) 2 142 i)
     (rtFour_check i hi))
   have hp : ∀ i < 12, FsPackOk σ (.n (chB 142 i)) (chB 142 i + 1) dsObserve :=
     fun i hi => (EV i hi).2.1
@@ -348,7 +349,7 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
     have m233 := a 64 (.mul (.n 230) (.n 46) (.n 226)) (by decide +kernel)
     have a234 := a 65 (.add (.n 231) (.n 229) (.n 230)) (by decide +kernel)
     have q := a 66 (.assertEq (.n 62) (.n 231)) (by decide +kernel)
-    simp only [Atom.Holds, word_zero] at m219 m220 m221 c222 m223 a224 m225 m226 m227 m228
+    simp only [Atom.Holds, tb_word_zero] at m219 m220 m221 c222 m223 a224 m225 m226 m227 m228
     simp only [Atom.Holds] at a229 m230 m231 m232 m233 a234 q
     have q' := e_add_eq_zero_iff.mp q
     rw [h63, a234, m233, a229, m228, a224, m223, c222, m221, m220, m219, m227, m226, m225, m232,
@@ -381,10 +382,10 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
     interval_cases k <;> rfl
   -- the slot of `L = 2`
   have ld : ∀ k w, LoadHolds rd (σ (.n 139)) k w → LoadHolds rd (σ (.n 16)) (10 * 2 + k) w :=
-    fun k w hw => by rw [h140, loadHolds_mul_gen_pow] at hw; exact hw
-  have hcs := holds_slice hnr h 71 ((List.range 5).map fun k ↦
+    fun k w hw => by rw [h140, tb_loadHolds_mul_gen_pow] at hw; exact hw
+  have hcs := tb_holds_slice hnr h 71 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n (253 + k)) (.n 139) k)) (by decide +kernel)
-  rw [holdsList_mapAtoms] at hcs
+  rw [tb_holdsList_mapAtoms] at hcs
   simp only [Atom.Holds] at hcs
   have l246 := a 69 (.load (.n 232) (.n 22) 40) (by decide +kernel)
   have l260 := a 70 (.load (.n 245) (.n 22) 41) (by decide +kernel)
@@ -395,7 +396,7 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
   have l290 := a 110 (.load (.n 287) (.n 139) 9) (by decide +kernel)
   simp only [Atom.Holds] at l246 l260 c261 m262 l262 c290 l290
   rw [tb_word_128] at c290
-  rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, word_two_pow (by norm_num)] at c261
+  rw [show (16384 : ℕ) = 2 ^ 14 by norm_num, tb_word_two_pow (by norm_num)] at c261
   have VAL : ∀ b off t, (b = 260 + 9 * t) → t < 3 →
       Stmt.HoldsList C rd σ (chValT 142 232 245 139 t b off) True kret →
       LoadHolds rd (σ (.n 139)) off (multilinearEval (W t) [σ (.n 232), σ (.n 245)]) := by
@@ -424,13 +425,13 @@ theorem rt_four (h : Stmt.HoldsList C rd σ rtFour True kret)
       interval_cases t <;> rfl
     rw [hv]
     interval_cases t
-    · exact VAL 260 6 0 rfl (by omega) (holds_slice hnr h 79 _ (by decide +kernel))
-    · exact VAL 269 7 1 rfl (by omega) (holds_slice hnr h 89 _ (by decide +kernel))
-    · exact VAL 278 8 2 rfl (by omega) (holds_slice hnr h 99 _ (by decide +kernel))
+    · exact VAL 260 6 0 rfl (by omega) (tb_holds_slice hnr h 79 _ (by decide +kernel))
+    · exact VAL 269 7 1 rfl (by omega) (tb_holds_slice hnr h 89 _ (by decide +kernel))
+    · exact VAL 278 8 2 rfl (by omega) (tb_holds_slice hnr h 99 _ (by decide +kernel))
   · simp only [List.append_nil]
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk
-    rw [loadHolds_mul_gen_pow]
+    rw [tb_loadHolds_mul_gen_pow]
     interval_cases k
     · exact l246
     · exact l260

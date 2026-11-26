@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
 # The terminal's honest valuation
 
 `termD`: the honest data of `TermPre`'s parameters. `term_sigma`: the evaluated valuation
-(`termW`'s oracle) satisfies what `completeAt_flatDepR` asks: the parameters, the dispatches, the
+(`termW`'s oracle) satisfies what `completeAt_flatDepRBPR` asks: the parameters, the dispatches, the
 body (its claims' blocks by `claimsT_complete`, its head, selectors and tail by `TermEval`), the
 buffers, the frames (`callsMatch_kidsAt`) and the loads. Its last check: the sum the blocks build is
 the opening's weight, as in the soundness proof (`claimsT_sound`, `claimTerm_eq`, `stackWeight_eq`),
@@ -96,8 +96,8 @@ def termD (B : TermBases) (layout : Layout) (bus : BusResult) (out : ColumnClaim
 theorem termKids_getD_sel (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {c : ℕ}
     (hc : c < Tables.nCommittedCols) : (termKids Lin D b0).getD (4 + c) noKid = selKid D c := by
   have hc' : c < 94 := hc
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_eq_right (by omega),
-    ite_eq_left (by omega), show 4 + c - 4 = c by omega,
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
+    ite_pos' (by omega), show 4 + c - 4 = c by omega,
     List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range]
 
 theorem termKids_getD_out (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -106,8 +106,8 @@ theorem termKids_getD_out (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
         ofK (addressOfIndex D.B.pt1), D.gtau * word 64 0],
       (b0 + 105, eqChain (word 1 0) D.outPt ((p1Of D.x).take D.outPt.length)) :: Lin,
       Returns []⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_eq_right (by omega),
-    ite_eq_right (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
+    ite_neg' (by omega)]
   rfl
 
 theorem termKids_getD_rsw (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -116,8 +116,8 @@ theorem termKids_getD_rsw (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
         ofK (addressOfIndex D.B.ct), D.gtau * word 64 0],
       [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)), (D.B.ct, D.coeffs)],
       Returns [ringWeight D.ringPoint (((p1Of D.x).take (D.τ + 6)).map (1 + ·)) D.coeffs]⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_eq_right (by omega),
-    ite_eq_right (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
+    ite_neg' (by omega)]
   rfl
 
 theorem termKids_getD_ood (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
@@ -125,8 +125,8 @@ theorem termKids_getD_ood (Lin : Main.Layout) (D : TermData) (b0 : ℕ) :
       [ofK (addressOfIndex (b0 + 146)), D.sO, ofK (addressOfIndex D.B.oz),
         ofK (addressOfIndex D.B.pt1), D.gm],
       (b0 + 146, eqChain D.sO D.ood ((p1Of D.x).take D.ood.length)) :: Lin, Returns []⟩ := by
-  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_eq_right (by omega),
-    ite_eq_right (by omega)]
+  rw [termKids, getD_seg _ _ _ _ rfl (by simp [Tables.nCommittedCols]), ite_neg' (by omega),
+    ite_neg' (by omega)]
   rfl
 
 /-! ## The honest valuation -/
@@ -158,7 +158,7 @@ theorem eqChain_value {s : E} {as x : List E} {n : ℕ} (hn : n ≤ as.length)
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 4000 in
 /-- **`check_opening_terminal`'s honest valuation**, on a memory holding the caller's words, the
-buffers and the callees' results: what `completeAt_flatDepR` asks of it. -/
+buffers and the callees' results: what `completeAt_flatDepRBPR` asks of it. -/
 theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : BusResult}
     {claims : List ColumnClaim} {out : ColumnClaim} {lam : E}
     {ringPoint coeffs x chis oodPoint : List E}
@@ -210,7 +210,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   obtain ⟨hkap, hOr⟩ := hPC
   have hcc : chis' = chis := by
     have hl : chis'.length = chis.length :=
-      gen_pow_inj (by omega) (by omega) (hgzc.symm.trans hgz)
+      gen_pow_inj_le (by omega) (by omega) (hgzc.symm.trans hgz)
     exact readsAt_unique hchR hchis hl
   subst hcc
   set kappas := columnKappas layout.logMemory Tables.guestLogBytecode layout.tableLogHeights
@@ -326,7 +326,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     outRegion (kidsAt (termKids Lin D b0) [] outs) outs i with hR
   have aL : ∀ b k, TermRegion B bus.point.length chis'.length τ layout.stackLog (b + k) →
       AddrIn R (ofK (addressOfIndex b)) k := fun b k h
-          => ⟨b + k, limb0_ofK_addressOfIndex_mul b k, Or.inl (hreg _ h)⟩
+          => ⟨b + k, Main.addr_ofK b k, Or.inl (hreg _ h)⟩
   have hBuf := hB
   rw [termBuf_eq] at hBuf
   have rB : ∀ i, RegionL (termBufs D b0) i → R i := fun i h =>
@@ -352,9 +352,9 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
   obtain ⟨hHs, hHl, e20, e21, e22, e23, e24, e25, e26, e31, e32, e34, ekb, e43⟩ :=
     head_complete (R := R) hS gH (m := m) (rm := rm) (ps := p1Of x) (kbw := kbWords layout) hlm1
       (by rw [e6, hglm]) e3 h14
-      (by rw [e14]; exact aL _ _ (by simp only [TermRegion]; omega)) (hBuf _ m2)
+      (by rw [e14]; exact aL _ _ (by term_region)) (hBuf _ m2)
       (fun k hk => rB _ ⟨_, m2, by omega, by rw [piW_length]; omega⟩) hkbL
-      (fun i hi => by rw [e8]; exact aL _ _ (by simp only [TermRegion]; omega))
+      (fun i hi => by rw [e8]; exact aL _ _ (by term_region))
   have hkb : ∀ i < 8, σ (.n (kbV i)) = gen ^ kbExp layout i := fun i hi ↦ by
     rw [ekb i hi, kbWords_getD hHL hi]
   have hkapc : ∀ c < Tables.nCommittedCols,
@@ -376,7 +376,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       σ (.n (selV c)) = (outs.getD (4 + c) ([], [])).1.getD 0 0 := fun c hc =>
     sel_complete hS hc (fun s hs => gS s (List.mem_flatMap.mpr ⟨c, List.mem_range.mpr hc, hs⟩))
       (hKC31 c hc) (by rw [e10]; exact hoff' c hc)
-      (by rw [e10]; exact aL _ _ (by simp only [TermRegion]; omega))
+      (by rw [e10]; exact aL _ _ (by term_region))
       (hkapc c hc)
   have hselv : ∀ c < Tables.nCommittedCols, σ (.n (selV c)) =
       selProd ((stackOffsets KC).1.getD c 0) (KC.getD c 0) (layout.stackLog - KC.getD c 0) x := by
@@ -386,7 +386,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       unfold kidAt
       rw [List.nil_append, termKids_getD_sel Lin D b0 hc]
       refine @decide_eq_true _ (Classical.propDecidable _) ?_
-      rw [stRes_take, ite_eq_left (by omega)]
+      rw [stRes_take, ite_pos' (by omega)]
       exact hst3
     have := outsOk_at ho (4 + c) (by rw [termKids_length]; omega) (by omega) ht
     unfold kidAt at this
@@ -405,11 +405,11 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
     rcases ht with rfl | rfl
     · rw [e24, e13, e7']
       exact ⟨⟨_, (loadHolds_mul_gen_pow _ _ _ _ _).mpr (readsAt_getD hpt (k := τ + k) (by omega))⟩,
-        ⟨B.pt + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
+        ⟨B.pt + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by term_region))⟩⟩
     · rw [e25, e14, e7']
       exact ⟨⟨_, (loadHolds_mul_gen_pow _ _ _ _ _).mpr (readsAt_getD hpt1 (k := τ + k)
         (by simp [padPoint_length hxl40]; omega))⟩,
-        ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by simp only [TermRegion]; omega))⟩⟩
+        ⟨B.pt1 + τ + k, rt_addr_mul _ _ _, Or.inl (hreg _ (by term_region))⟩⟩
   have hin : ∀ j ∈ List.range Tables.nClaims, ClaimIn rd σ R (kbExp layout) j := by
     intro j hj
     have hj' : j < 159 := List.mem_range.mp hj
@@ -496,7 +496,7 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
       (readsAt_getD hpt1 (k := τ + k) (by simp [padPoint_length hxl40]; omega)))]
     exact x1_getD hxl40 (by simp only [termPointCap]; omega)
   have h34 : σ (.n (val% «check_opening_terminal» "pi_eq")) = eqEval (rm :: List.replicate (m - 1) 0) (x.take m) := by
-    rw [e34, piW_getD le_rfl, ite_eq_right (by omega)]
+    rw [e34, piW_getD le_rfl, ite_neg' (by omega)]
     show (rm + ((padPoint x).map (1 + ·)).getD 0 0) *
       ∏ i ∈ Ico 1 m, ((padPoint x).map (1 + ·)).getD i 0 = _
     rw [x1_getD hxl40 (by decide), ← piChain_eq hlm1 hmx]
@@ -617,12 +617,12 @@ theorem term_sigma (B : TermBases) (Lin : Main.Layout) {layout : Layout} {bus : 
           List.getElem_map, List.getElem_range]
       · show true = @decide _ (Classical.propDecidable _)
         refine (@decide_eq_true _ (Classical.propDecidable _) ?_).symm
-        rw [stRes_take, ite_eq_left (by omega)]
+        rw [stRes_take, ite_pos' (by omega)]
         exact hst3
       · show [σ (.n (selStart c)), σ (.n (val% «check_opening_terminal» "sel_eq")), σ (.n ((selKap c).2.2 + 1))] =
           [gen ^ (stackOffsets KC).1.getD c 0, (stRes (outs.take (4 + c))).1.getD 0 0,
             ofK (addressOfIndex (B.gsq + 34))]
-        rw [stRes_take, ite_eq_left (by omega), e36, e43, e38, e0, ofK_addressOfIndex_mul_gen_pow]
+        rw [stRes_take, ite_pos' (by omega), e36, e43, e38, e0, ofK_gpow_mul_gen]
       · show [σ (.n (selV c))] = _
         rw [esel, (hOK ht).1, List.getD_cons_zero]
     · have : j = 98 ∨ j = 99 ∨ j = 100 := by omega

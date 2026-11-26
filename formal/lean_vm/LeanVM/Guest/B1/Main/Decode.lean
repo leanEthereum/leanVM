@@ -102,7 +102,7 @@ theorem kidSlots_eq {lo len a b n : ℕ} {mono : Bool} (f : ℕ → ℕ)
       refine filter_card f (fun j hj => ⟨(hf j hj).1, ?_⟩) hinj (fun s hs hP => ?_)
       · rw [(hf j hj).2]; simp
       · simp only [decide_eq_true_eq] at hP; exact hall s hs hP.1 (by omega)
-    rw [ite_eq_left hfirst]
+    rw [ite_pos' hfirst]
     exact hfilt (hmono rfl)
   | false =>
     split
@@ -144,7 +144,7 @@ theorem region_kid {S : Segs} {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h2
   have h0 : S.a 0 = S.RX + S.RS := rfl
   have hk : S.kid m = c := S.kid_eq hc h1 h2
   unfold Segs.region
-  rw [ite_eq_right (by omega), ite_eq_right (by omega), hk]
+  rw [ite_neg' (by omega), ite_neg' (by omega), hk]
 
 theorem region_kid' {S : Segs} {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h2 : m < S.a (c + 1)) :
     (S.region m = 0 ↔ m < S.a c + S.ex c) ∧
@@ -152,9 +152,9 @@ theorem region_kid' {S : Segs} {c m : ℕ} (hc : c < S.NC) (h1 : S.a c ≤ m) (h
   rw [region_kid hc h1 h2]
   have hs : S.a (c + 1) = S.a c + (S.ex c + S.es c) := rfl
   by_cases ha : m - S.a c < S.ex c
-  · rw [ite_eq_left ha]
+  · rw [ite_pos' ha]
     exact ⟨⟨fun _ => by omega, fun _ => rfl⟩, ⟨fun h => absurd h (by decide), fun h => by omega⟩⟩
-  · rw [ite_eq_right ha]
+  · rw [ite_neg' ha]
     exact ⟨⟨fun h => absurd h (by decide), fun h => by omega⟩, ⟨fun _ => ⟨by omega, by omega⟩,
       fun _ => rfl⟩⟩
 

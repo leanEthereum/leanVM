@@ -2,10 +2,7 @@ module
 
 public import XmssSecurity.Proof.Bridge.Translate
 public import XmssSecurity.Proof.Deterministic.TableSigner
-public import Common.RomTable
-public import XmssSecurity.Proof.Seeded.SeedGuessing
-public import XmssSecurity.Proof.Seeded.CacheCoupling
-public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Proof.Deterministic.Inputs
 
 @[expose] public section
 
@@ -22,7 +19,7 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Bridge
 
-open Seeded DeterministicSigning Common.RomTable
+open Seeded
 
 /-- A bottom key and a pair of its chains. -/
 abbrev BottomPos := LeafIndex × ChainPair

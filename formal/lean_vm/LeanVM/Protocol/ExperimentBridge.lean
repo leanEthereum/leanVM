@@ -107,9 +107,9 @@ theorem verifier_queryPermutation (prog : LeanIsaProgram) (input : PublicInput) 
 
 theorem prover_queryPermutation (prog : LeanIsaProgram) (input : PublicInput) (t : Execution prog)
     (ρ fuel : ℕ) :
-    leanVmHonestProver queryPermutation prog input t ρ fuel =
+    LeanVM.Prover.prove queryPermutation prog input t ρ fuel =
       simulateQ keccakCallsOverQueryPermutation (proverWithHash prog input t ρ fuel) := by
-  rw [leanVmHonestProver, Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]; rfl
+  rw [Prover.prove_eq_withHash, proverWithHash, simulateQ_proveWithHash]; rfl
 
 /-! ## The adversary's transcript -/
 
@@ -173,7 +173,7 @@ theorem map_soundnessExperiment (A : RandomPermutationAdversary) :
 
 theorem verifierCompletenessExperiment_eq_withHash (prog : LeanIsaProgram) (input : PublicInput)
     (t : Execution prog) (ρ fuel : ℕ) :
-    completenessExperiment leanVmHonestProver prog input t ρ fuel =
+    completenessExperiment prog input t ρ fuel =
       verifierCompletenessExperimentWithHash proverWithHash prog input t ρ fuel := by
   simp only [completenessExperiment, verifierCompletenessExperimentWithHash,
     runWithRandomPermutation, prover_queryPermutation, verifier_queryPermutation]

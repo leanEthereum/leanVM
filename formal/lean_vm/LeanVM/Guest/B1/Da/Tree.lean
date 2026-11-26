@@ -20,12 +20,10 @@ a node as the two cells of its digest (`nodeCells`, `cellRoot`). With `H = Da.ke
 
 * `mRoot d g`: the tree of `Digest`s over the leaves `g i`; `toBytes_mRoot`: as LeanDA's bytes it
   is `merkleRoot keccak d (toBytes ∘ g)`; `cellRoot_mRoot`: as cells it is the guest's `cellRoot`;
-* `merkleRoot_add`: the root over `2^(a + b)` leaves is the root over the `2^a` roots of blocks of
-  `2^b` (LeanDA's column tree is the guest's tree of column roots);
 * `toList_toBytes`: LeanDA's digest bytes are this project's;
-* `treeRoot_range`, `flatMap_range_range`: a tree built level by level (`LeanDa.treeRootWithHash`) has the
-  root `merkleRoot`, and the column leaves listed column by column (the statements of `lean_da`'s
-  `treeRoot_map_range`, `flatMap_range_map_range`, whose module this one cannot import).
+* `treeRoot_range`: a tree built level by level (`LeanDa.treeRootWithHash`) has the root
+  `merkleRoot` (the statement of `lean_da`'s `treeRoot_map_range`, whose module this one cannot
+  import).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -83,22 +81,6 @@ theorem cellRoot_mRoot : ∀ (d : ℕ) (g : ℕ → Digest),
   | d + 1, g => by
     rw [cellRoot, cellLevel_scalars, cellRoot_mRoot d, mRoot]
 
-/-- **A root over blocks**: the root over `2^(a + b)` leaves is the root over the roots of the
-`2^a` blocks of `2^b` leaves. -/
-theorem merkleRoot_add (H : List UInt8 → Common.DigestBytes) (a : ℕ) :
-    ∀ (b : ℕ) (f : ℕ → Common.DigestBytes), LeanDa.merkleRootWithHash H (a + b) f =
-      LeanDa.merkleRootWithHash H a fun j => LeanDa.merkleRootWithHash H b fun i => f (j * 2 ^ b + i)
-  | 0, f => by simp [LeanDa.merkleRootWithHash]
-  | b + 1, f => by
-    rw [show a + (b + 1) = (a + b) + 1 from rfl, LeanDa.merkleRootWithHash, merkleRoot_add H a b]
-    congr 1
-    funext j
-    rw [LeanDa.merkleRootWithHash]
-    congr 1
-    funext i
-    simp only [LeanDa.upWithHash]
-    rw [show 2 * (j * 2 ^ b + i) = j * 2 ^ (b + 1) + 2 * i by ring, add_assoc]
-
 /-! ## Trees built level by level -/
 
 theorem treeLevel_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : ℕ → Common.DigestBytes) :
@@ -126,23 +108,6 @@ theorem treeRoot_range (H : List UInt8 → Common.DigestBytes) (d : ℕ) (f : �
     simp only [hlen, ↓reduceIte]
     rw [treeLevel_range, ih]
     rfl
-
-/-- The leaves listed column by column. -/
-theorem flatMap_range_range {α : Type} (a b : ℕ) (hb : 0 < b) (g : ℕ → ℕ → α) :
-    (List.range a).flatMap (fun j ↦ (List.range b).map (g j)) =
-      (List.range (a * b)).map fun l ↦ g (l / b) (l % b) := by
-  induction a with
-  | zero => simp
-  | succ a ih =>
-    rw [List.range_succ, List.flatMap_append, ih, List.flatMap_singleton, Nat.succ_mul,
-      List.range_add, List.map_append, List.map_map]
-    congr 1
-    refine List.map_congr_left fun i hi ↦ ?_
-    rw [List.mem_range] at hi
-    simp only [Function.comp_apply]
-    rw [show (a * b + i) / b = a by
-        rw [Nat.add_comm, Nat.add_mul_div_right _ _ hb, Nat.div_eq_of_lt hi, Nat.zero_add],
-      show (a * b + i) % b = i by rw [Nat.add_comm, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hi]]
 
 end
 end LeanVM.Guest.B1.Da

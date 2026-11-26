@@ -17,7 +17,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)` (`EndExec.VsQ`): the tables' log-heights `dims[1..6]`
+/-- **`verify_sub`'s values' exponent bounds** `(v, lo, hi)`: the tables' log-heights `dims[1..6]`
 (`kb[2..7]`, `tau_keccak_g` the keccak table's again), the bus depth `g_bus_mu`, the table sumcheck's depth `g_zc_n`, the
 stack's log `gmv` and less `20`, `size_sel`. -/
 def vsPows : List (ℕ × ℕ × ℕ) :=
@@ -61,7 +61,7 @@ def vsLt (a b : CIdx) : Bool :=
       | _, _ => false)
   | _, _ => false
 
-/-- **`verify_sub`'s exponent family** (`Res.vsB` on core names): an order its bounds decide
+/-- **`verify_sub`'s exponent family**: an order its bounds decide
 (`vsLt`), a read `c < 207` words past a cursor inside its stream, either under branch conditions (`EndExec.vsExp_inst`). -/
 def vsExp (fn : Fn) : CRes → Bool
   | .lt a b => fn.name == name% «verify_sub» && vsLt a b

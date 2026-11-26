@@ -240,6 +240,12 @@ theorem _root_.LeanVM.Node.NodeRelation.hasBytecodeShape {bytecode : List K} {se
     s.deferredClaim.HasBytecodeShape bytecode :=
   DeferredClaimBatched.hasBytecodeShape h.2.2.2
 
+/-- A deferred claim that holds of the bytecode has its shape. -/
+theorem _root_.LeanVM.Node.DeferredBytecodeClaim.HoldsWithShape.hasBytecodeShape
+    {bytecode : List K} {claim : DeferredBytecodeClaim} (h : claim.HoldsWithShape bytecode) :
+    claim.HasBytecodeShape bytecode := by
+  rw [DeferredBytecodeClaim.HasBytecodeShape, ← h.1, Nat.log2_two_pow]
+
 /-- **`NodeRelation` is `NodeRelB`**: the statement's batching program accepts the node's stream
 exactly where the guest program's transcript defers the node's claim. -/
 theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}

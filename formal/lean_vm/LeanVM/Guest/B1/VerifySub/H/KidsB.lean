@@ -26,8 +26,8 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 # The plain callees, bounded
 
 `winTabs_vsExp`: the caller's exponent tables (`vsExpLin`) hold the window table. The callees,
-each `CompleteAtB` within its `vsBsWith` entry: `g_power_of_word` (`gpw_completeAtB`), a
-`bus_grind_check` arm (`busGrind_kidB`),
+each `CompleteAtB` within its `vsBsWith` entry: `g_power_of_word` (`vs_gpw_completeAtB`), a
+`bus_grind_check` arm,
 `squeeze_point_from` (`spf_kidB`), `opening_message__L1_L1` (`om_kidB`); on an honest child's
 segments, `verify_bus_gkr` (`vbg_kidB`).
 -/
@@ -63,14 +63,6 @@ theorem vs_gpw_completeAtB (κ : ℕ) (Lin : Main.Layout) {n : ℕ} (hn : n < 2 
     (fun rd _ ↦ (g_power_of_word_holds rd [eOfNat n] [gen ^ n]).2
       (show ∃ m < 2 ^ 6, eOfNat n = eOfNat m ∧ [gen ^ n] = [gen ^ m] from ⟨n, hn, rfl, rfl⟩)) κ hg
 
-/-- **A `bus_grind_check` arm on a passing proof of work.** -/
-theorem busGrind_kidB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) {w : E}
-    (sqE : ℕ) (hpow : (w.limb 0).lane.toNat % 2 ^ busGrindBits d = 0) :
-    CompleteAtB fs cert κ (busGrindName d) (vsExpLin sqE) [w, ptr sqE * gen ^ winTabAt]
-      (Returns [0]) (fs (busGrindName d)) :=
-  bus_grind_check_completeB hd hκ _ _ _ fun _ _ hL ↦
-    ⟨rfl, w, _, rfl, winTabs_vsExp hL, hpow⟩
-
 theorem le_busGrindMax {d : ℕ} (hd : d < 14) : fs (busGrindName d) ≤ busGrindMax fs :=
   le_lmax (List.mem_map.2 ⟨d, List.mem_range.2 hd, rfl⟩)
 
@@ -98,7 +90,7 @@ theorem om_kidB (κ : ℕ) {B : ℕ} (hT : TotalLe coreProgram fs "opening_messa
     (opening_message_holds (1, 1) (by simp [omDeployed])) (fun _ _ _ h ↦ h.2.2.2)
     (om_pin 1 1 [v, nn]) κ hT _ _ _ fun rd _ hL ↦ ?_
   have hc : ReadsAt rd (ptr b * gen ^ 11) [v, nn] := by
-    rw [ofK_addressOfIndex_mul_gen_pow]; exact hL _ List.mem_cons_self
+    rw [ofK_gpow_mul_gen]; exact hL _ List.mem_cons_self
   have ho : ReadsAt rd (ptr o) [v] := hL _ (List.mem_cons_of_mem _ List.mem_cons_self)
   have hc1 : ReadsAt rd (ptr b * gen ^ 11) [v] := fun k hk ↦ by
     obtain rfl : k = 0 := by simpa using hk
@@ -119,7 +111,7 @@ theorem vbg_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 6 ≤ κ) (W
       (Tables.vbgMax fs W.vbg) := by
   have hd := S.d_bounds hbl
   obtain ⟨h3, h4, -⟩ := S.gkr_inv hbl
-  have hrun : RunsTo (gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
+  have hrun : RunsTo (Tables.gkrPhase S.d) ⟨S.s3.cap, []⟩ S.xsG S.rG ⟨S.s4.cap, []⟩ := by
     rw [← h3, ← h4]; exact S.runG
   have hc : ∃ sp, (⟨S.s3.cap, []⟩ : Fs).Carries sp := by rw [← h3]; exact S.c3
   exact Tables.verify_bus_gkr_completeAtW (by omega) (by omega) hκ hrun hc

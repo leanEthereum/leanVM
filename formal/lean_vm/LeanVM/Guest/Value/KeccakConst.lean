@@ -10,12 +10,12 @@ module
 public import LeanVM.Guest.Value.KeccakSponge
 import Statement.LeanVmGuest
 import LeanXmss.Scheme
-import Statement.LeanSphincs
-public import Statement.Fast.Schemes
+public import Statement.LeanSphincs
+public import Statement.LeanXmss
 import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Batch.Def
 public import LeanDa.WithHash
@@ -38,7 +38,7 @@ terms, checked here by `decide +kernel` through the evaluator of `KeccakEval` (`
   cells are `AGG_SEED_0 .. AGG_SEED_4` (`FiatShamirState::from_label(RECURSION_AGG_LABEL)
   .capacity_cells()`, `crates/aggregation/src/placeholders.rs`);
 * `paddingCell_eq`, `paddingBlobRoot_eq`, `daPadBlob_cells`: LeanDA's padding blob root, the root
-  of the tree over `128` copies of the zero cell's digest (`root_of_padding_blob`, `padding_merkle_nodes`,
+  of the tree over `128` copies of the zero cell's digest (`root_of_padding_blob`, `blob_merkle_nodes`,
   `crates/lean_da/src/commit.rs`), whose two cells are `DA_PAD_BLOB_0/1` (`hash_to_scalars`,
   `crates/aggregation/src/placeholders.rs`).
 

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Common.Atoms
 public import LeanVM.Guest.B1.Common.Basic
-import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # `eqtree` (TRIAGE #23)
@@ -66,6 +65,24 @@ theorem eqtreeT_atoms (p o : V) (po b n : ℕ) : AllAtoms (eqtreeT p o po b n) :
       (allAtoms_map_flatten fun i _ => ?_)
     exact allAtoms_cons (allAtoms_cons (allAtoms_cons (allAtoms_cons (allAtoms_cons allAtoms_nil))))
 
+theorem eqKernel_snoc (pt : List E) (r : E) :
+    eqKernel (pt ++ [r]) = (eqKernel pt).map (· * (1 + r)) ++ (eqKernel pt).map (· * r) := by
+  unfold eqKernel
+  rw [List.foldl_concat]
+
+theorem getD_map_mul_eq (l : List E) (c : E) (w : ℕ) :
+    (l.map (· * c)).getD w 0 = l.getD w 0 * c := by
+  simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases l[w]? <;> simp
+
+theorem length_eqKernel_eq (pt : List E) : (eqKernel pt).length = 2 ^ pt.length := by
+  induction pt using List.reverseRecOn with
+  | nil => rfl
+  | append_singleton pt r ih =>
+    rw [eqKernel_snoc, List.length_append, List.length_map, List.length_map, ih,
+      List.length_append, List.length_singleton, pow_succ]
+    ring
+
 /-- **`eqtree`**: with the point's words `rs` (`n ≥ 1` of them) at `p` from `po`,
 level `t`, `1 ≤ t ≤ n`, of the run at `o` is `eqKernel (rs.take t)`. -/
 theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
@@ -117,7 +134,7 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
         rw [List.take_add_one, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
         simp
       have hlen : (eqKernel (rs.take t)).length = 2 ^ t := by
-        rw [eqKernel_length]; simp [hrs]; omega
+        rw [length_eqKernel_eq]; simp [hrs]; omega
       intro i hi
       rw [htake, eqKernel_snoc]
       have word := fun j (hj : j < 2 ^ t) (a : Atom) (ha : Stmt.atom a ∈ eqtreeWordT o S t j) =>
@@ -132,7 +149,7 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
           (2 ^ (t + 1) - 2 + i)) ∈ _)
         simp only [Atom.Holds] at w1
         have e := loadHolds_unique w0 (hprev i hlo)
-        rw [List.getD_append _ _ _ _ (by rw [List.length_map, hlen]; exact hlo), getD_map_mul,
+        rw [List.getD_append _ _ _ _ (by rw [List.length_map, hlen]; exact hlo), getD_map_mul_eq,
           ← e, ← hrt1, ← w1]
         exact w2
       · obtain ⟨j, hj, rfl⟩ : ∃ j < 2 ^ t, i = 2 ^ t + j := ⟨i - 2 ^ t, by rw [pow_succ] at hi; omega, by omega⟩
@@ -145,7 +162,7 @@ theorem eqtree_sound {p o : V} {po b n : ℕ} (hn : 1 ≤ n)
         simp only [Atom.Holds] at w3
         have e := loadHolds_unique w0 (hprev j hj)
         rw [List.getD_append_right _ _ _ _ (by rw [List.length_map, hlen]; omega), List.length_map,
-          hlen, Nat.add_sub_cancel_left, getD_map_mul, ← e, ← hrt, ← w3,
+          hlen, Nat.add_sub_cancel_left, getD_map_mul_eq, ← e, ← hrt, ← w3,
           show 2 ^ (t + 1) - 2 + (2 ^ t + j) = 2 ^ (t + 1) - 2 + 2 ^ t + j by omega]
         exact w4
 
@@ -170,14 +187,8 @@ theorem eqtreeLvlVal_word (rs : List E) (t i j : ℕ) (hj : j < 3) :
     show ¬ 3 + 3 * i + j = 2 by omega, ↓reduceIte, e1, e2]
   interval_cases j <;> simp
 
-/-- The honest valuation of `eqtreeT … b n` over `σ`, through level `m`. -/
-def eqtreeSig (σ : Val) (rs : List E) (b : ℕ) : ℕ → Val
-  | 0 => setv σ b 3 fun o ↦ [rs.getD 0 0, 1, 1 + rs.getD 0 0].getD o 0
-  | m + 1 => setv (eqtreeSig σ rs b m) (eqtreeS b (m + 1)) (3 + 3 * 2 ^ (m + 1))
-      (eqtreeLvlVal rs (m + 1))
-
 /-- **The honest values satisfy `eqtree`**: with the point's words at `p`, the run `o` holding
-every level's `eqKernel` entries, and the template's values those of `eqtreeSig`. -/
+every level's `eqKernel` entries, and the template's values the honest ones (`eqtreeLvlVal`). -/
 theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (hrs : rs.length = n)
     (hpt : ∀ t < n, LoadHolds rd (σ p) (po + t) (rs.getD t 0))
     (hout : ∀ t, 1 ≤ t → t ≤ n → ∀ i < 2 ^ t,
@@ -219,7 +230,7 @@ theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (
       rw [List.take_add_one, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
       simp
     have hlen : (eqKernel (rs.take t)).length = 2 ^ t := by
-      rw [eqKernel_length]; simp [hrs]; omega
+      rw [length_eqKernel_eq]; simp [hrs]; omega
     simp only [eqtreeLevelT, ← hS, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
       List.mem_flatten, List.mem_map, List.mem_range] at hb
     rcases hb with (h | h | h) | ⟨w, ⟨i, hi, rfl⟩, hw⟩
@@ -240,11 +251,11 @@ theorem eqtreeT_complete {p o : V} {po b n : ℕ} (hn : 1 ≤ n) {rs : List E} (
       have hlo : (eqKernel (rs.take (t + 1))).getD i 0 =
           (eqKernel (rs.take t)).getD i 0 * (1 + rs.getD t 0) := by
         rw [htake, eqKernel_snoc, List.getD_append _ _ _ _ (by rw [List.length_map, hlen]; exact hi),
-          getD_map_mul]
+          getD_map_mul_eq]
       have hhi : (eqKernel (rs.take (t + 1))).getD (2 ^ t + i) 0 =
           (eqKernel (rs.take t)).getD i 0 * rs.getD t 0 := by
         rw [htake, eqKernel_snoc, List.getD_append_right _ _ _ _ (by rw [List.length_map, hlen]; omega),
-          List.length_map, hlen, Nat.add_sub_cancel_left, getD_map_mul]
+          List.length_map, hlen, Nat.add_sub_cancel_left, getD_map_mul_eq]
       simp only [eqtreeWordT, List.mem_cons, List.not_mem_nil, or_false] at hw
       rcases hw with h | h | h | h | h <;> obtain rfl := Stmt.atom.inj h
       · show LoadHolds rd (σ o) (2 ^ t - 2 + i) (σ (.n (S + 3 + 3 * i)))

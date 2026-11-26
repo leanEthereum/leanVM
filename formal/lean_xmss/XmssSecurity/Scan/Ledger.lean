@@ -1,6 +1,6 @@
 module
 
-public import XmssSecurity.Scan.SignStep
+public import XmssSecurity.Scan.Leaves
 
 @[expose] public section
 

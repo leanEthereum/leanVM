@@ -1,7 +1,6 @@
 module
 
 public import FORS.GraphView.Cache
-public import FORS.Base.Prelude
 
 @[expose] public section
 
@@ -230,7 +229,7 @@ theorem evalDist_graph_continuation {α : Type} (program : OracleComp OracleWorl
         let labels := completedLabels (graphOrder active) initial answers
         (simulateQ romImpl program).run'
           (programGraphCache parameter otsSecret ftsSecret (graphOrder active) labels cache)) := by
-  refine (Common.RomTable.evalDist_presample_computation romImpl program
+  refine (SeedCoupling.evalDist_presample_computation program
     (liftM (prepare parameter otsSecret ftsSecret (graphOrder active) initial) :
       OracleComp OracleWorld CanonicalGraphLabels) cache).trans ?_
   rw [simulate_lift_hash]

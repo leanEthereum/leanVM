@@ -7,7 +7,6 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerT
-meta import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -15,7 +14,8 @@ open LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-kernel_rfl layer_body264 : (fn% «keccak_layer__L1»).body = layerT 1
+theorem layer_body264 : (fn% «keccak_layer__L1»).body = layerT 1 :=
+  stmtsEqb_sound (by decide +kernel)
 
 end
 end LeanVM.Guest.B1.VerifySub

@@ -21,7 +21,7 @@ the honest memory of a re-choice of the temporaries of a tree valid on a memory 
 that tree exact on `rd0` (`ExactAt`), extended by the words its hints write to the heap
 (`honestX`, read off `rd0`) and by the values only hints read, at their cells (`refExtra`,
 `extraWrites`); a valid execution of the guest on the statement's digest within
-`2^30` committed cells; the tree's pops on `rd0` the honest pushes, stream by stream. `ref_exists` is `End.refX_valid_of_main` and `Bridge.honest_of_mainP` on one tree, under
+`2^30` committed cells; the tree's pops on `rd0` the honest pushes, stream by stream. `ref_exists` holds on one tree, under
 `MainCompletePE` (`Budget.mainCompletePE_deployed`, given `Budget.MainExactHyp`).
 -/
 

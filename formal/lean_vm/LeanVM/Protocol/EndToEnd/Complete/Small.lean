@@ -8,11 +8,11 @@
 module
 
 import LeanVM.Protocol.EndToEnd.Completeness
-public import Statement.LeanVmCompleteness
+public import Statement.LeanVm
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.EndToEnd.Complete.Theorem
 import LeanVM.Protocol.LeanIsa.Complete
@@ -25,10 +25,10 @@ import LeanVM.Protocol.EndToEnd.Sound.Moves
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
 execution (`ValidExecution`) whose committed size (`Execution.committedSize`, stated in the ISA's
-terms in `Statement/LeanVmCompleteness.lean`) is at most `2^completeMu = 2^30` has a witness
-representing it at admissible sizes (`exists_admissible_witness`), and the honest proof of that
-witness (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the
-proof-of-work searches succeed (`honestProofOf_isSome`).
+terms in `Statement/LeanVm.lean`) is at most `2^completeMu = 2^30` has a witness representing it at
+admissible sizes (`exists_admissible_witness`), and the honest proof of that witness
+(`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the proof-of-work
+searches succeed (`honestProofOf_isSome`).
 
 ## The sizes of the witness
 
@@ -92,8 +92,8 @@ theorem blocks_total_eq (prog : LeanIsaProgram) (s : Sizes) : (LeanIsa.blocks pr
     Nat.add_zero, ← Nat.add_assoc]
   rfl
 
-/-- The committed size completeness is stated for, `2^30` cells
-(`Statement/LeanVmCompleteness.lean`), the `2^maxMu` the verifier admits. -/
+/-- The committed size completeness is stated for, `2^30` cells (`Statement/LeanVm.lean`), the
+`2^maxMu` the verifier admits. -/
 def completeMu : ℕ := 30
 
 /-- The stacked size is within the cap when the blocks fit on `2^completeMu` cells. -/

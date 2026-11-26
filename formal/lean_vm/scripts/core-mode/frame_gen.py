@@ -2,9 +2,8 @@
 `LeanVM/Guest/CoreMode/Pack/<pack>/Frame{k}.lean`, each function's data (`CoreMode.FFun`: its
 executor facts, its signature and its callees', its hints, residual divisors, table targets, the
 oracle) with the kernel's check of its walk (`frameOk … = true := by decide +kernel`); a long
-function in windows (`frameWin`), each its own module `FrameD{k}W{m}.lean`, from the cut states
-`frame.py` computes (its data `FrameD{k}.lean`, the check that its oracle's list is the pairing's
-`FrameO{k}.lean`, the chain `FrameL{k}.lean`). For a function on the core route, beside its walk, its frame interface's data
+function in windows (`frameWin`), each its own module `FrameW{k}.lean`, from the cut states
+`frame.py` computes. For a function on the core route, beside its walk, its frame interface's data
 (`envC`, its callees' signatures by key, `CoreMode.envOf`; `funC`, its entry, length, signature
 (`sigc.py`) and nonzero residuals). A function takes its oracle and stores from its pairing and its residual divisors
 from its own walk (`frame_run.own_nz`). The frame signatures are the frame layout's (`compiled.fsig`).
@@ -75,12 +74,6 @@ def unitTrie(keys):
     return '(CoreMode.unitOf %s)' % lst(ks) if ks else '.nil'
 
 
-def bitsLit(keys):
-    """A set of frame offsets as the bits of a number (`CoreMode/Bits.lean`), in hexadecimal."""
-    assert all(0 <= k < 2 ** FR.ENV_DEPTH - 1 for k in keys)
-    return hex(sum(1 << k for k in set(keys)))
-
-
 def natTrie(d): return MG.trie(d, str)
 
 
@@ -117,13 +110,15 @@ def jt0Of(n):
 
 
 JT0S = {}
+# where a pack of one frame module takes its powers of `g`
+POWS = '\x00pows\x00'
 
 
 def fstLit(A):
     """A state of `frame.py` as a literal `CoreMode.FSt` (its `Exec` state restarted)."""
     env = 'envOf %s' % lst(sorted(A.st.env.items()), lambda p: '(%d, %s)' % (p[0], sym(p[1])))
     return '⟨St.init (%s), %s, %s, %s, %s, %s, %s⟩' % (
-        env, bitsLit(A.w), bitsLit(A.nz), hqTrie(A.hq),
+        env, unitTrie(A.w), unitTrie(A.nz), hqTrie(A.hq),
         unitTrie(hqk(q, o) for q, o in A.hs), natTrie(A.cp), natTrie(A.one))
 
 
@@ -182,17 +177,14 @@ def fnData(D, n, cuts):
     for nm, tab, f in (('frameArm', tarms, str), ('frameCallee', tcalls, lambda pc: '%s.entry' % MG.fnq(byentry[pc]))):
         for k, ps in sorted(tab.items()):
             names[(nm, k)] = '%s%d' % (nm, k)
-            defs.append('def %s%d : List ℕ := data%% %s\n' % (nm, k, lst(ps, f)))
-    cutT, cutW = '.nil', 1
+            defs.append('def %s%d : List ℕ := %s\n' % (nm, k, lst(ps, f)))
+    cutT = '.nil'
     if cuts:
-        # the cuts at multiples of the stride, by index (`FFun.cutAt`)
-        cutW = cuts[0]
-        assert all(i % cutW == 0 for i in cuts)
         cn = {}
         for i in cuts:
-            cn[i // cutW] = 'frameCut%d' % len(cn)
+            cn[i] = 'frameCut%d' % len(cn)
             defs.append('/-- `%s`: its walk at offset %d. -/\nnoncomputable def %s : Option CoreMode.FSt × List (ℕ × List ℕ × '
-                        'CoreMode.FSt) :=\n  data%% %s\n\n' % (n, i, cn[i // cutW], cutLit(w.cutSt[i])))
+                        'CoreMode.FSt) :=\n  %s\n\n' % (n, i, cn[i], cutLit(w.cutSt[i])))
         cutT = MG.trie(cn, lambda x: x)
     O, S = '%s.pairO' % MG.fnq(n), '%s.pairS' % MG.fnq(n)
     nzT, tidxT = MG.trie(nzr, lambda os: lst(os)), MG.trie(tidx, str)
@@ -217,9 +209,8 @@ def fnData(D, n, cuts):
         assert ln == f['count']
         return ('frame_fn%% %s %d [%s]%s\n' % (q(n), ln, ', '.join(callees), ''.join(' ' + c for c in cl))), defs, packs
     defs += envDefs(D, n, nzr)
-    lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, data%% %s, %s, %d, %s⟩' % (
-        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O,
-        lst(sorted(O_)), S, cutW, cutT))
+    lit = ('⟨%s, %s.entry, %d, %s.csig, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
+        facts, MG.fnq(n), ln, MG.fnq(n), sigTrie(sigs.values()), D['halt'], hints, nzT, tidxT, armsT, callsT, O, S, cutT))
     return lit, defs, packs
 
 
@@ -244,9 +235,9 @@ def envDefs(D, n, nzr):
                 'true' if n == 'main' else 'false')]
 
 
-def imports(pack, packs, gens, glue):
+def imports(pack, packs, gens, glue, pows=True):
     out = ['public import LeanVM.Guest.CoreMode.Frame', 'public import LeanVM.Guest.CoreMode.FrameLit',
-           'public import LeanVM.Guest.DataLit', 'public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack,
+           *(['public import LeanVM.Guest.CoreMode.GlueP.«%s»' % pack] if pows else ['public import LeanVM.Guest.Pow']),
            'public import LeanVM.Guest.CoreMode.Env',
            *['public import LeanVM.Guest.CoreMode.GlueA.«%s»' % q for q in sorted(set(glue) or {pack})],
            'public import LeanVM.Guest.Pack.«%s».Bundle' % pack]
@@ -283,7 +274,8 @@ FPOWS = None
 
 def fpowsDef(k):
     """`k`'s frame walk's powers of `g`: the immediates of its code's `SET`s that `Data.powTree` names (code
-    pointers among them: glue, `CoreMode/GlueP/<pack>.lean`), checked by the kernel."""
+    pointers among them: glue, `CoreMode/GlueP/<pack>.lean`, or the pack's frame module when it has one), checked by
+    the kernel."""
     global FPOWS
     if FPOWS is None:
         import pows as PW
@@ -300,7 +292,10 @@ def chunk_lens(k):
     BD = MG.BD
     if k not in BD.bundle_blocks():
         raise SystemExit('frame_gen: no code of %s' % k)
-    return [len(ch) for ch in BD.chunks_of(BD.bundle_blocks()[k][1])]
+    blk = BD.bundle_blocks()[k][1]
+    ds = {m.group(1): m.group(2) for m in re.finditer(r'^def (c\d+) : List OffsetInstruction := \[\n(.*?)\]$', blk, re.S | re.M)}
+    # one instruction a line
+    return [ds[c].count('\n') + 1 for c in BD.code_of(blk)[3]]
 
 
 def cut_of(clens, i):
@@ -361,11 +356,14 @@ def main(argv):
                 # one `frame_fn%` a function: a short one has no cuts
                 body.append(qual(ns_, ''.join(defs)) + lit)
                 stats['fns'] += 1
+            # a pack of one module holds its powers of `g` itself, `GlueP` otherwise
+            alone = len(groups) == 1 and not long_
             mod = 'LeanVM.Guest.CoreMode.Pack.«%s».Frame%d' % (p, k)
             files[os.path.join(OUT, p, 'Frame%d.lean' % k)] = (
-                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') + imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}) +
+                header(mod, 'The kernel\'s checks of compiled functions\' frame walks.') +
+                imports(p, packs, gens, {gen_pack.get(D['fns'][n]['ns'], p) for n in g}, not alone) +
                 '\nset_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
-                '@[expose] public section\n\n' + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
+                '@[expose] public section\n\n' + (POWS if alone else '') + ''.join(body) + 'end\n\nend LeanVM.Guest\n')
         for k, n in enumerate(long_):
             cuts = cutsFor(D, n)
             lit, defs, packs = fnData(D, n, cuts)
@@ -390,13 +388,6 @@ def main(argv):
                        'frameFun code.chunks %s %s %d %d = true := by\n  decide +kernel\n' % (
                            n, a, b, m, cut_of(clens, a), cut_of(clens, b), a, b)))
             pairs = list(zip(bounds[:-1], bounds[1:]))
-            # the oracle's offsets the windows read, checked once (`CoreMode.oracleChk`), beside the windows
-            wo = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameO%d' % (p, k)
-            files[os.path.join(OUT, p, 'FrameO%d.lean' % k)] = (
-                header(wo, 'The oracle\'s offsets `%s`\'s frame walk reads.' % n) +
-                'public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%d\n\nset_option Elab.async false\n' % (p, k) +
-                ns(ns_, '/-- `%s`: its frame walk reads offsets of its oracle. -/\ntheorem frameOracle : '
-                   'CoreMode.oracleChk frameFun = true := by\n  decide +kernel\n' % n))
             wl = 'LeanVM.Guest.CoreMode.Pack.«%s».FrameL%d' % (p, k)
             chain = 'trivial'
             for m in reversed(range(len(pairs))):
@@ -405,7 +396,7 @@ def main(argv):
                 lst(bounds[1:], lambda x: '(%s, %d)' % (cut_of(clens, x), x)), chain)
             files[os.path.join(OUT, p, 'FrameL%d.lean' % k)] = (
                 header(wl, 'The windows of `%s`\'s frame walk, chained.' % n) +
-                'public import LeanVM.Guest.CoreMode.FrameSlice\npublic import %s\n' % wo +
+                'public import LeanVM.Guest.CoreMode.FrameSlice\n' +
                 ''.join('public import LeanVM.Guest.CoreMode.Pack.«%s».FrameD%dW%d\n' % (p, k, m) for m in range(len(pairs))) +
                 'import all Statement.Data.AdviceHints\n\nset_option Elab.async false\n' +
                 ns(ns_, '/-- `%s`: its hints by pc increase. -/\ntheorem frameHints : Mode.pcsIncr frameFun.hints = true := by\n'
@@ -413,8 +404,8 @@ def main(argv):
                    '  decide +kernel\n\n/-- `%s`: its frame walk accepts its code, its windows chained. -/\n'
                    'theorem frameAcc : CoreMode.FrameAcc frameFun code.chunks.flatten := by\n'
                    '  have hl : frameFun.len = code.chunks.flatten.length := by rw [frameLen]; rfl\n'
-                   '  have hc0 : frameFun.cutAt 0 = none := rfl\n'
-                   '  refine CoreMode.frameAcc_of_wins frameOracle frameHints hl %s 0 _\n    (by rw [frameLen]; decide) rfl\n'
+                   '  have hc0 : frameFun.cuts.get 0 = none := rfl\n'
+                   '  refine CoreMode.frameAcc_of_wins frameHints hl %s 0 _ (by rw [frameLen]; decide) rfl\n'
                    '    ⟨_, by simp [CoreMode.winStart, hc0], fun _ _ ↦ rfl⟩ ?_\n'
                    '  rw [frameLen]\n  show ∀ p ∈ %s, CoreMode.frameWin frameFun code.chunks.flatten p.1 p.2 = true\n'
                    '  exact %s\n' % (n, n, D['fns'][n]['count'], n, lst(bounds[1:-1]),
@@ -427,14 +418,18 @@ def main(argv):
         stats.update(st)
     for p, names in sorted(MG.packs().items()):
         if only and p not in only: continue
+        defs = ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns']))
+        f0 = os.path.join(OUT, p, 'Frame0.lean')
+        if POWS in files.get(f0, ''):
+            files[f0] = files[f0].replace(POWS, re.sub(r'^(?=noncomputable def |theorem )', 'set_option linter.all false in\n',
+                                                       defs, flags=re.M) + '\n')
+            continue
         files[os.path.join(FD.ROOT, 'CoreMode', 'GlueP', '%s.lean' % p)] = (
             header('LeanVM.Guest.CoreMode.GlueP.«%s»' % p, 'The powers of `g` the code of each function of the pack names, '
                    'code pointers among them.') +
             'public import LeanVM.Guest.Pow\n\nset_option Elab.async false\nset_option linter.all false\n'
             'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\nopen LeanVM.Guest.Exec\n\n'
-            '@[expose] public section\n\n' +
-            ''.join(fpowsDef(D['fns'][n]['ns']) for n in sorted(names, key=lambda n: D['fns'][n]['ns'])) +
-            '\nend\n\nend LeanVM.Guest\n')
+            '@[expose] public section\n\n' + defs + '\nend\n\nend LeanVM.Guest\n')
     files = {path: wrap(text) for path, text in files.items()}
     # a window, module or pack no longer written (fewer windows, a function moved, a pack gone)
     have = [] if only or fns_only else (glob.glob(os.path.join(OUT, '*', 'Frame*.lean')) +

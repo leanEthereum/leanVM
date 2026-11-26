@@ -43,7 +43,7 @@ theorem subOf_memL {rd : Reader} {L : Main.Layout} (hL : Main.MemL rd L) {q : �
   have hr := hL q' hq'
   intro k hk
   have := hr (off + k) (by omega)
-  rw [h1, ← ofK_addressOfIndex_mul_gen_pow, loadHolds_mul_gen_pow]
+  rw [h1, ← ofK_gpow_mul_gen, loadHolds_mul_gen_pow]
   have e : q.2[k] = q'.2[off + k] := by
     have : q.2[k] = ((q'.2.drop off).take q.2.length)[k]'(by rw [← h3]; exact hk) := by
       congr 1

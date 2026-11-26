@@ -10,10 +10,8 @@ public import LeanVM.Guest.B1.Bits.Meaning
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
-import LeanVM.Guest.Value.FieldBits
 import LeanVM.Guest.B1.Common.Vc
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
+import LeanVM.Guest.Value.FieldBits
 
 /-!
 # `assert_small_g_power`
@@ -81,9 +79,10 @@ def asgBlk (j : ℕ) : List Stmt :=
 
 /-- The expansion of `assert_small_g_power`. -/
 def asgBody : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ⧺ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
+  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
 
-theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody := by kernel_rfl
+theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody :=
+  stmtsEqb_sound (by decide +kernel)
 
 theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some
     fn% «assert_small_g_power» :=
@@ -165,14 +164,14 @@ def asgVals (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (k : ℕ) : E :=
 theorem asgVals_d (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (j : ℕ) (hj : j < 9) :
     asgVals x q e y t1 t2 (j + 2) = gen ^ (e / 16 ^ j % 16) := by
   simp only [asgVals]
-  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega), Nat.add_sub_cancel]
+  rw [ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega), Nat.add_sub_cancel]
 
 theorem asgVals_head (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (i : ℕ) (hi : i < 6) :
     asgVals x q e y t1 t2 (11 + i) =
       [word 32768 0, y 0, t1 0, t2 0, q * gen ^ (e / 16 ^ 0 % 16), gen ^ (e / 16 ^ 0 % 16)].getD
         i 0 := by
   simp only [asgVals]
-  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega),
+  rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega),
     Nat.add_sub_cancel_left]
 
 theorem asgVals_blk (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (j i : ℕ) (hi : i < 7) :
@@ -182,7 +181,7 @@ theorem asgVals_blk (x q : E) (e : ℕ) (y t1 t2 : ℕ → E) (j i : ℕ) (hi : 
   have h1 : (17 + 7 * j + i - 17) / 7 = j := by omega
   have h2 : (17 + 7 * j + i - 17) % 7 = i := by omega
   simp only [asgVals, h1, h2]
-  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega)]
+  rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega)]
 
 /-- `e mod 16^(j+1)` adds digit `j` to `e mod 16^j`. -/
 theorem mod_sixteen_succ (e j : ℕ) : e % 16 ^ (j + 1) = e % 16 ^ j + e / 16 ^ j % 16 * 16 ^ j := by

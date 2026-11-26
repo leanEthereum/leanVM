@@ -1,12 +1,18 @@
-#![doc = include_str!("../README.md")]
+#![cfg_attr(feature = "aggregation", doc = include_str!("../README.md"))]
+#![cfg_attr(
+    not(feature = "aggregation"),
+    doc = "leanXMSS and leanSPHINCS signatures and the consensus VRF tree."
+)]
 
+#[cfg(feature = "aggregation")]
 mod aggregate;
 mod error;
 pub mod sphincs;
 pub mod vrf;
 pub mod xmss;
 
-pub use aggregate::{Aggregate, Sidecar, MAX_CHILDREN};
+#[cfg(feature = "aggregation")]
+pub use aggregate::{aggregate, aggregate_only, setup, Aggregate, MAX_CHILDREN};
 pub use error::{Encoding, Error};
 
 /// Byte length of a message, the 256-bit digest both schemes sign.

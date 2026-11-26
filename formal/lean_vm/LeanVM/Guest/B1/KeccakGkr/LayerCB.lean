@@ -42,7 +42,7 @@ def rmfePure (o : ℕ) : List Stmt := (rmfeBlockT o).filter fun s ↦ !loadB s
 def rmfeCheckP (o : ℕ) : Bool :=
   match maskRun (.n (o + 531)) [(.n (o + 531), 2)] (rmfePure o) with
   | some st => (List.range 16).all (fun i ↦ st.lookup (.n (o + rmfeStores.getD i 0)) ==
-      some (rmfeEmbed.getD i 0)) && st.lookup (.n (o + 688)) == some embedXor
+      some (embedLit.getD i 0)) && st.lookup (.n (o + 688)) == some embedXor
   | none => false
 
 theorem rmfeCheckP_true {o : ℕ} (ho : LayOff o) : rmfeCheckP o = true := by

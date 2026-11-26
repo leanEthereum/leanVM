@@ -4,6 +4,7 @@ public import LeanVM.Cost.Bounds.Guest.Readers
 public import LeanVM.Cost.Decoder.Signatures
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds on the guest decoder's prices: the signatures
@@ -60,6 +61,13 @@ theorem spPos_lits_ok : RowsOK 10 spForsKids ∧ RowsOK 10 spForsBits ∧ RowsOK
     spPathKids.length ≤ 3 ∧ spPathBits.length ≤ 3 := by
   decide +kernel
 
+theorem getD_lt_of {l : List ℕ} {B : ℕ} (h : ∀ x ∈ l, x < B) (hB : 0 < B) (k : ℕ) :
+    l.getD k 0 < B := by
+  rw [List.getD_eq_getElem?_getD]
+  cases hk : l[k]? with
+  | none => simpa using hB
+  | some x => exact h x (List.mem_of_getElem? hk)
+
 theorem getD_row {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r : ℕ) :
     (tab.getD r []).length ≤ M ∧ ∀ x ∈ tab.getD r [], x < 2 ^ 20 := by
   rw [List.getD_eq_getElem?_getD]
@@ -69,7 +77,7 @@ theorem getD_row {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r : ℕ) 
 
 theorem offAt_lt {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r k : ℕ) :
     offAt tab r k < 2 ^ 20 :=
-  Decoder.getD_lt_of_all (by norm_num) (getD_row h r).2 k
+  getD_lt_of (getD_row h r).2 (by norm_num) k
 
 /-! ## The tables as arrays -/
 
@@ -79,7 +87,7 @@ theorem offAtA_tabA_lt {tab : List (List ℕ)} {M : ℕ} (h : RowsOK M tab) (r k
 
 theorem getD_toArray_lt {l : List ℕ} {M : ℕ} (h : ListOK M l) (k : ℕ) :
     l.toArray.getD k 0 < 2 ^ 20 := by
-  rw [getD_toArray]; exact Decoder.getD_lt_of_all (by norm_num) h.2 k
+  rw [List.getD_toArray]; exact getD_lt_of h.2 (by norm_num) k
 
 /-- `sp_wots`' tables as arrays, their entries small (`spTabs_ok`). -/
 structure SpTabsOK (T : SpTabs) : Prop where
@@ -109,7 +117,7 @@ theorem tabA_cost (hP : Includes P Decoder.tabAC.costDeps) (t : List (List ℕ))
   have := map_cost P (by includes) List.toArray (.closure Decoder.tabAC.lam0.costIdx [])
     (fun xs ↦ RunsApp.of_spec (Decoder.tabAC.lam0.costSpec P (by includes) xs)) (M + 2) t
     (fun r hr ↦ by
-      rw [appCost_fn, List.nil_append, Decoder.tabAC.lam0.costEq P, List.length_nil]
+      rw [appCost_fn, List.nil_append, Decoder.tabAC.lam0.costEq P (by includes), List.length_nil]
       have := hM r hr; omega)
   rw [show M + 2 + 13 = M + 15 by omega] at this
   omega
@@ -133,11 +141,11 @@ theorem spTabs_cost (hP : Includes P Decoder.spTabsC.costDeps) :
   have := Nat.mul_le_mul_left (10 + 15) p6
   have := Nat.mul_le_mul_left (10 + 15) p7
   have := Nat.mul_le_mul_left (10 + 15) p8
-  rw [Decoder.spTabsC.costEq P hP, Decoder.gLanesC.costEq P,
-    Decoder.spSelC.costEq P, Decoder.spFirstC.costEq P,
-    Decoder.spRestC.costEq P, Decoder.spLastC.costEq P,
-    Decoder.spForsKidsC.costEq P, Decoder.spForsBitsC.costEq P,
-    Decoder.spPathKidsC.costEq P, Decoder.spPathBitsC.costEq P,
+  rw [Decoder.spTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
+    Decoder.spSelC.costEq P (by includes), Decoder.spFirstC.costEq P (by includes),
+    Decoder.spRestC.costEq P (by includes), Decoder.spLastC.costEq P (by includes),
+    Decoder.spForsKidsC.costEq P (by includes), Decoder.spForsBitsC.costEq P (by includes),
+    Decoder.spPathKidsC.costEq P (by includes), Decoder.spPathBitsC.costEq P (by includes),
     show spSel.length = 22 from rfl]
   omega
 
@@ -164,15 +172,15 @@ theorem idxBelow_cost (hP : Includes P Decoder.idxBelowC.costDeps) (w : ℕ)
         [encodeValue w, encodeValue l, encodeValue i, encodeValue m] ≤ 23 * m + 9
   | [], i, m, _, _ => by rw [Decoder.idxBelowC.costEq_nil P hP]; omega
   | t :: ts, i, m, hl, him => by
-    rw [Decoder.idxBelowC.costEq_cons P hP]
-    limbs
+    rw [Decoder.idxBelowC.costEq_cons P hP, limbs_of_lt (by omega : m < 2 ^ 64)]
     cases m with
     | zero => simp
     | succ k =>
       have ht := hl t (by simp)
       have := idxBelow_cost hP w hw ts (i + 1) k (fun x hx ↦ hl x (by simp [hx])) (by omega)
       dsimp only
-      limbs
+      rw [limbs_of_lt hw, limbs_of_lt ht, limbs_of_lt (by omega : i < 2 ^ 64),
+        limbs_of_lt (by omega : i + 1 < 2 ^ 64)]
       split_ifs <;> omega
 
 /-- **An exponent off the lanes given** (`logGTWithC`), `bound < 2^32`: at most
@@ -213,17 +221,33 @@ theorem cwCellA_cost (hP : Includes P Decoder.cwCellC.costDeps) (lanes : List �
       encodeValue first, encodeValue rest, encodeValue last, σV, encodeValue i] ≤ S + 1543 := by
   rw [Decoder.cwCellC.costEq P hP _ _ _ _ _ _ σ σV hσ]
   have hsl := hsel (i / 3)
-  limbs
+  rw [limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : i / 3 < 2 ^ 64),
+    limbs_of_lt (by omega : G < 2 ^ 64), limbs_of_lt (by omega : sel.getD (i / 3) 0 < 2 ^ 64)]
   have := hS (.n (sel.getD (i / 3) 0))
   have := logGTWith_cost P (by includes) lanes hlanes (σ (.n (sel.getD (i / 3) 0))) 64
     (by norm_num)
   have := logGTWith_cost P (by includes) lanes hlanes (σ (.n (sel.getD (i / 3) 0))) 4
     (by norm_num)
-  rw [Decoder.offAtAC.costEq P, Decoder.offAtAC.costEq P]
+  rw [Decoder.offAtAC.costEq P (by includes), Decoder.offAtAC.costEq P (by includes)]
   have h1 := hf (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h2 := hr (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64)
   have h3 := hl (i % 3) (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4)
-  split_ifs <;> limbs <;> omega
+  split_ifs with c1 c2
+  · rw [limbs_of_lt (by omega : offAtA first (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
+      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA first (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
+    omega
+  · rw [limbs_of_lt (by omega : offAtA rest (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64),
+      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA rest (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 64) < 2 ^ 64)]
+    omega
+  · rw [limbs_of_lt (by omega : offAtA last (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64),
+      limbs_of_lt (by omega : sel.getD (i / 3) 0 + offAtA last (i % 3)
+      (logGTWith lanes (σ (.n (sel.getD (i / 3) 0))) 4) < 2 ^ 64)]
+    omega
 
 /-! ## leanSPHINCS -/
 
@@ -237,7 +261,7 @@ theorem beWordAt_cost (hP : Includes P Decoder.beWordAtC.costDeps) (w : ℕ) (hw
   have h3 := limbs_le_of_lt (x := w / 2 ^ 16) (k := 2) (by norm_num) (by omega)
   have h4 := limbs_le_of_lt (x := w / 2 ^ 8) (k := 2) (by norm_num) (by omega)
   simp only [Nat.mul_zero, Nat.shiftLeft_eq, Nat.one_mul, pow_zero]
-  limbs
+  limbs_one
   omega
 
 omit hσ hS in
@@ -248,13 +272,13 @@ omit hσ hS in
 theorem spForsBase_cost (hP : Includes P Decoder.spForsBaseC.costDeps) (c : ℕ) (hc : c < 24) :
     machineCost P Decoder.spForsBaseC.costIdx [encodeValue c] ≤ 27 := by
   rw [Decoder.spForsBaseC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 omit hσ hS in
 theorem spLayerBase_cost (hP : Includes P Decoder.spLayerBaseC.costDeps) (l : ℕ) (hl : l < 3) :
     machineCost P Decoder.spLayerBaseC.costIdx [encodeValue l] ≤ 12 := by
   rw [Decoder.spLayerBaseC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 omit hσ hS in
 theorem spLayerBase_lt (l : ℕ) : spLayerBase l < 2 ^ 20 := by
@@ -266,7 +290,7 @@ theorem spCtr_cost (hP : Includes P Decoder.spCtrC.costDeps) (l : ℕ) (hl : l <
   rw [Decoder.spCtrC.costEq P hP]
   have := spLayerBase_cost P (by includes) l hl
   have := spLayerBase_lt l
-  limbs; omega
+  limbs_one; omega
 
 /-- **FORS tree `c`'s opening** (`forsOpeningAC`), `c < 24`, the tables `T` small: its secret and
 ten siblings, at most `41·S + 1500`. -/
@@ -291,7 +315,7 @@ theorem forsOpeningA_cost (hP : Includes P Decoder.forsOpeningAC.costDeps) (T : 
         (by omega)
       have := cellNat_cost P (by includes)
         (sibN σ (offAtA T.forsBit c z.val) (offAtA T.forsKid c z.val))
-      rw [Decoder.offAtAC.costEq P, Decoder.offAtAC.costEq P]
+      rw [Decoder.offAtAC.costEq P (by includes), Decoder.offAtAC.costEq P (by includes)]
       omega) 0 (Nat.zero_le _)
   simp only [Sphincs.forsTreeHeight, Nat.sub_zero] at m ⊢
   omega
@@ -305,16 +329,16 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
     machineCost P Decoder.layerAC.costIdx [encodeValue T, σV, wV, encodeValue l,
       encodeValue layer] ≤ 169 * S + 104600 := by
   rw [Decoder.layerAC.costEq P hP T σ σV hσ w wV hw, ofFnFrom_length, ofFnFrom_length,
-    Auto.Sphincs.layerHeight.costEq P]
+    Auto.Sphincs.layerHeight.c388.costEq P (by includes)]
   have := spCtr_cost P (by includes) l hl
   have := hS (.n (spCtr l))
   have := cellNat_cost P (by includes) (σ (.n (spCtr l)))
   have := beWordAt_cost P (by includes) _ (Decoder.cellNat_lt (σ (.n (spCtr l))))
   have hbe := limbs_of_lt (lt_trans (beWordAt_lt (Sig.cellNat (σ (.n (spCtr l))))) (by norm_num))
-  rw [hbe]
+  rw [limbs_of_lt (by norm_num : 2 ^ 32 - 1 < 2 ^ 64), hbe]
   have hlay := layer.isLt
   simp only [Sphincs.layerCount] at hlay
-  limbs
+  rw [limbs_of_lt (by omega : layer.val < 2 ^ 64)]
   have hh : Sphincs.layerHeight layer ≤ 10 := by unfold Sphincs.layerHeight; split <;> omega
   have m0 := ofFnFrom_cost P (by includes) (n := Sphincs.chainCount) (by decide) _
     (.closure Decoder.layerAC.lam0.costIdx [encodeValue T, wV])
@@ -343,7 +367,7 @@ theorem layerA_cost (hP : Includes P Decoder.layerAC.costDeps) (T : SpTabs) (hT 
         (by omega)
       have := cellNat_cost P (by includes)
         (sibN σ (offAtA T.pathBit l j.val) (offAtA T.pathKid l j.val))
-      rw [Decoder.offAtAC.costEq P, Decoder.offAtAC.costEq P]
+      rw [Decoder.offAtAC.costEq P (by includes), Decoder.offAtAC.costEq P (by includes)]
       omega) 0 (Nat.zero_le _)
   have hm1 : (4 * S + 120 + 16) * (Sphincs.layerHeight layer - 0) ≤ (4 * S + 136) * 10 := by
     rw [Nat.sub_zero]; exact Nat.mul_le_mul_left _ hh
@@ -380,32 +404,32 @@ theorem sphincsSigOfA_cost (hP : Includes P Decoder.sphincsSigOfNC.costDeps) (T 
   have l0 := layerA_cost P hσ hS (by includes) T hT hw0 hW0 0 (by norm_num) 0
   have l1 := layerA_cost P hσ hS (by includes) T hT hw1 hW1 1 (by norm_num) 1
   have l2 := layerA_cost P hσ hS (by includes) T hT hw2 hW2 2 (by norm_num) 2
-  rw [Auto.Fin.ofNat.layerCount.costEq P, Auto.Fin.ofNat.layerCount.costEq P,
-    Auto.Fin.ofNat.layerCount.costEq P]
+  rw [Auto.Fin.ofNat.c391.costEq P (by includes), Auto.Fin.ofNat.c391.costEq P (by includes),
+    Auto.Fin.ofNat.c391.costEq P (by includes)]
   simp only [Sphincs.forsTreeCount, Sphincs.layerCount, Nat.sub_zero] at m0 ⊢
-  limbs
+  limbs_one
   omega
 
 /-- **A layer's call of `sp_wots`, its arguments** (`spWotsArgsC`), `l < 3`: four words, at most
 `4·S + 90`. -/
 theorem spWotsArgs_cost (hP : Includes P Decoder.spWotsArgsC.costDeps) (l : ℕ) (hl : l < 3) :
     machineCost P Decoder.spWotsArgsC.costIdx [σV, encodeValue l] ≤ 4 * S + 90 := by
-  rw [Decoder.spWotsArgsC.costEq P hP σ σV hσ, Decoder.spA0C.costEq P,
-    Decoder.spA1C.costEq P, Decoder.spEncC.costEq P]
+  rw [Decoder.spWotsArgsC.costEq P hP σ σV hσ, Decoder.spA0C.costEq P (by includes),
+    Decoder.spA1C.costEq P (by includes), Decoder.spEncC.costEq P (by includes)]
   have := spLayerBase_cost P (by includes) l hl
   have := spLayerBase_lt l
   have := hS (.n (val% «verify_sig_lean_sphincs» "pp")); have := hS (.n (spA0 l)); have := hS (.n (spA1 l)); have := hS (.n (spEnc l))
-  limbs
+  limbs_one
   split_ifs <;> omega
 
 /-- **A layer's call of `sp_wots`, its return** (`spWotsRetsC`), `l < 3`: at most `S + 40`. -/
 theorem spWotsRets_cost (hP : Includes P Decoder.spWotsRetsC.costDeps) (l : ℕ) (hl : l < 3) :
     machineCost P Decoder.spWotsRetsC.costIdx [σV, encodeValue l] ≤ S + 40 := by
-  rw [Decoder.spWotsRetsC.costEq P hP σ σV hσ, Decoder.spLeafC.costEq P]
+  rw [Decoder.spWotsRetsC.costEq P hP σ σV hσ, Decoder.spLeafC.costEq P (by includes)]
   have := spLayerBase_cost P (by includes) l hl
   have := spLayerBase_lt l
   have := hS (.n (spLeaf l))
-  limbs
+  limbs_one
   omega
 
 end Val

@@ -2,15 +2,26 @@ module
 
 public import XmssSecurity.Proof.CappedExactFirstLane
 public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
-public import XmssSecurity.Proof.StateLens
-public import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 
 @[expose] public section
 
+/-!
+# The exact first lane on the source side
+
+The source side of the first lane's coupling: `sourceGlobalExactTracedProgram` presamples key
+generation's chain trajectories (`trajectoryProgrammedGlobalChainKeygen`) and runs the detailed game
+from the programmed key with the encoding trace and the attacker's action trace. Its distribution is
+the game's (`evalDist_sourceGlobalExact_eq_cappedBothTraces`), so the exact first-lane event has the
+same probability on both (`cappedExactFirstLane_probability_eq_sourceGlobalExact`). Each of its
+oracle steps couples with the monitored causal oracle (`globalHighMonitoredMappedAdversaryImpl`,
+`relTriple_programmed_globalHighMonitored_sourceExact_action`), the encoding observations agreeing
+while the signing caches do. The encoding branch of the event, a winning encoding event that is not
+a cached selection, makes the capped encoding monitor hit
+(`cappedExactEncodingBranch_implies_monitorHit`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
-
-variable {α : Type}
 
 namespace XmssSecurity.CappedChain
 
@@ -60,8 +71,7 @@ theorem sourceSigningTracedMappedAdversaryImpl_query_eq_map
 
 def GlobalSigningMonitoredTracedStateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftState : SourceSigningTracedState)
     (rightState : GlobalMonitoredTracedState) : Prop :=
   GlobalMonitoredTracedStateRelation left right
@@ -69,9 +79,7 @@ def GlobalSigningMonitoredTracedStateRelation
 
 theorem relTriple_programmed_globalHighMonitored_signingAction
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -150,9 +158,7 @@ theorem sourceSigningTracedVerifierImpl_run_eq
 
 theorem relTriple_programmed_globalHighMonitored_signingVerifierQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -198,17 +204,15 @@ theorem relTriple_programmed_globalHighMonitored_signingVerifierQuery
 
 theorem globalSigningMonitoredTracedStateRelation_initial
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen) :
     GlobalSigningMonitoredTracedStateRelation left right.1
       ((left.cache, []), [])
-      (⟨globalFilteredCausalKeygenState right.1.1, []⟩, []) := by
-  exact globalMonitoredTracedStateRelation_initial left right hrel
+      (⟨globalFilteredCausalKeygenState right.1.1, []⟩, []) :=
+  globalMonitoredTracedStateRelation_initial left right hrel
     hleftSupport hrightSupport
 
 theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :
@@ -363,9 +367,7 @@ theorem encodingActionTraceUpdate_eq_of_parameter_eq
 
 theorem relTriple_programmed_globalHighMonitored_sourceExact_action
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support

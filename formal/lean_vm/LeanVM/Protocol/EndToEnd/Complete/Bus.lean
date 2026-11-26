@@ -13,6 +13,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.BusShare
 public import LeanVM.Protocol.EndToEnd.Complete.Gkr
 import LeanVM.Protocol.EndToEnd.Front.BusPadding
 public import LeanVM.Protocol.EndToEnd.Complete.BusTables
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # The bus phase
@@ -177,7 +179,7 @@ theorem prod_pushLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
   rw [pushLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pushBlocks s)).length =
     3 + (pushBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pushTabs_add_three]
-  rw [map_range_getD (pushBlocks s) default
+  rw [List.map_range_getD (pushBlocks s) default
     fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pushTabs]
@@ -193,7 +195,7 @@ theorem prod_pullLeaves (alphas : List E) (hw : alphas.length = 16) (beta : E) :
   rw [pullLeaves, prod_stackLeaves, show (sideSizes (fwLogs prog s) (pullBlocks s)).length =
     3 + (pullBlocks s).length by simp [sideSizes, fwLogs]; omega, prod_split]
   simp only [pullTabs_add_three]
-  rw [map_range_getD (pullBlocks s) default
+  rw [List.map_range_getD (pullBlocks s) default
     fun b ↦ (tableTab prog s q beta alphas b).prod]
   rw [M3Instance.tuples, List.map_append, List.prod_append]
   simp only [pullTabs]
@@ -332,7 +334,7 @@ theorem sum_owner_tables (hP : (inst prog s).PaddingHonest q) (β : E) (w : List
 theorem sum_zip_range (l : List BusBlock) (f : ℕ → E) (g : E × BusBlock → E) :
     ((List.zip ((List.range l.length).map f) l).map g).sum =
       ∑ i ∈ range l.length, g (f i, l.getD i default) := by
-  rw [sum_range_eq_list]
+  rw [Finset.sum_range_eq_sum_map_range]
   congr 1
   apply List.ext_getElem (by simp)
   intro i h1 h2
@@ -415,7 +417,7 @@ def treeVals (alphas : List E) (β : E) (p : List E) : List E :=
 /-- The honest bus result at the slot weights `alphas`, `β`, the GKR point `p` and the bytecode's
 point `bp`. -/
 def honestBus (alphas : List E) (β : E) (p bp : List E) : BusResult :=
-  busOf (verifierLayout prog s) alphas β p (treeVals prog s q alphas β p) (memVals prog s q p)
+  busOut (verifierLayout prog s) alphas β p (treeVals prog s q alphas β p) (memVals prog s q p)
     (mfVal prog s q p) (bfVal prog s q p) (bcShare prog alphas (p.take prog.logSize)) bp
 
 theorem honestBus_point (alphas : List E) (β : E) (p bp : List E) :
@@ -430,7 +432,7 @@ theorem honestBus_forms (alphas : List E) (β : E) (p bp : List E) :
           (accFold 0 alphas β (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p 3
               (pushBlocks s).length) (pushBlocks s))
             (tables.map fun _ ↦ [{}, {}, {}]))) := by
-  simp only [honestBus, busOf, accumulateSide_fst]
+  simp only [honestBus, busOut, accumulateSide_fst]
   rw [layout_push, layout_pull, layout_count]
   rfl
 
@@ -451,7 +453,7 @@ theorem honestBus_totals (alphas : List E) (halpha : alphas.length = 16) (β : E
         sideTotal prog s [] (countBlocks s) (countTabs prog s q) p +
           padSum [1] 0 p (List.zip (sideSels [] (countBlocks s) p 0 (countBlocks s).length)
             (countBlocks s))] := by
-  simp only [honestBus, busOf, treeVals, List.getD_cons_zero, List.getD_cons_succ]
+  simp only [honestBus, busOut, treeVals, List.getD_cons_zero, List.getD_cons_succ]
   rw [layout_push, layout_pull, layout_count]
   simp only [List.cons.injEq, and_true]
   refine ⟨?_, ?_, ?_⟩
@@ -517,7 +519,7 @@ theorem trueClaims_honestBus (alphas : List E) (β : E) (p bp : List E)
   have hb : (p.take prog.logSize).length = prog.logSize :=
     length_take_of_le (hp ▸ logSize_le_busDepth prog s)
   intro cl hcl
-  simp only [honestBus, busOf, memVals, mfVal, bfVal, List.zipWith_cons_cons,
+  simp only [honestBus, busOut, memVals, mfVal, bfVal, List.zipWith_cons_cons,
     List.zipWith_nil_left,
     List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hcl
   rcases hcl with rfl | rfl | rfl | rfl
@@ -670,7 +672,7 @@ theorem follows_verifyBusBalance {prog : LeanIsaProgram} {s : Sizes} {input : Pu
   change Follows _ _ ((VerifierProgram.require
     (multilinearEval ((bytecodeWords prog).map ofK) bp = value)).bind _) cs₇
   simp only [← hval, VerifierProgram.require, ↓reduceIte, VerifierProgram.ret_bind]
-  have heq : honestBus prog s q a c g.2.1 bp = busOf (verifierLayout prog s) a c g.2.1 g.2.2
+  have heq : honestBus prog s q a c g.2.1 bp = busOut (verifierLayout prog s) a c g.2.1 g.2.2
       (memVals prog s q g.2.1) (mfVal prog s q g.2.1) (bfVal prog s q g.2.1)
       (bcShare prog a (g.2.1.take prog.logSize)) bp := by
     rw [honestBus, htv]

@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Whir.Flat
 import LeanVM.Guest.Value.FieldBits
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat loops
@@ -54,7 +53,7 @@ theorem allOk_mono {C C' : CallRel} (hC : CallRel.Le C C') {σ : Val} {ss : List
 first reached there, and the body's meaning `B` holds at every `g^j`, `k ≤ j < m`. -/
 theorem loop_sound_flat {f : String} {fn : Fn} (hf : P.find? f = some fn)
     {A : List Stmt} (hflat : A.all Stmt.flat = true) {c : ℕ} {args : List V}
-    (hb : fn.body = A ⧺ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E}
+    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) {N : E} {rest : List E}
     {B : E → Prop}
     (hstep : ∀ (σ : Val) (x : E), fn.params.map σ = x :: N :: rest →
       AllOk (P.Rel rd) rd σ A →
@@ -151,7 +150,7 @@ def osLoopTailA (k : ℕ) : List Stmt :=
     osMul (k + 4) 0 (k + 3)]
 
 theorem osLoopTail_split (name : String) (n k : ℕ) :
-    osLoopTail name n k = osLoopTailA k ⧺
+    osLoopTail name n k = osLoopTailA k ++
       [.callIf (.n (k + 2)) name (.n (k + 4) :: (List.range (n - 1)).map fun i ↦ .n (i + 1)),
         .ret []] := rfl
 

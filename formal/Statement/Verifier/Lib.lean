@@ -13,13 +13,6 @@ public import Statement.Verifier.RingSwitch
 The program returns `true` where the Rust returns `Ok`; `Transcript::finish`, the check that the
 proof is consumed, is `runProof`'s.
 
-**The bytecode's value.** The proof claims one value of the polynomial the statement fixes (the
-bytecode's multilinear extension) at a point the bus phase derives; the verifier checks that claim
-with a parameter `bytecodeValue : List K → List E → E → VerifierProgram Unit`. The deployed verifier
-evaluates the polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which
-the Rust verifier does not have, instead holds the point and the value to a claim it hands on, as an
-aggregate's in-circuit verifier of its children does (`guests/lean_ethereum.py`, `verify_sub`).
-
 **The seed.** The sponge starts at Keccak-f of `IV ‖ public_input ‖ 0^17`, `IV` the Keccak-256 hash
 of `TAG ‖ bytecode`, the tag `"leanvm-v1"` naming the proof system's version and the bytecode as its
 little-endian words. The seed's input has the capacity lanes zero, Keccak-256's initial state, and
@@ -139,7 +132,9 @@ def computedBytecodeValue (words : List K) (point : List E) (value : E) : Verifi
 /-- What a proof claims of the fixed polynomial, for a verifier that does not evaluate it: the
 bytecode's value at its point, the walk's `bytecode_point` (`Summary`, `lib.rs`). -/
 structure BytecodeClaim where
+  /-- The point the proof's bytecode sumcheck leaves. -/
   bytecodePoint : List E
+  /-- The value the proof claims there. -/
   bytecodeValue : E
 
 /-- The claim `claim` in place of the evaluation: the point the proof's bytecode sumcheck leaves
@@ -221,7 +216,7 @@ end LeanVM.Protocol.Verifier
 The verifier's first step reads the announced sizes and nothing else (`readAnnouncedSizes`): its
 reads only absorb, so no hash or permutation is consulted for a value, and running it with every
 permutation answered by `default` gives the layout the proof announces. The extractor's budget
-(`Statement/LeanVmExtractor.lean`) grows with the stack size it announces. -/
+(`Statement/CostMachine.lean`) grows with the stack size it announces. -/
 
 namespace LeanVM.Protocol.Compile
 

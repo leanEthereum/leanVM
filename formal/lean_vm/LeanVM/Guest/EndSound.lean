@@ -31,11 +31,6 @@ public import LeanVM.Guest.WalkKnownAll
   `VerifySub.verify_sub_sound_w`.
 * `b2SoundL_of`, `b2SoundL`: checker K's B2 (`b2_step`, `b2_mainL`), `b2SoundL` from
   `EndPending`.
-* `soundHyps_of`: what `EndKnow`'s theorems rest on, from `VsKnown` and `main`'s soundness with
-  the witness `W` (`Located.MainSoundV bytecode W`).
-* `guest_knowledge_sub`, `decode_binds_sub`: the end theorems for the decoder `decodeV piOf`,
-  from `verify_sub`'s statement with its proof named by `piOf` (`B1.Main.SubSoundW bytecode piOf`,
-  B1-d's); `aggregate_sound_outer_sub` is in `EndRpm.lean`.
 -/
 
 namespace LeanVM.Guest.End
@@ -76,23 +71,6 @@ theorem b2SoundL_of (hvd : VsDimsKnown) (hvs : VsKnown) (hwalk : WalkKnown) : B2
 theorem b2SoundL (h : EndPending) : B2SoundL := b2SoundL_of vsDimsKnown_proved vsKnown_proved h.walk
 
 variable {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
-
-/-- **Soundness of the deployed guest, its witness named**, from `verify_sub`'s statement. -/
-theorem guest_knowledge_sub (hwalk : WalkKnown)
-    (hv : B1.Main.SubSoundW bytecode piOf) :
-    MemoryGuestKnowledge guestProgram (decodeV piOf) :=
-  guest_knowledge_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv
-
-/-- **What a consumer learns**, from `verify_sub`'s statement. -/
-theorem decode_binds_sub (hwalk : WalkKnown)
-    (hv : B1.Main.SubSoundW bytecode piOf)
-    {input : PublicInput} {t : Execution guestProgram} (hvt : ValidExecution guestProgram input t) {iv : Digest}
-    {s₀ : NodeStatement} (hs₀ : s₀.deferredClaim.HasBytecodeShape bytecode)
-    (hpub : publicInputDigest input = statementDigest iv s₀) :
-    ((decodeV piOf t.memory).seed = iv ∧ (decodeV piOf t.memory).statement = s₀) ∨
-      HasCollision (collisionCandidates (decodeV piOf t.memory).seed
-        (decodeV piOf t.memory).statement iv s₀) :=
-  decode_binds_V (b2SoundL_of vsDimsKnown_proved vsKnown_proved hwalk) hv hvt hs₀ hpub
 
 end
 end LeanVM.Guest.End

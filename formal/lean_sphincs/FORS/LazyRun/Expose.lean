@@ -1,6 +1,6 @@
 module
 
-public import FORS.LazyRun.PreparedRun
+public import FORS.Classification.Win
 
 @[expose] public section
 
@@ -17,7 +17,6 @@ variable [Params]
 
 open HiddenReveal HiddenCost Eager Short Concrete
 
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section Generic

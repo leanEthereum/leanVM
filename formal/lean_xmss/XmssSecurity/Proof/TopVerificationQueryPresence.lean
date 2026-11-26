@@ -17,7 +17,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Concrete.CacheReplay
 
-set_option linter.constructorNameAsVariable false
 attribute [local irreducible] Concrete.topAuthenticationRoot
 
 /-- A successful verification runs the top check on the bottom root, as the cache computes it. -/
@@ -84,52 +83,6 @@ theorem verify_true_verifyTop_run
   refine ⟨rootCache, ?_⟩
   rw [hendpointsEval, hleafEval, hrootEval]
   exact htop
-
-theorem topChainWalk_query_cached_in_largerCache
-    (parameter : PublicParameter) (key : TopIndex) (chain : ChainIndex)
-    (position steps : Nat) (value : Digest) (offset : Nat)
-    (hoffset : offset < steps)
-    (hposition : position + offset < chainLength - 1)
-    (initialCache resultCache largerCache : QueryCache HashSpec) (digest : Digest)
-    (hmem : (digest, resultCache) ∈ support
-      ((simulateQ randomOracle
-        (Concrete.topChainWalk parameter key chain position steps value :
-          OracleComp HashSpec Digest)).run initialCache))
-    (hle : resultCache ≤ largerCache) :
-    ∃ output, largerCache
-      (Concrete.CacheView.topChainInput parameter key chain
-        ⟨position + offset, hposition⟩
-        (Wots.walk (Concrete.CacheView.topChainStep largerCache parameter key chain)
-          position offset value)) = some output := by
-  induction steps generalizing offset initialCache resultCache digest with
-  | zero => omega
-  | succ steps ih =>
-      rw [Concrete.topChainWalk, simulateQ_bind, StateT.run_bind,
-        mem_support_bind_iff] at hmem
-      obtain ⟨⟨previous, middleCache⟩, hprefix, hrest⟩ := hmem
-      have hmiddleLe : middleCache ≤ resultCache :=
-        randomOracle_cache_le
-          (if hlast : position + steps < chainLength - 1 then
-            Concrete.topChainHash parameter key chain ⟨position + steps, hlast⟩ previous
-          else pure 0 : OracleComp HashSpec Digest)
-          middleCache (digest, resultCache) hrest
-      by_cases hbefore : offset < steps
-      · exact ih offset hbefore hposition initialCache middleCache previous hprefix
-          (hmiddleLe.trans hle)
-      · have hoffsetEq : offset = steps := by omega
-        subst offset
-        simp only [hposition, ↓reduceDIte] at hrest
-        obtain ⟨output, hcached, _⟩ := tweakableHash_query_cached parameter
-          (.topChain key chain ⟨position + steps, hposition⟩)
-          (Concrete.digestBytes previous) middleCache resultCache digest hrest
-        have hprevious := eval_answerFn_largerCache_eq_of_mem_support
-          (Concrete.topChainWalk parameter key chain position steps value :
-            OracleComp HashSpec Digest)
-          initialCache middleCache largerCache previous hprefix (hmiddleLe.trans hle)
-        rw [eval_topChainWalk] at hprevious
-        refine ⟨output, ?_⟩
-        rw [hprevious]
-        exact hle hcached
 
 theorem topAuthenticationRoot_query_cached_as_in_largerCache
     (parameter : PublicParameter) (key : TopIndex) (path : Fin treeHeight → Digest)
@@ -310,10 +263,10 @@ theorem verifyTop_true_queries_cached
               (part.chainValue index) : ChainIndex → OracleComp HashSpec Digest)
             chain digestCache endpointsCache largerCache endpoints hendpoints
             (hendpointsLe.trans hrootLarger)
-        exact topChainWalk_query_cached_in_largerCache publicKey.parameter
-          key chain (encoding chain).val (chainLength - 1 - (encoding chain).val)
+        exact keyChainWalk_query_cached_in_largerCache publicKey.parameter
+          (.inr key) chain (encoding chain).val (chainLength - 1 - (encoding chain).val)
           (part.chainValue chain) offset hoffset (by omega) beforeCache afterCache largerCache
-          value hchain hchainLe
+          value (by rwa [Concrete.keyChainWalk_inr]) hchainLe
       · obtain ⟨output, hcached, _⟩ := tweakableHash_query_cached publicKey.parameter
           (.topLeaf key) (Concrete.leafPayload endpoints)
           endpointsCache leafCache leaf (by simpa [Concrete.topLeafHash] using hleaf)

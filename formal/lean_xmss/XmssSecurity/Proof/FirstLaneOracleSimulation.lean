@@ -1,8 +1,17 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
+public import XmssSecurity.Scheme
 
 @[expose] public section
+
+/-!
+# The first-lane oracle
+
+`World` is the oracle of the first-lane experiment: uniform samples, encoding queries and encoding
+signing attempts at a leaf index (answered by hash outputs), probes of a table entry against a
+target digest, and reveals of a table entry. Its hazards are the encoding queries and the probes
+(`IsHazardQuery`), and `liftProbComp` lifts a probabilistic computation through its uniform queries.
+-/
 
 open OracleComp OracleSpec ENNReal
 
@@ -16,7 +25,6 @@ inductive Query (Index : Type) where
   | encodingSignAttempt (leafIndex : LeafIndex)
   | probe (index : Index) (target : Digest)
   | reveal (index : Index)
-deriving DecidableEq
 
 @[reducible]
 def World (Index : Type) : OracleSpec (Query Index) :=
@@ -48,33 +56,15 @@ def revealQuery (index : Index) : OracleComp (World Index) Digest :=
 def uniformForwardImpl : QueryImpl unifSpec (OracleComp (World Index)) :=
   fun n => uniformQuery n
 
-def liftProbComp {α : Type} (computation : ProbComp α) : OracleComp (World Index) α :=
+def liftProbComp (computation : ProbComp α) : OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
-
-def IsSpecialQuery : (World Index).Domain → Prop
-  | .uniform _ => False
-  | _ => True
 
 def IsHazardQuery : (World Index).Domain → Prop
   | .encodingQuery _ => True
   | .probe _ _ => True
   | _ => False
 
-noncomputable instance (input : Query Index) :
-    Fintype ((World Index).Range input) := by
-  cases input <;> infer_instance
-
-noncomputable instance (input : Query Index) :
-    Inhabited ((World Index).Range input) := by
-  cases input <;> infer_instance
-
-noncomputable instance : DecidablePred (IsSpecialQuery (Index := Index)) :=
-  Classical.decPred _
-
 noncomputable instance : DecidablePred (IsHazardQuery (Index := Index)) :=
   Classical.decPred _
-
-noncomputable instance : UniformAnswerMeasure (World Index) :=
-  UniformAnswerMeasure.ofFiniteNonempty _
 
 end XmssSecurity.FirstLaneOracleSimulation

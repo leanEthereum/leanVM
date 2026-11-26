@@ -1,15 +1,14 @@
 /-
   LeanVM.Guest.B1.Tables.InterfaceP
 
-  B1 of `verify_tables` and `padding_weight`: the specification's program `verify_tables` runs
-  (`tablesSeg`, after `busRest`), the layout of the announced sizes (`layoutOf`), what it hands
+  B1 of `verify_tables` and `padding_weight`: the specification's programs `verify_tables` runs
+  (`busRest`, `tablesSeg`), the layout of the announced sizes (`layoutOf`), what it hands
   `check_opening_terminal` (`TCtx`), and the statements of their relations.
 -/
 
 module
 
 public import LeanVM.Protocol.Verifier.Claims
-public import LeanVM.Protocol.Verifier.Phases.Bus
 public import LeanVM.Guest.ExpTables
 import LeanVM.Guest.B1.Gkr.Fs
 public import LeanVM.Guest.B1.Placement.InterfaceP
@@ -20,16 +19,16 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `verify_tables` (TRIAGE G #51, #52): the interface
+# `verify_tables`: the interface
 
-`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w,
-beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest `guests/lean_ethereum.py`
-and `V` `Statement/Verifier/`) settles the bus against the six tables: it certifies each side's
-blocks' offsets by a hinted order of its block groups (`busLayout`), certifies every table's
-log-height to be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four
-column claims, reduces the bytecode's share of its leaf by the slot sumcheck to one value of the
-stacked bytecode (`bytecodeShare`), decomposes the three GKR leaf values (`accumulateSide`), runs
-the one table sumcheck after its `ξ` grind (`tablePhase`) and binds the public input
+`verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
+fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (`G` the guest
+`guests/lean_ethereum.py` and `V` `Statement/Verifier/Bus.lean`) settles the bus against the six tables: it certifies each side's blocks'
+offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
+be `max (log2Ceil rows) floor` (by `padding_weight`), reads the framework's four column claims,
+reduces the bytecode's share of its leaf by the slot sumcheck to one value of the stacked bytecode
+(`bytecodeShare`), decomposes the three GKR leaf values (`accumulateSide`), runs the one
+table sumcheck after its `ξ` grind (`tablePhase`) and binds the public input
 (`publicInputPhase`). The bus's four claim values and the public input's two are pooled
 (`claim_pool`, slots `0 .. 3` and `157 .. 158`); the tables' `153` column evaluations stay where the
 stream holds them, and the function returns their address (`col_eval_words`).
@@ -67,11 +66,11 @@ def PadRest (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + eOfN
 def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
   | [rows, zeta], [pad, lead, rest] =>
       ∃ (n : ℕ) (zs : List E), n ≤ 2 ^ τ ∧ rows = eOfNat n ∧ zs.length = τ ∧
-        ReadsAt rd zeta zs ∧ pad = paddingWeight zs n ∧ lead = PadLead τ n ∧
+        TbReadsAt rd zeta zs ∧ pad = paddingWeight zs n ∧ lead = PadLead τ n ∧
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (TRIAGE #51) computes `paddingWeight`: soundness. -/
+/-- **`padding_weight`** computes `paddingWeight`: soundness. -/
 def padding_weight_SpecP (P : Program) : Prop :=
   ∀ n < 31, ∀ rd args rets,
     P.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
@@ -97,6 +96,37 @@ def layoutOf (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : Layo
   ⟨logMemory, logBytecode, bytecode, push, pull, count, placements, stackLog, tableLogHeights⟩
 
 /-! ## The programs -/
+
+/-- `verifyBusBalance` after the GKR walk and its count root's check, from its slot
+weights, `β`, point and values: the framework's claims, the bytecode's share and its sumcheck, the
+check `ev` of the stacked bytecode at the sumcheck's point, and the leaf decomposition. -/
+def busRest (ev : List K → List E → E → VerifierProgram Unit) (layout : Layout)
+    (weights : List E) (beta : E) (point treeValues : List E) : VerifierProgram BusResult := do
+  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
+  let pushLayout := busLayout frameworkLogRows layout.push
+  let pullLayout := busLayout frameworkLogRows layout.pull
+  let countLayout := busLayout [] layout.count
+  let memoryLow := point.take layout.logMemory
+  let bytecodeLow := point.take layout.logBytecode
+  let memory ← VerifierProgram.readScalars 2
+  let memoryFinal ← VerifierProgram.readScalar
+  let bytecodeFinal ← VerifierProgram.readScalar
+  let claims : List ColumnClaim :=
+    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1] memory) ++
+    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
+      bytecodeFinal⟩]
+  let (share, bytecodePoint, value) ← bytecodeShare weights bytecodeLow
+  ev layout.bytecode bytecodePoint value
+  let fp := fingerprints weights memory memoryLow bytecodeLow share
+  let pcFinal := gpow (2 ^ layout.logBytecode - 1)
+  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
+  let (forms1, total0) := accumulateSide forms0 0 layout.push pushLayout (fp (gpow 0) 1 1)
+    weights beta point (treeValues.getD 0 0)
+  let (forms2, total1) := accumulateSide forms1 1 layout.pull pullLayout
+    (fp pcFinal memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
+  let (forms3, total2) := accumulateSide forms2 2 layout.count countLayout [] [1] 0 point
+    (treeValues.getD 2 0)
+  return ⟨claims, bytecodePoint, point, forms3, [total0, total1, total2]⟩
 
 /-- What `verify_tables` runs: the bus after GKR, the table phase and the public input's binding
 ; the bus result and every column claim, the public input's last. -/
@@ -151,8 +181,8 @@ layout. -/
 def TCtx (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) :
     List E → Prop
   | [zeta, chi, rm, gmu, gzcn] =>
-      ∃ chis : List E, ReadsAt rd zeta bus.point ∧ gmu = gen ^ bus.point.length ∧
-        ReadsAt rd chi chis ∧ gzcn = gen ^ chis.length ∧ chis.length ≤ bus.point.length ∧
+      ∃ chis : List E, TbReadsAt rd zeta bus.point ∧ gmu = gen ^ bus.point.length ∧
+        TbReadsAt rd chi chis ∧ gzcn = gen ^ chis.length ∧ chis.length ≤ bus.point.length ∧
         claims.length = nClaims ∧ claims.map (·.column) = claimColumns ∧
         ∀ j (p : List E), (claims.map (·.point))[j]? = some p →
           (j < nPooled → p.length = claimLowDim layout.logMemory layout.tableLogHeights j) ∧
@@ -193,8 +223,8 @@ def sideTabList : List E :=
 /-- **What `exponent_tables` leaves at `g_squares` that `verify_tables` reads**: the
 squares, the rank keys, the block groups' sides and the window table. -/
 def ExpTablesAt (rd : Reader) (sq : E) : Prop :=
-  ReadsAt rd sq gSquaresList ∧ ReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
-    ReadsAt rd (sq * gen ^ sideTabAt) sideTabList ∧ WinTabs rd (sq * gen ^ winTabAt)
+  TbReadsAt rd sq gSquaresList ∧ TbReadsAt rd (sq * gen ^ rankKeysAt) rankKeysList ∧
+    TbReadsAt rd (sq * gen ^ sideTabAt) sideTabList ∧ WinTabs rd (sq * gen ^ winTabAt)
 
 /-- `N_TUPLE_SLOTS`: the fingerprint's slot weights. -/
 abbrev nTupleSlots : ℕ := 2 ^ busBits
@@ -207,11 +237,11 @@ weights; `gkr_leaves` the three GKR values. -/
 def TablesPre (pi : Digest) (logMem : ℕ) (weights point values : List E) (rd : Reader) :
     List E → Prop
   | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, leaves, tabs, _, _] =>
-      (pi0, pi1) = digestHalves pi ∧ ReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
+      (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
       point.length < 33 ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
-      (∃ ds : List E, ds.length = 6 ∧ ReadsAt rd dims (gen ^ logMem :: ds)) ∧
+      (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
       ExpTablesAt rd sq ∧ tabs = sq * gen ^ winTabAt ∧ weights.length = nTupleSlots ∧
-      ReadsAt rd fpw weights ∧ values.length = nTrees ∧ ReadsAt rd leaves values
+      TbReadsAt rd fpw weights ∧ values.length = nTrees ∧ TbReadsAt rd leaves values
   | _ => False
 
 /-- **`verify_tables`' outcome**: the row counts `rows` are integer words in `table_rows`, and
@@ -228,22 +258,22 @@ def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point va
   | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, beta, pool, chi, _, _, bcp, _],
       [f0', f1', f2', f3', f4', cur', gzcn, bv, rm, cew] =>
       ∃ (xs cap' : List E) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim),
-        rowsN.length = 6 ∧ ReadsAt rd rows (rowsN.map eOfNat) ∧
-        ReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
-        (∀ h ∈ tableHeightsOf rowsN, h < 31) ∧ ReadsAt rd cur xs ∧
-        (∃ slots : List E, slots.length = busBits ∧ ReadsAt rd bcp slots ∧
+        rowsN.length = 6 ∧ TbReadsAt rd rows (rowsN.map eOfNat) ∧
+        TbReadsAt rd dims (gen ^ logMem :: (tableHeightsOf rowsN).map (gen ^ ·)) ∧
+        (∀ h ∈ tableHeightsOf rowsN, h < 31) ∧ TbReadsAt rd cur xs ∧
+        (∃ slots : List E, slots.length = busBits ∧ TbReadsAt rd bcp slots ∧
           bus.bytecodePoint = point.take (layoutOf bytecode logMem rowsN).logBytecode ++ slots) ∧
         (∀ ev, BytecodeAt ev bytecode bus.bytecodePoint bv →
           RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi weights beta point values)
             ⟨[f0, f1, f2, f3, f4], []⟩ xs (bus, claims) ⟨cap', []⟩) ∧
-        claims.length = nClaims ∧ ReadsAt rd pool ((claims.take nBusClaims).map (·.value)) ∧
-        ReadsAt rd cew (((claims.drop nBusClaims).take nColEvals).map (·.value)) ∧
-        ReadsAt rd (pool * gen ^ nPooled) ((claims.drop nPooled).map (·.value)) ∧
+        claims.length = nClaims ∧ TbReadsAt rd pool ((claims.take nBusClaims).map (·.value)) ∧
+        TbReadsAt rd cew (((claims.drop nBusClaims).take nColEvals).map (·.value)) ∧
+        TbReadsAt rd (pool * gen ^ nPooled) ((claims.drop nPooled).map (·.value)) ∧
         TCtx rd (layoutOf bytecode logMem rowsN) bus claims [zeta, chi, rm, gmu, gzcn] ∧
         [f0', f1', f2', f3', f4'] = cap' ∧ cur' = cur * gen ^ xs.length
   | _, _ => False
 
-/-- **`verify_tables` is sound** (TRIAGE #52), for the guest's own bytecode words
+/-- **`verify_tables` is sound**, for the guest's own bytecode words
 `bytecode`. -/
 def verify_tables_SpecP (P : Program) (bytecode : List K) (rd : Reader) : Prop :=
   ∀ pi logMem weights point values args rets,

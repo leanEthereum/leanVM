@@ -8,7 +8,7 @@ Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.16.0
+version=0.18.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
@@ -51,19 +51,17 @@ pub fn main() !void {
 - leanXMSS keys are stateful: store your own leaf index next to `XmssSecretKey.toBytes()` and never sign two different messages at the same index.
 - leanSPHINCS keys are stateless and deterministic, and sign at most `2^30` messages.
 - `XmssSecretKey.cacheToBytes(allocator)` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, public_key, cache)` loads the key from them instead of rebuilding them, checking them against the public key.
-- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey`, `Sidecar` and `Aggregate`. Returned slices belong to the allocator you pass.
+- Call `deinit` exactly once on every `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate`. Returned slices belong to the allocator you pass.
 - A bad signature or VRF proof returns `error.InvalidSignature`; for other errors, `lastError` returns the message.
 
 ## Aggregate
 
-Aggregating and verifying an aggregate both run in a leanVM sidecar, on Linux and macOS: see [the sidecar](../README.md#sidecar). With the keys and signatures above:
+With the keys and signatures above:
 
 ```zig
 const allocator = std.heap.page_allocator;
-var sidecar = try lpq.Sidecar.connect("/home/me/.leanvm/sidecar.sock");
-defer sidecar.deinit();
 
-var leaf = try sidecar.aggregate(&.{}, &.{.{
+var leaf = try lpq.Aggregate.create(&.{}, &.{.{
     .public_key = try xmss_key.publicKey(),
     .message = message,
     .signature = xmss_signature,
@@ -73,12 +71,12 @@ var leaf = try sidecar.aggregate(&.{}, &.{.{
     .signature = sphincs_signature,
 }});
 defer leaf.deinit();
-var root = try sidecar.aggregate(&.{&leaf}, &.{}, &.{});
+var root = try lpq.Aggregate.create(&.{&leaf}, &.{}, &.{});
 defer root.deinit();
 
 const encoded = try root.toBytes(allocator);
 defer allocator.free(encoded);
-var received = try sidecar.verify(encoded, &.{.{
+var received = try lpq.Aggregate.fromBytes(encoded, &.{.{
     .public_key = try xmss_key.publicKey(),
     .message = message,
 }}, &.{.{
@@ -88,12 +86,12 @@ var received = try sidecar.verify(encoded, &.{.{
 defer received.deinit();
 ```
 
-- `aggregate` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
+- `Aggregate.create` verifies raw signatures first and takes at most `max_children` (16) children, which it neither consumes nor retains.
+- `Aggregate.createOnly` takes the claims the result proves too, in any order; each must be one the inputs cover.
 - `toBytes` is the proof alone: send the claims (`xmssClaims`, `sphincsClaims`) alongside it.
-- `verify` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
-- `Sidecar.start("leanvm-sidecar", "/home/me/.leanvm/run/sidecar.sock", threads)` launches a sidecar instead (`threads` 0: one per core). The socket's directory must be private to you; `start` creates it so if missing. `prover(allocator)` returns `experimental` or `stable`.
-- A sidecar serves at most 16 connections: share one `Sidecar` per process. Calls on it run one at a time.
-- `close()` stops a sidecar `start` launched at once, failing a call in progress, even from another thread; `deinit` closes and frees the handle.
+- `Aggregate.fromBytes` takes the claims in any order (a repeat counts once) and fails with `error.NativeFailure` for any other set, so every `Aggregate` is proven.
+- `setup(threads)` fails if the prover already runs with another thread count. See [Proving](https://github.com/leanEthereum/leanVM/tree/main/bindings#proving).
+- A process forked after the prover started cannot aggregate.
 
 ## VRF
 
@@ -115,7 +113,7 @@ cd bindings/zig && zig build test -Dnative-dir=.native
 
 Other platforms stage `aarch64-unknown-linux-gnu`, `universal2-apple-darwin` (on macOS, with both Apple Rust targets) or `x86_64-pc-windows-gnu`.
 
-Aggregation tests connect to the sidecar at `LEANVM_SIDECAR_SOCKET` and start one from `LEANVM_SIDECAR_BIN`.
+Then pass that directory as `-Dnative-dir`, or as an absolute `.@"native-dir"` to `b.dependency`.
 
 ## License
 

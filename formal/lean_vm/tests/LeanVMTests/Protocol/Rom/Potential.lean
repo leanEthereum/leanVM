@@ -4,9 +4,9 @@ import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 /-!
 # Random-oracle potential tests
 
-Statement locks for the potential bounds over lazy samplers and the logged oracle `loggedRO`
-for two oracles; the inhabitants of `IsLazySampler` for VCVio's `randomOracle` and `loggedRO`;
-first-match log lookup on concrete logs, each oracle reading its own entries.
+Statement locks for the potential bounds over lazy samplers, VCVio's `randomOracle`, and the
+logged oracle `loggedRO` for two oracles; the inhabitants of `IsLazySampler` for both
+implementations; first-match log lookup on concrete logs, each oracle reading its own entries.
 -/
 
 namespace LeanVMTests.Protocol.Rom
@@ -26,6 +26,24 @@ example {ι : Type} {spec : OracleSpec.{0, 0} ι} [∀ t, SampleableType (spec.R
     (hev : ∀ z ∈ support ((simulateQ impl oa).run s₀), ev z.1 z.2 → 1 ≤ Φ z.2) :
     Pr{let z ← (simulateQ impl oa).run s₀}[ev z.1 z.2] ≤ Φ s₀ + Q * δ :=
   prEvent_run_le_of_freshStepBound himpl hΦ oa Q hQ s₀ ev hev
+
+example {ι : Type} [DecidableEq ι] {spec : OracleSpec.{0, 0} ι}
+    [∀ t, SampleableType (spec.Range t)] [∀ t, Fintype (spec.Range t)] {α : Type}
+    [MeasurableSpace (α × spec.QueryCache)] [DiscreteMeasurableSpace (α × spec.QueryCache)]
+    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ)
+    (oa : OracleComp spec α) (Q : ℕ) (hQ : IsTotalQueryBound oa Q) (c₀ : spec.QueryCache) :
+    ∫⁻ z, Φ z.2 ∂𝒟[(simulateQ spec.randomOracle oa).run c₀] ≤ Φ c₀ + Q * δ :=
+  lintegral_potential_run_randomOracle_le hΦ oa Q hQ c₀
+
+example {ι : Type} [DecidableEq ι] {spec : OracleSpec.{0, 0} ι}
+    [∀ t, SampleableType (spec.Range t)] [∀ t, Fintype (spec.Range t)] {α : Type}
+    {Φ : spec.QueryCache → ℝ≥0∞} {δ : ℝ≥0∞} (hΦ : FreshStepBound Φ δ) (hΦ₀ : Φ ∅ = 0)
+    (A : OracleComp spec α) (V : α → OracleComp spec Bool) (Q_A Q_V : ℕ)
+    (hA : IsTotalQueryBound A Q_A) (hV : ∀ a, IsTotalQueryBound (V a) Q_V)
+    (bad : α → spec.QueryCache → Prop)
+    (hbad : ∀ z ∈ support (romExperiment A V), z.1.2 = true → bad z.1.1 z.2 → 1 ≤ Φ z.2) :
+    Pr{let z ← romExperiment A V}[z.1.2 = true ∧ bad z.1.1 z.2] ≤ (Q_A + Q_V : ℕ) * δ :=
+  prEvent_romExperiment_le hΦ hΦ₀ A V Q_A Q_V hA hV bad hbad
 
 example {D₁ R₁ D₂ R₂ : Type} [DecidableEq D₁] [DecidableEq D₂] [SampleableType R₁]
     [SampleableType R₂] [Fintype R₁] [Fintype R₂] {α : Type}

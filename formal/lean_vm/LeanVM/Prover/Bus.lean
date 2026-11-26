@@ -10,6 +10,7 @@ module
 public import LeanVM.Prover.BusLeaves
 public import LeanVM.Prover.Gkr
 public import LeanVM.Prover.Ring
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The bus phase
@@ -200,7 +201,7 @@ theorem polyEval_three (c0 c1 c2 x : E) : polyEval [c0, c1, c2] x = c0 + x * c1 
   simp only [polyEval, List.foldr]; ring
 
 theorem sumE_map_range (n : ℕ) (F : ℕ → E) : sumE ((List.range n).map F) = ∑ i ∈ Finset.range n, F i := by
-  rw [sumE_eq, sum_range_eq_list]
+  rw [sumE_eq, Finset.sum_range_eq_sum_map_range]
 
 /-- **The share's round polynomial** evaluates as the next claim. -/
 theorem shareRound_eval (w z pre : List E) (hw : w.length = 16) (st : Array E × Array E)
@@ -234,7 +235,7 @@ theorem corr_bytecodeShareA (w z : List E) (hw : w.length = 16) (hz : z.length =
   have hsl := toList_bytecodeSlotsA prog z hz
   have hdot : dot w (bytecodeSlotsA (bytecodeWords prog).toArray prog.logSize z).toList =
       bcShare prog w z := by
-    rw [hsl, LeanVM.Protocol.Verifier.dot_eq_sum _ _ (by rw [hw, length_slotList]), hw, bcShare]
+    rw [hsl, LeanVM.Protocol.KeccakGkr.dot_eq _ _ (by rw [hw, length_slotList]), hw, bcShare]
     exact Finset.sum_congr rfl fun k hk ↦ by
       rw [getD_slotList prog z (Finset.mem_range.mp hk)]
   unfold bytecodeShareA hShare

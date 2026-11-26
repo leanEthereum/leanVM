@@ -16,7 +16,7 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# The Keccak GKR reduction (TRIAGE G #53-63): the interface
+# The Keccak GKR reduction: the interface
 
 `verify_keccak` (`guests/lean_ethereum.py` at leanVM `010cfb18`, G
 below) runs the specification's `verifyKeccak`, then permutes the last four slices
@@ -50,7 +50,7 @@ coordinates; after a layer also its weights at the positions `ι` can flip, `2^i
 Statements (`…_Spec`, soundness, proved as `…_holds`; `…_complete_Spec`, the converse, where it
 is stated):
 
-* `keccak_plain_rounds_Spec`, `keccak_plain_rounds_complete_Spec`;
+* `keccak_plain_rounds_Spec`;
 * `keccak_layer_Spec`: from a claim record of the claim `c`, the two specializations run
   `verifyKeccakLayer (y + 3) step c` (`y` the point's length) on the carried sponge, the guest's
   `iota` being the specification's (`keccakIota`), and write the next claim's record;
@@ -71,9 +71,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-- `KR_CAP`: a round record's fields are `11` words apart. -/
 abbrev krCap : ℕ := 11
-
-/-- `KC_SIZE = KC_MU + KECCAK_PACK`: a claim record's words. -/
-abbrev kcSize : ℕ := 22
 
 /-- `QKECCAK_VARS_CAP`: the two opening points of `verify_keccak` are `39` words apart. -/
 abbrev qkeccakVarsCap : ℕ := 39
@@ -139,11 +136,6 @@ def plainCount (k0 : ℕ) : ℕ := if k0 = 1 then 4 else 6
 def keccak_plain_rounds_SpecP (P : Program) : Prop :=
   ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E),
     P.Rel rd (plainName k0) args rets → MeaningPlainRounds (plainCount k0) k0 rd args rets
-
-/-- The converse, for completeness, the waiting cells being a scalar's. -/
-def keccak_plain_rounds_complete_SpecP (P : Program) : Prop :=
-  ∀ k0 < 2, ∀ (rd : Reader) (args rets : List E), PlainCellsOk k0 args →
-    MeaningPlainRounds (plainCount k0) k0 rd args rets → P.Rel rd (plainName k0) args rets
 
 /-! ## Claim records -/
 

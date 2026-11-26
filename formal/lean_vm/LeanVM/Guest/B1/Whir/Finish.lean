@@ -36,7 +36,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## Helpers -/
 
-theorem eq_take_of_readsAt {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
+theorem readsAt_take {p : E} {xs ys : List E} (h1 : ReadsAt rd p xs) (h2 : ReadsAt rd p ys)
     (hl : xs.length ≤ ys.length) : xs = ys.take xs.length := by
   refine List.ext_getElem (by simp; omega) fun i hi _ ↦ ?_
   rw [List.getElem_take]
@@ -49,12 +49,6 @@ theorem prod_getD_range (l : List E) : ∏ t ∈ Finset.range l.length, l.getD t
     rw [List.length_cons, Finset.prod_range_succ', List.prod_cons]
     simp only [List.getD_cons_succ, List.getD_cons_zero, ih]
     ring
-
-theorem foldl_add_map {α : Type} (f : α → E) : ∀ (l : List α) (a : E),
-    l.foldl (fun w g ↦ w + f g) a = a + (l.map f).sum
-  | [], a => by simp
-  | x :: l, a => by
-    rw [List.foldl_cons, foldl_add_map f l, List.map_cons, List.sum_cons]; ring
 
 theorem readsAt_padded {p : E} {P : List E} {n : ℕ} (f : E → E)
     (h : ∀ i < P.length + n, LoadHolds rd p i (f (P.getD i 0))) :
@@ -222,7 +216,7 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
       intro c' hc
       rw [hhl] at hc
       rw [hsvOf, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range,
-        word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul, mul_assoc]
+        word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul', mul_assoc]
     have h := level_high (hli hl0) r.qs hF.mu64 hF.bn r.high (hsvOf lv r) (by rw [hhl]; exact hF.hn)
       (by simp [hsvOf, hhl]) (osVals_ofK hF.val) hhs
     have hp : ∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0 = (G.drop r.F).prod * T.prod := by

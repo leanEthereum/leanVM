@@ -13,7 +13,7 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# `certify_placement` (TRIAGE G #67): the interface
+# `certify_placement`: the interface
 
 `certify_placement(kappa_base, g_squares)` groups the committed columns into the
 runs sharing one `kappa_base` source (`COL_GROUP_START`, here `colGroupStart`; a column's `g^κ`
@@ -71,9 +71,6 @@ def colKappaSrc (c : ℕ) : ℕ :=
 /-- `COL_KAPPA_ADJ[c]`: the bytecode's log size `19`, and `q_keccak`'s slot bits `6`. -/
 def colKappaAdj (c : ℕ) : ℕ := if c = 3 then 19 else if c = 4 then 6 else 0
 
-/-- `N_COL_GROUPS`: the runs of committed columns sharing one `kappa_base` source. -/
-abbrev nColGroups : ℕ := 9
-
 /-- `COL_GROUP_START`: each group's first column, then `N_COMMITTED_COLS`. -/
 def colGroupStart : List ℕ := [0, 3, 4, 5, 18, 31, 38, 52, 66, 94]
 
@@ -86,7 +83,7 @@ def rankKeysList : List E := (List.range 34).map fun k ↦ gen ^ (k * rankStride
 /-- **What `certify_placement` hands `check_opening_terminal`**: `kappas` are the `158` columns'
 sizes and `off` holds `g^offset` per committed column, the offsets `stackOffsets`'s. -/
 def PCtx (rd : Reader) (kappas : List ℕ) (off : E) : Prop :=
-  kappas.length = 158 ∧ ReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
+  kappas.length = 158 ∧ TbReadsAt rd off ((stackOffsets (committedKappas kappas)).1.map (gen ^ ·))
 
 /-- **`certify_placement` is sound**: over the base `[1, g^log_mem, d_0, …, d_5]`, the squares
 table and the rank keys, the words `d_t` are `g^τ_t`, `τ_t < 34` (its range checks), and it
@@ -94,8 +91,8 @@ returns `g^(Σ 2^κ)` over the committed columns of `columnKappas log_mem 19 τ`
 which `PCtx` holds. -/
 def certify_placement_SpecP (P : Program) (rd : Reader) : Prop :=
   ∀ (logMem : ℕ) (ds : List E) (kb sq : E) (rets : List E), logMem ≤ 32 → ds.length = 6 →
-    ReadsAt rd kb (1 :: gen ^ logMem :: ds) →
-    ReadsAt rd sq gSquaresList → ReadsAt rd (sq * gen ^ 178) rankKeysList →
+    TbReadsAt rd kb (1 :: gen ^ logMem :: ds) →
+    TbReadsAt rd sq gSquaresList → TbReadsAt rd (sq * gen ^ 178) rankKeysList →
     P.Rel rd "certify_placement" [kb, sq] rets →
       ∃ hs : List ℕ, hs.length = 6 ∧ ds = hs.map (gen ^ ·) ∧ (∀ h ∈ hs, h < 34) ∧
         ∃ off, rets = [gen ^ stackTotal (columnKappas logMem guestLogBytecode hs), off] ∧

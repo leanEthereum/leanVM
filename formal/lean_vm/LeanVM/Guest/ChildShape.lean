@@ -11,11 +11,10 @@ public import Statement.LeanVmGuest
 public import LeanVM.Facts.Guest
 public import LeanXmss.Scheme
 public import Statement.LeanSphincs
-public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.Verifier
 

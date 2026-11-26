@@ -10,7 +10,7 @@ module
 public import LeanVM.Protocol.Whir.Complete.Tables
 public import LeanVM.Protocol.EndToEnd.Complete.TableMath
 public import Mathlib.Algebra.Polynomial.Roots
-public import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The Boolean cube

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Builds and checks the statement package and the five proof projects as .github/workflows/lean.yml
-# does, one after another, each in its own directory with its own manifest, then lean_vm against
-# this repository's Rust (`leanvm`). The files derived from the guest are not committed: the first
-# build that reads them writes them (`regen-guest.sh`), so `statement`, `lean_vm`, `leanvm` and `lean`
-# need cargo. `lake build` at the root runs it.
+# Builds and checks the statement package (with `fast_fields`, which it requires) and the five proof
+# projects as .github/workflows/lean.yml does, one after another, each in its own directory with its
+# own manifest, then lean_vm against this repository's Rust (`leanvm`). The files derived from the
+# guest are not committed: the first build that reads them writes them (`regen-guest.sh`), so
+# `statement`, `lean_vm`, `leanvm` and `lean` need cargo. `lake build` at the root runs it.
 #
 #   ./check-all.sh [lean] [vectors] [statement] [common] [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]
 #   (default: all seven; `lean` is the first six, built together first, `vectors` is `leanvm`)
@@ -113,7 +113,7 @@ axioms_in=""
 axioms() { bg "$1: axiom footprint" axioms_of "$@"; }
 axioms_of() {
   local dir=$1 module=$2 t; shift 2
-  { echo "import $module"; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
+  { printf "import %s\n" $module; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
   (cd "${axioms_in:-$dir}" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
   for t in "$@"; do
     grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms-$dir.txt" \
@@ -121,8 +121,8 @@ axioms_of() {
   done
 }
 
-# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly and itself, and
-# `import all` only of its own generated data (`Statement.Data`).
+# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, `fast_fields`
+# and itself, and `import all` only of its own generated data (`Statement.Data`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
   once lakefiles || return 0
@@ -134,11 +134,16 @@ lakefiles() {
 
 statement() {
   no_escapes Statement
+  no_escapes fast_fields
   lakefiles
-  step "Statement: imports only Mathlib, VCVio, CompPoly and itself"
+  step "Statement: imports only Mathlib, VCVio, CompPoly, fast_fields and itself"
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly and itself, or \`import all\` beyond Statement.Data"
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly, fast_fields and itself, or \`import all\` beyond Statement.Data"
+  fi
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'; then
+    fail "fast_fields imports more than Mathlib, CompPoly and itself"
   fi
   cache_get Statement
   export_guest
@@ -153,9 +158,9 @@ common() {
   cache_get common
   build common 'Common'
   axioms common Common Common.indifferentiability Common.transfer Common.transfer2 \
-    Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 \
+    Common.keccak256_transfer Common.keccak256_transfer2 \
     Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
-    Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge
+    Common.SeedDuplex.duplex_le
 }
 
 lean_xmss() {
@@ -171,32 +176,29 @@ lean_sphincs() {
   cache_get lean_sphincs
   # The kernel-checked tables (`decide +kernel`) are the heavy modules, each within about 3 GB.
   build lean_sphincs '(Sphincs|FORS)/'
-  axioms lean_sphincs Sphincs Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
+  axioms lean_sphincs "Sphincs FORS" Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered
 }
 
-# LeanDA's security: Benedikt Wagner's framework, theorems and proofs (b-wagn/fv-pq-da), ported
-# and instantiated with LeanDA.
+# LeanDA's security, on Benedikt Wagner's framework for erasure code commitments (b-wagn/fv-pq-da),
+# instantiated with LeanDA.
 lean_da() {
   no_escapes lean_da
   cache_get lean_da
   build lean_da '(LeanDa|PqDas)'
-  axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding \
-    LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id \
-    LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
-    LeanDa.leanDa_codeBinding_rpm_bound
+  axioms lean_da LeanDa LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm \
+    LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells
 }
 
 # Every lean_vm executable, in one build.
 EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove leanvm-execute guest-run test-runs)
 
-# The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
-# five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds
-# below are then skipped.
+# The projects' targets (`fast_fields`' through the statement's) and lean_vm's executables in one build from
+# lean_vm, whose workspace holds the other six, so that their modules build beside lean_vm's instead of one
+# project after another. The projects' own builds below are then skipped.
 together() {
   local p
   lakefiles
-  for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do
+  for p in Statement fast_fields common lean_xmss lean_sphincs lean_da lean_vm; do
     no_escapes "$p"
   done
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do
@@ -204,7 +206,7 @@ together() {
   done
   wait_bg
   regen
-  step "all six projects: one build, its modules admitted by memory"
+  step "all seven projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
     @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
     @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa 2>&1 | tee "$log/build.txt"
@@ -294,7 +296,7 @@ prover_diff() {
   rm -rf "$pd"
 }
 
-# `lean`: the six Lean projects; `vectors`: the checks against leanVM's Rust.
+# `lean`: the seven Lean projects; `vectors`: the checks against leanVM's Rust.
 projects=()
 for p in "$@"; do
   case $p in

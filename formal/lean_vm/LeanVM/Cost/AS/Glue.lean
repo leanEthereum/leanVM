@@ -7,9 +7,16 @@ import all LeanVM.Protocol.EndToEnd.Sound.SkelPairs
 import all LeanVM.Protocol.EndToEnd.Sound.SkelWhir
 import all LeanVM.Protocol.EndToEnd.Sound.Avail
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
-import Statement.Verifier.Lib
+import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 import all Statement.CostMachine
-import all Statement.LeanVmExtractor
 
 /-!
 # The agreement-set extractor the compiled program computes

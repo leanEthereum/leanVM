@@ -4,6 +4,17 @@ public import XmssSecurity.Proof.CappedGlobalChainOutputSimulation
 
 @[expose] public section
 
+/-!
+# Presampled chains as uniform key generation randomness
+
+`globalChainRandomnessOfMaterial` reads presampled chain material as chain starts and a table of
+hash outputs over the chain edges: the starts are the material's
+(`globalChainRandomnessOfMaterial_secret`) and each edge's output is what the material's cache holds
+at its input (`globalChainRandomnessOfMaterial_output_cached`). Over
+`outputGlobalChainTrajectoryMaterial` it is distributed as `uniformGlobalChainKeygenRandomness`
+(`evalDist_outputGlobalChainRandomness_eq_uniform`), which `CappedGlobalChainHighSetup` uses.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain

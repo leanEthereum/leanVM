@@ -1,20 +1,25 @@
 module
 
-public import XmssSecurity.Proof.CacheAgreement
 public import XmssSecurity.Proof.ChainWalkCache
 public import XmssSecurity.Proof.BoundedSignProbability
 public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
-public import XmssSecurity.Proof.CappedChain.TreeCacheStable
 public import XmssSecurity.Proof.CausalTreeCoupling
-public import XmssSecurity.Proof.KeygenCache
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
 
+/-!
+# Signing from key generation's cache
+
+Over any cache extending key generation's, an honest signature's chain values, authentication path
+and top signature make no fresh query and return their replayed values
+(`Concrete.keygen_signWithEncoding_run_eq_pure`). So capped signing from the precomputation
+materialized from that cache equals capped signing in distribution
+(`Concrete.evalDist_precomputedCappedSign_materialized_eq_cappedSign`), which
+`CappedGlobalChainHighSetup` uses to couple the signer.
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
-
-variable {α : Type}
 
 namespace XmssSecurity.CappedChain
 
@@ -262,8 +267,6 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     rw [hsignature]
     rfl
 
-set_option linter.constructorNameAsVariable false in
-set_option maxRecDepth 100000 in
 theorem Concrete.evalDist_precomputedSignBoundedAttempts_materialized_eq
     (attempts trial : Nat) (base : Randomness)
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)

@@ -162,7 +162,7 @@ def digestBytes (digest : Digest) : List UInt8 := digest.toList.flatMap wordByte
 
 end KeccakHash
 
-/-- The 32 bytes of a digest as a vector: Keccak-256's output as the model's oracle answers it. -/
+/-- The 32 bytes of a digest as a vector, LeanDA's form of a digest (`Common.DigestBytes`). -/
 def Digest.toBytes (digest : Digest) : Vector UInt8 32 :=
   ⟨(KeccakHash.digestBytes digest).toArray, by
     obtain ⟨⟨l⟩, hl⟩ := digest

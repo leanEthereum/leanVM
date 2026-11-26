@@ -1,9 +1,10 @@
 module
 
 public import XmssSecurity.Proof.PrecomputedBoundedSignProbability
-public import XmssSecurity.Proof.CappedEncodingRejection
+public import XmssSecurity.Proof.ValidDigests
+public import XmssSecurity.Scan.LoopWalk
+public import XmssSecurity.Proof.FreshHashQuery
 public import XmssSecurity.Proof.RandomOracle
-public import Common.LoopWalk
 
 @[expose] public section
 
@@ -17,11 +18,18 @@ probability `landing`, and the cache grows only at positions the walk has left a
 `2^128` attempts, never revisits.
 -/
 
+namespace XmssSecurity
+
+theorem card_randomness : Fintype.card Randomness = 2 ^ randomnessBits := by
+  simp
+
+end XmssSecurity
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Scan
 
-open Common.LoopWalk
+open LoopWalk
 
 /-- The probability that a uniform oracle answer truncates to a valid digest. -/
 noncomputable def landing : ℝ≥0∞ :=

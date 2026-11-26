@@ -17,8 +17,6 @@ public import LeanVM.Guest.B1.KeccakGkr.FsComplete
 `plainRound_complete`: from the template's equations (`Fwd.GoodS`) and the words `c₀`, `c₂` at
 the cursor, the round's values are `c₀`, `c₂`, its sponge facts (`PlainCore`) hold, its claim is
 `c₀ + c·((v + c₂) + c·c₂)`, and its statements hold once the challenge's slot holds the challenge.
-`plain_core_sq0`, `plain_core_sq1`: the challenge and the capacity cells after it are the
-squeeze's (as `plain_round_sq0`/`sq1`, from the sponge facts only).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -30,57 +28,6 @@ open LeanVM.Guest.B1.Fwd
 @[expose] public section
 
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
-
-/-- A round's sponge facts. -/
-structure PlainCore (rd : Reader) (σ : Val) (ins : List V) (a o : ℕ) : Prop where
-  pk0 : FsPackOk σ (.n a) (a + 1) dsObserve
-  pk2 : FsPackOk σ (.n (a + 3)) (a + 3 + 1) dsObserve
-  kc : (Atom.keccak ins ((List.range 13).map fun k ↦ .n (o + k)) false false).Holds rd σ
-
-/-- A round with nothing waiting: the challenge and the capacity cells after it. -/
-theorem plain_core_sq0 {zs capV : List V} {a o : ℕ} {cap : List E}
-    (h : PlainCore rd σ ([.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV) a o)
-    (hz : zs.map σ = [0, 0, 0, 0]) (hc : capV.map σ = cap) :
-    σ (.n o) = (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
-      [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
-        (plainSq ⟨cap, []⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap := by
-  have s0 := fsNext_scalar h.pk0
-  have s2 := fsNext_scalar h.pk2
-  have habs : ((⟨cap, []⟩ : Fs).absorb (σ (.n a)) dsObserve).absorb (σ (.n (a + 3))) dsObserve =
-      ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩ := rfl
-  have hin : ([V.n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV).map σ =
-      rateOf [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)] ++ cap := by
-    rw [rateOf_two, ← s0, ← s2, List.map_append, List.map_append, hz, hc]
-    rfl
-  have := squeeze_atom (s := ⟨cap, [(σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩) h.kc hin
-    (b := o) rfl
-  simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
-  rw [plainSq, habs]
-  exact ⟨this.1, this.2⟩
-
-/-- A round with one scalar `w` waiting, its rate cells `p0`, `p1`. -/
-theorem plain_core_sq1 {p0 p1 : V} {zs capV : List V} {a o : ℕ} {cap : List E} {w : E}
-    (h : PlainCore rd σ ([p0, p1, .n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV)
-      a o)
-    (hp : (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
-    (hz : zs.map σ = [0, 0]) (hc : capV.map σ = cap) :
-    σ (.n o) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).1 ∧
-      [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
-        (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 3)))).2.cap := by
-  have s0 := fsNext_scalar h.pk0
-  have s2 := fsNext_scalar h.pk2
-  have habs : ((⟨cap, [(w, dsObserve)]⟩ : Fs).absorb (σ (.n a)) dsObserve).absorb
-      (σ (.n (a + 3))) dsObserve =
-      ⟨cap, [(w, dsObserve), (σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)]⟩ := rfl
-  have hin : ([p0, p1, .n (a + 1), .n (a + 2), .n (a + 4), .n (a + 5)] ++ zs ++ capV).map σ =
-      rateOf [(w, dsObserve), (σ (.n a), dsObserve), (σ (.n (a + 3)), dsObserve)] ++ cap := by
-    rw [rateOf_three, ← hp, ← s0, ← s2, List.map_append, List.map_append, hz, hc]
-    rfl
-  have := squeeze_atom (s := ⟨cap, [(w, dsObserve), (σ (.n a), dsObserve),
-    (σ (.n (a + 3)), dsObserve)]⟩) h.kc hin (b := o) rfl
-  simp only [range13_map, List.drop, List.map_cons, List.map_nil] at this
-  rw [plainSq, habs]
-  exact ⟨this.1, this.2⟩
 
 /-- A block of constants holds on an evaluated valuation. -/
 theorem consts_complete : ∀ (ss : List Stmt), (∀ s ∈ ss, ∃ d c, s = .atom (.const d c)) →
@@ -95,7 +42,7 @@ theorem consts_complete : ∀ (ss : List Stmt), (∀ s ∈ ss, ∃ d c, s = .ato
 theorem mul_good {d x y : ℕ} (hx : x < d) (hy : y < d)
     (h : GoodS rd S w σ (.atom (.mul (.n d) (.n x) (.n y)))) : σ (.n d) = σ (.n x) * σ (.n y) := by
   simp only [GoodS, Good] at h
-  rwa [ite_eq_left ⟨hx, hy⟩] at h
+  rwa [ite_pos' ⟨hx, hy⟩] at h
 
 /-- **A plain round, completely.** -/
 theorem plainRound_complete {cur pt vIn : V} {ins : List V} {mid : List Stmt} {i a o : ℕ}

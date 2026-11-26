@@ -54,7 +54,6 @@ open OracleComp OracleSpec
 namespace FORS.Security.Prefix
 
 variable [Params]
-open UniformTableSplit
 
 attribute [local instance] Classical.propDecidable
 
@@ -199,7 +198,6 @@ theorem fixedHashWorld_lift_hash (f : QueryImpl HashSpec Id) {α : Type}
         show evalWithAnswerFn f (liftM (HashSpec.query input)) = f input from simulateQ_spec_query f input,
         ← PMF.monad_pure_eq_pure, pure_bind]
       exact ih (f input)
-
 
 end FORS.Security.Prefix
 

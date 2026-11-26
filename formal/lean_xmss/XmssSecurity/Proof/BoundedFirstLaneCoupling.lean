@@ -2,16 +2,26 @@ module
 
 public import XmssSecurity.Proof.FirstLaneEagerBound
 public import XmssSecurity.Proof.FirstLaneHazardEnforcement
-public import XmssSecurity.Proof.MarginalCoupling
 public import XmssSecurity.Proof.CacheAgreement
 public import VCVio.ProgramLogic.Relational.FromUnary
 
 @[expose] public section
 
+/-!
+# Coupling a budgeted simulation with the first lane, up to a hit
+
+`relTriple_simulateQ_bind_bounded_firstLane` couples a simulation over `StateT` with one into the
+first-lane oracle, simulated eagerly from a fixed table, under a per-query hazard cost and a budget
+that each step consumes. From a step coupling that keeps a state relation and the hazard count
+within the budget used, or else produces a combined hit, and a matching coupling of the final steps,
+it couples the whole runs: outputs equal, states related and at most `countLimit` hazards, or a
+combined hit on the trace cut at `hitLimit` hazards. A hit, once reached, persists through the rest
+of the run (`relTriple_enforcedHit_append`). `CappedExactFirstLaneBound` and `OwnFirstLane` apply
+it.
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
-
-variable {ι : Type*} {Index σ₁ σ₂ α β : Type}
 
 namespace XmssSecurity
 

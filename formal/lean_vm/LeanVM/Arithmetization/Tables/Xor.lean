@@ -83,7 +83,7 @@ says it refines `XorRefines mem` whenever `XOR oA oB oC` executes from `(pc, fp)
 `xor_exec_complete` pushes it through `completeness` over the prover data: every valid `XOR`
 execution has a satisfying row, its constraints holding in the row environment `rowEnv data`.
 A step of a program that fetches `XOR oA oB oC` is such an execution
-(`execute_of_step`). The builder is noncomputable, since `MemoryImage.read` is; an executable,
+(`step_of_fetch_eq_some`). The builder is noncomputable, since `MemoryImage.read` is; an executable,
 data-aware generator would be proved against these theorems.
 
 This is all a table file states. Facts about its bytecode tuple are
@@ -279,7 +279,7 @@ theorem xorRowOf_refines {κ : ℕ} {mem : MemoryImage κ} {pc fp oA oB oC : K} 
 
 /-- Every valid `XOR` execution has a satisfying row, from the execution alone: the constraints
 of `main` hold of `xorRowOf` in the row environment over the data. A step of a program that
-fetches `XOR oA oB oC` is such an execution (`execute_of_step`). -/
+fetches `XOR oA oB oC` is such an execution (`step_of_fetch_eq_some`). -/
 theorem xor_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Registers K}
     (hexec : execute (imageOf data).2 ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)

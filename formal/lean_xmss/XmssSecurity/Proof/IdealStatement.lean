@@ -4,6 +4,16 @@ public import XmssSecurity.Proof.RandomizedStatement
 
 @[expose] public section
 
+/-!
+# The model's scheme
+
+`Concrete.scheme` is the scheme the model's game runs: `Concrete.precomputedKeygen` samples the
+parameter, the secrets and the top randomizer bases, computes the root through the oracle and
+stores the logged cache in the secret key; `Concrete.precomputedCappedSign` draws a uniform base and
+tries at most `signingAttemptLimit` randomizers `base + trial`, stopping at the first that encodes;
+verification is `Concrete.verify`.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

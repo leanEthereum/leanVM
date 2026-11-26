@@ -18,7 +18,7 @@ set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
 open Common
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 
 namespace Common.SeedDuplex
 

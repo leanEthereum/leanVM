@@ -3,7 +3,7 @@ import LeanVM.Protocol.ToArkLib.Oracles
 import LeanVM.Protocol.Field
 import LeanVM.Protocol.Spine.Errors
 import LeanVM.Protocol.Spine.Slots
-import LeanVMTests.Protocol.Toy
+import LeanVM.Protocol.Spine.Toy
 
 /-!
 # Grand-product tests
@@ -36,7 +36,7 @@ are named as definitions before a guard uses them.
 
 namespace LeanVMTests.Protocol.GrandProduct
 
-open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Gkr LeanVMTests.Protocol.Toy CompPoly
+open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Gkr LeanVM.Protocol.Toy CompPoly
   CMlPolynomialEval
 open scoped NNReal
 

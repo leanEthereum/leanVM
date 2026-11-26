@@ -94,19 +94,8 @@ theorem pair_tailL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   obtain ⟨es2, hes2, rfl⟩ := pre_eq_ret hes1
   obtain ⟨es3, hes3, rfl⟩ := walk_atoms_ret hes2
   refine ⟨(as ++ bs).map Ev.atom, cs, es3, by simp, hes3, hcs, fun a ha ↦ by simp [ha], evM_atoms _, fun x hx ↦ ?_⟩
-  have hqa : ∀ a ∈ as ++ bs, a ∉ as.filter flowAtom → stopS H.readT a = false := by
-    intro a ha hn
-    rcases List.mem_append.mp ha with ha | ha
-    · cases hfa : flowAtom a
-      · exact hq a ha hfa
-      · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-    · exact hbs a ha
-  rcases written_extendC (fs := as.filter flowAtom)
-      (rest := Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es3))
-      (by simpa [List.append_assoc] using hrw) hqa hx with h | ⟨a, ha, hwa⟩
-  · exact Or.inl h
-  · rw [List.mem_filter] at ha
-    exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
+  exact written_flowC (rest := Ev.inK c :: (if σ c = 0 then Ev.skip f args else Ev.call f args []) :: (cs.map Ev.atom ++ es3))
+    (by simpa [List.append_assoc] using hrw) hq hbs hx
 
 /-- **At a return jump** (`od = 0`, `of = 1`, never zero, not forward, cell `0` no constant pc) of a
 body of atoms, calls, conditional calls, returns, branches and `match`es: `pair_retC`'s conclusion. -/
@@ -149,12 +138,7 @@ theorem pair_retL {X : AlignCtx} {O S : Exec.Trie Unit} {body : List Stmt}
   simp only [Out.ret.injEq] at hes'
   obtain ⟨rfl, -⟩ := hes'
   obtain ⟨-, -, -, hW⟩ := atoms_writtenC (fs := as.filter flowAtom) (ss := zs.pos) (pre := pre)
-    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (fun a ha hn ↦ by
-        rcases List.mem_append.mp ha with ha | ha
-        · cases hfa : flowAtom a
-          · exact hq a ha hfa
-          · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-        · exact hbs a ha)
+    (es := (as ++ bs).map Ev.atom ++ []) (vs := vs) hp hrw (stop_of_flow hq hbs)
   intro x hx
   rcases hW x (by simpa using hx) with h | ⟨a, ha, hwa⟩
   · exact Or.inl h

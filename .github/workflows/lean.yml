@@ -21,7 +21,8 @@ env:
   RUSTFLAGS: -C target-cpu=haswell
 
 jobs:
-  # The statement: definitions and end statements only (`Statement/`), what every other job proves.
+  # The statement: definitions and end statements only (`Statement/`), what every other job proves, and the
+  # `@[csimp]` lemmas of `fast_fields/`, which it requires.
   statement:
     runs-on: ubuntu-latest
     steps:
@@ -38,17 +39,19 @@ jobs:
         run: cargo run --release --manifest-path scripts/guest-export/Cargo.toml -- .
       - name: Forbid proof escapes
         run: |
-          python3 -I formal/tools/escape-scan.py formal/Statement
+          python3 -I formal/tools/escape-scan.py formal/Statement formal/fast_fields
       # No lakefile sets an option that skips the kernel (`debug.skipKernelTC`, any `debug.` option).
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # The statement imports Mathlib, VCVio, CompPoly and itself, nothing of the proofs, and `import all`
-      # only of its own generated data (`Statement.Data`); an indented import line counts too.
+      # The statement imports Mathlib, VCVio, CompPoly, `fast_fields` and itself, nothing of the proofs (and `fast_fields` only Mathlib, CompPoly and itself), and
+      # `import all` only of its own generated data (`Statement.Data`); an indented import line counts too.
       - name: Keep the statement apart from the proofs
         run: |
           ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|Statement)\.|all[[:space:]]+Statement\.Data\.)'
+              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)' &&
+          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/fast_fields \
+              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4
@@ -56,7 +59,8 @@ jobs:
           path: |
             formal/Statement/.lake
             !formal/Statement/.lake/packages/mathlib/.lake
-          key: lake-statement-${{ runner.os }}-${{ hashFiles('formal/Statement/lean-toolchain', 'formal/Statement/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/Statement/**/*.lean') }}
+            formal/fast_fields/.lake/build
+          key: lake-statement-${{ runner.os }}-${{ hashFiles('formal/Statement/lean-toolchain', 'formal/Statement/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean') }}
           restore-keys: lake-statement-${{ runner.os }}-${{ hashFiles('formal/Statement/lean-toolchain', 'formal/Statement/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -79,6 +83,7 @@ jobs:
           path: |
             formal/Statement/.lake
             !formal/Statement/.lake/packages/mathlib/.lake
+            formal/fast_fields/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
 
   common:
@@ -99,7 +104,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
-          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_indifferentiable Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le Common.SeedDuplex.duplex_ge"
+          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le"
           { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -168,7 +173,8 @@ jobs:
             !formal/lean_sphincs/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
-          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+            formal/fast_fields/.lake/build
+          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean') }}
           restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -189,7 +195,7 @@ jobs:
         working-directory: formal/lean_sphincs
         run: |
           theorems="Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered"
-          { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          { printf 'import %s\n' Sphincs FORS; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
             grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
@@ -203,6 +209,7 @@ jobs:
             !formal/lean_sphincs/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
@@ -227,7 +234,8 @@ jobs:
             !formal/lean_da/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
-          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_da/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean') }}
+            formal/fast_fields/.lake/build
+          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_da/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean') }}
           restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json', 'formal/*/lakefile.*') }}-
       # Builds the default target, whose root module checks the front-page theorems' axioms with
       # `#guard_msgs`.
@@ -241,12 +249,12 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
-      # LeanDA's security is Benedikt Wagner's framework, theorems and proofs
-      # (b-wagn/fv-pq-da), ported and instantiated with LeanDA.
+      # LeanDA's security, on Benedikt Wagner's framework for erasure code commitments
+      # (b-wagn/fv-pq-da), instantiated with LeanDA.
       - name: Check the axiom footprint
         working-directory: formal/lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete_rpm LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dualCodewordAt LeanDa.membershipChallengeM_id LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound"
+          theorems="LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -261,6 +269,7 @@ jobs:
             !formal/lean_da/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
@@ -314,11 +323,12 @@ jobs:
             !formal/lean_vm/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
             formal/lean_xmss/.lake/build
             formal/lean_sphincs/.lake/build
             formal/lean_da/.lake/build
           # The files derived from the guest are not committed, nor written yet: their sources stand in.
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -364,7 +374,7 @@ jobs:
       # `Statement/Data` as well).
       - name: Forbid proof escapes
         run: |
-          python3 -I ../tools/escape-scan.py ../Statement .
+          python3 -I ../tools/escape-scan.py ../Statement ../fast_fields .
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
       # of the generated kernel-checked families exceeds the runner's memory, so `lake-build.py`
@@ -404,6 +414,7 @@ jobs:
             !formal/lean_vm/.lake/packages/mathlib/.lake
             formal/common/.lake/build
             formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
             formal/lean_xmss/.lake/build
             formal/lean_sphincs/.lake/build
             formal/lean_da/.lake/build

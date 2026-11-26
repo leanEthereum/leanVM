@@ -1,19 +1,22 @@
 module
 
-public import XmssSecurity.Proof.PrecomputedBoundedSignCache
-public import XmssSecurity.Proof.EncodingTargetMap
-public import XmssSecurity.Proof.SigningRandomnessUniformity
 public import Mathlib.Data.Set.Card.Arithmetic
-public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Proof.PrecomputedBoundedSign
 
 @[expose] public section
+
+/-!
+# One attempt of the capped retry signer
+
+Under `romImpl`, the bounded attempts of `Concrete.precomputedSignBoundedAttempts` unroll into one
+attempt with randomizer `base + trial` under the random oracle, then
+`Concrete.precomputedSignBoundedAttemptsContinuation`: its signature, or the remaining attempts from
+its cache (`Concrete.precomputedSignBoundedAttempts_run_succ_eq`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
-
-noncomputable local instance precomputedRandomnessSampleable : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
 
 noncomputable def Concrete.precomputedSignBoundedAttemptsContinuation
     (attempts trial : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)

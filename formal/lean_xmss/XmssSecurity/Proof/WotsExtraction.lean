@@ -1,10 +1,22 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import XmssSecurity.Proof.Wots
 public import XmssSecurity.Proof.EncodingLemmas
 
 @[expose] public section
+
+/-!
+# What a WOTS forgery exposes
+
+Pure facts about target-sum WOTS chains over an arbitrary step function. Equal chain endpoints
+come from equal starts or a collision at one step (`eq_or_hasStepCollision`). Two distinct valid
+encodings recovering the same endpoints give a backward witness (a forged value earlier in a chain
+that walks to the signed value) or a suffix collision (`classify_distinct_valid_encodings`); one
+encoding with different chain values gives a suffix collision
+(`suffixCollision_of_sameEncoding_of_values_ne`); an opening at an unsigned leaf index reveals a
+hidden honest chain value or gives a suffix collision (`freshChainValue_or_suffixCollision`).
+`eq_or_hasLeafCollision` is the same split for leaf hashes.
+-/
 
 namespace XmssSecurity.Wots
 

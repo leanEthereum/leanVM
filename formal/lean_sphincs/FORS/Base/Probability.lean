@@ -7,7 +7,6 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.EvalDist.Sum
 public import VCVio.EvalDist.ProbabilityBounds
 public import VCVio.EvalDist.Monad.UniformTable
-public import Common.RomTable
 
 @[expose] public section
 
@@ -18,8 +17,7 @@ The output measure of a `PMF`, its monad equations, and uniform-table laws state
 distribution.
 -/
 
-/-! `PMF` monad unfolding and uniform distributions under bijections (formerly in VCVio's
-`ToMathlib.Probability.ProbabilityMassFunction.Lemmas`). -/
+/-! `PMF` monad unfolding and uniform distributions under bijections. -/
 
 universe u
 
@@ -41,8 +39,7 @@ lemma Cslib.Probability.PMF.uniformOfFintype_map_of_bijective {α β : Type*} [F
   convert tsum_ite_eq a (fun _ : α => ((Fintype.card β : ENNReal)⁻¹))
 
 /-! The output measure of a `PMF` is `PMF.toMeasure`, so the event notation reads a `PMF` as it
-reads any other computation (VCVio's earlier discrete layer gave `PMF` this semantics through its
-lift to `SPMF`). -/
+reads any other computation. -/
 
 namespace PMF
 
@@ -106,4 +103,8 @@ theorem uniformSample_bind_update_evalDistEq {D R : Type} [Finite D] [DecidableE
       let u ← ($ᵗ R : ProbComp R)
       let g ← ($ᵗ (D → R) : ProbComp (D → R))
       pure (Function.update g t u)) =ᵈ ($ᵗ (D → R) : ProbComp (D → R)) := by
-  simpa only [bind_pure] using Common.RomTable.evalDistEq_uniformSample_bind_update t pure
+  let : MeasurableSpace R := ⊤
+  have h := evalDist_bind_bind_update_map ($ᵗ R) ($ᵗ (D → R))
+    SampleableType.evalDist_uniformSample SampleableType.evalDist_uniformSample t id
+  simp only [id, bind_pure] at h
+  exact EvalDistEq.of_evalDist_eq h

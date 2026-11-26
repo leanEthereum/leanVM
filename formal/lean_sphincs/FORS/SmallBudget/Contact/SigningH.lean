@@ -1,8 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.PotentialH
-public import FORS.LargeBudget.HonestCoupling
 public import FORS.CoverPotential.OneCoinH
+public import FORS.SmallBudget.Contact.PaidPotentialH
+public import FORS.SmallBudget.Contact.Signing
 
 @[expose] public section
 
@@ -24,8 +24,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open PotentialA
 
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section SignPaysH
@@ -100,17 +98,8 @@ theorem signInvH (hMp : model.parse = HiddenGraph.parse K.p (candidateActive K.p
   have hF := binvF_sign hMp hMi hparse m B hB' o1' ho1' r (h11.trans hres)
   rw [h2, h121, discAfter_congr h11 h2] at hF
   rw [hbud]
-  refine ⟨hF.inv, hF.pinv, hF.minv, hF.dinv, fun m' hm' => ?_, hF.gc, hF.rinv⟩
-  have hne : m' ≠ m := fun he => hm' ⟨m, r⟩ (List.mem_append_right _ (List.mem_singleton_self _)) he.symm
-  have hlive : MsgLive L m' := fun e he => hm' e (List.mem_append_left _ he)
-  have hkeep : cachedCount K.p data m' o1.2 = cachedCount K.p data m' s := by
-    unfold cachedCount
-    refine congrArg Finset.card (Finset.filter_congr fun ρ _ => ?_)
-    have hk := other_message_keptS K.tg K.initial model B s o1' ho1' (m', ρ) hne firstCall
-    rw [h2] at hk
-    exact Iff.of_eq (congrArg (· ≠ none) hk)
-  have := hB.count m' hlive
-  omega
+  exact ⟨hF.inv, hF.pinv, hF.minv, hF.dinv, h2 ▸ countInvL_sign K.p data Qtot K.tg K.initial model r hB.count o1' ho1',
+    hF.gc, hF.rinv⟩
 
 end SignInvH
 

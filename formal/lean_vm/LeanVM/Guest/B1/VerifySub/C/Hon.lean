@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.VerifySub.C.Flat
 public import LeanVM.Guest.B1.Fwd.FlatIte
 public import LeanVM.Guest.B1.Fwd.NotStored
 public import LeanVM.Guest.B1.Fwd.Canon
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.B1.Terminal.KidsDep
 
 /-!
@@ -77,9 +77,9 @@ theorem vsC_param (hl : args.length = 6) {i : ℕ} (hi : i < 6) :
   ev_params rd w (by rw [hl]; exact vs_chk') (by rw [hl]; exact hi)
 
 theorem vs_mem_slice {n : ℕ} {blk : List Stmt}
-    (heq : stmtsEqb blk ((vsCPre.drop n).take blk.length) = true) {s : Stmt} (hs : s ∈ blk) :
+    (heq : tbStmtsEqb blk ((vsCPre.drop n).take blk.length) = true) {s : Stmt} (hs : s ∈ blk) :
     s ∈ vsCPre := by
-  rw [stmtsEqb_sound heq] at hs
+  rw [tbStmtsEqb_sound heq] at hs
   exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
 
 /-- **A statement's equations.** -/
@@ -93,7 +93,7 @@ theorem vs_goodS (hl : args.length = 6) {s : Stmt} (hs : s ∈ vsCPre) :
 
 /-- The equations of a slice of the body, by its position. -/
 theorem vs_goodL (hl : args.length = 6) {n : ℕ} {blk : List Stmt}
-    (heq : stmtsEqb blk ((vsCPre.drop n).take blk.length) = true) :
+    (heq : tbStmtsEqb blk ((vsCPre.drop n).take blk.length) = true) :
     ∀ s ∈ blk, GoodS rd vsSL w (vsσ rd w args) s :=
   fun _ hs ↦ vs_goodS hl (vs_mem_slice heq hs)
 

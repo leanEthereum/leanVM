@@ -15,7 +15,7 @@ public import Statement.LeanDa
 
 Ported from the BLAKE2s-era `B1/Tables/Common` (branch `mumbai`), prefixed `tb`:
 
-* `tb_rc_sound'`, `tb_rc_complete`, `tbRcAux`: `assert log(x) < K` on a memory image of `2^μ`
+* `tb_rc_sound'`: `assert log(x) < K` on a memory image of `2^μ`
   words, `μ ≤ 32` (`rangeCheck_iff`), with a choice of the gadget's auxiliary words for an honest
   valuation.
 * `tb_gen_pow_eq_mul`: products of small g-powers are g-powers of the sums.
@@ -55,19 +55,10 @@ theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ
     (by simp only [Set.mem_Iio]; omega) (ofK_injective h2).symm
   exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
 
-/-- The auxiliary words of a passing range check, chosen. -/
-noncomputable def tbRcAux {μ : ℕ} (Lm : MemoryImage μ) (x : E) (K : ℕ) : E × E × E :=
-  open Classical in
-  if h : ∃ y t1 t2 : E, LoadHolds Lm.read x 0 t1 ∧ ofK (Parameters.addressOfIndex (K - 1)) = x * y ∧
-      LoadHolds Lm.read y 0 t2 then
-    (Classical.choose h, Classical.choose (Classical.choose_spec h),
-      Classical.choose (Classical.choose_spec (Classical.choose_spec h)))
-  else (0, 0, 0)
-
 /-- A run of mapped words, entry by entry. -/
-theorem readsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
-    ReadsAt rd p (l.map f) ↔ ∀ c < l.length, LoadHolds rd p c (f (l.getD c 0)) := by
-  unfold ReadsAt
+theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
+    TbReadsAt rd p (l.map f) ↔ ∀ c < l.length, LoadHolds rd p c (f (l.getD c 0)) := by
+  unfold TbReadsAt
   constructor
   · intro h c hc
     have := h c (by simpa using hc)
@@ -79,10 +70,13 @@ theorem readsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
 
 /-! ## Exponents -/
 
+theorem tb_gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (h : gen ^ a = gen ^ b) :
+    a = b := gen_pow_inj (by omega) (by omega) h
+
 /-- `g^a = g^d · g^b` with all three small: `a = d + b`. -/
 theorem tb_gen_pow_eq_mul {a b d : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62) (hd : d < 2 ^ 62)
     (h : gen ^ a = gen ^ d * gen ^ b) : a = d + b := by
-  rw [← pow_add] at h; exact gen_pow_inj (by omega) (by omega) h
+  rw [← pow_add] at h; exact tb_gen_pow_inj' (by omega) (by omega) h
 
 /-! ## Stack offsets -/
 
@@ -146,11 +140,19 @@ theorem tb_stackOffsets_fst (sizes : List ℕ) (r : ℕ)
   rw [hst]
   exact h.2.2 r (by omega)
 
+theorem tb_stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.length = sizes.length := by
+  set ord := (List.range sizes.length).mergeSort (stackLe (sizes.getD · 0))
+  have hperm : ord.Perm (List.range sizes.length) := List.mergeSort_perm _ _
+  have h := tb_stackFold_take (sizes.getD · 0) sizes.length ord (hperm.nodup_iff.mpr List.nodup_range)
+    (fun i hi => List.mem_range.mp (hperm.subset hi)) ord.length le_rfl
+  rw [List.take_length] at h
+  exact h.2.1
+
 /-! ## Stacking orders -/
 
 /-- `g^33`, as the data writes it: the range check below `SIZE_BITS = 34`. -/
 theorem word_g33 : word 8589934592 0 = ofK (Parameters.addressOfIndex 33) := by
-  rw [word_eOfNat]
+  rw [tb_word_eOfNat]
   show ofK (K.ofBits 8589934592) = ofK (Parameters.addressOfIndex 33)
   rw [show K.ofBits 8589934592 = Parameters.addressOfIndex 33 by decide +kernel]
 

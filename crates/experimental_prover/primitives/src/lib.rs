@@ -11,6 +11,8 @@ pub mod simd;
 pub mod stream;
 pub mod transcript;
 
+use core::mem::MaybeUninit;
+
 #[cfg(feature = "test-util")]
 pub mod test_rng;
 
@@ -114,51 +116,64 @@ pub fn store_at<T: Plain, A: Plain>(dst: &mut [T], i: usize, v: A) {
 
 /// `N` vectors of the given lengths, filled in place by `fill`.
 ///
-/// It skips the zero-fill, which would cost one more pass over memory. Only plain data is allowed, so
-/// dropping an element runs no code:
-///
-/// ```compile_fail
-/// unsafe { experimental_primitives::filled_vecs([1], |_: [&mut [String]; 1]| {}) };
-/// ```
+/// It skips the zero-fill, which would cost one more pass over memory: `fill` receives each vector's elements
+/// uninitialized, and the vectors are returned once it has written them.
 ///
 /// # Safety
 ///
-/// `fill` receives one slice per vector of uninitialized elements, and must write every element
-/// before it reads it.
+/// `fill` writes every element of every slice it receives.
 #[must_use]
-pub unsafe fn filled_vecs<T: Plain, const N: usize>(lens: [usize; N], fill: impl FnOnce([&mut [T]; N])) -> [Vec<T>; N] {
-    // SAFETY: `fill` writes each element before reading it, by the caller's contract.
-    let mut vs = lens.map(|len| unsafe { uninit_vec(len) });
+pub unsafe fn filled_vecs<T, const N: usize>(
+    lens: [usize; N],
+    fill: impl FnOnce([&mut [MaybeUninit<T>]; N]),
+) -> [Vec<T>; N] {
+    let mut vs = lens.map(uninit_vec);
     fill(vs.each_mut().map(|v| &mut v[..]));
-    vs
+    // SAFETY: `fill` wrote every element, by the caller's contract.
+    vs.map(|v| unsafe { assume_init_vec(v) })
 }
 
 /// One vector of `len` elements, filled in place by `fill`: [`filled_vecs`] with `N = 1`.
 ///
 /// # Safety
 ///
-/// As [`filled_vecs`]: `fill` must write every element before it reads it.
+/// As [`filled_vecs`]: `fill` writes every element.
 #[must_use]
-pub unsafe fn filled_vec<T: Plain>(len: usize, fill: impl FnOnce(&mut [T])) -> Vec<T> {
+pub unsafe fn filled_vec<T>(len: usize, fill: impl FnOnce(&mut [MaybeUninit<T>])) -> Vec<T> {
     // SAFETY: forwarded to the caller's contract.
     let [v] = unsafe { filled_vecs([len], |[s]| fill(s)) };
     v
 }
 
-/// A vector of `len` uninitialized elements, for a fill that outlives one scope.
+/// A vector of `len` uninitialized elements, for a fill that outlives one scope: [`assume_init_vec`] takes it
+/// back once every element is written.
 ///
 /// Prefer [`filled_vec`], which keeps the fill next to the allocation.
+#[must_use]
+pub fn uninit_vec<T>(len: usize) -> Vec<MaybeUninit<T>> {
+    // Exactly `len` slots, so the vector never reallocates while it is filled.
+    Box::new_uninit_slice(len).into_vec()
+}
+
+/// The vector of `T` that `v`'s written elements make, in the same allocation.
 ///
 /// # Safety
 ///
-/// Every element must be written before it is read.
+/// Every element of `v` is initialized.
 #[must_use]
-#[expect(clippy::uninit_vec, reason = "the caller writes every element before reading it")]
-pub unsafe fn uninit_vec<T: Plain>(len: usize) -> Vec<T> {
-    // Exactly `len` slots, so the vector never reallocates while it is filled.
-    let mut v = Vec::with_capacity(len);
+pub unsafe fn assume_init_vec<T>(v: Vec<MaybeUninit<T>>) -> Vec<T> {
+    let mut v = core::mem::ManuallyDrop::new(v);
+    // SAFETY: `MaybeUninit<T>` has the layout of `T`, so the allocation holds `capacity` elements of `T`, of which
+    // the first `len` are initialized by the caller's contract; `v` no longer owns it.
+    unsafe { Vec::from_raw_parts(v.as_mut_ptr().cast::<T>(), v.len(), v.capacity()) }
+}
 
-    // SAFETY: the capacity holds `len` elements, and the caller writes each one before reading it.
-    unsafe { v.set_len(len) };
-    v
+/// `s` as memory a writer of possibly uninitialized memory takes, for a caller whose memory is already written.
+///
+/// # Safety
+///
+/// Nothing but initialized values is written through the view.
+pub unsafe fn as_uninit_mut<T>(s: &mut [T]) -> &mut [MaybeUninit<T>] {
+    // SAFETY: `MaybeUninit<T>` has the layout of `T`, and the caller keeps every element initialized.
+    unsafe { &mut *(core::ptr::from_mut(s) as *mut [MaybeUninit<T>]) }
 }

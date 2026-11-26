@@ -18,7 +18,6 @@ variable [Params]
 
 open HiddenCost HiddenBridge HiddenOutside HiddenReveal
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 variable {D R A ι : Type} [Fintype ι] [SampleableType R]
@@ -425,8 +424,6 @@ end SatW
 `(2 (N - q) + 1) / N^2`, about `2^-127 (1 - x)` with `x = q / N`. -/
 noncomputable def baselineW (total : ℕ) : ℝ≥0∞ :=
   ENNReal.ofReal ((2 * (spaceReal - total) + 1) / spaceReal ^ 2)
-
-theorem baselineW_ne_top (total : ℕ) : baselineW total ≠ ⊤ := ENNReal.ofReal_ne_top
 
 /-- The weighted baseline fits in every budget decrement. -/
 theorem baselineW_payment (total : ℕ) (htotal : (total : ℝ) ≤ spaceReal) :

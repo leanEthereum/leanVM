@@ -13,9 +13,11 @@ public import LeanVM.Guest.B1.Main.MainHonestE
 # `main` within the budget, with its pops, every node exact
 
 `MainCompletePE`: `MainCompleteP`, the tree also `Every (ExactAt …)` on the memory; `MainCompletePE.toP`.
-`mainComplete_of_boundsPE`, `mainComplete_of_mainPE`, `mainComplete_budgetPE`: `mainComplete_of_boundsP`,
-`mainComplete_of_mainP`, `mainComplete_budgetP` with it, route R's callees with computed hints given in their E forms
-(`MainGoalsRE`, `aggregate_claims`'), `main`'s node exact by `main_every`.
+`mainComplete_of_boundsPE`: `MainCompletePE` from `main`'s completeness within a words bound, its tree's counts, pops
+and exactness. `mainComplete_of_mainPE`: from `main_honest_budgetBRE` (route S `MainPopsS`, route R `MainGoalsRR`, the
+callees with computed hints also in their E forms, `MainGoalsRE` and `aggregate_claims`'), the callees' entries
+against their segments (`MainSegs`), `main`'s node exact by `main_every`. `mainComplete_budgetPE`: within
+`mainBudget`.
 -/
 
 namespace LeanVM.Guest.Budget
@@ -25,7 +27,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.End (MainComplete Budget work hdrOf bytecode bytecode_length words_le_of_size)
 open LeanVM.Guest.B1 (LowDef DisjL Within CompleteAtDTBR)
-open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics hData_bounds childBv
+open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH MainStatics hData_bounds childBv
   MainPops MainPopsS MainGoalsRR MainGoalsRE mainPredsHP main_honest_budgetBRE main_tree_popsR kidsT_imp mTsR_imp mTsR
   main_pops_honest childSeg daSeg LConsistent Layout MemL)
 open LeanVM.Protocol.Verifier (gen)
@@ -54,6 +56,19 @@ theorem MainCompletePE.toP {fs : String → ℕ} {cert : String → V → ℕ} {
   ⟨N, L, a1, a2, a3, a4, fun rd hl hL h0 h1 =>
     let ⟨t, b1, b2, b3, b4, b5, b6, b7, b8, _⟩ := hr rd hl hL h0 h1
     ⟨t, b1, b2, b3, b4, b5, b6, b7, b8⟩⟩
+
+theorem loadHolds_one {rd : Reader} {x : E} (h : rd 1 = some x) : LoadHolds rd 1 0 x := by
+  rw [one_eq_ofK]
+  refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
+  rw [B1.Main.addr_ofK]
+  simpa [Parameters.addressOfIndex] using h
+
+theorem loadHolds_gen {rd : Reader} {x : E} (h : rd g = some x) : LoadHolds rd gen 0 x := by
+  have e : gen = ofK (addressOfIndex 1) := by rw [← Value.gen_pow_eq_ofK, pow_one]
+  rw [e]
+  refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
+  rw [B1.Main.addr_ofK]
+  simpa [Parameters.addressOfIndex] using h
 
 /-- **`MainCompletePE` from `main`'s completeness within a words bound, its tree's counts, pops and exactness.** -/
 theorem mainComplete_of_boundsPE (fs : String → ℕ) (cert : String → V → ℕ)
@@ -93,8 +108,8 @@ theorem mainComplete_of_boundsPE (fs : String → ℕ) (cert : String → V → 
     exact ⟨t, hn, hv, hb, hp, ht, hli, hcnt seed s w hrel hlim rd t hT hv hb, hpops seed s w hrel hlim rd t hT hv,
       hexact seed s w hrel hlim rd t hT hv⟩
 
-/-- **`main` is complete within the budget `b`, with its pops, every node exact**: `mainComplete_of_mainP`, route R's
-callees in `MainGoalsRR` and those with computed hints also in `MainGoalsRE`. -/
+/-- **`main` is complete within the budget `b`, with its pops, every node exact**: route S's callees in `MainPopsS`,
+route R's in `MainGoalsRR` and those with computed hints also in `MainGoalsRE`. -/
 theorem mainComplete_of_mainPE (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ)
     (b : Budget) {SB SK : String → ℕ} {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
     {Q : Digest → NodeStatement → NodeWitness → MainPops}

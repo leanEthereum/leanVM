@@ -18,7 +18,7 @@ A body with no branch, `match` or dispatch walks every statement in turn
 (`walk_straight`), so the `HeapBuf` hints, `frameAddr`s and frames of its path are those of its
 statements (`straight_parts`), each a `filterMap` over the statements that the kernel evaluates on
 a concrete body; only a conditional call's `taken` and a dynamic size's exponent depend on the
-valuation. Likewise its loads (`loadAddrs_straight`) and runs (`runs_straight`); a body of atoms
+valuation. Likewise its loads (`loadAddrs_straight`); a body of atoms
 (`walk_atoms`, `allocs_atoms`, ...), and a fused dispatch between straight runs, which walks the
 callee its selector picks (`walk_dispatch`, `pick_eq`).
 -/
@@ -218,6 +218,9 @@ theorem holds_atoms {rd : Reader} {σ : Val} {as : List Atom} (h : ∀ a ∈ as,
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
   exact h a ha
 
+theorem gpow_add' (a b : ℕ) : addressOfIndex a * addressOfIndex b = addressOfIndex (a + b) := by
+  simp [Parameters.addressOfIndex, pow_add]
+
 /-! ## Straight bodies with calls -/
 
 /-- A statement's load: its pointer and offset. -/
@@ -238,28 +241,6 @@ theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straig
     | .call f args rets, _ => rfl
     | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
       simp [slEvs, hc, Ev.loadAddr?, stmtLoad?, List.filterMap_cons, List.filterMap_nil]
-
-/-- A statement's `frameAddr` run: its first value and its length. -/
-def stmtRun? : Stmt → Option (V × ℕ)
-  | .atom (.frameAddr _ (r :: rs)) => some (r, rs.length + 1)
-  | _ => none
-
-theorem runs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straight = true →
-    runs (pre.flatMap (slEvs σ)) = pre.filterMap stmtRun?
-  | [], _ => rfl
-  | s :: pre, h => by
-    simp only [List.all_cons, Bool.and_eq_true] at h
-    have ih := runs_straight σ pre h.2
-    simp only [runs, List.flatMap_cons, List.filterMap_append] at ih ⊢
-    rw [ih]
-    match s, h.1 with
-    | .atom a, _ =>
-      cases a with
-      | frameAddr p run => cases run <;> rfl
-      | _ => rfl
-    | .call f args rets, _ => rfl
-    | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
-      simp [slEvs, hc, Ev.run?, stmtRun?, List.filterMap_cons, List.filterMap_nil]
 
 /-! ## A fused dispatch between straight runs -/
 
@@ -311,23 +292,6 @@ theorem walk_straight_fall (σ : Val) : ∀ pre : List Stmt, pre.all Stmt.straig
   | s :: pre, h => by
     simp only [List.all_cons, Bool.and_eq_true] at h
     rw [walk, walk_straight_fall σ pre h.2, walk1_straight σ s h.1, Out.seq, Out.pre, List.flatMap_cons]
-
-/-- A dispatch between straight runs, without a `ret`, falls through with the chosen call. -/
-theorem walk_dispatch_fall (σ : Val) (pre post : List Stmt) (hpre : pre.all Stmt.straight = true)
-    (hpost : post.all Stmt.straight = true) (x : V) (fs : List String) (args rets : List V)
-    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK
-        (addressOfIndex i)) :
-    walk σ (pre ++ .dispatch x fs args rets :: post) =
-      .fall (pre.flatMap (slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (slEvs σ)) := by
-  induction pre with
-  | nil =>
-    rw [List.nil_append, walk, walk1, pick_eq σ x args rets fs 0 i hi (by omega) (by rw [Nat.zero_add]; exact hx),
-      walk_straight_fall σ post hpost]
-    rfl
-  | cons s pre ih =>
-    simp only [List.all_cons, Bool.and_eq_true] at hpre
-    rw [List.cons_append, walk, ih hpre.2, walk1_straight σ s hpre.1, Out.seq, Out.pre,
-      List.flatMap_cons, List.append_assoc]
 
 end
 end LeanVM.Guest.Memory

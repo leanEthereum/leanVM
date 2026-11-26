@@ -77,10 +77,10 @@ theorem pairCmp_cost (hP : Includes P searchInKeyC.lam0.costDeps) (a b : ℕ × 
 
 /-- Two lists of code pairs compared (`compareLex` with `searchInKeyC.lam0`): `64` per pair of
 the second, `7`. -/
-theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.costDeps)
+theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c5.costDeps)
     (hP' : Includes P searchInKeyC.lam0.costDeps) :
     ∀ (a b : List (ℕ × ℕ)), (∀ x ∈ a, PairOK x) → (∀ x ∈ b, PairOK x) →
-      machineCost P Auto.List.compareLex.costIdx
+      machineCost P Auto.List.compareLex.c5.costIdx
           [.closure searchInKeyC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
         64 * b.length + 7 := by
   have hc : ∀ x y : ℕ × ℕ, RunsApp P (.closure searchInKeyC.lam0.costIdx [])
@@ -90,11 +90,11 @@ theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.costDeps)
   induction a with
   | nil =>
     intro b _ _
-    rw [Auto.List.compareLex.costEq P hP compare _ hc]
+    rw [Auto.List.compareLex.c5.costEq P hP compare _ hc]
     cases b <;> simp
   | cons x a ih =>
     intro b ha hb
-    rw [Auto.List.compareLex.costEq P hP compare _ hc]
+    rw [Auto.List.compareLex.c5.costEq P hP compare _ hc]
     cases b with
     | nil => simp
     | cons y b =>
@@ -169,9 +169,9 @@ theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
       rw [limbs_of_lt hv1, limbs_of_lt hk1]
       simp only [max_self]
       unfold keyCmpPrice
-      generalize machineCost P Auto.List.compareLex.costIdx
+      generalize machineCost P Auto.List.compareLex.c5.costIdx
         [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.1, encodeValue k.2.1] = c1 at hc1 ⊢
-      generalize machineCost P Auto.List.compareLex.costIdx
+      generalize machineCost P Auto.List.compareLex.c5.costIdx
         [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.2, encodeValue k.2.2] = c2 at hc2 ⊢
       -- the comparison's price, bounded once over its `9` outcomes
       have hcmpP : ∀ o1 o3 : Ordering,
@@ -345,7 +345,7 @@ theorem getPc_cost (hP : Includes P getPcC.costDeps) (D : ℕ)
   have hlam : ∀ l ∈ m.levels, appCost P (.closure getPcC.lam0.costIdx [encodeValue k])
       [encodeValue l] ≤ 9 + (39 + 9 * wl D) * (D + 2) := by
     intro l hl
-    rw [appCost_fn, List.singleton_append, getPcC.lam0.costEq P,
+    rw [appCost_fn, List.singleton_append, getPcC.lam0.costEq P (by includes),
       List.length_singleton]
     have := searchInPc_cost P (by includes) l.entries (fun e he ↦ hQ l hl e he) k hk (2 ^ D)
       (wl D) (fun x hx ↦ limbs_le_wl' hx) (hsz l hl) 0 l.entries.size (Nat.zero_le _) (hsz l hl)

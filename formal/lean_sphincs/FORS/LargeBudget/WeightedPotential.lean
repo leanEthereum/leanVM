@@ -1,8 +1,6 @@
 module
 
 public import FORS.LargeBudget.WeightedScan
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
 
 @[expose] public section
@@ -21,9 +19,8 @@ variable [Params]
 
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner
-  FORS.Base.Domination FORS.LoopWalk Common.LoopWalk
+  FORS.Base.Domination FORS.LoopWalk
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-! ### Signing a message for the first time, weighted -/
@@ -43,85 +40,20 @@ theorem interp_weight_constW {s : State} {α : Type} (computation : OracleComp C
         exact tsum_congr fun out => by ring
     _ ≤ _ := mul_le_mul_left (interp_weight_leW tg initial model computation budget s) _
 
-/-- The base value and the averaged walks of a message are below its group after one fresh slot
-(the arithmetic of `sign_term`). -/
-theorem walk_avg_le_grpM {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State) (d : Multiset View)
-    (excl : Pair → Prop) :
-    X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s)
-        (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
-        (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start ≤
-      grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
-  set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
-  set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
-  set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
-  have hcard : c * (Fintype.card Randomness : ℝ≥0∞) = 1 :=
-    ENNReal.inv_mul_cancel (by exact_mod_cast Fintype.card_ne_zero) (ENNReal.natCast_ne_top _)
-  have hUX : ∀ e, X e ≤ freshAvg Finset.univ (fun v => X (e + {v})) := by
-    intro e
-    calc X e = freshAvg Finset.univ (fun _ : View => X e) := (freshAvg_const _ Finset.univ_nonempty _).symm
-      _ ≤ _ := freshAvg_mono _ fun v _ => hX _ _ (Multiset.le_add_right _ _)
-  -- the base value joins every walk
-  have hbase : X d = c * ∑ start : Randomness, walk (nextRand (data.steps m)) landing (stOf parameter data m s) (fun _ => X d)
-      (X d) (X d) digestAttemptLimit start := by
-    simp only [walk_const landing_le_one, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-    rw [← mul_assoc, hcard, one_mul]
-  rw [hbase, ← mul_add, ← Finset.sum_add_distrib]
-  unfold grpM grp gv
-  refine mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ => ?_)
-  rw [← walk_add]
-  refine walk_mono _ (fun ρ => ?_) ?_ ?_ _ start
-  · -- a cached landed pair
-    refine le_trans ?_ (hUX (d + extOf parameter data s excl m ρ))
-    unfold poolValue extOf
-    cases h0 : pcache parameter data m s ρ with
-    | none =>
-        simp only [Option.elim, add_zero]
-        exact hX _ _ (Multiset.le_add_right _ _)
-    | some u =>
-        simp only [Option.elim]
-        split_ifs with hl hx
-        · simp only [hgp, ite_eq_left hx, add_zero, le_refl]
-        · have hv : pview parameter data s (m, ρ) = viewOf u := pview_of_pcache (q := (m, ρ)) h0
-          simp only [hgp, ite_eq_right hx, hv]
-          rw [add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))]
-        · rw [add_zero]
-          exact hX _ _ (Multiset.le_add_right _ _)
-        · rw [add_zero]
-          exact hX _ _ (Multiset.le_add_right _ _)
-  · -- a fresh pair
-    have hfr : X d + freshAvg Finset.univ gf = freshAvg Finset.univ (fun v => X (d + {v})) := by
-      calc X d + freshAvg Finset.univ gf = freshAvg Finset.univ (fun v => X d + gf v) := by
-            rw [freshAvg_add, freshAvg_const _ Finset.univ_nonempty]
-        _ = _ := by
-            congr 1
-            funext v
-            exact add_tsub_cancel_of_le (hX _ _ (Multiset.le_add_right _ _))
-    rw [hfr]
-    split_ifs
-    · exact le_rfl
-    · calc freshAvg Finset.univ (fun v => X (d + {v}))
-          = freshAvg Finset.univ (fun _ : View => freshAvg Finset.univ fun v => X (d + {v})) :=
-            (freshAvg_const _ Finset.univ_nonempty _).symm
-        _ ≤ _ := freshAvg_mono _ fun v' _ => freshAvg_mono _ fun v _ =>
-            hX _ _ (add_le_add (Multiset.le_add_right _ _) le_rfl)
-  · rw [add_zero]
-    exact hUX d
-
-/-- **One signing call, one term, weighted** (the weighted `sign_term`). Averaged over the uniform
-start and the scan, the weighted upper value of a monotone function of the disclosures is at most the
-initial weight times the group of the message applied to that function after one fresh slot. -/
-theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
+/-- The weighted upper value of a signing call is at most the initial weight times the base value
+plus the averaged walks of the message. -/
+theorem upper_scanW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
     (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
-    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State)
-    (hinv : PairInv parameter data m s) (d : Multiset View)
+    (X : Multiset View → ℝ≥0∞) (s : State) (hinv : PairInv parameter data m s) (d : Multiset View)
     (excl : Pair → Prop) (budget : ℕ) :
     ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
         (weight tg initial out.2 *
           (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
             outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
       weight tg initial s *
-        grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d := by
-  refine le_trans ?_ (mul_le_mul' le_rfl (walk_avg_le_grpM parameter data m hX s d excl))
+        (X d + (Fintype.card Randomness : ℝ≥0∞)⁻¹ * ∑ start, walk (nextRand (data.steps m)) landing (stOf parameter data m s)
+          (poolValue parameter data m s (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d))
+          (freshAvg Finset.univ (fun v => X (d + {v}) - X d)) 0 digestAttemptLimit start) := by
   set gf : View → ℝ≥0∞ := fun v => X (d + {v}) - X d with hgf
   set gp : Randomness → View → ℝ≥0∞ := fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d with hgp
   set c := (Fintype.card Randomness : ℝ≥0∞)⁻¹ with hc
@@ -140,7 +72,7 @@ theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     refine le_trans (mul_le_mul' le_rfl (Finset.sum_le_sum fun start _ =>
       loop_bound_combSW tg initial model parameter data m hparse hkind s gf gp digestAttemptLimit
         (by unfold digestAttemptLimit; norm_num) budget s start (fun _ => Or.inl rfl) hinv
-          (fun _ _ _ => rfl)))
+        (fun _ _ _ => rfl)))
       (le_of_eq ?_)
     rw [← Finset.mul_sum, mul_left_comm]
   rw [mul_add]
@@ -148,6 +80,23 @@ theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk paramet
     (interp_weight_constW tg initial model (s := s) (signCostSource parameter data m) budget (X d)) hscan)
   rw [← tsum_add]
   exact tsum_congr fun out => by ring
+
+/-- **One signing call, one term, weighted** (the weighted `sign_term`). Averaged over the uniform
+start and the scan, the weighted upper value of a monotone function of the disclosures is at most the
+initial weight times the group of the message applied to that function after one fresh slot. -/
+theorem upper_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
+    (hkind : ∀ ρ call, tg.kind (GraphView.pblk parameter data m ρ call) = .none)
+    {X : Multiset View → ℝ≥0∞} (hX : Monotone' X) (s : State)
+    (hinv : PairInv parameter data m s) (d : Multiset View)
+    (excl : Pair → Prop) (budget : ℕ) :
+    ∑' out, Pr{let x ← interp tg initial model (signCostSource parameter data m) budget s}[x = out] *
+        (weight tg initial out.2 *
+          (X d + (freshNewWeight parameter data m s (fun v => X (d + {v}) - X d) out +
+            outWeight parameter data m s 0 (fun ρ v => if excl (m, ρ) then 0 else X (d + {v}) - X d) out))) ≤
+      weight tg initial s *
+        grpM parameter data s excl m (fun e => freshAvg Finset.univ fun v => X (e + {v})) d :=
+  le_trans (upper_scanW tg initial model parameter data m hparse hkind X s hinv d excl budget)
+    (mul_le_mul' le_rfl (walk_avg_le_grpM parameter data m hX s d excl))
 
 /-- The fresh pair completed by a signing call weighs at most its fresh average, weighted. -/
 theorem fresh_expectW (hparse : ∀ ρ call, model.parse (GraphView.pblk parameter data m ρ call) = none)
@@ -221,7 +170,8 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate) (initial : 
   (parameter : PublicParameter) (data : PublicData) (w b0 : ℝ≥0∞) (Fail : Finset (Fin (2 ^ subtreeHeight)))
   (Qtot : ℕ) (m : Message)
 
-/-- `sign_expectW` with the signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
+/-- **The signing step in expectation, weighted**, for a message signed for the first time, the
+signer's interpreter budget `bi` apart from the potential's budget `budget`. -/
 theorem sign_expectW2 (hparse : ∀ p call, model.parse (pblk parameter data p call) = none)
     (hkind : ∀ p call, tg.kind (pblk parameter data p call) = .none)
     (bi budget : ℕ) (s : State) (P : List Pair) (Ms : List Message)
@@ -363,32 +313,8 @@ theorem new_pair_core (hw : w ≤ 1) (L : QueryLog SigningSpec)
   -- the cap term keeps its mean
   have hlam : pairE (fun u => lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1)) ≤
       lam Lmax ℓ budget := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-          if Landed parameter (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) (budget - 1)
-          else lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      have := lam_newPair parameter Lmax ℓ (budget - 1)
-      rw [Nat.sub_add_cancel hb] at this
-      exact le_of_eq this
-    · have hl : ∀ u : DigestCall → HashOutput,
-          lam Lmax (livePairs L (addPair parameter P p u)).length (budget - 1) =
-            lam Lmax ℓ (budget - 1) := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.sub_le _ _)
+    have h := pairE_lam_addPair parameter Lmax (budget - 1) L P p
+    rwa [Nat.sub_add_cancel hb] at h
   unfold potO
   rw [pairE_add, add_right_comm]
   refine add_le_add ?_ hlam

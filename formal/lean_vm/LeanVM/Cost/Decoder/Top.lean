@@ -101,21 +101,13 @@ noncomputable def decTop (prog : LeanVM.Semantics.LeanIsaProgram) (κ : ℕ) (me
 /-! The baby-step tables' parts, under names of their own (the bounds name them). -/
 cost_compile powPairsByC measure fun _ n _ _ ↦ n := powPairsBy
 cost_compile babyTableC := babyTable
-set_option maxRecDepth 100000 in
 cost_compile discreteLogTablesC := discreteLogTables
-set_option maxRecDepth 100000 in
 cost_compile sphincsAtFpC := sphincsAtFp
-set_option maxRecDepth 100000 in
 cost_compile sphincsAtFrameTC := sphincsAtFrameT
-set_option maxRecDepth 100000 in
 cost_compile xmssAtFrameTC := xmssAtFrameT
-set_option maxRecDepth 100000 in
 cost_compile decTopFramesC := decTopFrames
-set_option maxRecDepth 100000 in
 cost_compile decTopStatesC := decTopStates
-set_option maxRecDepth 100000 in
 cost_compile decTopTablesC := decTopTables
-set_option maxRecDepth 100000 in
 cost_compile decTopC := decTop
 
 end

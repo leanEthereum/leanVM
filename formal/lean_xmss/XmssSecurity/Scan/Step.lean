@@ -2,6 +2,8 @@ module
 
 public import XmssSecurity.Scan.Potential
 public import XmssSecurity.Proof.AdaptiveFreshTarget
+public import XmssSecurity.Proof.HashInputLemmas
+public import XmssSecurity.Scan.Reach
 
 @[expose] public section
 
@@ -12,8 +14,8 @@ A query at a fresh position `x` of the leaf index, its output `u` uniform. With 
 
 * `line_cacheQuery_self`, `line_cacheQuery_of_ne`: the query sets the status of `x` by the `outcome` of `u`.
 * `nextRand_no_return`: the successor does not return within the attempt limit.
-* `probOutput_valid`, `probOutput_truncate`: `u` lands w.p. `landing` and hits a digest w.p. `N⁻¹`.
-* `ex_W`, `ex_sum_W`: the reach to any position is a martingale.
+* `probOutput_valid`, `ex_digest`: `u` lands w.p. `landing` and hits a digest w.p. `N⁻¹`.
+* `ex_W`: the reach to any position is a martingale.
 * `ex_Φ_le`: the partner step, `E[Φ'] ≤ Φ + (V · W x + H) · N⁻¹`.
 * `ex_V_mul_H`: the compensator step, `E[V' · H'] ≥ V · H + landing · (H + V · W x)`.
 * `landing_mul_H_le`: the mass bound, `landing · H ≤ landing · C + V · (1 − landing)`.
@@ -24,7 +26,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Partner
 
-open Common.LoopWalk LoopWalk
+open LoopWalk
 
 theorem nextRand_pow_apply (j : ℕ) (ρ : Randomness) : (nextRand ^ j) ρ = ρ + BitVec.ofNat _ j := by
   induction j with

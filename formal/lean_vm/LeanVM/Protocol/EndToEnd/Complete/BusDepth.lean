@@ -3,7 +3,8 @@
 
   The bus's push tree is no deeper than the stack: every table pushes at most as many tuples per
   row as it commits columns, and the framework pushes fewer leaves than it commits cells. So the
-  push tree's depth is at most `30` on the admissible sizes.
+  bus phase's grind, `busGrindingBits` of the push tree's depth, is at most `27` bits on the
+  admissible sizes.
 -/
 
 module
@@ -89,7 +90,7 @@ theorem pushTotal_le_blocks (prog : LeanIsaProgram) (s : Sizes) :
 /-- **The push tree is no deeper than the stack.** -/
 theorem busDepth_le_leanIsaμ (prog : LeanIsaProgram) (s : Sizes) :
     busDepth prog s ≤ leanIsaμ prog s := by
-  rw [Complete.busDepth, log2Ceil_eq_clog]
+  rw [busDepth, log2Ceil_eq_clog]
   exact Nat.clog_le_of_le_pow ((pushTotal_le_blocks prog s).trans (blocks_fits prog s))
 
 /-- On admissible sizes the push tree has depth at most `30`. -/

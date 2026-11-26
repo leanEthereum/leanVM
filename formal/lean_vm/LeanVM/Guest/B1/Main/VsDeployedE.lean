@@ -13,8 +13,9 @@ public import LeanVM.Guest.B1.Whir.CRecHosPE
 /-!
 # `verify_sub` at the deployed instance, every node exact
 
-`vs_completeRE`, `verifySubGoalsTBR_deployedE`: `vs_completeR`, `verifySubGoalsTBR_deployed` by trees also exact on
-the memory, given `VsKidsExact` (`verify_sub_completeBTSE`).
+`vs_completeRE`: `verify_sub` on a child `VsChildOk` holds of, at its announced stack log and rate, by a tree popping its
+hints and exact on the memory, given `VsKidsExact` (`child_segments_steps`, `verify_sub_completeBTSE`).
+`verifySubGoalsTBR_deployedE`: so for each child at the deployed instance (`VerifySubGoalsTBR`, `pvH`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -29,7 +30,8 @@ open LeanVM.Guest.Budget (deployedVsT)
 
 @[expose] public section
 
-/-- **`vs_completeR`, every node exact**, given `VsKidsExact`. -/
+/-- **`verify_sub` on a child `VsChildOk` holds of**, at its announced stack log (in `[20, 30]`) and rate, by a tree
+popping the child's hints, stream by stream, every node exact, given `VsKidsExact`. -/
 theorem vs_completeRE {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → ℕ} {cert : String → V → ℕ}
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
     {Bvk κ : ℕ} (hκ : 16 ≤ κ) (hK : VsKidsExact fs cert κ W Bvk) (seed : Digest) (c : Child)
@@ -46,7 +48,8 @@ theorem vs_completeRE {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → 
   exact (B1.VerifySub.verify_sub_completeBTSE hbl hrf hcons W hκ hK S hS hok.2.2.1 sqE outE Lin hok.2.1 hexp
     hout).mono le_rfl fun _ _ h ↦ ⟨⟨⟨S.hmu20, S.hmu30, h.1.1⟩, h.1.2⟩, h.2⟩
 
-/-- **Each child's `verify_sub` call at the deployed instance, exact at every node**: `verifySubGoalsTBR_deployed`,
+/-- **Each child's `verify_sub` call at the deployed instance, exact at every node**, within
+`vsBoundAt Count.vsWordsOs vkBound` at its announced stack log and rate, by a tree of `deployedVsT` popping its hints,
 given `VsKidsExact` at `B2C.fs`. -/
 theorem verifySubGoalsTBR_deployedE {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hK : VsKidsExact LeanVM.Guest.B2C.fs LeanVM.Guest.B2C.cert 16 LeanVM.Guest.Count.vsWordsOs vkBound)

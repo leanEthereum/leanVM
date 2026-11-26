@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.Lib
 
-  The vocabulary of B1-d's proofs: functions found by index, a `KECCAK` atom in the even layouts
+  The vocabulary of the Keccak GKR proofs: functions found by index, a `KECCAK` atom in the even layouts
   as a squeeze of the carried sponge, the rate cells of waiting scalars, and `fs_next`'s cells.
 -/
 
@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# B1-d: shared lemmas
+# The Keccak GKR proofs' shared lemmas
 
 * `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
   cells it reads (`permOf`), output `k` its cell `k`;
@@ -148,8 +148,6 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     simp only [Fs.squeeze, Fs.perm]
     interval_cases i <;> rfl
 
-/-! ## Words -/
-
 /-! ## Records and runs -/
 
 /-- Five capacity cells `krCap` words apart. -/
@@ -166,7 +164,37 @@ theorem capAt_five {rec : E} {k : ℕ} {c0 c1 c2 c3 c4 : E} (h0 : LoadHolds rd r
   · simpa [krCap] using h3
   · simpa [krCap] using h4
 
+/-- Words read at `p·g^a` are words read at `p` from offset `a`. -/
+theorem readsAt_gen_pow_mul {p : E} {a : ℕ} {xs : List E} :
+    ReadsAt rd (p * gen ^ a) xs ↔ ∀ k (hk : k < xs.length), LoadHolds rd p (a + k) xs[k] := by
+  simp only [ReadsAt, loadHolds_mul_gen_pow]
+
+/-- Two runs of words, one after the other. -/
+theorem readsAt_append {p : E} {xs ys : List E} :
+    ReadsAt rd p (xs ++ ys) ↔ ReadsAt rd p xs ∧ ReadsAt rd (p * gen ^ xs.length) ys := by
+  rw [readsAt_gen_pow_mul]
+  constructor
+  · intro h
+    refine ⟨fun k hk => ?_, fun k hk => ?_⟩
+    · have := h k (by simp; omega)
+      rwa [List.getElem_append_left hk] at this
+    · have := h (xs.length + k) (by simp; omega)
+      rw [List.getElem_append_right (by omega)] at this
+      simpa using this
+  · rintro ⟨hx, hy⟩ k hk
+    by_cases h : k < xs.length
+    · rw [List.getElem_append_left h]; exact hx k h
+    · rw [List.getElem_append_right (by omega)]
+      have := hy (k - xs.length) (by simp at hk; omega)
+      rwa [show xs.length + (k - xs.length) = k by omega] at this
+
 /-! ## Statement lists without `ret` -/
+
+theorem noRetList_append : ∀ (a b : List Stmt),
+    Stmt.noRetList (a ++ b) = (Stmt.noRetList a && Stmt.noRetList b)
+  | [], b => by simp [Stmt.noRetList]
+  | s :: a, b => by
+    simp only [List.cons_append, Stmt.noRetList, noRetList_append a b, Bool.and_assoc]
 
 theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList (f i) = true) :
     ∀ l : List ℕ, Stmt.noRetList (l.map f).flatten = true
@@ -174,13 +202,10 @@ theorem noRetList_flatten_map (f : ℕ → List Stmt) (h : ∀ i, Stmt.noRetList
   | i :: l => by
     rw [List.map_cons, List.flatten_cons, noRetList_append, h i, noRetList_flatten_map f h l]; rfl
 
-/-! ## Facts by position
+/-! ## Blocks of atoms, by kernel evaluation
 
 A body's statements without `ret`, `pre`, hold one by one: the statement at position `k`, found
-by kernel evaluation (`stmtEqb`), holds. `body_pre` splits a body into its statements and its
-final `ret`. -/
-
-/-! ## Blocks of atoms, by kernel evaluation -/
+by kernel evaluation (`stmtEqb`), holds. -/
 
 /-- An atom statement. -/
 def isAtom : Stmt → Bool

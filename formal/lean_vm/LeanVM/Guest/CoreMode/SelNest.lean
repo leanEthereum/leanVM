@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.RouteWin
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Bridge.AlignRun
 public import LeanVM.Guest.Bridge.JumpCellsSound
+import LeanVM.ToMathlib.List
 
 /-!
 # Reached `match`es in a branch
@@ -43,6 +44,11 @@ theorem stmtsOf_cases {w : Stmt} : ∀ {l : List Stmt}, w ∈ stmtsOf l → w �
     · rcases stmtsOf_cases h with h | ⟨v, hv, h⟩
       · exact Or.inl (List.mem_cons_of_mem _ h)
       · exact Or.inr ⟨v, List.mem_cons_of_mem _ hv, h⟩
+
+theorem noRetList_append : ∀ (a b : List Stmt),
+    Core.Stmt.noRetList (a ++ b) = (Core.Stmt.noRetList a && Core.Stmt.noRetList b)
+  | [], b => by simp [Core.Stmt.noRetList]
+  | s :: a, b => by simp only [List.cons_append, Core.Stmt.noRetList, noRetList_append a b, Bool.and_assoc]
 
 theorem noMatch_mem {l : List Stmt} (h : noMatch l = true) {x : V} {arms : List (List Stmt)}
     (hm : Stmt.match_ x arms ∈ l) : False := by
@@ -277,14 +283,6 @@ theorem selGo_arms {j : ℕ} {ps : List V} {B : List Stmt} : ∀ {seen : List At
 
 /-! ## Cursors -/
 
-theorem getD_mem_or {l : List Stmt} {t : ℕ} : l.getD t default ∈ l ∨ l.getD t default = default := by
-  rcases Nat.lt_or_ge t l.length with h | h
-  · left
-    rw [List.getD_eq_getElem _ _ h]
-    exact List.getElem_mem h
-  · right
-    exact List.getD_eq_default _ _ h
-
 theorem subBlock_default (c : ℕ) : subBlock (default : Stmt) c = [] := rfl
 
 theorem blockAt_sub {body : List Stmt} : ∀ {ks : List (ℕ × ℕ)}, ks ≠ [] →
@@ -293,7 +291,7 @@ theorem blockAt_sub {body : List Stmt} : ∀ {ks : List (ℕ × ℕ)}, ks ≠ []
   | (t, c) :: r, _, w, hw => by
     simp only [blockAt] at hw
     have hw' := subBlock_sub hw
-    rcases getD_mem_or (l := blockAt body r) (t := t) with hv | hv
+    rcases List.getD_mem_or (blockAt body r) t default with hv | hv
     · cases r with
       | nil => exact ⟨_, hv, hw'⟩
       | cons e r' =>
@@ -332,7 +330,7 @@ theorem zok_cases {body : List Stmt} {zs : Zip} (hz : ZOk body zs) {s : Stmt} {s
   · right; right
     have hs1 : s ∈ subBlock ((blockAt body ((t0, c0) :: r)).getD t default) c := List.mem_of_mem_drop hs
     have hs' := subBlock_sub hs1
-    rcases getD_mem_or (l := blockAt body ((t0, c0) :: r)) (t := t) with hv | hv
+    rcases List.getD_mem_or (blockAt body ((t0, c0) :: r)) t default with hv | hv
     · obtain ⟨u, hu, hvu⟩ := blockAt_sub (List.cons_ne_nil _ _) _ hv
       exact ⟨u, hu, _, hvu, hs'⟩
     · rw [hv, subBlock_default] at hs1
@@ -404,7 +402,7 @@ theorem sel_nested {σ : Val} {j : ℕ} {ps : List V} {B P R z n Q S : List Stmt
     have h' : Core.Stmt.noRetList (subBlock (.ite c0 z n) c) = true := by
       rw [hbz]; split
       exacts [hnI.1, hnI.2]
-    rw [hbr, B1.noRetList_append, Bool.and_eq_true] at h'
+    rw [hbr, noRetList_append, Bool.and_eq_true] at h'
     exact h'.2
   rw [Bridge.walk_append σ] at hw1
   rcases seq_eq_ret hw1 with ⟨W, Z', hW, hR', rfl⟩ | hW

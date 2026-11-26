@@ -2,6 +2,7 @@ module
 
 public import FORS.SmallBudget.Linear.ForsSteps
 public import FORS.LazyRun.HonestReadFrom
+public import FORS.SmallBudget.Linear.Start
 
 @[expose] public section
 
@@ -173,7 +174,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 section Sample

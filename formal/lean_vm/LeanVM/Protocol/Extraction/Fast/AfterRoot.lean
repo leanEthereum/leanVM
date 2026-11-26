@@ -16,16 +16,20 @@ Here the same steps are plain state-passing functions in `Option`:
 * `absorbPure`: the sponge's `absorb` with every permutation `default`; `readPure n`: read and
   absorb `n` scalars (`runPure_readScalars`); `commitPure`: read a root (`runPure_readCommitment`);
 * `readSizesPure`, `commitStackPure`: `readAnnouncedSizes` and `commitStack` (`runPure_readSizes`,
-  `runPure_commitStack`).
+  `runPure_commitStack`);
+* **`afterRootDirect_eq`**: `afterRootDirect` is `afterRoot`;
+* **`announced_of_afterRoot`**: the layout and the rate `afterRoot` returns are the ones the stream
+  announces (`announced`, which the statement's budget reads): `readAnnouncedSizes` reads only the
+  sponge and the stream (`readPure_carry`, `readSizesPure_carry`).
 
 The lighter layout: the extractor reads of the layout only `logMemory`, `logBytecode`,
 `placements`, `stackLog` and `tableLogHeights`. `buildLayoutLite` computes only these (no bus
 blocks, no forms, no bytecode copy), and is `buildLayout` followed by `layoutLite`
 (`buildLayoutLite_eq`); `afterRootLite` is `afterRoot` with its layout so cut
-(`afterRootLite_eq`, through `readSizesLite_eq`).
+(`afterRootLite_eq`).
 
 The run's algebra: `runPure_bind` (a sequence runs as its first program, then the continuation),
-`runPure_readScalars_bind`, `runPure_liftOption`.
+`runPure_readScalars_bind`.
 -/
 
 namespace LeanVM.Extraction.Fast
@@ -153,10 +157,23 @@ digest; the root is recorded with its shape. -/
       roots := s.roots ++ [(digestFromHalves (x0, x1), height, width)] })
   | _, _ => none
 
+theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
+    runPure (VerifierProgram.readCommitment height width) s = commitPure height width s := by
+  rcases s with ⟨⟨st0, pend, gr⟩, _ | ⟨x0, _ | ⟨x1, xs⟩⟩, os, roots⟩
+  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+  · cases gr with
+    | some c => simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
+    | none =>
+      simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure, Compile.absorb,
+        Compile.duplex, absorbPure]
+      simp [Id.run, bind, pure]
+      split_ifs <;> simp_all
+
 /-! ## Steps 1 and 2 -/
 
-/-- `readAnnouncedSizes bytecode` (`Statement/Verifier/Lib.lean`), run: the announced sizes, read
-and checked (`sizesOf`), and the layout they give. -/
+/-- `readAnnouncedSizes bytecode` (`Statement/Verifier/Lib.lean`), run: the announced sizes, read and
+checked (`sizesOf`), and the layout they give. -/
 @[expose] def readSizesPure (bytecode : List K) (s : VerifierProgramState) :
     Option ((Layout × ℕ) × VerifierProgramState) :=
   (readPure (2 + tables.length) s).bind fun r ↦ (sizesOf bytecode r.1).map fun x ↦ (x, r.2)
@@ -173,9 +190,94 @@ level. -/
   | some (level :: _) => commitPure (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
   | _ => none
 
+theorem runPure_commitStack (logN logInvRate : ℕ) (s : VerifierProgramState) :
+    runPure (commitStack logN logInvRate) s = commitStackPure logN logInvRate s := by
+  unfold commitStack commitStackPure
+  cases Whir.ladder logN logInvRate with
+  | none => rfl
+  | some config =>
+    cases config with
+    | nil => rfl
+    | cons level _ =>
+      exact runPure_readCommitment (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
+
 /-- The verifier's state at the start: the sponge's default state, the proof unread, no root. -/
 @[expose] def initialState (π : Proof) : VerifierProgramState := ⟨⟨default, [], none⟩, π.stream,
     π.openings, []⟩
+
+/-- **`afterRoot`, direct**: the announced sizes, then the stack's root. -/
+@[expose] def afterRootDirect (bytecode : List K) (π : Proof) :
+    Option ((Layout × ℕ) × VerifierProgramState) :=
+  (readSizesPure bytecode (initialState π)).bind fun r ↦
+    (commitStackPure r.1.1.stackLog r.1.2 r.2).map fun t ↦ (r.1, t.2)
+
+/-- **`afterRootDirect` is `afterRoot`.** -/
+theorem afterRootDirect_eq (bytecode : List K) (π : Proof) :
+    afterRootDirect bytecode π = afterRoot bytecode π := by
+  show _ = runPure (announceSizesAndRoot bytecode) (initialState π)
+  unfold announceSizesAndRoot afterRootDirect
+  rw [runPure_bind, runPure_readSizes]
+  cases readSizesPure bytecode (initialState π) with
+  | none => rfl
+  | some r =>
+    obtain ⟨⟨layout, R⟩, s1⟩ := r
+    show (commitStackPure layout.stackLog R s1).map (fun t ↦ ((layout, R), t.2)) =
+      runPure (commitStack layout.stackLog R >>= fun _ ↦ pure (layout, R)) s1
+    rw [runPure_bind, runPure_commitStack]
+    cases commitStackPure layout.stackLog R s1 <;> rfl
+
+/-! ## The announced shape -/
+
+/-- `readPure` reads only the sponge and the stream: the openings and the roots are carried. -/
+theorem readPure_carry (n : ℕ) (sp : Compile.Sponge) (st : List E) (os os' : List (List Opening))
+    (rs rs' : List (Digest × ℕ × ℕ)) :
+    readPure n ⟨sp, st, os', rs'⟩ =
+      (readPure n ⟨sp, st, os, rs⟩).map fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by
+  induction n generalizing sp st with
+  | zero => rfl
+  | succ n ih =>
+    obtain ⟨st0, pend, gr⟩ := sp
+    cases st with
+    | nil => rfl
+    | cons x xs =>
+      cases gr with
+      | some c => rfl
+      | none =>
+        show (readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os', rs'⟩).map _ =
+          ((readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, rs⟩).map _).map _
+        rw [ih]
+        cases readPure n ⟨absorbPure ⟨st0, pend, none⟩ x dsObserve, xs, os, rs⟩ <;> rfl
+
+/-- `readSizesPure` reads only the sponge and the stream. -/
+theorem readSizesPure_carry (bytecode : List K) (sp : Compile.Sponge) (st : List E)
+    (os os' : List (List Opening)) (rs rs' : List (Digest × ℕ × ℕ)) :
+    readSizesPure bytecode ⟨sp, st, os', rs'⟩ =
+      (readSizesPure bytecode ⟨sp, st, os, rs⟩).map
+        fun r ↦ (r.1, ⟨r.2.sponge, r.2.stream, os', rs'⟩) := by
+  unfold readSizesPure
+  rw [readPure_carry _ sp st os os' rs rs']
+  cases readPure (2 + tables.length) ⟨sp, st, os, rs⟩ with
+  | none => rfl
+  | some r =>
+    dsimp only [Option.map_some, Option.bind_some]
+    cases sizesOf bytecode r.1 <;> rfl
+
+/-- **The shape `afterRoot` reads is the one the stream announces** (`announced`, which the
+statement's budget reads). -/
+theorem announced_of_afterRoot {bytecode : List K} {π : Proof} {layout : Layout} {R : ℕ}
+    {st : VerifierProgramState} (h : afterRoot bytecode π = some ((layout, R), st)) :
+    announcedLayoutAndRate bytecode π.stream = some (layout, R) := by
+  rw [← afterRootDirect_eq] at h
+  unfold afterRootDirect at h
+  obtain ⟨r, hr, hc⟩ := Option.bind_eq_some_iff.1 h
+  obtain ⟨t, -, ht⟩ := Option.map_eq_some_iff.1 hc
+  have h1 : r.1 = (layout, R) := congrArg Prod.fst ht
+  unfold initialState at hr
+  rw [readSizesPure_carry bytecode ⟨default, [], none⟩ π.stream [] π.openings [] []] at hr
+  obtain ⟨r', hr', rfl⟩ := Option.map_eq_some_iff.1 hr
+  unfold announcedLayoutAndRate
+  rw [runPure_readSizes, hr']
+  exact congrArg some h1
 
 /-! ## The lighter layout -/
 
@@ -219,6 +321,11 @@ theorem buildLayoutLite_eq (bytecode : List K) (logMemory : ℕ) (tableRows : Li
     dsimp only
     split_ifs <;> rfl
 
+/-- An `afterRoot` result with its layout cut to the fields the extractor reads. -/
+@[expose] def liteResult (r : (Layout × ℕ) × VerifierProgramState) : (LayoutLite × ℕ) ×
+    VerifierProgramState :=
+  ((layoutLite r.1.1, r.1.2), r.2)
+
 /-- `readSizesPure` with the lighter layout. -/
 @[expose] def readSizesLite (bytecode : List K) (s : VerifierProgramState) :
     Option ((LayoutLite × ℕ) × VerifierProgramState) :=
@@ -235,44 +342,7 @@ theorem buildLayoutLite_eq (bytecode : List K) (logMemory : ℕ) (tableRows : Li
       else none
     else none
 
-/-- `afterRoot` with the lighter layout: the announced sizes, then the stack's root. -/
-@[expose] def afterRootLite (bytecode : List K) (π : Proof) :
-    Option ((LayoutLite × ℕ) × VerifierProgramState) :=
-  (readSizesLite bytecode (initialState π)).bind fun r ↦
-    (commitStackPure r.1.1.stackLog r.1.2 r.2).map fun t ↦ (r.1, t.2)
-
-/-! ## Agreement with the verifier -/
-
-theorem runPure_readCommitment (height width : ℕ) (s : VerifierProgramState) :
-    runPure (VerifierProgram.readCommitment height width) s = commitPure height width s := by
-  rcases s with ⟨⟨st0, pend, gr⟩, _ | ⟨x0, _ | ⟨x1, xs⟩⟩, os, roots⟩
-  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
-  · simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
-  · cases gr with
-    | some c => simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure]; rfl
-    | none =>
-      simp only [runPure, VerifierProgram.readCommitment, Compile.run, commitPure, Compile.absorb,
-        Compile.duplex, absorbPure]
-      simp [Id.run, bind, pure]
-      split_ifs <;> simp_all
-
-theorem runPure_commitStack (logN logInvRate : ℕ) (s : VerifierProgramState) :
-    runPure (commitStack logN logInvRate) s = commitStackPure logN logInvRate s := by
-  unfold commitStack commitStackPure
-  cases Whir.ladder logN logInvRate with
-  | none => rfl
-  | some config =>
-    cases config with
-    | nil => rfl
-    | cons level _ =>
-      exact runPure_readCommitment (logN - level.fold + level.logInvRate) (2 ^ level.fold) s
-
-/-- An `afterRoot` result with its layout cut to the fields the extractor reads. -/
-@[expose] def liteResult (r : (Layout × ℕ) × VerifierProgramState) : (LayoutLite × ℕ) ×
-    VerifierProgramState :=
-  ((layoutLite r.1.1, r.1.2), r.2)
-
-private theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : VerifierProgramState) :
+theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : VerifierProgramState) :
     (o.map layoutLite).bind (fun layout ↦
         if Whir.minLogStack ≤ layout.stackLog ∧ layout.stackLog ≤ Whir.maxLogStack then
           some ((layout, R), st)
@@ -290,7 +360,6 @@ private theorem bind_map_layoutLite (o : Option Layout) (R : ℕ) (st : Verifier
         layout.stackLog ≤ Whir.maxLogStack then some (layout, R) else none).map fun x ↦ (x, st))
     split_ifs <;> rfl
 
-/-- **`readSizesLite` is `readSizesPure`, its layout cut.** -/
 theorem readSizesLite_eq (bytecode : List K) (s : VerifierProgramState) :
     readSizesLite bytecode s = (readSizesPure bytecode s).map liteResult := by
   unfold readSizesLite readSizesPure sizesOf
@@ -303,20 +372,24 @@ theorem readSizesLite_eq (bytecode : List K) (s : VerifierProgramState) :
       | (rw [buildLayoutLite_eq]; exact bind_map_layoutLite _ _ _)
       | rfl
 
+/-- `afterRootDirect` with the lighter layout. -/
+@[expose] def afterRootLite (bytecode : List K) (π : Proof) :
+    Option ((LayoutLite × ℕ) × VerifierProgramState) :=
+  (readSizesLite bytecode (initialState π)).bind fun r ↦
+    (commitStackPure r.1.1.stackLog r.1.2 r.2).map fun t ↦ (r.1, t.2)
+
 /-- **`afterRootLite` is `afterRoot`, its layout cut to the fields the extractor reads.** -/
 theorem afterRootLite_eq (bytecode : List K) (π : Proof) :
     afterRootLite bytecode π = (afterRoot bytecode π).map liteResult := by
-  show _ = Option.map _ (runPure (announceSizesAndRoot bytecode) (initialState π))
-  unfold afterRootLite announceSizesAndRoot
-  rw [readSizesLite_eq, runPure_bind, runPure_readSizes]
+  rw [← afterRootDirect_eq]
+  unfold afterRootLite afterRootDirect
+  rw [readSizesLite_eq]
   cases readSizesPure bytecode (initialState π) with
   | none => rfl
   | some r =>
-    obtain ⟨⟨layout, R⟩, s1⟩ := r
-    show Option.map _ (commitStackPure layout.stackLog R s1) = Option.map liteResult
-      (runPure (commitStack layout.stackLog R >>= fun _ ↦ pure (layout, R)) s1)
-    rw [runPure_bind, runPure_commitStack]
-    cases commitStackPure layout.stackLog R s1 <;> rfl
+    show Option.map _ (commitStackPure r.1.1.stackLog r.1.2 r.2) =
+      Option.map liteResult (Option.map _ (commitStackPure r.1.1.stackLog r.1.2 r.2))
+    cases commitStackPure r.1.1.stackLog r.1.2 r.2 <;> rfl
 
 end
 

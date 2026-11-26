@@ -51,7 +51,7 @@ pub(super) fn built_rows(
                 with_scratch(n << log_block, |scratch| {
                     build(i, block, live, scratch);
                     for (dst, &p) in dst.chunks_exact_mut(n).zip(live.iter()) {
-                        dst.copy_from_slice(&scratch[p * n..][..n]);
+                        dst.write_copy_of_slice(&scratch[p * n..][..n]);
                     }
                 });
             });
@@ -172,8 +172,7 @@ impl<'a> Rebuild<'a> {
         } = self.plan;
         let (rows, log_step) = (1usize << (deep_start - start), self.plan.log_sub());
         let sub_len = self.plan.sub_len();
-        // SAFETY: the groups below write every element, and `built` is read only once they are done.
-        let mut built = unsafe { primitives::uninit_vec(self.n_subs * sub_len) };
+        let mut built = primitives::uninit_vec(self.n_subs * sub_len);
         // A group writes row `r` of every queried sub-block, and the groups cover every residue `r`.
         let out = parallel::SendPtr(built.as_mut_ptr());
         parallel::for_each_chunk((1usize << log_step) / BATCH, |lo, hi| {
@@ -217,6 +216,9 @@ impl<'a> Rebuild<'a> {
                 }
             });
         });
-        built
+        // SAFETY: the dispatch has returned, and its tasks wrote every word: `new` asserts the plan rebuilds from
+        // lanes, so a row is whole octets and the `2^log_step` rows whole batches, the tasks cover every batch, and the
+        // cosets' runs every queried sub-block.
+        unsafe { primitives::assume_init_vec(built) }
     }
 }

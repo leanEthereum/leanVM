@@ -1,5 +1,7 @@
 //! The deep pass: the near layers, which hand their finished rows to the hasher while they are in L2.
 
+use std::mem::MaybeUninit;
+
 use primitives::field::F64;
 use primitives::stream::Stream;
 
@@ -82,10 +84,14 @@ impl<'s> DeepPass<'s> {
                     }
                     let Some((base, _)) = out else { continue };
                     // SAFETY: the task's rows lie inside the codeword, and this task alone owns them.
-                    let dst = unsafe { std::slice::from_raw_parts_mut(base.add(task * task_len), task_len) };
+                    let dst = unsafe {
+                        std::slice::from_raw_parts_mut(base.add(task * task_len).cast::<MaybeUninit<F64>>(), task_len)
+                    };
                     match &stream {
                         Some(s) => s.copy(dst, scratch),
-                        None => dst.copy_from_slice(scratch),
+                        None => {
+                            dst.write_copy_of_slice(scratch);
+                        }
                     }
                 }
             });
@@ -102,7 +108,9 @@ impl<'s> DeepPass<'s> {
         } = self.plan;
         let (task_len, outer, log_task, sink) = (self.task_len, self.outer, self.log_task, self.sink);
         let first_task = win.first_row() >> log_task;
-        parallel::chunks_mut(win.words_mut(), task_len, |local, words| {
+        // SAFETY: the buffer holds the replicas: the gathered passes or `Source::replicate` wrote every word.
+        let words = unsafe { win.words_mut() };
+        parallel::chunks_mut(words, task_len, |local, words| {
             let task = first_task + local;
             if self.defer {
                 // The rows are hashed from scratch and the buffer keeps its pre-deep state.

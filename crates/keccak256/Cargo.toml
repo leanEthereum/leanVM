@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+# Pick the batched hashes' backend from the CPU, not only the target.
+std = []
+
 [lints]
 workspace = true
 

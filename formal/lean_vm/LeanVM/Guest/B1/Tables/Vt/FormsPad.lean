@@ -3,7 +3,7 @@
 
   The guest's baked `COORD_PADDING` is the value of every table block's coordinate on its table's
   padding row, on the push and count sides, and the pull side's flushes take the push side's
-  values there: kernel evaluation over `K`, `keccakF` of zeros replaced by its value.
+  values there: kernel evaluation over `K`, `keccakF1600` of zeros replaced by its value.
   `scripts/b1c-vt/all.py` writes the data `vtPads*` and `vtCountCols` (`regen-guest.sh`, step
   `vt`).
 -/
@@ -16,7 +16,7 @@ namespace LeanVM.Guest.B1.Tables
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Protocol.EndToEnd.Complete (canon refSideC FormC termsEval Coef)
+open LeanVM.Protocol.EndToEnd.Complete (canon refSideC FormC termsEval)
 
 @[expose] public section
 
@@ -42,39 +42,6 @@ def vtPadTieCheck (spec : List (List FormC)) (pads : List (List ℕ)) (row : Lis
     (List.zip spec pads).all fun p ↦ decide (p.1.length = p.2.length) &&
       (List.zip p.1 p.2).all fun q ↦
         decide (K.ofBits q.2 = termsEval (row.getD · 0) q.1.termsK)
-
-/-- `termsEval r` of terms with their coefficients evaluated (`Coef.evK`), a term with a factor
-`r i = 0` skipped before its coefficient or product is computed: on a padding row most are. -/
-private def termsEvalZ (r : ℕ → K) : List (List ℕ × Coef) → K
-  | [] => 0
-  | t :: l => if t.1.any (fun i ↦ decide (r i = 0)) then termsEvalZ r l
-    else t.2.evK * (t.1.map r).prod + termsEvalZ r l
-
-private theorem termsEvalZ_eq (r : ℕ → K) (l : List (List ℕ × Coef)) :
-    termsEvalZ r l = termsEval r (l.map fun t ↦ (t.1, t.2.evK)) := by
-  induction l with
-  | nil => rfl
-  | cons t l ih =>
-    simp only [termsEval, List.map_cons, List.sum_cons] at ih ⊢
-    rw [termsEvalZ, ← ih]
-    split_ifs with h
-    · obtain ⟨i, hi, h0⟩ := List.any_eq_true.1 h
-      rw [List.prod_eq_zero (List.mem_map.2 ⟨i, hi, of_decide_eq_true h0⟩), mul_zero, zero_add]
-    · rfl
-
-/-- `vtPadTieCheck`, its terms evaluated by `termsEvalZ`. -/
-private def vtPadTieCheckZ (spec : List (List FormC)) (pads : List (List ℕ)) (row : List K) :
-    Bool :=
-  decide (spec.length = pads.length) &&
-    (List.zip spec pads).all fun p ↦ decide (p.1.length = p.2.length) &&
-      (List.zip p.1 p.2).all fun q ↦
-        decide (K.ofBits q.2 = termsEvalZ (row.getD · 0) q.1.terms)
-
-private theorem vtPadTieCheck_of_checkZ {spec : List (List FormC)} {pads : List (List ℕ)}
-    {row : List K} (h : vtPadTieCheckZ spec pads row = true) :
-    vtPadTieCheck spec pads row = true := by
-  simp only [vtPadTieCheckZ, termsEvalZ_eq] at h
-  exact h
 
 def vtPads00 : List (List ℕ) :=
   [[1, 0, 0], [4, 0, 0, 1, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0], [2, 0, 0, 0, 0], [2, 0, 0, 0, 0]]
@@ -108,60 +75,37 @@ def vtPads05 : List (List ℕ) :=
     [2, 0, 0, 1747952066141424100, 1654286879329379778],
     [2, 0, 0, 8500057116360352059, 16929593379567477321]]
 
-def vtPads20 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
+/-! The padding ties of each table, push side and pull side, in one kernel evaluation of its padding row. -/
 
-def vtPads21 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
+theorem vtPadTie0 :
+    vtPadTieCheck (refSideC 0 .push) vtPads00 (paddingRowK (tables.getD 0 default)) = true ∧
+      vtPadTieCheck (refSideC 0 .pull) vtPads00 (paddingRowK (tables.getD 0 default)) = true := by
+  decide +kernel
 
-def vtPads22 : List (List ℕ) :=
-  [[0], [0]]
+theorem vtPadTie1 :
+    vtPadTieCheck (refSideC 1 .push) vtPads01 (paddingRowK (tables.getD 1 default)) = true ∧
+      vtPadTieCheck (refSideC 1 .pull) vtPads01 (paddingRowK (tables.getD 1 default)) = true := by
+  decide +kernel
 
-def vtPads23 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
+theorem vtPadTie2 :
+    vtPadTieCheck (refSideC 2 .push) vtPads02 (paddingRowK (tables.getD 2 default)) = true ∧
+      vtPadTieCheck (refSideC 2 .pull) vtPads02 (paddingRowK (tables.getD 2 default)) = true := by
+  decide +kernel
 
-def vtPads24 : List (List ℕ) :=
-  [[0], [0], [0], [0]]
+theorem vtPadTie3 :
+    vtPadTieCheck (refSideC 3 .push) vtPads03 (paddingRowK (tables.getD 3 default)) = true ∧
+      vtPadTieCheck (refSideC 3 .pull) vtPads03 (paddingRowK (tables.getD 3 default)) = true := by
+  decide +kernel
 
-def vtPads25 : List (List ℕ) :=
-  [[0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0],
-    [0], [0], [0], [0], [0], [0], [0], [0]]
+theorem vtPadTie4 :
+    vtPadTieCheck (refSideC 4 .push) vtPads04 (paddingRowK (tables.getD 4 default)) = true ∧
+      vtPadTieCheck (refSideC 4 .pull) vtPads04 (paddingRowK (tables.getD 4 default)) = true := by
+  decide +kernel
 
-theorem vtPadTie00 : vtPadTieCheck (refSideC 0 .push) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie10 : vtPadTieCheck (refSideC 0 .pull) vtPads00
-    (paddingRowK (tables.getD 0 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie01 : vtPadTieCheck (refSideC 1 .push) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie11 : vtPadTieCheck (refSideC 1 .pull) vtPads01
-    (paddingRowK (tables.getD 1 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie02 : vtPadTieCheck (refSideC 2 .push) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie12 : vtPadTieCheck (refSideC 2 .pull) vtPads02
-    (paddingRowK (tables.getD 2 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie03 : vtPadTieCheck (refSideC 3 .push) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie13 : vtPadTieCheck (refSideC 3 .pull) vtPads03
-    (paddingRowK (tables.getD 3 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie04 : vtPadTieCheck (refSideC 4 .push) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie14 : vtPadTieCheck (refSideC 4 .pull) vtPads04
-    (paddingRowK (tables.getD 4 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie05 : vtPadTieCheck (refSideC 5 .push) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
-
-theorem vtPadTie15 : vtPadTieCheck (refSideC 5 .pull) vtPads05
-    (paddingRowK (tables.getD 5 default)) = true := vtPadTieCheck_of_checkZ (by decide +kernel)
+theorem vtPadTie5 :
+    vtPadTieCheck (refSideC 5 .push) vtPads05 (paddingRowK (tables.getD 5 default)) = true ∧
+      vtPadTieCheck (refSideC 5 .pull) vtPads05 (paddingRowK (tables.getD 5 default)) = true := by
+  decide +kernel
 
 /-- The tables' count columns (`refCountColumns`). -/
 def vtCountCols : List (List ℕ) :=

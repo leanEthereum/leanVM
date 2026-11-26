@@ -22,7 +22,7 @@ public import LeanVM.Guest.B1.Sig.SphincsSig
   (`adrsCell1_add_words23`);
 * `forsTreeRecover_cells`: the statement's FORS tree root of an opening whose secret and path are
   cells' values is `fRootE`'s;
-* `forsSib_eq`, `forsTreeBase_eq`: the siblings and secrets at `SphincsSig`'s positions;
+* `sForsSib_eq`, `forsTreeBase_eq`: the siblings and secrets at `SphincsSig`'s positions;
 * `forsKey_sound`: the FORS key is `forsRecover` of `sForsOpeningOf`.
 -/
 

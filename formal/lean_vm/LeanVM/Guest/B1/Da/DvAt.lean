@@ -19,7 +19,6 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_verify`, placed
@@ -256,7 +255,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body fn% «da_verify» = dvP ⧺ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := rfl
+  have hb : Fn.body fn% «da_verify» = dvP ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [rootsCells r L syms] = [(bb, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]
   refine ((completeAt_flatDepRet (fs := fs) (cert := cert) find_da_verify
@@ -454,19 +453,6 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
         by rw [hσ]; exact word_one⟩, by rw [hσ]; rfl⟩
   · simp only [dvB, dvKB, dvKBs, List.sum_cons, List.sum_nil]
     omega
-
-/-- **`da_verify` is complete, placed, by a tree of its honest shape, within `dvB`** (`dv_completeAtB_z`, the
-challenge and the blobs' shapes forgotten). -/
-theorem dv_completeAtB (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (hS : DvStaticB fs SB SK)
-    {r L : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows) (hL : 2 ^ L = LeanDa.maxRows)
-    {syms : ℕ → ℕ → List E} (hsl : ∀ i j, (syms i j).length = 128)
-    {z : E} (hdot : ∀ i < r, ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
-      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0)
-    {Lin : Layout} {tb : ℕ} (hbt : ∀ rd, MemL rd Lin → CountWords rd (gen ^ tb))
-    (hbr : ∀ v ≤ LeanDa.maxRows, RegionL Lin (tb + v)) :
-    CompleteAtDTB fs cert 16 "da_verify" Lin [gen ^ tb]
-      (Returns (digestCells (daRoot r L syms) ++ [z])) (dvNH r L) (dvB fs SB SK r L) :=
-  (dv_completeAtB_z fs cert hrf hS hr1 hr hL hsl hdot hbt hbr).mono le_rfl fun _ => dvNH_of_zC
 
 end
 end LeanVM.Guest.B1.Da

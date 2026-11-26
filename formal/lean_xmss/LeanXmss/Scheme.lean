@@ -37,9 +37,6 @@ open HashSig
 
 /-! ## The instance: parameters, types, and hash-input layout -/
 
-/-- The digits of a digest, 128 bits of base `2^w`. -/
-def numDigits : Nat := 64
-
 /-! ### The codeword -/
 
 /-! ## The algorithms

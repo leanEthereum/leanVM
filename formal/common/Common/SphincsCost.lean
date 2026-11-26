@@ -2,6 +2,7 @@ module
 
 public import Common.CostCombinators
 public import Statement.LeanSphincs
+import VCVio.EvalDist.List
 
 @[expose] public section
 
@@ -233,7 +234,7 @@ theorem merkleLevelsFrom_cost (node : ℕ → ℕ → HashInput → OracleComp R
       (Nat.mul_le_mul_right b hlen)) fun above habove ↦ ?_).mono
       (Q := L * b + remaining * (L * b)) (by rw [Nat.add_one_mul]; omega)
     have hab : above.length ≤ L :=
-      (length_of_mem_support_mapM _ _ above habove).trans_le hlen
+      (List.length_of_mem_support_mapM _ _ above habove).trans_le hlen
     exact ((merkleLevelsFrom_cost node b hn L remaining _ above hab).bind fun _ ↦
       isWeightBound_pure _ _ 0).mono (by simp)
 
@@ -307,7 +308,7 @@ theorem treeLevels_cost (key : ExpandedKey) (layer : Layer) (tree : TreeIndex) :
     _).mono (Nat.mul_le_mul_right _ (by rw [List.length_range]; exact hp))) fun leaves hl ↦ ?_).mono
     le_rfl
   have hl' : leaves.length ≤ 2 ^ 10 :=
-    (length_of_mem_support_mapM _ _ leaves hl).trans_le (by rw [List.length_range]; exact hp)
+    (List.length_of_mem_support_mapM _ _ leaves hl).trans_le (by rw [List.length_range]; exact hp)
   exact (merkleLevelsFrom_cost _ thCost (fun _ _ _ _ ↦ addressedHash_cost _ _ _ (by
     simp [nodePayload, littleEndianBytes])) _ _ 0 leaves hl').mono
     (Nat.mul_le_mul_right _ hh)
@@ -326,7 +327,7 @@ theorem forsTreeOpen_cost (key : ExpandedKey) (index : Index) (forsTree : ForsTr
   refine (QueryCostAtMost.bind_of_support (mapM_cost _ thCost (fun _ ↦ addressedHash_cost _ _ _
     (by simp [littleEndianBytes])) _) fun leaves hl ↦ ?_).mono (by rw [List.length_range])
   have hl' : leaves.length ≤ 2 ^ forsTreeHeight :=
-    (length_of_mem_support_mapM _ _ leaves hl).trans_le (by rw [List.length_range])
+    (List.length_of_mem_support_mapM _ _ leaves hl).trans_le (by rw [List.length_range])
   exact ((merkleLevelsFrom_cost _ thCost (fun _ _ _ _ ↦ addressedHash_cost _ _ _ (by
     simp [nodePayload, littleEndianBytes])) _ _ 0 leaves hl').bind fun _ ↦
     isWeightBound_pure _ _ 0).mono (by simp)

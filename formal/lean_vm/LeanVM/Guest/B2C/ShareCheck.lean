@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.B2C.CplCheck
-public import LeanVM.Guest.B2C.KernelList
 
 /-!
 # Values sharing a cell
@@ -34,8 +33,7 @@ and reading that window's cells (`locW`): window `k + 1` starts from a `Snap` of
 The walk also confirms, per atom, the certificate's lists of temporaries and frame runs
 (`Plumb.tmps`, `Plumb.runs`), from which the honest memory's cells are built.
 
-Everything is recursion over lists and tries keyed by `ℕ`, for the kernel; the steps of every
-atom (`nameAll`, `isPend`, `record`, `cellKeys`) by `List.rec` (`KernelList.lean`).
+Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -177,7 +175,7 @@ noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
       (loc.cell y, 0, keyCells 0 [loc.cell d, loc.cell x])]
   | .mul d x y => [(loc.cell d, 1, keyCells 1 [loc.cell x, loc.cell y])]
   | .keccak ins outs inOdd outOdd =>
-    mapR (fun q ↦ (loc.cell q.1, keccakOp q.2 inOdd outOdd, mapR loc.cell ins)) (zipIdxR outs 0)
+    outs.zipIdx.map fun q ↦ (loc.cell q.1, keccakOp q.2 inOdd outOdd, ins.map loc.cell)
   | .load d p off => [(loc.cell d, off + 56, [loc.cell p])]
   | _ => []
 
@@ -187,10 +185,7 @@ noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
 def isNamed (st : SSt) (v : ℕ) : Bool := bitN st.named v
 
 /-- Value `v` is pending. -/
-noncomputable def isPend (st : SSt) (v : ℕ) : Bool := anyR (fun p ↦ Nat.beq p.v v) st.pend
-
-theorem isPend_def (st : SSt) (v : ℕ) : isPend st v = st.pend.any fun p ↦ Nat.beq p.v v :=
-  anyR_eq _ _
+def isPend (st : SSt) (v : ℕ) : Bool := st.pend.any fun p ↦ Nat.beq p.v v
 
 /-- The constants of a shared cell, with `x` if given. -/
 noncomputable def cstAt (cst : Trie (ℕ × ℕ)) (c : ℕ) : Option (ℕ × ℕ) → Trie (ℕ × ℕ)
@@ -208,16 +203,17 @@ noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) : 
     else bif bitN st.occ c then ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, c, none, [], []⟩ :: st.pend⟩
     else ⟨setBit st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setBit st.named v.idx, st.pend⟩
 
-/-- Name values in order. -/
-noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (vs : List V) : SSt :=
-  List.rec (motive := fun _ ↦ SSt → SSt) (fun st ↦ st)
-    (fun v _ r st ↦ (nameV loc sh kc st v).seq r) vs st
-
-theorem nameAll_nil (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) : nameAll loc sh kc st [] = st := rfl
+/-- Name values in order (a known value left as it is, `nameAll_cons`). -/
+noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) : SSt → List V → SSt
+  | st, [] => st
+  | st, v :: vs => bif isNamed st v.idx then nameAll kc st vs
+      else (nameV loc sh kc st v).seq fun st ↦ nameAll kc st vs
 
 theorem nameAll_cons (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) (vs : List V) :
-    nameAll loc sh kc st (v :: vs) = (nameV loc sh kc st v).seq fun st ↦ nameAll loc sh kc st vs :=
-  rfl
+    nameAll loc sh kc st (v :: vs) = nameAll loc sh kc (nameV loc sh kc st v) vs := by
+  cases h : isNamed st v.idx with
+  | false => simp only [nameAll, h, Bool.cond_false, SSt.seq_eq]
+  | true => simp only [nameAll, h, Bool.cond_true, nameV, Bool.true_or]
 
 /-- The facts an atom gives the pending values. -/
 noncomputable def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
@@ -228,18 +224,19 @@ noncomputable def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
 /-- Value `v` is known and in a frame cell. -/
 noncomputable def knownIn (st : SSt) (v : ℕ) : Bool := isNamed st v && Nat.ble 2 (cellN loc v)
 
-/-- A key `(op, inputs)` of a pending value is one of its cell `c`'s, its inputs known. -/
+/-- A key `(op, inputs)` of a pending value is one of its cell `c`'s, its inputs known (looked up
+last: a cell's keys rarely match). -/
 noncomputable def keyOk (st : SSt) (c : ℕ) (k : ℕ × List ℕ) : Bool :=
-  k.2.all (knownIn loc st) &&
-    ((getF st.keys c).getD []).any fun k' ↦ Nat.beq k'.1 k.1 && k'.2 == keyCells k.1 (k.2.map (cellN loc))
+  (((getF st.keys c).getD []).any fun k' ↦ Nat.beq k'.1 k.1 && k'.2 == keyCells k.1 (k.2.map (cellN loc))) &&
+    k.2.all (knownIn loc st)
 
-/-- A pending value is shown. -/
+/-- A pending value is shown: by a constant, an equal value, or a key, the costliest last. -/
 noncomputable def pfOk (st : SSt) (p : PF) : Bool :=
   (match p.kc, getF st.cst p.c with
     | some x, some y => x == y
     | _, _ => false) ||
-  p.keys.any (keyOk loc st p.c) ||
-  p.eqs.any fun x ↦ isNamed st x && Nat.beq (cellN loc x) p.c
+  (p.eqs.any fun x ↦ isNamed st x && Nat.beq (cellN loc x) p.c) ||
+  p.keys.any (keyOk loc st p.c)
 
 /-- The pending values shown and the others. -/
 noncomputable def splitPend (st : SSt) : List PF → List PF × List PF
@@ -273,20 +270,11 @@ noncomputable def recCst (a : Core.Atom) (cst : Trie (ℕ × ℕ)) : Trie (ℕ �
 /-- An atom's facts on its shared cells, once all its values are known: a constant at its
 output's cell, the keys of its outputs. -/
 noncomputable def record (a : Core.Atom) (st : SSt) : SSt :=
-  bif allR (fun v ↦ isNamed st v.idx) (Memory.atomUses a) then
+  bif (Memory.atomUses a).all fun v ↦ isNamed st v.idx then
     ⟨st.occ, recCst loc sh a st.cst,
-     foldlR (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && allR (Nat.ble 2) k.2.2 then
-        setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys (cellKeys loc a),
-      st.named, st.pend⟩
+     (cellKeys loc a).foldl (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && k.2.2.all (Nat.ble 2) then
+        setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys, st.named, st.pend⟩
   else st
-
-theorem record_def (a : Core.Atom) (st : SSt) : record loc sh a st =
-    bif (Memory.atomUses a).all fun v ↦ isNamed st v.idx then
-      ⟨st.occ, recCst loc sh a st.cst,
-       (cellKeys loc a).foldl (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && k.2.2.all (Nat.ble 2) then
-          setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys, st.named, st.pend⟩
-    else st := by
-  simp only [record, allR_eq, foldlR_eq]
 
 /-- **An atom**: its values named, their facts added, what can be shown shown, its cell facts
 recorded. -/

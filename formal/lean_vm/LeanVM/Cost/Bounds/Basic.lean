@@ -16,11 +16,9 @@ values it inspects. A closed-form bound on `g`'s price is proved by:
 
 1. **strong induction on the measure** of the compilation (the same as the spec's), or none for a
    function that is not recursive;
-2. `rw [g.costEq P …]` (its premise `Includes P g.costDeps` an `autoParam` closed by `includes`
-   when nothing follows `P`; arguments after `P` follow the premise, `g.costEq P hP x`):
-   the price as its recurrence (`g.costEq_nil`, `g.costEq_cons`, `g.costEq_zero`, `g.costEq_succ`,
-   … at a constructor of the parameter the body cases on: the case already reduced); the prices
-   are stated with `g.costIdx`;
+2. `rw [g.costEq P (by includes) …]`: the price as its recurrence (`g.costEq_nil`,
+   `g.costEq_cons`, `g.costEq_zero`, `g.costEq_succ`, … at a constructor of the parameter the body
+   cases on: the case already reduced); the prices are stated with `g.costIdx`;
 3. **case analysis** on what the body inspects (`cases l`, `cases n`, `split`, `generalize … ;
    cases`), until no `casesOn` is left; `simp only [cost_simps]` folds the constants, the lengths
    of literal lists and `limbCount` of word-sized numbers;
@@ -34,8 +32,8 @@ of a callee composes because it is a theorem about `machineCost P j …` for eve
 holding `j`'s bodies (`Includes P j.costDeps`), as the spec is; `includes` derives that premise
 from the caller's.
 
-Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; products
-of sizes as atoms (`affine_mul_le`); the recurrence solvers (`le_of_halving` for a binary search,
+Here: the tactics `includes`, `cost_facts`, `cost_simp`; `limbCount` of word-sized numbers; the
+recurrence solvers (`le_of_halving` for a binary search,
 `le_of_doubling` for a binary tree); the bounds of the library's polymorphic functions
 (`listZipWith_le`, `listFoldl_le`), proved once for every element type and closure, and of an
 on-demand `List.map` by its recurrence (`listMap_le`).
@@ -114,9 +112,9 @@ meta def includesAuto (g : MVarId) : MetaM Bool := g.withContext do
       catch _ => pure ()
   return false
 
-/-- Elaborate `includes` (declared in `Cost/Compiler.lean`, where it closes the compiled functions'
-premises as an `autoParam`). -/
-@[tactic LeanVM.Cost.Compiler.includesTac] meta def evalIncludes : Tactic := fun _ ↦ do
+/-- `includes`: close `Includes P l'` from a hypothesis `Includes P l` whose bodies hold `l'`'s
+(a callee's `costDeps` from its caller's). -/
+elab "includes" : tactic => do
   let g ← getMainGoal
   unless ← includesAuto g do throwError "includes: no hypothesis holds these bodies"
   replaceMainGoal []
@@ -216,72 +214,6 @@ theorem limbs_le_two {x : ℕ} (h : x < 2 ^ 128) : limbCount x ≤ 2 := by
 theorem appCost_fn (P : MachineProgram) (j : ℕ) (us vs : List MachineValue) :
     appCost P (.closure j us) vs = machineCost P j (us ++ vs) + us.length := rfl
 
-/-- `cost_app [e, …]`: a closure's price as its function's on the captures and the arguments
-(`appCost_fn`, the literal list appended and measured), then `rw [e, …]` (its `costEq`). -/
-macro "cost_app " s:Lean.Parser.Tactic.rwRuleSeq : tactic => `(tactic| (
-  rw [appCost_fn]
-  simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-  rw $s:rwRuleSeq))
-
-section Meta
-
-open Lean Meta Elab Tactic
-
-/-- The arguments of the `limbCount`s in `e` (no loose bound variables). -/
-meta partial def limbsArgs (e : Expr) (acc : Array Expr := #[]) : Array Expr :=
-  let acc := if e.isAppOfArity ``limbCount 1 && !e.hasLooseBVars && !acc.contains e.appArg! then
-    acc.push e.appArg! else acc
-  match e with
-  | .app f a => limbsArgs a (limbsArgs f acc)
-  | .lam _ t b _ | .forallE _ t b _ => limbsArgs b (limbsArgs t acc)
-  | .letE _ t v b _ => limbsArgs b (limbsArgs v (limbsArgs t acc))
-  | .mdata _ b | .proj _ _ b => limbsArgs b acc
-  | _ => acc
-
-/-- A proof of `ty` by `omega`, if it finds one. -/
-meta def omegaProof? (ty : Expr) : TacticM (Option Expr) := do
-  let m ← mkFreshExprMVar ty
-  try
-    let gs ← Tactic.run m.mvarId! (evalTactic (← `(tactic| omega)))
-    if gs.isEmpty then return some (← instantiateMVars m) else return none
-  catch _ => return none
-
-/-- `limbs`: for every `limbCount t` of the goal that `omega` shows word-sized (`t < 2 ^ 64`), the
-hypothesis `limbCount t = 1`, and the goal rewritten with it (as `rw [limbs_of_lt …]`).
-`limbs [hW]` (`hW : ∀ x, x ≤ B → limbCount x ≤ W`) also adds `limbCount t ≤ W` for each other
-`t` that `omega` shows at most `B`. It runs `omega` once per `limbCount` of the goal, so a
-`limbCount (1 <<< k)` or `limbCount (2 ^ k)` with `k` not a numeral (opaque to `omega`) is rewritten
-first with `limbs_shift` or `limbs_two_pow`, and one whose bound needs more than the context
-(`j.isLt`) with `limbs_of_lt`. -/
-syntax (name := limbsTac) "limbs" (" [" term "]")? : tactic
-
-/-- Elaborate `limbs`. -/
-@[tactic limbsTac] meta def evalLimbs : Tactic := fun stx ↦ withMainContext do
-  let hW? ← if stx[1].isNone then pure none else some <$> elabTerm stx[1][1] none
-  let tgt ← instantiateMVars (← getMainTarget)
-  let mut g ← getMainGoal
-  let mut eqs : Array Ident := #[]
-  for t in limbsArgs tgt do
-    -- a compiled equation may carry raw literals, which `omega` does not read
-    let t := if let some n := t.rawNatLit? then mkNatLit n else t
-    let ty64 ← elabTerm (← `($(← Term.exprToSyntax t) < 2 ^ 64)) (some (mkSort .zero))
-    if let some pf ← omegaProof? ty64 then
-      let n := Name.mkSimple s!"hlimbs_{eqs.size}"
-      (_, g) ← g.note n (← mkAppM ``limbs_of_lt #[pf])
-      eqs := eqs.push (mkIdent n)
-    else if let some hW := hW? then
-      let hty ← whnf (← inferType (mkApp hW t))
-      if hty.isForall then
-        if let some pf ← omegaProof? hty.bindingDomain! then
-          (_, g) ← g.note `hlimbs (mkApp2 hW t pf)
-  replaceMainGoal [g]
-  withMainContext do
-    for n in eqs do
-      evalTactic (← `(tactic| try rw [$n:ident]))
-    evalTactic (← `(tactic| try with_reducible rfl))
-
-end Meta
-
 /-- `cost_simp`: fold a recurrence's constants: `limbCount` of numbers `omega` shows word-sized, the
 lengths of literal lists, a known closure's price as its function's. It may do nothing (the
 compiler's equations come folded already; a case split may leave nothing to fold). -/
@@ -303,17 +235,6 @@ macro_rules
     max_self, max_limbs_one, max_one_limbs] at $loc)
 
 allow_unused_tactic LeanVM.Cost.Bounds.costSimp LeanVM.Cost.Bounds.costSimpAt
-
-/-- A price affine in `D`, paid `n ≤ C` times, with `D·C` an atom: `omega` reads the result (the
-bounds state products of sizes as such atoms, so a sum of bounds stays linear). -/
-theorem affine_mul_le (a b D n C : ℕ) (h : n ≤ C) : (a * D + b) * n ≤ a * (D * C) + b * C := by
-  have := Nat.mul_le_mul_left (a * D + b) h
-  nlinarith
-
-theorem affine_mul_le' (a b c D n C : ℕ) (h : n ≤ C) :
-    (a * D + b + c) * n ≤ a * (D * C) + (b + c) * C := by
-  have := affine_mul_le a (b + c) D n C h
-  rwa [Nat.add_assoc]
 
 /-! ## Recurrence solvers -/
 
@@ -435,25 +356,6 @@ theorem listMap_le (i : ℕ) {α : Type} [MachineEncoding α] (fVal : MachineVal
     rw [hs]
     have h1 := ih fun a ha ↦ hB a (by simp [ha])
     have h2 := hB x (by simp)
-    simp only [List.length_cons]
-    nlinarith
-
-/-- **`List.foldl`, an invariant indexed by the elements left** (an accumulator growing along
-the fold): `I k acc` with `k` elements left. -/
-theorem listFoldl_le_idx (hP : Includes P listFoldl.costDeps) (f : α → β → α) (fVal : MachineValue)
-    (hf : ∀ a b, RunsApp P fVal [encodeValue a, encodeValue b] (encodeValue (f a b))) (B : ℕ) (I : ℕ → α → Prop)
-    (L : List β)
-    (hI : ∀ k acc, I (k + 1) acc → ∀ b ∈ L, I k (f acc b) ∧ appCost P fVal [encodeValue acc, encodeValue b] ≤ B) :
-    ∀ (l : List β) (init : α), (∀ b ∈ l, b ∈ L) → I l.length init →
-      machineCost P listFoldl.costIdx [fVal, encodeValue init, encodeValue l] ≤ (B + 11) * l.length + 3 := by
-  intro l
-  induction l with
-  | nil => intro init _ _; rw [listFoldl.costEq_nil P hP f fVal hf]; omega
-  | cons b l ih =>
-    intro init hL hi
-    rw [listFoldl.costEq_cons P hP f fVal hf]
-    obtain ⟨hI', h2⟩ := hI l.length init hi b (hL b (by simp))
-    have h1 := ih (f init b) (fun c hc ↦ hL c (by simp [hc])) hI'
     simp only [List.length_cons]
     nlinarith
 

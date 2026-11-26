@@ -137,9 +137,9 @@ theorem candsS_ncard (hS : S.Finite) (h1 : S.ncard ≤ 1) (W : Word) :
     (candsS prog s S W).ncard ≤ 1 :=
   (Set.ncard_image_le hS).trans h1
 
-/-- **The Keccak reduction, to `FrontPost`**, for at most `6 + tableWidths.sum` claims. -/
+/-- **The Keccak reduction, to `FrontPost`**, for at most `159` claims. -/
 noncomputable def keccakPart (hS1 : S.ncard ≤ 1) {T : ℝ≥0∞} (hT : T ≤ εmsg)
-    (claims : List Verifier.ColumnClaim) (hcl : claims.length ≤ 6 + tableWidths.sum) :
+    (claims : List Verifier.ColumnClaim) (hcl : claims.length ≤ 159) :
     Spec (keccakPhaseClaims (verifierLayout prog s) claims) (KeccakPre prog s (CS prog s S) claims)
       (FrontPost prog s S) εmsg keccakLead T :=
   (Spec.retInv (keccakPhaseSpec prog s (CS prog s S) (fun _ _ _ ↦ rfl) (L₀ := 1) (fun _ ↦ hS1) hT
@@ -149,7 +149,6 @@ noncomputable def keccakPart (hS1 : S.ncard ≤ 1) {T : ℝ≥0∞} (hT : T ≤ 
       (le_εmsg (mul_errE_one 3) (by norm_num)) claims)
     (fun r ↦ r.1.length ≤ claims.length + 1) (retOK_keccakPhase _ claims)).mono (fun _ h ↦ h)
     (fun r h ⟨⟨⟨hpl, hsl⟩, hD⟩, hlen⟩ ↦ by
-      have := Claims.tableWidths_sum
       refine ⟨hpl, hsl, by simp only [maxStackedClaims]; omega, fun q hq hG ↦ hD q hq ⟨hG.1, ?_⟩⟩
       refine ⟨hpl, hsl, fun i hi ↦ ?_⟩
       have := (hG.2 ⟨i, hi⟩).symm
@@ -159,9 +158,9 @@ noncomputable def keccakPart (hS1 : S.ncard ≤ 1) {T : ℝ≥0∞} (hT : T ≤ 
 
 open Classical in
 /-- **The public input at the table sumcheck's point `pt`, then the Keccak reduction**, after at
-most `4 + tableWidths.sum` claims of the table phase. -/
+most `157` claims of the table phase. -/
 noncomputable def pubPart (hS1 : S.ncard ≤ 1) {T : ℝ≥0∞} (hT : T ≤ εmsg)
-    (cl : List Verifier.ColumnClaim) (hcl : cl.length ≤ 4 + tableWidths.sum)
+    (cl : List Verifier.ColumnClaim) (hcl : cl.length ≤ 157)
     (pt : Vector E (leanIsaInstance prog s).τmax) :
     Spec ((Verifier.publicInputPhase (verifierLayout prog s) (publicInputDigest input)).bind
         fun pc ↦ keccakPhaseClaims (verifierLayout prog s) (cl ++ pc))
@@ -242,14 +241,14 @@ noncomputable def frontSpecAt (hs : s.Admissible prog) (hS : S.Finite) (hS1 : S.
         (candsS prog s S) (candsS_finite hS) (candsS_ncard hS hS1) he.1 he.2.1 he.2.2.1
         he.2.2.2.1 he.2.2.2.2.1 he.2.2.2.2.2.1 he.2.2.2.2.2.2.1 he.2.2.2.2.2.2.2.1
         he.2.2.2.2.2.2.2.2)
-      (fun cl ↦ cl.length ≤ 4 + tableWidths.sum) (retOK_busTable _ _)).mono
+      (fun cl ↦ cl.length ≤ 157) (retOK_busTable _ _)).mono
       (Pre' := fun h ↦ (∃ W, firstWord h = some W) ∧
         ∀ q ∈ S, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q))
       (fun _ hp ↦ by
         obtain ⟨⟨W, hW⟩, hd⟩ := hp
         exact ⟨W, hW, by rintro _ ⟨q, hq, rfl⟩ hin; exact hd q hq hin⟩)
       (fun _ _ h ↦ h) le_rfl (grindLead_le_of_discount he.2.1) le_rfl).bind' fun cl ↦
-    if hcl : cl.length ≤ 4 + tableWidths.sum then
+    if hcl : cl.length ≤ 157 then
       (Spec.exPre fun pt ↦ pubPart input hS1 hT cl hcl pt).mono
         (fun h hp ↦ tablePost_pubPre prog s (candsS prog s S) input (CS prog s S)
           (fun _ q hq _ _ ↦ ⟨q, hq, rfl⟩) cl h hp.1) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl

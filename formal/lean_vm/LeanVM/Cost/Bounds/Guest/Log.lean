@@ -21,8 +21,7 @@ decoder's top level builds once, then `gLogAt` (below `2^34`, else `0`):
   hypothesis every bound of the decoder takes; **`gLog_bound`**: `GLogBound P discreteLogTables
   gLogPrice`, `gLogPrice = 122435 ≈ 2^16.90` (the exponents' bits priced at `64`);
 * `gLogD_lt`: every count the decoder reads is below `2^34`;
-* `powSqE_cost_lt`: `a^n` in `E` by squaring (`powSqEC`, `Bounds/Decoder/PreTest.lean`'s
-  `powSqE_cost`), `n < 2^k`: `11 + 606·k`; `powSqK_cost_lt`: `5 + 73·k`.
+* `powSqK_cost_lt`: `a^n` in `K` by squaring, `n < 2^k`: `5 + 73·k`.
 -/
 
 namespace LeanVM.Cost.Bounds.Guest
@@ -34,22 +33,12 @@ public section
 
 variable (P : MachineProgram)
 
-/-! ## `a^n` in `E` -/
-
-/-- `a^n` in `E`, `n < 2^k`, `k ≤ 64`: at most `11 + 606·k`. -/
-theorem powSqE_cost_lt (hP : Includes P Decoder.powSqEC.costDeps) (a : E)
-    (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Decoder.powSqEC.costIdx [encodeValue a, encodeValue n] ≤
-      11 + 606 * k := by
-  have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
-  refine (LeanVM.Cost.Bounds.powSqE_cost P hP a n h64).trans ?_
-  have := log2_lt_of hk0 hn
-  nlinarith
+/-! ## `a^n` in `K` -/
 
 /-- `a^n` in `K`, `n < 2^k`, `k ≤ 64`: at most `5 + 73·k`. -/
-theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.K.costDeps) (a : K)
+theorem powSqK_cost_lt (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) (a : K)
     (n k : ℕ) (hk0 : 0 < k) (hk : k ≤ 64) (hn : n < 2 ^ k) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.K.costIdx [encodeValue a, encodeValue n] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue a, encodeValue n] ≤
       5 + 73 * k := by
   have h64 : n < 2 ^ 64 := lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) hk)
   refine (powSq_cost P hP a n h64).trans ?_
@@ -118,8 +107,7 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
         encodeValue t, encodeValue k, encodeValue y] ≤ (t + 1) * (findLanePrice T.size + 52)
   | 0, k, y, _ => by rw [Decoder.giantStepsC.costEq_zero P hP]; omega
   | t + 1, k, y, h => by
-    rw [Decoder.giantStepsC.costEq_succ P hP]
-    limbs
+    rw [Decoder.giantStepsC.costEq_succ P hP, limbs_of_lt (by omega : t + 1 < 2 ^ 64)]
     have hf := findLane_cost P (by includes) T hT y.lane.toNat (UInt64.toNat_lt _) 0 T.size
       (by omega) le_rfl
     simp only [Nat.sub_zero] at hf
@@ -129,14 +117,16 @@ theorem giantSteps_cost (hP : Includes P Decoder.giantStepsC.costDeps) (T : Arra
     | none =>
       have := giantSteps_cost hP T hT c s hs t (k + 1) (y * c) (by omega)
       unfold findLanePrice at this
-      simp only [max_self]
+      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : k + 1 < 2 ^ 64),
+        max_self]
       nlinarith
     | some j =>
       have hj := findLane_some_lt T hT _ hb
       have hsk : s * k < 2 ^ 64 := by
         calc s * k < 2 ^ 32 * 2 ^ 32 := Nat.mul_lt_mul_of_lt_of_lt hs (by omega)
           _ = 2 ^ 64 := by norm_num
-      simp only [limbs_of_lt hj, limbs_of_lt hsk, max_self]
+      simp only [limbs_of_lt (by omega : k < 2 ^ 64), limbs_of_lt (by omega : s < 2 ^ 64), limbs_of_lt hj,
+        limbs_of_lt hsk, max_self]
       have := max_le (limbs_le_two (x := j + s * k) (by omega)) (by norm_num : 1 ≤ 2)
       nlinarith
 

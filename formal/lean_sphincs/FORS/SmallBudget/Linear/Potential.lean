@@ -1,8 +1,6 @@
 module
 
-public import FORS.Classification.WinRefined
-public import FORS.SmallBudget.Linear.Payments
-public import FORS.Classification.Targeting
+public import FORS.Classification.RefinedEvents
 
 @[expose] public section
 
@@ -23,7 +21,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge EncodingCode
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-- A retained WOTS key: its tree is generated and its leaf kept. -/
@@ -210,7 +207,6 @@ theorem fleaf_inj {p : PublicParameter} {f g : FIn} (h : f.input p = g.input p) 
   have hv := bytesLE_injective hm
   cases f; cases g
   simp_all
-
 
 namespace Ctx
 

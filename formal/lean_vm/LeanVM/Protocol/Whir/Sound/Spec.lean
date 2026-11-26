@@ -14,6 +14,7 @@ import LeanVM.Protocol.Verifier.WhirTarget
 public import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Whir.Sound.LevelFinal
 import LeanVM.Protocol.ToArkLib.Whir.Counting
+import LeanVM.ToMathlib.List
 
 /-!
 # The specification of the WHIR opening
@@ -216,7 +217,7 @@ theorem dot_powersFrom_map {α : Type*} (ρ : E) (f : α → E) :
   | [], acc => by simp [dot, powersFrom]
   | x :: l, acc => by
     have ih := dot_powersFrom_map ρ f l (acc * ρ)
-    rw [dot, foldl_add_eq, zero_add] at ih ⊢
+    rw [dot, List.foldl_add_eq_add_sum, zero_add] at ih ⊢
     simp only [List.length_cons, powersFrom, List.map_cons, List.zipWith_cons_cons,
       List.sum_cons, ih, Fin.sum_univ_succ, Fin.val_zero, pow_zero, mul_one, Fin.val_succ]
     exact congrArg₂ (· + ·) (by simp) (Finset.sum_congr rfl fun k _ ↦ by

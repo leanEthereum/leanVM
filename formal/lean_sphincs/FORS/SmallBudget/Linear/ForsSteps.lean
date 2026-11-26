@@ -1,7 +1,6 @@
 module
 
-public import FORS.SmallBudget.Linear.Payoff
-public import FORS.SmallBudget.Linear.Payments
+public import FORS.SmallBudget.Linear.Run
 
 @[expose] public section
 
@@ -31,7 +30,6 @@ variable [Params]
 
 open Concrete HiddenGraph HiddenDebt HiddenBridge HiddenCost HiddenReveal EncodingCode
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-- The slack of one FORS leaf query: `1 + Y + (ρ - 1 - x) ≤ ρ` for `Y ≤ x`. -/

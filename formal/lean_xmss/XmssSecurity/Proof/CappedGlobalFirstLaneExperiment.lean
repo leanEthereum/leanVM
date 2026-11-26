@@ -1,21 +1,34 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighReduction
-public import XmssSecurity.Proof.FirstLaneOracleSimulation
 public import XmssSecurity.Proof.CappedEncodingActionTrace
 public import XmssSecurity.Proof.FirstLaneEagerSimulation
 
 @[expose] public section
 
+/-!
+# The causal simulation in the first-lane oracle
+
+The adversary's and the signer's oracles of the causal simulation
+(`globalHighDirectOracleExecution`, `globalFilteredCausalSigningQuery`), rewritten into the
+first-lane oracle over the global chain values (`GlobalFirstLaneWorld`): an adversary's fresh hash
+query at an encoding input becomes an encoding query (`globalFirstLaneOracleImpl`), the signer's
+fresh encoding query an encoding signing attempt (`globalFirstLaneSigningImpl`), and every other
+query keeps its reveals and probes. An adversary's hash query costs at most one hazard and a signing
+request none (`globalFirstLaneOracleImpl_hazardBound`, `globalFirstLaneSigningImpl_hazardBound`).
+Answering the encoding queries with uniform outputs (`globalFirstLaneErase`) gives back the causal
+simulation's oracles (`globalFirstLaneOracleErasure`, `globalFirstLaneErase_directSigningImpl`), and
+the eager trace's chain actions are the reveal-probe trace of the erased run
+(`simulate_globalFirstLaneEagerTrace_chainProjection`). On the game side,
+`cappedDetailedGameWithKeygenCacheAndBothTraces` runs the detailed game with both the encoding trace
+and the attacker's action trace, and projects to the game with the encoding trace alone
+(`cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq`).
+-/
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
-variable {α : Type}
-
 namespace XmssSecurity.CappedChain
-
-variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
-  (edgeHigh : GlobalChainEdgeIndex → Digest)
 
 abbrev GlobalFirstLaneWorld :=
   FirstLaneOracleSimulation.World GlobalChainValueIndex
@@ -129,6 +142,7 @@ noncomputable def globalFirstLaneEncodingHashQuery
   | none => globalFirstLaneFreshEncodingQuery .sign leafIndex input state
 
 noncomputable def globalFirstLaneSigningAttempt
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     OracleComp GlobalFirstLaneWorld
       (Option Signature × GlobalCausalHashState) := do
@@ -158,6 +172,7 @@ noncomputable def globalFirstLaneSignBoundedAttempts
           globalFirstLaneSignBoundedAttempts keyView request base attempts (trial + 1) result.2
 
 noncomputable def globalFirstLaneSigningQuery
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState) :
     OracleComp GlobalFirstLaneWorld
       (Option Signature × GlobalCausalHashState) := do
@@ -183,6 +198,7 @@ noncomputable abbrev globalFirstLaneHashFromHighImpl
     globalFirstLaneAttackerHashQueryFromHighRun high secretKey input state
 
 noncomputable abbrev globalFirstLaneHashImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest) :
     QueryImpl HashSpec
       (StateT GlobalCausalHashState
@@ -191,6 +207,8 @@ noncomputable abbrev globalFirstLaneHashImpl
     (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey
 
 noncomputable def globalFirstLaneOracleExecution
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     OracleComp GlobalFirstLaneWorld
       (OracleWorld.Range input × GlobalCausalHashState) :=
@@ -202,6 +220,7 @@ noncomputable def globalFirstLaneOracleExecution
           state
 
 noncomputable def globalFirstLaneOracleImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest) :
     QueryImpl OracleWorld
       (StateT GlobalCausalHashState
@@ -216,12 +235,12 @@ noncomputable def globalFirstLaneSigningImpl
   globalFirstLaneSigningQuery keyView
 
 noncomputable def globalFirstLaneVerifierImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest) :
     QueryImpl OracleWorld
       (StateT GlobalCausalHashState
         (OracleComp GlobalFirstLaneWorld)) :=
   globalFirstLaneOracleImpl keyView edgeHigh
-
 
 theorem globalFirstLaneUniformQuery_hazardBound (n : Nat) :
     (FirstLaneOracleSimulation.uniformQuery
@@ -376,6 +395,7 @@ theorem globalFirstLaneEncodingHashQuery_hazardBound
         (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
 theorem globalFirstLaneSigningAttempt_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     (globalFirstLaneSigningAttempt keyView request randomness state).IsQueryBoundP
       FirstLaneOracleSimulation.IsHazardQuery 0 := by
@@ -420,6 +440,7 @@ theorem globalFirstLaneSignBoundedAttempts_hazardBound
             (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
 theorem globalFirstLaneSigningQuery_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState) :
     (globalFirstLaneSigningQuery keyView request state).IsQueryBoundP
       FirstLaneOracleSimulation.IsHazardQuery 0 := by
@@ -446,6 +467,8 @@ theorem globalFirstLaneUniformImpl_hazardBound
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
 theorem globalFirstLaneOracleExecution_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     (globalFirstLaneOracleExecution keyView edgeHigh input state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery
@@ -458,18 +481,20 @@ theorem globalFirstLaneOracleExecution_hazardBound
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey input state
 
 theorem globalFirstLaneOracleImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     ((globalFirstLaneOracleImpl keyView edgeHigh input).run state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery
-        (if input matches .inr _ then 1 else 0) := by
-  exact globalFirstLaneOracleExecution_hazardBound keyView edgeHigh input state
+        (if input matches .inr _ then 1 else 0) :=
+  globalFirstLaneOracleExecution_hazardBound keyView edgeHigh input state
 
 theorem globalFirstLaneSigningImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SigningSpec.Domain) (state : GlobalCausalHashState) :
     ((globalFirstLaneSigningImpl keyView request).run state)
-      |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 := by
-  exact globalFirstLaneSigningQuery_hazardBound keyView request state
-
+      |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 :=
+  globalFirstLaneSigningQuery_hazardBound keyView request state
 
 noncomputable def globalFirstLaneEraseImpl :
     QueryImpl GlobalFirstLaneWorld
@@ -495,10 +520,7 @@ abbrev GlobalFirstLaneErases
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) : Prop :=
   globalFirstLaneErase source = target
 
-theorem GlobalFirstLaneErases.bind {source : OracleComp GlobalFirstLaneWorld α}
-    {target : OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) α} {β : Type}
-    {nextSource : α → OracleComp GlobalFirstLaneWorld β}
-    {nextTarget : α → OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) β}
+theorem GlobalFirstLaneErases.bind
     (hsource : GlobalFirstLaneErases source target)
     (hnext : ∀ result, GlobalFirstLaneErases (nextSource result)
       (nextTarget result)) :
@@ -515,7 +537,7 @@ theorem GlobalFirstLaneErases.pure (result : α) :
   unfold GlobalFirstLaneErases
   simp [globalFirstLaneErase]
 
-theorem globalFirstLaneErases_simulateQ_run {ι : Type*} {spec : OracleSpec ι} {stateType α : Type}
+theorem globalFirstLaneErases_simulateQ_run
     (sourceImpl : QueryImpl spec
       (StateT stateType (OracleComp GlobalFirstLaneWorld)))
     (targetImpl : QueryImpl spec
@@ -651,7 +673,6 @@ theorem globalFirstLane_globalLeafInputData_encodingInput
     cases key <;> cases hdomain
   · rfl
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
@@ -681,7 +702,6 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
           state)) = _
   simp [globalFirstLaneErase]
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_source
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
@@ -819,7 +839,6 @@ noncomputable def globalFirstLaneErasedEncodingHashQuery
     ((randomOracle input).run state.cache)
   pure (result.1, state.setCache result.2)
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_encodingHashQuery
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (state : GlobalCausalHashState) :
@@ -895,6 +914,7 @@ theorem globalFirstLaneOriginalEncodingDigestQuery_bind
   simp [globalFirstLaneOriginalEncodingDigestQuery]
 
 noncomputable def globalFirstLaneErasedSigningAttemptRaw
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)
       (Option Signature × GlobalCausalHashState) := do
@@ -908,8 +928,8 @@ noncomputable def globalFirstLaneErasedSigningAttemptRaw
           request.leafIndex randomness encoding)).run encoded.2
       pure (some result.1, result.2)
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneErase_signingAttempt_raw
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       (globalFirstLaneSigningAttempt keyView request randomness state)
@@ -929,6 +949,7 @@ theorem globalFirstLaneErase_signingAttempt_raw
       exact fun result => GlobalFirstLaneErases.pure _
 
 noncomputable def globalFirstLaneErasedSigningAttempt
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)
       (Option Signature × GlobalCausalHashState) := do
@@ -943,6 +964,7 @@ noncomputable def globalFirstLaneErasedSigningAttempt
       pure (some result.1, result.2)
 
 theorem globalFirstLaneErasedSigningAttemptRaw_eq
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     globalFirstLaneErasedSigningAttemptRaw keyView request randomness state =
       globalFirstLaneErasedSigningAttempt keyView request randomness state := by
@@ -951,6 +973,7 @@ theorem globalFirstLaneErasedSigningAttemptRaw_eq
     globalFirstLaneErasedEncodingDigestQuery]
 
 theorem globalFirstLaneErasedSigningAttempt_eq_original
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     globalFirstLaneErasedSigningAttempt keyView request randomness state =
       globalFilteredCausalSigningAttempt keyView request randomness state := by
@@ -961,6 +984,7 @@ theorem globalFirstLaneErasedSigningAttempt_eq_original
   rfl
 
 theorem globalFirstLaneErase_signingAttempt
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       (globalFirstLaneSigningAttempt keyView request randomness state)
@@ -988,6 +1012,7 @@ theorem globalFirstLaneErase_signBoundedAttempts
       | some signature => exact GlobalFirstLaneErases.pure _
 
 theorem globalFirstLaneErase_signingQuery
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       (globalFirstLaneSigningQuery keyView request state)
@@ -999,7 +1024,6 @@ theorem globalFirstLaneErase_signingQuery
     request state).bind
   exact fun result => GlobalFirstLaneErases.pure _
 
-set_option maxRecDepth 1000000 in
 theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1008,11 +1032,10 @@ theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
     globalFirstLaneAttackerHashQueryFromHighRun high secretKey input state =
       globalFirstLaneLiftRevealProbe
         ((globalCausalAttackerHashQueryFromHigh high secretKey input).run
-          state) := by
-  exact globalFirstLaneAttackerHashQueryFromHighRun_eq_none high secretKey input
+          state) :=
+  globalFirstLaneAttackerHashQueryFromHighRun_eq_none high secretKey input
     state hleafIndex
 
-set_option maxRecDepth 100000 in
 theorem globalFirstLaneErase_attackerHashQueryFromHigh
     (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
@@ -1045,11 +1068,12 @@ theorem globalFirstLaneErase_uniformImpl
   exact fun output => GlobalFirstLaneErases.pure _
 
 theorem globalFirstLaneErase_signingImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       ((globalFirstLaneSigningImpl keyView request).run state)
-      (globalFilteredCausalSigningQuery keyView request state) := by
-  exact globalFirstLaneErase_signingQuery keyView request state
+      (globalFilteredCausalSigningQuery keyView request state) :=
+  globalFirstLaneErase_signingQuery keyView request state
 
 theorem globalFirstLaneErase_directUniformImpl
     (n : Nat) (state : GlobalCausalHashState) :
@@ -1060,6 +1084,7 @@ theorem globalFirstLaneErase_directUniformImpl
   exact globalFirstLaneErase_uniformImpl n state
 
 theorem globalFirstLaneErase_directSigningImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       ((globalFirstLaneSigningImpl keyView request).run state)
@@ -1068,12 +1093,14 @@ theorem globalFirstLaneErase_directSigningImpl
   exact globalFirstLaneErase_signingImpl keyView request state
 
 abbrev GlobalFirstLaneOracleErasure
+    (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest) : Prop :=
   ∀ input state, GlobalFirstLaneErases
     (globalFirstLaneOracleExecution keyView edgeHigh input state)
     (globalHighDirectOracleExecution keyView edgeHigh input state)
 
 theorem globalFirstLaneOracleErasure
+    (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest) :
     GlobalFirstLaneOracleErasure keyView edgeHigh := by
   intro input state
@@ -1088,13 +1115,14 @@ theorem globalFirstLaneOracleErasure
           state
 
 theorem globalFirstLaneVerifierImpl_hash
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : HashInput) :
     globalFirstLaneVerifierImpl keyView edgeHigh (.inr input) =
       globalFirstLaneHashImpl keyView edgeHigh input := by
   unfold globalFirstLaneVerifierImpl globalFirstLaneOracleImpl
     globalFirstLaneOracleExecution
   rfl
-
 
 def appendAttackerActionTrace
     (input : (OracleWorld + SigningSpec).Domain)
@@ -1125,8 +1153,8 @@ theorem cappedBothTracedMappedAdversaryImpl_projection
         (simulateQ (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
           computation).run (initialState, initialTrace) =
       (simulateQ (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run initialState := by
-  exact OracleComp.extendState_run_proj_eq
+        computation).run initialState :=
+  OracleComp.extendState_run_proj_eq
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
     appendAttackerActionTrace computation initialState initialTrace
 
@@ -1230,8 +1258,8 @@ theorem cappedBothTracedMappedAdversaryImpl_logs_eq
     (hmem : result ∈ support
       ((simulateQ (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
         computation).run initialState)) :
-    result.2.1.1.2.toSigningLog = result.2.2.toSigningLog := by
-  exact OracleComp.simulateQ_run_preservesInv
+    result.2.1.1.2.toSigningLog = result.2.2.toSigningLog :=
+  OracleComp.simulateQ_run_preservesInv
     (cappedBothTracedMappedAdversaryImpl publicKey secretKey)
     (fun state => state.1.1.2.toSigningLog = state.2.toSigningLog)
     (by
@@ -1424,8 +1452,8 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_outcome_eq
     (result : CappedBothTraceGameResult)
     (hresult : result ∈ support
       (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    result.2.1 = (cappedBothActionProjection result).1.2.1 := by
-  exact cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
+    result.2.1 = (cappedBothActionProjection result).1.2.1 :=
+  cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
     adversary result.1.1.1 result.1.1.2 result.1.2 result.2
       (cappedDetailedGameWithKeygenCacheAndBothTraces_support_execution
         adversary result hresult)
@@ -1452,8 +1480,8 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
       cappedDetailedGameWithEncodingTrace adversary :=
   cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection adversary
 
-
 theorem simulate_globalFirstLaneEagerTrace_chainProjection
+    (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp GlobalFirstLaneWorld α) :
     (fun result => (result.1, result.2.chainActions)) <$>
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)

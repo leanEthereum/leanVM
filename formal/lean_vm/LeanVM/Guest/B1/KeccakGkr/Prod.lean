@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerW
 public import LeanVM.Protocol.Keccak.Rmfe
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The product polynomial
@@ -19,7 +18,7 @@ Position `k < 47` (`PPos`): the coefficient read into `a` (`cursor[k]`), with a 
 the permutation of the waiting scalars (`kc`: its thirteen inputs and its first output), the
 coefficient packed (`fs_pack` from `fb`), the reader `Σ_{i ∈ idx} μ_i` (a chain of additions from
 `rb`, `readerT`), the product `r = reader·a` and the running projection `acc = accPrev + r`
-(`prodPosT`). `prodPos_holds` reads the facts off a position.
+(`prodPosT`). `prodPos_facts` reads the facts off a position.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -63,12 +62,12 @@ def readerOut (muB : ℕ) (idx : List ℕ) (rb : ℕ) : ℕ :=
 
 /-- Position `k`. -/
 def prodPosT (cur : V) (muB k : ℕ) (p : PPos) : List Stmt :=
-  [.atom (.load (.n p.a) cur k)] ⧺
+  [.atom (.load (.n p.a) cur k)] ++
     (match p.kc with
       | some (ins, o) => [keccakA (ins.map .n) ((List.range 13).map fun j ↦ .n (o + j))]
-      | none => []) ⧺
-    fsPackT (.n p.a) p.fb dsObserve ⧺ readerT muB p.idx p.rb ⧺
-    [.atom (.mul (.n p.r) (.n (readerOut muB p.idx p.rb)) (.n p.a))] ⧺
+      | none => []) ++
+    fsPackT (.n p.a) p.fb dsObserve ++ readerT muB p.idx p.rb ++
+    [.atom (.mul (.n p.r) (.n (readerOut muB p.idx p.rb)) (.n p.a))] ++
     (match p.accPrev with
       | some q => [.atom (.add (.n p.acc) (.n q) (.n p.r))]
       | none => [])
@@ -335,7 +334,7 @@ def ov (σ : Val) : Option ℕ → E
   | some q => σ (.n q)
 
 /-- The projection's reader of bit `b`: the indices of the masks with bit `b`. -/
-def projIdx (b : ℕ) : List ℕ := (List.range 16).filter fun i ↦ (rmfeProject.getD i 0).testBit b
+def projIdx (b : ℕ) : List ℕ := (List.range 16).filter fun i ↦ (projectLit.getD i 0).testBit b
 
 /-- The running sum's checks from position `k`: each reader is `R`'s (the indices of its
 values above `muB`), the first sum is the first product. -/

@@ -1,6 +1,6 @@
 module
 
-public import LeanXmss.Statement
+public import LeanXmss.Scheme
 
 @[expose] public section
 

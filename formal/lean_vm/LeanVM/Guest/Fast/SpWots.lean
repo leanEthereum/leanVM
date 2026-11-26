@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Guest.Fast.SpWotsTablesCheck
 public import LeanVM.Guest.Fast.Wots
-import LeanVM.ToMathlib.List
 
 /-!
 # `sp_wots`' chain starts, computable
@@ -25,6 +24,10 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
 /-- The arm group `p` of `sp_wots`' codeword takes on the valuation `w`: its digit word's
 exponent, at its cell in the guest's numbering. -/
 noncomputable def spK (w : Val) (p : Nat) : Nat := logG (w (spRen (.n (spState p).2.2))) (4 ^ spN p)
+
+theorem getD_map_range_list {α : Type} {f : ℕ → α} {n k : ℕ} {d : α} (hk : k < n) :
+    ((List.range n).map f).getD k d = f k := by
+  simp [List.getD_eq_getElem?_getD, hk]
 
 theorem spRen_n (x : Nat) : spRen (.n x) = .n (spR x) := rfl
 
@@ -51,8 +54,8 @@ theorem spStartAt_eq_cwCell (w : Val) {i : Nat} (hi : i < 64) :
     · omega
     · have : i = 63 := by omega
       subst this; norm_num
-  rw [spStartAt_eq_getD _ i hK hr, spRen_getD, spGroupStarts (i / 3) hp, List.getD_map_range _ hK,
-    List.getD_map_range _ hr]
+  rw [spStartAt_eq_getD _ i hK hr, spRen_getD, spGroupStarts (i / 3) hp, getD_map_range_list hK,
+    getD_map_range_list hr]
   have hs := spSel_eq (i / 3) hp
   unfold cwCell spK
   simp only [spRen_n, ← hs]

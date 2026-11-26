@@ -35,7 +35,7 @@ theorem loadHolds_gpow_iff (r : Reader) (j : ℕ) (t : E) :
     LoadHolds r (gen ^ j) 0 t ↔ r (addressOfIndex j) = some t := by
   rw [gen_pow_eq_ofK]
   unfold LoadHolds
-  rw [Value.limb0_ofK_addressOfIndex_mul, Nat.add_zero]
+  rw [Main.addr_ofK, Nat.add_zero]
   exact ⟨fun h ↦ h.2, fun h ↦ ⟨(isInK_iff _).mpr ⟨_, rfl⟩, h⟩⟩
 
 /-- **A range check's witness** at `g^e`, `e < 2^v ≤ 2^11`, is the same on memories agreeing below

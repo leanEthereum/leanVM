@@ -25,9 +25,6 @@ them back and its proofs are unchanged.
   (`Component.rowOperations`): the form the kernel evaluates and the form this layer rewrites.
   `Component.operations` reaches them through `instantiate` and `toSubcircuit`, which the kernel
   does not unfold. `rowMessagesOn_eq` is the same for one row.
-* `filter_eq_nil_of_rowOps`, `memTable_rowOps` and `bytecodeTable_rowOps`: a table whose row
-  circuit has no interaction on a channel sends nothing on it, and the two blocks' interactions
-  are their seed push and finalize pull on the row's variables.
 * `xor_constraints` and its six siblings: the components with no constraint satisfy their
   constraints on every row, in every environment, since only the `JUMP` table asserts anything
   (`tables.rs`).
@@ -79,48 +76,6 @@ theorem rowMessagesOn_eq (t : Air.Flat.Table K) (r : Array K) (c : RawChannel K)
       ((t.component.rowOperations.interactions.map (·.eval (t.environment r))).filter
         (·.channel.name = c.name)).map (·.msg) := by
   rw [rowMessagesOn, Operations.interactionValues, Component.interactions_eq]
-
-/-- The memory block's two interactions, on a row's variables (the limbs in cells `0`-`1`, the
-address in `2`, the finalize count in `3`): the seed push at count `1` and the finalize pull. -/
-theorem memTable_rowOps (κ : ℕ) :
-    (memComponent κ).rowOperations.interactions =
-      [⟨MemPush.toRaw, .push, 1, toElements (⟨var ⟨2⟩, 1, #v[var ⟨0⟩, var ⟨1⟩]⟩ :
-          MemMsg (Expression K))⟩,
-       ⟨MemPull.toRaw, .pull, 1, toElements (⟨var ⟨2⟩, var ⟨3⟩, #v[var ⟨0⟩, var ⟨1⟩]⟩ :
-          MemMsg (Expression K))⟩] := by
-  with_unfolding_all rfl
-
-/-- The bytecode block's two interactions, on a row's variables. -/
-theorem bytecodeTable_rowOps (prog : LeanIsaProgram) :
-    (bytecodeComponent prog).rowOperations.interactions =
-      [⟨BytecodePush.toRaw, .push, 1, toElements (⟨var ⟨0⟩, 1, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩, var ⟨10⟩,
-            var ⟨11⟩, var ⟨12⟩, var ⟨13⟩, var ⟨14⟩]⟩ :
-          BytecodeMsg (Expression K))⟩,
-       ⟨BytecodePull.toRaw, .pull, 1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩, var ⟨10⟩,
-            var ⟨11⟩, var ⟨12⟩, var ⟨13⟩, var ⟨14⟩]⟩ :
-          BytecodeMsg (Expression K))⟩] := by
-  have hv : (varFromOffset BytecodeRow 0 : Var BytecodeRow K) = ⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
-      #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩, var ⟨10⟩,
-        var ⟨11⟩, var ⟨12⟩, var ⟨13⟩, var ⟨14⟩]⟩ := by
-    with_unfolding_all rfl
-  simp only [Component.rowOperations, bytecodeComponent, bytecodeTable, circuit_norm]
-  simp only [ChannelInteraction.toRaw, pushed, pulled]
-  erw [hv]
-
-/-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
-its rows. -/
-theorem filter_eq_nil_of_rowOps (t : Air.Flat.Table K) (c : RawChannel K)
-    (h : ∀ i ∈ t.component.rowOperations.interactions, i.channel.name ≠ c.name) :
-    t.interactions.filter (·.channel.name = c.name) = [] := by
-  rw [List.filter_eq_nil_iff, table_interactions_eq]
-  intro i hi
-  rw [List.mem_flatMap] at hi
-  obtain ⟨r, -, hi⟩ := hi
-  rw [List.mem_map] at hi
-  obtain ⟨j, hj, rfl⟩ := hi
-  exact fun h' ↦ h j hj (of_decide_eq_true h')
 
 /-! ## The components with no constraint -/
 

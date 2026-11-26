@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.LevelsComplete
 
   `da_levels`, completely: a tree's levels in memory give each specialization's relation, its
-  returns the root's cells (TRIAGE G #92).
+  returns the root's cells.
 -/
 
 module
@@ -243,8 +243,6 @@ theorem lvl_block {f : String} {fn : Fn}
 
 /-! ## A specialization -/
 
-theorem headD_eq_getD (l : List (E × E)) : l.headD 0 = l.getD 0 0 := by cases l <;> rfl
-
 /-- **A checked specialization is complete.** -/
 theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok : dlCEntryOk k = true)
     (rd : Reader) (tree : E) (leaves : List (E × E)) (hlen : leaves.length = 2 ^ k)
@@ -357,7 +355,7 @@ theorem dl_complete {k : ℕ} (hk : k ≤ 10) (hok : dlEntryOk k = true) (hcok :
         rw [stmtEqb_sound heq]
         exact hcall lvl (List.mem_range.mp hl)
     · show [σ (.n (5 * k + 1)), σ (.n (5 * k + 2))] = _
-      rw [v0, v1, cellRoot_treeLvl, headD_eq_getD]
+      rw [v0, v1, cellRoot_treeLvl, List.headD_eq_getD]
       obtain ⟨q0, q1⟩ := pairCells_getD' (treeLvl leaves k) 0
       simp only [Nat.mul_zero, Nat.zero_add] at q0 q1
       rw [q0, q1]

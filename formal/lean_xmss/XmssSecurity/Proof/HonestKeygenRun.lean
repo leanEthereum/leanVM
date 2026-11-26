@@ -1,6 +1,7 @@
 module
 
-public import XmssSecurity.Proof.KeygenCache
+public import XmssSecurity.Proof.TreeQueryBound
+public import XmssSecurity.Proof.ChainKey
 
 @[expose] public section
 
@@ -220,42 +221,23 @@ theorem RunsBelow.topTreeNode_subtree (parameter : PublicParameter)
           ⟨leftCache, rightCache, right, hright, hrightLe.trans hafter⟩
 
 /-- A prefix of a chain walk runs inside the walk's run. -/
-theorem RunsBelow.chainWalk_prefix (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (chain : ChainIndex) (position : Nat) (value : Digest) (cache : QueryCache HashSpec)
-    (steps prefixSteps : Nat) (hprefix : prefixSteps ≤ steps)
-    (hrun : RunsBelow (Concrete.chainWalk parameter leafIndex chain position steps value :
+theorem RunsBelow.keyChainWalk_prefix {parameter : PublicParameter} {key : ChainKey}
+    {chain : ChainIndex} {position : Nat} {value : Digest} {cache : QueryCache HashSpec}
+    {steps : Nat} (prefixSteps : Nat) (hprefix : prefixSteps ≤ steps)
+    (hrun : RunsBelow (Concrete.keyChainWalk parameter key chain position steps value :
       OracleComp HashSpec Digest) cache) :
-    RunsBelow (Concrete.chainWalk parameter leafIndex chain position prefixSteps value :
+    RunsBelow (Concrete.keyChainWalk parameter key chain position prefixSteps value :
       OracleComp HashSpec Digest) cache := by
   induction steps with
-  | zero => obtain rfl : prefixSteps = 0 := by omega
-            exact hrun
+  | zero =>
+      obtain rfl : prefixSteps = 0 := by omega
+      exact hrun
   | succ steps ih =>
       by_cases hsame : prefixSteps = steps + 1
       · subst hsame
         exact hrun
       obtain ⟨beforeCache, afterCache, digest, hmem, hafter⟩ := hrun
-      rw [Concrete.chainWalk] at hmem
-      obtain ⟨previous, middleCache, hprevious, _, hmiddleLe⟩ := runsBelow_bind_left hmem
-      exact ih (by omega) ⟨beforeCache, middleCache, previous, hprevious, hmiddleLe.trans hafter⟩
-
-/-- A prefix of a top chain walk runs inside the walk's run. -/
-theorem RunsBelow.topChainWalk_prefix (parameter : PublicParameter) (key : TopIndex)
-    (chain : ChainIndex) (position : Nat) (value : Digest) (cache : QueryCache HashSpec)
-    (steps prefixSteps : Nat) (hprefix : prefixSteps ≤ steps)
-    (hrun : RunsBelow (Concrete.topChainWalk parameter key chain position steps value :
-      OracleComp HashSpec Digest) cache) :
-    RunsBelow (Concrete.topChainWalk parameter key chain position prefixSteps value :
-      OracleComp HashSpec Digest) cache := by
-  induction steps with
-  | zero => obtain rfl : prefixSteps = 0 := by omega
-            exact hrun
-  | succ steps ih =>
-      by_cases hsame : prefixSteps = steps + 1
-      · subst hsame
-        exact hrun
-      obtain ⟨beforeCache, afterCache, digest, hmem, hafter⟩ := hrun
-      rw [Concrete.topChainWalk] at hmem
+      rw [Concrete.keyChainWalk] at hmem
       obtain ⟨previous, middleCache, hprevious, _, hmiddleLe⟩ := runsBelow_bind_left hmem
       exact ih (by omega) ⟨beforeCache, middleCache, previous, hprevious, hmiddleLe.trans hafter⟩
 
@@ -319,10 +301,11 @@ theorem honestKeygen_runsBelow_chainWalk
   rw [Concrete.treeNode_zero_eq, Concrete.leafAt] at hleaf
   obtain ⟨endpoints, endpointsCache, hendpoints, _, hendpointsLe⟩ := runsBelow_bind_left hleaf
   unfold Concrete.oneTimePublicKey at hendpoints
-  exact RunsBelow.chainWalk_prefix parameter leafIndex chain 0 (secret leafIndex chain) cache
-    (chainLength - 1) steps hsteps
-    ((runsBelow_sequenceFin _ chain beforeCache endpointsCache endpoints hendpoints).mono
-      (hendpointsLe.trans hafter))
+  rw [← Concrete.keyChainWalk_inl]
+  refine RunsBelow.keyChainWalk_prefix steps hsteps ?_
+  rw [Concrete.keyChainWalk_inl]
+  exact (runsBelow_sequenceFin _ chain beforeCache endpointsCache endpoints hendpoints).mono
+    (hendpointsLe.trans hafter)
 
 /-- Every top chain walk from its start runs inside key generation's honest computation. -/
 theorem honestKeygen_runsBelow_topChainWalk
@@ -337,10 +320,11 @@ theorem honestKeygen_runsBelow_topChainWalk
   rw [Concrete.topTreeNode, Concrete.topLeafAt] at hleaf
   obtain ⟨endpoints, endpointsCache, hendpoints, _, hendpointsLe⟩ := runsBelow_bind_left hleaf
   unfold Concrete.topOneTimePublicKey at hendpoints
-  exact RunsBelow.topChainWalk_prefix parameter key chain 0 (topSecret key chain) cache
-    (chainLength - 1) steps hsteps
-    ((runsBelow_sequenceFin _ chain beforeCache endpointsCache endpoints hendpoints).mono
-      (hendpointsLe.trans hafter))
+  rw [← Concrete.keyChainWalk_inr]
+  refine RunsBelow.keyChainWalk_prefix steps hsteps ?_
+  rw [Concrete.keyChainWalk_inr]
+  exact (runsBelow_sequenceFin _ chain beforeCache endpointsCache endpoints hendpoints).mono
+    (hendpointsLe.trans hafter)
 
 end HonestKeygen
 

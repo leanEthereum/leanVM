@@ -7,25 +7,24 @@
 
 module
 
-public import LeanVM.Guest.B1.Place.ArmExact0
-public import LeanVM.Guest.B1.Place.ArmExact1
-public import LeanVM.Guest.B1.Place.ArmExact2
-public import LeanVM.Guest.B1.Place.ArmExact3
-public import LeanVM.Guest.B1.Place.ArmExact4
-public import LeanVM.Guest.B1.Place.ArmExact5
-public import LeanVM.Guest.B1.Place.ArmExactB
-public import LeanVM.Guest.B1.Place.ArmExactC
+public import LeanVM.Guest.B1.Place.ArmOkA
+public import LeanVM.Guest.B1.Place.ArmOkB
+public import LeanVM.Guest.B1.Place.ArmFree0
+public import LeanVM.Guest.B1.Place.ArmFree1
+public import LeanVM.Guest.B1.Place.ArmFree2
+public import LeanVM.Guest.B1.Place.ArmFree3
+public import LeanVM.Guest.B1.Place.ArmFree4
+public import LeanVM.Guest.B1.Place.ArmFree5
 public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.B1.Whir.Sound
 public import LeanVM.Guest.B1.Whir.WinEx
 public import LeanVM.Guest.B2C.Table
-public import LeanVM.Guest.B1.Place.FreeExactOk
-public import LeanVM.Guest.B1.Place.FreeLp
 
 /-!
 # The arms, exact at every node
 
-`armExact_all`: the arm of `μ` passes `armExactOk` (`ArmExact0` to `ArmExact5`, `ArmExactB`, `ArmExactC`). `flatNodeT_every`: so a valid tree of
+`armExact_all`: the arm of `μ` passes `armExactOk` (`ArmOkA`, `ArmOkB`), and every root its callees exact for free
+or `armExactS` (`exRootsOk`, `ArmFree0` to `ArmFree5`). `flatNodeT_every`: so a valid tree of
 it satisfying `FlatNodeT` is exact at every node, given that each entered `armExactS` callee's predicate (its
 `is_zero`, `level_positions`) gives `Every` exact on its valid trees; every other callee is exact
 for free. `winHint_exact_of_winEx`: a flat body's window hints exact (`WinEx`, the honest valuation's) give the window
@@ -38,22 +37,25 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
+/-- **Every root is exact for free or `armExactS`.** -/
+theorem exRootsOk : ExRootsOk := exRootsOk_of armFreeE0 armFreeE1 armFreeE2 armFreeE3 armFreeE4 armFreeE5
+
 /-- **The arm of `μ` passes the exactness check.** -/
 theorem armExact_all {μ : ℕ} (hm : μ - minOpenLog < 11) : ∃ j, armExactOk (openName μ) j = true := by
   rw [openName_eq hm]
   generalize μ - minOpenLog = m at hm
   interval_cases m
-  · exact ⟨_, armExact0⟩
-  · exact ⟨_, armExact1⟩
-  · exact ⟨_, armExact2⟩
-  · exact ⟨_, armExact3⟩
-  · exact ⟨_, armExact4⟩
-  · exact ⟨_, armExact5⟩
-  · exact ⟨_, armExact6⟩
-  · exact ⟨_, armExact7⟩
-  · exact ⟨_, armExact8⟩
-  · exact ⟨_, armExact9⟩
-  · exact ⟨_, armExact10⟩
+  · exact ⟨_, armOk0.1⟩
+  · exact ⟨_, armOk1.1⟩
+  · exact ⟨_, armOk2.1⟩
+  · exact ⟨_, armOk3.1⟩
+  · exact ⟨_, armOk4.1⟩
+  · exact ⟨_, armOk5.1⟩
+  · exact ⟨_, armOk6.1⟩
+  · exact ⟨_, armOk7.1⟩
+  · exact ⟨_, armOk8.1⟩
+  · exact ⟨_, armOk9.1⟩
+  · exact ⟨_, armOk10.1⟩
 
 /-- **A valid arm node of `FlatNodeT` is exact at every node** when its window hints are exact at the valuations
 `Q` admits, its predicates cover its calls and each entered `armExactS` callee's predicate gives `Every` exact on its
@@ -71,7 +73,8 @@ theorem flatNodeT_every {μ : ℕ} (hm : μ - minOpenLog < 11) {fn : Fn} {pre : 
     t.Every (ExactAt coreProgram rd) := by
   obtain ⟨σ, bufs, ks, es, vs, rfl, hw, hc, hQ, hK⟩ := h
   obtain ⟨j, hj⟩ := armExact_all hm
-  refine armExact_every ⟨armExactNeed_ok, armLpNeed_ok⟩ (Ts := Ts σ rd) hj hv (fun fn' es' vs' hf' hw' => ?_) fun fn' es' vs' hf' hw' => ?_
+  refine armExact_every exRootsOk (Ts := Ts σ rd) hj hv (fun fn' es' vs' hf' hw' => ?_)
+    fun fn' es' vs' hf' hw' => ?_
   · rw [hf, Option.some.injEq] at hf'
     subst hf'
     exact hW σ es' vs' hQ hw'

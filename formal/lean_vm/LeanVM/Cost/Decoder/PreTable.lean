@@ -17,10 +17,8 @@ open LeanVM.Cost LeanVM.Guest.Fast
 
 @[expose] public section
 
--- The spec's `simp` (`preTableC.costSpec`) unfolds every entry of the literal table, past the
--- default heartbeats.
+-- The literal table's compilation recurses once per entry.
 set_option maxRecDepth 100000 in
-set_option maxHeartbeats 2000000 in
 cost_compile preTableC := preTable
 
 end

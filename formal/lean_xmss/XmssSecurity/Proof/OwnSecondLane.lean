@@ -1,8 +1,10 @@
 module
 
-public import XmssSecurity.Proof.CachedSelectionBound
-public import XmssSecurity.Proof.CappedJointExactLoss
+public import XmssSecurity.Proof.SecondLane
 public import XmssSecurity.Proof.OwnTotal
+public import XmssSecurity.Proof.CachedSelectionBound
+public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
+public import XmssSecurity.Scan.PerKey
 
 @[expose] public section
 
@@ -17,8 +19,6 @@ adversary's own count below `2^127`: the ghost count of its queries never passes
 -/
 
 open OracleComp OracleSpec ENNReal
-
-variable {n : ℕ}
 
 namespace XmssSecurity
 
@@ -111,14 +111,6 @@ namespace Ghost
 
 variable (publicKey : PublicKey) (secretKey : SecretKey)
 
-theorem expectedSimulatedQueryCount_liftM_world (P : OracleWorld.Domain → Prop) [DecidablePred P]
-    (input : OracleWorld.Domain) (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount romImpl P (liftM (OracleWorld.query input) : OracleComp OracleWorld _) cache =
-      if P input then 1 else 0 := by
-  rw [← bind_pure (liftM (OracleWorld.query input) : OracleComp OracleWorld _),
-    expectedSimulatedQueryCount_query_bind_tsum]
-  simp
-
 /-- **The source game's `P`-queries are the adversary's**, when the signer makes none. -/
 theorem expectedSimulatedQueryCount_source_le (P : OracleWorld.Domain → Prop) [DecidablePred P]
     (hsign : ∀ (request : SignRequest) cache,
@@ -139,7 +131,7 @@ theorem expectedSimulatedQueryCount_source_le (P : OracleWorld.Domain → Prop) 
       refine add_le_add ?_ (tsum_le_tsum fun r => mul_le_mul_right (ih _ _ _ _) _)
       cases input with
       | inl world =>
-          rw [source_world, expectedSimulatedQueryCount_liftM_world]
+          rw [source_world, expectedSimulatedQueryCount_query]
           exact le_of_eq rfl
       | inr request =>
           rw [source_sign, hsign]

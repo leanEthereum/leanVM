@@ -2,7 +2,7 @@
   LeanVM.Guest.B2C.CntWeight
 
   The instruction counts as weights: `cnt T op` is `T`'s weight at `pathMax · op` and the jump
-  table's `SET`s, the form `B1.Main.mainComplete_of` takes.
+  table's `SET`s, the form `Budget.mainComplete_of_main` takes.
 -/
 
 module
@@ -13,10 +13,10 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # Counts as weights
 
-`cnt_le_weight`: `cnt t op ≤ t.weight (ω op) + jtSets op` (`mainComplete_of`'s and
-`ea_mainComplete`'s `hcnt`, at `jt := jtSets`), whenever each instance's path count is within its
-function's weight `ω op f` (`cnt_le_weight_of`); with no arm counted separately, at
-`ω op := (pathMax · op)`.
+`cnt_le_weight_valid`: `cnt t op ≤ t.weight (ω op) + jtSets op` (`mainComplete_of_main`'s and
+`mainComplete_budget`'s `hcnt`, at `jt := jtSets`), whenever each instance's path count is within
+its function's weight `ω op f`; `cnt_le_weight_arm`: at `ω := ωArm C`, the most a path runs and
+`main_loop2`'s arms within `C`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -24,22 +24,6 @@ namespace LeanVM.Guest.B2C
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
-
-mutual
-theorem weightV_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
-    ∀ t : Tree, weightV ω t ≤ t.weight ω'
-  | .node f σ _ kids => by
-    rw [weightV, Tree.weight]
-    exact Nat.add_le_add (h f σ) (weightVKids_le ω ω' h kids)
-  | .phantom .. => by rw [weightV, Tree.weight]
-
-theorem weightVKids_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
-    ∀ ks : List Tree, weightVKids ω ks ≤ Tree.weightKids ω' ks
-  | [] => by rw [weightVKids, Tree.weightKids]
-  | k :: ks => by
-    rw [weightVKids, Tree.weightKids]
-    exact Nat.add_le_add (weightV_le ω ω' h k) (weightVKids_le ω ω' h ks)
-end
 
 section Valid
 

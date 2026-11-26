@@ -11,11 +11,12 @@ resolver = "2"
 
 [workspace.package]
 # The release version of every binding; release-please updates it.
-version = "0.16.0"
+version = "0.18.0"
 
 [workspace.dependencies]
-claims = { path = "../crates/claims" }
-sidecar = { path = "../crates/sidecar" }
+lean_vm = { path = "../crates/lean_vm" }
+aggregation = { path = "../crates/aggregation" }
+allocator = { path = "../crates/allocator", features = ["library"] }
 lean_xmss = { path = "../crates/lean_xmss" }
 lean_sphincs = { path = "../crates/lean_sphincs" }
 lean_vrf = { path = "../crates/lean_vrf" }

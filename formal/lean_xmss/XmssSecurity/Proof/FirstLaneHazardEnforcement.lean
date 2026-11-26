@@ -5,9 +5,20 @@ public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
 
-open OracleComp OracleSpec
+/-!
+# Capping the first lane's hazards
 
-variable {α : Type}
+`enforceHazardBound fuel` runs a first-lane computation with its hazards capped at `fuel`: past the
+budget an encoding query is answered by a locally sampled uniform output instead of an oracle query,
+and a probe is dropped. The capped computation makes at most `fuel` hazard queries
+(`enforceHazardBound_isHazardQueryBoundP`), and its eager simulation is the original one with its
+trace cut by `enforceHazardTrace` (`simulate_eagerTrace_enforceHazardBound`,
+`eagerExperiment_enforceHazardBound_eq_map`), which keeps a trace within budget unchanged
+(`enforceHazardTrace_eq_self_of_count_le`). A combined hit on a prefix persists in every extension
+(`CombinedHit.append_of_prefix`, `CombinedHit.enforce_append_of_prefix`).
+-/
+
+open OracleComp OracleSpec
 
 namespace QueryImpl
 

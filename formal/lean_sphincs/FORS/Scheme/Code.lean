@@ -18,8 +18,6 @@ ordinary arithmetic on one large numeral.
 
 open Finset
 
-set_option maxRecDepth 100000
-
 namespace FORS.Completeness
 
 variable [Params]
@@ -79,6 +77,7 @@ theorem sum_lt_193 (x : Encoding) : TargetSum.sum x < 193 := by
   rw [hcard] at this
   omega
 
+set_option maxRecDepth 2000 in
 theorem sum_encoding_pow (B : Nat) :
     ∑ x : Encoding, B ^ (TargetSum.sum x) = ∑ s ∈ range 193, codeCount s * B ^ s := by
   rw [← Finset.sum_fiberwise_of_maps_to (g := TargetSum.sum) (t := range 193)
@@ -171,6 +170,7 @@ theorem digestEncoding_pack (x : Encoding) : digestEncoding (pack x) = x := by
 theorem decodeDigest_pack (x : Encoding) (hx : Valid x) : decodeDigest (pack x) = some x := by
   rw [decodeDigest, digestEncoding_pack, ite_eq_left hx]
 
+set_option maxRecDepth 2000 in
 /-- At least one in 16384 uniformly sampled 128-bit digests is an admissible WOTS+C codeword. -/
 theorem two_pow_le_card_accepting :
     2 ^ 114 ≤ (Finset.univ.filter fun d : Digest => (decodeDigest d).isSome).card := by

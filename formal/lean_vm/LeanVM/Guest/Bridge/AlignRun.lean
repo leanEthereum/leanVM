@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.AlignRun
 
-  The alignment pass's invariants: every zipper it carries is its cursor's (`ZOk`), its hints a suffix of the advice's, what it records apart from the rest; so a long function's pass, checked in windows from named states, is the whole pass (`alignOk_of_chain`).
+  The alignment pass's invariants: every zipper it carries is its cursor's (`ZOk`), its hints a suffix of the advice's, what it records apart from the rest, a state its name rebuilt.
 -/
 
 module
@@ -11,9 +11,9 @@ public import LeanVM.Guest.Bridge.AlignDefs
 /-!
 # The alignment pass's invariants
 
-`ZOk body z`: the zipper is its cursor's, `zipOf body` of its key. The pass's steps keep it: past the head (`ZOk.next`), into a sub-block (`ZOk.enter`), the normalization (`normZ_ok`), the hints (`hintsStep_ok`), the jumps (`jumpStep_ok`), so each state of the pass has it (`StOk`, `stepI_ok`). Two zippers so with one cursor are one (`ZOk.eq_of_keyEq`).
+`ZOk body z`: the zipper is its cursor's, `zipOf body` of its key. The pass's steps keep it: past the head (`ZOk.next`), into a sub-block (`ZOk.enter`), the normalization (`normZ_ok`), the hints (`hintsStep_ok`), the jumps (`jumpStep_ok`), so each state of the pass has it (`StOk`, `stepI_ok`). Two zippers so with one cursor are one (`ZOk.eq_of_key`).
 
-What the pass records is apart from the rest (`St.noAcc`, `stepI_noAcc`, `alignGo_noAcc`), so a state is its name rebuilt (`stOfK_keyOfSt`), and the windows of a chain of named states (`Chain`) compose to the whole pass: `alignOk_of_chain`.
+What the pass records is apart from the rest (`alignGo_acc`), so a state is its name rebuilt (`stOfK_keyOfSt`), by which the pairing's windows compose (`CoreMode/PairSlice.lean`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -391,54 +391,6 @@ theorem stOfK_keyOfSt {body : List Stmt} {hs : List (ℕ × List Prover.Exec.Hin
 theorem AlignCtx.seq_eq {β : Type} (X : AlignCtx) (k : AlignCtx → β) : X.seq k = k X := by
   obtain ⟨loc, locOk, extra, entry, main, stat, sites, arms, pows, jt, ents, halt, len, fuel⟩ := X
   simp only [AlignCtx.seq, Exec.Trie.seq_eq, natSeq_eq]
-
-/-- **A chain of named states**: each window of the pass from one to the next, the last at the end. -/
-@[expose] def Chain (X : AlignCtx) (body : List Stmt) (code : List OffsetInstruction)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : KSt → List KSt → Prop
-  | K, [] => chainEnd code K = true
-  | K, K' :: ks => winOk X body code d K K' = true ∧ Chain X body code d K' ks
-
-theorem chain_go {X : AlignCtx} {body : List Stmt} {code : List OffsetInstruction}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} :
-    ∀ (ks : List KSt) (K : KSt) (st : St) (acc : List (ℕ × Zip)), Chain X body code d K ks →
-      StOk body d.2.2 st → stOfK body d.2.2 K = st →
-      ((alignGo X (code.drop K.i) st acc).bind fun p ↦ alignEnd p.1 p.2).isSome
-  | [], K, st, acc, hc, _, hk => by
-    simp only [Chain, chainEnd, Bool.and_eq_true, Nat.beq_eq, Option.isNone_iff_eq_none,
-      List.isEmpty_iff, lenTR_eq, Nat.add_zero] at hc
-    obtain ⟨⟨hi, hcur⟩, hpend⟩ := hc
-    subst hk
-    rw [hi, List.drop_length]
-    simp [alignGo, alignEnd, stOfK, hcur, hpend]
-  | K' :: ks, K, st, acc, hc, hst, hk => by
-    obtain ⟨hw, hc⟩ := hc
-    rw [winOk, AlignCtx.seq_eq, decide_eq_true_eq, hk] at hw
-    obtain ⟨⟨st1, acc1⟩, h1, hK⟩ := Option.map_eq_some_iff.mp hw
-    obtain ⟨hst1, hi1⟩ := alignGo_ok X _ hst h1
-    have hKi : K'.i = st1.i := by rw [← hK]; rfl
-    have hsi : st.i = K.i := by rw [← hk]; rfl
-    have hlen := List.length_take_le (K'.i - K.i) (code.drop K.i)
-    have hle : K.i ≤ K'.i := by omega
-    have hsplit : code.drop K.i = (code.drop K.i).take (K'.i - K.i) ++ code.drop K'.i := by
-      conv_lhs => rw [← List.take_append_drop (K'.i - K.i) (code.drop K.i)]
-      rw [List.drop_drop, show K.i + (K'.i - K.i) = K'.i by omega]
-    rw [hsplit, alignGo_append, alignGo_acc, h1]
-    simp only [Option.map_some, Option.bind_some]
-    exact chain_go ks K' st1 (acc1 ++ acc) hc hst1 (by rw [← hK]; exact stOfK_keyOfSt hst1)
-
-/-- **A chain of windows is the whole pass.** -/
-theorem alignOk_of_chain {X : AlignCtx} {body : List Stmt} {code : List OffsetInstruction}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (hpre : alignPre X d = true) {ks : List KSt}
-    (hc : Chain X body code d ⟨0, 0, some ([], 0), [], []⟩ ks) : alignOk X body code d = true := by
-  rw [alignOk, AlignCtx.seq_eq]
-  change (alignPre X d && (alignRun X body code d).isSome) = true
-  rw [hpre, Bool.true_and]
-  have h0 : stOfK body d.2.2 ⟨0, 0, some ([], 0), [], []⟩ = ⟨0, d.2.2, some (Zip.init body), [], []⟩ := by
-    simp [stOfK, zipOf, zUp, blockAt, Zip.init]
-  have hst : StOk body d.2.2 ⟨0, d.2.2, some (Zip.init body), [], []⟩ :=
-    ⟨⟨0, rfl⟩, by simpa using zOk_init body, by simp, by simp⟩
-  have := chain_go ks _ _ [] hc hst h0
-  simpa [alignRun] using this
 
 theorem stepI_i (X : AlignCtx) (ins : OffsetInstruction) {st : St} {p : St × Option (ℕ × Zip)}
     (h : stepI X ins st = some p) : p.1.i = st.i + 1 := by

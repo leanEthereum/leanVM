@@ -159,12 +159,6 @@ theorem endsClear_queryOpenings (i : ℕ) (ps : List ℕ) :
       · exact endsClear_ret _ ⟨sp, stream, rest, R⟩ a st' hg h
       · exact absurd h (by rintro ⟨⟩)
 
-/-! ## The grinds -/
-
-theorem endsAny_grind_bind (bits : ℕ) {f : Unit → VerifierProgram α} (hf : EndsAny (f ())) :
-    EndsAny ((VerifierProgram.grindProofOfWork bits).bind f) :=
-  endsAny_bind_right fun _ ↦ hf
-
 /-! ## The sumchecks -/
 
 theorem endsClear_sumcheck (claim : E) (count : ℕ) : ∀ eqs : List (Option E),
@@ -177,13 +171,6 @@ theorem endsClear_sumcheck (claim : E) (count : ℕ) : ∀ eqs : List (Option E)
     simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine (endsAny_bind_right fun _ ↦ ?_).clear
     exact endsAny_sampleE.bind fun _ ↦ (ih _).bind fun _ ↦ endsClear_ret _
-
-theorem endsAny_sumcheck (claim : E) (count : ℕ) (e : Option E) (eqs : List (Option E)) :
-    EndsAny (sumcheck claim count (e :: eqs)) := by
-  unfold sumcheck
-  simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
-  refine endsAny_bind_right fun _ ↦ ?_
-  exact endsAny_sampleE.bind fun _ ↦ (endsClear_sumcheck _ _ _).bind fun _ ↦ endsClear_ret _
 
 /-- A search for `EndsClear` and `EndsAny` through binds and the primitives. -/
 macro "ends" : tactic => `(tactic| repeat' (first
@@ -215,31 +202,6 @@ theorem endsClear_readSizes (bytecode : List K) : EndsClear (readAnnouncedSizes 
   unfold readAnnouncedSizes
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   ends
-
-theorem endsClear_commit (hh ww : ℕ) : EndsClear (VerifierProgram.readCommitment hh ww) := by
-  rintro ⟨⟨S, P, g⟩, stream, os, R⟩ a st' hg h
-  simp only at hg
-  subst hg
-  match stream, h with
-  | [], h => exact absurd h (by rintro ⟨⟩)
-  | [_], h => exact absurd h (by rintro ⟨⟩)
-  | x0 :: x1 :: xs, h =>
-    have e : runId (VerifierProgram.readCommitment hh ww) ⟨⟨S, P, none⟩, x0 :: x1 :: xs, os, R⟩ =
-        some ((), ⟨Id.run (Compile.absorb keccakF1600 (Id.run (Compile.absorb keccakF1600
-          ⟨S, P, none⟩ x0 dsObserve)) x1 dsObserve), xs, os,
-          R ++ [(digestFromHalves (x0, x1), hh, ww)]⟩) := rfl
-    rw [e, Option.some.injEq, Prod.mk.injEq] at h
-    rw [← h.2]
-    show (Id.run (Compile.absorb keccakF1600 _ x1 dsObserve)).ground = none
-    rw [absorb_ground, absorb_ground]
-
-theorem endsClear_commitStack (μ r : ℕ) : EndsClear (commitStack μ r) := by
-  unfold commitStack
-  simp only [VerifierProgram.bind_eq]
-  refine EndsClear.bind (endsClear_liftOption _) fun config ↦ ?_
-  split
-  · exact endsAny_fail.clear
-  · exact endsClear_commit _ _
 
 theorem endsAny_readOod (μ : ℕ) : EndsAny (readOod μ) := by
   unfold readOod
@@ -273,8 +235,8 @@ theorem endsClear_gkrLayers : ∀ (n : ℕ) (s : GkrState), EndsClear (gkrLayers
     · simp only [VerifierProgram.bind_eq]
       exact ((endsAny_gkrStep 1 _ _).bind fun _ ↦ endsClear_gkrLayers n _).clear
 
-theorem endsClear_gkrPhase (depth : ℕ) : EndsClear (gkrPhase depth) := by
-  unfold gkrPhase verifyGkrGrandProducts
+theorem endsClear_gkrPhase (depth : ℕ) : EndsClear (Tables.gkrPhase depth) := by
+  unfold Tables.gkrPhase verifyGkrGrandProducts
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq, VerifierProgram.bind_assoc]
   refine (endsAny_readE.bind fun _ ↦ ?_).clear
   refine (endsAny_readE.bind fun _ ↦ ?_).clear

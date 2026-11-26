@@ -26,7 +26,7 @@ its arms (`topSels_sound`).
 `exp_lt` (`exp`): a parameter `g^e`, `e < 2^62` (`ExpW`), the quotient of two addresses the path
 dereferences, has `e < 2^28`.
 
-`splitFam_inst` (`split`, `EndExecCoreSplit`): a split `g`-power's residuals from its bits on the instance's path.
+`EndExecCoreSplit`'s `splitRes_sound`: a split `g`-power's residuals from its bits on the instance's path.
 
 `resFam_inst`: at an honest instance (a `node` of the honest tree), in a frame holding its parameters
 whose entry runs' exponent cells are powers, every residual of a family holds at its valuation; `resOk_inst`: every residual of a heap certificate whose residuals are of families
@@ -422,7 +422,7 @@ theorem subRC_holds {q r : CoreMode.CRun} (h : CoreMode.subRC q r = true) (σ : 
     rw [hkS] at hl hh'
     refine ⟨l', h', j + k, (by simp only [idxC]; exact CoreMode.rep_const hlc'),
       (by simp only [idxC]; exact CoreMode.rep_const hhc'), by omega, by omega, ?_⟩
-    simp only [CoreMode.CCell.valW, mul_assoc, ← Parameters.ofK_mul, addressOfIndex, ← pow_add]
+    simp only [CoreMode.CCell.valW, mul_assoc, ← CoreMode.ofK_mul', addressOfIndex, ← pow_add]
     rw [show qo + S * j = ro + S * (j + k) by rw [Nat.mul_add]; omega]
   · cases h
 
@@ -455,7 +455,7 @@ theorem subRCm_holds {q r : CoreMode.CRun} (h : CoreMode.subRCm q r = true) (σ 
     have hml : m * l ≤ m * j := Nat.mul_le_mul_left _ hlj
     refine ⟨l', h', k + m * j, (by simp only [idxC]; exact CoreMode.rep_const hlc'),
       (by simp only [idxC]; exact CoreMode.rep_const hhc'), by omega, by omega, ?_⟩
-    simp only [CoreMode.CCell.valW, mul_assoc, ← Parameters.ofK_mul, addressOfIndex, ← pow_add]
+    simp only [CoreMode.CCell.valW, mul_assoc, ← CoreMode.ofK_mul', addressOfIndex, ← pow_add]
     rw [show qo + S * j = ro + S' * (k + m * j) by rw [hm, Nat.mul_add, ← Nat.mul_assoc]; omega]
   · cases h
 
@@ -1019,7 +1019,7 @@ theorem rcPts_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
       obtain ⟨e, he, hσ⟩ := rcBound_sound (by omega) r.img hall hN
       refine ⟨⟨[(B, 1)], o + e⟩, hc e he, ?_⟩
       simp only [CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, hσ, Value.gen_pow_eq_ofK,
-        addressOfIndex, pow_add, Parameters.ofK_mul]
+        addressOfIndex, pow_add, CoreMode.ofK_mul']
       ring
     · cases hp
   match x, h with
@@ -1132,7 +1132,7 @@ theorem tabEv_rep {σ : Val} {ev : ℕ → Option ℕ}
           rw [show vw σ b.1 = σ (V.n b.1) from rfl, hev _ _ hd, Value.gen_pow_eq_ofK, ← CoreMode.ofK_pow',
             addressOfIndex, addressOfIndex, ← pow_mul, Nat.mul_comm]
         simp only [CoreMode.prodW]
-        rw [mul_assoc, e1, hw, ← Parameters.ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
+        rw [mul_assoc, e1, hw, ← CoreMode.ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
     simp only [CoreMode.tabEv] at h
     simp only [idxC, CoreMode.CCell.valW]
     rw [key c.bases c.off u h]
@@ -1156,7 +1156,7 @@ theorem tabOf_at {r : Ref} {fn : Fn} {σ : Val} (hall : ∀ a ∈ Res.topAtoms f
   obtain ⟨w, hw, hpw⟩ := Option.bind_eq_some_iff.mp hk
   have hst : LoadHolds r.img.read (σ (V.n T')) t (σ (V.n c)) := hall _ (stAt_mem hc)
   have hcw : σ (V.n c) = w := hall _ (constOf_sound hw)
-  rw [hmul, hJ, B1.loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  rw [hmul, hJ, B1.Tables.tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
   rw [B1.loadHolds_unique hld hst, hcw, powOf1_sound hpw, Value.gen_pow_eq_ofK]
 
 /-- **A table read's row** at an honest path: its index `g^t`, `t < N`. -/

@@ -2,15 +2,21 @@ module
 
 public import VCVio.OracleComp.EvalDist.Sum
 public import XmssSecurity.Proof.RandomizedStatement
-public import Common.RomTable
 
 @[expose] public section
+
+/-!
+# Runs stopped before a bad query
+
+`stopBefore bad` runs a computation and returns `none` at its first query satisfying `bad`. Under
+`romImpl`, a stopped run that finishes satisfies an event no more often than the full run
+(`probEvent_stopBefore_le`), and the full run's probability is at most the stopped run's plus the
+probability that it stops (`probEvent_le_stopBefore_add_failure`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
-
-open Common.RomTable
 
 theorem run'_lift_sample_bind {α β : Type} (computation : ProbComp α)
     (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) :
@@ -43,6 +49,14 @@ theorem stopBefore_query_bind {α : Type} (bad : OracleWorld.Domain → Prop)
       (if bad input then pure none else do
         let answer ← liftM (OracleWorld.query input)
         stopBefore bad (next answer)) := rfl
+
+theorem run'_query_bind {α : Type} (input : OracleWorld.Domain)
+    (next : OracleWorld.Range input → OracleComp OracleWorld α)
+    (cache : QueryCache HashSpec) :
+    (simulateQ romImpl (liftM (OracleWorld.query input) >>= next)).run' cache =
+      ((romImpl input).run cache >>= fun result =>
+        (simulateQ romImpl (next result.1)).run' result.2) := by
+  simp only [simulateQ_bind, simulateQ_spec_query, StateT.run'_eq, StateT.run_bind, map_bind]
 
 theorem probEvent_stopBefore_le {α : Type} (bad : OracleWorld.Domain → Prop)
     [DecidablePred bad] (computation : OracleComp OracleWorld α)

@@ -23,8 +23,7 @@ The objects of Annex B, `def:interleaved`, of the leanVM specification (leanVM `
 * `IsClose A O U`: `O` and `U` agree on some set of at least `A` coordinates
   (`isClose_iff_le_card_agreeSet`: the agreement set itself has at least `A` elements).
 * `iList C A O`: the finite set of interleaved codewords close to `O` at threshold `A`. The
-  Annex's list `Λ_γ(O)` at relative radius `γ` is the list at the threshold `⌈(1 - γ) n⌉₊`,
-  `n = |ι|`.
+  Annex's list `Λ_γ(O)` at relative radius `γ` is it at the threshold `⌈(1 - γ) n⌉₊`, `n = |ι|`.
 
 The list is counted by an integer threshold, the form in which ArkLib states its exceptional-set
 bounds and in which the round-by-round analysis counts.
@@ -130,6 +129,10 @@ noncomputable def iList (C : Submodule F (ι → F)) (A : ℕ) (O : ρ → ι �
     U ∈ iList C A O ↔ IsInterleavedCodeword C U ∧ IsClose A O U := by
   classical
   simp [iList]
+
+/-- The agreement threshold of the relative radius `γ` on `n` coordinates: `⌈(1 - γ) n⌉₊`. -/
+noncomputable def radiusThreshold (n : ℕ) (γ : ℝ) : ℕ :=
+  ⌈(1 - γ) * n⌉₊
 
 end List
 

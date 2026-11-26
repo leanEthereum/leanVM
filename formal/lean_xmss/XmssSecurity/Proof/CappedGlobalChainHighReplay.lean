@@ -2,17 +2,28 @@ module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighLocalCoupling
 public import XmssSecurity.Proof.ObservedTraceMonitor
+public import XmssSecurity.Proof.CappedChain.KeygenUnaddressedCache
 
 @[expose] public section
+
+/-!
+# Coupling the whole query stream with the monitored causal simulation
+
+Every adversary hash query couples with the causal one until the monitor hits
+(`relTriple_programmed_globalFilteredAttackerHashQuery_until_hit`, from its leaf, chain and ordinary
+cases), while key generation's Merkle entries stay in the causal cache
+(`GlobalMerkleKeygenCacheRetained`). `GlobalMonitoredCausalState` carries the causal state with its
+action trace, which is bad when the trace's monitor hits, and `monitorGlobalCausalTrace` runs a step
+on it. `relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit` and
+`relTriple_programmed_monitoredGlobalSigningQuery` couple the real hash and signing queries with the
+monitored causal ones: equal answers and related states, or a bad state. The `*_replays` theorems
+show each causal step's trace replays its reveals (`ReplaysCausalReveals`).
+-/
 
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
 
-variable {α : Type}
-
 namespace XmssSecurity.CappedChain
-
-variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
 
 theorem globalFilteredCausalAttackerHashPlan_eq_leafProbeThenFresh
     (secretKey : SecretKey) (state : GlobalCausalHashState)
@@ -73,8 +84,8 @@ theorem globalFilteredCausalAttackerHashPlan_eq_leafFresh_of_mismatch
   simp only
   rw [hhidden, ite_eq_right hmatch]
 
-
 theorem globalLeaf_not_match_endpoint_miss
+    (table : GlobalChainValueIndex → Digest)
     (state : GlobalCausalHashState) (leafIndex : ChainKey)
     (endpoints : ChainIndex → Digest)
     (hreveals : GlobalSigningRevealsAgree table state)
@@ -100,9 +111,7 @@ theorem globalLeaf_not_match_endpoint_miss
 
 theorem programmedGlobal_left_leaf_cache_none_of_hidden_probe_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -127,9 +136,7 @@ theorem programmedGlobal_left_leaf_cache_none_of_hidden_probe_miss
 
 theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -215,7 +222,6 @@ theorem relTriple_programmed_globalFilteredLeafHashQuery_until_hit
                 leftCache rightState hstate input hbaseNone hplan)
             intro _leftResult _rightResult hresult
             exact Or.inl hresult
-
 
 theorem Concrete.keygen_cache_none_at_global_chainAddress_of_probe_none
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -307,9 +313,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
 
 theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
       rightState)
@@ -330,7 +334,6 @@ theorem relTriple_programmed_globalFilteredOrdinaryHashQuery
   exact globalFilteredCausalAttackerHashPlan_eq_ordinaryFresh
     right.1.1.secretKey rightState input hcache hchain hleaf
 
-
 def GlobalMerkleKeygenCacheRetained
     (secretKey : SecretKey) (state : GlobalCausalHashState) : Prop :=
   ∀ input, MerkleHashInput secretKey.parameter input →
@@ -346,9 +349,7 @@ theorem globalFilteredCausalKeygenState_merkleRetained
 
 theorem programmedGlobal_left_cache_none_of_retained_merkle_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -380,9 +381,7 @@ theorem programmedGlobal_left_cache_none_of_retained_merkle_miss
 
 theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -461,7 +460,6 @@ theorem relTriple_programmed_globalFilteredAttackerHashQuery_until_hit
               intro _leftResult _rightResult hresult
               exact Or.inl hresult
 
-
 theorem GlobalMerkleKeygenCacheRetained.recordedState
     {secretKey : SecretKey} {state : GlobalCausalHashState}
     (hretained : GlobalMerkleKeygenCacheRetained secretKey state)
@@ -492,6 +490,7 @@ theorem GlobalMerkleKeygenCacheRetained.cacheQuery_of_none
     exact hretained candidate hmerkle candidateOutput hkeygen
 
 theorem simulate_eagerTrace_globalCausalHashQuery_merkleRetained_of_cache_none
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hretained : GlobalMerkleKeygenCacheRetained secretKey state)
@@ -603,7 +602,6 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_merkleRetained
               (Rom.hashOutputEquivDigestPair.symm (high index, table index))
                 hcache
 
-
 def GlobalCausalSigningStateExtends
     (initial final : GlobalCausalHashState) : Prop :=
   initial.cache ≤ final.cache ∧ final.keygenCache = initial.keygenCache
@@ -616,6 +614,8 @@ theorem GlobalCausalSigningStateExtends.trans
   ⟨hfirst.1.trans hsecond.1, hsecond.2.trans hfirst.2⟩
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_stateExtends
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -689,6 +689,8 @@ theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_stateExtends
             (ih (trial + 1) attemptResult.1.2 rest hrest)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_stateExtends
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -702,6 +704,8 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_stateExtends
     signingAttemptLimit 0 base table keyView request state attemptResult hattempt
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (hretained : GlobalMerkleKeygenCacheRetained keyView.secretKey state)
     (result : (Option Signature × GlobalCausalHashState) ×
@@ -717,18 +721,19 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_merkleRetained
   rw [hextends.2] at hkeygen
   exact hextends.1 (hretained input hmerkle output hkeygen)
 
-
 structure GlobalMonitoredCausalState where
   causal : GlobalCausalHashState
   trace : RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex
 
 def GlobalMonitoredCausalState.observed
+    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState) :
     Option (AdaptiveRevealMonitor.State GlobalChainValueIndex) :=
   RevealProbeOracleSimulation.advanceObserved table
     AdaptiveRevealMonitor.State.empty state.trace
 
 def GlobalMonitoredCausalState.bad
+    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState) : Prop :=
   state.observed table = none
 
@@ -743,6 +748,7 @@ def globalMonitoredCausalResult
   })
 
 theorem GlobalMonitoredCausalState.bad_implies_runObserved
+    (table : GlobalChainValueIndex → Digest)
     (state : GlobalMonitoredCausalState)
     (hbad : state.bad table) :
     RevealProbeOracleSimulation.runObserved table
@@ -769,8 +775,7 @@ theorem monitorGlobalCausalTrace_run
 
 def GlobalMonitoredFilteredStateRelation
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftCache : QueryCache HashSpec)
     (rightState : GlobalMonitoredCausalState) : Prop :=
   ∃ monitor, rightState.observed right.2 = some monitor ∧
@@ -782,8 +787,7 @@ def GlobalMonitoredFilteredStateRelation
 
 theorem globalMonitoredFilteredStateRelation_initial
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftCache : QueryCache HashSpec)
     (rightState : GlobalCausalHashState)
     (hstate : GlobalFilteredCausalStateRelation left right leftCache
@@ -821,8 +825,7 @@ theorem globalFilteredCausalRevealResultState_transition
 
 theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest))
+    (right : KeygenViewWithBase)
     (leftComputation : ProbComp (α × QueryCache HashSpec))
     (rightComputation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
@@ -908,7 +911,6 @@ theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
           exact (RevealProbeOracleSimulation.advanceObserved_eq_none_iff_runObserved_eq_true
             right.2 monitor rightResult.2).2 hhit))
   simpa only [id_map] using hmapped
-
 
 theorem globalCausalAttackerHashQueryFromHigh_cached_replays
     (table high : GlobalChainValueIndex → Digest)
@@ -1048,9 +1050,7 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_support_replay
 
 theorem relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support
@@ -1091,7 +1091,6 @@ theorem relTriple_programmed_monitoredGlobalAttackerHashQuery_until_hit
       right.1.2 (globalChainValueHighTableOfEdges right.2)
         right.1.1.secretKey input rightState.causal hretained result hresult
 
-
 theorem GlobalCausalHashState.recordReveal_transition
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex)
     (value : Digest) :
@@ -1103,44 +1102,25 @@ theorem GlobalCausalHashState.recordReveal_transition
     simp [GlobalCausalHashState.recordReveal, Function.update_of_ne hne]
 
 theorem globalSignatureRevealResult_replays
-    (request : SignRequest) (encoding : ChainIndex → Digit)
+    (table : GlobalChainValueIndex → Digest)
+    (key : ChainKey) (encoding : ChainIndex → Digit)
     (chains : List ChainIndex) (signature : Signature)
     (state : GlobalCausalHashState) :
     ReplaysCausalReveals state.revealed
-      (globalSignatureRevealTrace table request encoding chains)
-      (globalSignatureRevealResult table request encoding chains signature
-        state).2.revealed := by
+      (globalSignatureRevealTrace table key encoding chains)
+      (globalSignatureRevealResult table key encoding chains signature state).2.revealed := by
   induction chains generalizing signature state with
   | nil => exact ReplaysCausalReveals.nil state.revealed
   | cons chain chains ih =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inl request.leafIndex, encoding chain)
+      let index : GlobalChainValueIndex := (chain, key, encoding chain)
       rw [globalSignatureRevealTrace, globalSignatureRevealResult]
       apply ReplaysCausalReveals.reveal state.revealed _ index (table index) _
         (state.recordReveal index (table index)).revealed
       · exact state.recordReveal_transition index (table index)
       · exact ih _ _
 
-theorem globalSignatureTopRevealResult_replays
-    (request : SignRequest) (encoding : ChainIndex → Digit)
-    (chains : List ChainIndex) (signature : Signature)
-    (state : GlobalCausalHashState) :
-    ReplaysCausalReveals state.revealed
-      (globalSignatureTopRevealTrace table request encoding chains)
-      (globalSignatureTopRevealResult table request encoding chains signature
-        state).2.revealed := by
-  induction chains generalizing signature state with
-  | nil => exact ReplaysCausalReveals.nil state.revealed
-  | cons chain chains ih =>
-      let index : GlobalChainValueIndex :=
-        (chain, .inr (topKeyOf request.leafIndex), encoding chain)
-      rw [globalSignatureTopRevealTrace, globalSignatureTopRevealResult]
-      apply ReplaysCausalReveals.reveal state.revealed _ index (table index) _
-        (state.recordReveal index (table index)).revealed
-      · exact state.recordReveal_transition index (table index)
-      · exact ih _ _
-
 theorem globalSignatureFullRevealResult_replays
+    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -1152,10 +1132,13 @@ theorem globalSignatureFullRevealResult_replays
   cases topSigned (topKeyOf request.leafIndex) with
   | none => exact ReplaysCausalReveals.nil state.revealed
   | some signed =>
-      exact (globalSignatureRevealResult_replays table request encoding allChains signature
-        state).append (globalSignatureTopRevealResult_replays table request signed.2 allChains _ _)
+      exact (globalSignatureRevealResult_replays table (.inl request.leafIndex) encoding allChains
+        signature state).append (globalSignatureRevealResult_replays table
+          (.inr (topKeyOf request.leafIndex)) signed.2 allChains _ _)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_replays
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1224,6 +1207,8 @@ theorem simulate_eagerTrace_globalFilteredCausalSignBoundedAttempts_support_repl
           exact hattemptReplay.append (ih (trial + 1) attemptResult.1.2 rest hrest)
 
 theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_support_replays
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1239,9 +1224,7 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningQuery_support_replays
 
 theorem relTriple_programmed_monitoredGlobalSigningQuery
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : KeygenViewWithBaseHigh)
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1.1 ∈ support

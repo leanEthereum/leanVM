@@ -7,7 +7,13 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fn.verify_keccak.ResSt
+public import LeanVM.Guest.CoreMode.Fn.verify_sub.Front
+public import LeanVM.Guest.CoreMode.Gen.TermCallers
+public import LeanVM.Guest.CoreMode.Fam.MonoChain
+public import LeanVM.Guest.CoreMode.Fam.RefAll
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.B1.Tables.Vt.Pi
 public import LeanVM.Guest.B1.Tables.Vt.BcShare
 public import LeanVM.Guest.B1.VerifySub.NodePops
@@ -87,7 +93,7 @@ theorem vt_cur13 {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) : σ (.n (val% 
   obtain ⟨-, u2, -, -⟩ := Tables.vt_split8 (by rfl) e2
   obtain ⟨-, u3, -, -⟩ := Tables.vt_split8 (by rfl) e3
   have hw128 : σ (.n (val% «verify_tables» "bfs0@1~8")) = gen ^ 7 := by
-    rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, word_two_pow (by norm_num)]
+    rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, Tables.tb_word_two_pow (by norm_num)]
   rw [u3, u2, u1, a1939, hw128]
   ring
 
@@ -100,8 +106,8 @@ theorem vt_zc_front {rd : Reader} {σ : Val} (h : Tables.VtH rd σ) :
   have m2633 := h.atomAt (pos% «verify_tables» "s69#1") (.mul (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "cursor@4")) (.n (val% «verify_tables» "s69#0"))) (by decide +kernel)
   have l2633 := h.atomAt (pos% «verify_tables» "s69#1" + 1) (.load (.n (val% «verify_tables» "s69#1")) (.n (val% «verify_tables» "zc_rounds")) 5) (by decide +kernel)
   simp only [Atom.Holds] at c2638 c2632 m2633 l2633
-  refine ⟨by rw [c2638, word_one], ?_⟩
-  rw [m2633, c2632, word_gen, vt_cur13 h] at l2633
+  refine ⟨by rw [c2638, Tables.tb_word_one], ?_⟩
+  rw [m2633, c2632, Tables.tb_word_gen, vt_cur13 h] at l2633
   rw [show σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 14 = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 13 * gen by ring]
   exact l2633
 
@@ -192,7 +198,7 @@ theorem vtQ_step (hr : r.Ok) :
   have hctx := F.hctx
   obtain ⟨chis, hbpR, hgmu, -, hgz, hle, -⟩ := hctx
   have hbusL : F.bus.point.length =
-      busDepth (Tables.layoutOf (List.replicate (2 ^ 23) 0) F.logMem F.rowsN) :=
+      VerifySub.busDepth (Tables.layoutOf (List.replicate (2 ^ 23) 0) F.logMem F.rowsN) :=
     Value.gen_pow_inj (by have := VerifySub.mem_size_le (by omega) r.img hbpR; omega)
       (by have := F.hdep34; omega) (hgmu.symm.trans F.h253)
   have hroom := vk_room F.hdep34 hlG hlT (τ := 0) (by omega)

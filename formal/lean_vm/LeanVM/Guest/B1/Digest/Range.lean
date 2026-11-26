@@ -40,6 +40,10 @@ theorem load_gpow {rd : Reader} (hm : MemOk rd) {x t : E} (h : LoadHolds rd x 0 
   refine ⟨i, lt_of_lt_of_le i.2 (Nat.pow_le_pow_right (by decide) hκ), ?_⟩
   rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]
 
+theorem gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (h : gen ^ a = gen ^ b) :
+    a = b :=
+  gen_pow_inj (by omega) (by omega) h
+
 /-- A range check: its two reads make `x`, `y` powers of `g` below `2^32`, `k` their product. -/
 theorem rc_sound {rd : Reader} (hm : MemOk rd) {x y t1 t2 k : E}
     (h : LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2) :
@@ -53,7 +57,7 @@ theorem rc_const {rd : Reader} (hm : MemOk rd) {x y t1 t2 k : E} {c : ℕ} (hc :
     (hk : k = gen ^ c) (h : LoadHolds rd x 0 t1 ∧ k = x * y ∧ LoadHolds rd y 0 t2) :
     ∃ e ≤ c, x = gen ^ e := by
   obtain ⟨e, e', he, he', hx, hk'⟩ := rc_sound hm h
-  have := gen_pow_inj (by omega) (by omega) (hk.symm.trans hk')
+  have := gen_pow_inj' (by omega) (by omega) (hk.symm.trans hk')
   exact ⟨e, by omega, hx⟩
 
 set_option maxRecDepth 100000 in
@@ -75,7 +79,7 @@ theorem rc_below {rd : Reader} (hm : MemOk rd) {x y t1 t2 k b : E} (hk : k = b *
 theorem belowLog_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 33) (hb : b = gen ^ M) (h : BelowLog b e) :
     e < M := by
   obtain ⟨he, e', he', hb'⟩ := h
-  have := gen_pow_inj (by omega) (by omega) (hb.symm.trans hb')
+  have := gen_pow_inj' (by omega) (by omega) (hb.symm.trans hb')
   omega
 
 /-! ## Compile-time powers of `g` -/

@@ -9,11 +9,11 @@ module
 
 public import LeanVM.Protocol.Keccak.Bits
 import LeanVM.Parameters.Field
-public import LeanVM.Protocol.Verifier.EqKernel
 public import Mathlib.Algebra.CharP.Two
 import Mathlib.Data.List.GetD
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Tactic.Ring
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The linear map over `E` and its transpose
@@ -83,7 +83,7 @@ theorem bitE_Lb (f : ℕ → Bool) (j : ℕ) : bitE (Lb f j) = Llin (fun p ↦ b
 /-- The positions by column, slice and row. -/
 theorem sum_regroup (F : ℕ → E) :
     ∑ p ∈ range 1600, F p = ∑ x ∈ range 5, ∑ z ∈ range 64, ∑ y ∈ range 5, F (64 * (x + 5 * y) + z) := by
-  rw [show 1600 = 25 * 64 from rfl, sum_range_mul, show 25 = 5 * 5 from rfl, sum_range_mul]
+  rw [show 1600 = 25 * 64 from rfl, Finset.sum_range_mul, show 25 = 5 * 5 from rfl, Finset.sum_range_mul]
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   rw [Finset.sum_comm]
@@ -162,14 +162,6 @@ theorem sumE_eq_sum (l : List E) : sumE l = l.sum := by
   | nil => simp
   | cons x l ih => intro a; rw [List.foldl_cons, ih, List.sum_cons, add_assoc]
 
-theorem list_sum_range (f : ℕ → E) (n : ℕ) :
-    ((List.range n).map f).sum = ∑ y ∈ range n, f y := by
-  induction n with
-  | zero => simp
-  | succ n ih =>
-    rw [List.range_succ, List.map_append, List.sum_append, ih, Finset.sum_range_succ]
-    simp
-
 theorem array_getD_toArray (l : List E) (i : ℕ) : l.toArray.getD i 0 = l.getD i 0 := by
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
@@ -203,7 +195,7 @@ theorem flatMap_length (F : ℕ → ℕ → E) (m n : ℕ) :
 /-- θ's input weights after ρπ: position `p` of θ's output carries `w` at `rhoPiDst p`. -/
 def gOf (w : List E) (p : ℕ) : E := w.getD (rhoPiDst p) 0
 
-/-- The inner loop of `keccak_linear_transpose`'s first array, writing one lane. -/
+/-- The inner loop of `keccakLinearTranspose`'s first array, writing one lane. -/
 theorem inner_loop (W : ℕ → E) (lane : ℕ) (g : Array E) :
     ∀ Z, ((List.range Z).foldl (fun g z ↦ g.setIfInBounds (64 * lane + z) (W z)) g).size =
         g.size ∧
@@ -218,7 +210,7 @@ theorem inner_loop (W : ℕ → E) (lane : ℕ) (g : Array E) :
     rw [setIfInBounds_getD, hg p, hs]
     split_ifs <;> first | rfl | (exfalso; omega) | (congr 1; omega)
 
-/-- `keccak_linear_transpose`'s first array, lane by lane. -/
+/-- `keccakLinearTranspose`'s first array, lane by lane. -/
 theorem outer_loop (w : List E) :
     ∀ L, L ≤ 25 →
       ((List.range L).foldl (fun g lane ↦ (List.range 64).foldl (fun g z ↦
@@ -253,17 +245,17 @@ theorem outer_loop (w : List E) :
       · rw [ite_eq_left h2, ite_eq_left (by omega)]
       · rw [ite_eq_right h2, ite_eq_right (by omega)]
 
-/-- `keccak_linear_transpose`'s column sums. -/
+/-- `keccakLinearTranspose`'s column sums. -/
 theorem columns_getD (A : Array E) {x z : ℕ} (hx : x < 5) (hz : z < 64) :
     ((List.range 5).flatMap fun x ↦ (List.range 64).map fun z ↦
         sumE ((List.range 5).map fun y ↦ A.getD (64 * (x + 5 * y) + z) 0)).toArray.getD
       (64 * x + z) 0 = colL (fun p ↦ A.getD p 0) x z := by
   rw [array_getD_toArray, flatMap_getD (fun x z ↦
     sumE ((List.range 5).map fun y ↦ A.getD (64 * (x + 5 * y) + z) 0)) 64 5 x z hx hz]
-  rw [sumE_eq_sum, list_sum_range]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range]
   rfl
 
-/-- The list `keccak_linear_transpose` returns, from its first array `A`, in closed form. -/
+/-- The list `keccakLinearTranspose` returns, from its first array `A`, in closed form. -/
 theorem transposeList_getD (A : Array E) (g : ℕ → E) (hA : ∀ p < 1600, A.getD p 0 = g p)
     {p : ℕ} (hp : p < 1600) :
     ((List.range 25).flatMap fun lane ↦ (List.range 64).map fun z ↦
@@ -287,7 +279,7 @@ theorem transposeList_getD (A : Array E) (g : ℕ → E) (hA : ∀ p < 1600, A.g
   rw [hcol _ _ (by omega) (Nat.mod_lt _ (by omega)), hcol _ _ (by omega) (Nat.mod_lt _ (by omega))]
   rfl
 
-/-- **`keccak_linear_transpose` in closed form**: θ's transpose of the weights moved back
+/-- **`keccakLinearTranspose` in closed form**: θ's transpose of the weights moved back
 through ρπ. -/
 theorem keccakLinearTranspose_getD (w : List E) {p : ℕ} (hp : p < 1600) :
     (keccakLinearTranspose w).getD p 0 = thetaT (gOf w) p := by

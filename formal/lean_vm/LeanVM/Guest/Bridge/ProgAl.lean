@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Bridge.ProgAl
 
-  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`, the premises of `trace_deployed` on the program.
+  The deployed guest's functions align: `ProgAl guestProgram coreProgram alignA`, with `main` entered at `mainEntry`, a premise of the tree track's trace on the program.
 -/
 
 module
@@ -44,7 +44,7 @@ theorem alignA_ent {f g : String} {t : ℕ} (h : (alignA f).X.entOk t g = true) 
     exact entry_key (calleesOf_mem hc).2
   split at h
   · rename_i g' hg
-    have hgg : g' = g := nameEq_iff.mp h
+    have hgg : g' = g := by simpa using h
     subst hgg
     have hm := trieOf_mem hb hg
     simp only [entsOf, List.map_map, List.mem_map, Function.comp_apply, Prod.mk.injEq] at hm

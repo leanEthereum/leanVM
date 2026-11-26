@@ -96,7 +96,6 @@ def topKeyOf (leafIndex : LeafIndex) : TopIndex :=
 structure PublicKey where
   root : Digest
   parameter : PublicParameter
-deriving DecidableEq
 
 /-- One layer's signature: the randomizer, the `v` chain values and the authentication path. -/
 structure LayerSignature where
@@ -138,7 +137,6 @@ structure TweakFields where
   step : BitVec 3
   hi : BitVec 24
   lo : BitVec 32
-deriving DecidableEq
 
 /-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^8`: `lo` on 4 bytes, `hi` on 3 bytes,
 each least significant byte first, then the type byte, then 8 zero bytes. -/
@@ -189,41 +187,6 @@ payload is its value followed by `domainSuffix`. -/
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   bytesLE 16 parameter ++ tweakBytes domain ++ message ++ domainSuffix domain
-
-/-- `P || A(7, 0, 0, leafIndex) || S || m`, the randomizer base `R0` of a message. -/
-def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
-    (leafIndex : LeafIndex) (message : Message) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (tweakFields 7 0 0 leafIndex.val) ++
-    bytesLE 32 seed ++ bytesLE 32 message
-
-/-- `P || A_rnd(1, b) || S || r_b`, the randomizer base of the top signature of bottom tree `b`. -/
-def topRandomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
-    (key : TopIndex) (root : Digest) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (tweakFields 7 0 topFlag key.val) ++
-    bytesLE 32 seed ++ bytesLE 16 root
-
-/-- The seed derivations: the parameter (under `P = 0`), and the starts of chains `2t` and `2t + 1`
-of a one-time key of either layer, the two halves of one hash. -/
-inductive KeygenDomain where
-  | parameter
-  | chain (leafIndex : LeafIndex) (pair : ChainPair)
-  | topChain (key : TopIndex) (pair : ChainPair)
-deriving DecidableEq
-
-/-- `TWEAK_PARAMETER = 5`, `TWEAK_PRF = 0` (`hi` the pair, flagged on the top layer, `lo` the key). -/
-def keygenDomainFields : KeygenDomain → TweakFields
-  | .parameter => tweakFields 5 0 0 0
-  | .chain leafIndex pair => tweakFields 0 0 pair leafIndex
-  | .topChain key pair => tweakFields 0 0 (topFlag + pair) key
-
-/-- `"leanXMSS" || S_0`, the input of the scheme's seed `S`. -/
-def seedHashInput (keySeed : MasterSeed) : HashInput :=
-  [0x6c, 0x65, 0x61, 0x6e, 0x58, 0x4d, 0x53, 0x53] ++ bytesLE 32 keySeed
-
-/-- `P || A || S`; parameter derivation uses `P = 0`. -/
-def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) : HashInput :=
-  bytesLE 16 parameter ++ fieldBytes (keygenDomainFields domain) ++ bytesLE 32 seed
 
 /-! ### The target-sum code
 
@@ -303,7 +266,7 @@ def nodePayload (left right : Digest) : HashInput :=
   bytesLE 16 left ++ bytesLE 16 right
 
 /-- Run the `n` computations in index order and collect their results. -/
-def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
+def sequenceFin {m : Type → Type} [Monad m] {n : Nat}
     (computation : Fin n → m α) : m (Fin n → α) :=
   match n with
   | 0 => pure Fin.elim0
@@ -644,38 +607,6 @@ end Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
-
-/-- One seed derivation, all 32 bytes: the starts of two chains are its halves. -/
-def deriveOutput (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    m HashOutput :=
-  Concrete.oracleHash (keygenHashInput parameter domain seed)
-
-/-- `R0 = Th(P, A_rnd(idx), S || m)`. -/
-def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
-    (message : Message) : m Randomness := do
-  return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message)).extractLsb' 0 randomnessBits
-
-/-- `R0` of the top signature of bottom tree `b`. -/
-def deriveTopRandomizer (parameter : PublicParameter) (seed : MasterSeed) (key : TopIndex)
-    (root : Digest) : m Randomness := do
-  return truncateHash (← Concrete.oracleHash (topRandomizerHashInput parameter seed key root))
-
-/-- The chain starts of every bottom key, from 29 derivations each. -/
-def deriveSecrets (parameter : PublicParameter) (seed : MasterSeed) :
-    m (LeafIndex → ChainIndex → Digest) := do
-  let outputs ← Concrete.sequenceFin fun leafIndex => Concrete.sequenceFin fun pair =>
-    deriveOutput parameter (.chain leafIndex pair) seed
-  return fun leafIndex chain => hashHalf chain.val (outputs leafIndex (chainPair chain))
-
-/-- The chain starts of every top key. -/
-def deriveTopSecrets (parameter : PublicParameter) (seed : MasterSeed) :
-    m (TopIndex → ChainIndex → Digest) := do
-  let outputs ← Concrete.sequenceFin fun key => Concrete.sequenceFin fun pair =>
-    deriveOutput parameter (.topChain key pair) seed
-  return fun key chain => hashHalf chain.val (outputs key (chainPair chain))
-
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
@@ -688,19 +619,6 @@ structure SecretKey where
   seed : MasterSeed
   precomputed : XmssSecurity.SecretKey
 
-/-- Hash the key's seed `S_0` into `S = H("leanXMSS" || S_0)`, derive the parameter and the secrets,
-then compute and store both layers. -/
-def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
-  let seed ← Concrete.oracleHash (seedHashInput keySeed)
-  let parameter ← deriveKey 0 .parameter seed
-  let secret ← deriveSecrets parameter seed
-  let topSecret ← deriveTopSecrets parameter seed
-  let result ← (Concrete.honestKeygen parameter secret topSecret
-    (deriveTopRandomizer parameter seed) : OracleComp HashSpec _).withQueryLog
-  let precomputed := Concrete.precomputedSecretKey parameter secret topSecret result.1.2
-    (hashCacheOfLog result.2)
-  return (⟨result.1.1, parameter⟩, ⟨seed, precomputed⟩)
-
 /-- Try the randomizers `base + trial, base + trial + 1, ...`, stopping at the first admissible
 encoding. -/
 def signFrom (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) (base : Randomness) :
@@ -711,13 +629,6 @@ def signFrom (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
       match ← Concrete.precomputedSignAttempt secretKey.precomputed leafIndex message randomness with
       | some signature => return some signature
       | none => signFrom secretKey leafIndex message base attempts (trial + 1)
-
-/-- Derive `R0`, take the least admissible trial `R0 + c`, `c < A_max`, and attach the top signature;
-fail if the bottom tree has none. -/
-def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : m (Option Signature) := do
-  let base ← deriveRandomizer secretKey.precomputed.parameter secretKey.seed leafIndex message
-  let result ← signFrom secretKey leafIndex message base signingAttemptLimit 0
-  return if Concrete.topSignedAt secretKey.precomputed leafIndex then result else none
 
 end Seeded
 

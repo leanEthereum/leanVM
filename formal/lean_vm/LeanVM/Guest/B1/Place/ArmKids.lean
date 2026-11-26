@@ -22,8 +22,7 @@ public import LeanVM.Guest.B1.Place.Ls
 /-!
 # The callees, placed
 
-* `LpAtO`, `LqAtO`, `LrAtO`: the helpers' placed statements (`LpAtD`, `LqAtD`, `LrAtD`) at an
-  optional words bound; `lpAtO_of_D`, `lqAtO_of_D`, `lrAtO_of_D` at none.
+* `LrAtO`: `level_residual`'s placed statement (`LrAtD`) at an optional words bound; `lrAtO_of_D` at none.
 * `winW … l p`: level `l`'s slice of `query_win_ptrs`, its `level_positions` at `p` (the window
   pointers into its decoders' runs, `winPtrsA`); `runsS … l p`: those runs.
 * `osLvPops H l`: level `l`'s `level_queries` entries at the honest witness; `arm_lq_ok`: its
@@ -52,16 +51,6 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
 
 /-! ## The helpers' statements at an optional bound -/
-
-theorem lpAtO_of_D {name loop : String} {S d cd : ℕ} (h : LpAtD fs cert κ name loop S d cd) :
-    LpAtO fs cert κ name loop S d cd none := h
-
-theorem lqAtO_of_D {name : String} {q base folds leaf d cd mu nhs hbits fin : ℕ}
-    (h : LqAtD fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
-    LqAtO fs cert κ name q base folds leaf d cd mu nhs hbits fin none :=
-  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 h1 h2 h3 h4 h5 h6 ↦
-    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 h1 h2 h3 h4 h5
-      h6).toO
 
 theorem lrAtO_of_D {name : String} {cols nhs hbits : ℕ} (h : LrAtD fs cert κ name cols nhs hbits) :
     LrAtO fs cert κ name cols nhs hbits none :=
@@ -331,7 +320,7 @@ theorem arm_lq_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {cu
           (lpLvP (osLvA c l).depth (osLvA c l).capDepth).depth
           (lpLvP (osLvA c l).depth (osLvA c l).capDepth).capDepth
           (k % sqPer (lpLvP (osLvA c l).depth (osLvA c l).capDepth)) = ofK (addressOfIndex (eb k)) := by
-        rw [qwPtrAt, ofK_addressOfIndex_mul_gen_pow]; rfl
+        rw [qwPtrAt, ofK_addr_mul_gen_pow]; rfl
       rw [e] at this
       exact this
     · have hk' : k < (osLvA c l).squeezes * (128 / (osLvA c l).depth) := lt_of_lt_of_le hk hqS
@@ -655,13 +644,13 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
     refine hls j hjy hnm Lk _ _ _ _ _ _ _ (zeroOf_01 _) (fun q hq' t ht ↦ ?_) (fun rd hlow hm ↦ ?_)
     · have hptr : ∀ e o t, (osPtrA c b0 e * gen ^ o).limb 0 * addressOfIndex t =
           addressOfIndex (baseA c b0 e + (o + t)) := fun e o t ↦ by
-        rw [osPtrA_mul, limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
+        rw [osPtrA_mul, limb_ofK_addr, Nat.add_assoc]
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
       rcases hq' with rfl | rfl | rfl <;> simp only at ht
       · exact ⟨_, hptr osIxQposA _ t, regionL_lkA_buf hlen h9 (by decide)
           (by rw [← osOwnA, hlen9]; exact hpos t ht)⟩
       · exact ⟨_, hptr osIxFchA _ t, regionL_lkA_buf hlen h2 (by decide) (by rw [← osOwnA, hlen2]; omega)⟩
-      · exact ⟨_, limb0_ofK_addressOfIndex_mul _ t, regionL_lkA_buf hlen htc (by simp only [osIxTchA, osIxQbpA]; omega)
+      · exact ⟨_, limb_ofK_addr _ t, regionL_lkA_buf hlen htc (by simp only [osIxTchA, osIxQbpA]; omega)
           (by rw [← osOwnA, hlenT]; omega)⟩
     · have hM := osMemA_of_lk hlen hm
       refine ⟨fun i hi ↦ ?_, fun t ht ↦ ?_, fun t ht ↦ ?_⟩
@@ -707,7 +696,7 @@ theorem arm_rest_ok {Bd : Option (String → ℕ)} {c : OsCfg} {args : List E} {
     (by simp) (fun q hq' t ht ↦ ?_) (fun rd hlow hm ↦ ?_)
   · have hptr : ∀ e o t, (osPtrA c b0 e * gen ^ o).limb 0 * addressOfIndex t =
         addressOfIndex (baseA c b0 e + (o + t)) := fun e o t ↦ by
-      rw [osPtrA_mul, limb0_ofK_addressOfIndex_mul, Nat.add_assoc]
+      rw [osPtrA_mul, limb_ofK_addr, Nat.add_assoc]
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hq'
     rcases hq' with rfl | rfl | rfl
     · exact ⟨_, hptr osIxQposA _ t, regionL_lkA_buf hlen h9 (by decide)

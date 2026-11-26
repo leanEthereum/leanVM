@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Tables.InterfaceP
   run of the body holds each section on its own (`holdsList_noRet`).
 * `expTablesAt_of`, `winTabs_of`: `verify_sub`'s precondition as `verify_tables`, the grinds and
   `open_stacked` read it.
-* `tau_ge`, `tau_lt`, `depth_ge`: the `KECCAK` table's height lies in `[9, 28]`, and the bus depth
-  is at least `20`.
+* `tau_ge`, `depth_ge`: the `KECCAK` table's height is at least `9`, and the bus depth at least
+  `20`.
 * `bytecodeAt_claimed`: the deferring check accepts the claim it is handed.
 -/
 
@@ -38,15 +38,7 @@ theorem vsT_split : vsT = vsHeadT ++ (vsReadsT ++ (vsSizesT ++ (vsPushT ++ (vsRo
       (vsLamT ++ vsTailT)))))))))))) := by
   simp only [vsT, List.append_assoc]
 
-theorem vsSizesT_noRet : Stmt.noRetList vsSizesT = true := by decide +kernel
 theorem vsPlaceT_noRet : Stmt.noRetList vsPlaceT = true := by decide +kernel
-theorem vsOodT_noRet : Stmt.noRetList vsOodT = true := by decide +kernel
-theorem vsFpwT_noRet : Stmt.noRetList vsFpwT = true := by decide +kernel
-theorem vsCallsT_noRet : Stmt.noRetList vsCallsT = true := by decide +kernel
-theorem vsMapsT_noRet : Stmt.noRetList vsMapsT = true := by decide +kernel
-theorem vsCtabT_noRet : Stmt.noRetList vsCtabT = true := by decide +kernel
-theorem vsLamT_noRet : Stmt.noRetList vsLamT = true := by decide +kernel
-
 /-! ## The exponent tables -/
 
 theorem gSquares_of_exp {rd : Reader} {sq : E} (h : ExpTables rd sq) :
@@ -84,9 +76,6 @@ theorem expTablesAt_of {rd : Reader} {sq : E} (h : ExpTables rd sq) (hw : ExpWin
 
 /-! ## The heights -/
 
-theorem getD_mem' {l : List ℕ} {i : ℕ} (h : i < l.length) : l.getD i 0 ∈ l := by
-  rw [List.getD_eq_getElem _ _ h]; exact List.getElem_mem h
-
 theorem tableHeights_length (rowsN : List ℕ) (h : rowsN.length = 6) :
     (Tables.tableHeightsOf rowsN).length = 6 := by
   simp [Tables.tableHeightsOf, h, tableLogFloors]
@@ -96,10 +85,6 @@ theorem tau_ge {rowsN : List ℕ} (h : rowsN.length = 6) :
   match rowsN, h with
   | [_, _, _, _, _, _], _ =>
     simp [Tables.tableHeightsOf, tableLogFloors, keccakMinStepsLog]
-
-theorem tau_lt {rowsN : List ℕ} (h : rowsN.length = 6)
-    (hh : ∀ x ∈ Tables.tableHeightsOf rowsN, x < 33) : (Tables.tableHeightsOf rowsN).getD 5 0 < 33 :=
-  hh _ (getD_mem' (by rw [tableHeights_length rowsN h]; omega))
 
 /-- The Keccak table's height is at most `24` once every committed column's log is below `31`:
 its column `q_keccak` has the log `τ + 6`. -/
@@ -156,7 +141,7 @@ theorem vs_gen_pow_ne_one {n : ℕ} (h0 : 0 < n) (h : n < 2 ^ 64 - 1) : gen ^ n 
 theorem bytecodeAt_claimed (bytecode : List K) (pt : List E) (v : E) :
     Tables.BytecodeAt (claimedBytecodeValue ⟨pt, v⟩) bytecode pt v := by
   intro s
-  simp [claimedBytecodeValue, runId, VerifierProgram.require, Compile.runWithHash]
+  simp [claimedBytecodeValue, Tables.tbRun, VerifierProgram.require, Compile.runWithHash]
   rfl
 
 end

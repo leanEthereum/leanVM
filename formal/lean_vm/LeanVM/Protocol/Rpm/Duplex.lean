@@ -23,11 +23,11 @@ state or into the answer of an earlier call, keeping the capacity. On leanVM's s
 `DuplexVm`: every query `F x` keeps lanes `16..24` of the zero state or of an earlier answer
 (`AdmissibleVm`); lane `16` holds the padding's last byte, lanes `17..24` the capacity.
 
-leanVM's Fiat-Shamir sponge (`Statement/Verifier/Sponge.lean`) follows it: its seed is
+leanVM's Fiat-Shamir sponge (`Statement/Verifier/Transcript.lean`) follows it: its seed is
 `F (seedInput iv publicInput)`, zero from lane `8` on, and each later call is
 `F (duplexInput sp)`, which overwrites lanes `0..15` and keeps lanes `16..24` of the sponge's
-state, itself the seed or a later answer. Hence `duplexVm_verifier` and, for the honest prover
-followed by the verifier, `duplexVm_honest`.
+state, itself the seed or a later answer. Hence `duplexVm_verifier` and, for the honest prover,
+`duplexVm_romHonestComp`.
 
 The proofs carry a postcondition (`DuplexP`): a computation follows the discipline from the
 answers `hist`, and each of its outcomes satisfies `Q` with the answers at its end.

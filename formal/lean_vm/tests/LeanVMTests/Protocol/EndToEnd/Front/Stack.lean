@@ -10,13 +10,14 @@ import LeanVM.Protocol.EndToEnd.Complete.BusSide
 * **Mutation.** Breaking ties by the higher index gives another order: the stability of both sorts
   is what makes the two layouts one.
 * **Forms are linear.** `add_scaled` adds the scaled value, also when the added form repeats a
-  monomial (merged into one coefficient).
+  monomial (merged into one coefficient), and the leaf accumulation adds a block's value to its
+  owner's form on the accumulated side only.
 -/
 
 namespace LeanVMTests.Protocol.EndToEnd.Front.Stack
 
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.Verifier
-open LeanVM.Protocol.EndToEnd.Front
+open LeanVM.Protocol.EndToEnd.Front LeanVM.Protocol.EndToEnd.Complete
 
 /-- Blocks named by their index, with ties among the sizes. -/
 def sizes : List ℕ := [1, 3, 0, 3, 2, 1]
@@ -56,6 +57,19 @@ def col (i : ℕ) : E := (i + 2 : ℕ)
 #guard (f₁.addScaled f₂ 11).terms.length == 4
 
 example (w : E) : (f₁.addScaled f₂ w).evaluate col = f₁.evaluate col + w * f₂.evaluate col :=
-  LeanVM.Protocol.EndToEnd.Complete.evaluate_addScaled f₁ f₂ w col
+  evaluate_addScaled f₁ f₂ w col
+
+/-- A block owned by table `1`, two coordinates, three of its four rows flushing. -/
+def blk : BusBlock := ⟨2, 3, [Form.col 0, Form.col 1 3], 1⟩
+
+/-- Three tables of two sides of empty forms. -/
+def forms₀ : List (List Form) := List.replicate 3 (List.replicate 2 {})
+
+/-- The value of the form of table `t` and side `k`. -/
+def formVal (forms : List (List Form)) (t k : ℕ) : E := ((forms.getD t []).getD k {}).evaluate col
+
+#guard formVal (accFold 1 [5, 7] 9 [(4, blk)] forms₀) 1 1 == 4 * blockVal 9 [5, 7] blk col
+#guard formVal (accFold 1 [5, 7] 9 [(4, blk)] forms₀) 1 0 == 0
+#guard formVal (accFold 1 [5, 7] 9 [(4, blk)] forms₀) 0 1 == 0
 
 end LeanVMTests.Protocol.EndToEnd.Front.Stack

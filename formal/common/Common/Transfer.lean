@@ -18,16 +18,11 @@ inverse. Indifferentiability (`indifferentiability`) moves any such game across:
   (`A` with its permutation queries answered by the simulator, which queries `H`) give every event
   probabilities within `indiffBound`; so every ROM bound for ROM adversaries transfers to the RPM
   with the additive cost `indiffBound`;
-* `pathsOf`: from a transcript of permutation queries and answers, the hash queries `(m, H m)`
-  whose whole sponge paths the transcript contains, replaying the simulator's bookkeeping.
-  In the RPM the pairs are correct hashes for the permutation (`pathsOf_sound`); in the ROM the
-  simulator's state is the replay of the adversary's transcript, and the pairs are exactly the
-  simulator's random-oracle queries on the adversary's behalf, with the oracle's answers
-  (`pathsOf_ideal`). So an extractor reading the ROM adversary's hash queries runs in the RPM on
-  the adversary's own hash queries together with `pathsOf` of its permutation transcript.
-* `logImpl_reachable`: the same for any simulator that moves its state by the replayed
-  bookkeeping, with any invariant of its state and the random oracle's cache that it keeps, the
-  two-oracle model's (`pathsOf_ideal2`) included.
+* `logImpl_reachable`: for a simulator that moves its state by the bookkeeping replayed from the
+  adversary's transcript of permutation queries and answers (`replay`), run in the ROM, the
+  simulator's state is that replay, and any invariant of its state and the random oracle's cache
+  that it keeps holds; the two-oracle model's `pathsOf_ideal2` reads the simulator's hash queries
+  off the transcript so.
 -/
 
 set_option linter.unusedSectionVars false
@@ -126,114 +121,6 @@ theorem transfer {β γ δ : Type} (pre : OracleComp (unifSpec + roSpec Msg Dg) 
   rw [← idealGame_rpmGame]
   exact indifferentiability P iv _ q hq p
 
-/-! ## Hash queries from permutation transcripts -/
-
-/-- A transcript consistent with a function `π`: forward answers are `π`'s values, inverse answers
-are `π`'s preimages. -/
-def Consistent (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) : Prop :=
-  ∀ e ∈ log, match e with
-    | (.forward x, y) => π x = y
-    | (.inverse y, x) => π x = y
-
-/-- The replayed bookkeeping of a consistent transcript: its edges are `π`'s, and its rooted
-states are the sponge's states along their paths. -/
-theorem replay_sound (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log) :
-    (∀ e ∈ (replay iv log).edges, π e.1 = e.2) ∧
-      ∀ p ∈ (replay iv log).chains, absorbAll (m := Id) (fun x ↦ pure (π x)) iv p.2 = p.1 := by
-  unfold replay
-  induction log using List.reverseRecOn with
-  | nil => simp [SimState.init, absorbAll]; rfl
-  | append_singleton log e ih =>
-    have hlog : Consistent π log := fun e he ↦ h e (List.mem_append_left _ he)
-    have he : Consistent π [e] := fun e' he' ↦ h e' (List.mem_append_right _ he')
-    obtain ⟨hE, hC⟩ := ih hlog
-    rw [List.foldl_append, List.foldl_cons, List.foldl_nil]
-    set σ := log.foldl replayStep (SimState.init iv)
-    obtain ⟨q, a⟩ := e
-    have he' := he (q, a) (List.mem_singleton_self _)
-    cases q with
-    | forward x =>
-      simp only at he'
-      simp only [replayStep]
-      split
-      · exact ⟨hE, hC⟩
-      · split
-        · next s β hch =>
-          obtain ⟨hsβ, hsx⟩ := chainOf_some hch
-          refine ⟨fun e he ↦ ?_, fun p hp ↦ ?_⟩
-          · rcases List.mem_cons.mp he with rfl | he
-            · exact he'
-            · exact hE e he
-          · rcases List.mem_cons.mp hp with rfl | hp
-            · simp only
-              rw [absorbAll_append, hC _ hsβ]
-              simp only [absorbAll]
-              change π (absorb s (blockTo s x)) = a
-              rw [absorb_blockTo hsx, he']
-            · exact hC p hp
-        · refine ⟨fun e he ↦ ?_, hC⟩
-          rcases List.mem_cons.mp he with rfl | he
-          · exact he'
-          · exact hE e he
-    | inverse y =>
-      simp only at he'
-      simp only [replayStep]
-      split
-      · exact ⟨hE, hC⟩
-      · refine ⟨fun e he ↦ ?_, hC⟩
-        rcases List.mem_cons.mp he with rfl | he
-        · exact he'
-        · exact hE e he
-
-/-- **The hash queries of a transcript are correct hashes**: for a transcript consistent with a
-function `π`, every pair `(m, d)` of `pathsOf` has `d = H^π m`, the sponge over `π`. -/
-theorem pathsOf_sound (π : SpState Dg E C → SpState Dg E C)
-    (log : List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) (h : Consistent π log)
-    {m : Msg} {d : Dg} (hmd : (m, d) ∈ pathsOf P iv log) :
-    spongeWith (m := Id) P iv (fun x ↦ pure (π x)) m = d := by
-  simp only [pathsOf, simPaths, List.mem_filterMap, Option.map_eq_some_iff,
-    Prod.mk.injEq] at hmd
-  obtain ⟨p, hp, m', hm, rfl, rfl⟩ := hmd
-  have := (replay_sound iv π log h).2 p hp
-  have hpad := (P.unpad_eq_some_iff _ _).mp hm
-  simp only [spongeWith, hpad, this]
-  rfl
-
-/-! ## The simulator's bookkeeping is the replay of the adversary's transcript -/
-
-/-- A simulator step moves its state by the replayed bookkeeping of the query and answer. -/
-theorem simulator_step_replay (q : PermutationQuery (SpState Dg E C)) (σ : SimState Dg E C) {z}
-    (hz : z ∈ support ((simulator P q).run σ)) : z.2 = replayStep σ (q, z.1) := by
-  cases q with
-  | forward x =>
-    simp only [simulator, StateT.run_mk] at hz
-    simp only [replayStep]
-    split at hz
-    · next y hy =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hy]
-    · next hy =>
-      split at hz
-      · next s β hch =>
-        simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-        obtain ⟨y, -, rfl⟩ := hz
-        simp [hy, hch]
-      · next hch =>
-        simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-        obtain ⟨y, -, rfl⟩ := hz
-        simp [hy, hch]
-  | inverse y =>
-    simp only [simulator, StateT.run_mk] at hz
-    simp only [replayStep]
-    split at hz
-    · next x hx =>
-      simp only [support_pure, Set.mem_singleton_iff] at hz; subst hz; simp [hx]
-    · next hx =>
-      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-      obtain ⟨x, -, rfl⟩ := hz
-      simp [hx]
-
 /-! ## A logged simulator -/
 
 section Logged
@@ -253,16 +140,6 @@ noncomputable def logImpl : QueryImpl (dSpec Msg Dg (SpState Dg E C))
   | .inr (.inr q) => StateT.mk fun s ↦
       (fun z ↦ (z.1, (z.2, s.2 ++ [(q, z.1)]))) <$> (sim q).run s.1
   | t => StateT.mk fun s ↦ (fun z ↦ (z.1, (z.2, s.2))) <$> (base t).run s.1
-
-/-- Forgetting the transcript gives `base`, where `base` answers the permutation queries by
-`sim`. -/
-theorem logImpl_proj (h : ∀ q, base (.inr (.inr q)) = sim q) {α : Type}
-    (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
-    Prod.map id Prod.fst <$> (simulateQ (logImpl sim base) D).run s =
-      (simulateQ base D).run s.1 :=
-  OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ _ (fun t s ↦ by
-    rcases t with n | m | q <;> simp [logImpl, h, Functor.map_map]) D s
 
 /-- An output reachable in the random oracle model is reachable with arbitrary answers. -/
 theorem fst_mem_support_of_mem_support_rom {β : Type} {X : OracleComp (unifSpec + hs) β}
@@ -291,8 +168,8 @@ theorem logImpl_state_eq_replay
     (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) {z}
     (hz : z ∈ support ((simulateQ (logImpl sim base) D).run (SimState.init iv, []))) :
     z.2.1 = replay iv z.2.2 := by
-  refine inv_of_mem_support_run (spec' := unifSpec + hs) (logImpl sim base)
-    (fun s ↦ s.1 = replay iv s.2) (fun t s hinv w hw ↦ ?_) D rfl z hz
+  refine simulateQ_run_preserves_inv_of_query (spec' := unifSpec + hs) (logImpl sim base)
+    (fun s ↦ s.1 = replay iv s.2) (fun t s hinv w hw ↦ ?_) D _ rfl z hz
   have hkeep (h : ∀ u ∈ support ((base t).run s.1), u.2 = s.1)
       (hw : w ∈ support ((fun z ↦ (z.1, (z.2, s.2))) <$> (base t).run s.1)) :
       w.2.1 = replay iv w.2.2 := by
@@ -325,8 +202,9 @@ theorem logImpl_reachable (Good : SimState Dg E C → hs.QueryCache → Prop)
     (hz : z ∈ support ((simulateQ (foldRO (logImpl sim base)) D).run
       (((SimState.init iv : SimState Dg E C), []), ∅))) :
     z.2.1.1 = replay iv z.2.1.2 ∧ Good z.2.1.1 z.2.2 := by
-  refine inv_of_mem_support_run (spec' := unifSpec) (foldRO (logImpl sim base))
-    (fun s ↦ s.1.1 = replay iv s.1.2 ∧ Good s.1.1 s.2) (fun t s hinv w hw ↦ ?_) D ⟨rfl, hinit⟩ z hz
+  refine simulateQ_run_preserves_inv_of_query (spec' := unifSpec) (foldRO (logImpl sim base))
+    (fun s ↦ s.1.1 = replay iv s.1.2 ∧ Good s.1.1 s.2) (fun t s hinv w hw ↦ ?_) D _ ⟨rfl, hinit⟩
+    z hz
   rw [foldRO_run] at hw
   simp only [support_map, Set.mem_image] at hw
   obtain ⟨y, hy, rfl⟩ := hw
@@ -351,86 +229,6 @@ theorem logImpl_reachable (Good : SimState Dg E C → hs.QueryCache → Prop)
     rfl
 
 end Logged
-
-/-- The ideal world with the adversary's permutation transcript logged, oldest first. -/
-noncomputable def idealImplLog : QueryImpl (dSpec Msg Dg (SpState Dg E C))
-    (StateT (SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C))
-      (OracleComp (unifSpec + roSpec Msg Dg))) :=
-  logImpl (simulator P) (idealImpl P)
-
-/-- Forgetting the transcript gives the ideal world. -/
-theorem idealImplLog_proj {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α)
-    (s : SimState Dg E C × List (PermutationQuery (SpState Dg E C) × SpState Dg E C)) :
-    Prod.map id Prod.fst <$> (simulateQ (idealImplLog P) D).run s =
-      (simulateQ (idealImpl P) D).run s.1 :=
-  logImpl_proj (simulator P) (idealImpl P) (fun _ ↦ rfl) D s
-
-/-- The digests of the simulator's rooted paths are cached random-oracle answers, and stay. -/
-theorem simulator_good (q : PermutationQuery (SpState Dg E C)) (σ : SimState Dg E C)
-    (c : (roSpec Msg Dg).QueryCache) (hs : ∀ md ∈ simPaths P σ, c md.1 = some md.2)
-    (w : (SpState Dg E C × SimState Dg E C) × (roSpec Msg Dg).QueryCache)
-    (hw : w ∈ support ((simulateQ (roSpec Msg Dg).romImpl ((simulator P q).run σ)).run c)) :
-    ∀ md ∈ simPaths P w.1.2, w.2 md.1 = some md.2 := by
-  have hold : ∀ md ∈ simPaths P σ, w.2 md.1 = some md.2 := fun md hmd ↦
-    le_of_mem_support_run _ c hw (hs md hmd)
-  cases q with
-  | inverse y =>
-    rw [simulator_step_replay P _ _ (fst_mem_support_of_mem_support_rom hw)]
-    simp only [replayStep]
-    split
-    · exact hold
-    · exact hold
-  | forward x =>
-    simp only [simulator, StateT.run_mk] at hw
-    split at hw
-    · simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hw
-      subst hw; exact hold
-    · split at hw
-      · next s β hch =>
-        simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
-          mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hw
-        obtain ⟨⟨y, c₁⟩, hy, rfl⟩ := hw
-        intro md hmd
-        simp only [simPaths, List.mem_filterMap, List.mem_cons] at hmd
-        obtain ⟨p, hp | hp, hpm⟩ := hmd
-        · subst hp
-          obtain ⟨m', hm', rfl⟩ := Option.map_eq_some_iff.mp hpm
-          rw [rootedAnswer_run_some P hm'] at hy
-          simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff,
-            support_uniformSample, Set.mem_univ, true_and] at hy
-          obtain ⟨⟨d, c₂⟩, hd, ec, hec⟩ := hy
-          simp only [Prod.mk.injEq] at hec
-          obtain ⟨rfl, rfl⟩ := hec
-          exact (roStep_support _ _ hd).2.1
-        · exact hold md (List.mem_filterMap.mpr ⟨p, hp, hpm⟩)
-      · simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure,
-          simulateQ_romImpl_liftM_run, mem_support_bind_iff, support_map, Set.mem_image,
-          support_pure, Set.mem_singleton_iff] at hw
-        obtain ⟨_, ⟨y, -, rfl⟩, rfl⟩ := hw
-        exact hold
-
-/-- **The hash queries of the adversary's transcript, in the ideal world**: on every reachable
-state of the logged ideal world, every pair `(m, d)` of `pathsOf` of the adversary's
-permutation transcript is the random oracle's cached answer `H m = d`. These are exactly the
-random-oracle queries the simulator made for the adversary (`rootedAnswer`): an extractor that
-reads the ROM adversary's hash queries reads, in the RPM, the adversary's own hash queries and
-`pathsOf` of its permutation transcript. -/
-theorem pathsOf_ideal {α : Type} (D : OracleComp (dSpec Msg Dg (SpState Dg E C)) α) {z}
-    (hz : z ∈ support ((simulateQ (foldRO (idealImplLog P)) D).run
-      (((SimState.init iv : SimState Dg E C), []), ∅))) :
-    ∀ md ∈ pathsOf P iv z.2.1.2, z.2.2 md.1 = some md.2 := by
-  obtain ⟨hrep, hgood⟩ := logImpl_reachable iv (simulator P) (idealImpl P)
-    (fun σ c ↦ ∀ md ∈ simPaths P σ, c md.1 = some md.2) (simulator_step_replay P)
-    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz)
-    (fun _ σ _ hz ↦ snd_eq_of_mem_support_liftM _ σ hz)
-    (fun _ _ _ h hle md hmd ↦ hle (h md hmd)) (simulator_good P) (by
-      simp only [simPaths, SimState.init, List.filterMap_cons, List.filterMap_nil]
-      rcases h : P.unpad [] with _ | a
-      · simp
-      · exact absurd ((P.unpad_eq_some_iff _ _).mp h) (P.pad_ne_nil a)) D hz
-  intro md hmd
-  rw [pathsOf, ← hrep] at hmd
-  exact hgood md hmd
 
 end Setting
 

@@ -56,6 +56,7 @@ theorem card_exists_le {α β : Type} [Fintype α] {C : Set β} (hfin : C.Finite
       ((Finset.univ.filter fun c ↦ P q c).card : ℝ≥0∞) ≤ e) :
     (Fintype.card α : ℝ≥0∞)⁻¹ *
         ((Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c).card : ℝ≥0∞) ≤ L₀ * e := by
+  classical
   let s := hfin.toFinset
   have hsub : (Finset.univ.filter fun c ↦ ∃ q ∈ C, P q c) ⊆
       s.biUnion fun q ↦ Finset.univ.filter fun c ↦ P q c := by

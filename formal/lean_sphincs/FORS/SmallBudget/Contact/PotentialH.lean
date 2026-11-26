@@ -2,6 +2,7 @@ module
 
 public import FORS.SmallBudget.Contact.PaidPotentialH
 public import FORS.SmallBudget.Contact.Bound
+public import FORS.SmallBudget.Contact.Potential
 
 @[expose] public section
 
@@ -19,10 +20,8 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open HiddenReveal PotentialA
-open FORS.LoopWalk Common.LoopWalk
+open FORS.LoopWalk
 
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 section PaysH
@@ -48,28 +47,8 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   have hM := hB.minv
   obtain ⟨y, rfl⟩ : ∃ y, budget = y + 1 := ⟨budget - 1, by omega⟩
   simp only [Nat.add_sub_cancel]
-  -- the cap term keeps its mean
-  have hlam : pairE (fun u => lam Lmax (livePairs L (addPair K.p P p u)).length y) ≤ lam Lmax ℓ (y + 1) := by
-    by_cases hlive : MsgLive L p.1
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y =
-          if Landed K.p (blockIndex (u firstCall)) then lam Lmax (ℓ + 1) y else lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_left (by simpa using hlive), List.length_cons]
-          rfl
-        · rfl
-      simp only [hl]
-      exact le_of_eq (lam_newPair K.p Lmax ℓ y)
-    · have hl : ∀ u, lam Lmax (livePairs L (addPair K.p P p u)).length y = lam Lmax ℓ y := by
-        intro u
-        unfold addPair livePairs
-        split_ifs with hl
-        · rw [List.filter_cons, ite_eq_right (by simpa using hlive)]
-          rfl
-        · rfl
-      simp only [hl, pairE_const]
-      exact lam_mono le_rfl (Nat.le_succ y)
+  have hlam : pairE (fun u => lam Lmax (livePairs L (addPair K.p P p u)).length y) ≤ lam Lmax ℓ (y + 1) :=
+    pairE_lam_addPair K.p Lmax y L P p
   unfold psiF psiCoreF
   rw [pairE_add]
   refine add_le_add ?_ hlam
@@ -110,7 +89,6 @@ theorem psiF_newPair {Cmax Lmax : ℕ} (hfair : FairS wbar Cmax Lmax) (hQ : Qtot
   rw [wsum_gA K R (coefU K data wbar Fail s P Ms L d (y + 1)) s, ← hwS, ← hwU]
   unfold coefU
   gcongr
-
 
 theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActive K.p))
     (hMi : model.incoming = Address.inputCoordinate) (hw : wbar ≤ 1) {payB : ℝ≥0∞}
@@ -209,7 +187,6 @@ theorem psiF_ordinary (hMp : model.parse = HiddenGraph.parse K.p (candidateActiv
         · exact potNF_mono K data wbar Fail hw s P (fun q hq => (hB.pinv.mem q).1 hq) Ms L d
             (Nat.le_succ y)
 
-
 /-- A near cover of a valid finished game makes the near potential at least one. -/
 theorem potNF_ge_of_near (hw : wbar ≤ 1) {budget : ℕ} {s : State} {P : List Pair} {Ms : List Message}
     {d : Multiset View} {R : List Coordinate} {L : QueryLog SigningSpec}
@@ -297,7 +274,6 @@ theorem psiF_final (hw : wbar ≤ 1) (Lmax : ℕ) :
                     rw [min_eq_left h]
         · rw [prEvent_eq_zero_of_forall_mem_support _ _ fun T _ h => hc h.2]
           exact zero_le
-
 
 end PaysH
 

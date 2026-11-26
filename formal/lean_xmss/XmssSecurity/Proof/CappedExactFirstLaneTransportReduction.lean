@@ -1,24 +1,34 @@
 module
 
-public import XmssSecurity.Proof.CappedExactFirstLaneSourceCoupling
-public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
-public import XmssSecurity.Proof.CappedGlobalChainHighReduction
 public import XmssSecurity.Proof.CappedChain.DirectQueryAccounting
-public import XmssSecurity.Proof.StateLens
 public import XmssSecurity.Proof.EagerTraceInvariant
+public import XmssSecurity.Proof.CappedGlobalFirstLaneExperiment
 
 @[expose] public section
+
+/-!
+# The exact first lane, transported into the first-lane oracle
+
+`globalFirstLaneExactTracedProgram` is the causal simulation's detailed game, with the attacker's
+action trace, run in the first-lane oracle. It erases to the causal simulation's traced execution
+(`globalHighDirectTracedDetailedExecution`, `globalFirstLaneErase_exactTracedDetailedExecution`),
+and each adversary query costs at most its `directHashActionCost` in hazards, the verifier's at most
+one (`globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound`,
+`globalFirstLaneExactTracedVerifierImpl_hazardBound`). Along its eager trace, every encoding action
+the game's encoding trace records is among the first-lane trace's encoding actions
+(`globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist`), and its valid signed leaf
+indices form a sublist of the signing log's
+(`globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist`), so a hit of the capped
+encoding monitor on the game's trace is a combined hit
+(`globalHighExactEncodingEvent_implies_combinedHit`). `globalFirstLaneExactPublicEagerExperiment`
+runs the program, then emits the forgery's primary probes, in the eager experiment;
+`CappedExactFirstLaneBound` bounds it.
+-/
 
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 
-universe u
-
-variable {ι : Type*} {α : Type}
-
 namespace XmssSecurity.CappedChain
-
-set_option linter.constructorNameAsVariable false
 
 namespace GlobalHighDirectTracedState
 
@@ -41,9 +51,6 @@ abbrev attackerTrace (state : GlobalHighDirectTracedState) :
     attackerTrace (mk causal trace) = trace := rfl
 
 end GlobalHighDirectTracedState
-
-variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
-  (edgeHigh : GlobalChainEdgeIndex → Digest)
 
 /-- `h` at a set and element that are definitionally `t` and `b`. The kernel checks `HEq s t` on the
 arguments of `support`; matching `a ∈ s` with `b ∈ t` directly, it unfolds the `Set.Mem`
@@ -95,27 +102,34 @@ noncomputable def globalExactTracedLift {ι : Type} {world : OracleSpec ι}
       globalExactTracedNextState keyView input state result.1 result.2)) <$>
       base.run state.causalState
 
-noncomputable def globalFirstLaneExactTracedSigningImpl : QueryImpl SigningSpec
+noncomputable def globalFirstLaneExactTracedSigningImpl
+    (keyView : ProgrammedGlobalChainKeygenView) : QueryImpl SigningSpec
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
   fun request => globalExactTracedLift keyView (.inr request)
     (globalFirstLaneSigningImpl keyView request)
 
-noncomputable def globalFirstLaneExactTracedOracleImpl : QueryImpl OracleWorld
+noncomputable def globalFirstLaneExactTracedOracleImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) : QueryImpl OracleWorld
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
   fun input => globalExactTracedLift keyView (.inl input)
     (StateT.mk fun state =>
       globalFirstLaneOracleExecution keyView edgeHigh input state)
 
-noncomputable def globalFirstLaneExactTracedMappedAdversaryImpl :
+noncomputable def globalFirstLaneExactTracedMappedAdversaryImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) :
     QueryImpl (OracleWorld + SigningSpec)
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
   globalFirstLaneExactTracedOracleImpl keyView edgeHigh +
     globalFirstLaneExactTracedSigningImpl keyView
 
-noncomputable def globalFirstLaneExactTracedVerifierImpl :
+noncomputable def globalFirstLaneExactTracedVerifierImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) :
     QueryImpl OracleWorld
       (StateT GlobalHighDirectTracedState
         (OracleComp GlobalFirstLaneWorld)) :=
@@ -173,6 +187,7 @@ noncomputable def globalFirstLaneExactTracedProgram
   pure (keyResult, execution)
 
 theorem globalFirstLaneErase_exactTracedLift
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (sourceBase : StateT GlobalCausalHashState
       (OracleComp GlobalFirstLaneWorld)
@@ -195,6 +210,8 @@ theorem globalFirstLaneErase_exactTracedLift
   exact GlobalFirstLaneErases.pure _
 
 theorem globalExactTracedLift_highDirectMapped_eq
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState) :
     (globalExactTracedLift keyView input
@@ -207,6 +224,8 @@ theorem globalExactTracedLift_highDirectMapped_eq
     map_eq_bind_pure_comp]
 
 theorem globalFirstLaneErase_exactTracedMappedAdversaryImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState) :
     GlobalFirstLaneErases
@@ -251,6 +270,8 @@ theorem globalFirstLaneErase_exactTracedMappedAdversaryImpl
     exact herasure
 
 theorem globalFirstLaneErase_exactTracedVerifierImpl
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain)
     (state : GlobalHighDirectTracedState) :
     GlobalFirstLaneErases
@@ -296,6 +317,7 @@ noncomputable def firstLaneValidEncodingActions
   CappedEncodingMonitor.validActions trace.encodingActions
 
 theorem globalFirstLaneEncodingHashQuery_validTrace
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -332,6 +354,7 @@ theorem globalFirstLaneEncodingHashQuery_validTrace
       rfl
 
 theorem globalFirstLaneEncodingHashQuery_cacheGrowth
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -372,6 +395,7 @@ theorem globalFirstLaneEncodingHashQuery_cacheGrowth
         QueryCache.cacheQuery_self _ _ _⟩
 
 theorem globalFirstLaneLiftRevealProbe_encodingProjection
+    (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) :
     Prod.map id FirstLaneOracleSimulation.ActionTrace.encodingActions <$>
@@ -405,6 +429,7 @@ theorem globalFirstLaneLiftRevealProbe_encodingProjection
         WriterT.run_tell]
 
 theorem globalFirstLaneLiftRevealProbe_encodingActions_eq_nil
+    (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
     (result : α ×
@@ -425,6 +450,7 @@ theorem globalFirstLaneLiftRevealProbe_encodingActions_eq_nil
   exact congrArg Prod.snd heq.symm
 
 theorem globalFirstLaneSignatureReveal_result_eq
+    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : Encoding)
     (signature : Signature) (state : GlobalCausalHashState)
@@ -474,6 +500,8 @@ theorem mem_support_globalFirstLaneSigningQuery
   exact ⟨base, ((a, b), c), hmem, rfl⟩
 
 theorem globalFirstLaneSigningAttempt_support_decompose
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -532,6 +560,7 @@ theorem globalFirstLaneSigningAttempt_support_decompose
       simp [Prod.map]
 
 theorem globalFirstLaneAttackerHashQueryAtLeafIndex_trace
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (leafIndex : LeafIndex)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -563,6 +592,7 @@ theorem globalFirstLaneAttackerHashQueryAtLeafIndex_trace
       simp [FirstLaneOracleSimulation.ActionTrace.encodingActions]
 
 theorem globalFirstLaneAttackerHashQueryAtLeafIndex_cacheGrowth
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (leafIndex : LeafIndex)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -616,6 +646,7 @@ theorem globalFirstLaneAttackerHashQueryAtLeafIndex_cacheGrowth
       · exact QueryCache.cacheQuery_self _ _ _
 
 def GlobalFirstLaneSigningSummary
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
@@ -632,6 +663,8 @@ def GlobalFirstLaneSigningSummary
         result.2.encodingActions = [])
 
 theorem globalFirstLaneSigningAttempt_summary
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (randomness : Randomness) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -777,6 +810,8 @@ theorem globalFirstLaneSignBoundedAttempts_summary
             rfl
 
 theorem globalFirstLaneSigningQuery_cacheGrowth
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -794,6 +829,8 @@ theorem globalFirstLaneSigningQuery_cacheGrowth
     keyView request state attemptResult hattempt).1
 
 theorem globalFirstLaneSigningQuery_validSignLeafIndices_sublist_singleton
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest) (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -828,7 +865,10 @@ theorem encodingActionTraceUpdate_sublist_of_observation_mem
       exact (List.Sublist.refl initialTrace).append
         (List.singleton_sublist.mpr (hrepresented observation hobservation))
 
-theorem globalFirstLaneHashQuery_observation_mem (hashInput : HashInput)
+theorem globalFirstLaneHashQuery_observation_mem
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (hashInput : HashInput)
     (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -856,13 +896,15 @@ theorem globalFirstLaneHashQuery_observation_mem (hashInput : HashInput)
             result.2.encodingActions := by
           simp [htrace, hfresh]
         have hobservation' : EncodingMonitor.ObservedAction.query leafIndex
-            result.1.1 = observation := by
-          exact Option.some.inj (by simpa [encodingObservation?, hfresh, hleafIndex]
+            result.1.1 = observation :=
+          Option.some.inj (by simpa [encodingObservation?, hfresh, hleafIndex]
             using hobservation)
         simpa [← hobservation'] using haction
       · simp [encodingObservation?, hfresh] at hobservation
 
-theorem globalFirstLaneSigningQuery_observation_mem (request : SignRequest)
+theorem globalFirstLaneSigningQuery_observation_mem
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView) (request : SignRequest)
     (state : GlobalCausalHashState)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -893,14 +935,15 @@ theorem globalFirstLaneSigningQuery_observation_mem (request : SignRequest)
               (by simpa [signedInput] using hfresh)
               (by simpa [signedInput] using hfinal)
             have hobservation' : EncodingMonitor.ObservedAction.sign
-                request.leafIndex hashOutput = observation := by
-              exact Option.some.inj (by simpa [encodingObservation?, signedInput,
+                request.leafIndex hashOutput = observation :=
+              Option.some.inj (by simpa [encodingObservation?, signedInput,
                 hfresh, hfinal, houtput] using hobservation)
             simpa [← hobservation'] using haction
       · simp [encodingObservation?, signedInput, hfresh, houtput]
           at hobservation
 
-theorem globalFirstLaneUniformQuery_trace_sublist (n : Nat)
+theorem globalFirstLaneUniformQuery_trace_sublist
+    (keyView : ProgrammedGlobalChainKeygenView) (n : Nat)
     (state : GlobalCausalHashState) (initialTrace : EncodingActionTrace)
     (result : (Fin (n + 1) × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex) :
@@ -912,6 +955,9 @@ theorem globalFirstLaneUniformQuery_trace_sublist (n : Nat)
   simp [encodingActionTraceUpdate, encodingObservation?]
 
 theorem globalFirstLaneHashQuery_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (hashInput : HashInput)
     (state : GlobalCausalHashState) (initialTrace : EncodingActionTrace)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -931,7 +977,9 @@ theorem globalFirstLaneHashQuery_trace_sublist
   exact globalFirstLaneHashQuery_observation_mem table keyView edgeHigh
     hashInput state result hresult observation hobservation
 
-theorem globalFirstLaneSigningQuery_trace_sublist (request : SignRequest)
+theorem globalFirstLaneSigningQuery_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView) (request : SignRequest)
     (state : GlobalCausalHashState) (initialTrace : EncodingActionTrace)
     (result : (Option Signature × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -949,6 +997,8 @@ theorem globalFirstLaneSigningQuery_trace_sublist (request : SignRequest)
     state result hresult observation hobservation
 
 theorem globalExactTracedLift_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       ((OracleWorld + SigningSpec).Range input))
@@ -981,7 +1031,10 @@ theorem globalExactTracedLift_trace_sublist
   unfold globalExactTracedNextState
   simpa using hbaseSub baseResult hbase
 
-abbrev GlobalFirstLaneOracleTraceSublist : Prop :=
+abbrev GlobalFirstLaneOracleTraceSublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) : Prop :=
   ∀ (input : OracleWorld.Domain)
     (state : GlobalCausalHashState) (encodingTrace : EncodingActionTrace)
     (result : (OracleWorld.Range input × GlobalCausalHashState) ×
@@ -994,7 +1047,10 @@ abbrev GlobalFirstLaneOracleTraceSublist : Prop :=
         (state.cache, []) result.1.1 (result.1.2.cache, []) encodingTrace)
       (encodingTrace ++ result.2.encodingActions)
 
-theorem globalFirstLaneOracleTraceSublist_holds :
+theorem globalFirstLaneOracleTraceSublist_holds
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) :
     GlobalFirstLaneOracleTraceSublist table keyView edgeHigh := by
   intro input state encodingTrace result hresult
   cases input with
@@ -1005,7 +1061,10 @@ theorem globalFirstLaneOracleTraceSublist_holds :
       exact globalFirstLaneHashQuery_trace_sublist table keyView edgeHigh
         hashInput state encodingTrace result (mem_of_heq_set hresult rfl HEq.rfl HEq.rfl)
 
-abbrev GlobalFirstLaneExactTracedOracleTraceSublist : Prop :=
+abbrev GlobalFirstLaneExactTracedOracleTraceSublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) : Prop :=
   ∀ (input : OracleWorld.Domain)
     (state : GlobalHighDirectTracedState)
     (initialTrace : EncodingActionTrace)
@@ -1021,7 +1080,10 @@ abbrev GlobalFirstLaneExactTracedOracleTraceSublist : Prop :=
           (result.1.2.causalState.cache, []) initialTrace)
       (initialTrace ++ result.2.encodingActions)
 
-theorem globalFirstLaneExactTracedOracleTraceSublist_holds :
+theorem globalFirstLaneExactTracedOracleTraceSublist_holds
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) :
     GlobalFirstLaneExactTracedOracleTraceSublist table keyView edgeHigh := by
   intro input state initialTrace result hresult
   unfold globalFirstLaneExactTracedOracleImpl at hresult
@@ -1033,7 +1095,9 @@ theorem globalFirstLaneExactTracedOracleTraceSublist_holds :
   exact globalFirstLaneOracleTraceSublist_holds table keyView edgeHigh
     input state.causalState initialTrace
 
-theorem globalFirstLaneExactTracedSigningImpl_trace_sublist (request : SignRequest)
+theorem globalFirstLaneExactTracedSigningImpl_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView) (request : SignRequest)
     (state : GlobalHighDirectTracedState)
     (initialTrace : EncodingActionTrace)
     (result : (SigningSpec.Range request × GlobalHighDirectTracedState) ×
@@ -1056,6 +1120,9 @@ theorem globalFirstLaneExactTracedSigningImpl_trace_sublist (request : SignReque
     state.causalState initialTrace baseResult hbase
 
 theorem globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState)
     (initialTrace : EncodingActionTrace)
@@ -1080,6 +1147,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist
         request state initialTrace result hresult
 
 theorem globalFirstLaneLiftRevealProbe_mem_eagerTrace_support
+    (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
     (result : α ×
@@ -1094,7 +1162,10 @@ theorem globalFirstLaneLiftRevealProbe_mem_eagerTrace_support
     ← simulate_globalFirstLaneEagerTrace_chainProjection, support_map]
   exact ⟨result, hresult, rfl⟩
 
-theorem globalFirstLaneHashQuery_cache_le (hashInput : HashInput)
+theorem globalFirstLaneHashQuery_cache_le
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (hashInput : HashInput)
     (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1123,7 +1194,9 @@ theorem globalFirstLaneHashQuery_cache_le (hashInput : HashInput)
             hashInput state (result.1, result.2.chainActions) hprojected
 
 @[irreducible]
-noncomputable def globalFirstLaneVerifierHashExecution (hashInput : HashInput)
+noncomputable def globalFirstLaneVerifierHashExecution
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (hashInput : HashInput)
     (state : GlobalCausalHashState) : OracleComp GlobalFirstLaneWorld
       (HashOutput × GlobalCausalHashState) :=
   globalFirstLaneAttackerHashQueryFromHighRun
@@ -1131,6 +1204,9 @@ noncomputable def globalFirstLaneVerifierHashExecution (hashInput : HashInput)
       state
 
 theorem globalFirstLaneVerifierHashExecution_cache_le
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (hashInput : HashInput) (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1138,8 +1214,8 @@ theorem globalFirstLaneVerifierHashExecution_cache_le
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
         (globalFirstLaneVerifierHashExecution keyView edgeHigh hashInput
           state)).run)) :
-    state.cache ≤ result.1.2.cache := by
-  exact globalFirstLaneHashQuery_cache_le table keyView edgeHigh hashInput state result
+    state.cache ≤ result.1.2.cache :=
+  globalFirstLaneHashQuery_cache_le table keyView edgeHigh hashInput state result
     (mem_of_heq_set hresult rfl (by unfold globalFirstLaneVerifierHashExecution; exact HEq.rfl)
       HEq.rfl)
 
@@ -1175,6 +1251,9 @@ theorem simulateQ_eagerTrace_state_cache_le
   · exact hresult
 
 theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp HashSpec α)
     (initialState : GlobalCausalHashState)
     (result : (α × GlobalCausalHashState) ×
@@ -1184,8 +1263,8 @@ theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le
         ((simulateQ (fun hashInput => StateT.mk
           (globalFirstLaneVerifierHashExecution keyView edgeHigh hashInput))
             computation).run initialState)).run)) :
-    initialState.cache ≤ result.1.2.cache := by
-  exact simulateQ_eagerTrace_state_cache_le table
+    initialState.cache ≤ result.1.2.cache :=
+  simulateQ_eagerTrace_state_cache_le table
     (globalFirstLaneVerifierHashExecution keyView edgeHigh)
       (fun state : GlobalCausalHashState => state.cache)
       (fun hashInput state result h => globalFirstLaneVerifierHashExecution_cache_le table keyView
@@ -1217,7 +1296,9 @@ theorem concreteVerify_eq_encodingHash_bind_afterDigest
   intro digest
   cases TargetSum.decodeDigest digest <;> rfl
 
-theorem globalFirstLaneVerifier_eq_hashExecution (forgery : Forgery) :
+theorem globalFirstLaneVerifier_eq_hashExecution
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (forgery : Forgery) :
     simulateQ (globalFirstLaneVerifierImpl keyView edgeHigh)
         (Concrete.scheme.verify keyView.publicKey forgery.leafIndex
           forgery.message forgery.signature) =
@@ -1288,6 +1369,9 @@ theorem simulateQ_eagerTrace_query_pure_support_decompose
     GlobalChainValueIndex) = [] by rfl, List.append_nil]
 
 theorem globalFirstLaneEncodingHash_support_decompose
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (leafIndex : LeafIndex) (message : Message) (randomness : Randomness)
     (initialState : GlobalCausalHashState)
     (result : (Digest × GlobalCausalHashState) ×
@@ -1348,6 +1432,9 @@ theorem simulateQ_eagerTrace_bind_support_decompose
   rfl
 
 theorem globalFirstLaneVerifier_support_decompose_raw
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (forgery : Forgery) (initialState : GlobalCausalHashState)
     (result : (Bool × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1388,6 +1475,9 @@ theorem globalFirstLaneVerifier_support_decompose_raw
   exact ⟨queryHead, tail, hquery, mem_of_heq_set htail rfl HEq.rfl HEq.rfl, rfl⟩
 
 theorem globalFirstLaneVerifier_support_decompose
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (forgery : Forgery) (initialState : GlobalCausalHashState)
     (hparameter : keyView.publicKey.parameter = keyView.secretKey.parameter)
     (result : (Bool × GlobalCausalHashState) ×
@@ -1442,6 +1532,9 @@ theorem globalFirstLaneVerifier_support_decompose
   exact ⟨queryHead, tail, mem_of_heq_set hquery rfl (by rw [hexecution]) HEq.rfl, htail, hresultEq⟩
 
 theorem globalFirstLaneVerifier_freshEncoding_mem_trace
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (forgery : Forgery) (initialState : GlobalCausalHashState)
     (hparameter : keyView.publicKey.parameter = keyView.secretKey.parameter)
     (result : (Bool × GlobalCausalHashState) ×
@@ -1492,6 +1585,8 @@ theorem globalFirstLaneVerifier_freshEncoding_mem_trace
       (by simpa [targetInput] using hfinal)
 
 theorem globalFirstLaneExactTracedVerifierImpl_run_eq_map
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain)
     (state : GlobalHighDirectTracedState) :
     (globalFirstLaneExactTracedVerifierImpl keyView edgeHigh input).run state =
@@ -1502,20 +1597,25 @@ theorem globalFirstLaneExactTracedVerifierImpl_run_eq_map
   rfl
 
 theorem globalFirstLaneExactTracedVerifier_simulateQ_run_eq_map
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
     (state : GlobalHighDirectTracedState) :
     (simulateQ (globalFirstLaneExactTracedVerifierImpl keyView edgeHigh)
         computation).run state =
       (fun result => (result.1, state.withCausalState result.2)) <$>
         (simulateQ (globalFirstLaneVerifierImpl keyView edgeHigh)
-          computation).run state.causalState := by
-  exact globalExactTracedCausalLens.simulateQ_run_eq
+          computation).run state.causalState :=
+  globalExactTracedCausalLens.simulateQ_run_eq
     (globalFirstLaneExactTracedVerifierImpl keyView edgeHigh)
     (globalFirstLaneVerifierImpl keyView edgeHigh)
     (globalFirstLaneExactTracedVerifierImpl_run_eq_map keyView edgeHigh)
     computation state
 
 theorem globalFirstLaneExactTracedVerifier_eager_support_decompose
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
     (state : GlobalHighDirectTracedState)
     (result : (α × GlobalHighDirectTracedState) ×
@@ -1539,6 +1639,9 @@ theorem globalFirstLaneExactTracedVerifier_eager_support_decompose
   exact ⟨baseResult, hbase, heq.symm⟩
 
 theorem globalFirstLaneExactTracedVerifier_append_trace_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (forgery : Forgery)
     (state : GlobalHighDirectTracedState)
     (initialTrace : EncodingActionTrace)
@@ -1588,7 +1691,8 @@ theorem globalFirstLaneUniformImpl_run
       pure (output, state)) := by
   rfl
 
-theorem globalFirstLaneUniformImpl_validSignLeafIndices_eq_nil (n : Nat)
+theorem globalFirstLaneUniformImpl_validSignLeafIndices_eq_nil
+    (table : GlobalChainValueIndex → Digest) (n : Nat)
     (state : GlobalCausalHashState)
     (result : (Fin (n + 1) × GlobalCausalHashState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -1615,6 +1719,7 @@ theorem globalFirstLaneUniformImpl_validSignLeafIndices_eq_nil (n : Nat)
     EncodingMonitor.observedSignLeafIndices]
 
 theorem globalFirstLaneHashRun_validSignLeafIndices_eq_nil
+    (table : GlobalChainValueIndex → Digest)
     (high : GlobalChainValueIndex → Digest) (secretKey : SecretKey)
     (input : HashInput) (state : GlobalCausalHashState)
     (result : (HashOutput × GlobalCausalHashState) ×
@@ -1648,6 +1753,8 @@ theorem globalFirstLaneHashRun_validSignLeafIndices_eq_nil
       · rfl
 
 theorem globalExactTracedLift_eager_support_decompose
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       ((OracleWorld + SigningSpec).Range input))
@@ -1672,7 +1779,9 @@ theorem globalExactTracedLift_eager_support_decompose
   obtain ⟨baseResult, hbase, heq⟩ := hresult
   exact ⟨baseResult, hbase, heq.symm⟩
 
-theorem globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run (input : HashInput) :
+theorem globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (input : HashInput) :
     globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
         (.inl (.inr input)) =
       globalExactTracedLift keyView (.inl (.inr input))
@@ -1682,6 +1791,8 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run (input : HashI
   rfl
 
 theorem globalExactTracedHash_validSignLeafIndices_eq_nil
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : HashInput)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       HashOutput)
@@ -1709,6 +1820,8 @@ theorem globalExactTracedHash_validSignLeafIndices_eq_nil
   exact htraceEq.trans (hnil baseResult hbase)
 
 theorem globalExactTracedHash_validSignLeafIndices_step
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : HashInput)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       HashOutput)
@@ -1751,6 +1864,8 @@ theorem globalExactTracedHash_validSignLeafIndices_step
   rw [htrace, List.append_nil, hstate]
 
 theorem globalExactTracedLift_oracle_validSignLeafIndices_step
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (worldInput : OracleWorld.Domain)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       (OracleWorld.Range worldInput))
@@ -1799,6 +1914,8 @@ theorem globalExactTracedLift_oracle_validSignLeafIndices_step
     AttackerAction.signingEntry?]
 
 theorem globalExactTracedLift_signing_validSignLeafIndices_step
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest)
     (base : StateT GlobalCausalHashState (OracleComp GlobalFirstLaneWorld)
       (SigningSpec.Range request))
@@ -1850,6 +1967,9 @@ theorem globalExactTracedLift_signing_validSignLeafIndices_step
     AttackerAction.signingEntry?] using happended
 
 theorem globalFirstLaneExactTracedMappedAdversaryImpl_uniform_validSignLeafIndices_step
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (n : Nat)
     (initialState : GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range (.inl (.inl n)) ×
@@ -1878,6 +1998,9 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_uniform_validSignLeafIndic
     initialState.causalState baseResult hbase
 
 theorem globalFirstLaneExactTracedMappedAdversaryImpl_signing_validSignLeafIndices_step
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (request : SignRequest)
     (initialState : GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range (.inr request) ×
@@ -1904,6 +2027,9 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_signing_validSignLeafIndic
     keyView request initialState.causalState baseResult hbase
 
 theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist_of_hashRun
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (hashRun : HashInput → GlobalCausalHashState →
       OracleComp GlobalFirstLaneWorld (HashOutput × GlobalCausalHashState))
     (hhashEq : ∀ input,
@@ -1971,6 +2097,9 @@ theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist_o
   · exact hresult
 
 theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : GlobalHighDirectTracedState)
     (result : (α × GlobalHighDirectTracedState) ×
@@ -1998,13 +2127,18 @@ theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist
           (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey)
         computation initialState result hresult
 
-theorem globalFirstLaneVerifierImpl_hash_eq_run (input : HashInput) :
+theorem globalFirstLaneVerifierImpl_hash_eq_run
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest) (input : HashInput) :
     globalFirstLaneVerifierImpl keyView edgeHigh (.inr input) =
       StateT.mk (globalFirstLaneAttackerHashQueryFromHighRun
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey input) := by
   rfl
 
 theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (hashRun : HashInput → GlobalCausalHashState →
       OracleComp GlobalFirstLaneWorld (HashOutput × GlobalCausalHashState))
     (hhashEq : ∀ input,
@@ -2051,6 +2185,9 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun
   · exact hresult
 
 theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
     (state : GlobalCausalHashState)
     (result : (α × GlobalCausalHashState) ×
@@ -2060,8 +2197,8 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
         ((simulateQ (globalFirstLaneVerifierImpl keyView edgeHigh)
           computation).run state)).run)) :
     CappedEncodingMonitor.validObservedSignLeafIndices
-      result.2.encodingActions = [] := by
-  exact globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun table
+      result.2.encodingActions = [] :=
+  globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun table
     keyView edgeHigh
       (globalFirstLaneAttackerHashQueryFromHighRun
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey)
@@ -2071,6 +2208,9 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
       computation state result hresult
 
 theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
+    (table : GlobalChainValueIndex → Digest)
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
     (state : GlobalHighDirectTracedState)
     (result : (α × GlobalHighDirectTracedState) ×
@@ -2092,8 +2232,8 @@ theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
     (globalFirstLaneVerifier_validSignLeafIndices_eq_nil table keyView edgeHigh
       computation state.causalState baseResult hbase)
 
-
 theorem globalExactTracedLift_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (base : StateT GlobalCausalHashState
       (OracleComp GlobalFirstLaneWorld)
@@ -2113,6 +2253,8 @@ theorem globalExactTracedLift_hazardBound
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
 theorem globalFirstLaneExactTracedOracleImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain)
     (state : GlobalHighDirectTracedState) :
     ((globalFirstLaneExactTracedOracleImpl keyView edgeHigh input).run state)
@@ -2124,6 +2266,7 @@ theorem globalFirstLaneExactTracedOracleImpl_hazardBound
     state.causalState
 
 theorem globalFirstLaneExactTracedSigningImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
     (request : SignRequest)
     (state : GlobalHighDirectTracedState) :
     ((globalFirstLaneExactTracedSigningImpl keyView request).run state)
@@ -2134,6 +2277,8 @@ theorem globalFirstLaneExactTracedSigningImpl_hazardBound
     state.causalState
 
 theorem globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (state : GlobalHighDirectTracedState) :
     ((globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh input).run
@@ -2154,6 +2299,8 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound
       globalFirstLaneExactTracedSigningImpl_hazardBound keyView request state
 
 theorem globalFirstLaneExactTracedVerifierImpl_hazardBound
+    (keyView : ProgrammedGlobalChainKeygenView)
+    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain)
     (state : GlobalHighDirectTracedState) :
     ((globalFirstLaneExactTracedVerifierImpl keyView edgeHigh input).run state)
@@ -2169,10 +2316,8 @@ theorem globalFirstLaneExactTracedVerifierImpl_hazardBound
   exact OracleComp.isQueryBoundP_pure
     (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
-
-set_option linter.constructorNameAsVariable false
-
 theorem map_globalHighMonitored_adversary_exact_query
+    (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
@@ -2187,8 +2332,8 @@ theorem map_globalHighMonitored_adversary_exact_query
         (result.1, state.1.trace ++ result.2)) <$>
         (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl base)
           ((globalHighDirectTracedMappedAdversaryImpl keyView edgeHigh
-            input).run (GlobalHighDirectTracedState.mk state.1.causal state.2))).run := by
-  exact map_globalHighMonitored_adversary_full_query keyView base edgeHigh
+            input).run (GlobalHighDirectTracedState.mk state.1.causal state.2))).run :=
+  map_globalHighMonitored_adversary_full_query keyView base edgeHigh
     input state.1 state.2
 
 theorem map_simulate_globalHighMonitored_exact_of_query
@@ -2253,6 +2398,7 @@ theorem map_simulate_globalHighMonitored_exact_of_query
       simp [tail, Functor.map_map, List.append_assoc]
 
 theorem map_simulate_globalHighMonitored_adversary_exact
+    (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -2274,6 +2420,7 @@ theorem map_simulate_globalHighMonitored_adversary_exact
   exact map_globalHighMonitored_adversary_exact_query keyView base edgeHigh
 
 theorem map_simulate_globalHighMonitored_verifier_exact
+    (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
@@ -2290,11 +2437,10 @@ theorem map_simulate_globalHighMonitored_verifier_exact
           ((simulateQ
             (globalHighDirectTracedVerifierImpl keyView edgeHigh)
             computation).run
-              (GlobalHighDirectTracedState.mk state.1.causal state.2))).run := by
-  exact map_simulate_globalHighMonitored_verifier_full_projection keyView
+              (GlobalHighDirectTracedState.mk state.1.causal state.2))).run :=
+  map_simulate_globalHighMonitored_verifier_full_projection keyView
     base edgeHigh computation state.1 state.2
 
-set_option maxHeartbeats 3000000 in
 theorem map_globalHighMonitoredDetailedExecution_full_projection
     (adversary : Adversary)
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -2379,7 +2525,6 @@ def globalHighMonitoredFullProjection
       (result.2.1, GlobalHighDirectTracedState.mk result.2.2.1.causal
         result.2.2.2)), result.2.2.1.trace))
 
-
 def globalHighDirectExactTracedBaseProjection
     (result : GlobalExactTracedResult) : GlobalHighDirectResult :=
   (result.1, (result.2.1, result.2.2.causalState))
@@ -2400,7 +2545,6 @@ noncomputable def appendGlobalHighDirectExactPublicTrace
   (result.1, (result.2.1, result.2.2 ++
     globalHighDirectExactForgeryPrimaryProbeTrace result.2.1))
 
-
 noncomputable def globalFirstLaneExactTracedPublicProgram
     (adversary : Adversary) :
     OracleComp GlobalFirstLaneWorld GlobalExactTracedResult := do
@@ -2410,14 +2554,13 @@ noncomputable def globalFirstLaneExactTracedPublicProgram
       (globalHighDirectExactForgeryPrimaryProbeTrace result))
   pure result
 
-
 theorem globalHighDirectExactForgeryPrimaryProbeTrace_agrees
+    (table : GlobalChainValueIndex → Digest)
     (result : GlobalExactTracedResult) :
     RevealProbeOracleSimulation.TraceAgrees table
       (globalHighDirectExactForgeryPrimaryProbeTrace result) := by
   unfold globalHighDirectExactForgeryPrimaryProbeTrace
   exact globalHighDirectForgeryPrimaryProbeTrace_agrees table _
-
 
 theorem globalHighMonitored_fullProjection_public_eq
     (result : GlobalHighMonitoredProgramResult) :
@@ -2429,6 +2572,7 @@ theorem globalHighMonitored_fullProjection_public_eq
   rfl
 
 theorem globalHighExactEncodingEvent_implies_combinedHit
+    (table : GlobalChainValueIndex → Digest)
     (encodingTrace : EncodingActionTrace)
     (attackerTrace : AttackerActionTrace)
     (trace : FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
@@ -2445,8 +2589,8 @@ theorem globalHighExactEncodingEvent_implies_combinedHit
   apply Or.inl
   have hnodup :
       (CappedEncodingMonitor.validObservedSignLeafIndices
-        trace.encodingActions).Nodup := by
-    exact hvalidSub.nodup hvalid
+        trace.encodingActions).Nodup :=
+    hvalidSub.nodup hvalid
   exact CappedEncodingMonitor.runObserved_empty_eq_true_mono_sublist
     hencodingSub hnodup hhit
 
@@ -2454,7 +2598,6 @@ abbrev GlobalFirstLaneExactPublicEagerResult :=
   (GlobalChainValueIndex → Digest) ×
     (GlobalExactTracedResult ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
-
 
 noncomputable def globalFirstLaneExactPublicEagerExperiment
     (adversary : Adversary) :

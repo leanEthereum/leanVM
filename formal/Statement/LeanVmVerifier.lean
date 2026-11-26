@@ -15,14 +15,22 @@ transcribed. It is split as `crates/verifier/src` is, in reading order:
   cap (`whir.rs`, `transcript.rs`, `lib.rs`); the Rust test `whir_query_table.rs`
   (`crates/experimental_prover/lean_vm_core/tests/verifiers/`) reads `queryTable` and these
   constants from this file by path;
-* `Verifier/Sponge.lean`: the duplex sponge, which LeanDA's membership challenges share;
-* `Verifier/Transcript.lean`: a program `VerifierProgram` of a small language, which `runProof`
-  reads on a proof over a permutation `π : KeccakState → m KeccakState` in any monad `m`,
-  Keccak-256 the sponge over `π`, `keccak256With π` (`transcript.rs`, `merkle.rs`);
+* `Verifier/Transcript.lean`: the duplex sponge, and a program `VerifierProgram` of a small
+  language, which `runProof` reads on a proof over a permutation `π : KeccakState → m KeccakState`
+  in any monad `m`, Keccak-256 the sponge over `π`, `keccak256With π` (`transcript.rs`,
+  `merkle.rs`);
 * `Verifier/Multilinear.lean`, `Verifier/Layout.lean`, `Verifier/Bus.lean`, `Verifier/Whir.lean`,
   `Verifier/Keccak.lean`, `Verifier/RingSwitch.lean`: the arithmetic, the layout, the sumchecks
   and the bus, the WHIR opening, Keccak by GKR, ring switching;
 * `Verifier/Lib.lean`: the verifier, ending with `verifyWith π bytecode publicInput proof`.
+
+The proof claims one value of the polynomial the statement fixes (the bytecode's multilinear
+extension) at a point the bus phase derives; the verifier checks that claim with a parameter
+`bytecodeValue : List K → List E → E → VerifierProgram Unit`. The deployed verifier evaluates the
+polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which the Rust
+verifier does not have, instead holds the point and the value to a claim it hands on, as an
+aggregate's in-circuit verifier of its children does
+(`guests/lean_ethereum.py`, `verify_sub`).
 -/
 
 @[expose] public section
@@ -159,9 +167,8 @@ def queryTable : List (List (List ℕ)) := [
    [55, 32, 23, 18, 15], [55, 32, 23, 18, 15], [55, 32, 23, 18, 15, 14], [55, 32, 23, 18, 16, 14],
    [55, 32, 23, 18, 16, 14]]]
 
-/-- The window the parameters are defined on: the stacking window and the rate range `1..4`, from
-`MIN_LOG_INV_RATE` to `MAX_LOG_INV_RATE` (`whir_queries`, `whir.rs`; the rate also `lib.rs` and
-`whir_config.rs`). -/
+/-- The window the parameters are defined on: the stacking window and the rate range `1..4`
+(`whir_queries`, `whir.rs`; the rate also `lib.rs` and `whir_config.rs`). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
   minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ 1 ≤ logInvRate ∧ logInvRate ≤ 4
 

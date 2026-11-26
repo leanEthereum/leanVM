@@ -133,8 +133,6 @@ theorem lookC_addKeyC {a b : LAtom} {B : BookC} {o o' : ℕ} (h : b ∈ lookC (a
     · right
       simpa [lookC, getF_eq, h''] using h'
 
-theorem BookOk.nil : BookOk L fp .nil := fun _ _ h ↦ by simp [lookC, getF_eq] at h
-
 theorem BookOk.file {B : BookC} (hB : BookOk L fp B) {a : LAtom} (ha : LHolds L fp a) :
     BookOk L fp (fileC B a) := by
   unfold fileC

@@ -11,6 +11,8 @@ module
 public import Statement.Prover.Table
 public import Statement.Prover.Mle
 public import LeanVM.Protocol.EndToEnd.Complete.Table
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # The table sumcheck's building blocks
@@ -28,7 +30,7 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Whir.Complete Finset
 open LeanVM.Protocol.EndToEnd (boolPoint)
-open LeanVM.Protocol.EndToEnd.Complete (consPart formPart FormsDeg2 sum_range_mul_split
+open LeanVM.Protocol.EndToEnd.Complete (consPart formPart FormsDeg2
   multilinearEval_boolPoint_getD)
 
 @[expose] public section
@@ -74,7 +76,7 @@ theorem multilinearEval_foldHigh (c : E) (a : Array E) (m : ℕ) (ha : a.size = 
   have hs : a.size / 2 = 2 ^ m := by rw [ha, pow_succ]; omega
   rw [multilinearEval_eq_sum m _ p (by simp [size_foldHigh, hs]) hp,
     multilinearEval_eq_sum (m + 1) _ (p ++ [c]) (by simp [ha]) (by simp [hp]),
-    show 2 ^ (m + 1) = 2 ^ m * 2 by ring, sum_range_mul_split _ _ 2]
+    show 2 ^ (m + 1) = 2 ^ m * 2 by ring, Finset.sum_range_mul' _ 2]
   simp only [sum_range_succ, sum_range_zero, zero_add]
   rw [← sum_add_distrib]
   refine sum_congr rfl fun y hy ↦ ?_
@@ -85,7 +87,7 @@ theorem multilinearEval_foldHigh (c : E) (a : Array E) (m : ℕ) (ha : a.size = 
   have h0 : eqEval (boolPoint 1 0) [c] = 1 + c := by
     rw [hb0, eqEval_cons, eqEval_nil_left, mul_one, add_zero]
   have h1 : eqEval (boolPoint 1 1) [c] = c := by
-    rw [hb1, eqEval_cons, eqEval_nil_left, mul_one, one_add_one_E, zero_add]
+    rw [hb1, eqEval_cons, eqEval_nil_left, mul_one, CharTwo.add_self_eq_zero (1 : E), zero_add]
   simp only [toList_getD]
   rw [getD_foldHigh c a y (by omega), hs, boolPoint_add m 1 y 0 hy', boolPoint_add m 1 y 1 hy',
     eqEval_append _ _ _ _ hl, eqEval_append _ _ _ _ hl, h0, h1]
@@ -227,7 +229,7 @@ theorem length_tableRound (e : List E) (logs : List ℕ) (terms : Array (List (L
 
 private theorem foldl_mul_col (col : ℕ → E) (m : List ℕ) (a : E) :
     m.foldl (fun acc i ↦ acc * col i) a = a * (m.map col).prod := by
-  rw [← foldl_mul_eq, List.foldl_map]
+  rw [← List.foldl_mul_eq_mul_prod, List.foldl_map]
 
 theorem evaluate_append (A B : List (List ℕ × E)) (col : ℕ → E) :
     (Form.mk (A ++ B)).evaluate col = (Form.mk A).evaluate col + (Form.mk B).evaluate col := by

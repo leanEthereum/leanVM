@@ -18,7 +18,7 @@ application of `main`'s valuation `σ`, the declared claims at most `2^34` of ea
   `(4·R + 12367)·n + 5`), a DA digest (`daDigestAtP_cost`);
 * **`decStmtAt_cost`**: the statement, its counts given, linear in them (`decStmtAtPrice R n0 n3`);
   **`decStmt_cost`** (the logarithm's tables `D` given, `GLogBound P D G`): the two counts at
-  most `X` (`2^34` always, `65535` on a valid run), `decStmtPrice G R S X = 7·S + 3·G +
+  most `X` (`2^34` always, `2^κ` on a valid run), `decStmtPrice G R S X = 7·S + 3·G +
   decStmtAtPrice R X X + 71`;
 * `aggRounds_cost`, **`aggHints_cost`**: `47·S + 46·R + 138055`.
 -/
@@ -113,7 +113,7 @@ theorem daDigestAtP_cost (hP : Includes P Decoder.daDigestAtPC.costDeps) (p : E)
   rw [Decoder.daDigestAtPC.costEq P hP rd rdV hrd, digestOfCells_cost P (by includes)]
   have := cellAt_cost P hrd hR (by includes) p (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) p (2 * k + 1) hk
-  limbs
+  limbs_one
   omega
 
 /-- The statement's price at `n0`, `n3` declared claims. -/
@@ -204,7 +204,7 @@ theorem aggRounds_cost (hP : Includes P Decoder.aggRoundsC.costDeps) :
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (1 + 2 * k) (by omega)
       have := memAt_cost P hrd hR (by includes) (σ (.n (val% «aggregate_claims» "bc_msgs"))) (2 + 2 * k) (by omega)
       have := hS (.n (val% «aggregate_claims» "bc_msgs"))
-      limbs
+      limbs_one
       omega)
   omega
 

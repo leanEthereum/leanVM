@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.Holds
 
-  **`check_opening_terminal` is sound** (TRIAGE #70).
+  **`check_opening_terminal` is sound**.
 -/
 
 module
@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Eq.RsEqRun
 # `check_opening_terminal`, with its callees
 
 `check_opening_terminal_holds_of` (`Terminal/HoldsOf`) with the callees' meanings:
-`eq_prefix_chain_holds` and `ring_switch_weight_holds`. The selectors' functions are B1-c's:
+`eq_prefix_chain_holds` and `ring_switch_weight_holds`. The selectors' functions are
 `column_selector_Spec` and `selector_tables_Spec` are hypotheses.
 -/
 
@@ -25,7 +25,7 @@ open LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- **`check_opening_terminal` is sound**, given B1-c's selectors, on a memory image of at most
+/-- **`check_opening_terminal` is sound**, given the selectors, on a memory image of at most
 `2^32` words. -/
 theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
     (hst : Tables.selector_tables_Spec) {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) :

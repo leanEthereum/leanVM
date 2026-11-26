@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 
 `readsAt_cursor`: the words a run read at `p`, the cursor having moved to `p·g^n` past them, are
 `wordsAt p (cursorLen p q)`: the memory bounds their count by `2^κ ≤ 2^32` (`mem_size_le`), so
-`cursorLen` finds it. `readsAt_append` (`B1/Common/Basic.lean`) puts consecutive runs together.
+`cursorLen` finds it. `readsAt_append` (KeccakGkr's) puts consecutive runs together.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

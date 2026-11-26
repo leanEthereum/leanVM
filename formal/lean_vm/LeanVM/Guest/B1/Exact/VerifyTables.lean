@@ -21,7 +21,8 @@ Every callee of `verify_tables` is in `ExactOk`: its 31 `padding_weight`s (`pw_e
 once its own events are (`everyKids_of_callees_ok`). `VtOwnExact`: its own computed hints (96 digit runs, three bit runs,
 the limbs and the inverses) exact at its honest valuation (`vtQn`) on a memory holding its caller's buffers, proved as
 `vtOwnExact` (`Tables.vt_own_exact`). `CompleteAtDTBR.monoVM`: `monoV` given the memory's low words and input
-buffers. `ChildSegs.vt_kidBWPE`: `vt_kidBWP` by a tree also exact, given it.
+buffers. `ChildSegs.vt_kidBWPE`: `verify_tables` on the honest child within `vtMax`, by a tree within its weights popping its
+group order and round count, exact, given it.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub

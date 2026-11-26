@@ -13,7 +13,6 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.TableKeys
-public import LeanVM.Guest.B1.Whir.RateFree
 
 /-!
 # The arms' decided facts
@@ -23,7 +22,7 @@ the rate's selector over four names, and the body takes no frame address. `LvFac
 `l`'s helpers are entries of their tables (`level_positions` with its loop `lpLoopA c l`), its
 positions' slice sits at its offset (`posOff`) and holds its queries, its `opening_queries` shape matches its row, and its words fit
 their buffers. `armBody_ok`, `armLv_ok`: both at every arm `m < 11` and rate `ri < 4`, by the
-kernel (`BodyOk` at the first rate alone: the body is the same at every rate, `bodyOk_rate`).
+kernel, the body once per arm (`bodyOk_rate`: it is the same at every rate).
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -154,141 +153,60 @@ instance (c : OsCfg) (l : ℕ) : Decidable (LvFacts c l) :=
   decidable_of_iff (LvFactsS (oqShapeK (osOqKey c l (osLvA c l))) c l) <| by
     rw [lvFacts_iff, oqShapeOf_osOqName]
 
-/-! ## The body at every rate
-
-The body is the same at every rate's levels (`osBody_rate`), so its facts are decided at the first
-rate alone (`armBody_0` ...) and hold at every rate (`bodyOk_rate`). -/
-
 theorem osBodyPre_wl (c : OsCfg) (L : List OsLv) :
     osBodyPre (c.withLevels L) = osBodyPre (c.withLevels (L.map OsLv.rf)) := by
   simp only [osBodyPre, osTlA, osHead, osTail, osLevels_wl, List.length_map, getD_rf, OsLv.rf_folds,
     List.map_map]
   simp only [Function.comp_def, OsLv.rf_rf]
 
-theorem osBodyA_rate (m ri : ℕ) : osBodyA (osCfgR m ri) = osBodyA (osCfgR m 0) := by
-  have h := (osBody_rate m ri).symm.trans (osBody_rate m 0)
-  rw [osBody_eq, osBody_eq] at h
-  exact (List.append_inj' h (List.length_singleton.trans List.length_singleton.symm)).1
-
-theorem osBodyPre_rate (m ri : ℕ) : osBodyPre (osCfgR m ri) = osBodyPre (osCfgR m 0) := by
+theorem osBodyPre_rate (m ri : ℕ) : osBodyPre (osCfgR m ri) = osBodyPre (osCfg m) := by
   have h : (osLevelsR m ri).map OsLv.rf = (osLevelsR m 0).map OsLv.rf := by
     simp only [osLevelsR, List.map_map]; rfl
-  unfold osCfgR
-  rw [osBodyPre_wl, h, ← osBodyPre_wl]
+  exact (osBodyPre_wl _ _).trans ((congrArg (fun L ↦ osBodyPre ((osCfg m).withLevels L)) h).trans
+    (osBodyPre_wl (osCfg m) (osLevelsR m 0)).symm)
 
-/-- **The body's facts at the first rate are its facts at every rate.** -/
-theorem bodyOk_rate {m : ℕ} (h : BodyOk (osCfgR m 0)) (ri : ℕ) : BodyOk (osCfgR m ri) := by
-  unfold BodyOk at h ⊢
-  rw [osBodyA_rate, osBodyPre_rate, osCfgR_levels_length]
-  rwa [osCfgR_levels_length] at h
+theorem osBodyA_rate (m ri : ℕ) : osBodyA (osCfgR m ri) = osBodyA (osCfg m) := by
+  have h := osBody_rate m ri
+  rw [osBody_eq, osBody_eq] at h
+  exact (List.append_inj_left' h (by simp only [List.length_singleton])).symm
 
-set_option maxRecDepth 100000 in
-theorem armBody_0 : BodyOk (osCfgR 0 0) := by decide +kernel
+/-- **The body's decided facts are the same at every rate**: the body reads the levels' rate-free
+columns alone. -/
+theorem bodyOk_rate (m ri : ℕ) : BodyOk (osCfgR m ri) ↔ BodyOk (osCfg m) := by
+  have hl : (osCfgR m ri).levels.length = (osCfg m).levels.length :=
+    (osCfgR_levels_length m ri).trans (osCfgR_levels_length m 0).symm
+  unfold BodyOk
+  rw [osBodyA_rate, osBodyPre_rate, hl]
+  exact Iff.rfl
 
-set_option maxRecDepth 100000 in
-theorem armBody_1 : BodyOk (osCfgR 1 0) := by decide +kernel
+theorem armBody_0 : BodyOk (osCfg 0) := by decide +kernel
+theorem armBody_1 : BodyOk (osCfg 1) := by decide +kernel
+theorem armBody_2 : BodyOk (osCfg 2) := by decide +kernel
+theorem armBody_3 : BodyOk (osCfg 3) := by decide +kernel
+theorem armBody_4 : BodyOk (osCfg 4) := by decide +kernel
+theorem armBody_5 : BodyOk (osCfg 5) := by decide +kernel
+theorem armBody_6 : BodyOk (osCfg 6) := by decide +kernel
+theorem armBody_7 : BodyOk (osCfg 7) := by decide +kernel
+theorem armBody_8 : BodyOk (osCfg 8) := by decide +kernel
+theorem armBody_9 : BodyOk (osCfg 9) := by decide +kernel
+theorem armBody_10 : BodyOk (osCfg 10) := by decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem armBody_2 : BodyOk (osCfgR 2 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_3 : BodyOk (osCfgR 3 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_4 : BodyOk (osCfgR 4 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_5 : BodyOk (osCfgR 5 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_6 : BodyOk (osCfgR 6 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_7 : BodyOk (osCfgR 7 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_8 : BodyOk (osCfgR 8 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_9 : BodyOk (osCfgR 9 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armBody_10 : BodyOk (osCfgR 10 0) := by decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_0 : ∀ ri < 4, ∀ l < (osCfgR 0 ri).levels.length, LvFacts (osCfgR 0 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_1 : ∀ ri < 4, ∀ l < (osCfgR 1 ri).levels.length, LvFacts (osCfgR 1 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_2 : ∀ ri < 4, ∀ l < (osCfgR 2 ri).levels.length, LvFacts (osCfgR 2 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_3 : ∀ ri < 4, ∀ l < (osCfgR 3 ri).levels.length, LvFacts (osCfgR 3 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_4 : ∀ ri < 4, ∀ l < (osCfgR 4 ri).levels.length, LvFacts (osCfgR 4 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_5 : ∀ ri < 4, ∀ l < (osCfgR 5 ri).levels.length, LvFacts (osCfgR 5 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_6 : ∀ ri < 4, ∀ l < (osCfgR 6 ri).levels.length, LvFacts (osCfgR 6 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_7 : ∀ ri < 4, ∀ l < (osCfgR 7 ri).levels.length, LvFacts (osCfgR 7 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_8 : ∀ ri < 4, ∀ l < (osCfgR 8 ri).levels.length, LvFacts (osCfgR 8 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_9 : ∀ ri < 4, ∀ l < (osCfgR 9 ri).levels.length, LvFacts (osCfgR 9 ri) l := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-theorem armLv_10 : ∀ ri < 4, ∀ l < (osCfgR 10 ri).levels.length, LvFacts (osCfgR 10 ri) l := by
-  decide +kernel
-
-/-- **Every arm's body has its decided facts at every rate.** -/
-theorem armBody_ok {m ri : ℕ} (hm : m < 11) (_hri : ri < 4) : BodyOk (osCfgR m ri) := by
+/-- **Every arm's body has its decided facts at every rate** (a kernel check per arm: all at once
+hold too much memory). -/
+theorem armBody_ok {m : ℕ} (ri : ℕ) (hm : m < 11) : BodyOk (osCfgR m ri) := by
+  rw [bodyOk_rate]
   interval_cases m
-  · exact bodyOk_rate armBody_0 ri
-  · exact bodyOk_rate armBody_1 ri
-  · exact bodyOk_rate armBody_2 ri
-  · exact bodyOk_rate armBody_3 ri
-  · exact bodyOk_rate armBody_4 ri
-  · exact bodyOk_rate armBody_5 ri
-  · exact bodyOk_rate armBody_6 ri
-  · exact bodyOk_rate armBody_7 ri
-  · exact bodyOk_rate armBody_8 ri
-  · exact bodyOk_rate armBody_9 ri
-  · exact bodyOk_rate armBody_10 ri
+  exacts [armBody_0, armBody_1, armBody_2, armBody_3, armBody_4, armBody_5, armBody_6, armBody_7,
+    armBody_8, armBody_9, armBody_10]
+
+set_option maxRecDepth 100000 in
+theorem armLv_all : ∀ m < 11, ∀ ri < 4, ∀ l < (osCfgR m ri).levels.length, LvFacts (osCfgR m ri) l := by
+  decide +kernel
 
 /-- **Every arm's levels have their decided facts at every rate.** -/
 theorem armLv_ok {m ri : ℕ} (hm : m < 11) (hri : ri < 4) :
-    ∀ l < (osCfgR m ri).levels.length, LvFacts (osCfgR m ri) l := by
-  interval_cases m
-  · exact armLv_0 ri hri
-  · exact armLv_1 ri hri
-  · exact armLv_2 ri hri
-  · exact armLv_3 ri hri
-  · exact armLv_4 ri hri
-  · exact armLv_5 ri hri
-  · exact armLv_6 ri hri
-  · exact armLv_7 ri hri
-  · exact armLv_8 ri hri
-  · exact armLv_9 ri hri
-  · exact armLv_10 ri hri
+    ∀ l < (osCfgR m ri).levels.length, LvFacts (osCfgR m ri) l :=
+  armLv_all m hm ri hri
 
 end
 end LeanVM.Guest.B1.Arm

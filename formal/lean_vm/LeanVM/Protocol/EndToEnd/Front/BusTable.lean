@@ -78,13 +78,13 @@ noncomputable def busTableSpec (colOf : I.ColumnId → ℕ)
     else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1⟩)
     hfin hcard hμ hdepth hbc hlb o₀ hlt hab he4 hT hlam hs
 
-/-! ## The verifier's layout determines the sizes -/
+/-! ## The commitment's doom at the leanISA instance -/
 
 section LeanIsa
 
 open LeanVM.Protocol.LeanIsa
 
-variable (prog : LeanIsaProgram)
+variable (prog : LeanIsaProgram) (s : Sizes) (input' : PublicInput)
 
 /-- Every opcode table has a push block, at its row count. -/
 theorem exists_pushBlock (s : Sizes) (t : Fin 6) :

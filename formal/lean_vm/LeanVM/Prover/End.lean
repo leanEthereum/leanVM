@@ -1,8 +1,8 @@
 /-
   LeanVM.Prover.End
 
-  The completeness end theorem, for the statement's honest prover `LeanVM.leanVmHonestProver`
-  (`LeanVM.Prover.prove`, `Statement/Prover/Prove.lean`).
+  The completeness end theorem, for the statement's honest prover `LeanVM.Prover.prove`
+  (`Statement/Prover/Prove.lean`).
 -/
 
 module
@@ -17,7 +17,7 @@ public import LeanVM.Protocol.ExperimentBridge
 /-!
 # The completeness end theorem
 
-`LeanVM.leanVmHonestProver`, the statement's executable honest prover with the oracle calls, is the
+`LeanVM.Prover.prove`, the statement's executable honest prover with the oracle calls, is the
 specification's honest prover at the execution's witness (`prove_eq_honestComp`, from
 `corr_honestScript`, `LeanVM/Prover/Assemble.lean`), so the completeness theorem for such a prover
 (`completeness_of_spec`, `LeanVM/Prover/Complete.lean`) proves the end statement
@@ -79,7 +79,7 @@ theorem completenessWithHash_holds : CompletenessWithHash :=
   completeness_of_spec LeanVM.proverWithHash specOnValid_prove_honest
 
 /-- **Completeness holds** (in the random-permutation model), for the honest prover
-`LeanVM.leanVmHonestProver`: its experiment is the one with the two calls
+`LeanVM.Prover.prove`: its experiment is the one with the two calls
 (`completeness_of_withHash`). -/
 theorem completeness_holds : Completeness :=
   completeness_of_withHash completenessWithHash_holds

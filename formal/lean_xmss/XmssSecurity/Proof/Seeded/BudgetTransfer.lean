@@ -1,14 +1,23 @@
 module
 
-public import XmssSecurity.Proof.Seeded.AdaptiveSeedGuessing
+public import XmssSecurity.Proof.Seeded.HashTrace
+public import XmssSecurity.Proof.Seeded.SeedGuessing
 
 @[expose] public section
+
+/-!
+# A hash budget for every unguessed seed bounds the plain cache
+
+`hashQueryBound_of_seed_caches`: if, for every seed that no listed input hits, a computation makes
+at most `q` hash queries from a seed-dependent cache agreeing with `cache` outside that seed's hit
+inputs, then it makes at most `q` from `cache`. The induction extends the list by each query, and
+`exists_seed_not_hit` supplies an unguessed seed while fewer than `2^256` inputs are listed. The
+bridge uses it to move a budget from the caches with programmed seed entries to the plain one.
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Seeded
-
-open Common.RomTable
 
 theorem exists_seed_not_hit {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)
     (inputs : List HashInput) (hsize : inputs.length < 2 ^ 256) :

@@ -15,10 +15,9 @@ import LeanVM.Guest.Data.ValNames.«da_verify_cell»
 /-!
 # `da_verify_cell`, completely
 
-The symbols and the weights satisfy the meaning, so the reference function (`cellRef_sem`) and,
-through the link (`cell_linked`), the core function relate the weights' pointer to `cellRets`. On
-the honest valuation of the names (`cellRef_honest`) carried to the body (`cell_owners`), the
-hinted values hold the symbols (`da_verify_cell_complete_vals`).
+The honest valuation of the reference function's names (`cellRef_honest`), carried to the body
+through the link (`cell_linked`, `cell_owners`), returns `cellRets` with the hinted values holding
+the symbols (`da_verify_cell_complete_vals`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -32,12 +31,6 @@ open LeanVM.Protocol.KeccakHash LeanVM.Guest.B1.Digest
 def cellRets (syms ws : List E) : List E :=
   digestCells (keccak256 (syms.flatMap E.toBytes)) ++
     [((List.range LeanDa.cellSymbols).map fun e ↦ ws.getD e 0 * syms.getD e 0).sum]
-
-/-- `da_verify_cell`'s meaning, for given symbols and weights in memory, gives its core IR. -/
-def da_verify_cell_complete_Spec : Prop :=
-  ∀ (rd : Reader) (lv : E) (syms ws : List E), syms.length = LeanDa.cellSymbols →
-    ws.length = LeanDa.cellSymbols → ReadsAt rd lv ws →
-      coreProgram.Rel rd "da_verify_cell" [lv] (cellRets syms ws)
 
 /-- A checked map's backward direction, as `Map.pieces_bwd_at` in one piece. -/
 private theorem check_bwd_at {X : Type} [DecidableEq X] [Coded X] {m : Map X} {f : Fn}
@@ -71,11 +64,6 @@ theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws 
 
 theorem da_verify_cell_params : (fn% «da_verify_cell»).params = [.n (val% «da_verify_cell» "lvals")] :=
   rfl
-
-/-- **`da_verify_cell` is complete.** -/
-theorem da_verify_cell_complete : da_verify_cell_complete_Spec := fun _ _ syms ws hsl hwl hr =>
-  (cellVerified.rel_iff_of_check (c := ()) find_da_verify_cell cell_linked _ _).mpr
-    ⟨syms, ws, hsl, hr, hwl, rfl⟩
 
 end
 end LeanVM.Guest.B1.Da

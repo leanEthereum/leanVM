@@ -5,9 +5,21 @@ public import VCVio.ProgramLogic.Relational.Quantitative
 
 @[expose] public section
 
-open OracleComp OracleSpec ENNReal
+/-!
+# The first lane's eager experiment hits with probability at most `fuel / 2^digestBits`
 
-variable {α β : Type}
+For a computation with at most `fuel` hazard queries, the probability that the eager experiment's
+trace makes the combined monitor hit equals that of `structuralExperiment`, which runs both monitors
+query by query while sampling, the unrevealed table values left for the end
+(`combinedHit_probability_eq_structuralExperiment`). A potential argument bounds the latter:
+`potential` charges the remaining fuel and the reveal-probe monitor's pending probes at
+`2^-digestBits` each, plus the capped encoding monitor's pending risk, and the experiment hits from
+any valid state with probability at most its potential (`structuralExperiment_true_probability_le`).
+From the empty monitors the bound is `fuel / 2^digestBits`
+(`structuralExperiment_empty_true_probability_le`), which `CappedExactFirstLaneBound` uses.
+-/
+
+open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.FirstLaneOracleSimulation
 
@@ -513,8 +525,6 @@ theorem runStructural_query_bind
   rw [runStructural, OracleComp.construct_query_bind]
   rfl
 
-set_option maxRecDepth 100000 in
-set_option maxHeartbeats 1000000 in
 theorem evalDist_runObserved_eagerTrace_eq_runStructural
     (table : Index → Digest)
     (encodingState : Option EncodingMonitor.State)
@@ -664,7 +674,6 @@ theorem structuralExperiment_query_bind
   intro base
   exact runStructural_query_bind _ _ _ _ _ _
 
-
 theorem eagerFinalize_true_probability_le
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -682,7 +691,6 @@ theorem eagerFinalize_true_probability_le
   gcongr
   omega
 
-set_option maxRecDepth 100000 in
 theorem structuralExperiment_true_probability_le
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -887,7 +895,6 @@ theorem combinedHit_probability_eq_structuralExperiment
     _ = _ := (evalDist_runObserved_eagerTrace_eq_runStructural table
         (some EncodingMonitor.State.empty)
         AdaptiveRevealMonitor.State.empty fuel computation hbound).prEvent_eq (· = true)
-
 
 theorem structuralExperiment_empty_true_probability_le
     (fuel : Nat) (computation : OracleComp (World Index) α) :

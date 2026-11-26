@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.TermQ
+public import LeanVM.Guest.CoreMode.Fn.column_selector.ResCs
 public import LeanVM.Guest.B1.Terminal.TermFacts
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef
@@ -224,7 +225,7 @@ theorem csQ_step (hr : r.Ok) :
       rw [hpar]
       simp only [selCall, Memory.mkCall, List.map_cons, List.map_nil, CsH]
       set o := (stackOffsets KC).1.getD c' 0 with ho
-      have hlo : c' < (stackOffsets KC).1.length := by rw [Protocol.Verifier.stackOffsets_length, hKClen]; exact hc'n
+      have hlo : c' < (stackOffsets KC).1.length := by rw [VerifySub.stackOffsets_length, hKClen]; exact hc'n
       have hoff : LoadHolds r.img.read (σI (.n (val% «check_opening_terminal» "col_offsets"))) c' (gen ^ o) := by
         have := hP.2 c' (by simpa using hlo)
         rw [List.getElem_map] at this

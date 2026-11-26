@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.Keccak.Rmfe
 
-  The reverse multiplication-friendly embedding of `verifyKeccak`: the product property of the
-  verifier's `RMFE_EMBED` and `RMFE_PROJECT` checked by the kernel, and its reading over `E`: the
-  projection of a product of two embeddings is the AND of what they embed.
+  The reverse multiplication-friendly embedding of `verifyKeccak`: the verifier's `RMFE_EMBED`
+  and `RMFE_PROJECT` as literals, the product property checked by the kernel, and its reading
+  over `E`: the projection of a product of two embeddings is the AND of what they embed.
 -/
 
 module
@@ -18,6 +18,7 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 public import VCVio.OracleComp.QueryTracking.WriterCost
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The embedding
@@ -48,9 +49,22 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.EndToEnd.Complet
 
 /-! ## The literals -/
 
-theorem rmfeEmbed_length : rmfeEmbed.length = 16 := rfl
+/-- `RMFE_EMBED` (`keccak.rs`), in decimal. -/
+def embedLit : List ℕ := [4244747, 8354290, 4935178, 7500812, 5461978, 1907870, 310894, 7885382,
+  621788, 1089150, 2036820, 2178300, 5045448, 7821168, 1602438, 8489494]
 
-theorem rmfeProject_length : rmfeProject.length = 16 := rfl
+/-- `RMFE_PROJECT` (`keccak.rs`), in decimal. -/
+def projectLit : List ℕ := [1, 140737488355327, 43218598786281, 32136906789799, 111925089164473,
+  101951566367639, 112771593653537, 102871349771039, 126754541004432, 60819261648545,
+  20682647020959, 30409630824272, 11891857888673, 6939470531743, 76314673122000, 70368744177664]
+
+theorem rmfeEmbed_eq : rmfeEmbed = embedLit := by decide +kernel
+
+theorem rmfeProject_eq : rmfeProject = projectLit := by decide +kernel
+
+theorem rmfeEmbed_length : rmfeEmbed.length = 16 := by rw [rmfeEmbed_eq]; rfl
+
+theorem rmfeProject_length : rmfeProject.length = 16 := by rw [rmfeProject_eq]; rfl
 
 /-! ## The kernel check -/
 
@@ -80,15 +94,15 @@ def rmfeOk (emb proj : List ℕ) : Bool :=
     parityL (proj.getD i 0) (mulGF2 (bitsFrom (emb.getD a 0) 24) (bitsFrom (emb.getD b 0) 24)) ==
       (i == a && a == b)
 
-set_option maxRecDepth 100000 in
 /-- **The embedding lemma**, checked by the kernel on the literals. -/
-theorem rmfeOk_lit : rmfeOk rmfeEmbed rmfeProject = true := by decide +kernel
+theorem rmfeOk_lit : rmfeOk embedLit projectLit = true := by decide +kernel
 
 theorem rmfeOk_at {a b i : ℕ} (ha : a < 16) (hb : b < 16) (hi : i < 16) :
     parityL (rmfeProject.getD i 0)
       (mulGF2 (bitsFrom (rmfeEmbed.getD a 0) 24) (bitsFrom (rmfeEmbed.getD b 0) 24)) =
         (i == a && a == b) := by
   have h := rmfeOk_lit
+  rw [← rmfeEmbed_eq, ← rmfeProject_eq] at h
   simp only [rmfeOk, List.all_eq_true, List.mem_range, beq_iff_eq] at h
   exact h a ha b hb i hi
 
@@ -292,7 +306,7 @@ theorem projected_eq (mu product : List E) (hmu : mu.length = 16) (G : E[X])
       sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
         if mask.testBit c then some m else none) * product.getD c 0) =
       ∑ i ∈ range 16, mu.getD i 0 * projE (rmfeProject.getD i 0) G := by
-  rw [sumE_eq_sum, list_sum_range]
+  rw [sumE_eq_sum, ← Finset.sum_range_eq_sum_map_range]
   have h : ∀ c ∈ range productBits, sumE ((List.zip mu rmfeProject).filterMap fun (m, mask) ↦
       if mask.testBit c then some m else none) * product.getD c 0 =
         ∑ i ∈ range 16, mu.getD i 0 * (if (rmfeProject.getD i 0).testBit c then G.coeff c else 0) := by

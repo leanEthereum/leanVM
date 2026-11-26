@@ -118,8 +118,6 @@ theorem roundTrip_of
 theorem roundTrip : RoundTripStatement :=
   roundTrip_of (fun _ _ hw ↦ readProof_toBytes hw) fun _ _ _ _ hp ↦ unprunePhase_prunePhase hp
 
-/-! ## The round trip in the deployed forms -/
-
 end LeanVM.Wire
 
 end

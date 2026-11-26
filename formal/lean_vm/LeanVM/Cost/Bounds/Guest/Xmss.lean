@@ -53,9 +53,9 @@ theorem xmssTabs_cost (hP : Includes P Decoder.xmssTabsC.costDeps) :
   have := Nat.mul_le_mul_left (256 + 15) h4
   have := Nat.mul_le_mul_left (256 + 15) h5
   have := Nat.mul_le_mul_left (256 + 15) h6
-  rw [Decoder.xmssTabsC.costEq P hP, Decoder.gLanesC.costEq P,
-    Decoder.lxFoldC.costEq P, Decoder.lxRestC.costEq P,
-    Decoder.lxTailC.costEq P]
+  rw [Decoder.xmssTabsC.costEq P hP, Decoder.gLanesC.costEq P (by includes),
+    Decoder.lxFoldC.costEq P (by includes), Decoder.lxRestC.costEq P (by includes),
+    Decoder.lxTailC.costEq P (by includes)]
   omega
 
 /-! ## The cells -/
@@ -68,13 +68,13 @@ theorem lxGroupBase_cost (hP : Includes P Decoder.lxGroupBaseC.costDeps) (vb0 p 
     (hvb : vb0 < 2 ^ 20) (hp : p < 15) :
     machineCost P Decoder.lxGroupBaseC.costIdx [encodeValue vb0, encodeValue p] ≤ 20 := by
   rw [Decoder.lxGroupBaseC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 theorem lxGroupTab_cost (hP : Includes P Decoder.lxGroupTabC.costDeps) (T : XmssTabs) (p : ℕ)
     (hp : p < 15) :
     machineCost P Decoder.lxGroupTabC.costIdx [encodeValue T, encodeValue p] ≤ 12 := by
   rw [Decoder.lxGroupTabC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 theorem lxGroupTab_lt {T : XmssTabs} (hT : XmssTabsOK T) (p r k : ℕ) :
     offAtA (lxGroupTab T p) r k < 2 ^ 20 := by
@@ -100,15 +100,15 @@ theorem lxChainCell_cost (hP : Includes P Decoder.lxChainCellC.costDeps) (T : Xm
     | none => simp
     | some x => exact hk x (List.mem_of_getElem? h)
   have ho := lxGroupTab_lt hT (i / 4) (i % 4) (ks.getD (i / 4) 0)
-  rw [Decoder.offAtAC.costEq P]
+  rw [Decoder.offAtAC.costEq P (by includes)]
   have := Nat.mul_le_mul_left 15 hks
-  limbs
+  limbs_one
   omega
 
 theorem lxWinBase_cost (hP : Includes P Decoder.lxWinBaseC.costDeps) (w : ℕ) (hw : w < 4) :
     machineCost P Decoder.lxWinBaseC.costIdx [encodeValue w] ≤ 20 := by
   rw [Decoder.lxWinBaseC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 theorem lxWinBase_lt (w : ℕ) : lxWinBase w < 2 ^ 18 := by
   unfold lxWinBase; split_ifs <;> omega
@@ -123,11 +123,7 @@ theorem lxArmBase_cost (hP : Includes P Decoder.lxArmBaseC.costDeps) (w k : ℕ)
   have := lxWinBase_cost P (by includes) w hw
   have := lxWinBase_lt w
   rw [Decoder.lxArmBaseC.costEq P hP]
-  limbs; split_ifs <;> first | omega | (limbs; omega)
-
-theorem lxSibAt_lt (w k r : ℕ) (hk : k ≤ 256) (hr : r < 8) : lxSibAt w k r < 2 ^ 20 := by
-  have := lxArmBase_lt w k hk
-  unfold lxSibAt; split_ifs <;> omega
+  limbs_one; split_ifs <;> first | omega | (limbs_one; omega)
 
 theorem lxSibAt_cost (hP : Includes P Decoder.lxSibAtC.costDeps) (w k r : ℕ) (hw : w < 4)
     (hk : k ≤ 256) (hr : r < 8) :
@@ -135,14 +131,14 @@ theorem lxSibAt_cost (hP : Includes P Decoder.lxSibAtC.costDeps) (w k r : ℕ) (
   have := lxArmBase_cost P (by includes) w k hw hk
   have := lxArmBase_lt w k hk
   rw [Decoder.lxSibAtC.costEq P hP]
-  limbs; split_ifs <;> omega
+  limbs_one; split_ifs <;> omega
 
 /-- The leaf index (`lxLeafOfC`), the windows' arms at most `256`. -/
 theorem lxLeafOf_cost (hP : Includes P Decoder.lxLeafOfC.costDeps) (kw : List ℕ)
     (hkw : kw.length ≤ 4) (hk : ∀ x ∈ kw, x ≤ 256) :
     machineCost P Decoder.lxLeafOfC.costIdx [encodeValue kw] ≤ 400 := by
   have hg (w : ℕ) (hw : w < 4) : kw.getD w 0 ≤ 256 ∧
-      machineCost P Auto.List.getD.costIdx [encodeValue kw, encodeValue w, encodeValue 0] ≤ 69 := by
+      machineCost P Auto.List.getD.c126.costIdx [encodeValue kw, encodeValue w, encodeValue 0] ≤ 69 := by
     refine ⟨?_, ?_⟩
     · rw [List.getD_eq_getElem?_getD]
       cases h : kw[w]? with
@@ -155,7 +151,7 @@ theorem lxLeafOf_cost (hP : Includes P Decoder.lxLeafOfC.costDeps) (kw : List �
   obtain ⟨a2, c2⟩ := hg 2 (by omega)
   obtain ⟨a3, c3⟩ := hg 3 (by omega)
   rw [Decoder.lxLeafOfC.costEq P hP]
-  limbs
+  limbs_one
   omega
 
 section Val
@@ -188,7 +184,7 @@ theorem lxArmsTaken_cost (hP : Includes P Decoder.lxArmsTakenC.costDeps) (lanes 
         List.length_cons, List.length_cons, List.length_nil]
       have := hS (.n (dg + p))
       have := logGTWith_cost P (by includes) lanes hl (σ (.n (dg + p))) 256 (by norm_num)
-      limbs
+      limbs_one
       omega)
   omega
 
@@ -227,7 +223,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
           i.val)))
       have := hS (.n (lxChainCell T (lxArmsTaken T.lanes σ (lxDigitBase layer))
         (lxDigitBase layer + 70) i.val))
-      limbs
+      limbs_one
       omega) 0 (Nat.zero_le _)
   have m1 := ofFnFrom_cost P (by includes) (n := LeanXmss.layerHeight) (by decide) _
     (.closure Decoder.xPartNC.lam1.costIdx [encodeValue kw, encodeValue layer, σV])
@@ -251,7 +247,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
       have := hS (.n (lxSibAt (2 * layer + l.val / 8) (kw.getD (2 * layer + l.val / 8) 0)
         (l.val % 8)))
       have := Nat.mul_le_mul_left 15 hkw
-      limbs
+      limbs_one
       omega) 0 (Nat.zero_le _)
   simp only [LeanXmss.chainCount, LeanXmss.layerHeight, Nat.sub_zero] at m0 m1 ⊢
   unfold xPartPrice
@@ -275,7 +271,7 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) (T : Xmss
         List.length_cons, List.length_nil]
       have := hS (.n (71 + w))
       have := logGTWith_cost P (by includes) T.lanes hT.lanes (σ (.n (71 + w))) 256 (by norm_num)
-      limbs
+      limbs_one
       omega)
   have hkw : ((List.range 4).map fun w ↦ logGTWith T.lanes (σ (.n (71 + w))) 256).length ≤ 4 ∧
       ∀ x ∈ (List.range 4).map (fun w ↦ logGTWith T.lanes (σ (.n (71 + w))) 256), x ≤ 256 := by

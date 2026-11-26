@@ -3,6 +3,8 @@ module
 public import XmssSecurity.Scan.Ledger
 public import XmssSecurity.Scan.MomentLift
 public import XmssSecurity.Scan.Card
+public import XmssSecurity.Scan.Ghost
+public import XmssSecurity.Scan.SignStep
 
 @[expose] public section
 
@@ -103,7 +105,7 @@ theorem tsum_eq_of_support {β : Type} (mx : ProbComp β) (g : β → ℝ≥0∞
 
 theorem W_ne_top (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (y : Position) : W cache parameter leafIndex y ≠ ⊤ :=
-  ENNReal.sum_ne_top.2 fun _ _ => Common.LoopWalk.reach_ne_top _ _ _ _
+  ENNReal.sum_ne_top.2 fun _ _ => LoopWalk.reach_ne_top _ _ _ _
 
 theorem Φ_ne_top (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex) :
     Φ cache parameter leafIndex ≠ ⊤ :=
@@ -344,17 +346,17 @@ theorem f3_step (hQ : Q ≤ 2 ^ 127) (input : (OracleWorld + SigningSpec).Domain
                   by_cases hu : Unsigned trace e
                   · have hopen : ∀ u : HashOutput, f3 secretKey Q ((cache.cacheQuery
                         (input secretKey.parameter e z) u, trace), k + 1) =
-                        (fun st : Common.LoopWalk.St => F3 pReal Q (nCount secretKey.parameter cache trace + 1)
+                        (fun st : LoopWalk.St => F3 pReal Q (nCount secretKey.parameter cache trace + 1)
                           (vCount secretKey.parameter cache trace + if st = .hit then 1 else 0) (k + 1))
                           (outcome u) := fun u => by
                       unfold f3
                       rw [(counts_fresh_open hc hu u).1, (counts_fresh_open hc hu u).2]
                     rw [show (fun u : HashOutput => f3 secretKey Q ((cache.cacheQuery
                         (input secretKey.parameter e z) u, trace), k + 1)) = _ from funext hopen,
-                      ex_outcome (fun st : Common.LoopWalk.St => F3 pReal Q (nCount secretKey.parameter cache trace + 1)
+                      ex_outcome (fun st : LoopWalk.St => F3 pReal Q (nCount secretKey.parameter cache trace + 1)
                           (vCount secretKey.parameter cache trace + if st = .hit then 1 else 0) (k + 1)),
-                      ite_eq_left (rfl : Common.LoopWalk.St.hit = .hit),
-                      ite_eq_right (show ¬Common.LoopWalk.St.miss = .hit by decide), add_zero,
+                      ite_eq_left (rfl : LoopWalk.St.hit = .hit),
+                      ite_eq_right (show ¬LoopWalk.St.miss = .hit by decide), add_zero,
                       cost3, overBudget, ite_eq_right hover, zero_add, onHash_hash, openInd, hd, Option.elim_some,
                       ite_eq_left (show cache (input secretKey.parameter e z) = none ∧ Unsigned trace e from ⟨hc, hu⟩),
                       mul_one, one_sub_landing, landing_eq_ofReal]
@@ -370,7 +372,7 @@ theorem f3_step (hQ : Q ≤ 2 ^ 127) (input : (OracleWorld + SigningSpec).Domain
       rw [(counts_sign secretKey hr).1, (counts_sign secretKey hr).2.1]
 
 /-- **The mass bound.** -/
-theorem landing_mul_hvSum_le {k : ℕ} (parameter : PublicParameter) (cache : QueryCache HashSpec)
+theorem landing_mul_hvSum_le (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (trace : SigningCacheTrace) :
     landing * hvSum parameter cache trace ≤
       landing ^ 2 * F3 pReal Q (nCount parameter cache trace) (vCount parameter cache trace) k := by

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Terminal.InterfaceP
+import LeanVM.ToMathlib.List
 
 /-!
 # The batched weight, as a sum
@@ -27,12 +28,8 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier Finset
 
 @[expose] public section
 
-theorem foldl_add_eq (a : E) : ∀ l : List E, l.foldl (· + ·) a = a + l.sum
-  | [] => by simp
-  | b :: l => by rw [List.foldl_cons, foldl_add_eq _ l, List.sum_cons, add_assoc]
-
 theorem dot_cons (a b : E) (l r : List E) : dot (a :: l) (b :: r) = a * b + dot l r := by
-  simp only [dot, List.zipWith_cons_cons, foldl_add_eq, zero_add, List.sum_cons]
+  simp only [dot, List.zipWith_cons_cons, List.foldl_add_eq_add_sum, zero_add, List.sum_cons]
 
 theorem dot_powersFrom (b : E) : ∀ (n : ℕ) (a : E) (l : List E),
     dot (powersFrom a b n) l = ∑ i ∈ range (min n l.length), a * b ^ i * l.getD i 0

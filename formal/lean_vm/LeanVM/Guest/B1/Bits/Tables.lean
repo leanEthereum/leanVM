@@ -13,8 +13,6 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.LitRef
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.Data.ValNames.«exponent_tables»
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `exponent_tables`
@@ -298,16 +296,16 @@ theorem expTabAll_iff (rd : Reader) (q : E) :
   constructor
   · rintro ⟨h1, h2⟩ o ho
     by_cases a : o < 236
-    · rw [expTabWord, ite_eq_left a]; exact h1 o a
-    · rw [expTabWord, ite_eq_right a]
+    · rw [expTabWord, ite_pos' a]; exact h1 o a
+    · rw [expTabWord, ite_neg' a]
       have := h2 (o - 236) (by simp only [winTabBits]; omega)
       rwa [winTabAt, Nat.add_sub_cancel' (by omega)] at this
   · intro h
     refine ⟨fun o ho ↦ ?_, fun n hn ↦ ?_⟩
-    · have := h o (by omega); rwa [expTabWord, ite_eq_left ho] at this
+    · have := h o (by omega); rwa [expTabWord, ite_pos' ho] at this
     · simp only [winTabBits] at hn
       have := h (236 + n) (by omega)
-      rwa [expTabWord, ite_eq_right (show ¬236 + n < 236 by omega), Nat.add_sub_cancel_left] at this
+      rwa [expTabWord, ite_neg' (show ¬236 + n < 236 by omega), Nat.add_sub_cancel_left] at this
 
 /-! ## The function -/
 
@@ -325,10 +323,11 @@ def etBlk (t : ℕ) : List Stmt :=
 
 /-- The expansion of `exponent_tables`. -/
 def etBody : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ⧺ ((List.range lit% expTabN).map etBlk).flatten ⧺
+  [.atom (.hint (.alloc (.n (val% «exponent_tables» "g_squares")) lit% expTabN))] ++ ((List.range lit% expTabN).map etBlk).flatten ++
   [.atom (.copy (.n (val% «exponent_tables» "s8#0")) (.n (val% «exponent_tables» "g_squares"))), .ret [.n (val% «exponent_tables» "s8#0")]]
 
-theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody := by kernel_rfl
+theorem exponent_tables_body : Fn.body fn% «exponent_tables» = etBody :=
+  stmtsEqb_sound (by decide +kernel)
 
 theorem find_exponent_tables : coreProgram.find? "exponent_tables" = some fn% «exponent_tables» :=
   coreProgram_find?_at (j := idx% «exponent_tables») rfl
@@ -341,11 +340,11 @@ theorem word_etWord (t : ℕ) : word (etWord t) 0 = expTabWord (etOff t) := by
   rw [word_eOfNat, etWord, expTabWord]
   by_cases a : t < 236
   · have e : etOff t < 236 := by simp only [etOff]; split_ifs <;> omega
-    rw [ite_eq_left a, ite_eq_left e, expTableWords, List.getD_eq_getElem?_getD,
+    rw [ite_pos' a, ite_pos' e, expTableWords, List.getD_eq_getElem?_getD,
       List.getD_eq_getElem?_getD, List.getElem?_map]
     cases etWordsN[etOff t]? <;> simp [eOfNat_zero]
   · have e : etOff t = t := by simp only [etOff]; split_ifs <;> omega
-    rw [ite_eq_right a, e, ite_eq_right a]
+    rw [ite_neg' a, e, ite_neg' a]
 
 /-- The offsets the body writes are every offset below `expTabN`, once. -/
 theorem etOff_iff (rd : Reader) (q : E) :

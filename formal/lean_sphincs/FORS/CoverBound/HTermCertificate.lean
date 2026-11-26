@@ -19,8 +19,6 @@ variable [Params]
 
 open Concrete FORS.Base.H0 FORS.Base.Domination H0Avg
 
-set_option linter.unusedSectionVars false
-
 /-! ### The Poisson table -/
 
 /-- A Poisson table: rate bound `m / 2^64`, weight bounds `pm[n] / 2^P` for `n ≤ n1 + 1`, and `J`
@@ -133,7 +131,6 @@ theorem tsum_geom_lin (r a J : ℝ) (hr0 : 0 ≤ r) (hr1 : r < 1) :
     ring
   rw [hfun, hval]
   exact h
-
 
 /-! ### Leaf tables with linear extensions -/
 

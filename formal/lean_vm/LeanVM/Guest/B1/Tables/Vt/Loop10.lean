@@ -15,7 +15,6 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.B1.Common.Vc
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table sumcheck's rounds (`verify_tables_loop0`)
@@ -31,10 +30,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-theorem vtWInvGen_mul : vtWInvGen * gen = 1 := by
-  rw [vtWInvGen, word_eOfNat, eOfNat, ← word_gen, word_eOfNat, eOfNat, ← ofK_mul,
-    show K.ofBits 9223372036854775821 * K.ofBits 2 = 1 by decide +kernel, ofK_one]
 
 /-- `verify_tables_loop0`'s atoms, `sumcheck_round4` inlined on the record `rounds·x^7` (value `10`). -/
 def l10Atoms : List Stmt :=
@@ -64,7 +59,7 @@ def l10Atoms : List Stmt :=
 
 /-- `verify_tables_loop0`'s body: its atoms, the next iteration, the return. -/
 def l10Body : List Stmt :=
-  l10Atoms ⧺ [.callIf (.n 59) name% «verify_tables_loop0» [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  l10Atoms ++ [.callIf (.n 59) name% «verify_tables_loop0» [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 theorem l10_atomsB : l10Atoms.all (fun s ↦ match s with | .atom _ => true | _ => false) = true := by
   decide +kernel
@@ -75,7 +70,7 @@ theorem l10_atoms : AllAtoms l10Atoms := fun s hs ↦ by
 
 noncomputable def l10Check : Bool :=
   match coreProgram.find? name% «verify_tables_loop0» with
-  | some fn => decide (fn.params = (List.range 6).map V.n) && stmtsEqb fn.body l10Body
+  | some fn => decide (fn.params = (List.range 6).map V.n) && tbStmtsEqb fn.body l10Body
   | none => false
 
 theorem l10Check_eq : l10Check = true := by decide +kernel
@@ -87,7 +82,7 @@ theorem l10Found : ∃ fn : Fn, coreProgram.find? name% «verify_tables_loop0» 
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- What an iteration at `x` gives: the round on the record `rounds·x^7`, the next record's cursor

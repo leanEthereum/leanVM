@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Digest.MonoCLast
 public import LeanVM.Guest.B1.Digest.ChildListAt0
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The walk's last claims, completely
@@ -20,7 +19,6 @@ import LeanVM.Guest.StmtsAppend
 `mStart o s`) and `k` honest claims, the body's evaluated valuation holds its atoms and returns
 the digest of `pre` and their cells: the walk's end `region · g^(mStart o (s + k))` divided by the
 region is `g^(mStart o (s + k))`, range-checked against `limit = g^L` (reading below `L + 1`).
-`mlc_completeAtB`: a leaf within its frame.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -81,7 +79,7 @@ theorem rc_holds {S : List Atom} {w : ℕ → E} {σ : Val} {x y t1 t2 kk : V} {
     (hx : σ x = gen ^ a) (hk : σ kk = gen ^ b) (hab : a ≤ b) (hdef : BoundMem rd (b + 1)) :
     (Atom.rangeCheck x y t1 t2 kk).Holds rd σ := by
   simp only [Good] at hg
-  rw [ite_eq_left hky] at hg
+  rw [ite_pos' hky] at hg
   obtain ⟨h1, h2, h3⟩ := hg
   have hga : gen ^ a ≠ 0 := pow_ne_zero _ gen_ne_zero
   have hyv : σ y = gen ^ (b - a) := by
@@ -131,7 +129,7 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
     (hend : mStart o (s + k) ≤ L) (hdef : BoundMem rd (L + 1)) :
     ∃ (vs : List V) (σ : Val),
       (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).body =
-          (mlAtoms k).map Stmt.atom ⧺ [.ret vs] ∧
+          (mlAtoms k).map Stmt.atom ++ [.ret vs] ∧
       (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).params.map σ =
           [rec, region, mark, limit] ∧
       (∀ a ∈ mlAtoms k, a.Holds rd σ) ∧
@@ -320,37 +318,6 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
           · exact Or.inl (hedgeA h')
       | _ => simp [Memory.atomLoad?] at haq
   · exact absurd hok (by simp)
-
-/-- **`child_claim_list_mono_last__L{k}` is complete, placed, within its frame**: the record at
-`rec = g^rP`, the claims' marks at `region · g^(o (s + j))` and their cells among the caller's
-words, the walk's end at most `L < 2^κ`. -/
-theorem mlc_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ} (hk : k < 17) {κ : ℕ}
-    {Lin : Main.Layout} {rec region mark limit entries : E} {rP eP rg L s n : ℕ} {o : ℕ → ℕ}
-    {pre : List UInt8} {cells : List E} (hrc : rec = gen ^ rP) (hen : entries = gen ^ eP)
-    (hrg : region = gen ^ rg) (hlim : limit = gen ^ L) (hpre : pre.length = rate * n)
-    (hl : cells.length = 4 * k) (hinc : ∀ i < k, mStart o (s + i) ≤ o (s + i))
-    (hend : mStart o (s + k) ≤ L) (hLκ : L < 2 ^ κ)
-    (hmem : ∀ rd, MemL rd Lin → MonoRecAt rd rec n pre region entries (mStart o s) ∧
-      MRec rd region L entries mark k (fun i => o (s + i)) cells)
-    (hR1 : ∀ c < 15, RegionL Lin (rP + c)) (hR2 : ∀ j < k, RegionL Lin (rg + o (s + j)))
-    (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * o (s + j) + c)) :
-    CompleteAtDTB fs cert κ (mlNames.getD k "") Lin [rec, region, mark, limit]
-      (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) (fun _ => True)
-      (fs (mlNames.getD k "")) := by
-  intro fp
-  refine ⟨fs (mlNames.getD k ""), [], _, [], le_rfl, ⟨rfl, rfl⟩, fun q hq => by simp at hq,
-    B1.disj_nil, fun rd hlow hm => ?_⟩
-  simp only [List.append_nil, List.nil_append] at hm
-  obtain ⟨hR, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload, -⟩ := mlc_core hk hrc hen hrg hlim hpre hR hl hinc hrec hend
-    (boundMem_of_low hlow (by omega))
-  refine RelAtIn.relAtInT (relAtIn_atoms (ml_name hk) hb (ml_loop hk) (ml_na hk) hp hat hr
-    (fun q hq => by rw [ml_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)
-    (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq))
-  rcases hload q hq with ⟨c, hc, h⟩ | ⟨j, hj, h⟩ | ⟨j, hj, c, hc4, h⟩
-  · exact ⟨_, h, Or.inl (hR1 c hc)⟩
-  · exact ⟨_, h, Or.inl (hR2 j hj)⟩
-  · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
 
 end
 end LeanVM.Guest.B1.Digest

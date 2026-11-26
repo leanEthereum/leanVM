@@ -2,6 +2,7 @@ module
 
 public import FORS.CoverBound.SecondMoment
 public import Mathlib.Data.List.GetD
+public import FORS.CoverBound.FirstMoment
 
 @[expose] public section
 
@@ -14,8 +15,6 @@ rounding in `ℤ` (`p2N_eq`). -/
 open ENNReal
 
 namespace FORS.Security.H0
-
-set_option linter.unusedSectionVars false
 
 /-! ### Lists over a range -/
 

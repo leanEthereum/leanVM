@@ -2,6 +2,7 @@ module
 
 public import XmssSecurity.Proof.Bridge.Real
 public import XmssSecurity.Proof.OwnTotal
+public import LeanXmss.Statement
 
 @[expose] public section
 

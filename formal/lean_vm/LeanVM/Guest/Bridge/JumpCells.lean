@@ -22,9 +22,9 @@ public import LeanVM.Guest.Bridge.JumpCellsIdx
 /-!
 # The jump cells of the deployed guest
 
-`AShape A`: the alignment contexts of `A` are the data's (`AlignCtx.ofData` over function `j`'s certificate cells, `Plumb`, entry, whether it is `main`, the guest's powers and jump table), their hint-only cells only values without a certificate cell (below `2`), their code the compiled function's. `jcData j` (`JumpCellsIdx.lean`): `jcDataD` on function `j`'s data, which the kernel decides for every function (`Bridge/JumpCells/`). `ChainArm`: at a chained `match`'s table jump, the arm the previous selector took is one whose target cell the jump reads, what the alignment check cannot see (the chained `match` follows the previous one, its jump repeated at the end of each arm); only `main_loop2` has chains (`B2C.chained_only`).
+`jcData j` (`JumpCellsIdx.lean`): `jcDataD` on function `j`'s data, which the kernel decides for every function (`Bridge/JumpCells/`). `ChainArm`: at a chained `match`'s table jump, the arm the previous selector took is one whose target cell the jump reads, what the alignment check cannot see (the chained `match` follows the previous one, its jump repeated at the end of each arm); only `main_loop2` has chains (`B2C.chained_only`).
 
-`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under `ProgAl`, `AShape`, every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.frames`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), which its next-frame cell holds, a fixed cell or one past the frame at a self frame pointer cell of the next frame (`next_read`), its header; `main` at frame `0` (no path calls `main`, `insts_main`) and only `main` (`Memory.insts_same`).
+`jumpCells_of` (`JumpCellsOf.lean`, apart: it reads the program's alignment, `progAl`): on the honest tree and a memory covering its writes, under every function's `jcData` and `ChainArm`, the top frame of every state of the track against the run has its jump cells (`JumpCells`), each from what its frame holds (`FrameHolds`, `RefOk.frames`): the fixed cells' constants and frame words, a condition at its certificate cell (`walk_inK`, `locAt_ofData`), a table jump's target through the jump table (`tbl_armWord`), a call site's callee frame and header (the site the check names `siteOf`'s, no two sites of one argument list; a loop helper's last call no site's, `loop_last`), a loop's tail call to the frame right after its own (`FrameHolds.tail`), which its next-frame cell holds, a fixed cell or one past the frame at a self frame pointer cell of the next frame (`next_read`), its header; `main` at frame `0` (no path calls `main`, `insts_main_or`) and only `main` (`Memory.insts_same`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -33,14 +33,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Check (getF getF_eq)
 
 @[expose] public section
-
-/-- **The alignment contexts are the data's**: for function `j`, over its certificate's cells
-(hint-only cells only for values without one), `Plumb`, entry, whether it is `main`, the guest's
-powers and jump table; its code the compiled function's. -/
-def AShape (A : String → FnAl) : Prop :=
-  ∀ f j, idxOf f = some j → (A f).code = (fnOf j).code ∧ ∃ extra ents halt len,
-    (A f).X = AlignCtx.ofData (certOf j).locs extra (fnOf j).entryPc (j == 1) (plumbOf j) Data.powTree
-      Data.jtTrie ents halt len ∧ ∀ i c, extra.lookup i = some c → (certOf j).locs.getD i 0 < 2
 
 /-- **The arm a chained `match`'s table jump comes from**: at a state of the track whose top frame
 is at a jump reading a chained `match`'s target cell `od`, the previous selector took an arm whose

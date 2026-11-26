@@ -40,12 +40,6 @@ theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), listElement
   | _ :: _, 0, _ => rfl
   | _ :: as, n + 1, d => nth_getD as n d
 
-theorem tail_getD {α : Type} (l : List α) (m : ℕ) (d : α) : l.tail.getD m d = l.getD (m + 1) d := by
-  cases l <;> simp
-
-theorem headD_getD {α : Type} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
-  cases l <;> rfl
-
 /-- **A callee the check finds**: a good function entered there, one of the function's callees,
 with its signature. -/
 theorem calleeS_spec {X : CX} (hG : X.G = glob.restrict X.callees) {pc j : ℕ} {sg : Sig}

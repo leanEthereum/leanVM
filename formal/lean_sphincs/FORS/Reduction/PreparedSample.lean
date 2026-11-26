@@ -10,7 +10,7 @@ and a uniform table on all remaining short inputs give a prepared cache and a fi
 That answer function agrees with the material and is consistent with the graph labels and their
 surrogate boundary. -/
 
-open OracleComp OracleSpec ENNReal Common.QueryCount
+open OracleComp OracleSpec ENNReal
 
 namespace FORS.Security.Assembly
 
@@ -22,8 +22,21 @@ attribute [local instance] Classical.propDecidable
 
 theorem OnlyW.counted {α : Type} (selected : OracleWorld.Domain → Prop) [DecidablePred selected]
     (oa : OracleComp OracleWorld α) (h : OnlyW oa) :
-    OnlyW (counted selected oa) :=
-  isQueryBoundP_counted _ h
+    OnlyW (QueryCap.counted selected oa) := by
+  induction oa using OracleComp.inductionOn with
+  | pure value => exact OnlyW.pure' _
+  | query_bind input next ih =>
+      rw [OnlyW, isQueryBoundP_query_bind_iff] at h
+      rw [QueryCap.counted_query_bind, OnlyW, isQueryBoundP_query_bind_iff]
+      refine ⟨h.1, fun answer => ?_⟩
+      have hnext : OnlyW (next answer) := by
+        have := h.2 answer
+        split at this <;> simpa [OnlyW] using this
+      have hbind : OnlyW (QueryCap.counted selected (next answer) >>= fun result =>
+          (pure (result.1, (if selected input then 1 else 0) + result.2) :
+            OracleComp OracleWorld (α × Nat))) :=
+        OnlyW.bind (ih answer hnext) (fun _ => OnlyW.pure' _)
+      split <;> simpa [OnlyW] using hbind
 
 /-- `pure` has the same distribution in any two lawful semantics. -/
 theorem evalDistEq_pure {m₁ m₂ : Type → Type} [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]
@@ -166,7 +179,7 @@ theorem fixedHashWorld_countHashQueries (f : QueryImpl HashSpec Id) {α : Type}
     (oa : OracleComp OracleWorld α) :
     simulateQ (Prefix.fixedHashWorld f) (countHashQueries oa) =
       (simulateQ (Prefix.fixedWorldCost f) oa).run := by
-  rw [countHashQueries, simulate_withCost]
+  rw [countHashQueries, QueryCap.simulate_withCost]
   congr 2
   funext input
   cases input <;> simp only [Prefix.fixedWorldCost, QueryImpl.withAddCost_apply] <;> rfl

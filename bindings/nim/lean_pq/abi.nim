@@ -14,7 +14,7 @@
 from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
-  leanPqVersion = "0.16.0" # x-release-please-version
+  leanPqVersion = "0.18.0" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
   leanPqNativeUrl {.strdefine, used.} =
     "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion
@@ -75,7 +75,6 @@ type
     incompleteStruct.} = object
   LpqAggregate* {.importc: "lpq_aggregate", header: lpqHeader, incompleteStruct.} = object
   LpqVrfKey* {.importc: "lpq_vrf_key", header: lpqHeader, incompleteStruct.} = object
-  LpqSidecar* {.importc: "lpq_sidecar", header: lpqHeader, incompleteStruct.} = object
 
 const
   LpqOk* = 0'i32
@@ -86,6 +85,7 @@ const
   LpqPanic* = 2'i32
     ## The bridge caught a Rust panic.
 
+proc lpqSetup*(threads: csize_t): int32 {.importc: "lpq_setup", header: lpqHeader.}
 proc lpqLastError*(output: ptr LpqBuffer): int32 {.importc: "lpq_last_error", header: lpqHeader.}
 proc lpqBufferFree*(data: ptr byte, len: csize_t) {.importc: "lpq_buffer_free", header: lpqHeader.}
 
@@ -106,6 +106,8 @@ proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}
 proc lpqXmssSecretKeyPrepare*(key: ptr LpqXmssSecretKey, leafIndex: uint32): int32 {.
   importc: "lpq_xmss_secret_key_prepare", header: lpqHeader.}
+proc lpqXmssSecretKeySetBottomTreeCacheSize*(key: ptr LpqXmssSecretKey, size: csize_t): int32 {.
+  importc: "lpq_xmss_secret_key_set_bottom_tree_cache_size", header: lpqHeader.}
 proc lpqXmssSecretKeySign*(
   key: ptr LpqXmssSecretKey, message: ptr byte, messageLen: csize_t, leafIndex: uint32,
   output: ptr LpqBuffer): int32 {.
@@ -140,33 +142,26 @@ proc lpqSphincsVerify*(
   signature: ptr byte, signatureLen: csize_t): int32 {.
   importc: "lpq_sphincs_verify", header: lpqHeader.}
 
-proc lpqSidecarConnect*(path: ptr byte, len: csize_t, output: ptr ptr LpqSidecar): int32 {.
-  importc: "lpq_sidecar_connect", header: lpqHeader.}
-proc lpqSidecarStart*(
-  binary: ptr byte, binaryLen: csize_t, path: ptr byte, len: csize_t, threads: csize_t,
-  output: ptr ptr LpqSidecar): int32 {.
-  importc: "lpq_sidecar_start", header: lpqHeader.}
-proc lpqSidecarProver*(sidecar: ptr LpqSidecar, output: ptr LpqBuffer): int32 {.
-  importc: "lpq_sidecar_prover", header: lpqHeader.}
-proc lpqSidecarClose*(sidecar: ptr LpqSidecar): int32 {.
-  importc: "lpq_sidecar_close", header: lpqHeader.}
-proc lpqSidecarDestroy*(sidecar: ptr LpqSidecar) {.
-  importc: "lpq_sidecar_destroy", header: lpqHeader.}
-
-proc lpqSidecarAggregate*(
-  sidecar: ptr LpqSidecar,
+proc lpqAggregateCreate*(
   children: ptr ptr LpqAggregate, childCount: csize_t,
   xmss: ptr byte, xmssCount: csize_t,
   sphincs: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_sidecar_aggregate", header: lpqHeader.}
-proc lpqSidecarVerify*(
-  sidecar: ptr LpqSidecar,
+  importc: "lpq_aggregate_create", header: lpqHeader.}
+proc lpqAggregateCreateOnly*(
+  children: ptr ptr LpqAggregate, childCount: csize_t,
+  xmss: ptr byte, xmssCount: csize_t,
+  sphincs: ptr byte, sphincsCount: csize_t,
+  xmssClaims: ptr byte, xmssClaimCount: csize_t,
+  sphincsClaims: ptr byte, sphincsClaimCount: csize_t,
+  output: ptr ptr LpqAggregate): int32 {.
+  importc: "lpq_aggregate_create_only", header: lpqHeader.}
+proc lpqAggregateFromBytes*(
   data: ptr byte, len: csize_t,
   xmssClaims: ptr byte, xmssCount: csize_t,
   sphincsClaims: ptr byte, sphincsCount: csize_t,
   output: ptr ptr LpqAggregate): int32 {.
-  importc: "lpq_sidecar_verify", header: lpqHeader.}
+  importc: "lpq_aggregate_from_bytes", header: lpqHeader.}
 proc lpqAggregateToBytes*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.
   importc: "lpq_aggregate_to_bytes", header: lpqHeader.}
 proc lpqAggregateXmssClaims*(aggregate: ptr LpqAggregate, output: ptr LpqBuffer): int32 {.

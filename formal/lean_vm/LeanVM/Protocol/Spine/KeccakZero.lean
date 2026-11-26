@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Protocol.Spine.Instance
-public import LeanVM.Protocol.Verifier.EqKernel
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The Keccak predicate along a point
@@ -44,7 +44,11 @@ open LeanVM.Parameters LeanVM.Semantics
 
 namespace KeccakZero
 
-open LeanVM.Protocol.Verifier (eqAt eqAt_two_mul eqAt_two_mul_add_one sum_range_two_mul)
+/-- The equality weight of the bits of `w` against the point `acc`: bit `i` of `w` weighs
+`acc[i]` when set and `1 - acc[i]` when not. -/
+def eqAt : List E → ℕ → E
+  | [], _ => 1
+  | a :: acc, w => (if w % 2 = 1 then a else 1 - a) * eqAt acc (w / 2)
 
 /-- The table `δ` on `n` bits with its high `|acc|` coordinates bound to `acc`, at the index `v`
 of the low coordinates. -/
@@ -58,7 +62,7 @@ def ZeroOnHi (δ : ℕ → E) (acc : List E) (n : ℕ) : Prop :=
 
 /-- Nothing bound: the table itself. -/
 theorem foldHi_nil (δ : ℕ → E) (n v : ℕ) : foldHi δ n [] v = δ v := by
-  simp [foldHi]
+  simp [foldHi, eqAt]
 
 /-- Binding one more coordinate, the next lower one. -/
 theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.length < n) (v : ℕ) :
@@ -67,17 +71,20 @@ theorem foldHi_cons (δ : ℕ → E) {n : ℕ} (c : E) {acc : List E} (h : acc.l
   obtain ⟨m, h1, h2, h3⟩ : ∃ m, n - (acc.length + 1) = m ∧ n - acc.length = m + 1 ∧
       n - acc.length - 1 = m := ⟨n - (acc.length + 1), rfl, by omega, by omega⟩
   unfold foldHi
-  rw [List.length_cons, h1, h2, Nat.add_sub_cancel, pow_succ, mul_comm _ 2, sum_range_two_mul,
+  rw [List.length_cons, h1, h2, Nat.add_sub_cancel, pow_succ, mul_comm _ 2, Finset.sum_range_two_mul,
     Finset.mul_sum,
     Finset.mul_sum, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun w _ ↦ ?_
   have e0 : eqAt (c :: acc) (2 * w) = (1 - c) * eqAt acc w := by
-    rw [eqAt_two_mul, CharTwo.sub_eq_add]
+    simp [eqAt, Nat.mul_mod_right, Nat.mul_div_cancel_left w (by norm_num : 0 < 2)]
+  have e1 : eqAt (c :: acc) (2 * w + 1) = c * eqAt acc w := by
+    simp only [eqAt]
+    rw [ite_eq_left (by omega), show (2 * w + 1) / 2 = w by omega]
   have i0 : v + 2 ^ m * (2 * w) = v + 2 ^ (m + 1) * w := by
     rw [pow_succ]; ring
   have i1 : v + 2 ^ m * (2 * w + 1) = v + 2 ^ m + 2 ^ (m + 1) * w := by
     rw [pow_succ]; ring
-  rw [e0, eqAt_two_mul_add_one, i0, i1]
+  rw [e0, e1, i0, i1]
   ring
 
 /-- Nothing bound: the table vanishes on the cube. -/

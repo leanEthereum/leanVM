@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B1.Place.ArmKids
 public import LeanVM.Guest.B1.Place.OsPlaceR
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # An arm, placed
@@ -241,12 +240,12 @@ theorem arm_completeAtO {Bd : Option (String → ℕ)} {m ri : ℕ} (hm : m < 11
   revert H
   set c := osCfgR m ri with hc
   intro H
-  obtain ⟨hBall, hB, hffm, haddrs, hyr⟩ := armBody_ok hm hri
+  obtain ⟨hBall, hB, hffm, haddrs, hyr⟩ := armBody_ok ri hm
   have hLv : ∀ l < c.levels.length, LvFacts c l := armLv_ok hm hri
   have hsf : SlowFacts c := armSlow_ok hm hri
   have hl : H.own.length = (osSizesL c).length := H.own_len.length_eq
   have hSL := osSizesL_length (c := c) hyr.le
-  have hbA : fn.body = osBodyA c ⧺ [.ret (osBodyRet c)] := hb.trans (osBody_eq c)
+  have hbA : fn.body = osBodyA c ++ [.ret (osBodyRet c)] := hb.trans (osBody_eq c)
   have hloop : coreProgram.loop name = false := by
     obtain ⟨a, l, he⟩ : ∃ a l, osBodyRet c = a :: l := ⟨_, _, rfl⟩
     rw [Program.loop_of_find? hfind, Fn.loop, hbA, he]

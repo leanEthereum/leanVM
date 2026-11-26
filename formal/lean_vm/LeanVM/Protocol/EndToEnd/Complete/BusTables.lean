@@ -11,6 +11,8 @@ module
 public import LeanVM.Protocol.EndToEnd.Complete.BusFramework
 public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 public import LeanVM.Protocol.EndToEnd.Complete.BusSide
+import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The table blocks
@@ -70,11 +72,6 @@ theorem busBlocks_eq (s : Sizes) :
 
 /-! ## A side's decomposition -/
 
-theorem getD_map_range (n j : ℕ) (F : ℕ → E) (hj : j < n) :
-    ((List.range n).map F).getD j 0 = F j := by
-  rw [List.getD_eq_getElem _ _ (by simpa using hj)]
-  simp
-
 
 /-- The selectors of a side's blocks at a point. -/
 def sideSels (fw : List ℕ) (blocks : List BusBlock) (p : List E) (k n : ℕ) : List E :=
@@ -86,12 +83,6 @@ theorem foldl_pair {α β' γ : Type} (F : α × β' → γ → α × β') (f : 
     ∀ (l : List γ) (a : α) (b : β'), l.foldl F (a, b) = (l.foldl f a, l.foldl g b)
   | [], _, _ => rfl
   | x :: l, a, b => by rw [List.foldl_cons, hF, foldl_pair F f g hF l]; rfl
-
-/-- A fold that adds a term per item adds their sum. -/
-theorem foldl_add_map {γ : Type} (h : γ → E) :
-    ∀ (l : List γ) (a : E), l.foldl (fun acc x ↦ acc + h x) a = a + (l.map h).sum
-  | [], a => by simp
-  | x :: l, a => by rw [List.foldl_cons, foldl_add_map h l, List.map_cons, List.sum_cons]; ring
 
 /-- The forms' step of `accumulateSide`. -/
 private abbrev formStep (side : ℕ) (w : List E) (β : E) (forms : List (List Form))
@@ -105,7 +96,7 @@ private abbrev padStep (w : List E) (β : E) (p : List E) (pr : E) (x : E × Bus
 
 private theorem foldl_padStep (w : List E) (β : E) (p : List E) (l : List (E × BusBlock)) :
     l.foldl (padStep w β p) 0 = padSum w β p l := by
-  rw [foldl_add_map, zero_add, padSum]
+  rw [List.foldl_add_eq_add_sum_map, zero_add, padSum]
   simp only [evaluate_blockForm]
 
 /-- `accumulateSide`'s forms: the fold over the side's blocks with their selectors. -/
@@ -171,14 +162,14 @@ theorem accumulateSide_total (forms : List (List Form)) (side : ℕ) (fw : List 
     simp only [sideSels, List.length_map, List.length_range]
     refine sum_congr rfl fun b hb ↦ ?_
     have hb' := mem_range.mp hb
-    rw [getD_map_range _ _ _ hb', zero_add, hp, List.getD_eq_getElem _ _ (by simp [hfps, hb'])]
+    rw [List.getD_map_range _ hb', zero_add, hp, List.getD_eq_getElem _ _ (by simp [hfps, hb'])]
     simp [List.getElem?_eq_getElem (show b < fps.length by omega)]
   have hpad : sumE (sideSels fw blocks p 0 fw.length ++
       sideSels fw blocks p fw.length blocks.length) =
       ∑ b ∈ range fw.length, blockSel (sideSizes fw blocks) D b p +
         ∑ i ∈ range blocks.length, blockSel (sideSizes fw blocks) D (fw.length + i) p := by
-    rw [sumE_eq, List.sum_append, sideSels, sideSels, ← sum_range_eq_list,
-      ← sum_range_eq_list, hp]
+    rw [sumE_eq, List.sum_append, sideSels, sideSels, ← Finset.sum_range_eq_sum_map_range,
+      ← Finset.sum_range_eq_sum_map_range, hp]
     simp only [zero_add]
   have hfw' : ∑ b ∈ range fw.length, blockSel (sideSizes fw blocks) D b p *
       multilinearEval (tabs b) (p.take ((sideSizes fw blocks).getD b 0)) =
@@ -257,7 +248,7 @@ theorem blockVal_eq (β : E) (w : List E) (hw : w.length = 16) (b : BusBlock)
         ((List.range (b.coordinates.length + (16 - b.coordinates.length))).map
           fun k ↦ (b.coordinates.getD k {}).evaluate r).getD (b.coordinates.length + x) 0 = 0 := by
     refine sum_eq_zero fun x hx ↦ ?_
-    rw [getD_map_range _ _ _ (by have := mem_range.mp hx; omega),
+    rw [List.getD_map_range _ (by have := mem_range.mp hx; omega),
       List.getD_eq_default b.coordinates _ (by omega), evaluate_empty, mul_zero]
   rw [hz, add_zero]
   have hl : (b.coordinates.zipIdx.map fun cs ↦ w.getD cs.2 0 * cs.1.evaluate r) =
@@ -267,9 +258,9 @@ theorem blockVal_eq (β : E) (w : List E) (hw : w.length = 16) (b : BusBlock)
     intro i h1 h2
     simp only [List.length_map, List.length_zipIdx] at h1
     simp [List.getElem_zipIdx, List.getElem?_eq_getElem h1]
-  rw [hl, ← sum_range_eq_list]
+  rw [hl, ← Finset.sum_range_eq_sum_map_range]
   refine sum_congr rfl fun k hk ↦ ?_
-  rw [getD_map_range _ _ _ (by have := mem_range.mp hk; omega)]
+  rw [List.getD_map_range _ (by have := mem_range.mp hk; omega)]
 
 /-- A finite product over the range is the list product. -/
 theorem prod_range_eq_list (n : ℕ) (H : ℕ → E) :

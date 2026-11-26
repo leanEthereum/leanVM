@@ -95,36 +95,6 @@ noncomputable def ideal1FImpl : QueryImpl (dSpec2 Msg Dg (SpState Dg E C))
 /-- The cache of the two-oracle ROM. -/
 abbrev HCache (Msg Dg St : Type) := (hfSpec Msg Dg St).QueryCache
 
-/-- The `H` part of a two-oracle cache. -/
-def roPartF (c : HCache Msg Dg (SpState Dg E C)) : (roSpec Msg Dg).QueryCache :=
-  QueryCache.ofFn fun m ↦ c (.inl m)
-
-@[simp] theorem roPartF_apply (c : HCache Msg Dg (SpState Dg E C)) (m : Msg) :
-    roPartF c m = c (.inl m) := rfl
-
-theorem roPartF_cacheQuery_inl (c : HCache Msg Dg (SpState Dg E C)) (m : Msg) (d : Dg) :
-    roPartF (c.cacheQuery (.inl m) d) = (roPartF c).cacheQuery m d := by
-  refine QueryCache.ext fun m' ↦ ?_
-  by_cases h : m' = m
-  · subst h; simp
-  · rw [roPartF_apply, QueryCache.cacheQuery_of_ne _ _ (by simpa using h),
-      QueryCache.cacheQuery_of_ne _ _ h, roPartF_apply]
-
-theorem roPartF_cacheQuery_inr (c : HCache Msg Dg (SpState Dg E C)) (x : SpState Dg E C)
-    (t : SpState Dg E C) : roPartF (c.cacheQuery (.inr x) t) = roPartF c := by
-  refine QueryCache.ext fun m' ↦ ?_
-  rw [roPartF_apply, QueryCache.cacheQuery_of_ne _ _ (by simp), roPartF_apply]
-
-/-- An `H` step of the two-oracle ROM, seen through the `H` part. -/
-theorem roPartF_roStep_inl (m : Msg) (c : HCache Msg Dg (SpState Dg E C)) :
-    (fun w ↦ (w.1, roPartF w.2)) <$> roStep (hs := hfSpec Msg Dg (SpState Dg E C)) (.inl m) c =
-      roStep (hs := roSpec Msg Dg) m (roPartF c) := by
-  rcases h : c (.inl m) with _ | d
-  · rw [roStep_of_none h, roStep_of_none (by simpa using h)]
-    simp [roPartF_cacheQuery_inl]
-  · rw [roStep_of_some h, roStep_of_some (by simpa using h)]
-    simp
-
 /-- The two-oracle simulator's rooted answer for a padded message. -/
 theorem rootedAnswer2_run_some {β : List (Dg × E)} {m : Msg} (hm : P.unpad β = some m)
     (x : SpState Dg E C) (c : HCache Msg Dg (SpState Dg E C)) :
@@ -152,10 +122,10 @@ distribution, once `F` is forgotten, when `F` has been queried at recorded input
 theorem simulator2_fwd_evalDistEq (x : SpState Dg E C) (σ : SimState Dg E C)
     (c : HCache Msg Dg (SpState Dg E C))
     (hF : ∀ x', c (.inr x') ≠ none → x' ∈ σ.edges.map Prod.fst) :
-    (fun w ↦ (w.1.1, (w.1.2, roPartF w.2))) <$>
+    (fun w ↦ (w.1.1, (w.1.2, roPart w.2))) <$>
         (simulateQ (hfSpec Msg Dg (SpState Dg E C)).romImpl ((simulator2 P (.forward x)).run σ)).run c
       =ᵈ (fun w ↦ (w.1.1, (w.1.2, w.2))) <$>
-        (simulateQ (roSpec Msg Dg).romImpl ((simulator P (.forward x)).run σ)).run (roPartF c) := by
+        (simulateQ (roSpec Msg Dg).romImpl ((simulator P (.forward x)).run σ)).run (roPart c) := by
   simp only [simulator2, simulator, StateT.run_mk]
   rcases hy : forwardLookup σ.edges x with _ | y
   · have hfresh : c (.inr x) = none := by
@@ -164,12 +134,12 @@ theorem simulator2_fwd_evalDistEq (x : SpState Dg E C) (σ : SimState Dg E C)
     rcases hch : chainOf σ.chains x with _ | ⟨s, β⟩
     · simp only [simulateQ_bind, StateT.run_bind, fQuery_run, roStep_of_none hfresh,
         simulateQ_romImpl_liftM_run, simulateQ_pure, StateT.run_pure]
-      simp [roPartF_cacheQuery_inr, Functor.map_map]
+      simp [roPart_cacheQuery_inr, Functor.map_map]
     · simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure]
       rcases hm : P.unpad (β ++ [blockTo s x]) with _ | m
       · rw [rootedAnswer2_run_none P hm, roStep_of_none hfresh, rootedAnswer_run_none P hm]
-        simp [roPartF_cacheQuery_inr, Functor.map_map]
-      · rw [rootedAnswer2_run_some P hm, rootedAnswer_run_some P hm, ← roPartF_roStep_inl]
+        simp [roPart_cacheQuery_inr, Functor.map_map]
+      · rw [rootedAnswer2_run_some P hm, rootedAnswer_run_some P hm, ← roPart_roStep_inl]
         simp [Functor.map_map, map_bind]
   · simp
 
@@ -385,7 +355,7 @@ theorem fDom_ideal1F (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain) (s : FState M
 
 /-- The projection forgetting `F`. -/
 def projF (s : FState Msg Dg E C) : SimState Dg E C × (roSpec Msg Dg).QueryCache :=
-  (s.1, roPartF s.2)
+  (s.1, roPart s.2)
 
 /-- **One step of the world with `F` is one step of the one-oracle ideal world**, in
 distribution, once `F` is forgotten. -/
@@ -398,7 +368,7 @@ theorem ideal1F_step_evalDistEq (t : (dSpec2 Msg Dg (SpState Dg E C)).Domain)
   rcases t with n | m | q | x
   · rw [ideal1F_inl_run, ideal1Impl_inl, ideal_inl_run]
     simp [projF, Functor.map_map]
-  · rw [ideal1F_hash_run, ideal1Impl_hash, ideal_hash_run, projF, ← roPartF_roStep_inl]
+  · rw [ideal1F_hash_run, ideal1Impl_hash, ideal_hash_run, projF, ← roPart_roStep_inl]
     simp [projF, Functor.map_map]
   · rw [ideal1Impl_fwd]
     cases q with

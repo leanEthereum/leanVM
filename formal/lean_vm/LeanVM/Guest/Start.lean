@@ -10,8 +10,8 @@ module
 public import Statement.LeanVm
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Protocol.EndToEnd.Front.PubPhase
 public import LeanVM.Guest.JumpTable
 public import Statement.LeanVmGuest

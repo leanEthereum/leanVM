@@ -52,8 +52,10 @@ public import FORS.ScanSigner.AfterSigning
 public import FORS.ScanSigner.FairShare
 public import FORS.ScanSigner.Group
 public import FORS.ScanSigner.LazySigner
+public import FORS.ScanSigner.LoopWalk
 public import FORS.ScanSigner.Scan
 public import FORS.ScanSigner.ScanReveals
+public import FORS.ScanSigner.SignatureLaw
 public import FORS.GraphView.Cache
 public import FORS.GraphView.Correctness
 public import FORS.GraphView.Cost
@@ -105,7 +107,6 @@ public import FORS.Classification.Hidden
 public import FORS.Classification.RecoveredFors
 public import FORS.Classification.Reference
 public import FORS.Classification.RefinedEvents
-public import FORS.Classification.RefinedOutcome
 public import FORS.Classification.Signature
 public import FORS.Classification.SignedReveals
 public import FORS.Classification.Targeting
@@ -145,7 +146,6 @@ public import FORS.SmallBudget.Closing
 public import FORS.SmallBudget.ClosingH
 public import FORS.SmallBudget.BridgeH
 public import FORS.SmallBudget.Contact.Bound
-public import FORS.SmallBudget.Contact.HonestBase
 public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.SmallBudget.Contact.PaidPotential
 public import FORS.SmallBudget.Contact.PaidPotentialH
@@ -172,6 +172,11 @@ public import FORS.SmallBudget.SampleBound
 public import FORS.SmallBudget.SampleEvents
 public import FORS.LargeBudget.HonestCoupling
 public import FORS.LargeBudget.Covers
+public import FORS.LargeBudget.HeavyPotential
+public import FORS.LargeBudget.HeavyPotentialH
+public import FORS.LargeBudget.HeavyRoute
+public import FORS.LargeBudget.HeavyRouteH
+public import FORS.LargeBudget.HeavyTerm
 public import FORS.LargeBudget.Route
 public import FORS.LargeBudget.RouteH
 public import FORS.LargeBudget.RouteStartH
@@ -180,6 +185,7 @@ public import FORS.LargeBudget.WeightedPotential
 public import FORS.LargeBudget.WeightedPotentialH
 public import FORS.LargeBudget.WeightedScan
 public import FORS.Certificates.Build
+public import FORS.Certificates.Closing
 public import FORS.Certificates.ClosingAdv
 public import FORS.Certificates.H26
 public import FORS.Certificates.VerifyCost

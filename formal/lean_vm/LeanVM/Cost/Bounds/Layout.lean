@@ -2,26 +2,32 @@ module
 
 public import LeanVM.Cost.Bounds.Replay
 public import LeanVM.Cost.Bounds.Runner
-import Statement.Verifier.Lib
+import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
+import LeanVM.ToMathlib.List
 
 /-!
 # Bounds: the layouts the replay returns
 
-The runner's bound (`runner_cost`, `Bounds/Runner.lean`) assumes of the layout what
+The runner's bounds (`Bounds/Runner.lean`) assume of the layout what
 `buildLayoutLite`'s checks give: `κ = logMemory ≤ 30`, `logBytecode ≤ 30`, at most six tables of
 log-height at most `30`, and every placement's offset a word. Here they are proved for every
-layout `afterRootLite` returns:
+layout `buildLayoutLite` returns:
 
 * `stackOffsets_le`: blocks of log-size at most `s`: every offset at most `2^s·n`, `n` blocks
-  (the running total; `stackOffsets_bounds`' `2^63` was the word room left for the sum);
+  (the running total, sharper than `stackOffsets_bounds`' `2^63`);
 * `placementsOf_index_lt`: at most `165` columns of log-size at most `40` (`columnKappas`: `30`
   but `q_keccak`'s `36`): every placement's offset below `2^48`: a block's offset is at most
   `165·2^40`, a Keccak slot's `q_keccak`'s offset plus a slot (below `64`) of `2^κ` words;
-* **`buildLayoutLite_facts`**, **`afterRootLite_facts`**: the layout's fields (`LayoutFacts`), the
-  stack's log-size in `[16, 30]` and the rate's in `[1, 4]`;
-* **`runner_cost_afterRootLite`**: `runner_cost` on `afterRootLite`'s layouts, its hypotheses
-  discharged: at most `runnerBudget` (`≈ 2^65.59`).
+* **`buildLayoutLite_facts`**: the layout's fields (`LayoutFacts`).
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -62,7 +68,7 @@ theorem offsetsFold_le (sizes : List ℕ) (s : ℕ) (hs : ∀ i, sizes.getD i 0 
 theorem stackOffsets_le (sizes : List ℕ) (s : ℕ) (hs : ∀ x ∈ sizes, x ≤ s) :
     ∀ x ∈ (stackOffsets sizes).1, x ≤ 2 ^ s * sizes.length := by
   have hs' : ∀ i, sizes.getD i 0 ≤ s := fun i ↦ by
-    rcases getD_mem_or sizes i 0 with h | h
+    rcases List.getD_mem_or sizes i 0 with h | h
     · exact hs _ h
     · rw [h]; omega
   unfold stackOffsets
@@ -88,7 +94,7 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
   have hcl : cols.length ≤ 165 := (List.length_filter_le _ _).trans (by simp; omega)
   have hoff := stackOffsets_le (cols.map (kappas.getD · 0)) 40 (fun x hx ↦ by
     obtain ⟨i, -, rfl⟩ := List.mem_map.1 hx
-    rcases getD_mem_or kappas i 0 with h | h
+    rcases List.getD_mem_or kappas i 0 with h | h
     · exact hk _ h
     · rw [h]; omega)
   generalize stackOffsets (cols.map (kappas.getD · 0)) = so at hoff
@@ -96,7 +102,7 @@ theorem placementsOf_index_lt (kappas : List ℕ) (hn : kappas.length ≤ 165)
   simp only [List.length_map] at hoff
   have hT : 2 ^ 40 * cols.length ≤ 165 * 2 ^ 40 := by omega
   have hget : ∀ c, offs.getD (cols.idxOf c) 0 ≤ 165 * 2 ^ 40 := fun c ↦ by
-    rcases getD_mem_or offs (cols.idxOf c) 0 with h | h
+    rcases List.getD_mem_or offs (cols.idxOf c) 0 with h | h
     · have := hoff _ h; omega
     · rw [h]; omega
   intro o ho p hp
@@ -153,7 +159,7 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     set heights := List.zipWith (fun rows floor ↦ max (log2Ceil rows) floor) tableRows
       tableLogFloors
     have hhD : ∀ i, heights.getD i 0 ≤ 30 := fun i ↦ by
-      rcases getD_mem_or heights i 0 with h' | h'
+      rcases List.getD_mem_or heights i 0 with h' | h'
       · exact hhm _ h'
       · rw [h']; omega
     obtain ⟨hkl, hkm⟩ := columnKappas_facts logMemory (val - busBits) heights c3
@@ -163,7 +169,7 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
     refine ⟨⟨c2, c3, by simp only [busBits] at c5 ⊢; omega, hhl, hhm, fun c ↦ ?_⟩, ?_⟩
     · show (((placementsOf (columnKappas logMemory (val - busBits) heights)).1.getD c
         none).getD default).index < 2 ^ 48
-      rcases getD_mem_or (placementsOf (columnKappas logMemory (val - busBits) heights)).1 c
+      rcases List.getD_mem_or (placementsOf (columnKappas logMemory (val - busBits) heights)).1 c
         none with hm | hm
       · generalize hq : (placementsOf (columnKappas logMemory (val - busBits) heights)).1.getD c
           none = q at hm
@@ -173,64 +179,6 @@ theorem buildLayoutLite_facts {bytecode : List K} {logMemory : ℕ} {tableRows :
       · rw [hm]; show (0 : ℕ) < 2 ^ 48; norm_num
     · show log2Strict bytecode.length = some (val - busBits + busBits)
       rw [Nat.sub_add_cancel c1]; exact hval
-
-/-- `readSizesLite`'s layout is `buildLayoutLite`'s, its stack's log-size in `[16, 30]`, its rate
-in `[1, 4]`. -/
-theorem readSizesLite_layout {bytecode : List K} {s s' :
-    LeanVM.Protocol.Compile.VerifierProgramState}
-    {L : LayoutLite} {R : ℕ} (h : readSizesLite bytecode s = some ((L, R), s')) :
-    (∃ logMemory tableRows, buildLayoutLite bytecode logMemory tableRows = some L) ∧
-      16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 := by
-  unfold readSizesLite at h
-  obtain ⟨r, -, h⟩ := Option.bind_eq_some_iff.1 h
-  split_ifs at h
-  dsimp only at h
-  split_ifs at h with h2
-  obtain ⟨L', hL', hl⟩ := Option.bind_eq_some_iff.1 h
-  split_ifs at hl with h3
-  simp only [Option.some.injEq, Prod.mk.injEq] at hl
-  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hl
-  simp only [Whir.minLogStack, Whir.maxLogStack] at h3
-  exact ⟨⟨_, _, hL'⟩, h3.1, h3.2, h2.1, h2.2⟩
-
-/-- **`afterRootLite`'s layouts** meet `LayoutFacts`; the stack's log-size is in `[16, 30]`, the
-rate's in `[1, 4]`, and the bytecode has `2^(ℓ + 4)` words. -/
-theorem afterRootLite_facts {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof}
-    {L : LayoutLite} {R : ℕ} {st : LeanVM.Protocol.Compile.VerifierProgramState}
-    (h : afterRootLite bytecode π = some ((L, R), st)) :
-    LayoutFacts L ∧ 16 ≤ L.stackLog ∧ L.stackLog ≤ 30 ∧ 1 ≤ R ∧ R ≤ 4 ∧
-      log2Strict bytecode.length = some (L.logBytecode + busBits) := by
-  unfold afterRootLite at h
-  cases hr : readSizesLite bytecode (initialState π) with
-  | none => rw [hr] at h; simp at h
-  | some r =>
-    rw [hr, Option.bind_some] at h
-    obtain ⟨t, -, ht⟩ := Option.map_eq_some_iff.1 h
-    obtain ⟨⟨L', R'⟩, s'⟩ := r
-    simp only [Prod.mk.injEq] at ht
-    obtain ⟨⟨rfl, rfl⟩, -⟩ := ht
-    obtain ⟨⟨lm, rows, hb⟩, h1, h2, h3, h4⟩ := readSizesLite_layout hr
-    obtain ⟨hf, hl⟩ := buildLayoutLite_facts hb
-    exact ⟨hf, h1, h2, h3, h4, hl⟩
-
-/-! ## The runner on the replay's layouts -/
-
-/-- **The runner on `afterRootLite`'s layouts**: `runner_cost`, its hypotheses on the layout
-discharged (`afterRootLite_facts`): at most `runnerBudget` (`≈ 2^65.59`). -/
-theorem runner_cost_afterRootLite (P : LeanVM.Cost.MachineProgram) (hT : Includes P runnerTablesC.costDeps)
-    (hW : Includes P runWithTablesC.costDeps) (prog : Semantics.LeanIsaProgram) (input :
-        PublicInput)
-    {bytecode : List K} {π : LeanVM.Protocol.Compile.Proof} {L : LayoutLite} {R : ℕ}
-    {st : LeanVM.Protocol.Compile.VerifierProgramState} (h : afterRootLite bytecode π = some ((L,
-        R), st))
-    (qs : List (Vector K (2 ^ L.stackLog))) (hqs : qs.length ≤ 2 ^ 12 + 1) :
-    machineCost P runnerTablesC.costIdx [encodeValue prog, encodeValue L] +
-        (qs.map fun q ↦ machineCost P runWithTablesC.costIdx
-          [encodeValue (runnerTables prog L), encodeValue prog, encodeValue input, encodeValue L, encodeValue q]).sum ≤
-      runnerBudget := by
-  obtain ⟨hf, -⟩ := afterRootLite_facts h
-  exact runner_cost P hT hW prog input L hf.logMemory_le hf.logBytecode_le hf.heights_le
-    hf.heights_length hf.index_lt_word qs hqs
 
 end
 

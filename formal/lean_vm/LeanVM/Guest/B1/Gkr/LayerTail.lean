@@ -8,8 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Gkr.Layer
-import LeanVM.Guest.B1.Tables.Base
-import LeanVM.Guest.StmtsAppend
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A layer's children (`gkr_children`)
@@ -37,7 +36,7 @@ def chB (b0 i : ℕ) : ℕ := b0 + 4 * i + 13 * (i / 4)
 
 /-- Child `i`'s read: `fs_next` at the cursor `cur`, `o + i` words on, its word copied. -/
 def chT (cur : V) (o b0 i : ℕ) : List Stmt :=
-  fsNextT cur (o + i) (chB b0 i) ⧺ [.atom (.copy (.n (chB b0 i + 3)) (.n (chB b0 i)))]
+  fsNextT cur (o + i) (chB b0 i) ++ [.atom (.copy (.n (chB b0 i + 3)) (.n (chB b0 i)))]
 
 /-- The rate cells of children `4m .. 4m + 3`. -/
 def chRate (b0 m : ℕ) : List V :=
@@ -76,7 +75,7 @@ theorem ch_ev {cur : V} {o b0 i : ℕ} (h : Stmt.HoldsList C rd σ (chT cur o b0
       FsPackOk σ (.n (chB b0 i)) (chB b0 i + 1) dsObserve ∧
       σ (.n (chB b0 i + 3)) = σ (.n (chB b0 i)) := by
   unfold chT at h
-  rw [holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at h
+  rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at h
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hc⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hc
   exact ⟨hl, hp, hc⟩

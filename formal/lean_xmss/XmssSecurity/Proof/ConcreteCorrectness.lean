@@ -86,8 +86,8 @@ theorem pathNode_children (leafIndex : LeafIndex) (level : Nat) (hlevel : level 
       (Concrete.authenticationPathNode leafIndex ⟨level, hlevel⟩).val =
         (quotient ^^^ 1) % lifetime := by
     rfl
-  have hquotientBit : quotient.testBit 0 = leafIndex.val.testBit level := by
-    exact testBit_div_pow leafIndex.val level
+  have hquotientBit : quotient.testBit 0 = leafIndex.val.testBit level :=
+    testBit_div_pow leafIndex.val level
   by_cases hbit : leafIndex.val.testBit level = true
   · simp only [hbit, ↓reduceIte]
     obtain ⟨hcurrentParts, hauthParts⟩ := odd_parts quotient (hquotientBit.trans hbit)
@@ -164,8 +164,8 @@ theorem recoveredEndpoints_signWithEncoding (cache : QueryCache HashSpec)
     XmssSecurity.recoveredEndpoints
         (fun chain => CacheView.chainStep cache secretKey.parameter leafIndex chain)
         encoding (signWithEncoding cache secretKey leafIndex randomness encoding).chainValue =
-      oneTimePublicKey cache secretKey.parameter secretKey.chainStart leafIndex := by
-  exact recover_signedChainValues cache secretKey leafIndex encoding
+      oneTimePublicKey cache secretKey.parameter secretKey.chainStart leafIndex :=
+  recover_signedChainValues cache secretKey leafIndex encoding
 
 theorem leafHash_recovered_signWithEncoding (cache : QueryCache HashSpec)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (randomness : Randomness)

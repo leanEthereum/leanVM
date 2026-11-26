@@ -5,6 +5,7 @@
 //! as lanes.
 
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 use parallel::SendPtr;
 use primitives::field::F64;
@@ -99,7 +100,7 @@ impl Shape {
 pub struct Extent {
     first: usize,
     blocks: usize,
-    words: Vec<u64>,
+    words: Vec<MaybeUninit<u64>>,
 }
 
 /// Where one block of an [`Extent`] goes.
@@ -118,8 +119,7 @@ impl Extent {
         let len = blocks
             .checked_mul((ROUNDS + 1) * BLOCK_LEN)
             .expect("an extent's words fit in memory");
-        // SAFETY: nothing reads a block that `Witness::from_extents` was not told is written.
-        let words = unsafe { primitives::uninit_vec(len) };
+        let words = primitives::uninit_vec(len);
         Self { first, blocks, words }
     }
 
@@ -133,13 +133,18 @@ impl Extent {
         assert!((self.first..self.end()).contains(&g));
         Slot {
             // SAFETY: the block's first round lies in the buffer.
-            base: SendPtr(unsafe { self.words.as_mut_ptr().add((g - self.first) * BLOCK_LEN) }),
+            base: SendPtr(unsafe { self.words.as_mut_ptr().add((g - self.first) * BLOCK_LEN).cast() }),
             stride: self.blocks * BLOCK_LEN,
         }
     }
 
-    fn round(&self, round: usize, g: usize) -> &[u64] {
-        &self.words[(round * self.blocks + g - self.first) * BLOCK_LEN..][..BLOCK_LEN]
+    /// # Safety
+    ///
+    /// [`block`] has written block `g`.
+    unsafe fn round(&self, round: usize, g: usize) -> &[u64] {
+        let words = &self.words[(round * self.blocks + g - self.first) * BLOCK_LEN..][..BLOCK_LEN];
+        // SAFETY: by the caller's contract.
+        unsafe { words.assume_init_ref() }
     }
 }
 
@@ -277,15 +282,14 @@ pub unsafe fn block(
 /// # Safety
 /// As [`block`].
 unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; STATE_LANES]], slot: Option<Slot>) -> Vec<u64> {
-    // SAFETY: `block` writes every instance of every slot.
-    let mut lanes = unsafe { primitives::uninit_vec(STATE_LANES * (ROUNDS / depth) * BLOCK) };
-    // SAFETY: forwarded to the caller.
+    // SAFETY: `block` writes every instance of every slot, and the extent's slot is forwarded to the caller.
     unsafe {
-        block(depth, inputs, slot, |slot, w, words| {
-            lanes[slot * BLOCK + 64 * w..][..64].copy_from_slice(words)
+        primitives::filled_vec(STATE_LANES * (ROUNDS / depth) * BLOCK, |lanes| {
+            block(depth, inputs, slot, |slot, w, words| {
+                lanes[slot * BLOCK + 64 * w..][..64].write_copy_of_slice(words);
+            })
         })
-    };
-    lanes
+    }
 }
 
 /// One block's committed lanes alone: slot `s` at `s * BLOCK ..`, a word per instance.
@@ -313,17 +317,17 @@ struct Column<'a> {
     words: SendPtr<u64>,
     n: usize,
     slots: usize,
-    _committed: PhantomData<&'a mut [F64]>,
+    _committed: PhantomData<&'a mut [MaybeUninit<F64>]>,
 }
 
 impl<'a> Column<'a> {
     /// The writer for `committed`, which holds at least the states' `slots * n` words and at
     /// most the whole block: anything it has past the last slot is zeroed, so a caller whose
     /// spare slots carry other columns passes the states' prefix alone.
-    fn new(shape: Shape, committed: &'a mut [F64]) -> Self {
+    fn new(shape: Shape, committed: &'a mut [MaybeUninit<F64>]) -> Self {
         let (n, slots) = (shape.n(), shape.slots());
         assert!(committed.len() >= slots * n && committed.len() <= 1 << shape.stack_log());
-        committed[slots * n..].fill(F64(0));
+        committed[slots * n..].fill(MaybeUninit::new(F64(0)));
         Self {
             words: SendPtr(committed.as_mut_ptr().cast()),
             n,
@@ -360,7 +364,7 @@ impl Witness {
     /// segment count, is slot `25 * m + l`, one word per instance. Whatever `committed` has past
     /// the last slot is zeroed, so a caller whose spare slots carry other columns (§cpu) passes
     /// the states' prefix alone. The blocks after the last input are run once, as the padding block.
-    pub fn generate(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &mut [F64]) -> Self {
+    pub fn generate(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &mut [MaybeUninit<F64>]) -> Self {
         assert!(inputs.len() <= shape.n());
         let column = Column::new(shape, committed);
         let written = inputs.len().div_ceil(BLOCK);
@@ -389,7 +393,7 @@ impl Witness {
     ///
     /// - Block `g`'s lanes are `lanes[g]`.
     /// - The blocks past them are the padding block.
-    pub fn write_committed(shape: Shape, lanes: &[Vec<u64>], committed: &mut [F64]) {
+    pub fn write_committed(shape: Shape, lanes: &[Vec<u64>], committed: &mut [MaybeUninit<F64>]) {
         let column = Column::new(shape, committed);
         let padding = (lanes.len() < shape.n_blocks()).then(|| block_lanes(shape.depth, &[]));
         parallel::for_each(shape.n_blocks(), |g| {
@@ -468,10 +472,12 @@ impl Witness {
     pub fn layer(&self, round: usize, g: usize) -> &[u64] {
         if g >= self.written {
             let padding = self.padding.as_ref().expect("a block of the batch");
-            return padding.round(round, padding.first);
+            // SAFETY: `from_extents` was told the padding's one block is written.
+            return unsafe { padding.round(round, padding.first) };
         }
         let extent = self.extents.iter().find(|e| g < e.end()).expect("a written block");
-        extent.round(round, g)
+        // SAFETY: `from_extents` was told the blocks below `written` are written.
+        unsafe { extent.round(round, g) }
     }
 }
 
@@ -657,6 +663,15 @@ mod neon {
 }
 
 #[cfg(test)]
+impl Witness {
+    /// [`generate`](Self::generate) over words already written.
+    pub(crate) fn generate_over(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &mut [F64]) -> Self {
+        // SAFETY: the witness writes only words.
+        Self::generate(shape, inputs, unsafe { primitives::as_uninit_mut(committed) })
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use primitives::hash::positions::iota_bit;
@@ -683,7 +698,7 @@ mod tests {
         let inputs: Vec<[u64; STATE_LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(inputs.len(), 8);
         let mut committed = vec![F64(1); 1 << shape.stack_log()];
-        Witness::generate(shape, &inputs, &mut committed);
+        Witness::generate_over(shape, &inputs, &mut committed);
         let n = shape.n();
         for x in (0..n).step_by(37) {
             let state = inputs.get(x).copied().unwrap_or([0; STATE_LANES]);

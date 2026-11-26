@@ -2,8 +2,7 @@
   LeanVM.Guest.Coverage
 
   The coverage table as an honest run lays it out (`coveragePlan`, its slots `planSlots`), and
-  what the deployed limits (`DeployedLimits`) give of the claims' multiplicities and the
-  children's lists.
+  the claims' multiplicities `SignatureClaimsHeld` gives.
 -/
 
 module
@@ -13,18 +12,15 @@ public import Statement.LeanVmGuestCompleteness
 /-!
 # The coverage plan
 
-The guest program (`guests/lean_ethereum.py`)
-writes every claim a node makes, its raw signatures' then its children's, into a slot of its
-scheme's region of the coverage table: the declared claims' slots, then duplicate slots
-. An honest run takes, for each claim in order, its declared
+The guest program (`guests/lean_ethereum.py`) writes every claim a node makes, its raw signatures'
+then its children's, into a slot of its scheme's region of the coverage table: the declared
+claims' slots, then duplicate slots. An honest run takes, for each claim in order, its declared
 slot if free, else the next duplicate slot (`takeSlot`, `coveragePlan`); the table's slots are
-`planSlots`, under `DeployedLimits` the number of claims made (`coverageSlots`, `B1/Main/Plan.lean`'s
-`planSlots_eq`).
-
-What `DeployedLimits` gives here: each declared claim's count at most its count among the claims
-made (`DeployedLimits.xmssClaimsHeldWithMultiplicity`, `sphincsClaimsHeldWithMultiplicity`, of
-the sub-multiset). Every child's lists below `2^23` is `GuestLimits.childClaimListsBelow2Pow23`
-(`Limits.lean`), under the coverage table's bound.
+`planSlots`, under `SignatureClaimsHeld` the number of claims made (`coverageSlots`,
+`B1/Main/Plan.lean`'s `planSlots_eq`), as each declared claim's count is at most its count among
+the claims made (`SignatureClaimsHeld.xmss_count_le`, `sphincs_count_le`, of the sub-multiset).
+Every child's lists below `2^23` is `GuestLimits.childClaimListsBelow2Pow23` (`Limits.lean`), under
+the coverage table's bound.
 -/
 
 @[expose] public section
@@ -89,7 +85,7 @@ def coveragePlan {α : Type} [BEq α] (declared raw : List α) (children : List 
 
 /-- **The coverage table's slots as an honest run lays them out** (`n_total`): each
 region's declared claims and its duplicates, as `coveragePlan` assigns them. Under
-`DeployedLimits`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
+`SignatureClaimsHeld`, `coverageSlots` (`B1/Main/Plan.lean`'s `planSlots_eq`). -/
 def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=
   let claims := statement.claims
   let children := witness.children
@@ -100,27 +96,29 @@ def planSlots (statement : NodeStatement) (witness : NodeWitness) : ℕ :=
 
 end Coverage
 
-namespace DeployedLimits
+section Held
 
 variable {statement : NodeStatement} {witness : NodeWitness}
 
 /-- A leanXMSS claim declared `n` times is made at least `n` times, by raw signatures or in the
 children's lists. -/
-theorem xmssClaimsHeldWithMultiplicity (limits : DeployedLimits statement witness) :
+theorem _root_.LeanVM.Node.SignatureClaimsHeld.xmss_count_le
+    (held : SignatureClaimsHeld statement witness) :
     ∀ x, statement.claims.xmss.count x ≤ (witness.xmssSignatures.map (·.1)).count x +
       (witness.children.map fun child ↦ child.statement.claims.xmss.count x).sum := by
   intro x
-  have h := limits.claimsHeldWithMultiplicity.1.count_le x
+  have h := held.2.2.1.count_le x
   simpa [List.count_append, List.count_flatten, Function.comp_def] using h
 
 /-- Likewise for the leanSPHINCS claims. -/
-theorem sphincsClaimsHeldWithMultiplicity (limits : DeployedLimits statement witness) :
+theorem _root_.LeanVM.Node.SignatureClaimsHeld.sphincs_count_le
+    (held : SignatureClaimsHeld statement witness) :
     ∀ x, statement.claims.sphincs.count x ≤ (witness.sphincsSignatures.map (·.1)).count x +
       (witness.children.map fun child ↦ child.statement.claims.sphincs.count x).sum := by
   intro x
-  have h := limits.claimsHeldWithMultiplicity.2.count_le x
+  have h := held.2.2.2.count_le x
   simpa [List.count_append, List.count_flatten, Function.comp_def] using h
 
-end DeployedLimits
+end Held
 
 end LeanVM.Guest

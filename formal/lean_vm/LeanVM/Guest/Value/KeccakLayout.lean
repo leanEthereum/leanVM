@@ -19,7 +19,7 @@ public import Mathlib.Data.List.GetD
 # The cells of a Keccak state
 
 A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, each as eight
-little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak state
+little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `E.toBytes`). A Keccak state
 sits in thirteen cells in one of two layouts (`cellLanes`, `Statement/LeanIsa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
 `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs` at leanVM main `40f877dc`)
@@ -31,7 +31,6 @@ is `absorbBlock` (`keccak_block`).
 
 * `leLane_cellsBytes`: lane `l` of the bytes of cells is limb `l % 2` of cell `l / 2`;
 * `lane_stateOfCells`, `limb_cellsOfState`: where each lane sits;
-* `stateOfCells_cellsOfState`: the cells `KECCAK` writes hold the state;
 * `keccak_block`: a `KECCAK` whose inputs are a state's cells plus a block's is `absorbBlock`.
 -/
 
@@ -94,14 +93,6 @@ theorem cellsBytes_replicate_zero (n : ℕ) :
 
 /-! ## Lanes of bytes -/
 
-/-- A fold is determined by its steps on the list's elements. -/
-theorem foldl_congr_mem {α β : Type} {f g : α → β → α} :
-    ∀ (l : List β) (a : α), (∀ a b, b ∈ l → f a b = g a b) → l.foldl f a = l.foldl g a
-  | [], _, _ => rfl
-  | b :: l, a, h => by
-    rw [List.foldl_cons, List.foldl_cons, h a b List.mem_cons_self]
-    exact foldl_congr_mem l _ fun a b hb ↦ h a b (List.mem_cons_of_mem _ hb)
-
 /-- Eight little-endian bytes, reassembled: the bytes of `n` below `2^(8m)`. -/
 private theorem foldl_bytes (n : ℕ) :
     ∀ m, m ≤ 8 → (List.range m).foldl
@@ -137,9 +128,8 @@ theorem leLane_wordBytes_append (w : UInt64) (rest : List UInt8) :
       UInt64.toNat_toUInt8, UInt64.toNat_shiftRight, h8,
       Nat.mod_eq_of_lt (show 8 * k < 64 by omega),
       Nat.zero_add, Nat.mul_zero]
-  rw [foldl_congr_mem
-    (g := fun acc k ↦ acc ||| (((w.toNat >>> (8 * k)) % 256) <<< (8 * k)) % 2 ^ 64)
-    _ _ (fun acc k hm ↦ by rw [hk k hm]), foldl_bytes _ 8 le_rfl, Nat.mod_eq_of_lt w.toNat_lt]
+  rw [List.foldl_ext _ (fun acc k ↦ acc ||| (((w.toNat >>> (8 * k)) % 256) <<< (8 * k)) % 2 ^ 64)
+    _ (fun acc k hm ↦ by rw [hk k hm]), foldl_bytes _ 8 le_rfl, Nat.mod_eq_of_lt w.toNat_lt]
 
 /-- A lane past the first reads the bytes past the first eight. -/
 theorem leLane_succ (bs : List UInt8) (l : ℕ) : littleEndianLane bs (l + 1) = littleEndianLane
@@ -231,7 +221,6 @@ theorem lane_add (a b : K) : K.lane (a + b) = K.lane a ^^^ K.lane b := rfl
 @[simp] theorem lane_ofLane (w : UInt64) : K.lane (K.ofLane w) = w := rfl
 
 @[simp] theorem ofLane_lane (a : K) : K.ofLane (K.lane a) = a := rfl
-
 @[simp] theorem lane_zero : K.lane 0 = 0 := rfl
 
 @[simp] theorem ofLane_zero : K.ofLane 0 = 0 := rfl

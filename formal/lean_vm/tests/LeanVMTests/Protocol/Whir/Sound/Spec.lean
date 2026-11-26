@@ -15,8 +15,8 @@ import LeanVM.Protocol.Whir.Sound.Spec
 * **Inhabitant.** `smallCode` is a `LevelCode` (`κ = 1`, `R = 1`, one fold, last threshold `4`),
   whose first round's list is defined (`n·d₀ < A₀²`).
 * **Lane order.** `dot(row, eq_kernel([a, b]))` is the fold with `a` on the low lane bit
-  (`dot_eqKernel_eq_foldsN`); folding with the challenges swapped gives a different value, so the
-  order of `foldsN` is load-bearing.
+  (`dot_eqKernel`); folding with the challenges swapped gives a different value, so the order of
+  `foldsN` is load-bearing.
 * **Round polynomial.** The coefficient `c₁ = σ + c₂` that `sumcheck_round_poly` derives gives
   `q(0) + q(1) = σ` (`quadOK_roundPoly`); deriving `c₁ = σ + c₀` instead does not.
 * **Level-0 lanes.** Reading a level-0 leaf without the reversal gives a different enforced
@@ -62,7 +62,7 @@ private def folded (a b : E) (r : List E) : E :=
 
 example : dot row₀ (eqKernel [a₀, b₀]) =
     foldsN [a₀, b₀] (fun j (_ : Unit) ↦ row₀.getD j 0) 0 () :=
-  dot_eqKernel_eq_foldsN row₀ [a₀, b₀] rfl
+  dot_eqKernel row₀ [a₀, b₀] rfl
 
 /-! ## The round polynomial -/
 

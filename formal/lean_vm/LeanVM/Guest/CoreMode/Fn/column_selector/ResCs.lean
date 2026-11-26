@@ -7,7 +7,9 @@
 
 module
 
-public import LeanVM.Guest.CoreMode.Fn.check_opening_terminal.ResE
+public import LeanVM.Guest.CoreMode.Fam.ResF
+public import LeanVM.Guest.EndExecCoreFn
+public import LeanVM.Guest.CoreMode.Fam.TermDefs
 public import LeanVM.Guest.CoreMode.Fam.MonoChain
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef
@@ -15,10 +17,6 @@ import LeanVM.Guest.Data.ValNames.«column_selector__L»
 
 /-!
 # `column_selector`'s lowest digit
-
-`csRes κ s d`: `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
-`[s]·[d]·g^(32(κ/4) + selEqOff (w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
-names it at function `j`.
 
 `CsQ r J`: at an instance of `column_selector__L{κ}`, its offset is `g^o`, `o < 2^32` a multiple of
 `2^κ`, and `sel_g` holds the nibble shares (`GTabsAt`), as `check_opening_terminal`'s dispatch hands
@@ -29,47 +27,12 @@ exponent `16^(κ/4)` times the digits' number (`csDig`), so the lowest digit `g^
 multiple of `2^(4 - w)` (`B1.Tables.cs_dvd`), `w` its width (`csW_sub`).
 -/
 
-namespace LeanVM.Guest.Res
-
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
-open LeanVM.Guest.B2C (cellJ)
-
-@[expose] public section
-
-/-- **`column_selector__L{κ}`'s read of its lowest digit's eq weight**: `[s]·[d]·g^off` inside
-`[s]·g^(2^(4 - w)·i + off)`, `i < 2^w`, `w` the digit's width, `off = 32(κ/4) + selEqOff (w - 1)`. -/
-def csRes (κ s d : ℕ) : Mode.Res :=
-  let w := Tables.csW κ 0
-  let off := 32 * (κ / 4) + Tables.selEqOff (w - 1)
-  .sub ⟨⟨0, off, Mode.insertBs (.fr d, 1) [(.fr s, 1)]⟩, .num 0, .num 1, 1, 0⟩
-    [⟨⟨0, 0, [(.fr s, 1)]⟩, .num 0, .num (2 ^ w), 2 ^ (4 - w), off⟩]
-
-/-- The level `w - 1` whose table starts at `selEqOff (w - 1) = r` within a nibble's row. -/
-def selEqLevel (r : ℕ) : ℕ := if r = 4 then 0 else if r = 2 then 1 else if r = 1 then 2 else 3
-
-/-- The `κ` whose `csRes` reads at offset `k`. -/
-def csKappa (k : ℕ) : ℕ := 4 * (k / 32) + 3 - selEqLevel (k % 32)
-
-/-- **The lowest digit's read at function `j`**: `j` is `column_selector__L{κ}`, its `sel_eq` and
-digit cells `s`, `d`, the digit's inside the frame. -/
-noncomputable def csB (j : ℕ) : Mode.Res → Bool
-  | .sub a [b] =>
-    decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
-      inFr j (cellJ j (.n (valf% «column_selector» "digits[0]"))) &&
-      decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n (valf% «column_selector» "sel_eq")))
-        (cellJ j (.n (valf% «column_selector» "digits[0]"))))
-  | _ => false
-
-end
-
-end LeanVM.Guest.Res
-
 namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (csRes csKappa csB inFr topAtoms)
+open LeanVM.Guest.Res (topAtoms)
 open LeanVM.Guest.B1.Tables (csPre csNibT csN csW csC csRb csHint csDig holds_csNib cs_dvd csDig_lt
   prod_gen_pow_csDig csNibT_noRet csPre_noRet csFound csRet csW_bounds GTabsAt lName)
 open LeanVM.Protocol.Verifier (gen)
@@ -129,7 +92,7 @@ theorem cs_digit {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : M
     have h2 := hxg k hk
     rw [show u k hk + 16 * (b + k) = 16 * (b + k) + u k hk by omega] at h2
     simp only [xg', u', hk, ↓reduceDIte]
-    exact B1.loadHolds_unique h2 h1
+    exact B1.Tables.tb_loadHolds_unique h2 h1
   have hreb : σ (.n (valf% «column_selector» "offset")) = gen ^ (16 ^ b * csDig u' N) := by
     have e0 := Value.e_add_eq_zero_iff.mp hassert
     rw [← e0, hR (N - 1) (by omega), show N - 1 + 1 = N by omega,

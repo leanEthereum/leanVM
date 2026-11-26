@@ -17,8 +17,8 @@ public import LeanVM.Guest.B1.Sig.SphincsSoundLayer
 * `encOf`: the encoding digest of `P`, `A0`, `key + WOTS_ENC`, the value signed and the counter
   `N`'s four bytes (`sLayerEnc_sound`'s);
 * `call_complete`: a call returning one word, the call relation holding;
-* `sHtLayer_complete`: the layer, the call returning `leaf` at the encoding: its root is
-  `pFold (pNodeE …)` from `leaf`; `sHtLayer_complete_vals` also the call's encoding and leaf.
+* `sHtLayer_complete_vals`: the layer, the call returning `leaf` at the encoding: its root is
+  `pFold (pNodeE …)` from `leaf`, with the call's encoding and leaf.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -168,28 +168,6 @@ theorem sHtLayer_complete_vals {pad : Nat} {pp a0 : V} {ac : Option E} {key sign
       ((SplicePops.call "sp_wots" [pp, a0Cell a0 ac (b + 10 + a0W ac), key, .n (b + 9 + a0W ac)]
         [.n (b + 10 + 2 * a0W ac)] k).append (SplicePops.of_fallPops hP'))
     simpa only [List.nil_append, List.append_nil] using h
-
-/-- **A layer completes** (`sHtLayer_complete_vals` without the call's values). -/
-theorem sHtLayer_complete {pad : Nat} {pp a0 : V} {ac : Option E} {key signed ctr : V}
-    {bit val : Nat → V} {off e height b N : Nat} (hh : height ≤ 16) (he : e < 2 ^ height)
-    {sib : Nat → E} (σ : Val) (hpb : pad + 5 ≤ b) (hpp : NBv b pp)
-    (ha0 : ac = none → NBv b a0) (hkey : NBv b key) (hsg : NBv b signed) (hct : NBv b ctr)
-    (hbn : ∀ j < height, NBv b (bit (off + j))) (hvn : ∀ j < height, NBv b (val (off + j)))
-    (hp : PadOK σ pad) (hN : N < 2 ^ 32)
-    (hctr : σ ctr = eOfNat N)
-    (hbit : ∀ j < height, σ (bit (off + j)) = if e.testBit j then 1 else 0)
-    (hval : ∀ j < height, σ (val (off + j)) = eOfNat (e >>> j)) {leaf : E}
-    (hcall : C "sp_wots" [σ pp, a0Val σ a0 ac, σ key,
-      encOf (σ pp) (a0Val σ a0 ac) (σ key) (σ signed) N] [leaf]) :
-    Completes C rd b (sHtLayer pad pp a0 ac key signed ctr bit val off height b).2.1
-      (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 σ
-      (fun σ' => AgreeBelow b σ σ' ∧
-        σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).2.2 =
-          pFold (pNodeE (σ pp) (a0Val σ a0 ac) e sib) height leaf ∧
-        ∀ k, SplicePops rd σ' (sHtLayer pad pp a0 ac key signed ctr bit val off height b).1 [k]
-          (k ++ climbPops "siblings" (pNodeE (σ pp) (a0Val σ a0 ac) e sib) e.testBit sib height 0 leaf)) :=
-  (sHtLayer_complete_vals hh he σ hpb hpp ha0 hkey hsg hct hbn hvn hp hN hctr hbit hval hcall).mono le_rfl
-    le_rfl fun _ h => ⟨h.1, h.2.1, h.2.2.1⟩
 
 end
 end LeanVM.Guest.B1.Sig

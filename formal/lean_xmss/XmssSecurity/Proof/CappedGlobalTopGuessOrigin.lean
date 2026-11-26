@@ -1,7 +1,6 @@
 module
 
 public import XmssSecurity.Proof.CappedGlobalChainHighCoverage
-public import XmssSecurity.Proof.CappedChain.ChainEventDecomposition
 public import XmssSecurity.Proof.TopStructural
 
 @[expose] public section
@@ -17,7 +16,6 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain
 
-set_option maxRecDepth 100000 in
 set_option linter.constructorNameAsVariable false in
 theorem topGuess_afterKeygen_has_origin
     (adversary : Adversary)

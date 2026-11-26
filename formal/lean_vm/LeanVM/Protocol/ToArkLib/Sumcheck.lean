@@ -63,9 +63,7 @@ point. Without the final check the last message has no security at any error
 value that makes the round's check hold (`decodeRound`, `decodeWire`); this needs the coefficient's
 weight in the check, `Σ_x w(x) · x^k` (`coeffWeight`), to be invertible, which is why a plain round
 drops `c_1` (the weight of `c_0` is `1 + 1`, zero in characteristic two) and a normalized round
-`c_0`. The decoding is injective (`encodeWire_decodeWire`), and every message that passes the
-check is the decoding of its wire (`decodeWire_encodeWire`), so the honest prover's message
-survives. `transport`: the round reading its message on the wire and decoding it
+`c_0`. `transport`: the round reading its message on the wire and decoding it
 (`Typed.Def.decode`) is knowledge sound at the round's errors, with the extractor read on the
 decoded message (`Typed.Security.decode`).
 -/

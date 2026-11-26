@@ -1,14 +1,22 @@
 module
 
-public import XmssSecurity.Proof.MerkleQueryPresence
+public import XmssSecurity.Proof.QueryPresence
 
 @[expose] public section
+
+/-!
+# The bottom tree's queries in a successful verification
+
+A successful verification splits into runs after its message digest, its recovered endpoints and its
+leaf (`VerifiedDigestRun`, `VerifiedEndpointsRun`, `VerifiedLeafRun`), and then its authentication
+path's run up to the bottom root (`VerifiedAuthenticationRootRun`). That path caches, at every
+level, the Merkle input of the node the forged path ascends to from the recovered leaf, as a larger
+cache replays it (`verify_true_merkle_query_cached_as_in_largerCache`).
+-/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Concrete.CacheReplay
-
-set_option linter.constructorNameAsVariable false
 
 def verificationAfterEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
     (signature : Signature) (encoding : Encoding) : OracleComp HashSpec Bool := do
@@ -329,9 +337,6 @@ theorem authenticationRoot_query_cached_as_in_largerCache
           initialCache currentCache current hcurrent (hcurrentLe.trans hle)
         exact ⟨output, hcurrentLe hcached⟩
 
-
-set_option maxHeartbeats 1200000 in
-set_option linter.constructorNameAsVariable false in
 theorem verify_true_merkle_query_cached_as_in_largerCache
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message) (signature : Signature)
     (encoding : Encoding) (target : MerkleLevel)

@@ -12,7 +12,6 @@ public import LeanVM.Guest.B1.Sig.SphincsSigPops
 public import LeanVM.Guest.B1.Main.CompleteE
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop3»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main_loop3`, placed with its pops
@@ -22,7 +21,7 @@ import LeanVM.Guest.StmtsAppend
 * `VerifySigP fs cert nV`: `verify_sig_lean_sphincs`, on the hypotheses of `Lift.verify_sig_lean_sphincs_relIn`, is placed at every frame pointer in `nV` words by a tree popping `Sig.spSegPops`;
 * `l4Pops D j`: iteration `j`'s entries, its raw index `g^(slot j)` then the check's;
 * `VerifySigPQ fs cert nV Q`: `VerifySigP` by a tree whose every node satisfies `Q`;
-* `rawS_stepPQ`, `rawS_loopPQ`, `rawS_completeAtDPQ`: an iteration, the loop from `g^j`, popping iterations `j ..< nrs`' entries in order, every node satisfying `Q` (`main_loop3`'s own nodes by `hq`); `rawS_stepP`, `rawS_loopP`, `rawS_completeAtDP` at `Q` trivial.
+* `rawS_stepPQ`, `rawS_loopPQ`: an iteration, the loop from `g^j`, popping iterations `j ..< nrs`' entries in order, every node satisfying `Q` (`main_loop3`'s own nodes by `hq`); `rawS_loopP` at `Q` trivial.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -85,7 +84,7 @@ def l4B : List Stmt := (l4Pre.drop 11).take 5
 /-- `main_loop3`'s self-call. -/
 def l4Call : Stmt := .callIf (.n (val% «main_loop3» "s5#2")) name% «main_loop3» [.n (val% «main_loop3» "s5#4"), .n (val% «main_loop3» "bound"), .n (val% «main_loop3» "lean_sphincs_slots_g"), .n (val% «main_loop3» "sp_cover"), .n (val% «main_loop3» "n_raw_x_g"), .n (val% «main_loop3» "lean_sphincs_table"), .n (val% «main_loop3» "byte_bits")]
 
-theorem l4Pre_split : l4Pre = l4A ⧺ [.call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []] ⧺ l4B ++ [l4Call] := rfl
+theorem l4Pre_split : l4Pre = l4A ++ [.call "verify_sig_lean_sphincs" [.n (val% «main_loop3» "s3#2"), .n (val% «main_loop3» "byte_bits")] []] ++ l4B ++ [l4Call] := rfl
 
 theorem l4A_atoms : Sig.atomsOnly l4A = true := rfl
 theorem l4B_atoms : Sig.atomsOnly l4B = true := rfl
@@ -238,24 +237,6 @@ theorem rawS_loopPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : �
       show (nrs - (j + 1) + 1) * nV = nV + (nrs - (j + 1)) * nV by ring]
     exact h
 
-theorem rawS_stepP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
-    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
-    (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) {j : ℕ} (hj : j < nrs)
-    {fp c Bt m : ℕ} {pt : List Pop}
-    (htail : if j + 1 < nrs then
-        RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) (fp + fs name% «main_loop3») (c + nV) Bt m
-          name% «main_loop3» [gen ^ (j + 1), gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] [] pt
-      else Bt = fs (tailKey name% «main_loop3») ∧ m = 0 ∧ pt = []) :
-    RelAtInCP coreProgram fs cert rd (RegionL Lin) (RegionL []) fp c (fs name% «main_loop3» + Bt) (nV + m)
-      name% «main_loop3» [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
-      (l4Pops D j ++ pt) := by
-  refine (rawS_stepPQ fs cert hV.toPQ D hY hnrs hl hL (fun _ _ _ _ _ => trivial) hj ?_).toP
-  by_cases hn : j + 1 < nrs
-  · rw [ite_eq_left_of_eq_true _ _ (eq_true hn)] at htail ⊢
-    exact htail.withEvery fun t _ _ => Tree.every_true t
-  · rw [ite_eq_right_of_eq_false _ _ (eq_false hn)] at htail ⊢
-    exact htail
-
 theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
     {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
     (hnrs : nrs < 2 ^ 34) {rd : Reader} (hl : LowDef 23 rd) (hL : MemL rd Lin) :
@@ -264,31 +245,6 @@ theorem rawS_loopP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ
       [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] []
       ((List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj fp c =>
   (rawS_loopPQ fs cert hV.toPQ D hY hnrs hl hL (fun _ _ _ _ _ => trivial) j hj fp c).toP
-
-/-- **`main_loop3` is complete, placed, with its pops, every node satisfying `Q`**, from every counter `g^j` below
-the count: iterations `j ..< nrs`' entries in order. -/
-theorem rawS_completeAtDPQ (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} {Q : Reader → String → Val → Prop}
-    (hV : VerifySigPQ fs cert nV Q)
-    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
-    (hnrs : nrs < 2 ^ 34)
-    (hq : ∀ rd σ es vs, walk σ (coreProgram.getD idx% «main_loop3» default).body = .ret es vs →
-      (∀ e ∈ es, e.Holds rd σ) → Q rd name% «main_loop3» σ) :
-    ∀ j < nrs, CompleteAtDPE fs cert 23 name% «main_loop3» Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
-      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) Q := fun j hj fp =>
-  ⟨(nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3») + (nrs - j) * nV, [], [], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
-    fun rd hl hL => (rawS_loopPQ fs cert hV D hY hnrs hl (by simpa using hL) (hq rd) j hj fp
-      (fp + ((nrs - j) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)))).relAtInPE⟩
-
-/-- **`main_loop3` is complete, placed, with its pops**, from every counter `g^j` below the count: iterations
-`j ..< nrs`' entries in order. -/
-theorem rawS_completeAtDP (fs : String → ℕ) (cert : String → V → ℕ) {nV : ℕ} (hV : VerifySigP fs cert nV)
-    {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23)
-    (hnrs : nrs < 2 ^ 34) :
-    ∀ j < nrs, CompleteAtDP fs cert 23 name% «main_loop3» Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
-      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) := fun j hj =>
-  (rawS_completeAtDPQ fs cert hV.toPQ D hY hnrs (fun _ _ _ _ _ _ => trivial) j hj).toDP
 
 end
 end LeanVM.Guest.B1.Main

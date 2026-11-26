@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkCV
 
-  **`verify_keccak` is complete, placed** (`verify_keccak_completeAt`).
+  **`verify_keccak` is complete, placed**: what its flat body asks (`vk_obl`).
 -/
 
 module
@@ -13,7 +13,7 @@ import LeanVM.Guest.Data.ValNames.«verify_keccak»
 /-!
 # `verify_keccak`, complete and placed
 
-`VkCompleteAtK fs cert κ`: for every accepting run of `verifyKeccak` from a carried capacity `f`
+`verify_keccak`'s completeness (`VkCompleteAtBK`, in `VkCW`): for every accepting run of `verifyKeccak` from a carried capacity `f`
 (the instance coordinates `chis`, the output lanes `outs`, the words read `xs`, the committed
 outputs' opening `op`, the inputs' point `point`, the slices, the sponge `s'` after them),
 `verify_keccak` is complete at every frame pointer: the caller's words are the stream, the
@@ -21,9 +21,9 @@ coordinates and lanes, `z_vals`, the slices' buffer and the window table at `tbE
 writes `op` at `z_vals`, `point` at `z_vals·g^39`, the slices at `slices`, and returns the
 capacity after the slices' full queue is permuted, the cursor past `xs` and the word.
 
-`verify_keccak_completeAt`: it holds. The run is read back as a `VkData` (`vkData_of_run`); the
-body is flat (`completeAt_flatG`): its buffers' words (`VkData.own`), its eighteen callees
-(`VkData.kids`, complete by `kids_complete`), its honest valuation on the layout (`body_holds`),
+`verify_keccak_completeAtB_fs` (`VkCW`): it holds. The run is read back as a `VkData` (`vkData_of_run`); the
+body is flat (`completeAt_flatGB`): its buffers' words (`VkData.own`), its eighteen callees
+(`VkData.kids`, complete by `kids_completeB`), its honest valuation on the layout (`body_holds`),
 its frames (`calls_match`) and loads (`loads_in`).
 -/
 
@@ -36,21 +36,6 @@ open LeanVM.Protocol.KeccakGkr Finset
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
-
-/-- **`verify_keccak`, placed** (fork c4's shape, with the carried capacity). -/
-def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
-  ∀ (τ : ℕ) (f chis outs xs op point slices : List E) (word : E) (s' : Fs)
-    (curE chiE olE zvE slE tbE stE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
-    f.length = 5 → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
-    RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨f, []⟩ xs ([⟨qkeccak, op, word⟩], point, slices) s' →
-    CompleteAtD fs cert κ "verify_keccak"
-      [(curE, xs), (chiE, chis), (olE, outs), (zvE, op), (zvE + qkeccakVarsCap, point),
-        (slE, slices), (tbE, winTabWords)]
-      (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
-        ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE),
-        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE),
-        ofK (Parameters.addressOfIndex stE)])
-      (Returns (capOf s'.perm ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word]))
 
 theorem vk_noLoadIte : vkPre.all noLoadIte = true := by decide +kernel
 
@@ -81,7 +66,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 open VkData in
 set_option maxRecDepth 20000 in
-/-- **What `completeAt_flatG` asks of `verify_keccak`'s body**, on an honest run's data. -/
+/-- **What `completeAt_flatGB` asks of `verify_keccak`'s body**, on an honest run's data. -/
 theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))
     (hlen : fps.length = (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE).length)
     (hout : OutsOk (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps) outs)
@@ -170,7 +155,6 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) 
       (fun i hi ↦ Or.inl hi) (fun i hi ↦ Or.inr (Or.inl hi))
       (fun s hs i hi ↦ Or.inr (Or.inr (outRegion_ofI (s + 1) (by omega) (by omega)
         (by rw [atAllG_getElem]; simp [kids_lay hs, layKid]) (by rw [hlay s hs]; exact hi))))
-
 
 open VkData in
 

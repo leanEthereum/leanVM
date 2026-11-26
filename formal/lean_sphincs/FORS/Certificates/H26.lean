@@ -1,6 +1,7 @@
 module
 
 public import FORS.Certificates.Build
+public import FORS.Certificates.Closing
 
 @[expose] public section
 
@@ -18,7 +19,6 @@ certificate and checks again only its cover chains, where its keygen credit ente
 namespace FORS.Security.H0
 
 -- one check at a time: with asynchronous elaboration the memory of the finished checks is kept
-set_option Elab.async false
 
 /-- Poisson table of the small route, height 26, full key, 1,182,000,000 signatures. -/
 def tab_h26_b26 : PoisT := poisOf 324905686008222608494 220 136 150
@@ -260,8 +260,8 @@ theorem cover_h26_L_0_ok : checkCoverW 26 26 24 10 264193 1182000000 51248745113
     (by decide +kernel)
 
 /-- The covers reach every budget below `2^127`. -/
-theorem covers_h26_L_ok : checkCovers 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] = true := by
-  simp only [checkCovers, Bool.and_eq_true]
+theorem covers_h26_L_ok : ForsPotential.checkCoversH 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] [] = true := by
+  simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]
   exact ⟨cover_h26_L_0_ok, by decide +kernel⟩
 
 end FORS.Security.H0

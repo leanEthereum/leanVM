@@ -1,9 +1,7 @@
 module
 
-public import XmssSecurity.Proof.EvalDistEq
 public import XmssSecurity.Proof.Bridge.TopBase
 public import XmssSecurity.Proof.Bridge.Honest
-public import XmssSecurity.Proof.Deterministic.TrialSampling
 
 @[expose] public section
 

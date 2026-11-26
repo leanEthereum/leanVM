@@ -21,7 +21,7 @@ statements against its code (`cplResD`), which the kernel evaluates (`Pack/*/Cpl
 every part of every window. The check reads the program only as the function's callees see it
 (`cxOfD`, `cplWinD_congr`), so a check over the function's own view (`Check.Glob.ofSigs`) is the
 check over the whole program's (`Cpl.lean`). This module imports none of the guest's data
-(`CplFirewall.lean`).
+(`ViewFirewall.lean`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -728,8 +728,7 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
     | none => .error 7
   | .error e => .error e
 
-set_option maxRecDepth 20000
-
+set_option maxRecDepth 20000 in
 mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
@@ -953,7 +952,7 @@ end Walk
 /-! ## A function, by windows and parts
 
 Window `i` of function `j` is walked over the segments of the soundness certificate's window
-(`execWin` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
+(`execWinS` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
 by its own kernel evaluation (`Data.cplParts`): part `k` starts at statement `s` of the window at
 the start of the segment at offset `J` (the window's start for the first part), from the facts of
 its statements, no frame in flight, and the counts and set-up site cells its start hands on; it

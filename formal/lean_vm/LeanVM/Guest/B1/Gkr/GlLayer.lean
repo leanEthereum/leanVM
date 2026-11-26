@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.GlHead
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
-import LeanVM.Guest.B1.Tables.Base
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # A radix-four layer, soundly
@@ -33,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 theorem glHeadStore_noRet (p : ℕ) : Stmt.noRetList (glHeadStore p) = true := by
   unfold glHeadStore glHeadStore0 glHeadStoreP
-  split <;> rw [noRetList_append, noRetList_mapAtoms] <;> rfl
+  split <;> rw [tb_noRetList_append, tb_noRetList_mapAtoms] <;> rfl
 
 theorem glLoopCall_noRet (p : ℕ) (nm : String) : Stmt.noRetList (glLoopCall p nm) = true := by
   unfold glLoopCall glLoopCall0 glLoopCallP
@@ -41,11 +41,11 @@ theorem glLoopCall_noRet (p : ℕ) (nm : String) : Stmt.noRetList (glLoopCall p 
 
 theorem glTailLoads_noRet (p w : ℕ) : Stmt.noRetList (glTailLoads p w) = true := by
   unfold glTailLoads
-  rw [noRetList_append, noRetList_mapAtoms]; rfl
+  rw [tb_noRetList_append, tb_noRetList_mapAtoms]; rfl
 
 theorem glTailSetup_noRet (p : ℕ) : Stmt.noRetList (glTailSetup p) = true := by
   unfold glTailSetup glTailSetup0 glTailSetupP
-  split <;> rw [noRetList_append, glTailLoads_noRet] <;> rfl
+  split <;> rw [tb_noRetList_append, glTailLoads_noRet] <;> rfl
 
 theorem glPad_noRet (p o : ℕ) : Stmt.noRetList (glPad p o) = true := by
   unfold glPad
@@ -53,7 +53,7 @@ theorem glPad_noRet (p o : ℕ) : Stmt.noRetList (glPad p o) = true := by
 
 theorem glTailPre_noRet (off : ℕ) :
     Stmt.noRetList (glKids off ++ glCheck ++ glY ++ glNext (off + 12)) = true := by
-  rw [noRetList_append, noRetList_append, noRetList_append, glKids_noRet,
+  rw [tb_noRetList_append, tb_noRetList_append, tb_noRetList_append, glKids_noRet,
     glCheck_noRet, glY_noRet]
   unfold glNext chValT
   rfl
@@ -81,7 +81,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     (hslot : GkSlot rd layers (2 * (4 * m + p) + 2 - o) s cur st
       (pts * gen ^ (40 * (4 * m + p + 1))) pos) :
     ∃ (xs : List E) (st' : GkrState) (s' : Fs) (pos' : E),
-      RunsTo (gkrStep 2 false st) s xs st' s' ∧ ReadsAt rd cur xs ∧
+      RunsTo (gkrStep 2 false st) s xs st' s' ∧ TbReadsAt rd cur xs ∧
       GkSlot rd layers (2 * (4 * m + p) + 2 - o + 2) s' (cur * gen ^ xs.length) st'
         (pts * gen ^ (40 * (4 * m + p + 2))) pos' := by
   obtain ⟨n, hn⟩ := hrel
@@ -122,16 +122,16 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have RL := gl_loop hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (tabs := σ (.n (valf% «gkr_layer» "tabs"))) hxm (by omega) rfl
     (fun hne => hC _ _ _ (gl_loopCall hp hLC hne)) R0
   obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, hcl1, RLr, hc2, hcur2, hcl2⟩ := glRun_of_out RL
-  obtain rfl := capAt_unique hc1 hsc
-  obtain rfl := loadHolds_unique hcur1 hscur
-  obtain rfl := loadHolds_unique hcl1 hscl
+  obtain rfl := tbCapAt_unique hc1 hsc
+  obtain rfl := tb_loadHolds_unique hcur1 hscur
+  obtain rfl := tb_loadHolds_unique hcl1 hscl
   -- the tail's setup and rounds
   obtain ⟨etp, entp, htc, htcur, htcl⟩ := gl_tailSetup hp hTS
-  rw [hxm, ← pow_mul, mul_comm m 7, capAt_mul_gen_pow, Nat.add_zero] at htc
-  rw [hxm, ← pow_mul, mul_comm m 7, loadHolds_mul_gen_pow] at htcur htcl
-  obtain rfl := capAt_unique htc hc2
-  have ecur := loadHolds_unique htcur hcur2
-  have ecl := loadHolds_unique htcl hcl2
+  rw [hxm, ← pow_mul, mul_comm m 7, tbCapAt_mul_gen_pow, Nat.add_zero] at htc
+  rw [hxm, ← pow_mul, mul_comm m 7, tb_loadHolds_mul_gen_pow] at htcur htcl
+  obtain rfl := tbCapAt_unique htc hc2
+  have ecur := tb_loadHolds_unique htcur hcur2
+  have ecl := tb_loadHolds_unique htcl hcl2
   have hcu : σ (.n (80 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
   have hpt : σ (.n (71 + D)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p + 8 * m) := by
     rw [etp, hxm, ← pow_mul]; ring
@@ -170,7 +170,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   -- the specification's step
   obtain ⟨-, -, -, -, hvl, -, hpl, hpt, -⟩ := hslot
   obtain ⟨cs, es, hlen, h4, hrd, helen, hes, hre, hcapR, hclR⟩ := R
-  obtain rfl := readsAt_unique hes hpt (by rw [helen, hpl])
+  obtain rfl := tbReadsAt_unique hes hpt (by rw [helen, hpl])
   set run := gkrRun cs st.point (polyEval st.values s.squeeze.1) ⟨s.squeeze.2.cap, []⟩ with hrun
   have hsc := gkr_sumcheck_run cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2
     (hlen.trans helen.symm) h4
@@ -196,10 +196,10 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have t15 : τ (.n (valf% «gkr_layer» "layer")) = σ (.n (valf% «gkr_layer» "layers")) * gen ^ (10 * L) := by rw [tz 15 (by omega)]; exact e15
   have t53 : τ (.n (valf% «gkr_layer» "point_row")) = σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) := by rw [tz 52 (by omega)]; exact e53
   have ld : ∀ k w, LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) k w → LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * L + k) w :=
-    fun k w hw => by rw [t15, loadHolds_mul_gen_pow] at hw; exact hw
+    fun k w hw => by rw [t15, tb_loadHolds_mul_gen_pow] at hw; exact hw
   have hcurT : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
   refine ⟨_, _, _, τ (.n (valf% «gkr_layer» "round_pos")) * (τ (.n (valf% «gkr_layer» "x_m")) * gen) ^ 7, hstep', ?_, ?_⟩
-  · rw [readsAt_append, flatten_length_four h4, hlen]
+  · rw [tbReadsAt_append, flatten_length_four h4, hlen]
     refine ⟨hrd, ?_⟩
     rw [hcurT, mul_assoc, ← pow_add, e21] at treads
     convert treads using 3
@@ -227,11 +227,11 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   · simp only [List.length_append, List.length_cons, List.length_nil]
     rw [hrun, tb_gkrRun_length _ _ _ _ (hlen.trans helen.symm), hlen]
     omega
-  · rw [readsAt_append]
+  · rw [tbReadsAt_append]
     refine ⟨fun k hk => ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
       rw [show 40 * (j + 2) = 40 * (j + 1) + 40 by ring, pow_add, ← mul_assoc,
-        loadHolds_mul_gen_pow, ← t53]
+        tb_loadHolds_mul_gen_pow, ← t53]
       interval_cases k
       · exact tpt0
       · exact tpt1

@@ -19,7 +19,8 @@ import LeanVM.Guest.Data.ValNames.«aggregate_claims»
 /-!
 # `aggregate_claims` (TRIAGE G #97)
 
-`aggregate_claims_holds : aggregate_claims_sound_Spec`, from `batch_sumcheck__L23`'s meaning
+`aggregate_claims_val`: at a valuation of its body, `aggregate_claims` writes the batching of the
+children whose words the memory holds (`MeaningAggregateClaimsW`), from `batch_sumcheck__L23`'s meaning
 (`batch_sumcheck_holds`) and the inlined grind's (`gcInline_sound`, on the memory image). For
 `n_children_g = g^m`, the hints are the nonce `bc_sumcheck_msgs[0]`, the rounds after it and
 `bc_star_hint` (`aggHints`), and the claim written at `defer_stmt` is the sumcheck's point and
@@ -146,18 +147,18 @@ theorem kid_words {cpi cfresh ccarried : E} {c : ℕ} {cc : ChildClaims}
       · rw [List.getD_append (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
           (by rw [hAF]; exact hb)]
         by_cases hc2 : w < 2
-        · rw [ite_eq_left hc2, List.getD_append A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
+        · rw [ite_pos' hc2, List.getD_append A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; exact hc2),
             ← hA2]
           rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp0)
           · exact memAt_of_load ((loadHolds_mul_gen_pow rd _ _ _ _).mpr hp1)
-        · rw [ite_eq_right hc2, ite_eq_left hb,
+        · rw [ite_neg' hc2, ite_pos' hb,
             List.getD_append_right A2 (DeferredBytecodeClaim.cells cc.freshClaim) 0 w (by rw [hA]; omega), hA,
             memAt_of_reads hf (by omega)]
-      · rw [ite_eq_right (show ¬ w < 2 by omega), ite_eq_right hb, ite_eq_left ha,
+      · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' hb, ite_pos' ha,
           List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim) cc.carriedClaim.cells 0 w
             (by rw [hAF]; omega), hAF, memAt_of_reads hc (by omega)]
-    · rw [ite_eq_right (show ¬ w < 2 by omega), ite_eq_right (show ¬ w < 26 by omega), ite_eq_right ha,
+    · rw [ite_neg' (show ¬ w < 2 by omega), ite_neg' (show ¬ w < 26 by omega), ite_neg' ha,
         List.getD_append_right (A2 ++ DeferredBytecodeClaim.cells cc.freshClaim ++ cc.carriedClaim.cells) [0, 0] 0 w
           (by rw [hAFC]; omega), hAFC]
       rcases (show w = 50 ∨ w = 51 by omega) with rfl | rfl <;> rfl
@@ -542,22 +543,8 @@ theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hm : MemOk rd)
     rw [hagg, ← memAt_of_load (load_sound hl194 hat), isMul_sound hm193 hat, hN, W]
     rfl
   -- the check
-  rw [batch_fs, ite_eq_left hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
-  exact ite_eq_left rfl
-
-/-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
-holds**, on a memory image. -/
-theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
-  intro rd hm args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
-  have h := aggregate_claims_val hm (fun _ _ _ h => h) hpar hb
-  match args, h with
-  | [ncg, cpi, cfresh, ccarried, dst, tabs], h =>
-    intro hW m hm1 hm16 hN
-    obtain ⟨hr, out, hl, hrd, hb⟩ := h hW m hm1 hm16 hN
-    exact ⟨hr, aggHints rd σ, out, hl, hrd, hb⟩
-  | [], h | [_], h | [_, _], h | [_, _, _], h | [_, _, _, _], h | [_, _, _, _, _], h => exact h.elim
-  | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
+  rw [batch_fs, ite_pos' hpowOk, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm195 hat]
+  exact ite_pos' rfl
 
 end
 end LeanVM.Guest.B1.Main

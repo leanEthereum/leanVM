@@ -15,9 +15,9 @@ public import LeanVM.Protocol.EndToEnd.Complete.Flushes
 # The forms' terms
 
 `verify_tables` evaluates each table block's coordinate as the sum of its baked terms over the
-table's column evaluations (`vtCoordTerms`). The specification's flushes are the symbolic tables of
+table's column evaluations (`vtCoordVal`). The specification's flushes are the symbolic tables of
 `Protocol.EndToEnd.Complete.Flushes` (`refSide_eq`); their coefficients evaluate in `K`, so the
-canonical forms of both sides are compared by kernel evaluation (`vtForms_check`). `vt_coord_eval`:
+canonical forms of both sides are compared by kernel evaluation (`vtTieCheck`). `vt_coord_evaluate`:
 the specification's coordinate, evaluated at any assignment of the columns in `E`, is the value of
 the guest's terms.
 -/

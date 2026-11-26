@@ -11,8 +11,8 @@ module
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
 public import LeanVM.Facts.IsaWith
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 @[expose] public section
 
@@ -24,7 +24,7 @@ At leanVM main `40f877dc2c858f013c5974ab71ca594b31a7aec9`. Specification Proposi
 `Soundness.StateWalk` applies it to the rows of the six tables. It uses only the semantics'
 `run`, nothing about the witness.
 
-**The statement** (`exists_run_of_perm`). Each edge `e` of a list `E` is a step of the machine,
+**The statement.** Each edge `e` of a list `E` is a step of the machine,
 `step prog L (src e) = some (dst e)`. If the start `s` together with
 the edges' targets is a permutation of the final registers together with the edges' sources (the
 state pair balances, the verifier pushing `s = (1, 1)` and pulling `(g^(N_prog - 1), 1)`), then
@@ -38,8 +38,8 @@ used are closed walks, about which nothing is claimed; what follows the first vi
 registers is one of them.
 
 **Under any semantics of `KECCAK`** (`exists_runB_of_perm`): the same, for the steps and runs
-of a semantics `S` (`Statement.LeanIsa`: `stepB S`, `runB S`); `exists_run_of_perm` is it at the
-deployed one, the reduction-blind verifier's walk at `keccakFree`.
+of a semantics `S` (`Statement.LeanIsa`: `stepB S`, `runB S`), the deployed one or the
+reduction-blind `keccakFree`.
 
 ## Wrong readings excluded
 

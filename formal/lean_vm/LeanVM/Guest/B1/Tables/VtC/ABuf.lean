@@ -25,23 +25,6 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- A flattening of blocks of `S` words holds block `i`'s word `k` at `S·i + k`. -/
-theorem getD_flatMap_const {S : ℕ} (f : ℕ → List E) (hf : ∀ i, (f i).length = S) :
-    ∀ (m i k : ℕ), i < m → k < S →
-      ((List.range m).flatMap f).getD (S * i + k) 0 = (f i).getD k 0
-  | 0, _, _, hi, _ => absurd hi (by omega)
-  | m + 1, i, k, hi, hk => by
-    rw [List.range_succ, List.flatMap_append]
-    have hlen : ((List.range m).flatMap f).length = S * m := by
-      rw [List.length_flatMap]
-      simp [hf, List.sum_replicate, Nat.mul_comm]
-    rcases Nat.lt_or_ge i m with h | h
-    · rw [List.getD_append _ _ _ _ (by rw [hlen]; nlinarith)]
-      exact getD_flatMap_const f hf m i k h hk
-    · obtain rfl : i = m := by omega
-      rw [List.getD_append_right _ _ _ _ (by rw [hlen]; omega), hlen]
-      simp
-
 /-! ## The shared selector tables -/
 
 /-- Table `t`'s `shared_eq` words: nibble `j`'s eq levels at `32 j`, zeros past them, `8(n + 1)` words for
@@ -80,8 +63,8 @@ theorem two_pow_succ_sub_two_le {w : ℕ} (hw : w ≤ 4) :
 
 /-- **Table `t`'s buffers give `RunTables`.** -/
 theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ} {t : ℕ}
-    (hμ : point.length < 33) (he : ReadsAt rd pe (vtShEqW point τ t))
-    (hg : ReadsAt rd pg (vtShGW point τ t)) :
+    (hμ : point.length < 33) (he : TbReadsAt rd pe (vtShEqW point τ t))
+    (hg : TbReadsAt rd pg (vtShGW point τ t)) :
     RunTables rd pe pg (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)) := by
   intro j hj
@@ -94,28 +77,28 @@ theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → �
     simp [nib, hsql]; omega
   obtain ⟨b1, b2, b3, b4⟩ := two_pow_succ_sub_two_le hw4
   constructor
-  · rw [readsAt_gen_pow_mul]
+  · rw [tbReadsAt_gen_pow_mul]
     intro k hk
     rw [eqLevels_length rfl hw1] at hk
     have hlt : 32 * j + k < (vtShEqW point τ t).length := by rw [vtShEqW_length]; omega
     have := he (32 * j + k) hlt
     simp only [vtShEqW, List.getElem_map, List.getElem_range] at this
-    rwa [show (32 * j + k) / 32 = j by omega, show (32 * j + k) % 32 = k by omega, ite_eq_left hj,
+    rwa [show (32 * j + k) / 32 = j by omega, show (32 * j + k) % 32 = k by omega, ite_pos' hj,
       List.getD_eq_getElem _ _ (by rw [eqLevels_length rfl hw1]; exact hk)] at this
-  · rw [readsAt_gen_pow_mul]
+  · rw [tbReadsAt_gen_pow_mul]
     intro k hk
     rw [gTable_length rfl, hgw] at hk
     have hk16 : k < 16 := by omega
     have hlt : 16 * j + k < (vtShGW point τ t).length := by rw [vtShGW_length]; omega
     have := hg (16 * j + k) hlt
     simp only [vtShGW, List.getElem_map, List.getElem_range] at this
-    rwa [show (16 * j + k) / 16 = j by omega, show (16 * j + k) % 16 = k by omega, ite_eq_left hj,
+    rwa [show (16 * j + k) / 16 = j by omega, show (16 * j + k) % 16 = k by omega, ite_pos' hj,
       List.getD_eq_getElem _ _ (by rw [gTable_length rfl, hgw]; exact hk)] at this
 
 /-- **Table `t`'s buffers give `RunPads`**: past each nibble's tables, zeros. -/
 theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ} {t : ℕ}
-    (hμ : point.length < 33) (he : ReadsAt rd pe (vtShEqW point τ t))
-    (hg : ReadsAt rd pg (vtShGW point τ t)) :
+    (hμ : point.length < 33) (he : TbReadsAt rd pe (vtShEqW point τ t))
+    (hg : TbReadsAt rd pg (vtShGW point τ t)) :
     RunPads rd pe pg (point.length - τ t) (point.drop (τ t)) := by
   intro j hj
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
@@ -127,19 +110,19 @@ theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
     simp [nib, hsql]; omega
   constructor
   · intro e he1 he2
-    rw [loadHolds_mul_gen_pow]
+    rw [tb_loadHolds_mul_gen_pow]
     have hlt : 32 * j + e < (vtShEqW point τ t).length := by rw [vtShEqW_length]; omega
     have := he (32 * j + e) hlt
     simp only [vtShEqW, List.getElem_map, List.getElem_range] at this
-    rwa [show (32 * j + e) / 32 = j by omega, show (32 * j + e) % 32 = e by omega, ite_eq_left hj,
+    rwa [show (32 * j + e) / 32 = j by omega, show (32 * j + e) % 32 = e by omega, ite_pos' hj,
       List.getD_eq_default _ _ (by rw [eqLevels_length rfl hw1]; exact he1)]
       at this
   · intro u hu1 hu2
-    rw [loadHolds_mul_gen_pow]
+    rw [tb_loadHolds_mul_gen_pow]
     have hlt : 16 * j + u < (vtShGW point τ t).length := by rw [vtShGW_length]; omega
     have := hg (16 * j + u) hlt
     simp only [vtShGW, List.getElem_map, List.getElem_range] at this
-    rwa [show (16 * j + u) / 16 = j by omega, show (16 * j + u) % 16 = u by omega, ite_eq_left hj,
+    rwa [show (16 * j + u) / 16 = j by omega, show (16 * j + u) % 16 = u by omega, ite_pos' hj,
       List.getD_eq_default _ _ (by rw [gTable_length rfl, hgw]; exact hu1)] at this
 
 end

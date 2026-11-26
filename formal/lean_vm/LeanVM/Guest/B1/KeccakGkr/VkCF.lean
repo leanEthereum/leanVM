@@ -49,7 +49,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
       ∀ {kret : List E → Prop}, kret [σ (.n (val% «verify_keccak» "nxt[8]@22")), σ (.n (val% «verify_keccak» "nxt[9]@22")), σ (.n (val% «verify_keccak» "nxt[10]@22")), σ (.n (val% «verify_keccak» "nxt[11]@22")),
         σ (.n (val% «verify_keccak» "nxt[12]@22")), σ (.n (val% «verify_keccak» "cursor@16")) * gen ^ 64, σ (.n (val% «verify_keccak» "x@2"))] →
         Stmt.HoldsList (fun _ _ _ ↦ True) rd σ vkFinT False kret := by
-  obtain ⟨k1, k2, k4, k5, k6, k8, k9, k10, k12, k13, k14⟩ := vkFin_ker
+  obtain ⟨k1, k2, k4, k5, k6, k8, k9, k10, k12, k13, k14⟩ := vk_ker.2.2.2
   have mSL : ∀ st ∈ vkFinSL, st ∈ vkFinT := fun st h ↦ by
     rw [vkFinT]
     exact List.mem_append_left _ (List.mem_append_left _ (List.mem_append_left _
@@ -170,7 +170,7 @@ theorem vkFin_complete (hσ : ∀ v, σ v = σ (.n v.idx)) (hg : ∀ st ∈ vkFi
     rw [eLD z hz, List.getD_eq_getElem _ _ (by omega)]; exact hsl z (by omega)
   rw [k14]
   refine ⟨m6578, by rw [e6578]; exact e_add_self _, c6579, a6580, c6581, c6582, m6583,
-    by rw [e6580, h17]; exact one_add_gen_pow_isInK _, fun _ ↦ trivial, ?_⟩
+    by rw [e6580, h17]; exact one_add_gen_pow_inK _, fun _ ↦ trivial, ?_⟩
   rw [holdsList_map_atoms]
   refine ⟨fun j hj ↦ ecp j hj, ?_⟩
   simp only [List.map_cons, List.map_nil]

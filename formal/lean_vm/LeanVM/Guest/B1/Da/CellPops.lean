@@ -15,14 +15,12 @@ public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.Uniform
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_cell»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # A cell check's pops
 
 * `kid_pops_mute`: a callee with no witness hint in its subtree pops nothing;
-* `cell_pops`, `da_verify_cell_complete_pops`: a cell check pops the symbols its valuation holds, the honest ones on
-  the completing valuation.
+* `cell_pops`: a cell check pops the symbols its valuation holds.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -71,29 +69,12 @@ theorem cell_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List Memory
     (Memory.Tree.node "da_verify_cell" σ bufs kids).pops coreProgram rd = [cellPop σ] := by
   have h := cell_shape_ok
   simp only [cellShapeOk, Bool.and_eq_true] at h
-  have hb : Fn.body fn% «da_verify_cell» = [.atom symHint] ⧺ (Fn.body fn% «da_verify_cell»).drop (pos% «da_verify_cell» "s@1~0") := by
+  have hb : Fn.body fn% «da_verify_cell» = [.atom symHint] ++ (Fn.body fn% «da_verify_cell»).drop (pos% «da_verify_cell» "s@1~0") := by
     rw [← stmtsEqb_sound h.1, List.take_append_drop]
   have ha : symHint.pops rd σ = [cellPop σ] := by simp [symHint, Atom.pops, Hint.pops, Dest.words, cellPop]
   have hx := FallPops.atom (rd := rd) (σ := σ) symHint
   rw [ha] at hx
   exact Tree.pops_of_prefix_leaf hv find_da_verify_cell hb hx h.2
-
-/-- **`da_verify_cell` is complete, popping its symbols**: `da_verify_cell_complete_vals`'s valuation, and every valid call instance of it on that valuation pops `syms`. -/
-theorem da_verify_cell_complete_pops (rd : Reader) (lv : E) (syms : List E) (ws : List E)
-    (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
-    ∃ σ : Val, σ (.n (val% «da_verify_cell» "lvals")) = lv ∧ (∀ C : CallRel,
-      Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws)) ∧
-      ∀ (bufs : List ℕ) (kids : List Memory.Tree) (args rets : List E),
-        (Memory.Tree.node "da_verify_cell" σ bufs kids).Valid coreProgram rd args rets →
-        (Memory.Tree.node "da_verify_cell" σ bufs kids).pops coreProgram rd = [("da_symbols", syms)] := by
-  obtain ⟨σ, e0, hs, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
-  refine ⟨σ, e0, h, fun bufs kids args rets hv => ?_⟩
-  rw [cell_pops hv, cellPop]
-  simp only [LeanDa.cellSymbols] at hsl
-  refine congrArg (fun l => [(("da_symbols" : String), l)]) (List.ext_getElem (by simp [hsl]) fun j h1 h2 => ?_)
-  simp only [List.length_map, List.length_range] at h1
-  simp only [List.getElem_map, List.getElem_range]
-  rw [hs j h1, List.getD_eq_getElem _ _ (by omega)]
 
 end
 end LeanVM.Guest.B1.Da

@@ -124,9 +124,9 @@ theorem glc_round {B q cur pt npt noff : ℕ} {claimV : V} {cap : List V}
     rw [h25]; rfl
   refine ⟨?_, h25', ?_, ?_⟩
   · unfold gkRoundN
-    rw [holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
-      holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
-      holdsList_append_noRet (by rfl)]
+    rw [tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
+      tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
+      tb_holdsList_append_noRet (by rfl)]
     refine ⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, ⟨hk, trivial⟩⟩, ?_⟩
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     exact ⟨l26.2, a27, a28, a29, m30, a31, by rw [← h25'] at hst; exact hst, m32, a33, m34, a35,
@@ -153,7 +153,7 @@ theorem glcRounds_noRet (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (
   induction n with
   | zero => rfl
   | succ n ih =>
-    rw [glcRounds_succ, noRetList_append, ih, glRound, gkRoundN_noRet]; rfl
+    rw [glcRounds_succ, tb_noRetList_append, ih, glRound, gkRoundN_noRet]; rfl
 
 /-- **`n` rounds on their equations**: round `q` on the words `Cf q` at `cur[4q ..]`, the eq
 factor `ef q` at `pt[q]` and its challenge at `npt[noff + q]`; the claim and the capacity after
@@ -202,7 +202,7 @@ theorem glc_rounds {B cur pt npt noff : ℕ} {claimV : V} {cap : List V} (hcl : 
       (by simpa using k0) (by simpa [Nat.add_assoc] using k1) (by simpa [Nat.add_assoc] using k2)
       (by simpa [Nat.add_assoc] using k3) (by simpa [Nat.add_assoc] using ke) (h4 n)
       (hw n (by omega)) (he n (by omega)) (by rw [hP]; exact hst n (by omega))
-    refine ⟨(holdsList_append_noRet (glcRounds_noRet _ _ _ _ _ _ _ _)).mpr ⟨ih1, by
+    refine ⟨(tb_holdsList_append_noRet (glcRounds_noRet _ _ _ _ _ _ _ _)).mpr ⟨ih1, by
       rw [glRound]; exact hR⟩, fun q hq0 hqn ↦ ?_⟩
     rcases Nat.lt_or_ge q (n + 1) with hlt | hge
     · exact ih2 q hq0 (by omega)

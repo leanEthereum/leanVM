@@ -90,7 +90,7 @@ theorem cap_index (q pd e : ℕ) :
 
 theorem limb_addr (b k : ℕ) : (ofK (Parameters.addressOfIndex b)).limb 0 *
     Parameters.addressOfIndex k =
-    Parameters.addressOfIndex (b + k) := Value.limb0_ofK_addressOfIndex_mul b k
+    Parameters.addressOfIndex (b + k) := Main.addr_ofK b k
 
 /-- The query region `OqQReg` from `OqLinReg`. -/
 theorem oqQReg_of {R : ℕ → Prop} {s : Oq} {cd ecap eflags ecoefs ehs epos eqp : ℕ}
@@ -103,7 +103,7 @@ theorem oqQReg_of {R : ℕ → Prop} {s : Oq} {cd ecap eflags ecoefs ehs epos eq
   refine ⟨fun off ho ↦ ⟨_, limb_addr _ _, h.1 off ho⟩,
     fun hf off ho ↦ ⟨_, limb_addr _ _, h.2.1 hf off ho⟩,
     fun off ho ↦ ⟨_, limb_addr _ _, b off (by rw [qwN_eq]; exact ho)⟩,
-    ⟨_, by rw [limb0_ofK_mul_gen_pow_mul, Nat.add_zero], f⟩, fun e he ↦ ⟨_, by rw [limb0_ofK_mul_gen_pow_mul], ?_⟩⟩
+    ⟨_, by rw [addr_gpow, Nat.add_zero], f⟩, fun e he ↦ ⟨_, by rw [addr_gpow], ?_⟩⟩
   rw [Nat.add_assoc, cap_index _ _ _]
   exact c e he
 

@@ -31,7 +31,7 @@ by its bytecode read, which `opRecs_bc_sound` makes the program's at the row's c
 
 **The run** (`exists_run_of_balanced`, Proposition 6.1). The state pair pushes `(1, 1)` (the
 verifier) and the rows' successors, and pulls `(g^(N_prog - 1), 1)` (the verifier) and the rows'
-states; its balance is the hypothesis of `exists_run_of_perm` (`Soundness.Walk`) over the rows,
+states; its balance is the hypothesis of `exists_runB_of_perm` (`Soundness.Walk`) over the rows,
 which yields a run from `Registers.initial` to `Registers.final prog`, the walk from the initial state cut at
 its first visit of the final state, each of whose steps is a row (`exists_walk`, which
 `Soundness.Theorem` uses for `AssignmentRepresents`). Every state before the cut is not the final
@@ -39,8 +39,8 @@ state, so `run`, which halts in the final state only, steps from it; a row at th
 another frame is a step like any other.
 
 **Under any semantics** (`RowsStep`, `exists_walkB`): the same, for
-rows that are steps of a semantics `S` of `KECCAK`: the deployed one under the `KECCAK` validity
-(`rowsStep_deployed`), the reduction-blind one `keccakFree` without it (`rowsStep_free`).
+rows that are steps of a semantics `S` of `KECCAK`, such as the deployed one under the `KECCAK`
+validity (`rowsStep_deployed`).
 
 ## Wrong readings excluded
 

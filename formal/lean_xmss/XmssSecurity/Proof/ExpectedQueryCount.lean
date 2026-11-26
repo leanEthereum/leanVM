@@ -2,17 +2,28 @@ module
 
 public import VCVio.OracleComp.QueryTracking.ExpectedQueryCount
 public import VCVio.OracleComp.ProbComp
-public import Common.EvalDistEq
+public import VCVio.OracleComp.EvalDist.Sum
 
 @[expose] public section
 
-/-! VCVio's `OracleComp.expectedSimulatedQueryCount` (an integral against the output measure) read
-as a sum over the outcomes of a `ProbComp` run, the form the proofs' other expectations
-(`expectedSimulatedCost`, `expectedFinal`) take. -/
+/-!
+# The expected query count as a sum
+
+VCVio's `OracleComp.expectedSimulatedQueryCount` (an integral against the output measure) read as a
+sum over the outcomes of a `ProbComp` run, the form the proofs' other expectations
+(`expectedSimulatedCost`, `expectedFinal`) take.
+-/
 
 open OracleSpec OracleComp ENNReal MeasureTheory
 
 namespace XmssSecurity
+
+/-- The expectation of a value over a `ProbComp` is the sum over its outcomes. -/
+theorem lintegral_id_evalDist_map_eq_tsum {α : Type} (computation : ProbComp α) (f : α → ℝ≥0∞) :
+    ∫⁻ r, r ∂𝒟[f <$> computation] = ∑' x, Pr{let y ← computation}[y = x] * f x := by
+  let : MeasurableSpace α := ⊤
+  rw [lintegral_evalDist_map computation .of_discrete measurable_id']
+  exact lintegral_evalDist_eq_tsum computation f
 
 variable {ι : Type} {spec : OracleSpec ι} {α β state : Type}
   (implementation : QueryImpl spec (StateT state ProbComp))

@@ -8,14 +8,13 @@ module
 
 public import LeanVM.Guest.Pops
 public import LeanVM.Guest.B1.Sig.Frame
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Pops, generically
 
 * `walk_congr_pops`, `FallPops.congr`, `SplicePops.congr`: a block's path and pops depend only on the values it names;
 * `walk_rename`, `FallPops.rename`: a renamed block pops what the original pops under the renamed valuation;
-* `SplicePops`: a block falling through, its calls' entries `ks` spliced in; `SplicePops.append`, `SplicePops.call`, `Tree.pops_of_splice`;
+* `SplicePops`: a block falling through, its calls' entries `ks` spliced in; `SplicePops.append`, `SplicePops.call`;
 * `retPops_of_fallPops`: a block returning after a block popping `ps` pops `ps`;
 * `SameStreams.refl`, `.symm`, `.trans`, `sameStreams_flatMap_split`: stream-by-stream equality.
 -/
@@ -287,7 +286,7 @@ theorem walk_append_fall' {σ : Val} : ∀ {xs : List Stmt} {es : List Ev} (ys :
 /-- **A block returning after a block popping `ps`** pops `ps` and sets up no call. -/
 theorem retPops_of_fallPops {σ : Val} {xs : List Stmt} {vs : List V} {ps : List Pop}
     (h : FallPops rd σ xs ps) :
-    ∃ es, walk σ (xs ⧺ [.ret vs]) = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = ps := by
+    ∃ es, walk σ (xs ++ [.ret vs]) = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = ps := by
   obtain ⟨es, hw, hc, rfl⟩ := h
   exact ⟨es, by rw [walk_append_fall' _ hw]; simp [walk, walk1, Out.seq, Out.pre], hc, rfl⟩
 
@@ -373,22 +372,6 @@ theorem SplicePops.agree {σ' : Val} {ss : List Stmt} {ks : List (List Pop)} {ps
     SplicePops rd σ' ss ks ps :=
   hf.congr fun v hv => let ⟨k, hk, e⟩ := hb v hv; e ▸ hag k hk
 
-/-- **A node whose body pops `p` with its callees' entries spliced in, then returns setting up no call**, pops `p`
-and the return's entries. -/
-theorem Tree.pops_of_splice {P : Core.Program} {f : String} {bufs : List ℕ} {kids : List Tree} {fn : Fn}
-    {xs ys : List Stmt} {p : List Pop} {es : List Ev} {vs : List V} (hf : P.find? f = some fn)
-    (hb : fn.body = xs ++ ys) (hx : SplicePops rd σ xs (Tree.popsKids P rd kids) p) (hy : walk σ ys = .ret es vs)
-    (hc : calls es = []) :
-    ∃ es', walk σ fn.body = .ret es' vs ∧
-      (Tree.node f σ bufs kids).pops P rd = p ++ evPops rd σ es := by
-  obtain ⟨es0, hw0, hc0, rfl⟩ := hx
-  have hw : walk σ fn.body = .ret (es0 ++ es) vs := by
-    rw [hb, walk_append_fall' ys hw0, hy, Out.pre]
-  refine ⟨_, hw, ?_⟩
-  have e := splice_append (rd := rd) (σ := σ) es0 es (Tree.popsKids P rd kids) [] hc0
-  rw [List.append_nil] at e
-  rw [Tree.pops_node hf hw, e, splice_nil_of_calls es hc]
-
 end Splice
 
 /-! ## Streams -/
@@ -398,8 +381,6 @@ section Streams
 variable {a b c : List Pop}
 
 theorem SameStreams.refl (a : List Pop) : SameStreams a a := fun _ => rfl
-
-theorem SameStreams.symm (h : SameStreams a b) : SameStreams b a := fun s => (h s).symm
 
 theorem SameStreams.trans (h : SameStreams a b) (h' : SameStreams b c) : SameStreams a c :=
   fun s => (h s).trans (h' s)

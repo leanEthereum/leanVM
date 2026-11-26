@@ -23,7 +23,6 @@ open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice F
   FORS.Base.Domination
 open HiddenBridge PotentialA
 
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 open Completeness SeedModel _root_.FORS.Security.Graph Assembly Reduce Internalize in
@@ -53,7 +52,6 @@ def SmallBridgeH (adversary : Adversary) (q : ℕ) (steps : Message → Randomne
           fun result => (fun table => (table, result)) <$> completion result.2.known)}[CorrectGuess x.1 x.2.2 ∨
           badAV parameterOutput fixed highs remaining prepared.1 x.1 (((x.2.1.1, x.2.1.2.1), x.2.1.2.2.1), x.2.2.cache)]
 
-set_option maxRecDepth 100000 in
 /-- **Small budgets, seed-free win of the honest game.** -/
 theorem small_seedFree_boundF (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (steps : Message → Randomness) (hbridge : SmallBridgeH (internalize adversary) q steps)

@@ -12,6 +12,9 @@ lean-pq = { workspace = true }
 napi = { version = "3.12.1", features = ["napi9"] }
 napi-derive = "3.6.3"
 
+[target.'cfg(unix)'.dependencies]
+allocator = { workspace = true }
+
 [build-dependencies]
 napi-build = "2.2.4"
 

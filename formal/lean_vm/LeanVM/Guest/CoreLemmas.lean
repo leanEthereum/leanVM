@@ -18,7 +18,7 @@ import Mathlib.Data.List.GetD
 * `holdsList_append`: a block followed by another is the first with the second as its
   continuation; `holdsList_flatten`: return-free blocks in sequence (an `unroll`'s iterations)
   hold exactly when each holds;
-* `holdsArms_iff`, `holds_match_iff`, `holds_dispatch_iff`: a `match` holds of one arm `j` at
+* `holdsArms_iff`, `holds_match_iff`: a `match` holds of one arm `j` at
   `x = g^j`, `j < arms.length`, the in-range condition a conjunct;
 * `holds_mono`, `relN_mono`, `rel_iff`: the semantics is monotone in the call relation, and
   `Program.Rel` is a fixed point, a call holding exactly when the callee's body does under
@@ -333,8 +333,7 @@ A `KECCAK` atom writes one, two or all thirteen output cells (`Op::Keccak`'s `ou
   the written values are `O`'s first cells;
 * `keccak_holds_13`: with thirteen written cells, the atom's relation is `KeccakCellsRelation … .all`
   of the read and written cells;
-* `keccak_holds_one`, `keccak_holds_two`: with one or two written cells, the written values the
-  output state's first cells.
+* `keccak_holds_two`: with two written cells, the written values the output state's first cells.
 -/
 
 section Keccak
@@ -389,21 +388,6 @@ theorem keccak_holds_13 {ins outs : List V} {i o : Bool} (ho : outs.length = 13)
     exact ⟨hi, ho, e ▸ hk⟩
   · rintro ⟨hi, -, hk⟩
     exact ⟨hi, .all, ho, hk⟩
-
-/-- **One written cell**: the written value is the output state's first cell. -/
-theorem keccak_holds_one {ins : List V} {v : V} {i o : Bool} :
-    (Atom.keccak ins [v] i o).Holds rd σ ↔
-      ins.length = 13 ∧
-        σ v = cellsOfState (keccakF1600 (stateOfCells (cells13 (ins.map σ)) i)) o 0 := by
-  constructor
-  · intro h
-    obtain ⟨hi, -, O, hk, hw⟩ := keccak_holds_full h
-    exact ⟨hi, (hw 0 (by simp)).trans (hk 0 (by decide))⟩
-  · rintro ⟨hi, hv⟩
-    refine ⟨hi, .one, rfl, fun c hlt ↦ ?_⟩
-    have : c = 0 := Fin.ext (by simpa [KeccakOutputCells.cellCount] using hlt)
-    subst this
-    simpa [cells13] using hv
 
 /-- **Two written cells**: the written values are the output state's first two cells. -/
 theorem keccak_holds_two {ins : List V} {v w : V} {i o : Bool} :

@@ -1,7 +1,7 @@
 module
 
-public import XmssSecurity.Proof.IdealStatement
 public import Mathlib.Data.BitVec
+public import XmssSecurity.Scheme
 
 @[expose] public section
 

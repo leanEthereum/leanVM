@@ -99,9 +99,9 @@ theorem lr_size_le {name loop1 loop2 : String} {q cols nhs hbits : ℕ}
     intro e he t ht
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl
-    · exact ⟨0 + t, Value.limb0_ofK_addressOfIndex_mul _ _, (0, posW), by simp [hLin0], by omega, by simp only [hlP]; omega⟩
-    · exact ⟨q + t, Value.limb0_ofK_addressOfIndex_mul _ _, (q, dW), by simp [hLin0], by omega, by simp only [hlD]; omega⟩
-    · exact ⟨q + cols + t, Value.limb0_ofK_addressOfIndex_mul _ _, (q + cols, hsW), by simp [hLin0], by omega,
+    · exact ⟨0 + t, Main.addr_ofK _ _, (0, posW), by simp [hLin0], by omega, by simp only [hlP]; omega⟩
+    · exact ⟨q + t, Main.addr_ofK _ _, (q, dW), by simp [hLin0], by omega, by simp only [hlD]; omega⟩
+    · exact ⟨q + cols + t, Main.addr_ofK _ _, (q + cols, hsW), by simp [hLin0], by omega,
         by simp only [hlH]; omega⟩
   have hmem : ∀ rd, LowDef κ rd → MemL rd Lin0 →
       (∀ i < q, LoadHolds rd (ofK (addressOfIndex 0)) i ((fun _ ↦ (0 : E)) i)) ∧

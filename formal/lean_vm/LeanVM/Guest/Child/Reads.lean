@@ -13,6 +13,7 @@ public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.WithHashBridge
 public import LeanVM.Guest.AcceptableChild
+import LeanVM.ToMathlib.List
 
 /-!
 # The stream an accepted proof carries
@@ -463,14 +464,6 @@ theorem reads_tableTerms (constraintPowers formPowers point : List E) :
     · simp only [List.map_cons, List.sum_cons]; omega
     · simp only [List.map_cons, List.sum_cons]; omega
 
-private theorem foldl_max_le (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc ≤ M → (∀ x ∈ l, x ≤ M) →
-    l.foldl max acc ≤ M
-  | [], _, h, _ => h
-  | x :: xs, acc, h, hl => by
-    simp only [List.foldl_cons]
-    exact foldl_max_le M xs _ (max_le h (hl x List.mem_cons_self))
-      fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
-
 /-- The widths of the first components of a zip are at most the widths of the list. -/
 
 theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
@@ -479,7 +472,7 @@ theorem reads_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     Reads
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (30 * roundReads 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
+  have hmax := List.foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundReads 4 = 4 := rfl
   refine Reads.seq (reads_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r

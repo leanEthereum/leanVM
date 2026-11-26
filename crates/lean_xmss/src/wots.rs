@@ -21,7 +21,7 @@ pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
 pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> [Digest; V] {
     let mut secrets = [[0u8; N]; V];
     for (t, pair) in secrets.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-        *pair = th_pair(pp, &tweak(TWEAK_PRF, layer_hi(layer, t as u32), e), seed);
+        *pair = th_pair(pp, &prf_tweak(layer, t as u32, e), seed);
     }
     secrets
 }
@@ -32,17 +32,30 @@ pub(crate) fn wots_secrets(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e:
 pub fn chain(pp: &PublicParam, layer: usize, e: u32, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
     debug_assert!(start + steps < CHAIN_LEN);
     (start..start + steps).fold(value, |current, from| {
-        th_digests(
-            pp,
-            &tweak(TWEAK_CHAIN, layer_hi(layer, 0), e).step(from),
-            &[current, (i as u128).to_le_bytes()],
-        )
+        let (tw, payload) = chain_input(layer, e, i, from, current);
+        th_digests(pp, &tw, &payload)
     })
+}
+
+/// The address of secret hash `t` of key `e` on `layer`.
+fn prf_tweak(layer: usize, t: u32, e: u32) -> Tweak {
+    tweak(TWEAK_PRF, layer_hi(layer, t), e)
+}
+
+/// The hash input of the step of chain `i` of key `e` leaving position `from`.
+fn chain_input(layer: usize, e: u32, i: usize, from: usize, value: Digest) -> (Tweak, [Digest; 2]) {
+    let tw = tweak(TWEAK_CHAIN, layer_hi(layer, 0), e).step(from);
+    (tw, [value, (i as u128).to_le_bytes()])
+}
+
+/// The address of key `e`'s leaf on `layer`.
+fn leaf_tweak(layer: usize, e: u32) -> Tweak {
+    tweak(TWEAK_LEAF, layer_hi(layer, 0), e)
 }
 
 /// The Merkle leaf of a one-time key: `Th` over its `v` chain ends.
 pub(crate) fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]) -> Digest {
-    th_digests(pp, &tweak(TWEAK_LEAF, layer_hi(layer, 0), e), ends)
+    th_digests(pp, &leaf_tweak(layer, e), ends)
 }
 
 /// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
@@ -133,17 +146,84 @@ pub fn wots_leaf(
     values: &[Digest; V],
 ) -> Option<([u8; V], Digest)> {
     let x = codeword(&message_digest(pp, layer, e, randomizer, message))?;
-    let ends = core::array::from_fn(|i| {
-        let start = x[i] as usize;
-        chain(pp, layer, e, i, start, CHAIN_LEN - 1 - start, values[i])
-    });
-    Some((x, wots_leaf_hash(pp, layer, e, &ends)))
+    Some((x, wots_leaf_hash(pp, layer, e, &chain_ends(pp, layer, e, &x, values))))
 }
 
-/// The leaf of key `e` on `layer`, from the seed: what key generation spends its
-/// hashes on.
-pub(crate) fn wots_public_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
-    let secrets = wots_secrets(pp, seed, layer, e);
-    let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
-    wots_leaf_hash(pp, layer, e, &ends)
+/// Each chain's end, from the value at its digit's position.
+#[cfg(not(feature = "std"))]
+fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+    core::array::from_fn(|i| {
+        let start = x[i] as usize;
+        chain(pp, layer, e, i, start, CHAIN_LEN - 1 - start, values[i])
+    })
+}
+
+/// Each chain's end, from the value at its digit's position: as [`chain`] computes it, each step one batch over the
+/// chains still running.
+#[cfg(feature = "std")]
+fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+    let mut ends = *values;
+    for from in 0..CHAIN_LEN - 1 {
+        let running: Vec<usize> = (0..V).filter(|&i| usize::from(x[i]) <= from).collect();
+        let steps = running.iter().map(|&i| chain_input(layer, e, i, from, ends[i]));
+        for (&i, end) in running.iter().zip(th_digests_many(pp, steps)) {
+            ends[i] = end;
+        }
+    }
+    ends
+}
+
+/// The leaves of the `n` keys from `first` on `layer`, from the seed: what key generation and a
+/// signature's path spend their hashes on. As [`wots_secrets`], [`chain`] and
+/// [`wots_leaf_hash`] compute them, each stage one batch over every key: the secrets,
+/// each chain step, then the leaves.
+#[cfg(feature = "std")]
+pub(crate) fn wots_public_leaves(
+    pp: &PublicParam,
+    seed: &SchemeSeed,
+    layer: usize,
+    first: u32,
+    n: usize,
+) -> Vec<Digest> {
+    const PAIRS: usize = V / 2;
+    let seed: [Digest; 2] = *seed.as_bytes().as_chunks().0.as_array().unwrap();
+    let prf = (0..n * PAIRS).map(|k| (prf_tweak(layer, (k % PAIRS) as u32, first + (k / PAIRS) as u32), seed));
+    // Chain `i` of the `k`th key at `k * V + i`, chains `2t` and `2t + 1` the halves of secret hash `t`.
+    let mut values: Vec<Digest> = th_many(pp, prf).as_flattened().as_chunks().0.to_vec();
+    for from in 0..CHAIN_LEN - 1 {
+        let steps = values.iter().enumerate();
+        let steps = steps.map(|(k, &value)| chain_input(layer, first + (k / V) as u32, k % V, from, value));
+        values = th_digests_many(pp, steps);
+    }
+    let ends = values.as_chunks::<V>().0.iter().enumerate();
+    th_digests_many(pp, ends.map(|(k, &ends)| (leaf_tweak(layer, first + k as u32), ends)))
+}
+
+#[cfg(all(test, feature = "std"))]
+mod tests {
+    use super::*;
+
+    /// The leaf of key `e`, one hash input at a time.
+    fn one_key_leaf(pp: &PublicParam, seed: &SchemeSeed, layer: usize, e: u32) -> Digest {
+        let secrets = wots_secrets(pp, seed, layer, e);
+        let ends = core::array::from_fn(|i| chain(pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
+        wots_leaf_hash(pp, layer, e, &ends)
+    }
+
+    /// Batched leaves equal the one-key computation on both layers: from a first key that is not aligned, for counts
+    /// that are not a whole number of lanes, and up to the last key index.
+    #[test]
+    fn batched_leaves_match_one_key() {
+        let seed = scheme_seed(&[7; 32]);
+        let pp = public_param(&seed);
+        for layer in 0..2 {
+            for (first, n) in [(3, 1), (0x1_0005, 18), (u32::MAX - 4, 5)] {
+                let leaves = wots_public_leaves(&pp, &seed, layer, first, n);
+                assert_eq!(leaves.len(), n);
+                for (e, leaf) in (0..n).map(|k| first + k as u32).zip(&leaves) {
+                    assert_eq!(*leaf, one_key_leaf(&pp, &seed, layer, e), "layer {layer}, key {e}");
+                }
+            }
+        }
+    }
 }

@@ -13,7 +13,6 @@ public import LeanVM.Protocol.EndToEnd.Front.FlockMech
 public import LeanVM.Protocol.Verifier.KeccakPack
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 import LeanVM.Protocol.Keccak.Linear
-import LeanVM.Protocol.Compile.SpecRules.Grind
 
 /-!
 # Sumcheck rounds as specifications

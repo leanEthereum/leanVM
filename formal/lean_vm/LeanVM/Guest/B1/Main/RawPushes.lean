@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Main.RawAtSP
 * `sameStreams_flatMap`: stream-by-stream equality, pointwise under a `flatMap`;
 * `flatMap_range_getD`: a `flatMap` over a zip as one over the indices;
 * `rawXD_slot`, `rawSD_slot`: raw signature `i`'s slot is `coveragePlan`'s `directSlots[i]`;
-* `rawX_pops_sameStreams`: `main_loop2`'s entries from the counter `1` (`rawX_completeAtDP`) are `honestPushes`' segment `(rawX.zip xr.directSlots).flatMap …`, stream by stream;
-* `rawS_pops_sameStreams`: `main_loop3`'s (`rawS_completeAtDP`) are `(rawS.zip sr.directSlots).flatMap …`.
+* `rawX_pops_sameStreams`: `main_loop2`'s entries from the counter `1` (`rawX_loopP`) are `honestPushes`' segment `(rawX.zip xr.directSlots).flatMap …`, stream by stream;
+* `rawS_pops_sameStreams`: `main_loop3`'s (`rawS_loopP`) are `(rawS.zip sr.directSlots).flatMap …`.
 -/
 
 namespace LeanVM.Guest.B1.Main

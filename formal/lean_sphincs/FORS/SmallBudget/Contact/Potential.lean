@@ -1,6 +1,9 @@
 module
 
 public import FORS.SmallBudget.Contact.Weights
+public import FORS.SmallBudget.Contact.PaidPotential
+public import FORS.SmallBudget.Contact.RevealRate
+public import FORS.SmallBudget.Contact.NearWitness
 
 @[expose] public section
 
@@ -26,10 +29,8 @@ variable [Params]
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open PotentialA
-open FORS.LoopWalk Common.LoopWalk
+open FORS.LoopWalk
 
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### Capped expectations -/

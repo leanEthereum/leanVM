@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.Verifier.KeccakPack
-public import LeanVM.Protocol.Verifier.Budget
+import LeanVM.ToMathlib.List
 
 /-!
 # The query cost of the leanVM verifier
@@ -57,9 +57,7 @@ right after a proof of work, which permutes nothing, is charged a permutation.
 ## Deployed behaviour
 
 The bound is a statement on the program `leanVmVerifierProgram` as transcribed in
-`Statement.Verifier.Lib`; it covers every proof, accepted or not. Both fit the budgets of
-`LeanVM.Protocol.Errors` (`leanVmCost_le`, `leanVmQueryBound_add_three_le`), which the error
-arithmetic reads instead of their values.
+`Statement.Verifier.Lib`; it covers every proof, accepted or not.
 -/
 
 namespace LeanVM.Protocol.Verifier
@@ -288,21 +286,6 @@ theorem costs_bytecodeShare (weights bytecodeLow : List E) :
 def ClaimsShort (claims : List ColumnClaim) : Prop :=
   ∀ c ∈ claims, c.column ∈ keccakOutputColumns → c.point.length ≤ 30
 
-/-- The bus's framework claims are at points of at most `30` coordinates. -/
-theorem claimsShort_busOf {layout : Layout} (hm : layout.logMemory ≤ 30)
-    (hb : layout.logBytecode ≤ 30) (weights : List E) (beta : E) (point treeValues memory : List E)
-    (memoryFinal bytecodeFinal share : E) (bytecodePoint : List E) :
-    ClaimsShort (busOf layout weights beta point treeValues memory memoryFinal bytecodeFinal share
-      bytecodePoint).claims := by
-  intro c hc _
-  simp only [busOf, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with hc | rfl | rfl
-  · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
-    simp only [List.getElem_zipWith, List.length_take]
-    omega
-  · simp only [List.length_take]; omega
-  · simp only [List.length_take]; omega
-
 /-- The bus phase, at the push side's depth, for a check of the fixed polynomial's value that
 costs nothing. -/
 theorem costs_verifyBusBalance (ev : List K → List E → E → VerifierProgram Unit)
@@ -312,22 +295,29 @@ theorem costs_verifyBusBalance (ev : List K → List E → E → VerifierProgram
       (5 + 4 * 2 ^ busBits + 4 + (2 + gkrCost (busLayout [0, layout.logMemory, layout.logBytecode]
         layout.push).depth 0) + 4 + (1 + busBits * roundCost 3 + 1))
       fun r ↦ ClaimsShort r.claims := by
-  rw [verifyBusBalance_eq]
   refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.grindP _) (fun _ _ ↦
     VerifierProgram.Costs.seq (VerifierProgram.Costs.sampleN _) (fun _ _ ↦
       VerifierProgram.Costs.seq VerifierProgram.Costs.sampleE
     (fun _ _ ↦ VerifierProgram.Costs.seq (costs_verifyGkrGrandProducts _) (fun r _ ↦ ?_) ?_) ?_)
       ?_) ?_) (Nat.zero_le _)
-  · refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
+  · obtain ⟨countRoot, point, treeValues⟩ := r
+    refine VerifierProgram.Costs.seq (VerifierProgram.Costs.require (n := 0) _) (fun _ _ ↦
         VerifierProgram.Costs.seq (VerifierProgram.Costs.readN 2)
       (fun memory hmem ↦ VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
           VerifierProgram.Costs.seq VerifierProgram.Costs.readE (fun _ _ ↦
             VerifierProgram.Costs.seq (costs_bytecodeShare _ _) (fun r _ ↦ ?_) ?_) ?_) ?_) ?_)
         (Nat.zero_le _)
     · obtain ⟨share, bytecodePoint, value⟩ := r
-      exact VerifierProgram.Costs.seq (hev _ _ _) (fun _ _ ↦ claimsShort_busOf hm hb _ _ _ _ _ _ _ _ _)
-        (Nat.zero_le _)
+      refine VerifierProgram.Costs.seq (hev _ _ _) (fun _ _ ↦ ?_) (Nat.zero_le _)
+      intro c hc _
+      simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+      rcases hc with hc | rfl | rfl
+      · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
+        simp only [List.getElem_zipWith, List.length_take]
+        omega
+      · simp only [List.length_take]; omega
+      · simp only [List.length_take]; omega
     all_goals omega
   all_goals omega
 
@@ -504,14 +494,6 @@ theorem costs_tableTerms (constraintPowers formPowers point : List E) :
     · simp only [List.map_cons, List.sum_cons]; omega
     · simp only [List.map_cons, List.sum_cons]; omega
 
-private theorem foldl_max_le (M : ℕ) : ∀ (l : List ℕ) (acc : ℕ), acc ≤ M → (∀ x ∈ l, x ≤ M) →
-    l.foldl max acc ≤ M
-  | [], _, h, _ => h
-  | x :: xs, acc, h, hl => by
-    simp only [List.foldl_cons]
-    exact foldl_max_le M xs _ (max_le h (hl x List.mem_cons_self))
-      fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
-
 /-- The widths of the first components of a zip are at most the widths of the list. -/
 theorem sum_width_zip {β : Type} : ∀ (l : List Table) (m : List β),
     ((List.zip l m).map fun r ↦ r.1.width).sum ≤ (l.map Table.width).sum
@@ -529,7 +511,7 @@ theorem costs_tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     VerifierProgram.Costs height
       (tableSumcheckClaims heights busForms constraintPowers formPowers equalityPoint target)
       (30 * roundCost 4 + tableWidthSum) fun cl ↦ ClaimsShort cl := by
-  have hmax := foldl_max_le 30 heights 0 (Nat.zero_le _) hh
+  have hmax := List.foldl_max_le 30 heights 0 (Nat.zero_le _) hh
   have hr4 : roundCost 4 = 12 := rfl
   refine VerifierProgram.Costs.seq (costs_sumcheck _ _ _) (fun r _ ↦ ?_) ?_
   · obtain ⟨challenges, claim⟩ := r
@@ -1030,15 +1012,7 @@ def leanVmQueryBound : ℕ := 1 + 1 + leanVmCost / 4
 /-- The bound, evaluated. -/
 theorem leanVmQueryBound_eq : leanVmQueryBound = 13708 := by decide
 
-/-- The program's cost fits the budget `verifierCost`. -/
-theorem leanVmCost_le : leanVmCost ≤ verifierCost := by decide
-
-/-- The verifier's queries fit the budget `verifierQueries`, leaving room for three more: the
-agreement-set extractor's error adds three terms of at most `2^-125`
-(`LeanVM.soundnessRpmAS_le_statement`). -/
-theorem leanVmQueryBound_add_three_le : leanVmQueryBound + 3 ≤ verifierQueries := by decide
-
-/-- **The compiled leanVM verifier makes at most `leanVmQueryBound` queries** to the random
+/-- **The compiled leanVM verifier makes at most `leanVmQueryBound = 13708` queries** to the random
 oracles on every proof, for every bytecode and public input: the hypothesis `hV` of `romSound`
 at the leanVM program and seed. -/
 theorem isTotalQueryBound_leanVm (bytecode : List K) (publicInput : Digest) (π : Proof) :

@@ -32,8 +32,7 @@ Along a history whose walk ends at the runner's node (`Hs.walk h = S`), they are
 * `runScript_eq_proveM`: from a seed, the runner's proof is the honest prover's, `none` where it
   fails.
 * `simulateQ_runScript`, `simulateQ_seedRunScript`: answering the queries by any implementation
-  is running with it; at Keccak-256 and Keccak-f[1600] (`Guest.Budget.deployedKeccakCalls`) the runner in
-  `Id` (`atKeccak_seedRunScript`).
+  is running with it.
 -/
 
 namespace LeanVM.Prover

@@ -94,43 +94,5 @@ structure MainGoalsRR (SK : String → ℕ) (p : MainPredsR) (b : MainBs) : Prop
         (hm fs fp seed s w).a406, (hm fs fp seed s w).a417,
           (hm fs fp seed s w).et * word 133823759239872512 0] (Returns []) p.Pa b.Ba
 
-variable {fs cert fp seed s w} {bytecode : List K}
-
-/-- **`main`'s callees on the honest run within their bounds, by trees popping `q`'s entries**: the static and
-route S ones from `main_honest_budgetB`'s goals, the route R ones given. -/
-theorem mainGoalsTBR_honest {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ} {q : MainPops}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hxc : Sig.verify_lean_xmss_complete_Spec) (hsc : Sig.SphincsCompleteSpecs)
-    (hS : MainStatics fs SB SK) (hPS : MainPopsS fs fp seed s w q)
-    (hR : MainGoalsRR fs cert fp seed s w SK (mainPredsHP fs SB SK Bv Pvs s w q) (mainBsH fs SB SK Bv s w)) :
-    MainGoalsTBR fs cert fp seed s w SB SK (mainPredsHP fs SB SK Bv Pvs s w q) (mainBsH fs SB SK Bv s w) := by
-  have hg : MainStaticGoalsB fs cert fp seed s w SB SK := mainStaticGoalsB_of hbl hr hl hxc hsc hS.main
-  exact ⟨hR.clx, hR.cls,
-    fun hn => ((hg.l1 hn).toR.withPopsN fun rd hl hL t rets htn hv _ => hPS.l1 hn rd hl hL t rets htn hv).mono le_rfl
-      fun _ _ h => h.2,
-    fun hn => ((hg.l2 hn).toR.withPopsN fun rd hl hL t rets htn hv _ => hPS.l2 hn rd hl hL t rets htn hv).mono le_rfl
-      fun _ _ h => h.2,
-    hR.l3, hR.l4, hR.dv, hR.l5, hR.ag, hg.st.toR.mono le_rfl fun _ _ _ => trivial⟩
-
-/-- **`main`'s completeness on the honest run within its words, its callees popping `q`'s entries**:
-`main_honest_budgetB`, the callees' trees satisfying `mainPredsHP` on each memory. -/
-theorem main_honest_budgetBR {SB SK : String → ℕ} {Pvs : ℕ → Tree → Prop} {Bv : ℕ → ℕ} {q : MainPops}
-    (hbl : bytecode.length = 2 ^ 23) (hr : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
-    (hxc : Sig.verify_lean_xmss_complete_Spec) (hsc : Sig.SphincsCompleteSpecs)
-    (hS : MainStatics fs SB SK) (hPS : MainPopsS fs fp seed s w q)
-    (hR : MainGoalsRR fs cert fp seed s w SK (mainPredsHP fs SB SK Bv Pvs s w q) (mainBsH fs SB SK Bv s w)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), n ≤ Bmain fs SB SK Bv fp seed s w ∧
-      Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
-      (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
-      ∀ rd, LowDef 23 rd → B1.Main.MemL rd L →
-        LoadHolds rd 1 0 (digestHalves (statementDigest seed s)).1 →
-        LoadHolds rd gen 0 (digestHalves (statementDigest seed s)).2 →
-        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
-          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
-            KidsT (mCalls σ (hm fs fp seed s w))
-              ((fun _ => True) :: mTsR (hm fs fp seed s w) (mainPredsHP fs SB SK Bv Pvs s w q) rd) ks ∧
-            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
-  main_honest_relAtInTBR hbl hr hl (mainGoalsTBR_honest hbl hr hl hxc hsc hS hPS hR)
-
 end
 end LeanVM.Guest.B1.Main

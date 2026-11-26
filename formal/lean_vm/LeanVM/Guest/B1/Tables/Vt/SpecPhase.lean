@@ -61,7 +61,7 @@ theorem vt_tableSumcheck_run (heights : List ℕ) (busForms : List (List Form))
   rcases hT : termsPure cp fp pts.reverse pairs 0 0 [] with ⟨fin, cl⟩
   rw [hT] at ht hfin
   simp only at hfin ⊢
-  have hr := runsTo_require hfin (s1.absorbAll evs.flatten dsObserve)
+  have hr := tb_runsTo_require hfin (s1.absorbAll evs.flatten dsObserve)
   have h3 := hr.bind (f := fun _ ↦ (pure cl : VerifierProgram (List ColumnClaim))) (runsTo_ret _ _)
   unfold tableSumcheckClaims
   rw [hn]

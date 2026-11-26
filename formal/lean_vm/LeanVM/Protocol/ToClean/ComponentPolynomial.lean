@@ -51,12 +51,9 @@ translation is CompPoly's, proved equal to Clean's.
   `ConstraintsHold` is its `assert` expressions and its lookups).
 * `toM3_flushes_eq`: on such a row, the flush polynomials evaluate to the sixteen-slot tuples
   `flushTuple sep` of the interactions Clean evaluates on the row, with their sides.
-* `mem_toM3_count_iff` and `msg_one_of_countVar`: a count column is the variable of coordinate
-  `1` of a counted interaction, and that coordinate evaluates to the column's cell. Under
-  `CountsAreVariables`, which a component's data decides, every counted interaction has one
-  (`exists_count_of_counted`).
-* `tupleMsg_flushTuple`: a message of at most fifteen coordinates is read back off its tuple,
-  so the tuples of one channel's messages determine the messages.
+* `mem_toM3_count_iff`: a count column is the variable of coordinate `1` of a counted
+  interaction. `CountsAreVariables`, which a component's data decides, asks that every counted
+  interaction's coordinate `1` be such a variable.
 
 Written from the M3 model of leanVM's specification (§5.1 "The bus", §5.5 "The zerocheck") and
 Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.lean`,
@@ -72,7 +69,7 @@ Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.le
 * A flush carries no multiplicity: the side is the channel's (`dir`), never the sign of a
   multiplicity, which carries none in characteristic two. The table is faithful to a component
   whose multiplicities have no variable and the value `1` or `-1` (`UnitMultiplicities`,
-  decidable; `eval_of_constValue`). The `KECCAK` table's gated pulls (Clean's `pullIf`,
+  decidable). The `KECCAK` table's gated pulls (Clean's `pullIf`,
   multiplicity `-flag`) are flushed unconditionally, as the Rust flushes them: the
   push's counter `count·(1 + flag·(g + 1))` makes the pair one tuple on both sides at `flag = 0`,
   which the arithmetization's soundness accounts for.

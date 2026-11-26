@@ -7,7 +7,7 @@ public import LeanVM.Cost.Encoding
 /-!
 # The extractor's entry
 
-`LeanVM.extractorComputedBy P` (`Statement/LeanVmExtractor.lean`), the extractor of the end statement, runs
+`LeanVM.extractorComputedBy P` (`Statement/CostMachine.lean`), the extractor of the end statement, runs
 the program's function `0` on one value, `encodeLeanVmKnowledgeExtractorInput prog input T proof =
 .ctor 0 [encodeValue prog, encodeValue input, encodeValue qs, encodeValue proof]` with
 `qs = permutationQueries T`, and decodes its output with `decodeExecution prog`, which parses an

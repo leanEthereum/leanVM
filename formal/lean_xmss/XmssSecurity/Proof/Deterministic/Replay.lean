@@ -1,8 +1,19 @@
 module
 
-public import XmssSecurity.Proof.RandomizedStatement
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 @[expose] public section
+
+/-!
+# Computations resolved by a cache
+
+`Resolves cache computation value` says the cache answers every query along the computation's run,
+which then returns `value`. A lazy random-oracle run only grows its cache (`cache_le_of_run`) and
+its final cache resolves the computation to its output (`resolves_of_run`); a larger cache still
+resolves it (`Resolves.mono`).
+-/
 
 open OracleComp OracleSpec
 

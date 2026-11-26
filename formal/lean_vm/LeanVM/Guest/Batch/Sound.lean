@@ -17,14 +17,14 @@ public import LeanVM.Guest.AcceptableChild
 lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
 claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
 claims hold (its proof's, `BytecodeClaim.Holds`, and its
-statement's, `DeferredBytecodeClaim.HoldsShaped`), or a challenge is bad (`BatchBad`):
+statement's, `DeferredBytecodeClaim.HoldsWithShape`), or a challenge is bad (`BatchBad`):
 
 * **the challenge `λ`**: the children's claims leave nonzero gaps (claimed less true values), and
   the lambdas' combination of them vanishes: `λ` is a root of the nonzero polynomial whose
   coefficients are the gaps, of degree below `2n` (`LeanVM.Guest.Batch.RomSpec` counts them);
 * **a sumcheck round**: a round's challenge is a root of its gap, a nonzero polynomial of degree
   at most two that the round's claim, message and earlier challenges fix (`BadRound`,
-  `badRound_roots`).
+  `round_bad`).
 
 Every bad value is fixed before the challenge is squeezed from the sponge, which absorbed what
 fixes it. `λ` and the rounds' challenges are Keccak-f[1600] outputs computed by the guest: that a
@@ -135,7 +135,7 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
   have g := fun g hg ↦ hz g (List.mem_flatMap.mpr ⟨c, hc', hg⟩)
   have e1 := sub_eq_zero.mp (g _ (List.mem_cons_self ..))
   have e2 := sub_eq_zero.mp (g _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)))
-  refine ⟨e1.symm, hc c hc', ?_, e2.symm⟩
+  refine ⟨e1.symm, ?_, e2.symm⟩
   rw [hc c hc', hpow]
 
 /-- **The batching is sound, challenge by challenge**: an accepted batching whose deferred claim
@@ -150,9 +150,8 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHin
   split_ifs at hb with hpow hfin
   injection hb with hd'
   subst hd'
-  obtain ⟨hlog, hpow, hval⟩ := hd
-  simp only [DeferredBytecodeClaim.HasBytecodeShape] at hlog hpow hval
-  rw [length_rsRun] at hlog hpow
+  obtain ⟨hpow, hval⟩ := hd
+  rw [length_rsRun] at hpow
   set n := h.sumcheckMessages.length
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]
   have hpB : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = n ∧ c.carriedClaim.bytecodePoint.length = n :=

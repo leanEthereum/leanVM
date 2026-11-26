@@ -1,9 +1,6 @@
 module
 
-public import FORS.SmallBudget.Closing
-public import FORS.LargeBudget.Covers
-public import FORS.CoverBound.MomentTable
-public import FORS.CoverBound.IntTables
+public import FORS.CoverBound.NearOption
 
 @[expose] public section
 

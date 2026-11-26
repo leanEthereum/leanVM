@@ -117,7 +117,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   xsG : List E
   r : E × List E × List E
   hxsG : ReadsAt rd (σ (.n (val% «verify_sub» "cursor@1"))) xsG
-  hG : RunsTo (gkrPhase (busDepth (Tables.layoutOf bytecode logMem rowsN)))
+  hG : RunsTo (Tables.gkrPhase (busDepth (Tables.layoutOf bytecode logMem rowsN)))
     ⟨[σ (.n (val% «verify_sub» "nxt[8]@19")), σ (.n (val% «verify_sub» "nxt[9]@19")), σ (.n (val% «verify_sub» "nxt[10]@19")), σ (.n (val% «verify_sub» "nxt[11]@19")), σ (.n (val% «verify_sub» "nxt[12]@19"))], []⟩ xsG r
     ⟨[σ (.n (val% «verify_sub» "fs0@3")), σ (.n (val% «verify_sub» "fs1@3")), σ (.n (val% «verify_sub» "fs2@3")), σ (.n (val% «verify_sub» "fs3@3")), σ (.n (val% «verify_sub» "fs4@3"))], []⟩
   hrL : r.2.1.length = busDepth (Tables.layoutOf bytecode logMem rowsN)

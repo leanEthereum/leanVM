@@ -23,7 +23,6 @@ whole blocks `pre`, the pointers at `mStart o s`), `m` honest claims (`MRec`, sl
 the pointers at `mStart o (s + m)`): the body's evaluated valuation (`Fwd.ev`, the gaps
 `mGap o` hinted) holds its atoms, and every load reads the record's thirty words, a claim's
 coverage slot or a claim's cells. Soundness's `monoOk` gives the chain's check, `mcOk` the rest.
-`monoLoop_completeAtB`: the loop over `M` frames is complete, placed, within `M` frames and the tail.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -316,7 +315,7 @@ theorem mRec_group {region entries mark : E} {L n : ℕ} {o : ℕ → ℕ} {cell
   have e : ((cells.drop (4 * s)).take (4 * k)).getD (4 * j + c) 0 =
       cells.getD (4 * (s + j) + c) 0 := by
     simp only [List.getD_eq_getElem?_getD, List.getElem?_take, List.getElem?_drop]
-    rw [ite_eq_left (by omega), show 4 * s + (4 * j + c) = 4 * (s + j) + c by ring]
+    rw [ite_pos' (by omega), show 4 * s + (4 * j + c) = 4 * (s + j) + c by ring]
   rw [e]
   exact h3 c hc
 
@@ -350,100 +349,6 @@ theorem mc136_ok : mcOk (coreProgram.getD idx% «child_claim_list_mono_loop0» d
       mcWin_9, mcWin_10, mcWin_11, mcWin_12, mcWin_13, mcWin_14, mcWin_15]
   simp only [mcOk, mc136_head, mc136_edge, Bool.true_and]
   exact mRecs_of_wins (w := 9) (W := 16) (by norm_num) fun i hi => hw i hi
-
-/-- **A frame loop of the gap walk, its frames**: at every frame `q < M`, the block's valuation
-holds its atoms and reads the chain buffer's records and the claims among the caller's words. -/
-theorem monoLoop_blocks {j : ℕ} {f : String} {m p0 st0 cw ew nb : ℕ}
-    (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hc : mcOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
-    (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
-    (h64 : 64 * m = 136 * nb) (hm0 : 0 < m) {κ : ℕ} {Lin : Main.Layout}
-    {chain entries region mark : E} {chP eP rg L M n0 s0 : ℕ} {pre0 : List UInt8} {o : ℕ → ℕ}
-    {cells : List E} (hch : chain = gen ^ chP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length) (hLκ : L ≤ 2 ^ κ)
-    (hinc : ∀ i < m * M, mStart o (s0 + i) ≤ o (s0 + i))
-    (hmem : ∀ rd, MemL rd Lin → (∀ q ≤ M, MonoRecAt rd (chain * gen ^ (15 * q)) (n0 + nb * q)
-        (pre0 ++ cellsBytes (cells.take (4 * m * q))) region entries (mStart o (s0 + m * q))) ∧
-      MRec rd region L entries mark (m * M) (fun i => o (s0 + i)) cells)
-    (hR1 : ∀ q < M, ∀ c < 30, RegionL Lin (chP + 15 * q + c))
-    (hR2 : ∀ i < m * M, RegionL Lin (rg + o (s0 + i)))
-    (hR3 : ∀ i < m * M, ∀ c < 4, RegionL Lin (eP + 4 * o (s0 + i) + c)) :
-    ∀ q < M, LoopBlockIn κ (coreProgram.getD j default) Lin q (gen ^ M) [chain, mark] := by
-  intro q hq rd hlow hLin
-  obtain ⟨hR, hrec⟩ := hmem rd hLin
-  have hmq : m * q + m ≤ m * M := by nlinarith
-  have h1 : 4 * m * q ≤ cells.length := le_trans (by nlinarith) hl
-  have h2 : 4 * m * q + 4 * m ≤ cells.length := le_trans (by nlinarith) hl
-  have hpre : (pre0 ++ cellsBytes (cells.take (4 * m * q))).length = rate * (n0 + nb * q) := by
-    rw [List.length_append, length_cellsBytes, List.length_take, Nat.min_eq_left h1, hpre0]
-    show 136 * n0 + 16 * (4 * m * q) = 136 * (n0 + nb * q)
-    have : 16 * (4 * m * q) = (64 * m) * q := by ring
-    rw [this, h64]; ring
-  obtain ⟨hS0, h13, h14⟩ := hR q (by omega)
-  obtain ⟨hS1, h28, h29⟩ := hR (q + 1) (by omega)
-  rw [show 4 * m * (q + 1) = 4 * m * q + 4 * m by ring, List.take_add, cellsBytes_append,
-    ← List.append_assoc, show nb * (q + 1) = nb * q + nb by ring, ← Nat.add_assoc] at hS1
-  have hr := mRec_group hrec (s := m * q) (k := m) hmq
-  rw [show 4 * (m * q) = 4 * m * q by ring] at hr
-  have e15 : chain * gen ^ (15 * (q + 1)) = chain * (gen ^ q) ^ 15 * gen ^ 15 := by
-    rw [gen_pow_pow, mul_assoc, ← pow_add]; ring_nf
-  rw [e15, loadHolds_mul_gen_pow] at h28 h29
-  rw [show s0 + m * (q + 1) = s0 + m * q + m by ring] at h28 h29
-  obtain ⟨σ, hp, hat, hload, -⟩ := mono_core hok hc hcw hew hnb hm0 (x := gen ^ q) (N := gen ^ M)
-    (mark := mark) (s := s0 + m * q) (o := o) (L := L) rfl hch hen hrg hpre
-    (by rw [gen_pow_pow]; exact hS0) (by rw [gen_pow_pow]; exact h13)
-    (by rw [gen_pow_pow]; exact h14)
-    (cells := (cells.drop (4 * m * q)).take (4 * m))
-    (by simp only [List.length_take, List.length_drop]; omega)
-    (fun i hi => by rw [Nat.add_assoc]; exact hinc (m * q + i) (by omega))
-    (by intro i hi; have := hr i hi; simp only [Nat.add_assoc] at this ⊢; exact this)
-    (boundMem_of_low hlow hLκ)
-    (fun c => by
-      have := hS1 c
-      rw [e15, loadHolds_mul_gen_pow, show 15 + (0 + c.val) = 15 + c.val by ring] at this
-      exact this) h28 h29
-  refine ⟨σ, hp, hat, fun q' hq' => ?_⟩
-  rcases hload q' hq' with ⟨c, hc30, h⟩ | ⟨i, hi, h⟩ | ⟨i, hi, c, hc4, h⟩
-  · exact ⟨_, h, hR1 q hq c hc30⟩
-  · rw [Nat.add_assoc s0] at h
-    exact ⟨_, h, hR2 (m * q + i) (by omega)⟩
-  · rw [Nat.add_assoc s0] at h
-    exact ⟨_, h, hR3 (m * q + i) (by omega) c hc4⟩
-
-/-- **A frame loop of the gap walk is complete, placed, within its frames**: `M` frames of `m`
-claims from the counter `1`, the chain buffer's records at `g^chP`, the claims' marks and cells
-among the caller's words; `M` frames of words and the tail. -/
-theorem monoLoop_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {j : ℕ} {f : String}
-    {m p0 st0 cw ew nb : ℕ} (hf : coreProgram.find? f = some (coreProgram.getD j default))
-    (hok : monoOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hc : mcOk (coreProgram.getD j default) f m p0 st0 cw ew = true)
-    (hcw : word cw 0 = gen ^ m) (hew : word ew 0 = gen ^ (4 * m))
-    (hnb : (monoSpec m st0 (loopAtoms (coreProgram.getD j default))).nb = nb)
-    (hun : (atomsIn (loopPre (coreProgram.getD j default))).all atomUnplaced = true)
-    (h64 : 64 * m = 136 * nb) (hm0 : 0 < m) {κ : ℕ} {Lin : Main.Layout}
-    {chain entries region mark : E} {chP eP rg L M n0 s0 : ℕ} {pre0 : List UInt8} {o : ℕ → ℕ}
-    {cells : List E} (hch : chain = gen ^ chP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre0 : pre0.length = rate * n0) (hl : 4 * m * M ≤ cells.length) (hLκ : L ≤ 2 ^ κ)
-    (hM : M < 2 ^ 34) (hM0 : 0 < M)
-    (hinc : ∀ i < m * M, mStart o (s0 + i) ≤ o (s0 + i))
-    (hmem : ∀ rd, MemL rd Lin → (∀ q ≤ M, MonoRecAt rd (chain * gen ^ (15 * q)) (n0 + nb * q)
-        (pre0 ++ cellsBytes (cells.take (4 * m * q))) region entries (mStart o (s0 + m * q))) ∧
-      MRec rd region L entries mark (m * M) (fun i => o (s0 + i)) cells)
-    (hR1 : ∀ q < M, ∀ c < 30, RegionL Lin (chP + 15 * q + c))
-    (hR2 : ∀ i < m * M, RegionL Lin (rg + o (s0 + i)))
-    (hR3 : ∀ i < m * M, ∀ c < 4, RegionL Lin (eP + 4 * o (s0 + i) + c)) :
-    CompleteAtDTB fs cert κ f Lin [1, gen ^ M, chain, mark] (Returns []) (fun _ => True)
-      (M * fs f + fs (Memory.tailKey f)) := by
-  have hshape : loopShapeF (coreProgram.getD j default) f = true := by
-    simp only [mcOk, mcHead, Bool.and_eq_true] at hc; exact hc.1.1.1.1.1.1
-  have hAS : (loopPre (coreProgram.getD j default)).all isAtomS = true := by
-    simp only [mcOk, mcHead, Bool.and_eq_true] at hc; exact hc.1.1.1.1.2
-  have h := loopA_completeAtB fs cert hf hshape hAS hun (Lin := Lin) (κ := κ) (N := gen ^ M)
-    (rest := [chain, mark]) (m := M) rfl hM
-    (monoLoop_blocks hok hc hcw hew hnb h64 hm0 hch hen hrg hpre0 hl hLκ hinc hmem hR1 hR2 hR3)
-  have := h 0 hM0
-  rwa [pow_zero, Nat.sub_zero] at this
 
 end
 end LeanVM.Guest.B1.Digest

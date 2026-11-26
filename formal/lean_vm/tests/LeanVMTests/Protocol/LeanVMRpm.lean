@@ -24,9 +24,7 @@ example {A : RandomPermutationAdversary} {Q : ℕ}
 /-- The numbers: `13708 · 2^30` permutation calls of the verifier, the transfer's `q² / 2^508`. -/
 example (q : ℕ) : rpmError q = (q ^ 2 : ENNReal) / 2 ^ 508 := rfl
 
-example : verifierPermCalls = 13708 * 2 ^ 30 := by
-  unfold verifierPermCalls
-  rw [Protocol.Verifier.leanVmQueryBound_eq]
+example : verifierPermCalls = 13708 * 2 ^ 30 := rfl
 
 example : KnowledgeSoundness transcriptExtractor := knowledgeSoundness_holds
 

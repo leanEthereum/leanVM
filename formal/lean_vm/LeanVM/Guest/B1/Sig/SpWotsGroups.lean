@@ -47,7 +47,7 @@ theorem lit_zero : lit 0 = 0 := by simp [lit, word_zero]
 
 /-- `g^128`, the target sum in the exponent. -/
 theorem spTarget_eq : spTarget = gen ^ 128 := by
-  rw [Value.gen_pow_eq_ofK, spTarget, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
+  rw [Value.gen_pow_eq_ofK, spTarget, word, K.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
 theorem spN_of_lt {p : Nat} (hp : p < 21) : spN p = 3 := by simp [spN, hp]

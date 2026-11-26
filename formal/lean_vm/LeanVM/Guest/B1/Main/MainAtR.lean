@@ -13,7 +13,7 @@ import LeanVM.Guest.LitRef
 /-!
 # `main`, placed, its callees' predicates of the memory
 
-`main_relAtInTBR`: `main_relAtInTB` with the callees `KidsDTBR`, their trees satisfying `Ts rd` on each memory `rd`.
+`main_relAtInTBR`: `main` at `fp` within its words (`mainB`), its callees within their bounds (`KidsDTBR`), their trees satisfying `Ts rd` on each memory `rd`.
 -/
 
 namespace LeanVM.Guest.B1.Main

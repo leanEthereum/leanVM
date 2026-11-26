@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.ValNames.«verify_tables»
 
 `vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2335`), packing and copy.
 `vt_evals_fs`: from the last round's sponge, the 153 words absorbed leave the sponge whose
-capacity permutation `j` reads; `vt_evals`: the public input's challenge `rm` is the squeeze after
+capacity permutation `j` reads; `vt_pi` (`Vt/Pi.lean`): the public input's challenge `rm` is the squeeze after
 them, the returned capacity the sponge after it.
 -/
 
@@ -46,7 +46,7 @@ theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 153
       σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)
   unfold vtEvalT at hs
-  rw [holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
+  rw [tb_holdsList_append_noRet (by simp [fsNextT, fsPackT]; rfl), holds_fsNextT] at hs
   obtain ⟨⟨⟨hl, hp⟩, -⟩, hr⟩ := hs
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr
   exact ⟨hl, hp, hr⟩

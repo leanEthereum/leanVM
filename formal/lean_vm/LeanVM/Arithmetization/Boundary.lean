@@ -27,7 +27,7 @@ matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex`, the sta
 index column), and §8.6 (`08-end-to-end-protocol.tex`: "three blocks per side belong to no
 table"). The committed
 columns are `MEM_LO, MEM_HI, MFCNT` and `BFCNT` (`layout.rs`); the bytecode entry
-rides eight *public* columns (`bytecode_columns`, `layout.rs`, `Bytecode`'s `entry`); the
+rides eight *public* columns (`layout.rs`, `Bytecode`'s `entry`); the
 sentinel counter `g^(N_prog - 1)` is derived from the public program's length and written into the
 state block as a constant (`layout.rs`, `final_pc`, `Const(g_pow(final_pc))`).
 

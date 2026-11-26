@@ -22,7 +22,7 @@ open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 @[expose] public section
 
 theorem bound255_eq : bound255 = ofK (addressOfIndex 255) := by
-  rw [bound255, word, Value.ofBits_zero, ← ofK_eq_ofLimbs]
+  rw [bound255, word, K.ofBits_zero, ← ofK_eq_ofLimbs]
   exact congrArg ofK (by decide +kernel)
 
 end

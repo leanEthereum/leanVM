@@ -2,7 +2,6 @@ module
 
 public import FORS.Reduction.CostProgram
 public import FORS.GraphView.HonestGame
-public import FORS.Reduction.PreparedSample
 import all PolyFun.PFunctor.Handler.Instrumentation
 
 @[expose] public section
@@ -13,7 +12,7 @@ and reads the signer through honest reads (free): on a fixed answer function it 
 the game's outcome and the count `keygenHashCost + adversary's own hash calls + verification's hash
 calls` of `gameAfterSeedAdv` (`costGameDetH_correct`). -/
 
-open OracleComp OracleSpec ENNReal Common.QueryCount
+open OracleComp OracleSpec ENNReal
 
 namespace FORS.Security.AdvCount
 
@@ -22,7 +21,6 @@ variable [Params]
 open Concrete Completeness Prefix HiddenGraph SeedCoupling GraphView Internalize Det Short
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 
 /-! ### Two writers in either order -/
 
@@ -164,13 +162,26 @@ calls + the verification's hash calls` as part of its output; the signer's calls
 noncomputable def gameAfterSeedAdv (adversary : Adversary) (seed : MasterSeed) :
     OracleComp OracleWorld (Bool × Nat) :=
   (liftM (FORS.Seeded.keygenFromSeed seed) : OracleComp OracleWorld _) >>= fun keys =>
-    leftProgD keys.2 (counted AdvHash (adversary.main keys.1)) >>= verifyAdv keys.1
+    leftProgD keys.2 (QueryCap.counted AdvHash (adversary.main keys.1)) >>= verifyAdv keys.1
 
 /-- The random-oracle experiment counting key generation, the adversary's own hash calls and the
 verification's, but not the signer's: whether the adversary won, and that count. -/
 noncomputable def experimentAdv (adversary : Adversary) : ProbComp (Bool × Nat) :=
   (simulateQ romImpl ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
     gameAfterSeedAdv adversary)).run' ∅
+
+omit [Params] in
+theorem fst_counted {ι : Type} {spec : OracleSpec ι} (selected : ι → Prop) [DecidablePred selected]
+    {α : Type} (oa : OracleComp spec α) : Prod.fst <$> QueryCap.counted selected oa = oa := by
+  induction oa using OracleComp.inductionOn with
+  | pure value => rfl
+  | query_bind input next ih =>
+      rw [QueryCap.counted_query_bind]
+      simp only [map_bind, map_pure]
+      refine bind_congr fun answer => ?_
+      conv_rhs => rw [← ih answer]
+      rw [map_eq_bind_pure_comp]
+      rfl
 
 theorem leftProgD_map (sk : FORS.Seeded.SecretKey) {β γ : Type} (g : β → γ) (M : OracleComp AdvSpec β) :
     leftProgD sk (g <$> M) = (fun result => (g result.1, result.2)) <$> leftProgD sk M := by
@@ -179,7 +190,7 @@ theorem leftProgD_map (sk : FORS.Seeded.SecretKey) {β γ : Type} (g : β → γ
 theorem fst_verifyAdv (pk : PublicKey) (output : (Forgery × Nat) × QueryLog SigningSpec) :
     Prod.fst <$> verifyAdv pk output = verifyPart pk (output.1.1, output.2) := by
   rw [verifyAdv, Functor.map_map, verifyPart, countHashQueries]
-  conv_rhs => rw [← counted_forget (fun input : OracleWorld.Domain => input matches .inr _)
+  conv_rhs => rw [← fst_counted (fun input : OracleWorld.Domain => input matches .inr _)
     (liftM (Concrete.verify pk output.1.1.message output.1.1.signature : OracleComp HashSpec Bool) :
       OracleComp OracleWorld Bool)]
   rw [bind_map_left, map_eq_bind_pure_comp]
@@ -190,7 +201,7 @@ theorem fst_gameAfterSeedAdv (adversary : Adversary) (seed : MasterSeed) :
   rw [gameAfterSeedAdv, gameAfterSeedDet_eq]
   simp only [map_bind]
   refine bind_congr fun keys => ?_
-  conv_rhs => rw [← counted_forget AdvHash (adversary.main keys.1), leftProgD_map, bind_map_left]
+  conv_rhs => rw [← fst_counted AdvHash (adversary.main keys.1), leftProgD_map, bind_map_left]
   exact bind_congr fun output => fst_verifyAdv keys.1 output
 
 theorem fst_experimentAdv (adversary : Adversary) :
@@ -205,7 +216,7 @@ theorem fst_experimentAdv (adversary : Adversary) :
 theorem fst_experiment (adversary : Adversary) :
     Prod.fst <$> experiment adversary = (simulateQ romImpl (gameCore adversary)).run' ∅ := by
   rw [experiment, ← simulateQ_countHashQueries]
-  conv_rhs => rw [← counted_forget (fun input : OracleWorld.Domain => input matches .inr _) (gameCore adversary)]
+  conv_rhs => rw [← fst_counted (fun input : OracleWorld.Domain => input matches .inr _) (gameCore adversary)]
   rw [simulateQ_map]
   simp only [StateT.run'_eq, StateT.run_map, Functor.map_map]
   rfl
@@ -273,10 +284,10 @@ theorem fixedHashWorld_leftProgD_counted (f : QueryImpl HashSpec Id) (parameter 
     (hdata : DataCorrect f parameter seed data) (htable : CoordinatesCorrect f parameter seed table)
     (prf : HashOutput) (rnd : RTable) (hrnd : ∀ message, f (randomizerHashInput prf parameter message) = rnd message)
     (M : OracleComp AdvSpec Forgery) :
-    simulateQ (Prefix.fixedHashWorld f) (leftProgD ⟨seed, prf, parameter, data.root⟩ (counted AdvHash M)) =
+    simulateQ (Prefix.fixedHashWorld f) (leftProgD ⟨seed, prf, parameter, data.root⟩ (QueryCap.counted AdvHash M)) =
       (fun r => ((r.1.1, r.2), r.1.2)) <$>
         (simulateQ ((fixedCostSource f table).writerTMapBase (costInteractionDet parameter data rnd)) M).run.run := by
-  rw [leftProgD, QueryImpl.simulateQ_writerTMapBase_run, simulate_withCost]
+  rw [leftProgD, QueryImpl.simulateQ_writerTMapBase_run, QueryCap.simulate_withCost]
   exact simulateQ_writer_swap _ _
     (interaction_query f parameter seed data table hdata htable prf rnd hrnd) M
 
@@ -319,7 +330,7 @@ omit [Params] in
 theorem fst_leftRun {α : Type} (oa : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
     (fun result => result.1.1) <$> leftRun oa cache = (simulateQ romImpl oa).run' cache := by
   rw [leftRun, countShort]
-  conv_rhs => rw [← counted_forget ShortQuery oa]
+  conv_rhs => rw [← fst_counted ShortQuery oa]
   rw [simulateQ_map]
   simp only [StateT.run'_eq, StateT.run_map, Functor.map_map]
 
@@ -337,6 +348,34 @@ theorem forgeAdvantage_internalize (adversary : Adversary) :
     ← prEvent_map (experiment adversary) Prod.fst (fun b => b = true), fst_experiment]
 
 /-! ### The count: at most `keygenHashCost + q + V` on every path -/
+
+omit [Params] in
+theorem counted_le_of_isQueryBoundP {ι : Type} {spec : OracleSpec ι} (selected : ι → Prop)
+    [DecidablePred selected] {α : Type} (oa : OracleComp spec α) (n : Nat) (h : oa.IsQueryBoundP selected n) :
+    ∀ result ∈ support (QueryCap.counted selected oa), result.2 ≤ n := by
+  induction oa using OracleComp.inductionOn generalizing n with
+  | pure value =>
+      intro result hresult
+      rw [QueryCap.counted_pure, support_pure, Set.mem_singleton_iff] at hresult
+      rw [hresult]
+      exact Nat.zero_le _
+  | query_bind input next ih =>
+      rw [isQueryBoundP_query_bind_iff] at h
+      intro result hresult
+      rw [QueryCap.counted_query_bind, mem_support_bind_iff] at hresult
+      obtain ⟨answer, _, hresult⟩ := hresult
+      rw [mem_support_bind_iff] at hresult
+      obtain ⟨tail, htail, hresult⟩ := hresult
+      rw [support_pure, Set.mem_singleton_iff] at hresult
+      have := ih answer _ (h.2 answer) tail htail
+      rw [hresult]
+      by_cases hsel : selected input
+      · simp only [hsel, ↓reduceIte] at this ⊢
+        rcases h.1 with hnot | hpos
+        · exact absurd hsel hnot
+        · omega
+      · simp only [hsel, ↓reduceIte] at this ⊢
+        omega
 
 omit [Params] in
 theorem fst_mem_support_writer_run {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {ω : Type}
@@ -389,14 +428,14 @@ theorem isQueryBoundP_internalize (adversary : Adversary) (q : Nat)
 omit [Params] in
 theorem countHashQueries_liftM {α : Type} (computation : OracleComp HashSpec α) :
     countHashQueries (liftM computation : OracleComp OracleWorld α) =
-      (liftM (counted (fun _ => True) computation) : OracleComp OracleWorld (α × Nat)) := by
+      (liftM (QueryCap.counted (fun _ => True) computation) : OracleComp OracleWorld (α × Nat)) := by
   induction computation using OracleComp.inductionOn with
-  | pure value => simp only [liftM_pure, countHashQueries, counted_pure]
+  | pure value => simp only [liftM_pure, countHashQueries, QueryCap.counted_pure]
   | query_bind input next ih =>
       simp only [countHashQueries] at ih
       simp only [liftM_bind, countHashQueries]
-      change counted _ (liftM (OracleWorld.query (.inr input)) >>= fun output => liftM (next output)) = _
-      simp only [counted_query_bind, ih, liftM_bind, liftM_pure, ite_true]
+      change QueryCap.counted _ (liftM (OracleWorld.query (.inr input)) >>= fun output => liftM (next output)) = _
+      simp only [QueryCap.counted_query_bind, ih, liftM_bind, liftM_pure, ite_true]
       rfl
 
 /-- **The budget.** If the adversary makes at most `q` hash calls of its own on every path and the
@@ -427,8 +466,20 @@ theorem experimentAdv_count_le (adversary : Adversary) (q V : Nat)
 /-! ### The internalized game as an average of fixed-function games -/
 
 theorem OnlyAdv.countedAdv {β : Type} (M : OracleComp AdvSpec β) (h : OnlyAdv M) :
-    OnlyAdv (counted AdvHash M) :=
-  isQueryBoundP_counted _ h
+    OnlyAdv (QueryCap.counted AdvHash M) := by
+  induction M using OracleComp.inductionOn with
+  | pure value => rw [QueryCap.counted_pure]; exact isQueryBoundP_pure _ _ _
+  | query_bind input next ih =>
+      rw [OnlyAdv, isQueryBoundP_query_bind_iff] at h
+      rw [QueryCap.counted_query_bind, OnlyAdv, isQueryBoundP_query_bind_iff]
+      refine ⟨h.1, fun answer => ?_⟩
+      have hnext : OnlyAdv (next answer) := by
+        have := h.2 answer
+        split at this <;> simpa [OnlyAdv] using this
+      have hbind : OnlyAdv (QueryCap.counted AdvHash (next answer) >>= fun result =>
+          (pure (result.1, (if AdvHash input then 1 else 0) + result.2) : OracleComp AdvSpec (β × Nat))) :=
+        OnlyAdv.bind (ih answer hnext) (fun _ => by simp [OnlyAdv])
+      split <;> simpa [OnlyAdv] using hbind
 
 theorem OnlyW.gameAfterSeedAdv_internalize (adversary : Adversary) (seed : MasterSeed) :
     OnlyW (gameAfterSeedAdv (internalize adversary) seed) := by

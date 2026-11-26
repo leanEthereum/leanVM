@@ -22,8 +22,6 @@ first argument's low limb passing the proof of work.
 honest valuation (`gcVals`, its range checks on the memory below `2^11`, `rc_complete_low`), its
 frame alone, every node exact (`gcPre_atom`). Its loads are the table reads `tabs·g^e`, `e < 2^11`,
 which lie in the caller's words (`forced_load_region`).
-
-`bus_grind_check_completeB`: within its frame.
 -/
 
 namespace LeanVM.Guest.B1
@@ -160,22 +158,6 @@ theorem bus_grind_relAtInE {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (h
       gv_iter (by omega) (show i + 1 ≤ gcW bits from hi') (by omega)
     obtain ⟨j, hj, hr⟩ := htab _ (Nat.mod_lt _ (by positivity))
     exact ⟨j, by rw [e6]; exact hj, Or.inr (Or.inl hr)⟩
-
-/-- **`bus_grind_check__L{d}` at `fp`** (`bus_grind_relAtInE` without its pops and exactness). -/
-theorem bus_grind_relAtIn {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ)
-    {args rets : List E} {Lin : Layout}
-    (hpre : ∀ rd, LowDef κ rd → MemL rd Lin → busGrindPre d rd args rets) (fp : ℕ) {rd : Reader}
-    (hlow : LowDef κ rd) (hLin : MemL rd Lin) :
-    RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL []) fp (fs (busGrindName d))
-      (busGrindName d) args rets :=
-  RelAtInT.relAtIn (bus_grind_relAtInE hd hκ hpre fp hlow hLin)
-
-/-- **`bus_grind_check__L{d}`, placed, within its frame.** -/
-theorem bus_grind_check_completeB {d : ℕ} (hd : d ∈ busGrindDeployed) {κ : ℕ} (hκ : 11 ≤ κ) :
-    CompleteRelB fs cert κ (busGrindName d) (busGrindPre d) (fs (busGrindName d)) :=
-  fun _ rets _ hpre fp => ⟨fs (busGrindName d), [], rets, [], ⟨rfl, rfl⟩, by simp [Within],
-    disj_nil, le_rfl, fun _ hl hL => bus_grind_relAtIn hd hκ hpre fp hl (by simpa using hL)⟩
-
 
 end
 end LeanVM.Guest.B1

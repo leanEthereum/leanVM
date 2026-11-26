@@ -21,9 +21,7 @@ On a valuation satisfying `Fwd.Good` for every statement of a body's evaluation 
   evaluation) reads the memory's word;
 * `good_mul`: a product of older values;
 * `keccak_good`: a `KECCAK` holds, its outputs the permutation's;
-* `fsNextT_good`, `challengeT_good`: `fs_next` reading a word holds, its cells the word's;
-  `challenge_from_state` is the template's `ChallengeOk`;
-* `holdsList_auto`: a block of pure atoms and hints holds;
+* `fsNextT_good`: `fs_next` reading a word holds, its cells the word's;
 * `good_slice`, `good_ite`: a slice of a body, or an `ite`'s branches, are in its evaluation list.
 -/
 
@@ -44,10 +42,10 @@ def notIteB : Stmt → Bool
 
 /-- **A slice of a body** is in its evaluation list, when it has no `ite`. -/
 theorem good_slice {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte pre, G s) (n : ℕ)
-    (blk : List Stmt) (heq : stmtsEqb blk ((pre.drop n).take blk.length) = true)
+    (blk : List Stmt) (heq : tbStmtsEqb blk ((pre.drop n).take blk.length) = true)
     (hni : blk.all notIteB = true) : ∀ s ∈ blk, G s := by
   intro s hs
-  have e := stmtsEqb_sound heq
+  have e := tbStmtsEqb_sound heq
   have hp : s ∈ pre := by
     rw [e] at hs
     exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
@@ -58,9 +56,9 @@ theorem good_slice {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte
 
 /-- **An `ite`'s branches** are in the evaluation list. -/
 theorem good_ite {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte pre, G s) (n : ℕ)
-    (c : V) (z n' : List Stmt) (heq : stmtsEqb [.ite c z n'] ((pre.drop n).take 1) = true) :
+    (c : V) (z n' : List Stmt) (heq : tbStmtsEqb [.ite c z n'] ((pre.drop n).take 1) = true) :
     ∀ t ∈ z ++ n', G t := by
-  have e := stmtsEqb_sound heq
+  have e := tbStmtsEqb_sound heq
   have hp : Stmt.ite c z n' ∈ pre := by
     have : Stmt.ite c z n' ∈ (pre.drop n).take 1 := by rw [← e]; simp
     exact List.mem_of_mem_drop (List.mem_of_mem_take this)
@@ -119,14 +117,6 @@ theorem keccak_good {ins outs : List V} (hg : Good rd S w σ (.keccak ins outs f
     exact he c (by omega)
   exact ⟨keccakA_of hi ho hout, hout⟩
 
-/-! ## Blocks of pure atoms -/
-
-/-- A pure atom or a hint. -/
-def autoBG : Stmt → Bool
-  | .atom (.hint _) => true
-  | .atom a => pureB a
-  | _ => false
-
 /-! ## The Fiat-Shamir templates -/
 
 /-- **`fs_next` on its equations**: the word read, its two cells, and the template holding. -/
@@ -145,11 +135,6 @@ theorem fsNextT_good {C : CallRel} {kret : List E → Prop} {cur off b : ℕ}
   refine ⟨e0, ?_, (holds_fsNextT _ _ _ _ _).mpr ⟨⟨hl0, hok⟩, trivial⟩⟩
   rw [← e0]
   exact fsPackT_cells hok
-
-/-- **`challenge_from_state` on its equations.** -/
-theorem challengeT_good {s0 b : ℕ} (hg : ∀ s ∈ challengeT (.n s0) b, GoodS rd S w σ s) :
-    ChallengeOk σ (.n s0) b :=
-  hg (.atom (.copy (.n b) (.n s0))) (by simp [challengeT])
 
 end
 end LeanVM.Guest.B1.Tables

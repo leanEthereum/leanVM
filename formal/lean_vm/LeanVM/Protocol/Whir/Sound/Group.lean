@@ -16,9 +16,11 @@ The calculus bounds a move-free fragment jointly (`Spec.ofNoMove`). This module 
 
 * `NoMoves`: a program whose every node is a sample, an opening, a return or a rejection, closed
   under `bind`; `NoMoves.not_isMove` discharges the hypothesis of `Spec.ofNoMove`.
-* `retExp_sampleQueriesAux_restrict`: the positions `sample_queries` returns are below
-  `2^depth` (chunks are reduced modulo `2^depth`), so an expectation over them only sees such
-  position lists.
+* `retExp_sampleQueriesAux_restrict_len`: the positions `sample_queries` returns are below
+  `2^depth` (chunks are reduced modulo `2^depth`) and as many as requested, so an expectation
+  over them only sees such position lists.
+* `queryFrag depth t i`: the query group `sample_queries`, `λ`, opening of commitment `i`, as one
+  fragment returning `(positions, λ, rows)`.
 -/
 
 namespace LeanVM.Protocol.Whir.Sound
@@ -138,6 +140,13 @@ theorem retExp_sampleQueriesAux_restrict_len (depth : ℕ) (h1 : 1 ≤ depth) (h
         split_ifs
         simp_all
       · simp [hr]
+
+/-! ## The query group -/
+
+/-- The query group: positions, `λ`, the opening of commitment `i`. -/
+def queryFrag (depth t i : ℕ) : VerifierProgram (List ℕ × E × List (List K)) :=
+  sampleQueries depth t >>= fun qs ↦ sampleChallenge >>= fun lam ↦ queryOpenings i qs >>= fun words ↦
+    VerifierProgram.ret (qs, lam, words)
 
 end
 end LeanVM.Protocol.Whir.Sound

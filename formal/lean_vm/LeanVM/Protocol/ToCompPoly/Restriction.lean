@@ -86,6 +86,7 @@ theorem Partial.update_or (σ τ : Partial R) (i : ℕ) (c : R) :
     simp [Partial.or]
   · simp [Partial.or, Function.update_of_ne hj]
 
+
 variable [CommRing R]
 
 /-- The point of a partial point at a completion `b`: the fixed coordinates, the others the bits

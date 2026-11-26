@@ -1,9 +1,27 @@
 module
 
-public import XmssSecurity.Proof.CappedEncodingRejection
-public import XmssSecurity.Proof.EvalDistEq
+public import XmssSecurity.Proof.ValidDigests
+public import XmssSecurity.Proof.AdaptiveLeafIndexCollision
+public import XmssSecurity.Proof.FreshHashQuery
+public import XmssSecurity.Proof.RandomOracle
 
 @[expose] public section
+
+/-!
+# The encoding monitor for the capped signer
+
+The capped signer installs only digests that decode (`TargetSum.ValidDigest`), so this monitor
+(`CappedEncodingMonitor.runObserved`) is the encoding monitor of `EncodingMonitor` restricted to
+valid digests: it equals that monitor on `validActions` (`runObserved_eq_standard_validActions`) and
+inherits its monotonicity in sublists (`runObserved_empty_eq_true_mono_sublist`). Its probability
+bound is a potential argument: `State.pendingRisk` charges each pending digest one over the number
+of valid digests. Under the bound `fuel · (Fintype.card Digest)⁻¹ + State.pendingRisk`, a uniform
+query (`applyUniformQueryMonitor`) costs one unit of fuel and a uniform signing attempt
+(`applyUniformSignAttemptMonitor`) none, its hit paid by the risk it removes
+(`applyUniformQueryMonitor_true_probability_le`,
+`applyUniformSignAttemptMonitor_true_probability_le`); the programmed and hash-output forms reduce
+to these.
+-/
 
 open OracleComp ENNReal
 
@@ -51,7 +69,6 @@ theorem State.pendingRisk_addPending_le
 private theorem sum_uniformDigest_eq_one :
     ∑ digest : Digest, Pr{let x ← $ᵗ Digest}[x = digest] = 1 := by
   rw [← OracleComp.tsum_prEvent_eq_one ($ᵗ Digest), tsum_fintype]
-
 
 theorem uniformDigest_if_eq_probability_le
     (target : Digest) (resume : Digest → ProbComp Bool) (ε : ℝ≥0∞)
@@ -247,8 +264,8 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
       let remaining := State.pendingRisk (state.install leafIndex 0)
       let removed := ((state.pending leafIndex).card : ℝ≥0∞) *
         (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
-      have hrisk : remaining + removed = State.pendingRisk state := by
-        exact State.pendingRisk_install_add state leafIndex 0
+      have hrisk : remaining + removed = State.pendingRisk state :=
+        State.pendingRisk_install_add state leafIndex 0
       unfold applyUniformSignAttemptMonitor
       rw [OracleComp.prEvent_bind_eq_tsum, tsum_fintype]
       calc
@@ -511,7 +528,6 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := rfl
 
-
 theorem applyProgrammedSignAttemptMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
@@ -551,7 +567,6 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := rfl
-
 
 noncomputable def State.applyObserved
     (state : EncodingMonitor.State) : EncodingMonitor.ObservedAction →
@@ -717,7 +732,7 @@ theorem State.valid_empty : State.Valid EncodingMonitor.State.empty := by
   constructor <;> simp [EncodingMonitor.State.empty]
 
 theorem State.Valid.addPending
-    {state : EncodingMonitor.State} (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
+    (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
     (hvalid : TargetSum.ValidDigest digest) :
     State.Valid (state.addPending leafIndex digest) := by
   constructor
@@ -731,7 +746,7 @@ theorem State.Valid.addPending
       simpa [EncodingMonitor.State.addPending, heq] using hmem
 
 theorem State.Valid.install
-    {state : EncodingMonitor.State} (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
+    (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
     (hvalid : TargetSum.ValidDigest digest) :
     State.Valid (state.install leafIndex digest) := by
   constructor
@@ -785,7 +800,7 @@ theorem State.applyObserved_eq_unchanged_of_invalid
       simp [State.applyObserved, hinvalid]
 
 theorem State.Valid.applyObserved
-    {state : EncodingMonitor.State} (hstate : State.Valid state) (action : EncodingMonitor.ObservedAction)
+    (hstate : State.Valid state) (action : EncodingMonitor.ObservedAction)
     (hvalid : ActionValid action)
     (nextState : EncodingMonitor.State) (hit : Bool)
     (happly : State.applyObserved state action = some (nextState, hit)) :

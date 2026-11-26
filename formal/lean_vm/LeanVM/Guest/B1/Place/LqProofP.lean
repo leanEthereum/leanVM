@@ -14,16 +14,15 @@ public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
 public import LeanVM.Guest.B1.Place.LqBound
 public import LeanVM.Guest.B1.Opening.CapPlacedE
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_queries`, placed with its pops
 
-`LqProof`'s proof with `kidsFromInP_of_kidsD` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtDP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
+`LqProof`'s proof with `kidsFromInP_of_kidsEP` and `relAtInP_of_walk`: `verify_merkle_cap` pops nothing (`mc_node_pops`, at its body `mcBody`: `mc_body_of_kind`), `opening_queries` its queries' entries (`opening_queries_completeAtEP`), and the body the cap's and the flags' heap words (`lq_splice`, `words_heap_of_reads`).
 
-* `LqAtDP`: `LqAtD` popping `lqCapE` then `oqPops` of its `q` queries;
-* `LqAtEP`: `LqAtDP` by a tree of exactly `lqN` words (`toDP`, `toE`);
-* `lq_placedEP`, `level_queries_completeAtEP`, `level_queries_completeAtP`: every entry of `lqTable`.
+* `LqAtEP`: `level_queries` at an entry of `lqTable`, placed, popping `lqCapE` then `oqPops` of its `q` queries, by a
+  tree of exactly `lqN` words (`toE`);
+* `lq_placedEP`, `level_queries_completeAtEP`: every entry of `lqTable`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -36,27 +35,8 @@ open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
 
-/-- **`level_queries` at an entry of `lqTable`, placed, with its pops**: `LqAtD`, its tree popping the honest cap
-and flags (`lqCapE`), then its `q` queries' rows and walks' children (`oqPops`). -/
-def LqAtDP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
-    (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
-  let s := lqOqS base folds leaf d cd mu nhs hbits fin
-  ∀ (Lin : Layout) (lam lamInv : E) (ecoefs ehs epos eqp : ℕ) (rounds : List FoldRound)
-    (hsv : List E) (eb qs : ℕ → ℕ) (rows : ℕ → List K) (sibs : ℕ → List Digest)
-    (capW flW : List E) (r0 r1 : E),
-    rounds.length = s.folds → (s.final = 1 → hsv.length = s.nHs) →
-    OqStatic s cd rounds hsv qs rows sibs q →
-    LqCaps s cd q capW flW r0 r1 qs rows sibs →
-    LqReg (RegionL Lin) s cd q ecoefs ehs epos eqp eb →
-    (∀ rd, LowDef κ rd → MemL rd Lin → LqMem rd s cd q ecoefs ehs epos eqp rounds hsv eb qs) →
-    CompleteAtDP fs cert κ name Lin
-      [lam, lamInv, ofK (addressOfIndex ecoefs), ofK (addressOfIndex ehs),
-        ofK (addressOfIndex epos), ofK (addressOfIndex eqp)]
-      (Returns [r0, r1, lqSum s (Whir.lqOdd q base) (lqIters q base) lamInv rounds qs rows,
-        lam ^ q])
-      (fun _ => lqCapE capW flW ++ oqPops s (oqW qs rows sibs) q)
-
-/-- **`LqAtDP` by a tree of exactly `lqN` words.** -/
+/-- **`level_queries` at an entry of `lqTable`, placed, popping `lqCapE` then `oqPops` of its `q` queries, by a tree
+of exactly `lqN` words.** -/
 def LqAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name : String)
     (q base folds leaf d cd mu nhs hbits fin : ℕ) : Prop :=
   let s := lqOqS base folds leaf d cd mu nhs hbits fin
@@ -78,12 +58,6 @@ def LqAtEP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (name 
 section
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name : String}
   {q base folds leaf d cd mu nhs hbits fin : ℕ}
-
-theorem LqAtEP.toDP (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
-    LqAtDP fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
-  fun Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg hmem ↦
-    (h Lin lam lamInv ecoefs ehs epos eqp rounds hsv eb qs rows sibs capW flW r0 r1 hrl hhs hst hcaps hreg
-      hmem).toDP
 
 theorem LqAtEP.toE (h : LqAtEP fs cert κ name q base folds leaf d cd mu nhs hbits fin) :
     LqAtE fs cert κ name q base folds leaf d cd mu nhs hbits fin :=
@@ -118,12 +92,12 @@ theorem lq_splice {rd : Reader} {σ : Val} {q base folds leaf d cd mu nhs hbits 
     (hb : fn.body = lqBody q base folds leaf d cd mu nhs hbits fin) {es : List Ev} {vs : List V}
     (hw : walk σ fn.body = .ret es vs) (kc ko : List Pop) :
     splice rd σ es [kc, ko] = capPops rd σ cd ++ kc ++ ko := by
-  have h : SplicePops rd σ (((((((osHeap (4 * 2 ^ cd) 6 ⧺
+  have h : SplicePops rd σ (((((((osHeap (4 * 2 ^ cd) 6 ++
       [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))]) ++
-      osHeap (2 ^ cd) 8) ⧺ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ⧺
+      osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ++
       [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]]) ++
       [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
-        osCst 16 (gw (lqIters q base)), osCst 17 (gw (Whir.lqOdd q base))]) ⧺
+        osCst 16 (gw (lqIters q base)), osCst 17 (gw (Whir.lqOdd q base))]) ++
       [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
         [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]]) ++
       ([osCp 19 10, osCp 20 11, osCp 21 18] ++ (osPowSteps 0 (osPowDigits q) 0 22).1 ++
@@ -198,9 +172,8 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
   have hO : ordG = 2 ^ 64 - 1 := rfl
   have hU : u128Bound = 2 ^ 128 := rfl
   have hCAPm : ofK (addressOfIndex ecap) = CAP * gen ^ (2 ^ (cd + 1)) := by
-    rw [hCAP, ofK_addressOfIndex_mul_gen_pow]
-  have hFLm : ofK (addressOfIndex eflags) = FL * gen ^ (2 ^ (cd - 1)) := by
-    rw [hFL, ofK_addressOfIndex_mul_gen_pow]
+    rw [hCAP, ofK_addr_mul_gen_pow]
+  have hFLm : ofK (addressOfIndex eflags) = FL * gen ^ (2 ^ (cd - 1)) := by rw [hFL, ofK_addr_mul_gen_pow]
   have hCAPo' : CAP * gw (2 ^ (cd + 1)) = ofK (addressOfIndex ecap) := by
     rw [hCAPm, Whir.gw_eq (by rw [hU]; omega)]
   have hFLo' : FL * gw (2 ^ (cd - 1)) = ofK (addressOfIndex eflags) := by
@@ -216,9 +189,9 @@ theorem lq_placedEP (fs : String → ℕ) (cert : String → V → ℕ) {κ : �
     · intro p hp t ht
       simp only [merkleCapSpec, List.mem_cons, List.not_mem_nil, or_false] at hp
       rcases hp with rfl | rfl
-      · refine ⟨capE + t, limb0_ofK_addressOfIndex_mul _ _, (capE, capW), List.mem_cons_self, by omega, ?_⟩
+      · refine ⟨capE + t, Main.addr_ofK _ _, (capE, capW), List.mem_cons_self, by omega, ?_⟩
         simp only at ht ⊢; rw [hcapL]; rw [pow_add] at ht; omega
-      · refine ⟨flE + t, limb0_ofK_addressOfIndex_mul _ _, (flE, flW), by simp [hcapsL], by omega, ?_⟩
+      · refine ⟨flE + t, Main.addr_ofK _ _, (flE, flW), by simp [hcapsL], by omega, ?_⟩
         simp only at ht ⊢; rw [hflL]; omega
     · intro rd _ hm
       have h1 : ReadsAt rd CAP capW := hm (capE, capW) List.mem_cons_self
@@ -475,13 +448,6 @@ theorem level_queries_completeAtEP (fs : String → ℕ) (cert : String → V �
   intro e he
   obtain ⟨hoq, hQ, hN, hodd, hcd1, hcd8, hK, hpw⟩ := lqTable_facts e he
   exact lq_placedEP fs cert (lqTable_ok e he) (oq_mem_of_entry hoq) hQ hN hodd hcd1 hcd8 hK hpw
-
-/-- **`level_queries` is complete placed with its pops at every specialization.** -/
-theorem level_queries_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    ∀ e ∈ lqTable,
-      LqAtDP fs cert κ e.1 e.2.1 e.2.2.1 e.2.2.2.1 e.2.2.2.2.1 e.2.2.2.2.2.1 e.2.2.2.2.2.2.1
-        e.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.1 e.2.2.2.2.2.2.2.2.2.2 :=
-  fun e he ↦ (level_queries_completeAtEP fs cert κ e he).toDP
 
 end
 end LeanVM.Guest.B1

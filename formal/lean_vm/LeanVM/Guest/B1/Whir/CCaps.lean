@@ -207,6 +207,12 @@ theorem capFl_cases (cd k : ℕ) :
   · left; exact ⟨by simp only [h, ↓reduceIte], h⟩
   · right; exact ⟨by simp only [h, ↓reduceIte], h⟩
 
+theorem isInK_zero : IsInK (0 : E) := by simpa using ofK_isInK 0
+
+theorem isInK_one : IsInK (1 : E) := by
+  have := gen_pow_isInK 0
+  rwa [pow_zero] at this
+
 /-- The openings of a query step, each at a position below `2^depth` climbing to `root`. -/
 def BatchOpens (depth : ℕ) (root : Digest) (batch : List (ℕ × Opening)) : Prop :=
   ∀ a ∈ batch, a.1 < 2 ^ depth ∧ a.2.path.length = depth ∧

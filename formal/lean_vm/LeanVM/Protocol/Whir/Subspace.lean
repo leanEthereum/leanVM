@@ -26,19 +26,17 @@ lemma is its Lemma `lem:subspace`, parts (i) and (ii) proved here; its first sen
 * `basisVec c` is `e_c = x^c`, the word `K.ofBits (2^c)`; `e_0 = 1`.
 * `subspace i` is `U_i = ⟨e_0, …, e_{i-1}⟩_{F₂}`, the words `K.ofBits v` for `v < 2^i`
   (`ofBits_eq_sum`: the word with bits `v` is `Σ_c v_c e_c`). Below `2^64` the words are distinct
-  (`ofBits_injOn`), so `|U_i| = 2^i` for `i ≤ 64`.
-* `vanishing i` is `W_i(X) = ∏_{u ∈ U_i} (X + u)`, written as the product over `v < 2^i`
-  (`vanishing_eq_prod_subspace` for `i ≤ 64`); `vanishingAt i a` is its computable evaluation.
+  (`K.ofBits_injOn`), so `|U_i| = 2^i` for `i ≤ 64`.
+* `vanishing i` is `W_i(X) = ∏_{u ∈ U_i} (X + u)`, written as the product over `v < 2^i`;
+  `vanishingAt i a` is its computable evaluation.
   Monic of degree `2^i` (`vanishing_monic`, `natDegree_vanishing`), with roots exactly `U_i`
   (`vanishingAt_eq_zero_iff`).
 * Lemma `lem:subspace`: (i) `W_{i+1} = W_i·(W_i + W_i(e_i))` (`vanishing_succ`) with
-  `W_i(e_i) ≠ 0` for `i < 64` (`vanishingAt_basisVec_ne_zero`); (ii) `W_i(X + Y) = W_i(X) + W_i(Y)`
-  in `K[X, Y]` (`vanishing_add_bivariate`, from `aeval_vanishing_add` in any commutative
-  `K`-algebra), `W_i(X + a) = W_i(X) + W_i(a)` in `K[X]` (`vanishing_comp_add`), so `W_i` is
-  additive on `K` (`vanishingAt_add`).
+  `W_i(e_i) ≠ 0` for `i < 64` (`vanishingAt_basisVec_ne_zero`); (ii) `W_i(X + a) = W_i(X) + W_i(a)`
+  in `K[X]` (`vanishing_comp_add`), so `W_i` is additive on `K` (`vanishingAt_add`).
 * `normVanishing i` is `Ŵ_i = W_i / W_i(e_i)`, with `Ŵ_i(e_i) = 1` (`normVanishingAt_basisVec`),
   degree `2^i` for `i < 64` (`natDegree_normVanishing`), additive, and `Ŵ_0 = X`
-  (`normVanishing_zero`).
+  (`normVanishingAt_zero`, `Complete/MulX.lean`).
 
 ## Wrong readings excluded
 
@@ -69,83 +67,15 @@ theorem basisVec_zero : basisVec 0 = 1 := rfl
 /-- `K.ofBits 0 = 0`. -/
 @[simp] theorem ofBits_zero : K.ofBits 0 = 0 := rfl
 
-/-- A word below `2^64` is read back exactly. -/
-theorem toNat_ofBits {n : ℕ} (hn : n < 2 ^ 64) : (K.ofBits n).toBitVec.toNat = n := by
-  simpa [K.ofBits] using hn
-
-/-- Words below `2^64` are distinct field elements. -/
-theorem ofBits_injOn : Set.InjOn K.ofBits {n | n < 2 ^ 64} := by
-  intro a ha b hb h
-  rw [← toNat_ofBits ha, ← toNat_ofBits hb, h]
-
-/-- A word below `2^64` is zero only when it is `0`. -/
-theorem ofBits_eq_zero_iff {n : ℕ} (hn : n < 2 ^ 64) : K.ofBits n = 0 ↔ n = 0 :=
-  ⟨fun h ↦ ofBits_injOn (show n < 2 ^ 64 from hn) (show 0 < 2 ^ 64 by norm_num) h,
-    fun h ↦ h ▸ ofBits_zero⟩
-
-/-- Below `2^i`, adding `2^i` sets a bit that is clear: it is the exclusive or. -/
-theorem two_pow_add_eq_xor {i v : ℕ} (hv : v < 2 ^ i) : 2 ^ i + v = 2 ^ i ^^^ v := by
-  have h := Nat.two_pow_add_eq_or_of_lt hv 1
-  rw [mul_one] at h
-  rw [h]
-  apply Nat.eq_of_testBit_eq
-  intro j
-  rw [Nat.testBit_or, Nat.testBit_xor, Nat.testBit_two_pow]
-  by_cases hj : i = j
-  · subst hj
-    simp [Nat.testBit_lt_two_pow hv]
-  · simp [hj]
-
-/-- Sum in `K` is bitwise exclusive or of words. -/
-theorem ofBits_xor (a b : ℕ) : K.ofBits (a ^^^ b) = K.ofBits a + K.ofBits b := by
-  simp only [K.ofBits, BitVec.ofNat_xor]
-  rfl
-
 /-- `x_{2^i + v} = e_i + x_v` for `v < 2^i`: the coset `e_i + U_i`. -/
 theorem ofBits_two_pow_add {i v : ℕ} (hv : v < 2 ^ i) :
-    K.ofBits (2 ^ i + v) = basisVec i + K.ofBits v := by
-  rw [two_pow_add_eq_xor hv, ofBits_xor, basisVec]
+    K.ofBits (2 ^ i + v) = basisVec i + K.ofBits v :=
+  K.ofBits_two_pow_add hv
 
 /-- The word with bits `v` is `Σ_c v_c e_c`: `U_i` is the span of `e_0, …, e_{i-1}`. -/
 theorem ofBits_eq_sum {i v : ℕ} (hv : v < 2 ^ i) :
-    K.ofBits v = ∑ c ∈ Finset.range i, if v.testBit c then basisVec c else 0 := by
-  induction i generalizing v with
-  | zero =>
-    obtain rfl : v = 0 := by simpa using hv
-    simp
-  | succ i ih =>
-    rw [Finset.sum_range_succ]
-    by_cases hb : v.testBit i
-    · have hlt : v - 2 ^ i < 2 ^ i := by
-        have := Nat.ge_two_pow_of_testBit hb
-        rw [pow_succ] at hv
-        omega
-      have hv' : v = 2 ^ i + (v - 2 ^ i) := by
-        have := Nat.ge_two_pow_of_testBit hb
-        omega
-      have hbits : ∀ c < i, v.testBit c = (v - 2 ^ i).testBit c := by
-        intro c hc
-        conv_lhs => rw [hv']
-        exact Nat.testBit_two_pow_add_gt hc _
-      have hb' : (2 ^ i + (v - 2 ^ i)).testBit i = true := by rw [← hv']; exact hb
-      rw [hv', ofBits_two_pow_add hlt, ih hlt, hb']
-      simp only [ite_true]
-      rw [add_comm]
-      congr 1
-      refine Finset.sum_congr rfl fun c hc ↦ ?_
-      rw [← hv', hbits c (Finset.mem_range.mp hc)]
-    · have hlt : v < 2 ^ i := by
-        by_contra h
-        have h1 : 2 ^ i ≤ v := not_lt.mp h
-        have : v.testBit i = true := by
-          have hv2 : v - 2 ^ i < 2 ^ i := by rw [pow_succ] at hv; omega
-          have := Nat.testBit_two_pow_add_eq (v - 2 ^ i) i
-          rw [Nat.add_sub_cancel' h1, Nat.testBit_lt_two_pow hv2] at this
-          simpa using this
-        exact hb this
-      simp only [Bool.not_eq_true] at hb
-      rw [ih hlt, hb]
-      simp
+    K.ofBits v = ∑ c ∈ Finset.range i, if v.testBit c then basisVec c else 0 :=
+  K.ofBits_eq_sum hv
 
 /-! ## The vanishing polynomials -/
 
@@ -250,7 +180,7 @@ theorem vanishingAt_basisVec_ne_zero {i : ℕ} (hi : i < 64) : vanishingAt i (ba
     have : 2 ^ (i + 1) ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hi
     rw [pow_succ] at this
     omega
-  rw [Ne, ofBits_eq_zero_iff hlt]
+  rw [Ne, K.ofBits_eq_zero_iff hlt]
   have := Nat.two_pow_pos i
   omega
 

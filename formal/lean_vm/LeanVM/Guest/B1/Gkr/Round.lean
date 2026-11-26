@@ -10,8 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Guest.B1.Fs.Templates
-import LeanVM.Guest.B1.Tables.Base
-import LeanVM.Guest.StmtsAppend
+import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # One GKR round (`gkr_round`)
@@ -35,10 +34,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- Round `q` from value `B`, on the cursor, the point row `pt`, the row `npt` its challenge goes
 to (at `npt[noff + q]`), the claim and the carried capacity. -/
 def gkRoundN (B q : ℕ) (cur pt npt : V) (noff : ℕ) (claimV : V) (cap : List V) : List Stmt :=
-  fsNextT cur (4 * q) B ⧺ fsNextT cur (4 * q + 1) (B + 3) ⧺
-    fsNextT cur (4 * q + 2) (B + 6) ⧺ fsNextT cur (4 * q + 3) (B + 9) ⧺
+  fsNextT cur (4 * q) B ++ fsNextT cur (4 * q + 1) (B + 3) ++
+    fsNextT cur (4 * q + 2) (B + 6) ++ fsNextT cur (4 * q + 3) (B + 9) ++
     [keccakA ([.n (B + 1), .n (B + 2), .n (B + 4), .n (B + 5), .n (B + 7), .n (B + 8),
-        .n (B + 10), .n (B + 11)] ++ cap) ((List.range 13).map fun k ↦ .n (B + 12 + k))] ⧺
+        .n (B + 10), .n (B + 11)] ++ cap) ((List.range 13).map fun k ↦ .n (B + 12 + k))] ++
     [.atom (.load (.n (B + 25)) pt q), .atom (.add (.n (B + 26)) (.n B) (.n (B + 3))),
       .atom (.add (.n (B + 27)) (.n (B + 26)) (.n (B + 6))),
       .atom (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 9))),
@@ -60,7 +59,7 @@ abbrev gkRoundT (B q : ℕ) (cur pt claimV : V) (cap : List V) : List Stmt :=
 
 theorem gkRoundN_noRet (B q : ℕ) (cur pt npt : V) (noff : ℕ) (claimV : V) (cap : List V) :
     Stmt.noRetList (gkRoundN B q cur pt npt noff claimV cap) = true := by
-  simp only [gkRoundN, noRetList_append]; rfl
+  simp only [gkRoundN, tb_noRetList_append]; rfl
 
 /-- The scalars of four words read, each with the tag `dsObserve`. -/
 theorem absorbAll_four (cap : List E) (xs : List E) (hx : xs.length = 4) :
@@ -85,9 +84,9 @@ theorem holds_gkRoundN {B q : ℕ} {cur pt npt : V} {noff : ℕ} {claimV : V} {c
       ∃ e, LoadHolds rd (σ pt) q e ∧
         σ (.n (B + 38)) = polyEval ((σ claimV + e * sumE xs) :: xs) (σ (.n (B + 12))) := by
   unfold gkRoundN at h
-  rw [holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
-    holdsList_append_noRet (by rfl), holdsList_append_noRet (by rfl),
-    holdsList_append_noRet (by rfl)] at h
+  rw [tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
+    tb_holdsList_append_noRet (by rfl), tb_holdsList_append_noRet (by rfl),
+    tb_holdsList_append_noRet (by rfl)] at h
   obtain ⟨⟨⟨⟨⟨f0, f1⟩, f2⟩, f3⟩, hk⟩, ht⟩ := h
   rw [holds_fsNextT] at f0 f1 f2 f3
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, keccakA] at hk ht

@@ -45,14 +45,12 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
   (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenge's sponge (`Sponge`,
-  `membershipChallenge`); the table of the normalized subspace polynomials at the basis
-  (`subspaceEvaluations`, the NTT's `twiddle`) and its subset sums
-  (`subspaceAbove`, `vhat`), from which the guest builds `L` (`dualCodeword`, the
-  crate's test `dual_codeword`), which `LeanDa.Subspace` proves are `Ŵ_j` and `dualCodewordAt`.
+  `LeanDa.WithHash`); the table of the subspace polynomials at the basis (`subspaceRow`, the
+  NTT's `twiddle`), which `LeanDa.Subspace` proves is `W_i`.
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`BlobMatrix::build` rejects any other
 count with a `BlobCountError`, `commit.rs`, `lib.rs`);
-the statements hold for `1 ≤ r ≤ maxRows`. So are the hash `H` and the sponge's permutation `P`: the
+the statements hold for `r ≤ maxRows`. So are the hash `H` and the sponge's permutation `P`: the
 crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,
 `verifier/src/hash.rs`) and the Keccak-f[1600] it is built on, which `lean_vm` supplies,
 and the statements hold for every `H` and `P`.
@@ -74,22 +72,7 @@ at `z_j = z^(2^j)` it is `z^u`. -/
 def tensor (z : Fin 13 → E) (u : Fin (2 ^ 13)) : E :=
   ∏ j : Fin 13, if (u : ℕ).testBit j then z j else 1
 
-/-! ## The challenge (`verifier/src/da.rs`)
-
-Drawn from the root by the duplex sponge the security game models as a random oracle, over a
-hash `H` and a permutation `P` of `25` lanes. The crate's are Keccak-256 and Keccak-f[1600]
-(`keccak_f`, `verifier/src/hash.rs`), which `lean_vm` supplies; the definitions hold for
-every `H` and `P`. A lane is a `u64`, read as the element of `K` with its bits, so a scalar's limbs
-are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes `16 … 24`. -/
-
-variable (H : List UInt8 → Common.DigestBytes)
-  (P : LeanVM.Semantics.KeccakState → LeanVM.Semantics.KeccakState)
-
-/-- **The challenge of a root** with a pure hash and permutation (`membership_challenge`). -/
-def membershipChallenge (root : Common.DigestBytes) : Option E :=
-  Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
-
-/-! ## The dual codeword as the guest builds it (`vhat` in `aggregation`'s `placeholders.rs`) -/
+/-! ## The NTT's twiddles (`vhat` in `aggregation`'s `placeholders.rs`) -/
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
 `j ≥ i` (`AdditiveNttF64::twiddle`, the stable prover's `pcs/src/ntt.rs`). -/
@@ -98,35 +81,6 @@ def subspaceRow : ℕ → List K
   | i + 1 =>
     let previous := subspaceRow i
     (previous.drop 1).map fun value ↦ value * (value + previous.headD 0)
-
-/-- Row `i` of the subspace evaluations, scaled so that its first entry is one: `Ŵ_i` at
-`e_i … e_13` (`twiddle`; `LeanDa.Subspace`'s `subspaceEvaluations_eq`). -/
-def subspaceEvaluations (i : ℕ) : List K :=
-  (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
-
-/-- **`Ŵ_j` at the point whose bits above `j` are `y`'s**, `Σ_l bit_l(y) · Ŵ_j(e_(j+1+l))`
-(`vhat` in `aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
-subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs`). For `y < 2^(13 - j)` it is
-`Ŵ_j(point (y · 2^(j+1)))` (`LeanDa.Subspace`'s `subspaceAbove_eq`). -/
-def subspaceAbove (j y : ℕ) : K :=
-  ((List.range (logK - j)).filter y.testBit).foldl
-    (fun t l ↦ t + ((subspaceEvaluations j).drop 1).getD l 0) 0
-
-/-- `Ŵ_j` at point `i` from the table: bit `j` of `i`, plus `subspaceAbove` at its bits above `j`
-(the guest program's `da_vector`). -/
-def subspaceAt (j i : ℕ) : K :=
-  (if i.testBit j then 1 else 0) + subspaceAbove j (i >>> (j + 1))
-
-/-- **The dual codeword of `z` as the guest builds it** (the guest program's
-`da_vector`): at each of the `2^14` points `i`, `∏_j (1 + z^(2^j) Ŵ_j(i))`.
-It is `dualCodewordAt z` (`LeanDa.Subspace`'s
-`dualCodeword_eq_dualCodewordAt`). -/
-def dualCodeword (z : E) : List E :=
-  let powers := (List.range logK).map fun j ↦ z ^ 2 ^ j
-  (List.range (2 ^ logM)).map fun i ↦
-    (List.range logK).foldl
-      (fun product j ↦ product * (1 + powers.getD j 0 * CompPoly.Extension.Ext.ofBase (subspaceAt j i)))
-      1
 
 end
 

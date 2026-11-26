@@ -40,13 +40,16 @@ theorem not_mem_of_noStoreVia {ps : List V} {S : List Atom} (h : noStoreVia ps S
   rw [List.contains_iff_mem.mpr hp] at h'
   exact absurd h' (by decide)
 
-/-- None of the atoms `as` is a store. -/
-def noneIn (as S : List Atom) : Bool := as.all fun a ↦ !S.contains a
+private theorem atomEqb_refl (a : Atom) : atomEqb a a = true := by
+  cases a <;> simp [atomEqb, vEqb, eEqb, vsEqb_iff]
+
+/-- None of the atoms `as` is a store, compared by `atomEqb` (`DecidableEq Atom` is slow in the kernel). -/
+def noneIn (as S : List Atom) : Bool := as.all fun a ↦ !S.any (atomEqb a)
 
 theorem not_mem_of_noneIn {as S : List Atom} (h : noneIn as S = true) : ∀ a ∈ as, a ∉ S := by
   intro a ha hm
   have h' := List.all_eq_true.mp h a ha
-  rw [List.contains_iff_mem.mpr hm] at h'
+  rw [List.any_eq_true.mpr ⟨a, hm, atomEqb_refl a⟩] at h'
   exact absurd h' (by decide)
 
 end

@@ -1,8 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.RunFacts
-public import FORS.SmallBudget.Contact.NearWitness
 public import FORS.ScanSigner.ScanReveals
+public import FORS.CoverPotential.Groups
+public import FORS.CoverBound.IndexFactor
 
 @[expose] public section
 
@@ -19,7 +19,7 @@ variable [Params]
 
 open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
-open FORS.LoopWalk Common.LoopWalk
+open FORS.LoopWalk
 open FORS.Base.Domination
 
 attribute [local instance] Classical.propDecidable

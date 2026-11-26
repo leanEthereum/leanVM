@@ -1,7 +1,6 @@
 module
 
 import Statement.LeanVm
-import LeanVM.Protocol.Compile.RunPure
 public import CompPoly.Univariate.Basic
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Algebra.CharP.Lemmas
@@ -39,11 +38,10 @@ deterministic.
 6. **The transcript's evaluations** (`keccakEvaluationsOfTranscript`, `lookupEvaluation`): the
    byte strings whose whole padded sponge path the transcript holds as a chain of forward queries.
 
-**Where it was.** These pieces were the trusted statement's (`Statement/Extractor.lean`,
-`Statement/LeanVm.lean`) until the end statement took the extractor as a cost-machine program
-within a size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/LeanVmExtractor.lean`):
-moved here verbatim, but for the address indices and the public boundary (`powIndex`, `gLogIn`,
-`boundaryOK`, `Statement/Prover/Witness.lean`), which the statement keeps for the honest prover.
+**Not the statement.** The end statement takes the extractor as a cost-machine program within a
+size bound and a budget (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`). The address
+indices and the public boundary (`powIndex`, `gLogIn`, `boundaryOK`,
+`Statement/Prover/Witness.lean`) are the statement's, for the honest prover.
 
 **Credits.** `K` is CompPoly's `BF64` (github.com/Verified-zkEVM/CompPoly at
 `572f997390aa4fc131ef30b1186fa1dcf292ca10`, Apache-2.0, Nicolas Schleicher). The inverse
@@ -71,7 +69,9 @@ def announceSizesAndRoot (bytecode : List K) : VerifierProgram (Layout × ℕ) :
   return (layout, logInverseRate)
 
 /-- The verifier's state after its steps 1 and 2 on the proof `π`: the announced layout and rate
-exponent, and the state, whose first root is the stack's; `none` if the steps reject. -/
+exponent, and the state, whose first root is the stack's; `none` if the steps reject. The layout
+and the rate are the ones the stream announces (`announced`, which the statement's budget reads):
+`LeanVM.Extraction.Fast.announced_of_afterRoot`. -/
 def afterRoot (bytecode : List K) (π : Proof) : Option ((Layout × ℕ) × VerifierProgramState) :=
   runPure (announceSizesAndRoot bytecode) ⟨⟨default, [], none⟩, π.stream, π.openings, []⟩
 
@@ -164,6 +164,14 @@ def novelInvStage (m i : ℕ) (b : Array K) : Array K :=
 `0, …, κ − 1`, give the novel-basis coefficients. -/
 def novelInv (κ : ℕ) (y : Array K) : Array K :=
   (List.range κ).foldl (fun b i ↦ novelInvStage κ i b) y
+
+end LeanVM.Extraction
+
+namespace LeanVM.Extraction
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
+open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir LeanVM.Protocol.KeccakHash
+open CompPoly
 
 /-- The stack of `2^μ` words whose lane `u` is `cs[u]`: cell `i` is entry `i mod 2^κ` of lane
 `⌊i / 2^κ⌋`, `κ = μ − 6` (of a decoded lane's `2^(κ+1)` coefficients, its low part). -/

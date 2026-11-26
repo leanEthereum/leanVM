@@ -26,8 +26,7 @@ import LeanVM.Protocol.WithHash
 * **`committedWordC_eq`**: with `AnswersInj answers` and keys covering the support,
   `committedWordC answers keys root height width = committedWord answers root height width`.
   It replaces the classical choice.
-* **`committedWordC_keys_congr`**: two covering key lists give the same word (no injectivity
-  needed); the RPM bridge rewrites the answer function and then changes the keys.
+* `subtreeLeaves_congr`: the computed leaves depend on the pairs only through the lookup.
 
 `AnswersInj` is a verbatim copy of leanerVM `lean_vm/LeanVM/Protocol/Compile/Rom/Log.lean`
 (`mumbai`, `935b9d40`).

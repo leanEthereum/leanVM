@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.ToMathlib.Finset
 
 /-!
 # Shifts of equality weights, by the carry
@@ -168,15 +169,6 @@ theorem modK_eq (as bs : List E) {q : ℕ} (hq : q < 2 ^ as.length) :
 
 /-! ## Low and high bits -/
 
-theorem sum_range_mul_split (m : ℕ) (F : ℕ → E) : ∀ k,
-    ∑ w ∈ range (m * k), F w = ∑ h ∈ range k, ∑ l ∈ range m, F (l + m * h)
-  | 0 => by simp
-  | k + 1 => by
-    rw [Nat.mul_succ, Finset.sum_range_add, sum_range_mul_split m F k, Finset.sum_range_succ]
-    congr 1
-    refine Finset.sum_congr rfl fun l _ ↦ ?_
-    rw [add_comm]
-
 theorem eqAt_append_split (a b : List E) {l : ℕ} (hl : l < 2 ^ a.length) (h : ℕ) :
     eqAt (a ++ b) (l + 2 ^ a.length * h) = eqAt a l * eqAt b h := by
   rw [eqAt_append, eqAt_mod a, show (l + 2 ^ a.length * h) % 2 ^ a.length = l by
@@ -200,8 +192,8 @@ theorem modK_split (aL bL aH bH : List E) (hal : aL.length = 3) (hbl : bL.length
   unfold modK carryK
   have hlen : (aL ++ aH).length = 6 := by simp [hal, hah]
   rw [hlen, hal, hah, show (2 : ℕ) ^ 6 = 8 * 8 by norm_num, show (2 : ℕ) ^ 3 = 8 by norm_num,
-    sum_range_mul_split]
-  simp_rw [sum_range_mul_split 8 _ 8]
+    Finset.sum_range_mul']
+  simp_rw [Finset.sum_range_mul' 8 8]
   have key : ∀ xh ∈ range 8, ∀ xl ∈ range 8,
       (∑ yh ∈ range 8, ∑ yl ∈ range 8,
         if xl + 8 * xh = (yl + 8 * yh + q) % (8 * 8) then

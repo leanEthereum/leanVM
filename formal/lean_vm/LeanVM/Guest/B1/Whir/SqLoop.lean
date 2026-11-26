@@ -12,7 +12,6 @@ public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Bits.QueryWindows
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The squeeze loop
@@ -50,12 +49,12 @@ def sqLoopA (lv : OsLv) : List Stmt :=
   let pw := osPowSteps 0 (osPowDigits (128 / lv.depth)) 0 33
   let p1 := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
   let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
-  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ⧺
-    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ⧺
+  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ++
+    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ++
     [osCst 15 (word 1 0), osCst 16 (word 0 0), osCst 17 (word 0 0), osCst 18 (word 0 0),
-      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ⧺
-    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ⧺
-    pw.1 ⧺ p1.1 ⧺ [osMul p1.2.2 p1.2.1 pw.2] ⧺ p2.1 ⧺ [osMul p2.2.2 p2.2.1 pw.2] ⧺
+      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ++
+    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
+    pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
       [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []]
 
@@ -64,7 +63,7 @@ def sqLoopE (lv : OsLv) : ℕ :=
   (osMat 4 lv.posOff ((osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))).2.2 + 1)).2.2 + 1
 
 theorem sqLoopBody_split (lv : OsLv) (name : String) :
-    sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ⧺
+    sqLoopBody lv name = (sqLoopA lv ++ osLoopTailA (sqLoopE lv)) ++
       [.callIf (.n (sqLoopE lv + 2)) name
         (.n (sqLoopE lv + 4) :: (List.range (6 - 1)).map fun i ↦ .n (i + 1)), .ret []] := by
   simp only [sqLoopBody, sqLoopA, sqLoopE, osLoopTail_split, List.append_assoc]
@@ -171,17 +170,6 @@ theorem squeezeN_snoc : ∀ (n : ℕ) (s : Fs), s.squeezeN (n + 1) =
   | n + 1, s => by
     rw [Fs.squeezeN, squeezeN_snoc n s.squeeze.2]
     rfl
-
-theorem squeezeN_getD : ∀ (n : ℕ) (s : Fs) (j : ℕ), j < n →
-    (s.squeezeN n).1.getD j 0 = (s.squeezeN j).2.squeeze.1
-  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
-  | n + 1, s, j, h => by
-    rw [squeezeN_snoc]
-    rcases Nat.lt_or_ge j n with h' | h'
-    · rw [List.getD_append _ _ _ _ (by rw [squeezeN_length]; exact h'), squeezeN_getD n s j h']
-    · obtain rfl : j = n := by omega
-      rw [List.getD_append_right _ _ _ _ (by rw [squeezeN_length]), squeezeN_length, Nat.sub_self]
-      rfl
 
 theorem squeezeN_pend {s : Fs} (hs : s.pend = []) : ∀ n, (s.squeezeN n).2.pend = []
   | 0 => hs

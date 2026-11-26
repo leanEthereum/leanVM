@@ -54,6 +54,10 @@ theorem rc_pow {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {x y t1 t2 k : 
     (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega) (ofK_injective m)
   exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
 
+theorem gen_pow_eq_iff {a b : ℕ} (ha : a < 2 ^ 40) (hb : b < 2 ^ 40) (h : gen ^ a = gen ^ b) :
+    a = b :=
+  gen_pow_inj (by omega) (by omega) h
+
 theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := word_two_pow h
 
 /-! ## The sizes -/
@@ -81,7 +85,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     (by rw [e67, show (8 : ℕ) = 2 ^ 3 from rfl, word_pow2 (by norm_num)]) r66
   have hne : n = e + 1 := by
     rw [hr64, h66, e65, word_gen, ← pow_succ] at m64
-    exact gen_pow_inj (by omega) (by omega) m64
+    exact gen_pow_eq_iff (by omega) (by omega) m64
   -- the memory's log-size
   obtain ⟨m, hm64, h27, hr72⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c72)
   simp only [List.cons.injEq, and_true] at hr72
@@ -89,11 +93,11 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
     (by rw [e73, show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_pow2 (by norm_num)]) r72
   obtain ⟨e2, he2, h79⟩ := rc_pow hκ L (a := 32) (by norm_num)
     (by rw [e77, show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_pow2 (by norm_num)]) r79
-  have hm1 : m = e1 := by rw [hr72] at h72; exact gen_pow_inj (by omega) (by omega) h72
+  have hm1 : m = e1 := by rw [hr72] at h72; exact gen_pow_eq_iff (by omega) (by omega) h72
   have hm2 : m = e2 + 1 := by
     rw [hr72, h79, e78, show (2 : ℕ) = 2 ^ 1 from rfl, word_pow2 (by norm_num),
       ← pow_add] at m72
-    exact gen_pow_inj (by omega) (by omega) m72
+    exact gen_pow_eq_iff (by omega) (by omega) m72
   have h84 : σ (.n (val% «verify_sub» "kb[0]")) = 1 := by rw [e84, word_one]
   have h85 : σ (.n (val% «verify_sub» "kb[1]")) = gen ^ m := by rw [cp85, hr72]
   refine ⟨n, m, by omega, by omega, h61, by rw [h66, hne]; rfl, by omega, by omega, h27, hr72,

@@ -4,6 +4,14 @@ public import XmssSecurity.Proof.RevealProbeOracleSimulation
 
 @[expose] public section
 
+/-!
+# A monitor hit persists
+
+`runObserved` hits on every trace once the state's final table check hits
+(`runObserved_eq_true_of_initial_tableHit`), so a hit on a trace persists on every extension of it
+(`runObserved_append_eq_true_of_prefix`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.RevealProbeOracleSimulation

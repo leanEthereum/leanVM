@@ -30,7 +30,7 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 theorem vs_regAt {σ : Val} {p : V} {x off : ℕ} (hp : σ p = ptr x) {R : ℕ → Prop}
     (hR : R (x + off)) : ∃ i, (σ p).limb 0 * addressOfIndex off = addressOfIndex i ∧ R i :=
-  ⟨x + off, by rw [hp]; exact Value.limb0_ofK_addressOfIndex_mul x off, hR⟩
+  ⟨x + off, by rw [hp]; exact Main.addr_ofK x off, hR⟩
 
 theorem vs_ringCoefficients_length (f g : List E) (hf : f.length = 8) (hg : g.length = 8) :
     (ringCoefficients f g).length = 64 := by

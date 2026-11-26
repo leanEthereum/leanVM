@@ -18,8 +18,7 @@ public import LeanVM.Guest.B1.Whir.HelperAll
 A placed tree on some memory is a valid tree, so a words bound of the function's trees (`TotalLe`)
 bounds its words (`relAtIn_le`, `Place/Fresh.lean`). `lp_bound`: with every frame below `2^32`, `level_positions`
 placed after a fresh window table, positions and window pointers holds on a fresh memory
-(`fresh_exists`), so `lpN ≤ B`. `level_positions_completeAtB`: every entry is `LpAtO` at `some B`
-for every such `B`.
+(`fresh_exists`), so `lpN ≤ B`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -99,7 +98,7 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
     (Lin := Lin0) rfl fp0
     (fun k hk ↦ ⟨⟨(2048, posW), by simp [hLin0], Nat.le_add_right _ _, by rw [hlP]; exact Nat.add_lt_add_left hk _⟩,
       ⟨(2048 + M, ptrW), by simp [hLin0], Nat.le_add_right _ _, by rw [hlR]; exact Nat.add_lt_add_left hk _⟩⟩)
-    (fun t ht ↦ ⟨t, by rw [Value.limb0_ofK_addressOfIndex_mul, Nat.zero_add],
+    (fun t ht ↦ ⟨t, by rw [Main.addr_ofK, Nat.zero_add],
       ⟨(0, tabW), by simp [hLin0], by omega, by rw [hlT]; omega⟩⟩)
     (fun rd _ hm ↦ by
       have hT0 := hm (0, tabW) (by simp [hLin0])
@@ -119,23 +118,6 @@ theorem lp_bound (κ : ℕ) {name loop : String} {S d cd : ℕ}
   have hlt := lpN_lt (name := name) (loop := loop) (d := d) (cd := cd) hfs hSB
   obtain ⟨rd, hlow, hm⟩ := fresh_pair κ hD hW hLD hLW (by omega)
   exact relAtIn_leOn (hR rd hlow hm) hT (by simp [cap, gen_pow_eq_ofK])
-
-/-- **`level_positions` within every words bound of its trees**, frames below `2^32`. -/
-theorem level_positions_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    (hfit : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (hκ : 7 ≤ κ)
-    (hfs : ∀ f, fs f < 2 ^ 32) :
-    ∀ e ∈ lpTable, ∀ S, 1 ≤ S → S ≤ 64 → ∀ B, TotalLe coreProgram fs e.1 (fun _ ↦ B) →
-      Arm.LpAtO fs cert κ e.1 e.2.1 S e.2.2.1 e.2.2.2 (some B) := by
-  intro e he S hS hSB B hT
-  obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
-  have hSo : S < ordG := by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega
-  have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
-  have hb := lp_bound κ hlp hl hS hSo hSB hpw hdec hfs fun rd t a r hn _ hv hbo ↦ hT rd t a r hn hv hbo
-  intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
-  obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS hSo hSB hpw hdec hcl fp
-    (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B' hB' ↦ by cases hB'; exact hb, hR⟩
 
 end
 end LeanVM.Guest.B1

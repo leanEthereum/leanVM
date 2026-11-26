@@ -12,7 +12,7 @@ the original and the internalized executions with their short and total query co
 that the internalized game only queries short inputs. `Reduction/InternalizeGame` applies it to the
 deterministic game. -/
 
-open OracleComp OracleSpec ENNReal Common.QueryCount
+open OracleComp OracleSpec ENNReal
 
 namespace FORS.Security.Internalize
 
@@ -81,7 +81,7 @@ theorem OnlyW.liftProb {α : Type} (oa : ProbComp α) :
 /-- Separate counts of short and long hash calls. -/
 noncomputable def count2 {α : Type} (oa : OracleComp OracleWorld α) :
     OracleComp OracleWorld ((α × Nat) × Nat) :=
-  counted ShortQuery (counted LongQuery oa)
+  QueryCap.counted ShortQuery (QueryCap.counted LongQuery oa)
 
 theorem count2_pure {α : Type} (value : α) :
     count2 (pure value : OracleComp OracleWorld α) = pure ((value, 0), 0) := rfl
@@ -93,7 +93,7 @@ theorem count2_query_bind {α : Type} (input : OracleWorld.Domain)
       let result ← count2 (next answer)
       pure ((result.1.1, (if LongQuery input then 1 else 0) + result.1.2),
         (if ShortQuery input then 1 else 0) + result.2)) := by
-  simp only [count2, counted_bind, counted_pure, bind_assoc,
+  simp only [count2, QueryCap.counted_bind, QueryCap.counted_pure, bind_assoc,
     pure_bind, Nat.add_zero]
   rfl
 
@@ -179,14 +179,14 @@ theorem run_count2_short {α : Type} (oa : OracleComp OracleWorld α) (h : OnlyW
 
 noncomputable def countShort {α : Type} (oa : OracleComp OracleWorld α) :
     OracleComp OracleWorld (α × Nat) :=
-  counted ShortQuery oa
+  QueryCap.counted ShortQuery oa
 
 theorem countShort_eq_count2 {α : Type} (oa : OracleComp OracleWorld α) :
     countShort oa = (fun result => (result.1.1, result.2)) <$> count2 oa := by
   induction oa using OracleComp.inductionOn with
   | pure value => rfl
   | query_bind input next ih =>
-      rw [countShort, counted_query_bind, count2_query_bind]
+      rw [countShort, QueryCap.counted_query_bind, count2_query_bind]
       simp only [map_bind, map_pure]
       refine bind_congr (fun answer => ?_)
       have hih := ih answer
@@ -206,7 +206,7 @@ theorem leftRun_bind {α β : Type} (oa : OracleComp OracleWorld α) (next : α 
     leftRun (oa >>= next) cache = leftRun oa cache >>= fun first =>
       (fun second => ((second.1.1, first.1.2 + second.1.2), second.2)) <$>
         leftRun (next first.1.1) first.2 := by
-  simp only [leftRun, countShort, counted_bind, simulateQ_bind,
+  simp only [leftRun, countShort, QueryCap.counted_bind, simulateQ_bind,
     StateT.run_bind, bind_pure_comp, simulateQ_map, StateT.run_map]
 
 theorem rightRun_bind {α β : Type} (oa : OracleComp OracleWorld α) (next : α → OracleComp OracleWorld β)
@@ -214,20 +214,20 @@ theorem rightRun_bind {α β : Type} (oa : OracleComp OracleWorld α) (next : α
     rightRun (oa >>= next) cache = rightRun oa cache >>= fun first =>
       (fun second => ((second.1.1, first.1.2 + second.1.2), second.2)) <$>
         rightRun (next first.1.1) first.2 := by
-  simp only [rightRun, countHashQueries, counted_bind, simulateQ_bind,
+  simp only [rightRun, countHashQueries, QueryCap.counted_bind, simulateQ_bind,
     StateT.run_bind, bind_pure_comp, simulateQ_map, StateT.run_map]
 
 theorem leftRun_map {α β : Type} (f : α → β) (oa : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) :
     leftRun (f <$> oa) cache = (fun result => ((f result.1.1, result.1.2), result.2)) <$>
       leftRun oa cache := by
-  simp only [leftRun, countShort, counted_map, simulateQ_map, StateT.run_map]
+  simp only [leftRun, countShort, QueryCap.counted_map, simulateQ_map, StateT.run_map]
 
 theorem rightRun_map {α β : Type} (f : α → β) (oa : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) :
     rightRun (f <$> oa) cache = (fun result => ((f result.1.1, result.1.2), result.2)) <$>
       rightRun oa cache := by
-  simp only [rightRun, countHashQueries, counted_map, simulateQ_map,
+  simp only [rightRun, countHashQueries, QueryCap.counted_map, simulateQ_map,
     StateT.run_map]
 
 theorem leftRun_short {α : Type} (oa : OracleComp OracleWorld α) (h : OnlyW oa)
@@ -349,7 +349,7 @@ theorem rightRun_liftProb {α : Type} (p : ProbComp α) (cache : QueryCache Hash
 theorem leftRun_longQuery {input : HashInput} (h : ¬IsShort input) (cache : QueryCache HashSpec) :
     leftRun (liftM (OracleWorld.query (.inr input))) cache =
       (fun result => ((result.1, 0), result.2)) <$> (randomOracle (spec := HashSpec) input).run cache := by
-  rw [leftRun, countShort, counted_query, simulateQ_map, simulateQ_spec_query,
+  rw [leftRun, countShort, QueryCap.counted_query, simulateQ_map, simulateQ_spec_query,
     StateT.run_map]
   simp only [ShortQuery, h, ↓reduceIte]
   rfl

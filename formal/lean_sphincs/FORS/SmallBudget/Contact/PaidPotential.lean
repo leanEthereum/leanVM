@@ -1,10 +1,8 @@
 module
 
-public import FORS.SmallBudget.Contact.RevealRate
 public import FORS.SmallBudget.Linear.Payoff
-public import FORS.CoverPotential.Game
-public import FORS.Reduction.NoRepeat
 public import FORS.CoverPotential.OneCoin
+public import FORS.SmallBudget.Contact.RunFacts
 
 @[expose] public section
 
@@ -25,7 +23,6 @@ open FORS.Base
 open Concrete HiddenGraph HiddenCost HiddenDebt GraphView Domination ForsPrice ForsSigner HiddenBridge
 open PotentialA
 
-set_option linter.unusedSectionVars false
 attribute [local instance] Classical.propDecidable
 
 /-! ### Reveals are exposed -/

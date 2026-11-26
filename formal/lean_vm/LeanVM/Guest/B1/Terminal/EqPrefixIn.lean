@@ -13,7 +13,6 @@ public import LeanVM.Guest.Memory.LiftPure
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The prefix chains, loading their regions
@@ -84,9 +83,9 @@ theorem ep_relIn {n : ℕ} (hn : n ≤ 40) {rd : Reader} {bc ba bb : ℕ} {seed 
       subst hea
       simp only [Lift.EvLeafOk, epLok, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hok
       rcases hok with (⟨rfl, ho⟩ | ⟨rfl, ho⟩) | ⟨rfl, ho⟩
-      · rw [e0, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
-      · rw [e2, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
-      · rw [e3, Value.limb0_ofK_addressOfIndex_mul]; exact ⟨_, rfl, hR _ (Or.inr (Or.inr ⟨by omega, by omega⟩))⟩
+      · rw [e0, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩
+      · rw [e2, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
+      · rw [e3, Main.addr_ofK]; exact ⟨_, rfl, hR _ (Or.inr (Or.inr ⟨by omega, by omega⟩))⟩
     | _ => simp [Ev.loadAddr?] at hea
   | _ => simp [Ev.loadAddr?] at hea
 
@@ -110,7 +109,7 @@ theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R
       [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^ n]
           [] := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_eq_prefix_chain _ _).mp h
-  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ⧺ [.ret []] := eq_prefix_chain_body
+  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ++ [.ret []] := eq_prefix_chain_body
   rw [hbody] at hb
   rw [show Fn.params fn% «eq_prefix_chain» = [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1"), .n (val% «eq_prefix_chain» "count_g")] from rfl] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp

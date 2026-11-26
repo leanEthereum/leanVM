@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.FormT
+import LeanVM.ToMathlib.List
 
 /-!
 # The flips
@@ -30,12 +31,6 @@ open LeanVM.Protocol.KeccakGkr Finset
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
-theorem sum_flatMap' {α : Type} (l : List α) (g : α → List E) :
-    (l.flatMap g).sum = (l.map fun a ↦ (g a).sum).sum := by
-  induction l with
-  | nil => rfl
-  | cons a l ih => simp [List.flatMap_cons, ih]
-
 /-- A sum over `flipOffs`. -/
 theorem flipOffs_sum (i : ℕ) (F : ℕ × ℕ → E) :
     ((flipOffs i).map F).sum = F (keccakPi 0, (2 ^ i - 1 + keccakRho.getD 0 0) % 64) +
@@ -44,7 +39,7 @@ theorem flipOffs_sum (i : ℕ) (F : ℕ × ℕ → E) :
   simp only [flipOffs, List.map_cons, List.sum_cons, List.map_flatMap]
   rw [← listSum_range]
   congr 1
-  rw [sum_flatMap']
+  rw [List.sum_flatMap]
   simp only [List.map_nil, List.sum_cons, List.sum_nil, add_zero]
 
 /-- **A later claim's weight at `2^i - 1`** (lane `0`): `θ`'s transpose through `ρ`, `π` on the

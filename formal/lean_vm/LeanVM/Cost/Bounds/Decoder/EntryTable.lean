@@ -88,7 +88,7 @@ the cell (the slot and the packed number one limb each, `guestLanes_lt`; the cel
 read at `1`). -/
 theorem locAt_cost (hP : Includes P locAtC.costDeps) (j i : ℕ) :
     machineCost P locAtC.costIdx [encodeValue j, encodeValue i] ≤ 30 := by
-  rw [locAtC.costEq P hP, guestLocsTableC.costEq P]
+  rw [locAtC.costEq P hP, guestLocsTableC.costEq P (by includes)]
   have hs := guestLanes_lt 0 j
   generalize (guestLanes.getD 0 #[]).getD j 0 = s at hs ⊢
   have hw := guestLanes_lt (s / 4) i
@@ -113,7 +113,7 @@ theorem callKey_cost (hP : Includes P callKeyC.costDeps) (j : ℕ) (args rets : 
   rw [callKeyC.costEq P hP]
   have hlam : ∀ x : E, appCost P (.closure callKeyC.lam0.costIdx []) [encodeValue x] ≤ 14 := by
     intro x
-    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P, List.length_nil]
+    rw [appCost_fn, List.nil_append, callKeyC.lam0.costEq P (by includes), List.length_nil]
     have := wordCode_cost P (by includes) x
     omega
   have h1 := map_cost P (by includes) _ (.closure callKeyC.lam0.costIdx [])
@@ -162,8 +162,8 @@ theorem wordsWith_cost (hP : Includes P wordsWithC.costDeps) {W : ℕ} (hW : 0 <
     (psAt W + R + 52) (List.range n) (fun i hi ↦ by
       have hi' := List.mem_range.mp hi
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [wordsWithC.lam0.costEq P (by includes) rd rdVal hrd]
-      limbs
+      rw [wordsWithC.lam0.costEq P (by includes) rd rdVal hrd, limbs_of_lt (by omega : o < 2 ^ 64),
+        limbs_of_lt (by omega : i < 2 ^ 64), limbs_of_lt (by omega : o + i < 2 ^ 64)]
       have := wordWith_cost P rd rdVal hrd R hR hW hW64 (by includes) fp (o + i) (by omega)
       simp only [max_self]
       omega)
@@ -177,8 +177,8 @@ theorem entryKeyT_cost (hP : Includes P entryKeyTC.costDeps) (s : Registers K) (
     machineCost P entryKeyTC.costIdx [rdVal, encodeValue s, encodeValue j] ≤ 66 * R + 41200 := by
   have ha := argCount_le j
   have hr := retCount_le j
-  rw [entryKeyTC.costEq P hP rd rdVal hrd]
-  limbs
+  rw [entryKeyTC.costEq P hP rd rdVal hrd, limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64),
+    limbs_of_lt (by omega : 2 + guestArgCounts.getD j 0 < 2 ^ 64)]
   have h1 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)
     s.fp 2 (guestArgCounts.getD j 0) (show 2 + guestArgCounts.getD j 0 ≤ 2 ^ 7 by omega)
   have h2 := wordsWith_cost P rd rdVal hrd R hR (by includes) (W := 7) (by norm_num) (by norm_num)

@@ -13,7 +13,15 @@ import all LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
 import all Statement.Field
 import all Statement.Keccak
 import all LeanVM.Protocol.RunWithHash
-import Statement.Verifier.Lib
+import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 
 /-!
 # The agreement-set extractor's replay, compiled

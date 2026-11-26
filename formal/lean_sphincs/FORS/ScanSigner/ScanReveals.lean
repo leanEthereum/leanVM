@@ -16,10 +16,9 @@ namespace FORS.Security.GraphView
 variable [Params]
 
 open FORS.Base
-open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner FORS.LoopWalk Common.LoopWalk
+open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner FORS.LoopWalk
 
 attribute [local instance] Classical.propDecidable
-
 
 section LoopV
 
@@ -27,8 +26,7 @@ variable {A : Type} (tg : Targeting HashInput HashOutput Coordinate)
   (initial : HiddenOutside.Cache HashInput HashOutput) (model : HiddenRows.Model HashInput HashOutput A Coordinate)
   (parameter : PublicParameter) (data : PublicData) (message : Message)
 
-/-- **One trial of the scan**, with any continuation. The trial reads the index block alone, so a
-fresh pair is only drawn whole by the final assembly that follows it (`interp_presample_new`). -/
+/-- **One trial of the scan**, with any continuation, for a value of the reveals (`trial_boundF`). -/
 theorem trial_boundV
     (hparse : ∀ ρ call, model.parse (pblk parameter data message ρ call) = none)
     (hkind : ∀ ρ call, tg.kind (pblk parameter data message ρ call) = .none)
@@ -79,74 +77,9 @@ theorem trial_boundV
       _ ≤ _ := by
           rw [ENNReal.tsum_mul_right]
           exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
-  rw [interp_ordinary]
-  split_ifs with h1
-  · rw [ordinaryStep, hparse ρ firstCall]
-    simp only
-    rw [OracleComp.tsum_prEvent_bind_mul]
-    simp only [OracleComp.tsum_prEvent_map_mul]
-    cases hc : state.cache (blk parameter data message ρ) with
-    | some u0 =>
-        rw [readOutside_cached _ state u0 hc, OracleComp.tsum_prEvent_pure_mul]
-        simp only [Option.elim]
-        by_cases hl : Landed parameter (blockIndex u0)
-        · rw [ite_eq_left hl, ite_eq_left hl]
-          obtain ⟨u, hu, hucall⟩ :=
-            pcache_of_isSome parameter data message state ρ ((hinv ρ).2 u0 hc hl)
-          have hu0 : u firstCall = u0 := Option.some_inj.1 ((hucall firstCall).symm.trans hc)
-          have href : reference.cache (blk parameter data message ρ) = some u0 := by
-            rw [← hpair firstCall]; exact hc
-          have hpcsame : pcache parameter data message reference ρ =
-              pcache parameter data message state ρ := by
-            unfold pcache
-            exact congrArg _ (funext fun call => (hpair call).symm)
-          have hpv : poolValue parameter data message reference gp ρ = gp ρ (viewOf u) := by
-            unfold poolValue
-            rw [hpcsame.trans hu]
-            simp only [Option.elim, hu0]
-            rw [ite_eq_left hl]
-          have hpw : pairWeight parameter data message reference gf gp ρ u = gp ρ (viewOf u) := by
-            unfold pairWeight
-            rw [ite_eq_right (by rw [href]; simp)]
-          rw [hpv, ← hpw]
-          exact hfinish state u _ (fun ρ' _ => hrel ρ') hucall (by rw [hu0]; exact hl)
-        · rw [ite_eq_right hl, ite_eq_right hl]
-          exact hih state hrel hinv (fun _ _ => rfl) _
-    | none =>
-        have hfresh : ∀ call, state.cache (pblk parameter data message ρ call) = none := (hinv ρ).1 hc
-        have href : reference.cache (blk parameter data message ρ) = none := by
-          rw [← hpair firstCall]; exact hc
-        rw [readOutside_fresh _ state hc, OracleComp.tsum_prEvent_map_mul]
-        simp only [Option.elim]
-        refine le_trans (interp_presample_new tg initial model (pblk parameter data message ρ)
-          (pblk_injective parameter data message ρ) (hkind ρ) firstCall
-          (fun first => if Landed parameter (blockIndex first) then finishCostSource parameter data message ρ
-            else cont) (budget - 1) state hfresh (fun out => V out.1.2.1)
-          (fun _ _ _ _ => le_rfl)) ?_
-        rw [tsum_uniform_eq]
-        have hcard : (Fintype.card (DigestCall → HashOutput) : ℝ≥0∞) =
-            (Fintype.card HashOutput : ℝ≥0∞) ^ digestCalls := by
-          rw [Fintype.card_fun, Fintype.card_fin, Nat.cast_pow]
-        rw [hcard]
-        refine mul_le_mul' le_rfl (Finset.sum_le_sum fun u _ => ?_)
-        by_cases hl : Landed parameter (blockIndex (u firstCall))
-        · rw [ite_eq_left hl, ite_eq_left hl]
-          have hall : ∀ call, (storeAll (pblk parameter data message ρ) u state).cache
-              (pblk parameter data message ρ call) = some (u call) :=
-            fun call => storeAll_cache_self _ (pblk_injective parameter data message ρ) u state call
-          have hpw : pairWeight parameter data message reference gf gp ρ u = gf (viewOf u) := by
-            unfold pairWeight
-            rw [ite_eq_left href, ite_eq_left hl]
-          rw [← hpw]
-          exact hfinish _ u _ (relatedOff_storeAll parameter data message reference state hrel ρ u) hall hl
-        · rw [ite_eq_right hl, ite_eq_right hl]
-          exact hih _ (related_storeAll parameter data message reference state hrel ρ hc u hl)
-            (pairInv_storeAll parameter data message state hinv ρ u hl)
-            (fun x hx => storeAll_cache_other _ _ _ _ fun call => Ne.symm (hx call)) _
-  · rw [OracleComp.tsum_prEvent_pure_mul]
-    change V [] ≤ _
-    rw [hV0]
-    exact zero_le
+  exact trial_boundF tg initial model parameter data message hparse hkind reference ρ gf gp
+    (fun _ R _ => V R) (fun _ => hV0) (fun _ _ _ _ _ _ => le_rfl) hfinish bound state hrel hinv hpair cont hih
+    budget
 
 /-- **The scan from a start, for any reveal weight of all runs.** The weight of the reveals of the
 call, completed or not, is at most the walk value over the reference cache: a cached landed pair

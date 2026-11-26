@@ -5,8 +5,7 @@ public import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Guest.Batch.Children
 public import LeanVM.Guest.Batch.Rpm
 public import LeanVM.Guest.EndRpm
-public import LeanVM.Guest.Budget.ClosedN
-public import LeanVM.Guest.Budget.Fits
+public import LeanVM.Guest.Budget.Closed
 public import LeanVM.Prover.End
 public import LeanVM.Prover.EndChild
 public import LeanVM.Protocol.Verifier.Defers
@@ -18,9 +17,7 @@ public import LeanVM.Guest.EndExecHonest
 public import LeanVM.Guest.EndExecFinal
 public import XmssSecurity.Rpm
 public import Sphincs.Security
-public import LeanDa.RpmComplete
-public import LeanDa.PiOnly
-public import LeanDa.RpmArg
+public import LeanDa.End
 public import Statement.Theorems
 public import Statement.Corollaries
 public import LeanVM.Protocol.WithHash
@@ -49,9 +46,9 @@ program too (`GuestKnowledgeSoundness`, `Statement/LeanVmGuest.lean`):
 `LeanVM.Cost.compiledGuestWitnessDecoder`, the
 proofs' decoder `LeanVM.Guest.End.decode` compiled (`LeanVM/Cost/Decoder/`, its top `decTopC`),
 within `guestWitnessDecoderSizeBound` (`Cost/DecoderSize.lean`) and computing `decode` on every valid
-execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget, its price within
-`guestDecoderPrice` (`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget :
-DecoderPriceWithinBudget`, `Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
+execution (`Cost/DecoderSpec.lean`: `decoderProgram_spec`) within its budget
+(`LeanVM.Cost.Bounds.Guest.decoderPriceWithinBudget : DecoderPriceWithinBudget`,
+`Cost/Bounds/Guest/Budget.lean`). `theorems_hold` and
 `corollaries_hold` take no hypothesis (the `example` after `theorems_hold` pins the statement).
 Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meeting
 `DecoderProgramSpec` for a decoder whose decodings explain the input (`DecoderExplains`,
@@ -59,15 +56,14 @@ Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meet
 whose decodings explain the input by `guest_knowledge`.
 
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
-(`Statement/CostMachine.lean`, `Statement/LeanVmExtractor.lean`): `compiledKnowledgeExtractor`
-(`Cost/KnowledgeExtractor.lean`), the knowledge extractor `transcriptExtractor`
-(`LeanVM/Protocol/KnowledgeSoundness.lean`, the agreement-set extractor of
-`LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`) behind an entry
-(`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
+(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`), the
+knowledge extractor `transcriptExtractor` (`LeanVM/Protocol/KnowledgeSoundness.lean`, the
+agreement-set extractor of `LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`)
+behind an entry (`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
 (`Cost/AS/ProgramSize.lean`), and the extractor it computes within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
-`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget` wherever
-it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
+`knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget`
+wherever it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`statement.tex`), in the
 random-permutation model where an adversary is involved, except the memory-decoder forms
@@ -77,9 +73,8 @@ random-permutation model where an adversary is involved, except the memory-decod
 `Statement.Theorems` itself:
 
 * `LeanVM.knowledgeSoundness_holds : KnowledgeSoundness transcriptExtractor` and
-  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`,
-  `Statement/LeanVmCompleteness.lean`): the verifier, knowledge sound for the straight-line
-  extractor `transcriptExtractor`, and complete;
+  `LeanVM.completeness_holds : Completeness` (`Statement/LeanVm.lean`): the verifier, knowledge
+  sound for the straight-line extractor `transcriptExtractor`, and complete;
 * `LeanVM.Guest.End.guest_knowledge : MemoryGuestKnowledge guestProgram decode` (`lean_vm`'s
   definition) and `LeanVM.Guest.Binding.digest_binds : StatementDigestBinds`
   (`Statement/LeanVmGuest.lean`;
@@ -91,7 +86,7 @@ random-permutation model where an adversary is involved, except the memory-decod
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestBatching.lean`): the
+* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
   the random-permutation model (from `batch_rpm`);
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
@@ -385,9 +380,9 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
   leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
-  leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
+  leanDaComplete := LeanDa.leanDa_complete
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
-  leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound
+  leanDaMembershipSound := LeanDa.leanDa_membershipSound_rpm
 
 /-- info: 'LeanVM.theorems_of_decoderSpec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -457,7 +452,7 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rintro ⟨t, hx, hv⟩
     obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.1 (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.hasBytecodeShape (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestProverComplete s w hrel hlim :=

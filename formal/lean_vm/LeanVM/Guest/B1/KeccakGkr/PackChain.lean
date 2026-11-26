@@ -68,6 +68,12 @@ theorem packRunF_append :
     simp only [List.cons_append]
   | [], _, _ :: _, _, _, _, h | _ :: _, _, [], _, _, _, h => by simp at h
 
+theorem capAt_unique {rec : E} {k : ℕ} {cap cap' : List E} (h : CapAt rd rec k krCap cap)
+    (h' : CapAt rd rec k krCap cap') : cap = cap' := by
+  apply List.ext_getElem (by rw [h.1, h'.1])
+  intro j hj hj'
+  exact loadHolds_unique (h.2 j hj) (h'.2 j hj')
+
 theorem roundRec_unique {rec : E} {k : ℕ} {cap cap' : List E} {cur cur' cl cl' : E}
     (h : RoundRec rd rec k cap cur cl) (h' : RoundRec rd rec k cap' cur' cl') :
     cap = cap' ∧ cur = cur' ∧ cl = cl' :=
@@ -161,6 +167,8 @@ theorem coords_of_reads {pp : E} {pts rs : List E} {n : ℕ} (hpp : ReadsAt rd p
   rw [loadHolds_mul_gen_pow] at h1
   rw [List.getElem?_eq_getElem (by omega), loadHolds_unique (hpp _ (by omega)) h1]
 
+theorem gen_pow_pow (j m : ℕ) : (gen ^ j) ^ m = gen ^ (m * j) := by rw [← pow_mul, mul_comm]
+
 /-- **An iteration of the eight-round loop extends the invariant.** -/
 theorem packInv_succ8 {rec pp pt cur hv : E} {capS pts : List E} {j : ℕ}
     (hI : PackInv rd rec pt cur hv capS pts j (8 * j)) (hS : Pack8Step rd rec pp pt (gen ^ j))
@@ -168,7 +176,7 @@ theorem packInv_succ8 {rec pp pt cur hv : E} {capS pts : List E} {j : ℕ}
     PackInv rd rec pt cur hv capS pts (j + 1) (8 * (j + 1)) := by
   obtain ⟨cap, cur0, cl0, rs, ms, chs, cl', cap', hrec0, hrl, hrr, hms, hch, hchs, hnext⟩ :=
     hS
-  rw [← pow_mul' gen] at hrr hchs
+  rw [gen_pow_pow] at hrr hchs
   have := packInv_extend hI hrec0 (coords_of_reads hpp hrr (by omega)) (by omega) hms hch hchs
     (by rw [hrl]; exact hnext)
   rwa [hrl, show 8 * j + 8 = 8 * (j + 1) by ring] at this
@@ -251,7 +259,7 @@ theorem pack_chain {first : ℕ} (hfirst : first < 2)
     | zero => exact hinv8 _ le_rfl
     | succ k ih =>
       have := packInv_succR (s := y / krStep) (k := k) (ih (by omega))
-        (by rw [pow_mul' gen, ← hsg]; exact hrems k (by omega)) hpp
+        (by rw [← gen_pow_pow, ← hsg]; exact hrems k (by omega)) hpp
         (by simp [krStep] at hk ⊢; omega)
       simpa [Nat.add_assoc] using this
   obtain ⟨msgs, chs, cap, cl, hml, hcl, hrm, hrc, hrec, hrun⟩ := hinvR _ le_rfl

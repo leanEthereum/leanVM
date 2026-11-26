@@ -22,12 +22,12 @@ deployed guest (`guests/lean_ethereum.py`) does not run to completion.
 Completeness assumes two hypotheses beside `NodeRelation`, each a precise predicate on the witness:
 
 * **`DeployedLimits s w`, the deployed limits** of the node, which the Spec does not have (listed at
-  the structure): the claims held with multiplicity and at most `16` children, which the guest
-  enforces (`aggregate` refuses more than `16` children), and caps on the children's claims, the raw
-  signatures and the blob matrix's rows, which neither the guest nor `aggregate` enforces: a node
-  past a cap is still accepted, but completeness does not cover it. An honest prover within them is
-  never refused. The guest's proofs take them with the coverage table below `2^23` (`GuestLimits`),
-  which their caps give.
+  the structure): at most `16` children, which the guest enforces (`aggregate` refuses more than
+  `16` children), and caps on the children's claims, the raw signatures and the blob matrix's rows,
+  which neither the guest nor `aggregate` enforces: a node past a cap is still accepted, but
+  completeness does not cover it. An honest prover within them is never refused. The guest's proofs
+  take them with `NodeRelation`'s signature claims held and the coverage table below `2^23`
+  (`GuestLimits`), which their caps give.
 * **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`,
   `LeanVM/Guest/AcceptableChild.lean`): besides `NodeRelation`'s conditions, a child's stack log at
   least `20` and its proof stream at most `8192` scalars, both of which `NodeRelation`'s acceptance
@@ -38,8 +38,8 @@ Completeness assumes two hypotheses beside `NodeRelation`, each a precise predic
   holds or a child's proof exhibits one (`Child.acceptableChildren_or_collide`).
 
 The coverage table's size (`coverageSlots`) is the number of claims made; an honest run lays it out
-by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s
-`planSlots_eq`). The guest's proofs take it below `2^23` (`GuestLimits`, every count of `meta` and
+by `Coverage.coveragePlan` (`planSlots`, equal to it under `SignatureClaimsHeld`:
+`B1/Main/Plan.lean`'s `planSlots_eq`). The guest's proofs take it below `2^23` (`GuestLimits`, every count of `meta` and
 of a child's lists at most it), so below the guest's memory, which is at least `2^23` words
 (`Memory.logMem`); the deployed limits' caps give it (`Budget/Fits.lean`'s `GuestLimits.of_limits`).
 -/
@@ -55,11 +55,14 @@ open Limits
 
 /-! ## The deployed limits and the coverage table -/
 
-/-- **The deployed limits, the coverage table below `2^23`**: the bound on `coverageSlots` the
-guest's proofs use (every count of `meta` and of a child's lists is at most it), below the guest's
-memory of at least `2^23` words. -/
+/-- **The deployed limits, the signature claims held, the coverage table below `2^23`**: the
+multiplicities of the declared claims (`SignatureClaimsHeld`, of `NodeRelation`) and the bound on
+`coverageSlots` the guest's proofs use (every count of `meta` and of a child's lists is at most it),
+below the guest's memory of at least `2^23` words. -/
 structure GuestLimits (statement : NodeStatement) (witness : NodeWitness) : Prop
     extends DeployedLimits statement witness where
+  /-- The signature claims held, with their multiplicities. -/
+  signatureClaimsHeld : SignatureClaimsHeld statement witness
   /-- The coverage table below `2^23`. -/
   coverageSlotsBelow2Pow23 : coverageSlots witness < 2 ^ 23
 

@@ -1,4 +1,4 @@
-"""`verify_sub`'s rules: its exponent family (`CoreMode.vsExp`, `EndExec.VsQ`)."""
+"""`verify_sub`'s rules: its exponent family (`CoreMode.Own.verify_sub.vsExp`, its soundness `vsExp_inst`)."""
 from fnrules import val, lean_def
 
 CAPE = 2 ** 62

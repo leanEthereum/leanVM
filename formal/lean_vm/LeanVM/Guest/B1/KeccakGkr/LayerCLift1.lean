@@ -8,20 +8,21 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.LayerCG
-public import LeanVM.Guest.B1.KeccakGkr.FlatF
+public import LeanVM.Guest.B1.Tables.FlatAt
+public import LeanVM.Guest.Memory.UniformF
 public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # A layer's placement facts
 
-`layerPre first odd`: the body but its return (`layerT_pre`); it is flat (`layerPre_flat`), places
-no run (`layerPre_addrs`), allocates the pack challenges (`y` words), the round records (`77`),
-the local point (`11`), the next claim's lanes (`25`) and flips (`7`) (`layerPre_alloc`), calls
-the two pack loops (`layerPre_calls`), and loads only through the pointers `layerGroups` below
-their bounds and the inlined `grind_check`'s table pointers `grindPtrs` (`layerPre_loads`).
+`layerPre first odd`: the body but its return (`layerT_pre`). By the kernel (`layerPre_kernel`), it
+is flat, places no run, allocates the pack challenges (`y` words), the round records (`77`), the
+local point (`11`), the next claim's lanes (`25`) and flips (`7`), dispatches nothing
+(`layerPre_disp`), calls the two pack loops (`layerCalls`, `layerPre_callSF`), and loads only
+through the pointers `layerGroups` below their bounds and the inlined `grind_check`'s table
+pointers `grindPtrs`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -56,7 +57,7 @@ theorem gcInline_mem_layerT {first : ℕ} (hf : first < 2) :
   unfold layerT
   simp only [List.mem_append, h', true_or, or_true]
 
-theorem layerT_pre (first : ℕ) : layerT first = layerPre first ⧺ [.ret (layerVs first)] := by
+theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
   simp only [layerPre, layerVs, List.append_assoc]
 

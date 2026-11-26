@@ -26,12 +26,8 @@ not part of the statement:
 * `haltingRun`: the run of a memory image for the least number of steps after which it is in the
   final state (`Nat.find`); `haltingRunC` is the extractor's capped search with fresh indices,
   equal to it when the cap is large enough (`Halting.haltingRunC_eq_haltingRun`);
-* `stepC`, `runC`, `candidateExecution`: the step, run and a stack's execution with indices built
-  per call (`step`, `run` for `κ < 64`).
-
-These were the statement's own definitions before the extractor became computable
-(`committedWord`, `haltingRun`: `Statement/Extractor.lean` at `8e8e4d2f`, verbatim), or the
-specification-level forms of the extractor's pieces.
+* `stepC`, `runC`, `candidateExecution`: the step, run and a stack's execution with indices
+  built per call (`step`, `run` for `κ < 64`).
 -/
 
 namespace LeanVM.Extraction
@@ -41,7 +37,7 @@ open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir
 
 @[expose] public section
 
-/-! ## The code and the candidates (moved here from `Statement/Extractor.lean`, names kept) -/
+/-! ## The code and the candidates -/
 
 /-- The normalized subspace polynomial `Ŵ_i(a) = W_i(a) / W_i(x_{2^i})`. -/
 def normSubspacePoly (i : ℕ) (a : K) : K :=
@@ -58,6 +54,12 @@ def encode {μ : ℕ} (q : Vector K (2 ^ μ)) (u v : ℕ) : K :=
   ∑ j ∈ Finset.range (2 ^ (μ - initialFold)),
     q.getD (j + 2 ^ (μ - initialFold) * u) 0 * novelBasis j (K.ofBits v)
 
+/-- The columns, among the `2^(μ − 6 + R)` of the code at rate `2^-R`, at which the word `W`
+agrees with the encoding of `q` on every lane, a leaf holding lane `u` at word `63 − u`. -/
+def agreement {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ)) : Finset ℕ :=
+  (Finset.range (2 ^ (μ - initialFold + R))).filter fun v ↦
+    ∀ u : Fin (2 ^ initialFold), (W v).reverse.getD u 0 = encode q u v
+
 /-- The columns at which the word `W` agrees, on every lane `u`, with the level-0 polynomial of
 low part lane `u` of `q` and high part `W_κ·H_u`: `encode q u v + W_κ(x_v)·H_u(x_v)`. -/
 def agreementWith {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ μ))
@@ -71,7 +73,7 @@ parts `H_u` of degree below `6`, the lanes `encode q u + W_κ·H_u` (`κ = μ �
 degree at most `2^κ + 5` whose low part, their novel coefficients below `2^κ`, is lane `u` of
 `q`) agree with the word on at least `A` columns: the low parts of level 0's list at its
 degree `2^κ − 1 + 6`, which WHIR's soundness quantifies over. With `H = 0` a stack whose
-encoding agrees with the word is one. -/
+encoding agrees with the word is one (`agreement`). -/
 def Candidates (μ R A : ℕ) (W : ℕ → List K) : Set (Vector K (2 ^ μ)) :=
   {q | ∃ H : Fin (2 ^ initialFold) → Polynomial K, (∀ u, (H u).degree < initialFold) ∧
     A ≤ (agreementWith R W q H).card}

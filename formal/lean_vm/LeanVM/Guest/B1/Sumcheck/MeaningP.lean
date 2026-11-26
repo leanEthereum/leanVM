@@ -25,7 +25,7 @@ return words, the Fiat-Shamir sponge as the guest carries it (`Fs`, `B1/Common/S
 
 Each round's `fs_grind_squeeze` grinds `ROUND3_GRIND_BITS`, `ROUND5_GRIND_BITS`,
 `ROUND2_GRIND_BITS` bits, all zero as deployed (`grindingBits` of a degree at most `8`): its
-challenge is a plain squeeze (`Fs.grindSqueeze_zero`), and the window table `tabs` each takes is
+challenge is a plain squeeze (`Fs.grindSqueeze`), and the window table `tabs` each takes is
 not read.
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7`) holds a
@@ -43,15 +43,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- A record's five capacity cells, its fields `stride` words apart from offset `off`. -/
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
-
-theorem capAt_unique {rd : Reader} {rec : E} {off stride : ℕ} {c1 c2 : List E}
-    (h1 : CapAt rd rec off stride c1) (h2 : CapAt rd rec off stride c2) : c1 = c2 :=
-  List.ext_getElem (h1.1.trans h2.1.symm) fun j hj1 hj2 =>
-    loadHolds_unique (h1.2 j hj1) (h2.2 j hj2)
-
-theorem capAt_mul_gen_pow {rd : Reader} {rec : E} {a off stride : ℕ} {cap : List E} :
-    CapAt rd (rec * gen ^ a) off stride cap ↔ CapAt rd rec (a + off) stride cap := by
-  simp only [CapAt, loadHolds_mul_gen_pow, Nat.add_assoc]
 
 /-! ## `sumcheck_round4` (TRIAGE #30) -/
 

@@ -21,8 +21,8 @@ Facts about the transcriptions of `crates/verifier/src/multilinear.rs` at leanVM
   the *stable* sort of the indices by size (`mergeSort_range_stackLe`), and the offsets are the
   prefix sums of the heights in that order (`placeFold_getElem?`, `placeFold_snd`);
 * `log2Ceil_eq_clog`: `log2_ceil` is `Nat.clog 2`;
-* `stackPoint_aligned`, `stackPoint_strided`: a placed point is the claim's point followed by the
-  bits of the index above the window, the slot bits below the window for a strided placement.
+* `stackPoint_aligned`, `stackPoint_slice`: a placed point is the claim's point followed by the
+  bits of the index above the window, the slot bits below the window for a slice placement.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front

@@ -1,4 +1,4 @@
-//! What the library offers without the `sidecar` feature: proving and verifying here, and LeanDA's encoding.
+//! Proving and verifying, and LeanDA's encoding.
 
 use crate::{AggregateClaims, OutputClaims};
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -7,7 +7,7 @@ pub use aggregation::{AggregateError, AggregateProof};
 use isa::Prover;
 
 #[cfg(feature = "experimental_prover")]
-type P = experimental_lean_vm_core::ExperimentalProver;
+type P = experimental_dispatch::ExperimentalProver;
 #[cfg(not(feature = "experimental_prover"))]
 type P = stable_lean_vm_core::StableProver;
 
@@ -20,10 +20,10 @@ pub mod lean_da {
 }
 
 /// Call this function before generating / verifying proofs: it starts the prover's thread pool, with `threads` threads
-/// (0: one per core), and builds the aggregation program.
+/// (0: one per physical core), picks the experimental prover's CPU tier, and builds the aggregation program.
 ///
 /// # Panics
-/// If the pool already runs with another thread count.
+/// If the pool already runs with another thread count, or `LEANVM_TIER` names a tier this build does not run on this CPU.
 pub fn setup(threads: usize) {
     P::set_num_threads(threads);
     P::init();

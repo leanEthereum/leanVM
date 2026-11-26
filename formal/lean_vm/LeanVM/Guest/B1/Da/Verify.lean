@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.Verify
 
-  `da_verify`'s core IR gives its meaning (TRIAGE G #90).
+  `da_verify`'s core IR gives its meaning.
 -/
 
 module
@@ -26,7 +26,7 @@ import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
 `da_verify_sound_w`: under a call relation that unfolds at a frame map `Vm` and lies below
 `coreProgram.Rel`, on the count table at its argument, a run of `da_verify` returns the cells of a
 root and a challenge `z` that the witness `dvWit σ Vm` opens (`opens_of`); with `coreProgram.Rel`
-and a frame map by choice, `da_verify_holds : da_verify_sound_Spec`. `da_weights` makes the weights
+and a frame map by choice, `MeaningDaVerify` holds. `da_weights` makes the weights
 the dual codeword of `z` (`ws_sound`, `weightsAt_of`); the witness's row `i` is the symbols of blob
 `i`'s cell checks' frames (`blobSyms`, at the blob loop's iteration `i`, `dvBlobV`), orthogonal to
 the dual codeword, its root at `roots·g^(2i)` (`blob_stepW`); it mentions no hash. The tree is over
@@ -242,17 +242,5 @@ theorem da_verify_sound_w (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProg
   simp only [Prod.ext_iff] at hroot
   simp [digestCells, ← hroot.1, ← hroot.2, z]
 
-
-/-- **`da_verify`'s core IR gives its meaning.** -/
-theorem da_verify_holds : da_verify_sound_Spec := by
-  intro rd hm args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify _ _).mp hrel
-  have hp : (fn% «da_verify»).params.map σ = [σ (.n (val% «da_verify» "byte_bits"))] := rfl
-  rw [hp] at hpar
-  subst hpar
-  simp only [MeaningDaVerify]
-  intro hcw
-  obtain ⟨root, z, ho, hr⟩ := da_verify_sound_w (unfoldsV_rel rd) (fun _ _ _ h => h) hm hcw hb
-  exact ⟨_, root, z, ho, hr⟩
 end
 end LeanVM.Guest.B1.Da

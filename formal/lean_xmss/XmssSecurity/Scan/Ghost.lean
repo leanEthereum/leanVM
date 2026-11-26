@@ -1,24 +1,19 @@
 module
 
-public import XmssSecurity.Proof.CappedUnifiedExpectedDigest
-public import XmssSecurity.Proof.CappedEncodingGameTrace
-public import XmssSecurity.Scan.Frame
+public import XmssSecurity.Proof.CappedEncodingSourceImpl
 
 @[expose] public section
 
 /-!
 # The adversary phase with a ghost query count
 
-The traced handler of `cappedCacheTracedMappedAdversaryImpl`, extended with a count of the
-adversary's own hash queries (`impl`), the cost `overBudget` of a hash query made once the budget is
-spent, and the handler's per-query run, support and expectation facts. The budget theorems built on
-them are `Ghost.expectedSimulatedCost_overBudget` and `Ghost.expectedSimulatedQueryCount_source_le`
-in `XmssSecurity.Proof.OwnSecondLane`.
+The traced handler `cappedCacheTracedMappedAdversaryImpl`, extended with a count of the
+adversary's own hash queries (`impl`, `tick`), its steps through the source handler, and the cost
+`overBudget` of a hash query made once the budget is spent. `OwnSecondLane` proves that cost zero
+under the adversary's hash-query bound (`expectedSimulatedCost_overBudget`).
 -/
 
 open OracleComp OracleSpec ENNReal
-
-variable {α : Type}
 
 namespace XmssSecurity.Ghost
 

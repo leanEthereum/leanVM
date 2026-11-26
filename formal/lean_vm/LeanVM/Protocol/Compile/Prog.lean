@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.Compile.Prog
 
-  The interactive-oracle reading of the verifier language of `Statement.Verifier.Transcript`:
-  histories of prover messages, challenges and committed words, and the round-by-round certificate
-  whose escape probabilities the random-oracle theorem sums.
+  The interactive-oracle reading of the verifier language of `Statement.Verifier.Transcript`: histories
+  of prover messages, challenges and committed words, and the round-by-round certificate whose
+  escape probabilities the random-oracle theorem sums.
 -/
 
 module
@@ -11,8 +11,8 @@ module
 public import Statement.Verifier.Lib
 public import Statement.Prover.Script
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Protocol.Field
 public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 public import Mathlib.Basic.ENNReal.Operations

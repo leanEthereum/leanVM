@@ -228,7 +228,7 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     unfold leafSeg
     by_cases hc : w.children = []
     · simp only [hc, List.length_nil, ↓reduceIte]; exact SameStreams.refl _
-    · rw [ite_eq_right (fun h => hc (List.eq_nil_of_length_eq_zero h)), ite_eq_right hc]; exact ha hc
+    · rw [ite_neg' (fun h => hc (List.eq_nil_of_length_eq_zero h)), ite_neg' hc]; exact ha hc
   have hH : Hints.honestPushes bytecode seed s w = [("meta", [Hints.count s.claims.xmss.length,
       Hints.count (xPlan s w).duplicates.length, Hints.count w.xmssSignatures.length, Hints.count s.claims.sphincs.length,
       Hints.count (sPlan s w).duplicates.length, Hints.count w.sphincsSignatures.length,
@@ -252,33 +252,6 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
   refine (SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append
     ((SameStreams.refl _).append ((SameStreams.refl _).append ((SameStreams.refl _).append ?_)))))
   exact tail_sameStreams
-
-/-- **`main`'s node on an honest run pops the honest pushes**, stream by stream: at a valuation
-with `main`'s honest values, its callees popping entries agreeing with their segments (`main_pops_honest`). -/
-theorem main_tree_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w) {rd : Reader} {σ : Val}
-    {bufs : List ℕ} {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
-    (hv : MVals rd σ (hm fs fp seed s w))
-    (hk : Tree.popsKids coreProgram rd ks = mainKidPops (hm fs fp seed s w) pe px ps p0 p1 p2 p3 pd p5 pa pst)
-    (he : pe = []) (hst : pst = [])
-    (hx : SameStreams px (Hints.listPushes "claims"
-      (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2)))
-    (hs : SameStreams ps (Hints.listPushes "claims"
-      (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2)))
-    (h0 : SameStreams p0 ((xPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.root c.1.parameter c.2)))
-    (h1 : SameStreams p1
-      ((sPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.publicSeed c.1.root c.2)))
-    (h2 : SameStreams p2 ((w.xmssSignatures.zip (xPlan s w).directSlots).flatMap
-      (fun (c, slot) ↦ ("raw_index", [Hints.count slot]) :: Hints.xmssHints c.1.1 c.1.2 c.2)))
-    (h3 : SameStreams p3 ((w.sphincsSignatures.zip (sPlan s w).directSlots).flatMap
-      (fun (c, slot) ↦ ("sp_raw_index", [Hints.count slot]) :: Hints.sphincsHints c.1.1 c.1.2 c.2)))
-    (hd : w.daMatrix.isSome → SameStreams pd (daSeg w))
-    (h5 : SameStreams p5 (childSeg bytecode seed s w))
-    (ha : w.children ≠ [] → SameStreams pa (Hints.batchPushes w.batchingHints)) :
-    SameStreams ((Memory.Tree.node "main" σ bufs ks).pops coreProgram rd)
-      (Hints.honestPushes bytecode seed s w) := by
-  have hb : MainBounds (2 ^ 23) (hm fs fp seed s w) := hData_bounds hl fs fp
-  rw [main_pops hb.nd hb.nc hv hk]
-  exact main_pops_honest fs fp hl he hst hx hs h0 h1 h2 h3 hd h5 ha
 
 end
 end LeanVM.Guest.B1.Main

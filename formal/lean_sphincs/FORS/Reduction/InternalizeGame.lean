@@ -9,7 +9,7 @@ fixed-function form of the game from its uniform `SK.seed`. `Seeded.sign` only m
 (its randomizer derivation is 93 bytes), so the argument of `Reduction/Internalize` applies verbatim
 with `signingOracle`. -/
 
-open OracleComp OracleSpec ENNReal Common.QueryCount
+open OracleComp OracleSpec ENNReal
 
 namespace FORS.Security.Det
 
@@ -124,7 +124,7 @@ theorem BlockD.pure' (sk : FORS.Seeded.SecretKey) {β : Type} (value : β) :
     BlockD sk (pure value : OracleComp AdvSpec β) := by
   intro short long
   simp only [leftProgD, rightProgD, simulateQ_pure, StateT.run_pure, WriterT.run_pure, leftRun,
-    rightRun, countShort, countHashQueries, counted_pure,
+    rightRun, countShort, countHashQueries, QueryCap.counted_pure,
     StateT.run_pure, map_pure]
   rfl
 
@@ -209,8 +209,8 @@ theorem BlockD.long (sk : FORS.Seeded.SecretKey) {input : HashInput} (h : ¬IsSh
         simp only [StateT.run, privateRead, hc]
       rw [hread]
       simp only [leftRun, countShort, rightRun, countHashQueries, simulateQ_pure, WriterT.run_pure,
-        counted_pure, StateT.run_pure, map_pure]
-      rw [counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
+        QueryCap.counted_pure, StateT.run_pure, map_pure]
+      rw [QueryCap.counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
       change _ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long))) =ᵈ _
       rw [QueryImpl.withCaching_run_some _ (hlookup.trans hc)]
       simp [leftView, rightView, ShortQuery, h]

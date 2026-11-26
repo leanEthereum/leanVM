@@ -53,8 +53,8 @@ for a round that carries no witness) needs it consistent and sound (`Family.Soun
 restores a broken invariant at `d` values at most): a recorded polynomial that passes the check
 at a wrong claim is not the honest one, and two polynomials of degree `d` agree at `d` points at
 most (`card_filter_evaluate_eq_le`). Without the check, no extractor makes the challenge
-knowledge sound below error one (`drawChallenge_unchecked_one_le`). The oracles and the witness
-are passed through untouched.
+knowledge sound below error one (`unchecked_round_one_le`, `LeanVMTests/Protocol/Sumcheck.lean`).
+The oracles and the witness are passed through untouched.
 
 ArkLib's computable sumcheck (`Sumcheck.Impl.Representation.Message`, a polynomial with a
 degree bound queried by evaluation) sums its message over a unit-weight domain and is not an

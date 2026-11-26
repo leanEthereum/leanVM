@@ -1,6 +1,6 @@
 import LeanVM.Protocol.TableSumcheck
 import LeanVM.Protocol.Stack
-import LeanVMTests.Protocol.Toy
+import LeanVM.Protocol.Spine.Toy
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import CompPoly.Multivariate.Operations
 import Mathlib.Algebra.MvPolynomial.CommRing
@@ -18,7 +18,7 @@ totals those forms reach on the honest stack.
 * **The weights.** A table's weight at a point is `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m`,
   the deployed verifier's `weights[index]` (`crates/verifier/src/bus.rs` at leanVM
   `127510d1`).
-* **The target** (`tableSummand_target`). On the honest stack the sum of the summand over the
+* **The target** (`sum_tableSummand`). On the honest stack the sum of the summand over the
   cube is `Σ_s ξ^(B + s) · total_s`, the batch of the claimed values, nonzero; the true values are
   the claimed ones.
 * **An honest run** is accepted: each round's honest polynomial passes its check, the honest
@@ -196,7 +196,7 @@ def T : E := powerBatch (claimed twoTab x.1) ξ
 -- On the honest stack the true values are the claimed ones: the constraints' extensions are zero
 -- at `ζ` and the forms reach their totals.
 #guard ∀ k : Fin (twoTab.B + 3), trueValues twoTab x.1 honest k = claimed twoTab x.1 k
--- The sum of the summand over the cube is the target (`tableSummand_target`).
+-- The sum of the summand over the cube is the target (`sum_tableSummand`).
 #guard Sumcheck.weightedSum (tableSummand twoTab) Sumcheck.unitWeights ctx = T
 
 /-! ## Runs of the rounds

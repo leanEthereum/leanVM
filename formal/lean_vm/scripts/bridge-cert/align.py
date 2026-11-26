@@ -1,13 +1,13 @@
-"""The hint bridge's alignment checks (`LeanVM/Guest/Bridge/Align/*.lean`; a long function's context, `AlignCtx/*/*.lean`).
+"""The hint bridge's alignment contexts (`LeanVM/Guest/Bridge/Align/*.lean`; a long function's, `AlignCtx/*/*.lean`).
 
 The pass mirrors `Bridge.alignOk` (`LeanVM/Guest/Bridge/AlignDefs.lean`) over the generated data: a forward
 walk over each function's code pairing its flow hints, branches, table jumps, call sites and returns with
 body positions (zippers into the body), finding the cells only hints touch as `gen.py` does. It writes, per
-pack of the bundles, each function's context and the kernel's checks; a function longer than `WIN`
-instructions is checked in windows, the pass's state named at each window's end (`Bridge.KSt`), a module
-per window and one chaining them (`Bridge.alignOk_of_chain`). A function longer than `SLICE` instructions
-is checked in windows over slices of its code chunks and advice parts (`Bridge.alignOk_of_chainS`), its
-cells packed ahead in pieces (`Bridge.packSt`), so no module walks its whole code, advice or cells.
+pack of the bundles, each function's context and the kernel's checks of its hint-only cells; the alignment
+itself follows from the core route's pairing (`core-mode/pair.py`, `CoreMode.alignOk_of_pairOk`). A function
+longer than `WIN` instructions has a context of its own (`AlignCtx/<fn>/`), its checks but the pass
+(`alignPreOk`) apart; one longer than `SLICE` instructions has its cells packed ahead in pieces
+(`Bridge.packSt`), so no module walks its whole cells.
 `--check` writes nothing and fails when a file is stale.
 
     python3 -I scripts/bridge-cert/align.py [--check]
@@ -406,12 +406,11 @@ def render(pack, fns):
         k = f['key']
         if cells == '[]':
             thms.append(f'align_chk% «{k}»\n'); continue
-        thms += [(k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
-                  'decide +kernel'),
-                 (k, 'alignOk', f'Bridge.alignOk alignCtx core.body code.code Fn.«{k}».advice = true',
-                  'decide +kernel')]
+        thms.append((k, 'alignCellsOk', f'Bridge.cellsFresh cert.locs (Bridge.plumbCells plumb) {cells} = true',
+                     'decide +kernel'))
     return (HEAD(mod=f'LeanVM.Guest.Bridge.Align.«{pack}»',
-                        what=f"The kernel's checks that compiled functions of pack {pack[1:]} align with their bodies.")
+                        what=f"The alignment contexts of the compiled functions of pack {pack[1:]}, their hint-only cells "
+                             "fresh; their alignment follows from their pairings (`CoreMode/AlignOk/`).")
             + imports([m for f in fns for m in bases(f, pack)] + [glue_a(f['key']) for f in fns] + ['LeanVM.Guest.Bridge.ChkLit'])
             + 'set_option linter.style.nameCheck false\n\nnamespace LeanVM.Guest\n\n@[expose] public section\n\n'
             + ''.join(c for _, c in ctxs) + '\nend\n\nend LeanVM.Guest\n\n' + data.fn_thms(thms))
@@ -451,7 +450,7 @@ end
 def cell_wins(key, pack):
     """The certificate's cell lists of a function, by name, with their cells."""
     blk = data.bundle_blocks()[key][1]
-    text = blk + ''.join(data.read_text(p)
+    text = blk + ''.join(open(p, encoding='utf-8').read()
                          for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', key, 'Cells*.lean'))))
     ds = defs(text)
     env = lambda n: parse(ds[n])
@@ -614,7 +613,7 @@ def run(check):
         files.update(render_sliced(p, f, n) if n else render_win(p, f))
     existing = set(glob.glob(os.path.join(OUT, '*.lean'))) | set(glob.glob(os.path.join(OUTW, '*', '*.lean'))) | \
         set(glob.glob(os.path.join(OLDW, '*', '*.lean')))
-    stale = genfiles.sync(files, existing, check)
+    stale = genfiles.sync(data.quiet(files), existing, check)
     print(f'bridge-cert: {sum(len(v) for v in packs.values()) + len(wins)} of {len(texts)} functions align, '
           f'{len(wins)} in windows ({sum(1 for w in wins if w[2])} over slices), {len(files)} modules')
     genfiles.fail_if_stale(stale, check, data.LEAN_VM)

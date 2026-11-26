@@ -30,14 +30,14 @@ variable (P : MachineProgram)
 
 /-! ## Counts and limbs -/
 
-/-- `List.range n` and a `List.map` over it (`range.loop`, `map`), the closure's price at
+/-- `List.range n` and a `List.map` over it (`range.loop.c57`, `map.c53`), the closure's price at
 most `B` on `k < n`, `n ≤ M`: at most `(B + 28)·M + 8`. -/
 theorem rangeMap_le {β : Type} [MachineEncoding β]
-    (hr : Includes P Auto.List.range.loop.costDeps) (hm : Includes P Auto.List.map.costDeps)
+    (hr : Includes P Auto.List.range.loop.c57.costDeps) (hm : Includes P Auto.List.map.c53.costDeps)
     (f : ℕ → β) (fV : MachineValue) (hf : ∀ a, RunsApp P fV [encodeValue a] (encodeValue (f a)))
     (B n M : ℕ) (hn : n ≤ M) (hM : M < 2 ^ 64) (hB : ∀ k < n, appCost P fV [encodeValue k] ≤ B) :
-    machineCost P Auto.List.range.loop.costIdx [encodeValue n, encodeValue ([] : List ℕ)] +
-      machineCost P Auto.List.map.costIdx [fV, encodeValue (List.range n)] ≤
+    machineCost P Auto.List.range.loop.c57.costIdx [encodeValue n, encodeValue ([] : List ℕ)] +
+      machineCost P Auto.List.map.c53.costIdx [fV, encodeValue (List.range n)] ≤
         (B + 28) * M + 8 := by
   have h1 := rangeLoop_cost P hr n [] (by omega)
   have h2 := map_cost P hm f fV hf B (List.range n) (fun k hk ↦ hB k (List.mem_range.1 hk))
@@ -137,9 +137,6 @@ theorem sphincsClaimOf_cost (hP : Includes P Decoder.sphincsClaimOfC.costDeps) (
 
 /-! ## The memory's cells -/
 
-theorem length_readCells (rd : Reader) (p : E) (n : ℕ) : (readCells rd p n).length = n := by
-  simp [readCells]
-
 section Reader
 
 variable {rd : Reader} {rdV : MachineValue}
@@ -201,7 +198,7 @@ theorem daDigestAt_cost (hP : Includes P Decoder.daDigestAtC.costDeps) (k : ℕ)
   have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k) (by omega)
   have := cellAt_cost P hrd hR (by includes) (σ (.n (val% «main» "da_digests"))) (2 * k + 1) hk
   rw [digestOfCells_cost P (by includes)]
-  limbs
+  limbs_one
   omega
 
 end Val

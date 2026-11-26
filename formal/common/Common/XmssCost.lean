@@ -9,7 +9,7 @@ public import Statement.LeanXmss
 # leanXMSS's worst-case permutation calls
 
 Bounds on every path (`QueryCostAtMost`, in calls of `π`) of the statement's leanXMSS over `π`:
-key generation (`keygen_cost`), the signer of one request, its randomizer grinding at the cap of
+key generation (`keygenFromSeed_cost`), the signer of one request, its randomizer grinding at the cap of
 `2^32` trials per layer included (`sign_cost`), and the verifier (`verify_cost`). Every tweakable
 hash hashes at most `32 + 952` bytes, so makes at most `8` calls (`th_cost`); the bounds are crude,
 and only serve to keep the whole game's calls below `2^128` (`Common.SufCma.stronglyUnforgeable_of_romBoundAdv`).
@@ -27,10 +27,6 @@ open LeanXmss
 
 /-- The permutation calls of a tweakable hash. -/
 def thCost : ℕ := 8
-
-theorem littleEndianBytes_length (n : ℕ) (v : BitVec (8 * n)) :
-    (littleEndianBytes n v).length = n := by
-  simp [littleEndianBytes]
 
 theorem thInput_length (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     (thInput parameter fields payload).length = 32 + payload.length := by

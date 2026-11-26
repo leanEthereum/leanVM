@@ -27,8 +27,8 @@ Annex B until `127510d1`): for `x ∈ D_{κ,R}` the weight
   extension is `CMlPolynomialEval.eval₂Mle` into `E`, the one `answer_eqWeight` speaks of.
 
 `colWeightE κ x` packages the two as a `Weight E κ` of the inner-product interface
-(`LeanVM.Protocol.ToArkLib.InnerProduct`), whose evaluator is the product; `enc_eq_pair` reads
-a codeword entry as `Weight.pair` against the message table `msgTable g`.
+(`LeanVM.Protocol.ToArkLib.InnerProduct`), whose evaluator is the product; `msgTable g` is the
+message as a table.
 
 **The verifier**, `crates/verifier/src/whir.rs`: `subspaceRoots` transcribes
 `subspace_roots` and `inducedWeight` transcribes `induced_weight`, line by line: the roots

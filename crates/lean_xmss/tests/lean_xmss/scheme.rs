@@ -57,9 +57,12 @@ fn cache_round_trip() {
     assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &bytes[1..]).is_none());
 
     // Tampered bytes are refused: a top node, a bottom tree's index, a bottom node, its signature.
-    let top_len = 1 << 12;
-    let bottom_len = (bytes.len() - top_len) / 2;
-    for at in [0, top_len, top_len + bottom_len - 1, top_len + 4] {
+    for at in [
+        0,
+        CACHED_TREE_SIZE,
+        CACHED_TREE_SIZE + CACHED_BOTTOM_SIZE - 1,
+        CACHED_TREE_SIZE + 4,
+    ] {
         let mut tampered = bytes.clone();
         tampered[at] ^= 1;
         assert!(
@@ -70,6 +73,34 @@ fn cache_round_trip() {
     // So is another key's cache.
     let (_, other_pk) = key_gen(&[9; 32]);
     assert!(LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &other_pk, &bytes).is_none());
+}
+
+/// The cache keeps as many bottom trees as set, the most recently used.
+#[test]
+fn cache_keeps_the_set_number_of_bottom_trees() {
+    let seed = [3; SECRET_KEY_LEN];
+    let (sk, pk) = key_gen(&seed);
+    let cached = |sk: &LeanXmssExpandedSecretKey| {
+        sk.cache_to_bytes()[CACHED_TREE_SIZE..]
+            .chunks(CACHED_BOTTOM_SIZE)
+            .map(|b| b[0])
+            .collect::<Vec<_>>()
+    };
+    let size = DEFAULT_BOTTOM_TREE_CACHE_SIZE as u8 + 1;
+    sk.set_bottom_tree_cache_size(size.into());
+    for tree in 0..=size {
+        sk.prepare(u32::from(tree) << LAYER_HEIGHT);
+    }
+    assert_eq!(cached(&sk), Vec::from_iter(1..=size));
+
+    // A loaded key keeps every saved tree, even beyond the default size.
+    let loaded = LeanXmssExpandedSecretKey::from_cache_bytes(&seed, &pk, &sk.cache_to_bytes()).unwrap();
+    assert_eq!(loaded.cache_to_bytes(), sk.cache_to_bytes());
+
+    // Using a tree makes it the most recently used; shrinking keeps the most recently used.
+    sk.prepare(u32::from(size - 1) << LAYER_HEIGHT);
+    sk.set_bottom_tree_cache_size(2);
+    assert_eq!(cached(&sk), [size, size - 1]);
 }
 
 /// Pins a full key's public key and one signature's bytes, so that a change to the

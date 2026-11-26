@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Front
 public import LeanVM.Guest.B1.VerifySub.Proof
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.B1.Whir.Names
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
@@ -90,7 +90,7 @@ theorem vsTailT_holds {m : ℕ} (hm20 : Whir.minOpenLog ≤ m) (hm30 : m ≤ 30)
     LoadHolds rd (σ (.n (val% «verify_sub» "defer_out"))) 23 (σ (.n (val% «verify_sub» "bc_value"))) := by
   rw [vsTailT, List.flatMap_def, List.flatMap_def] at h
   simp only [holdsList_append] at h
-  rw [holdsList_range_flatten 19 _ (fun _ ↦ rfl), holdsList_range_flatten 4 _ (fun _ ↦ rfl)]
+  rw [Tables.tb_holdsList_range_flatten 19 _ (fun _ ↦ rfl), Tables.tb_holdsList_range_flatten 4 _ (fun _ ↦ rfl)]
     at h
   simp only [vsTabsT, Stmt.HoldsList, Stmt.Holds, vsMul, vsConst, vsLd, Atom.Holds, List.map_nil] at h
   obtain ⟨e1918, m1919, c1920, m1921, ⟨j, hj, hj278, hc⟩, cT, hz, hb, l580, hr⟩ := h

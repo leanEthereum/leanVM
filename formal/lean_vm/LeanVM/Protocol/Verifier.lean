@@ -10,13 +10,13 @@ module
 public import Statement.Verifier.Lib
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 
 /-!
 # The verifier on its files
 
-The verifier is `Statement.Verifier.Lib`'s. This module adds the decoders `lake exe leanvm-verify`
+The verifier is `Statement.Verifier.Lib`. This module adds the decoders `lake exe leanvm-verify`
 and `lake exe leanvm-prove` need to run it on the files the Rust prover's proofs are written to
 (`scripts/export-verifier-fixtures-rust.sh`).
 -/

@@ -1,7 +1,8 @@
 module
 
-public import XmssSecurity.Scan.Reach
-public import XmssSecurity.Proof.CappedEncodingRejection
+public import XmssSecurity.Proof.ValidDigests
+public import XmssSecurity.Proof.StatementLemmas
+public import XmssSecurity.Scan.LoopWalk
 
 @[expose] public section
 
@@ -18,7 +19,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Partner
 
-open Common.LoopWalk LoopWalk
+open LoopWalk
 
 /-- The probability that a fresh uniform output truncates to a valid digest. -/
 noncomputable def landing : ℝ≥0∞ :=

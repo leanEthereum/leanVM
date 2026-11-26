@@ -1,6 +1,7 @@
 module
 
 public import FORS.Classification.Accepted
+public import FORS.LazyRun.FixedRun
 
 @[expose] public section
 
@@ -16,7 +17,6 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
 /-! ### The honest counter is the canonical one -/

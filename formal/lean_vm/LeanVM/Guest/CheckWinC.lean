@@ -12,9 +12,9 @@ public import LeanVM.Guest.ExecC
 /-!
 # A window's check by chunks
 
-`checkWinC G j` is `checkWin G (fnOf j)` with the window's code read by `B2C.execWinC`, which
+`checkWinC G j` is `checkWin G (fnOf j)` with the window's code read by `B2C.execWinCS`, which
 skips the whole chunks before the window instead of walking the flattened code; the two agree
-(`checkWinC_eq`, by `B2C.execWinC_eq`), so the kernel decides `WinOk` through it (`winOk_of_C`).
+(`checkWinC_eq`), so the kernel decides `WinOk` through it (`winOk_of_C`).
 `Link j G f cf C` carries a check over a function's own view `G` (`checkWinCF`, `CheckView.lean`)
 to `WinOk` (`Link.win`).
 `Checked.Plain j` says function `j`'s windows take nothing from obligations.
@@ -26,7 +26,7 @@ open LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `checkWin` of function `j`, the window's code read by `execWinC`. -/
+/-- `checkWin` of function `j`, the window's code read by `execWinCS`. -/
 noncomputable def checkWinC (G : Glob) (j : ℕ) (cf : Core.Fn) (C : Cert) (main : Bool) (i : ℕ) :
     Bool :=
   checkWinCF G (fnOf j) cf C main i

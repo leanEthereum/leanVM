@@ -720,8 +720,11 @@ theorem fnode_value (level : Nat) (hlevel : level ≤ forsHeight) (nd : FLeaf)
         fnode_input f parameter seed labels index κ level hlevel nd hglobal,
         Completeness.forsNodeValue_succ f parameter index κ seed level nd.val (by omega)]
       rw [ih (by omega) _ (by change 2 * nd.val < _; omega), ih (by omega) _ hchildren]
-      congr 4
-      exact Fin.ext (Nat.mod_eq_of_lt nd.isLt).symm
+      exact congrArg (fun d : FLeaf => truncateHash (f (tweakableHashInput parameter
+        (.forsNode index κ ⟨level, by omega⟩ d)
+        (nodePayload (Completeness.forsNodeValue f parameter index κ seed level (2 * nd.val))
+          (Completeness.forsNodeValue f parameter index κ seed level (2 * nd.val + 1))))))
+        (Fin.ext (Nat.mod_eq_of_lt nd.isLt).symm)
 
 /-- The FORS public key as a graph label: `T_k` of the tree roots, at `froots`. -/
 def keyLabels : Digest := truncateHash (labels (.froots index))

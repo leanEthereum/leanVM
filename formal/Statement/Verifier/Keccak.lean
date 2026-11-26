@@ -12,13 +12,7 @@ A claim is a weighted sum of the bits of one state per segment, the weight of bi
 `eq(point, (y, m)) · weights[j] · mu[i]`; each layer turns a claim on the states after a round into
 one on the states before it.
 
-**Representation.**
-
-* `RMFE_EMBED` and `RMFE_PROJECT` (`keccak.rs`) are copied as written (`rmfeEmbed`,
-  `rmfeProject`); `lean_vm` derives them from seven irreducible moduli and checks the derivation
-  equal to them (`LeanVM/Protocol/Keccak/RmfeDerive.lean`). A binary polynomial is a natural
-  number, bit `i` the coefficient of `x^i`.
-* The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
+The weight array `g` of `linear_transpose` is an array here, set where the Rust sets it.
 -/
 
 @[expose] public section
@@ -40,18 +34,29 @@ def productBits : ℕ := 2 * embedBits - 1
 
 /-! ### The embedding (`RMFE_EMBED`, `RMFE_PROJECT`, `keccak.rs`) -/
 
-/-- `RMFE_EMBED` (`keccak.rs`): each unit vector's embedding, a binary polynomial of degree at
-most `23`; a product of two embeddings projects to the AND of what they embed. -/
+/-- `RMFE_EMBED` (`keccak.rs`): sixteen bits embed in a binary polynomial of degree at most `23`,
+bit `i` of a number the coefficient of `x^i`; entry `i` is the embedding of unit vector `i`. -/
 def rmfeEmbed : List ℕ :=
   [0x40c50b, 0x7f79f2, 0x4b4e0a, 0x72740c, 0x5357da, 0x1d1c9e, 0x04be6e, 0x785246, 0x097cdc,
     0x109e7e, 0x1f1454, 0x213cfc, 0x4cfcc8, 0x775770, 0x187386, 0x818a16]
 
-/-- `RMFE_PROJECT` (`keccak.rs`): per bit of the projection, the product coefficients it is the
-parity of. -/
+/-- `RMFE_PROJECT` (`keccak.rs`): a product of two embeddings projects to the AND of what they
+embed; bit `i` of the projection is the parity of the product's coefficients in mask `i`. -/
 def rmfeProject : List ℕ :=
   [0x1, 0x7fffffffffff, 0x274e9d3a74e9, 0x1d3a74e9d3a7, 0x65cb972e5cb9, 0x5cb972e5cb97,
     0x6690aec7cd21, 0x5d8f9a42bb1f, 0x73485763e690, 0x3750967c6ea1, 0x12cf8dd4259f,
     0x1ba84b3e3750, 0x0ad0c9f715a1, 0x064fb8ad0c9f, 0x456864fb8ad0, 0x400000000000]
+
+/-- The loop of `carryless`: while `b ≠ 0`, add `a` if `b`'s low bit is set, then shift. -/
+def carrylessAux : (fuel a b out : ℕ) → ℕ
+  | 0, _, _, out => out
+  | fuel + 1, a, b, out =>
+    if b = 0 then out
+    else carrylessAux fuel (a <<< 1) (b >>> 1) (if b % 2 = 1 then out ^^^ a else out)
+
+/-- `carryless a b`: the product of two binary polynomials, the cost machine's carry-less
+product (`CostMachine.lean`). -/
+def carryless (a b : ℕ) : ℕ := carrylessAux b a b 0
 
 /-! ### Claims and the round's linear map (`keccak.rs`) -/
 

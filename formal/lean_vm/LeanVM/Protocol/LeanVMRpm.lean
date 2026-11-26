@@ -1,9 +1,9 @@
 /-
   LeanVM.Protocol.LeanVMRpm
 
-  The random-permutation model's transfer from the two-oracle random-oracle model, and the proof of
-  `LeanVM.Completeness` (`Statement/LeanVmCompleteness.lean`); knowledge soundness is assembled from
-  it in `LeanVM/Protocol/LeanVMRpmAS.lean`.
+  The random-permutation model's transfer from the two-oracle random-oracle model, and the proof
+  of `LeanVM.Completeness` (`Statement/LeanVm.lean`); knowledge soundness is assembled from it in
+  `LeanVM/Protocol/LeanVMRpmAS.lean`.
 -/
 
 module
@@ -13,7 +13,6 @@ import LeanVM.Protocol.ErrorBounds
 import Common.Linear
 public import LeanVM.Protocol.Rpm.Cost
 public import LeanVM.Protocol.Rpm.Duplex
-import LeanVM.Protocol.Rpm.Extract
 import LeanVM.Protocol.Rpm.RomRelabel
 import LeanVM.Protocol.Rpm.RpmRelabel
 public import LeanVM.Protocol.WithHash
@@ -40,13 +39,13 @@ the game makes at most `Q + verifierPermCalls` permutation calls (`isWeightBound
 a cost of `q² / 2^508`; there, the adversary's cached Keccak-256 answers are the evaluations of its
 transcript (`transcriptHashes_eq_of_mem_support`, `Extract.lean`) and the random-oracle adversary
 `romAdv` makes at most `Q` oracle queries (`isWeightBound_romAdv`). The bound is
-`soundnessErrorAS Q + (Q + verifierPermCalls)² / 2^508`, within the end statement's
+`soundnessErrorAS Q + (Q + 13708 · 2^30)² / 2^508`, within the end statement's
 (`soundnessRpmAS_le_statement`, `LeanVM.Protocol.LeanVMSoundAS`).
 
 **Completeness** (`completenessRpm`): the same game with no adversary and, after it, the honest
 prover of `CompletenessRom` followed by the verifier, both following the duplex discipline
-(`duplexVm_honest`), of at most `completenessPermCalls fuel` permutation calls
-(`isWeightBound_romHonest`): the rejection probability is at most
+(`duplexVm_romHonestComp`, `duplexVm_verifier`), of at most `completenessPermCalls fuel`
+permutation calls (`isWeightBound_romHonest`): the rejection probability is at most
 `completenessError fuel + completenessPermCalls fuel² / 2^508`, below `2^-256` at a fuel of `2^35`
 (`completenessRpm_le`).
 
@@ -297,7 +296,7 @@ namespace LeanVM
 
 /-! ## The statements of `Statement/LeanVm.lean` -/
 
--- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.leanVmHonestProver`, is proved in
+-- `LeanVM.completeness_holds`, for the statement's prover `LeanVM.Prover.prove`, is proved in
 -- `LeanVM/Prover/End.lean` from `completeness_of_spec` (`LeanVM/Prover/Complete.lean`).
 
 /-- Keccak-256 over the deployed Keccak-f[1600] is the deployed Keccak-256, and `common`'s

@@ -5,11 +5,20 @@ public import XmssSecurity.Proof.Seeded.Presampling
 
 @[expose] public section
 
+/-!
+# Preparing every signature in advance
+
+`prepareSigning` runs a signer on every request of a finite type through the random oracle, after
+which the cache resolves each request to the prepared answer (`resolves_prepareSigning`).
+Presampling it and erasing the queries it fixes shows that memoization keeps the output distribution
+of a signing run (`evalDist_runSigning_memoize`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
 
-open DeterministicSigning Common.RomTable
+open DeterministicSigning
 
 /-- Preparing finitely many deterministic computations fixes every result in the final cache. -/
 theorem resolves_sequenceFin {α : Type} {n : Nat} (computations : Fin n → OracleComp HashSpec α)
@@ -53,8 +62,8 @@ theorem evalDist_runSigning_memoize {α : Type} (sign : Request → OracleComp H
     (computation : OracleComp (OracleWorld + (Request →ₒ Answer)) α) (cache : QueryCache HashSpec) :
     ((simulateQ romImpl (runSigning sign computation)).run' cache) =ᵈ ((simulateQ romImpl (runSigning sign (memoize computation ∅))).run' cache) := by
   let preparation : OracleComp OracleWorld (Request → Answer) := liftM (prepareSigning sign)
-  refine (evalDist_presample_computation romImpl _ preparation cache).trans (EvalDistEq.trans ?_
-    (evalDist_presample_computation romImpl (runSigning sign (memoize computation ∅)) preparation cache).symm)
+  refine (evalDist_presample_computation _ preparation cache).trans (EvalDistEq.trans ?_
+    (evalDist_presample_computation (runSigning sign (memoize computation ∅)) preparation cache).symm)
   apply OracleComp.EvalDistEq.bind_congr_of_support
   intro prepared hprepared
   have hrun : simulateQ romImpl preparation = simulateQ randomOracle (prepareSigning sign) :=

@@ -97,6 +97,12 @@ theorem frobPhi_sub (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) (a
     frobPhi s f g (a - b) = frobPhi s f g a - frobPhi s f g b :=
   map_sub (frobPhiHom s f g) a b
 
+/-- The two-stage map commutes with finite sums. -/
+theorem frobPhi_sum (s : ℕ) {n m : ℕ} (f : Fin n → R) (g : Fin m → R) {ι : Type*}
+    (S : Finset ι) (a : ι → R) :
+    frobPhi s f g (∑ i ∈ S, a i) = ∑ i ∈ S, frobPhi s f g (a i) :=
+  map_sum (frobPhiHom s f g) a S
+
 /-- A Frobenius power of the inner stage: `Ψ(a)^(2^t) = Σ_b g_b^(2^t) · a^(2^(t + b))`. -/
 theorem frobPsi_pow {m : ℕ} (g : Fin m → R) (a : R) (t : ℕ) :
     frobPsi g a ^ 2 ^ t = ∑ b : Fin m, g b ^ 2 ^ t * a ^ 2 ^ (t + (b : ℕ)) := by

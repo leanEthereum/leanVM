@@ -7,7 +7,7 @@
 module
 
 public import Mathlib.Order.MinMax
-public import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.List
 
 namespace LeanVM.Guest.B1
 

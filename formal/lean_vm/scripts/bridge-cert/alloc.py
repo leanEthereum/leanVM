@@ -4,9 +4,8 @@ Per module of alignment checks `align.py` writes, each function's `Bridge.allocC
 plumbing, body, code and advice, by `decide +kernel`; per link module of `Guest/Checked`, each function's
 `Bridge.AllocJ` (`Bridge.allocJ_of`, reusing the `Checked` and `ProgAl` link equations); and the assembly over every
 function (`AllocChk/All.lean`). The check is mirrored here (`chk`), so that a function failing it fails here, naming
-why. Run after `progal.py`; `--check` writes nothing and fails when a file is stale.
-
-    python3 -I scripts/bridge-cert/alloc.py [--check]
+why. `checks.py` writes them, a hash pack's and a link module's checks in one module with the other checks'
+(`Bridge/Chk/`).
 """
 import os, re, sys, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -480,7 +479,8 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
     return sorted(cs), sorted(bad)
 
 
-def run(check):
+def gen():
+    """The files, and the paths this check owns on disk."""
     ctxs, lk = progal.contexts(), progal.links()
     n = max(lk) + 1
     fns, adv, cores, bund = align.functions(), data.advice(), data.core_texts(), data.bundles()
@@ -543,23 +543,21 @@ def run(check):
         def fr_thm(j, k):
             # the callees by their indices as the glue names them (`Fn.«k».idx`), not as numbers
             cs = '[' + ', '.join(f'Fn.«{lk[c][0]}».idx' for c in frd[j][0]) + ']'
-            # only a window's frame check is a module of its own; it decides the fast form (`Bridge.frChk_of_fast`)
-            return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true',
-                     'rw [alignCtxEq]\napply Bridge.frChk_of_fast\ndecide +kernel')]
+            return [(k, 'frOk', f'Bridge.frChk alignCtx fs {cs} core.params core.body Fn.«{k}».advice = true', prf)]
 
+        def thm(j, k):
+            pre = [] if win else body_thm(j, k) + fr_thm(j, k)
+            return (shape(k) if not win else []) + pre + [
+                (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
+                 prf)]
         def thm1(j, k):
-            if win:
-                # the window's shape, body and frame checks are modules of their own (below); the code's check runs
-                # over its jumps listed once (`Bridge.allocRest_of_fast`)
-                return [(k, 'allocOk',
-                         f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
-                         'rw [alignCtxEq]\napply Bridge.allocRest_of_fast\ndecide +kernel')]
-            # the four checks in one command (`Bridge/ChkLit.lean`)
+            # the common case in one command (`Bridge/ChkLit.lean`)
+            if win or prf != 'decide +kernel': return thm(j, k)
             return ['alloc_chk%% «%s» [%s]\n' % (k, ', '.join('«%s»' % lk[c][0] for c in frd[j][0]))]
         body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
-            + 'public import LeanVM.Guest.Bridge.AllocFast\nimport all Statement.Data.AdviceHints\n'
+            + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n'
             + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.ChkLit\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
@@ -669,11 +667,5 @@ end
 
 end LeanVM.Guest.Bridge.AllocChk
 ''')
-    existing = set(glob.glob(os.path.join(OUT, '*.lean')))
-    stale = genfiles.sync(files, existing, check)
     print(f'bridge-cert: the allocation hints of {len(passed)} functions over {len(groups)} link modules')
-    genfiles.fail_if_stale(stale, check, data.LEAN_VM)
-
-
-if __name__ == '__main__':
-    run('--check' in sys.argv[1:])
+    return data.quiet(files), set(glob.glob(os.path.join(OUT, '*.lean')))

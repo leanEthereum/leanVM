@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Complete.BusFramework
 public import LeanVM.Protocol.Keccak.Multilinear
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The bytecode's share
@@ -39,7 +40,7 @@ open LeanVM.Prover (Script)
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Complete LeanVM.Protocol.EndToEnd.Front Finset
-open LeanVM.Protocol.KeccakGkr (multilinearEval_eq)
+open LeanVM.Protocol.KeccakGkr (multilinearEval_eq eqKernel_length)
 
 @[expose] public section
 
@@ -109,9 +110,9 @@ theorem shareClaim_split (w z acc : List E) (hw : w.length = 16) (hacc : acc.len
     ← sum_add_distrib, shareClaim]
   rw [show 2 ^ (4 - acc.length) = 2 * 2 ^ (4 - (acc.length + 1)) by
     rw [← pow_succ', show 4 - (acc.length + 1) + 1 = 4 - acc.length by omega],
-    Verifier.sum_range_two_mul]
+    Finset.sum_range_two_mul]
   refine sum_congr rfl fun i _ ↦ ?_
-  simp only [add_zero, mul_one, mul_zero, CharTwo.add_self_eq_zero]
+  simp only [add_zero, mul_one, mul_zero, CharTwo.add_self_eq_zero (1 : E)]
   ring
 
 /-- **After the rounds the claim is the product** of the two extensions at the challenges. -/
@@ -124,7 +125,7 @@ theorem shareClaim_full (w z r : List E) (hr : r.length = 4) :
 /-- The weights' extension is the verifier's `dot(eq_kernel(r), w)`. -/
 theorem multilinearEval_eq_dot (w r : List E) (hw : w.length = 16) (hr : r.length = 4) :
     multilinearEval w r = dot (eqKernel r) w := by
-  have h := Verifier.dot_eqKernel r w (by rw [hw, hr]; norm_num)
+  have h := KeccakGkr.dot_eqKernel r w (by rw [hw, hr]; norm_num)
   rw [show (eqKernel r).take w.length = eqKernel r by
     rw [List.take_of_length_le (by rw [eqKernel_length, hw, hr]; norm_num)]] at h
   rw [h, multilinearEval_eq r w (by rw [hw, hr]; norm_num), hr, hw]

@@ -52,7 +52,7 @@ theorem reg_at {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L) {T
     (hT : ∀ i, RegionL L i → T i) {p : E} {a off : ℕ} (hp : p = ptr a) (h1 : b ≤ a + off)
     (h2 : a + off < b + ws.length) :
     ∃ i, p.limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex i ∧ T i :=
-  ⟨a + off, by rw [hp]; exact Value.limb0_ofK_addressOfIndex_mul a off, hT _ ⟨(b, ws), hq, h1, h2⟩⟩
+  ⟨a + off, by rw [hp]; exact Main.addr_ofK a off, hT _ ⟨(b, ws), hq, h1, h2⟩⟩
 
 namespace VkData
 

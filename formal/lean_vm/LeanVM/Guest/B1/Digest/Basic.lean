@@ -15,9 +15,7 @@ public import LeanVM.Guest.Value.KeccakSponge
 
 * `holdsList_atoms_ret`: a body of atoms then a `ret` holds exactly when every atom does and the
   returned words are the continuation's.
-* `padCells_getD_lt`, `padCells_getD_last`: the cells a whole-cell message of `16 m` bytes is
-  absorbed from are its cells, then the padding cell `0x01 … 0x80` (`padCellWord`).
-* `digestScalars_ofCells`: two cells' lanes are the digest of those cells.
+* `padCells_getD_lt`: a message cell away from the two padding bytes' cells is absorbed as is.
 * `VDec.vDecEq` (scoped): equality of values by their indices first, for the checkers.
 -/
 
@@ -55,12 +53,6 @@ theorem forall_mem_flatMap_range {α : Type} {n : ℕ} {f : ℕ → List α} {P 
   simp only [List.mem_flatMap, List.mem_range, forall_exists_index, and_imp]
   exact ⟨fun h i hi a ha => h a i hi ha, fun h a i hi ha => h i hi a ha⟩
 
-/-! ## `y` and `y⁻¹` -/
-
-/-- `y` and `y⁻¹` as the guest's words. -/
-abbrev wY : E := word 0 1
-abbrev wYi : E := word 2 1
-
 /-! ## The padding of a whole-cell message -/
 
 /-- The padding cell of a message of whole cells, `len = 16 m` with `16 m ≡ 8 (mod 136)`, … in
@@ -72,15 +64,6 @@ theorem padCells_getD_lt (cells : List E) (len : ℕ) {i : ℕ} (hi : i < cells.
   rw [List.getD_eq_getElem?_getD, List.getElem?_modify, List.getElem?_modify,
     List.getElem?_append_left hi]
   simp [Ne.symm h1, Ne.symm h2, List.getD_eq_getElem?_getD]
-
-/-! ## Digests as cells -/
-
-theorem digestScalars_ofCells (a b : E) :
-    digestHalves #v[(a.limb 0).lane, (a.limb 1).lane, (b.limb 0).lane, (b.limb 1).lane] =
-      (a, b) := by
-  simp only [digestHalves, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
-    List.getElem_cons_succ, K.ofLane_lane]
-  rw [← eq_ofLimbs a, ← eq_ofLimbs b]
 
 end
 end LeanVM.Guest.B1.Digest

@@ -37,10 +37,16 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 /-- The address word of `Parameters.addressOfIndex b`. -/
 noncomputable abbrev ptr (b : ℕ) : E := ofK (Parameters.addressOfIndex b)
 
+theorem ptr_mul_gen_limb (b j off : ℕ) : (ptr b * gen ^ j).limb 0 * Parameters.addressOfIndex off = Parameters.addressOfIndex (b + j + off) := by
+  have e : ptr b * gen ^ j = ofK (Parameters.addressOfIndex (b + j)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
+        Parameters.addressOfIndex, pow_add]
+  rw [e, Main.addr_ofK]
+
 /-- A load at `ptr b·g^j + off` inside an entry `(b, ws)` of a layout. -/
 theorem inR_entry {L : Main.Layout} {b : ℕ} {ws : List E} (hq : (b, ws) ∈ L) {j off : ℕ}
     (h : j + off < ws.length) : InR (RegionL L) (ptr b * gen ^ j) off :=
-  ⟨b + j + off, limb0_ofK_mul_gen_pow_mul b j off, ⟨(b, ws), hq, by simp; omega, by simp; omega⟩⟩
+  ⟨b + j + off, ptr_mul_gen_limb b j off, ⟨(b, ws), hq, by simp; omega, by simp; omega⟩⟩
 
 theorem memL_entry {rd : Reader} {L : Main.Layout} (h : MemL rd L) {b : ℕ} {ws : List E}
     (hq : (b, ws) ∈ L) : ReadsAt rd (ptr b) ws := h _ hq

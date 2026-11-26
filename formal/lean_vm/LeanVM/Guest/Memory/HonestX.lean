@@ -25,9 +25,6 @@ is consistent, and agrees with the honest writes where they meet.
 header and certificate cell reads back (`Covers.read_cell`, `read_hdr`, `read_C`), and the
 evaluation is valid (`Covers.valid`), which are the only facts of the honest memory B2's
 completeness reads.
-
-`xcross_of_reader`: writes read off a reader the tree is valid on agree with the equations; with
-their words outside every frame they agree with the honest writes.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -45,10 +42,6 @@ noncomputable def honestWrites : List Write := frameWrites C (honestInsts P fs H
 /-- **The honest memory extended by the writes `X`.** -/
 noncomputable def honestX (X : List Write) : MemoryImage (logMem (T.total fs)) :=
   image (logMem (T.total fs)) (honestWrites P fs H C hdr T ++ X)
-
-theorem honestX_nil : honestX P fs H C hdr T [] = honest P fs H C hdr T := by
-  unfold honestX honest honestWrites
-  rw [List.append_nil]
 
 /-- What the extension needs beyond `Honest`: `X` names words of the memory, is consistent, and
 agrees with the honest writes. -/
@@ -141,24 +134,6 @@ theorem HonestX.publicBoundary {input : PublicInput} {prog : Semantics.LeanIsaPr
 
 /-- The words of a reader at the addresses `A`. -/
 def readerWrites (rd : Reader) (A : List K) : List Write := A.map fun a => (a, (rd a).getD 0)
-
-/-- **Writes read off a reader are consistent with the equations** of a tree valid on it, and with
-the frames where they miss every frame word. -/
-theorem xcross_of_reader {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} (hv : T.Valid P M.read args rets)
-    (ha : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ κ), q.1 = addressOfIndex i) {A : List K}
-    (hA : ∀ a ∈ A, (M.read a).isSome)
-    (hfr : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ A, a.1 ≠ b) :
-    ∀ a ∈ honestWrites P fs H C hdr T, ∀ b ∈ readerWrites M.read A, a.1 = b.1 → a.2 = b.2 := by
-  intro a ha' b hb hab
-  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hb
-  rcases List.mem_append.mp ha' with hf | he
-  · exact absurd hab (hfr a hf c hc)
-  · have h1 := Tree.Valid.eqns_read hκ T hv a he (ha a he)
-    obtain ⟨w, hw⟩ := Option.isSome_iff_exists.mp (hA c hc)
-    simp only at hab ⊢
-    rw [hab] at h1
-    rw [hw] at h1 ⊢
-    exact (Option.some.inj h1).symm
 
 theorem readerWrites_consistent (rd : Reader) (A : List K) : Consistent (readerWrites rd A) := by
   intro a ha b hb hab

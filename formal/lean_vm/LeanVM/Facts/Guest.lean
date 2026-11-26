@@ -53,7 +53,7 @@ structure Work where
   rawDa : ℕ
   /-- Their rows: the blobs held directly. -/
   rawDaRows : ℕ
-  /-- Their padded heights (`LeanDa.nPad` of their rows). -/
+  /-- Their padded height (`LeanDa.maxRows`). -/
   rawDaPad : ℕ
   /-- The children. -/
   children : ℕ

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Place.LpProof
 
-  `level_positions` complete placed at every specialization: `level_positions_completeAt`.
+  `level_positions` placed at every frame pointer (`lp_placed`).
 -/
 
 module
@@ -12,7 +12,6 @@ public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Whir.Commit
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_positions`, placed
@@ -21,8 +20,7 @@ import LeanVM.Guest.StmtsAppend
 allocated, the capacity stored in row `1`, the decoders' group, the last row loaded and
 returned); on every memory holding its squeeze run (`lpSqzW`: row `j ≥ 1` the capacity after
 `j - 1` squeezes), the decoders' runs and the caller's words, it relates its arguments to the last
-capacity in `lpN` words, the group placed by `os_sq_group`. `level_positions_completeAt`: every
-entry of `lpTable`, its decoder's placed completeness `qwDecodeAtD_holds`.
+capacity in `lpN` words, the group placed by `os_sq_groupE`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -140,16 +138,16 @@ theorem lpRow_squeeze {cap : List E} {j : ℕ} (hj : 1 ≤ j) :
 /-- The body before its `ret`. -/
 def lpPreB (d cd : ℕ) (loop : String) : List Stmt :=
   [osCst 10 (gw 1), osMul 11 9 10, osMul 12 11 11, osMul 13 12 12, osMul 14 13 11,
-    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ⧺
-    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ⧺
-    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ⧺
-    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ⧺
-    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ⧺
-    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ⧺
+    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ++
+    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ++
+    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
+    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ++
+    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ++
+    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ++
     ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i))
 
 theorem lpBody_pre (d cd : ℕ) (loop : String) :
-    lpBody d cd loop = lpPreB d cd loop ⧺ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
+    lpBody d cd loop = lpPreB d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
   rfl
 
 theorem lpPreB_straight (d cd : ℕ) (loop : String) :
@@ -180,6 +178,11 @@ theorem lp_limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := 
   conv_lhs => rw [eq_ofLimbs p]
   rw [ofLimbs_mul_ofK]
   rfl
+
+theorem lp_addr (b e t : ℕ) : (ofK (addressOfIndex b) * gen ^ e).limb 0 * addressOfIndex t =
+    addressOfIndex (b + e + t) := by
+  rw [gen_pow_eq_ofK, lp_limb0_mul_ofK, limb_ofK]
+  simp only [Fin.val_zero, ↓reduceIte, Parameters.addressOfIndex, ← pow_add]
 
 theorem lp_logG_gw {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gw e) = e := by
   rw [Whir.gw_eq (by unfold u128Bound; omega), logG_gen_pow he]
@@ -270,7 +273,7 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
       · have := (hM.2 j hj i hi).1
         rw [hpo, pow_zero, mul_one, ← pow_mul, loadHolds_mul_gen_pow]
         exact this)
-    (fun j hj1 hj t ht ↦ ⟨sqzE + j * 5 + t, by rw [← pow_mul, limb0_ofK_mul_gen_pow_mul],
+    (fun j hj1 hj t ht ↦ ⟨sqzE + j * 5 + t, by rw [← pow_mul, lp_addr],
       ⟨(sqzE, W), List.mem_cons_self, by omega, by rw [hW, lpSqzW_length]; omega⟩⟩)
     (fun j hj t ht ↦ by
       have ht' : t < P := ht
@@ -453,9 +456,9 @@ theorem lp_placedE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ
         Function.comp] at hA
       rcases hA with ⟨i, hi, rfl⟩ | ⟨i, hi, rfl⟩
       · refine ⟨sqzE + (5 + i), ?_, Or.inl (hown _ (by omega))⟩
-        rw [h15, hsqz, Value.limb0_ofK_addressOfIndex_mul]
+        rw [h15, hsqz, Main.addr_ofK]
       · refine ⟨sqzE + S * 5 + i, ?_, Or.inl ?_⟩
-        · rw [h22, hsqz, limb0_ofK_mul_gen_pow_mul]
+        · rw [h22, hsqz, lp_addr]
         · rw [Nat.add_assoc]; exact hown _ (by omega))
     (fun i hi => Or.inr hi) (splice_nil_of _ _ hnw (by simp))
     (exactAt_of_walk hf hwalk fun e he => evs_exact_of_hints (σ := σ) (pre := lpPreB d cd loop)
@@ -495,18 +498,6 @@ theorem lpTable_facts : ∀ e ∈ lpTable,
     digitsVal (osPowDigits (128 / e.2.2.1)) 1 = 128 / e.2.2.1 ∧
     (dqwName e.2.2.1 e.2.2.2, e.2.2.1, e.2.2.2) ∈ queryWindowsShapes := by
   decide +kernel
-
-/-- **`level_positions` is complete placed at every specialization.** -/
-theorem level_positions_completeAt : level_positions_completeAt_Spec := by
-  intro fs cert κ hfit hcons hκ e he S hS hSB
-  obtain ⟨hlp, hl⟩ := lpTable_ok e he
-  obtain ⟨hpw, hmem⟩ := lpTable_facts e he
-  have hdec := qwDecodeAtDE_holds hfit hcons hκ _ hmem
-  intro w0 cap ep ew tabs Lin hcl hreg hregt hmemL fp
-  obtain ⟨Lown, hW, hD, hR⟩ := lp_placed fs cert κ hlp hl hS
-    (by rw [show ordG = 2 ^ 64 - 1 from rfl]; omega) hSB hpw hdec hcl fp
-    (fun k hk ↦ hreg fp k hk) (hregt fp) (fun rd hlow hm ↦ hmemL fp rd hlow hm)
-  exact ⟨lpN fs e.1 e.2.1 S e.2.2.1 e.2.2.2, Lown, hW, hD, fun B hB ↦ absurd hB (by simp), hR⟩
 
 end
 end LeanVM.Guest.B1

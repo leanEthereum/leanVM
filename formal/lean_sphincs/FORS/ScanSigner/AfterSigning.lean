@@ -117,7 +117,6 @@ open Concrete Completeness Prefix HiddenGraph HiddenCost HiddenDebt ForsSigner
 
 attribute [local instance] Classical.propDecidable
 
-
 /-- A reveal is a FORS position the digest opens, or not a FORS position at all. -/
 def ForsOk (digest : MessageDigest) (x : Coordinate) : Prop :=
   ∀ i κ l q, x = .fors i κ l q → i = digestIndex digest ∧ l = digestLeaves digest κ

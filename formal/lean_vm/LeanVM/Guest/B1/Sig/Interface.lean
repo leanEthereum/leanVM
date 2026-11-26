@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.Interface
 
-  The interface of B1's signature verifiers at the guest's `coreProgram`: `InterfaceP.lean`'s
-  statements instantiated, the functions found, and the call relation's consequences.
+  B1's signature verifiers at the guest's `coreProgram`: the functions found, and the call
+  relation unfolded to a body.
 -/
 
 module
@@ -20,10 +20,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- **`verify_sig_lean_sphincs` is sound** in the guest's `coreProgram` (`InterfaceP.lean`). -/
-def verify_sig_lean_sphincs_sound_Spec (sigOf : Val → FrameMap → Sphincs.Signature) : Prop :=
-  verify_sig_lean_sphincs_sound_SpecP coreProgram sigOf
-
 /-! ## The functions, found -/
 
 theorem verify_sig_lean_sphincs_params : (fn% «verify_sig_lean_sphincs»).params = [.n (val% «verify_sig_lean_sphincs» "signer"), .n (val% «verify_sig_lean_sphincs» "byte_bits")] :=
@@ -38,7 +34,7 @@ theorem find_verify_sig_lean_sphincs :
     coreProgram.find? "verify_sig_lean_sphincs" = some fn% «verify_sig_lean_sphincs» :=
   coreProgram_find?_at (j := idx% «verify_sig_lean_sphincs») rfl
 
-/-! ## The call relation, from the statements -/
+/-! ## The call relation -/
 
 variable {rd : Reader}
 
@@ -49,17 +45,6 @@ theorem rel_iff_body {name : String} {fn : Fn} (h : coreProgram.find? name = som
         Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs => rs = rets) := by
   rw [rel_iff]
   simp only [h, Option.some.injEq, exists_eq_left', Fn.Sem]
-
-/-- **A call of `verify_sig_lean_sphincs`** on a memory image of at most `2^32` words takes two
-arguments, returns nothing, and when the second holds the byte table the claim at the first is
-signed. -/
-theorem verify_sig_lean_sphincs_signed {sigOf : Val → FrameMap → Sphincs.Signature}
-    (hs : verify_sig_lean_sphincs_sound_Spec sigOf) {κ : ℕ} {L : MemoryImage κ} (hκ : κ ≤ 32)
-    {args rets : List E} (h : coreProgram.Rel L.read "verify_sig_lean_sphincs" args rets) :
-    ∃ p bb, args = [p, bb] ∧ rets = [] ∧ (ByteBits L.read bb → SphincsSigned L.read p) := by
-  obtain ⟨σ, hp, hb⟩ := (rel_iff_body find_verify_sig_lean_sphincs args rets).mp h
-  obtain ⟨hr, ho⟩ := hs _ (relV L.read) L hκ (unfoldsV_rel L.read) σ rets hb
-  exact ⟨σ (.n 0), σ (.n 1), by rw [← hp]; rfl, hr, fun hbb => ⟨_, ho hbb⟩⟩
 
 end
 end LeanVM.Guest.B1.Sig

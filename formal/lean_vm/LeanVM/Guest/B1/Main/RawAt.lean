@@ -31,8 +31,7 @@ table at `bb`.
 
 Both loops place nothing (`raw3_pure`: `main_loop2`'s prelude and epilogue by evaluation, its inline
 leanXMSS check `Sig.xSeg` a leaf); on such a memory each runs by a tree loading from `Lin` only
-(`rawX_relIn`, `rawS_relIn`, by induction from the last iteration and `relIn_of_walk`), so they
-are `CompleteAtD` (`completeAtD_of_relIn`): `rawX_completeAt`, `rawS_completeAt`, from every
+(`rawX_relIn`, `rawS_relIn`, by induction from the last iteration and `relIn_of_walk`), from every
 counter below the count, with the arguments `main` passes (`main_loop2`'s: `l2ArgsAt`, the four
 words and `main`'s tags `lxTagWords`).
 
@@ -107,7 +106,7 @@ theorem guard_taken {i n : ℕ} (hn : n < 2 ^ 34) (hi : i + 1 ≤ n) :
   rw [word_gen, gen_pow_mul_gen]
   refine decide_eq_decide.mpr ⟨fun h he => h (by rw [he]; exact e_add_eq_zero_iff.mpr rfl),
     fun h he => h ?_⟩
-  exact gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp he)
+  exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp he)
 
 /-! ## `main_loop2` -/
 
@@ -377,14 +376,6 @@ theorem raw3_pure : coreProgram.PureIn [name% «main_loop2»] := by
   rw [hp, hp, Lift.leafOkList_pure _ _ Lift.xSeg_leafOk]
   decide +kernel
 
-/-- **`main_loop2` is complete, placed**, from every counter below the count. -/
-theorem rawX_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
-    (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb : ℕ} {Lin : Layout}
-    (D : RawXData nrx X cv tb Lin) (hX : X ≤ 2 ^ 23) (hnrx : nrx < 2 ^ 34) :
-    ∀ i < nrx, CompleteAtD fs cert 23 name% «main_loop2» Lin
-      ([gen ^ i, gen ^ nrx, gen ^ X, gen ^ cv, gen ^ tb] ++ lxTagWords) (Returns []) := fun i hi =>
-  Lift.completeAtD_of_relIn raw3_pure (by simp) fun rd hl hL => rawX_relIn hc D hX hnrx hl hL i hi
-
 /-! ## `main_loop3` -/
 
 /-- `main_loop3`'s valuation at the counter `g^j`. -/
@@ -466,16 +457,6 @@ theorem rawS_relIn (hc : Sig.SphincsCompleteSpecs)
             | exact ih (j + 1) (by omega)
   intro j hj
   exact key (nrs - j - 1) j (by omega)
-
-/-- **`main_loop3` is complete, placed**, from every counter below the count. -/
-theorem rawS_completeAt (fs : String → ℕ) (cert : String → V → ℕ)
-    (hc : Sig.SphincsCompleteSpecs) {nrs Y X nrx cv tb bb : ℕ}
-    {Lin : Layout} (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23) (hnrs : nrs < 2 ^ 34) :
-    ∀ j < nrs, CompleteAtD fs cert 23 name% «main_loop3» Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb]
-      (Returns []) := fun j hj =>
-  Lift.completeAtD_of_relIn raw4_pure (by simp) fun rd hl hL =>
-    rawS_relIn hc D hY hnrs hl hL j hj
 
 end
 end LeanVM.Guest.B1.Main

@@ -1,6 +1,6 @@
 module
 
-public import Common.LoopWalk
+public import FORS.ScanSigner.LoopWalk
 public import FORS.Base.VirtualMono
 
 @[expose] public section
@@ -24,7 +24,7 @@ open ENNReal
 
 namespace FORS.LoopWalk
 
-open Common.LoopWalk FORS.Base.Domination FORS.Security.Domination
+open FORS.Base.Domination FORS.Security.Domination
 
 variable {α V : Type} [Fintype α] [DecidableEq α] (σ : Equiv.Perm α) (p : ℝ≥0∞) (A : ℕ) (U : Finset V)
 

@@ -10,9 +10,8 @@ public import LeanVM.Cost.Decoder.Memory
 quotient `q / p` limb by limb (`limbQuotC`, an inverse in `GF(2^64)`), its logarithm, kept when
 at most `2^32` and `q = p · a`.
 
-* **`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
-  word-sized: at most `Lg + 3214`;
-* **`cursorLenWith_le`**: the length is at most `2^32`, for every logarithm.
+**`cursorLength_cost`**: the logarithm (`discreteLogWithC`) at most `Lg`, its logarithms
+word-sized: at most `Lg + 3214`.
 -/
 
 namespace LeanVM.Cost.Bounds
@@ -22,19 +21,6 @@ open LeanVM.Cost LeanVM.Cost.Decoder LeanVM.Parameters LeanVM.Guest.Fast LeanVM.
 public section
 
 variable (P : MachineProgram)
-
-/-- **The cursor's length is at most `2^32`**, for every logarithm `dl`. -/
-theorem cursorLenWith_le (dl : K → Option ℕ) (p q : E) : cursorLenWith dl p q ≤ 2 ^ 32 := by
-  unfold cursorLenWith
-  dsimp only
-  generalize dl (limbQuot p q) = o
-  rcases o with _ | n
-  · simp
-  · rw [Option.filter_some]
-    split_ifs with h
-    · simp only [decide_eq_true_eq] at h
-      simpa using h.1
-    · simp
 
 /-- The quotient limb by limb (`limbQuotC`): an inverse in `GF(2^64)` and `46`, at most `2869`. -/
 theorem limbQuot_cost (hP : Includes P limbQuotC.costDeps) (p q : E) :
@@ -58,7 +44,7 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
   have h1 := limbQuot_cost P (by includes) p q
   have h2 : appCost P (.closure cursorLengthC.lam0.costIdx [encodeValue D])
       [encodeValue (limbQuot p q)] ≤ Lg + 4 := by
-    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P,
+    rw [appCost_fn, List.singleton_append, cursorLengthC.lam0.costEq P (by includes),
       List.length_singleton]
     have := hLg (limbQuot p q)
     omega
@@ -75,7 +61,9 @@ theorem cursorLength_cost (hP : Includes P cursorLengthC.costDeps) (D : Discrete
     have hn := hD _ n ho
     have h3 : appCost P (.closure cursorLenWithC.lam0.costIdx
         [encodeValue p, encodeValue q, encodeValue (limbQuot p q)]) [encodeValue n] ≤ 307 := by
-      cost_app [cursorLenWithC.lam0.costEq P, Nat.one_shiftLeft,
+      rw [appCost_fn]
+      simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+      rw [cursorLenWithC.lam0.costEq P (by includes), Nat.one_shiftLeft,
         limbs_of_lt hn, limbs_two_pow (by norm_num)]
       simp only [max_self]
       split_ifs <;> omega

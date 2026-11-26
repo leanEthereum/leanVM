@@ -66,12 +66,5 @@ theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : L
   rw [hsyms, hws, ← hd]
   exact hret.symm
 
-/-- **`da_verify_cell`'s core IR gives its meaning.** -/
-theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
-  intro rd args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify_cell _ _).mp hrel
-  obtain ⟨lv, rfl, hsl, hrd, hwl, hrets⟩ := da_verify_cell_val hpar hb
-  exact ⟨cellSymsOf σ, memRun rd lv 128, hsl, hrd, hwl, hrets⟩
-
 end
 end LeanVM.Guest.B1.Da

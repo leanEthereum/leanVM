@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
@@ -67,7 +67,7 @@ theorem tbGSquaresBits_eq : tbGSquaresBits.map K.ofBits = tbSquares tbSizeBits g
 
 theorem length_tbGSquaresBits : tbGSquaresBits.length = tbSizeBits := rfl
 
-/-- **The `g_tbSquares` constants**: word `j < 34` is `g^(2^j)` in `K`. -/
+/-- **The `tbGSquaresBits` constants**: word `j < 34` is `g^(2^j)` in `K`. -/
 theorem ofBits_tbGSquaresBits (j : ℕ) (hj : j < tbSizeBits) :
     K.ofBits (tbGSquaresBits.getD j 0) = g ^ 2 ^ j := by
   have h := congrArg (fun l : List K ↦ l[j]?) tbGSquaresBits_eq

@@ -1,7 +1,8 @@
 module
 
-public import FORS.Classification.Reference
 public import FORS.Scheme.DigestView
+public import FORS.Classification.Wots
+public import FORS.Classification.Fors
 
 @[expose] public section
 

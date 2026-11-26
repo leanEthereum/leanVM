@@ -45,9 +45,9 @@ local notation "σv" => vtσ rd w args
 
 /-- A slice of one hint. -/
 theorem vt_hintSlice (n : ℕ) {h : Hint}
-    (heq : stmtsEqb [.atom (.hint h)] ((vtAt n).take 1) = true) :
+    (heq : tbStmtsEqb [.atom (.hint h)] ((vtAt n).take 1) = true) :
     ∀ s ∈ (vtPre.drop n).take 1, VSH (coreProgram.Rel rd) rd σv s := by
-  rw [vtPre_drop, ← stmtsEqb_sound heq]
+  rw [vtPre_drop, ← tbStmtsEqb_sound heq]
   intro s hs
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
   subst hs
@@ -55,9 +55,9 @@ theorem vt_hintSlice (n : ℕ) {h : Hint}
 
 /-- A template read at `vtAt`, holding, gives its slice. -/
 theorem vt_tmplSlice {P : Stmt → Prop} {n : ℕ} {blk : List Stmt}
-    (heq : stmtsEqb blk ((vtAt n).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
+    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
     ∀ s ∈ (vtPre.drop n).take blk.length, P s := by
-  rw [vtPre_drop, ← stmtsEqb_sound heq]; exact h
+  rw [vtPre_drop, ← tbStmtsEqb_sound heq]; exact h
 
 set_option maxRecDepth 10000 in
 /-- **Statements `s17.u0.s0#0 ..< block_index_mle`.** -/
@@ -66,12 +66,12 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
     (hkb : ∀ t < 6, σv (.n ((val% «verify_tables» "kb[2]") + t)) = gen ^ τ t)
-    (hz : ReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
+    (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point) (h9 : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length)
     (hrows : ∀ t < 6, LoadHolds rd (σv (.n (val% «verify_tables» "table_rows"))) t (eOfNat (n t)))
-    (hsq : ReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
+    (hsq : TbReadsAt rd (σv (.n (val% «verify_tables» "g_squares"))) gSquaresList)
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
-    (hidxc : ReadsAt rd (w 767) vtIdxcW) (hz1 : ReadsAt rd (w 802) (point.map (1 + ·)))
+    (hidxc : TbReadsAt rd (w 767) vtIdxcW) (hz1 : TbReadsAt rd (w 802) (point.map (1 + ·)))
     (hw704 : w 803 = 0)
     (hrun : ∀ t < 6, RunTables rd (w (vtShV t + 11)) (w (vtShV t + 15))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
@@ -87,7 +87,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
       ∀ t < 6, σv (.n (vtEqV t)) = w (vtShV t + 11) ∧ σv (.n (vtGV t)) = w (vtShV t + 15) := by
   have e668 : σv (.n (val% «verify_tables» "idxc_tab")) = w 767 := vt_allocAt hl 714 (k := 34) (by decide +kernel)
   have e703 : σv (.n (val% «verify_tables» "zeta1")) = w 802 := vt_allocDynAt hl 783 (s := .n (val% «verify_tables» "g_bus_mu")) (by decide +kernel)
-  have hz1' : ReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)) := by rw [e703]; exact hz1
+  have hz1' : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)) := by rw [e703]; exact hz1
   -- the pads
   have hpad : ∀ t < 5, (∀ st ∈ vtPadT (681 + 13 * t) t, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (681 + 13 * t + 5)) = paddingWeight (point.take (τ t)) (n t) := by
@@ -99,7 +99,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     rw [show vtPadV t = 681 + 13 * t + 5 by unfold vtPadV; ring] at w5 w6 w7
     exact pad_ok hlow (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad_check t ht)) (vtPad_read t ht)
       (hkb t (by omega)) (hrows t (by omega))
-      (readsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
+      (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
       (by omega) w5 w6 (by rw [show 681 + 13 * t + 7 = 681 + 13 * t + 5 + 2 by ring]; exact w7)
   have hpad5 : (∀ st ∈ vtPad5T 746, VSH (coreProgram.Rel rd) rd σv st) ∧
       σv (.n (val% «verify_tables» "pad_weight[5]")) = paddingWeight (point.take (τ 5)) (n 5) := by
@@ -115,7 +115,7 @@ theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     rw [List.nil_append] at hgb
     exact pad5_ok hlow (by norm_num) (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad5_check)) hgb vtPad5_read
       (hkb 5 (by norm_num)) (hrows 5 (by norm_num))
-      (readsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
+      (tbReadsAt_take hz (τ 5)) (by simp; exact hτμ 5 (by norm_num)) (hτ31 5 (by norm_num))
       (hτ 5 (by norm_num)) w5 w6 w7
   -- the shared tables
   -- the shared tables

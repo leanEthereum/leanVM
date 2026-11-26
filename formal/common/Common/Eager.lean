@@ -24,6 +24,37 @@ open scoped ENNReal
 
 namespace Common
 
+section RandomOracle
+
+variable {κ : Type} [DecidableEq κ] {O : OracleSpec.{0, 0} κ} [∀ t : O.Domain, SampleableType (O.Range t)]
+
+theorem randomOracle_run_comm (t d : κ) (ht : t ≠ d) (c : O.QueryCache) (u : O.Range d) :
+    Prod.map id (fun c' ↦ c'.cacheQuery d u) <$> (O.randomOracle t).run c =
+      (O.randomOracle t).run (c.cacheQuery d u) := by
+  rw [randomOracle.run_eq, randomOracle.run_eq, QueryCache.cacheQuery_of_ne _ _ ht]
+  rcases h : c t with _ | v
+  · simp only [map_bind, map_pure, Prod.map_apply, id_eq]
+    refine bind_congr fun w ↦ ?_
+    rw [QueryCache.cacheQuery_comm _ (Ne.symm ht)]
+  · simp
+
+theorem mem_support_randomOracle_run {t : κ} {c : O.QueryCache} {z}
+    (hz : z ∈ support ((O.randomOracle t).run c)) : z.2 = c ∨ ∃ v, z.2 = c.cacheQuery t v := by
+  rw [randomOracle.run_eq] at hz
+  rcases h : c t with _ | v
+  · simp only [h, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
+    obtain ⟨w, -, rfl⟩ := hz
+    exact Or.inr ⟨w, rfl⟩
+  · simp only [h, support_pure, Set.mem_singleton_iff] at hz
+    subst hz
+    exact Or.inl rfl
+
+theorem unifFwd_run (n : ℕ) (c : O.QueryCache) :
+    (unifFwdImpl O n).run c = (·, c) <$> (unifSpec.query n : ProbComp (Fin (n + 1))) := by
+  simpa using unifFwdImpl.simulateQ_run (hashSpec := O) (unifSpec.query n : ProbComp (Fin (n + 1))) c
+
+end RandomOracle
+
 section Eager
 
 variable {ι : Type} [DecidableEq ι] {hs : OracleSpec.{0, 0} ι}
@@ -43,39 +74,6 @@ noncomputable def eagerImpl (g : {d // P d} → R) :
   | .inr (.inr d) =>
       if h : P d then StateT.mk fun c ↦ pure (((c (.inr d)).getD (g ⟨d, h⟩)), c)
       else (hs + (D →ₒ R)).randomOracle (.inr d)
-
-omit [SampleableType R] [Fintype R] [Nonempty R] [Fintype {d // P d}] in
-theorem randomOracle_run_comm (t : ι ⊕ D) (d : D) (ht : t ≠ .inr d)
-    (c : (hs + (D →ₒ R)).QueryCache) (u : R) [SampleableType R] :
-    Prod.map id (fun c' ↦ c'.cacheQuery (.inr d) u) <$>
-        ((hs + (D →ₒ R)).randomOracle t).run c =
-      ((hs + (D →ₒ R)).randomOracle t).run (c.cacheQuery (.inr d) u) := by
-  rw [randomOracle.run_eq, randomOracle.run_eq, QueryCache.cacheQuery_of_ne _ _ ht]
-  rcases h : c t with _ | v
-  · simp only [map_bind, map_pure, Prod.map_apply, id_eq]
-    refine bind_congr fun w ↦ ?_
-    rw [QueryCache.cacheQuery_comm _ (Ne.symm ht)]
-  · simp
-
-omit [Fintype R] [Nonempty R] [Fintype {d // P d}] in
-theorem mem_support_randomOracle_run {t : ι ⊕ D} {c : (hs + (D →ₒ R)).QueryCache} {z}
-    (hz : z ∈ support (((hs + (D →ₒ R)).randomOracle t).run c)) :
-    z.2 = c ∨ ∃ v, z.2 = c.cacheQuery t v := by
-  rw [randomOracle.run_eq] at hz
-  rcases h : c t with _ | v
-  · simp only [h, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-    obtain ⟨w, -, rfl⟩ := hz
-    exact Or.inr ⟨w, rfl⟩
-  · simp only [h, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
-    exact Or.inl rfl
-
-omit [Fintype R] [Nonempty R] [Fintype {d // P d}] in
-theorem unifFwd_run (n : ℕ) (c : (hs + (D →ₒ R)).QueryCache) :
-    (unifFwdImpl (hs + (D →ₒ R)) n).run c =
-      (·, c) <$> (unifSpec.query n : ProbComp (Fin (n + 1))) := by
-  simpa using unifFwdImpl.simulateQ_run (hashSpec := hs + (D →ₒ R))
-    (unifSpec.query n : ProbComp (Fin (n + 1))) c
 
 omit [Fintype R] [Nonempty R] [Fintype {d // P d}] in
 /-- Coins leave the cache unchanged. -/
@@ -119,7 +117,8 @@ theorem run'_eagerImpl_cacheQuery (g : {d // P d} → R) (d : D) (hd : P d) (u :
     · change _ <$> (unifFwdImpl _ n).run s =ᵈ (unifFwdImpl _ n).run _
       rw [unifFwd_run, unifFwd_run, Functor.map_map]
       exact EvalDistEq.rfl
-    · exact (randomOracle_run_comm (.inl t) d (by simp) s u) ▸ EvalDistEq.rfl
+    · exact (randomOracle_run_comm (O := hs + (D →ₒ R)) (.inl t) (.inr d) (by simp) s u) ▸
+        EvalDistEq.rfl
     · simp only [eagerImpl]
       split
       · next hd' =>
@@ -131,7 +130,8 @@ theorem run'_eagerImpl_cacheQuery (g : {d // P d} → R) (d : D) (hd : P d) (u :
           have : (⟨d', hd'⟩ : {d // P d}) ≠ ⟨d, hd⟩ := fun h ↦ hdd (congrArg Subtype.val h)
           simp [Function.update_of_ne this]
       · next hd' =>
-        exact (randomOracle_run_comm (.inr d') d (by rintro ⟨⟩; exact hd' hd) s u) ▸ EvalDistEq.rfl
+        exact (randomOracle_run_comm (O := hs + (D →ₒ R)) (.inr d') (.inr d)
+          (by rintro ⟨⟩; exact hd' hd) s u) ▸ EvalDistEq.rfl
 
 /-- Resampling one cell of a uniform table, in distribution. -/
 theorem uniform_update_evalDistEq {α : Type} (d : {d // P d})

@@ -8,10 +8,9 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTables
-import LeanVM.Guest.StmtsAppend
 
 /-!
-# `sel_eq_nibble`, `sel_g_nibble` (TRIAGE G #45, #46)
+# `sel_eq_nibble`, `sel_g_nibble`
 
 Both are `@inline`: their atoms sit in their callers (`sel_partial_nibble`,
 `shared_selector_tables`'s loop), numbered from a first value.
@@ -45,7 +44,7 @@ def nbLv (B t i : ℕ) : ℕ :=
 
 /-- Level `t ≥ 1`: the coordinate and its complement, then the products. -/
 def nbLevel (B : ℕ) (pz pz1 : V) (t : ℕ) : List Stmt :=
-  [.atom (.load (.n (nbM B t - 2)) pz t), .atom (.load (.n (nbM B t - 1)) pz1 t)] ⧺
+  [.atom (.load (.n (nbM B t - 2)) pz t), .atom (.load (.n (nbM B t - 1)) pz1 t)] ++
   ((List.range (2 ^ t)).map fun i ↦
     [.atom (.mul (.n (nbM B t + 2 * i)) (.n (nbLv B (t - 1) i)) (.n (nbM B t - 1))),
       .atom (.mul (.n (nbM B t + 2 * i + 1)) (.n (nbLv B (t - 1) i)) (.n (nbM B t - 2)))]).flatten
@@ -57,8 +56,8 @@ def nbEqV (B e : ℕ) : ℕ :=
 
 /-- `sel_eq_nibble(out, z, z1, w)` from value `B`, `1 ≤ w ≤ 4`. -/
 def nbEq (B : ℕ) (pz pz1 peq : V) (w : ℕ) : List Stmt :=
-  [.atom (.load (.n B) pz1 0), .atom (.load (.n (B + 1)) pz 0)] ⧺
-    ((List.range (w - 1)).map fun t ↦ nbLevel B pz pz1 (t + 1)).flatten ⧺
+  [.atom (.load (.n B) pz1 0), .atom (.load (.n (B + 1)) pz 0)] ++
+    ((List.range (w - 1)).map fun t ↦ nbLevel B pz pz1 (t + 1)).flatten ++
     (List.range (2 ^ (w + 1) - 2)).map (fun e ↦ .atom (.load (.n (nbEqV B e)) peq e))
 
 /-! ## The `g` table -/
@@ -74,24 +73,24 @@ def nbGStep (c : ℕ) (pgs : V) (t : ℕ) : List Stmt :=
 
 /-- `sel_g_nibble(out, gs, w)` from value `c`, `1 ≤ w`. -/
 def nbG (c : ℕ) (pgs pgo : V) (w : ℕ) : List Stmt :=
-  [.atom (.const (.n c) (word 1 0)), .atom (.load (.n (c + 1)) pgs 0)] ⧺
-    ((List.range (w - 1)).map fun t ↦ nbGStep c pgs (t + 1)).flatten ⧺
+  [.atom (.const (.n c) (word 1 0)), .atom (.load (.n (c + 1)) pgs 0)] ++
+    ((List.range (w - 1)).map fun t ↦ nbGStep c pgs (t + 1)).flatten ++
     (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (nbGV c u)) pgo u))
 
 theorem nbLevel_noRet (B : ℕ) (pz pz1 : V) (t : ℕ) : Stmt.noRetList (nbLevel B pz pz1 t) = true := by
-  rw [nbLevel, noRetList_append, noRetList_flatten_range _ _ (fun _ => rfl)]; rfl
+  rw [nbLevel, tb_noRetList_append, tb_noRetList_flatten_range _ _ (fun _ => rfl)]; rfl
 
 theorem nbGStep_noRet (c : ℕ) (pgs : V) (t : ℕ) : Stmt.noRetList (nbGStep c pgs t) = true := by
-  rw [nbGStep, Stmt.noRetList, noRetList_mapAtoms]; rfl
+  rw [nbGStep, Stmt.noRetList, tb_noRetList_mapAtoms]; rfl
 
 theorem nbEq_noRet (B : ℕ) (pz pz1 peq : V) (w : ℕ) : Stmt.noRetList (nbEq B pz pz1 peq w) = true := by
-  simp only [nbEq, noRetList_append, noRetList_flatten_range _ _ (fun _ => nbLevel_noRet _ _ _ _),
-    noRetList_mapAtoms]
+  simp only [nbEq, tb_noRetList_append, tb_noRetList_flatten_range _ _ (fun _ => nbLevel_noRet _ _ _ _),
+    tb_noRetList_mapAtoms]
   rfl
 
 theorem nbG_noRet (c : ℕ) (pgs pgo : V) (w : ℕ) : Stmt.noRetList (nbG c pgs pgo w) = true := by
-  simp only [nbG, noRetList_append, noRetList_flatten_range _ _ (fun _ => nbGStep_noRet _ _ _),
-    noRetList_mapAtoms]
+  simp only [nbG, tb_noRetList_append, tb_noRetList_flatten_range _ _ (fun _ => nbGStep_noRet _ _ _),
+    tb_noRetList_mapAtoms]
   rfl
 
 /-! ## The semantics -/
@@ -105,8 +104,7 @@ theorem holds_nbLevel {B : ℕ} {pz pz1 : V} {t : ℕ}
     LoadHolds rd (σ pz) t (σ (.n (nbM B t - 2))) ∧ LoadHolds rd (σ pz1) t (σ (.n (nbM B t - 1))) ∧
     ∀ i < 2 ^ t, σ (.n (nbM B t + 2 * i)) = σ (.n (nbLv B (t - 1) i)) * σ (.n (nbM B t - 1)) ∧
       σ (.n (nbM B t + 2 * i + 1)) = σ (.n (nbLv B (t - 1) i)) * σ (.n (nbM B t - 2)) := by
-  rw [nbLevel, holdsList_append_noRet rfl, holdsList_range_flatten _ _ (fun _ => rfl),
-    and_true] at h
+  rw [nbLevel, tb_holdsList_append_noRet rfl, tb_holdsList_flatten_range _ _ (fun _ => rfl)] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   refine ⟨h1.1, h1.2, fun i hi => ?_⟩
@@ -119,7 +117,7 @@ theorem holds_nbGStep {c : ℕ} {pgs : V} {t : ℕ}
     LoadHolds rd (σ pgs) t (σ (.n (c + 2 ^ t + t - 1))) ∧
     ∀ i < 2 ^ t, σ (.n (c + 2 ^ t + t + i)) = σ (.n (nbGV c i)) * σ (.n (c + 2 ^ t + t - 1)) := by
   rw [nbGStep, show ∀ (a : Stmt) (l : List Stmt), a :: l = [a] ++ l from fun _ _ => rfl,
-    holdsList_append_noRet rfl, holdsList_mapAtoms] at h
+    tb_holdsList_append_noRet rfl, tb_holdsList_mapAtoms] at h
   obtain ⟨h1, h2⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h1
   exact ⟨h1, h2⟩
@@ -177,7 +175,7 @@ theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0)
     intro u hu
     rw [Finset.prod_range_one]
     interval_cases u
-    · simp [nbGV, bitPick, h1, word_one]
+    · simp [nbGV, bitPick, h1, tb_word_one]
     · simp [nbGV, bitPick, nbGL]
   | succ t ih =>
     intro u hu
@@ -204,14 +202,14 @@ theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0)
 their eq levels. -/
 theorem holds_nbEq {B : ℕ} {pz pz1 peq : V} {w : ℕ} (hw1 : 1 ≤ w) (hw4 : w ≤ 4)
     (h : Stmt.HoldsList C rd σ (nbEq B pz pz1 peq w) True kret) :
-    ∃ zs zs1 : List E, zs.length = w ∧ zs1.length = w ∧ ReadsAt rd (σ pz) zs ∧
-      ReadsAt rd (σ pz1) zs1 ∧ ReadsAt rd (σ peq) (eqLevels zs zs1) := by
-  have nL := noRetList_flatten_range (w - 1) _ (fun t => nbLevel_noRet B pz pz1 (t + 1))
+    ∃ zs zs1 : List E, zs.length = w ∧ zs1.length = w ∧ TbReadsAt rd (σ pz) zs ∧
+      TbReadsAt rd (σ pz1) zs1 ∧ TbReadsAt rd (σ peq) (eqLevels zs zs1) := by
+  have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => nbLevel_noRet B pz pz1 (t + 1))
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n B) pz1 0), Stmt.atom (.load (.n (B + 1)) pz 0)] =
     true := rfl
-  rw [nbEq, holdsList_append_noRet (by simp only [noRetList_append, nL, n0, Bool.and_self]),
-    holdsList_append_noRet n0, holdsList_mapAtoms,
-    holdsList_range_flatten _ _ (fun t => nbLevel_noRet B pz pz1 (t + 1)), and_true] at h
+  rw [nbEq, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, n0, Bool.and_self]),
+    tb_holdsList_append_noRet n0, tb_holdsList_mapAtoms,
+    tb_holdsList_flatten_range _ _ (fun t => nbLevel_noRet B pz pz1 (t + 1))] at h
   obtain ⟨⟨h0, hL⟩, hEq⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   have hlev := nbLevels hL
@@ -276,13 +274,13 @@ theorem holds_nbEq {B : ℕ} {pz pz1 peq : V} {w : ℕ} (hw1 : 1 ≤ w) (hw4 : w
 /-- **`sel_g_nibble`**: for `1 ≤ w`, it reads `w` shares and stores their `g`-power table. -/
 theorem holds_nbG {c : ℕ} {pgs pgo : V} {w : ℕ} (hw1 : 1 ≤ w)
     (h : Stmt.HoldsList C rd σ (nbG c pgs pgo w) True kret) :
-    ∃ gl : List E, gl.length = w ∧ ReadsAt rd (σ pgs) gl ∧ ReadsAt rd (σ pgo) (gTable gl) := by
-  have nG := noRetList_flatten_range (w - 1) _ (fun t => nbGStep_noRet c pgs (t + 1))
+    ∃ gl : List E, gl.length = w ∧ TbReadsAt rd (σ pgs) gl ∧ TbReadsAt rd (σ pgo) (gTable gl) := by
+  have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => nbGStep_noRet c pgs (t + 1))
   have n0 : Stmt.noRetList [Stmt.atom (.const (.n c) (word 1 0)),
     Stmt.atom (.load (.n (c + 1)) pgs 0)] = true := rfl
-  rw [nbG, holdsList_append_noRet (by simp only [noRetList_append, nG, n0, Bool.and_self]),
-    holdsList_append_noRet n0, holdsList_mapAtoms,
-    holdsList_range_flatten _ _ (fun t => nbGStep_noRet c pgs (t + 1)), and_true] at h
+  rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, n0, Bool.and_self]),
+    tb_holdsList_append_noRet n0, tb_holdsList_mapAtoms,
+    tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet c pgs (t + 1))] at h
   obtain ⟨⟨h0, hG⟩, hGs⟩ := h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h0
   have hgs := nbGs h0.1 hG

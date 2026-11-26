@@ -22,8 +22,9 @@ when the entries lie in `[2, 2^κ)`.
 `KFacts`: the certificate's facts the discharge takes of a tree (the checker's). `dischargeAddr`:
 every equation of a tree valid on a memory image and placed at `0` names a word of it, its loads
 and range checks by validity, its `frameAddr` runs by their certificate cells in their frames.
-`honest_of_relAtIn`: if `main` holds by a tree placed at `0` of `N ≤ 2^30` words on every memory
-holding a consistent layout `L` in `[2, N)` and the header, an honest tree of `N` words exists.
+With them `End.honest_of_main` (`EndComplete.lean`): if `main` holds by a tree placed at `0` of
+`N ≤ 2^30` words on every memory holding a consistent layout `L` in `[2, N)` and the header, an
+honest tree of `N` words exists.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -81,7 +82,7 @@ theorem memL_imageOf {κ : ℕ} (hκ : κ < 64) {L : Layout} (hc : LConsistent L
   intro q hq k hk
   obtain ⟨h2, hle⟩ := hin q hq
   refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-  rw [limb0_ofK_addressOfIndex_mul]
+  rw [addr_ofK]
   have hi : q.1 + k < 2 ^ κ := by omega
   rw [MemoryImage.read_gpow hκ (imageOf κ L hdr) ⟨q.1 + k, hi⟩]
   congr 1
@@ -177,7 +178,7 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemoryImage κ} {T : Tree}
         (insts_placed T _ hdr (Nat.zero_add _).le I hI) ht).2 (p, r)
         (List.mem_filterMap.mpr ⟨_, ha, rfl⟩)
       simp only at hpl
-      rw [hpl, limb0_ofK_addressOfIndex_mul]
+      rw [hpl, addr_ofK]
       have := hrun I hI f σ bufs kids ht p r rs ha k hk
       exact ⟨⟨_, by rw [← Nat.add_assoc] at this; exact this⟩, rfl⟩
   | _ => simp [atomEqns] at hqa

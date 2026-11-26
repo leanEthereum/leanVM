@@ -1,9 +1,18 @@
 module
 
 public import XmssSecurity.Proof.KeygenCache
-public import XmssSecurity.Proof.StatementLemmas
 
 @[expose] public section
+
+/-!
+# Key generation caches only addressed inputs
+
+`KeygenAddressedHashInput parameter` holds the inputs at some hash address of the public parameter.
+Honest key generation queries no other input (`Concrete.honestKeygen_queryBound_zero_unaddressed`),
+so key generation's cache holds none of them (`Concrete.keygen_cache_none_unaddressed`), nor any
+input at an encoding address (`Concrete.keygen_cache_none_at_encodingAddress`);
+`CappedGlobalChainHighReplay` uses both.
+-/
 
 open OracleComp OracleSpec
 

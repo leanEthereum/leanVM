@@ -30,10 +30,6 @@ facts from are those on every path through it: each enclosing block's spine (`sp
   second parameter (`loopTail`), of frame size `size` and tail `tail`, `stop` the cell of `a1`; the spine sets
   `a0` to `g^e`, `si` its inverse (`e ≤ 1`), and `b` to `c + a1` with `c` set to `g^e` too (or a value
   loaded where `a1` is, through an equal product, `spEq`), or to the sum of two distinct constants.
-
-Callee names are compared by their codes (`calFind`, `nameEq`). The generated checks decide `frChkS`, which reads
-each frame hint's call site once (`frSites`) instead of at every call statement, and conclude through
-`frChk_of_fast`.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -58,10 +54,10 @@ def stRets : Stmt → List V
 noncomputable def calTbl (cs : List ℕ) : List (String × ℕ × Bool × Option (Option ℕ) × ℕ) :=
   cs.map fun c ↦ ((coreOf c).name, B2C.fsN c, (coreOf c).loop, Res.endOfFn (coreOf c), B2C.tailN c)
 
-/-- The facts of the callee named `f`, names compared by their codes (`nameEq`). -/
+/-- The facts of the callee named `f`. -/
 def calFind (tbl : List (String × ℕ × Bool × Option (Option ℕ) × ℕ)) (f : String) :
     Option (ℕ × Bool × Option (Option ℕ) × ℕ) :=
-  (tbl.find? fun x ↦ nameEq x.1 f).map (·.2)
+  (tbl.find? fun x ↦ x.1 == f).map (·.2)
 
 /-- The values the calls on a block's spine return. -/
 noncomputable def spineNamed : List Stmt → List V
@@ -125,13 +121,13 @@ noncomputable def callsSpA (p : List Atom → List V → Stmt → Bool) (as : Li
 /-- `v` set to `g^e` by an atom of `sp`. -/
 def spConst (sp : List Atom) (v : V) (e : ℕ) : Bool :=
   sp.any fun
-    | .const x w => x == v && constOk w e
+    | .const x w => vBeq x v && constOk w e
     | _ => false
 
 /-- The constant an atom of `sp` sets `v` to. -/
 def spWord (sp : List Atom) (v : V) : Option E :=
   sp.findSome? fun
-    | .const x w => if x == v then some w else none
+    | .const x w => if vBeq x v then some w else none
     | _ => none
 
 /-- `g⁻¹`. -/
@@ -139,17 +135,17 @@ def gInv : K := K.ofBits 0x800000000000000d
 
 /-- `p` and `q` the same value, or products of the same two values by atoms of `sp`. -/
 def spEqPtr (sp : List Atom) (p q : V) : Bool :=
-  p == q || sp.any fun
-    | .mul p' u w => p' == p && sp.any fun
-      | .mul q' u' w' => q' == q && u == u' && w == w'
+  vBeq p q || sp.any fun
+    | .mul p' u w => vBeq p' p && sp.any fun
+      | .mul q' u' w' => vBeq q' q && vBeq u u' && vBeq w w'
       | _ => false
     | _ => false
 
 /-- `x` and `y` one word on `sp`: the same value, or loads at one offset through equal pointers (`spEqPtr`). -/
 def spEq (sp : List Atom) (x y : V) : Bool :=
-  x == y || sp.any fun
-    | .load x' p o => x' == x && sp.any fun
-      | .load y' q o' => y' == y && o == o' && spEqPtr sp p q
+  vBeq x y || sp.any fun
+    | .load x' p o => vBeq x' x && sp.any fun
+      | .load y' q o' => vBeq y' y && o == o' && spEqPtr sp p q
       | _ => false
     | _ => false
 
@@ -157,7 +153,7 @@ def spEq (sp : List Atom) (x y : V) : Bool :=
 distinct constants. -/
 def guardOk (sp : List Atom) (b a1 : V) (e : ℕ) : Bool :=
   sp.any fun
-    | .add d x y => d == b && ((spConst sp x e && spEq sp y a1) || (spConst sp y e && spEq sp x a1) ||
+    | .add d x y => vBeq d b && ((spConst sp x e && spEq sp y a1) || (spConst sp y e && spEq sp x a1) ||
         match spWord sp x, spWord sp y with
         | some w1, some w2 => w1 != w2
         | _, _ => false)
@@ -198,39 +194,6 @@ noncomputable def frChk (X : AlignCtx) (n : ℕ) (cs : List ℕ) (ps : List V) (
     callsSpL (fun sp nm st ↦ (frames X d).all fun q ↦ match allocPtr q.2 with
       | some p => (X.siteAt p (stArgs st) (stRets st)).isNone || frFits X n ps sp nm (calTbl cs) q.2 st
       | none => true) body (spine body) (spineNamed body))
-
-/-- The frame hints with their call sites. -/
-noncomputable def frSites (X : AlignCtx) (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) :
-    List (B2C.Site × Prover.Exec.Hint) :=
-  (frames X d).filterMap fun q ↦ (allocPtr q.2).bind fun p ↦ (getF X.sites p).map fun s ↦ (s, q.2)
-
-/-- `frChk` with the frame hints' call sites and the callees' facts read once. -/
-noncomputable def frChkS (X : AlignCtx) (n : ℕ) (cs : List ℕ) (ps : List V) (body : List Stmt)
-    (d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) : Bool :=
-  (frames X d).isEmpty || (cs.all (fun c ↦ Nat.ble 1 c && Nat.blt c nFns) &&
-    Exec.listSeq (frSites X d) fun fr ↦ Exec.listSeq (calTbl cs) fun tbl ↦
-    callsSpL (fun sp nm st ↦ fr.all fun q ↦
-      !(q.1.args == (stArgs st).map (·.idx) && q.1.rets == (stRets st).map (·.idx)) || frFits X n ps sp nm tbl q.2 st)
-      body (spine body) (spineNamed body))
-
-end
-
-public section
-
-/-- **`frChk` from its fast form.** -/
-theorem frChk_of_fast {X : AlignCtx} {n : ℕ} {cs : List ℕ} {ps : List V} {body : List Stmt}
-    {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)} (h : frChkS X n cs ps body d = true) :
-    frChk X n cs ps body d = true := by
-  rw [← h]
-  simp only [frChk, frChkS, Exec.listSeq_eq, frSites, List.all_filterMap]
-  congr; funext sp nm st; congr; funext q
-  rcases allocPtr q.2 with _ | p
-  · rfl
-  simp only [Option.bind_some, AlignCtx.siteAt]
-  rcases getF X.sites p with _ | s
-  · rfl
-  dsimp only [Option.map_some]
-  cases s.args == (stArgs st).map (·.idx) && s.rets == (stRets st).map (·.idx) <;> rfl
 
 end
 

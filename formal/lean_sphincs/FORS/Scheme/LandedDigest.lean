@@ -1,9 +1,9 @@
 module
 
 public import FORS.Scheme.DigestView
+public import FORS.Scheme.Landing
 public import FORS.Scheme.Bytes
 public import FORS.Scheme.Search
-public import FORS.Scheme.Landing
 
 @[expose] public section
 
@@ -15,7 +15,6 @@ their bytes, so uniform calls give the uniform digest law.
 -/
 
 open OracleComp OracleSpec ENNReal
-set_option exponentiation.threshold 512
 
 namespace FORS.Security
 
@@ -49,10 +48,7 @@ namespace FORS.Lifetime
 
 variable [Params]
 
-set_option exponentiation.threshold 512
-
 open OracleComp OracleSpec ENNReal Concrete
-
 
 abbrev KeptDigestView := Fin (2 ^ subtreeHeight) × (FTree → FLeaf)
 

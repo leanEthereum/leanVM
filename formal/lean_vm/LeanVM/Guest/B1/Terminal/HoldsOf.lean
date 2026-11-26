@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Terminal.HoldsOf
 
-  **`check_opening_terminal` is sound** (TRIAGE #70), given its callees' meanings.
+  **`check_opening_terminal` is sound**, given its callees' meanings.
 -/
 
 module
@@ -26,7 +26,7 @@ claim's chain, seeded with the next power of `λ` (`chain_value_seed`); with `st
 last check is the WHIR terminal.
 
 The callees' meanings are hypotheses here (`eq_prefix_chain_Spec`, `ring_switch_weight_Spec`,
-discharged in `Terminal/Holds`), as are B1-c's selectors (`column_selector_Spec`,
+discharged in `Terminal/Holds`), as are the selectors (`column_selector_Spec`,
 `selector_tables_Spec`); `column_selector`'s holds on a memory image of at most `2^32` words.
 -/
 
@@ -100,7 +100,7 @@ theorem poolRank_succ {j : ℕ} (hj : j < 159) :
     simp only [List.filter_cons, List.filter_nil, hm, not_false_eq_true, decide_true,
       ↓reduceIte, hk, List.length_singleton]
 
-/-- **`check_opening_terminal` is sound**, given its callees' meanings and B1-c's selectors, on a
+/-- **`check_opening_terminal` is sound**, given its callees' meanings and the selectors, on a
 memory image of at most `2^32` words. -/
 theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     (hrsw : ring_switch_weight_Spec) (hcs : Tables.column_selector_Spec)
@@ -216,7 +216,7 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     have hne : σ (.n (val% «check_opening_terminal» "s9#1")) ≠ 0 := by
       rw [e31, e30, word_gen, hglm]
       intro h0
-      have := gen_pow_inj (a := 1) (b := layout.logMemory) (by omega) (by omega)
+      have := gen_pow_inj_le (a := 1) (b := layout.logMemory) (by omega) (by omega)
         (by rw [pow_one]; exact e_add_eq_zero_iff.mp h0)
       omega
     have hc : coreProgram.Rel Lm.read name% «check_opening_terminal_loop0»
@@ -287,7 +287,7 @@ theorem check_opening_terminal_holds_of (hep : eq_prefix_chain_Spec)
     hrsw _ _ _ hrw
   have hn6 : n = τ + 6 := by
     rw [e1701, e1700, hw64, hgtau, ← pow_add] at hng
-    exact gen_pow_inj (by omega) (by omega) hng.symm
+    exact gen_pow_inj_le (by omega) (by omega) hng.symm
   subst hn6
   rw [e1699, e1698, show (549755813888 : ℕ) = 2 ^ 39 from rfl, word_two_pow (by decide)] at hrsR
   have hrs : rs = ringPoint :=

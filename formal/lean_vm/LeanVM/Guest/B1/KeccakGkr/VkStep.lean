@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.KeccakGkr.KFormMath
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
-import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -38,21 +37,6 @@ theorem iotaIdx_sub : ∀ s < 12, ∀ m < 2, ∀ i ∈ iotaIdx s m, i ∈ iotaUs
 /-- The word of `g^22`, a claim record's size (`KC_SIZE`). -/
 theorem word_g22 : word 4194304 0 = gen ^ 22 := by
   rw [show (4194304 : ℕ) = 2 ^ 22 from rfl]; exact word_two_pow (by decide)
-
-/-- The words of `g^(22 s)` (the claim records' offsets; `VerifySub` reads `vkGw 5`). -/
-def vkGw : ℕ → ℕ
-  | 1 => 4194304
-  | 2 => 17592186044416
-  | 3 => 108
-  | 4 => 452984832
-  | 5 => 1899956092796928
-  | 6 => 5200
-  | 7 => 21810380800
-  | 8 => 91479367430963200
-  | 9 => 486848
-  | 10 => 2041988513792
-  | 11 => 8564720591351840768
-  | _ => 0
 
 /-! ## Chains of additions -/
 
@@ -224,7 +208,7 @@ theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 �
     (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
     (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) off pp) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) off),
-      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ⧺ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
+      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
     (σ (.n (b + 4)) = (eqKernel [pt.getD (τ - 4) 0]).getD 0 0 ∧
       σ (.n (b + 5)) = (eqKernel [pt.getD (τ - 4) 0]).getD 1 0) ∧ next := by
   rw [holdsList_append] at h

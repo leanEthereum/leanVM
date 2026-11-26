@@ -1985,14 +1985,6 @@ def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) :
   let st ← lowerFnOwn p f queue (f.params.length + 1) []
   return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue)
 
-/-- The specialization of `f` at these `Const` arguments, as the compiler queues it. -/
-def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
-  let consts := f.params.filter (·.kind == .const)
-  if consts.length != constArgs.length then throw s!"`{f.name}` takes {consts.length} Const arguments"
-  let substs := (consts.zip constArgs).map fun (q, a) => (q.name, a)
-  return { name := specName f.name substs, params := f.params.filter (·.kind != .const),
-           returnShapes := f.returnShapes, body := substBody f.body substs, inline := false }
-
 /-- The compiler's queue (`compile`), at most `fuel` functions. -/
 def expandQueue (p : Program) : Nat → Nat → Array Func → Array Core.Fn →
     Except String (Array Core.Fn)

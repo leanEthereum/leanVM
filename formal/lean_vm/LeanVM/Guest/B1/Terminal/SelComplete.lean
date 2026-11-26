@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Terminal.SelComplete
 
   `column_selector`, placed, on `selector_tables`' buffer, the point and the nibble shares: complete
-  on its honest valuation (B1-c's `cskVal`), its tables from `selector_tables`' soundness on a
+  on its honest valuation (`cskVal`), its tables from `selector_tables`' soundness on a
   memory holding its honest buffer.
 -/
 
@@ -16,15 +16,14 @@ public import LeanVM.Guest.B1.Terminal.Template
 /-!
 # The column selectors, placed
 
-`selector_tables` returns its buffer `stOwn` (B1-c's `selector_tables_completeAt`). On a memory
+`selector_tables` returns its buffer `stOwn`. On a memory
 holding it and the point's words `stLin`, `selector_tables`' statements hold (`st_holds`), so its
 soundness puts the opening point's eq tables there (`selTabs_of_memL`). The nibble shares
 `exponent_tables` wrote (`GTabsAt`) are the run `gTabW` (`gTabs_of_reads`, `reads_of_gTabs`).
 
 `column_selector__L{κ}` range-checks its digits (the memory defined below `2^4`) and loads through
 pointers it computes, so it is complete on its honest valuation, whose loads lie in the eq buffer
-and the shares: `csk_holdsPre` (B1-c's `csk_rel`, on the valuation) and `csk_ret` (its return,
-`column_selector_complete_holds`'s), then `cs_completeAtDTB` (`completeAt_flatOutDTB`, no buffer,
+and the shares: `csk_holdsPre` and `csk_ret`, then `cs_completeAtDTB` (`completeAt_flatOutDTB`, no buffer,
 no callee: within its frame).
 -/
 
@@ -35,152 +34,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open Finset
 
 @[expose] public section
-
-/-! ## The honest valuation (B1-c's `csk_rel` and `column_selector_complete_holds`, on it) -/
-
-/-- **`column_selector__L{κ}`'s statements hold on its honest valuation `cskVal`.** -/
-theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
-    (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) {kret : List E → Prop} :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ cskVal κ o se sg p p1 rd x.idx) (csPre κ) True
-      kret := by
-  set F := cskVal κ o se sg p p1 rd with hF
-  have f0 : F 0 = gen ^ o := by simp [hF, cskVal]
-  have f1 : F 1 = se := by simp [hF, cskVal]
-  have f2 : F 2 = sg := by simp [hF, cskVal]
-  by_cases h32 : κ = 32
-  · subst h32
-    have ho0 : o = 0 := by
-      obtain ⟨q, rfl⟩ := hd
-      have : q = 0 := by
-        by_contra hq
-        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
-        omega
-      simp [this]
-    subst ho0
-    simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
-      true_and]
-    have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
-    have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
-    rw [e3, e4, f0, word_one, pow_zero]
-    exact ⟨rfl, e_add_self 1, rfl⟩
-  have hκ' : κ < 32 := by omega
-  have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
-  have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
-  simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
-  rw [holdsList_append_noRet (noRetList_flatten_range _ _ (csNibT_noRet κ)),
-    holdsList_range_flatten _ _ (csNibT_noRet κ), and_true]
-  have hN1 : 1 ≤ csN κ := by unfold csN; omega
-  refine ⟨fun k hk ↦ ?_, ?_⟩
-  · -- nibble `k`
-    obtain ⟨hw1, hw4⟩ := csW_bounds κ k
-    have hj : κ / 4 + k < 8 := by simp only [csN] at hk; omega
-    have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
-    have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1))
-        (cskXE κ o p p1 k) := by
-      rw [loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1)) =
-        32 * (κ / 4 + k) + Tables.selEqOff (csW κ k - 1) + cskU κ o k by omega]
-      exact hE _ hj _ (by omega) _ (hu k hk) hdk
-    have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
-      rw [loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
-        16 * (κ / 4 + k) + cskU κ o k by omega]
-      exact hG _ hj _ (hu k hk)
-    have hrc : LoadHolds rd (gen ^ cskU κ o k) 0 (cskRd rd (cskU κ o k)) ∧
-        w15 = gen ^ cskU κ o k * gen ^ (15 - cskU κ o k) ∧
-        LoadHolds rd (gen ^ (15 - cskU κ o k)) 0 (cskRd rd (15 - cskU κ o k)) :=
-      ⟨csk_load hlow (hu k hk), by
-        rw [← pow_add, Nat.add_sub_cancel' (by have := hu k hk; omega), word_g15, gen_pow_eq_ofK],
-        csk_load hlow (by omega)⟩
-    have e : ∀ s, s < (if k = 0 then 8 else 10) →
-        F (csC κ k + s) = cskRole κ o se sg p p1 rd k s := fun s hs => cskVal_at hκ' hk hs
-    have ed : F (3 + k) = gen ^ cskU κ o k := cskVal_digit hκ' hk
-    unfold csNibT
-    by_cases hk0 : k = 0
-    · subst hk0
-      have e' : ∀ s, s < 8 → F (csC κ 0 + s) = cskRole κ o se sg p p1 rd 0 s :=
-        fun s hs => e s (by simpa using hs)
-      simp only [↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, List.cons_append,
-        List.nil_append]
-      have e0 := e' 0 (by norm_num)
-      rw [Nat.add_zero] at e0 ed
-      rw [e0, e' 1 (by norm_num), e' 2 (by norm_num), e' 3 (by norm_num), e' 4 (by norm_num),
-        e' 5 (by norm_num), e' 6 (by norm_num), e' 7 (by norm_num), ed, f1, f2]
-      simp only [cskRole, Nat.add_zero, OfNat.ofNat_ne_zero, one_ne_zero, ↓reduceIte,
-        show (2 : ℕ) ≠ 1 by omega, show (3 : ℕ) ≠ 1 by omega, show (3 : ℕ) ≠ 2 by omega,
-        show (4 : ℕ) ≠ 1 by omega, show (4 : ℕ) ≠ 2 by omega, show (4 : ℕ) ≠ 3 by omega,
-        show (5 : ℕ) ≠ 1 by omega, show (5 : ℕ) ≠ 2 by omega, show (5 : ℕ) ≠ 3 by omega,
-        show (5 : ℕ) ≠ 4 by omega, show (6 : ℕ) ≠ 1 by omega, show (6 : ℕ) ≠ 2 by omega,
-        show (6 : ℕ) ≠ 3 by omega, show (6 : ℕ) ≠ 4 by omega, show (6 : ℕ) ≠ 5 by omega,
-        show (7 : ℕ) ≠ 1 by omega, show (7 : ℕ) ≠ 2 by omega, show (7 : ℕ) ≠ 3 by omega,
-        show (7 : ℕ) ≠ 4 by omega, show (7 : ℕ) ≠ 5 by omega, show (7 : ℕ) ≠ 6 by omega]
-      exact ⟨trivial, hrc, trivial, hxe, trivial, hxg⟩
-    · have e' : ∀ s, s < 10 → F (csC κ k + s) = cskRole κ o se sg p p1 rd k s :=
-        fun s hs => e s (by simpa [hk0] using hs)
-      have eS : F (csSel κ (k - 1)) = cskS κ o p p1 (k - 1) := cskVal_sel hκ' (by omega)
-      have eR : F (csRb κ (k - 1)) = cskR κ o (k - 1) := cskVal_rb hκ' (by omega)
-      simp only [hk0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
-        List.cons_append, List.nil_append]
-      have e0 := e' 0 (by norm_num)
-      rw [Nat.add_zero] at e0
-      rw [e0, e' 1 (by norm_num), e' 2 (by norm_num), e' 3 (by norm_num), e' 4 (by norm_num),
-        e' 5 (by norm_num), e' 6 (by norm_num), e' 7 (by norm_num), e' 8 (by norm_num),
-        e' 9 (by norm_num), ed, f1, f2, eS, eR]
-      obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-      simp only [cskRole, hk0, ↓reduceIte, Nat.add_sub_cancel, cskS, cskR, prod_range_succ _ (k' + 1),
-        OfNat.ofNat_ne_zero, one_ne_zero,
-        show (2 : ℕ) ≠ 1 by omega, show (3 : ℕ) ≠ 1 by omega, show (3 : ℕ) ≠ 2 by omega,
-        show (4 : ℕ) ≠ 1 by omega, show (4 : ℕ) ≠ 2 by omega, show (4 : ℕ) ≠ 3 by omega,
-        show (5 : ℕ) ≠ 1 by omega, show (5 : ℕ) ≠ 2 by omega, show (5 : ℕ) ≠ 3 by omega,
-        show (5 : ℕ) ≠ 4 by omega, show (6 : ℕ) ≠ 1 by omega, show (6 : ℕ) ≠ 2 by omega,
-        show (6 : ℕ) ≠ 3 by omega, show (6 : ℕ) ≠ 4 by omega, show (6 : ℕ) ≠ 5 by omega,
-        show (7 : ℕ) ≠ 1 by omega, show (7 : ℕ) ≠ 2 by omega, show (7 : ℕ) ≠ 3 by omega,
-        show (7 : ℕ) ≠ 4 by omega, show (7 : ℕ) ≠ 5 by omega, show (7 : ℕ) ≠ 6 by omega,
-        show (8 : ℕ) ≠ 1 by omega, show (8 : ℕ) ≠ 2 by omega, show (8 : ℕ) ≠ 3 by omega,
-        show (8 : ℕ) ≠ 4 by omega, show (8 : ℕ) ≠ 5 by omega, show (8 : ℕ) ≠ 6 by omega,
-        show (8 : ℕ) ≠ 7 by omega, show (9 : ℕ) ≠ 1 by omega, show (9 : ℕ) ≠ 2 by omega,
-        show (9 : ℕ) ≠ 3 by omega, show (9 : ℕ) ≠ 4 by omega, show (9 : ℕ) ≠ 5 by omega,
-        show (9 : ℕ) ≠ 6 by omega, show (9 : ℕ) ≠ 7 by omega, show (9 : ℕ) ≠ 8 by omega]
-      exact ⟨trivial, hrc, trivial, hxe, trivial, trivial, hxg, trivial⟩
-  · -- the assertion and the copy
-    have eS : F (csSel κ (csN κ - 1)) = cskS κ o p p1 (csN κ - 1) := cskVal_sel hκ' (by omega)
-    have eR : F (csRb κ (csN κ - 1)) = cskR κ o (csN κ - 1) := cskVal_rb hκ' (by omega)
-    have hC := csC_ge κ (csN κ)
-    have eC : F (csC κ (csN κ)) = cskS κ o p p1 (csN κ - 1) := cskVal_last hκ'
-    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-    rw [eS, eR, eC, f0]
-    refine ⟨?_, rfl⟩
-    rw [cskR, show csN κ - 1 + 1 = csN κ by omega,
-      prod_congr rfl (fun m _ => show cskXG κ o m = gen ^ (cskU κ o m * 16 ^ (κ / 4 + m)) from rfl),
-      prod_gen_pow_csDig, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]
-    exact e_add_self _
-
-/-- **`column_selector__L{κ}`'s honest return** is the selector. -/
-theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
-    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hp : p.length = 32) (hp1 : p1.length = 32) :
-    cskVal κ o se sg p p1 rd (csRet κ) =
-      bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ) := by
-  by_cases h32 : κ = 32
-  · subst h32
-    have ho0 : o = 0 := by
-      obtain ⟨q, rfl⟩ := hd
-      have : q = 0 := by
-        by_contra hq
-        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
-        omega
-      simp [this]
-    subst ho0
-    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, word_one]
-    rw [this]
-    simp [bitsEq]
-  have hκ' : κ < 32 := by omega
-  have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
-  have hret : cskVal κ o se sg p p1 rd (csRet κ) = cskS κ o p p1 (csN κ - 1) := by
-    simp only [csRet, h32, ↓reduceIte]; exact cskVal_last hκ'
-  rw [hret, cskS, show csN κ - 1 + 1 = csN κ by unfold csN; omega]
-  have hsel := cs_sel_prod hκ' (u := cskU κ o) (fun k _ => Nat.mod_lt _ (by norm_num)) hp hp1
-  rw [show (fun m ↦ cskXE κ o p p1 m) = fun k ↦ selEqEntry p p1 (κ / 4 + k) (csW κ k - 1)
-    (cskU κ o k) from rfl]
-  rw [hsel, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]
 
 /-! ## The body, checked by the kernel -/
 
@@ -228,6 +81,12 @@ open LeanVM.Guest.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
+
+theorem cs_addr_mul (b c k : ℕ) : (ofK (addressOfIndex b) * gen ^ c).limb 0 * addressOfIndex k =
+    addressOfIndex (b + c + k) := by
+  have e : ofK (addressOfIndex b) * gen ^ c = ofK (addressOfIndex (b + c)) := by
+    rw [gen_pow_eq_ofK, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+  rw [e, Main.addr_ofK]
 
 /-! ## The nibble shares -/
 
@@ -341,19 +200,19 @@ theorem cs_completeAtDTB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o 
       refine ⟨ese + Tables.cskU κ o j + (32 * (κ / 4 + j) + Tables.selEqOff (Tables.csW κ j - 1)), ?_,
         Or.inl ⟨(ese, Tables.stEqWords (Tables.stVal ept ept1 ese p p1)), by simp [csLin, Tables.stOwn],
           by omega, by simp [Tables.stEqWords]; omega⟩⟩
-      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
+      rw [e]; exact cs_addr_mul _ _ _
     · have e : σ (.n (Tables.csC κ j + if j = 0 then 6 else 7)) =
           ofK (addressOfIndex bg) * gen ^ Tables.cskU κ o j := by
         show Tables.cskVal _ _ _ _ _ _ _ (Tables.csC κ j + if j = 0 then 6 else 7) = _
         by_cases hj0 : j = 0
         · subst hj0
-          rw [ite_eq_left rfl, Tables.cskVal_at hκ' hj (by simp)]
+          rw [ite_pos' rfl, Tables.cskVal_at hκ' hj (by simp)]
           simp [Tables.cskRole]
-        · rw [ite_eq_right hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
+        · rw [ite_neg' hj0, Tables.cskVal_at hκ' hj (by simp [hj0])]
           simp [Tables.cskRole, hj0]
       refine ⟨bg + Tables.cskU κ o j + 16 * (κ / 4 + j), ?_,
         Or.inl ⟨(bg, gTabW), by simp [csLin], by omega, by rw [gTabW_length]; omega⟩⟩
-      rw [e]; exact limb0_ofK_mul_gen_pow_mul _ _ _
+      rw [e]; exact cs_addr_mul _ _ _
 
 /-- **`column_selector__L{κ}` is complete, placed, within its frame** (`cs_completeAtDTB`). -/
 theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
@@ -367,16 +226,6 @@ theorem cs_completeAtB (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : 
     cs_completeAtDTB (fs := fs) (cert := cert) (ept := ept) (ept1 := ept1) (ese := ese) (bg := bg)
       k hk hκ ho hd hl hl1 fp
   ⟨n, Lown, rets, Lout, ho', hw, hd', hn, fun rd hl' hm => (hr rd hl' hm).relAtIn⟩
-
-/-- **`column_selector__L{κ}` is complete, placed** (`cs_completeAtDTB`). -/
-theorem cs_completeAt (k : ℕ) (hk : 4 ≤ k) {κ : ℕ} (hκ : κ < 31) {o : ℕ} (ho : o < 2 ^ 32)
-    (hd : 2 ^ κ ∣ o) {ept ept1 ese bg : ℕ} {p p1 : List E} (hl : p.length = 32)
-    (hl1 : p1.length = 32) :
-    CompleteAtD fs cert k (Tables.lName "column_selector" κ) (csLin ept ept1 ese bg p p1)
-      [gen ^ o, ofK (addressOfIndex ese), ofK (addressOfIndex bg)]
-      (Returns [Tables.bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
-        (p1.drop κ)]) :=
-  (cs_completeAtB (ept := ept) (ept1 := ept1) k hk hκ ho hd hl hl1).toCompleteAtD
 
 end
 end LeanVM.Guest.B1.VerifySub

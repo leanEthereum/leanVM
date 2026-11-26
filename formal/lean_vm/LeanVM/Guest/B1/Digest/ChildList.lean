@@ -19,7 +19,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 import LeanVM.Guest.B1.Common.Find
-public import LeanVM.ToMathlib.List
+import LeanVM.ToMathlib.List
 
 /-!
 # `child_claim_list_any`
@@ -103,7 +103,7 @@ theorem claimOk_sound {rd : Reader} (hm : MemOk rd) {σ : Val} {atoms : List Ato
     · subst h0
       simp only [↓reduceIte, decide_eq_true_eq] at hmk
       rw [hmk, pow_zero, mul_one]
-    · rw [ite_eq_right h0] at hmk
+    · rw [ite_neg' h0] at hmk
       split at hmk
       · rename_i m c hmc
         simp only [Bool.and_eq_true, decide_eq_true_eq] at hmk
@@ -205,10 +205,6 @@ def ClaimsAt (rd : Reader) (region limit entries marks : E) (n : ℕ) (os : List
   os.length = n ∧ cells.length = 4 * n ∧
     ∀ j < n, ClaimAtSlot rd region limit entries marks j (os.getD j 0) (cells.drop (4 * j))
 
-theorem getD_drop' {α : Type} (l : List α) (a c : ℕ) (d : α) :
-    (l.drop a).getD c d = l.getD (a + c) d := by
-  rw [List.getD_eq_getElem?_getD, List.getElem?_drop, ← List.getD_eq_getElem?_getD]
-
 theorem getD_append_left'' {α : Type} (l l' : List α) {i : ℕ} (d : α) (h : i < l.length) :
     (l ++ l').getD i d = l.getD i d := by
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_left h, ← List.getD_eq_getElem?_getD]
@@ -229,9 +225,9 @@ theorem claimsAt_append {rd : Reader} {region limit entries base : E} {m k : ℕ
   · obtain ⟨h1, h2, h3⟩ := hc j hjm
     have hos : (os ++ os').getD j 0 = os.getD j 0 := getD_append_left'' _ _ _ (by omega)
     refine ⟨by rw [hos]; exact h1, by rw [hos]; exact h2, fun c hcc => ?_⟩
-    rw [hos, getD_drop', getD_append_left'' _ _ _ (by omega)]
+    rw [hos, List.getD_drop, getD_append_left'' _ _ _ (by omega)]
     have := h3 c hcc
-    rwa [getD_drop'] at this
+    rwa [List.getD_drop] at this
   · obtain ⟨h1, h2, h3⟩ := hc' (j - m) (by omega)
     have hos : (os ++ os').getD j 0 = os'.getD (j - m) 0 := by
       rw [getD_append_right'' _ _ _ (by omega), hl]
@@ -240,10 +236,10 @@ theorem claimsAt_append {rd : Reader} {region limit entries base : E} {m k : ℕ
         rw [mul_assoc, ← pow_add, Nat.add_sub_cancel' (by omega)]
       rw [hos, hb]
       exact h2
-    · rw [hos, getD_drop', getD_append_right'' _ _ _ (by omega), hcl,
+    · rw [hos, List.getD_drop, getD_append_right'' _ _ _ (by omega), hcl,
         show 4 * j + c - 4 * m = 4 * (j - m) + c by omega]
       have := h3 c hcc
-      rwa [getD_drop'] at this
+      rwa [List.getD_drop] at this
 
 theorem length_ccMsg (o0 n : ℕ) : (ccMsg o0 n).length = 4 * n := by simp [ccMsg]
 

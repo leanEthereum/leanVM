@@ -16,8 +16,9 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # `main`'s static callees on an honest run, bounded
 
-`MainGoalL1B` … `MainGoalStB`: `MainGoalL1` … `MainGoalSt` with `CompleteAtDTB` within the static
-bounds (`SB`, `SK`, the loops' counts).
+`MainGoalL1B` … `MainGoalStB`: `main_loop0`, `main_loop1`, `main_loop2`, `main_loop3` and
+`statement_digest` complete (`CompleteAtDTB`) at the words `main` passes them, within the static
+bounds (`SB`, `SK`, the loops' counts); `mainGoalL1B` … `mainGoalStB` prove them.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -120,7 +121,7 @@ theorem mainGoalL3B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   intro h0
   have hpos : 0 < (hRawX s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.toDeployedLimits
+  have hnl : (hRawX s w).length ≤ rX s w := xRaw_le hl.signatureClaimsHeld
   have hX : s.claims.xmss.length ≤ rX s w := Nat.le_add_right _ _
   have h := rawX_completeAtB fs cert hc (rawXD fs fp hn (hRawX s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero] at h
@@ -135,7 +136,7 @@ theorem mainGoalL4B (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
   intro h0
   have hpos : 0 < (hRawS s w).length := Nat.pos_of_ne_zero h0
   have hb := regions_lt hl
-  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.toDeployedLimits
+  have hnl : (hRawS s w).length ≤ rY s w := sRaw_le hl.signatureClaimsHeld
   have hY : s.claims.sphincs.length ≤ rY s w := Nat.le_add_right _ _
   have h := rawS_completeAtB fs cert hc (rawSD fs fp hn (hRawS s w)[0]) (by omega) (by omega) hT 0 hpos
   rw [pow_zero, pow_add (a := gen) (hPos seed s w fs fp 2)] at h

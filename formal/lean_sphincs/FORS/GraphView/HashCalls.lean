@@ -8,9 +8,8 @@ public import FORS.Seed.Coupling
 section
 
 /-! Exact hash-call counts (`hashCalls`) of the honest seeded computations on a fixed answer
-function: wrappers, chains, one-time keys, tree and FORS nodes, encodings, message digests and
-signing attempts. Every chain start and every FORS secret is one `PRF`: a one-time key costs
-`64 + 64 · 3 = 256` calls, and a FORS leaf `1 + 1 = 2` (its secret and its hash). -/
+function: wrappers, chains, one-time keys and tree nodes. Every chain start is one `PRF`: a one-time
+key costs `64 + 64 · 3 = 256` calls. -/
 
 open OracleComp OracleSpec
 
@@ -109,18 +108,6 @@ theorem hashCalls_treeNode (f : QueryImpl HashSpec Id) (parameter : PublicParame
       rw [pow_succ]
       omega
 
-theorem hashCalls_encode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : HashInput) (counter : Counter) :
-    hashCalls f (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) = 1 := by
-  simp only [encode, hashCalls_bind, hashCalls_tweakableHash, hashCalls_pure, Nat.add_zero]
-
-/-- The cost of running the computations from the last index down, stopping after the first failure. -/
-def seqCost : {n : Nat} → (Fin n → Bool) → (Fin n → Nat) → Nat
-  | 0, _, _ => 0
-  | _ + 1, ok, cost =>
-      cost (Fin.last _) +
-        if ok (Fin.last _) then seqCost (fun i => ok i.castSucc) (fun i => cost i.castSucc) else 0
-
 end FORS.Security.Prefix
 
 end
@@ -136,11 +123,10 @@ open OracleComp OracleSpec
 namespace FORS.Security.Prefix
 
 variable [Params]
-open Concrete Common.QueryCount
+open Concrete QueryCap
 
 attribute [local irreducible] encodingAttemptLimit digestAttemptLimit Seeded.finishSign
   Seeded.signAttempt
-set_option backward.isDefEq.respectTransparency false
 
 theorem counted_lift_hash {α : Type} (computation : OracleComp HashSpec α) :
     counted SourceHash (liftM computation : OracleComp OracleWorld α) =
@@ -189,7 +175,6 @@ open Concrete Completeness SeedModel
 
 attribute [local irreducible] Seeded.treeNode Seeded.spineNode Seeded.treeRoot
   programCache
-set_option backward.isDefEq.respectTransparency false
 
 theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (seed : MasterSeed) (steps : Nat)
@@ -242,9 +227,8 @@ namespace FORS.Security.Prefix
 variable [Params]
 open Concrete Completeness SeedModel
 open SeedCoupling
-open Common.QueryCount
+open QueryCap
 
-set_option backward.isDefEq.respectTransparency false
 attribute [local irreducible] digestAttemptLimit encodingAttemptLimit
 
 noncomputable def fixedWorldCost (f : QueryImpl HashSpec Id) :

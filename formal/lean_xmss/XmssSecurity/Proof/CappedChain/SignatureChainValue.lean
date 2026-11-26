@@ -1,32 +1,50 @@
 module
 
-public import XmssSecurity.Proof.PrecomputedKeygenCache
 public import XmssSecurity.Proof.ChainOraclePresampling
-public import XmssSecurity.Proof.CappedChain.ChainHiddenTable
 
 @[expose] public section
+
+/-!
+# Writing and replaying a signature's chain values
+
+`replaceSignatureChainValue` overwrites one chain value of a signature at the layer of a chain key,
+as the causal simulation does when it reveals one. Over a cache extending key generation's, the
+chain values of `Concrete.CacheReplay.signWithEncoding` and `Concrete.CacheReplay.topPartFromCache`
+are the honest values `keygenChainValueTable` at the signed coordinates (`Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable`,
+`Concrete.CacheReplay.topPartFromCache_chainValue_eq_keygenChainValueTable`).
+-/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity.CappedChain
 
-def replaceSignatureChainValue
+/-- The chain values a signature sends at the layer of `key`. -/
+def _root_.XmssSecurity.Signature.keyChainValue (signature : Signature) :
+    ChainKey → ChainIndex → Digest
+  | .inl _ => signature.chainValue
+  | .inr _ => signature.top.chainValue
+
+/-- Overwrite one chain value of a signature at the layer of `key`. -/
+def replaceSignatureChainValue (key : ChainKey)
     (signature : Signature) (chain : ChainIndex) (value : Digest) : Signature :=
-  { signature with
-    chainValue := Function.update signature.chainValue chain value }
+  match key with
+  | .inl _ => { signature with chainValue := Function.update signature.chainValue chain value }
+  | .inr _ => { signature with
+      top := { signature.top with
+        chainValue := Function.update signature.top.chainValue chain value } }
 
 @[simp]
-theorem replaceSignatureChainValue_same
+theorem replaceSignatureChainValue_same (key : ChainKey)
     (signature : Signature) (chain : ChainIndex) (value : Digest) :
-    (replaceSignatureChainValue signature chain value).chainValue chain = value := by
-  simp [replaceSignatureChainValue]
+    (replaceSignatureChainValue key signature chain value).keyChainValue key chain = value := by
+  cases key <;> simp [replaceSignatureChainValue, Signature.keyChainValue]
 
-theorem replaceSignatureChainValue_other
+theorem replaceSignatureChainValue_other (key : ChainKey)
     (signature : Signature) (chain candidate : ChainIndex) (value : Digest)
     (hne : candidate ≠ chain) :
-    (replaceSignatureChainValue signature chain value).chainValue candidate =
-      signature.chainValue candidate := by
-  simp [replaceSignatureChainValue, Function.update_of_ne hne]
+    (replaceSignatureChainValue key signature chain value).keyChainValue key candidate =
+      signature.keyChainValue key candidate := by
+  cases key <;> simp [replaceSignatureChainValue, Signature.keyChainValue, Function.update_of_ne hne]
 
 theorem Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTable
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -45,26 +63,6 @@ theorem Concrete.CacheReplay.signWithEncoding_chainValue_eq_keygenChainValueTabl
   simp only [Concrete.CacheReplay.signWithEncoding,
     Concrete.CacheReplay.signedChainValues, keygenChainValueTable]
   exact hwalk.symm
-
-/-- Replace one top chain value of a signature. -/
-def replaceSignatureTopChainValue
-    (signature : Signature) (chain : ChainIndex) (value : Digest) : Signature :=
-  { signature with
-    top := { signature.top with
-      chainValue := Function.update signature.top.chainValue chain value } }
-
-@[simp]
-theorem replaceSignatureTopChainValue_same
-    (signature : Signature) (chain : ChainIndex) (value : Digest) :
-    (replaceSignatureTopChainValue signature chain value).top.chainValue chain = value := by
-  simp [replaceSignatureTopChainValue]
-
-theorem replaceSignatureTopChainValue_other
-    (signature : Signature) (chain candidate : ChainIndex) (value : Digest)
-    (hne : candidate ≠ chain) :
-    (replaceSignatureTopChainValue signature chain value).top.chainValue candidate =
-      signature.top.chainValue candidate := by
-  simp [replaceSignatureTopChainValue, Function.update_of_ne hne]
 
 theorem Concrete.CacheReplay.topPartFromCache_chainValue_eq_keygenChainValueTable
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)

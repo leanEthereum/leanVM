@@ -43,7 +43,7 @@ theorem certOf_pows_ok (j : ℕ) : (certOf j).facts.pows.Ok := by
   rw [certOf_pows]
   exact PowTree.ok_of_okW Checked.powTree_ok
 
-theorem functions_length : Data.functions.length = nFns := B2C.functions_lengthC
+theorem functions_length : Data.functions.length = nFns := by decide +kernel
 
 theorem coreProgram_length' : coreProgram.length + 1 = nFns := by
   rw [coreProgram_length]; rfl
@@ -93,99 +93,46 @@ theorem semRel_tabs (rd : Reader) (ws : List E) :
     SemRel glob tagTabs rd ws ↔ B1.WinTabs rd (ws.getD 0 0) := by
   simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs]
 
-/-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided. -/
+/-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided over the
+certificates and the core functions side by side (`coreOf 0` is `coreOf 1`, `main`): indexing
+each function apart costs the kernel a walk of the lists per function. -/
 noncomputable def sigSemArgsB : Bool :=
-  (List.range nFns).all fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)
+  (Data.certs.zip (coreOf 0 :: coreProgram)).all fun p ↦ p.1.sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + p.2.params.length)
 
-private theorem all_drop_step {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
-    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
-    (l.drop (n * k)).all p = true := by
-  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
-  rwa [Nat.mul_succ] at ht
+theorem sigSemArgsB_eq : sigSemArgsB = true := by decide +kernel
 
-private theorem sigSem0 : (((List.range nFns).drop (100 * 0)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
+theorem certs_length : Data.certs.length = nFns := by decide +kernel
 
-private theorem sigSem1 : (((List.range nFns).drop (100 * 1)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
+theorem certOf_sem (j : ℕ) : (certOf j).sem = (listElementOrDefault Data.certs j default).sem := by
+  unfold certOf
+  split
+  next h => rw [h]
 
-private theorem sigSem2 : (((List.range nFns).drop (100 * 2)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem3 : (((List.range nFns).drop (100 * 3)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem4 : (((List.range nFns).drop (100 * 4)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem5 : (((List.range nFns).drop (100 * 5)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem6 : (((List.range nFns).drop (100 * 6)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem7 : (((List.range nFns).drop (100 * 7)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem8 : (((List.range nFns).drop (100 * 8)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem9 : (((List.range nFns).drop (100 * 9)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem10 : (((List.range nFns).drop (100 * 10)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem11 : (((List.range nFns).drop (100 * 11)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem12 : (((List.range nFns).drop (100 * 12)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem13 : (((List.range nFns).drop (100 * 13)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem14 : (((List.range nFns).drop (100 * 14)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem15 : (((List.range nFns).drop (100 * 15)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-private theorem sigSem16 : ((List.range nFns).drop (100 * 16)).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
-    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
-  decide +kernel
-
-/-- `sigSemArgsB`, a hundred functions at a time (the last check takes the rest). -/
-theorem sigSemArgsB_eq : sigSemArgsB = true :=
-  all_drop_step (k := 0) sigSem0 <| all_drop_step sigSem1 <| all_drop_step sigSem2 <| all_drop_step sigSem3 <|
-    all_drop_step sigSem4 <| all_drop_step sigSem5 <| all_drop_step sigSem6 <| all_drop_step sigSem7 <|
-    all_drop_step sigSem8 <| all_drop_step sigSem9 <| all_drop_step sigSem10 <| all_drop_step sigSem11 <|
-    all_drop_step sigSem12 <| all_drop_step sigSem13 <| all_drop_step sigSem14 <| all_drop_step sigSem15 sigSem16
+private theorem getElem_cons_nth {α : Type} {d e : α} {l : List α} {i : ℕ} (h : i + 1 < (d :: l).length) :
+    (d :: l)[i + 1] = listElementOrDefault l i e := by
+  rw [List.getElem_cons_succ, nth_eq]
 
 /-- **Every function's semantic tuples read only its argument words**: their cells are argument
 cells (and a tuple's relation, `SemRel glob t rd ws`, reads only the memory and the words). -/
 theorem sigSem_args {j : ℕ} (hj : j < nFns) :
     ∀ s ∈ (glob.sig j).sem, ∀ o ∈ s.2, 2 ≤ o ∧ o < 2 + (glob.sig j).nargs := by
   intro s hs o ho
-  have h := List.all_eq_true.mp sigSemArgsB_eq j (List.mem_range.mpr hj)
-  have h' := List.all_eq_true.mp (List.all_eq_true.mp h s hs) o ho
+  have hc : j < Data.certs.length := certs_length ▸ hj
+  have hp : j < (coreOf 0 :: coreProgram).length := by
+    rw [List.length_cons, coreProgram_length']; exact hj
+  have hcore : (coreOf 0 :: coreProgram)[j] = coreOf j := by
+    cases j with
+    | zero => rfl
+    | succ i => exact getElem_cons_nth hp
+  have hz : j < (Data.certs.zip (coreOf 0 :: coreProgram)).length := by
+    rw [List.length_zip]; exact lt_min hc hp
+  have h := List.all_eq_true.mp sigSemArgsB_eq _ (List.getElem_mem hz)
+  rw [List.getElem_zip, hcore] at h
+  have hs' : s ∈ (listElementOrDefault Data.certs j default).sem := by
+    rw [← certOf_sem]; exact hs
+  rw [nth_eq hc] at hs'
+  have h' := List.all_eq_true.mp (List.all_eq_true.mp h s hs') o ho
   simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at h'
   exact h'
 

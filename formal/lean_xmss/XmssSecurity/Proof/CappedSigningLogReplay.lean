@@ -2,15 +2,33 @@ module
 
 public import XmssSecurity.Proof.CappedConcreteExecution
 public import XmssSecurity.Proof.PrecomputedBoundedSign
-public import XmssSecurity.Proof.SigningLogConsistency
-public import XmssSecurity.Proof.WinningEventReduction
 
 @[expose] public section
+
+/-!
+# The detailed game's final cache replays the returned signatures
+
+`cappedMappedAdversaryImpl` runs the adversary with the lazy random oracle and the capped signer,
+logging the signing queries. Its cache only grows (`cappedMappedAdversary_cache_le`), and every
+signature it returns is what any larger cache replays from the encoding its message digest decodes
+to (`cappedMappedAdversary_signingLog_consistent`). So every execution of `detailedGameWithCache` is
+`ConcreteOutcomeConsistent` in its final cache (`capped_detailed_execution_consistent`).
+-/
 
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators
 
 namespace XmssSecurity
+
+def SigningLogConsistent (cache : QueryCache HashSpec) (secretKey : SecretKey)
+    (log : QueryLog SigningSpec) : Prop :=
+  ∀ request signature, SigningTranscript.Returned log request signature →
+    ∃ encoding,
+      TargetSum.decodeDigest
+        (Concrete.CacheView.encodingHash cache secretKey.parameter request.leafIndex
+          (request.message, signature.randomness)) = some encoding ∧
+      signature = Concrete.CacheReplay.signWithEncoding cache secretKey
+        request.leafIndex signature.randomness encoding
 
 noncomputable def cappedMappedAdversaryImpl
     (_publicKey : PublicKey) (secretKey : SecretKey) :
@@ -19,7 +37,7 @@ noncomputable def cappedMappedAdversaryImpl
   romImpl.writerTMapBase
     (forwardOracles + signingOracle Concrete.scheme secretKey)
 
-theorem cappedMappedAdversary_cache_le {α : Type}
+theorem cappedMappedAdversary_cache_le
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec)
@@ -34,7 +52,7 @@ theorem cappedMappedAdversary_cache_le {α : Type}
   rw [QueryImpl.simulateQ_writerTMapBase_run]
   exact hmem
 
-theorem cappedMappedAdversary_signingLog_consistent {α : Type}
+theorem cappedMappedAdversary_signingLog_consistent
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec)

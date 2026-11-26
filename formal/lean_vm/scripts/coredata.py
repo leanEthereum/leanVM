@@ -22,11 +22,6 @@ def keys(data):
     return re.findall(r'Fn\.«([^»]+)»\.core', t[i:t.index(' []', i)])
 
 
-def plain(p):
-    """A generated pack file's text, its data literals' `data% ` (`Guest/DataLit.lean`) dropped."""
-    return p.read_text(encoding='utf-8').replace('data% ', '')
-
-
 _PACKED = {}
 
 
@@ -39,7 +34,7 @@ def packed(data):
         for p in sorted(top.glob('P[0-9]*/Core.lean')):
             mod = f'LeanVM.Guest.Pack.{p.parent.name}.Core'
             for m in re.finditer(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»\n(.*?)^end LeanVM\.Guest\.Fn\.«\1»$',
-                                 plain(p), re.M | re.S):
+                                 p.read_text(encoding='utf-8'), re.M | re.S):
                 out[m.group(1)] = (m.group(2), mod)
         _PACKED[top] = out
     return _PACKED[top]
@@ -58,7 +53,7 @@ def fn_text(data, key):
         d = Path(data).parent / top / key
         files = sorted(d.glob('Core*.lean'), key=lambda p: (p.stem == 'Core', int(p.stem[4:] or 0)))
         if files:
-            return ''.join(plain(p) for p in files)
+            return ''.join(p.read_text(encoding='utf-8') for p in files)
     return ''
 
 

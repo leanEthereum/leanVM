@@ -27,13 +27,13 @@ public import LeanVM.Guest.Memory.SelArm
 
 **Joins.** After an `ite` or a `match`, the scope is the one before it with, in addition, the cells, runs, pointer facts and pointer runs that every block able to fall through (not ending in a top-level `ret`, `endsRet`) added, at the first such block's serials (`joinSt`): whichever falls through wrote them. An `ite`'s zero branch keeps the equation `a = b` of its guard's sum `c = a + b` (`zeroEq`: characteristic 2), so a run whose bounds are one word by the kept equations has no cell (`emptyE`). The certificate may list `ite`s (`HCert.dups`, by guard) whose continuation the pass checks in each branch (`dupB`): the `ret` after an `ite` that only one branch's writes reach.
 
-**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
+**Under a selector.** A `dispatch` on `x` also keeps its arms' guarantees under `x`'s monomial, one entry per dispatch indexed by arm (`condE`, `CSt.cd`: arm `j` ran if `x = g^j`), replacing an equal earlier entry (`CSt.addCd`); a later dispatch on the same monomial checks arm `j`'s preconditions in the state with those of every earlier dispatch's arm `j` pushed, from the next serials (`condSt`).
 
-**Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and the tree gives each callee instance those words (`HeapCTree.lean`, `setG`).
+**Ghosts.** A signature with `ghosts = n` has `n` ghost slots after its parameters (`m + j`), in `preR`, `preP`, `prePR` only: words its callers name, no argument (a caller's object, which a cursor parameter points into). In the own pass ghost `j` is the value `V.n (GB + j)`, its own base (`ghostMs`), which the body may not name (`noGhost`): the run does not depend on it. A call of `g` on `args` names `g`'s ghosts by the monomials the certificate lists for that callee and those arguments (`HCert.gargs`, `gargsOf`), as many as `g` has; the semantics evaluates them at the caller's valuation (`gargsW`, `CallPre`), and each callee instance is given those words (`setG`, `CoreGhost.lean`).
 
 **Words at cells.** A caller may name a callee's ghost by the word at a cell it never loads (a record's pointer
 field): the certificate lists such cells (`HCert.ders`), value `DB + k` being the word at `ders[k]` (`DerOk`, a
-hypothesis of the instance, set from the memory in the tree, `HeapCTree.lean`), and the ghost monomials (`gargs`)
+hypothesis of the instance), and the ghost monomials (`gargs`)
 name it. At a call naming `DB + k`, the cell `ders[k]` is witnessed written first (`derWs`, `DerW`), then the
 callee's preconditions are checked with `DB + k` loaded from it (`derSt`, `src`), so a pointer fact at the cell
 gives the object's cells; the semantics asks those preconditions where the cells are in memory (`DerDef`,
@@ -990,9 +990,22 @@ def condE (sigOf : String → HSig) (ms : List CCell) : List String → List CdA
     | some cs, some rs, some ps, some prs => ⟨cs, rs, ps, prs⟩
     | _, _, _, _ => ⟨[], [], [], []⟩) :: condE sigOf ms gs
 
-/-- The guarantees under a selector, added. -/
+/-- Two lists equal entry by entry. -/
+def listBeq {α : Type} (beq : α → α → Bool) : List α → List α → Bool
+  | [], [] => true
+  | a :: as, b :: bs => beq a b && listBeq beq as bs
+  | _, _ => false
+
+/-- Two entries under a selector are equal. -/
+def CdE.beq (a b : CdE) : Bool :=
+  a.mx.beq b.mx && listBeq (fun p q ↦ listBeq CCell.beq p.cs q.cs && listBeq PRun.beq p.rs q.rs &&
+    listBeq pfBeq p.ps q.ps && listBeq prBeq p.prs q.prs) a.arms b.arms
+
+/-- The guarantees under a selector, added, an equal earlier entry dropped: a later dispatch on the selector
+would push its guarantees twice. -/
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
-  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l, st.eqs, st.dq⟩
+  ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt,
+    st.cd.filter (fun e ↦ !l.any e.beq) ++ l, st.eqs, st.dq⟩
 
 /-- The word a signature names at return (`postV`) at the cell `c`, its `post` cell at the slots `ms`. -/
 def wordAt (G : HSig) (ms : List CCell) (c : CCell) : Option CCell :=
@@ -1482,24 +1495,24 @@ def topAtoms : List Stmt → List Atom
 /-- The value numbers the atoms define (`atomDst`), as a trie. -/
 noncomputable def dstKeys (as : List Atom) : Trie Unit := keysT ((as.flatMap atomDst).filterMap vnum) .nil
 
-/-- Cell `i` of a `frameAddr (V.n kp) run` among the atoms, `run[i]` among the values `D` (by number), or past a
-nonempty run. -/
-noncomputable def faAt (D : Trie Unit) (kp i : ℕ) : Atom → Bool
-  | .frameAddr p run => (match vnum p with
-      | some k => Nat.beq k kp
-      | none => false) && ((match run[i]? with
-      | some v => match vnum v with
-        | some k => (getF D k).isSome
-        | none => false
-      | none => false) || (!run.isEmpty && Nat.ble run.length i))
-  | _ => false
+/-- A `frameAddr (V.n k) run` atom's `k` and run. -/
+def frOf : Atom → Option (ℕ × List V)
+  | .frameAddr p run => (vnum p).map fun k ↦ (k, run)
+  | _ => none
+
+/-- Cell `i` of a frame run: `run[i]` among the values `D` (by number), or past a nonempty run. -/
+noncomputable def faCell (D : Trie Unit) (i : ℕ) (run : List V) : Bool :=
+  (match run[i]? with
+    | some v => match vnum v with
+      | some k => (getF D k).isSome
+      | none => false
+    | none => false) || (!run.isEmpty && Nat.ble run.length i)
 
 /-- **The frame run cells a certificate guarantees at return** (`HCert.fas`): each `(kp, i)` cell `i` of a
-`frameAddr (V.n kp) run` among the atoms `as`, `run[i]` defined by one of them (`D`, `dstKeys as`), or past a nonempty
-run. -/
-noncomputable def faOk (as : List Atom) (D : Trie Unit) : List (ℕ × ℕ) → Bool
-  | [] => true
-  | (kp, i) :: l => as.any (faAt D kp i) && faOk as D l
+`frameAddr (V.n kp) run` among the atoms `as` (`frOf`, the runs listed once), `run[i]` defined by one of them (`D`,
+`dstKeys as`), or past a nonempty run. -/
+noncomputable def faOk (as : List Atom) (D : Trie Unit) (l : List (ℕ × ℕ)) : Bool :=
+  Exec.listSeq (as.filterMap frOf) fun fr ↦ l.all fun q ↦ fr.any fun r ↦ Nat.beq r.1 q.1 && faCell D q.2 r.2
 
 /-- `c`'s value number listed. -/
 def dupC (ds : List ℕ) (c : V) : Bool := match vnum c with

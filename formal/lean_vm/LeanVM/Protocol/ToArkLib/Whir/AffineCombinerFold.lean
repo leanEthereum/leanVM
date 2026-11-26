@@ -22,9 +22,28 @@ folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² 
 `2^κ` and above carry no weight is irrelevant here, only linearity is used).
 
 * `foldW dom f g α β = g + (α + β x) f`, the affine fold (`def:affine-fold`).
-* `ClaimHolds`, `map_fold`: the claim after a fold round, and the fold's linearity in the
-  combiner; `card_quad_zero_le`: a nonzero quadratic in `(α, β)` vanishes at most at `2 |F|`
-  pairs. `AffineCombinerFoldRel.lean` counts a round's escapes (`lem:fold-list`) from them.
+* `card_foldBad_le`: if every pair of `lst(f, g; A - 1, d)` violates the claim, then for every
+  table `u₀ v c₀ c₁` (the claimed `⟨W₀, G⟩`, `⟨W₁ − W₀, F⟩`, `⟨W₀, XF⟩`, `⟨W₁, XF⟩`), at most
+  `N + 2 L |F|` challenges `(α, β)` let some tuple of `lst(fold; A, d)` satisfy the new claim
+  `(1 - α) Λ₀ P + α Λ₁ P = u₀ + α (c - u₀) + α² v + β c₀ + α β (c₁ - c₀)`, where `N` is the
+  number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|²`, this
+  is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
+* `card_foldBadR_le`: the same count relativised to a predicate `Bp` on pairs, as the
+  agreement-set extractor's invariant asks: if every pair of `lst(f, g; A - 1, d)` satisfying `Bp`
+  violates the claim, the same bound holds for the challenges (`foldBadR`) after which a tuple of
+  `lst(fold; A, d)`, every near pair of whose agreement set (`NearPair`: both halves of degree at
+  most `d`, agreeing with `(f, g)` there but at one point) satisfies `Bp`, satisfies the new claim.
+  `card_foldBad_le` is its case `Bp` true.
+
+Outside the exceptional pairs, a tuple `P` of the fold's list is `U + (α + β X) V` with
+`deg U ≤ d`, `deg V ≤ d - 1`, `U = g` and `V = f` off at most one agreement point, so `(V, U)` is
+in `lst(f, g; A - 1, d)` at the same degree `d`. Its true value and the claimed one have the
+same shape `a + α (c − a) + α² b + β d + α β e` (true: `a = Λ₀ U`, `c = Λ₀ V + Λ₁ U`,
+`b = Λ₁ V − Λ₀ V`, `d = Λ₀ (X V)`, `e = Λ₁ (X V) − Λ₀ (X V)`), so their difference is a
+polynomial of degree at most two in `(α, β)`; it is nonzero, for its constant coefficient would
+force `a = u₀` and then its `α` coefficient `Λ₀ V + Λ₁ U = c`, which the pair violates. It
+vanishes at most at `2 |F|` pairs (`card_quad_zero_le`). The two events are counted over the same
+pairs; no independence of the weight's point from the combiner is needed.
 
 In characteristic `2` the claim is the Annex's `u₀ + α (u₀ + c) + α² w + β c₀ + α β (c₀ + c₁)`,
 `w = ⟨W₀ + W₁, F⟩`; the form here is the one valid in every characteristic. The weight
@@ -161,6 +180,129 @@ theorem map_fold (Λ : (ρ → F[X]) →ₗ[F] F) (G H : ρ → F[X]) (α β : F
 `(1 - α) Λ₀ P + α Λ₁ P = Σ_ι eq(α, ι) (u_ι + α v_ι + β c_ι)`. -/
 def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (α β c u₀ v c₀ c₁ : F) (P : ρ → F[X]) : Prop :=
   (1 - α) * Λ₀ P + α * Λ₁ P = u₀ + α * (c - u₀) + α ^ 2 * v + β * c₀ + α * β * (c₁ - c₀)
+
+open Classical in
+/-- **The fold round's escapes**: the challenges `(α, β)` after which some tuple of
+`lst(fold; A, d)` satisfies the new claim, for the table `u₀ v c₀ c₁` and the running claim
+`c`. -/
+noncomputable def foldBad (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v c₀ c₁ : F) : Finset (F × F) :=
+  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.1 t.2) A d,
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ P
+
+open Classical in
+/-- **A near pair**: `p = (F, G)` has both halves of degree at most `d`, and agrees with `(f, g)`
+on all of `S` but at most one point. -/
+def NearPair (dom : ι ↪ F) (f g : ρ → ι → F) (d : ℕ) (S : Finset ι)
+    (p : (ρ → F[X]) × (ρ → F[X])) : Prop :=
+  DegLE d p.1 ∧ DegLE d p.2 ∧
+    (S.filter fun x ↦ ∃ r, (p.1 r).eval (dom x) ≠ f r x ∨ (p.2 r).eval (dom x) ≠ g r x).card ≤ 1
+
+open Classical in
+/-- **The fold round's relativised escapes**: the challenges `(α, β)` after which some tuple of
+`lst(fold; A, d)`, every near pair of whose agreement set satisfies `Bp`, satisfies the new
+claim. -/
+noncomputable def foldBadR (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v c₀ c₁ : F)
+    (Bp : (ρ → F[X]) × (ρ → F[X]) → Prop) : Finset (F × F) :=
+  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.1 t.2) A d,
+    (∀ p, NearPair dom f g d (agree dom P (foldW dom f g t.1 t.2)) p → Bp p) ∧
+      ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ P
+
+variable [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {A d : ℕ}
+
+/-- **`lem:fold-list`, relativised.** Let every pair of `lst(f, g; A - 1, d)` satisfying `Bp`
+violate the claim `Λ₀ F + Λ₁ G = c`. For every table `u₀ v c₀ c₁`, at most
+`|excSet(g, f)| + 2 jl n (A - 1) d |F|` challenges `(α, β)` let a tuple of `lst(fold; A, d)`, all
+of whose near pairs satisfy `Bp`, satisfy the new claim. -/
+theorem card_foldBadR_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F) (Bp : (ρ → F[X]) × (ρ → F[X]) → Prop)
+    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Bp p → Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    (foldBadR dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ Bp).card ≤
+      (excSet dom g f d A).card + 2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F := by
+  classical
+  set pairs := (pairList dom f g (A - 1) d).filter Bp
+  let B2 : (ρ → F[X]) × (ρ → F[X]) → Finset (F × F) := fun p ↦ univ.filter fun t ↦
+    ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ fun r ↦ p.2 r + lin t.1 t.2 * p.1 r
+  have hB2 : ∀ p ∈ pairs, (B2 p).card ≤ 2 * Fintype.card F := by
+    intro p hp
+    obtain ⟨hp, hBp⟩ := mem_filter.mp hp
+    refine le_trans (card_le_card ?_) (card_quad_zero_le (Λ₀ p.2 - u₀)
+      ((Λ₀ p.1 + Λ₁ p.2 - Λ₀ p.2) - (c - u₀)) ((Λ₁ p.1 - Λ₀ p.1) - v)
+      (Λ₀ (fun r ↦ X * p.1 r) - c₀)
+      ((Λ₁ (fun r ↦ X * p.1 r) - Λ₀ (fun r ↦ X * p.1 r)) - (c₁ - c₀)) ?_)
+    · intro t ht
+      have ht := (mem_filter.mp ht).2
+      simp only [ClaimHolds, map_fold] at ht
+      exact mem_filter.mpr ⟨mem_univ _, by linear_combination ht⟩
+    · rintro ⟨ha₀, ha₁, -, -, -⟩
+      apply hviol p hp hBp
+      linear_combination ha₁ + ha₀
+  have hsub : foldBadR dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ Bp ⊆
+      excSet dom g f d A ∪ pairs.biUnion B2 := by
+    intro t ht
+    obtain ⟨P, hP, hpull, hclaim⟩ := (mem_filter.mp ht).2
+    rw [mem_tupleList] at hP
+    by_cases hE : IsExceptional dom g f d A t.1 t.2
+    · exact mem_union_left _ ((mem_excSet _ _ _ _ _ _).mpr hE)
+    obtain ⟨U, V, hU, hV, hPUV, hloss⟩ : ∃ U V, IsWitness dom g f d t.1 t.2 P U V := by
+      by_contra hw
+      exact hE ⟨P, hP.1, hP.2, hw⟩
+    let p : (ρ → F[X]) × (ρ → F[X]) := (V, U)
+    set S := agree dom P (comb dom g f t.1 t.2) with hS
+    have hagr : S.filter (fun x ↦ ¬ ∃ r, (U r).eval (dom x) ≠ g r x ∨
+        (V r).eval (dom x) ≠ f r x) ⊆ agree dom p.1 f ∩ agree dom p.2 g := by
+      intro x hx
+      obtain ⟨-, hx⟩ := mem_filter.mp hx
+      simp only [not_exists, not_or, not_not] at hx
+      exact mem_inter.mpr ⟨(mem_agree _ _ _ _).mpr fun r ↦ (hx r).2,
+        (mem_agree _ _ _ _).mpr fun r ↦ (hx r).1⟩
+    have hcardS : A ≤ S.card := hP.2
+    have hsplit := card_filter_add_card_filter_not (s := S) (fun x ↦ ∃ r,
+      (U r).eval (dom x) ≠ g r x ∨ (V r).eval (dom x) ≠ f r x)
+    have hloss' : (S.filter fun x ↦ ∃ r, (U r).eval (dom x) ≠ g r x ∨
+        (V r).eval (dom x) ≠ f r x).card ≤ 1 := by
+      convert hloss
+    have hA1 : A - 1 ≤ (agree dom p.1 f ∩ agree dom p.2 g).card :=
+      le_trans (by omega) (card_le_card hagr)
+    have hdV : DegLE d V := fun r ↦ (hV r).trans (Nat.sub_le _ _)
+    have hnear : NearPair dom f g d (agree dom P (foldW dom f g t.1 t.2)) p := by
+      refine ⟨hdV, hU, le_trans (le_of_eq (congrArg Finset.card ?_)) hloss'⟩
+      ext x
+      simp only [mem_filter, hS, foldW]
+      exact and_congr_right fun _ ↦ exists_congr fun r ↦ or_comm
+    have hp : p ∈ pairs :=
+      mem_filter.mpr ⟨(mem_pairList _ _ _ _ _ _).mpr ⟨hdV, hU, hA1⟩, hpull p hnear⟩
+    refine mem_union_right _ (mem_biUnion.mpr ⟨p, hp, mem_filter.mpr ⟨mem_univ _, ?_⟩⟩)
+    have hPeq : (fun r ↦ p.2 r + lin t.1 t.2 * p.1 r) = P := by
+      funext r; exact (hPUV r).symm
+    rw [hPeq]
+    exact hclaim
+  calc (foldBadR dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁ Bp).card
+      ≤ (excSet dom g f d A).card + (pairs.biUnion B2).card :=
+        (card_le_card hsub).trans (card_union_le _ _)
+    _ ≤ (excSet dom g f d A).card + pairs.card * (2 * Fintype.card F) := by
+        gcongr
+        exact card_biUnion_le_card_mul _ _ _ hB2
+    _ ≤ (excSet dom g f d A).card + jl (Fintype.card ι) (A - 1) d * (2 * Fintype.card F) := by
+        gcongr
+        exact (card_filter_le _ _).trans (card_pairList_le_jl dom f g (A - 1) d hgap)
+    _ = _ := by ring
+
+/-- **`lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d)` violate the claim
+`Λ₀ F + Λ₁ G = c`. For every table `u₀ v c₀ c₁`, at most
+`|excSet(g, f)| + 2 jl n (A - 1) d |F|` challenges `(α, β)` let a tuple of `lst(fold; A, d)`
+satisfy the new claim. -/
+theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
+    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
+    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
+    (foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card ≤
+      (excSet dom g f d A).card + 2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F := by
+  classical
+  refine le_trans (card_le_card fun t ht ↦ ?_)
+    (card_foldBadR_le dom f g hgap Λ₀ Λ₁ c (fun _ ↦ True) (fun p hp _ ↦ hviol p hp) u₀ v c₀ c₁)
+  obtain ⟨P, hP, hclaim⟩ := (mem_filter.mp ht).2
+  exact mem_filter.mpr ⟨mem_univ _, P, hP, fun _ _ ↦ trivial, hclaim⟩
 
 end
 end LeanVM.Protocol.Whir.AffineCombiner

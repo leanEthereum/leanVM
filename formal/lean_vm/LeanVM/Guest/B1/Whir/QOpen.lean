@@ -43,7 +43,9 @@ theorem take_capSibsOf_succ {cap : E} {D p j : ℕ} (hj : j < D) :
   rw [List.take_add_one, List.getElem?_eq_getElem (by rw [capSibsOf_length]; exact hj)]
   simp [capSibsOf]
 
-/-- **Up the cap by the siblings its cells hold** (`cap_climb`, the siblings named). -/
+/-- **Up the cap by the siblings its cells hold**: under `verify_merkle_cap`'s meaning, a digest
+written at the cap's leaf `p` whose parent is flagged climbs to the root by `D` siblings of the
+cap. -/
 theorem cap_climb_w {D : ℕ} (hD : 2 ≤ D) {cap flags r0 r1 : E} {root : Digest}
     (hcap : MeaningVerifyMerkleCap D rd [cap, flags] [r0, r1])
     (hroot : (r0, r1) = digestHalves root) {p : ℕ} (hp : p < 2 ^ D) {x : Digest}
@@ -179,7 +181,7 @@ theorem query_openOne_w {D depth width : ℕ} (hD : 2 ≤ D) (hDd : D ≤ depth)
   rw [hf2] at hfl
   have hc := cap_climb_w hD hcap hroot hp h0 h1 hfl
   unfold Compile.openOneWithHash toOpening
-  rw [ite_eq_left ⟨hw, by simp [hsl, capSibsOf_length]; omega⟩]
+  rw [ite_pos' ⟨hw, by simp [hsl, capSibsOf_length]; omega⟩]
   show decide ((climbD (merkleLeafDigest row) q (sibs ++ capSibsOf rd cap D (q / 2 ^ (depth - D)))).toList =
     root.toList) = true
   rw [climbD_append, hsl, hc]

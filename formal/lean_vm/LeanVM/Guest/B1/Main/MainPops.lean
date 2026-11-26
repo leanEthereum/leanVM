@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 
 * `Stmt.popS`, `spliceS`: a straight block's skeleton of entries, a witness hint's or a frame's callee's, and its entries with the callees' spliced in; `splice_straight`: a straight block's events splice as its skeleton;
 * `mBlocks_popS`: `main`'s blocks' skeletons, by the kernel;
-* `mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst`: `main`'s entries, its callees' given; `main_pops`: a node of `main` at a valuation with `main`'s honest values pops them.
+* `mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst`: `main`'s entries, its callees' given; `mPath_popS`: the skeleton of `main`'s path at a valuation with its honest values.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -135,20 +135,20 @@ theorem mPath_popS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVa
     rw [hv.v389, e_add_eq_zero_iff]
     constructor
     · intro h
-      exact gen_pow_inj (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
+      exact Digest.gen_pow_inj' (a := m.nd) (b := 1) (by omega) (by norm_num) (by rw [h, pow_one])
     · intro h; rw [h, pow_one]
   have h418 : σ (.n (val% «main» "s63#1")) = 0 ↔ m.nc = 0 := by
     rw [hv.v451, add_comm, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff (by omega)]
   obtain ⟨b1, b2, b2', b3, b4, b5, b6⟩ := mBlocks_popS
   have e1 : (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ).filterMap Stmt.popS = if m.nd = 1 then [none] else [] := by
     by_cases h : m.nd = 1
-    · rw [ite_eq_left (h368.mpr h), ite_eq_left h, b2]
-    · rw [ite_eq_right (fun h' => h (h368.mp h')), ite_eq_right h, b2']
+    · rw [ite_pos' (h368.mpr h), ite_pos' h, b2]
+    · rw [ite_neg' (fun h' => h (h368.mp h')), ite_neg' h, b2']
   have e2 : (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg).filterMap Stmt.popS =
       if m.nc = 0 then [some ("leaf_defer", .stack [.n (val% «main» "leaf_value")])] else [none] := by
     by_cases h : m.nc = 0
-    · rw [ite_eq_left (h418.mpr h), ite_eq_left h, b4]
-    · rw [ite_eq_right (fun h' => h (h418.mp h')), ite_eq_right h, b5]
+    · rw [ite_pos' (h418.mpr h), ite_pos' h, b4]
+    · rw [ite_neg' (fun h' => h (h418.mp h')), ite_neg' h, b5]
   rw [mPath, List.filterMap_append, List.filterMap_append, List.filterMap_append, List.filterMap_append, b1, e1, b3,
     e2, b6]
 
@@ -179,13 +179,6 @@ theorem main_spliceS {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : M
   by_cases a : m.nd = 1 <;> by_cases b : m.nc = 0 <;>
     simp only [a, b, ↓reduceIte, List.cons_append, List.nil_append, List.append_nil,
       spliceS, List.headD_cons, List.tail_cons, w1, w2, w3, w4]
-
-/-- **`main`'s node pops its entries**, at a valuation with `main`'s honest values, its callees popping theirs. -/
-theorem main_pops {m : MainIn} (hnd : m.nd ≤ 1) (hnc : m.nc ≤ 16) (hv : MVals rd σ m) {bufs : List ℕ}
-    {ks : List Tree} {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop}
-    (hk : Tree.popsKids coreProgram rd ks = mainKidPops m pe px ps p0 p1 p2 p3 pd p5 pa pst) :
-    (Memory.Tree.node "main" σ bufs ks).pops coreProgram rd = mainOwnPops m pe px ps p0 p1 p2 p3 pd p5 pa pst := by
-  rw [Tree.pops_node find_main (walk_main σ), splice_mEvs, hk, main_spliceS hnd hnc hv]
 
 end
 end LeanVM.Guest.B1.Main

@@ -1,6 +1,8 @@
 module
 
 public import FORS.SmallBudget.Linear.Start
+public import FORS.SmallBudget.Linear.Run
+public import FORS.LazyRun.PreparedRun
 
 @[expose] public section
 
@@ -21,9 +23,6 @@ open Concrete Completeness _root_.FORS.Security.Graph HiddenGraph HiddenDebt Hid
   TargetAssignment
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.unusedSectionVars false
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 attribute [local irreducible] ReferenceChoice.selection encodingAttemptLimit
 
@@ -141,6 +140,7 @@ theorem prepared_not_fleaf {f : FIn} {a : HashOutput}
   · exact hrow (position_domain_fleaf (domain_eq_of_input heq trivial (Position.domain_inRange _)).1.symm)
   · exact enc_ne_fleaf heq.symm
 
+set_option maxRecDepth 2000 in
 include hprepared in
 /-- No prepared encoding answer decodes to a unit neighbour of the prepared word. -/
 theorem prepared_no_marker {l : OtsKey} {msg : HashInput} {ctr : Counter} {a : HashOutput} {i : ChainIndex}
@@ -230,6 +230,7 @@ theorem hit_of_correctGuess (h : CorrectGuess T s) :
   exact hguess
 
 include hprepared hinv hT in
+set_option maxRecDepth 2000 in
 /-- **WOTS events.** -/
 theorem wotsBad_of_event (h : WotsEvent (truncateHash parameterOutput) prepared.1 T s.cache) :
     (ctxA parameterOutput fixed highs remaining prepared known ρ).WotsBad s := by

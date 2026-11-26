@@ -10,7 +10,7 @@ public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.B1.Common.Vc
-import LeanVM.Guest.Ref.KernelIff
+import LeanVM.Guest.KernelRfl
 
 /-!
 # `batch_sumcheck`
@@ -22,7 +22,7 @@ stores it at `point[j]` and folds the degree-two round; it returns the last capa
 
 `vc` computes its condition: round by round, the two words read, the challenge stored, the
 permutation's cells in place of its outputs. `BsRounds` is that condition for `n` rounds from
-round `k`, which the kernel compares with the computed one (`kernel_iff`), and `bsRounds_iff` its
+round `k`, which the kernel compares with the computed one (`kernel_rfl`), and `bsRounds_iff` its
 meaning (`bsRun`), by induction on `n`.
 -/
 
@@ -104,7 +104,7 @@ theorem batch_sumcheck_holds : batch_sumcheck_Spec := by
   · obtain ⟨f0, f1, f2, f3, f4, msgs, running, point, tabs, rfl⟩ := h
     rw [meaningBatchSumcheck_iff]
     vc [keccakF_cells, word_zero]
-    kernel_iff
+    kernel_rfl
   · refine iff_of_false (fun ⟨σ, hp, _⟩ => h ⟨_, _, _, _, _, _, _, _, _, hp.symm⟩) fun hm => h ?_
     match args, hm with
     | [_, _, _, _, _, _, _, _, _], _ => exact ⟨_, _, _, _, _, _, _, _, _, rfl⟩

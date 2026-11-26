@@ -1,4 +1,4 @@
-//! The global allocator of the benchmark CLI, the proving benchmarks and the sidecar.
+//! The global allocator of the benchmark CLI, the proving benchmarks and the bindings.
 //!
 //! A proof allocates gigabytes of short-lived buffers and frees them before it returns.
 //!
@@ -26,10 +26,12 @@ pub use tikv_jemallocator::Jemalloc;
 ///   elsewhere jemalloc rejects `thp`.
 /// - jemalloc reads a C string pointer here.
 /// - A reference to a byte array is that pointer, with no length beside it.
-#[cfg(target_os = "linux")]
+/// - With the `library` feature, no huge pages: each arena a host thread touches would hold one, and a host calls in
+///   from many threads.
+#[cfg(all(target_os = "linux", not(feature = "library")))]
 #[unsafe(export_name = "_rjem_malloc_conf")]
 static MALLOC_CONF: &[u8; 47] = b"dirty_decay_ms:-1,thp:always,metadata_thp:auto\0";
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(not(target_os = "linux"), feature = "library"))]
 #[unsafe(export_name = "_rjem_malloc_conf")]
 static MALLOC_CONF: &[u8; 18] = b"dirty_decay_ms:-1\0";

@@ -5,7 +5,15 @@ public import LeanVM.Cost.Extractor.Runner
 public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all LeanVM.Protocol.Extraction.Fast.AfterRoot
 import all LeanVM.Protocol.Extraction.Extractor
-import Statement.Verifier.Lib
+import all Statement.LeanVmVerifier
+import all Statement.Verifier.Transcript
+import all Statement.Verifier.Multilinear
+import all Statement.Verifier.Layout
+import all Statement.Verifier.Bus
+import all Statement.Verifier.Whir
+import all Statement.Verifier.Keccak
+import all Statement.Verifier.RingSwitch
+import all Statement.Verifier.Lib
 
 /-!
 # The verifier's replay up to the stack's root, compiled

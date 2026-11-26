@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Sig.WotsT
 
-  The WOTS+C codeword check and the Merkle path both signature verifiers share, as templates
-  (`walk`, `walk_group`, the digit dispatch, `merkle_path`, `lean_ethereum.py`).
+  The WOTS+C codeword groups both signature verifiers share, as templates (`walk`, `walk_group`,
+  the digit dispatch, `lean_ethereum.py`).
 -/
 
 module
@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Sig.Shapes
 
 /-!
-# WOTS+C and Merkle paths, as templates
+# WOTS+C groups, as templates
 
 Both verifiers walk their chains with the same code (`walk`, `walk_group`) and differ only in a
 chain step (`WotsT.step`): leanXMSS hashes `P`, the step's address computed once per signature, the
@@ -21,16 +21,13 @@ values before the outputs, `size = 3`).
 * `walkT`: chain `i` from digit `d`: the hinted start at the base, then steps `d, …, 2`, step `s`
   writing slot `s` of the chain in `walks` (one cell, `walks[o:o + 1]`); the step's constants
   `stride` apart (`size + 1` in the arm that lays out the slots, `size` elsewhere); at `d = 3` the start is hinted into the tip;
-* `armT`, `armsT`, `groupArmsT`, `groupD`, `groupT`: arm `k` of a group's dispatch (the walks at the
+* `armT`, `armsT`, `groupArmsT`, `groupD`: arm `k` of a group's dispatch (the walks at the
   base-4 digits of `k`, then the digit sum folded into the product, in the exponent, and the digits
   into the encoding), the `4^n` arms laid out from `b + 6`, and the group with its hint, its range
   check, what it sets before its dispatch (`pre`: `sp_wots`'s padding run), the `2^63` the compiler
   hoists above an all-`@inline` `match` (`closeLane`, unread: each arm sets its own) and the
-  `match`; `groupT` has its digit word at its base and sets nothing before; `fold` marks the first
-  group, each of whose arms sets its product to its power and its encoding to its literal;
-* `groupsT`, `codewordT`: `G` groups of three and the last chain's, the digits stored where the
-  digest's first cell is, and the target sum asserted;
-* `merkleT`: `merkle_path`, the children hinted, the child checked, each parent hashed.
+  `match`; `fold` marks the first
+  group, each of whose arms sets its product to its power and its encoding to its literal.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -123,54 +120,6 @@ def groupD (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (d : Nat
   (hintW "digits" [.n d] :: rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ pre ++
     [cst (b + 5) closeLane, .match_ (.n d) (groupArmsT W first n fold prodIn encIn b).1],
     (groupArmsT W first n fold prodIn encIn b).2)
-
-/-- A group of `n` digits from base `b`: the digit hint, its range check, the hoisted constant and
-the dispatch over the `4^n` digit values (`groupD` with its digit word at its base). -/
-def groupT (W : WotsT) (first n : Nat) (fold : Bool) (prodIn encIn : V) (b : Nat) :
-    List Stmt × Nat :=
-  groupD W first n fold prodIn encIn b [] b
-
-/-- Groups `p ..< p + m` of three digits from base `b`, after the running product and encoding:
-the statements, the next base, the chains' tips, the product and the encoding. -/
-def groupsT (W : WotsT) : Nat → Nat → V → V → Nat → List Stmt × Nat × List V × V × V
-  | 0, _, prod, enc, b => ([], b, [], prod, enc)
-  | m + 1, p, prod, enc, b =>
-      let fold := p == 0
-      let g := groupT W (3 * p) 3 fold prod enc b
-      let rest := groupsT W m (p + 1) (prodT W fold 3 b) (encT W fold 3 b) g.2
-      (g.1 ++ rest.1, rest.2.1,
-        (List.range 3).map (fun r => V.n (slotsT W fold b r 2)) ++ rest.2.2.1, rest.2.2.2)
-
-/-- The codeword of `3G + 1` chains from base `b`: `G` groups and the last chain's, the digits stored
-where the digest's first cell `d0` is, and the target sum `g^T` asserted. The statements, the next
-base and the chains' tips. -/
-def codewordT (W : WotsT) (G : Nat) (target : E) (d0 : V) (b : Nat) : List Stmt × Nat × List V :=
-  let gs := groupsT W G 0 (.n 0) (.n 0) b
-  let last := groupT W (3 * G) 1 false gs.2.2.2.1 gs.2.2.2.2 gs.2.1
-  let c := last.2
-  (gs.1 ++ last.1 ++ [copyS d0 (encT W false 1 gs.2.1), cst c target,
-    .atom (.assertEq (prodT W false 1 gs.2.1) (.n c))], c + 1,
-    gs.2.2.1 ++ [V.n (slotsT W false gs.2.1 0 2)])
-
-/-- `merkle_path` levels `l ..< l + m` from `cur`, from base `b` (`pp` the parameter, `pad` the
-padding run): the hinted children, the child check, the parent's address (the node index added
-unless `nodeOf l` is `none`, at a root) and its hash. The statements, the next base and the node
-reached. -/
-def merkleT (pad : Nat) (pp : V) (bitOf : Nat → V) (nodeOf : Nat → Option V) (addrOf : Nat → Nat) :
-    Nat → Nat → V → Nat → List Stmt × Nat × V
-  | 0, _, cur, b => ([], b, cur)
-  | m + 1, l, cur, b =>
-      let c := match nodeOf l with
-        | none => b + 5
-        | some _ => b + 6
-      let rest := merkleT pad pp bitOf nodeOf addrOf m (l + 1) (.n (c + 1)) (c + 2)
-      ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
-          addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3)),
-          cst (b + 4) (word (addrOf l) 0)] ++
-        (match nodeOf l with
-          | none => []
-          | some nd => [addS (.n (b + 5)) (.n (b + 4)) nd]) ++
-        k64 pad pp (.n (c - 1)) (.n b) (.n (b + 1)) c (c + 1) ++ rest.1, rest.2.1, rest.2.2)
 
 end
 end LeanVM.Guest.B1.Sig

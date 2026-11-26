@@ -10,16 +10,13 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCB
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The steps' cores
 
 `stepCore s b`: step `s` but its call (`stepT = stepCore ++ stepTailT`). `stepKer`: what the
 kernel checks of it (the loads that are not stores, the residual loads' pointers), checked for the
-twelve steps two at a time in `VkCCK/K0.lean` … `VkCCK/K5.lean`, so that the checks build in
-parallel (a module checks its proofs one after another), and gathered in `VkCCK.lean`
-(`step_ker`).
+twelve steps in one evaluation in `VkCCK.lean` (`step_ker`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -51,8 +48,8 @@ def stepPn (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 7
 
 /-- Step `s` but its call. -/
 def stepCore (s b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ⧺
-  eqfLevel0T (.n (b + 1)) 0 (b + 2) ⧺ flipsT s (b + 6) ⧺
+  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
+  eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s (b + 6) ++
   iotaSegT s (b + 6) (b + 6 + flipSz s * (iotaUsed s).length) (b + 4) (b + 5)
 
 /-- Where step `s`'s call starts. -/

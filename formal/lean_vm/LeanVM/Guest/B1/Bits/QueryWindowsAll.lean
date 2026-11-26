@@ -21,10 +21,6 @@ namespace LeanVM.Guest.B1
 
 @[expose] public section
 
-/-- `decode_query_windows__L{d}_L{cd}`'s core IR establishes its meaning. -/
-def decode_query_windows_Spec (name : String) (d cd : ℕ) : Prop :=
-  decode_query_windows_SpecP coreProgram name d cd
-
 /-- Every deployed specialization. -/
 def decode_query_windows_all_Spec : Prop := decode_query_windows_all_SpecP coreProgram
 

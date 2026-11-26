@@ -17,23 +17,20 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 import LeanVM.Guest.Value.FieldBits
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed
 
-* `asg_completeAtB`: `assert_small_g_power` is a leaf: on `g^e`, `e < 2^36`, and the exponent
+* `assert_small_g_power` is a leaf: on `g^e`, `e < 2^36`, and the exponent
   table (`log2Lin sqE`, the `236` words of `exponent_tables`) it returns, within its frame. Its
   range checks read the memory below `2^4` (`asg_rc_low`), its shares the table (`asg_shares`).
-* `lce_completeAtB`: `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
+* `log2_ceil_in_the_exponent` at the floor `fl` hints the `34` bits of `N` into
   a run of its frame (read by no instruction), range checks `L` and `L - fl` below `34` (the memory
   below `2^6`), reads `g^(2^L)` (and above the floor `g^(2^(L-1))`) from the table and calls
   `assert_small_g_power` once (`L = fl`) or twice: on `g^N` and the table it returns `g^L`,
   `L = max fl (log2Ceil N)`, within `fs f + 2 · fs "assert_small_g_power"` words. Its walk
   (`lc_walk`) takes the check above the floor as the valuation says.
-* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`), of which
-  `asg_completeAtB`, `lce_completeAtB` are corollaries. `assert_small_g_power`'s digits (`asgHint`) are its honest
+* `asg_completeAtBE`, `lce_completeAtBE`: the same by trees exact on the memory (`Tree.Every (ExactAt …)`). `assert_small_g_power`'s digits (`asgHint`) are its honest
   valuation's (`asg_holds_ofD`); `log2_ceil_in_the_exponent`'s bits (`lcSites`) are its frame's words (`lcBits`, `N`'s
   bits) and its `⌈log₂⌉` theirs (`bitsNat_bits`, `clog2_eq_log2Ceil`); every other computed hint of
   either body is pinned locally (none is: `asg_sites`, `lc_sites`).
@@ -74,10 +71,10 @@ def lcBody (fl : ℕ) : List Stmt :=
     .ite (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin, .atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]]
 
 theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
-    lcBody 0 := by kernel_rfl
+    lcBody 0 := stmtsEqb_sound (by decide +kernel)
 
 theorem log2_ceil_in_the_exponent_L16_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» =
-    lcBody 16 := by kernel_rfl
+    lcBody 16 := stmtsEqb_sound (by decide +kernel)
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -97,6 +94,13 @@ theorem expTables_of_memL {rd : Reader} {sqE : ℕ} (h : MemL rd (log2Lin sqE)) 
   refine (expTables_iff_words _ _).2 fun o ho ↦ ?_
   have := memL_single h o (by rw [length_expTableWords]; exact ho)
   rwa [← List.getD_eq_getElem _ (0 : E)] at this
+
+theorem limb_ofK_gpow_gen_off (b n off : ℕ) :
+    (ofK (Parameters.addressOfIndex b) * gen ^ n).limb 0 * Parameters.addressOfIndex off =
+        Parameters.addressOfIndex (b + n + off) := by
+  rw [gen_pow_eq_ofK, ← ofK_mul, limb_ofK]
+  simp only [Fin.isValue, Fin.val_zero, ↓reduceIte]
+  rw [gpow_add', gpow_add']
 
 theorem regionL_log2Lin {sqE i : ℕ} (h1 : sqE ≤ i) (h2 : i < sqE + 236) :
     RegionL (log2Lin sqE) i :=
@@ -136,9 +140,9 @@ theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ 
 
 /-- `assert_small_g_power`'s statements before its `ret`. -/
 def asgPre : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ⧺ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x")))]
+  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x")))]
 
-theorem asgBody_split : asgBody = asgPre ⧺ [.ret []] := by
+theorem asgBody_split : asgBody = asgPre ++ [.ret []] := by
   simp only [asgBody, asgPre, List.append_assoc, List.singleton_append]
 
 theorem asgPre_straight : asgPre.all Main.Stmt.straight = true := by decide +kernel
@@ -172,7 +176,7 @@ theorem asgHint_exact {rd : Reader} {σ : Val} {e : ℕ} (he : e < 2 ^ 36) (e0 :
     show 2 ^ (4 * j) = 16 ^ j by rw [pow_mul]; rfl]
   rfl
 
-/-- **`assert_small_g_power`, placed, bounded and exact**: `asg_completeAtB` by a tree popping nothing, every node
+/-- **`assert_small_g_power`, placed, bounded and exact**: within its frame, by a tree popping nothing, every node
 exact on the memory. -/
 theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^ 36) :
     CompleteAtDTBR fs cert κ "assert_small_g_power" (log2Lin sqE)
@@ -211,19 +215,11 @@ theorem asg_completeAtBE (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 
   · rw [loadAddrs_straight σ _ asgPre_straight, asgPre_loads] at hA
     simp only [List.map_map, List.mem_map, List.mem_range, Function.comp_apply] at hA
     obtain ⟨j, hj, rfl⟩ := hA
-    refine ⟨sqE + e / 16 ^ j % 16 + (34 + 16 * j), by rw [ep j hj, limb0_ofK_mul_gen_pow_mul], Or.inr ?_⟩
+    refine ⟨sqE + e / 16 ^ j % 16 + (34 + 16 * j), by rw [ep j hj, limb_ofK_gpow_gen_off], Or.inr ?_⟩
     have : e / 16 ^ j % 16 < 16 := Nat.mod_lt _ (by decide)
     exact regionL_log2Lin (by omega) (by omega)
   · rw [List.mem_singleton.mp ha]
     exact asgHint_exact he e0 ed
-
-/-- **`assert_small_g_power`, placed and bounded**: on `g^e`, `e < 2^36`, and the exponent table, a
-leaf within its frame. -/
-theorem asg_completeAtB (κ : ℕ) (hκ4 : 4 ≤ κ) (sqE e : ℕ) (he : e < 2 ^ 36) :
-    CompleteAtB fs cert κ "assert_small_g_power" (log2Lin sqE)
-      [gen ^ e, ofK (Parameters.addressOfIndex sqE)] (Returns []) (fs "assert_small_g_power") :=
-  ((asg_completeAtBE (fs := fs) (cert := cert) κ hκ4 sqE e he).toDTB (T' := fun _ => True)
-    fun _ _ _ => trivial).toCompleteAtB
 
 /-! ## `log2_ceil_in_the_exponent`'s walk -/
 
@@ -255,7 +251,7 @@ noncomputable def lcEvs (fl : ℕ) (σ : Val) : List Ev :=
 
 theorem lc_walk (fl : ℕ) (σ : Val) : walk σ (lcBody fl) = .ret (lcEvs fl σ) [.n (valf% «log2_ceil_in_the_exponent» "s7#0")] := by
   rw [lcBody_split, walk_straight_pre σ _ _ (lcHead_straight fl), walk, walk1,
-    show [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] = [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))] ⧺
+    show [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] = [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))] ++
       [.ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] from rfl, Main.walk_straight σ _ _ rfl]
   by_cases h : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0
   · simp [h, lcEvs, walk, Out.seq, Out.pre, Main.slEvs]
@@ -402,10 +398,10 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     (kids.map fun _ (t : Tree) => t.pops coreProgram rd = []).map fun T t => T t ∧ t.Every (ExactAt coreProgram rd)
   have hkids : KidsDTBR fs cert κ kids Tk (kids.map fun _ ↦ fs "assert_small_g_power") := by
     by_cases hLf : L = fl
-    · have hex : extra = [] := ite_eq_left hLf
+    · have hex : extra = [] := ite_pos' hLf
       simp only [kids, Tk, hex, KidsDTBR, List.map_cons, List.map_nil, List.headD_cons, List.tail_cons, asgKid]
       exact ⟨fun _ ↦ asg_completeAtBE κ hκ4 sqE (2 ^ L - N) (by omega), trivial⟩
-    · have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_eq_right hLf
+    · have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_neg' hLf
       simp only [kids, Tk, hex, KidsDTBR, List.map_cons, List.map_nil, List.headD_cons, List.tail_cons, asgKid]
       exact ⟨fun _ ↦ asg_completeAtBE κ hκ4 sqE (2 ^ L - N) (by omega), fun _ ↦ asg_completeAtBE κ hκ4 sqE
         (N - (2 ^ (L - 1) + 1)) (lt_of_le_of_lt (Nat.sub_le _ _) (lt_trans hN (by norm_num))), trivial⟩
@@ -491,7 +487,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
     rw [p4]
     by_cases hLf : L = fl
     · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0 := h19.2 hLf
-      have hex : extra = [] := ite_eq_left hLf
+      have hex : extra = [] := ite_pos' hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o, rfl⟩ : ∃ o, outs = [o] := by
         match outs, ho with
@@ -499,7 +495,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
       obtain ⟨ho1, -⟩ := ho
       refine ⟨rfl, rfl, fun _ ↦ ⟨rfl, (ho1 rfl).1.symm⟩, trivial⟩
     · have e19 : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) ≠ 0 := fun h ↦ hLf (h19.1 h)
-      have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_eq_right hLf
+      have hex : extra = [asgKid sqE (N - (2 ^ (L - 1) + 1))] := ite_neg' hLf
       simp only [e19, ↓reduceIte, kids, hex] at ho ⊢
       obtain ⟨o1, o2, rfl⟩ : ∃ o1 o2, outs = [o1, o2] := by
         match outs, ho with
@@ -555,7 +551,7 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
       rcases hA with rfl | hA
       · exact ⟨sqE + L + 0, by
           show (q * gen ^ L).limb 0 * addressOfIndex 0 = _
-          rw [hq, limb0_ofK_mul_gen_pow_mul], Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
+          rw [hq, limb_ofK_gpow_gen_off], Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
       · split at hA
         · exact absurd hA List.not_mem_nil
         · rename_i hne
@@ -565,22 +561,11 @@ theorem lce_completeAtBE (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
           subst hA
           refine ⟨sqE + L' + 0, ?_, Or.inr (Or.inl (regionL_log2Lin (by omega) (by omega)))⟩
           show (q * (gen ^ L * invGenWord)).limb 0 * addressOfIndex 0 = _
-          rw [hL', gen_pow_mul_invGen, hq, limb0_ofK_mul_gen_pow_mul])
+          rw [hL', gen_pow_mul_invGen, hq, limb_ofK_gpow_gen_off])
     (fun i hi ↦ by obtain ⟨q, hq, _⟩ := hi; simp at hq)
   rw [hal] at h
   obtain ⟨t, ht, -, hE⟩ := h
   exact ⟨t, by simpa using ht, hE⟩
-
-/-- **`log2_ceil_in_the_exponent` at the floor `fl`, placed** (`lce_completeAtBE` without exactness). -/
-theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
-    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n (valf% «log2_ceil_in_the_exponent» "g_N"), .n (valf% «log2_ceil_in_the_exponent» "g_squares")])
-    (hb : fn.body = lcBody fl) (hl : coreProgram.loop name = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
-    (N sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
-    CompleteAtB fs cert κ name (log2Lin sqE) [gen ^ N, ofK (Parameters.addressOfIndex sqE)]
-      (Returns [gen ^ max fl (log2Ceil N)])
-      (fs name + 2 * fs "assert_small_g_power") :=
-  ((lce_completeAtBE (fs := fs) (cert := cert) fl hfl hf hp hb hl κ hκ6 N sqE hN hL).toDTB (T' := fun _ => True)
-    fun _ _ _ => trivial).toCompleteAtB
 
 end
 end LeanVM.Guest.B1

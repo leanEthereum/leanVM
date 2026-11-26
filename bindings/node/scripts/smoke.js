@@ -1,5 +1,5 @@
 // Signs and verifies through an installed @kevaundray/lean-pq; `--aggregate` also proves and
-// verifies one aggregate through the sidecar at $LEANVM_SIDECAR_SOCKET. scripts/install-check.sh runs it inside a fresh project.
+// decodes one aggregate. scripts/install-check.sh runs it inside a fresh project.
 const assert = require('node:assert/strict')
 const path = require('node:path')
 
@@ -26,18 +26,16 @@ async function main() {
   console.log('sign/verify ok')
 
   if (process.argv.includes('--aggregate')) {
-    const sidecar = await lpq.Sidecar.connect(process.env.LEANVM_SIDECAR_SOCKET)
-    const aggregate = await sidecar.aggregate({
+    const aggregate = await lpq.aggregate({
       xmss: [{ publicKey: xmssKey.publicKey, message, signature: xmssSignature }],
       sphincs: [{ publicKey: sphincsKey.publicKey, message, signature: sphincsSignature }],
     })
     const xmss = [{ publicKey: xmssKey.publicKey, message }]
     const sphincs = [{ publicKey: sphincsKey.publicKey, message }]
-    const received = await sidecar.verify(aggregate.toBytes(), { xmss, sphincs })
+    const received = await lpq.Aggregate.fromBytes(aggregate.toBytes(), { xmss, sphincs })
     assert.deepEqual(received.xmssClaims, xmss)
     assert.deepEqual(received.sphincsClaims, sphincs)
-    await assert.rejects(sidecar.verify(aggregate.toBytes(), { xmss }), /does not prove the given claims/)
-    await sidecar.close()
+    await assert.rejects(lpq.Aggregate.fromBytes(aggregate.toBytes(), { xmss }), /does not prove the given claims/)
     console.log('aggregate ok')
   }
 }

@@ -75,7 +75,7 @@ def run_h(r, np, gl):
 
 
 def run(G, np, r, ps=None, gl=None):
-    """`CoreMode.rngT`, its bounds `rngK` (`rngKX` with the cells `ps`, if given), constant bounds `rngC`'s normal form;
+    """`CoreMode.rngT`, its bounds `rngKX` (with the cells `ps`, if given), constant bounds `rngC`'s normal form;
     with links `gl`, `rngTG`: a run over a linked caller's cell first (`run_h`)."""
     h = run_h(r, np, gl)
     if h is not None:

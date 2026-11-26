@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.B1.Da.LevelsComplete
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed completeness, the shared part
@@ -22,7 +21,7 @@ import LeanVM.Guest.StmtsAppend
   conditions are in `K`.
 * `treeCells leaves k`: the cells of `da_levels`' tree over `2^k` leaves, level after level, as
   `TreeMem` reads them (`treeMem_of_reads`), `4·2^k - 2` words (`length_treeCells`).
-* `memL_of_sub`, `reads_of_memL`: a layout's entries.
+* `reads_of_memL`, `regionL_of_mem`: a layout's entries.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -45,7 +44,7 @@ def RunIn (cert : String → V → ℕ) (fp : ℕ) (f : String) (as : List Atom)
 /-- **A leaf of atoms, placed**: its frame only, its `frameAddr`s at their runs, its loads in its
 region or its runs, its claim within its runs. -/
 theorem relAtIn_atoms {f : String} {fn : Fn} {as : List Atom} {vs : List V}
-    (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ⧺ [.ret vs])
+    (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ++ [.ret vs])
     (hl : coreProgram.loop f = false) (hna : as.all (fun a => !atomAllocB a) = true)
     {rd : Reader} {σ : Val} {args rets : List E} {fp : ℕ} {R D : ℕ → Prop}
     (hp : fn.params.map σ = args) (hh : ∀ a ∈ as, a.Holds rd σ) (hr : vs.map σ = rets)
@@ -115,7 +114,7 @@ theorem readsAt_range_prefix {rd : Reader} {p : E} {f : ℕ → List E} :
       ∀ l < n, ReadsAt rd (p * gen ^ ((List.range l).map fun m => (f m).length).sum) (f l)
   | 0, _, l, hl => absurd hl (by omega)
   | n + 1, h, l, hl => by
-    rw [List.range_succ, List.flatMap_append, B1.readsAt_append] at h
+    rw [List.range_succ, List.flatMap_append, Main.readsAt_append'] at h
     rcases Nat.lt_or_ge l n with hl' | hl'
     · exact readsAt_range_prefix n h.1 l hl'
     · have e : l = n := by omega
@@ -180,7 +179,7 @@ theorem exists_of_length_succ {α : Type} {l : List α} {n : ℕ} (h : l.length 
 
 theorem limb0_gen_pow_mul (b k : ℕ) : (gen ^ b).limb 0 * addressOfIndex k = addressOfIndex (b +
     k) := by
-  rw [gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul]
+  rw [gen_pow_eq_ofK, Main.addr_ofK]
 
 
 /-! ## Shared by the completeness proofs -/

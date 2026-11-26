@@ -15,7 +15,7 @@ public import LeanVM.Guest.EndExecJumpCells
 /-!
 # The witness streams' track on the deployed alignment
 
-`hintWitness_alignA`: `ExecGaps.ofX`'s `hintWitness` for any `Y` implying `YCur alignA`, given the
+`hintWitness_alignA`: `ExecGaps.hintWitness` for any `Y` implying `YCur alignA`, given the
 witness atoms' destination cells (`WitCells`) and the honest pushes' independence of the bytecode
 but its length (`PushShape`). `keepY_alignA`: each step keeps `YCur alignA`, given the `DEREF`
 pointers (`DerefPow`). `InitY (YCur alignA)` is `initY_cur`.

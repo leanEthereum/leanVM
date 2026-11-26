@@ -58,6 +58,13 @@ theorem kBytes_injective : Function.Injective LeanVM.Parameters.K.toBytes := by
 theorem length_eBytes (x : E) : (LeanVM.Parameters.E.toBytes x).length = 16 := by
   simp [LeanVM.Parameters.E.toBytes, length_kBytes]
 
+theorem length_cellBytes (x : Cell) : (cellBytes x).length = 2048 := by
+  rw [cellBytes, List.length_flatMap]
+  simp only [length_eBytes, List.map_const', List.length_ofFn, List.sum_replicate, smul_eq_mul]
+
+theorem length_pairBytes (a b : Common.DigestBytes) : (pairBytes a b).length = 64 := by
+  simp [pairBytes]
+
 /-- A symbol's bytes, its two limbs' in turn, determine it. -/
 theorem eBytes_injective : Function.Injective LeanVM.Parameters.E.toBytes := by
   intro x y h
@@ -109,7 +116,6 @@ theorem length_merklePath (d : ℕ) (f : ℕ → Common.DigestBytes) (idx : ℕ)
   | zero => rfl
   | succ d ih => simp [merklePathWithHash, ih]
 
-
 /-- A climb reads the index's low bits only, one per sibling. -/
 theorem walk_mod : ∀ (path : List Common.DigestBytes) (idx : ℕ) (node : Common.DigestBytes),
     walk H idx node path = walk H (idx % 2 ^ path.length) node path
@@ -137,7 +143,7 @@ theorem cellLeaves_position {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r *
   simp only [paddedCell, h1, h2, and_self, ↓reduceDIte]
   congr 2
   apply Fin.ext
-  simp only [cellPosition, positionRow, positionCell, cellsPerRow]
+  simp only [cellPosition, positionRow, positionCell]
   omega
 
 /-- **An honest opening verifies.** -/

@@ -8,8 +8,6 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.Tables.FlatLift
-meta import LeanVM.Guest.KernelLit
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub`, flat
@@ -18,7 +16,7 @@ import LeanVM.Guest.StmtsAppend
 (`vs_cflat`: atoms, calls, `callIf`s and one fused `match` of calls, no `ite`), place no address
 by a frame cell (`vs_caddrs`), and `verify_sub` is no loop. `vsEvL`: the evaluation list (each
 `assertNe` read as the product it checks); the checker accepts it from the `6` parameters
-(`vs_chk`).
+(`vs_chk'`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -31,7 +29,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 /-- `verify_sub`'s statements before its `ret`. -/
 def vsCPre : List Stmt := vsT.dropLast
 
-kernel_rfl vsT_splitPre : vsT = vsCPre ⧺ [.ret []]
+theorem vsT_splitPre : vsT = vsCPre ++ [.ret []] := stmtsEqb_sound (by decide +kernel)
 
 theorem vs_cflat : vsCPre.all Stmt.flat = true := by decide +kernel
 

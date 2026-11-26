@@ -292,7 +292,7 @@ theorem calFind_spec {cs : List ℕ} {f : String} {m : ℕ} {lp : Bool} {en : Op
   obtain ⟨x, hx, hxe⟩ := Option.map_eq_some_iff.mp h
   obtain ⟨hmem, hp⟩ := List.mem_of_find?_eq_some hx, List.find?_some hx
   obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hmem
-  simp only [nameEq_iff] at hp
+  simp only [beq_iff_eq] at hp
   simp only [Prod.mk.injEq] at hxe
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hxe
   exact ⟨c, hc, hp, rfl, rfl, rfl, rfl⟩
@@ -448,7 +448,7 @@ theorem spConst_spec {sp : List Atom} {v : V} {e : ℕ} (h : spConst sp v e = tr
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   cases a with
   | const x w =>
-    simp only [Bool.and_eq_true, beq_iff_eq] at hp
+    simp only [Bool.and_eq_true, vBeq_iff] at hp
     obtain ⟨rfl, hw⟩ := hp
     exact ⟨w, ha, (constOk_spec hw).1⟩
   | _ => simp at hp
@@ -460,7 +460,7 @@ theorem spWord_spec {sp : List Atom} {v : V} {w : E} (h : spWord sp v = some w) 
   | const x w' =>
     simp only at hp
     split_ifs at hp with hx
-    · simp only [beq_iff_eq] at hx
+    · simp only [vBeq_iff] at hx
       obtain rfl := hx
       obtain rfl := Option.some.inj hp
       exact ha
@@ -510,16 +510,16 @@ theorem armsFit_spec {tbl : List (String × ℕ × Bool × Option (Option ℕ) �
 theorem spEqPtr_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {p q : V}
     (h : spEqPtr sp p q = true) : σ p = σ q := by
   unfold spEqPtr at h
-  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
+  simp only [Bool.or_eq_true, vBeq_iff, List.any_eq_true] at h
   rcases h with rfl | ⟨a, ha, hp⟩
   · rfl
   cases a with
   | mul p' u w =>
-    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
+    simp only [Bool.and_eq_true, vBeq_iff, List.any_eq_true] at hp
     obtain ⟨rfl, c, hc, hq⟩ := hp
     cases c with
     | mul q' u' w' =>
-      simp only [Bool.and_eq_true, beq_iff_eq] at hq
+      simp only [Bool.and_eq_true, vBeq_iff] at hq
       obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hq
       exact (hsp _ ha).trans (hsp _ hc).symm
     | _ => simp at hq
@@ -528,16 +528,16 @@ theorem spEqPtr_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ 
 theorem spEq_spec {sp : List Atom} {rd : Reader} {σ : Val} (hsp : ∀ a ∈ sp, a.Holds rd σ) {x y : V}
     (h : spEq sp x y = true) : σ x = σ y := by
   unfold spEq at h
-  simp only [Bool.or_eq_true, beq_iff_eq, List.any_eq_true] at h
+  simp only [Bool.or_eq_true, vBeq_iff, List.any_eq_true] at h
   rcases h with rfl | ⟨a, ha, hp⟩
   · rfl
   cases a with
   | load x' p o =>
-    simp only [Bool.and_eq_true, beq_iff_eq, List.any_eq_true] at hp
+    simp only [Bool.and_eq_true, vBeq_iff, List.any_eq_true] at hp
     obtain ⟨rfl, c, hc, hq⟩ := hp
     cases c with
     | load y' q o' =>
-      simp only [Bool.and_eq_true, beq_iff_eq] at hq
+      simp only [Bool.and_eq_true, vBeq_iff, beq_iff_eq] at hq
       obtain ⟨⟨rfl, rfl⟩, hpq⟩ := hq
       have h1 := (hsp _ ha).2
       have h2 := (hsp _ hc).2
@@ -554,7 +554,7 @@ theorem guardOk_spec {sp : List Atom} {b a1 : V} {e : ℕ} (h : guardOk sp b a1 
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   cases a with
   | add d x y =>
-    simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true] at hp
+    simp only [Bool.and_eq_true, vBeq_iff, Bool.or_eq_true] at hp
     obtain ⟨rfl, hp⟩ := hp
     refine ⟨x, y, ha, ?_⟩
     rcases hp with (⟨h1, h2⟩ | ⟨h1, h2⟩) | h3

@@ -1,12 +1,20 @@
 module
 
-public import XmssSecurity.Proof.FirstLaneEagerBound
+public import XmssSecurity.Proof.FirstLaneEagerSimulation
 
 @[expose] public section
 
-open OracleComp OracleSpec
+/-!
+# Invariants of the eager first-lane trace
 
-variable {Key : Sort*} {Action : Type*} {ι : Type*} {Index α : Type}
+`simulateQ_eagerTrace_support_invariant` lifts an invariant relating a start state, an action trace
+and an end state from single queries to whole computations simulated through `eagerTraceImpl`, given
+that it holds on the empty trace and composes along appended traces. `CacheGrowthRepresented` is
+such an invariant: the cache grows, and every target input it gains appears in the trace as an
+observed action.
+-/
+
+open OracleComp OracleSpec
 
 namespace XmssSecurity
 

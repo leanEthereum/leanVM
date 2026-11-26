@@ -184,7 +184,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
     suffices hv : (D.cw0 B).getD 0 0 = σ (.n (val% «verify_keccak» "s45#2")) by rwa [hv] at this
     rw [e487, e191]
     simp only [cw0, c0, vkFirst, keccakSegments_eq, show 2 - 1 = 1 from rfl]
-    rw [hseg, dot_eq_sum _ _ (by simp [eqKernel_length, rl_length, houts])]
+    rw [hseg, dot_eq _ _ (by simp [eqKernel_length, rl_length, houts])]
     simp only [List.length_take, eqKernel_length, rl_length, show min 25 (2 ^ 5) = 25 from rfl]
     refine congrArg (D.committed + (eqKernel [σ (.n (val% «verify_keccak» "nxt[0]@1"))]).getD 1 0 * ·)
       (Finset.sum_congr rfl fun k hk ↦ ?_)

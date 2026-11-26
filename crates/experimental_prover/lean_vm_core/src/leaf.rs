@@ -14,6 +14,7 @@ use crate::transcript::ProverState;
 use primitives::cast_slice;
 use primitives::field::{F64, F128, F128Unreduced, g_pow, mul_by_g};
 use primitives::multilinear::{eq_eval, interp, mle_eval_par};
+use std::mem::MaybeUninit;
 use std::ops::Range;
 use verifier::N_BUS_TREES;
 use verifier::layout::BUS_BITS;
@@ -213,28 +214,44 @@ impl LeafBlock {
     }
 
     /// The leaves of rows `z0..z0 + out.len()`, or with [`onto`](Self::onto) the previous
-    /// block's there plus this formula's.
-    fn fill(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) {
+    /// block's there plus this formula's. Returns `out`, written.
+    ///
+    /// # Safety
+    ///
+    /// With [`onto`](Self::onto), `out` holds the previous block's leaves.
+    unsafe fn fill<'o>(&self, z0: usize, out: &'o mut [MaybeUninit<F128>], cols: &[&[F64]]) -> &'o mut [F128] {
         let real = self.rows.saturating_sub(z0).min(out.len());
         let (real_out, padding) = out.split_at_mut(real);
         // A padding row's leaf is the identity, so it leaves the product alone.
-        padding.fill(F128::ONE);
+        padding.fill(MaybeUninit::new(F128::ONE));
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-        let done = self.fill_lanes(z0, real_out, cols);
+        // SAFETY: forwarded to the caller.
+        let done = unsafe { self.fill_lanes(z0, real_out, cols) };
         #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
             let leaf = self.leaf(z0 + i, cols, index);
-            *slot = if self.onto { *slot + leaf } else { leaf };
+            // SAFETY: with `onto`, the slot holds the previous block's leaf, by the caller's contract.
+            slot.write(if self.onto {
+                (unsafe { slot.assume_init() }) + leaf
+            } else {
+                leaf
+            });
             index = mul_by_g(index);
         }
+        // SAFETY: the lanes wrote the first `done` real rows, the loop the rest of them, and the fill the padding.
+        unsafe { out.assume_init_mut() }
     }
 
     /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
     /// product; returns how many rows it wrote.
+    ///
+    /// # Safety
+    ///
+    /// As [`fill`](Self::fill).
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn fill_lanes(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) -> usize {
+    unsafe fn fill_lanes(&self, z0: usize, out: &mut [MaybeUninit<F128>], cols: &[&[F64]]) -> usize {
         use lanes::{E, K, Mixed, N};
         let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
         // `g^z` for the `N` rows, stepped by `g^N`.
@@ -255,7 +272,9 @@ impl LeafBlock {
             }
             index = index * step;
             let leaves = acc.reduce() + constant;
-            if self.onto { leaves + E::load(slot) } else { leaves }.store(slot);
+            // SAFETY: with `onto`, the slot holds the previous block's leaves, by the caller's contract.
+            let previous = || E::load(unsafe { slot.assume_init_ref() }.try_into().unwrap());
+            if self.onto { leaves + previous() } else { leaves }.write(slot);
         }
         N * chunks.len()
     }
@@ -279,13 +298,20 @@ mod lanes {
     pub(super) const N: usize = 4;
 }
 
-/// `dst[i] = ∏ src[4i..4i+4]`, an incomplete last four-tuple padded with the identity.
-fn padded_products(src: &[F128], dst: &mut [F128]) {
+/// `dst[i] = ∏ src[4i..4i+4]`, an incomplete last four-tuple padded with the identity. Returns `dst`, written.
+fn padded_products<'d>(src: &[F128], dst: &'d mut [MaybeUninit<F128>]) -> &'d mut [F128] {
     let full = src.len() / 4;
+    assert!(
+        (full..=full + 1).contains(&dst.len()),
+        "a product per four-tuple, and one more at most"
+    );
     gkr::products_into(&src[..4 * full], &mut dst[..full]);
     if full < dst.len() {
-        dst[full] = src[4 * full..].iter().product();
+        dst[full].write(src[4 * full..].iter().product());
     }
+    // SAFETY: the products wrote `dst[..full]`, and the incomplete tuple's (the empty product for an empty one) the
+    // one slot after them, if any.
+    unsafe { dst.assume_init_mut() }
 }
 
 /// Build every tree's leaves: block `b` row `z` holds `β − Σ_i w_i c_i(z)` for the
@@ -345,13 +371,13 @@ pub(crate) fn build_leaves(
         debug_assert!(lens[side] <= 1usize << lay.mu);
     }
 
-    // SAFETY: the blocks write every leaf of `0..n` (one identity leaf for a side
-    // without blocks, below) before anything reads it.
-    let mut values: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n) });
-    // SAFETY: the chunks write the products of the tuples inside blocks of height
-    // `CHUNKED` or more, and the serial pass below the rest.
-    let mut fours: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(4)) });
-    let mut sixteens: [Vec<F128>; N_BUS_TREES] = lens.map(|n| unsafe { gkr::level(n.div_ceil(16)) });
+    // The blocks write every leaf of `0..n` (one identity leaf for a side without
+    // blocks, below).
+    let mut values: [Vec<MaybeUninit<F128>>; N_BUS_TREES] = lens.map(gkr::level);
+    // The chunks write the products of the tuples inside blocks of height `CHUNKED`
+    // or more, and the serial pass below the rest.
+    let mut fours: [Vec<MaybeUninit<F128>>; N_BUS_TREES] = lens.map(|n| gkr::level(n.div_ceil(4)));
+    let mut sixteens: [Vec<MaybeUninit<F128>>; N_BUS_TREES] = lens.map(|n| gkr::level(n.div_ceil(16)));
 
     let mut shapes: Vec<(usize, usize)> = blocks
         .iter()
@@ -392,9 +418,9 @@ pub(crate) fn build_leaves(
         .map(|level| level.each_mut().map(|v| parallel::SendPtr(v.as_mut_ptr())));
     parallel::for_each(tasks.len(), |task| {
         let (group, ref rows) = tasks[task];
-        let mut stage = [F128::ZERO; CHUNK];
-        let mut stage4 = [F128::ZERO; CHUNK / 4];
-        let mut stage16 = [F128::ZERO; CHUNK / 16];
+        let mut stage = [MaybeUninit::uninit(); CHUNK];
+        let mut stage4 = [MaybeUninit::uninit(); CHUNK / 4];
+        let mut stage16 = [MaybeUninit::uninit(); CHUNK / 16];
         // The GKR reads all three levels long after this pass has evicted them.
         let stream = primitives::stream::Stream::new();
         for z0 in rows.clone().step_by(CHUNK) {
@@ -402,25 +428,27 @@ pub(crate) fn build_leaves(
             let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
             // In order: an `onto` block adds onto the previous block's leaves, still in `leaves`.
             for blk in &groups[group] {
-                blk.fill(z0, leaves, cols);
+                // SAFETY: a group's first block is not `onto`, so an `onto` block follows the block whose leaves
+                // it adds onto.
+                let leaves = unsafe { blk.fill(z0, leaves, cols) };
                 // Past the block's real rows every leaf, and so every tuple's product, is the identity.
                 let live = if gkr::SKIP_IDENTITY {
                     blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
                 } else {
                     len
                 };
-                gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
-                gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
-                fours[live / 4..].fill(F128::ONE);
-                sixteens[live / 16..].fill(F128::ONE);
+                let live_fours = gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
+                gkr::products_into(live_fours, &mut sixteens[..live / 16]);
+                fours[live / 4..].fill(MaybeUninit::new(F128::ONE));
+                sixteens[live / 16..].fill(MaybeUninit::new(F128::ONE));
                 let at = blk.offset + z0;
                 // SAFETY: a block's chunks are disjoint ranges of its side's leaves, blocks
                 // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple
-                // of sixteen.
+                // of sixteen. The products wrote the stages' live tuples, and the fills the rest.
                 unsafe {
                     stream.copy(ptrs[0][blk.side].slice(at, len), leaves);
-                    stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours);
-                    stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens);
+                    stream.copy(ptrs[1][blk.side].slice(at / 4, len / 4), fours.assume_init_ref());
+                    stream.copy(ptrs[2][blk.side].slice(at / 16, len / 16), sixteens.assume_init_ref());
                 }
             }
         }
@@ -429,15 +457,18 @@ pub(crate) fn build_leaves(
     for (side, v) in values.iter_mut().enumerate() {
         let mut tail = lens[side];
         for blk in blocks.iter().filter(|b| b.side == side && b.kappa < CHUNKED) {
-            blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols);
+            // SAFETY: a block of the layout is not `onto`.
+            unsafe { blk.fill(0, &mut v[blk.offset..blk.offset + (1 << blk.kappa)], cols) };
             tail = tail.min(blk.offset);
         }
         if sides[side].0.is_empty() {
-            v[0] = F128::ONE;
+            v[0].write(F128::ONE);
         }
+        // SAFETY: every leaf of the side is written: the chunks', the smallest blocks' above, or the one identity leaf.
+        let v = unsafe { v.assume_init_ref() };
         // The tuples among the smallest blocks, the last ones padded with the identity.
-        padded_products(&v[tail..], &mut fours[side][tail / 4..]);
-        padded_products(&fours[side][tail / 4..], &mut sixteens[side][tail / 16..]);
+        let fours = padded_products(&v[tail..], &mut fours[side][tail / 4..]);
+        padded_products(fours, &mut sixteens[side][tail / 16..]);
     }
     let mut levels = values.into_iter().zip(fours).zip(sixteens).enumerate();
     std::array::from_fn(|_| {
@@ -449,6 +480,15 @@ pub(crate) fn build_leaves(
             .map(|blk| blk.offset + blk.rows..blk.offset + (1 << blk.kappa))
             .collect();
         ones.sort_unstable_by_key(|r| r.start);
+        // SAFETY: every leaf is written, as above, and every tuple's product: the chunks' inside the chunked
+        // blocks, and `padded_products`' from the smallest blocks on.
+        let (values, fours, sixteens) = unsafe {
+            (
+                primitives::assume_init_vec(values),
+                primitives::assume_init_vec(fours),
+                primitives::assume_init_vec(sixteens),
+            )
+        };
         gkr::Leaves {
             values,
             fours,
@@ -751,6 +791,23 @@ pub(crate) fn prove_balance(
 mod tests {
     use super::*;
     use crate::gkr::{Leaves, prove_products};
+
+    /// A level's four-tuple products cover every tuple, an incomplete last one padded with the identity, and a side
+    /// with no leaves past its one identity leaf has the empty product, the identity, as its one tuple.
+    #[test]
+    fn padded_products_pad_with_the_identity() {
+        for len in [0usize, 1, 4, 7, 64, 66] {
+            let src: Vec<F128> = (0..len as u64).map(|i| F128::new(3 * i + 2, i ^ 0x5A)).collect();
+            let mut dst = primitives::uninit_vec(len.div_ceil(4).max(1));
+            let got = padded_products(&src, &mut dst).to_vec();
+            let want: Vec<F128> = if len == 0 {
+                vec![F128::ONE]
+            } else {
+                src.chunks(4).map(|t| t.iter().product()).collect()
+            };
+            assert_eq!(got, want, "{len} leaves");
+        }
+    }
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], public: &[&[F64]], z: usize) -> F64 {

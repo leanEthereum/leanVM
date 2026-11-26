@@ -25,7 +25,7 @@ shaped (`Strategy.AcceptsFrom`), and the verifier program's openings are within 
 `proveFrom_stream_le`):
 
 * `proveWithHash_wireDecodable`: a proof of `Prover.proveWithHash (m := Id) h F` is
-  `WireDecodable h`: its stream is at most `leanVmCost` elements, at most
+  `WireDecodable h`: its stream is at most `leanVmCost = 54825` elements, at most
   `wireMaxPhases` phases, each the openings of one tree over `h` within the bounds.
 
 The pruning idea and its formalization on leanerVM's main branch are scaraven's
@@ -76,14 +76,6 @@ theorem proveWithHash_eq_none
     simp only [hρ, ↓reduceIte]
 
 end Monadic
-
-/-- A strategy that wins every interactive run, committing well-shaped words, wins from the
-start for every choice of the challenges (`Strategy.acceptsFrom_of_runFrom`, stated on `runI`
-so that a concrete program is not unfolded). -/
-theorem acceptsFrom_of_runI {S : Strategy} {P : VerifierProgram Bool}
-    (h1 : ∀ chal, runI P S chal = some true) (h2 : ∀ chal, shapedI P S chal) :
-    S.AcceptsFrom P [] :=
-  Strategy.acceptsFrom_of_runFrom P [] h1 h2
 
 /-- The facts of the leanVM verifier program and the strategy `leanVmProver` the proofs below
 use, on a valid execution within the cap at a valid rate: the strategy wins every interactive run
@@ -146,8 +138,8 @@ theorem prove_wireDecodable (h1 : ∀ chal, runI P S chal = some true)
   obtain ⟨hlen, hph⟩ := proveFrom_phases h F S fuel _ _ [] wireMaxPhases hacc
     (by simp [commits]) hw hpf
   have hxs := proveFrom_stream_le h F S fuel _ _ [] _ hc hpf
-  refine ⟨lt_of_le_of_lt (hxs.trans leanVmCost_le) (by norm_num [verifierCost]), hlen,
-    fun phase hphase ↦ ?_⟩
+  have hcost : leanVmCost = 54825 := by decide
+  refine ⟨lt_of_le_of_lt (hcost ▸ hxs) (by norm_num), hlen, fun phase hphase ↦ ?_⟩
   obtain ⟨ht, w, word, ps, rfl, hws, hne, hql, hht, hwl, hps⟩ := hph phase hphase
   exact ⟨ht, w, phaseDecodable_openingAt hws hne hql hht hwl hps⟩
 

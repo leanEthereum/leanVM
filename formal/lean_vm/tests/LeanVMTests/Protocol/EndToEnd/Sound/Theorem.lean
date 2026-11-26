@@ -38,8 +38,7 @@ example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
-      ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) :=
+      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) :=
   leanVm_knowledge O A QA hA
 
 example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA : ℕ)
@@ -50,13 +49,11 @@ example (O : OpeningIface) (A : OracleComp KeccakCalls (Statement × Proof)) (QA
           some (⟨s, q⟩ : Σ s : Sizes, Column (leanIsaμ z.1.1.1.1 s)) ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
-      ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) :=
+      ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) :=
   leanVm_execution O A QA hA
 
 example (QA : ℕ) (hQ : QA ≤ 2 ^ 64) :
-    ((QA + leanVmQueryBound : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + leanVmQueryBound)) ≤
+    ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) ≤
       (2 : ℝ≥0∞)⁻¹ ^ 60 :=
   leanVm_bound_le hQ
 
@@ -115,7 +112,7 @@ example : ((8 : ℕ) : ℝ≥0∞) / Fintype.card E ≤ εmsg := le_εmsg rfl le
 example : ¬ ((9 : ℕ) : ℝ≥0∞) / Fintype.card E ≤ εmsg := by
   rw [not_le]
   calc εmsg = ((8 : ℕ) : ℝ≥0∞) / Fintype.card E := by
-        rw [LeanVM.Protocol.card_E, εmsg, securityBits, LeanVM.inv_pow_eq_div 125 128 (by norm_num)]
+        rw [LeanVM.Protocol.card_E, εmsg, securityBits, inv_pow_eq_div 125 128 (by norm_num)]
         norm_num
     _ < ((9 : ℕ) : ℝ≥0∞) / Fintype.card E :=
         ENNReal.div_lt_div_right (by simp) (by simp) (by norm_num)

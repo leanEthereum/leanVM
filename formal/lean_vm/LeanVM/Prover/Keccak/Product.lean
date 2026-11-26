@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Prover.Keccak.States
+import LeanVM.ToMathlib.Finset
 
 /-!
 # The product polynomial
@@ -66,9 +67,10 @@ theorem bitE_eq_zero {b : Bool} (h : bitE b = 0) : b = false := by
   · exact absurd h one_ne_zero
 
 theorem rmfeEmbed_lt (i : ℕ) : rmfeEmbed.getD i 0 < 2 ^ 24 := by
+  rw [rmfeEmbed_eq]
   by_cases hi : i < 16
   · revert i; decide
-  · rw [List.getD_eq_default _ _ (by simp [rmfeEmbed]; omega)]; norm_num
+  · rw [List.getD_eq_default _ _ (by simp [embedLit]; omega)]; norm_num
 
 theorem embedMask_lt (m : ℕ) : embedMask m < 2 ^ 24 := by
   refine Nat.lt_pow_two_of_testBit _ fun c hc ↦ bitE_eq_zero ?_
@@ -188,7 +190,7 @@ theorem gPack_getD (w : Array E) (S : Array ℕ) {c : ℕ} (hc : c < 47) :
     (gPack (weightTabs w) S).getD c 0 = ∑ j ∈ range 1600,
       if (chiProduct (S.getD j 0) (S.getD (keccakAlong j 1) 0)
         (S.getD (keccakAlong j 2) 0)).testBit c then w.getD j 0 else 0 := by
-  rw [gPack, array_getD_ofFn_lt _ hc, sumRange_eq, show 1600 = 200 * 8 from rfl, sum_range_mul]
+  rw [gPack, array_getD_ofFn_lt _ hc, sumRange_eq, show 1600 = 200 * 8 from rfl, Finset.sum_range_mul]
   refine Finset.sum_congr rfl fun q hq ↦ ?_
   have hq' := Finset.mem_range.1 hq
   rw [weightTabs, array_getD_ofFn_lt _ hq', byteSums_getD _ (packBits_lt _ 8)]

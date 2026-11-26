@@ -1,14 +1,13 @@
 /-
   LeanVM.Guest.B1.Gkr.InterfaceP
 
-  B1 of `verify_bus_gkr`: the statement of its soundness (`verify_bus_gkr_Spec`), on the
-  specification's program it runs (`LeanVM.Protocol.Verifier.gkrPhase`).
+  B1 of `verify_bus_gkr`: the specification's program it runs (`gkrPhase`) and the statement of
+  its soundness (`verify_bus_gkr_Spec`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.Base
-public import LeanVM.Protocol.Verifier.Phases.Bus
 public import LeanVM.Guest.B1.Common.Sponge
 import LeanVM.Guest.B1.Gkr.Fs
 
@@ -37,6 +36,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+/-- The GKR walk and the count root's check: what `verify_bus_gkr` runs. -/
+def gkrPhase (depth : ℕ) : VerifierProgram (E × List E × List E) := do
+  let r ← verifyGkrGrandProducts depth
+  VerifierProgram.require (r.1 ≠ 0)
+  return r
+
 /-- **`verify_bus_gkr`'s outcome** on its arguments `[fs0, …, fs4, cursor, g_bus_mu, zeta, tabs, stream]`:
 `g_bus_mu = g^depth` with `depth < 33`; from the carried capacity, the words `xs` at the cursor
 run `gkrPhase depth` to `(count, point, values)`; the point, of `depth` coordinates, is at
@@ -45,10 +50,10 @@ three values. -/
 def GkrOut (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, cur, gmu, zeta, _tabs, _stream], rets =>
       ∃ (depth : ℕ) (xs : List E) (r : E × List E × List E) (cap' : List E) (leaves : E),
-        gmu = gen ^ depth ∧ depth < 33 ∧ ReadsAt rd cur xs ∧
+        gmu = gen ^ depth ∧ depth < 33 ∧ TbReadsAt rd cur xs ∧
         RunsTo (gkrPhase depth) ⟨[f0, f1, f2, f3, f4], []⟩ xs r ⟨cap', []⟩ ∧
-        r.2.1.length = depth ∧ r.2.2.length = 3 ∧ ReadsAt rd zeta r.2.1 ∧
-        ReadsAt rd leaves r.2.2 ∧ rets = cap' ++ [cur * gen ^ xs.length, leaves]
+        r.2.1.length = depth ∧ r.2.2.length = 3 ∧ TbReadsAt rd zeta r.2.1 ∧
+        TbReadsAt rd leaves r.2.2 ∧ rets = cap' ++ [cur * gen ^ xs.length, leaves]
   | _, _ => False
 
 /-- **`verify_bus_gkr` is sound**: at a depth other than `0`, its relation implies `GkrOut`.

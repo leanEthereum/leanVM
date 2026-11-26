@@ -5,10 +5,19 @@ public import XmssSecurity.Proof.RunObservedAppend
 
 @[expose] public section
 
-open OracleComp OracleSpec
-open OracleComp.ProgramLogic.Relational
+/-!
+# The reveal-probe monitor, step by step
 
-variable {α : Type}
+`advanceObserved` runs the reveal-probe monitor over a trace and returns its final state, or `none`
+on a hit: it fails exactly when `runObserved` hits
+(`advanceObserved_eq_none_iff_runObserved_eq_true`) and composes over appended traces
+(`advanceObserved_append`). Over a trace the eager simulation emits (one that agrees with the table,
+`simulate_eagerTrace_support_traceAgrees`), the monitor's revealed values stay the table's and
+follow the trace's causal reveals (`advanceObserved_preserves_stateAgrees`,
+`advanceObserved_preserves_replayed_reveals`). `CappedGlobalChainHighReplay` uses it.
+-/
+
+open OracleComp OracleSpec
 
 namespace XmssSecurity
 namespace RevealProbeOracleSimulation

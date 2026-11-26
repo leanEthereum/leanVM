@@ -28,9 +28,6 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
   holds every atom (`AnyVals`: the words that size the buffer, end the loops and place the
   callees).
 * `recMem_drop`: the records after the first `s`, the marks `base · g^s`.
-* `ccl_completeAtB`, `ccl_completeAt`: `child_claim_list_last__L{k}` is complete, placed, a leaf
-  within its frame (`relAtIn_atoms` on `ccl_core`), reading the state's words, the records' marks
-  at `region · g^(os j)` and their cells among the caller's words.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -63,22 +60,28 @@ noncomputable def anyP1 : List Stmt := anyFlat.take (pos% «child_claim_list_any
 /-- The body after its dispatch. -/
 noncomputable def anyPost : List Stmt := anyFlat.drop (pos% «child_claim_list_any» "s9#0")
 
+set_option maxRecDepth 100000 in
 theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost :=
   stmtsEqb_sound (by decide +kernel)
 
+set_option maxRecDepth 100000 in
 theorem anyPost_eq : anyPost = [.atom (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))), .atom (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))),
     .atom (.copy (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))), .atom (.copy (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))] :=
   stmtsEqb_sound (by decide +kernel)
 
 theorem anyPost_straight : anyPost.all Main.Stmt.straight = true := by rw [anyPost_eq]; rfl
 
+set_option maxRecDepth 100000 in
 theorem anyP1_straight : anyP1.all Main.Stmt.straight = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem anyP1_allocs : anyP1.filterMap Main.Stmt.allocSz = [(.n (val% «child_claim_list_any» "chain"), .inr (.n (val% «child_claim_list_any» "chain~7")))] := by
   decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem anyP1_addrs : anyP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem anyP1_calls : anyP1.filterMap Main.Stmt.callS =
     [(some (.n (val% «child_claim_list_any» "s3#1")), name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "base"),
         .n (val% «child_claim_list_any» "last_g")], []),
@@ -86,12 +89,15 @@ theorem anyP1_calls : anyP1.filterMap Main.Stmt.callS =
           .n (val% «child_claim_list_any» "last_g")], [])] := by
   decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem anyP1_loads : anyP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n (val% «child_claim_list_any» "chain"), c) := by
   decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem anyP1_kinds : anyP1.all (fun s => isAtomS s || stmtEqb s any17S || stmtEqb s any18S) =
     true := by decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem any_loop : coreProgram.loop "child_claim_list_any" = false := by
   rw [Program.loop_of_find? find_child_claim_list_any]; decide +kernel
 
@@ -119,8 +125,10 @@ noncomputable def anyCOk : Bool :=
     atomEqb a (.mul (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) (.n (val% «child_claim_list_any» "last_g~0"))) || atomEqb a (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))) ||
     atomEqb a (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))))
 
+set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
 theorem any_atoms : ∀ a ∈ [Atom.const (.n (val% «child_claim_list_any» "last_g~0")) (word 2 0), .mul (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) (.n (val% «child_claim_list_any» "last_g~0")),
     .mul (.n (val% «child_claim_list_any» "chain~0")) (.n (val% «child_claim_list_any» "bigs")) (.n (val% «child_claim_list_any» "groups")), .const (.n (val% «child_claim_list_any» "chain~1")) (word 2 0), .mul (.n (val% «child_claim_list_any» "chain~2")) (.n (val% «child_claim_list_any» "chain~0")) (.n (val% «child_claim_list_any» "chain~1")),
     .mul (.n (val% «child_claim_list_any» "chain~3")) (.n (val% «child_claim_list_any» "chain~2")) (.n (val% «child_claim_list_any» "chain~2")), .mul (.n (val% «child_claim_list_any» "chain~4")) (.n (val% «child_claim_list_any» "chain~3")) (.n (val% «child_claim_list_any» "chain~2")), .mul (.n (val% «child_claim_list_any» "chain~5")) (.n (val% «child_claim_list_any» "chain~4")) (.n (val% «child_claim_list_any» "chain~4")),
@@ -160,6 +168,7 @@ structure AnyVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain : 
 
 variable {rd : Reader}
 
+set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any`'s valuation**: on a memory holding the zero state at the chain
 buffer and defined below `2^20`, where its checks of `g^a` and `g^b` read. -/
 theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Digest)
@@ -294,53 +303,6 @@ theorem clU_big {a q : ℕ} (hq : q ≤ a) : clU a q = 8 * q := by
 /-- `clU` after the big frames. -/
 theorem clU_grp (a q : ℕ) : clU a (a + q) = 8 * a + q := by
   unfold clU; rw [Nat.min_eq_right (by omega)]; omega
-
-/-! ## The last claims -/
-
-/-- **`child_claim_list_last__L{k}` is complete, placed, within its frame**: the state at
-`sp = g^sP`, the records' marks at `region · g^(os j)` and their cells among the caller's words. -/
-theorem ccl_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ} (hk : k < 17) {κ : ℕ}
-    {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
-    {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
-    (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
-    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
-      RecMem rd region (gen ^ L) entries marks k os cells)
-    (hR1 : ∀ o < 13, RegionL Lin (sP + o)) (hR2 : ∀ j < k, RegionL Lin (rg + os j))
-    (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
-    CompleteAtDTB fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
-      (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) (fun _ => True)
-      (fs (cclNames.getD k "")) := by
-  intro fp
-  refine ⟨fs (cclNames.getD k ""), [], _, [], le_rfl, ⟨rfl, rfl⟩, fun q hq => by simp at hq,
-    B1.disj_nil, fun rd hlow hm => ?_⟩
-  simp only [List.append_nil, List.nil_append] at hm
-  obtain ⟨hS, hrec⟩ := hmem rd hm
-  obtain ⟨vs, σ, hb, hp, hat, hr, hload, -⟩ := ccl_core hk hsp hen hrg hpre hS hl hrec hlast hL33
-    (boundMem_of_low hlow hLκ)
-  refine RelAtIn.relAtInT (relAtIn_atoms (ccl_name hk) hb (ccl_loop hk) (ccl_na hk) hp hat hr
-    (fun q hq => by rw [ccl_addr hk] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_)
-    (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq))
-  rcases hload q hq with ⟨o, ho, h⟩ | ⟨j, hj, h⟩ | ⟨j, hj, c, hc4, h⟩
-  · exact ⟨_, h, Or.inl (hR1 o ho)⟩
-  · exact ⟨_, h, Or.inl (hR2 j hj)⟩
-  · exact ⟨_, h, Or.inl (hR3 j hj c hc4)⟩
-
-/-- **`child_claim_list_last__L{k}` is complete, placed.** -/
-theorem ccl_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {k : ℕ} (hk : k < 17) {κ : ℕ}
-    {Lin : Main.Layout} {sp entries region marks last : E} {sP eP rg L n : ℕ}
-    {pre : List UInt8} {os : ℕ → ℕ} {cells : List E}
-    (hsp : sp = gen ^ sP) (hen : entries = gen ^ eP) (hrg : region = gen ^ rg)
-    (hpre : pre.length = rate * n) (hl : cells.length = 4 * k)
-    (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hLκ : L ≤ 2 ^ κ)
-    (hmem : ∀ rd, MemL rd Lin → StateAt rd sp 0 (absorbChunks n zeroState pre) ∧
-      RecMem rd region (gen ^ L) entries marks k os cells)
-    (hR1 : ∀ o < 13, RegionL Lin (sP + o)) (hR2 : ∀ j < k, RegionL Lin (rg + os j))
-    (hR3 : ∀ j < k, ∀ c < 4, RegionL Lin (eP + 4 * os j + c)) :
-    CompleteAtD fs cert κ (cclNames.getD k "") Lin [sp, entries, region, marks, last]
-      (Returns (digestCells (keccak256 (pre ++ cellsBytes cells)))) :=
-  (ccl_completeAtB fs cert hk hsp hen hrg hpre hl hlast hL33 hLκ hmem hR1 hR2 hR3).toDT.toD
 
 end
 end LeanVM.Guest.B1.Digest

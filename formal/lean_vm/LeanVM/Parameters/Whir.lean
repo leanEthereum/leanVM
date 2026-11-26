@@ -10,16 +10,16 @@ module
 public import Statement.Verifier.Lib
 public import LeanVM.Facts.Verifier
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 
 /-!
 # The structure of the WHIR parameters
 
-The parameters are defined in `Statement.LeanVmVerifier`, the verifier's constants. This
-module proves what the proofs need of them: the folds and reductions are ordered, and on the 60
-admissible pairs of stack size and rate the ladder exists (`ladder_isSome`), has one level per
-tabulated query count, and leaves a residual of at most `residualMaxLog` variables.
+The parameters are the verifier's constants, in `Statement.LeanVmVerifier`. This module proves
+what the proofs need of them: the folds and reductions are ordered, and on the 60 admissible pairs
+of stack size and rate the ladder exists (`ladder_isSome`), has one level per tabulated query
+count, and leaves a residual of at most `residualMaxLog` variables.
 -/
 
 namespace LeanVM.Parameters.Whir

@@ -20,8 +20,6 @@ variable [Params]
 open Concrete Completeness _root_.FORS.Security.Graph GraphCorrectness TargetAssignment HiddenGraph Assembly SeedModel Reduce Eager
 
 set_option backward.isDefEq.respectTransparency false
-set_option maxRecDepth 10000
-set_option linter.constructorNameAsVariable false
 attribute [local instance] Classical.propDecidable
 
 /-! ### First-order inputs -/
@@ -270,76 +268,11 @@ theorem treeHit_hitA (hboundary : BoundaryCorrect f parameter seed labels) (pk :
     ∃ input ∈ SignatureWitness.trace f pk message signature,
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
       (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
-  subst hparameter
-  obtain ⟨-, value, -, hrun, hcase⟩ := h
-  generalize hlay : layerUp j = lay at hrun hcase
-  generalize htree : SignatureWitness.keyTree (SignatureWitness.index f pk message signature) lay = tree
-    at hrun hcase
-  generalize hleaf : SignatureWitness.keyLeaf (SignatureWitness.index f pk message signature) lay = leaf
-    at hrun hcase
-  generalize hpath : signaturePath signature lay = path at hrun hcase
-  have hmem : ∀ level, level < layerHeight lay →
-      merkleInput f pk.parameter (fun height index => .node lay tree height index) leaf.val path
-        value level ∈ SignatureWitness.trace f pk message signature := by
-    intro level hlevel
-    apply hrun
-    rw [← merkleFold_treeFold]
-    exact merkleInput_mem f pk.parameter _ leaf.val path value (layerHeight lay) level hlevel
-  have hnode : ∀ level results, ¬SecondOrderInput pk.parameter results
-      (merkleInput f pk.parameter (fun height index => .node lay tree height index) leaf.val path
-        value level) := fun level results => by
-    unfold merkleInput
-    exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
-  rcases hcase with ⟨reference, hreference, level, hlevel, hparent, hne, hout⟩ |
-    ⟨hlaytop, level, hlevel, ⟨hlower, hpositive, hsurrogate⟩, haddress⟩
-  · refine ⟨_, hmem level hlevel, ?_, hnode level, merkleInput_not_msg _ _ _ _ _ _ _⟩
-    have hpos := active_hit f pk.parameter seed labels
-      (treePosition lay tree (level + 1) (hlevel.trans_le (layerHeight_le lay))
-        ⟨reference.val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt reference.isLt⟩)
-      (tree_path_active pk.parameter lay tree reference hreference (level + 1) hlevel)
-      (orderedPayload (leaf.val.testBit level)
-        (merkleValue f pk.parameter (fun height index => .node lay tree height index) leaf.val
-          path value level) (path level))
-      (by
-        rw [tree_path_input f pk.parameter seed labels hconsistent hboundary lay tree reference
-          hreference level hlevel]
-        intro heq
-        apply hne
-        unfold merkleInput
-        rw [hparent]
-        exact heq)
-      (by
-        rw [tree_path_value f pk.parameter seed labels hconsistent hboundary lay tree reference
-          hreference (level + 1) hlevel]
-        change truncateHash (f (tweakableHashInput pk.parameter
-          (.node lay tree (level + 1) (reference.val / 2 ^ (level + 1))) _)) = _
-        rw [← hparent]
-        exact hout)
-    unfold merkleInput
-    rw [hparent]
-    exact hpos
-  · subst hlaytop
-    have htop : tree = rootTree := by
-      rw [← htree]; exact Completeness.treeIndexAt_top _
-    subst htop
-    refine ⟨_, hmem (level - 1) (by omega), ?_, hnode (level - 1), merkleInput_not_msg _ _ _ _ _ _ _⟩
-    have hlevel' : level < maxLayerHeight := hlevel.trans_le (layerHeight_le _)
-    have hentry := PrunedGraph.referenceTable_surrogate pk.parameter (otsSecrets f pk.parameter seed)
-      (ftsSecrets f pk.parameter seed) (surrogates f pk.parameter seed) labels topLayer rootTree
-      ⟨level, hlevel'⟩ hpositive rfl rfl hlower
-    have hinput : merkleInput f pk.parameter (fun height index => .node topLayer rootTree height index)
-        leaf.val path value (level - 1) =
-        tweakableHashInput pk.parameter (.node topLayer rootTree level (boundaryIndex pk.parameter level))
-          (orderedPayload (leaf.val.testBit (level - 1))
-            (merkleValue f pk.parameter (fun height index => .node topLayer rootTree height index)
-              leaf.val path value (level - 1)) (path (level - 1))) := by
-      simp only [merkleInput, Nat.sub_add_cancel hpositive, haddress]
-    rw [hinput]
-    unfold graphTable
-    rw [targets_at_entry _ _ _ _ _ hentry]
-    simp only [reduceCtorEq, ↓reduceIte, Finset.mem_singleton]
-    rw [← hinput]
-    exact hsurrogate
+  obtain ⟨_, _, _, _, _, _, hmem, hhit⟩ :=
+    treeHit_input f parameter seed labels hconsistent hboundary pk hparameter message signature j h
+  refine ⟨_, hmem, hhit, fun results => ?_, merkleInput_not_msg _ _ _ _ _ _ _⟩
+  unfold merkleInput
+  exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
 
 include hconsistent in
 /-- A FORS node match hits at a queried first-order input. -/
@@ -348,31 +281,13 @@ theorem nodeException_hitA (index : Index) (leaves : FTree → FLeaf) (opening :
     ∃ input ∈ queriedInputs f (forsRecover parameter index leaves opening : OracleComp HashSpec ForsKey),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
       (∀ results, ¬SecondOrderInput parameter results input) ∧ ¬ForsSigner.IsMsgInput input := by
-  obtain ⟨κ, level, hlevel, -, hneq, hout⟩ := h
-  have hcanon : Fors.leafValue f parameter index κ (leaves κ)
-      (Completeness.forsSecretValue f parameter index κ seed (leaves κ)) =
-        Completeness.forsLeafValue f parameter index κ seed (leaves κ) := by
-    rw [Fors.leafValue_canonical, Completeness.forsNodeValue_zero]
-  have hl1 : level + 1 ≤ forsHeight := hlevel
-  rw [hcanon] at hneq hout
-  have hdom : Fors.forsDomain index κ (level + 1) ((leaves κ).val / 2 ^ (level + 1)) =
-      HashDomain.forsNode index κ ⟨level, by omega⟩
-        ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩ := by
-    rw [Fors.forsDomain, dite_eq_left ⟨by omega, by omega⟩]
-    congr 2
-    exact Nat.mod_eq_of_lt ((Nat.div_le_self _ _).trans_lt (leaves κ).isLt)
+  obtain ⟨κ, level, hlevel, hm⟩ := h
   refine ⟨_, Fors.nodeInput_mem f parameter index leaves opening κ level hlevel,
-    active_hit' f parameter seed labels (forsPosition index κ (level + 1) hl1
-      ⟨(leaves κ).val / 2 ^ (level + 1), (Nat.div_le_self _ _).trans_lt (leaves κ).isLt⟩)
-      trivial _ ⟨_, by simp only [merkleInput]; rw [hdom]; rfl⟩ ?_ ?_, fun results => ?_,
+    nodeMatch_hit f parameter seed labels hconsistent index leaves opening κ level hlevel hm, fun results => ?_,
     merkleInput_not_msg _ _ _ _ _ _ _⟩
-  · rw [fors_path_input f parameter seed labels hconsistent index κ _ level hlevel]
-    exact hneq
-  · rw [fors_path_value f parameter seed labels hconsistent index κ _ (level + 1) hl1]
-    exact hout
-  · unfold merkleInput
-    rw [hdom]
-    exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
+  unfold merkleInput
+  rw [forsDomain_succ index κ (leaves κ) level hlevel]
+  exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ h => by cases h)
 
 include hconsistent in
 /-- A FORS roots match hits at the queried `T_k` input, which is first order. -/
@@ -777,5 +692,14 @@ theorem expose_known_support (parameter : PublicParameter) (fixed : HiddenGraph.
       (∀ c v, k c = some v → knownOf parameter fixed c = some v ∨ AboveWord parameter results c) :=
   exposeR_known_support _ _ _ _ k (fun _ hc => mem_aboveList.mp hc) (fun _ _ h => h)
     (fun _ _ h => Or.inl h) hk
+
+/-- The refined bad event of a finished run with a valid transcript, as the bounds on FORS contacts
+require. -/
+def badAV (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
+    (remaining : RemainingOutputs) (results : OtsKey → Option (Counter × Encoding)) (table : Coordinate → Digest)
+    (v : ((Option HiddenBridge.Outcome × List Coordinate) × List (HiddenCost.Entry HashInput)) × QueryCache HashSpec) :
+    Prop :=
+  badA parameterOutput fixed highs remaining results table v ∧
+    ∃ outcome, v.1.1.1 = some outcome ∧ SigningTranscript.Valid outcome.2.1
 
 end FORS.Security.HiddenBridge

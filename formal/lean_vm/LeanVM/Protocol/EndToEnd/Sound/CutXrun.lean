@@ -11,7 +11,6 @@ public import LeanVM.Protocol.EndToEnd.Sound.CutRun
 public import LeanVM.Protocol.EndToEnd.Sound.Extractor
 public import LeanVM.Protocol.Compile.Rom.Replay
 public import LeanVM.Protocol.Verifier.Deferred
-public import LeanVM.Protocol.Verifier.NoCommit
 import LeanVM.Protocol.Verifier.Cost
 public import LeanVM.Protocol.Compile.Cost
 import LeanVM.Protocol.EndToEnd.Sound.Runs
@@ -87,15 +86,48 @@ theorem NoCommitQ.commits_nil {α : Type} :
     cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
     exact NoCommitQ.commits_nil (h := es) (hp _) ha
 
-/-- A program without commitments or openings has no commitment. -/
-theorem NoCommitQ.of_noCommit {α : Type} {p : VerifierProgram α} (hp : NoCommit p) :
-    NoCommitQ p := by
-  rw [noCommit_iff] at hp
-  induction p with
-  | ret _ | fail => trivial
-  | read k ih | sample k ih => exact fun x ↦ ih x (hp x)
-  | grind _ k ih => exact ih hp
-  | commit _ _ _ _ | query _ _ _ _ => exact hp.elim
+theorem noCommitQ_readScalars : ∀ n, NoCommitQ (VerifierProgram.readScalars n)
+  | 0 => trivial
+  | n + 1 => by
+    unfold VerifierProgram.readScalars
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    exact NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦
+      NoCommitQ.bind (noCommitQ_readScalars n) fun _ ↦ trivial
+
+theorem noCommitQ_grindProofOfWork (b : ℕ) : NoCommitQ (VerifierProgram.grindProofOfWork b) := by
+  unfold VerifierProgram.grindProofOfWork
+  split <;> trivial
+
+theorem noCommitQ_require (c : Prop) [Decidable c] : NoCommitQ (VerifierProgram.require c) := by
+  unfold VerifierProgram.require
+  split <;> trivial
+
+theorem noCommitQ_sumcheck (claim : E) (count : ℕ) :
+    ∀ eqs : List (Option E), NoCommitQ (sumcheck claim count eqs) := by
+  intro eqs
+  induction eqs generalizing claim with
+  | nil => trivial
+  | cons e eqs ih =>
+    unfold sumcheck
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    refine NoCommitQ.bind ?_ fun _ ↦ NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦
+      NoCommitQ.bind (ih _) fun _ ↦ trivial
+    cases e <;> unfold sumcheckRoundPoly <;> simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    · exact NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦ NoCommitQ.bind (noCommitQ_readScalars _)
+        fun _ ↦ NoCommitQ.bind (noCommitQ_grindProofOfWork _) fun _ ↦ trivial
+    · exact NoCommitQ.bind (noCommitQ_readScalars _) fun _ ↦
+        NoCommitQ.bind (noCommitQ_grindProofOfWork _) fun _ ↦ trivial
+
+theorem noCommitQ_sampleQueriesAux (depth : ℕ) :
+    ∀ (fuel remaining : ℕ), NoCommitQ (sampleQueriesAux depth fuel remaining)
+  | 0, _ => trivial
+  | fuel + 1, remaining => by
+    unfold sampleQueriesAux
+    simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
+    split
+    · trivial
+    · exact NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦
+        NoCommitQ.bind (noCommitQ_sampleQueriesAux depth fuel _) fun _ ↦ trivial
 
 /-- **The rest of the final level commits nothing.** -/
 theorem noCommitQ_finRest (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : Whir.Level)
@@ -107,11 +139,10 @@ theorem noCommitQ_finRest (logN laneFolds : ℕ) (eb : List E → E) (index : �
   | mid => trivial
   | final _ folded =>
     simp only [finRest, finalTailRest, VerifierProgram.bind_eq]
-    exact NoCommitQ.bind (.of_noCommit (noCommit_grind _)) fun _ ↦ NoCommitQ.bind
-      (NoCommitQ.bind (.of_noCommit (noCommit_sampleQueriesAux _ _ _)) fun _ ↦
-        NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦ .of_noCommit (noCommit_require _)) fun _ ↦
-      NoCommitQ.bind (.of_noCommit (noCommit_sumcheck _ _ _)) fun _ ↦
-        .of_noCommit (noCommit_require _)
+    exact NoCommitQ.bind (noCommitQ_grindProofOfWork _) fun _ ↦ NoCommitQ.bind
+      (NoCommitQ.bind (noCommitQ_sampleQueriesAux _ _ _) fun _ ↦
+        NoCommitQ.bind (fun _ ↦ trivial) fun _ ↦ noCommitQ_require _) fun _ ↦
+      NoCommitQ.bind (noCommitQ_sumcheck _ _ _) fun _ ↦ noCommitQ_require _
 
 /-! ## Returned values -/
 

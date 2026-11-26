@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.H.Claims
+import LeanVM.ToMathlib.List
 
 /-!
 # The terminal's context
@@ -70,7 +71,7 @@ theorem chiW_length (H : VtHonest) : H.chiW.length = H.n := by
 theorem vsEvTab_lt : ∀ k < 153, vsEvTab k < 6 := by decide +kernel
 
 theorem vtH_n_ex (hr : H.rows.length = 6) : ∃ t < 6, vtHt H.rows t = H.n := by
-  rcases foldl_max_mem (tableHeightsOf H.rows) 0 with h | h
+  rcases List.foldl_max_mem (tableHeightsOf H.rows) 0 with h | h
   · refine ⟨0, by norm_num, ?_⟩
     have := vt_n_ge hr (H := H) (t := 0) (by norm_num)
     have e : H.n = 0 := h
@@ -107,7 +108,7 @@ theorem ptsP_length (hr : H.rows.length = 6) (hlmμ : H.lm ≤ H.point.length)
 theorem vtH_tctx (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23)
     (hlmμ : H.lm ≤ H.point.length) (h19 : 19 ≤ H.point.length)
     (hτμ : ∀ t < 6, vtHt H.rows t ≤ H.point.length) {rd : Reader} {zeta chi : E}
-    (hz : ReadsAt rd zeta H.point) (hc : ReadsAt rd chi H.chiW) :
+    (hz : TbReadsAt rd zeta H.point) (hc : TbReadsAt rd chi H.chiW) :
     TCtx rd H.L H.bus H.claims [zeta, chi, H.rm, gen ^ H.point.length, gen ^ H.n] := by
   have hbus : H.bus = H.busH := (vt_spec h).2.2.1
   have hcol := vtH_columns h hr
@@ -158,7 +159,7 @@ variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode
 
 /-- The table sumcheck has at most `28` rounds. -/
 theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 30 := by
-  rcases Tables.foldl_max_mem S.hs 0 with h | h
+  rcases List.foldl_max_mem S.hs 0 with h | h
   · show S.hs.foldl max 0 ≤ 30
     omega
   · have := (S.hs_bounds hbl).1 _ h
@@ -168,7 +169,7 @@ theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 30 := by
 /-- **`verify_tables`' context on an honest child**, on a memory holding the bus point at `zeta`
 and `chi`'s words. -/
 theorem H_tctx (hbl : bytecode.length = 2 ^ 23) {rd : Reader} {zeta chi : E}
-    (hz : ReadsAt rd zeta S.rG.2.1) (hc : ReadsAt rd chi S.H.chiW) :
+    (hz : Tables.TbReadsAt rd zeta S.rG.2.1) (hc : Tables.TbReadsAt rd chi S.H.chiW) :
     Tables.TCtx rd S.layout S.bus S.claims [zeta, chi, S.H.rm, gen ^ S.d, gen ^ S.nT] := by
   obtain ⟨h, -, -, -⟩ := S.H_run hbl
   have hs := S.H_shape hbl

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.SphincsAtP
 
-  An honest call of `verify_sig_lean_sphincs` placed with its pops (`VerifySigP`), and `main_loop3` placed with its pops without that hypothesis (`rawS_completeAtDP'`).
+  An honest call of `verify_sig_lean_sphincs` placed with its pops (`VerifySigP`).
 -/
 
 module
@@ -11,7 +11,6 @@ public import LeanVM.Guest.B1.Sig.SphincsExact
 public import LeanVM.Guest.Exact.FreeSpWots
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs`, placed with its pops
@@ -19,8 +18,7 @@ import LeanVM.Guest.StmtsAppend
 `Sig.verify_sig_lean_sphincs_complete_vals`' valuation under the trivial call relation, placed by `relAtInP_of_walk`: the body is straight (`sStraight`), so its calls are the three layers' calls of `sp_wots` (`sCalls`), the honest ones (`Sig.SpCallsAt`), each placed by `spWots_relAtInP` (`layer_relAtInP`); it places nothing (`raw4_pure`) and loads the claim and the byte table.
 
 * `verifySigPE`: `VerifySigPQ` in `fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots"` words, every node exact: the
-  node's bit hints by `Sig.sNode_exact`, `sp_wots` for free; `verifySigP` without exactness;
-* `rawS_completeAtDP'`: `rawS_completeAtDP` at those words, without the hypothesis.
+  node's bit hints by `Sig.sNode_exact`, `sp_wots` for free; `verifySigP` without exactness.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -32,9 +30,9 @@ open LeanVM.Guest.B1 (LowDef CompleteAtDP Returns)
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`'s statements before its return. -/
-def sPreR : List Stmt := Sig.sPre ⧺ [.atom (.assertEq Sig.sLayerT.2.2 Sig.sRoot)]
+def sPreR : List Stmt := Sig.sPre ++ [.atom (.assertEq Sig.sLayerT.2.2 Sig.sRoot)]
 
-theorem sBody_straight : (fn% «verify_sig_lean_sphincs»).body = sPreR ⧺ [.ret []] := by
+theorem sBody_straight : (fn% «verify_sig_lean_sphincs»).body = sPreR ++ [.ret []] := by
   rw [Sig.sBody_eq, Sig.sBody_splitC, sPreR, List.append_assoc]
   rfl
 
@@ -137,14 +135,6 @@ theorem verifySigPE (fs : String → ℕ) (cert : String → V → ℕ) :
 theorem verifySigP (fs : String → ℕ) (cert : String → V → ℕ) :
     VerifySigP fs cert (fs "verify_sig_lean_sphincs" + 3 * fs "sp_wots") :=
   (verifySigPE fs cert).toP
-
-/-- **`main_loop3` is complete, placed, with its pops** (`rawS_completeAtDP` with `verifySigP`). -/
-theorem rawS_completeAtDP' (fs : String → ℕ) (cert : String → V → ℕ) {nrs Y X nrx cv tb bb : ℕ} {Lin : Layout}
-    (D : RawSData nrs Y X nrx cv tb bb Lin) (hY : Y ≤ 2 ^ 23) (hnrs : nrs < 2 ^ 34) :
-    ∀ j < nrs, CompleteAtDP fs cert 23 name% «main_loop3» Lin
-      [gen ^ j, gen ^ nrs, gen ^ Y, gen ^ (cv + X), gen ^ nrx, gen ^ tb, gen ^ bb] (Returns [])
-      (fun _ => (List.range' j (nrs - j)).flatMap (l4Pops D)) :=
-  rawS_completeAtDP fs cert (verifySigP fs cert) D hY hnrs
 
 end
 end LeanVM.Guest.B1.Main

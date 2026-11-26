@@ -4,6 +4,14 @@ public import VCVio.OracleComp.SimSemantics.StateT.Basic
 
 @[expose] public section
 
+/-!
+# Simulating through a state lens
+
+A `StateLens` views one component of a state. If every query of an implementation runs a base
+query on the viewed component and overwrites only it, so does the simulation of every computation
+(`StateLens.simulateQ_run_eq`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity
@@ -16,7 +24,7 @@ structure StateLens (State BaseState : Type) where
   get_set : ∀ state baseState, get (set state baseState) = baseState
   set_set : ∀ state left right, set (set state left) right = set state right
 
-def StateLens.fst {BaseState AuxState : Type} : StateLens (BaseState × AuxState) BaseState where
+def StateLens.fst : StateLens (BaseState × AuxState) BaseState where
   get := Prod.fst
   set state nextBase := (nextBase, state.2)
   set_get := by simp
@@ -24,7 +32,7 @@ def StateLens.fst {BaseState AuxState : Type} : StateLens (BaseState × AuxState
   set_set := by simp
 
 /-- If every decorated query runs a base query and only overwrites the viewed state component, the same description holds for every oracle computation. -/
-theorem StateLens.simulateQ_run_eq {ι : Type _} {α : Type}
+theorem StateLens.simulateQ_run_eq
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m]
     {State BaseState : Type}
     (lens : StateLens State BaseState)

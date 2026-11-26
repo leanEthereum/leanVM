@@ -10,13 +10,12 @@ module
 public import LeanVM.Guest.B1.Digest.ChildListCLast
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The last child claims' honest valuation
 
-`cclAtoms k`: `child_claim_list_last__L{k}`'s atoms, its body those and a return
-(`ccl_split`), placing nothing and not a loop helper. `ccl_core`: from the state after whole
+`cclAtoms k`: `child_claim_list_last__L{k}`'s atoms, its body those and a return,
+placing nothing and not a loop helper (`ccl_shape_all`). `ccl_core`: from the state after whole
 blocks `pre` at `sp = g^sP` and `k` honest records, the body's evaluated valuation (`Fwd.ev`, the
 slots from `slotW`) holds its atoms and returns the digest, and every load reads the state's
 `13` words, a record's mark at `region · g^(os j)`, or a record's four cells at
@@ -79,7 +78,7 @@ theorem ccl_core {k : ℕ} (hk : k < 17) {sp entries region marks last : E} {sP 
     (hlast : last * gen = gen ^ L) (hL33 : L < 2 ^ 33) (hdef : BoundMem rd L) :
     ∃ (vs : List V) (σ : Val),
       (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).body = (cclAtoms k).map
-          Stmt.atom ⧺ [.ret vs] ∧
+          Stmt.atom ++ [.ret vs] ∧
       (coreProgram.getD (idx% «child_claim_list_last__L0» + k) default).params.map σ = [sp,
           entries, region, marks, last] ∧
       (∀ a ∈ cclAtoms k, a.Holds rd σ) ∧

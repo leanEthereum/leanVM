@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Selectors.Glue
 
 /-!
-# `index_mle` is complete (TRIAGE G #44)
+# `index_mle` is complete
 
 For words `zs` at `zeta`, the valuation `imVal` gives every value of `index_mle__L{n}`'s body
 what the body computes: block `t`'s one, word, factor, product, sum and running product
@@ -62,7 +62,7 @@ theorem imAccV_eq (zs : List E) : ∀ t < 34, imAccV zs t =
     ((List.range (t + 1)).map fun s ↦ imFactorOf (zs.getD s 0) s).prod
   | 0, _ => by simp [imAccV, imFactorOf, imFac, imFactor_eq (show 0 < 34 by norm_num)]
   | t + 1, ht => by
-    rw [imAccV, imAccV_eq zs t (by omega), List.prod_range_succ _ (t + 1), imFactorOf, imFac,
+    rw [imAccV, imAccV_eq zs t (by omega), tb_prod_map_range_succ _ (t + 1), imFactorOf, imFac,
       imFactor_eq ht]
 
 theorem imBlkV_0 (zs : List E) (t : ℕ) : imBlkV zs t 0 = 1 := by simp [imBlkV]
@@ -89,12 +89,12 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
   | [zeta], [v], ⟨zs, hzl, hzr, hv⟩ =>
     obtain ⟨fn, hf, hp, hb⟩ := imFound imCheck_all hn
     have hz0 : imVal n zeta zs 0 = zeta := by simp [imVal]
-    refine (rel_pre hf hb (imPre_noRet n) [zeta] [v]).mpr ⟨fun x ↦ imVal n zeta zs x.idx,
+    refine (tb_rel_pre hf hb (imPre_noRet n) [zeta] [v]).mpr ⟨fun x ↦ imVal n zeta zs x.idx,
       by rw [hp]; simp only [List.map_cons, List.map_nil]; exact congrArg (· :: []) hz0, ?_, ?_⟩
     · by_cases h0 : n = 0
       · subst h0
         simp only [imPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-        simp [imVal, word_one]
+        simp [imVal, tb_word_one]
       · simp only [imPre, h0, ↓reduceIte]
         rw [holdsList_append, holdsList_flatten _ (fun b hb ↦ by
           obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact imBlk_noRet t)]
@@ -111,7 +111,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
               e 3 (by norm_num) (by norm_num), e 4 (by norm_num) (by norm_num),
               e 5 (by norm_num) (by norm_num), hz0]
             simp only [Nat.reduceSub, imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imFac,
-              word_one]
+              tb_word_one]
             exact ⟨trivial, hzt, trivial, trivial, trivial⟩
           · have e := fun r (hr : r < 6) ↦ imVal_blk (n := n) zeta zs (t := t) (r := r) ht0 ht hr
             have ep : imVal n zeta zs (6 * t - 1) = imAccV zs (t - 1) := by
@@ -121,7 +121,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
             rw [ep, hz0, show imVal n zeta zs (6 * t) = imBlkV zs t 0 from e 0 (by norm_num),
               e 1 (by norm_num), e 2 (by norm_num), e 3 (by norm_num), e 4 (by norm_num),
               e 5 (by norm_num)]
-            rw [imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imBlkV_5, imFac, word_one]
+            rw [imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imBlkV_5, imFac, tb_word_one]
             refine ⟨rfl, hzt, rfl, rfl, rfl, ?_⟩
             obtain ⟨t', rfl⟩ : ∃ t', t = t' + 1 := ⟨t - 1, by omega⟩
             simp [imAccV, imFac]

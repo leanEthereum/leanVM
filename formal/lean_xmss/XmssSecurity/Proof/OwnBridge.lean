@@ -16,8 +16,6 @@ translation forwards each hash query once, and memoization forwards every base q
 
 open OracleComp OracleSpec ENNReal
 
-variable {n : ℕ}
-
 namespace XmssSecurity.Bridge
 
 open Seeded DeterministicSigning

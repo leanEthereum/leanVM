@@ -5,6 +5,16 @@ public import XmssSecurity.Proof.Execution
 
 @[expose] public section
 
+/-!
+# Erasing queries whose answers are known
+
+`Erases known left right` says `right` is `left` with some queries removed whose answers `known`
+fixes, the rest kept. Under the consistent oracle `romImpl`, from any cache extending `known`, the
+two computations have the same distribution of output and final cache (`Erases.evalDist_run`), and
+a hash budget of `left` bounds `right` (`Erases.hashQueryBound`). `Erases.lift_hash` lifts an
+erasure of hash computations into the oracle world.
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Seeded
@@ -90,8 +100,8 @@ theorem Erases.lift_hash {α : Type} {known : QueryCache HashSpec}
 
 theorem romImpl_preserves_known (known cache : QueryCache HashSpec) (h : known ≤ cache)
     (input : OracleWorld.Domain) (result : OracleWorld.Range input × QueryCache HashSpec)
-    (hresult : result ∈ support ((romImpl input).run cache)) : known ≤ result.2 := by
-  exact h.trans (romImpl_query_cache_le input cache result hresult)
+    (hresult : result ∈ support ((romImpl input).run cache)) : known ≤ result.2 :=
+  h.trans (romImpl_query_cache_le input cache result hresult)
 
 theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
     {left right : OracleComp OracleWorld α} (h : Erases (worldKnown known) left right)

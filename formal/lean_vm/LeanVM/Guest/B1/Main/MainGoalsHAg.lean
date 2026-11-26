@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.MainGoalsHAg
 
-  `main`'s honest `aggregate_claims` call: complete at `main`'s words (`MainGoalAg`).
+  `main`'s honest `aggregate_claims` call: the children's words and the window tables at `main`'s
+  words.
 -/
 
 module
@@ -15,9 +16,8 @@ public import LeanVM.Guest.AcceptableChild
 /-!
 # `aggregate_claims` on an honest run
 
-`hkids_words`: `main`'s words hold each
-child's words where `aggregate_claims` reads them. `mainGoalAg`: the children's batching is the
-statement's deferred claim, which `main`'s words hold at `defer_stmt`.
+`hkids_words`: `main`'s words hold each child's words where `aggregate_claims` reads them.
+`hLmain_winTabs`: they hold the grind's window tables.
 -/
 
 namespace LeanVM.Guest.B1.Main

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Placement.InterfaceP
-public import LeanVM.Guest.B1.Tables.Base
+public import LeanVM.Guest.B1.Tables.Basic
 
 /-!
 # The committed columns' sizes
@@ -19,7 +19,7 @@ free column (global `80`) and its twenty-seven read counts (global `131 .. 157`)
 `colKappaSrc`, `colKappaAdj` give exactly `committedKappas (columnKappas log_mem 19 τ)`
 (`committedKappas_columnKappas`).
 
-`hypKappa`: every committed column's `κ` is at most `log2Ceil (stackTotal kappas)`, since `2^κ` is
+`hypKappa_holds`: every committed column's `κ` is at most `log2Ceil (stackTotal kappas)`, since `2^κ` is
 one of its summands; so `≤ 30` once the stack is at most `2^30`.
 -/
 

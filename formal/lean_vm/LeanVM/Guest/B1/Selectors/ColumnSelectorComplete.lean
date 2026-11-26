@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreData
 
 /-!
-# `column_selector` is complete (TRIAGE G #68)
+# `column_selector` is complete
 
 The valuation `cskVal` gives every value of `column_selector__L{κ}`'s body its role: the hint's
 digits are `o`'s base-16 digits `u_k` from nibble `κ / 4` on (`cskU`); in nibble `k`, the range
@@ -20,7 +20,8 @@ check's bound `g^15`, its cofactor `g^(15 - u_k)` and the two words it reads (th
 defined below `2^4`), the pointer into the eq table, the eq weight (`cskXE`), the running eq
 product (`cskS`), the pointer into the shares, the share (`cskXG`) and the running product
 (`cskR`); the returned copy. Every statement holds of it, the assertion because the shares
-multiply to `g^o` (`cs_digits`), and the returned eq product is the selector (`cs_sel_prod`).
+multiply to `g^o` (`cs_digits`) (`csk_holdsPre`), and the returned eq product is the selector
+(`cs_sel_prod`, `csk_ret`).
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -180,42 +181,25 @@ theorem cskVal_last {κ o : ℕ} {se sg : E} {p p1 : List E} {rd : Reader} (hκ 
     ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
     ite_eq_right (by omega)]
 
-/-! ## The relation -/
+/-! ## The honest valuation -/
 
-theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+/-- **`column_selector__L{κ}`'s statements hold on its honest valuation `cskVal`.** -/
+theorem csk_holdsPre {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
     (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hlow : ∀ i < 16, (rd (addressOfIndex i)).isSome)
-    (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) :
-    coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
-      [cskVal κ o se sg p p1 rd (csRet κ)] := by
-  obtain ⟨fn, hf, hfp, hb⟩ := csFound hκ
+    (hE : EqTabsAt rd se p p1) (hG : GTabsAt rd sg) {kret : List E → Prop} :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (fun x ↦ cskVal κ o se sg p p1 rd x.idx) (csPre κ) True
+      kret := by
   set F := cskVal κ o se sg p p1 rd with hF
   have f0 : F 0 = gen ^ o := by simp [hF, cskVal]
   have f1 : F 1 = se := by simp [hF, cskVal]
   have f2 : F 2 = sg := by simp [hF, cskVal]
-  refine (rel_pre hf hb (csPre_noRet κ) [gen ^ o, se, sg] _).mpr ⟨fun x ↦ F x.idx,
-    by rw [hfp]; simp only [List.map_cons, List.map_nil]; rw [f0, f1, f2], ?_, rfl⟩
-  by_cases h32 : κ = 32
-  · subst h32
-    have ho0 : o = 0 := by
-      obtain ⟨q, rfl⟩ := hd
-      have : q = 0 := by
-        by_contra hq
-        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
-        omega
-      simp [this]
-    subst ho0
-    simp only [csPre, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
-      true_and]
-    have e3 : F 3 = word 1 0 := by simp [hF, cskVal]
-    have e4 : F 4 = word 1 0 := by simp [hF, cskVal]
-    rw [e3, e4, f0, word_one, pow_zero]
-    exact ⟨rfl, e_add_self 1, rfl⟩
+  have h32 : κ ≠ 32 := by omega
   have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hu : ∀ k < csN κ, cskU κ o k < 16 := fun k _ => Nat.mod_lt _ (by norm_num)
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
-  rw [holdsList_append_noRet (noRetList_flatten_range _ _ (csNibT_noRet κ)),
-    holdsList_range_flatten _ _ (csNibT_noRet κ), and_true]
+  rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (csNibT_noRet κ)),
+    tb_holdsList_flatten_range _ _ (csNibT_noRet κ)]
   have hN1 : 1 ≤ csN κ := by unfold csN; omega
   refine ⟨fun k hk ↦ ?_, ?_⟩
   · -- nibble `k`
@@ -224,11 +208,11 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
     have hdk := cs_dvd hu (by rw [show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]; exact hd) k hk
     have hxe : LoadHolds rd (se * gen ^ cskU κ o k) (32 * (κ / 4 + k) + selEqOff (csW κ k - 1))
         (cskXE κ o p p1 k) := by
-      rw [loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
+      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + (32 * (κ / 4 + k) + selEqOff (csW κ k - 1)) =
         32 * (κ / 4 + k) + selEqOff (csW κ k - 1) + cskU κ o k by omega]
       exact hE _ hj _ (by omega) _ (hu k hk) hdk
     have hxg : LoadHolds rd (sg * gen ^ cskU κ o k) (16 * (κ / 4 + k)) (cskXG κ o k) := by
-      rw [loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
+      rw [tb_loadHolds_mul_gen_pow, show cskU κ o k + 16 * (κ / 4 + k) =
         16 * (κ / 4 + k) + cskU κ o k by omega]
       exact hG _ hj _ (hu k hk)
     have hrc : LoadHolds rd (gen ^ cskU κ o k) 0 (cskRd rd (cskU κ o k)) ∧
@@ -300,33 +284,23 @@ theorem csk_rel {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {
       prod_gen_pow_csDig, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]
     exact e_add_self _
 
-/-- **`column_selector` is complete** at its 33 specializations. -/
-theorem column_selector_complete_holds : column_selector_complete_Spec := by
-  intro κ hκ rd o se sg p p1 ho hd hp hp1 hlow hE hG
-  have hR := csk_rel hκ ho hd hlow hE hG
-  by_cases h32 : κ = 32
-  · subst h32
-    have ho0 : o = 0 := by
-      obtain ⟨q, rfl⟩ := hd
-      have : q = 0 := by
-        by_contra hq
-        have : 2 ^ 32 * 1 ≤ 2 ^ 32 * q := Nat.mul_le_mul_left _ (by omega)
-        omega
-      simp [this]
-    subst ho0
-    have : cskVal 32 0 se sg p p1 rd (csRet 32) = 1 := by simp [cskVal, csRet, word_one]
-    rw [this] at hR
-    simpa [bitsEq] using hR
+/-- **`column_selector__L{κ}`'s honest return** is the selector. -/
+theorem csk_ret {κ : ℕ} (hκ : κ < 31) {rd : Reader} {o : ℕ} {se sg : E} {p p1 : List E}
+    (ho : o < 2 ^ 32) (hd : 2 ^ κ ∣ o) (hp : p.length = 32) (hp1 : p1.length = 32) :
+    cskVal κ o se sg p p1 rd (csRet κ) =
+      bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ) := by
+  have h32 : κ ≠ 32 := by omega
   have hκ' : κ < 32 := by omega
   have hdig := cs_digits hκ' ho (Nat.dvd_trans (Nat.pow_dvd_pow 2 (by omega)) hd)
   have hret : cskVal κ o se sg p p1 rd (csRet κ) = cskS κ o p p1 (csN κ - 1) := by
     simp only [csRet, h32, ↓reduceIte]; exact cskVal_last hκ'
-  rw [hret, cskS, show csN κ - 1 + 1 = csN κ by unfold csN; omega] at hR
+  rw [hret, cskS, show csN κ - 1 + 1 = csN κ by unfold csN; omega]
   have hsel := cs_sel_prod hκ' (u := cskU κ o) (fun k _ => Nat.mod_lt _ (by norm_num)) hp hp1
   rw [show (fun m ↦ cskXE κ o p p1 m) = fun k ↦ selEqEntry p p1 (κ / 4 + k) (csW κ k - 1)
-    (cskU κ o k) from rfl] at hR
-  rw [hsel, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm] at hR
-  exact hR
+    (cskU κ o k) from rfl]
+  rw [hsel, show 16 ^ (κ / 4) * csDig (cskU κ o) (csN κ) = o from hdig.symm]
+
+/-! ## The relation -/
 
 end
 end LeanVM.Guest.B1.Tables

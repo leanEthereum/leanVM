@@ -13,6 +13,7 @@ public import LeanVM.Wire.Unprune
 import LeanVM.Wire.UnpruneList
 import all LeanVM.Wire.OneEncodingRow
 import Mathlib.Data.List.GetD
+import LeanVM.ToMathlib.List
 
 /-!
 # One encoding: the siblings of a phase
@@ -60,20 +61,6 @@ theorem flatMap_lookup_of_nodup {β γ : Type} (f : β → List γ) (d : β) :
     refine List.flatMap_congr fun n hn ↦ ?_
     have hne : n ≠ k := fun e ↦ hnd.1 (e ▸ hn)
     rw [beq_eq_false_iff_ne.2 hne]
-
-/-- A `flatMap` over a list's indices is one over the list. -/
-theorem flatMap_range_getD {α β : Type} (f : α → List β) (d : α) (l : List α) :
-    (List.range l.length).flatMap (fun i ↦ f (l.getD i d)) = l.flatMap f := by
-  induction l using List.reverseRecOn with
-  | nil => rfl
-  | append_singleton l a ih =>
-    rw [List.length_append, List.length_singleton, List.range_succ, List.flatMap_append,
-      List.flatMap_append]
-    congr 1
-    · rw [← ih]
-      refine List.flatMap_congr fun i hi ↦ ?_
-      rw [List.getD_append _ _ _ _ (List.mem_range.1 hi)]
-    · simp
 
 /-! ## The climb at the carried nodes -/
 
@@ -166,7 +153,7 @@ theorem phaseSiblingBytes_unprunePhase_of (h : Bytes → Digest) (ph : PrunedPha
   -- level by level
   unfold phaseSiblingBytes
   simp only []
-  rw [hpaths, hheight, hdistinct, ← hlen, ← flatMap_range_getD _ [] ph.carried]
+  rw [hpaths, hheight, hdistinct, ← hlen, ← List.flatMap_range_getD _ [] ph.carried]
   refine List.flatMap_congr fun level hlevel ↦ ?_
   have hl : level < ph.carried.length := List.mem_range.1 hlevel
   have hlh : level < ph.height := hlen ▸ hl
@@ -211,15 +198,6 @@ theorem PhaseRead.phaseSiblingBytes_unprunePhase {ph : PrunedPhase} (hr : PhaseR
     phaseSiblingBytes (unprunePhaseWithHash (m := Id) h ph) = encodePhaseSiblings ph :=
   phaseSiblingBytes_unprunePhase_of h ph hr.positions_eq hr.positions_ne_nil hr.leaves_length
     hr.carried_keys
-
-/-- **One encoding of a phase**: a phase `readPhase` accepted (`PhaseRead`), unpruned with any
-hash `h`, is written back by `Prover.phaseToBytes` as the bytes it was read from
-(`encodePhase`): its header and rows (`PhaseRead.phaseHeaderAndRows_unprunePhase`) and its carried
-siblings (`PhaseRead.phaseSiblingBytes_unprunePhase`). -/
-theorem PhaseRead.phaseToBytes_unprunePhase_eq {ph : PrunedPhase} (hr : PhaseRead ph)
-    (h : Bytes → Digest) :
-    Prover.phaseToBytes (unprunePhaseWithHash (m := Id) h ph) = encodePhase ph :=
-  hr.phaseToBytes_unprunePhase h (hr.phaseSiblingBytes_unprunePhase h)
 
 end
 

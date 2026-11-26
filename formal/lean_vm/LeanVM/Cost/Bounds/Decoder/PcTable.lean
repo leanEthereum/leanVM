@@ -178,7 +178,7 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   obtain ⟨hlev, hsz⟩ := smGood_levels_le hg hN
   obtain ⟨h1, h2⟩ := smGood_insert hg (pcCode j) (j :: m.getD (pcCode j) [])
   refine ⟨by rw [addEntry_eq]; exact ⟨h1, keysIn_insert hQ (pcCode_key j) _, by omega⟩, ?_⟩
-  rw [addEntryC.costEq P hP, addAtC.costEq P, insertPcC.costEq P]
+  rw [addEntryC.costEq P hP, addAtC.costEq P (by includes), insertPcC.costEq P (by includes)]
   have hp := powSqW_cost P (by includes) (W := 19) (by norm_num) (by norm_num) (entry_lt j)
   have hget := getPc_cost P (by includes) 12 m hQ hlev
     (fun l hl ↦ (hsz l hl).1.trans (hsz l hl).2) _ (pcCode_key j)
@@ -194,7 +194,6 @@ theorem addEntry_amortized (hP : Includes P addEntryC.costDeps) (m : SortedMap �
   generalize m.get? (laneCode (addressOfIndex (guestEntries.getD j 0))) = o
   cases o <;> dsimp only <;> unfold pcCode at hget hcarry ⊢ <;> omega
 
-set_option maxRecDepth 100000 in
 /-- **The pc table** (`pcTableTC`), built once: at most `22021176`. -/
 theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
     machineCost P pcTableTC.costIdx [] ≤ 22021176 := by
@@ -209,7 +208,7 @@ theorem pcTableT_cost (hP : Includes P pcTableTC.costDeps) :
     (fun acc r hacc j _ ↦ by
       obtain ⟨h1, h2⟩ := addEntry_amortized P (by includes) acc r hacc j
       refine ⟨h1, ?_⟩
-      rw [appCost_fn, List.nil_append, pcTableTC.lam0.costEq P, List.length_nil]
+      rw [appCost_fn, List.nil_append, pcTableTC.lam0.costEq P (by includes), List.length_nil]
       omega)
   have h0 : potential 12 (SortedMap.empty : SortedMap ℕ (List ℕ)).levels = 0 := rfl
   rw [h0, Nat.mul_zero, Nat.zero_add, List.length_range] at hF

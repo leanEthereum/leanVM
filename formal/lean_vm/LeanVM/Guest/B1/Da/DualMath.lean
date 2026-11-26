@@ -52,7 +52,7 @@ def rowWords : List (List ℕ) :=
     [45258276057990961, 18395008089186019805],
     [4327488829911782419]]
 
-/-- `Ŵ_j` at `e_j … e_13` (`LeanDa.subspaceEvaluations j`), as words, `j < 13`. -/
+/-- `Ŵ_j` at `e_j … e_13` (row `j` of the NTT's `twiddle`, scaled to start at one), as words, `j < 13`. -/
 def omegaWords : List (List ℕ) :=
   [[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192],
     [1, 6, 28, 120, 496, 2016, 8128, 32640, 130816, 523776, 2096128, 8386560, 33550336],

@@ -166,7 +166,5 @@ theorem cell_placedF {Lin : Layout} {b : ℕ} (syms : List E) (ws : List E) (hsl
     have he' := List.mem_range.mp he
     exact ⟨b + e, by rw [e0, limb0_gen_pow_mul], Or.inr (Or.inl (hreg e he'))⟩
 
-/-! ## The row loop -/
-
 end
 end LeanVM.Guest.B1.Da

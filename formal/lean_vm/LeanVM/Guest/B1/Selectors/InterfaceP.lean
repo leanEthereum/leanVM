@@ -14,7 +14,7 @@ import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 
 /-!
-# The selectors (TRIAGE G #44-50, #68, #69): the interface
+# The selectors: the interface
 
 A selector is the equality weight of a placement's coordinates above its window
 (`Placement.eqAbove`), together with `g^offset` rebuilt from the same bits, which pins the
@@ -96,10 +96,10 @@ def bitOf (o i : ℕ) : E := bitE (o.testBit i)
 
 /-- `index_mle__L{n}(zeta)`: the index MLE of the first `n` words at `zeta`. -/
 def IndexMleOut (n : ℕ) (rd : Reader) : List E → List E → Prop
-  | [zeta], [v] => ∃ zs : List E, zs.length = n ∧ ReadsAt rd zeta zs ∧ v = indexMle zs
+  | [zeta], [v] => ∃ zs : List E, zs.length = n ∧ TbReadsAt rd zeta zs ∧ v = indexMle zs
   | _, _ => False
 
-/-- **`index_mle`** (TRIAGE #44) computes `indexMle`: soundness. -/
+/-- **`index_mle`** computes `indexMle`: soundness. -/
 def index_mle_SpecP (P : Program) : Prop :=
   ∀ n < 34, ∀ rd args rets,
     P.Rel rd (lName "index_mle" n) args rets → IndexMleOut n rd args rets
@@ -117,11 +117,11 @@ their `g`-power table at `g_out`; the return word `0`. -/
 def SelPartialOut (w : ℕ) (rd : Reader) : List E → List E → Prop
   | [eqo, go, z, z1, gs], [r] =>
       r = 0 ∧ ∃ zs zs1 gl : List E, zs.length = w ∧ zs1.length = w ∧ gl.length = w ∧
-        ReadsAt rd z zs ∧ ReadsAt rd z1 zs1 ∧ ReadsAt rd gs gl ∧
-        ReadsAt rd eqo (eqLevels zs zs1) ∧ ReadsAt rd go (if w = 0 then [] else gTable gl)
+        TbReadsAt rd z zs ∧ TbReadsAt rd z1 zs1 ∧ TbReadsAt rd gs gl ∧
+        TbReadsAt rd eqo (eqLevels zs zs1) ∧ TbReadsAt rd go (if w = 0 then [] else gTable gl)
   | _, _ => False
 
-/-- **`sel_partial_nibble`** (TRIAGE #45-47) writes its nibble's tables: soundness. -/
+/-- **`sel_partial_nibble`** writes its nibble's tables: soundness. -/
 def sel_partial_nibble_SpecP (P : Program) : Prop :=
   ∀ n < 4, ∀ rd args rets,
     P.Rel rd (lName "sel_partial_nibble" n) args rets → SelPartialOut n rd args rets
@@ -148,8 +148,8 @@ def sel_partial_nibble_complete_SpecP (P : Program) : Prop :=
 `j`'s eq levels at `eq_tab·g^(32j)` and its `g`-power table at `g_tab·g^(16j)`
 (`SEL_TAB_EQ_STRIDE = 32`). -/
 def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :=
-  ∀ j < (n + 3) / 4, ReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
-    ReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
+  ∀ j < (n + 3) / 4, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
+    TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
 
 /-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)`: `len_g = g^n`,
 `n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`, `zeta1_hi`,
@@ -157,11 +157,11 @@ def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :
 def SharedSelOut (rd : Reader) : List E → List E → Prop
   | [eqt, gt, z, z1, gsq, lenG], [] =>
       ∃ n < 64, lenG = gen ^ n ∧ ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n →
-        gs.length = n → ReadsAt rd z zs → ReadsAt rd z1 zs1 → ReadsAt rd gsq gs →
+        gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
         RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 
-/-- **`shared_selector_tables`** (TRIAGE #48) is sound. -/
+/-- **`shared_selector_tables`** is sound. -/
 def shared_selector_tables_SpecP (P : Program) : Prop :=
   ∀ rd args rets, P.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
@@ -176,7 +176,7 @@ relation. -/
 def shared_selector_tables_complete_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
     zs.length = n → zs1.length = n → gs.length = n →
-    ReadsAt rd z zs → ReadsAt rd z1 zs1 → ReadsAt rd gsq gs →
+    TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
     RunTables rd eqt gt n zs zs1 gs → RunPads rd eqt gt n zs →
     P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
 
@@ -200,13 +200,12 @@ at `digits`; for any run whose tables are at `eq_tab`, `g_tab`, the function ret
 weight and `g`-power product. -/
 def BlockSelTabOut (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [sb, eqt, gt], [eq, rb] =>
-      ∃ bs : List Bool, bs.length = n ∧ ReadsAt rd sb (nibDigits bs) ∧
+      ∃ bs : List Bool, bs.length = n ∧ TbReadsAt rd sb (nibDigits bs) ∧
         ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n → gs.length = n →
           RunTables rd eqt gt n zs zs1 gs → eq = bitsEq bs zs zs1 ∧ rb = bitsPow bs gs
   | _, _ => False
 
-/-- **`block_selector_tab`** (its digits' range checks `assert_digit`;
-TRIAGE #49) is sound, on a memory of at most `2^32` words (the range checks). -/
+/-- **`block_selector_tab`** (its digits' range checks `assert_digit`) is sound, on a memory of at most `2^32` words (the range checks). -/
 def block_selector_tab_SpecP (P : Program) : Prop :=
   ∀ n < 34, ∀ μ ≤ 32, ∀ (Lm : MemoryImage μ) args rets,
     P.Rel Lm.read (lName "block_selector_tab" n) args rets →
@@ -219,7 +218,7 @@ product. -/
 def block_selector_tab_complete_SpecP (P : Program) : Prop :=
   ∀ n < 34, ∀ (rd : Reader) (sb eqt gt : E) (bs : List Bool) (zs zs1 gs : List E),
     bs.length = n → zs.length = n → zs1.length = n → gs.length = n →
-    ReadsAt rd sb (nibDigits bs) → (∀ i < 16, (rd (addressOfIndex i)).isSome) → RunTables rd eqt gt n zs zs1 gs →
+    TbReadsAt rd sb (nibDigits bs) → (∀ i < 16, (rd (addressOfIndex i)).isSome) → RunTables rd eqt gt n zs zs1 gs →
     P.Rel rd (lName "block_selector_tab" n) [sb, eqt, gt]
       [bitsEq bs zs zs1, bitsPow bs gs]
 
@@ -229,12 +228,12 @@ complements `zs1` at `zeta1_hi` and the weights `cs` at `idxc_hi`; the function 
 def BlockSelOut (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [sb, z1, ic], [eq, rb] =>
       ∃ (bs : List Bool) (zs1 cs : List E), bs.length = n ∧ zs1.length = n ∧ cs.length = n ∧
-        ReadsAt rd sb (bs.map bitE) ∧ ReadsAt rd z1 zs1 ∧ ReadsAt rd ic cs ∧
+        TbReadsAt rd sb (bs.map bitE) ∧ TbReadsAt rd z1 zs1 ∧ TbReadsAt rd ic cs ∧
         eq = ((List.zip bs zs1).map fun p ↦ bitE p.1 + p.2).prod ∧
         rb = ((List.zip bs cs).map fun p ↦ 1 + bitE p.1 * p.2).prod
   | _, _ => False
 
-/-- **`block_selector`** (TRIAGE #50) computes its selector: soundness. -/
+/-- **`block_selector`** computes its selector: soundness. -/
 def block_selector_SpecP (P : Program) : Prop :=
   ∀ n < 34, ∀ rd args rets,
     P.Rel rd (lName "block_selector" n) args rets → BlockSelOut n rd args rets
@@ -274,11 +273,11 @@ def GTabsAt (rd : Reader) (sg : E) : Prop :=
 `point1` (`32` coordinates), the returned buffer holds their eq tables. -/
 def SelTablesOut (rd : Reader) : List E → List E → Prop
   | [pt, pt1], [se] =>
-      ∀ p p1 : List E, p.length = 32 → p1.length = 32 → ReadsAt rd pt p → ReadsAt rd pt1 p1 →
+      ∀ p p1 : List E, p.length = 32 → p1.length = 32 → TbReadsAt rd pt p → TbReadsAt rd pt1 p1 →
         EqTabsAt rd se p p1
   | _, _ => False
 
-/-- **`selector_tables`** (TRIAGE #69) is sound. -/
+/-- **`selector_tables`** is sound. -/
 def selector_tables_SpecP (P : Program) : Prop :=
   ∀ rd args rets, P.Rel rd "selector_tables" args rets → SelTablesOut rd args rets
 
@@ -294,21 +293,11 @@ def ColSelOut (κ : ℕ) (rd : Reader) : List E → List E → Prop
             (p1.drop κ))
   | _, _ => False
 
-/-- **`column_selector`** (TRIAGE #68) is sound, `κ ≤ 32`, on a memory of at most
+/-- **`column_selector`** is sound, `κ ≤ 32`, on a memory of at most
 `2^32` words (its digits' range checks). -/
 def column_selector_SpecP (P : Program) : Prop :=
   ∀ κ < 31, ∀ μ ≤ 32, ∀ (Lm : MemoryImage μ) args rets,
     P.Rel Lm.read (lName "column_selector" κ) args rets → ColSelOut κ Lm.read args rets
-
-/-- The converse, for completeness: an offset `g^o`, `o < 2^32` a multiple of `2^κ`, the memory
-defined below `2^4` (the digits' range checks), and the opening point's tables at `sel_eq`,
-`sel_g` give the relation, returning the eq weight of `o`'s bits above `κ`. -/
-def column_selector_complete_SpecP (P : Program) : Prop :=
-  ∀ κ < 31, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 32 → 2 ^ κ ∣ o →
-    p.length = 32 → p1.length = 32 → (∀ i < 16, (rd (addressOfIndex i)).isSome) →
-    EqTabsAt rd se p p1 → GTabsAt rd sg →
-    P.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
-      [bitsEq ((List.range (32 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
 
 end
 end LeanVM.Guest.B1.Tables

@@ -5,6 +5,17 @@ public import XmssSecurity.Proof.PrecomputedKeygenCache
 
 @[expose] public section
 
+/-!
+# The detailed game's final cache replays its key and its verdict
+
+In every execution of `detailedGameWithCache` the final cache replays the public key
+(`capped_detailed_execution_key_consistent`) and the verdict
+(`capped_detailed_execution_verification_consistent`), and the top signatures key generation
+computed decode in it on their bottom roots (`capped_detailed_execution_topSigned_consistent`).
+Given the same for the returned signatures, the execution is `ConcreteOutcomeConsistent`
+(`capped_detailed_execution_consistent_of_signing`).
+-/
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity
@@ -83,7 +94,6 @@ theorem Concrete.CacheReplay.eval_honestKeygen (cache : QueryCache HashSpec)
             OracleComp HashSpec (Option (Randomness × Encoding)))) := by
   simp [Concrete.honestKeygen, evalWithAnswerFn_bind]
 
-set_option linter.constructorNameAsVariable false in
 /-- Key generation's honest computation, replayed in the final cache, gives the root and the top
 signatures. -/
 theorem capped_detailed_execution_keygen_eval

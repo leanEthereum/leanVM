@@ -102,9 +102,5 @@ theorem flat_map_flatten {α : Type} {xs : List α} {f : α → List Stmt} (h : 
     Flat (xs.map f).flatten :=
   flat_flatten fun b hb ↦ by obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hb; exact h x hx
 
-/-- The meaning of a flat loop body at the arguments `args`. -/
-def FlatBody (rd : Reader) (params : List V) (A : List Stmt) (args : List E) : Prop :=
-  ∃ σ : Val, params.map σ = args ∧ BlockOk rd σ A
-
 end
 end LeanVM.Guest.B1

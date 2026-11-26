@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 /-!
 # Between the selectors
 
-`vtB_const`: a constant's word. `vtc_fsNext`: a
+`vtc_fsNext`: a
 stream read `fsNextT` of a word the memory holds holds, its word the memory's and its cells
 `fsPackVals`.
 -/
@@ -28,21 +28,16 @@ open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protoco
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
 
-/-- A constant's word. -/
-theorem vtB_const (hl : args.length = 21) {d : V} {c : E} (hm : Stmt.atom (.const d c) ∈ vtPre) :
-    vtσ rd wo args d = c :=
-  vt_goodS (rd := rd) (w := wo) hl hm
-
 /-- A `KECCAK` holds by evaluation: its outputs are the permutation of its inputs. -/
 theorem vtB_keccakAt (hl : args.length = 21) (n : ℕ) {ins outs : List V} {i o : Bool}
-    (heq : stmtsEqb [.atom (.keccak ins outs i o)] ((vtAt n).take 1) = true) :
+    (heq : tbStmtsEqb [.atom (.keccak ins outs i o)] ((vtAt n).take 1) = true) :
     VSH (coreProgram.Rel rd) rd (vtσ rd wo args) (.atom (.keccak ins outs i o)) := by
   have hg := vt_goodAt (rd := rd) (w := wo) hl n _ heq
   exact holds_of_good (S := vtSL) (show Good rd vtSL wo _ (.keccak ins outs i o) from hg) trivial
 
 /-- **A stream read, complete.** -/
 theorem vtc_fsNext (hl : args.length = 21) {cur : V} {off b pos : ℕ}
-    (hcheck : stmtsEqb (fsNextT cur off b) ((vtPre.drop pos).take (fsNextT cur off b).length) =
+    (hcheck : tbStmtsEqb (fsNextT cur off b) ((vtPre.drop pos).take (fsNextT cur off b).length) =
       true) (hS : Atom.load (.n b) cur off ∉ vtSL) {x : E}
     (hx : LoadHolds rd (vtσ rd wo args cur) off x) :
     (∀ s ∈ fsNextT cur off b, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s) ∧

@@ -21,11 +21,10 @@ same shape: pull the state `(pc, fp)`, push the successor, read the bytecode ent
 (`memRead`, likewise). `rowSends c env` lists the `(channel name, message)` pairs a component's
 row circuit sends in the row environment `env`, in the circuit's order.
 
-`xor_sends` and its five siblings state, for a typed row `r` written as the raw row `rawRow r`,
-exactly the list the circuit sends, as arrays of the row's fields. The proof is one `simp` with
-the circuit lemmas over a row variable `x` with `eval env x = r` (`xor_sends_gen`), the general
-form the raw-row lemmas instantiate at Clean's `varFromOffset`; no column index is ever
-computed. The `JUMP` row's pushed successor depends on its local witness `b`, which is the slot
+`xor_sends_gen` and its siblings state, for a row variable `x` with `eval env x = r`, exactly
+the list the circuit sends, as arrays of `r`'s fields. The proof is one `simp` with the circuit
+lemmas; a raw row `rawRow r` instantiates them at Clean's `varFromOffset` (`eval_rowVar`); no
+column index is ever computed. The `JUMP` row's pushed successor depends on its local witness `b`, which is the slot
 after the row's twelve columns.
 
 ## Wrong readings excluded

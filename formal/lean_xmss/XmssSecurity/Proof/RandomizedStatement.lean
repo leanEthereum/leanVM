@@ -4,6 +4,16 @@ public import XmssSecurity.Statement
 
 @[expose] public section
 
+/-!
+# The model's SUF-CMA game
+
+`romImpl` answers hash queries by the lazy random oracle and forwards uniform sampling. A `Scheme`
+has key generation, a signer and a verifier; an `Adversary` gets the public key, the random oracle
+and the logged `signingOracle`. `forgeAdvantage` is the probability, from an empty cache, that the
+adversary's forgery verifies with a valid transcript that does not contain it, and `countedRomImpl`
+counts each hash call.
+-/
+
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity

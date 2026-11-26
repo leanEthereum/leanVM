@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Main.AggL25CChk
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«aggregate_claims_loop0»
+import LeanVM.ToMathlib.List
 
 /-!
 # A child's absorption, completely
@@ -128,20 +129,20 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
     by_cases ha : w < 2
     · rw [l25Src_lt2 ha, srcOk_some] at hs'
       have := memAt_of_load (load_sound hs' hat')
-      rw [ite_eq_left ha, ← this]
+      rw [ite_pos' ha, ← this]
       rcases (show w = 0 ∨ w = 1 by omega) with rfl | rfl
-      · rw [ite_eq_left rfl, p59]
-      · rw [ite_eq_right (show ¬ (1 = 0) by omega), p63]
+      · rw [ite_pos' rfl, p59]
+      · rw [ite_neg' (show ¬ (1 = 0) by omega), p63]
     by_cases hb : w < 26
     · rw [l25Src_fresh (by omega) hb, srcOk_some] at hs'
-      rw [ite_eq_right ha, ite_eq_left hb, ← p50]
+      rw [ite_neg' ha, ite_pos' hb, ← p50]
       exact (memAt_of_load (load_sound hs' hat')).symm
     by_cases hc : w < 50
     · rw [l25Src_carried (by omega) hc, srcOk_some] at hs'
-      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_left hc, ← p57]
+      rw [ite_neg' ha, ite_neg' hb, ite_pos' hc, ← p57]
       exact (memAt_of_load (load_sound hs' hat')).symm
     · rw [l25Src_pad (by omega), srcOk_none] at hs'
-      rw [ite_eq_right ha, ite_eq_right hb, ite_eq_right hc, const_sound hs' hat', word_zero]
+      rw [ite_neg' ha, ite_neg' hb, ite_neg' hc, const_sound hs' hat', word_zero]
   rw [hw, hnb] at hch
   have hst' := stOk_absorbAll (l25Words rd cpi cfresh ccarried x) hst
   have hl' := rowW_length hst'
@@ -168,7 +169,7 @@ theorem l25_block {x N absorb cfresh lfT ccarried lcT cpi : E} {st : Fs} (hst : 
       rw [e]; exact hnext' i (by omega)
     all_goals
       have hwj : 48 + j < l25S.words.length := by rw [hwl, hnb]; omega
-      have hpc := pack_cells (hpw _ (getD_mem (d := default) hwj)) hg'
+      have hpc := pack_cells (hpw _ (List.getD_mem (d := default) hwj)) hg'
       have hr := Keccak.rateCell_scalar ((l25S.blk σ (13 - 1)).map (·, dsObserve)) j
         (by simp [DupSpec.blk]; omega)
       have hbj : ((l25S.blk σ (13 - 1)).map (·, dsObserve))[j]'(by simp [DupSpec.blk]; omega) =

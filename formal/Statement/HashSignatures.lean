@@ -6,7 +6,7 @@ public import Statement.Fast.Keccak
 /-!
 # Hash-based signatures: what leanXMSS and leanSPHINCS share
 
-Read before the two schemes,: the sizes and types both schemes use, the shape of
+Read before the two schemes: the sizes and types both schemes use, the shape of
 their tweakable hash `Truncate_16(H(prefix ‖ address ‖ payload))` (`hasherInput`, `truncateHash`:
 `prefixed_hasher` and `truncate` of each scheme crate's `lib.rs`), each scheme laying out its own address;
 the hash `H`, Keccak-256 over a permutation `π` of the Keccak state in any monad (`keccakHash`), and
@@ -96,7 +96,9 @@ open LeanVM.Protocol.KeccakHash (digestBytes keccak256With)
 
 /-! ## Chains, Merkle paths and trees, and the hash, over a permutation `π` -/
 
-/-- Run the `n` computations in index order and collect their results. -/
+/-- Run the `n` computations in index order and collect their results. Index `i` reads the first
+result or the rest's at `i - 1` directly, as `Fin.cases` would, whose compiled form evaluates
+every index below `i`. -/
 def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
     (computation : Fin n → m α) : m (Fin n → α) :=
   match n with
@@ -104,7 +106,7 @@ def sequenceFin {m : Type → Type} [Monad m] {α : Type} {n : Nat}
   | n + 1 => do
       let head ← computation 0
       let tail ← sequenceFin fun index : Fin n => computation index.succ
-      return Fin.cases head tail
+      return fun i => if h : i.val = 0 then head else tail ⟨i.val - 1, by omega⟩
 
 /-- `steps` steps of a hash chain from position `start`: the step leaving position
 `t < stepFunctionCount` is `step t`, and a walk past position `stepFunctionCount` gives `0`. -/

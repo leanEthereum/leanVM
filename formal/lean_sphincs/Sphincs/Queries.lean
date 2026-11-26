@@ -2,6 +2,7 @@ module
 
 public import FORS.CrateShort
 public import Common.StaticSwap
+public import Mathlib.Data.Set.Finite.List
 
 @[expose] public section
 

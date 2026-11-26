@@ -44,7 +44,7 @@ def flatPre (c : BytecodeClaim) (bytecode : List K) (pi : Digest) :
   (readOod ls.1.stackLog).bind fun ood ↦
   (VerifierProgram.require (busDepth ls.1 < 64)).bind fun _ ↦
   (busChallenges (busDepth ls.1)).bind fun wb ↦
-  (gkrPhase (busDepth ls.1)).bind fun r ↦
+  (Tables.gkrPhase (busDepth ls.1)).bind fun r ↦
   (Tables.tablesSeg (claimedBytecodeValue c) ls.1 pi wb.1 wb.2 r.2.1 r.2.2).bind fun bc ↦
   (keccakPhaseClaims ls.1 bc.2).bind fun kc ↦
   (ringSwitch kc.2.1 kc.2.2).bind fun rs ↦

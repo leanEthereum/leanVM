@@ -1,0 +1,31 @@
+# Written by ../../generate.sh.
+[package]
+name = "experimental_primitives_armsha3"
+version = "0.1.0"
+edition = "2024"
+publish = false
+autobins = false
+autotests = false
+autobenches = false
+autoexamples = false
+
+[package.metadata.tier]
+target-features = "+aes,+sha3"
+
+[lib]
+path = "../../../experimental_prover/primitives/src/lib.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(leanvm_tier)"] }
+
+[dependencies]
+keccak256 = { package = "keccak256_armsha3", path = "../keccak256" }
+parallel = { package = "experimental_parallel", path = "../../../experimental_prover/parallel" }
+fiat_shamir_prover = { package = "fiat_shamir_prover_armsha3", path = "../fiat_shamir_prover" }
+
+[features]
+test-util = []

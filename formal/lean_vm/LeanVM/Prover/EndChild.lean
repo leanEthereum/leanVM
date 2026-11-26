@@ -1,7 +1,7 @@
 /-
   LeanVM.Prover.EndChild
 
-  The statement's honest prover `LeanVM.leanVmHonestProver` makes children the guest accepts
+  The statement's honest prover `LeanVM.Prover.prove` makes children the guest accepts
   (`GuestChildComplete`), a step of the honest-children remark.
 -/
 
@@ -60,7 +60,7 @@ namespace LeanVM
 open LeanVM.Prover
 
 /-- **The honest prover's proofs of guest executions are children the guest accepts**:
-`GuestChildComplete` for `LeanVM.leanVmHonestProver`. -/
+`GuestChildComplete` for `LeanVM.Prover.prove`. -/
 theorem Guest.Budget.guest_child_complete : Guest.Completeness.GuestChildComplete := by
   intro child hHonest hShape hVerifies
   obtain ⟨hHolds, execution, ρ, hSome⟩ := hHonest

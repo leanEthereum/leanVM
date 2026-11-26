@@ -16,7 +16,6 @@ import LeanVM.Guest.Data.ValNames.«claim_list_chain_loop1»
 import LeanVM.Guest.Data.ValNames.«claim_list_last__L»
 import LeanVM.Guest.Data.ValNames.«claim_list_tail»
 import LeanVM.Guest.Data.ValNames.«list_split»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `claim_list_digest`'s pops
@@ -64,7 +63,7 @@ theorem range'_zero_append (m k : ℕ) : List.range' 0 m ++ List.range' m k = Li
 /-- A heap destination through `g^a` reads the words from `g^(a + off)`. -/
 theorem words_heap (σ : Val) {p : V} {a : ℕ} (hp : σ p = gen ^ a) (off len : ℕ) :
     Dest.words rd σ (.heap p off len) = (List.range len).map fun c => (rd (addressOfIndex (a + (off + c)))).getD 0 := by
-  simp only [Dest.words, hp, gen_pow_eq_ofK, limb0_ofK_addressOfIndex_mul]
+  simp only [Dest.words, hp, gen_pow_eq_ofK, Main.addr_ofK]
 
 /-! ## `list_split` -/
 
@@ -141,7 +140,7 @@ theorem grp_pops {f : String} {j m c0 st0 ep : ℕ} (hidx : coreProgram.indexOf?
     rw [hpar] at hps
     simp only [List.tail_cons, List.map_cons, List.map_nil, List.cons.injEq, and_true] at hps
     rcases h with ⟨h0', -⟩ | ⟨-, t', hn', hv', hp⟩
-    · have := gen_pow_inj (a := i + 1) (b := M) (by omega) (by omega)
+    · have := gen_pow_inj' (a := i + 1) (b := M) (by omega) hM
         (by rw [pow_succ]; exact e_add_eq_zero_iff.mp h0')
       omega
     · rw [← pow_succ] at hv'
@@ -237,7 +236,7 @@ theorem tail_pops {r : ℕ} (hr : r < 17) {t : Tree} {sp : E} {e : ℕ} {rets : 
     rw [claim_list_tail_shape] at hw
     rw [show [Stmt.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")] [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")], .atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))),
         .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1"))), .ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]] = [] ++ Stmt.dispatch (.n (val% «claim_list_tail» "rest")) clNames [.n (val% «claim_list_tail» "state"), .n (val% «claim_list_tail» "blk")]
-          [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")] :: ([.atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))), .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1")))] ⧺ [.ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]])
+          [.n (val% «claim_list_tail» "d0"), .n (val% «claim_list_tail» "d1")] :: ([.atom (.copy (.n (val% «claim_list_tail» "s1#0")) (.n (val% «claim_list_tail» "d0"))), .atom (.copy (.n (val% «claim_list_tail» "s1#0[1]")) (.n (val% «claim_list_tail» "d1")))] ++ [.ret [.n (val% «claim_list_tail» "s1#0"), .n (val% «claim_list_tail» "s1#0[1]")]])
         from rfl, hw2] at hw
     obtain ⟨rfl, -⟩ := Out.ret.inj hw
     obtain ⟨k, rfl⟩ : ∃ k, ks = [k] := by

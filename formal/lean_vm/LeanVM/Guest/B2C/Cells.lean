@@ -151,25 +151,15 @@ end Lookup
 
 section Cells
 
-private theorem length_le_utf8ByteSize (s : String) : s.length ≤ s.utf8ByteSize := by
-  induction s using String.push_induction with
-  | empty => simp
-  | push s c ih => simp only [String.utf8ByteSize_push, String.length_push]; have := c.utf8Size_pos; omega
-
-/- The kernel counts a literal's bytes several times faster than its characters, which it decodes. -/
-set_option maxRecDepth 100000 in
-private theorem coreProgram_names_small :
-    coreProgram.all (fun g ↦ Nat.blt g.name.utf8ByteSize 256) = true := by
+/-- Every function's name is shorter than a tail key, in bytes (the kernel reads a string's bytes
+fast, its characters slowly). -/
+theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.utf8ByteSize 256) = true := by
   decide +kernel
 
-/-- Every function's name is shorter than a tail key. -/
-theorem coreProgram_names_short : coreProgram.all (fun g ↦ Nat.blt g.name.length 256) = true :=
-  List.all_eq_true.mpr fun g hg ↦ Nat.blt_eq.mpr <| Nat.lt_of_le_of_lt (length_le_utf8ByteSize _)
-    (Nat.blt_eq.mp (List.all_eq_true.mp coreProgram_names_small g hg))
-
-theorem tailKey_length (f : String) : (Memory.tailKey f).length = 256 + f.length := by
+theorem tailKey_size (f : String) : (Memory.tailKey f).utf8ByteSize = 256 + f.utf8ByteSize := by
   unfold Memory.tailKey
-  rw [String.length_append, String.length_ofList, List.length_replicate]
+  rw [String.utf8ByteSize_append,
+    show (String.ofList (List.replicate 256 '#')).utf8ByteSize = 256 by decide +kernel]
 
 /-- No function is named a tail key. -/
 theorem indexOf_tailKey (f : String) : coreProgram.indexOf? (Memory.tailKey f) = none := by
@@ -180,7 +170,7 @@ theorem indexOf_tailKey (f : String) : coreProgram.indexOf? (Memory.tailKey f) =
   rw [Nat.blt_eq] at hs
   apply beq_false_of_ne
   intro h
-  rw [h, tailKey_length] at hs
+  rw [h, tailKey_size] at hs
   omega
 
 theorem tailKey_inj {a b : String} : Memory.tailKey a = Memory.tailKey b ↔ a = b := by

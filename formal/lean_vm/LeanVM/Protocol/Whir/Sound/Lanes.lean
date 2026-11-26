@@ -9,11 +9,12 @@
 module
 
 import LeanVM.Protocol.Whir.Sound.Weights
-public import LeanVM.Protocol.Verifier.EqKernel
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
 public import ArkLib.Data.CodingTheory.HiddenDerivative.Parameters.Johnson.FiniteBounds
 public import ArkLib.Data.CodingTheory.ReedSolomon
 public import Mathlib.Tactic
+import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.List
 
 /-!
 # Lanes and folds
@@ -25,10 +26,10 @@ reduces an opened row of `2^ℓ` lanes with the equality kernel of the level's f
 Both are the integer-indexed fold `foldsN`, the first
 challenge binding the low bit:
 
-* `foldsN_eq_sum`: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`, `eq(s, j) = eqAt s j`
-  the equality weight of the bits of `j` (characteristic two: `1 + r = 1 − r`), the entries of
-  `eq_kernel(s)` (`eqKernel_getD`), so `dot_eqKernel_eq_foldsN`:
-  `dot(row, eq_kernel(s)) = foldsN s row 0`;
+* `foldsN_eq_sum`: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`, with `eqB s j` the
+  equality weight of the bits of `j`;
+* `getD_eqKernel`: the entries of `eq_kernel(s)` are `eqB s j` (characteristic two:
+  `1 + r = 1 − r`), so `dot_eqKernel`: `dot(row, eq_kernel(s)) = foldsN s row 0`;
 * `multilinearEval_eq_foldsN`: `multilinear_eval(t, s) = foldsN s t 0` for a table of `2^|s|`
   entries.
 
@@ -52,27 +53,124 @@ def foldN {ι : Type*} (s : E) (O : ℕ → ι → E) : ℕ → ι → E :=
 def foldsN {ι : Type*} (s : List E) (O : ℕ → ι → E) : ℕ → ι → E :=
   s.foldl (fun O c ↦ foldN c O) O
 
+/-! ## Equality weights of integer indices -/
+
+/-- `eq(s, j) = Π_i (j_i ? s_i : 1 − s_i)`, bit `0` of `j` paired with `s₀`. -/
+def eqB : List E → ℕ → E
+  | [], _ => 1
+  | c :: s, j => (if j % 2 = 1 then c else 1 - c) * eqB s (j / 2)
+
 /-- **The fold is an eq-weighted sum**: `foldsN s O i = Σ_{j < 2^|s|} eq(s, j)·O(i·2^|s| + j)`. -/
 theorem foldsN_eq_sum {ι : Type*} (s : List E) (O : ℕ → ι → E) (i : ℕ) (x : ι) :
-    foldsN s O i x = ∑ j ∈ range (2 ^ s.length), eqAt s j * O (i * 2 ^ s.length + j) x := by
+    foldsN s O i x = ∑ j ∈ range (2 ^ s.length), eqB s j * O (i * 2 ^ s.length + j) x := by
   induction s generalizing O i with
-  | nil => simp [foldsN]
+  | nil => simp [foldsN, eqB]
   | cons c s ih =>
     simp only [foldsN, List.foldl_cons] at ih ⊢
-    rw [ih, List.length_cons, pow_succ, mul_comm (2 ^ s.length) 2, sum_range_two_mul]
+    rw [ih, List.length_cons, pow_succ, mul_comm (2 ^ s.length) 2, Finset.sum_range_two_mul]
     refine Finset.sum_congr rfl fun j _ ↦ ?_
-    simp only [foldN, CharTwo.sub_eq_add]
-    rw [eqAt_two_mul, eqAt_two_mul_add_one,
-      show i * (2 * 2 ^ s.length) + 2 * j = 2 * (i * 2 ^ s.length + j) by ring,
+    simp only [foldN, eqB, Nat.mul_add_mod, Nat.mul_mod_right,
+      Nat.mul_add_div (by norm_num : 0 < 2),
+      Nat.mul_div_cancel_left _ (by norm_num : 0 < 2)]
+    norm_num
+    rw [show i * (2 * 2 ^ s.length) + 2 * j = 2 * (i * 2 ^ s.length + j) by ring,
       show i * (2 * 2 ^ s.length) + (2 * j + 1) = 2 * (i * 2 ^ s.length + j) + 1 by ring]
     ring
 
+/-- `eqB s j` reads only the low `|s|` bits of `j`. -/
+theorem eqB_congr (s : List E) {j j' : ℕ} (h : ∀ i < s.length, j.testBit i = j'.testBit i) :
+    eqB s j = eqB s j' := by
+  induction s generalizing j j' with
+  | nil => rfl
+  | cons c s ih =>
+    simp only [eqB]
+    have h0 := h 0 (by simp)
+    simp only [Nat.testBit_zero, decide_eq_decide] at h0
+    rw [ih (j := j / 2) (j' := j' / 2) fun i hi ↦ by
+      rw [Nat.testBit_div_two, Nat.testBit_div_two]; exact h (i + 1) (by simp; omega)]
+    have : (j % 2 = 1) = (j' % 2 = 1) := propext h0
+    simp only [this]
+
+/-- Appending a challenge multiplies by the factor of the next bit. -/
+theorem eqB_append (s : List E) (r : E) (j : ℕ) :
+    eqB (s ++ [r]) j = eqB s j * (if j.testBit s.length then r else 1 - r) := by
+  induction s generalizing j with
+  | nil => simp [eqB, Nat.testBit_zero]
+  | cons c s ih =>
+    simp only [List.cons_append, eqB, ih, List.length_cons, ← Nat.testBit_div_two]
+    ring
+
+/-- `eq_kernel(s)` has `2^|s|` entries. -/
+theorem length_eqKernel (s : List E) : (eqKernel s).length = 2 ^ s.length := by
+  induction s using List.reverseRecOn with
+  | nil => simp [eqKernel]
+  | append_singleton s r ih =>
+    rw [eqKernel, List.foldl_append] at *
+    simp [ih, pow_succ, mul_two]
+
+theorem getD_map_mul (K : List E) (c : E) (j : ℕ) :
+    (K.map (· * c)).getD j 0 = K.getD j 0 * c := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
+  cases K[j]? <;> simp
+
+theorem getD_append' (A B : List E) (j : ℕ) :
+    (A ++ B).getD j 0 = if j < A.length then A.getD j 0 else B.getD (j - A.length) 0 := by
+  simp only [List.getD_eq_getElem?_getD]
+  split_ifs with h
+  · rw [List.getElem?_append_left h]
+  · rw [List.getElem?_append_right (by omega)]
+
+/-- **The entries of `eq_kernel(s)`** are the equality weights `eqB s j`. -/
+theorem getD_eqKernel (s : List E) {j : ℕ} (hj : j < 2 ^ s.length) :
+    (eqKernel s).getD j 0 = eqB s j := by
+  induction s using List.reverseRecOn generalizing j with
+  | nil => simp [eqKernel, eqB] at hj ⊢; subst hj; rfl
+  | append_singleton s r ih =>
+    have hlen := length_eqKernel s
+    have hk : eqKernel (s ++ [r]) = (eqKernel s).map (· * (1 + r)) ++ (eqKernel s).map (· * r) := by
+      simp [eqKernel, List.foldl_append]
+    rw [hk, eqB_append]
+    rw [List.length_append, List.length_singleton, pow_succ, mul_two] at hj
+    rw [getD_append']
+    simp only [List.length_map, hlen]
+    by_cases hlt : j < 2 ^ s.length
+    · simp only [hlt, ↓reduceIte, getD_map_mul, ih hlt, Nat.testBit_lt_two_pow hlt,
+        CharTwo.sub_eq_add]
+      simp
+    · push Not at hlt
+      simp only [show ¬ j < 2 ^ s.length by omega, ↓reduceIte, getD_map_mul]
+      rw [ih (by omega)]
+      have hdiv : j / 2 ^ s.length = 1 :=
+        Nat.div_eq_of_lt_le (k := 1) (by omega) (by omega)
+      have hbit : j.testBit s.length = true := by
+        rw [Nat.testBit_eq_decide_div_mod_eq, decide_eq_true_iff, hdiv]
+      simp only [hbit, ↓reduceIte]
+      congr 1
+      refine eqB_congr s fun i hi ↦ ?_
+      rw [show j - 2 ^ s.length = j % 2 ^ s.length by
+        rw [Nat.mod_eq_sub_mod hlt, Nat.mod_eq_of_lt (by omega)], Nat.testBit_mod_two_pow]
+      simp [hi]
+
+/-- `dot` of two lists of equal length is the indexed sum. -/
+theorem dot_eq_sum (a b : List E) (h : a.length = b.length) :
+    dot a b = ∑ j ∈ range a.length, a.getD j 0 * b.getD j 0 := by
+  rw [dot, List.foldl_add_eq_add_sum, zero_add]
+  induction a generalizing b with
+  | nil => simp
+  | cons x a ih =>
+    cases b with
+    | nil => simp at h
+    | cons y b =>
+      simp only [List.zipWith_cons_cons, List.sum_cons, List.length_cons,
+        Finset.sum_range_succ', List.getD_cons_succ, List.getD_cons_zero]
+      rw [ih b (by simpa using h), add_comm]
+
 /-- **The lane fold of an opened row**: `dot(row, eq_kernel(s))` is the row folded by `s`. -/
-theorem dot_eqKernel_eq_foldsN (row s : List E) (h : row.length = 2 ^ s.length) :
+theorem dot_eqKernel (row s : List E) (h : row.length = 2 ^ s.length) :
     dot row (eqKernel s) = foldsN s (fun j (_ : Unit) ↦ row.getD j 0) 0 () := by
-  rw [dot_eq_sum_left, foldsN_eq_sum, h]
+  rw [dot_eq_sum _ _ (by rw [h, length_eqKernel]), foldsN_eq_sum, h]
   refine Finset.sum_congr rfl fun j hj ↦ ?_
-  rw [eqKernel_getD, ite_eq_left (Finset.mem_range.mp hj), zero_mul, zero_add, mul_comm]
+  rw [getD_eqKernel s (Finset.mem_range.mp hj), zero_mul, zero_add, mul_comm]
 
 /-! ## `multilinear_eval` -/
 

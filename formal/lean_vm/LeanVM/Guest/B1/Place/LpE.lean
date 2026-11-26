@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Place.LpAtE
 /-!
 # `level_positions`, placed and exact
 
-`LpAtOE.toO`: `LpAtOE` (`LpAtE`) is `LpAtO`. `level_positions_completeAtE` (no bound) and
+`level_positions_completeAtE` (no bound) and
 `level_positions_completeAtBE` (every words bound of its trees, frames below `2^32`): every entry of `lpTable` is
 `LpAtOE`, by `lp_placedE`.
 -/
@@ -26,10 +26,6 @@ open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier hiding Layout
 
 @[expose] public section
-
-theorem LpAtOE.toO {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {name loop : String} {S d cd : ℕ}
-    {Bd : Option ℕ} (h : LpAtOE fs cert κ name loop S d cd Bd) : Arm.LpAtO fs cert κ name loop S d cd Bd :=
-  fun w0 cap ep ew tabs Lin hcl hreg hregt hmem => (h w0 cap ep ew tabs Lin hcl hreg hregt hmem).toPO
 
 /-- **`level_positions` is complete placed and exact at every specialization.** -/
 theorem level_positions_completeAtE (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)

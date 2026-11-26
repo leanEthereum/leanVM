@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B2C.ChainCheck
 
-  The chained `match`es' static check of a function, from its data (`B2C/Chain.lean` proves it
-  sound).
+  The data-free parts of the chained `match`es' static check (`B2C/ChainDefs.lean` assembles it,
+  `B2C/Chain.lean` proves it sound).
 -/
 
 module
@@ -62,34 +62,6 @@ def chainStmt (chs : List Chain) (loc : CLoc) (F s : ℕ) (st : Stmt) : Bool :=
 def chainStmts (chs : List Chain) (loc : CLoc) (F : ℕ) : ℕ → List Stmt → Bool
   | _, [] => true
   | s, st :: ss => chainStmt chs loc F s st && chainStmts chs loc F (s + 1) ss
-
-/-- The fixed, temporaries', runs', call sites' and `match` targets' cells of a function. -/
-noncomputable def fixedBitsD (P : Plumb) : ℕ :=
-  bitsOf (P.stat.map Prod.fst ++ P.tmps.map Prod.snd ++ P.runs.map Prod.snd ++ siteCells P ++ P.arms.map (·.2.1))
-
-/-- **The chains' static check of a function**, of completeness data `P` and core IR `cf`, against
-the jump table `jt`. -/
-noncomputable def chainFnD (jt : Trie ℕ) (P : Plumb) (cf : Core.Fn) : Bool :=
-  chainsPw P.chains &&
-  P.chains.all fun ch ↦
-    ch.2.2.1.all (fun t ↦ !(fixedBitsD P).testBit t) && Nat.ble ch.2.2.1.length 65536 &&
-    match cf.body[ch.1]?, cf.body[ch.1 + 1]? with
-    | some (.match_ x arms), some (.match_ y arms') =>
-      decide (x = V.n ch.2.1) && decide (y = V.n ch.2.2.2.1) && Nat.beq arms.length ch.2.2.1.length &&
-        (List.range arms'.length).all fun e ↦ (jt.get (ch.2.2.2.2 + e)).isSome
-    | _, _ => false
-
-/-- **The chains' check of window `i` of a function.** -/
-noncomputable def chainWinD (P : Plumb) (cf : Core.Fn) (C : Cert) (i : ℕ) : Bool :=
-  P.chains.isEmpty ||
-  ((listElementOrDefault C.cells i []).all (fun c ↦ Nat.blt c 65536) &&
-    natSeq (bitsOf (P.chains.flatMap (·.2.2.1))) fun F ↦ (clocW C i).seq fun loc ↦
-      (bif Nat.beq i 0 then avoidL loc F cf.params else true) &&
-      chainStmts P.chains loc F (C.cutAt i).start (C.stmtsAt cf i))
-
-/-- **The chains' checks of a function.** -/
-def ChainOkD (jt : Trie ℕ) (P : Plumb) (cf : Core.Fn) (C : Cert) : Prop :=
-  chainFnD jt P cf = true ∧ ∀ i ≤ C.cuts.length, chainWinD P cf C i = true
 
 end
 end LeanVM.Guest.B2C

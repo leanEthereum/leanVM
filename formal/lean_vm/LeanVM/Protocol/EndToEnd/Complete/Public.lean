@@ -12,11 +12,11 @@ public import LeanVM.Protocol.EndToEnd.Complete.Claims
 public import LeanVM.Protocol.Whir.Complete.Script
 public import LeanVM.Protocol.PublicInput
 import LeanVM.Protocol.KeccakHash
-import Statement.LeanVmCompleteness
+import Statement.LeanVm
 import LeanVM.Facts.Verifier
 import Statement.Fast.Keccak
-import Statement.Fast.QuadExt
-import Statement.Fast.FieldWords
+import FastFields.QuadExt
+import FastFields.FieldWords
 import LeanVM.Semantics.Lemmas
 
 /-!

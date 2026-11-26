@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Memory.Straight
 import Mathlib.Data.List.GetD
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Walking `match`es of quiet arms
@@ -21,8 +20,7 @@ keccaks, constants and copies (`walk_window`): no load, no `HeapBuf`, no `frameA
 
 * `walk_flatM`: a flat body whose `match` selectors are `g^j` of an arm `j` walks every
   statement, a `match` contributing the taken arm's atoms (`fmEvs`);
-* `flatM_parts`, `loadAddrs_flatM`, `runs_flatM`: its buffers, frame addresses, calls, loads and
-  runs are its top-level statements' (`straight_parts`' right-hand sides);
+* `flatM_parts`, `loadAddrs_flatM`: its buffers, frame addresses, calls and loads are its top-level statements' (`straight_parts`' right-hand sides);
 * `armEvs_holds`, `fmEvs_match`: a `match`'s events hold when its taken arm's atoms do.
 -/
 
@@ -116,7 +114,7 @@ theorem walk1_flatM (σ : Val) : ∀ s : Stmt, s.flatM = true → MatchOk σ s �
 
 /-- **A flat body with `match`es walks every statement.** -/
 theorem walk_flatM (σ : Val) (vs : List V) : ∀ pre : List Stmt, pre.all Stmt.flatM = true →
-    (∀ s ∈ pre, MatchOk σ s) → walk σ (pre ⧺ [.ret vs]) = .ret (pre.flatMap (fmEvs σ)) vs
+    (∀ s ∈ pre, MatchOk σ s) → walk σ (pre ++ [.ret vs]) = .ret (pre.flatMap (fmEvs σ)) vs
   | [], _, _ => by simp [walk, walk1, Out.seq]
   | s :: pre, h, hd => by
     simp only [List.all_cons, Bool.and_eq_true] at h
@@ -209,11 +207,6 @@ theorem quietF_loadAddr (σ : Val) : QuietF (Ev.loadAddr? σ) := fun a h ↦ by
   | load => simp [Atom.quiet] at h
   | _ => rfl
 
-theorem quietF_run : QuietF Ev.run? := fun a h ↦ by
-  cases a with
-  | frameAddr => simp [Atom.quiet] at h
-  | _ => rfl
-
 /-- **A flat body's buffers, frame addresses and calls** (as `straight_parts`). -/
 theorem flatM_parts (σ : Val) (pre : List Stmt) (h : pre.all Stmt.flatM = true) :
     allocDsts (pre.flatMap (fmEvs σ)) = (pre.filterMap Stmt.allocSz).map Prod.fst ∧
@@ -238,12 +231,6 @@ theorem loadAddrs_flatM (σ : Val) (pre : List Stmt) (h : pre.all Stmt.flatM = t
   rw [loadAddrs, filterMap_fmEvs (quietF_loadAddr σ) σ pre h, ← loadAddrs,
     loadAddrs_straight σ _ (straight_filter pre),
     filterMap_filter_straight (G := stmtLoad?) (fun _ _ ↦ rfl) pre h]
-
-/-- **A flat body's runs** are its top-level `frameAddr`s'. -/
-theorem runs_flatM (σ : Val) (pre : List Stmt) (h : pre.all Stmt.flatM = true) :
-    runs (pre.flatMap (fmEvs σ)) = pre.filterMap stmtRun? := by
-  rw [runs, filterMap_fmEvs quietF_run σ pre h, ← runs, runs_straight σ _ (straight_filter pre),
-    filterMap_filter_straight (G := stmtRun?) (fun _ _ ↦ rfl) pre h]
 
 /-- **A taken arm's events hold** when its atoms do. -/
 theorem armEvs_holds {rd : Reader} {σ : Val} {arm : List Stmt}

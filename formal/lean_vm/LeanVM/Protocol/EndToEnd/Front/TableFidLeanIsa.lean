@@ -102,7 +102,7 @@ theorem target_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith prog s f
   rw [powerBatch, claimed, Fin.sum_univ_add]
   simp only [Fin.append_left, zero_mul, Finset.sum_const_zero, zero_add, Fin.append_right,
     Fin.val_natAdd]
-  rw [sumcheckB_leanIsa prog s, Verifier.dot_eq_sum _ _ (by rw [fpsOf_eq]; rfl), fpsOf_eq,
+  rw [sumcheckB_leanIsa prog s, Whir.Complete.dot_eq_sum _ _ (by rw [fpsOf_eq]; rfl), fpsOf_eq,
     ← Fin.sum_univ_eq_sum_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   rw [busStmt, busOut_totals prog s input w hp ha hm hsh i, mul_comm]
@@ -142,7 +142,7 @@ def refForms (ξ : E) (fs : List Form) (ev : List E) : E :=
 theorem dot_fpsOf (ξ : E) (fs : List Form) (hfs : fs.length = 3) (col : ℕ → E) :
     dot (fpsOf ξ) (fs.map (·.evaluate col)) =
       ∑ k ∈ range 3, ξ ^ (2 + k) * (fs.getD k {}).evaluate col := by
-  rw [Verifier.dot_eq_sum _ _ (by rw [fpsOf_eq, List.length_map, hfs]; rfl), fpsOf_eq]
+  rw [Whir.Complete.dot_eq_sum _ _ (by rw [fpsOf_eq, List.length_map, hfs]; rfl), fpsOf_eq]
   simp only [List.length_cons, List.length_nil]
   refine Finset.sum_congr rfl fun k hk ↦ ?_
   have hk' := Finset.mem_range.mp hk
@@ -463,7 +463,7 @@ theorem result_claims (w : BusWit) (hm : w.memory.length = 2) :
   obtain ⟨a, b, habc⟩ : ∃ a b, w.memory = [a, b] := by
     match h : w.memory, hm with
     | [a, b], _ => exact ⟨a, b, rfl⟩
-  rw [result_eq_busOf, habc]
+  rw [result_eq_busOut, habc]
   rfl
 
 /-- The low coordinates of a list read as a vector. -/

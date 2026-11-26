@@ -12,7 +12,6 @@ module
 public import LeanVM.Guest.B1.Sig.SphincsDigestComplete
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The digest's fields and check, complete
@@ -78,7 +77,7 @@ theorem eq_eOfNat128_cellNat (x : E) : x = eOfNat128 (cellNat x) := by
   conv_lhs => rw [eq_ofLimbs x]
   rw [eOfNat128, cellNat]
   rw [show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) / 2 ^ 64 = kToNat (x.limb 1) by omega,
-    ← ofBits_mod, show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) % 2 ^ 64 = kToNat (x.limb 0) by omega,
+    ← K.ofBits_mod, show (kToNat (x.limb 0) + 2 ^ 64 * kToNat (x.limb 1)) % 2 ^ 64 = kToNat (x.limb 0) by omega,
     ofBits_kToNat, ofBits_kToNat]
 
 theorem sFieldsSplit : sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck =
@@ -86,7 +85,7 @@ theorem sFieldsSplit : sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ s
       [cst 1295 corr0W]) ++ ([addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0"))] ++
       (([cst 1296 corr1W, addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0"))] ++ sCheckB) ++
         ([addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9"))] ++
-        ([hintW "sp_unused" (runV 1306 6)] ++ (sUnused.1 ++ (sCheckC ⧺
+        ([hintW "sp_unused" (runV 1306 6)] ++ (sUnused.1 ++ (sCheckC ++
           [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)]))))))) := by
   rw [sCheck_split]; simp only [sCheckCorr, List.append_assoc]; rfl
 

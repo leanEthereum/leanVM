@@ -5,7 +5,7 @@ import LeanVM.Guest.Batch.Def
 /-!
 # Tests: the Keccak library
 
-* The natural-number evaluator (`KeccakEval`) against the Spec's compiled `keccakF` and
+* The natural-number evaluator (`KeccakEval`) against the Spec's compiled `keccakF1600` and
   `keccak256`, and Keccak-256 of the empty string against its published value.
 * **The theorems' hypotheses are the compiler's chain.** `chain` runs the `KECCAK`s exactly as
   `keccak_chain` and `keccak_final` describe them (block `k` reading the previous output plus the

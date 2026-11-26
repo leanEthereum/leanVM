@@ -184,16 +184,16 @@ theorem qwWindow_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : V
   unfold qwWindow at h ⊢
   simp only at h ⊢
   by_cases h1 : off + w ≤ cut
-  · rw [ite_eq_left h1] at h ⊢
+  · rw [ite_pos' h1] at h ⊢
     simp only [qwAH_append] at h
     obtain ⟨⟨hr, hs⟩, ha⟩ := h
     obtain ⟨n, hn, hc, hv⟩ := qwRead_sound hκ L hT hw hr
     refine ⟨n, hn, hc, ?_, ?_⟩
-    · rw [qwAcc_val ha, qwScale_val hs, hv, qwLoT, ite_eq_left h1]
-    · rw [qwHiT, ite_eq_left h1, add_zero]
-  · rw [ite_eq_right h1] at h ⊢
+    · rw [qwAcc_val ha, qwScale_val hs, hv, qwLoT, ite_pos' h1]
+    · rw [qwHiT, ite_pos' h1, add_zero]
+  · rw [ite_neg' h1] at h ⊢
     by_cases h2 : off < cut
-    · rw [ite_eq_left h2] at h ⊢
+    · rw [ite_pos' h2] at h ⊢
       simp only [qwAH_append] at h
       obtain ⟨⟨⟨hr, hs⟩, ha⟩, hb⟩ := h
       obtain ⟨n1, hn1, n2, hn2, hc, hv1, hv2⟩ :=
@@ -210,15 +210,15 @@ theorem qwWindow_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : V
       have hd : (n1 + 2 ^ (cut - off) * n2) / 2 ^ (cut - off) = n2 := by
         rw [Nat.add_mul_div_left _ _ (by positivity), Nat.div_eq_of_lt hn1, Nat.zero_add]
       refine ⟨_, hlt, hc, ?_, ?_⟩
-      · rw [qwAcc_val ha, qwScale_val hs, hv1, qwLoT, ite_eq_right h1, ite_eq_left h2, hm]
-      · rw [qwAcc_val hb, hv2, qwHiT, ite_eq_right h1, ite_eq_left h2, hd]
-    · rw [ite_eq_right h2] at h ⊢
+      · rw [qwAcc_val ha, qwScale_val hs, hv1, qwLoT, ite_neg' h1, ite_pos' h2, hm]
+      · rw [qwAcc_val hb, hv2, qwHiT, ite_neg' h1, ite_pos' h2, hd]
+    · rw [ite_neg' h2] at h ⊢
       simp only [qwAH_append] at h
       obtain ⟨⟨hr, hs⟩, ha⟩ := h
       obtain ⟨n, hn, hc, hv⟩ := qwRead_sound hκ L hT hw hr
       refine ⟨n, hn, hc, ?_, ?_⟩
-      · rw [qwLoT, ite_eq_right h1, ite_eq_right h2, add_zero]
-      · rw [qwAcc_val ha, qwScale_val hs, hv, qwHiT, ite_eq_right h1, ite_eq_right h2]
+      · rw [qwLoT, ite_neg' h1, ite_neg' h2, add_zero]
+      · rw [qwAcc_val ha, qwScale_val hs, hv, qwHiT, ite_neg' h1, ite_neg' h2]
 
 theorem qwWindows_sound {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {σ : Val}
     (hT : WinTabs L.read (σ (.n (valf% «decode_query_windows» "tabs")))) {d cd base cut at0 : ℕ} :
@@ -273,9 +273,9 @@ theorem eOfNat_mul_cbWord {s w n : ℕ} (hn : n < 2 ^ w) (hw : 1 ≤ w) (h : s +
   rw [cbWord_eq', coordBasis_of_lt (by omega), mul_comm, eOfNat_two_pow_mul hs]
 
 theorem qwOff_lt {d cd i : ℕ} (h : i < qwN d cd) : qwOff d cd i = (qwWin d cd i).1 := by
-  rw [qwOff, ite_eq_left h]
+  rw [qwOff, ite_pos' h]
 
-theorem qwOff_top (d cd : ℕ) : qwOff d cd (qwN d cd) = d := by rw [qwOff, ite_eq_right (lt_irrefl _)]
+theorem qwOff_top (d cd : ℕ) : qwOff d cd (qwN d cd) = d := by rw [qwOff, ite_neg' (lt_irrefl _)]
 
 theorem qw_tiled {d cd : ℕ} (hs : QwShape d cd) {ns : ℕ → ℕ}
     (hns : ∀ t < qwN d cd, ns t < 2 ^ (qwWin d cd t).2) : Tiled (qwOff d cd) ns (qwN d cd) :=
@@ -312,7 +312,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
           _ = 2 ^ (off + w) := (Nat.pow_add _ _ _).symm
           _ ≤ 2 ^ cut := Nat.pow_le_pow_right (by decide) h1
       have hS' : S < 2 ^ cut := by omega
-      rw [qwLoT, qwHiT, ite_eq_left h1, ite_eq_left h1, Nat.mod_eq_of_lt hS', Nat.mod_eq_of_lt hlt,
+      rw [qwLoT, qwHiT, ite_pos' h1, ite_pos' h1, Nat.mod_eq_of_lt hS', Nat.mod_eq_of_lt hlt,
         Nat.div_eq_of_lt hS', Nat.div_eq_of_lt hlt, add_zero, eOfNat_mul_cbWord hn hw1 (by omega),
         add_comm, eOfNat_add_of_lt hS, Nat.add_comm]
       exact ⟨rfl, rfl⟩
@@ -331,7 +331,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
           ring
         obtain ⟨e1, e2⟩ := nat_split (Y := ns m / 2 ^ a) hX
         have hS' : S < 2 ^ cut := by omega
-        rw [qwLoT, qwHiT, ite_eq_right h1, ite_eq_right h1, ite_eq_left h2, ite_eq_left h2, hsum, e1, e2,
+        rw [qwLoT, qwHiT, ite_neg' h1, ite_neg' h1, ite_pos' h2, ite_pos' h2, hsum, e1, e2,
           Nat.mod_eq_of_lt hS', Nat.div_eq_of_lt hS', eOfNat_zero, zero_add,
           eOfNat_mul_cbWord (Nat.mod_lt _ (by positivity)) (show 1 ≤ a by omega)
             (show off + a ≤ 64 by omega), add_comm,
@@ -342,7 +342,7 @@ theorem qwSums {d cd cut : ℕ} (hs : QwShape d cd) (hc : cut ≤ 64) {ns : ℕ 
         have hSd : S / 2 ^ cut < 2 ^ (off - cut) := by
           rw [Nat.div_lt_iff_lt_mul (by positivity), ← Nat.pow_add]
           rwa [show off - cut + cut = off by omega]
-        rw [qwLoT, qwHiT, ite_eq_right h1, ite_eq_right h1, ite_eq_right h2, ite_eq_right h2, add_zero, hc',
+        rw [qwLoT, qwHiT, ite_neg' h1, ite_neg' h1, ite_neg' h2, ite_neg' h2, add_zero, hc',
           Nat.add_mul_mod_self_left, Nat.add_mul_div_left _ _ (by positivity),
           eOfNat_mul_cbWord hn hw1 (by omega), add_comm, eOfNat_add_of_lt hSd, Nat.add_comm]
         exact ⟨rfl, rfl⟩
@@ -360,7 +360,7 @@ theorem qwPr_sound {rd : Reader} {σ : Val} {j base cut d k : ℕ} {lo hi : V} {
   have hb64 : base % 64 < 64 := Nat.mod_lt _ (by decide)
   unfold qwPr at h ⊢
   by_cases hc : cut < d
-  · rw [ite_eq_left hc] at h ⊢
+  · rw [ite_pos' hc] at h ⊢
     simp only [qwAH_cons, qwAH_nil, Atom.Holds] at h
     obtain ⟨e0, e1, e2, l2, e3, e4, e5, e6, e7, e8, -⟩ := h
     have hY : P / 2 ^ cut < 2 ^ (d - cut) := by
@@ -394,7 +394,7 @@ theorem qwPr_sound {rd : Reader} {σ : Val} {j base cut d k : ℕ} {lo hi : V} {
     rw [e8, e7, t1, t2, eOfNat128_add_shift hlt, Nat.pow_add, Nat.mul_assoc, ← Nat.mul_add,
       Nat.mod_add_div]
     rfl
-  · rw [ite_eq_right hc] at h ⊢
+  · rw [ite_neg' hc] at h ⊢
     have hPc : P < 2 ^ cut := lt_of_lt_of_le hP (Nat.pow_le_pow_right (by decide) (by omega))
     rw [Nat.mod_eq_of_lt hPc] at hlo
     have hb1 : base < 128 := by omega

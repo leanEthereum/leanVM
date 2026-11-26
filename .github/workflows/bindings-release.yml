@@ -40,6 +40,10 @@ jobs:
             target: x64
     steps:
       - uses: actions/checkout@v4
+      # A Windows host cannot run the wrapper.
+      - name: Use the CPU tiers' rustc wrapper
+        if: runner.os != 'Windows'
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS }}
@@ -52,6 +56,9 @@ jobs:
           working-directory: bindings/python
           # --find-interpreter finds the Pythons inside the manylinux container, not the runner's.
           manylinux: auto
+      - name: Check the CPU tiers are built in
+        if: runner.os == 'Linux' && matrix.platform.target == 'x86_64'
+        run: sh scripts/check-tiers dist/*.whl
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
@@ -71,6 +78,8 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v4
+      - name: Use the CPU tiers' rustc wrapper
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSIONS }}
@@ -82,6 +91,9 @@ jobs:
           args: --release --out ../../dist --find-interpreter
           working-directory: bindings/python
           manylinux: musllinux_1_2
+      - name: Check the CPU tiers are built in
+        if: matrix.platform.target == 'x86_64'
+        run: sh scripts/check-tiers dist/*.whl
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}
@@ -99,16 +111,21 @@ jobs:
           command: sdist
           args: --out ../../dist
           working-directory: bindings/python
-      - name: Add the cargo config to the sdist
+      - name: Complete the sdist (complete-sdist.sh)
         run: sh bindings/python/scripts/complete-sdist.sh dist/py_lean_pq-*.tar.gz
+      # pip builds it from source, as on a platform with no wheel.
+      - name: Install the sdist
+        run: |
+          python3 -m venv "$RUNNER_TEMP/sdist"
+          "$RUNNER_TEMP/sdist/bin/pip" install dist/py_lean_pq-*.tar.gz
+          "$RUNNER_TEMP/sdist/bin/python" -c "import py_lean_pq"
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-sdist
           path: dist/*.tar.gz
 
   # Installs the Windows wheels into a fresh virtualenv straight from the build artifact (no index,
-  # no source builds) and signs and verifies through them before anything is published (aggregation
-  # needs a sidecar, which Windows lacks).
+  # no source builds) and signs, verifies and aggregates through them before anything is published.
   windows-wheel-test:
     name: windows-latest / py${{ matrix.python }} wheel
     needs: build
@@ -143,7 +160,7 @@ jobs:
           python -m venv "$venv"
           "$venv/Scripts/python" -m pip install --only-binary :all: --no-index --find-links dist py-lean-pq
           "$venv/Scripts/python" -m pip install --only-binary :all: pytest
-      - name: Sign and verify through the installed wheel
+      - name: Sign, verify and aggregate through the installed wheel
         working-directory: ${{ runner.temp }}
         run: |
           python="$(cygpath -u "$RUNNER_TEMP")/venv/Scripts/python"
@@ -216,6 +233,9 @@ jobs:
         run: rustup target add ${{ matrix.platform.rust_targets }}
       - name: Stage static native bridge
         run: sh bindings/native/scripts/stage-static.sh ${{ matrix.platform.target }} native/${{ matrix.platform.bundle_dir }}
+      - name: Check the CPU tiers are built in
+        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
+        run: sh scripts/check-tiers native/${{ matrix.platform.bundle_dir }}/liblean_pq_native.a
       - uses: actions/upload-artifact@v4
         with:
           name: zig-native-${{ matrix.platform.bundle_dir }}
@@ -526,6 +546,8 @@ jobs:
             build_args: --cross-compile
     steps:
       - uses: actions/checkout@v4
+      - name: Use the CPU tiers' rustc wrapper
+        run: echo "RUSTC_WRAPPER=$GITHUB_WORKSPACE/scripts/tier-rustc" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -573,6 +595,9 @@ jobs:
             echo "lean_pq_node.win32-x64-msvc.node imports the Visual C++ runtime" >&2
             exit 1
           fi
+      - name: Check the CPU tiers are built in
+        if: startsWith(matrix.platform.target, 'x86_64') && runner.os == 'Linux'
+        run: sh scripts/check-tiers bindings/node/lean_pq_node.*.node
       - uses: actions/upload-artifact@v4
         with:
           name: node-binding-${{ matrix.platform.target }}
@@ -651,8 +676,8 @@ jobs:
             fi
           done
 
-  # Installs the packed root and platform package on each platform and signs and verifies through
-  # them. Alpine runs in a plain container: GitHub's JavaScript actions do not
+  # Installs the packed root and platform package on each platform and signs, verifies and
+  # aggregates through them. Alpine runs in a plain container: GitHub's JavaScript actions do not
   # run inside Alpine containers on arm64.
   node-test:
     name: Node.js test / ${{ matrix.platform.package }}
@@ -696,7 +721,7 @@ jobs:
           CONTAINER: ${{ matrix.platform.container }}
         run: |
           version=${RELEASE_TAG#bindings-v}
-          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz"
+          set -- bindings/node/scripts/install-check.sh "dist/kevaundray-lean-pq-$version.tgz" "dist/kevaundray-lean-pq-$PACKAGE-$version.tgz" --aggregate
           if [ -n "$CONTAINER" ]; then
             docker run --rm -v "$PWD:/w" -w /w "$CONTAINER" sh "$@"
           else
@@ -800,6 +825,10 @@ jobs:
         run: cargo install cargo-zigbuild --version 0.24.1 --locked
       - name: Build the native library
         run: sh bindings/java/scripts/build-native.sh ${{ matrix.platform.name }} native
+      # On its own runner, whose objdump reads it.
+      - name: Check the CPU tiers are built in
+        if: runner.os == 'Linux'
+        run: sh scripts/check-tiers native/${{ matrix.platform.name }}/liblean_pq_native.so
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -925,3 +954,99 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: gradle -p bindings/java publishToMavenCentral -Pversion="${RELEASE_TAG#bindings-v}" -PleanPqNativeDir="$PWD/native"
+
+  # Ethereum.LeanPq with the four libraries java-native built and checked, as runtimes/<rid>/native
+  # (the universal macOS library under runtimes/osx).
+  dotnet-package:
+    name: .NET package
+    needs: java-native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: java-native-*
+          merge-multiple: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Pack Ethereum.LeanPq
+        run: |
+          version=${RELEASE_TAG#bindings-v}
+          dotnet pack bindings/dotnet/src/Ethereum.LeanPq/Ethereum.LeanPq.csproj -c Release -o dist -p:Version="$version" -p:LeanPqNativeDir="$PWD/native"
+          unzip -Z1 "dist/Ethereum.LeanPq.$version.nupkg" | tee nupkg-contents.txt
+          for library in linux-x64/native/liblean_pq_native.so linux-arm64/native/liblean_pq_native.so osx/native/liblean_pq_native.dylib win-x64/native/lean_pq_native.dll; do
+            grep -qx "runtimes/$library" nupkg-contents.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist/
+          if-no-files-found: error
+
+  # A fresh consumer of the package dotnet-package built, the one dotnet-publish pushes, on each platform it bundles.
+  dotnet-consumer:
+    name: .NET consumer / ${{ matrix.runner }}
+    needs: dotnet-package
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        # Git Bash on Windows.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-15, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Run a consumer against the package
+        run: sh bindings/dotnet/scripts/consumer-smoke.sh --feed "$GITHUB_WORKSPACE/dist"
+
+  # NuGet trusted publishing (OIDC): NuGet/login exchanges the run's token for a short-lived API key.
+  # The policy on nuget.org names:
+  #   repository:  leanEthereum/leanVM
+  #   workflow:    bindings-release.yml
+  #   environment: nuget          (must match `environment.name` below)
+  # Until NUGET_USER is set (see bindings/RELEASING.md) the job warns and publishes nothing. Pushing
+  # skips a version already published, so a failed run can be re-dispatched on the same tag.
+  dotnet-publish:
+    name: Publish to NuGet
+    needs: [dotnet-package, dotnet-consumer]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/bindings-v')
+    environment:
+      name: nuget
+      url: https://www.nuget.org/packages/Ethereum.LeanPq
+    permissions:
+      id-token: write
+    env:
+      NUGET_USER: ${{ secrets.NUGET_USER }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dotnet-package
+          path: dist
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Check the NuGet setup
+        if: env.NUGET_USER == ''
+        run: echo "::warning::NUGET_USER is not set, so Ethereum.LeanPq is not published; see bindings/RELEASING.md"
+      - uses: NuGet/login@v1
+        id: nuget-login
+        if: env.NUGET_USER != ''
+        with:
+          user: ${{ env.NUGET_USER }}
+      - name: Publish Ethereum.LeanPq
+        if: env.NUGET_USER != ''
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push dist/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

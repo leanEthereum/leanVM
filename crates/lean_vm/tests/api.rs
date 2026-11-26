@@ -1,5 +1,3 @@
-#![cfg(not(feature = "sidecar"))]
-
 use lean_vm::*;
 
 const MSG_0: lean_xmss::Message = [0; lean_xmss::MESSAGE_LEN];
@@ -18,6 +16,7 @@ fn public_api_end_to_end() {
     // The first signature in a bottom tree builds it, so a signer prepares the tree ahead of time. Leaves 7 to 9
     // share one tree.
     for (secret_key, _) in &keys {
+        secret_key.set_bottom_tree_cache_size(4);
         secret_key.prepare(7);
     }
     let mut lean_xmss_input = Vec::new();

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Complete
 
   `verify_sub`'s lift obligations on an honest child: its callees' words, and its honest
-  valuation (`completeAt_flatDepR`'s `hkr`, `hkm`, `hσ`).
+  valuation (`completeAt_flatDepRBPR`'s `hkr`, `hkm`, `hσ`).
 -/
 
 module
@@ -10,12 +10,11 @@ module
 public import LeanVM.Guest.B1.VerifySub.CLoads
 public import LeanVM.Guest.B1.VerifySub.H.Fits
 public import LeanVM.Guest.B1.VerifySub.H.Regions
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub`'s obligations
 
-On an honest child (`S : ChildSegs`), `verify_sub`'s body is flat (`completeAt_flatDepR`): its own
+On an honest child (`S : ChildSegs`), `verify_sub`'s body is flat (`completeAt_flatDepRBPR`): its own
 buffers hold `S.ownW`, its callees are `S.kids` on the bump allocator's bases. `vs_obligations`:
 the callees read the caller's words, the own buffers and the results before them (`kid_lin_sub`
 and its cases `10`, `11`, `15`), those words are in memory, and the honest valuation
@@ -151,7 +150,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         vsC_param hla (i := 2) (by norm_num), vsC_param hla (i := 3) (by norm_num),
         vsC_param hla (i := 4) (by norm_num), vsC_param hla (i := 5) (by norm_num)]
       rfl
-    · rw [show Fn.body fn% «verify_sub» = vsCPre ⧺ [.ret []] from vs_body.trans vsT_splitPre,
+    · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
     · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB D q hq

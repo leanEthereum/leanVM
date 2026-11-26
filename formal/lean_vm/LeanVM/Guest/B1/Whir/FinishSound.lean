@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Finish
+import LeanVM.ToMathlib.List
 
 /-!
 # The finish, soundly
@@ -79,11 +80,6 @@ theorem sum_list_range {α : Type} [Inhabited α] (f : α → E) :
     simp only [List.getD_cons_succ, List.getD_cons_zero]
     ring
 
-theorem sum_flatMap' {α : Type} (g : α → List E) :
-    ∀ l : List α, (l.flatMap g).sum = (l.map fun a ↦ (g a).sum).sum
-  | [] => by simp
-  | a :: l => by rw [List.flatMap_cons, List.sum_append, sum_flatMap' g l, List.map_cons, List.sum_cons]
-
 /-- **The glued weight**, level by level. -/
 theorem inner_sum (recs : List OsRec) (P : List E) :
     (recs.flatMap recGlued).foldl (fun w g ↦ w + g.scalar * g.weightAt (P.drop g.foldStart)) 0 =
@@ -93,7 +89,7 @@ theorem inner_sum (recs : List OsRec) (P : List E) :
             inducedWeight (recs.getD i default).mu (recs.getD i default).qs
               (powers (recs.getD i default).lam (recs.getD i default).qs.length)
               (P.drop (recs.getD i default).F)) := by
-  rw [foldl_add_map, zero_add, List.map_flatMap, sum_flatMap', sum_list_range]
+  rw [List.foldl_add_eq_add_sum_map, zero_add, List.map_flatMap, List.sum_flatMap, sum_list_range]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   simp [recGlued]
 
@@ -165,10 +161,10 @@ theorem osFinish_sound {c : OsCfg} {st : OsSt} {tch : ℕ}
   simp only [MeaningFoldFinalMsg] at hM
   obtain ⟨m, ps, hml, hpsl, hm, hps, hyat⟩ := hM
   have em : m = fold.take c.yrLen := by
-    have := eq_take_of_readsAt hm hF.fmsg (by rw [hml, hF.ylen]; exact hF.foldl)
+    have := readsAt_take hm hF.fmsg (by rw [hml, hF.ylen]; exact hF.foldl)
     rw [this, hml, hF.ylen]
   have eps : ps = T := by
-    have := eq_take_of_readsAt hps hF.tch (by rw [hpsl, hF.Tl])
+    have := readsAt_take hps hF.tch (by rw [hpsl, hF.Tl])
     rw [this, hpsl, ← hF.Tl, List.take_length]
   -- the point
   have hPl : (rotPt G T (c.levels.headD default).folds).length = c.nFolds + c.yrLog := by

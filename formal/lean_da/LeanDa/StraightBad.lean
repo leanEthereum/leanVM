@@ -1,7 +1,7 @@
 module
 
 public import LeanDa.StraightTree
-public import Common.Duplex.Vec
+public import Common.Duplex.Calls
 public import LeanDa.WithHash
 
 @[expose] public section
@@ -9,7 +9,7 @@ public import LeanDa.WithHash
 /-!
 # The straight-line world and its bad events
 
-The world of the straight-line proof of code binding (`LeanDa.Straight`): `H` and the draws `G`
+The world of the straight-line proof of the membership test's soundness (`LeanDa.Straight`): `H` and the draws `G`
 two lazily sampled random oracles, `G` on a root and a label (`GSpec`, the duplex lemma's world).
 Its caches are **good** (`Good`) when `H` is injective on its cached inputs and, for every root
 `d` and the draw the nonce search would select so far (`FirstValid`: the first cached nonce's draw
@@ -43,91 +43,8 @@ his membership test's soundness.
 set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec Common Common.SeedDuplex MeasureTheory PqDas
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 open scoped ENNReal
-
-namespace Common
-
-/-! ## The bad-event budget with two weights -/
-
-section Budget2
-
-variable {ι : Type} {spec : OracleSpec.{0, 0} ι} {σ α : Type}
-  {ι' : Type} {spec' : OracleSpec.{0, 0} ι'} [AnswerMeasure spec']
-
-/-- **The bad-event budget with two weights** (`prEvent_run_bad_le` with a second weight): if
-every step `t` from a good state of size at most `N - w₁ t` reaches a bad state with probability
-at most `w₁ t · δ₁ + w₂ t · δ₂`, a computation of weights at most `Q₁` and `Q₂` ends in a bad
-state with probability at most `[bad s₀] + Q₁ · δ₁ + Q₂ · δ₂`. -/
-theorem prEvent_run_bad_le₂
-    (impl : QueryImpl spec (StateT σ (OracleComp spec'))) (bad inv : σ → Prop)
-    [DecidablePred bad] (w₁ w₂ : ι → ℕ) (size : σ → ℕ) (N : ℕ) (δ₁ δ₂ : ℝ≥0∞)
-    (hinv : ∀ t s, inv s → ∀ z ∈ support ((impl t).run s), inv z.2)
-    (hsize : ∀ t s, inv s → ∀ z ∈ support ((impl t).run s), size z.2 ≤ size s + w₁ t)
-    (hstep : ∀ t s, inv s → ¬bad s → size s + w₁ t ≤ N →
-      Pr{let z ← (impl t).run s}[bad z.2] ≤ w₁ t * δ₁ + w₂ t * δ₂)
-    (oa : OracleComp spec α) (Q₁ Q₂ : ℕ) (hQ₁ : QueryCostAtMost oa w₁ Q₁)
-    (hQ₂ : QueryCostAtMost oa w₂ Q₂) (s₀ : σ) (hs₀ : inv s₀) (hN : size s₀ + Q₁ ≤ N) :
-    Pr{let z ← (simulateQ impl oa).run s₀}[bad z.2] ≤
-      (if bad s₀ then 1 else 0) + (Q₁ * δ₁ + Q₂ * δ₂) := by
-  induction oa using OracleComp.inductionOn generalizing Q₁ Q₂ s₀ with
-  | pure a =>
-    simp only [simulateQ_pure, StateT.run_pure, prEvent_pure]
-    split_ifs <;> simp
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at hQ₁ hQ₂
-    obtain ⟨hwt₁, hk₁⟩ := hQ₁
-    obtain ⟨hwt₂, hk₂⟩ := hQ₂
-    simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
-      OracleQuery.cont_query, id_map, StateT.run_bind]
-    let : MeasurableSpace (spec.Range t × σ) := ⊤
-    rw [prEvent_bind_eq_lintegral_of_discrete]
-    have hbound : ∀ z ∈ support ((impl t).run s₀),
-        Pr{let y ← (simulateQ impl (k z.1)).run z.2}[bad y.2] ≤
-          (if bad z.2 then 1 else 0) + ((Q₁ - w₁ t : ℕ) * δ₁ + (Q₂ - w₂ t : ℕ) * δ₂) :=
-      fun z hz ↦ ih z.1 (Q₁ - w₁ t) (Q₂ - w₂ t) (hk₁ z.1) (hk₂ z.1) z.2 (hinv t s₀ hs₀ z hz)
-        (by have := hsize t s₀ hs₀ z hz; omega)
-    calc ∫⁻ z, Pr{let y ← (simulateQ impl (k z.1)).run z.2}[bad y.2] ∂𝒟[(impl t).run s₀]
-        ≤ ∫⁻ z, ((if bad z.2 then 1 else 0) + ((Q₁ - w₁ t : ℕ) * δ₁ + (Q₂ - w₂ t : ℕ) * δ₂))
-            ∂𝒟[(impl t).run s₀] := by
-          apply lintegral_mono_ae
-          filter_upwards [ae_evalDist_of_forall_mem_support _ hbound] with z hz using hz
-      _ ≤ Pr{let z ← (impl t).run s₀}[bad z.2] +
-            ((Q₁ - w₁ t : ℕ) * δ₁ + (Q₂ - w₂ t : ℕ) * δ₂) := by
-          rw [lintegral_add_right _ measurable_const, lintegral_const]
-          refine add_le_add (le_of_eq ?_)
-            (mul_le_of_le_one_right' (evalDist_apply_univ_le_one _))
-          rw [prEvent_eq_evalDist_of_discrete, ← lintegral_indicator_one MeasurableSet.of_discrete]
-          exact lintegral_congr fun z ↦ by by_cases h : bad z.2 <;> simp [h, Set.indicator]
-      _ ≤ ((if bad s₀ then 1 else 0) + (w₁ t * δ₁ + w₂ t * δ₂)) +
-            ((Q₁ - w₁ t : ℕ) * δ₁ + (Q₂ - w₂ t : ℕ) * δ₂) := by
-          gcongr
-          by_cases hb : bad s₀
-          · simp only [hb, ite_true]
-            exact (prEvent_le_one _).trans le_self_add
-          · simp only [hb, ite_false, zero_add]
-            exact hstep t s₀ hs₀ hb (by omega)
-      _ = (if bad s₀ then 1 else 0) + (Q₁ * δ₁ + Q₂ * δ₂) := by
-          have e₁ : ((w₁ t : ℕ) : ℝ≥0∞) + (Q₁ - w₁ t : ℕ) = Q₁ := by
-            exact_mod_cast Nat.add_sub_cancel' hwt₁
-          have e₂ : ((w₂ t : ℕ) : ℝ≥0∞) + (Q₂ - w₂ t : ℕ) = Q₂ := by
-            exact_mod_cast Nat.add_sub_cancel' hwt₂
-          rw [← e₁, ← e₂]
-          ring
-
-/-- **Weights add.** -/
-theorem QueryCostAtMost.add {oa : OracleComp spec α} {w₁ w₂ : ι → ℕ} {a b : ℕ}
-    (h₁ : QueryCostAtMost oa w₁ a) (h₂ : QueryCostAtMost oa w₂ b) :
-    QueryCostAtMost oa (fun t ↦ w₁ t + w₂ t) (a + b) := by
-  induction oa using OracleComp.inductionOn generalizing a b with
-  | pure x => trivial
-  | query_bind t k ih =>
-    rw [isWeightBound_query_bind_iff] at h₁ h₂ ⊢
-    refine ⟨by omega, fun u ↦ (ih u (h₁.2 u) (h₂.2 u)).mono (by omega)⟩
-
-end Budget2
-
-end Common
 
 namespace LeanDa
 
@@ -170,12 +87,6 @@ theorem good_empty (r : ℕ) : Good r ∅ :=
 theorem fOf_of_mem {c : GCache} {a : List UInt8} {u : Common.DigestBytes} (h : c (.inl a) = some u) :
     fOf c a = u := by simp [fOf, h]
 
-theorem cache_inl_eq_fOf {c : GCache} {a : List UInt8} (h : a ∈ domH c) :
-    c (.inl a) = some (fOf c a) := by
-  rcases hc : c (.inl a) with _ | u
-  · exact absurd hc h
-  · simp [fOf, hc]
-
 section Insert
 
 variable (c : GCache)
@@ -188,10 +99,6 @@ theorem gcache_inl_inl (a b : List UInt8) (u : Common.DigestBytes) :
 
 theorem gcache_inl_inr (a : List UInt8) (u : Common.DigestBytes) (e : Common.DigestBytes × Fin nLabels) :
     (c.cacheQuery (.inl a) u) (.inr e) = c (.inr e) :=
-  QueryCache.cacheQuery_of_ne _ _ (by simp)
-
-theorem gcache_inr_inl (e : Common.DigestBytes × Fin nLabels) (x : Draw) (a : List UInt8) :
-    (c.cacheQuery (.inr e) x) (.inl a) = c (.inl a) :=
   QueryCache.cacheQuery_of_ne _ _ (by simp)
 
 theorem gcache_inr_inr (e e' : Common.DigestBytes × Fin nLabels) (x : Draw) :
@@ -338,23 +245,11 @@ theorem gStep (t : (unifSpec + GW).Domain) (c : GCache) {z} (hz : z ∈ support
     ((GW.romImpl t).run c)) :
     z.2 = c ∨ (∃ a u, t = .inr (.inl a) ∧ c (.inl a) = none ∧ z.2 = c.cacheQuery (.inl a) u) ∨
       (∃ e x, t = .inr (.inr e) ∧ c (.inr e) = none ∧ z.2 = c.cacheQuery (.inr e) x) := by
-  rcases t with n | t
-  · rw [roSim.run_apply_inl] at hz
-    simp only [support_map, Set.mem_image] at hz
-    obtain ⟨_, -, rfl⟩ := hz
-    exact Or.inl rfl
-  · rw [romImpl_inr_run] at hz
-    rcases h : c t with _ | v
-    · rw [roStep_of_none h] at hz
-      simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
-      obtain ⟨u, -, rfl⟩ := hz
-      rcases t with a | e
-      · exact Or.inr (Or.inl ⟨a, u, rfl, h, rfl⟩)
-      · exact Or.inr (Or.inr ⟨e, u, rfl, h, rfl⟩)
-    · rw [roStep_of_some h] at hz
-      simp only [support_pure, Set.mem_singleton_iff] at hz
-      subst hz
-      exact Or.inl rfl
+  rcases romImpl_step t c hz with h | ⟨s, u, rfl, hs, h⟩
+  · exact Or.inl h
+  · rcases s with a | e
+    · exact Or.inr (Or.inl ⟨a, u, rfl, hs, h⟩)
+    · exact Or.inr (Or.inr ⟨e, u, rfl, hs, h⟩)
 
 /-- Queries of the world's oracles, one each. -/
 def hgCalls : (unifSpec + GW).Domain → ℕ
@@ -693,7 +588,6 @@ theorem prob_fresh_step_le {β : Type} {r : ℕ} (hr : r ≤ maxRows) {c : GCach
         OpenBelow (c.cacheQuery (.inr (d, j)) x) d (j.val + 1)] = 0 :=
       prEvent_eq_zero_of_forall_mem_support _ _ fun x _ hx ↦ hO (hopen x hx).1
     rw [h0, h1, mul_zero, add_zero]
-
 
 theorem run_gaP (d : Common.DigestBytes) (j : Fin nLabels) (c : GCache) :
     (simulateQ GW.romImpl (gaP (Msg := List UInt8) (Dg := DigestBytes) d j)).run c =

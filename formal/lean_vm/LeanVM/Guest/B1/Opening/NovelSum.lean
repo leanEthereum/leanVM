@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.FoldAlg
-public import LeanVM.ToMathlib.Finset
+import LeanVM.ToMathlib.Finset
 
 /-!
 # `novel_eval` in closed form

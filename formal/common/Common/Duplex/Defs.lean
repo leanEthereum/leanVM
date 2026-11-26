@@ -31,7 +31,7 @@ set_option linter.unusedSectionVars false
 
 open OracleComp OracleSpec
 open Common
-open Common.Duplex (GSpec hP gaP VSpec toV)
+open Common.Duplex (GSpec hP gaP)
 
 namespace Common.SeedDuplex
 
@@ -81,7 +81,5 @@ def chalP (r : Root) : OracleComp (Rom2 Msg Dg St) (List Z) := do
   pure (D.out y₀ :: zs)
 
 end Programs
-
-/-! ## The simulator -/
 
 end Common.SeedDuplex

@@ -58,7 +58,7 @@ theorem stSub_holds {fn : Fn} {D v S : ℕ} (hk : stK fn = some (D, v, S)) (hv :
     unfold CoreMode.CCell.addrW CoreMode.CCell.valW
     rw [hcb]
     simp only [prodW, pow_one, mul_one, hwg, hwv, hcur, gen_pow_eq_ofK, one_mul]
-    simp only [addressOfIndex, pow_add, pow_zero, Parameters.ofK_mul]
+    simp only [addressOfIndex, pow_add, pow_zero, LeanVM.Guest.CoreMode.ofK_mul']
     rw [CoreMode.ofK_oneL]
     ring_nf
   | .lt _ _, hx | .nz _, hx | .subR _ _, hx | .under _ _, hx | .subP _ _, hx => simp [stSub] at hx

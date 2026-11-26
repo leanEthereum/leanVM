@@ -49,17 +49,6 @@ section Pass
 
 variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} {σ : Val} {rd : Reader}
 
-theorem pick_cases (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
-    pick σ x args rets j fs = .stuck ∨ ∃ g ∈ fs, pick σ x args rets j fs = .fall [.call g args rets]
-  | [], _ => Or.inl rfl
-  | g :: fs, j => by
-    unfold pick
-    split_ifs
-    · exact Or.inr ⟨g, List.mem_cons_self, rfl⟩
-    · rcases pick_cases x args rets fs (j + 1) with h | ⟨g', hg', h⟩
-      · exact Or.inl h
-      · exact Or.inr ⟨g', List.mem_cons_of_mem _ hg', h⟩
-
 theorem pick_idx (x : V) (args rets : List V) : ∀ (fs : List String) (j : ℕ),
     pick σ x args rets j fs = .stuck ∨ ∃ i, ∃ hi : i < fs.length, σ x = ofK (addressOfIndex (j + i)) ∧
       pick σ x args rets j fs = .fall [.call fs[i] args rets]
@@ -708,7 +697,7 @@ theorem tailC_ok (hX : XOk sigOf H rd f σ X) (hself : sigOf f.name = H.sig) (hr
           · by_cases h0 : σ c = 0
             · exfalso
               have hx := hexit h0
-              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul, addressOfIndex,
+              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul', addressOfIndex,
                 addressOfIndex, ← pow_add, ← addressOfIndex] at hx
               rw [← hx, rep_of (by omega), Option.some.injEq] at hyhi
               omega
@@ -954,47 +943,47 @@ theorem getF_keysT : ∀ (l : List ℕ) (t : Trie Unit) {k : ℕ}, (getF (keysT 
 
 /-- **The frame run cells a certificate guarantees at return**: each a cell of a `frameAddr` among the atoms,
 its value defined by one of them, or past a nonempty run. -/
-theorem faOk_spec {as : List Atom} : ∀ {fas : List (ℕ × ℕ)}, faOk as (dstKeys as) fas = true →
+theorem faOk_spec {as : List Atom} {fas : List (ℕ × ℕ)} (h : faOk as (dstKeys as) fas = true) :
     ∀ p ∈ fas, (∃ run v, Atom.frameAddr (V.n p.1) run ∈ as ∧ run[p.2]? = some v ∧ ∃ a ∈ as, v ∈ atomDst a) ∨
-      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2
-  | [], _, p, hp => by simp at hp
-  | (kp, i) :: l, h, p, hp => by
-    simp only [faOk, Bool.and_eq_true, List.any_eq_true] at h
-    rcases List.mem_cons.mp hp with rfl | hp
-    · obtain ⟨a, ha, hfa⟩ := h.1
-      cases a with
-      | frameAddr q run =>
-        simp only [faAt, Bool.and_eq_true, Bool.or_eq_true] at hfa
-        obtain ⟨hq, hv⟩ := hfa
-        cases hqn : vnum q with
-        | none => rw [hqn] at hq; cases hq
-        | some k =>
-          rw [hqn] at hq
-          have hk : k = kp := Nat.eq_of_beq_eq_true hq
-          subst hk
-          rw [vnum_eq hqn] at ha
-          rcases hv with hv | hv
-          · left
-            cases hri : run[i]? with
-            | none => rw [hri] at hv; cases hv
-            | some v =>
-              simp only [hri] at hv
-              cases hvn : vnum v with
-              | none => simp only [hvn] at hv; cases hv
-              | some k' =>
-                simp only [hvn] at hv
-                rcases getF_keysT _ _ hv with hm | hm
-                · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
-                  obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
-                  refine ⟨run, v, ha, hri, a', ha', ?_⟩
-                  rw [vnum_eq hvn, ← vnum_eq hv'n]
-                  exact hva'
-                · simp [getF_nil] at hm
-          · right
-            simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
-            exact ⟨run, ha, hv.1, hv.2⟩
-      | _ => simp [faAt] at hfa
-    · exact faOk_spec h.2 p hp
+      ∃ run, Atom.frameAddr (V.n p.1) run ∈ as ∧ run ≠ [] ∧ run.length ≤ p.2 := by
+  intro p hp
+  rw [faOk, Exec.listSeq_eq, List.all_eq_true] at h
+  obtain ⟨⟨k, run⟩, hr, hfa⟩ := List.any_eq_true.mp (h p hp)
+  obtain ⟨a, ha, hfr⟩ := List.mem_filterMap.mp hr
+  simp only [Bool.and_eq_true, faCell, Bool.or_eq_true] at hfa
+  obtain ⟨hk, hv⟩ := hfa
+  have hk : k = p.1 := Nat.eq_of_beq_eq_true hk
+  subst hk
+  have ha : Atom.frameAddr (V.n p.1) run ∈ as := by
+    cases a with
+    | frameAddr q run' =>
+      cases hqn : vnum q with
+      | none => simp [frOf, hqn] at hfr
+      | some k' =>
+        simp only [frOf, hqn, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hfr
+        obtain ⟨rfl, rfl⟩ := hfr
+        rwa [vnum_eq hqn] at ha
+    | _ => simp [frOf] at hfr
+  rcases hv with hv | hv
+  · left
+    cases hri : run[p.2]? with
+    | none => rw [hri] at hv; cases hv
+    | some v =>
+      simp only [hri] at hv
+      cases hvn : vnum v with
+      | none => simp only [hvn] at hv; cases hv
+      | some k' =>
+        simp only [hvn] at hv
+        rcases getF_keysT _ _ hv with hm | hm
+        · obtain ⟨v', hv', hv'n⟩ := List.mem_filterMap.mp hm
+          obtain ⟨a', ha', hva'⟩ := List.mem_flatMap.mp hv'
+          refine ⟨run, v, ha, hri, a', ha', ?_⟩
+          rw [vnum_eq hvn, ← vnum_eq hv'n]
+          exact hva'
+        · simp [getF_nil] at hm
+  · right
+    simp only [Bool.not_eq_true', List.isEmpty_eq_false_iff, Nat.ble_eq] at hv
+    exact ⟨run, ha, hv.1, hv.2⟩
 
 /-- No frame run cell guaranteed (`HCert.fas` empty), none among them. -/
 theorem noFAX {H : HCert} (hn : H.fas = []) {σ : Val} {x : K} : ¬ FAX H σ x := by
@@ -1332,21 +1321,6 @@ theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
   ((heapOkC_soundP hp hok hself hw hh hE hR hD hG).2 hM).1.2 hn
 
 end Main
-
-/-- **Constant preconditions** (`main`'s public input cells): a precondition of a signature whose preconditions
-are cells only, each constant (`⟨[], k⟩`), is the address `g^k` of one of them, whatever the words. -/
-theorem preSet_const {rd : Reader} {G : HSig} {ws : List E} {x : K} (hR : G.preR = []) (hP : G.preP = [])
-    (hPR : G.prePR = []) (hc : ∀ c ∈ G.pre, c.bases = []) (h : PreSet rd G ws x) :
-    ∃ c ∈ G.pre, x = addressOfIndex c.off := by
-  rcases h with (⟨c, hc', rfl⟩ | ⟨r, hr, -⟩) | (⟨p, hp, -⟩ | ⟨p, hp, -⟩)
-  · refine ⟨c, hc', ?_⟩
-    rw [CCell.addrW, valW_nil (by simp [hc c hc'])]
-    simp
-  · rw [hR] at hr; cases hr
-  · rw [hP] at hp; cases hp
-  · rw [hPR] at hp; cases hp
-
-/-! ## `heapOk`'s statement -/
 
 end
 

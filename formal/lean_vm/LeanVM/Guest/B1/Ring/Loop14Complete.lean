@@ -13,7 +13,6 @@ public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target_loop0»
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # `ring_switch_target_loop0`, completely
@@ -109,7 +108,7 @@ theorem rt_addr_mul (b c k : ℕ) : (ofK (Parameters.addressOfIndex b) * gen ^ c
   have e : ofK (Parameters.addressOfIndex b) * gen ^ c = ofK (Parameters.addressOfIndex (b + c)) := by
     rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex,
       Parameters.addressOfIndex, pow_add]
-  rw [e, limb0_ofK_addressOfIndex_mul]
+  rw [e, Main.addr_ofK]
 
 /-- Two lists read at one pointer, of one length, are one. -/
 theorem rt_readsAt_unique {rd : Reader} {p : E} {xs ys : List E} (hl : xs.length = ys.length)
@@ -141,7 +140,7 @@ def l13T : List Stmt :=
 /-- `ring_switch_target_loop0`'s atoms. -/
 def l13A : List Stmt := l13G ++ l13M1 ++ l13P ++ l13M2 ++ l13H ++ l13T
 
-theorem loop13T_split : loop13T = l13A ⧺
+theorem loop13T_split : loop13T = l13A ++
     [.callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"), .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")], .ret []] := by
   simp only [loop13T, l13A, l13G, l13M1, l13P, l13M2, l13H, l13T, List.append_assoc,
     List.cons_append, List.nil_append]
@@ -156,7 +155,7 @@ theorem mem_l13P {r : ℕ} (hr : r < 8) {s : Stmt} (hs : s ∈ psRow r) : s ∈ 
 
 /-- Chain `p`'s statements but its store. -/
 def hzPre (p : ℕ) : List Stmt :=
-  [.atom (.load (.n (hzBase p)) (.n (val% «ring_switch_target_loop0» "row")) p)] ⧺ ((List.range 8).map (hzStep (hzBase p) p)).flatten
+  [.atom (.load (.n (hzBase p)) (.n (val% «ring_switch_target_loop0» "row")) p)] ++ ((List.range 8).map (hzStep (hzBase p) p)).flatten
 
 theorem mem_l13H {p : ℕ} (hp : p < 8) {s : Stmt} (hs : s ∈ hzPre p) : s ∈ l13A := by
   refine l13A_mem (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl (List.mem_flatten.mpr
@@ -398,7 +397,7 @@ theorem l13_loadIn : (rtAtoms l13A).all l13LoadIn = true := by decide +kernel
 def l13Pre : List Stmt := l13A ++ [Stmt.callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"),
     .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")]]
 
-theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ⧺ [.ret []] := by
+theorem l13_body_pre : (fn% «ring_switch_target_loop0»).body = l13Pre ++ [.ret []] := by
   rw [loop13_body, loop13T_split, l13Pre, List.append_assoc]
   rfl
 
@@ -494,7 +493,7 @@ theorem l13_iter {rd : Reader} {bs bm bc : ℕ} {s chs : List E} (hs : s.length 
         simp only [Ev.loadAddr?, Option.some.injEq] at hea
         subst hea
         rcases l13LoadIn_load hok with ⟨rfl, ho⟩ | ⟨rfl, ho⟩ | ⟨rfl, ho⟩
-        · rw [e1, limb0_ofK_addressOfIndex_mul]
+        · rw [e1, Main.addr_ofK]
           exact ⟨_, rfl, hR _ (Or.inr (Or.inl ⟨by omega, by omega⟩))⟩
         · rw [e15, ← pow_mul, rt_addr_mul]
           exact ⟨_, rfl, hR _ (Or.inl ⟨by omega, by omega⟩)⟩

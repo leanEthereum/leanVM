@@ -18,11 +18,10 @@ public import Statement.Corollaries
 public import Common.Transfer
 public import LeanXmss.Scheme
 public import Statement.LeanSphincs
-public import Statement.Fast.Schemes
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
-public import Statement.Fast.QuadExt
-public import Statement.Fast.FieldWords
+public import FastFields.QuadExt
+public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
@@ -145,13 +144,6 @@ theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol
     (hv : B1.Main.SubSoundW bytecode piOf) :
     MemoryAggregateSound guestProgram (decodeV piOf) transcriptExtractor :=
   aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
-
-/-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
-theorem aggregate_sound_outer_sub
-    {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
-    (hv : B1.Main.SubSoundW bytecode piOf) :
-    MemoryAggregateSound guestProgram (decodeV piOf) transcriptExtractor :=
-  aggregate_sound_outer_V (b2SoundL endPending_proved) hv
 
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
 the random-permutation experiment, the verifier accepts a proof of the guest from which no

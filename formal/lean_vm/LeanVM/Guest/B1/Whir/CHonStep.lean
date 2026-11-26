@@ -178,7 +178,7 @@ theorem lvMid_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} {l : ℕ} (
         tabs) := by
   set c := h.c with hc
   set lv := c.levels.getD l default with hlv
-  obtain ⟨⟨-, hLv, -⟩, hlen0, hyr0, -, hsent0, -, -, -, -, -, -, -, -, hlt0⟩ := hS
+  obtain ⟨-, hLv, -, hlen0, hyr0, -, hsent0, -, -, -, -, -, -, -, -, hlt0⟩ := hS
   have hyr : c.yrLevel + 1 = c.levels.length := hyr0
   have hlen : (osSizesL c).length = 20 + c.yrLevel := hlen0
   have hsent : ∀ l < c.yrLevel, (osSizesL c).getD (12 + l) 0 = 2 + (c.levels.getD l default).folds := hsent0
@@ -271,7 +271,7 @@ theorem lvFin_step {h : OsHD} {b : ℕ} {tabs cur : E} {xs : List E} (hS : BodyS
   set c := h.c with hc
   set l := c.yrLevel with hl
   set lv := c.levels.getD l default with hlv
-  obtain ⟨⟨-, hLv, -⟩, hlen0, hyr0, -, -, hlane0, -, -, -, -, -, -, -, hlt0⟩ := hS
+  obtain ⟨-, hLv, -, hlen0, hyr0, -, -, hlane0, -, -, -, -, -, -, -, hlt0⟩ := hS
   have hyr : c.yrLevel + 1 = c.levels.length := hyr0
   have hlen : (osSizesL c).length = 20 + c.yrLevel := hlen0
   have hlane : (osSizesL c).getD (12 + c.yrLevel) 0 = c.yrLen + (c.levels.getD c.yrLevel default).folds := hlane0
