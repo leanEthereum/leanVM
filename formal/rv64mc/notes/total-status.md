@@ -2,17 +2,17 @@
 
 Which of the functions `main` reaches have a total contract (`HoldsT`, `Core/HoldsT.lean`), toward `main`'s `MainSpecT` (`Final/MainSpecT.lean`), as `notes/status.md` tracks the partial ones. A function is **total** here when it has a total contract over its template in `Proof/**` (a `T` module) and a `Table` instance at the image (`Rv64mc/Table/*T.lean`: `liftProg Gen.fns`, `Gen.Idx`, `Gen.Needs`, its callees' `Table` instances as arguments). Indices and instruction counts are `Rv64mc/Gen/index.tsv`'s; heights are the call graph's from the leaves (0 a leaf); the partial class is `notes/status.md`'s (A proved at the image, C a contract only, D nothing). The call graph has 229 functions (`_start` is not counted: `Final/StartT.lean` proves it from `MainSpecT`).
 
-Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
+Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `keccak tables (InData)`, `keccak_f`'s round constants, `π` and `ρ` tables in the static data (`Table/HashT.lean`'s `KeccakTables`); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
 
 ## Summary
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 86 | 2370 (11.4%) |
-| of which no open hypothesis | 41 | 1162 |
-| of which only environment facts open | 85 | 2368 |
+| total, with a `Table` instance | 89 | 2916 (14.0%) |
+| of which no open hypothesis | 42 | 1181 |
+| of which only environment facts open | 88 | 2914 |
 | stated, not proved here | 1 | 268 |
-| no total contract | 142 | 18240 |
+| no total contract | 139 | 17694 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
@@ -70,7 +70,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 2 | 37 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier` | 56 | C | yes | Proof/Runtime/TryAllocateInT, TryAllocateInZT | AllocT.tryAllocateIn, VecT.tryAllocateIn | env |
 | 2 | 41 | `<alloc::raw_vec::RawVecInner>::finish_grow @verifier` | 66 | A | yes | Proof/Runtime/FinishGrowT, FinishGrowAT (block aligned) | CopyUseT.finishGrow | env |
 | 2 | 71 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::Table>> @v...` | 25 | C | no | - | - | - |
-| 2 | 114 | `verifier::hash::keccak_f` | 391 | C | no | - | - | - |
+| 2 | 114 | `verifier::hash::keccak_f` | 391 | C | yes | Proof/Hash/KeccakFT | HashT.keccakFT | keccak tables (InData) |
 | 2 | 136 | `verifier::ring_switch::frobenius_8` | 13 | A | yes | Proof/Whir/Frobenius8T | WhirT.frobenius8 | none |
 | 2 | 144 | `<verifier::hash::Digest>::words` | 3 | A | yes | Proof/Hash/DigestWordsT | CopyUseT.digestWords | none |
 | 3 | 9 | `alloc::raw_vec::capacity_overflow` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.capacityOverflow | none |
@@ -81,11 +81,11 @@ A total proof steps through each call with the callee's total contract, so its c
 | 3 | 16 | `core::panicking::panic_bounds_check` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicBoundsCheck | none |
 | 3 | 18 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 62 | D | no | - | - | - |
 | 3 | 40 | `<alloc::raw_vec::RawVecInner>::grow_amortized @verifier` | 41 | A | yes | Proof/Runtime/GrowAmortizedT | AllocT.growAmortized | env |
-| 3 | 56 | `<verifier::hash::Digest>::halves` | 19 | A | no | - | - | - |
+| 3 | 56 | `<verifier::hash::Digest>::halves` | 19 | A | yes | Proof/Hash/DigestHalvesT | HashT.digestHalvesT | none |
 | 3 | 63 | `alloc::boxed::box_new_uninit` | 11 | A | yes | Proof/Runtime/BoxNewUninitT | AllocT.boxNewUninit | env |
 | 3 | 70 | `core::ptr::drop_glue::<verifier::layout::Layout> @verifier` | 23 | A | no | - | - | - |
 | 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | no | - | - | - |
-| 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | no | - | - | - |
+| 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | yes | Proof/Hash/KeccakHashT | HashT.keccakHashT | keccak tables (InData) |
 | 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
 | 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | no | - | - | - |
 | 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | yes | Proof/Bus/ClaimsFromT | VecT.claimsFrom | env |
