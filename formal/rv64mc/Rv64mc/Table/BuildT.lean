@@ -8,7 +8,7 @@
 
   ## Main results
 
-  * `specExtendE`, `fromIterE`
+  * `specExtendE`, `fromIterE`, `tryMapClaims`
 -/
 
 import Rv64mc.Table.AllocT
@@ -16,10 +16,11 @@ import Rv64mc.Table.CopyUseT
 import Rv64mc.Table.FieldT
 import Rv64mc.Proof.Runtime.SpecExtendT
 import Rv64mc.Proof.Runtime.FromIterET
+import Rv64mc.Proof.Bus.TryMapT
 
 namespace Rv64mc.Table.BuildT
 
-open MachineChecked.RiscV.Lift Rv64mc.Gen Rv64mc.Proof.Runtime
+open MachineChecked.RiscV.Lift Rv64mc.Gen Rv64mc.Proof Rv64mc.Proof.Runtime
 
 variable (env : Env) (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
   (hend : env.heapEnd = 0x78000000#64)
@@ -45,6 +46,15 @@ theorem fromIterE (hd : FieldT.ClmulTable env) :
     (RuntimeT.alloc env hnext hend) (AllocT.reserveE env hnext hend) (RuntimeT.handleError env)
     (FieldT.eMul env hd) (RuntimeT.panicBoundsCheck env)
 
+/-- **`<[usize; 2]>::try_map` with `verify_bus_balance`'s claim closure at the image** (function 153). -/
+theorem tryMapClaims :
+    Bus.TryMapT.SpecT env (liftProg fns) Idx.Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3
+      Needs.Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3 :=
+  Bus.TryMapT.total env _ _ Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3.link
+    Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3.tmpl_eq
+    Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3.wf (by decide) (by decide) (by decide) (by decide)
+    (RuntimeT.alloc env hnext hend) (CopyUseT.memcpy env) (RuntimeT.handleError env) (RuntimeT.panicBoundsCheck env)
+
 end Rv64mc.Table.BuildT
 
 /-- info: 'Rv64mc.Table.BuildT.specExtendE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -54,3 +64,7 @@ end Rv64mc.Table.BuildT
 /-- info: 'Rv64mc.Table.BuildT.fromIterE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.BuildT.fromIterE
+
+/-- info: 'Rv64mc.Table.BuildT.tryMapClaims' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.BuildT.tryMapClaims
