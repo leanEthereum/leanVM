@@ -8,7 +8,7 @@
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 
-pub use aggregation::MAX_RECURSIONS;
+pub use aggregation::{MAX_RECURSIONS, PROTOCOL_VERSION};
 pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims};
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 

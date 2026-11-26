@@ -48,6 +48,7 @@ final class Native {
     private static final FunctionDescriptor VERIFY = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE);
 
     private static final MethodHandle SETUP = downcall("lpq_setup", FunctionDescriptor.of(ValueLayout.JAVA_INT, SIZE));
+    private static final MethodHandle PROTOCOL_VERSION = downcall("lpq_protocol_version", FunctionDescriptor.of(ValueLayout.JAVA_INT));
     private static final MethodHandle LAST_ERROR = downcall("lpq_last_error", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle BUFFER_FREE = downcall("lpq_buffer_free", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, SIZE));
 
@@ -92,6 +93,10 @@ final class Native {
 
     static void setup(int threads) {
         check(status(SETUP, (long) threads));
+    }
+
+    static int protocolVersion() {
+        return (int) invoke(PROTOCOL_VERSION);
     }
 
     /** Returns {@code bytes} after checking it is non-null and exactly {@code length} bytes long. */

@@ -86,6 +86,7 @@ const
     ## The bridge caught a Rust panic.
 
 proc lpqSetup*(threads: csize_t): int32 {.importc: "lpq_setup", header: lpqHeader.}
+proc lpqProtocolVersion*(): uint32 {.importc: "lpq_protocol_version", header: lpqHeader.}
 proc lpqLastError*(output: ptr LpqBuffer): int32 {.importc: "lpq_last_error", header: lpqHeader.}
 proc lpqBufferFree*(data: ptr byte, len: csize_t) {.importc: "lpq_buffer_free", header: lpqHeader.}
 

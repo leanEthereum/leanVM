@@ -185,6 +185,11 @@ class LeanPqTest {
     }
 
     @Test
+    void exportsTheProtocolVersion() {
+        assertTrue(LeanPq.protocolVersion() >= 1);
+    }
+
+    @Test
     void setupKeepsItsFirstThreadCount() {
         // 0, the count aggregating starts the prover with.
         LeanPq.setup(0);

@@ -65,6 +65,8 @@ Needs Rust.
 
 ## Releases
 
+The package version follows the API. `PROTOCOL_VERSION` (`protocolVersion()` or `ProtocolVersion` in some languages) is separate: proofs and signatures interoperate only between packages with the same one. Changing it bumps at least the minor version.
+
 Merging the release pull request that release-please keeps open tags `bindings-vX.Y.Z` and publishes every package: see [CHANGELOG.md](CHANGELOG.md) and [RELEASING.md](RELEASING.md).
 
 ## License

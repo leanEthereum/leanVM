@@ -41,6 +41,9 @@ public static unsafe class LeanPq
         Native.Check(Native.Setup((nuint)threads));
     }
 
+    /// <summary>Proofs and signatures are compatible only between builds with the same protocol version.</summary>
+    public static uint ProtocolVersion => Native.ProtocolVersion();
+
     /// <summary>Returns whether the 2404-byte leanXMSS signature is valid for the public key and message.</summary>
     /// <exception cref="ArgumentException">The public key or message is not 32 bytes.</exception>
     public static bool XmssVerify(ReadOnlySpan<byte> publicKey, ReadOnlySpan<byte> message, ReadOnlySpan<byte> signature)

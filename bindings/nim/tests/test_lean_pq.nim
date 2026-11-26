@@ -248,6 +248,9 @@ suite "lean_pq":
       restored.toBytes().isErr()
       LeanPqAggregate.init([root, restored]).error() == "aggregate is closed"
 
+  test "exports the protocol version":
+    check leanPqProtocolVersion() >= 1
+
   test "setup keeps its thread count":
     check:
       leanPqSetup(0).isOk()

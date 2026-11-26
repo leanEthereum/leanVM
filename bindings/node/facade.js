@@ -27,6 +27,7 @@ async function aggregate(input) {
 }
 
 module.exports = {
+  PROTOCOL_VERSION: native.PROTOCOL_VERSION,
   setup,
   XmssSecretKey,
   xmssVerify: native.xmssVerify,

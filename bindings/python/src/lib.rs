@@ -432,6 +432,7 @@ fn aggregate(
 #[pymodule]
 fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    module.add("PROTOCOL_VERSION", lean_pq::PROTOCOL_VERSION)?;
     module.add("LeanPqError", py.get_type::<LeanPqError>())?;
     module.add_class::<PyXmssSecretKey>()?;
     module.add_class::<PySphincsSecretKey>()?;

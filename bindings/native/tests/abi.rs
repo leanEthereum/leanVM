@@ -17,6 +17,7 @@ fn native_abi_signs_verifies_and_aggregates() {
         .stack_size(32 * 1024 * 1024)
         .spawn(|| unsafe {
             assert_eq!(lpq_setup(0), OK);
+            assert_eq!(lpq_protocol_version(), lean_pq::PROTOCOL_VERSION);
             let message = [42u8; 32];
             let other = [43u8; 32];
 

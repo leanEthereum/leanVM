@@ -2,7 +2,7 @@
 
 ## How a release happens
 
-1. Commits have conventional-commit titles (`feat:`, `fix:`, `chore:`, ...). Every commit counts toward the bindings' version but one touching only `.github/`, `bench/`, `doc/` or `formal/`.
+1. Commits have conventional-commit titles (`feat:`, `fix:`, `chore:`, ...). Every commit counts toward the bindings' version but one touching only `.github/`, `bench/`, `doc/` or `formal/`. `!` marks an API break; a `PROTOCOL_VERSION` bump is titled `feat(protocol):`.
 2. On `main`, release-please keeps a release pull request open. It bumps the version in `bindings/Cargo.toml` and in every file `release-please-config.json` lists (in READMEs, inside `x-release-please` blocks), and writes `bindings/CHANGELOG.md`.
 3. Merging it tags `bindings-vX.Y.Z`, and `bindings-release.yml` runs on the tag and publishes every package below.
 

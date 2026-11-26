@@ -207,6 +207,12 @@ public class LeanPqTests
         Assert.Throws<LeanPqException>(() => LeanPq.Aggregate([], [], []));
 
     [Test]
+    public void ExportsTheProtocolVersion()
+    {
+        Assert.That(LeanPq.ProtocolVersion, Is.GreaterThanOrEqualTo(1u));
+    }
+
+    [Test]
     public void SetupKeepsItsFirstThreadCount()
     {
         // 0 also passes after an earlier test's aggregation started the prover, with 0 threads.

@@ -131,6 +131,22 @@ fn guest_compiles_reproducibly() {
     );
 }
 
+/// Changing the guest must bump [`PROTOCOL_VERSION`].
+#[test]
+fn protocol_version_pins_the_guest() {
+    let iv: String = unified_guest()
+        .bytecode()
+        .fiat_shamir_iv()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    assert_eq!(
+        (PROTOCOL_VERSION, iv.as_str()),
+        (1, "48e6b44638b23e99dd4a5cfc7004980010ca8c642e5f0d2a8901107bbc2dac1b"),
+        "the guest changed: bump PROTOCOL_VERSION"
+    );
+}
+
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,
 /// `hi · 2^32` and `step · 2^61` in the low lane, and the top layer's flag, which
 /// must be the native address's bytes.

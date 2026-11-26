@@ -61,6 +61,10 @@ test('loads a leanXMSS key from its tree cache', async () => {
   }
 })
 
+test('exports the protocol version', () => {
+  assert.ok(Number.isInteger(lpq.PROTOCOL_VERSION) && lpq.PROTOCOL_VERSION >= 1)
+})
+
 test('setup keeps its first thread count', async () => {
   await assert.rejects(lpq.setup(-1), /threads must be an integer/)
   await lpq.setup()

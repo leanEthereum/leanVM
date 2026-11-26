@@ -11,6 +11,9 @@ export interface SignedMessage {
   signature: Buffer
 }
 
+/** Proofs and signatures are compatible only between builds with the same protocol version. */
+export declare const PROTOCOL_VERSION: number
+
 /**
  * Starts the prover with `threads` threads (0, the default: one per physical core). Rejects when it
  * already runs with another count.
