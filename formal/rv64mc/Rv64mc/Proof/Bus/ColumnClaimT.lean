@@ -35,20 +35,23 @@ open Rv64mc.Proof.Runtime.CloneT (next_setMem_win next_setMem_win0)
 /-- The closure's total precondition: the result's slot a caller's, in a window and 8-byte aligned; the point
     `len` elements of a vector's buffer. -/
 def ClaimPreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
-  env.Owned m (regs .x2) (regs .x10) 48 ∧ InWin env (regs .x10) 48 ∧ (regs .x10).toNat % 8 = 0 ∧
+  env.Owned m (regs .x2) (regs .x10) Layouts.ColumnClaim.byteSize ∧
+    InWin env (regs .x10) Layouts.ColumnClaim.byteSize ∧ (regs .x10).toNat % 8 = 0 ∧
     BufT env m (regs .x13) (regs .x12) 16
 
-/-- The closure's total postcondition: the point's copy a vector's of its length, fresh unless empty; the column
-    and the value's limbs as passed. -/
+/-- The closure's total postcondition: the point's copy a vector's of its length, fresh unless empty, at the
+    result's start (`Layouts.ColumnClaim.point` is `0`); the column and the value's limbs as passed. -/
 def ClaimPostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   VecT env m' (regs .x10) 16 ∧ vecLen m' (regs .x10) = regs .x13 ∧
     ((regs .x13).toNat = 0 ∨ env.Fresh m m' (vecPtr m' (regs .x10)) ((regs .x13).toNat * 16)) ∧
-    m'.getMem (regs .x10 + 24#64) = regs .x11 ∧ m'.getMem (regs .x10 + 32#64) = regs .x14 ∧
-    m'.getMem (regs .x10 + 40#64) = regs .x15
+    m'.getMem (regs .x10 + BitVec.ofNat 64 Layouts.ColumnClaim.column) = regs .x11 ∧
+    m'.getMem (regs .x10 + BitVec.ofNat 64 Layouts.ColumnClaim.value) = regs .x14 ∧
+    m'.getMem (regs .x10 + BitVec.ofNat 64 (Layouts.ColumnClaim.value + 8)) = regs .x15
 
 /-- **The total contract of `verify_bus_balance::{closure#0}`**, writing its 48-byte result. -/
 def ClaimSpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
-  HoldsT env p i need (ClaimPreT env) (ClaimPostT env) (fun regs _ => InRange (regs .x10) 48) AbortStop
+  HoldsT env p i need (ClaimPreT env) (ClaimPostT env)
+    (fun regs _ => InRange (regs .x10) Layouts.ColumnClaim.byteSize) AbortStop
 
 set_option rv_sym.heap true in
 /-- **`verify_bus_balance::{closure#0}` is total**, with 80 bytes of stack beyond its callees'. -/
@@ -60,7 +63,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Verifier.B
   have hal' : HoldsT env p L.alloc.idx needA AllocPre (AllocPost env) (Stop := AbortStop) :=
     hal.mono_stop fun _ _ _ _ _ h => h.1
   rv_autoT hp with [hL] using [hal', hcp, hhe]
-  all_goals simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr] at *
+  all_goals simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr,
+    Layouts.ColumnClaim.byteSize, Layouts.ColumnClaim.value, Nat.reduceAdd] at *
   all_goals try rv_closeT
   all_goals
     have hl := env.layout
