@@ -84,13 +84,13 @@ A total proof steps through each call with the callee's total contract, so its c
 | 3 | 56 | `<verifier::hash::Digest>::halves` | 19 | A | yes | Proof/Hash/DigestHalvesT | HashT.digestHalvesT | none |
 | 3 | 63 | `alloc::boxed::box_new_uninit` | 11 | A | yes | Proof/Runtime/BoxNewUninitT | AllocT.boxNewUninit | env |
 | 3 | 70 | `core::ptr::drop_glue::<verifier::layout::Layout> @verifier` | 23 | A | no | - | - | - |
-| 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | no | - | - | - |
+| 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | yes | Proof/Multilinear/PolyEvalT | MultilinearT.polyEval | clmul table |
 | 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | yes | Proof/Hash/KeccakHashT | HashT.keccakHashT | keccak tables (InData) |
 | 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
-| 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | no | - | - | - |
+| 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | yes | Proof/Whir/RingPsiT | MultilinearT.ringPsi | clmul table |
 | 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | yes | Proof/Bus/ClaimsFromT | VecT.claimsFrom | env |
-| 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | no | - | - | - |
-| 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | no | - | - | - |
+| 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | yes | Proof/Multilinear/IndexMleT | MultilinearT.indexMle | clmul table |
+| 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | yes | Proof/Multilinear/PaddingWeightT | MultilinearT.paddingWeight | clmul table |
 | 3 | 167 | `<verifier::layout::Form>::term` | 35 | A | yes | Proof/Layout/TermT | LayoutT.term | env |
 | 3 | 170 | `<verifier::field::E>::pow` | 45 | A | yes | Proof/Field/EPowT | LayoutT.ePow | clmul table |
 | 3 | 213 | `<verifier::transcript::Sponge>::new` | 37 | C | no | - | - | - |
@@ -103,7 +103,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 33 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 72 | D | no | - | - | - |
 | 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | no | - | - | - |
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
-| 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | no | - | - | - |
+| 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | yes | Proof/Field/ScaledMulT | MultilinearT.scaledMul | none |
 | 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | no | - | - | - |
 | 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | no | - | - | - |
 | 4 | 142 | `core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<...` | 110 | D | no | - | - | - |
@@ -115,7 +115,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 183 | `<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<...` | 78 | D | no | - | - | - |
 | 4 | 216 | `verifier::bytecode::is_valid_encoding_of_a_leanisa_program` | 287 | A | no | - | - | - |
 | 5 | 24 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 60 | D | no | - | - | - |
-| 5 | 28 | `verifier::multilinear::dot` | 44 | A | no | - | - | - |
+| 5 | 28 | `verifier::multilinear::dot` | 44 | A | yes | Proof/Multilinear/DotT | MultilinearT.dot | clmul table |
 | 5 | 32 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::op...` | 69 | D | no | - | - | - |
 | 5 | 39 | `<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<...` | 11 | A | yes | Proof/Runtime/DoReserveT | AllocT.doReserve | env |
 | 5 | 52 | `<verifier::transcript::Sponge>::sample` | 19 | A | no | - | - | - |
@@ -126,8 +126,8 @@ A total proof steps through each call with the callee's total contract, so its c
 | 5 | 83 | `verifier::whir::fold_row` | 104 | C | no | - | - | - |
 | 5 | 91 | `<alloc::raw_vec::RawVec<verifier::field::E>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneE | env |
 | 5 | 92 | `<alloc::raw_vec::RawVec<verifier::whir::FoldRound>>::grow_one @veri...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneFoldRound | env |
-| 5 | 94 | `<verifier::multilinear::Scaler>::mul` | 17 | A | no | - | - | - |
-| 5 | 98 | `verifier::multilinear::eq_eval` | 40 | A | no | - | - | - |
+| 5 | 94 | `<verifier::multilinear::Scaler>::mul` | 17 | A | yes | Proof/Multilinear/ScalerMulT | MultilinearT.scalerMul | clmul table |
+| 5 | 98 | `verifier::multilinear::eq_eval` | 40 | A | yes | Proof/Multilinear/EqEvalT | MultilinearT.eqEval | clmul table |
 | 5 | 103 | `verifier::ring_switch::ring_weight` | 106 | C | no | - | - | - |
 | 5 | 112 | `<verifier::transcript::Sponge>::absorb` | 43 | A | no | - | - | - |
 | 5 | 118 | `<alloc::raw_vec::RawVec<verifier::field::K>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneK | env |
