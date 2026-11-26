@@ -1,8 +1,12 @@
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::process::{Command, Output};
 
 fn fibonacci(value: &OsStr, before: &[&str], after: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_leanvm-bench"))
+    let executable = option_env!("CARGO_BIN_EXE_leanvm-bench")
+        .map(OsString::from)
+        .or_else(|| std::env::var_os("CARGO_BIN_EXE_leanvm-bench"))
+        .expect("Cargo must provide the leanvm-bench executable for integration tests");
+    Command::new(executable)
         .env("LEANVM_NUM_THREADS", value)
         .args(["--prover", "stable", "--cooldown", "0"])
         .args(before)
