@@ -136,6 +136,10 @@ def test_aggregating_nothing_fails():
         lpq.aggregate()
 
 
+def test_exports_the_protocol_version():
+    assert isinstance(lpq.PROTOCOL_VERSION, int) and lpq.PROTOCOL_VERSION >= 1
+
+
 def test_setup_keeps_its_first_thread_count():
     lpq.setup()
     with pytest.raises(lpq.LeanPqError, match="already started with 0 threads, not 1"):

@@ -33,6 +33,8 @@ void lpq_buffer_free(uint8_t *data, size_t len);
  * if it runs with another count, or in a process forked after it started.
  */
 int32_t lpq_setup(size_t threads);
+/* Proofs and signatures are compatible only between builds with the same protocol version. */
+uint32_t lpq_protocol_version(void);
 
 int32_t lpq_xmss_secret_key_generate(lpq_xmss_secret_key **out);
 int32_t lpq_xmss_secret_key_from_bytes(const uint8_t *data, size_t len, lpq_xmss_secret_key **out);

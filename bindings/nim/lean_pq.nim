@@ -418,6 +418,10 @@ proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
 # Aggregation
 ##############################################################
 
+proc leanPqProtocolVersion*(): uint32 =
+  ## Proofs and signatures are compatible only between builds with the same protocol version.
+  lpqProtocolVersion()
+
 proc leanPqSetup*(threads: int): Result[void, string] =
   ## Starts the prover on `threads` threads (0: one per physical core). Fails if the prover already runs
   ## with another count.

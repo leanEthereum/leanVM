@@ -76,6 +76,11 @@ pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));
 }
 
+/// Proofs and signatures are compatible only between builds with the same protocol version.
+pub fn protocolVersion() u32 {
+    return c.lpq_protocol_version();
+}
+
 /// Copies the calling thread's last native error message.
 pub fn lastError(allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
     var output: c.lpq_buffer = .{ .data = null, .len = 0 };

@@ -708,6 +708,7 @@ module.exports.aggregate = nativeBinding.aggregate
 module.exports.aggregateFromBytes = nativeBinding.aggregateFromBytes
 module.exports.generateSphincsSecretKey = nativeBinding.generateSphincsSecretKey
 module.exports.generateXmssSecretKey = nativeBinding.generateXmssSecretKey
+module.exports.PROTOCOL_VERSION = nativeBinding.PROTOCOL_VERSION
 module.exports.setup = nativeBinding.setup
 module.exports.sphincsSecretKeyFromBytes = nativeBinding.sphincsSecretKeyFromBytes
 module.exports.sphincsSecretKeyFromSeed = nativeBinding.sphincsSecretKeyFromSeed

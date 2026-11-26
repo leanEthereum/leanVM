@@ -555,6 +555,10 @@ impl Task for AggregateTask {
     }
 }
 
+/// Proofs and signatures are compatible only between builds with the same protocol version.
+#[napi]
+pub const PROTOCOL_VERSION: u32 = lean_pq::PROTOCOL_VERSION;
+
 #[napi(ts_return_type = "Promise<void>")]
 pub fn setup(env: &Env, threads: Option<f64>) -> Result<Object<'_>> {
     on_own_thread(

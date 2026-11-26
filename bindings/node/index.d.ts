@@ -45,6 +45,9 @@ export declare function generateSphincsSecretKey(): Promise<SphincsSecretKey>
 
 export declare function generateXmssSecretKey(): Promise<XmssSecretKey>
 
+/** Proofs and signatures are compatible only between builds with the same protocol version. */
+export const PROTOCOL_VERSION: number
+
 export declare function setup(threads?: number | undefined | null): Promise<void>
 
 /** A raw signature to aggregate. */

@@ -107,21 +107,16 @@ build() {
   fi
 }
 
-# Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`), in the workspace
-# that built it: its own, or lean_vm's after `together`.
+# Check the listed declarations in the workspace that built them, or in lean_vm's workspace
+# after `together`.
 axioms_in=""
 axioms() { bg "$1: axiom footprint" axioms_of "$@"; }
 axioms_of() {
-  local dir=$1 module=$2 t; shift 2
-  { printf "import %s\n" $module; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
-  (cd "${axioms_in:-$dir}" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
-  for t in "$@"; do
-    grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms-$dir.txt" \
-      || fail "$dir: $t depends on more axioms"
-  done
+  local dir=$1 modules=$2 checker="$PWD/tools/axiom-footprint.sh"; shift 2
+  (cd "${axioms_in:-$dir}" && capped lake env bash "$checker" "$dir" "$modules" "$@")
 }
 
-# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, `fast_fields`
+# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, EthLib's specification, `fast_fields`
 # and itself, and `import all` only of its own generated data (`Statement.Data`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
@@ -136,10 +131,13 @@ statement() {
   no_escapes Statement
   no_escapes fast_fields
   lakefiles
-  step "Statement: imports only Mathlib, VCVio, CompPoly, fast_fields and itself"
+  step "Statement: imports only Mathlib, VCVio, CompPoly, EthLib's specification, fast_fields and itself"
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly, fast_fields and itself, or \`import all\` beyond Statement.Data"
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|EthLib\.[A-Za-z0-9_.]*$|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly, EthLib's specification, fast_fields and itself, or \`import all\` beyond Statement.Data"
+  fi
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib\..*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake Statement; then
+    fail "Statement imports an EthLib proof module"
   fi
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
       | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'; then

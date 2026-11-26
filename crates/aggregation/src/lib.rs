@@ -63,4 +63,7 @@ pub use proof::AggregateProof;
 /// The maximum number of child proofs one [`aggregate`] call can take.
 pub const MAX_RECURSIONS: usize = 16;
 
+/// Bumped when old proofs or signatures stop verifying.
+pub const PROTOCOL_VERSION: u32 = 1;
+
 pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

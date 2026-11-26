@@ -411,6 +411,12 @@ func TestRejectsEmptyAggregation(t *testing.T) {
 	}
 }
 
+func TestProtocolVersion(t *testing.T) {
+	if ProtocolVersion() < 1 {
+		t.Fatal("the protocol version starts at 1")
+	}
+}
+
 func TestSetupKeepsItsThreadCount(t *testing.T) {
 	if err := Setup(0); err != nil {
 		t.Fatal(err)

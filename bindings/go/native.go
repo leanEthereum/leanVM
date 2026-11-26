@@ -94,6 +94,11 @@ func Setup(threads int) error {
 	return call(func() C.int32_t { return C.lpq_setup(C.size_t(threads)) })
 }
 
+// ProtocolVersion returns the protocol version: builds are compatible only if it matches.
+func ProtocolVersion() uint32 {
+	return uint32(C.lpq_protocol_version())
+}
+
 // GenerateXmssSecretKey creates a random leanXMSS key.
 func GenerateXmssSecretKey() (*XmssSecretKey, error) {
 	var handle *C.lpq_xmss_secret_key

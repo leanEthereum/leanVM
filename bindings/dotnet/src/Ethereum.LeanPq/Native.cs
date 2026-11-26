@@ -48,6 +48,9 @@ internal static unsafe partial class Native
     [LibraryImport(Library, EntryPoint = "lpq_buffer_free")]
     private static partial void BufferFree(byte* data, nuint length);
 
+    [LibraryImport(Library, EntryPoint = "lpq_protocol_version")]
+    internal static partial uint ProtocolVersion();
+
     [LibraryImport(Library, EntryPoint = "lpq_setup")]
     internal static partial int Setup(nuint threads);
 

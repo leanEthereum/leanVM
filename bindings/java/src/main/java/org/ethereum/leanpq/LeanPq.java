@@ -20,6 +20,11 @@ public final class LeanPq {
         Native.setup(threads);
     }
 
+    /** Proofs and signatures are compatible only between builds with the same protocol version. */
+    public static int protocolVersion() {
+        return Native.protocolVersion();
+    }
+
     /** Returns whether the 2404-byte leanXMSS signature is valid for the public key and message. */
     public static boolean xmssVerify(byte[] publicKey, byte[] message, byte[] signature) {
         return Native.xmssVerify(

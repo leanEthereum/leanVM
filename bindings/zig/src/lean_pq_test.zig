@@ -210,6 +210,10 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.create(&.{}, &.{}, &.{}));
 }
 
+test "exports the protocol version" {
+    try std.testing.expect(lpq.protocolVersion() >= 1);
+}
+
 test "setup keeps its thread count" {
     try lpq.setup(0);
     try lpq.setup(0);

@@ -5,6 +5,7 @@ from typing import final
 
 __all__ = [
     "__version__",
+    "PROTOCOL_VERSION",
     "LeanPqError",
     "XmssSecretKey",
     "SphincsSecretKey",
@@ -18,6 +19,8 @@ __all__ = [
 ]
 
 __version__: str
+# Proofs and signatures are compatible only between builds with the same protocol version.
+PROTOCOL_VERSION: int
 
 class LeanPqError(Exception): ...
 

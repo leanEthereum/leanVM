@@ -80,6 +80,7 @@ fn public_api_end_to_end() {
 
     // 4. Onto the wire, which carries only the proof: the receiver rebuilds the claims it expects, and
     //    verifying says exactly these pubkeys signed exactly these messages.
+    const { assert!(PROTOCOL_VERSION >= 1) };
     let received = AggregateProof::from_bytes(&proof.to_bytes()).unwrap();
     assert!(received.verify(&claims));
     let on = |message| claims.lean_xmss.iter().filter(|(_, m)| *m == message).count();
