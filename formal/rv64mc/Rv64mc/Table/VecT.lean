@@ -11,7 +11,8 @@
 
   ## Main results
 
-  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`, `cloneUsize`, `cloneE`, `columnClaim`, `claimsFrom`
+  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`, `cloneUsize`, `cloneE`,
+    `columnClaim`, `claimsFrom`
 -/
 
 import Rv64mc.Table.RuntimeT
