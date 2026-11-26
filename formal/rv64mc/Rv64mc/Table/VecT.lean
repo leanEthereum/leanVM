@@ -7,17 +7,18 @@
   link, the stack `Gen.Needs` gives, and its callees' total theorems. Left as hypotheses, as in `RuntimeT`: the
   environment's two facts about the image that `alloc` reads. Also the drops over a vector's elements
   (`DropSliceT`), `<Vec<T> as Clone>::clone` for `usize` and `E` (`CloneT`) and `verify_bus_balance`'s
-  `ColumnClaim` builder (`Proof/Bus/ColumnClaimT`).
+  `ColumnClaim` builder (`Proof/Bus/ColumnClaimT`) and `Vec<ColumnClaim>::from` (`Proof/Bus/ClaimsFromT`).
 
   ## Main results
 
-  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`, `cloneUsize`, `cloneE`, `columnClaim`
+  * `memsetBuiltin`, `memset`, `tryAllocateIn`, `dropVecVecForm`, `dropVecBusBlock`, `cloneUsize`, `cloneE`, `columnClaim`, `claimsFrom`
 -/
 
 import Rv64mc.Table.RuntimeT
 import Rv64mc.Table.CopyUseT
 import Rv64mc.Proof.Runtime.CloneT
 import Rv64mc.Proof.Bus.ColumnClaimT
+import Rv64mc.Proof.Bus.ClaimsFromT
 import Rv64mc.Gen.Link.Verifier.Bus
 import Rv64mc.Proof.Runtime.MemsetBytesT
 import Rv64mc.Proof.Runtime.TryAllocateInZT
@@ -31,6 +32,7 @@ open Rv64mc.Proof.Runtime.TryAllocateInZT (TryAllocSpecZT)
 open Rv64mc.Proof.Runtime.DropSliceT (DropSliceSpecT)
 open Rv64mc.Proof.Runtime.CloneT (CloneSpecT)
 open Rv64mc.Proof.Bus.ColumnClaimT (ClaimSpecT)
+open Rv64mc.Proof.Bus.ClaimsFromT (FromSpecT)
 
 variable (env : Env)
 
@@ -84,6 +86,14 @@ theorem columnClaim :
     Verifier.Bus.VerifyBusBalance.Closure0.tmpl_eq Verifier.Bus.VerifyBusBalance.Closure0.wf (by decide) (by decide)
     (by decide) (RuntimeT.alloc env hnext hend) (CopyUseT.memcpy env) (RuntimeT.handleError env)
 
+theorem claimsFrom :
+    FromSpecT env (liftProg fns) Idx.Alloc.Vec.VecColumnClaim.AsFromArrColumnClaimN2.From
+      Needs.Alloc.Vec.VecColumnClaim.AsFromArrColumnClaimN2.From :=
+  Proof.Bus.ClaimsFromT.total env _ _ Alloc.Vec.VecColumnClaim.AsFromArrColumnClaimN2.From.link
+    Alloc.Vec.VecColumnClaim.AsFromArrColumnClaimN2.From.tmpl_eq Alloc.Vec.VecColumnClaim.AsFromArrColumnClaimN2.From.wf
+    (by decide) (by decide) (by decide) (RuntimeT.alloc env hnext hend) (CopyUseT.memcpy env)
+    (RuntimeT.panicNounwindFmt env)
+
 end Alloc
 
 end Rv64mc.Table.VecT
@@ -119,3 +129,7 @@ end Rv64mc.Table.VecT
 /-- info: 'Rv64mc.Table.VecT.columnClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.VecT.columnClaim
+
+/-- info: 'Rv64mc.Table.VecT.claimsFrom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.VecT.claimsFrom
