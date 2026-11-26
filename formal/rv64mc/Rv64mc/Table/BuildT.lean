@@ -3,16 +3,19 @@
 
   Wave 4a's vector builders' total contracts at the image (`liftProg Gen.fns`), each at its index with the generated
   link, the stack `Gen.Needs` gives, and its callees' total theorems in `RuntimeT`, `AllocT` and `CopyUseT`. Left
-  as hypotheses, as in `RuntimeT`: the environment's two facts about the image that `alloc` reads.
+  as hypotheses, as in `RuntimeT`: the environment's two facts about the image that `alloc` reads, and
+  `clmul_low`'s table where a builder multiplies (`FieldT.ClmulTable`).
 
   ## Main results
 
-  * `specExtendE`
+  * `specExtendE`, `fromIterE`
 -/
 
 import Rv64mc.Table.AllocT
 import Rv64mc.Table.CopyUseT
+import Rv64mc.Table.FieldT
 import Rv64mc.Proof.Runtime.SpecExtendT
+import Rv64mc.Proof.Runtime.FromIterET
 
 namespace Rv64mc.Table.BuildT
 
@@ -31,8 +34,23 @@ theorem specExtendE :
     Alloc.Vec.SpecExtend.VecE.AsSpecExtendRefEIterE.SpecExtend.wf (by decide) (by decide)
     (AllocT.reserveE env hnext hend) (CopyUseT.memcpy env)
 
+/-- **`Vec<E>`'s `spec_from_iter_nested` over `verify_layer`'s products at the image** (function 143). -/
+theorem fromIterE (hd : FieldT.ClmulTable env) :
+    FromIterET.SpecT env (liftProg fns) Idx.Alloc.Vec.SpecFromIterNested.VecE.AsSpecFromIterNestedEMapH4a41f075.FromIter
+      Needs.Alloc.Vec.SpecFromIterNested.VecE.AsSpecFromIterNestedEMapH4a41f075.FromIter :=
+  FromIterET.total env _ _ Alloc.Vec.SpecFromIterNested.VecE.AsSpecFromIterNestedEMapH4a41f075.FromIter.link
+    Alloc.Vec.SpecFromIterNested.VecE.AsSpecFromIterNestedEMapH4a41f075.FromIter.tmpl_eq
+    Alloc.Vec.SpecFromIterNested.VecE.AsSpecFromIterNestedEMapH4a41f075.FromIter.wf
+    (by decide) (by decide) (by decide) (by decide) (by decide)
+    (RuntimeT.alloc env hnext hend) (AllocT.reserveE env hnext hend) (RuntimeT.handleError env)
+    (FieldT.eMul env hd) (RuntimeT.panicBoundsCheck env)
+
 end Rv64mc.Table.BuildT
 
 /-- info: 'Rv64mc.Table.BuildT.specExtendE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.BuildT.specExtendE
+
+/-- info: 'Rv64mc.Table.BuildT.fromIterE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.BuildT.fromIterE
