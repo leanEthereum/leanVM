@@ -1,13 +1,14 @@
 /-
   Rv64mc.Table.WhirT2
 
-  The WHIR functions' total contracts of wave 4b at the image (`liftProg Gen.fns`): each function's total theorem at
-  its index, with the generated link, the stack `Gen.Needs` gives (a caller's bound over its callee's by `decide`),
-  and its callees' total theorems (`FieldT.eMul`, `RuntimeT.assertFailedUsizeUsize`; for `fold_row` also
-  `FieldT.baseMul`, `RuntimeT.panicBoundsCheck`; for `ring_weight` also `FieldT.eSquare`, `RuntimeT.alloc`,
-  `RuntimeT.handleError`, `CopyUseT.memcpy`; `RingWeight::evaluate` takes `ringWeight`). Left as hypotheses: `clmul_low`'s constant table in the image's static
-  data (`FieldT.ClmulTable`), and for `ring_weight` and `RingWeight::evaluate` the allocator's two facts (`NEXT`'s data reference and the heap's
-  end), environment facts.
+  The WHIR and ring-switch functions' total contracts of wave 4b at the image (`liftProg Gen.fns`): each function's
+  total theorem at its index, with the generated link, the stack `Gen.Needs` gives (a caller's bound over its
+  callee's by `decide`), and its callees' total theorems (`FieldT.eMul`, `RuntimeT.assertFailedUsizeUsize`; for
+  `fold_row` also `FieldT.baseMul`, `RuntimeT.panicBoundsCheck`; for `ring_weight` also `FieldT.eSquare`,
+  `RuntimeT.alloc`, `RuntimeT.handleError`, `CopyUseT.memcpy`; `RingWeight::evaluate` takes `ringWeight`). Left as
+  hypotheses: `clmul_low`'s constant table in the image's static data (`FieldT.ClmulTable`), and for `ring_weight`
+  and `RingWeight::evaluate` the allocator's two facts (`NEXT`'s data reference and the heap's end), environment
+  facts.
 
   ## Main results
 
