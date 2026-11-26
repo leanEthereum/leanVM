@@ -107,18 +107,13 @@ build() {
   fi
 }
 
-# Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`), in the workspace
-# that built it: its own, or lean_vm's after `together`.
+# Check the listed declarations in the workspace that built them, or in lean_vm's workspace
+# after `together`.
 axioms_in=""
 axioms() { bg "$1: axiom footprint" axioms_of "$@"; }
 axioms_of() {
-  local dir=$1 module=$2 t; shift 2
-  { printf "import %s\n" $module; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
-  (cd "${axioms_in:-$dir}" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
-  for t in "$@"; do
-    grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms-$dir.txt" \
-      || fail "$dir: $t depends on more axioms"
-  done
+  local dir=$1 modules=$2 checker="$PWD/tools/axiom-footprint.sh"; shift 2
+  (cd "${axioms_in:-$dir}" && capped lake env bash "$checker" "$dir" "$modules" "$@")
 }
 
 # The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, `fast_fields`

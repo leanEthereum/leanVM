@@ -99,6 +99,8 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/common
+      - name: Test the axiom footprint checker
+        run: bash formal/tools/test-axiom-footprint.sh
       - name: Forbid deprecated API
         working-directory: formal/common
         run: |
@@ -107,12 +109,12 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/common
         run: |
-          theorems="Common.indifferentiability Common.transfer Common.transfer2 Common.keccak256_transfer Common.keccak256_transfer2 Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv Common.SeedDuplex.duplex_le"
-          { echo 'import Common'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in $theorems; do
-            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
-          done
+          set -o pipefail
+          lake env bash ../tools/axiom-footprint.sh common Common \
+            Common.indifferentiability Common.transfer Common.transfer2 \
+            Common.keccak256_transfer Common.keccak256_transfer2 \
+            Common.SufCma.rpm_le_romB Common.SufCma.stronglyUnforgeable_of_romBoundAdv \
+            Common.SeedDuplex.duplex_le 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
 
   lean-xmss-formalization:
     runs-on: ubuntu-latest
@@ -138,20 +140,14 @@ jobs:
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
           ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
-      # The root module guards its own footprint with `#guard_msgs`, which an
-      # edit to the expected message would silence. This asks again from
-      # outside, against the list written here.
+      # The external check uses the toolchain's standard axioms as its reference.
       - name: Check the axiom footprint
         working-directory: formal/lean_xmss
         run: |
-          theorems="leanXmss_rom_adversary_bound leanXmss_rpm_security"
-          { echo 'import XmssSecurity'; for t in $theorems; do echo "#print axioms XmssSecurity.$t"; done; } \
-            > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in $theorems; do
-            grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-              "$RUNNER_TEMP/axioms.txt"
-          done
+          set -o pipefail
+          lake env bash ../tools/axiom-footprint.sh lean_xmss XmssSecurity \
+            XmssSecurity.leanXmss_rom_adversary_bound XmssSecurity.leanXmss_rpm_security \
+            2>&1 | tee "$RUNNER_TEMP/axioms.txt"
       - uses: actions/upload-artifact@v4
         with:
           name: lean-xmss-axioms
@@ -197,12 +193,10 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/lean_sphincs
         run: |
-          theorems="Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary FORS.h26_layered"
-          { printf 'import %s\n' Sphincs FORS; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in $theorems; do
-            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
-          done
+          set -o pipefail
+          lake env bash ../tools/axiom-footprint.sh lean_sphincs 'Sphincs FORS' \
+            Sphincs.leanSphincsStronglyUnforgeable FORS.Lifetimes.h26_layered_adversary \
+            FORS.h26_layered 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -257,12 +251,10 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/lean_da
         run: |
-          theorems="LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm LeanDa.commitCodewords_eq_commitCells"
-          { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in $theorems; do
-            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
-          done
+          set -o pipefail
+          lake env bash ../tools/axiom-footprint.sh lean_da LeanDa \
+            LeanDa.leanDa_complete LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_membershipSound_rpm \
+            LeanDa.commitCodewords_eq_commitCells 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
@@ -388,12 +380,10 @@ jobs:
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
         run: |
-          theorems="LeanVM.theorems_hold LeanVM.corollaries_hold LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding LeanVM.Wire.proveWithHash_wireDecodable"
-          { echo 'import LeanVM'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in $theorems; do
-            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
-          done
+          set -o pipefail
+          lake env bash ../tools/axiom-footprint.sh lean_vm LeanVM \
+            LeanVM.theorems_hold LeanVM.corollaries_hold LeanVM.Wire.roundTrip LeanVM.Wire.oneEncoding \
+            LeanVM.Wire.proveWithHash_wireDecodable 2>&1 | tee "$RUNNER_TEMP/axioms.txt"
       # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
       - name: The private-import firewall holds (firewall-canary)
         run: python3 -I ../tools/firewall-canary.py
