@@ -481,7 +481,8 @@ theorem prev_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (regs 
 /-- `load_aligned_end_partial`'s word: the last four bytes, `c` bytes copied before them. -/
 theorem endWord_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (regs .x11) (regs .x12).toNat m)
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o N c : Nat} {r : Reg → Word}
-    {M : MachineState} (hR : Regs ret top regs r) (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
+    {M : MachineState} (hR : Regs ret top regs r)
+    (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
     (h13 : (r .x13).toNat = (regs .x10).toNat + j + N) (hN8 : N % 8 = 0) (hN : 8 ≤ N) (hjN : j + N ≤ (regs .x12).toNat)
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
@@ -514,7 +515,8 @@ theorem endWord_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (re
 /-- `load_aligned_end_partial` at its word: `x5 = 8 - o`, its bits below 4 copied. -/
 theorem endBit2_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (regs .x11) (regs .x12).toNat m)
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o N c : Nat} {r : Reg → Word}
-    {M : MachineState} (hR : Regs ret top regs r) (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
+    {M : MachineState} (hR : Regs ret top regs r)
+    (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
     (h13 : (r .x13).toNat = (regs .x10).toNat + j + N) (hN8 : N % 8 = 0) (hN : 8 ≤ N) (hjN : j + N ≤ (regs .x12).toNat)
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
@@ -539,7 +541,8 @@ theorem endBit2_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (re
     halfword and a word as the bits of `8 - o` say. -/
 theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (regs .x11) (regs .x12).toNat m)
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top) {j o N : Nat} {r : Reg → Word}
-    {M : MachineState} (hR : Regs ret top regs r) (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
+    {M : MachineState} (hR : Regs ret top regs r)
+    (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M j)
     (ho1 : 0 < o) (ho8 : o < 8) (h14 : (r .x14).toNat = (regs .x10).toNat + j) (ha14 : (r .x14).toNat % 8 = 0)
     (h13 : (r .x13).toNat = (regs .x10).toNat + j + N) (hN8 : N % 8 = 0) (hN : 8 ≤ N) (hjN : j + N ≤ (regs .x12).toNat)
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
@@ -699,7 +702,8 @@ theorem words_ok (hp : p[i]? = some (tmpl L)) (F : FxF env top (regs .x10) (regs
 /-- The bytes up to the destination's first 8-byte boundary, `mis` of them, at the loop's head with `c` left. -/
 def AInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (mis c : Nat) (r : Reg → Word)
     (M : MachineState) : Prop :=
-  Regs ret top regs r ∧ FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M (mis - c) ∧ (r .x15).toNat = c ∧
+  Regs ret top regs r ∧ FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M (mis - c) ∧
+    (r .x15).toNat = c ∧
     0 < c ∧ c ≤ mis ∧ (r .x16).toNat = (regs .x10).toNat + (mis - c) ∧
     (r .x17).toNat = (regs .x11).toNat + (mis - c) ∧ (r .x13).toNat = mis ∧ (r .x14).toNat = (regs .x10).toNat + mis ∧
     (r .x14).toNat % 8 = 0 ∧ mis ≤ 7 ∧ 16 ≤ (regs .x12).toNat ∧ r .x11 = regs .x11 ∧ r .x12 = regs .x12

@@ -145,6 +145,19 @@ theorem FInv.slot {top dst src x v s0 : Word} {n j : Nat} {w : Width} {m M : Mac
   rw [getMem_saved (by omega) (by omega) hal (.inl hx2)]
   exact h.2
 
+/-- **The start**: nothing copied, `s0` saved at `top - 8`. -/
+theorem FInv.start {top dst src s0 : Word} {n : Nat} {m : MachineState} (hst : env.Static m)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (hroom : env.stackLimit.toNat + 16 ≤ top.toNat)
+    (hal : top.toNat % 16 = 0) :
+    FInv env top dst src n s0 m (Tactic.storeMem .b8 m (top + 0xfffffffffffffff8#64) s0) 0 := by
+  have h8 := toNat_top8 (top := top) (by omega)
+  have hb8 : Width.b8.bytes = 8 := rfl
+  have htl := top.isLt
+  refine ⟨⟨Kept.slot ⟨Env.Frame.refl hnx, hst, rfl⟩ hroom (by omega) (by omega) (by rw [h8, hb8]; omega)
+    (by omega), fun _ h => absurd h (Nat.not_lt_zero _), fun b hb _ hs => ?_⟩, ?_⟩
+  · rw [bat_storeMem (by rw [h8, hb8]; omega) hb, ite_eq_right (by rw [h8, hb8]; omega)]
+  · exact MachineState.getMem_setMem_eq
+
 /-- A source byte at or after the copied ones reads as at entry while the forward copy runs. -/
 theorem FxF.src {top dst src s0 : Word} {n j a : Nat} {m M : MachineState} (F : FxF env top dst src n m)
     (hI : FInv env top dst src n s0 m M j) (hj : j ≤ n) (ha : src.toNat + j ≤ a) (hn : a < src.toNat + n) :
@@ -177,7 +190,8 @@ theorem FInv.toB {top dst src s0 : Word} {n : Nat} {m M : MachineState} (h : FIn
 /-- Everything copied, backward or forward. -/
 theorem BInv.toF {top dst src s0 : Word} {n : Nat} {m M : MachineState} (h : BInv env top dst src n s0 m M 0) :
     FInv env top dst src n s0 m M n :=
-  ⟨⟨h.1.1, fun k hk => by simpa using h.1.2.1 k (Nat.zero_le _) hk, fun b hb hn hs => h.1.2.2 b hb (by simpa using hn) hs⟩,
+  ⟨⟨h.1.1, fun k hk => by simpa using h.1.2.1 k (Nat.zero_le _) hk,
+    fun b hb hn hs => h.1.2.2 b hb (by simpa using hn) hs⟩,
     h.2⟩
 
 theorem BInv.byte {top dst src x v s0 : Word} {n j : Nat} {m M : MachineState}
@@ -276,15 +290,13 @@ theorem ofNat_add_toNat (a : Word) (k : Nat) : BitVec.ofNat 64 (a.toNat + k) = a
   apply BitVec.eq_of_toNat_eq; simp [BitVec.toNat_add]
 
 /-- The return, with every byte copied: `s0` restored from its slot. -/
-theorem ret_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
+theorem ret_ok' (hp : p[i]? = some (tmpl L)) (hW : Windows env top m)
+    (hroom : env.stackLimit.toNat + 16 ≤ top.toNat) (hal : top.toNat % 16 = 0)
     (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top)
     {r : Reg → Word} {M : MachineState} (hR : Regs ret top regs r)
     (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M (regs .x12).toNat) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 450, ret, top⟩ :: rest, r, M⟩ := by
   obtain ⟨h1, hx2, ha, h10⟩ := hR
-  have hW := F.win
-  have hroom := F.room
-  have hal := F.al
   have h8 : r .x2 + 8#64 = top + 0xfffffffffffffff8#64 := by
     rw [hx2, BitVec.add_assoc]; rfl
   have hx2' : r .x2 + 16#64 = top := by
@@ -300,5 +312,13 @@ theorem ret_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x
     simpa only [bat, ofNat_add_toNat] using this
   · have := hI.1.2.2 b.toNat b.isLt (by unfold InRange at hb; omega) (by unfold OffStack at hs; rw [hsp] at hs; omega)
     simpa only [bat, ofNat_toNat'] using this
+
+/-- `ret_ok'` with the windows from `Fx`. -/
+theorem ret_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
+    (hk : Cont env p Q ret top rest regs m) (hsp : regs .x2 = top)
+    {r : Reg → Word} {M : MachineState} (hR : Regs ret top regs r)
+    (hI : FInv env top (regs .x10) (regs .x11) (regs .x12).toNat (regs .x8) m M (regs .x12).toNat) :
+    rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 450, ret, top⟩ :: rest, r, M⟩ :=
+  ret_ok' hp F.win F.room F.al hk hsp hR hI
 
 end Rv64mc.Proof.Runtime.MoveT
