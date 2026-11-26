@@ -22,6 +22,7 @@ variable (env : Env) (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.
   (hend : env.heapEnd = 0x78000000#64)
 include hnext hend
 
+/-- **`selector_point` at the image** (function 102). -/
 theorem selectorPoint :
     SelectorPointT.SpecT env (liftProg fns) Idx.Verifier.Multilinear.SelectorPoint
       Needs.Verifier.Multilinear.SelectorPoint :=

@@ -23,6 +23,7 @@ variable (env : Env) (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.
   (hend : env.heapEnd = 0x78000000#64)
 include hnext hend
 
+/-- **`powers` at the image** (function 53). -/
 theorem powers (hd : FieldT.ClmulTable env) :
     PowersT.SpecT env (liftProg fns) Idx.Verifier.Field.Powers Needs.Verifier.Field.Powers :=
   PowersT.total env _ _ Verifier.Field.Powers.link Verifier.Field.Powers.tmpl_eq Verifier.Field.Powers.wf

@@ -25,6 +25,7 @@ variable (env : Env) (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.
   (hend : env.heapEnd = 0x78000000#64)
 include hnext hend
 
+/-- **`linear_transpose` at the image** (function 36). -/
 theorem linearTranspose
     (hpi : DataRef.InData env [(Verifier.Keccak.LinearTransposeE.link.d_c200_f4afdee4,
       Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)])
