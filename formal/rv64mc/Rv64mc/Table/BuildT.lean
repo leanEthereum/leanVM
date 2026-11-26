@@ -4,11 +4,12 @@
   Wave 4a's vector builders' total contracts at the image (`liftProg Gen.fns`), each at its index with the generated
   link, the stack `Gen.Needs` gives, and its callees' total theorems in `RuntimeT`, `AllocT` and `CopyUseT`. Left
   as hypotheses, as in `RuntimeT`: the environment's two facts about the image that `alloc` reads, and
-  `clmul_low`'s table where a builder multiplies (`FieldT.ClmulTable`).
+  `clmul_low`'s table where a builder multiplies (`FieldT.ClmulTable`), and the static data words a builder reads
+  (`DataRef.InData`).
 
   ## Main results
 
-  * `specExtendE`, `fromIterE`, `tryMapClaims`
+  * `specExtendE`, `fromIterE`, `tryMapClaims`, `tryFromFnLanes`
 -/
 
 import Rv64mc.Table.AllocT
@@ -17,6 +18,7 @@ import Rv64mc.Table.FieldT
 import Rv64mc.Proof.Runtime.SpecExtendT
 import Rv64mc.Proof.Runtime.FromIterET
 import Rv64mc.Proof.Bus.TryMapT
+import Rv64mc.Proof.Keccak.TryFromFnT
 
 namespace Rv64mc.Table.BuildT
 
@@ -55,6 +57,17 @@ theorem tryMapClaims :
     Core.Array.ArrUsizeN2.TryMapNeverShortCircuitCH2be087e3.wf (by decide) (by decide) (by decide) (by decide)
     (RuntimeT.alloc env hnext hend) (CopyUseT.memcpy env) (RuntimeT.handleError env) (RuntimeT.panicBoundsCheck env)
 
+omit hnext hend in
+/-- **`try_from_fn` building `verify_layer`'s lane weights at the image** (function 142). -/
+theorem tryFromFnLanes (hd : FieldT.ClmulTable env)
+    (hdat : DataRef.InData env [(Core.Array.TryFromFnNeverShortCircuHc949fc7d.link.d_c8_e5d50e4a,
+      Core.Array.TryFromFnNeverShortCircuHc949fc7d.d_c8_e5d50e4a_words)]) :
+    Keccak.TryFromFnT.SpecT env (liftProg fns) Idx.Core.Array.TryFromFnNeverShortCircuHc949fc7d
+      Needs.Core.Array.TryFromFnNeverShortCircuHc949fc7d :=
+  Keccak.TryFromFnT.total env _ _ Core.Array.TryFromFnNeverShortCircuHc949fc7d.link
+    Core.Array.TryFromFnNeverShortCircuHc949fc7d.tmpl_eq Core.Array.TryFromFnNeverShortCircuHc949fc7d.wf hdat
+    (by decide) (by decide) (by decide) (FieldT.eMul env hd) (RuntimeT.panicBoundsCheck env) (CopyUseT.memcpy env)
+
 end Rv64mc.Table.BuildT
 
 /-- info: 'Rv64mc.Table.BuildT.specExtendE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -68,3 +81,7 @@ end Rv64mc.Table.BuildT
 /-- info: 'Rv64mc.Table.BuildT.tryMapClaims' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.BuildT.tryMapClaims
+
+/-- info: 'Rv64mc.Table.BuildT.tryFromFnLanes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.BuildT.tryFromFnLanes
