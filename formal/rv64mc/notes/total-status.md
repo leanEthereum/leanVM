@@ -8,14 +8,20 @@ Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 80 | 2150 (10.3%) |
-| of which no open hypothesis | 39 | 1120 |
-| of which only environment facts open | 79 | 2148 |
+| total, with a `Table` instance | 86 | 2370 (11.4%) |
+| of which no open hypothesis | 41 | 1162 |
+| of which only environment facts open | 85 | 2368 |
 | stated, not proved here | 1 | 268 |
-| no total contract | 148 | 18460 |
+| no total contract | 142 | 18240 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
+
+## Obligations on functions not yet total
+
+A total proof steps through each call with the callee's total contract, so its callee's `Pre` is a closed goal there. Where the caller is not yet total, the callee's `Pre` was checked against the image's call sites by reading the templates, and becomes a goal of the caller's proof. Some of those goals need a fact from another function's postcondition; the ones named so far:
+
+* `from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for. `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`.
 
 ## By function
 
