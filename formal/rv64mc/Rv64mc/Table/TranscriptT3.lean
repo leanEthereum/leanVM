@@ -4,11 +4,12 @@
   The transcript chain's total contracts at the image (`liftProg Gen.fns`), next to `TranscriptT2.lean`: each
   function's total theorem at its index, with the generated link, the stack `Gen.Needs` gives (a caller's bound over
   its callee's by `decide`), and its callees' total theorems. Left as a hypothesis: `keccak_f`'s constant tables in
-  the image's static data (`HashT.KeccakTables`), an environment fact.
+  the image's static data (`HashT.KeccakTables`), and for `samples` the allocator's two facts (`NEXT`'s data reference
+  and the heap's end), environment facts.
 
   ## Main results
 
-  * `spongeNew`, `absorb`, `sample`, `absorbNonce`, `nextSafe`, `transcriptNew`, `nextScalar`, `grindCheck`
+  * `spongeNew`, `absorb`, `sample`, `absorbNonce`, `nextSafe`, `transcriptNew`, `nextScalar`, `grindCheck`, `samples`
 -/
 
 import Rv64mc.Table.HashT
@@ -22,6 +23,8 @@ import Rv64mc.Proof.Transcript.NextSafeT
 import Rv64mc.Proof.Transcript.TranscriptNewT
 import Rv64mc.Proof.Transcript.NextScalarT
 import Rv64mc.Proof.Transcript.GrindCheckT
+import Rv64mc.Proof.Transcript.SamplesT
+import Rv64mc.Table.AllocT
 import Rv64mc.Table.TranscriptT2
 import Rv64mc.Gen.Link.Verifier.Transcript
 
@@ -76,6 +79,15 @@ theorem grindCheck (hd : HashT.KeccakTables env) :
   GrindCheckT.total env _ _ _ Verifier.Transcript.Transcript.GrindCheck.tmpl_eq
     Verifier.Transcript.Transcript.GrindCheck.wf (by decide) (by decide) (nextSafe env) (absorbNonce env hd)
 
+theorem samples (hd : HashT.KeccakTables env)
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    SamplesT.specT env (liftProg fns) Idx.Verifier.Transcript.Transcript.Samples
+      Needs.Verifier.Transcript.Transcript.Samples :=
+  SamplesT.total env _ _ _ Verifier.Transcript.Transcript.Samples.tmpl_eq Verifier.Transcript.Transcript.Samples.wf
+    (by decide) (by decide) (by decide) (by decide) (RuntimeT.alloc env hnext hend) (AllocT.reserveE env hnext hend)
+    (RuntimeT.handleError env) (sample env hd)
+
 end Rv64mc.Table.TranscriptT3
 
 /-- info: 'Rv64mc.Table.TranscriptT3.spongeNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -109,3 +121,7 @@ end Rv64mc.Table.TranscriptT3
 /-- info: 'Rv64mc.Table.TranscriptT3.grindCheck' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.TranscriptT3.grindCheck
+
+/-- info: 'Rv64mc.Table.TranscriptT3.samples' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.TranscriptT3.samples

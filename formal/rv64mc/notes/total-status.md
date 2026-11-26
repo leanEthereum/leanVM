@@ -182,7 +182,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 7 | 116 | `verifier::whir::novel_basis` | 108 | C | no | - | - | - |
 | 7 | 120 | `verifier::merkle::hash_leaf` | 53 | C | no | - | - | - |
 | 7 | 126 | `verifier::whir::subspace_roots` | 165 | C | no | - | - | - |
-| 7 | 132 | `<verifier::transcript::Transcript>::samples` | 68 | A | no | - | - | - |
+| 7 | 132 | `<verifier::transcript::Transcript>::samples` | 68 | A | yes | Proof/Transcript/SamplesT (safety, `VecT` of `count` elements, `SpongeT` kept) | TranscriptT3.samples | env; keccak tables (InData) |
 | 7 | 133 | `verifier::ring_switch::ring_coefficients` | 116 | C | no | - | - | - |
 | 7 | 134 | `verifier::ring_switch::ring_target` | 109 | C | no | - | - | - |
 | 7 | 140 | `verifier::keccak::instance_weights` | 132 | C | no | - | - | - |

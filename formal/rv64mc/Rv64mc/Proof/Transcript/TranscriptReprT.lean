@@ -19,7 +19,7 @@
 
   ## Main results
 
-  * `TranscriptT.of_get`, `TranscriptT.of_sponge`, `OwnedT.of_next`, `OwnedT.mono`, `OwnedT.sponge`,
+  * `spongeT_of_get`, `TranscriptT.of_get`, `TranscriptT.of_sponge`, `OwnedT.of_next`, `OwnedT.mono`, `OwnedT.sponge`,
     `getMem_owned_out`, `TranscriptT.frame`, `TranscriptT.frameS`, `TranscriptT.frameF`
 -/
 
@@ -48,6 +48,11 @@ def TranscriptT (env : Env) (m : MachineState) (a : Word) : Prop :=
 /-- The transcript at `a` and its proof owned by a caller whose stack top is `top`. -/
 def OwnedT (env : Env) (m : MachineState) (top a : Word) : Prop :=
   env.Owned m top a Layouts.Transcript.byteSize ∧ env.Owned m top (m.getMem (a + 328#64)) Layouts.Proof.byteSize
+
+/-- A memory agreeing with `m` on the two words `SpongeT` reads keeps it. -/
+theorem spongeT_of_get {m m' : MachineState} {a : Word} (h : SpongeT env m a) (h0 : m'.getMem a = m.getMem a)
+    (h320 : m'.getMem (a + 320#64) = m.getMem (a + 320#64)) : SpongeT env m' a :=
+  ⟨h.1, h.2.1, h320 ▸ h.2.2.1, h0 ▸ h.2.2.2⟩
 
 /-- A memory agreeing with `m` on the five words `TranscriptT` reads keeps it. -/
 theorem TranscriptT.of_get {m m' : MachineState} {a : Word} (h : TranscriptT env m a)
