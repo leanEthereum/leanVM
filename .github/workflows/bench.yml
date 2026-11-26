@@ -94,6 +94,8 @@ jobs:
           git checkout --quiet --detach "$GITHUB_SHA"
       - name: Prove in turns
         if: steps.build.outputs.compare == 'true'
+        env:
+          LEANVM_NUM_THREADS: ${{ vars.LEANVM_NUM_THREADS || '0' }}
         run: |
           for round in $(seq "$ROUNDS"); do
             if [ $((round % 2)) = 1 ]; then order="base head"; else order="head base"; fi

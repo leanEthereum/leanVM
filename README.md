@@ -77,6 +77,8 @@ Install commands and supported platforms are in [`bindings/README.md`](bindings/
 
 ## benchmarks
 
+Set `LEANVM_NUM_THREADS` to configure the prover thread count for `leanvm-bench` and the standalone prover benchmarks. An unset variable or `0` keeps the automatic thread count. In `leanvm-bench`, `--threads` overrides a valid value of `LEANVM_NUM_THREADS`. The GitHub Actions Bench workflow reads the repository variable of the same name.
+
 **machine**: M4 Max MacBook Pro (12 performance cores, 4 efficiency cores, 48GB RAM, CPU only, i.e. no metal GPU)
 
 ### leanXMSS aggregation

@@ -18,6 +18,7 @@ use verifier::MIN_LOG_INV_RATE;
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
+    parallel::set_num_threads(env_usize("LEANVM_NUM_THREADS", 0));
     bench_harness::init_tracing_from_env();
     let n = 1usize << env_usize("KECCAK_N_LOG", 13);
     let report = keccak_gkr::batch_bench::run(n, env_usize("KECCAK_DEPTH", 12), MIN_LOG_INV_RATE, Plan::from_env());

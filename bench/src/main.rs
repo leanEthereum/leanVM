@@ -80,7 +80,7 @@ struct Cli {
     repeat: usize,
 
     /// Thread count (0: one per physical core).
-    #[arg(long, global = true, default_value_t = 0)]
+    #[arg(long, global = true, env = "LEANVM_NUM_THREADS", default_value_t = 0)]
     threads: usize,
 
     /// Idle seconds before each measured pass.
