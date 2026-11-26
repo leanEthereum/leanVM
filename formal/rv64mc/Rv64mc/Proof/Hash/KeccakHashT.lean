@@ -2,10 +2,10 @@
   Rv64mc.Proof.Hash.KeccakHashT
 
   `verifier::hash::keccak_hash(data) -> Digest` is total (`KeccakHashSafeT`): from a digest slot at `sret` in a
-  window apart from the static data and `NEXT`, and the data's bytes (`a1`, `a2`) in a window apart from the stack
-  below the stack pointer unless there are none, it returns, writing at most the slot's doublewords
-  (`Spec.Hash.DigestOut`). It does not state the digest, which is `Spec.Hash.KeccakHash`'s partial contract, not
-  proved; no caller's safety reads it as an address.
+  window apart from the static data and `NEXT` and from the stack below the stack pointer, and the data's bytes
+  (`a1`, `a2`) in a window apart from that stack unless there are none, it returns, writing at most the slot's
+  doublewords (`Spec.Hash.DigestOut`). It does not state the digest, which is `Spec.Hash.KeccakHash`'s partial
+  contract, not proved; no caller's safety reads it as an address.
 
   The full blocks' bytes are computed by `mulhu` by the reciprocal of `136` (`full_toNat`). The block loop is
   `Total.loop` with the blocks left as the measure (`loop_ok`); after it, the last partial block is copied by
@@ -113,6 +113,7 @@ def MemInv (env : Env) (ret top : Word) (regs : Reg → Word) (m M : MachineStat
     ∀ a, top + 0xffffffffffffffd0#64 ≤ a → a ≤ top + 0xfffffffffffffff8#64 →
       M.getMem a = (saves m top ret regs).getMem a
 
+/-- The saved registers' lowest slot, `top - 0x30`, as a natural number. -/
 theorem lo_toNat {top : Word} (h : 0x30 ≤ top.toNat) : (top + 0xffffffffffffffd0#64).toNat = top.toNat - 0x30 := by
   rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
 
@@ -171,10 +172,12 @@ def full (len : Word) : Word :=
   (BinOp.mulhu.eval len 17361641481138401521#64 &&& 18446744073709551488#64) +
     (BinOp.mulhu.eval len 17361641481138401521#64 >>> 4 &&& 18446744073709551608#64)
 
+/-- The bytes left after the full blocks: the length modulo `136`. -/
 theorem sub_full (len : Word) : (len - full len).toNat = len.toNat - 136 * (len.toNat / 136) := by
   have h := full_toNat len
   unfold full; rw [BitVec.toNat_sub, h]; omega
 
+/-- The data pointer advanced past the full blocks, when it does not wrap. -/
 theorem add_full (d len : Word) (h : len.toNat = 0 ∨ d.toNat + len.toNat < 2 ^ 64) :
     (d + full len).toNat = d.toNat + 136 * (len.toNat / 136) := by
   have h' := full_toNat len

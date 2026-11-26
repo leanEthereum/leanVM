@@ -37,6 +37,7 @@ def specT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   ∀ d, HoldsT env p i need (PreT env d) (Post d) Out
 
 set_option rv_sym.heap true in
+/-- **`Digest::halves` is total**, from `Digest::words`' total contract. -/
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needW : Nat} (hnW : 48 + needW ≤ need) (hw : DigestWordsT.specT env p L.words.idx needW) :
     specT env p i need := by

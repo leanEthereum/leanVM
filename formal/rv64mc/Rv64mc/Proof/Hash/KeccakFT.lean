@@ -313,6 +313,7 @@ theorem cnt_state {L : Link} {needC : Nat} {top c v : Word} {regs : Reg → Word
   rw [cnt_toNat (by omega), BitVec.toNat_add] at this
   omega
 
+/-- A store at the state's first lane keeps the counter: `cnt_state` at offset `0`. -/
 theorem cnt_state0 {L : Link} {needC : Nat} {top v : Word} {regs : Reg → Word} {m M : MachineState}
     (F : Fx env L needC top regs m) : (M.setMem (regs .x10) v).getMem (cnt top) = M.getMem (cnt top) := by
   have := cnt_state (c := 0#64) (v := v) (M := M) F (by decide)
