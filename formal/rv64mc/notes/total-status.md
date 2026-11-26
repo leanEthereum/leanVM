@@ -136,7 +136,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 5 | 92 | `<alloc::raw_vec::RawVec<verifier::whir::FoldRound>>::grow_one @veri...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneFoldRound | env |
 | 5 | 94 | `<verifier::multilinear::Scaler>::mul` | 17 | A | yes | Proof/Multilinear/ScalerMulT | MultilinearT.scalerMul | clmul table |
 | 5 | 98 | `verifier::multilinear::eq_eval` | 40 | A | yes | Proof/Multilinear/EqEvalT | MultilinearT.eqEval | clmul table |
-| 5 | 103 | `verifier::ring_switch::ring_weight` | 106 | C | no | - | - | - |
+| 5 | 103 | `verifier::ring_switch::ring_weight` | 106 | C | yes | Proof/Whir/RingWeightT (safety; two loops by `Total.loop`) | WhirT2.ringWeight | env; clmul table |
 | 5 | 112 | `<verifier::transcript::Sponge>::absorb` | 43 | A | yes | Proof/Transcript/AbsorbT (safety, `SpongeT` kept) | TranscriptT3.absorb | keccak tables (InData) |
 | 5 | 118 | `<alloc::raw_vec::RawVec<verifier::field::K>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneK | env |
 | 5 | 125 | `<alloc::raw_vec::RawVec<u64>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneU64 | env |
