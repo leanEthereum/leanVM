@@ -28,7 +28,7 @@ use verifier::MIN_LOG_INV_RATE;
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
-    parallel::set_num_threads(env_usize("LEANVM_NUM_THREADS", 0));
+    parallel::set_num_threads(bench_harness::num_threads_from_env());
     bench_harness::init_tracing_from_env();
 
     let log_n = env_usize("PCS_LOG_N", 22);

@@ -27,4 +27,4 @@ allocator.workspace = true
 bench_harness.workspace = true
 rand.workspace = true
 tracing.workspace = true
-clap = { version = "4", features = ["derive", "env"] }
+clap = { version = "4", features = ["derive"] }

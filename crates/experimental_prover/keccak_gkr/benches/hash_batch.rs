@@ -18,7 +18,7 @@ use pcs::whir::LOG_INV_RATE_0;
 static ALLOCATOR: allocator::Jemalloc = allocator::Jemalloc;
 
 fn main() {
-    parallel::set_num_threads(env_usize("LEANVM_NUM_THREADS", 0));
+    parallel::set_num_threads(bench_harness::num_threads_from_env());
     bench_harness::init_tracing_from_env();
     let n = 1usize << env_usize("KECCAK_N_LOG", 13);
     let report = keccak_gkr::batch_bench::run(n, env_usize("KECCAK_DEPTH", 12), LOG_INV_RATE_0, Plan::from_env());

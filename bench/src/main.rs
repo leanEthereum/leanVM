@@ -12,8 +12,8 @@ mod fibonacci;
 mod report;
 
 /// Run the CLI's command on prover `P`.
-fn run<P: isa::Prover>(cli: Cli) {
-    P::set_num_threads(cli.threads);
+fn run<P: isa::Prover>(cli: Cli, threads: usize) {
+    P::set_num_threads(threads);
     P::init();
     let plan = bench_harness::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
@@ -79,9 +79,9 @@ struct Cli {
     )]
     repeat: usize,
 
-    /// Thread count (0: one per physical core).
-    #[arg(long, global = true, env = "LEANVM_NUM_THREADS", default_value_t = 0)]
-    threads: usize,
+    /// Thread count (0 selects automatically). Overrides LEANVM_NUM_THREADS.
+    #[arg(long, global = true)]
+    threads: Option<usize>,
 
     /// Idle seconds before each measured pass.
     #[arg(long, global = true, default_value_t = 2)]
@@ -149,11 +149,12 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
+    let threads = cli.threads.unwrap_or_else(bench_harness::num_threads_from_env);
     match cli.prover {
-        Prover::Stable => run::<StableProver>(cli),
+        Prover::Stable => run::<StableProver>(cli, threads),
         Prover::Experimental => {
             eprintln!("experimental prover tier: {:?}", experimental_dispatch::tier());
-            run::<ExperimentalProver>(cli)
+            run::<ExperimentalProver>(cli, threads)
         }
     }
 }

@@ -12,6 +12,8 @@ use isa::{Program, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
 
+mod thread_count;
+
 /// The proofs `P` gives, the three leaves', the node's and the second-level node's, then why it refuses a
 /// forged signature.
 fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {

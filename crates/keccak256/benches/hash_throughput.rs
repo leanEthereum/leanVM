@@ -32,7 +32,7 @@ fn run<const LEN: usize>() {
 }
 
 fn main() {
-    parallel::set_num_threads(bench_harness::env_usize("LEANVM_NUM_THREADS", 0));
+    parallel::set_num_threads(bench_harness::num_threads_from_env());
     run::<64>();
     run::<512>();
 }

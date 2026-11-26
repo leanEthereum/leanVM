@@ -252,6 +252,22 @@ pub fn env_usize(key: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
+/// Read `LEANVM_NUM_THREADS`, defaulting to `0` when unset. Invalid values exit with status 2.
+#[must_use]
+pub fn num_threads_from_env() -> usize {
+    match std::env::var("LEANVM_NUM_THREADS") {
+        Err(std::env::VarError::NotPresent) => return 0,
+        Ok(value) => {
+            if let Ok(threads) = value.parse() {
+                return threads;
+            }
+        }
+        Err(std::env::VarError::NotUnicode(_)) => {}
+    }
+    eprintln!("error: LEANVM_NUM_THREADS must be a nonnegative integer (0 selects the automatic thread count)");
+    std::process::exit(2);
+}
+
 /// One measure of one benchmark in Bencher Metric Format: a value, and for a
 /// timing the fastest and slowest pass.
 pub struct Metric {
