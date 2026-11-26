@@ -41,27 +41,27 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 0 | 206 | `<[core::mem::maybe_uninit::MaybeUninit<verifier::layout::Form>] as ...` | 1 | D | yes | Proof/Runtime/DropT | RuntimeT.partialDropForm | none |
 | 0 | 208 | `verifier::layout::keccak_cell_lanes` | 59 | D | yes | Proof/Layout/KeccakCellLanesT | CellLanesT.keccakCellLanesT | none |
 | 0 | 223 | `compiler_builtins::mem::memcpy` | 127 | C | yes | Proof/Runtime/MemcpyT | MemT.memcpyT | none |
-| 0 | 224 | `compiler_builtins::mem::memset` | 38 | C | yes | Proof/Runtime/MemsetT | RuntimeT.memsetBuiltin | none |
+| 0 | 224 | `compiler_builtins::mem::memset` | 38 | C | yes | Proof/Runtime/MemsetT, MemsetBytesT | RuntimeT.memsetBuiltin, VecT.memsetBuiltin | none |
 | 0 | 225 | `compiler_builtins::mem::memmove` | 268 | C | stated | Proof/Runtime/MemmoveT `MemmoveSpecT` (stated; wave 1b proves it) | - | - |
 | 0 | 226 | `memcmp` | 12 | A | yes | Proof/Runtime/MemcmpT | RuntimeT.memcmp | none |
 | 1 | 2 | `__rustc::rust_begin_unwind` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.rustBeginUnwind | none |
 | 1 | 4 | `<verifier_rv64::Input>::word` | 12 | A | yes | Proof/Runtime/InputWordT | RuntimeT.inputWord | none |
 | 1 | 6 | `<verifier_rv64::Bump as core::alloc::global::GlobalAlloc>::alloc` | 17 | A | yes | Proof/Runtime/AllocT | RuntimeT.alloc | env |
 | 1 | 20 | `verifier::field::clmul` | 156 | A | yes | Proof/Field/ClmulT | FieldT.clmul | clmul table |
-| 1 | 69 | `core::ptr::drop_glue::<alloc::vec::Vec<alloc::vec::Vec<verifier::la...` | 21 | C | no | - | - | - |
-| 1 | 72 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::BusBlock>>...` | 21 | C | no | - | - | - |
+| 1 | 69 | `core::ptr::drop_glue::<alloc::vec::Vec<alloc::vec::Vec<verifier::la...` | 21 | C | yes | Proof/Runtime/DropSliceT | VecT.dropVecVecForm | none |
+| 1 | 72 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::BusBlock>>...` | 21 | C | yes | Proof/Runtime/DropSliceT | VecT.dropVecBusBlock | none |
 | 1 | 104 | `<verifier::field::E>::square` | 36 | A | yes | Proof/Field/ESquareT | FieldT.eSquare | none |
 | 1 | 151 | `verifier::bus::bus_grinding_bits` | 10 | A | yes | Proof/Bus/BusGrindingBitsT | BusT.busGrindingBits | none |
 | 1 | 227 | `memcpy` | 2 | A | yes | Proof/Runtime/MemWrappersT | CopyUseT.memcpy | none |
 | 1 | 228 | `memmove` | 2 | A | yes | Proof/Runtime/MemWrappersT | RuntimeT.memmove | MemmoveSpecT (225) |
-| 1 | 229 | `memset` | 2 | A | yes | Proof/Runtime/MemsetT | RuntimeT.memset | none |
+| 1 | 229 | `memset` | 2 | A | yes | Proof/Runtime/MemsetT, MemsetBytesT | RuntimeT.memset, VecT.memset | none |
 | 2 | 3 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier_rv64` | 47 | C | yes | Proof/Runtime/TryAllocateInT | AllocT.tryAllocateInRv64 | env |
 | 2 | 5 | `<verifier_rv64::Input>::digest` | 92 | C | no | - | - | - |
 | 2 | 13 | `core::panicking::panic_fmt` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicFmt | none |
 | 2 | 17 | `core::panicking::panic_nounwind_fmt` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicNounwindFmt | none |
 | 2 | 19 | `verifier::field::base_mul` | 8 | A | yes | Proof/Field/BaseMulT | FieldT.baseMul | clmul table |
 | 2 | 25 | `<verifier::field::E as core::ops::arith::Mul>::mul` | 61 | A | yes | Proof/Field/EMulT | FieldT.eMul | clmul table |
-| 2 | 37 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier` | 56 | C | yes | Proof/Runtime/TryAllocateInT | AllocT.tryAllocateIn | env |
+| 2 | 37 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier` | 56 | C | yes | Proof/Runtime/TryAllocateInT, TryAllocateInZT | AllocT.tryAllocateIn, VecT.tryAllocateIn | env |
 | 2 | 41 | `<alloc::raw_vec::RawVecInner>::finish_grow @verifier` | 66 | A | yes | Proof/Runtime/FinishGrowT, FinishGrowAT (block aligned) | CopyUseT.finishGrow | env |
 | 2 | 71 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::Table>> @v...` | 25 | C | no | - | - | - |
 | 2 | 114 | `verifier::hash::keccak_f` | 391 | C | no | - | - | - |
@@ -82,7 +82,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | no | - | - | - |
 | 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
 | 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | no | - | - | - |
-| 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | no | - | - | - |
+| 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | yes | Proof/Bus/ClaimsFromT | VecT.claimsFrom | env |
 | 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | no | - | - | - |
 | 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | no | - | - | - |
 | 3 | 167 | `<verifier::layout::Form>::term` | 35 | A | yes | Proof/Layout/TermT | LayoutT.term | env |
@@ -113,7 +113,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 5 | 32 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::op...` | 69 | D | no | - | - | - |
 | 5 | 39 | `<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<...` | 11 | A | yes | Proof/Runtime/DoReserveT | AllocT.doReserve | env |
 | 5 | 52 | `<verifier::transcript::Sponge>::sample` | 19 | A | no | - | - | - |
-| 5 | 55 | `<alloc::vec::Vec<verifier::field::E> as core::clone::Clone>::clone ...` | 49 | C | no | - | - | - |
+| 5 | 55 | `<alloc::vec::Vec<verifier::field::E> as core::clone::Clone>::clone ...` | 49 | C | yes | Proof/Runtime/CloneT | VecT.cloneE | env |
 | 5 | 62 | `<alloc::raw_vec::RawVec<verifier::bus::ColumnClaim>>::grow_one @ver...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneColumnClaim | env |
 | 5 | 65 | `<alloc::raw_vec::RawVec<(verifier::StackWeight, verifier::field::E)...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneStackClaim | env |
 | 5 | 81 | `<alloc::raw_vec::RawVec<verifier::whir::GluedClaim>>::grow_one @ver...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneGluedClaim | env |
@@ -131,8 +131,8 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 5 | 146 | `<verifier::layout::Form>::evaluate` | 16 | D | no | - | - | - |
 | 5 | 147 | `<alloc::raw_vec::RawVec<(alloc::vec::Vec<verifier::field::E>, alloc...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneVecEVecE | env |
 | 5 | 153 | `<[usize; 2]>::try_map::<core::ops::try_trait::NeverShortCircuit<ver...` | 114 | D | no | - | - | - |
-| 5 | 155 | `verifier::bus::verify_bus_balance::{closure#0} @verifier` | 52 | D | no | - | - | - |
-| 5 | 165 | `<alloc::vec::Vec<usize> as core::clone::Clone>::clone @verifier` | 49 | D | no | - | - | - |
+| 5 | 155 | `verifier::bus::verify_bus_balance::{closure#0} @verifier` | 52 | D | yes | Proof/Bus/ColumnClaimT | VecT.columnClaim | env |
+| 5 | 165 | `<alloc::vec::Vec<usize> as core::clone::Clone>::clone @verifier` | 49 | D | yes | Proof/Runtime/CloneT | VecT.cloneUsize | env |
 | 5 | 166 | `<alloc::raw_vec::RawVec<(alloc::vec::Vec<usize>, verifier::field::E...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneVecUsizeE | env |
 | 5 | 174 | `verifier::multilinear::stack_offsets` | 122 | C | no | - | - | - |
 | 5 | 179 | `verifier::layout::col` | 34 | A | yes | Proof/Layout/ColT | LayoutT.col | env; clmul table |
