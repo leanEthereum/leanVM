@@ -8,7 +8,7 @@
   counts), writing at most the slot besides what it allocates (`SretOut`, the partial contract's), or the run ends
   with `a0 = 2` where `alloc`, `grow_one` or the allocation panic does. Safety only: `DeriveConfig.spec`'s functional
   postcondition (`Model.deriveConfigRust`) is owed. Over any program holding its template, from the total contracts
-  of `whir_queries`, `alloc`, `RawVec<usize>::grow_one` and `panic_nounwind_fmt`. There was no partial proof
+  of `whir_queries`, `alloc`, `RawVec<usize>::grow_one` and `panic_nounwind_fmt`. It has no partial proof
   (class C).
 
   The code builds both vectors with one element, then runs the first pass (instructions 111 to 132: `log_inv_rates`

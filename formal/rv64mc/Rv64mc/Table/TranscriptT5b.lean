@@ -33,8 +33,9 @@ theorem merkle (hd : HashT.KeccakTables env)
       Needs.Verifier.Transcript.Transcript.Merkle :=
   MerkleT.total env _ _ _ Verifier.Transcript.Transcript.Merkle.tmpl_eq Verifier.Transcript.Transcript.Merkle.wf hdat
     (needR := Needs.Verifier.Merkle.MerklePath.Root) (needC := Needs.Memcmp)
-    (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc) (needH := Needs.Alloc.RawVec.HandleError) (by decide) (by decide) (by decide) (by decide) (MerkleT.root env hnext hend hd) (RuntimeT.memcmp env)
-    (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
+    (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc) (needH := Needs.Alloc.RawVec.HandleError)
+    (by decide) (by decide) (by decide) (by decide)
+    (MerkleT.root env hnext hend hd) (RuntimeT.memcmp env) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
 
 end Rv64mc.Table.TranscriptT5b
 

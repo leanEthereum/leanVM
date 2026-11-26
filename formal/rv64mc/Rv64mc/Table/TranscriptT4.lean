@@ -4,9 +4,9 @@
   The total contracts of the transcript's remaining callers at the image (`liftProg Gen.fns`), next to
   `TranscriptT3.lean`: each function's total theorem at its index, with the generated link, the stack `Gen.Needs`
   gives (a caller's bound over its callee's by `decide`), and its callees' total theorems. Left as a hypothesis:
-  `keccak_f`'s constant tables in the image's static data (`HashT.KeccakTables`), and for `next_scalars` the
-  allocator's two facts (`NEXT`'s data reference and the heap's end), environment facts. `read_ood` sits here
-  with the transcript's other callers.
+  `keccak_f`'s constant tables in the image's static data (`HashT.KeccakTables`), and for `next_scalars` and
+  `read_ood` the allocator's two facts (`NEXT`'s data reference and the heap's end), environment facts. `read_ood`
+  sits here with the transcript's other callers.
 
   ## Main results
 
