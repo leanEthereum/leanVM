@@ -31,7 +31,7 @@ namespace Rv64mc.Proof.Runtime.FromIterOptT
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (VecT)
-open Rv64mc.Proof.Runtime.FromElemT (keep_store)
+open Rv64mc.Proof.Runtime.FromElemT (keep_store data0)
 open Rv64mc.Gen.Alloc.Vec.SpecFromIterNested.VecOptionE.AsSpecFromIterNestedOptiH0c7a0891.FromIter
   (Link tmpl d_c8_131d94e1_words)
 
@@ -72,8 +72,7 @@ theorem ovf2 {b e : Word} (hle : b.toNat ≤ e.toNat) (h16 : (e.toNat - b.toNat)
     apply BitVec.eq_of_toNat_eq; rw [BitVec.toNat_shiftLeft, hsr, Nat.shiftLeft_eq, hd]; omega
   have hand : (e - b) &&& 18446744073709551600#64 = e - b := by
     rw [← hback]; exact Rv64mc.Proof.Field.ESumCopied.shl4_and _
-  rw [BitVec.le_def, hd] at h
-  have h' : e.toNat - b.toNat ≤ 6148914691236517200 := h
+  have h' : (e - b).toNat ≤ 6148914691236517200 := BitVec.le_def.1 h
   refine ⟨hsr, ?_, by omega⟩
   rw [hand, BitVec.toNat_add, hd, BitVec.toNat_shiftLeft, hsr, Nat.shiftLeft_eq]
   omega
@@ -307,16 +306,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     hal.mono_stop fun _ _ _ _ _ h => h.1
   have hw := hdata.words (List.mem_singleton_self _)
   rv_autoT hp stop [80] with [hL, hw] using [hal', hres, hhe]
-  all_goals
-    have hd0 : inWindow (L.d_c8_131d94e1.hi + L.d_c8_131d94e1.lo) 8 = true ∧
-        (L.d_c8_131d94e1.hi + L.d_c8_131d94e1.lo).toNat % 8 = 0 := by
-      have h0 := hpre_14.data_ok _ (hdata _ (List.mem_singleton_self _) 0 Nat.one_pos)
-      have e : L.d_c8_131d94e1.hi + L.d_c8_131d94e1.lo + BitVec.ofNat 64 (8 * 0) =
-          L.d_c8_131d94e1.hi + L.d_c8_131d94e1.lo := BitVec.add_zero _
-      dsimp only at h0
-      rwa [e] at h0
-  · exact hd0.1
-  · exact hd0.2
+  · exact (data0 hpre_14 hdata Nat.one_pos).1
+  · exact (data0 hpre_14 hdata Nat.one_pos).2
   all_goals have hov := ovf2 hpre_10 hpre_11 hc_1
   on_goal 11 =>
     refine tail hp (by omega) hk hpre_3 hpre_5 ⟨by rw [← hpre_2]; exact hpre_6, hpre_7⟩ hpre_8 hpre_9
@@ -353,10 +344,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
       Multilinear.slot_toNat (by decide) (by omega) (by decide)
     exact Multilinear.frame_call_own (hdr_frame hlim (Tactic.frame_call hF0 hret2_14 (by omega))) hret3_14
       (by omega) fun b hb => grow_stack hlim rfl hb
-  · have hpos : 0 < ((regs .x12).toNat - (regs .x11).toNat) / 16 := by
-      rcases Nat.eq_zero_or_pos (((regs .x12).toNat - (regs .x11).toNat) / 16) with h | h
-      · exact absurd (BitVec.eq_of_toNat_eq (by rw [h24, h]; rfl)) hc_2
-      · exact h
+  · have hpos : 0 < ((regs .x12).toNat - (regs .x11).toNat) / 16 :=
+      Nat.pos_of_ne_zero fun h => hc_2 (BitVec.eq_of_toNat_eq (by rw [h24, h]; rfl))
     have hn3 := hret3_14.1
     have s56 : (top + 18446744073709551560#64).toNat = top.toNat - 56 :=
       Multilinear.slot_toNat (by decide) (by omega) (by decide)

@@ -84,6 +84,12 @@ theorem keep_store {M : MachineState} {S : MachineState} {t x v : Word} (h : ∀
     (hx : x.toNat < t.toNat) : ∀ a, t ≤ a → (M.setMem x v).getMem a = S.getMem a := fun a ha => by
   rw [MachineState.getMem_setMem_ne (fun e => by rw [e, BitVec.le_def] at ha; omega), h a ha]
 
+/-- Word `0` of a static data table is in a window and 8-byte aligned. -/
+theorem data0 {env : Env} {top : Word} {m : MachineState} {d : DataRef} {ws : List Word} (hW : Windows env top m)
+    (hd : DataRef.InData env [(d, ws)]) (hk : 0 < ws.length) :
+    inWindow (d.hi + d.lo) 8 = true ∧ (d.hi + d.lo).toNat % 8 = 0 := by
+  simpa using hW.data_ok _ (hd _ (List.mem_singleton_self _) 0 hk)
+
 set_option rv_sym.heap true in
 /-- **The loop**, from its head; its last pass stores the last element and copies the header to `sret`. -/
 theorem loop {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
@@ -166,7 +172,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     rv_symT hp stop [98]
     all_goals try simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero]
     all_goals rv_closeT
-    have h2 : 2 ≤ (regs .x12).toNat := by rw [BitVec.le_def] at hc; exact hc
+    have h2 : 2 ≤ (regs .x12).toNat := BitVec.le_def.1 hc
     have hx12 : (regs .x12 <<< 4 + q + 18446744073709551600#64).toNat = q.toNat + 16 * (regs .x12).toNat - 16 := by
       rw [BitVec.toNat_add, BitVec.toNat_add, hov.1]; have := env.heapEnd.isLt; simp only [BitVec.toNat_ofNat]; omega
     refine loop hp hn hk hstk hnx hown hwin hal hW h16 hge hend hov hpos hfr hq8 hFn ((regs .x12).toNat - 2) _ _
@@ -256,10 +262,8 @@ theorem e_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
   · exact Multilinear.frame_call_own (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
       (Tactic.frame_call hF0 hret2_14 (by omega)) (by omega) (by omega)) (by omega) (by omega)) (by omega)
       (by omega)) hret3_14 (by omega) fun b hb => hgo rfl hb
-  · have hpos : 0 < (regs .x12).toNat := by
-      rcases Nat.eq_zero_or_pos (regs .x12).toNat with h | h
-      · exact absurd (BitVec.eq_of_toNat_eq (by rw [hov.1, h]; rfl)) hc_2
-      · exact h
+  · have hpos : 0 < (regs .x12).toNat :=
+      Nat.pos_of_ne_zero fun h => hc_2 (BitVec.eq_of_toNat_eq (by rw [hov.1, h]; rfl))
     have hn3 := hret3_14.1
     rw [Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega)]
       at hn3

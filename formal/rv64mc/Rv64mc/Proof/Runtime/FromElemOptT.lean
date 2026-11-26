@@ -31,7 +31,7 @@ namespace Rv64mc.Proof.Runtime.FromElemOptT
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.CloneT (ClonePostT)
-open Rv64mc.Proof.Runtime.FromElemT (saved hdr hdr_kept hdr_spare keep_store)
+open Rv64mc.Proof.Runtime.FromElemT (saved hdr hdr_kept hdr_spare keep_store data0)
 open Rv64mc.Gen.Alloc.Vec.SpecFromElem.OptionE.AsSpecFromElem.FromElemGlobal (Link tmpl d_c8_d6dfd6bc_words)
 
 /-- `from_elem`'s total precondition: the result's slot a caller's (`SretPre`), in a window and 8-byte aligned; the
@@ -152,7 +152,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     all_goals try simp only [rvCapAt, rvPtrAt, Layouts.RawVecInner.cap, Layouts.RawVecInner.ptr, BitVec.add_zero]
     all_goals rv_closeT
     all_goals
-      have h2 : 2 ≤ (regs .x12).toNat := by rw [BitVec.le_def] at hc_1; exact hc_1
+      have h2 : 2 ≤ (regs .x12).toNat := BitVec.le_def.1 hc_1
       have hx15 : (regs .x12 <<< 4 + regs .x12 <<< 3 + q + 18446744073709551592#64).toNat =
           q.toNat + 24 * (regs .x12).toNat - 24 := by
         rw [BitVec.toNat_add, BitVec.toNat_add, hov.1]; have := env.heapEnd.isLt; simp only [BitVec.toNat_ofNat]
@@ -167,8 +167,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
 /-- The capacity check passed: `24 n` as the code computes it, below `2 ^ 63`. -/
 theorem ovf {x : Word} (h : x ≤ 384307168202282325#64) :
     (x <<< 4 + x <<< 3).toNat = 24 * x.toNat ∧ 24 * x.toNat < 2 ^ 63 := by
-  rw [BitVec.le_def] at h
-  have h' : x.toNat ≤ 384307168202282325 := h
+  have h' : x.toNat ≤ 384307168202282325 := BitVec.le_def.1 h
   exact ⟨DropSliceT.shl_add_shl (by omega), by omega⟩
 
 set_option rv_sym.heap true in
@@ -182,16 +181,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     hal.mono_stop fun _ _ _ _ _ h => h.1
   have hw := hdata.words (List.mem_singleton_self _)
   rv_autoT hp stop [76] with [hL, hw] using [hal', hres, hhe]
-  all_goals
-    have hd0 : inWindow (L.d_c8_d6dfd6bc.hi + L.d_c8_d6dfd6bc.lo) 8 = true ∧
-        (L.d_c8_d6dfd6bc.hi + L.d_c8_d6dfd6bc.lo).toNat % 8 = 0 := by
-      have h0 := hpre_13.data_ok _ (hdata _ (List.mem_singleton_self _) 0 Nat.one_pos)
-      have e : L.d_c8_d6dfd6bc.hi + L.d_c8_d6dfd6bc.lo + BitVec.ofNat 64 (8 * 0) =
-          L.d_c8_d6dfd6bc.hi + L.d_c8_d6dfd6bc.lo := BitVec.add_zero _
-      dsimp only at h0
-      rwa [e] at h0
-  · exact hd0.1
-  · exact hd0.2
+  · exact (data0 hpre_13 hdata Nat.one_pos).1
+  · exact (data0 hpre_13 hdata Nat.one_pos).2
   all_goals have hov := ovf hc_1
   all_goals try
     first
@@ -228,10 +219,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · exact Multilinear.frame_call_own (Tactic.frame_store (Tactic.frame_store (Tactic.frame_store
       (Tactic.frame_call hF0 hret2_14 (by omega)) (by omega) (by omega)) (by omega) (by omega)) (by omega)
       (by omega)) hret3_14 (by omega) fun b hb => hgo rfl hb
-  · have hpos : 0 < (regs .x12).toNat := by
-      rcases Nat.eq_zero_or_pos (regs .x12).toNat with h | h
-      · exact absurd (BitVec.eq_of_toNat_eq (by rw [hov.1, h]; rfl)) hc_2
-      · exact h
+  · have hpos : 0 < (regs .x12).toNat :=
+      Nat.pos_of_ne_zero fun h => hc_2 (BitVec.eq_of_toNat_eq (by rw [hov.1, h]; rfl))
     have hn3 := hret3_14.1
     rw [Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega)]
       at hn3
