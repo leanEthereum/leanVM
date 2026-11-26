@@ -118,632 +118,489 @@ sphincs_verify:
 	.cfi_offset w30, -88
 	.cfi_offset w29, -96
 	.cfi_remember_state
-	sub	x9, sp, #7, lsl #12
+	sub	x9, sp, #5, lsl #12
 .LBB3_1:
 	sub	sp, sp, #1, lsl #12
 	ldr	xzr, [sp]
 	cmp	sp, x9
 	b.ne	.LBB3_1
-	sub	sp, sp, #608
-	ldr	x8, [x0, #1056]
-	ldr	x9, [x0, #1064]
-	mov	x19, x0
-	ldr	x10, [x0, #1072]
-	ldr	x21, [x0, #1024]
-	add	x20, sp, #468
-	stp	x8, x9, [sp, #432]
-	ldr	x8, [x0, #1080]
-	mov	w1, wzr
-	ldr	x23, [x0, #1032]
-	ldr	x24, [x0, #1040]
-	mov	w2, #7740
-	ldr	x22, [x0, #1048]
-	add	x0, sp, #468
-	stp	x10, x8, [sp, #448]
-	add	x25, x20, #1, lsl #12
-	bl	memset
-	add	x8, x19, #1112
-	mov	x9, #-4224
-.LBB3_3:
-	add	x10, x8, x9
-	add	x12, x20, x9
-	adds	x9, x9, #32
-	ldr	x11, [x10, #4200]
-	ldr	x13, [x10, #4208]
-	ldr	x14, [x10, #4216]
-	ldr	x10, [x10, #4224]
-	str	x11, [x12, #4224]
-	str	x13, [x12, #4232]
-	str	x14, [x12, #4240]
-	str	x10, [x12, #4248]
-	b.ne	.LBB3_3
-	ldr	x8, [x19, #5312]
-	ldr	x9, [x19, #5320]
-	add	x11, sp, #468
-	ldr	w10, [x19, #5328]
-	str	x8, [x20, #4224]
-	mov	w8, #5360
-	str	x9, [x20, #4232]
-	rev	w9, w10
-	add	x8, x19, x8
-	str	w9, [sp, #4708]
-	mov	w9, #140
-	mov	w10, #4244
-.LBB3_5:
-	ldp	x12, x13, [x8, #-24]
-	add	x14, x11, x10
-	subs	x9, x9, #4
-	add	x10, x10, #32
-	stp	x12, x13, [x14]
-	ldp	x12, x15, [x8, #-8]
-	add	x8, x8, #32
-	stp	x12, x15, [x14, #16]
-	b.ne	.LBB3_5
-	ldr	x9, [x19, #6456]
-	add	x10, x25, #1268
-	ldr	x11, [x19, #6464]
-	add	x12, x25, #1276
-	mov	x8, xzr
-	str	x9, [x10]
-	ldr	x9, [x19, #6472]
-	add	x10, x25, #1284
-	str	x11, [x12]
-	ldr	x11, [x19, #6480]
-	ldr	w12, [x19, #6488]
-	str	x9, [x10]
-	add	x9, x25, #1292
-	mov	w10, #6520
-	str	x11, [x9]
-	rev	w9, w12
-	str	w9, [sp, #5864]
-	add	x9, x19, x10
-	add	x10, sp, #468
-.LBB3_7:
-	add	x11, x9, x8
-	add	x13, x10, x8
-	add	x8, x8, #32
-	ldp	x12, x14, [x11, #-24]
-	cmp	x8, #1120
-	ldp	x15, x11, [x11, #-8]
-	str	x12, [x13, #5400]
-	str	x14, [x13, #5408]
-	str	x15, [x13, #5416]
-	str	x11, [x13, #5424]
-	b.ne	.LBB3_7
-	ldr	x8, [x19, #7616]
-	ldr	w11, [x19, #7648]
-	ldr	x9, [x19, #7624]
-	ldr	x10, [x19, #7632]
-	ldr	x12, [x19, #7640]
-	str	x8, [x20, #6520]
-	rev	w11, w11
-	mov	w8, #7680
-	str	x9, [x20, #6528]
-	add	x8, x19, x8
-	mov	w9, #144
-	str	x10, [x20, #6536]
-	mov	w10, #6556
-	str	w11, [sp, #7020]
-	add	x11, sp, #468
-	str	x12, [x20, #6544]
-.LBB3_9:
-	ldp	x12, x13, [x8, #-24]
-	add	x14, x11, x10
-	subs	x9, x9, #4
-	add	x10, x10, #32
-	stp	x12, x13, [x14]
-	ldp	x12, x15, [x8, #-8]
-	add	x8, x8, #32
-	stp	x12, x15, [x14, #16]
-	b.ne	.LBB3_9
-	ldr	x8, [x19, #8808]
-	add	x9, x25, #3612
-	ldr	x10, [x19, #8816]
-	str	x21, [sp, #8208]
-	add	x21, sp, #6, lsl #12
-	mov	w26, #4224
-	str	x8, [x9]
-	add	x8, x25, #3620
-	ldr	x9, [x19, #8824]
-	str	x10, [x8]
-	add	x8, x25, #3628
-	ldr	x10, [x19, #8832]
-	str	x9, [x8]
-	add	x8, x25, #3636
-	add	x9, sp, #221
-	str	x10, [x8]
-	add	x8, sp, #213
-	add	x19, sp, #2, lsl #12
-	ldur	x8, [x8, #255]
-	ldur	x9, [x9, #255]
-	str	x22, [sp, #8232]
-	add	x22, sp, #2, lsl #12
-	add	x10, sp, #468
-	add	x25, sp, #4, lsl #12
-	str	x23, [sp, #8216]
-	add	x19, x19, #16
-	add	x21, x21, #2192
-	str	x24, [sp, #8224]
-	add	x22, x22, #52
-	add	x23, x10, #96
+	sub	sp, sp, #1040
+	ldr	xzr, [sp]
+	ldp	x8, x9, [x0]
+	add	x27, sp, #4, lsl #12
+	add	x25, sp, #2, lsl #12
+	mov	x19, x2
+	mov	x21, x1
+	add	x22, sp, #484
+	add	x27, x27, #2624
+	stp	x8, x9, [sp, #448]
+	ldp	x8, x10, [x0, #16]
+	add	x20, sp, #448
+	add	x23, x2, #96
 	mov	x24, #-4224
-	add	x25, x25, #16
-	str	x8, [sp, #27808]
-	str	x9, [sp, #27816]
-.LBB3_11:
-	add	x27, x23, x24
-	add	x0, sp, #2, lsl #12
-	add	x1, sp, #6, lsl #12
-	ldr	x8, [x27, #4160]
-	ldr	x9, [x27, #4168]
-	ldr	x10, [x27, #4176]
-	add	x0, x0, #52
-	add	x1, x1, #2192
+	add	x25, x25, #448
+	mov	w26, #4224
+	stp	x8, x10, [sp, #464]
+	ldp	x9, x8, [x2]
+	str	x9, [sp, #20048]
+	str	x8, [sp, #20056]
+.LBB3_3:
+	add	x28, x23, x24
+	add	x1, sp, #4, lsl #12
+	add	x0, sp, #484
+	ldr	x8, [x28, #4160]
+	ldr	x9, [x28, #4168]
+	ldr	x10, [x28, #4176]
+	add	x1, x1, #2624
 	mov	w2, #160
-	str	x8, [sp, #26768]
-	ldr	x8, [x27, #4184]
-	str	x9, [sp, #26776]
-	ldr	x9, [x27, #4192]
-	stp	x10, x8, [x21, #16]
-	ldr	x8, [x27, #4200]
-	ldr	x10, [x27, #4216]
-	stp	x9, x8, [x21, #32]
-	ldr	x8, [x27, #4208]
-	ldr	x9, [x27, #4232]
-	stp	x8, x10, [x21, #48]
-	ldr	x8, [x27, #4224]
-	ldr	x10, [x27, #4248]
-	stp	x8, x9, [x21, #64]
-	ldr	x8, [x27, #4240]
-	ldr	x9, [x27, #4264]
-	stp	x8, x10, [x21, #80]
-	ldr	x8, [x27, #4256]
-	ldr	x10, [x27, #4280]
-	stp	x8, x9, [x21, #96]
-	ldr	x8, [x27, #4272]
-	ldr	x9, [x27, #4296]
-	stp	x8, x10, [x21, #112]
-	ldr	x8, [x27, #4288]
-	ldr	x10, [x27, #4312]
-	stp	x8, x9, [x21, #128]
-	ldr	x8, [x27, #4304]
-	stp	x8, x10, [x21, #144]
+	str	x8, [sp, #19008]
+	ldr	x8, [x28, #4184]
+	str	x9, [sp, #19016]
+	ldr	x9, [x28, #4192]
+	stp	x10, x8, [x27, #16]
+	ldr	x8, [x28, #4200]
+	ldr	x10, [x28, #4216]
+	stp	x9, x8, [x27, #32]
+	ldr	x8, [x28, #4208]
+	ldr	x9, [x28, #4232]
+	stp	x8, x10, [x27, #48]
+	ldr	x8, [x28, #4224]
+	ldr	x10, [x28, #4248]
+	stp	x8, x9, [x27, #64]
+	ldr	x8, [x28, #4240]
+	ldr	x9, [x28, #4264]
+	stp	x8, x10, [x27, #80]
+	ldr	x8, [x28, #4256]
+	ldr	x10, [x28, #4280]
+	stp	x8, x9, [x27, #96]
+	ldr	x8, [x28, #4272]
+	ldr	x9, [x28, #4296]
+	stp	x8, x10, [x27, #112]
+	ldr	x8, [x28, #4288]
+	ldr	x10, [x28, #4312]
+	stp	x8, x9, [x27, #128]
+	ldr	x8, [x28, #4304]
+	stp	x8, x10, [x27, #144]
 	bl	memcpy
-	ldr	x8, [x27, #4144]
-	ldr	x9, [x27, #4152]
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #2, lsl #12
-	add	x0, x0, #2192
+	ldr	x8, [x28, #4144]
+	ldr	x9, [x28, #4152]
+	add	x0, sp, #4, lsl #12
+	add	x0, x0, #2624
+	add	x1, sp, #484
 	mov	w2, #176
-	add	x1, x1, #52
 	stp	x8, x9, [x22, #160]
 	bl	memcpy
 	add	x8, x25, x24
-	add	x1, sp, #6, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #176
 	add	x0, x8, x26
-	add	x1, x1, #2192
+	add	x1, x1, #2624
 	bl	memcpy
 	adds	x24, x24, #176
-	b.ne	.LBB3_11
-	add	x23, sp, #3, lsl #12
+	b.ne	.LBB3_3
+	add	x25, sp, #2, lsl #12
 	mov	w1, wzr
 	mov	w2, #288
-	add	x23, x23, #3696
-	add	x0, x23, #128
+	add	x25, x25, #32
+	add	x0, x25, #128
 	bl	memset
+	ldr	w23, [x19, #4240]
 	mov	w9, #4244
-	add	x10, sp, #468
-	ldr	w21, [sp, #4708]
-	add	x9, x10, x9
-	add	x10, sp, #2, lsl #12
 	mov	x8, xzr
-	add	x10, x10, #52
-.LBB3_13:
+	add	x9, x19, x9
+	add	x10, sp, #484
+.LBB3_5:
 	add	x11, x9, x8
 	add	x13, x10, x8
 	add	x8, x8, #16
 	ldp	x12, x11, [x11]
 	cmp	x8, #1024
 	stp	x12, x11, [x13]
-	b.ne	.LBB3_13
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #2, lsl #12
+	b.ne	.LBB3_5
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #484
 	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #52
-	add	x24, sp, #2, lsl #12
-	add	x24, x24, #52
+	add	x0, x0, #2624
+	add	x26, sp, #484
 	bl	memcpy
 	mov	w8, #5268
-	add	x25, sp, #468
 	mov	w9, #5284
-	add	x8, x25, x8
-	add	x9, x25, x9
 	mov	w11, #5300
+	add	x8, x19, x8
+	add	x9, x19, x9
+	add	x0, sp, #4, lsl #12
 	ldp	x10, x8, [x8]
-	add	x0, sp, #6, lsl #12
+	add	x1, sp, #4, lsl #12
 	ldp	x12, x9, [x9]
-	add	x1, sp, #6, lsl #12
-	add	x0, x0, #144
-	add	x1, x1, #2192
+	add	x0, x0, #576
+	add	x1, x1, #2624
 	mov	w2, #1024
-	str	x8, [sp, #15992]
+	str	x8, [sp, #8232]
 	mov	w8, #5316
-	str	x10, [sp, #15984]
-	add	x10, x25, x11
-	add	x8, x25, x8
-	str	x9, [sp, #16008]
+	str	x10, [sp, #8224]
+	add	x10, x19, x11
+	add	x8, x19, x8
+	str	x9, [sp, #8248]
 	ldp	x11, x9, [x10]
 	ldp	x8, x10, [x8]
-	str	x12, [sp, #16000]
+	str	x12, [sp, #8240]
 	mov	w12, #5332
-	str	x9, [sp, #16024]
-	add	x9, x25, x12
+	str	x9, [sp, #8264]
+	add	x9, x19, x12
 	mov	w12, #5364
-	str	x10, [sp, #16040]
+	str	x10, [sp, #8280]
 	mov	w10, #5348
-	str	x11, [sp, #16016]
+	str	x11, [sp, #8256]
 	ldp	x9, x11, [x9]
-	str	x8, [sp, #16032]
-	add	x8, x25, x10
+	str	x8, [sp, #8272]
+	add	x8, x19, x10
 	ldp	x8, x10, [x8]
-	str	x9, [sp, #16048]
-	add	x9, x25, x12
+	str	x9, [sp, #8288]
+	add	x9, x19, x12
 	mov	w12, #5380
-	str	x11, [sp, #16056]
-	str	x8, [sp, #16064]
+	str	x11, [sp, #8296]
+	str	x8, [sp, #8304]
 	ldp	x8, x11, [x9]
-	add	x9, x25, x12
-	str	x10, [sp, #16072]
-	str	x8, [sp, #16080]
+	add	x9, x19, x12
+	str	x10, [sp, #8312]
+	str	x8, [sp, #8320]
 	ldp	x8, x10, [x9]
-	str	x11, [sp, #16088]
-	str	x10, [sp, #16104]
-	str	x8, [sp, #16096]
+	str	x11, [sp, #8328]
+	str	x10, [sp, #8344]
+	str	x8, [sp, #8336]
 	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #1024
-	add	x0, x0, #3216
-	add	x1, x1, #144
+	add	x0, x0, #3648
+	add	x1, x1, #576
 	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #5, lsl #12
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #3, lsl #12
 	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #3216
+	add	x0, x0, #2624
+	add	x1, x1, #3648
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #5, lsl #12
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #3, lsl #12
 	mov	w2, #1024
-	add	x0, x0, #1168
-	add	x1, x1, #2192
+	add	x0, x0, #1600
+	add	x1, x1, #2624
 	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #1024
-	add	x0, x0, #1168
-	add	x1, x1, #1168
+	add	x0, x0, #1600
+	add	x1, x1, #1600
 	bl	memcpy
-	ldr	w22, [sp, #5864]
+	ldr	w24, [x19, #5396]
 	mov	w9, #5400
 	mov	x8, xzr
-	add	x9, x25, x9
-.LBB3_15:
+	add	x9, x19, x9
+.LBB3_7:
 	add	x10, x9, x8
-	add	x12, x24, x8
+	add	x12, x26, x8
 	add	x8, x8, #16
 	ldp	x11, x10, [x10]
 	cmp	x8, #1024
 	stp	x11, x10, [x12]
-	b.ne	.LBB3_15
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #2, lsl #12
+	b.ne	.LBB3_7
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #484
 	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #52
-	add	x25, sp, #2, lsl #12
-	add	x25, x25, #52
+	add	x0, x0, #2624
+	add	x28, sp, #484
 	bl	memcpy
-	ldr	x8, [x20, #6424]
-	ldr	x9, [x20, #6432]
-	add	x0, sp, #6, lsl #12
-	ldr	x10, [x20, #6440]
-	add	x1, sp, #6, lsl #12
-	add	x0, x0, #144
-	stp	x8, x9, [x23, #128]
-	ldr	x8, [x20, #6448]
-	ldr	x9, [x20, #6456]
-	str	x10, [sp, #16128]
-	ldr	x10, [x20, #6480]
-	add	x1, x1, #2192
-	str	x8, [sp, #16136]
-	ldr	x8, [x20, #6464]
-	mov	w2, #1024
-	str	x9, [sp, #16144]
-	ldr	x9, [x20, #6496]
-	str	x8, [sp, #16152]
-	ldr	x8, [x20, #6472]
-	str	x10, [sp, #16168]
-	ldr	x10, [x20, #6512]
-	str	x8, [sp, #16160]
-	ldr	x8, [x20, #6488]
-	str	x9, [sp, #16184]
-	ldr	x9, [x20, #6528]
-	str	x8, [sp, #16176]
-	ldr	x8, [x20, #6504]
-	str	x10, [sp, #16200]
-	ldr	x10, [x20, #6544]
-	str	x8, [sp, #16192]
-	ldr	x8, [x20, #6520]
-	str	x9, [sp, #16216]
-	str	x8, [sp, #16208]
-	ldr	x8, [x20, #6536]
-	str	x10, [sp, #16232]
-	str	x8, [sp, #16224]
-	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #3216
-	add	x1, x1, #144
-	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #5, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #3216
-	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #5, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #1168
-	add	x1, x1, #2192
-	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #144
-	add	x1, x1, #1168
-	bl	memcpy
-	ldr	w24, [sp, #7020]
-	mov	w9, #6556
-	add	x10, sp, #468
-	mov	x8, xzr
-	add	x9, x10, x9
-.LBB3_17:
-	add	x10, x9, x8
-	add	x12, x25, x8
-	add	x8, x8, #16
-	ldp	x11, x10, [x10]
-	cmp	x8, #1024
-	stp	x11, x10, [x12]
-	b.ne	.LBB3_17
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #2, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #52
-	add	x23, sp, #2, lsl #12
-	add	x23, x23, #52
-	bl	memcpy
-	mov	w9, #7580
-	add	x8, sp, #468
-	mov	w10, #7596
-	add	x9, x8, x9
-	add	x10, x8, x10
-	mov	w12, #7612
-	ldp	x11, x9, [x9]
-	add	x0, sp, #6, lsl #12
-	ldp	x13, x10, [x10]
-	add	x1, sp, #6, lsl #12
-	rev	w26, w21
-	add	x0, x0, #144
-	add	x1, x1, #2192
-	str	x9, [sp, #16248]
-	mov	w9, #7628
-	mov	w2, #1024
-	str	x11, [sp, #16240]
-	add	x11, x8, x12
-	add	x9, x8, x9
-	str	x10, [sp, #16264]
-	ldp	x12, x10, [x11]
-	ldp	x9, x11, [x9]
-	str	x13, [sp, #16256]
-	mov	w13, #7644
-	add	x21, sp, #6, lsl #12
-	rev	w25, w22
-	str	x10, [sp, #16280]
-	add	x10, x8, x13
-	mov	w13, #7676
-	str	x11, [sp, #16296]
-	mov	w11, #7660
-	rev	w22, w24
-	str	x12, [sp, #16272]
-	ldp	x10, x12, [x10]
-	str	x9, [sp, #16288]
-	add	x9, x8, x11
-	add	x21, x21, #144
-	ldp	x9, x11, [x9]
-	str	x10, [sp, #16304]
-	add	x10, x8, x13
-	mov	w13, #7692
-	str	x12, [sp, #16312]
-	str	x9, [sp, #16320]
-	ldp	x9, x12, [x10]
-	add	x10, x8, x13
-	str	x11, [sp, #16328]
-	mov	w13, #7708
-	str	x9, [sp, #16336]
-	ldp	x9, x11, [x10]
-	add	x10, x8, x13
-	mov	w13, #7724
-	str	x12, [sp, #16344]
-	add	x8, x8, x13
-	str	x9, [sp, #16352]
-	ldp	x9, x12, [x10]
-	ldp	x8, x10, [x8]
-	str	x11, [sp, #16360]
-	str	x12, [sp, #16376]
-	str	x9, [sp, #16368]
-	str	x10, [sp, #16392]
-	str	x8, [sp, #16384]
-	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #3216
-	add	x1, x1, #144
-	bl	memcpy
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #5, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #3216
-	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #5, lsl #12
-	mov	w2, #1024
-	add	x0, x0, #1168
-	add	x1, x1, #2192
-	bl	memcpy
-	ldr	x8, [sp, #27808]
-	ldr	x9, [sp, #27816]
-	add	x0, sp, #2, lsl #12
+	ldr	x8, [x19, #6424]
+	ldr	x9, [x19, #6432]
+	add	x0, sp, #4, lsl #12
+	ldr	x10, [x19, #6440]
 	add	x1, sp, #4, lsl #12
-	add	x0, x0, #52
+	add	x0, x0, #576
+	stp	x8, x9, [x25, #128]
+	ldr	x8, [x19, #6448]
+	ldr	x9, [x19, #6456]
+	str	x10, [sp, #8368]
+	ldr	x10, [x19, #6480]
+	add	x1, x1, #2624
+	str	x8, [sp, #8376]
+	ldr	x8, [x19, #6464]
+	mov	w2, #1024
+	str	x9, [sp, #8384]
+	ldr	x9, [x19, #6496]
+	str	x8, [sp, #8392]
+	ldr	x8, [x19, #6472]
+	str	x10, [sp, #8408]
+	ldr	x10, [x19, #6512]
+	str	x8, [sp, #8400]
+	ldr	x8, [x19, #6488]
+	str	x9, [sp, #8424]
+	ldr	x9, [x19, #6528]
+	str	x8, [sp, #8416]
+	ldr	x8, [x19, #6504]
+	str	x10, [sp, #8440]
+	ldr	x10, [x19, #6544]
+	str	x8, [sp, #8432]
+	ldr	x8, [x19, #6520]
+	str	x9, [sp, #8456]
+	str	x8, [sp, #8448]
+	ldr	x8, [x19, #6536]
+	str	x10, [sp, #8472]
+	str	x8, [sp, #8464]
+	bl	memcpy
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #3648
+	add	x1, x1, #576
+	bl	memcpy
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #3, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #2624
+	add	x1, x1, #3648
+	bl	memcpy
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #3, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #1600
+	add	x1, x1, #2624
+	bl	memcpy
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #576
+	add	x1, x1, #1600
+	bl	memcpy
+	ldr	w26, [x19, #6552]
+	mov	w9, #6556
+	mov	x8, xzr
+	add	x9, x19, x9
+.LBB3_9:
+	add	x10, x9, x8
+	add	x12, x28, x8
+	add	x8, x8, #16
+	ldp	x11, x10, [x10]
+	cmp	x8, #1024
+	stp	x11, x10, [x12]
+	b.ne	.LBB3_9
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #484
+	mov	w2, #1024
+	add	x0, x0, #2624
+	add	x25, sp, #484
+	bl	memcpy
+	mov	w8, #7580
+	mov	w9, #7596
+	mov	w11, #7612
+	add	x8, x19, x8
+	add	x9, x19, x9
+	add	x0, sp, #4, lsl #12
+	ldp	x10, x8, [x8]
+	add	x1, sp, #4, lsl #12
+	ldp	x12, x9, [x9]
+	add	x0, x0, #576
+	add	x1, x1, #2624
+	mov	w2, #1024
+	rev	w24, w24
+	str	x8, [sp, #8488]
+	mov	w8, #7628
+	rev	w28, w23
+	str	x10, [sp, #8480]
+	add	x10, x19, x11
+	add	x8, x19, x8
+	str	x9, [sp, #8504]
+	ldp	x11, x9, [x10]
+	ldp	x8, x10, [x8]
+	str	x12, [sp, #8496]
+	mov	w12, #7644
+	rev	w23, w26
+	str	x9, [sp, #8520]
+	add	x9, x19, x12
+	mov	w12, #7676
+	str	x10, [sp, #8536]
+	mov	w10, #7660
+	str	x11, [sp, #8512]
+	ldp	x9, x11, [x9]
+	str	x8, [sp, #8528]
+	add	x8, x19, x10
+	ldp	x8, x10, [x8]
+	str	x9, [sp, #8544]
+	add	x9, x19, x12
+	mov	w12, #7692
+	str	x11, [sp, #8552]
+	str	x8, [sp, #8560]
+	ldp	x8, x11, [x9]
+	add	x9, x19, x12
+	str	x10, [sp, #8568]
+	mov	w12, #7708
+	str	x8, [sp, #8576]
+	ldp	x8, x10, [x9]
+	add	x9, x19, x12
+	mov	w12, #7724
+	str	x11, [sp, #8584]
+	ldp	x9, x11, [x9]
+	str	x8, [sp, #8592]
+	add	x8, x19, x12
+	add	x19, sp, #4, lsl #12
+	str	x10, [sp, #8600]
+	ldp	x8, x10, [x8]
+	str	x11, [sp, #8616]
+	add	x19, x19, #576
+	str	x9, [sp, #8608]
+	str	x10, [sp, #8632]
+	str	x8, [sp, #8624]
+	bl	memcpy
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #3648
+	add	x1, x1, #576
+	bl	memcpy
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #3, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #2624
+	add	x1, x1, #3648
+	bl	memcpy
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #3, lsl #12
+	mov	w2, #1024
+	add	x0, x0, #1600
+	add	x1, x1, #2624
+	bl	memcpy
+	ldr	x8, [sp, #20048]
+	ldr	x9, [sp, #20056]
+	add	x1, sp, #2, lsl #12
+	add	x0, sp, #484
+	add	x1, x1, #448
 	mov	w2, #4224
-	add	x1, x1, #16
-	str	x8, [x20, #12416]
-	mov	w24, #4640
-	str	x9, [x20, #12424]
-	mov	w20, #4224
+	str	x8, [x22, #4640]
+	mov	w26, #4640
+	str	x9, [x22, #4648]
+	mov	w22, #4224
 	bl	memcpy
 	mov	w8, #4656
-	add	x1, sp, #5, lsl #12
+	add	x1, sp, #3, lsl #12
 	mov	w2, #1024
-	add	x0, x23, x8
-	add	x1, x1, #1168
-	str	x0, [sp, #392]
+	add	x0, x25, x8
+	add	x1, x1, #1600
+	str	x0, [sp, #408]
 	bl	memcpy
 	mov	w8, #5684
-	add	x1, sp, #5, lsl #12
+	add	x1, sp, #3, lsl #12
 	mov	w2, #1024
-	add	x0, x23, x8
-	add	x1, x1, #144
-	str	w26, [sp, #13924]
+	add	x0, x25, x8
+	add	x1, x1, #576
+	str	w28, [sp, #6164]
 	bl	memcpy
 	mov	w8, #6712
-	add	x1, sp, #6, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #1024
-	add	x0, x23, x8
-	add	x1, x1, #1168
-	str	w25, [sp, #14952]
+	add	x0, x25, x8
+	add	x1, x1, #1600
+	str	w24, [sp, #7192]
 	bl	memcpy
-	add	x1, sp, #3, lsl #12
-	add	x0, x23, x20
+	add	x1, sp, #2, lsl #12
+	add	x0, x25, x22
 	mov	w2, #416
-	add	x1, x1, #3696
-	str	w22, [sp, #15980]
-	str	x0, [sp, #376]
+	add	x1, x1, #32
+	str	w23, [sp, #8220]
+	str	x0, [sp, #392]
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
+	add	x0, sp, #4, lsl #12
 	mov	w1, wzr
 	mov	w2, #344
-	add	x0, x0, #2192
+	add	x0, x0, #2624
 	bl	memset
-	add	x0, sp, #6, lsl #12
-	add	x1, x23, x24
+	add	x0, sp, #4, lsl #12
+	add	x1, x25, x26
 	mov	w2, #16
-	add	x0, x0, #2192
+	add	x0, x0, #2624
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #2, lsl #12
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #448
 	mov	w2, #16
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, x19, #16
+	add	x0, sp, #4, lsl #12
+	add	x1, x20, #16
 	mov	w2, #16
-	add	x0, x0, #2192
+	add	x0, x0, #2624
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #432
+	add	x0, sp, #4, lsl #12
+	mov	x1, x21
 	mov	w2, #32
-	add	x0, x0, #2192
+	add	x0, x0, #2624
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #344
-	add	x0, x0, #16
-	add	x1, x1, #2192
-	bl	memcpy
-	add	x23, sp, #5, lsl #12
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #5, lsl #12
-	add	x23, x23, #1168
-	add	x0, x0, #16
-	add	x1, x1, #3216
-	mov	w2, #4
-	str	wzr, [x23, #2048]
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
+	add	x0, sp, #2, lsl #12
 	add	x1, sp, #4, lsl #12
-	add	x0, x0, #1168
-	add	x1, x1, #16
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x8, [sp, #25744]
-	ldr	x9, [sp, #25752]
-	add	x0, sp, #4, lsl #12
-	ldr	x10, [sp, #25768]
-	add	x1, sp, #6, lsl #12
-	add	x0, x0, #16
-	str	x8, [sp, #24720]
-	ldr	x8, [sp, #25760]
-	add	x1, x1, #2192
 	mov	w2, #344
-	str	x9, [sp, #24728]
-	str	x8, [sp, #24736]
-	str	x10, [sp, #24744]
+	add	x0, x0, #448
+	add	x1, x1, #2624
 	bl	memcpy
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #3, lsl #12
+	mov	w2, #4
+	add	x0, x0, #448
+	add	x1, x1, #3648
+	str	wzr, [sp, #15936]
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
-	add	x1, sp, #5, lsl #12
+	add	x1, sp, #2, lsl #12
+	add	x0, x0, #1600
+	add	x1, x1, #448
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
+	ldr	x8, [sp, #17984]
+	ldr	x9, [sp, #17992]
+	add	x0, sp, #2, lsl #12
+	ldr	x10, [sp, #18008]
+	add	x1, sp, #4, lsl #12
+	add	x0, x0, #448
+	str	x8, [sp, #16960]
+	ldr	x8, [sp, #18000]
+	add	x1, x1, #2624
+	mov	w2, #344
+	str	x9, [sp, #16968]
+	str	x8, [sp, #16976]
+	str	x10, [sp, #16984]
+	bl	memcpy
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #3, lsl #12
 	mov	w8, #16777216
-	add	x0, x0, #16
-	add	x1, x1, #3216
+	add	x0, x0, #448
+	add	x1, x1, #3648
 	mov	w2, #4
-	str	w8, [x23, #2048]
+	str	w8, [sp, #15936]
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
-	add	x0, x0, #1168
-	add	x1, x1, #16
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #2, lsl #12
+	add	x0, x0, #1600
+	add	x1, x1, #448
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x9, [sp, #25744]
-	ldr	x10, [sp, #25752]
+	ldr	x9, [sp, #17984]
+	ldr	x10, [sp, #17992]
 	mov	x8, xzr
-	ldr	x11, [sp, #25768]
-	str	x9, [sp, #24752]
-	ldr	x9, [sp, #25760]
-	str	x10, [sp, #24760]
+	ldr	x11, [sp, #18008]
+	str	x9, [sp, #16992]
+	ldr	x9, [sp, #18000]
+	str	x10, [sp, #17000]
 	mov	w10, #6
-	str	x9, [sp, #24768]
-	add	x9, sp, #4, lsl #12
-	add	x9, x9, #16
-	str	x11, [sp, #24776]
-.LBB3_19:
+	str	x9, [sp, #17008]
+	add	x9, sp, #2, lsl #12
+	add	x9, x9, #448
+	str	x11, [sp, #17016]
+.LBB3_11:
 	lsr	x13, x8, #3
 	add	x14, x8, #2
 	and	x18, x8, #0x6
 	lsr	x16, x14, #3
 	eor	x11, x18, #0x7
 	eor	w18, w18, #0x6
-	ldrb	w13, [x21, x13]
+	ldrb	w13, [x19, x13]
 	and	w14, w14, #0x6
 	add	x0, x8, #3
-	ldrb	w16, [x21, x16]
+	ldrb	w16, [x19, x16]
 	add	x15, x8, #4
 	eor	w14, w14, #0x7
 	lsr	w18, w13, w18
@@ -752,9 +609,9 @@ sphincs_verify:
 	lsr	w13, w13, w11
 	lsr	w14, w16, w14
 	bic	w16, w10, w0
-	ldrb	w0, [x21, x1]
+	ldrb	w0, [x19, x1]
 	and	w18, w18, #0x1
-	ldrb	w17, [x21, x17]
+	ldrb	w17, [x19, x17]
 	bfi	w18, w13, #1, #1
 	ubfiz	w13, w14, #1, #1
 	and	w14, w15, #0x6
@@ -770,8 +627,8 @@ sphincs_verify:
 	ubfiz	w14, w14, #1, #1
 	bfxil	w13, w15, #0, #1
 	bic	w16, w10, w16
-	ldrb	w17, [x21, x17]
-	ldrb	w15, [x21, x0]
+	ldrb	w17, [x19, x17]
+	ldrb	w15, [x19, x0]
 	add	x0, x8, #7
 	eor	w12, w12, #0x7
 	lsr	x1, x0, #3
@@ -779,7 +636,7 @@ sphincs_verify:
 	lsr	w14, w17, w16
 	lsr	w12, w15, w12
 	add	x18, x8, #8
-	ldrb	w17, [x21, x1]
+	ldrb	w17, [x19, x1]
 	lsr	x15, x18, #3
 	add	x16, x8, #9
 	bfxil	w13, w14, #0, #1
@@ -789,10 +646,10 @@ sphincs_verify:
 	lsr	w14, w17, w14
 	mvn	w16, w16
 	orr	w12, w12, w13, lsl #3
-	ldrb	w13, [x21, x15]
+	ldrb	w13, [x19, x15]
 	add	x8, x8, #10
 	ubfiz	w14, w14, #1, #1
-	ldrb	w15, [x21, x18]
+	ldrb	w15, [x19, x18]
 	cmp	x8, #240
 	and	x12, x12, #0x3fc
 	lsr	x11, x13, x11
@@ -803,708 +660,707 @@ sphincs_verify:
 	and	x11, x13, #0x1
 	orr	x11, x11, x12, lsl #1
 	str	x11, [x9], #8
-	b.ne	.LBB3_19
-	ldrb	w8, [x23, #3103]
-	ldrb	w9, [x23, #3102]
-	add	x1, sp, #4, lsl #12
-	ldrb	w10, [x23, #3104]
-	ldrb	w20, [x23, #3105]
-	add	x1, x1, #16
-	lsl	w8, w8, #8
+	b.ne	.LBB3_11
+	add	x23, sp, #3, lsl #12
+	add	x1, sp, #2, lsl #12
 	mov	w2, #192
-	add	x21, sp, #4, lsl #12
-	and	x22, x20, #0xff
-	add	x21, x21, #16
+	add	x23, x23, #3648
+	add	x1, x1, #448
+	add	x20, sp, #2, lsl #12
+	ldrb	w8, [x23, #1055]
+	ldrb	w9, [x23, #1054]
+	ldrb	w10, [x23, #1056]
+	ldrb	w19, [x23, #1057]
+	add	x20, x20, #448
+	lsl	w8, w8, #8
+	and	x21, x19, #0xff
 	orr	w8, w8, w9, lsl #16
 	orr	w8, w8, w10
-	bfi	x22, x8, #8, #18
-	add	x8, sp, #6, lsl #12
-	add	x8, x8, #1168
+	bfi	x21, x8, #8, #18
+	add	x8, sp, #4, lsl #12
+	add	x8, x8, #1600
 	add	x24, x8, #8
-	str	x22, [sp, #25744]
+	str	x21, [sp, #17984]
 	mov	x0, x24
 	bl	memcpy
-	add	x9, sp, #6, lsl #12
-	rev	x8, x22
-	str	x22, [sp, #384]
-	add	x9, x9, #2192
-	lsl	w26, w20, #24
-	lsl	x27, x8, #8
-	add	x22, x9, #200
-	add	x9, sp, #2, lsl #12
+	rev	x8, x21
+	add	x9, sp, #4, lsl #12
+	lsl	w25, w19, #24
+	lsl	x8, x8, #8
+	add	x9, x9, #2624
 	mov	x19, xzr
-	add	x21, x21, #200
+	add	x26, x20, #200
+	add	x22, x9, #200
+	add	x9, sp, #484
+	mov	x20, x8
 	mov	w8, #176
-	add	x9, x9, #52
-	mov	w25, #50331648
-	mov	w20, #136
-	stp	x24, x27, [sp, #400]
-.LBB3_21:
-	ldr	x10, [x24, x19, lsl #3]
-	madd	x24, x19, x8, x9
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
+	mov	w10, #50331648
+	mov	w28, #136
+	str	x21, [sp, #400]
+	stp	x24, x20, [sp, #416]
+.LBB3_13:
+	ldr	x11, [x24, x19, lsl #3]
+	madd	x21, x19, x8, x9
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
 	mov	w1, wzr
 	mov	w2, #344
-	add	w8, w10, w19, lsl #10
-	str	xzr, [sp, #24720]
-	str	x27, [sp, #24728]
+	add	w8, w11, w19, lsl #10
+	str	xzr, [sp, #16960]
+	str	x20, [sp, #16968]
 	rev	w8, w8
-	str	x10, [sp, #424]
-	str	w25, [x23, #3088]
-	str	w26, [x23, #3092]
-	str	wzr, [x23, #3096]
-	str	w8, [x23, #3100]
+	str	x11, [sp, #440]
+	str	w10, [x23, #1040]
+	str	w25, [x23, #1044]
+	str	wzr, [x23, #1048]
+	str	w8, [x23, #1052]
 	bl	memset
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #448
+	mov	w2, #16
+	add	x0, x0, #448
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #32
+	add	x0, x0, #448
+	add	x1, x1, #576
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #2, lsl #12
-	mov	w2, #16
-	add	x0, x0, #16
-	add	x1, x1, #16
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #32
-	add	x0, x0, #16
-	add	x1, x1, #144
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, x24, #160
-	mov	w2, #16
-	add	x0, x0, #2192
-	str	x24, [sp, #416]
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
-	add	x0, x0, #144
-	add	x1, x1, #2192
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	mov	x28, xzr
-.LBB3_22:
-	ldp	x11, x12, [sp, #416]
-	mov	w8, #1
-	ldr	x10, [sp, #20632]
-	lsl	x8, x8, x28
-	ldr	x9, [sp, #20624]
 	add	x0, sp, #4, lsl #12
+	add	x1, x21, #160
+	mov	w2, #16
+	add	x0, x0, #2624
+	str	x21, [sp, #432]
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
+	add	x0, x0, #576
+	add	x1, x1, #2624
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
+	mov	x21, xzr
+.LBB3_14:
+	ldp	x11, x12, [sp, #432]
+	mov	w8, #1
+	ldr	x10, [sp, #12872]
+	lsl	x8, x8, x21
+	ldr	x9, [sp, #12864]
+	add	x0, sp, #2, lsl #12
 	mov	w1, wzr
 	mov	w2, #344
-	add	x11, x11, x28, lsl #4
-	str	x10, [sp, #21656]
-	add	x10, sp, #5, lsl #12
+	add	x11, x11, x21, lsl #4
+	str	x10, [sp, #13896]
+	add	x10, sp, #3, lsl #12
 	tst	x8, x12
-	add	x10, x10, #1168
-	str	x9, [sp, #21648]
+	add	x10, x10, #1600
+	str	x9, [sp, #13888]
 	csel	x8, x10, x11, eq
 	csel	x10, x11, x10, eq
-	add	x11, sp, #5, lsl #12
+	add	x11, sp, #3, lsl #12
 	ldp	x9, x8, [x8]
-	add	x11, x11, #2192
-	add	x0, x0, #16
-	str	xzr, [sp, #23696]
-	str	x27, [sp, #23704]
-	str	x9, [sp, #22672]
+	add	x11, x11, #2624
+	add	x0, x0, #448
+	str	xzr, [sp, #15936]
+	str	x20, [sp, #15944]
+	str	x9, [sp, #14912]
 	ldp	x9, x10, [x10]
-	str	x8, [sp, #22680]
+	str	x8, [sp, #14920]
 	mov	w8, #9
-	sub	x8, x8, x28
-	add	x28, x28, #1
-	str	w25, [x23, #2064]
+	sub	x8, x8, x21
+	add	x21, x21, #1
+	str	w25, [sp, #15956]
 	stp	x9, x10, [x11, #16]
-	lsr	x9, x12, x28
+	lsr	x9, x12, x21
 	lsl	w8, w19, w8
-	rev	w10, w28
-	str	w26, [x23, #2068]
+	mov	w10, #50331648
 	add	w8, w8, w9
-	str	w10, [x23, #2072]
+	str	w10, [sp, #15952]
+	rev	w10, w21
 	rev	w8, w8
-	str	w8, [x23, #2076]
+	str	w10, [sp, #15960]
+	str	w8, [sp, #15964]
 	bl	memset
-	ldr	x8, [sp, #16736]
-	ldr	x9, [sp, #8208]
-	ldr	x10, [sp, #8216]
+	ldr	x8, [sp, #8976]
+	ldp	x9, x10, [sp, #448]
 	add	x0, x8, #16
-	stp	x9, x10, [x21]
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_24
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	stp	x9, x10, [x26]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_16
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-.LBB3_24:
-	add	x23, sp, #5, lsl #12
-	mov	w25, #32
-	add	x23, x23, #3216
-	b	.LBB3_26
-.LBB3_25:
-	sub	x25, x25, x24
+	str	xzr, [sp, #8976]
+.LBB3_16:
+	add	x23, sp, #3, lsl #12
+	mov	w20, #32
+	add	x23, x23, #3648
+	b	.LBB3_18
+.LBB3_17:
+	sub	x20, x20, x24
 	add	x23, x23, x24
-	cbz	x25, .LBB3_30
-.LBB3_26:
-	sub	x8, x20, x0
-	cmp	x25, x8
-	csel	x24, x25, x8, lo
+	cbz	x20, .LBB3_22
+.LBB3_18:
+	sub	x8, x28, x0
+	cmp	x20, x8
+	csel	x24, x20, x8, lo
 	add	x1, x24, x0
 	cmp	x1, x0
-	b.lo	.LBB3_87
+	b.lo	.LBB3_79
 	cmp	x1, #137
-	b.hs	.LBB3_87
-	add	x0, x21, x0
+	b.hs	.LBB3_79
+	add	x0, x26, x0
 	mov	x1, x23
 	mov	x2, x24
 	bl	memcpy
-	ldr	x8, [sp, #16736]
+	ldr	x8, [sp, #8976]
 	add	x0, x8, x24
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_25
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_17
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-	b	.LBB3_25
-.LBB3_30:
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
+	str	xzr, [sp, #8976]
+	b	.LBB3_17
+.LBB3_22:
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #2, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	mov	x27, x19
-	mov	w19, w26
+	mov	w19, w25
 	bl	memcpy
-	ldr	x25, [sp, #27104]
-	add	x23, sp, #5, lsl #12
-	mov	w26, #32
-	add	x23, x23, #2192
-	b	.LBB3_32
-.LBB3_31:
-	sub	x26, x26, x24
+	ldr	x25, [sp, #19344]
+	add	x23, sp, #3, lsl #12
+	mov	w20, #32
+	add	x23, x23, #2624
+	b	.LBB3_24
+.LBB3_23:
+	sub	x20, x20, x24
 	add	x23, x23, x24
-	cbz	x26, .LBB3_36
-.LBB3_32:
-	sub	x8, x20, x25
-	cmp	x26, x8
-	csel	x24, x26, x8, lo
+	cbz	x20, .LBB3_28
+.LBB3_24:
+	sub	x8, x28, x25
+	cmp	x20, x8
+	csel	x24, x20, x8, lo
 	add	x1, x24, x25
 	cmp	x1, x25
-	b.lo	.LBB3_88
+	b.lo	.LBB3_80
 	cmp	x1, #137
-	b.hs	.LBB3_88
+	b.hs	.LBB3_80
 	add	x0, x22, x25
 	mov	x1, x23
 	mov	x2, x24
 	bl	memcpy
-	ldr	x8, [sp, #27104]
+	ldr	x8, [sp, #19344]
 	add	x25, x8, x24
 	cmp	x25, #136
-	str	x25, [sp, #27104]
-	b.ne	.LBB3_31
-	ldr	x9, [sp, #26968]
-	ldr	x14, [sp, #26768]
-	ldr	x10, [sp, #26976]
-	ldr	x15, [sp, #26776]
-	ldr	x8, [sp, #26984]
-	ldr	x16, [sp, #26992]
+	str	x25, [sp, #19344]
+	b.ne	.LBB3_23
+	ldr	x9, [sp, #19208]
+	ldr	x14, [sp, #19008]
+	ldr	x10, [sp, #19216]
+	ldr	x15, [sp, #19016]
+	ldr	x8, [sp, #19224]
+	ldr	x16, [sp, #19232]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #26792]
-	ldr	x12, [sp, #27000]
+	ldr	x14, [sp, #19032]
+	ldr	x12, [sp, #19240]
 	eor	x10, x15, x10
-	str	x9, [sp, #26768]
-	ldr	x9, [sp, #26784]
-	str	x10, [sp, #26776]
-	ldr	x10, [sp, #26800]
-	ldr	x13, [sp, #27008]
+	str	x9, [sp, #19008]
+	ldr	x9, [sp, #19024]
+	str	x10, [sp, #19016]
+	ldr	x10, [sp, #19040]
+	ldr	x13, [sp, #19248]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #27016]
-	str	x8, [sp, #26784]
-	ldr	x8, [sp, #26808]
-	ldr	x15, [sp, #27024]
-	str	x9, [sp, #26792]
+	ldr	x11, [sp, #19256]
+	str	x8, [sp, #19024]
+	ldr	x8, [sp, #19048]
+	ldr	x15, [sp, #19264]
+	str	x9, [sp, #19032]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #26816]
+	ldr	x10, [sp, #19056]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #27032]
-	ldr	x12, [sp, #26824]
-	ldr	x13, [sp, #26832]
-	ldr	x14, [sp, #27040]
-	ldr	x0, [sp, #26840]
-	str	x8, [sp, #26808]
+	ldr	x18, [sp, #19272]
+	ldr	x12, [sp, #19064]
+	ldr	x13, [sp, #19072]
+	ldr	x14, [sp, #19280]
+	ldr	x0, [sp, #19080]
+	str	x8, [sp, #19048]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #27048]
+	ldr	x16, [sp, #19288]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #6, lsl #12
-	add	x0, x0, #2192
-	str	x9, [sp, #26800]
+	add	x0, sp, #4, lsl #12
+	add	x0, x0, #2624
+	str	x9, [sp, #19040]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #27056]
-	str	x8, [sp, #26816]
-	ldr	x8, [sp, #26856]
-	ldr	x12, [sp, #26848]
-	ldr	x14, [sp, #27064]
-	str	x9, [sp, #26824]
+	ldr	x13, [sp, #19296]
+	str	x8, [sp, #19056]
+	ldr	x8, [sp, #19096]
+	ldr	x12, [sp, #19088]
+	ldr	x14, [sp, #19304]
+	str	x9, [sp, #19064]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #26864]
-	str	x10, [sp, #26832]
+	ldr	x9, [sp, #19104]
+	str	x10, [sp, #19072]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #27072]
-	str	x11, [sp, #26840]
+	ldr	x10, [sp, #19312]
+	str	x11, [sp, #19080]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #26872]
-	ldr	x13, [sp, #27080]
-	str	x8, [sp, #26856]
-	ldr	x8, [sp, #26880]
-	ldr	x17, [sp, #26896]
+	ldr	x11, [sp, #19112]
+	ldr	x13, [sp, #19320]
+	str	x8, [sp, #19096]
+	ldr	x8, [sp, #19120]
+	ldr	x17, [sp, #19136]
 	eor	x10, x11, x10
-	str	x12, [sp, #26848]
-	ldr	x11, [sp, #27088]
+	str	x12, [sp, #19088]
+	ldr	x11, [sp, #19328]
 	eor	x8, x8, x13
-	str	x9, [sp, #26864]
-	ldr	x9, [sp, #26888]
-	ldr	x12, [sp, #27096]
-	str	x8, [sp, #26880]
+	str	x9, [sp, #19104]
+	ldr	x9, [sp, #19128]
+	ldr	x12, [sp, #19336]
+	str	x8, [sp, #19120]
 	eor	x9, x9, x11
-	str	x10, [sp, #26872]
+	str	x10, [sp, #19112]
 	eor	x8, x17, x12
-	str	x9, [sp, #26888]
-	str	x8, [sp, #26896]
+	str	x9, [sp, #19128]
+	str	x8, [sp, #19136]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x25, xzr
-	str	xzr, [sp, #27104]
-	b	.LBB3_31
-.LBB3_36:
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
+	str	xzr, [sp, #19344]
+	b	.LBB3_23
+.LBB3_28:
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #200
-	add	x0, x0, #16
-	add	x1, x1, #2192
+	add	x0, x0, #448
+	add	x1, x1, #2624
 	bl	memcpy
 	cmp	x25, #137
-	b.hs	.LBB3_89
-	add	x0, sp, #6, lsl #12
+	b.hs	.LBB3_81
+	add	x0, sp, #4, lsl #12
 	mov	x1, x22
 	mov	x2, x25
-	add	x0, x0, #144
-	mov	w26, w19
-	str	xzr, [sp, #24848]
-	str	xzr, [sp, #24840]
-	str	xzr, [sp, #24832]
-	str	xzr, [sp, #24824]
-	str	xzr, [sp, #24816]
-	str	xzr, [sp, #24808]
-	str	xzr, [sp, #24800]
-	str	xzr, [sp, #24792]
-	str	xzr, [sp, #24784]
-	str	xzr, [sp, #24776]
-	str	xzr, [sp, #24768]
-	str	xzr, [sp, #24760]
-	str	xzr, [sp, #24752]
-	str	xzr, [sp, #24744]
-	str	xzr, [sp, #24736]
-	str	xzr, [sp, #24728]
-	str	xzr, [sp, #24720]
+	add	x0, x0, #576
+	str	xzr, [sp, #17088]
+	str	xzr, [sp, #17080]
+	str	xzr, [sp, #17072]
+	str	xzr, [sp, #17064]
+	str	xzr, [sp, #17056]
+	str	xzr, [sp, #17048]
+	str	xzr, [sp, #17040]
+	str	xzr, [sp, #17032]
+	str	xzr, [sp, #17024]
+	str	xzr, [sp, #17016]
+	str	xzr, [sp, #17008]
+	str	xzr, [sp, #17000]
+	str	xzr, [sp, #16992]
+	str	xzr, [sp, #16984]
+	str	xzr, [sp, #16976]
+	str	xzr, [sp, #16968]
+	str	xzr, [sp, #16960]
 	bl	memcpy
-	add	x9, sp, #6, lsl #12
-	add	x23, sp, #5, lsl #12
-	ldr	x0, [sp, #16408]
-	add	x9, x9, #144
-	add	x23, x23, #1168
+	add	x9, sp, #4, lsl #12
+	add	x23, sp, #3, lsl #12
+	ldr	x0, [sp, #8648]
+	add	x9, x9, #576
+	add	x23, x23, #3648
 	ldrb	w8, [x9, x25]
 	eor	w8, w8, #0x1
 	strb	w8, [x9, x25]
-	ldr	x8, [sp, #16400]
-	ldr	x10, [sp, #24720]
-	ldr	x11, [sp, #24728]
-	ldr	x12, [sp, #24736]
-	ldrb	w9, [x23, #3207]
-	ldr	x13, [sp, #24744]
+	ldr	x8, [sp, #8640]
+	ldr	x10, [sp, #16960]
+	ldr	x11, [sp, #16968]
+	ldr	x12, [sp, #16976]
+	ldrb	w9, [x23, #1159]
+	ldr	x13, [sp, #16984]
 	eor	x8, x8, x10
-	ldr	x10, [sp, #16416]
+	ldr	x10, [sp, #8656]
 	eor	x11, x0, x11
-	ldr	x0, [sp, #16424]
-	ldr	x14, [sp, #24752]
-	ldr	x15, [sp, #24760]
-	str	x8, [sp, #16400]
+	ldr	x0, [sp, #8664]
+	ldr	x14, [sp, #16992]
+	ldr	x15, [sp, #17000]
+	str	x8, [sp, #8640]
 	eor	x8, x10, x12
-	ldr	x10, [sp, #16432]
-	ldr	x12, [sp, #16440]
+	ldr	x10, [sp, #8672]
+	ldr	x12, [sp, #8680]
 	eor	w9, w9, #0x80
-	str	x11, [sp, #16408]
+	str	x11, [sp, #8648]
 	eor	x11, x0, x13
-	ldr	x16, [sp, #24768]
-	ldr	x17, [sp, #24776]
-	strb	w9, [x23, #3207]
-	ldr	x9, [sp, #24784]
-	ldr	x13, [sp, #16464]
-	str	x8, [sp, #16416]
+	ldr	x16, [sp, #17008]
+	ldr	x17, [sp, #17016]
+	strb	w9, [x23, #1159]
+	ldr	x9, [sp, #17024]
+	ldr	x13, [sp, #8704]
+	str	x8, [sp, #8656]
 	eor	x8, x10, x14
-	ldr	x10, [sp, #16448]
-	str	x11, [sp, #16424]
+	ldr	x10, [sp, #8688]
+	str	x11, [sp, #8664]
 	eor	x11, x12, x15
-	ldr	x12, [sp, #16456]
-	ldr	x14, [sp, #24808]
-	str	x11, [sp, #16440]
-	ldr	x11, [sp, #16488]
-	str	x8, [sp, #16432]
+	ldr	x12, [sp, #8696]
+	ldr	x14, [sp, #17048]
+	str	x11, [sp, #8680]
+	ldr	x11, [sp, #8728]
+	str	x8, [sp, #8672]
 	eor	x8, x10, x16
 	eor	x12, x12, x17
 	eor	x9, x13, x9
-	ldr	x18, [sp, #24792]
-	ldr	x1, [sp, #24800]
-	ldr	x10, [sp, #16472]
-	ldr	x13, [sp, #16480]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #24816]
-	str	x12, [sp, #16456]
-	ldr	x12, [sp, #16496]
+	ldr	x18, [sp, #17032]
+	ldr	x1, [sp, #17040]
+	ldr	x10, [sp, #8712]
+	ldr	x13, [sp, #8720]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #17056]
+	str	x12, [sp, #8696]
+	ldr	x12, [sp, #8736]
 	eor	x11, x11, x14
-	ldr	x14, [sp, #24824]
-	str	x9, [sp, #16464]
-	ldr	x9, [sp, #16504]
+	ldr	x14, [sp, #17064]
+	str	x9, [sp, #8704]
+	ldr	x9, [sp, #8744]
 	eor	x10, x10, x18
 	eor	x13, x13, x1
 	eor	x8, x12, x8
-	str	x10, [sp, #16472]
-	ldr	x10, [sp, #24832]
+	str	x10, [sp, #8712]
+	ldr	x10, [sp, #17072]
 	eor	x9, x9, x14
-	str	x13, [sp, #16480]
-	ldr	x12, [sp, #16512]
-	ldr	x13, [sp, #24840]
-	str	x11, [sp, #16488]
-	ldr	x11, [sp, #16520]
-	str	x8, [sp, #16496]
-	ldr	x8, [sp, #24848]
-	add	x0, sp, #4, lsl #12
-	str	x9, [sp, #16504]
-	ldr	x9, [sp, #16528]
+	str	x13, [sp, #8720]
+	ldr	x12, [sp, #8752]
+	ldr	x13, [sp, #17080]
+	str	x11, [sp, #8728]
+	ldr	x11, [sp, #8760]
+	str	x8, [sp, #8736]
+	ldr	x8, [sp, #17088]
+	add	x0, sp, #2, lsl #12
+	str	x9, [sp, #8744]
+	ldr	x9, [sp, #8768]
 	eor	x10, x12, x10
 	eor	x11, x11, x13
-	add	x0, x0, #16
-	str	x10, [sp, #16512]
+	add	x0, x0, #448
+	str	x10, [sp, #8752]
 	eor	x8, x9, x8
-	str	x11, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x11, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	ldr	x8, [sp, #16408]
-	ldr	x9, [sp, #16400]
+	ldr	x8, [sp, #8648]
+	ldr	x9, [sp, #8640]
+	mov	w25, w19
 	mov	x19, x27
-	ldr	x27, [sp, #408]
-	cmp	x28, #10
-	mov	w25, #50331648
-	str	x8, [sp, #24728]
-	str	x9, [sp, #24720]
-	str	x9, [sp, #20624]
-	str	x8, [sp, #20632]
-	b.ne	.LBB3_22
-	add	x8, sp, #6, lsl #12
-	ldr	x9, [sp, #20624]
-	ldr	x10, [sp, #20632]
-	add	x8, x8, #3248
-	ldr	x24, [sp, #400]
+	add	x27, sp, #4, lsl #12
+	ldr	x20, [sp, #424]
+	cmp	x21, #10
+	add	x27, x27, #2624
+	str	x8, [sp, #16968]
+	str	x9, [sp, #16960]
+	str	x9, [sp, #12864]
+	str	x8, [sp, #12872]
+	b.ne	.LBB3_14
+	add	x8, sp, #4, lsl #12
+	ldr	x9, [sp, #12864]
+	ldr	x10, [sp, #12872]
+	add	x8, x8, #3680
+	ldr	x24, [sp, #416]
 	add	x8, x8, x19, lsl #4
 	add	x19, x19, #1
 	cmp	x19, #24
 	stp	x9, x10, [x8]
-	add	x9, sp, #2, lsl #12
 	mov	w8, #176
-	add	x9, x9, #52
-	b.ne	.LBB3_21
-	add	x0, sp, #4, lsl #12
+	add	x9, sp, #484
+	mov	w10, #50331648
+	b.ne	.LBB3_13
+	add	x0, sp, #2, lsl #12
 	mov	w8, #67108864
 	mov	w1, wzr
-	add	x0, x0, #16
+	add	x0, x0, #448
 	mov	w2, #344
-	str	xzr, [sp, #24720]
-	str	x27, [sp, #24728]
-	str	w8, [x23, #3088]
-	str	w26, [x23, #3092]
-	str	xzr, [sp, #24744]
+	str	xzr, [sp, #16960]
+	str	x20, [sp, #16968]
+	str	w8, [x23, #1040]
+	str	w25, [x23, #1044]
+	str	xzr, [sp, #16984]
 	bl	memset
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #448
+	mov	w2, #16
+	add	x0, x0, #448
+	mov	w23, #16
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #32
+	add	x0, x0, #448
+	add	x1, x1, #576
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #2, lsl #12
-	mov	w2, #16
-	add	x0, x0, #16
-	add	x1, x1, #16
-	mov	w22, #16
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #32
-	add	x0, x0, #16
-	add	x1, x1, #144
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
-	add	x19, sp, #6, lsl #12
-	add	x19, x19, #2192
+	add	x0, x0, #2624
+	add	x1, x1, #448
+	add	x19, sp, #4, lsl #12
+	add	x19, x19, #2624
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #384
-	add	x0, x0, #2192
-	add	x1, x1, #3248
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	add	x20, sp, #4, lsl #12
-	add	x0, x0, #16
-	add	x1, x1, #2192
-	add	x20, x20, #16
+	add	x1, sp, #4, lsl #12
+	mov	w2, #384
+	add	x0, x0, #2624
+	add	x1, x1, #3680
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	add	x20, sp, #2, lsl #12
+	add	x0, x0, #448
+	add	x1, x1, #2624
+	add	x20, x20, #448
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x8, [sp, #16400]
-	ldr	x9, [sp, #16408]
-	add	x25, x20, #200
-	add	x20, sp, #5, lsl #12
-	ldr	x11, [sp, #392]
+	ldr	x8, [sp, #8640]
+	ldr	x9, [sp, #8648]
+	add	x22, sp, #3, lsl #12
 	mov	x10, xzr
-	str	x8, [sp, #27792]
+	add	x22, x22, #3648
+	add	x25, x20, #200
+	str	x8, [sp, #20032]
 	add	x21, x19, #200
-	orr	x23, x19, #0x1
-	mov	w12, #4656
+	orr	x24, x19, #0x1
+	mov	w11, #4656
 	adrp	x8, .Lanon.bee145f0cb2eac5728ff95be1b200579.2
 	add	x8, x8, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.2
-	mov	w13, #8
-	mov	w14, #117440512
-	add	x20, x20, #1168
-	mov	w26, #136
-	str	x9, [sp, #27800]
-	str	x23, [sp]
-.LBB3_40:
+	mov	w12, #8
+	mov	w13, #117440512
+	mov	w19, #136
+	str	x9, [sp, #20040]
+	str	x24, [sp, #8]
+.LBB3_32:
 	cmp	x10, #1
-	mov	x16, x10
-	ldr	x15, [x8, x10, lsl #3]
-	csel	x8, x13, x22, eq
+	mov	x15, x10
+	ldr	x14, [x8, x10, lsl #3]
+	csel	x8, x12, x23, eq
 	cmp	x10, #0
-	ldr	x10, [sp, #384]
+	ldr	x10, [sp, #400]
 	csel	x8, xzr, x8, eq
 	mov	x9, #-1
-	add	x0, sp, #4, lsl #12
+	add	x0, sp, #2, lsl #12
+	lsl	x9, x9, x14
 	lsr	x8, x10, x8
-	lsl	x9, x9, x15
-	rev	w13, w16
-	ldr	w19, [x11, #1024]
-	add	x12, x12, #1028
-	add	x0, x0, #16
-	lsr	x10, x8, x15
-	bic	x8, x8, x9
+	rev	w12, w15
+	add	x11, x11, #1028
+	add	x0, x0, #448
 	mov	w1, wzr
-	stp	x8, x15, [sp, #32]
-	rev	w9, w8
+	lsr	x10, x8, x14
+	bic	x8, x8, x9
 	mov	w2, #344
-	rev	x8, x10
-	str	wzr, [x20, #3076]
-	str	x8, [sp, #424]
-	str	x8, [sp, #24728]
-	add	x8, x16, #1
-	str	w14, [x20, #3088]
-	str	w13, [sp, #416]
-	str	w13, [x20, #3072]
-	str	w9, [sp, #408]
-	str	w9, [x20, #3092]
-	str	x11, [sp, #392]
-	stp	x12, x16, [sp, #16]
-	str	x8, [sp, #8]
-	str	xzr, [sp, #24744]
+	stp	x8, x14, [sp, #40]
+	rev	w8, w8
+	str	w8, [sp, #424]
+	rev	x9, x10
+	str	w8, [x22, #1044]
+	ldr	x8, [sp, #408]
+	str	wzr, [x22, #1028]
+	ldr	w20, [x8, #1024]
+	add	x8, x15, #1
+	str	w13, [x22, #1040]
+	str	w12, [sp, #432]
+	str	w12, [x22, #1024]
+	str	x9, [sp, #440]
+	str	x9, [sp, #16968]
+	stp	x11, x15, [sp, #24]
+	str	x8, [sp, #16]
+	str	xzr, [sp, #16984]
 	bl	memset
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #448
+	mov	w2, #16
+	add	x0, x0, #448
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #32
+	add	x0, x0, #448
+	add	x1, x1, #576
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #2, lsl #12
-	mov	w2, #16
-	add	x0, x0, #16
-	add	x1, x1, #16
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	mov	w2, #344
+	add	x0, x0, #2624
+	add	x1, x1, #448
+	bl	memcpy
 	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #32
-	add	x0, x0, #16
-	add	x1, x1, #144
+	add	x1, sp, #4, lsl #12
+	mov	w2, #16
+	add	x0, x0, #2624
+	add	x1, x1, #3648
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
+	add	x0, sp, #2, lsl #12
 	add	x1, sp, #4, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #448
+	add	x1, x1, #2624
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #16
-	add	x0, x0, #2192
-	add	x1, x1, #3216
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #344
-	add	x0, x0, #16
-	add	x1, x1, #2192
-	bl	memcpy
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	rev	w8, w19
-	add	x0, x0, #16
-	add	x1, x1, #144
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	rev	w8, w20
+	add	x0, x0, #448
+	add	x1, x1, #576
 	mov	w2, #4
-	str	w8, [x20, #3072]
+	str	w8, [x22, #1024]
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #2, lsl #12
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x10, [sp, #26776]
-	ldr	x9, [sp, #26768]
+	ldr	x10, [sp, #19016]
+	ldr	x9, [sp, #19008]
 	mov	x8, xzr
-	mov	x11, x23
+	mov	x11, x24
 	rev	x9, x9
 	rev	x10, x10
-.LBB3_41:
+.LBB3_33:
 	add	x14, x8, #2
 	eor	x12, x8, #0x7e
 	lsl	x13, x9, #1
@@ -1552,1317 +1408,1314 @@ sphincs_verify:
 	strb	w14, [x11, #1]
 	strb	w12, [x11, #2]
 	add	x11, x11, #4
-	b.ne	.LBB3_41
-	add	x8, sp, #6, lsl #12
-	add	x3, sp, #6, lsl #12
-	add	x8, x8, #2192
-	add	x3, x3, #2192
-	ldrb	w8, [x8]
-	ldrb	w9, [x3, #1]
-	ldrb	w10, [x3, #2]
-	ldrb	w11, [x3, #3]
-	ldrb	w12, [x3, #4]
-	ldrb	w13, [x3, #5]
-	str	x8, [sp, #400]
+	b.ne	.LBB3_33
+	add	x5, sp, #3, lsl #12
+	ldrb	w8, [x27]
+	add	x5, x5, #3648
+	ldrb	w9, [x5, #3073]
+	ldrb	w10, [x5, #3074]
+	ldrb	w11, [x5, #3075]
+	ldrb	w12, [x5, #3076]
+	ldrb	w13, [x5, #3077]
+	str	x8, [sp, #416]
+	stp	x10, x9, [sp, #376]
 	add	x8, x9, x8
-	ldrb	w14, [x3, #7]
-	stp	x10, x9, [sp, #360]
 	add	x9, x10, x11
+	stp	x12, x11, [sp, #360]
+	ldrb	w11, [x5, #3078]
+	ldrb	w14, [x5, #3079]
 	add	x10, x12, x13
-	stp	x12, x11, [sp, #344]
-	ldrb	w11, [x3, #6]
-	ldrb	w12, [x3, #8]
+	ldrb	w12, [x5, #3080]
 	add	x8, x8, x9
-	ldrb	w15, [x3, #12]
-	ldrb	w16, [x3, #13]
-	stp	x11, x13, [sp, #328]
-	ldrb	w13, [x3, #9]
+	stp	x11, x13, [sp, #344]
+	ldrb	w13, [x5, #3081]
 	add	x9, x10, x11
-	ldrb	w10, [x3, #10]
+	ldrb	w10, [x5, #3082]
 	add	x8, x8, x9
 	add	x9, x14, x12
-	ldrb	w11, [x3, #11]
+	ldrb	w11, [x5, #3083]
+	ldrb	w15, [x5, #3084]
 	add	x9, x9, x13
-	ldrb	w17, [x3, #17]
-	stp	x10, x13, [sp, #296]
-	ldrb	w13, [x3, #16]
+	ldrb	w16, [x5, #3085]
+	stp	x10, x13, [sp, #312]
+	ldrb	w13, [x5, #3088]
+	ldrb	w17, [x5, #3089]
 	add	x9, x9, x10
-	stp	x12, x14, [sp, #312]
-	ldrb	w12, [x3, #14]
-	ldrb	w18, [x3, #18]
+	stp	x12, x14, [sp, #328]
+	ldrb	w12, [x5, #3086]
+	ldrb	w18, [x5, #3090]
 	add	x8, x8, x9
 	add	x9, x11, x15
-	ldrb	w14, [x3, #15]
-	ldrb	w0, [x3, #19]
-	stp	x15, x11, [sp, #280]
-	ldrb	w11, [x3, #22]
-	ldrb	w15, [x3, #23]
+	ldrb	w14, [x5, #3087]
+	ldrb	w0, [x5, #3091]
+	stp	x15, x11, [sp, #296]
+	ldrb	w11, [x5, #3094]
+	ldrb	w15, [x5, #3095]
 	add	x9, x9, x16
 	add	x10, x13, x17
-	ldrb	w1, [x3, #20]
-	stp	x12, x16, [sp, #264]
-	ldrb	w16, [x3, #24]
+	ldrb	w1, [x5, #3092]
+	stp	x12, x16, [sp, #280]
+	ldrb	w16, [x5, #3096]
 	add	x9, x9, x12
 	add	x10, x10, x18
-	ldrb	w4, [x3, #25]
+	ldrb	w3, [x5, #3097]
 	add	x9, x9, x14
 	add	x10, x10, x0
-	stp	x15, x11, [sp, #192]
+	stp	x15, x11, [sp, #208]
 	add	x11, x11, x15
-	ldrb	w2, [x3, #21]
-	stp	x17, x13, [sp, #240]
-	ldrb	w13, [x3, #26]
-	ldrb	w17, [x3, #27]
+	ldrb	w2, [x5, #3093]
+	stp	x17, x13, [sp, #256]
+	ldrb	w13, [x5, #3098]
+	ldrb	w17, [x5, #3099]
 	add	x8, x8, x9
 	add	x9, x10, x1
 	add	x10, x11, x16
-	ldrb	w11, [x3, #28]
-	add	x10, x10, x4
+	ldrb	w11, [x5, #3100]
 	add	x9, x9, x2
-	stp	x17, x13, [sp, #160]
+	add	x10, x10, x3
+	stp	x17, x13, [sp, #176]
+	ldrb	w12, [x5, #3101]
 	add	x10, x10, x13
-	ldrb	w12, [x3, #29]
-	ldrb	w13, [x3, #30]
-	str	x14, [sp, #256]
+	ldrb	w13, [x5, #3102]
+	str	x14, [sp, #272]
 	add	x8, x8, x9
 	add	x9, x10, x17
-	ldrb	w14, [x3, #31]
-	stp	x12, x11, [sp, #144]
+	ldrb	w14, [x5, #3103]
+	stp	x12, x11, [sp, #160]
 	add	x9, x9, x11
-	ldrb	w11, [x3, #32]
+	ldrb	w11, [x5, #3104]
 	add	x10, x12, x13
-	add	x8, x8, x9
-	add	x9, x10, x14
-	ldrb	w12, [x3, #33]
-	ldrb	w10, [x3, #37]
-	stp	x10, x11, [sp, #112]
-	add	x9, x9, x11
-	ldrb	w11, [x3, #38]
-	add	x9, x9, x12
-	stp	x14, x13, [sp, #128]
-	ldrb	w13, [x3, #40]
-	stp	x12, x11, [sp, #96]
-	ldrb	w12, [x3, #39]
-	ldrb	w14, [x3, #34]
+	add	x9, x8, x9
+	ldrb	w12, [x5, #3105]
+	add	x8, x10, x14
+	str	x11, [sp, #136]
+	ldrb	w10, [x5, #3109]
+	add	x8, x8, x11
+	ldrb	w11, [x5, #3110]
+	stp	x14, x13, [sp, #144]
+	add	x8, x8, x12
+	ldrb	w13, [x5, #3112]
+	str	x10, [sp, #128]
+	stp	x12, x11, [sp, #112]
+	ldrb	w12, [x5, #3111]
 	add	x10, x10, x11
-	ldrb	w11, [x3, #41]
+	ldrb	w11, [x5, #3113]
+	ldrb	w14, [x5, #3106]
+	ldrb	w15, [x5, #3107]
 	add	x10, x10, x12
-	stp	x4, x16, [sp, #176]
-	ldrb	w15, [x3, #35]
-	stp	x13, x12, [sp, #80]
+	stp	x13, x12, [sp, #96]
+	ldrb	w12, [x5, #3114]
 	add	x10, x10, x13
-	ldrb	w12, [x3, #42]
-	ldrb	w4, [x3, #46]
-	ldrb	w5, [x3, #47]
-	add	x9, x9, x14
+	add	x8, x8, x14
+	ldrb	w23, [x5, #3108]
 	add	x10, x10, x11
-	ldrb	w20, [x3, #36]
-	ldrb	w6, [x3, #43]
-	ldrb	w7, [x3, #48]
-	add	x9, x9, x15
-	stp	x12, x11, [sp, #48]
+	stp	x12, x11, [sp, #64]
+	ldrb	w6, [x5, #3119]
 	add	x10, x10, x12
-	ldrb	w22, [x3, #44]
-	ldrb	w19, [x3, #49]
-	add	x11, x4, x5
-	add	x9, x9, x20
-	add	x10, x10, x6
-	add	x11, x11, x7
-	ldrb	w28, [x3, #45]
-	ldrb	w23, [x3, #50]
-	stp	x0, x18, [sp, #224]
-	add	x18, x8, x9
-	add	x8, x10, x22
-	add	x9, x11, x19
-	ldrb	w30, [x3, #51]
-	add	x0, x8, x28
-	add	x8, x9, x23
-	ldrb	w9, [x3, #52]
-	ldrb	w24, [x3, #56]
-	ldrb	w27, [x3, #57]
-	add	x10, x8, x30
-	ldrb	w11, [x3, #53]
-	ldrb	w8, [x3, #58]
-	add	x12, x10, x9
-	ldrb	w10, [x3, #59]
-	add	x13, x24, x27
-	stp	x15, x14, [sp, #64]
-	add	x15, x12, x11
-	add	x13, x13, x8
-	ldrb	w12, [x3, #60]
-	ldrb	w16, [x3, #54]
-	add	x14, x13, x10
-	ldrb	w13, [x3, #61]
-	stp	x2, x1, [sp, #208]
-	add	x1, x14, x12
-	ldrb	w17, [x3, #55]
-	ldrb	w14, [x3, #62]
-	add	x2, x15, x16
-	add	x1, x1, x13
-	ldrb	w15, [x3, #63]
-	add	x18, x18, x0
-	add	x0, x2, x17
-	add	x1, x1, x14
-	add	x18, x18, x0
-	add	x0, x1, x15
-	add	x18, x18, x0
-	cmp	x18, #128
-	b.ne	.LBB3_91
-	add	x18, sp, #5, lsl #12
-	ldr	x1, [sp, #400]
-	mov	x0, xzr
-	add	x18, x18, #1168
-	strb	w1, [x18, #2048]
-	ldp	x1, x2, [sp, #360]
-	strb	w8, [x18, #2106]
-	ldr	x8, [sp, #392]
-	strb	w20, [x18, #2084]
-	strb	w1, [x18, #2050]
-	ldp	x1, x3, [sp, #344]
-	strb	w2, [x18, #2049]
-	strb	w6, [x18, #2091]
-	strb	w1, [x18, #2052]
-	ldr	x1, [sp, #336]
-	strb	w3, [x18, #2051]
-	strb	w1, [x18, #2053]
-	ldr	x1, [sp, #328]
-	strb	w22, [x18, #2092]
-	strb	w1, [x18, #2054]
-	ldr	x1, [sp, #320]
-	strb	w28, [x18, #2093]
-	strb	w1, [x18, #2055]
-	ldr	x1, [sp, #312]
-	strb	w4, [x18, #2094]
-	strb	w1, [x18, #2056]
-	ldr	x1, [sp, #304]
-	strb	w5, [x18, #2095]
-	strb	w1, [x18, #2057]
-	ldr	x1, [sp, #296]
-	strb	w7, [x18, #2096]
-	strb	w1, [x18, #2058]
-	ldr	x1, [sp, #288]
-	strb	w19, [x18, #2097]
-	strb	w1, [x18, #2059]
-	ldr	x1, [sp, #280]
-	strb	w23, [x18, #2098]
-	strb	w1, [x18, #2060]
-	ldr	x1, [sp, #272]
-	strb	w30, [x18, #2099]
-	strb	w1, [x18, #2061]
-	ldr	x1, [sp, #264]
-	strb	w9, [x18, #2100]
-	strb	w1, [x18, #2062]
-	ldr	x1, [sp, #256]
-	strb	w11, [x18, #2101]
-	strb	w1, [x18, #2063]
-	ldr	x1, [sp, #248]
-	strb	w16, [x18, #2102]
-	strb	w1, [x18, #2064]
-	ldr	x1, [sp, #240]
-	strb	w17, [x18, #2103]
-	strb	w1, [x18, #2065]
-	ldr	x1, [sp, #232]
-	strb	w24, [x18, #2104]
-	strb	w1, [x18, #2066]
-	ldr	x1, [sp, #224]
-	strb	w27, [x18, #2105]
-	strb	w1, [x18, #2067]
-	ldr	x1, [sp, #216]
-	strb	w10, [x18, #2107]
-	strb	w1, [x18, #2068]
-	ldr	x1, [sp, #208]
-	strb	w12, [x18, #2108]
-	strb	w1, [x18, #2069]
-	ldr	x1, [sp, #200]
-	strb	w13, [x18, #2109]
-	strb	w1, [x18, #2070]
-	ldr	x1, [sp, #192]
-	strb	w14, [x18, #2110]
-	strb	w1, [x18, #2071]
-	ldr	x1, [sp, #184]
-	strb	w15, [x18, #2111]
-	strb	w1, [x18, #2072]
-	ldr	x1, [sp, #176]
-	strb	w1, [x18, #2073]
-	ldr	x1, [sp, #168]
-	strb	w1, [x18, #2074]
-	ldr	x1, [sp, #160]
-	strb	w1, [x18, #2075]
-	ldr	x1, [sp, #152]
-	strb	w1, [x18, #2076]
-	ldr	x1, [sp, #144]
-	strb	w1, [x18, #2077]
-	ldr	x1, [sp, #136]
-	strb	w1, [x18, #2078]
-	ldr	x1, [sp, #128]
-	strb	w1, [x18, #2079]
-	ldr	x1, [sp, #120]
-	strb	w1, [x18, #2080]
-	ldr	x1, [sp, #96]
-	strb	w1, [x18, #2081]
-	ldr	x1, [sp, #72]
-	strb	w1, [x18, #2082]
-	ldr	x1, [sp, #64]
-	strb	w1, [x18, #2083]
-	ldr	x1, [sp, #112]
-	strb	w1, [x18, #2085]
-	ldr	x1, [sp, #104]
-	strb	w1, [x18, #2086]
-	ldr	x1, [sp, #88]
-	strb	w1, [x18, #2087]
-	ldr	x1, [sp, #80]
-	strb	w1, [x18, #2088]
-	ldr	x1, [sp, #56]
-	strb	w1, [x18, #2089]
-	ldr	x1, [sp, #48]
-	strb	w1, [x18, #2090]
-	b	.LBB3_45
-.LBB3_44:
-	add	x8, sp, #6, lsl #12
-	ldr	x9, [sp, #15984]
-	ldr	x10, [sp, #15992]
-	add	x8, x8, #3648
-	add	x0, x28, #1
-	add	x8, x8, x28, lsl #4
-	cmp	x0, #64
+	ldrb	w12, [x5, #3118]
+	add	x8, x8, x15
+	ldrb	w7, [x5, #3115]
+	ldrb	w20, [x5, #3120]
+	add	x11, x8, x23
+	ldrb	w24, [x5, #3116]
+	ldrb	w22, [x5, #3121]
+	add	x8, x12, x6
+	add	x10, x10, x7
+	str	x12, [sp, #56]
+	add	x12, x8, x20
+	ldrb	w8, [x5, #3117]
+	ldrb	w26, [x5, #3122]
+	stp	x2, x1, [sp, #224]
+	add	x1, x9, x11
+	add	x9, x10, x24
+	add	x10, x12, x22
+	add	x2, x9, x8
+	add	x9, x10, x26
+	ldrb	w10, [x5, #3123]
+	ldrb	w11, [x5, #3124]
+	ldrb	w28, [x5, #3128]
+	ldrb	w30, [x5, #3129]
+	add	x12, x9, x10
+	ldrb	w13, [x5, #3125]
+	ldrb	w9, [x5, #3130]
+	stp	x15, x14, [sp, #80]
+	add	x14, x12, x11
+	ldrb	w12, [x5, #3131]
+	add	x15, x28, x30
+	add	x17, x14, x13
+	ldrb	w14, [x5, #3132]
+	add	x15, x15, x9
+	stp	x0, x18, [sp, #240]
+	ldrb	w18, [x5, #3126]
+	stp	x3, x16, [sp, #192]
+	add	x16, x15, x12
+	ldrb	w15, [x5, #3133]
+	add	x3, x16, x14
+	ldrb	w0, [x5, #3127]
+	ldrb	w16, [x5, #3134]
+	add	x4, x17, x18
+	add	x3, x3, x15
+	ldrb	w17, [x5, #3135]
+	add	x1, x1, x2
+	add	x2, x4, x0
+	add	x3, x3, x16
+	add	x1, x1, x2
+	add	x2, x3, x17
+	add	x1, x1, x2
+	cmp	x1, #128
+	b.ne	.LBB3_83
+	ldr	x2, [sp, #416]
+	strb	w8, [x5, #45]
+	mov	x1, xzr
+	ldr	x8, [sp, #56]
+	strb	w23, [x5, #36]
+	strb	w2, [x5]
+	ldp	x2, x3, [sp, #376]
+	strb	w7, [x5, #43]
+	strb	w24, [x5, #44]
+	strb	w2, [x5, #2]
+	ldp	x2, x4, [sp, #360]
+	strb	w3, [x5, #1]
+	strb	w8, [x5, #46]
+	strb	w2, [x5, #4]
+	ldr	x2, [sp, #352]
+	strb	w4, [x5, #3]
+	strb	w2, [x5, #5]
+	ldr	x2, [sp, #344]
+	strb	w6, [x5, #47]
+	strb	w2, [x5, #6]
+	ldr	x2, [sp, #336]
+	strb	w20, [x5, #48]
+	strb	w2, [x5, #7]
+	ldr	x2, [sp, #328]
+	strb	w22, [x5, #49]
+	strb	w2, [x5, #8]
+	ldr	x2, [sp, #320]
+	strb	w26, [x5, #50]
+	strb	w2, [x5, #9]
+	ldr	x2, [sp, #312]
+	strb	w10, [x5, #51]
+	strb	w2, [x5, #10]
+	ldr	x2, [sp, #304]
+	strb	w11, [x5, #52]
+	strb	w2, [x5, #11]
+	ldr	x2, [sp, #296]
+	strb	w13, [x5, #53]
+	strb	w2, [x5, #12]
+	ldr	x2, [sp, #288]
+	strb	w18, [x5, #54]
+	strb	w2, [x5, #13]
+	ldr	x2, [sp, #280]
+	strb	w0, [x5, #55]
+	strb	w2, [x5, #14]
+	ldr	x2, [sp, #272]
+	strb	w28, [x5, #56]
+	strb	w2, [x5, #15]
+	ldr	x2, [sp, #264]
+	strb	w30, [x5, #57]
+	strb	w2, [x5, #16]
+	ldr	x2, [sp, #256]
+	strb	w9, [x5, #58]
+	strb	w2, [x5, #17]
+	ldr	x2, [sp, #248]
+	strb	w12, [x5, #59]
+	strb	w2, [x5, #18]
+	ldr	x2, [sp, #240]
+	strb	w14, [x5, #60]
+	strb	w2, [x5, #19]
+	ldr	x2, [sp, #232]
+	strb	w15, [x5, #61]
+	strb	w2, [x5, #20]
+	ldr	x2, [sp, #224]
+	strb	w16, [x5, #62]
+	strb	w2, [x5, #21]
+	ldr	x2, [sp, #216]
+	strb	w17, [x5, #63]
+	strb	w2, [x5, #22]
+	ldr	x2, [sp, #208]
+	strb	w2, [x5, #23]
+	ldr	x2, [sp, #200]
+	strb	w2, [x5, #24]
+	ldr	x2, [sp, #192]
+	strb	w2, [x5, #25]
+	ldr	x2, [sp, #184]
+	strb	w2, [x5, #26]
+	ldr	x2, [sp, #176]
+	strb	w2, [x5, #27]
+	ldr	x2, [sp, #168]
+	strb	w2, [x5, #28]
+	ldr	x2, [sp, #160]
+	strb	w2, [x5, #29]
+	ldr	x2, [sp, #152]
+	strb	w2, [x5, #30]
+	ldr	x2, [sp, #144]
+	strb	w2, [x5, #31]
+	ldr	x2, [sp, #136]
+	strb	w2, [x5, #32]
+	ldr	x2, [sp, #112]
+	strb	w2, [x5, #33]
+	ldr	x2, [sp, #88]
+	strb	w2, [x5, #34]
+	ldr	x2, [sp, #80]
+	strb	w2, [x5, #35]
+	ldr	x2, [sp, #128]
+	strb	w2, [x5, #37]
+	ldr	x2, [sp, #120]
+	strb	w2, [x5, #38]
+	ldr	x2, [sp, #104]
+	strb	w2, [x5, #39]
+	ldr	x2, [sp, #96]
+	strb	w2, [x5, #40]
+	ldr	x2, [sp, #72]
+	strb	w2, [x5, #41]
+	ldr	x2, [sp, #64]
+	strb	w2, [x5, #42]
+	b	.LBB3_37
+.LBB3_36:
+	add	x8, sp, #4, lsl #12
+	ldr	x1, [sp, #416]
+	ldr	x9, [sp, #8224]
+	add	x8, x8, #4080
+	ldr	x10, [sp, #8232]
+	add	x8, x8, x1, lsl #4
+	add	x1, x1, #1
+	cmp	x1, #64
 	stp	x9, x10, [x8]
-	ldr	x8, [sp, #392]
-	b.eq	.LBB3_63
-.LBB3_45:
-	add	x8, x8, x0, lsl #4
-	add	x9, sp, #5, lsl #12
-	add	x22, sp, #5, lsl #12
-	add	x9, x9, #3216
-	mov	x28, x0
-	add	x22, x22, #1168
-	ldrb	w19, [x9, x0]
+	b.eq	.LBB3_55
+.LBB3_37:
+	ldr	x8, [sp, #408]
+	add	x9, sp, #3, lsl #12
+	str	x1, [sp, #416]
+	add	x9, x9, #3648
+	add	x8, x8, x1, lsl #4
+	ldrb	w20, [x9, x1]
 	ldp	x9, x8, [x8]
-	cmp	x19, #2
-	str	x9, [sp, #15984]
-	str	x8, [sp, #15992]
-	b.hi	.LBB3_44
-	lsl	w20, w28, #24
-.LBB3_47:
-	ldr	x8, [sp, #15984]
-	ldr	x9, [sp, #15992]
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
+	cmp	x20, #2
+	str	x9, [sp, #8224]
+	str	x8, [sp, #8232]
+	b.hi	.LBB3_36
+	ldr	x8, [sp, #416]
+	lsl	w26, w8, #24
+.LBB3_39:
+	ldr	x8, [sp, #8224]
+	ldr	x9, [sp, #8232]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
 	mov	w1, wzr
 	mov	w2, #344
-	str	x8, [sp, #20624]
-	ldr	w8, [sp, #416]
-	str	x19, [sp, #20640]
-	stp	w8, wzr, [x22]
-	ldr	x8, [sp, #424]
-	str	x9, [sp, #20632]
-	str	x8, [sp, #21656]
-	ldr	w8, [sp, #408]
-	stp	wzr, w8, [x22, #16]
-	rev	w8, w19
-	stp	w20, w8, [x22, #24]
+	str	x8, [sp, #12864]
+	ldr	w8, [sp, #432]
+	str	x20, [sp, #12880]
+	str	w8, [sp, #13888]
+	ldr	x8, [sp, #440]
+	str	x9, [sp, #12872]
+	str	x8, [sp, #13896]
+	ldr	w8, [sp, #424]
+	str	wzr, [sp, #13892]
+	str	w8, [sp, #13908]
+	rev	w8, w20
+	str	wzr, [sp, #13904]
+	str	w26, [sp, #13912]
+	str	w8, [sp, #13916]
 	bl	memset
-	ldr	x8, [sp, #16736]
-	ldr	x9, [sp, #8208]
-	ldr	x10, [sp, #8216]
+	ldr	x8, [sp, #8976]
+	ldp	x9, x10, [sp, #448]
 	add	x0, x8, #16
-	stp	x9, x10, [x25]
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_49
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	stp	x9, x10, [x25]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_41
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-.LBB3_49:
-	add	x22, sp, #5, lsl #12
-	add	x19, x19, #1
+	str	xzr, [sp, #8976]
+.LBB3_41:
+	add	x22, sp, #3, lsl #12
+	add	x20, x20, #1
 	mov	w24, #32
-	add	x22, x22, #1168
-	b	.LBB3_51
-.LBB3_50:
+	add	x22, x22, #1600
+	b	.LBB3_43
+.LBB3_42:
 	sub	x24, x24, x23
 	add	x22, x22, x23
-	cbz	x24, .LBB3_55
-.LBB3_51:
-	sub	x8, x26, x0
+	cbz	x24, .LBB3_47
+.LBB3_43:
+	sub	x8, x19, x0
 	cmp	x24, x8
 	csel	x23, x24, x8, lo
 	add	x1, x23, x0
 	cmp	x1, x0
-	b.lo	.LBB3_87
+	b.lo	.LBB3_79
 	cmp	x1, #137
-	b.hs	.LBB3_87
+	b.hs	.LBB3_79
 	add	x0, x25, x0
 	mov	x1, x22
 	mov	x2, x23
 	bl	memcpy
-	ldr	x8, [sp, #16736]
+	ldr	x8, [sp, #8976]
 	add	x0, x8, x23
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_50
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_42
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-	b	.LBB3_50
-.LBB3_55:
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
+	str	xzr, [sp, #8976]
+	b	.LBB3_42
+.LBB3_47:
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #2, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	bl	memcpy
-	ldr	x24, [sp, #27104]
-	add	x22, sp, #5, lsl #12
-	mov	w27, #16
-	add	x22, x22, #144
-	b	.LBB3_57
-.LBB3_56:
-	sub	x27, x27, x23
+	ldr	x24, [sp, #19344]
+	add	x22, sp, #3, lsl #12
+	mov	w28, #16
+	add	x22, x22, #576
+	b	.LBB3_49
+.LBB3_48:
+	sub	x28, x28, x23
 	add	x22, x22, x23
-	cbz	x27, .LBB3_61
-.LBB3_57:
-	sub	x8, x26, x24
-	cmp	x27, x8
-	csel	x23, x27, x8, lo
+	cbz	x28, .LBB3_53
+.LBB3_49:
+	sub	x8, x19, x24
+	cmp	x28, x8
+	csel	x23, x28, x8, lo
 	add	x1, x23, x24
 	cmp	x1, x24
-	b.lo	.LBB3_90
+	b.lo	.LBB3_82
 	cmp	x1, #137
-	b.hs	.LBB3_90
+	b.hs	.LBB3_82
 	add	x0, x21, x24
 	mov	x1, x22
 	mov	x2, x23
 	bl	memcpy
-	ldr	x8, [sp, #27104]
+	ldr	x8, [sp, #19344]
 	add	x24, x8, x23
 	cmp	x24, #136
-	str	x24, [sp, #27104]
-	b.ne	.LBB3_56
-	ldr	x9, [sp, #26968]
-	ldr	x14, [sp, #26768]
-	ldr	x10, [sp, #26976]
-	ldr	x15, [sp, #26776]
-	ldr	x8, [sp, #26984]
-	ldr	x16, [sp, #26992]
+	str	x24, [sp, #19344]
+	b.ne	.LBB3_48
+	ldr	x9, [sp, #19208]
+	ldr	x14, [sp, #19008]
+	ldr	x10, [sp, #19216]
+	ldr	x15, [sp, #19016]
+	ldr	x8, [sp, #19224]
+	ldr	x16, [sp, #19232]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #26792]
-	ldr	x12, [sp, #27000]
+	ldr	x14, [sp, #19032]
+	ldr	x12, [sp, #19240]
 	eor	x10, x15, x10
-	str	x9, [sp, #26768]
-	ldr	x9, [sp, #26784]
-	str	x10, [sp, #26776]
-	ldr	x10, [sp, #26800]
-	ldr	x13, [sp, #27008]
+	str	x9, [sp, #19008]
+	ldr	x9, [sp, #19024]
+	str	x10, [sp, #19016]
+	ldr	x10, [sp, #19040]
+	ldr	x13, [sp, #19248]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #27016]
-	str	x8, [sp, #26784]
-	ldr	x8, [sp, #26808]
-	ldr	x15, [sp, #27024]
-	str	x9, [sp, #26792]
+	ldr	x11, [sp, #19256]
+	str	x8, [sp, #19024]
+	ldr	x8, [sp, #19048]
+	ldr	x15, [sp, #19264]
+	str	x9, [sp, #19032]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #26816]
+	ldr	x10, [sp, #19056]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #27032]
-	ldr	x12, [sp, #26824]
-	ldr	x13, [sp, #26832]
-	ldr	x14, [sp, #27040]
-	ldr	x0, [sp, #26840]
-	str	x8, [sp, #26808]
+	ldr	x18, [sp, #19272]
+	ldr	x12, [sp, #19064]
+	ldr	x13, [sp, #19072]
+	ldr	x14, [sp, #19280]
+	ldr	x0, [sp, #19080]
+	str	x8, [sp, #19048]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #27048]
+	ldr	x16, [sp, #19288]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #6, lsl #12
-	add	x0, x0, #2192
-	str	x9, [sp, #26800]
+	add	x0, sp, #4, lsl #12
+	add	x0, x0, #2624
+	str	x9, [sp, #19040]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #27056]
-	str	x8, [sp, #26816]
-	ldr	x8, [sp, #26856]
-	ldr	x12, [sp, #26848]
-	ldr	x14, [sp, #27064]
-	str	x9, [sp, #26824]
+	ldr	x13, [sp, #19296]
+	str	x8, [sp, #19056]
+	ldr	x8, [sp, #19096]
+	ldr	x12, [sp, #19088]
+	ldr	x14, [sp, #19304]
+	str	x9, [sp, #19064]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #26864]
-	str	x10, [sp, #26832]
+	ldr	x9, [sp, #19104]
+	str	x10, [sp, #19072]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #27072]
-	str	x11, [sp, #26840]
+	ldr	x10, [sp, #19312]
+	str	x11, [sp, #19080]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #26872]
-	ldr	x13, [sp, #27080]
-	str	x8, [sp, #26856]
-	ldr	x8, [sp, #26880]
-	ldr	x17, [sp, #26896]
+	ldr	x11, [sp, #19112]
+	ldr	x13, [sp, #19320]
+	str	x8, [sp, #19096]
+	ldr	x8, [sp, #19120]
+	ldr	x17, [sp, #19136]
 	eor	x10, x11, x10
-	str	x12, [sp, #26848]
-	ldr	x11, [sp, #27088]
+	str	x12, [sp, #19088]
+	ldr	x11, [sp, #19328]
 	eor	x8, x8, x13
-	str	x9, [sp, #26864]
-	ldr	x9, [sp, #26888]
-	ldr	x12, [sp, #27096]
-	str	x8, [sp, #26880]
+	str	x9, [sp, #19104]
+	ldr	x9, [sp, #19128]
+	ldr	x12, [sp, #19336]
+	str	x8, [sp, #19120]
 	eor	x9, x9, x11
-	str	x10, [sp, #26872]
+	str	x10, [sp, #19112]
 	eor	x8, x17, x12
-	str	x9, [sp, #26888]
-	str	x8, [sp, #26896]
+	str	x9, [sp, #19128]
+	str	x8, [sp, #19136]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x24, xzr
-	str	xzr, [sp, #27104]
-	b	.LBB3_56
-.LBB3_61:
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
+	str	xzr, [sp, #19344]
+	b	.LBB3_48
+.LBB3_53:
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #200
-	add	x0, x0, #16
-	add	x1, x1, #2192
+	add	x0, x0, #448
+	add	x1, x1, #2624
 	bl	memcpy
 	cmp	x24, #137
-	b.hs	.LBB3_93
-	add	x0, sp, #6, lsl #12
+	b.hs	.LBB3_85
+	add	x0, sp, #4, lsl #12
 	mov	x1, x21
 	mov	x2, x24
-	add	x0, x0, #144
-	str	xzr, [sp, #24848]
-	str	xzr, [sp, #24840]
-	str	xzr, [sp, #24832]
-	str	xzr, [sp, #24824]
-	str	xzr, [sp, #24816]
-	str	xzr, [sp, #24808]
-	str	xzr, [sp, #24800]
-	str	xzr, [sp, #24792]
-	str	xzr, [sp, #24784]
-	str	xzr, [sp, #24776]
-	str	xzr, [sp, #24768]
-	str	xzr, [sp, #24760]
-	str	xzr, [sp, #24752]
-	str	xzr, [sp, #24744]
-	str	xzr, [sp, #24736]
-	str	xzr, [sp, #24728]
-	str	xzr, [sp, #24720]
+	add	x0, x0, #576
+	str	xzr, [sp, #17088]
+	str	xzr, [sp, #17080]
+	str	xzr, [sp, #17072]
+	str	xzr, [sp, #17064]
+	str	xzr, [sp, #17056]
+	str	xzr, [sp, #17048]
+	str	xzr, [sp, #17040]
+	str	xzr, [sp, #17032]
+	str	xzr, [sp, #17024]
+	str	xzr, [sp, #17016]
+	str	xzr, [sp, #17008]
+	str	xzr, [sp, #17000]
+	str	xzr, [sp, #16992]
+	str	xzr, [sp, #16984]
+	str	xzr, [sp, #16976]
+	str	xzr, [sp, #16968]
+	str	xzr, [sp, #16960]
 	bl	memcpy
-	add	x9, sp, #6, lsl #12
-	add	x22, sp, #5, lsl #12
-	ldr	x0, [sp, #16408]
-	add	x9, x9, #144
-	add	x22, x22, #1168
+	add	x9, sp, #4, lsl #12
+	add	x18, sp, #3, lsl #12
+	ldr	x0, [sp, #8648]
+	add	x9, x9, #576
+	add	x18, x18, #3648
 	ldrb	w8, [x9, x24]
 	eor	w8, w8, #0x1
 	strb	w8, [x9, x24]
-	ldr	x8, [sp, #16400]
-	ldr	x10, [sp, #24720]
-	ldr	x11, [sp, #24728]
-	ldr	x12, [sp, #24736]
-	ldrb	w9, [x22, #3207]
-	ldr	x13, [sp, #24744]
+	ldr	x8, [sp, #8640]
+	ldr	x10, [sp, #16960]
+	ldr	x11, [sp, #16968]
+	ldr	x12, [sp, #16976]
+	ldrb	w9, [x18, #1159]
+	ldr	x13, [sp, #16984]
 	eor	x8, x8, x10
-	ldr	x10, [sp, #16416]
+	ldr	x10, [sp, #8656]
 	eor	x11, x0, x11
-	ldr	x0, [sp, #16424]
-	ldr	x14, [sp, #24752]
-	ldr	x15, [sp, #24760]
-	str	x8, [sp, #16400]
+	ldr	x0, [sp, #8664]
+	ldr	x14, [sp, #16992]
+	ldr	x15, [sp, #17000]
+	str	x8, [sp, #8640]
 	eor	x8, x10, x12
-	ldr	x10, [sp, #16432]
-	ldr	x12, [sp, #16440]
+	ldr	x10, [sp, #8672]
+	ldr	x12, [sp, #8680]
 	eor	w9, w9, #0x80
-	str	x11, [sp, #16408]
+	str	x11, [sp, #8648]
 	eor	x11, x0, x13
-	ldr	x16, [sp, #24768]
-	ldr	x17, [sp, #24776]
-	strb	w9, [x22, #3207]
-	ldr	x9, [sp, #24784]
-	ldr	x13, [sp, #16464]
-	str	x8, [sp, #16416]
+	ldr	x16, [sp, #17008]
+	ldr	x17, [sp, #17016]
+	strb	w9, [x18, #1159]
+	ldr	x9, [sp, #17024]
+	ldr	x13, [sp, #8704]
+	str	x8, [sp, #8656]
 	eor	x8, x10, x14
-	ldr	x10, [sp, #16448]
-	str	x11, [sp, #16424]
+	ldr	x10, [sp, #8688]
+	str	x11, [sp, #8664]
 	eor	x11, x12, x15
-	ldr	x12, [sp, #16456]
-	ldr	x14, [sp, #24808]
-	str	x11, [sp, #16440]
-	ldr	x11, [sp, #16488]
-	str	x8, [sp, #16432]
+	ldr	x12, [sp, #8696]
+	ldr	x14, [sp, #17048]
+	str	x11, [sp, #8680]
+	ldr	x11, [sp, #8728]
+	str	x8, [sp, #8672]
 	eor	x8, x10, x16
 	eor	x12, x12, x17
 	eor	x9, x13, x9
-	ldr	x18, [sp, #24792]
-	ldr	x1, [sp, #24800]
-	ldr	x10, [sp, #16472]
-	ldr	x13, [sp, #16480]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #24816]
-	str	x12, [sp, #16456]
-	ldr	x12, [sp, #16496]
+	ldr	x18, [sp, #17032]
+	ldr	x1, [sp, #17040]
+	ldr	x10, [sp, #8712]
+	ldr	x13, [sp, #8720]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #17056]
+	str	x12, [sp, #8696]
+	ldr	x12, [sp, #8736]
 	eor	x11, x11, x14
-	ldr	x14, [sp, #24824]
-	str	x9, [sp, #16464]
-	ldr	x9, [sp, #16504]
+	ldr	x14, [sp, #17064]
+	str	x9, [sp, #8704]
+	ldr	x9, [sp, #8744]
 	eor	x10, x10, x18
 	eor	x13, x13, x1
 	eor	x8, x12, x8
-	str	x10, [sp, #16472]
-	ldr	x10, [sp, #24832]
+	str	x10, [sp, #8712]
+	ldr	x10, [sp, #17072]
 	eor	x9, x9, x14
-	str	x13, [sp, #16480]
-	ldr	x12, [sp, #16512]
-	ldr	x13, [sp, #24840]
-	str	x11, [sp, #16488]
-	ldr	x11, [sp, #16520]
-	str	x8, [sp, #16496]
-	ldr	x8, [sp, #24848]
-	add	x0, sp, #4, lsl #12
-	str	x9, [sp, #16504]
-	ldr	x9, [sp, #16528]
+	str	x13, [sp, #8720]
+	ldr	x12, [sp, #8752]
+	ldr	x13, [sp, #17080]
+	str	x11, [sp, #8728]
+	ldr	x11, [sp, #8760]
+	str	x8, [sp, #8736]
+	ldr	x8, [sp, #17088]
+	add	x0, sp, #2, lsl #12
+	str	x9, [sp, #8744]
+	ldr	x9, [sp, #8768]
 	eor	x10, x12, x10
 	eor	x11, x11, x13
-	add	x0, x0, #16
-	str	x10, [sp, #16512]
+	add	x0, x0, #448
+	str	x10, [sp, #8752]
 	eor	x8, x9, x8
-	str	x11, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x11, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	ldr	x8, [sp, #16408]
-	ldr	x9, [sp, #16400]
-	cmp	x19, #3
-	str	x8, [sp, #24728]
-	str	x9, [sp, #24720]
-	str	x9, [sp, #15984]
-	str	x8, [sp, #15992]
-	b.ne	.LBB3_47
-	b	.LBB3_44
-.LBB3_63:
-	add	x8, sp, #5, lsl #12
-	ldr	w9, [sp, #416]
-	add	x0, sp, #4, lsl #12
-	add	x8, x8, #1168
-	add	x0, x0, #16
+	ldr	x8, [sp, #8648]
+	ldr	x9, [sp, #8640]
+	cmp	x20, #3
+	str	x8, [sp, #16968]
+	str	x9, [sp, #16960]
+	str	x9, [sp, #8224]
+	str	x8, [sp, #8232]
+	b.ne	.LBB3_39
+	b	.LBB3_36
+.LBB3_55:
+	add	x8, sp, #3, lsl #12
+	ldr	w9, [sp, #432]
+	add	x0, sp, #2, lsl #12
+	add	x8, x8, #3648
+	add	x0, x0, #448
 	mov	w1, wzr
-	str	w9, [x8, #3072]
+	str	w9, [x8, #1024]
 	mov	w9, #16777216
 	mov	w2, #344
-	str	w9, [x8, #3088]
-	ldr	w9, [sp, #408]
-	str	wzr, [x8, #3076]
-	str	w9, [x8, #3092]
-	ldr	x8, [sp, #424]
-	str	xzr, [sp, #24744]
-	str	x8, [sp, #24728]
+	str	w9, [x8, #1040]
+	ldr	w9, [sp, #424]
+	str	wzr, [x8, #1028]
+	str	w9, [x8, #1044]
+	ldr	x8, [sp, #440]
+	str	xzr, [sp, #16984]
+	str	x8, [sp, #16968]
 	bl	memset
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #448
+	mov	w2, #16
+	add	x0, x0, #448
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
+	mov	w2, #32
+	add	x0, x0, #448
+	add	x1, x1, #576
+	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
 	add	x0, sp, #4, lsl #12
 	add	x1, sp, #2, lsl #12
-	mov	w2, #16
-	add	x0, x0, #16
-	add	x1, x1, #16
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
-	mov	w2, #32
-	add	x0, x0, #16
-	add	x1, x1, #144
-	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	bl	memcpy
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #6, lsl #12
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #1024
-	add	x0, x0, #2192
-	add	x1, x1, #3648
+	add	x0, x0, #2624
+	add	x1, x1, #4080
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher6update
-	add	x0, sp, #5, lsl #12
-	add	x1, sp, #6, lsl #12
-	add	x0, x0, #2192
-	add	x1, x1, #2192
+	add	x0, sp, #3, lsl #12
+	add	x1, sp, #4, lsl #12
+	add	x0, x0, #2624
+	add	x1, x1, #2624
 	bl	_RNvMCsndc0WgnAaH_9keccak256NtB2_6Hasher8finalize
-	ldr	x11, [sp, #24]
-	mov	w22, #16
-	mov	w13, #8
-	ldr	x8, [sp, #22680]
-	ldr	x9, [sp, #22672]
+	ldr	x11, [sp, #32]
+	mov	w23, #16
+	mov	w12, #8
+	ldr	x8, [sp, #14920]
+	ldr	x9, [sp, #14912]
 	cmp	x11, #1
-	csel	x10, x13, x22, eq
+	csel	x10, x12, x23, eq
 	cmp	x11, #0
-	str	x8, [sp, #27816]
+	str	x8, [sp, #20056]
 	csel	x0, xzr, x10, eq
-	ldr	x10, [sp, #40]
-	str	x9, [sp, #27808]
-	str	x9, [sp, #15984]
+	ldr	x10, [sp, #48]
+	str	x9, [sp, #20048]
+	str	x9, [sp, #8224]
 	add	x1, x0, x10
-	str	x8, [sp, #15992]
+	str	x8, [sp, #8232]
 	cmp	x1, x0
-	b.lo	.LBB3_96
+	b.lo	.LBB3_88
 	cmp	x1, #27
-	b.hs	.LBB3_96
-	ldr	x8, [sp, #40]
-	cbz	x8, .LBB3_84
-	ldr	x10, [sp, #376]
-	ldr	x8, [sp, #15984]
-	lsl	w27, w11, #24
-	ldr	x9, [sp, #15992]
-	add	x20, sp, #5, lsl #12
-	mov	x19, xzr
-	add	x24, x10, x0, lsl #4
-	add	x20, x20, #1168
-	str	x8, [sp, #20624]
-	str	x9, [sp, #20632]
-.LBB3_67:
+	b.hs	.LBB3_88
+	ldr	x8, [sp, #48]
+	cbz	x8, .LBB3_76
+	ldr	x10, [sp, #392]
+	ldr	x8, [sp, #8224]
+	lsl	w28, w11, #24
+	ldr	x9, [sp, #8232]
+	mov	x24, xzr
+	add	x10, x10, x0, lsl #4
+	str	x8, [sp, #12864]
+	str	x9, [sp, #12872]
+	str	x10, [sp, #432]
+.LBB3_59:
 	mov	w8, #1
-	ldr	x10, [sp, #20632]
-	ldr	x12, [sp, #32]
-	lsl	x8, x8, x19
-	ldr	x9, [sp, #20624]
-	add	x11, x24, x19, lsl #4
-	str	x10, [sp, #21656]
-	add	x10, sp, #5, lsl #12
-	add	x19, x19, #1
+	ldr	x10, [sp, #12872]
+	ldr	x11, [sp, #432]
+	lsl	x8, x8, x24
+	ldr	x12, [sp, #40]
+	ldr	x9, [sp, #12864]
+	add	x11, x11, x24, lsl #4
+	str	x10, [sp, #13896]
+	add	x10, sp, #3, lsl #12
 	tst	x8, x12
-	add	x10, x10, #1168
-	str	x9, [sp, #21648]
+	add	x10, x10, #1600
+	str	x9, [sp, #13888]
 	csel	x8, x10, x11, eq
 	csel	x10, x11, x10, eq
-	add	x0, sp, #4, lsl #12
+	add	x24, x24, #1
 	ldp	x9, x8, [x8]
-	add	x0, x0, #16
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
 	mov	w1, wzr
 	mov	w2, #344
-	str	w27, [x20, #2048]
-	str	wzr, [x20, #2052]
-	str	x9, [sp, #22672]
+	str	w28, [sp, #15936]
+	str	x9, [sp, #14912]
 	ldp	x9, x10, [x10]
-	str	x8, [sp, #22680]
-	add	x8, sp, #5, lsl #12
-	add	x8, x8, #2192
+	str	x8, [sp, #14920]
+	add	x8, sp, #3, lsl #12
+	add	x8, x8, #2624
+	str	wzr, [sp, #15940]
 	stp	x9, x10, [x8, #16]
-	lsr	x8, x12, x19
-	ldr	x9, [sp, #424]
+	lsr	x8, x12, x24
+	ldr	x9, [sp, #440]
 	mov	w10, #33554432
-	str	x9, [sp, #23704]
-	rev	w9, w19
+	str	x9, [sp, #15944]
+	rev	w9, w24
 	rev	w8, w8
-	str	x10, [sp, #23712]
-	str	w9, [x20, #2072]
-	str	w8, [x20, #2076]
+	str	x10, [sp, #15952]
+	str	w9, [sp, #15960]
+	str	w8, [sp, #15964]
 	bl	memset
-	ldr	x8, [sp, #16736]
-	ldr	x9, [sp, #8208]
-	ldr	x10, [sp, #8216]
+	ldr	x8, [sp, #8976]
+	ldp	x9, x10, [sp, #448]
 	add	x0, x8, #16
-	stp	x9, x10, [x25]
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_69
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	stp	x9, x10, [x25]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_61
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-.LBB3_69:
-	add	x20, sp, #5, lsl #12
+	str	xzr, [sp, #8976]
+.LBB3_61:
+	add	x20, sp, #3, lsl #12
 	mov	w23, #32
-	add	x20, x20, #3216
-	b	.LBB3_71
-.LBB3_70:
+	add	x20, x20, #3648
+	b	.LBB3_63
+.LBB3_62:
 	sub	x23, x23, x22
 	add	x20, x20, x22
-	cbz	x23, .LBB3_75
-.LBB3_71:
-	sub	x8, x26, x0
+	cbz	x23, .LBB3_67
+.LBB3_63:
+	sub	x8, x19, x0
 	cmp	x23, x8
 	csel	x22, x23, x8, lo
 	add	x1, x22, x0
 	cmp	x1, x0
-	b.lo	.LBB3_87
+	b.lo	.LBB3_79
 	cmp	x1, #137
-	b.hs	.LBB3_87
+	b.hs	.LBB3_79
 	add	x0, x25, x0
 	mov	x1, x20
 	mov	x2, x22
 	bl	memcpy
-	ldr	x8, [sp, #16736]
+	ldr	x8, [sp, #8976]
 	add	x0, x8, x22
 	cmp	x0, #136
-	str	x0, [sp, #16736]
-	b.ne	.LBB3_70
-	ldr	x9, [sp, #16600]
-	ldr	x14, [sp, #16400]
-	ldr	x10, [sp, #16608]
-	ldr	x15, [sp, #16408]
-	ldr	x8, [sp, #16616]
-	ldr	x16, [sp, #16624]
+	str	x0, [sp, #8976]
+	b.ne	.LBB3_62
+	ldr	x9, [sp, #8840]
+	ldr	x14, [sp, #8640]
+	ldr	x10, [sp, #8848]
+	ldr	x15, [sp, #8648]
+	ldr	x8, [sp, #8856]
+	ldr	x16, [sp, #8864]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #16424]
-	ldr	x12, [sp, #16632]
+	ldr	x14, [sp, #8664]
+	ldr	x12, [sp, #8872]
 	eor	x10, x15, x10
-	str	x9, [sp, #16400]
-	ldr	x9, [sp, #16416]
-	str	x10, [sp, #16408]
-	ldr	x10, [sp, #16432]
-	ldr	x13, [sp, #16640]
+	str	x9, [sp, #8640]
+	ldr	x9, [sp, #8656]
+	str	x10, [sp, #8648]
+	ldr	x10, [sp, #8672]
+	ldr	x13, [sp, #8880]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #16648]
-	str	x8, [sp, #16416]
-	ldr	x8, [sp, #16440]
-	ldr	x15, [sp, #16656]
-	str	x9, [sp, #16424]
+	ldr	x11, [sp, #8888]
+	str	x8, [sp, #8656]
+	ldr	x8, [sp, #8680]
+	ldr	x15, [sp, #8896]
+	str	x9, [sp, #8664]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #16448]
+	ldr	x10, [sp, #8688]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #16664]
-	ldr	x12, [sp, #16456]
-	ldr	x13, [sp, #16464]
-	ldr	x14, [sp, #16672]
-	ldr	x0, [sp, #16472]
-	str	x8, [sp, #16440]
+	ldr	x18, [sp, #8904]
+	ldr	x12, [sp, #8696]
+	ldr	x13, [sp, #8704]
+	ldr	x14, [sp, #8912]
+	ldr	x0, [sp, #8712]
+	str	x8, [sp, #8680]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #16680]
+	ldr	x16, [sp, #8920]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #4, lsl #12
-	add	x0, x0, #16
-	str	x9, [sp, #16432]
+	add	x0, sp, #2, lsl #12
+	add	x0, x0, #448
+	str	x9, [sp, #8672]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #16688]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #16488]
-	ldr	x12, [sp, #16480]
-	ldr	x14, [sp, #16696]
-	str	x9, [sp, #16456]
+	ldr	x13, [sp, #8928]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #8728]
+	ldr	x12, [sp, #8720]
+	ldr	x14, [sp, #8936]
+	str	x9, [sp, #8696]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #16496]
-	str	x10, [sp, #16464]
+	ldr	x9, [sp, #8736]
+	str	x10, [sp, #8704]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #16704]
-	str	x11, [sp, #16472]
+	ldr	x10, [sp, #8944]
+	str	x11, [sp, #8712]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #16504]
-	ldr	x13, [sp, #16712]
-	str	x8, [sp, #16488]
-	ldr	x8, [sp, #16512]
-	ldr	x17, [sp, #16528]
+	ldr	x11, [sp, #8744]
+	ldr	x13, [sp, #8952]
+	str	x8, [sp, #8728]
+	ldr	x8, [sp, #8752]
+	ldr	x17, [sp, #8768]
 	eor	x10, x11, x10
-	str	x12, [sp, #16480]
-	ldr	x11, [sp, #16720]
+	str	x12, [sp, #8720]
+	ldr	x11, [sp, #8960]
 	eor	x8, x8, x13
-	str	x9, [sp, #16496]
-	ldr	x9, [sp, #16520]
-	ldr	x12, [sp, #16728]
-	str	x8, [sp, #16512]
+	str	x9, [sp, #8736]
+	ldr	x9, [sp, #8760]
+	ldr	x12, [sp, #8968]
+	str	x8, [sp, #8752]
 	eor	x9, x9, x11
-	str	x10, [sp, #16504]
+	str	x10, [sp, #8744]
 	eor	x8, x17, x12
-	str	x9, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x9, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x0, xzr
-	str	xzr, [sp, #16736]
-	b	.LBB3_70
-.LBB3_75:
-	add	x0, sp, #6, lsl #12
-	add	x1, sp, #4, lsl #12
+	str	xzr, [sp, #8976]
+	b	.LBB3_62
+.LBB3_67:
+	add	x0, sp, #4, lsl #12
+	add	x1, sp, #2, lsl #12
 	mov	w2, #344
-	add	x0, x0, #2192
-	add	x1, x1, #16
+	add	x0, x0, #2624
+	add	x1, x1, #448
 	bl	memcpy
-	ldr	x23, [sp, #27104]
-	add	x20, sp, #5, lsl #12
-	mov	w28, #32
-	add	x20, x20, #2192
-	b	.LBB3_77
-.LBB3_76:
-	sub	x28, x28, x22
+	ldr	x23, [sp, #19344]
+	add	x20, sp, #3, lsl #12
+	mov	w26, #32
+	add	x20, x20, #2624
+	b	.LBB3_69
+.LBB3_68:
+	sub	x26, x26, x22
 	add	x20, x20, x22
-	cbz	x28, .LBB3_81
-.LBB3_77:
-	sub	x8, x26, x23
-	cmp	x28, x8
-	csel	x22, x28, x8, lo
+	cbz	x26, .LBB3_73
+.LBB3_69:
+	sub	x8, x19, x23
+	cmp	x26, x8
+	csel	x22, x26, x8, lo
 	add	x1, x22, x23
 	cmp	x1, x23
-	b.lo	.LBB3_94
+	b.lo	.LBB3_86
 	cmp	x1, #137
-	b.hs	.LBB3_94
+	b.hs	.LBB3_86
 	add	x0, x21, x23
 	mov	x1, x20
 	mov	x2, x22
 	bl	memcpy
-	ldr	x8, [sp, #27104]
+	ldr	x8, [sp, #19344]
 	add	x23, x8, x22
 	cmp	x23, #136
-	str	x23, [sp, #27104]
-	b.ne	.LBB3_76
-	ldr	x9, [sp, #26968]
-	ldr	x14, [sp, #26768]
-	ldr	x10, [sp, #26976]
-	ldr	x15, [sp, #26776]
-	ldr	x8, [sp, #26984]
-	ldr	x16, [sp, #26992]
+	str	x23, [sp, #19344]
+	b.ne	.LBB3_68
+	ldr	x9, [sp, #19208]
+	ldr	x14, [sp, #19008]
+	ldr	x10, [sp, #19216]
+	ldr	x15, [sp, #19016]
+	ldr	x8, [sp, #19224]
+	ldr	x16, [sp, #19232]
 	eor	x9, x14, x9
-	ldr	x14, [sp, #26792]
-	ldr	x12, [sp, #27000]
+	ldr	x14, [sp, #19032]
+	ldr	x12, [sp, #19240]
 	eor	x10, x15, x10
-	str	x9, [sp, #26768]
-	ldr	x9, [sp, #26784]
-	str	x10, [sp, #26776]
-	ldr	x10, [sp, #26800]
-	ldr	x13, [sp, #27008]
+	str	x9, [sp, #19008]
+	ldr	x9, [sp, #19024]
+	str	x10, [sp, #19016]
+	ldr	x10, [sp, #19040]
+	ldr	x13, [sp, #19248]
 	eor	x8, x9, x8
 	eor	x9, x14, x16
-	ldr	x11, [sp, #27016]
-	str	x8, [sp, #26784]
-	ldr	x8, [sp, #26808]
-	ldr	x15, [sp, #27024]
-	str	x9, [sp, #26792]
+	ldr	x11, [sp, #19256]
+	str	x8, [sp, #19024]
+	ldr	x8, [sp, #19048]
+	ldr	x15, [sp, #19264]
+	str	x9, [sp, #19032]
 	eor	x9, x10, x12
-	ldr	x10, [sp, #26816]
+	ldr	x10, [sp, #19056]
 	eor	x8, x8, x13
-	ldr	x18, [sp, #27032]
-	ldr	x12, [sp, #26824]
-	ldr	x13, [sp, #26832]
-	ldr	x14, [sp, #27040]
-	ldr	x0, [sp, #26840]
-	str	x8, [sp, #26808]
+	ldr	x18, [sp, #19272]
+	ldr	x12, [sp, #19064]
+	ldr	x13, [sp, #19072]
+	ldr	x14, [sp, #19280]
+	ldr	x0, [sp, #19080]
+	str	x8, [sp, #19048]
 	eor	x8, x10, x11
-	ldr	x16, [sp, #27048]
+	ldr	x16, [sp, #19288]
 	eor	x10, x13, x18
 	eor	x11, x0, x14
-	add	x0, sp, #6, lsl #12
-	add	x0, x0, #2192
-	str	x9, [sp, #26800]
+	add	x0, sp, #4, lsl #12
+	add	x0, x0, #2624
+	str	x9, [sp, #19040]
 	eor	x9, x12, x15
-	ldr	x13, [sp, #27056]
-	str	x8, [sp, #26816]
-	ldr	x8, [sp, #26856]
-	ldr	x12, [sp, #26848]
-	ldr	x14, [sp, #27064]
-	str	x9, [sp, #26824]
+	ldr	x13, [sp, #19296]
+	str	x8, [sp, #19056]
+	ldr	x8, [sp, #19096]
+	ldr	x12, [sp, #19088]
+	ldr	x14, [sp, #19304]
+	str	x9, [sp, #19064]
 	eor	x8, x8, x13
-	ldr	x9, [sp, #26864]
-	str	x10, [sp, #26832]
+	ldr	x9, [sp, #19104]
+	str	x10, [sp, #19072]
 	eor	x12, x12, x16
-	ldr	x10, [sp, #27072]
-	str	x11, [sp, #26840]
+	ldr	x10, [sp, #19312]
+	str	x11, [sp, #19080]
 	eor	x9, x9, x14
-	ldr	x11, [sp, #26872]
-	ldr	x13, [sp, #27080]
-	str	x8, [sp, #26856]
-	ldr	x8, [sp, #26880]
-	ldr	x17, [sp, #26896]
+	ldr	x11, [sp, #19112]
+	ldr	x13, [sp, #19320]
+	str	x8, [sp, #19096]
+	ldr	x8, [sp, #19120]
+	ldr	x17, [sp, #19136]
 	eor	x10, x11, x10
-	str	x12, [sp, #26848]
-	ldr	x11, [sp, #27088]
+	str	x12, [sp, #19088]
+	ldr	x11, [sp, #19328]
 	eor	x8, x8, x13
-	str	x9, [sp, #26864]
-	ldr	x9, [sp, #26888]
-	ldr	x12, [sp, #27096]
-	str	x8, [sp, #26880]
+	str	x9, [sp, #19104]
+	ldr	x9, [sp, #19128]
+	ldr	x12, [sp, #19336]
+	str	x8, [sp, #19120]
 	eor	x9, x9, x11
-	str	x10, [sp, #26872]
+	str	x10, [sp, #19112]
 	eor	x8, x17, x12
-	str	x9, [sp, #26888]
-	str	x8, [sp, #26896]
+	str	x9, [sp, #19128]
+	str	x8, [sp, #19136]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
 	mov	x23, xzr
-	str	xzr, [sp, #27104]
-	b	.LBB3_76
-.LBB3_81:
-	add	x0, sp, #4, lsl #12
-	add	x1, sp, #6, lsl #12
+	str	xzr, [sp, #19344]
+	b	.LBB3_68
+.LBB3_73:
+	add	x0, sp, #2, lsl #12
+	add	x1, sp, #4, lsl #12
 	mov	w2, #200
-	add	x0, x0, #16
-	add	x1, x1, #2192
+	add	x0, x0, #448
+	add	x1, x1, #2624
 	bl	memcpy
 	cmp	x23, #137
-	b.hs	.LBB3_95
-	add	x0, sp, #6, lsl #12
+	b.hs	.LBB3_87
+	add	x0, sp, #4, lsl #12
 	mov	x1, x21
 	mov	x2, x23
-	add	x0, x0, #144
-	str	xzr, [sp, #24848]
-	str	xzr, [sp, #24840]
-	str	xzr, [sp, #24832]
-	str	xzr, [sp, #24824]
-	str	xzr, [sp, #24816]
-	str	xzr, [sp, #24808]
-	str	xzr, [sp, #24800]
-	str	xzr, [sp, #24792]
-	str	xzr, [sp, #24784]
-	str	xzr, [sp, #24776]
-	str	xzr, [sp, #24768]
-	str	xzr, [sp, #24760]
-	str	xzr, [sp, #24752]
-	str	xzr, [sp, #24744]
-	str	xzr, [sp, #24736]
-	str	xzr, [sp, #24728]
-	str	xzr, [sp, #24720]
+	add	x0, x0, #576
+	str	xzr, [sp, #17088]
+	str	xzr, [sp, #17080]
+	str	xzr, [sp, #17072]
+	str	xzr, [sp, #17064]
+	str	xzr, [sp, #17056]
+	str	xzr, [sp, #17048]
+	str	xzr, [sp, #17040]
+	str	xzr, [sp, #17032]
+	str	xzr, [sp, #17024]
+	str	xzr, [sp, #17016]
+	str	xzr, [sp, #17008]
+	str	xzr, [sp, #17000]
+	str	xzr, [sp, #16992]
+	str	xzr, [sp, #16984]
+	str	xzr, [sp, #16976]
+	str	xzr, [sp, #16968]
+	str	xzr, [sp, #16960]
 	bl	memcpy
-	add	x9, sp, #6, lsl #12
-	add	x20, sp, #5, lsl #12
-	ldr	x0, [sp, #16408]
-	add	x9, x9, #144
-	add	x20, x20, #1168
+	add	x9, sp, #4, lsl #12
+	add	x18, sp, #3, lsl #12
+	ldr	x0, [sp, #8648]
+	add	x9, x9, #576
+	add	x18, x18, #3648
 	ldrb	w8, [x9, x23]
 	eor	w8, w8, #0x1
 	strb	w8, [x9, x23]
-	ldr	x8, [sp, #16400]
-	ldr	x10, [sp, #24720]
-	ldr	x11, [sp, #24728]
-	ldr	x12, [sp, #24736]
-	ldrb	w9, [x20, #3207]
-	ldr	x13, [sp, #24744]
+	ldr	x8, [sp, #8640]
+	ldr	x10, [sp, #16960]
+	ldr	x11, [sp, #16968]
+	ldr	x12, [sp, #16976]
+	ldrb	w9, [x18, #1159]
+	ldr	x13, [sp, #16984]
 	eor	x8, x8, x10
-	ldr	x10, [sp, #16416]
+	ldr	x10, [sp, #8656]
 	eor	x11, x0, x11
-	ldr	x0, [sp, #16424]
-	ldr	x14, [sp, #24752]
-	ldr	x15, [sp, #24760]
-	str	x8, [sp, #16400]
+	ldr	x0, [sp, #8664]
+	ldr	x14, [sp, #16992]
+	ldr	x15, [sp, #17000]
+	str	x8, [sp, #8640]
 	eor	x8, x10, x12
-	ldr	x10, [sp, #16432]
-	ldr	x12, [sp, #16440]
+	ldr	x10, [sp, #8672]
+	ldr	x12, [sp, #8680]
 	eor	w9, w9, #0x80
-	str	x11, [sp, #16408]
+	str	x11, [sp, #8648]
 	eor	x11, x0, x13
-	ldr	x16, [sp, #24768]
-	ldr	x17, [sp, #24776]
-	strb	w9, [x20, #3207]
-	ldr	x9, [sp, #24784]
-	ldr	x13, [sp, #16464]
-	str	x8, [sp, #16416]
+	ldr	x16, [sp, #17008]
+	ldr	x17, [sp, #17016]
+	strb	w9, [x18, #1159]
+	ldr	x9, [sp, #17024]
+	ldr	x13, [sp, #8704]
+	str	x8, [sp, #8656]
 	eor	x8, x10, x14
-	ldr	x10, [sp, #16448]
-	str	x11, [sp, #16424]
+	ldr	x10, [sp, #8688]
+	str	x11, [sp, #8664]
 	eor	x11, x12, x15
-	ldr	x12, [sp, #16456]
-	ldr	x14, [sp, #24808]
-	str	x11, [sp, #16440]
-	ldr	x11, [sp, #16488]
-	str	x8, [sp, #16432]
+	ldr	x12, [sp, #8696]
+	ldr	x14, [sp, #17048]
+	str	x11, [sp, #8680]
+	ldr	x11, [sp, #8728]
+	str	x8, [sp, #8672]
 	eor	x8, x10, x16
 	eor	x12, x12, x17
 	eor	x9, x13, x9
-	ldr	x18, [sp, #24792]
-	ldr	x1, [sp, #24800]
-	ldr	x10, [sp, #16472]
-	ldr	x13, [sp, #16480]
-	str	x8, [sp, #16448]
-	ldr	x8, [sp, #24816]
-	str	x12, [sp, #16456]
-	ldr	x12, [sp, #16496]
+	ldr	x18, [sp, #17032]
+	ldr	x1, [sp, #17040]
+	ldr	x10, [sp, #8712]
+	ldr	x13, [sp, #8720]
+	str	x8, [sp, #8688]
+	ldr	x8, [sp, #17056]
+	str	x12, [sp, #8696]
+	ldr	x12, [sp, #8736]
 	eor	x11, x11, x14
-	ldr	x14, [sp, #24824]
-	str	x9, [sp, #16464]
-	ldr	x9, [sp, #16504]
+	ldr	x14, [sp, #17064]
+	str	x9, [sp, #8704]
+	ldr	x9, [sp, #8744]
 	eor	x10, x10, x18
 	eor	x13, x13, x1
 	eor	x8, x12, x8
-	str	x10, [sp, #16472]
-	ldr	x10, [sp, #24832]
+	str	x10, [sp, #8712]
+	ldr	x10, [sp, #17072]
 	eor	x9, x9, x14
-	str	x13, [sp, #16480]
-	ldr	x12, [sp, #16512]
-	ldr	x13, [sp, #24840]
-	str	x11, [sp, #16488]
-	ldr	x11, [sp, #16520]
-	str	x8, [sp, #16496]
-	ldr	x8, [sp, #24848]
-	add	x0, sp, #4, lsl #12
-	str	x9, [sp, #16504]
-	ldr	x9, [sp, #16528]
+	str	x13, [sp, #8720]
+	ldr	x12, [sp, #8752]
+	ldr	x13, [sp, #17080]
+	str	x11, [sp, #8728]
+	ldr	x11, [sp, #8760]
+	str	x8, [sp, #8736]
+	ldr	x8, [sp, #17088]
+	add	x0, sp, #2, lsl #12
+	str	x9, [sp, #8744]
+	ldr	x9, [sp, #8768]
 	eor	x10, x12, x10
 	eor	x11, x11, x13
-	add	x0, x0, #16
-	str	x10, [sp, #16512]
+	add	x0, x0, #448
+	str	x10, [sp, #8752]
 	eor	x8, x9, x8
-	str	x11, [sp, #16520]
-	str	x8, [sp, #16528]
+	str	x11, [sp, #8760]
+	str	x8, [sp, #8768]
 	bl	_RNvCsndc0WgnAaH_9keccak2568keccak_f
-	ldr	x10, [sp, #40]
-	ldr	x8, [sp, #16408]
-	ldr	x9, [sp, #16400]
-	cmp	x19, x10
-	str	x8, [sp, #24728]
-	str	x9, [sp, #24720]
-	str	x9, [sp, #20624]
-	str	x8, [sp, #20632]
-	b.ne	.LBB3_67
-	ldr	x8, [sp, #20624]
-	ldr	x9, [sp, #20632]
-	mov	w22, #16
-	mov	w13, #8
-	b	.LBB3_85
-.LBB3_84:
-	ldr	x8, [sp, #15984]
-	ldr	x9, [sp, #15992]
-.LBB3_85:
-	str	x8, [sp, #16400]
-	str	x9, [sp, #16408]
-	ldr	x12, [sp, #16]
+	ldr	x10, [sp, #48]
+	ldr	x8, [sp, #8648]
+	ldr	x9, [sp, #8640]
+	cmp	x24, x10
+	str	x8, [sp, #16968]
+	str	x9, [sp, #16960]
+	str	x9, [sp, #12864]
+	str	x8, [sp, #12872]
+	b.ne	.LBB3_59
+	ldr	x8, [sp, #12864]
+	ldr	x9, [sp, #12872]
+	mov	w23, #16
+	mov	w12, #8
+	b	.LBB3_77
+.LBB3_76:
+	ldr	x8, [sp, #8224]
+	ldr	x9, [sp, #8232]
+.LBB3_77:
+	str	x8, [sp, #8640]
+	str	x9, [sp, #8648]
+	ldr	x11, [sp, #24]
 	mov	w10, #7740
-	add	x20, sp, #5, lsl #12
-	mov	w14, #117440512
-	cmp	x12, x10
-	str	x8, [sp, #27792]
-	add	x8, sp, #2, lsl #12
-	ldp	x23, x10, [sp]
-	add	x8, x8, #52
-	add	x11, x8, x12
-	add	x20, x20, #1168
+	add	x22, sp, #3, lsl #12
+	mov	w13, #117440512
+	cmp	x11, x10
+	str	x8, [sp, #20032]
+	add	x8, sp, #484
+	ldp	x24, x10, [sp, #8]
+	add	x8, x8, x11
+	str	x8, [sp, #408]
+	add	x22, x22, #3648
 	adrp	x8, .Lanon.bee145f0cb2eac5728ff95be1b200579.2
 	add	x8, x8, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.2
-	str	x9, [sp, #27800]
-	b.ne	.LBB3_40
-	ldr	x8, [sp, #8224]
-	ldr	x9, [sp, #27792]
-	ldr	x10, [sp, #27800]
-	ldr	x11, [sp, #8232]
+	str	x9, [sp, #20040]
+	b.ne	.LBB3_32
+	ldp	x8, x11, [sp, #464]
+	ldr	x9, [sp, #20032]
+	ldr	x10, [sp, #20040]
 	cmp	x9, x8
 	ccmp	x10, x11, #0, eq
 	cset	w0, eq
-	b	.LBB3_92
-.LBB3_87:
+	b	.LBB3_84
+.LBB3_79:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_88:
+.LBB3_80:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x25
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_89:
+.LBB3_81:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x25
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_90:
+.LBB3_82:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x24
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_91:
+.LBB3_83:
 	mov	x0, xzr
-.LBB3_92:
-	add	sp, sp, #7, lsl #12
-	add	sp, sp, #608
+.LBB3_84:
+	add	sp, sp, #5, lsl #12
+	add	sp, sp, #1040
 	.cfi_def_cfa wsp, 96
 	ldp	x20, x19, [sp, #80]
 	ldp	x22, x21, [sp, #64]
@@ -2884,7 +2737,7 @@ sphincs_verify:
 	.cfi_restore w30
 	.cfi_restore w29
 	ret
-.LBB3_93:
+.LBB3_85:
 	.cfi_restore_state
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
@@ -2892,20 +2745,20 @@ sphincs_verify:
 	mov	x1, x24
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_94:
+.LBB3_86:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.15
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.15
 	mov	x0, x23
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_95:
+.LBB3_87:
 	adrp	x3, .Lanon.47fac95803119c4a094797088418c9d4.16
 	add	x3, x3, :lo12:.Lanon.47fac95803119c4a094797088418c9d4.16
 	mov	x0, xzr
 	mov	x1, x23
 	mov	w2, #136
 	bl	_RNvNtNtCs8l20omZJ7ql_4core5slice5index16slice_index_fail
-.LBB3_96:
+.LBB3_88:
 	adrp	x3, .Lanon.bee145f0cb2eac5728ff95be1b200579.4
 	add	x3, x3, :lo12:.Lanon.bee145f0cb2eac5728ff95be1b200579.4
 	mov	w2, #26

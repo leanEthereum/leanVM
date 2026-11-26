@@ -19,6 +19,7 @@
 use std::{env, fs, process};
 
 type Verify = unsafe extern "C" fn(*mut u64) -> u64;
+type Verify3 = unsafe extern "C" fn(*const u8, *const u8, *const u8) -> u64;
 
 #[cfg(xmss)]
 unsafe extern "C" {
@@ -27,7 +28,7 @@ unsafe extern "C" {
 
 #[cfg(sphincs)]
 unsafe extern "C" {
-    fn sphincs_verify(ctx: *mut u64) -> u64;
+    fn sphincs_verify(pk: *const u8, msg: *const u8, sig: *const u8) -> u64;
 }
 
 #[cfg(vm)]
@@ -40,6 +41,14 @@ unsafe extern "C" {
     /// i-th of `SAVED`, which it writes to `regs[i]` after the call; on AArch64 also `regs[SAVED..SAVED + 4]`: the
     /// return address `verify` was given and sp before the call, then x30 and sp after it.
     fn harness_call(verify: Verify, ctx: *mut u64, regs: *mut u64) -> u64;
+    /// Three-pointer variant for `sphincs_verify(pk, msg, sig)`.
+    fn harness_call3(
+        verify: Verify3,
+        a0: *const u8,
+        a1: *const u8,
+        a2: *const u8,
+        regs: *mut u64,
+    ) -> u64;
 }
 
 const PATTERN: u64 = 0x0123_4567_89ab_cde1;
@@ -114,6 +123,59 @@ core::arch::global_asm!(
     "  pop %rbx",
     "  ret",
     ".size harness_call, .-harness_call",
+    ".globl harness_call3",
+    ".type harness_call3, @function",
+    "harness_call3:",
+    "  push %rbx",
+    "  push %rbp",
+    "  push %r12",
+    "  push %r13",
+    "  push %r14",
+    "  push %r15",
+    "  sub $8, %rsp",
+    "  lea harness_saved(%rip), %r10",
+    "  mov %r8, 0(%r10)",
+    "  mov %rsp, 8(%r10)",
+    "  mov %rsp, 48(%r8)",
+    "  mov %rdi, %rax",
+    "  mov %rsi, %rdi",
+    "  mov %rdx, %rsi",
+    "  mov %rcx, %rdx",
+    "  movabs $0x0123456789abcde1, %rbx",
+    "  movabs $0x0123456789abcde2, %rbp",
+    "  movabs $0x0123456789abcde3, %r12",
+    "  movabs $0x0123456789abcde4, %r13",
+    "  movabs $0x0123456789abcde5, %r14",
+    "  movabs $0x0123456789abcde6, %r15",
+    "  movabs $0xdeadbeefcafe0003, %rcx",
+    "  movabs $0xdeadbeefcafe0004, %r8",
+    "  movabs $0xdeadbeefcafe0005, %r9",
+    "  movabs $0xdeadbeefcafe0006, %r10",
+    "  movabs $0xdeadbeefcafe0007, %r11",
+    "  call *%rax",
+    "  mov %rsp, %r11",
+    "  lea harness_saved(%rip), %r10",
+    "  mov 0(%r10), %rdx",
+    "  mov 8(%r10), %rsp",
+    "  pushfq",
+    "  pop %rcx",
+    "  mov %rbx, 0(%rdx)",
+    "  mov %rbp, 8(%rdx)",
+    "  mov %r12, 16(%rdx)",
+    "  mov %r13, 24(%rdx)",
+    "  mov %r14, 32(%rdx)",
+    "  mov %r15, 40(%rdx)",
+    "  mov %r11, 56(%rdx)",
+    "  mov %rcx, 64(%rdx)",
+    "  add $8, %rsp",
+    "  pop %r15",
+    "  pop %r14",
+    "  pop %r13",
+    "  pop %r12",
+    "  pop %rbp",
+    "  pop %rbx",
+    "  ret",
+    ".size harness_call3, .-harness_call3",
     options(att_syntax)
 );
 
@@ -209,6 +271,79 @@ core::arch::global_asm!(
     "  ldp x29, x30, [sp], #96",
     "  ret",
     ".size harness_call, .-harness_call",
+    ".globl harness_call3",
+    ".type harness_call3, %function",
+    ".p2align 2",
+    "harness_call3:",
+    "  stp x29, x30, [sp, #-96]!",
+    "  stp x19, x20, [sp, #16]",
+    "  stp x21, x22, [sp, #32]",
+    "  stp x23, x24, [sp, #48]",
+    "  stp x25, x26, [sp, #64]",
+    "  stp x27, x28, [sp, #80]",
+    "  adrp x9, harness_saved",
+    "  add x9, x9, :lo12:harness_saved",
+    "  mov x10, sp",
+    "  stp x4, x10, [x9]",
+    "  adr x11, 2f",
+    "  stp x11, x10, [x4, #88]",
+    "  mov x16, x0",
+    "  mov x0, x1",
+    "  mov x1, x2",
+    "  mov x2, x3",
+    "  movz x19, #0xcde1",
+    "  movk x19, #0x89ab, lsl #16",
+    "  movk x19, #0x4567, lsl #32",
+    "  movk x19, #0x0123, lsl #48",
+    "  add x20, x19, #1",
+    "  add x21, x19, #2",
+    "  add x22, x19, #3",
+    "  add x23, x19, #4",
+    "  add x24, x19, #5",
+    "  add x25, x19, #6",
+    "  add x26, x19, #7",
+    "  add x27, x19, #8",
+    "  add x28, x19, #9",
+    "  add x29, x19, #10",
+    "  movz x3, #0x0003",
+    "  movk x3, #0xcafe, lsl #16",
+    "  movk x3, #0xbeef, lsl #32",
+    "  movk x3, #0xdead, lsl #48",
+    "  add x4, x3, #1",
+    "  add x5, x3, #2",
+    "  add x6, x3, #3",
+    "  add x7, x3, #4",
+    "  add x8, x3, #5",
+    "  add x9, x3, #6",
+    "  add x10, x3, #7",
+    "  add x11, x3, #8",
+    "  add x12, x3, #9",
+    "  add x13, x3, #10",
+    "  add x14, x3, #11",
+    "  add x15, x3, #12",
+    "  add x17, x3, #13",
+    "  blr x16",
+    "2:",
+    "  adrp x9, harness_saved",
+    "  add x9, x9, :lo12:harness_saved",
+    "  ldp x4, x10, [x9]",
+    "  stp x19, x20, [x4]",
+    "  stp x21, x22, [x4, #16]",
+    "  stp x23, x24, [x4, #32]",
+    "  stp x25, x26, [x4, #48]",
+    "  stp x27, x28, [x4, #64]",
+    "  str x29, [x4, #80]",
+    "  mov x11, sp",
+    "  stp x30, x11, [x4, #104]",
+    "  mov sp, x10",
+    "  ldp x19, x20, [sp, #16]",
+    "  ldp x21, x22, [sp, #32]",
+    "  ldp x23, x24, [sp, #48]",
+    "  ldp x25, x26, [sp, #64]",
+    "  ldp x27, x28, [sp, #80]",
+    "  ldp x29, x30, [sp], #96",
+    "  ret",
+    ".size harness_call3, .-harness_call3",
 );
 
 const GUARD: u8 = 0x5a;
@@ -221,19 +356,18 @@ const XMSS: Option<Verify> = Some(xmss_verify);
 #[cfg(not(xmss))]
 const XMSS: Option<Verify> = None;
 #[cfg(sphincs)]
-const SPHINCS: Option<Verify> = Some(sphincs_verify);
+const SPHINCS: Option<Verify3> = Some(sphincs_verify);
 #[cfg(not(sphincs))]
-const SPHINCS: Option<Verify> = None;
+const SPHINCS: Option<Verify3> = None;
 #[cfg(vm)]
 const VM: Option<Verify> = Some(leanvm_verify);
 #[cfg(not(vm))]
 const VM: Option<Verify> = None;
 
-/// The signature scheme's input words, and its verifier if linked in.
+/// The word-context signature scheme's input words, and its verifier if linked in.
 fn scheme(name: &str) -> Option<(usize, Option<Verify>)> {
     match name {
         "xmss" => Some((309, XMSS)),
-        "sphincs" => Some((977, SPHINCS)),
         _ => None,
     }
 }
@@ -363,12 +497,7 @@ fn field<'a>(tokens: &mut impl Iterator<Item = &'a str>, key: &str) -> Result<&'
     }
 }
 
-/// Calls `verify` on the context at `ctx`; returns its result, noting in `faults` how it broke the calling convention.
-fn call(verify: Verify, ctx: *mut u64, faults: &mut Vec<String>) -> u64 {
-    let mut regs = vec![0u64; SAVED.len() + LINKAGE];
-    // SAFETY: `verify` is a verifier given a context laid out for it, the areas it points to alive and apart; `regs`
-    // has room for what `harness_call` writes.
-    let result = unsafe { harness_call(verify, ctx, regs.as_mut_ptr()) };
+fn check_regs(regs: &[u64], result: u64, faults: &mut Vec<String>) {
     for (i, reg) in SAVED.iter().enumerate() {
         if regs[i] != PATTERN + i as u64 {
             faults.push(format!("callee-saved {reg} not preserved"));
@@ -393,6 +522,24 @@ fn call(verify: Verify, ctx: *mut u64, faults: &mut Vec<String>) -> u64 {
     if result > 1 {
         faults.push(format!("{RESULT} {result}, not 0 or 1"));
     }
+}
+
+/// Calls `verify` on the context at `ctx`; returns its result, noting in `faults` how it broke the calling convention.
+fn call(verify: Verify, ctx: *mut u64, faults: &mut Vec<String>) -> u64 {
+    let mut regs = vec![0u64; SAVED.len() + LINKAGE];
+    // SAFETY: `verify` is a verifier given a context laid out for it, the areas it points to alive and apart; `regs`
+    // has room for what `harness_call` writes.
+    let result = unsafe { harness_call(verify, ctx, regs.as_mut_ptr()) };
+    check_regs(&regs, result, faults);
+    result
+}
+
+/// Calls a three-pointer verifier (`sphincs_verify(pk, msg, sig)`).
+fn call3(verify: Verify3, a0: *const u8, a1: *const u8, a2: *const u8, faults: &mut Vec<String>) -> u64 {
+    let mut regs = vec![0u64; SAVED.len() + LINKAGE];
+    // SAFETY: `verify` is `sphincs_verify` given three valid read-only byte buffers; `regs` has room for `harness_call3`.
+    let result = unsafe { harness_call3(verify, a0, a1, a2, regs.as_mut_ptr()) };
+    check_regs(&regs, result, faults);
     result
 }
 
@@ -529,10 +676,59 @@ fn run_vm(path: &str, verify: Verify, expect: u64, bytecode: &[u64], public: &[u
     report(path, expect, result, &faults)
 }
 
-/// A parsed case: a signature verifier and its input words, or the leanVM verifier and its bytecode's words, public
-/// input words and wire bytes.
+fn decode_hex(s: &str, expected_len: usize, label: &str) -> Result<Vec<u8>, String> {
+    if s.len() != expected_len * 2 {
+        return Err(format!("{label}: expected {} hex chars, got {}", expected_len * 2, s.len()));
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|_| format!("{label}: bad hex at {i}")))
+        .collect()
+}
+
+fn sphincs_case<'a>(
+    tokens: &mut impl Iterator<Item = &'a str>,
+) -> Result<(Verify3, Vec<u8>, Vec<u8>, Vec<u8>), String> {
+    let verify = SPHINCS.ok_or("sphincs_verify is not linked in")?;
+    let pk = decode_hex(field(tokens, "pk")?, 32, "pk")?;
+    let msg = decode_hex(field(tokens, "msg")?, 32, "msg")?;
+    let sig = decode_hex(field(tokens, "sig")?, 7740, "sig")?;
+    Ok((verify, pk, msg, sig))
+}
+
+fn run_sphincs(
+    path: &str,
+    verify: Verify3,
+    expect: u64,
+    pk: &[u8],
+    msg: &[u8],
+    sig: &[u8],
+    placement: Placement,
+) -> i32 {
+    let mut pk_area = Guarded::readonly(pk, placement);
+    let mut msg_area = Guarded::readonly(msg, placement);
+    let mut sig_area = Guarded::readonly(sig, placement);
+    let mut faults = Vec::new();
+    let result = call3(verify, pk_area.addr(), msg_area.addr(), sig_area.addr(), &mut faults);
+    for (name, area, orig) in [
+        ("pk", &pk_area, pk),
+        ("msg", &msg_area, msg),
+        ("sig", &sig_area, sig),
+    ] {
+        if !area.guards_intact() {
+            faults.push(format!("a write outside {name}"));
+        }
+        if area.bytes() != orig {
+            faults.push(format!("a write to {name}"));
+        }
+    }
+    report(path, expect, result, &faults)
+}
+
+/// A parsed case: a signature verifier and its input words, sphincs raw bytes, or the leanVM verifier.
 enum Case {
     Sig(Verify, Vec<u64>),
+    Sphincs(Verify3, Vec<u8>, Vec<u8>, Vec<u8>),
     Vm(Verify, Vec<u64>, Vec<u64>, Vec<u8>),
 }
 
@@ -549,6 +745,9 @@ fn parse(text: &str) -> Result<(u64, Case), String> {
         let verify = VM.ok_or("leanvm_verify is not linked in")?;
         let (bytecode, public, wire) = vm_case(&mut tokens)?;
         Case::Vm(verify, bytecode, public, wire)
+    } else if name == "sphincs" {
+        let (verify, pk, msg, sig) = sphincs_case(&mut tokens)?;
+        Case::Sphincs(verify, pk, msg, sig)
     } else {
         let (verify, input) = sig_case(name, &mut tokens)?;
         Case::Sig(verify, input)
@@ -566,6 +765,9 @@ fn run(path: &str, placement: Placement) -> i32 {
         .and_then(|text| parse(&text))
     {
         Ok((expect, Case::Sig(verify, input))) => run_sig(path, verify, expect, &input, placement),
+        Ok((expect, Case::Sphincs(verify, pk, msg, sig))) => {
+            run_sphincs(path, verify, expect, &pk, &msg, &sig, placement)
+        }
         Ok((expect, Case::Vm(verify, bytecode, public, wire))) => {
             run_vm(path, verify, expect, &bytecode, &public, &wire, placement)
         }

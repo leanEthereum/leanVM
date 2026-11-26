@@ -135,7 +135,24 @@ fn flip(bytes: &[u8], at: usize, bit: u32) -> Vec<u8> {
 struct Case {
     stem: String,
     expect: bool,
-    words: Vec<u64>,
+    payload: CasePayload,
+}
+
+enum CasePayload {
+    Words(Vec<u64>),
+    Bytes {
+        pk: Vec<u8>,
+        msg: Vec<u8>,
+        sig: Vec<u8>,
+    },
+}
+
+fn hex_of(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        out.push_str(&format!("{b:02x}"));
+    }
+    out
 }
 
 #[derive(Default)]
@@ -147,10 +164,18 @@ impl Cases {
         let stem = format!("{}_{name}", input.scheme.name());
         assert!(self.0.iter().all(|c| c.stem != stem), "{stem} twice");
         let expect = input.verify();
+        let payload = match input.scheme {
+            Scheme::Xmss => CasePayload::Words(input.words()),
+            Scheme::Sphincs => CasePayload::Bytes {
+                pk: input.pk.clone(),
+                msg: input.message.clone(),
+                sig: input.sig.clone(),
+            },
+        };
         self.0.push(Case {
             stem,
             expect,
-            words: input.words(),
+            payload,
         });
         expect
     }
@@ -418,13 +443,20 @@ fn main() {
     let mut list = String::new();
     for case in &cases.0 {
         let mut text = format!(
-            "scheme {}\nexpect {}\nwords {}\n",
+            "scheme {}\nexpect {}\n",
             case.stem.split('_').next().unwrap(),
             u8::from(case.expect),
-            case.words.len()
         );
-        for w in &case.words {
-            text.push_str(&format!("{w:016x}\n"));
+        match &case.payload {
+            CasePayload::Words(words) => {
+                text.push_str(&format!("words {}\n", words.len()));
+                for w in words {
+                    text.push_str(&format!("{w:016x}\n"));
+                }
+            }
+            CasePayload::Bytes { pk, msg, sig } => {
+                text.push_str(&format!("pk {}\nmsg {}\nsig {}\n", hex_of(pk), hex_of(msg), hex_of(sig)));
+            }
         }
         fs::write(dir.join(format!("{}.case", case.stem)), text).unwrap();
         list.push_str(&case.stem);
