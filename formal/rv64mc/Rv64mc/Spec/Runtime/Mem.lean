@@ -6,7 +6,7 @@
   writes `[dst, dst + n)` may write the doublewords that hold it (`DwordsOf`), and keeps every byte outside it
   (`ByteFrame`).
 
-  `memcpy` and `memmove` are the exception: both keep scratch in a stack slot below the stack pointer at entry
+  `memcpy` and `memmove` do not keep it: both keep scratch in a stack slot below the stack pointer at entry
   (`memcpy`'s `load_aligned_partial` assembles a partial word there when the source is not 8-byte aligned against
   the destination; `memmove` saves `s0` there) and leave it changed (`Table/CopyScratch.lean`). So a copy keeps every
   byte outside the destination and apart from the stack below the stack pointer (`CopyPost`, `OffStack`), which is
@@ -39,7 +39,8 @@ def CopyPre (overlap : Bool) (regs : Reg → Word) (_m : MachineState) : Prop :=
     (overlap = false → ∀ b, InRange (regs .x10) (regs .x12).toNat b → ¬ InRange (regs .x11) (regs .x12).toNat b)
 
 /-- Where a copy's ranges lie, unless there are no bytes: the destination a caller's object (`Env.Owned`), the
-    source apart from the stack below the stack pointer. -/
+    source apart from the stack below the stack pointer. `memcpy` copies a range on its slot wrong
+    (`Table/CopyScratch.lean`); `Owned` asks more than that (not `[NEXT, heapEnd)`), and every caller has it. -/
 def CopyApart (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   (regs .x12).toNat = 0 ∨
     (env.Owned m (regs .x2) (regs .x10) (regs .x12).toNat ∧ OffStack env (regs .x2) (regs .x11) (regs .x12).toNat)

@@ -11,7 +11,7 @@
 
   ## Main results
 
-  * `memcpyT`, `memsetT`, `memcpyHolds`
+  * `memcpyT`, `memsetT`, `copyPostT_eq`, `memcpyHolds`
 -/
 
 import Rv64mc.Core.HoldsOfHoldsT
@@ -35,6 +35,9 @@ theorem memcpyT : Proof.Runtime.MemcpyT.MemcpySpecT env (liftProg fns) Idx.Compi
 theorem memsetT : Proof.Runtime.MemsetT.MemsetSafeT env (liftProg fns) Idx.CompilerBuiltins.Mem.Memset
     Needs.CompilerBuiltins.Mem.Memset :=
   HoldsT.mono_need (Proof.Runtime.MemsetT.total _ _ _ CompilerBuiltins.Mem.Memset.tmpl_eq) (Nat.zero_le _)
+
+/-- `CopyPostT` and `CopyPost` are the same postcondition. -/
+theorem copyPostT_eq : Spec.Runtime.CopyPostT = Spec.Runtime.CopyPost := rfl
 
 /-- **`compiler_builtins`' `memcpy`'s partial contract at the image, from its total one**: the bytes copied and
     `CopyPost`'s frame, under the total contract's precondition and `Windows`. -/
