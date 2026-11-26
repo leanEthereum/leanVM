@@ -9,7 +9,7 @@ public meta import NativeRustcArm.Code.Sphincs.SphincsVerify
 
 Each run starts from a fresh state of the frame (region 0, SP its base, X29 the saved registers'
 address) with the registers the region keeps known: `wotsS` for the one-time leaf's `th` with
-calls (`b143` .. `b148`, each ending in a call) and the path's checks (`b149` .. `b152`, run in
+calls (`b134` .. `b139`, each ending in a call) and the path's checks (`b140` .. `b143`, run in
 one environment: `after ds S` is the state `exec ds S` ends in).
 -/
 
@@ -31,26 +31,27 @@ theorem exec_after {ds ds' : List Directive} {S S₁ : SState} {x : Exit}
   rw [after, h] at h'
   exact h'
 
-/-- The registers every state of the region keeps: the hashers' buffers, `136`, X29. -/
+/-- The registers every state of the region keeps: `136`, the hashers' buffers, X27, X29. -/
 def keptRegs : List (XReg × Sym) :=
-  [(.X21, .ptr 0 26968), (.X25, .ptr 0 16600), (.X26, .lit 136), (.X29, .ptr 0 29280)]
+  [(.X19, .lit 136), (.X21, .ptr 0 19208), (.X25, .ptr 0 8840), (.X27, .ptr 0 19008),
+    (.X29, .ptr 0 21520)]
 
 /-- The frame (region 0), SP its base, the kept registers. -/
-def wotsS : SState := init [(29376, true)] (.ptr 0 0) keptRegs
+def wotsS : SState := init [(21616, true)] (.ptr 0 0) keptRegs
 
 end
 
 set_option Elab.async false
 
-sym_block run_b143 := exec b143 wotsS
-sym_block run_b144 := exec b144 wotsS
-sym_block run_b145 := exec b145 wotsS
-sym_block run_b146 := exec b146 wotsS
-sym_block run_b147 := exec b147 wotsS
-sym_block run_b148 := exec b148 wotsS
-sym_block run_b149 := exec b149 wotsS
-sym_block run_b150 := exec b150 (after b149 wotsS)
-sym_block run_b151 := exec b151 (after b150 (after b149 wotsS))
-sym_block run_b152 := exec b152 (after b151 (after b150 (after b149 wotsS)))
+sym_block run_b134 := exec b134 wotsS
+sym_block run_b135 := exec b135 wotsS
+sym_block run_b136 := exec b136 wotsS
+sym_block run_b137 := exec b137 wotsS
+sym_block run_b138 := exec b138 wotsS
+sym_block run_b139 := exec b139 wotsS
+sym_block run_b140 := exec b140 wotsS
+sym_block run_b141 := exec b141 (after b140 wotsS)
+sym_block run_b142 := exec b142 (after b141 (after b140 wotsS))
+sym_block run_b143 := exec b143 (after b142 (after b141 (after b140 wotsS)))
 
 end NativeRustcArm.SphincsVerifyProof.Tree

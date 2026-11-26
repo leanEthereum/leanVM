@@ -15,9 +15,8 @@ public import NativeRustcArm.LayerRead.Glue
   `copy`);
 - registers stored whole (`holdsReg`, `bytesAt_reg`), loaded words (`load_word`), words' bytes
   (`bytesAt_words`), region pointers (`eval_ptr`, `eval_ptr_off`);
-- the frame before the invariant holds (`frame_mapped0`), the input words (`bytesAt_wb`) and the
-  environments of a frame range and an input range or two frame ranges (`wf_frame_input`,
-  `wf_frame2`);
+- the frame before the invariant holds (`frame_mapped0`), external `pk` / `sig` input slices and
+  environments (`wf_frame_pk`, `wf_frame_sig`, `wf_frame2`);
 - `memcpy` and `memset` between frame offsets (`memcpy_frame`, `memset_frame`).
 -/
 
@@ -39,7 +38,7 @@ variable (r : Run) [Labels]
 /-- **Frame bytes kept** by a change in another range of the frame. -/
 theorem keep (hpre : r.Pre) {d d' : DataMem} {o a n L : Nat} {bs : List UInt8}
     (h : BytesAt d (r.off o) bs) (hs : SameOutside d d' (InRange (r.off a) n)) (hl : bs.length = L)
-    (hd : o + L ≤ a ∨ a + n ≤ o) (ho : o + L ≤ 29376) (ha : a + n ≤ 29376) :
+    (hd : o + L ≤ a ∨ a + n ≤ o) (ho : o + L ≤ 21616) (ha : a + n ≤ 21616) :
     BytesAt d' (r.off o) bs :=
   bytesAt_of_sameOutside h hs fun i hi hin => by
     subst hl
@@ -50,8 +49,8 @@ theorem keep (hpre : r.Pre) {d d' : DataMem} {o a n L : Nat} {bs : List UInt8}
     omega
 
 /-- A change in the frame's range `a .. a + n` before the saved registers keeps the invariant. -/
-theorem inRange_off' (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 29280) :
-    ∀ p, InRange (r.off a) n p → r.StackArea p ∧ ¬InRange (r.off 29280) 96 p :=
+theorem inRange_off' (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 21520) :
+    ∀ p, InRange (r.off a) n p → r.StackArea p ∧ ¬InRange (r.off 21520) 96 p :=
   fun _ h => r.inRange_off hpre ha h
 
 end
@@ -191,7 +190,7 @@ theorem bytesAt_words {d : DataMem} :
 
 end
 
-/-! ## The input words -/
+/-! ## Sub-slices and environments -/
 
 theorem bytesAt_sub {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : BytesAt d a bs) {k n : Nat}
     (hk : k + n ≤ bs.length) : BytesAt d (a + BitVec.ofNat 64 k) (slice bs k n) := by
@@ -200,29 +199,21 @@ theorem bytesAt_sub {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : BytesAt
   rw [addr_add, h (k + i) (by omega)]
   simp [slice]
 
-theorem slice_words (w : Nat → UInt64) {s n : Nat} (h : s + n ≤ 977) :
-    slice (wordsBytes ((List.range 977).map w)) (8 * s) (8 * n) = wb w s n := by
-  rw [slice, slice_wordsBytes, wb]
-  congr 1
-  apply List.ext_getElem (by simp; omega)
-  intro i h1 h2
-  simp
-
 section
 variable (r : Run) [Labels]
 
 /-- The saved registers are in the stack area. -/
-theorem saved_area (hpre : r.Pre) {p : BitVec 64} (h : InRange (r.off 29280) 96 p) : r.StackArea p := by
+theorem saved_area (hpre : r.Pre) {p : BitVec 64} (h : InRange (r.off 21520) 96 p) : r.StackArea p := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
-  have hs := r.off_toNat hpre (a := 29280) (by decide)
+  have hs := r.off_toNat hpre (a := 21520) (by decide)
   rw [Sym.inRange_iff (by rw [hs]; omega), hs] at h
   rw [r.stackArea_iff hpre]
   omega
 
 /-- **The frame's bytes** `a .. a + n` are mapped in a state keeping the entry's, and do not wrap. -/
 theorem frame_mapped0 (hpre : r.Pre) {d : DataMem} (hk : Kept r.m0.dmem d) {a n : Nat}
-    (h : a + n ≤ 29376) : Mapped d (r.off a) n ∧ NoWrap (r.off a) n := by
+    (h : a + n ≤ 21616) : Mapped d (r.off a) n ∧ NoWrap (r.off a) n := by
   have hb := r.base_toNat hpre
   have hw : (r.m0.regs.SP.toBitVec - BitVec.ofNat 64 sphincsStack).toNat + 576 = r.base.toNat :=
     r.below_toNat hpre
@@ -237,62 +228,76 @@ theorem frame_mapped0 (hpre : r.Pre) {d : DataMem} (hk : Kept r.m0.dmem d) {a n 
     omega
   rwa [he] at hm
 
-/-- **The input words `s .. s + n`** in a state changed only in the stack area. -/
-theorem bytesAt_wb (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
-    {s n : Nat} (h : s + n ≤ 977) : BytesAt d (r.input + BitVec.ofNat 64 (8 * s)) (wb r.w s n) := by
-  have hlen : (wordsBytes ((List.range 977).map r.w)).length = 8 * 977 := by
-    rw [Native.Keccak.Proof.length_wordsBytes, List.length_map, List.length_range]
-  have hin : BytesAt d r.input (wordsBytes ((List.range 977).map r.w)) :=
-    bytesAt_of_sameOutside hpre.2.2.2.2.2.1 hS fun _ hi ↦ r.not_area_of_apart hpre
-      (hlen ▸ hpre.2.2.2.2.2.2.2) (hlen ▸ hpre.2.2.2.2.2.2.1) hi
-  rw [← slice_words r.w h]
-  exact bytesAt_sub hin (by rw [hlen]; omega)
+/-- The public key bytes in a state changed only in the stack area. -/
+theorem bytesAt_pk (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea) :
+    BytesAt d r.pkPtr r.pkBytes := by
+  obtain ⟨h, hw, hA⟩ := r.pre_pk hpre
+  exact bytesAt_of_sameOutside h hS fun _ hi ↦ r.not_area_of_apart hpre (r.hpk ▸ hA) (r.hpk ▸ hw) hi
 
-theorem input_toNat (hpre : r.Pre) : r.input.toNat + 8 * 977 ≤ 2 ^ 64 := hpre.2.2.2.2.2.2.1
+/-- The raw signature bytes in a state changed only in the stack area. -/
+theorem bytesAt_sig (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea) :
+    BytesAt d r.sigPtr r.sigBytes := by
+  obtain ⟨h, hw, hA⟩ := r.pre_sig hpre
+  exact bytesAt_of_sameOutside h hS fun _ hi ↦ r.not_area_of_apart hpre (r.hsig ▸ hA) (r.hsig ▸ hw) hi
 
-/-- The input range `8 s .. 8 s + n` is mapped and does not wrap. -/
-theorem input_reg (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
-    {s n : Nat} (h : 8 * s + n ≤ 8 * 977) (hn : 0 < n) :
-    Mapped d (r.input + BitVec.ofNat 64 (8 * s)) n ∧ NoWrap (r.input + BitVec.ofNat 64 (8 * s)) n := by
-  have hw := input_toNat r hpre
-  have hm := (bytesAt_wb r hpre hS (s := 0) (n := 977) (by decide)).mapped
-  rw [length_wb] at hm
-  simp only [Nat.mul_zero, BitVec.add_zero] at hm
+/-- A slice of the raw signature bytes `s .. s + k`. -/
+theorem bytesAt_sig_sub (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
+    {s k : Nat} (h : s + k ≤ 7740) :
+    BytesAt d (r.sigPtr + BitVec.ofNat 64 s) (slice r.sigBytes s k) :=
+  bytesAt_sub (bytesAt_sig r hpre hS) (by rw [r.hsig]; exact h)
+
+/-- A slice of the raw signature bytes is mapped and does not wrap. -/
+theorem sig_reg (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
+    {s k : Nat} (h : s + k ≤ 7740) (hk : 0 < k) :
+    Mapped d (r.sigPtr + BitVec.ofNat 64 s) k ∧ NoWrap (r.sigPtr + BitVec.ofNat 64 s) k := by
+  have hw := (r.pre_sig hpre).2.1
+  have hm := bytesAt_sig r hpre hS
   refine ⟨fun i hi ↦ ?_, ?_⟩
-  · rw [addr_add]
-    exact hm _ (by omega)
-  · unfold NoWrap
+  · rw [addr_add, hm (s + i) (by rw [r.hsig]; omega)]
+    rfl
+  · unfold NoWrap at *
     rw [Sym.toNat_add_ofNat _ _ (by omega)]
     omega
 
-theorem apart_input (hpre : r.Pre) {a n s k : Nat} (ha : a + n ≤ 29376) (hs : 8 * s + k ≤ 8 * 977)
-    (hk : 0 < k) : Apart (r.off a) n (r.input + BitVec.ofNat 64 (8 * s)) k := by
-  have hA := hpre.2.2.2.2.2.2.2
-  have hw := input_toNat r hpre
+/-- Frame bytes are apart from a slice of the raw signature. -/
+theorem apart_sig (hpre : r.Pre) {a n s k : Nat} (ha : a + n ≤ 21616) (hs : s + k ≤ 7740)
+    (hk : 0 < k) : Apart (r.off a) n (r.sigPtr + BitVec.ofNat 64 s) k := by
+  have hA := (r.pre_sig hpre).2.2
+  have hw := (r.pre_sig hpre).2.1
   have := r.below_toNat hpre
   have := r.off_toNat hpre (a := a) (by omega)
-  unfold Apart at *
+  unfold Apart NoWrap at *
   simp only [Run.sphincsStack_eq] at *
   rw [Sym.toNat_add_ofNat _ _ (by omega)]
   omega
 
-/-- **A frame range and an input range** make a well-formed environment. -/
-theorem wf_frame_input (hpre : r.Pre) {m : MachineData}
+/-- **A frame range and the public key** make a well-formed environment. -/
+theorem wf_frame_pk (hpre : r.Pre) {m : MachineData}
+    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) (hK : Kept r.m0.dmem m.dmem) {a n : Nat}
+    (ha : a + n ≤ 21616) (vars : Nat → BitVec 64) :
+    (Env.ofMachine m [(r.off a, n), (r.pkPtr, 32)] vars).WF := by
+  have hpk := bytesAt_pk r hpre hS
+  have hpm : Mapped m.dmem r.pkPtr 32 := fun i hi ↦ by rw [hpk i (by rw [r.hpk]; exact hi)]; rfl
+  exact Env.wf_of ⟨frame_mapped0 r hpre hK ha, ⟨hpm, (r.pre_pk hpre).2.1⟩, trivial⟩
+    (List.pairwise_pair.mpr (r.apart_off_ext hpre ha (r.pre_pk hpre).2.2))
+
+/-- **A frame range and a raw signature slice** make a well-formed environment. -/
+theorem wf_frame_sig (hpre : r.Pre) {m : MachineData}
     (hS : SameOutside r.m0.dmem m.dmem r.StackArea) (hK : Kept r.m0.dmem m.dmem) {a n s k : Nat}
-    (ha : a + n ≤ 29376) (hs : 8 * s + k ≤ 8 * 977) (hk : 0 < k) (vars : Nat → BitVec 64) :
-    (Env.ofMachine m [(r.off a, n), (r.input + BitVec.ofNat 64 (8 * s), k)] vars).WF :=
-  Env.wf_of ⟨frame_mapped0 r hpre hK ha, input_reg r hpre hS hs hk, trivial⟩
-    (List.pairwise_pair.mpr (apart_input r hpre ha hs hk))
+    (ha : a + n ≤ 21616) (hs : s + k ≤ 7740) (hk : 0 < k) (vars : Nat → BitVec 64) :
+    (Env.ofMachine m [(r.off a, n), (r.sigPtr + BitVec.ofNat 64 s, k)] vars).WF :=
+  Env.wf_of ⟨frame_mapped0 r hpre hK ha, sig_reg r hpre hS hs hk, trivial⟩
+    (List.pairwise_pair.mpr (apart_sig r hpre ha hs hk))
 
 /-- **Two apart frame ranges** make a well-formed environment. -/
 theorem wf_frame2 (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n a' n' : Nat}
-    (ha : a + n ≤ 29376) (ha' : a' + n' ≤ 29376) (h : a + n ≤ a' ∨ a' + n' ≤ a)
+    (ha : a + n ≤ 21616) (ha' : a' + n' ≤ 21616) (h : a + n ≤ a' ∨ a' + n' ≤ a)
     (vars : Nat → BitVec 64) :
     (Env.ofMachine m [(r.off a, n), (r.off a', n')] vars).WF :=
   Env.wf_of ⟨r.frame_mapped hpre hF ha, r.frame_mapped hpre hF ha', trivial⟩
     (List.pairwise_pair.mpr (r.apart_off hpre ha ha' h))
 
-theorem off_aligned (hpre : r.Pre) {a : Nat} (ha : a ≤ 29376) (h16 : a % 16 = 0) :
+theorem off_aligned (hpre : r.Pre) {a : Nat} (ha : a ≤ 21616) (h16 : a % 16 = 0) :
     (r.off a).toNat % 16 = 0 := by
   rw [r.off_toNat hpre ha]
   have := r.base_aligned hpre
@@ -311,7 +316,7 @@ theorem memcpy_frame (hpre : r.Pre) (hc : Callees) {env : Env} {st : MachineStat
     {R : MachineState → Prop} (hpc : PcOk env (.call NativeRustcArm.Common.Memcpy.entryLabel) next st) (hF : r.Frame st.data)
     {a b n : Nat} (h0 : (st.data.regs.getXReg .X0).toBitVec = r.off a)
     (h1 : (st.data.regs.getXReg .X1).toBitVec = r.off b) (h2 : (st.data.regs.getXReg .X2).toNat = n)
-    (ha : a + n ≤ 29280) (hb : b + n ≤ 29376) (hab : a + n ≤ b ∨ b + n ≤ a)
+    (ha : a + n ≤ 21520) (hb : b + n ≤ 21616) (hab : a + n ≤ b ∨ b + n ≤ a)
     (cont : ∀ st', st'.pc = next → r.Frame st'.data → Saved st.data st'.data →
       BytesAt st'.data.dmem (r.off a) (bytesOf st.data.dmem (r.off b) n) →
       SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (step1 NativeRustcArm.Host.exe) R st') :
@@ -331,7 +336,7 @@ theorem memcpy_frame (hpre : r.Pre) (hc : Callees) {env : Env} {st : MachineStat
 theorem memset_frame (hpre : r.Pre) (hc : Callees) {env : Env} {st : MachineState} {next : Int64}
     {R : MachineState → Prop} (hpc : PcOk env (.call NativeRustcArm.Common.Memset.entryLabel) next st) (hF : r.Frame st.data)
     {a n : Nat} (h0 : (st.data.regs.getXReg .X0).toBitVec = r.off a)
-    (h2 : (st.data.regs.getXReg .X2).toNat = n) (ha : a + n ≤ 29280)
+    (h2 : (st.data.regs.getXReg .X2).toNat = n) (ha : a + n ≤ 21520)
     (cont : ∀ st', st'.pc = next → r.Frame st'.data → Saved st.data st'.data →
       SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (step1 NativeRustcArm.Host.exe) R st') :
     Eventually (step1 NativeRustcArm.Host.exe) R st := by

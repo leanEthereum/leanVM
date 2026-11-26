@@ -11,7 +11,7 @@ Layer `l`'s next message as the machine computes it: the fold's step at height `
 saying which is left) and the fold after `z` steps (`Run.foldUpTo`, `Run.foldUpTo_succ`), which
 after `layerHeights[l]` steps is `Run.layerRoot` (`Run.layerRoot_eq`). The parsed signature's
 paths: 26 nodes of 16 bytes (`length_paths`, `length_of_mem_paths`), layer `l`'s from node
-`pathStart l` (`path_getD`, `length_path`), in memory at `12468 + 16 i` (`Run.bytesAt_node`).
+`pathStart l` (`path_getD`, `length_path`), in memory at `4708 + 16 i` (`Run.bytesAt_node`).
 The addresses' bytes: the one-time key's (`keyAdrs_one`) and a node's (`nodeAdrs_eq`).
 -/
 
@@ -70,29 +70,22 @@ theorem length_flatten_const {L : List (List UInt8)} {k : Nat} (h : ∀ x ∈ L,
 
 /-! ## The signature's bytes and its paths -/
 
-theorem length_sigBytes (w : Nat → UInt64) : (sigBytes w).length = 7740 := by
-  rw [sigBytes_eq]
-  simp only [List.length_append, length_headBytes, length_layerBytes]
-  rfl
-
-variable (w : Nat → UInt64)
-
 /-- The 26 nodes of the paths. -/
-theorem length_paths : (Signature.fromBytes (sigBytes w)).paths.length = 26 := by
+theorem length_paths (sig : List UInt8) : (Signature.fromBytes sig).paths.length = 26 := by
   simp [Signature.fromBytes, layerHeights, List.flatMap, List.range_succ]
 
 /-- Each node is 16 bytes. -/
-theorem length_of_mem_paths {x : List UInt8} (hx : x ∈ (Signature.fromBytes (sigBytes w)).paths) :
-    x.length = 16 := by
+theorem length_of_mem_paths {sig : List UInt8} (hsig : sig.length = 7740) {x : List UInt8}
+    (hx : x ∈ (Signature.fromBytes sig).paths) : x.length = 16 := by
   simp only [Signature.fromBytes, List.mem_flatMap, List.mem_map, List.mem_range] at hx
   obtain ⟨l, hl, z, hz, rfl⟩ := hx
   apply length_slice
-  rw [length_sigBytes]
+  rw [hsig]
   interval_cases l <;> simp [sigLayerOff, layerHeights] at hz ⊢ <;> omega
 
 /-- The FORS openings are `24 · 176` bytes. -/
-theorem length_forsMem :
-    ((Signature.fromBytes (sigBytes w)).fors.map openingMem).flatten.length = 4224 := by
+theorem length_forsMem {sig : List UInt8} (hsig : sig.length = 7740) :
+    ((Signature.fromBytes sig).fors.map openingMem).flatten.length = 4224 := by
   rw [length_flatten_const (k := 176)]
   · simp [Signature.fromBytes]
   intro x hx
@@ -101,29 +94,29 @@ theorem length_forsMem :
   obtain ⟨c, hc, rfl⟩ := hx
   rw [openingMem, List.length_append, length_flatten_const (k := 16), length_slice]
   · simp
-  · rw [length_sigBytes]; omega
+  · rw [hsig]; omega
   intro y hy
   simp only [List.mem_map, List.mem_range] at hy
   obtain ⟨z, hz, rfl⟩ := hy
   apply length_slice
-  rw [length_sigBytes]
+  rw [hsig]
   omega
 
 theorem pathStart_lt {l : Nat} (hl : l < 3) : pathStart l + heightOf l ≤ 26 := by
   interval_cases l <;> decide
 
 /-- Layer `l`'s path has `heightOf l` nodes. -/
-theorem length_path {l : Nat} (hl : l < 3) :
-    ((Signature.fromBytes (sigBytes w)).path l).length = heightOf l := by
+theorem length_path (sig : List UInt8) {l : Nat} (hl : l < 3) :
+    ((Signature.fromBytes sig).path l).length = heightOf l := by
   rw [Signature.path, List.length_take, List.length_drop, length_paths]
   have := pathStart_lt hl
   unfold pathStart heightOf at *
   omega
 
 /-- Node `z` of layer `l`'s path is node `pathStart l + z` of the paths. -/
-theorem path_getD {l z : Nat} (hz : z < heightOf l) :
-    ((Signature.fromBytes (sigBytes w)).path l).getD z [] =
-      (Signature.fromBytes (sigBytes w)).paths.getD (pathStart l + z) [] := by
+theorem path_getD (sig : List UInt8) {l z : Nat} (hz : z < heightOf l) :
+    ((Signature.fromBytes sig).path l).getD z [] =
+      (Signature.fromBytes sig).paths.getD (pathStart l + z) [] := by
   rw [Signature.path, List.getD_eq_getElem?_getD,
     List.getElem?_take_of_lt (show z < layerHeights.getD l 0 from hz),
     List.getElem?_drop, List.getD_eq_getElem?_getD]
@@ -194,29 +187,29 @@ theorem off_add (a b : Nat) : r.off a + BitVec.ofNat 64 b = r.off (a + b) := by
   rw [Run.off, addr_add']
   rfl
 
-theorem sig_eq : r.sig = Signature.fromBytes (sigBytes r.w) := rfl
+theorem sig_eq : r.sig = Signature.fromBytes r.sigBytes := rfl
 
-/-- **Node `i` of the paths** is at `12468 + 16 i` in the frame. -/
-theorem bytesAt_node {m : MachineData} (h : BytesAt m.dmem (r.off 8244) (sigMem r.sig)) {i : Nat}
-    (hi : i < 26) : BytesAt m.dmem (r.off (12468 + 16 * i)) (r.sig.paths.getD i []) := by
+/-- **Node `i` of the paths** is at `4708 + 16 i` in the frame. -/
+theorem bytesAt_node {m : MachineData} (h : BytesAt m.dmem (r.off 484) (sigMem r.sig)) {i : Nat}
+    (hi : i < 26) : BytesAt m.dmem (r.off (4708 + 16 * i)) (r.sig.paths.getD i []) := by
   have h1 := bytesAt_append_left (bytesAt_append_right h)
-  rw [sig_eq r, length_forsMem, off_add] at h1
-  have := bytesAt_flatten_getD (k := 16) (i := i) h1 (fun x hx ↦ length_of_mem_paths r.w hx)
+  rw [sig_eq r, length_forsMem r.hsig, off_add] at h1
+  have := bytesAt_flatten_getD (k := 16) (i := i) h1 (fun x hx ↦ length_of_mem_paths r.hsig hx)
     (by rw [length_paths]; exact hi)
   rwa [off_add] at this
 
 /-- **The sibling at height `z < heightOf l`** of layer `l`. -/
-theorem bytesAt_sibling {m : MachineData} (h : BytesAt m.dmem (r.off 8244) (sigMem r.sig))
+theorem bytesAt_sibling {m : MachineData} (h : BytesAt m.dmem (r.off 484) (sigMem r.sig))
     {l z : Nat} (hl : l < 3) (hz : z < heightOf l) :
-    BytesAt m.dmem (r.off (12468 + 16 * (pathStart l + z))) (r.sibling l z) := by
+    BytesAt m.dmem (r.off (4708 + 16 * (pathStart l + z))) (r.sibling l z) := by
   rw [Run.sibling, sig_eq r, path_getD _ hz]
   exact bytesAt_node r h (by have := pathStart_lt hl; omega)
 
 theorem length_sibling {l z : Nat} (hl : l < 3) (hz : z < heightOf l) :
     (r.sibling l z).length = 16 := by
   rw [Run.sibling, sig_eq r, path_getD _ hz]
-  apply length_of_mem_paths r.w
-  have hlt : pathStart l + z < (Signature.fromBytes (sigBytes r.w)).paths.length := by
+  apply length_of_mem_paths r.hsig
+  have hlt : pathStart l + z < (Signature.fromBytes r.sigBytes).paths.length := by
     rw [length_paths]
     have := pathStart_lt hl
     omega
@@ -231,7 +224,7 @@ theorem foldUpTo_succ (l : Nat) (e : List (List UInt8)) (z : Nat) :
 /-- **Layer `l`'s next message** is the fold after `heightOf l` steps. -/
 theorem layerRoot_eq {l : Nat} (hl : l < 3) (e : List (List UInt8)) :
     r.layerRoot l e = r.foldUpTo l e (heightOf l) := by
-  have hlen : (r.sig.path l).length = heightOf l := length_path r.w hl
+  have hlen : (r.sig.path l).length = heightOf l := length_path r.sigBytes hl
   unfold Run.layerRoot treeFold pathFold
   rw [hlen]
   rfl

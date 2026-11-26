@@ -6,14 +6,10 @@ public import NativeRustcArm.SphincsVerify.Frame
 # Calls from the frame
 
 `sphincs_verify` calls `memset`, `memcpy`, `Hasher::update` and `Hasher::finalize` on the frame's
-bytes. Their preconditions from the frame's offsets (`Run.memset_pre`, `Run.memcpy_pre`,
-`Run.update_pre`, `Run.finalize_pre`, `Run.keccakF_pre`): X0 and X1 the frame's bytes `a` and `b`
-(`RegIs`), X2 the
-length, the ranges inside the frame and apart where the contract asks. After a call that changed
-the frame's bytes `a .. a + n` and the callee's stack (`Run.CallOut`): the frame's invariant
-(`Run.frame_of_call`), the frame's bytes apart from `a .. a + n` kept (`Run.bytesAt_of_call`,
-`Run.bytesOf_of_call`); each contract's post in that form (`Run.memset_out`, `Run.memcpy_out`,
-`Run.update_out`, `Run.finalize_out`, `Run.keccakF_out`).
+bytes (and `Hasher::update` on `r.msgPtr`). Their preconditions from the frame's offsets
+(`Run.memset_pre`, `Run.memcpy_pre`, `Run.update_pre`, `Run.update_pre_msg`, `Run.finalize_pre`,
+`Run.keccakF_pre`) and postconditions (`Run.memset_out`, `Run.memcpy_out`, `Run.update_out`,
+`Run.update_out_msg`, `Run.finalize_out`, `Run.keccakF_out`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof
@@ -49,7 +45,7 @@ theorem off_add (a i : Nat) : r.off a + BitVec.ofNat 64 i = r.off (a + i) := by
   simp only [off, BitVec.add_assoc, BitVec.ofNat_add]
 
 /-- A frame byte outside `a .. a + n` is not in it. -/
-theorem not_inRange_off (hpre : r.Pre) {a n o : Nat} (ha : a + n ≤ 29376) (ho : o < 29376)
+theorem not_inRange_off (hpre : r.Pre) {a n o : Nat} (ha : a + n ≤ 21616) (ho : o < 21616)
     (h : o < a ∨ a + n ≤ o) : ¬InRange (r.off a) n (r.off o) := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -61,7 +57,7 @@ theorem not_inRange_off (hpre : r.Pre) {a n o : Nat} (ha : a + n ≤ 29376) (ho 
 
 /-- A frame byte is not in a callee's stack. -/
 theorem not_inRange_below (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {N : Nat}
-    (hN : N ≤ finalizeStack) {o : Nat} (ho : o < 29376) :
+    (hN : N ≤ finalizeStack) {o : Nat} (ho : o < 21616) :
     ¬InRange (stackBelow m N) N (r.off o) := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -78,20 +74,20 @@ theorem not_inRange_below (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {N :
 
 /-- **The frame's invariant after a call** that changed `CallOut`. -/
 theorem frame_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) (hS : Saved m m')
-    {a n N : Nat} (ha : a + n ≤ 29280) (hN : N ≤ finalizeStack)
+    {a n N : Nat} (ha : a + n ≤ 21520) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) : r.Frame m' :=
   hF.of_post hS hout fun _ hp ↦ hp.elim (r.inRange_off hpre ha) (r.inRange_below hpre hF hN)
 
 theorem not_callOut (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 29376) (hN : N ≤ finalizeStack) {o : Nat} (ho : o < 29376)
+    (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack) {o : Nat} (ho : o < 21616)
     (h : o < a ∨ a + n ≤ o) : ¬r.CallOut m a n N (r.off o) :=
   fun hp ↦ hp.elim (r.not_inRange_off hpre ha ho h) (r.not_inRange_below hpre hF hN ho)
 
 /-- **The frame's bytes a call did not change** are kept. -/
 theorem bytesAt_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 29376) (hN : N ≤ finalizeStack)
+    (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) {o : Nat} {bs : List UInt8}
-    (ho : o + bs.length ≤ 29376) (hd : o + bs.length ≤ a ∨ a + n ≤ o)
+    (ho : o + bs.length ≤ 21616) (hd : o + bs.length ≤ a ∨ a + n ≤ o)
     (h : BytesAt m.dmem (r.off o) bs) : BytesAt m'.dmem (r.off o) bs :=
   bytesAt_of_sameOutside h hout fun i hi ↦ by
     rw [off_add]
@@ -99,8 +95,8 @@ theorem bytesAt_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a 
 
 /-- `bytesOf` of the frame's bytes a call did not change. -/
 theorem bytesOf_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 29376) (hN : N ≤ finalizeStack)
-    (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) {o k : Nat} (ho : o + k ≤ 29376)
+    (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack)
+    (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) {o k : Nat} (ho : o + k ≤ 21616)
     (hd : o + k ≤ a ∨ a + n ≤ o) : bytesOf m'.dmem (r.off o) k = bytesOf m.dmem (r.off o) k := by
   unfold bytesOf
   apply List.map_congr_left
@@ -112,7 +108,7 @@ theorem bytesOf_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a 
 
 /-- **`memset(a, _, n)`**'s precondition. -/
 theorem memset_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n : Nat}
-    (h0 : RegIs m .X0 (r.off a)) (h2 : m.regs.X2.toNat = n) (ha : a + n ≤ 29376) :
+    (h0 : RegIs m .X0 (r.off a)) (h2 : m.regs.X2.toNat = n) (ha : a + n ≤ 21616) :
     MemsetPre m := by
   unfold MemsetPre
   rw [h2, ← getXReg_X0 m, h0]
@@ -121,7 +117,7 @@ theorem memset_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n : Nat}
 /-- **`memcpy(a, b, n)`**'s precondition. -/
 theorem memcpy_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a b n : Nat}
     (h0 : RegIs m .X0 (r.off a)) (h1 : RegIs m .X1 (r.off b)) (h2 : m.regs.X2.toNat = n)
-    (ha : a + n ≤ 29376) (hb : b + n ≤ 29376) (hd : a + n ≤ b ∨ b + n ≤ a) : MemcpyPre m := by
+    (ha : a + n ≤ 21616) (hb : b + n ≤ 21616) (hd : a + n ≤ b ∨ b + n ≤ a) : MemcpyPre m := by
   simp only [MemcpyPre]
   rw [h2, ← getXReg_X0 m, h0, ← getXReg_X1 m, h1]
   obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF ha
@@ -131,7 +127,7 @@ theorem memcpy_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a b n : Na
 /-- **`Hasher::update(a, b, n)`**'s precondition, the hasher at `a`. -/
 theorem update_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a b n : Nat}
     (h0 : RegIs m .X0 (r.off a)) (h1 : RegIs m .X1 (r.off b)) (h2 : m.regs.X2.toNat = n)
-    (ha : a + 344 ≤ 29376) (hb : b + n ≤ 29376) (hd : a + 344 ≤ b ∨ b + n ≤ a)
+    (ha : a + 344 ≤ 21616) (hb : b + n ≤ 21616) (hd : a + 344 ≤ b ∨ b + n ≤ a)
     (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePre m := by
   simp only [UpdatePre]
   rw [h2, ← getXReg_X0 m, h0, ← getXReg_X1 m, h1]
@@ -141,10 +137,26 @@ theorem update_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a b n : Na
   exact ⟨r.stackOk hpre hF hN, r.rcAt hpre hF hN, hh, m1, w1, m2, w2, r.apart_off hpre ha hb hd,
     r.apart_off_below hpre hF ha hN, r.apart_off_below hpre hF hb hN, r.apart_rc hpre ha⟩
 
+/-- **`Hasher::update(a, msgPtr, 32)`**'s precondition, the hasher at `a` and the external message
+buffer at `r.msgPtr`. -/
+theorem update_pre_msg (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a : Nat}
+    (h0 : RegIs m .X0 (r.off a)) (h1 : RegIs m .X1 r.msgPtr) (h2 : m.regs.X2.toNat = 32)
+    (ha : a + 344 ≤ 21616)
+    (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePre m := by
+  simp only [UpdatePre]
+  rw [h2, ← getXReg_X0 m, h0, ← getXReg_X1 m, h1]
+  have hN : updateStack ≤ finalizeStack := by decide
+  obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF ha
+  obtain ⟨m2, w2⟩ := r.msg_mapped hpre hF
+  have hA := (r.pre_msg hpre).2.2
+  exact ⟨r.stackOk hpre hF hN, r.rcAt hpre hF hN, hh, m1, w1, m2, w2,
+    r.apart_off_ext hpre ha hA, r.apart_off_below hpre hF ha hN,
+    r.apart_below hpre hF hN hA, r.apart_rc hpre ha⟩
+
 /-- **`Hasher::finalize(o, a)`**'s precondition, the hasher at `a`, the output at `o`. -/
 theorem finalize_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {o a : Nat}
-    (h0 : RegIs m .X0 (r.off o)) (h1 : RegIs m .X1 (r.off a)) (ho : o + 32 ≤ 29376)
-    (ha : a + 344 ≤ 29376) (hd : o + 32 ≤ a ∨ a + 344 ≤ o)
+    (h0 : RegIs m .X0 (r.off o)) (h1 : RegIs m .X1 (r.off a)) (ho : o + 32 ≤ 21616)
+    (ha : a + 344 ≤ 21616) (hd : o + 32 ≤ a ∨ a + 344 ≤ o)
     (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : FinalizePre m := by
   simp only [FinalizePre]
   rw [← getXReg_X0 m, h0, ← getXReg_X1 m, h1]
@@ -156,7 +168,7 @@ theorem finalize_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {o a : Na
 
 /-- **`keccak_f(a)`**'s precondition. -/
 theorem keccakF_pre (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a : Nat}
-    (h0 : RegIs m .X0 (r.off a)) (ha : a + 200 ≤ 29376) : KeccakFPre m := by
+    (h0 : RegIs m .X0 (r.off a)) (ha : a + 200 ≤ 21616) : KeccakFPre m := by
   simp only [KeccakFPre]
   rw [← getXReg_X0 m, h0]
   have hN : keccakFStack ≤ finalizeStack := by decide
@@ -193,6 +205,17 @@ theorem update_out {m m' : MachineData} {a b n : Nat} (h0 : RegIs m .X0 (r.off a
     (h1 : RegIs m .X1 (r.off b)) (h2 : m.regs.X2.toNat = n) (h : UpdatePost m m') :
     (∀ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x →
       Keccak.HasherHolds (bytesOf m'.dmem (r.off a) 344) (x ++ bytesOf m.dmem (r.off b) n)) ∧
+      SameOutside m.dmem m'.dmem (r.CallOut m a 344 updateStack) ∧ Saved m m' := by
+  simp only [UpdatePost] at h
+  rw [h2, ← getXReg_X0 m, h0, ← getXReg_X1 m, h1] at h
+  exact ⟨h.2.1, h.2.2.1, h.2.2.2⟩
+
+omit [Labels] in
+/-- **After `Hasher::update(a, msgPtr, 32)`**: the hasher has absorbed the 32 bytes at `r.msgPtr`. -/
+theorem update_out_msg {m m' : MachineData} {a : Nat} (h0 : RegIs m .X0 (r.off a))
+    (h1 : RegIs m .X1 r.msgPtr) (h2 : m.regs.X2.toNat = 32) (h : UpdatePost m m') :
+    (∀ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x →
+      Keccak.HasherHolds (bytesOf m'.dmem (r.off a) 344) (x ++ bytesOf m.dmem r.msgPtr 32)) ∧
       SameOutside m.dmem m'.dmem (r.CallOut m a 344 updateStack) ∧ Saved m m' := by
   simp only [UpdatePost] at h
   rw [h2, ← getXReg_X0 m, h0, ← getXReg_X1 m, h1] at h

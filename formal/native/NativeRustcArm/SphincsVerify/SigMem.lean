@@ -6,7 +6,7 @@ public import NativeRustc.Sphincs.Verify
 /-!
 # The parsed signature's bytes in the frame
 
-`sigMem r.sig`, the 7740 bytes at `base + 8244` (`length_sigMem`): FORS tree `c`'s path node `z`
+`sigMem r.sig`, the 7740 bytes at `base + 484` (`length_sigMem`): FORS tree `c`'s path node `z`
 at `176 c + 16 z` and its secret at `176 c + 160` (`sigMem_path`, `sigMem_secret`), the paths'
 node `j` at `4224 + 16 j` (`sigMem_node`, a layer's path: `path_getD`), the randomizer at `4640`
 (`sigMem_randomizer`), layer `l`'s chain value `i` at `4656 + 1028 l + 16 i` and its counter at
@@ -60,11 +60,6 @@ theorem length_slice {b : List UInt8} {off len : Nat} (h : off + len ≤ b.lengt
 
 /-! ## The parsed signature -/
 
-theorem length_sigBytes (w : Nat → UInt64) : (sigBytes w).length = 7740 := by
-  rw [sigBytes_eq]
-  simp only [List.length_append, length_headBytes, length_layerBytes]
-  rfl
-
 theorem sigLayerOff_le {l : Nat} (hl : l < 3) :
     sigLayerOff l + 1028 + 16 * layerHeights.getD l 0 ≤ 7740 := by
   interval_cases l <;> decide
@@ -73,17 +68,17 @@ namespace Run
 
 variable (r : Run)
 
-theorem sig_fors : r.sig.fors = (List.range 24).map fun c ↦ (⟨slice (sigBytes r.w) (16 + 176 * c) 16,
-    (List.range 10).map fun z ↦ slice (sigBytes r.w) (32 + 176 * c + 16 * z) 16⟩ : ForsTreeOpening) :=
+theorem sig_fors : r.sig.fors = (List.range 24).map fun c ↦ (⟨slice r.sigBytes (16 + 176 * c) 16,
+    (List.range 10).map fun z ↦ slice r.sigBytes (32 + 176 * c + 16 * z) 16⟩ : ForsTreeOpening) :=
   rfl
 
 theorem sig_paths : r.sig.paths = (List.range 3).flatMap fun l ↦
     (List.range (layerHeights.getD l 0)).map fun z ↦
-      slice (sigBytes r.w) (sigLayerOff l + 1028 + 16 * z) 16 := rfl
+      slice r.sigBytes (sigLayerOff l + 1028 + 16 * z) 16 := rfl
 
 theorem sig_layers : r.sig.layers = (List.range 3).map fun l ↦
-    (⟨be32Of (slice (sigBytes r.w) (sigLayerOff l) 4), (List.range 64).map fun i ↦
-      slice (sigBytes r.w) (sigLayerOff l + 4 + 16 * i) 16⟩ : LayerSignature) := rfl
+    (⟨be32Of (slice r.sigBytes (sigLayerOff l) 4), (List.range 64).map fun i ↦
+      slice r.sigBytes (sigLayerOff l + 4 + 16 * i) 16⟩ : LayerSignature) := rfl
 
 theorem length_fors : r.sig.fors.length = 24 := by simp [sig_fors]
 
@@ -95,15 +90,15 @@ theorem length_layers : r.sig.layers.length = 3 := by simp [sig_layers]
 
 /-- Opening `c`. -/
 theorem fors_getD {c : Nat} (hc : c < 24) : r.sig.fors.getD c ⟨[], []⟩ =
-    ⟨slice (sigBytes r.w) (16 + 176 * c) 16,
-      (List.range 10).map fun z ↦ slice (sigBytes r.w) (32 + 176 * c + 16 * z) 16⟩ := by
+    ⟨slice r.sigBytes (16 + 176 * c) 16,
+      (List.range 10).map fun z ↦ slice r.sigBytes (32 + 176 * c + 16 * z) 16⟩ := by
   rw [getD_eq_getElem' _ _ (by rw [length_fors]; exact hc)]
   simp [sig_fors]
 
 /-- Layer `l`. -/
 theorem layerSig_eq {l : Nat} (hl : l < 3) : r.layerSig l =
-    ⟨be32Of (slice (sigBytes r.w) (sigLayerOff l) 4), (List.range 64).map fun i ↦
-      slice (sigBytes r.w) (sigLayerOff l + 4 + 16 * i) 16⟩ := by
+    ⟨be32Of (slice r.sigBytes (sigLayerOff l) 4), (List.range 64).map fun i ↦
+      slice r.sigBytes (sigLayerOff l + 4 + 16 * i) 16⟩ := by
   rw [layerSig, getD_eq_getElem' _ _ (by rw [length_layers]; exact hl)]
   simp [sig_layers]
 
@@ -112,7 +107,7 @@ theorem length_openingMem : ∀ o ∈ r.sig.fors, (openingMem o).length = 176 :=
   rw [sig_fors, List.mem_map] at ho
   obtain ⟨c, hc, rfl⟩ := ho
   rw [List.mem_range] at hc
-  have hb := length_sigBytes r.w
+  have hb := r.hsig
   simp only [openingMem, List.length_append]
   rw [length_flatten_uniform _ (n := 16) (by
       intro x hx
@@ -132,7 +127,7 @@ theorem length_wots {l : Nat} (hl : l < 3) : (r.layerSig l).wots.length = 64 := 
 /-- Layer `l`'s chain value `i`: 16 bytes. -/
 theorem length_wots_getD {l i : Nat} (hl : l < 3) (hi : i < 64) :
     ((r.layerSig l).wots.getD i []).length = 16 := by
-  have hb := length_sigBytes r.w
+  have hb := r.hsig
   have := sigLayerOff_le hl
   rw [r.layerSig_eq hl, getD_eq_getElem' _ _ (by simpa using hi)]
   simp only [List.getElem_map, List.getElem_range]
@@ -155,7 +150,7 @@ theorem length_layerMem : ∀ s ∈ r.sig.layers, (layerMem s).length = 1028 := 
 
 theorem length_node : ∀ x ∈ r.sig.paths, x.length = 16 := by
   intro x hx
-  have hb := length_sigBytes r.w
+  have hb := r.hsig
   rw [sig_paths, List.mem_flatMap] at hx
   obtain ⟨l, hl, hx⟩ := hx
   rw [List.mem_range] at hl
@@ -165,12 +160,12 @@ theorem length_node : ∀ x ∈ r.sig.paths, x.length = 16 := by
   have := sigLayerOff_le hl
   exact length_slice (by omega)
 
-theorem sig_randomizer : r.sig.randomizer = slice (sigBytes r.w) 0 16 := by
+theorem sig_randomizer : r.sig.randomizer = slice r.sigBytes 0 16 := by
   simp only [Run.sig, Signature.fromBytes]
 
 theorem length_randomizer : r.sig.randomizer.length = 16 := by
   rw [sig_randomizer]
-  exact length_slice (by rw [length_sigBytes]; omega)
+  exact length_slice (by rw [r.hsig]; omega)
 
 theorem length_forsMem : ((r.sig.fors.map openingMem).flatten).length = 4224 := by
   rw [length_flatten_uniform (n := 176) _ (by
@@ -279,7 +274,7 @@ theorem length_forsPath {c : Nat} (hc : c < 24) : (r.sig.fors.getD c ⟨[], []�
 /-- FORS tree `c`'s path node `z`: 16 bytes. -/
 theorem length_forsPath_getD {c z : Nat} (hc : c < 24) (hz : z < 10) :
     ((r.sig.fors.getD c ⟨[], []⟩).path.getD z []).length = 16 := by
-  have hb := length_sigBytes r.w
+  have hb := r.hsig
   rw [r.fors_getD hc, getD_eq_getElem' _ _ (by simpa using hz)]
   simp only [List.getElem_map, List.getElem_range]
   exact length_slice (by omega)
@@ -287,7 +282,7 @@ theorem length_forsPath_getD {c z : Nat} (hc : c < 24) (hz : z < 10) :
 /-- FORS tree `c`'s secret: 16 bytes. -/
 theorem length_forsSecret {c : Nat} (hc : c < 24) :
     (r.sig.fors.getD c ⟨[], []⟩).secret.length = 16 := by
-  have hb := length_sigBytes r.w
+  have hb := r.hsig
   rw [r.fors_getD hc]
   exact length_slice (by omega)
 

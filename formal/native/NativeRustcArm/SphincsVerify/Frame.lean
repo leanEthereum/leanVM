@@ -9,13 +9,10 @@ public import NativeRustcArm.Sym.Run
 # The frame's facts for calls and blocks
 
 From the run's precondition and the frame's invariant (`Run.Pre`, `Run.Frame`): the frame's bytes
-are mapped and do not wrap (`Run.frame_mapped`), apart from each other, from the round constants
-and from the callees' stack (`Run.apart_off`, `Run.apart_rc`, `Run.apart_off_below`); SP leaves
-the callees their stack (`Run.stackOk`) and the round constants (`Run.rcAt`); `LAYER_HEIGHTS` stays
-(`Run.lh`). After a callee or a block that writes only in the stack area off the saved registers,
-the invariant holds again (`Run.Frame.of_post`, `Run.Frame.of_block`; the writes' places:
-`Run.inRange_off`, `Run.inRange_below`), and the bytes it does not write are kept
-(`bytesAt_of_sameOutside`).
+are mapped and do not wrap (`Run.frame_mapped`), apart from each other, from the round constants,
+from the external input buffers, and from the callees' stack (`Run.apart_off`, `Run.apart_rc`,
+`Run.apart_off_below`, `Run.apart_off_ext`); SP leaves the callees their stack (`Run.stackOk`) and
+the round constants (`Run.rcAt`); `LAYER_HEIGHTS`, `pk`, `msg`, and `sig` stay.
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof
@@ -56,15 +53,15 @@ namespace Run
 
 theorem sp_toNat (m : MachineData) : m.regs.SP.toBitVec.toNat = m.regs.SP.toNat := rfl
 
-theorem frameSize_eq : frameSize = 29376 := rfl
+theorem frameSize_eq : frameSize = 21616 := rfl
 theorem finalizeStack_eq : finalizeStack = 576 := rfl
-theorem sphincsStack_eq : sphincsStack = 29952 := rfl
+theorem sphincsStack_eq : sphincsStack = 22192 := rfl
 
 variable (r : Run) [Labels]
 
 /-- The frame's base: `frameSize` below SP at entry, the callees' stack below it. -/
 theorem base_toNat (hpre : r.Pre) :
-    r.base.toNat + 29376 = r.m0.regs.SP.toNat ∧ 576 ≤ r.base.toNat := by
+    r.base.toNat + 21616 = r.m0.regs.SP.toNat ∧ 576 ≤ r.base.toNat := by
   have hle := hpre.1.2.1
   rw [sphincsStack_eq] at hle
   unfold base
@@ -72,7 +69,7 @@ theorem base_toNat (hpre : r.Pre) :
   omega
 
 /-- The frame's byte `a`. -/
-theorem off_toNat (hpre : r.Pre) {a : Nat} (ha : a ≤ 29376) :
+theorem off_toNat (hpre : r.Pre) {a : Nat} (ha : a ≤ 21616) :
     (r.off a).toNat = r.base.toNat + a := by
   have := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -90,7 +87,7 @@ theorem below_toNat (hpre : r.Pre) :
 
 /-- The stack area's bytes are mapped, in any state of the frame. -/
 theorem area_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {p : BitVec 64}
-    (h1 : r.base.toNat ≤ p.toNat + 576) (h2 : p.toNat < r.base.toNat + 29376) :
+    (h1 : r.base.toNat ≤ p.toNat + 576) (h2 : p.toNat < r.base.toNat + 21616) :
     (m.dmem.get? p).isSome := by
   have hw := r.below_toNat hpre
   have hb := r.base_toNat hpre
@@ -109,7 +106,7 @@ theorem area_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {p : BitVe
 
 /-- **The frame's bytes** `a .. a + n` are mapped and do not wrap. -/
 theorem frame_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n : Nat}
-    (h : a + n ≤ 29376) : Mapped m.dmem (r.off a) n ∧ NoWrap (r.off a) n := by
+    (h : a + n ≤ 21616) : Mapped m.dmem (r.off a) n ∧ NoWrap (r.off a) n := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
   have ho := r.off_toNat hpre (a := a) (by omega)
@@ -122,7 +119,7 @@ theorem frame_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n : Na
     omega
 
 /-- The frame's bytes `a .. a + n` and `a' .. a' + n'` are apart when their offsets are. -/
-theorem apart_off (hpre : r.Pre) {a n a' n' : Nat} (ha : a + n ≤ 29376) (ha' : a' + n' ≤ 29376)
+theorem apart_off (hpre : r.Pre) {a n a' n' : Nat} (ha : a + n ≤ 21616) (ha' : a' + n' ≤ 21616)
     (h : a + n ≤ a' ∨ a' + n' ≤ a) : Apart (r.off a) n (r.off a') n' := by
   unfold Apart
   rw [r.off_toNat hpre (by omega), r.off_toNat hpre (by omega)]
@@ -130,7 +127,7 @@ theorem apart_off (hpre : r.Pre) {a n a' n' : Nat} (ha : a + n ≤ 29376) (ha' :
 
 /-- The stack area is the frame and the `finalizeStack` bytes below it. -/
 theorem stackArea_iff (hpre : r.Pre) (p : BitVec 64) :
-    r.StackArea p ↔ r.base.toNat ≤ p.toNat + 576 ∧ p.toNat < r.base.toNat + 29376 := by
+    r.StackArea p ↔ r.base.toNat ≤ p.toNat + 576 ∧ p.toNat < r.base.toNat + 21616 := by
   have hw := r.below_toNat hpre
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -156,6 +153,15 @@ theorem bytesAt_entry (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a : Bit
     (hA : Apart a bs.length (stackBelow r.m0 sphincsStack) sphincsStack) (hw : NoWrap a bs.length) :
     BytesAt m.dmem a bs :=
   bytesAt_of_sameOutside h hF.2.2.2.1 fun _ hi ↦ r.not_area_of_apart hpre hA hw hi
+
+/-- Frame bytes are apart from any range apart from the stack area. -/
+theorem apart_off_ext (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 21616) {x : BitVec 64} {k : Nat}
+    (hA : Apart x k (stackBelow r.m0 sphincsStack) sphincsStack) : Apart (r.off a) n x k := by
+  have := r.below_toNat hpre
+  have := r.off_toNat hpre (a := a) (by omega)
+  unfold Apart at *
+  simp only [sphincsStack_eq] at *
+  omega
 
 omit [Labels] in
 /-- SP inside the function is the frame's base. -/
@@ -201,7 +207,7 @@ theorem apart_below (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a : BitVe
 
 /-- The frame's bytes are apart from a callee's stack. -/
 theorem apart_off_below (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 29376) (hN : N ≤ finalizeStack) : Apart (r.off a) n (stackBelow m N) N := by
+    (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack) : Apart (r.off a) n (stackBelow m N) N := by
   have := r.stackBelow_toNat hpre hF hN
   unfold Apart
   rw [r.off_toNat hpre (by omega)]
@@ -218,14 +224,9 @@ theorem rcAt (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {n : Nat}
   exact ⟨r.bytesAt_entry hpre hF hrc (hlen ▸ hA) (hlen ▸ hw), hw, r.apart_below hpre hF hn hA⟩
 
 /-- The frame's bytes are apart from the round constants. -/
-theorem apart_rc (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 29376) :
-    Apart (r.off a) n rcAddr 192 := by
-  obtain ⟨_, _, hA⟩ := hpre.2.1
-  have := r.below_toNat hpre
-  have := r.off_toNat hpre (a := a) (by omega)
-  unfold Apart at *
-  simp only [sphincsStack_eq] at *
-  omega
+theorem apart_rc (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 21616) :
+    Apart (r.off a) n rcAddr 192 :=
+  r.apart_off_ext hpre ha hpre.2.1.2.2
 
 /-- `LAYER_HEIGHTS` in any state of the frame. -/
 theorem lh (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
@@ -233,16 +234,54 @@ theorem lh (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
   have hlen : lhBytes.length = 24 := by decide
   r.bytesAt_entry hpre hF hpre.2.2.1 (hlen ▸ hpre.2.2.2.2.1) (hlen ▸ hpre.2.2.2.1)
 
+/-- Precondition facts for `pk`, `msg`, `sig`. -/
+theorem pre_pk (hpre : r.Pre) :
+    BytesAt r.m0.dmem r.pkPtr r.pkBytes ∧ NoWrap r.pkPtr 32 ∧
+      Apart r.pkPtr 32 (stackBelow r.m0 sphincsStack) sphincsStack :=
+  ⟨hpre.2.2.2.2.2.1, hpre.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.1⟩
+
+theorem pre_msg (hpre : r.Pre) :
+    BytesAt r.m0.dmem r.msgPtr r.msgBytes ∧ NoWrap r.msgPtr 32 ∧
+      Apart r.msgPtr 32 (stackBelow r.m0 sphincsStack) sphincsStack :=
+  ⟨hpre.2.2.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.2.2.2.1⟩
+
+theorem pre_sig (hpre : r.Pre) :
+    BytesAt r.m0.dmem r.sigPtr r.sigBytes ∧ NoWrap r.sigPtr 7740 ∧
+      Apart r.sigPtr 7740 (stackBelow r.m0 sphincsStack) sphincsStack :=
+  ⟨hpre.2.2.2.2.2.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.2.2.2.2.2.1, hpre.2.2.2.2.2.2.2.2.2.2.2.2.2⟩
+
+/-- The message bytes in any state of the frame. -/
+theorem msg_bytesAt (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
+    BytesAt m.dmem r.msgPtr r.msgBytes := by
+  obtain ⟨h, hw, hA⟩ := r.pre_msg hpre
+  exact r.bytesAt_entry hpre hF h (r.hmsg ▸ hA) (r.hmsg ▸ hw)
+
+/-- The raw signature bytes in any state of the frame. -/
+theorem sig_bytesAt (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
+    BytesAt m.dmem r.sigPtr r.sigBytes := by
+  obtain ⟨h, hw, hA⟩ := r.pre_sig hpre
+  exact r.bytesAt_entry hpre hF h (r.hsig ▸ hA) (r.hsig ▸ hw)
+
+/-- The raw signature bytes are mapped and do not wrap in any state of the frame. -/
+theorem sig_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
+    Mapped m.dmem r.sigPtr 7740 ∧ NoWrap r.sigPtr 7740 :=
+  ⟨fun i hi ↦ by rw [r.sig_bytesAt hpre hF i (by rw [r.hsig]; exact hi)]; rfl, (r.pre_sig hpre).2.1⟩
+
+/-- The message bytes are mapped and do not wrap in any state of the frame. -/
+theorem msg_mapped (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) :
+    Mapped m.dmem r.msgPtr 32 ∧ NoWrap r.msgPtr 32 :=
+  ⟨fun i hi ↦ by rw [r.msg_bytesAt hpre hF i (by rw [r.hmsg]; exact hi)]; rfl, (r.pre_msg hpre).2.1⟩
+
 /-! ## The invariant again -/
 
 /-- A change in the frame's bytes `a .. a + n` before the saved registers is in the stack area,
 off the saved registers. -/
-theorem inRange_off (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 29280) {p : BitVec 64}
-    (h : InRange (r.off a) n p) : r.StackArea p ∧ ¬InRange (r.off 29280) 96 p := by
+theorem inRange_off (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 21520) {p : BitVec 64}
+    (h : InRange (r.off a) n p) : r.StackArea p ∧ ¬InRange (r.off 21520) 96 p := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
   have ho := r.off_toNat hpre (a := a) (by omega)
-  have hs := r.off_toNat hpre (a := 29280) (by decide)
+  have hs := r.off_toNat hpre (a := 21520) (by decide)
   rw [Sym.inRange_iff (by rw [ho]; omega), ho] at h
   rw [r.stackArea_iff hpre, Sym.inRange_iff (by rw [hs]; omega), hs]
   omega
@@ -250,11 +289,11 @@ theorem inRange_off (hpre : r.Pre) {a n : Nat} (ha : a + n ≤ 29280) {p : BitVe
 /-- A change in a callee's stack is in the stack area, off the saved registers. -/
 theorem inRange_below (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {N : Nat}
     (hN : N ≤ finalizeStack) {p : BitVec 64} (h : InRange (stackBelow m N) N p) :
-    r.StackArea p ∧ ¬InRange (r.off 29280) 96 p := by
+    r.StackArea p ∧ ¬InRange (r.off 21520) 96 p := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
   have hl := r.stackBelow_toNat hpre hF hN
-  have hs := r.off_toNat hpre (a := 29280) (by decide)
+  have hs := r.off_toNat hpre (a := 21520) (by decide)
   rw [finalizeStack_eq] at hN
   rw [Sym.inRange_iff (by omega)] at h
   rw [r.stackArea_iff hpre, Sym.inRange_iff (by rw [hs]; omega), hs]
@@ -270,9 +309,9 @@ variable {r} in
 /-- **The invariant after a block**: SP and X29 as they were, the changes in the stack area off
 the saved registers, the mapped bytes kept. -/
 theorem Frame.of_block {m m' : MachineData} (hF : r.Frame m)
-    (hsp : m'.regs.SP.toBitVec = r.base) (hx29 : (m'.regs.getXReg .X29).toBitVec = r.off 29280)
+    (hsp : m'.regs.SP.toBitVec = r.base) (hx29 : (m'.regs.getXReg .X29).toBitVec = r.off 21520)
     {R : BitVec 64 → Prop} (hout : SameOutside m.dmem m'.dmem R)
-    (hR : ∀ p, R p → r.StackArea p ∧ ¬InRange (r.off 29280) 96 p) (hk : Kept m.dmem m'.dmem) :
+    (hR : ∀ p, R p → r.StackArea p ∧ ¬InRange (r.off 21520) 96 p) (hk : Kept m.dmem m'.dmem) :
     r.Frame m' :=
   ⟨hsp, hx29, bytesAt_of_sameOutside hF.2.2.1 hout fun _ hi h ↦ (hR _ h).2 (inRange_self_add
       (by rwa [length_savedBytes] at hi) (by decide)),
@@ -285,7 +324,7 @@ variable {r} in
 bytes only in the stack area off the saved registers. -/
 theorem Frame.of_post {m m' : MachineData} (hF : r.Frame m) (hS : Saved m m')
     {R : BitVec 64 → Prop} (hout : SameOutside m.dmem m'.dmem R)
-    (hR : ∀ p, R p → r.StackArea p ∧ ¬InRange (r.off 29280) 96 p) : r.Frame m' :=
+    (hR : ∀ p, R p → r.StackArea p ∧ ¬InRange (r.off 21520) 96 p) : r.Frame m' :=
   hF.of_block (by rw [hS.2.1]; exact hF.1) (by rw [hS.1 .X29 rfl]; exact hF.2.1) hout hR
     hS.2.2
 
@@ -293,7 +332,7 @@ theorem Frame.of_post {m m' : MachineData} (hF : r.Frame m) (hS : Saved m m')
 
 /-- The environment of a state of the frame, its region 0 the frame. -/
 abbrev env (m : MachineData) (vars : Nat → BitVec 64 := fun _ ↦ 0) : Sym.Env :=
-  Sym.Env.ofMachine m [(r.base, 29376)] vars
+  Sym.Env.ofMachine m [(r.base, 21616)] vars
 
 omit [Labels] in
 theorem env_base (m : MachineData) (vars : Nat → BitVec 64) : (r.env m vars).base 0 = r.base := rfl
@@ -305,7 +344,7 @@ theorem off_zero : r.off 0 = r.base := by
 /-- **The frame's environment is well formed.** -/
 theorem frame_wf (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) (vars : Nat → BitVec 64) :
     (r.env m vars).WF := by
-  have h := r.frame_mapped hpre hF (a := 0) (n := 29376) (by decide)
+  have h := r.frame_mapped hpre hF (a := 0) (n := 21616) (by decide)
   rw [off_zero] at h
   exact Sym.Env.wf_of ⟨h, trivial⟩ (List.pairwise_singleton _ _)
 
@@ -325,7 +364,7 @@ theorem match_frame (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {vars : Na
     (hbounds : Sym.AllOf (fun p ↦ (p.1.eval (r.env m vars)).toNat < p.2) bounds)
     (haliases : Sym.AllOf (fun p ↦ p.1.eval (r.env m vars) =
       (r.env m vars).base p.2.1 + BitVec.ofInt 64 p.2.2) aliases) :
-    Sym.Match (r.env m vars) (Sym.init [(29376, true)] (.ptr 0 0) known labels bounds aliases) m :=
+    Sym.Match (r.env m vars) (Sym.init [(21616, true)] (.ptr 0 0) known labels bounds aliases) m :=
   Sym.match_ofMachine ⟨rfl, fun _ ↦ r.base_aligned hpre, trivial⟩
     (by show m.regs.SP.toBitVec = r.base + BitVec.ofInt 64 0; simp only [BitVec.ofInt_ofNat,
       BitVec.add_zero]; exact hF.1)
@@ -339,7 +378,7 @@ theorem match_frame (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {vars : Na
 block's literal state reaches (`noWriteIn`). -/
 theorem bytesAt_kept (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.env m vars) S m') (hwf : (r.env m vars).WF) {o : Nat}
-    {bs : List UInt8} (ho : o + bs.length ≤ 29376) (h : BytesAt m.dmem (r.off o) bs)
+    {bs : List UInt8} (ho : o + bs.length ≤ 21616) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteIn S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -359,14 +398,14 @@ theorem bytesAt_kept (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 
 
 /-- The writes of a symbolic state are in region 0 below the saved registers. -/
 @[expose] def frameWrites (S : Sym.SState) : Bool :=
-  S.mem.all fun w ↦ w.r == 0 && decide (w.off + w.n ≤ 29280)
+  S.mem.all fun w ↦ w.r == 0 && decide (w.off + w.n ≤ 21520)
 
 /-- **The invariant after a block** run in the frame's environment: SP the base, X29 the saved
 registers' address, the writes in the frame below them (`frameWrites`, decided on the literal
 state). -/
 theorem Frame.of_match (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {vars : Nat → BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.env m vars) S m') (hwf : (r.env m vars).WF)
-    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 29280))
+    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 21520))
     (hw : frameWrites S = true) : r.Frame m' := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -382,7 +421,7 @@ theorem Frame.of_match (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {var
     obtain ⟨hw0, hwn⟩ := hw w hwm
     rw [hw0] at hr
     cases hr
-    exact r.inRange_off hpre (a := 0) (n := 29280) (by decide) (by
+    exact r.inRange_off hpre (a := 0) (n := 21520) (by decide) (by
       rw [off_zero, Sym.inRange_iff (by omega)]
       omega)
 

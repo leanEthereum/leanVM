@@ -90,7 +90,7 @@ theorem match_withLit {r : Run} {m : MachineData} {vars : Nat → BitVec 64} {S 
     (hm : Match (r.env m vars) S m) (hS : S.mem = []) {o n c : Nat}
     (h : BytesAt m.dmem (r.off o) ((List.range n).map (byteOf (BitVec.ofNat 64 c)))) :
     Match (r.env m vars) { S with mem := [⟨0, o, n, .lit c⟩] } m :=
-  Match.withWrite hm hS (b := r.base) (sz := 29376) rfl fun i hi ↦ by
+  Match.withWrite hm hS (b := r.base) (sz := 21616) rfl fun i hi ↦ by
     have := h i (by simp; omega)
     rw [r.off_add] at this
     show m.dmem.get? (r.off (o + i)) = _

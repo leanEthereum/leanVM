@@ -4,12 +4,12 @@ public import NativeRustcArm.SphincsVerify.Digest.Hash
 import Mathlib.Tactic.IntervalCases
 
 /-!
-# `digest_fields`' index: `b58`
+# `digest_fields`' index: `b49`
 
-`b58` (directive 692) reads bytes `30 .. 33` of `h_msg` (`24750 .. 24753`): X22 the index (the
-tree's 18 bits then the leaf's byte, `idxSym`, `idxSym_eval`), X20 its low byte, stores it at
-`25744` and copies the 24 leaves' words from `16400` to `25752` (`memcpy`): `AtFors` at `b59`
-(directive 712, `index_spec`).
+`b49` reads bytes `30 .. 33` of `h_msg` (`16990 .. 16993`): X21 the index (the
+tree's 18 bits then the leaf's byte, `idxSym`, `idxSym_eval`), X19 its low byte, stores it at
+`17984` and copies the 24 leaves' words from `8640` to `17992` (`memcpy`): `AtFors` at `b50`
+(`index_spec`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Digest
@@ -18,11 +18,11 @@ open NativeRustc NativeRustc.Sphincs NativeRustcArm.Sym LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- X22 after `b58`: the index from `h_msg`'s bytes `30 .. 33`. -/
+/-- X21 after `b49`: the index from `h_msg`'s bytes `30 .. 33`. -/
 def idxSym : Sym :=
-  .bin (.bfm 56 17) .W64 (.bin .and .W64 (.load 0 24753 1) (.lit 255))
-    (.bin .orr .W32 (.bin .orr .W32 (.un (.ubfm 24 23) .W32 (.load 0 24751 1))
-      (.un (.shift .LSL 16) .W32 (.load 0 24750 1))) (.load 0 24752 1))
+  .bin (.bfm 56 17) .W64 (.bin .and .W64 (.load 0 16993 1) (.lit 255))
+    (.bin .orr .W32 (.bin .orr .W32 (.un (.ubfm 24 23) .W32 (.load 0 16991 1))
+      (.un (.shift .LSL 16) .W32 (.load 0 16990 1))) (.load 0 16992 1))
 
 end
 
@@ -34,10 +34,10 @@ theorem ofNat_toNat_u8 (a : UInt8) : BitVec.ofNat 64 a.toNat = a.toBitVec.setWid
 
 /-- **The index's bits.** -/
 theorem idxSym_eval [Labels] (env : Env) (a b c d : UInt8)
-    (ha : env.load 0 24750 1 = BitVec.ofNat 64 a.toNat)
-    (hb : env.load 0 24751 1 = BitVec.ofNat 64 b.toNat)
-    (hc : env.load 0 24752 1 = BitVec.ofNat 64 c.toNat)
-    (hd : env.load 0 24753 1 = BitVec.ofNat 64 d.toNat) :
+    (ha : env.load 0 16990 1 = BitVec.ofNat 64 a.toNat)
+    (hb : env.load 0 16991 1 = BitVec.ofNat 64 b.toNat)
+    (hc : env.load 0 16992 1 = BitVec.ofNat 64 c.toNat)
+    (hd : env.load 0 16993 1 = BitVec.ofNat 64 d.toNat) :
     idxSym.eval env = (digestInt [a, b, c] 18 <<< 8 ||| digestInt [d] 8).toBitVec := by
   simp only [idxSym]
   sym_simp
@@ -122,34 +122,34 @@ theorem frame_load_byte [Labels] {r : Run} {m : MachineData} {o : Nat} {H : List
 
 variable [NativeRustcArm.Host]
 
-/-- **The index, the leaves copied**: `b58` to `b59`. -/
+/-- **The index, the leaves copied**: `b49` to `b50`. -/
 theorem index_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : AfterLoop r (hMsgBytes r) m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b59Offset ∧ r.AtFors st.data)
-      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
-  obtain ⟨hK, h23, hH, hL⟩ := hA
+    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b50Offset ∧ r.AtFors st.data)
+      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b49Offset⟩ := by
+  obtain ⟨hK, hH, hL⟩ := hA
   have hl := length_hMsgBytes r
   have hLl : (leavesBytes (hMsgBytes r) 24).length = 192 := length_leavesBytes _ _
-  refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b58_in_code rfl run_b58 rfl
-    (a := 25752) (b := 16400) (n := 192) hK (knownOK_ptr h23 (knownOK_nil m)) rfl rfl rfl
+  refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b49_in_code rfl run_b49 rfl
+    (a := 17992) (b := 8640) (n := 192) hK (knownOK_nil m) rfl rfl rfl
     ⟨by decide, by decide⟩ (by decide) (by decide) hLl fun m₁ hm₁ hK₁ hkb₁ ↦
-      ⟨hkb₁ 16400 _ (by omega) (by rw [hLl]; rfl) hL, fun m₂ hK₂ hS₂ _ hB₂ ↦ .done _ ⟨rfl, ?_⟩⟩
+      ⟨hkb₁ 8640 _ (by omega) (by rw [hLl]; rfl) hL, fun m₂ hK₂ hS₂ _ hB₂ ↦ .done _ ⟨rfl, ?_⟩⟩
   have l30 := frame_load_byte (r := r) (m := m) hH (k := 30) (by omega) rfl
   have l31 := frame_load_byte (r := r) (m := m) hH (k := 31) (by omega) rfl
   have l32 := frame_load_byte (r := r) (m := m) hH (k := 32) (by omega) rfl
   have l33 := frame_load_byte (r := r) (m := m) hH (k := 33) (by omega) rfl
-  obtain ⟨hF₂, hI₂, h392⟩ := hK₂
-  refine ⟨hF₂, hI₂, ?_, ?_, regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X24) (o := 25752) rfl),
-    regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X21) (o := 16400) rfl),
-    regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X23) (o := 21648) rfl), ?_, h392⟩
+  obtain ⟨hF₂, hI₂, h408⟩ := hK₂
+  refine ⟨hF₂, hI₂, ?_, ?_, regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X24) (o := 17992) rfl),
+    regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X20) (o := 8640) rfl),
+    regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .X23) (o := 15936) rfl), ?_, h408⟩
   · refine regIs_of_saved hS₂ rfl ?_
     unfold Run.RegIs
-    rw [hm₁.regs .X22 idxSym rfl, idxSym_eval _ _ _ _ _ l30 l31 l32 l33, idx_eq,
+    rw [hm₁.regs .X21 idxSym rfl, idxSym_eval _ _ _ _ _ l30 l31 l32 l33, idx_eq,
       digestFields_fst _ hl]
   · refine regIs_of_saved hS₂ rfl ?_
     unfold Run.RegIs
-    rw [hm₁.regs .X20 (.load 0 24753 1) rfl, show Sym.eval (r.env m) (.load 0 24753 1) =
-      (r.env m).load 0 24753 1 from rfl, l33, idx_eq, digestFields_fst _ hl]
+    rw [hm₁.regs .X19 (.load 0 16993 1) rfl, show Sym.eval (r.env m) (.load 0 16993 1) =
+      (r.env m).load 0 16993 1 from rfl, l33, idx_eq, digestFields_fst _ hl]
     exact idx_low _ _ _ _
   · rw [leaves_bytes]
     exact hB₂

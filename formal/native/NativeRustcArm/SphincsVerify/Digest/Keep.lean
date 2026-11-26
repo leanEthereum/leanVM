@@ -6,13 +6,11 @@ public import NativeRustcArm.SphincsVerify.SigMem
 /-!
 # What the digest and the FORS key keep, and their steps
 
-The digest and the FORS key write only the frame's scratch from byte `15984` on (the hashers,
+The digest and the FORS key write only the frame's scratch from byte `8224` on (the hashers,
 the hash inputs and outputs, the leaves, the roots, `signed`) and, at the FORS key's end, the
-layer loop's spill at `0`. The frame's bytes below `15984` (the spills, the message, the key, the
-parsed signature) stay through a call changing scratch (`Run.low_of_call`) and through a block
-whose writes miss them (`Run.low_of_block`); so do the frame's invariant and the inputs
-(`Keep`). A block run by the executor then its callee's contract (`Run.callStep`), or a block
-falling through (`Run.fallStep`), take the machine from one block's start to the next's.
+layer loop's spill at `8`. The frame's bytes below `8224` (the spills, the key, the
+parsed signature) stay through a call changing scratch (`low_of_call`) and through a block
+whose writes miss them (`low_of_block`); so do the frame's invariant and the inputs (`Keep`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Digest
@@ -21,24 +19,21 @@ open NativeRustc NativeRustc.Sphincs NativeRustcArm.Sym
 
 @[expose] public section
 
-theorem length_pkBytes (w : Nat → UInt64) : (pkBytes w).length = 32 := by
-  simp [pkBytes, Native.Keccak.Proof.length_wordsBytes]
-
-/-- **What the digest keeps**: the frame, the inputs, the first layer's address at `392`. -/
+/-- **What the digest keeps**: the frame, the inputs, the first layer's address at `408`. -/
 def Keep (r : Run) (m : MachineData) : Prop :=
-  r.Frame m ∧ r.Inputs m ∧ r.WordAt m 392 (r.addr 12900)
+  r.Frame m ∧ r.Inputs m ∧ r.WordAt m 408 (r.addr 5140)
 
 /-- The frame's scratch bytes `a .. a + n` the digest changes. -/
-def Scratch (a n : Nat) : Prop := 15984 ≤ a ∧ a + n ≤ 29280
+def Scratch (a n : Nat) : Prop := 8224 ≤ a ∧ a + n ≤ 21520
 
 section
 variable {r : Run} [Labels]
 
-/-- **A frame byte below `15984` stays through a call changing scratch.** -/
+/-- **A frame byte below `8224` stays through a call changing scratch.** -/
 theorem low_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a n N : Nat}
     (ha : Scratch a n) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) {o : Nat} {bs : List UInt8}
-    (ho : o + bs.length ≤ 15984) (h : BytesAt m.dmem (r.off o) bs) : BytesAt m'.dmem (r.off o) bs :=
+    (ho : o + bs.length ≤ 8224) (h : BytesAt m.dmem (r.off o) bs) : BytesAt m'.dmem (r.off o) bs :=
   r.bytesAt_of_call hpre hF (by unfold Scratch at ha; omega) hN hout (by omega)
     (by unfold Scratch at ha; omega) h
 
@@ -58,7 +53,7 @@ theorem Keep.of_call (hpre : r.Pre) {m m' : MachineData} (hK : Keep r m) (hS : S
   have hk := fun {o} {bs} ho h ↦ low_of_call (o := o) (bs := bs) hpre hF ha hN hout ho h
   refine ⟨r.frame_of_call hpre hF hS (by unfold Scratch at ha; omega) hN hout,
     ⟨hk ?_ h1, hk ?_ h2, hk ?_ h3⟩, hk ?_ h4⟩ <;>
-    simp only [length_pkBytes, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
+    simp only [r.hpk, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
 
 omit [Labels] in
 /-- No write of `S` in the region-0 bytes `o .. o + n` (`Run.noWriteIn`) is none in a part. -/
@@ -73,13 +68,13 @@ theorem noWriteIn_mono {S : SState} {o n o' n' : Nat} (h : Run.noWriteIn S o n =
 /-- A block's literal state keeps what the digest keeps: its writes in the frame's scratch, SP
 and X29 as they were. -/
 def keepOK (S : SState) : Bool :=
-  Run.frameWrites S && Run.noWriteIn S 0 15984 && S.sp == .ptr 0 0 &&
-    S.reg .X29 == some (.ptr 0 29280)
+  Run.frameWrites S && Run.noWriteIn S 0 8224 && S.sp == .ptr 0 0 &&
+    S.reg .X29 == some (.ptr 0 21520)
 
-/-- **A frame byte below `15984` stays through a block** whose writes miss it. -/
+/-- **A frame byte below `8224` stays through a block** whose writes miss it. -/
 theorem low_of_block (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
     (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF) (hok : keepOK S = true)
-    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 15984) (h : BytesAt m.dmem (r.off o) bs) :
+    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 8224) (h : BytesAt m.dmem (r.off o) bs) :
     BytesAt m'.dmem (r.off o) bs := by
   simp only [keepOK, Bool.and_eq_true, beq_iff_eq] at hok
   exact r.bytesAt_kept hpre hm hwf (by omega) h (noWriteIn_mono hok.1.1.2 (by omega) ho)
@@ -93,7 +88,7 @@ theorem Keep.of_block (hpre : r.Pre) {m m' : MachineData} (hK : Keep r m)
   simp only [keepOK, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨⟨⟨hw, -⟩, hsp⟩, hx29⟩ := hok
   refine ⟨Run.Frame.of_match r hpre hF hm hwf hsp hx29 hw, ⟨hk ?_ h1, hk ?_ h2, hk ?_ h3⟩, hk ?_ h4⟩ <;>
-    simp only [length_pkBytes, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
+    simp only [r.hpk, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
 
 theorem eval_ptr0 (m : MachineData) (vars : Nat → BitVec 64) (o : Nat) :
     (Sym.ptr 0 o).eval (r.env m vars) = r.off o := by
@@ -160,7 +155,7 @@ theorem bytesAt_append {d : DataMem} {a : BitVec 64} {xs ys : List UInt8} (hx : 
 /-- **Frame bytes kept** by a change in another range of the frame. -/
 theorem keep_range (hpre : r.Pre) {d d' : DataMem} {o a n : Nat} {bs : List UInt8}
     (h : BytesAt d (r.off o) bs) (hs : SameOutside d d' (InRange (r.off a) n))
-    (hd : o + bs.length ≤ a ∨ a + n ≤ o) (ho : o + bs.length ≤ 29376) (ha : a + n ≤ 29376) :
+    (hd : o + bs.length ≤ a ∨ a + n ≤ o) (ho : o + bs.length ≤ 21616) (ha : a + n ≤ 21616) :
     BytesAt d' (r.off o) bs :=
   bytesAt_of_sameOutside h hs fun i hi hin => by
     have hb := r.base_toNat hpre
@@ -173,15 +168,15 @@ theorem keep_range (hpre : r.Pre) {d d' : DataMem} {o a n : Nat} {bs : List UInt
 were. -/
 theorem Keep.of_range (hpre : r.Pre) {m m' : MachineData} (hK : Keep r m) {a n : Nat}
     (ha : Scratch a n) (hs : SameOutside m.dmem m'.dmem (InRange (r.off a) n))
-    (hsp : m'.regs.SP.toBitVec = r.base) (hx29 : (m'.regs.getXReg .X29).toBitVec = r.off 29280)
+    (hsp : m'.regs.SP.toBitVec = r.base) (hx29 : (m'.regs.getXReg .X29).toBitVec = r.off 21520)
     (hk : Kept m.dmem m'.dmem) : Keep r m' := by
   obtain ⟨hF, ⟨h1, h2, h3⟩, h4⟩ := hK
   unfold Scratch at ha
-  have hk' : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 15984 → BytesAt m.dmem (r.off o) bs →
+  have hk' : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 8224 → BytesAt m.dmem (r.off o) bs →
       BytesAt m'.dmem (r.off o) bs := fun ho h ↦ keep_range hpre h hs (by omega) (by omega) (by omega)
   refine ⟨hF.of_block hsp hx29 hs (fun _ hp ↦ r.inRange_off hpre (by omega) hp) hk,
     ⟨hk' ?_ h1, hk' ?_ h2, hk' ?_ h3⟩, hk' ?_ h4⟩ <;>
-    simp only [length_pkBytes, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
+    simp only [r.hpk, r.length_sigMem, NativeRustc.length_wordBytes] <;> omega
 
 /-- **A block's writes all in region `k`**: memory changed only there. -/
 theorem sameOutside_region {env : Env} {S : SState} {m : MachineData} (hm : Match env S m)
@@ -204,7 +199,7 @@ theorem sameOutside_region {env : Env} {S : SState} {m : MachineData} (hm : Matc
 
 /-- **Two apart frame ranges** make a well-formed environment. -/
 theorem wf_frame2 (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a n a' n' : Nat}
-    (ha : a + n ≤ 29376) (ha' : a' + n' ≤ 29376) (h : a + n ≤ a' ∨ a' + n' ≤ a)
+    (ha : a + n ≤ 21616) (ha' : a' + n' ≤ 21616) (h : a + n ≤ a' ∨ a' + n' ≤ a)
     (vars : Nat → BitVec 64) :
     (Env.ofMachine m [(r.off a, n), (r.off a', n')] vars).WF :=
   Env.wf_of ⟨r.frame_mapped hpre hF ha, r.frame_mapped hpre hF ha', trivial⟩
@@ -251,7 +246,6 @@ theorem Run.fallStep (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds 
   subst hpc
   rw [Nat.add_assoc, hj]
   exact h m₁ hm'
-
 
 /-- **A label of the function** is the address of the block it starts. -/
 theorem Run.label_of_block (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {b : List Directive}

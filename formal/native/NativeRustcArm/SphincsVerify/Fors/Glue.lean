@@ -14,13 +14,13 @@ public import NativeRustc.Sphincs.Digest
 /-!
 # The FORS region's glue
 
-- the blocks' places in the program (`hb59`, ..., and `b67`'s and `b93`'s pieces) and the labels
-  they branch to (`lbl_21`, ...);
+- the blocks' places in the program (`hb50`, ..., and `b58`'s and `b84`'s pieces) and the labels
+  they branch to (`lbl_13`, ...);
 - the frame's scratch (`Scr`: hashers A and B, the hash inputs and outputs) and what a block or
   a call writing only there keeps (`Keep`, `keep_of_match`, `keep_of_call`);
-- what every state of the region keeps (`Base`: the frame, the inputs, the spills `384 .. 416`,
-  the leaves, X20 `136`, X21 and X22 the hashers' buffers), and per tree (`TreeSt`: the spills
-  `416`, `424`, the roots so far), through blocks and calls (`Base.of_match`, `Base.of_call`,
+- what every state of the region keeps (`Base`: the frame, the inputs, the spills `400 .. 432`,
+  the leaves, X28 `136`, X26 and X22 the hashers' buffers), and per tree (`TreeSt`: the spills
+  `432`, `440`, the roots so far), through blocks and calls (`Base.of_match`, `Base.of_call`,
   `TreeSt.of_keep`);
 - the words the region builds its addresses from (`kpW`, `treeW`) and their bytes;
 - reading the frame's environment (`eval_ptr`, `bytes_load`, `write_bytes`, `match_lit`).
@@ -37,18 +37,18 @@ open NativeRustcArm.Sphincs.SphincsVerify
 @[expose] public section
 
 /-- The frame's scratch: hasher A to the leaves' copy, hasher B to the roots. -/
-def Scr (o : Nat) : Prop := (16400 ≤ o ∧ o < 25752) ∨ (26768 ≤ o ∧ o < 27824)
+def Scr (o : Nat) : Prop := (8640 ≤ o ∧ o < 17992) ∨ (19008 ≤ o ∧ o < 20064)
 
 /-- A symbolic state's writes are in the scratch. -/
 def scrW (S : SState) : Bool :=
   S.mem.all fun w ↦ w.r == 0 &&
-    (decide (16400 ≤ w.off ∧ w.off + w.n ≤ 25752) || decide (26768 ≤ w.off ∧ w.off + w.n ≤ 27824))
+    (decide (8640 ≤ w.off ∧ w.off + w.n ≤ 17992) || decide (19008 ≤ w.off ∧ w.off + w.n ≤ 20064))
 
 /-- `m'` has `m`'s frame bytes outside the scratch. -/
 def Keep (r : Run) (m m' : MachineData) : Prop :=
-  ∀ o < 29376, ¬Scr o → m'.dmem.get? (r.off o) = m.dmem.get? (r.off o)
+  ∀ o < 21616, ¬Scr o → m'.dmem.get? (r.off o) = m.dmem.get? (r.off o)
 
-/-- The key pair's word: the index's low byte shifted to the word's top byte (`lsl w26, w20, #24`). -/
+/-- The key pair's word: the index's low byte shifted to the word's top byte (`lsl w25, w19, #24`). -/
 def kpW (r : Run) : BitVec 64 := UnOp.apply (.ubfm 8 7) .W32 (r.idx &&& 255).toBitVec
 
 /-- The tree's word: the index's bytes reversed, shifted up a byte (`rev`, `lsl #8`). -/
@@ -58,23 +58,23 @@ def treeW (r : Run) : BitVec 64 := UnOp.apply (.ubfm 56 55) .W64 (UnOp.apply .re
 structure Base (r : Run) (m : MachineData) : Prop where
   frame : r.Frame m
   inputs : r.Inputs m
-  w384 : r.WordAt m 384 r.idx
-  w392 : r.WordAt m 392 (r.addr 12900)
-  w400 : r.WordAt m 400 (r.addr 25752)
-  w408 : BytesAt m.dmem (r.off 408) (be64 (r.key 0).tree)
-  leaves : BytesAt m.dmem (r.off 25752) (wordsBytes (r.leaves.map Nat.toUInt64))
-  x20 : Run.RegIs m .X20 (BitVec.ofNat 64 136)
-  x21 : Run.RegIs m .X21 (r.off 16600)
-  x22 : Run.RegIs m .X22 (r.off 26968)
+  w400 : r.WordAt m 400 r.idx
+  w408 : r.WordAt m 408 (r.addr 5140)
+  w416 : r.WordAt m 416 (r.addr 17992)
+  w424 : BytesAt m.dmem (r.off 424) (be64 (r.key 0).tree)
+  leaves : BytesAt m.dmem (r.off 17992) (wordsBytes (r.leaves.map Nat.toUInt64))
+  x28 : Run.RegIs m .X28 (BitVec.ofNat 64 136)
+  x26 : Run.RegIs m .X26 (r.off 8840)
+  x22 : Run.RegIs m .X22 (r.off 19208)
 
-/-- **What a tree's states keep**: the spills `416` (its opening) and `424` (its leaf index), the
+/-- **What a tree's states keep**: the spills `432` (its opening) and `440` (its leaf index), the
 roots before it. -/
 structure TreeSt (r : Run) (c : Nat) (m : MachineData) : Prop where
   base : Base r m
   hc : c < 24
-  w416 : r.WordAt m 416 (r.addr (8244 + 176 * c))
-  w424 : r.WordAt m 424 (r.leafOf c).toUInt64
-  roots : BytesAt m.dmem (r.off 27824) ((List.range c).map r.forsRoot).flatten
+  w432 : r.WordAt m 432 (r.addr (484 + 176 * c))
+  w440 : r.WordAt m 440 (r.leafOf c).toUInt64
+  roots : BytesAt m.dmem (r.off 20064) ((List.range c).map r.forsRoot).flatten
 
 end
 
@@ -114,12 +114,39 @@ theorem pc_after {j j' : Nat} {ds : List Directive} (h : j + ds.length = j') :
     Host.addrOf (k + j + ds.length) = Host.addrOf (k + j') := by
   rw [Nat.add_assoc, h]
 
+theorem hb50 (hp : Placed code k) : b50.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b50Offset) :=
+  placed_infix hp b50_in_code (by simp [b50])
+theorem hb51 (hp : Placed code k) : b51.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b51Offset) :=
+  placed_infix hp b51_in_code (by simp [b51])
+theorem hb52 (hp : Placed code k) : b52.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b52Offset) :=
+  placed_infix hp b52_in_code (by simp [b52])
+theorem hb53 (hp : Placed code k) : b53.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b53Offset) :=
+  placed_infix hp b53_in_code (by simp [b53])
+theorem hb54 (hp : Placed code k) : b54.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b54Offset) :=
+  placed_infix hp b54_in_code (by simp [b54])
+theorem hb55 (hp : Placed code k) : b55.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b55Offset) :=
+  placed_infix hp b55_in_code (by simp [b55])
+theorem hb56 (hp : Placed code k) : b56.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b56Offset) :=
+  placed_infix hp b56_in_code (by simp [b56])
+theorem hb57 (hp : Placed code k) : b57.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b57Offset) :=
+  placed_infix hp b57_in_code (by simp [b57])
+theorem hb58 (hp : Placed code k) : b58.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b58Offset) :=
+  placed_infix hp b58_in_code (by simp [b58])
+theorem hb58a (hp : Placed code k) : b58a.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b58Offset) := by
+  have := isInfixAt_sub (hb58 hp) 0 18 (by decide)
+  simp only [List.drop_zero, Nat.add_zero] at this
+  exact this
+theorem hb58b (hp : Placed code k) : b58b.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b58Offset + b58a.length)) :=
+  isInfixAt_sub (hb58 hp) 18 1 (by decide)
+theorem hb58c (hp : Placed code k) : b58c.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b58Offset + b58a.length + b58b.length)) :=
+  isInfixAt_sub (hb58 hp) 19 5 (by decide)
+theorem hb58d (hp : Placed code k) : b58d.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b58Offset + b58a.length + b58b.length + b58c.length)) :=
+  isInfixAt_sub (hb58 hp) 24 1 (by decide)
+theorem hb58e (hp : Placed code k) : b58e.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b58Offset + b58a.length + b58b.length + b58c.length + b58d.length)) := by
+  have := isInfixAt_sub (hb58 hp) 25 16 (by decide)
+  rwa [List.take_of_length_le (by decide)] at this
 theorem hb59 (hp : Placed code k) : b59.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b59Offset) :=
   placed_infix hp b59_in_code (by simp [b59])
-theorem hb60 (hp : Placed code k) : b60.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b60Offset) :=
-  placed_infix hp b60_in_code (by simp [b60])
-theorem hb61 (hp : Placed code k) : b61.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b61Offset) :=
-  placed_infix hp b61_in_code (by simp [b61])
 theorem hb62 (hp : Placed code k) : b62.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b62Offset) :=
   placed_infix hp b62_in_code (by simp [b62])
 theorem hb63 (hp : Placed code k) : b63.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b63Offset) :=
@@ -132,21 +159,8 @@ theorem hb66 (hp : Placed code k) : b66.IsInfixAt Host.prog (k + NativeRustcArm.
   placed_infix hp b66_in_code (by simp [b66])
 theorem hb67 (hp : Placed code k) : b67.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b67Offset) :=
   placed_infix hp b67_in_code (by simp [b67])
-theorem hb67a (hp : Placed code k) : b67a.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b67Offset) := by
-  have := isInfixAt_sub (hb67 hp) 0 18 (by decide)
-  simp only [List.drop_zero, Nat.add_zero] at this
-  exact this
-theorem hb67b (hp : Placed code k) : b67b.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b67Offset + b67a.length)) :=
-  isInfixAt_sub (hb67 hp) 18 1 (by decide)
-theorem hb67c (hp : Placed code k) : b67c.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b67Offset + b67a.length + b67b.length)) :=
-  isInfixAt_sub (hb67 hp) 19 5 (by decide)
-theorem hb67d (hp : Placed code k) : b67d.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b67Offset + b67a.length + b67b.length + b67c.length)) :=
-  isInfixAt_sub (hb67 hp) 24 1 (by decide)
-theorem hb67e (hp : Placed code k) : b67e.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b67Offset + b67a.length + b67b.length + b67c.length + b67d.length)) := by
-  have := isInfixAt_sub (hb67 hp) 25 15 (by decide)
-  rwa [List.take_of_length_le (by decide)] at this
-theorem hb68 (hp : Placed code k) : b68.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b68Offset) :=
-  placed_infix hp b68_in_code (by simp [b68])
+theorem hb70 (hp : Placed code k) : b70.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b70Offset) :=
+  placed_infix hp b70_in_code (by simp [b70])
 theorem hb71 (hp : Placed code k) : b71.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b71Offset) :=
   placed_infix hp b71_in_code (by simp [b71])
 theorem hb72 (hp : Placed code k) : b72.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b72Offset) :=
@@ -171,48 +185,34 @@ theorem hb83 (hp : Placed code k) : b83.IsInfixAt Host.prog (k + NativeRustcArm.
   placed_infix hp b83_in_code (by simp [b83])
 theorem hb84 (hp : Placed code k) : b84.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b84Offset) :=
   placed_infix hp b84_in_code (by simp [b84])
-theorem hb85 (hp : Placed code k) : b85.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b85Offset) :=
-  placed_infix hp b85_in_code (by simp [b85])
-theorem hb88 (hp : Placed code k) : b88.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b88Offset) :=
-  placed_infix hp b88_in_code (by simp [b88])
-theorem hb89 (hp : Placed code k) : b89.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b89Offset) :=
-  placed_infix hp b89_in_code (by simp [b89])
-theorem hb90 (hp : Placed code k) : b90.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b90Offset) :=
-  placed_infix hp b90_in_code (by simp [b90])
-theorem hb91 (hp : Placed code k) : b91.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b91Offset) :=
-  placed_infix hp b91_in_code (by simp [b91])
-theorem hb92 (hp : Placed code k) : b92.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b92Offset) :=
-  placed_infix hp b92_in_code (by simp [b92])
-theorem hb93 (hp : Placed code k) : b93.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b93Offset) :=
-  placed_infix hp b93_in_code (by simp [b93])
-theorem hb93a (hp : Placed code k) : b93a.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b93Offset) := by
-  have := isInfixAt_sub (hb93 hp) 0 8 (by decide)
+theorem hb84a (hp : Placed code k) : b84a.IsInfixAt Host.prog (k + NativeRustcArm.Sphincs.SphincsVerify.b84Offset) := by
+  have := isInfixAt_sub (hb84 hp) 0 8 (by decide)
   simp only [List.drop_zero, Nat.add_zero] at this
   exact this
-theorem hb93b (hp : Placed code k) : b93b.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b93Offset + b93a.length)) :=
-  isInfixAt_sub (hb93 hp) 8 1 (by decide)
-theorem hb93c (hp : Placed code k) : b93c.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b93Offset + b93a.length + b93b.length)) := by
-  have := isInfixAt_sub (hb93 hp) 9 4 (by decide)
+theorem hb84b (hp : Placed code k) : b84b.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b84Offset + b84a.length)) :=
+  isInfixAt_sub (hb84 hp) 8 1 (by decide)
+theorem hb84c (hp : Placed code k) : b84c.IsInfixAt Host.prog (k + (NativeRustcArm.Sphincs.SphincsVerify.b84Offset + b84a.length + b84b.length)) := by
+  have := isInfixAt_sub (hb84 hp) 9 4 (by decide)
   rwa [List.take_of_length_le (by decide)] at this
 
-theorem lbl_21 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_21 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b60Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_21_at
-theorem lbl_22 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_22 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b67Offset) :=
+theorem lbl_13 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_13 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b51Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_13_at
+theorem lbl_14 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_14 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b58Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_14_at
+theorem lbl_16 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_16 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b62Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_16_at
+theorem lbl_17 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_17 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b63Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_17_at
+theorem lbl_18 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_18 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b64Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_18_at
+theorem lbl_22 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_22 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b70Offset) :=
   hp.label NativeRustcArm.Sphincs.SphincsVerify.label_22_at
-theorem lbl_24 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_24 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b71Offset) :=
+theorem lbl_23 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_23 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b72Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_23_at
+theorem lbl_24 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_24 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b73Offset) :=
   hp.label NativeRustcArm.Sphincs.SphincsVerify.label_24_at
-theorem lbl_25 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_25 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b72Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_25_at
-theorem lbl_26 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_26 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b73Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_26_at
-theorem lbl_30 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_30 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b79Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_30_at
-theorem lbl_31 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_31 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b81Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_31_at
-theorem lbl_32 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_32 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b82Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_32_at
-theorem lbl_36 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_36 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b88Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_36_at
+theorem lbl_28 (hp : Placed code k) : Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_28 = Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b79Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_28_at
 
 end
 
@@ -308,7 +308,7 @@ theorem eval_ptr {m : MachineData} {vars : Nat → BitVec 64} (o : Nat) :
 
 /-- **A write's bytes** in the frame. -/
 theorem write_bytes {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
-    (hm : Match (r.env m vars) S m') {o n : Nat} {v : Sym} (hle : o + n ≤ 29376)
+    (hm : Match (r.env m vars) S m') {o n : Nat} {v : Sym} (hle : o + n ≤ 21616)
     (hw : ∀ i < n, findWrite 0 (o + i) S.mem = some (v, i)) {bs : List UInt8}
     (hbs : (List.range n).map (byteOf (v.eval (r.env m vars))) = bs) :
     BytesAt m'.dmem (r.off o) bs :=
@@ -331,7 +331,7 @@ theorem sp_of {m m' : MachineData} {rs : List (BitVec 64 × Nat)} {vars : Nat �
 /-- **A value written**, the value read off the state's newest write at `o`. -/
 theorem write_val {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
     (hm : Match (r.env m vars) S m') {o n : Nat} {v : Sym}
-    (_hv : (findWrite 0 o S.mem).map Prod.fst = some v) (hle : o + n ≤ 29376)
+    (_hv : (findWrite 0 o S.mem).map Prod.fst = some v) (hle : o + n ≤ 21616)
     (hw : ∀ i < n, findWrite 0 (o + i) S.mem = some (v, i)) {bs : List UInt8}
     (hbs : (List.range n).map (byteOf (v.eval (r.env m vars))) = bs) :
     BytesAt m'.dmem (r.off o) bs :=
@@ -339,14 +339,14 @@ theorem write_val {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
 
 /-- **A load written back**: the bytes it loaded. -/
 theorem write_load {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
-    (hm : Match (r.env m vars) S m') {o o' n : Nat} (hle : o + n ≤ 29376) (hn : n ≤ 8)
+    (hm : Match (r.env m vars) S m') {o o' n : Nat} (hle : o + n ≤ 21616) (hn : n ≤ 8)
     (hw : ∀ i < n, findWrite 0 (o + i) S.mem = some (.load 0 o' n, i)) {bs : List UInt8}
     (hl : bs.length = n) (h : BytesAt m.dmem (r.off o') bs) : BytesAt m'.dmem (r.off o) bs :=
   write_bytes hm hle hw (bytes_load h hl hn)
 
 /-- **A register written**: its low bytes. -/
 theorem write_reg {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
-    (hm : Match (r.env m vars) S m') {o n : Nat} (hle : o + n ≤ 29376) {x : XReg}
+    (hm : Match (r.env m vars) S m') {o n : Nat} (hle : o + n ≤ 21616) {x : XReg}
     (hw : ∀ i < n, findWrite 0 (o + i) S.mem = some (.reg x, i)) {bs : List UInt8}
     (hbs : (List.range n).map (byteOf (m.regs.getXReg x).toBitVec) = bs) :
     BytesAt m'.dmem (r.off o) bs :=
@@ -361,13 +361,13 @@ literal state). -/
 
 /-- **Zeros written.** -/
 theorem write_zeros {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
-    (hm : Match (r.env m vars) S m') {o n : Nat} (hle : o + n ≤ 29376) (hz : zeroW S.mem o n = true) :
+    (hm : Match (r.env m vars) S m') {o n : Nat} (hle : o + n ≤ 21616) (hz : zeroW S.mem o n = true) :
     BytesAt m'.dmem (r.off o) (List.replicate n 0) := by
   intro i hi
   rw [List.length_replicate] at hi
   have h := List.all_eq_true.mp hz i (List.mem_range.mpr hi)
   rw [Run.off_add, show r.off (o + i) = r.base + BitVec.ofNat 64 (o + i) from rfl,
-    hm.mem 0 r.base 29376 rfl (o + i) (by omega), List.getElem_replicate]
+    hm.mem 0 r.base 21616 rfl (o + i) (by omega), List.getElem_replicate]
   unfold memByte
   split at h
   · rename_i t hf
@@ -442,7 +442,7 @@ theorem Keep.of_eq {m m' : MachineData} (h : m'.dmem = m.dmem) : Keep r m m' :=
 
 /-- **Bytes outside the scratch are kept.** -/
 theorem Keep.bytesAt {m m' : MachineData} (hk : Keep r m m') {o : Nat} {bs : List UInt8}
-    (h : BytesAt m.dmem (r.off o) bs) (ho : o + bs.length ≤ 29376)
+    (h : BytesAt m.dmem (r.off o) bs) (ho : o + bs.length ≤ 21616)
     (hs : ∀ i < bs.length, ¬Scr (o + i)) : BytesAt m'.dmem (r.off o) bs := fun i hi ↦ by
   rw [Run.off_add, hk _ (by omega) (hs i hi), ← Run.off_add]
   exact h i hi
@@ -477,7 +477,7 @@ theorem keep_of_match (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec
 
 /-- **A call writing in the scratch** keeps the rest. -/
 theorem keep_of_call (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {a n N : Nat}
-    (ha : a + n ≤ 29376) (hN : N ≤ finalizeStack)
+    (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) (hs : ∀ o, a ≤ o → o < a + n → Scr o) :
     Keep r m m' := fun o ho hso ↦
   hout _ (r.not_callOut hpre hF ha hN ho (by
@@ -490,7 +490,7 @@ end
 
 /-- **`keccak_f(a)`**'s precondition, the state at the frame's `a`. -/
 theorem keccakF_pre [Labels] (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {a : Nat}
-    (h0 : Run.RegIs m .X0 (r.off a)) (ha : a + 200 ≤ 29376) : KeccakFPre m := by
+    (h0 : Run.RegIs m .X0 (r.off a)) (ha : a + 200 ≤ 21616) : KeccakFPre m := by
   simp only [KeccakFPre]
   rw [← getXReg_X0, h0]
   have hN : keccakFStack ≤ finalizeStack := by decide
@@ -509,10 +509,6 @@ theorem keccakF_out [Labels] {m m' : MachineData} {a : Nat} (h0 : Run.RegIs m .X
 
 /-! ## What the region keeps -/
 
-theorem length_pkBytes (w : Nat → UInt64) : (pkBytes w).length = 32 := by
-  rw [pkBytes, Proof.length_wordsBytes]
-  simp
-
 theorem length_leavesMem : (wordsBytes (r.leaves.map Nat.toUInt64)).length = 192 := by
   rw [Proof.length_wordsBytes, List.length_map]
   have : r.leaves.length = 24 := by
@@ -525,7 +521,7 @@ theorem length_be32 (x : UInt32) : (be32 x).length = 4 := rfl
 
 /-- `m'` has `m`'s frame bytes below the scratch and those of the leaves. -/
 @[expose] def Low (r : Run) (m m' : MachineData) : Prop :=
-  ∀ o, (o < 416 ∨ (432 ≤ o ∧ o < 16400) ∨ (25752 ≤ o ∧ o < 25944)) →
+  ∀ o, (o < 432 ∨ (448 ≤ o ∧ o < 8640) ∨ (17992 ≤ o ∧ o < 18184)) →
     m'.dmem.get? (r.off o) = m.dmem.get? (r.off o)
 
 theorem Keep.low {m m' : MachineData} (hk : Keep r m m') : Low r m m' :=
@@ -535,37 +531,37 @@ theorem Low.trans {m₁ m₂ m₃ : MachineData} (h₁ : Low r m₁ m₂) (h₂ 
     Low r m₁ m₃ := fun o ho ↦ (h₂ o ho).trans (h₁ o ho)
 
 theorem Low.bytesAt {m m' : MachineData} (hk : Low r m m') {o : Nat} {bs : List UInt8}
-    (h : BytesAt m.dmem (r.off o) bs) (_ho : o + bs.length ≤ 29376)
-    (hs : ∀ i < bs.length, o + i < 416 ∨ (432 ≤ o + i ∧ o + i < 16400) ∨
-      (25752 ≤ o + i ∧ o + i < 25944)) :
+    (h : BytesAt m.dmem (r.off o) bs) (_ho : o + bs.length ≤ 21616)
+    (hs : ∀ i < bs.length, o + i < 432 ∨ (448 ≤ o + i ∧ o + i < 8640) ∨
+      (17992 ≤ o + i ∧ o + i < 18184)) :
     BytesAt m'.dmem (r.off o) bs := fun i hi ↦ by
   rw [Run.off_add, hk _ (hs i hi), ← Run.off_add]
   exact h i hi
 
-/-- **`Base` across a change** below the scratch and the leaves' end, with X20, X21, X22 kept. -/
+/-- **`Base` across a change** below the scratch and the leaves' end, with X28, X26, X22 kept. -/
 theorem Base.of_keep {m m' : MachineData} (hB : Base r m) (hk : Low r m m') (hF : r.Frame m')
-    (h20 : m'.regs.getXReg .X20 = m.regs.getXReg .X20)
-    (h21 : m'.regs.getXReg .X21 = m.regs.getXReg .X21)
+    (h28 : m'.regs.getXReg .X28 = m.regs.getXReg .X28)
+    (h26 : m'.regs.getXReg .X26 = m.regs.getXReg .X26)
     (h22 : m'.regs.getXReg .X22 = m.regs.getXReg .X22) : Base r m' where
   frame := hF
-  inputs := ⟨hk.bytesAt hB.inputs.1 (by rw [length_pkBytes]; omega) (fun i hi ↦ by
-      rw [length_pkBytes] at hi; omega),
+  inputs := ⟨hk.bytesAt hB.inputs.1 (by rw [r.hpk]; omega) (fun i hi ↦ by
+      rw [r.hpk] at hi; omega),
     hk.bytesAt hB.inputs.2.1 (by rw [Run.length_sigMem]; omega) (fun i hi ↦ by
       rw [Run.length_sigMem] at hi; omega),
     hk.bytesAt hB.inputs.2.2 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
       rw [length_wordBytes] at hi; omega)⟩
-  w384 := hk.bytesAt hB.w384 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
-      rw [length_wordBytes] at hi; omega)
-  w392 := hk.bytesAt hB.w392 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
-      rw [length_wordBytes] at hi; omega)
   w400 := hk.bytesAt hB.w400 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
       rw [length_wordBytes] at hi; omega)
-  w408 := hk.bytesAt hB.w408 (by rw [length_be64]; omega) (fun i hi ↦ by
+  w408 := hk.bytesAt hB.w408 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
+      rw [length_wordBytes] at hi; omega)
+  w416 := hk.bytesAt hB.w416 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
+      rw [length_wordBytes] at hi; omega)
+  w424 := hk.bytesAt hB.w424 (by rw [length_be64]; omega) (fun i hi ↦ by
       rw [length_be64] at hi; omega)
   leaves := hk.bytesAt hB.leaves (by rw [length_leavesMem]; omega) (fun i hi ↦ by
       rw [length_leavesMem] at hi; omega)
-  x20 := by rw [Run.RegIs, h20]; exact hB.x20
-  x21 := by rw [Run.RegIs, h21]; exact hB.x21
+  x28 := by rw [Run.RegIs, h28]; exact hB.x28
+  x26 := by rw [Run.RegIs, h26]; exact hB.x26
   x22 := by rw [Run.RegIs, h22]; exact hB.x22
 
 theorem length_roots (c : Nat) (hc : ∀ i < c, (r.forsRoot i).length = 16) :
@@ -595,9 +591,9 @@ theorem TreeSt.of_keep {c : Nat} {m m' : MachineData} (hT : TreeSt r c m) (hB : 
     (hk : Keep r m m') : TreeSt r c m' where
   base := hB
   hc := hT.hc
-  w416 := hk.bytesAt hT.w416 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
+  w432 := hk.bytesAt hT.w432 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
       rw [length_wordBytes] at hi; unfold Scr; omega)
-  w424 := hk.bytesAt hT.w424 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
+  w440 := hk.bytesAt hT.w440 (by rw [length_wordBytes]; omega) (fun i hi ↦ by
       rw [length_wordBytes] at hi; unfold Scr; omega)
   roots := by
     have hl := length_roots (r := r) c fun i hi ↦ length_forsRoot (by have := hT.hc; omega)
@@ -607,47 +603,47 @@ theorem TreeSt.of_keep {c : Nat} {m m' : MachineData} (hT : TreeSt r c m) (hB : 
 section
 variable [Labels]
 
-/-- **`Base` after a block** in the frame writing in the scratch and keeping X20, X21, X22. -/
+/-- **`Base` after a block** in the frame writing in the scratch and keeping X28, X26, X22. -/
 theorem Base.of_match (hpre : r.Pre) {m m' : MachineData} (hB : Base r m) {vars : Nat → BitVec 64}
     {S : SState} (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF)
-    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 29280)) (hw : scrW S = true)
-    (h20 : S.reg .X20 = some (.lit 136)) (h21 : S.reg .X21 = some (.ptr 0 16600))
-    (h22 : S.reg .X22 = some (.ptr 0 26968)) : Base r m' ∧ Keep r m m' := by
+    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 21520)) (hw : scrW S = true)
+    (h28 : S.reg .X28 = some (.lit 136)) (h26 : S.reg .X26 = some (.ptr 0 8840))
+    (h22 : S.reg .X22 = some (.ptr 0 19208)) : Base r m' ∧ Keep r m m' := by
   have hk := keep_of_match hpre hm hwf hw
   refine ⟨hB.of_keep hk.low (Run.Frame.of_match r hpre hB.frame hm hwf hsp hx29 (frameWrites_of_scrW hw))
     ?_ ?_ ?_, hk⟩
   · apply UInt64.toBitVec_inj.mp
-    rw [hm.regs .X20 _ h20, hB.x20]
+    rw [hm.regs .X28 _ h28, hB.x28]
     rfl
   · apply UInt64.toBitVec_inj.mp
-    rw [hm.regs .X21 _ h21, hB.x21]
-    exact eval_ptr 16600
+    rw [hm.regs .X26 _ h26, hB.x26]
+    exact eval_ptr 8840
   · apply UInt64.toBitVec_inj.mp
     rw [hm.regs .X22 _ h22, hB.x22]
-    exact eval_ptr 26968
+    exact eval_ptr 19208
 
 /-- **`Base` after a call** writing the frame's bytes `a .. a + n` in the scratch. -/
 theorem Base.of_call (hpre : r.Pre) {m m' : MachineData} (hB : Base r m) (hS : Saved m m')
-    {a n N : Nat} (ha : a + n ≤ 29280) (hN : N ≤ finalizeStack)
+    {a n N : Nat} (ha : a + n ≤ 21520) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) (hs : ∀ o, a ≤ o → o < a + n → Scr o) :
     Base r m' ∧ Keep r m m' := by
   have hk := keep_of_call hpre hB.frame (by omega) hN hout hs
-  exact ⟨hB.of_keep hk.low (r.frame_of_call hpre hB.frame hS ha hN hout) (hS.1 .X20 rfl)
-    (hS.1 .X21 rfl) (hS.1 .X22 rfl), hk⟩
+  exact ⟨hB.of_keep hk.low (r.frame_of_call hpre hB.frame hS ha hN hout) (hS.1 .X28 rfl)
+    (hS.1 .X26 rfl) (hS.1 .X22 rfl), hk⟩
 
 /-- A symbolic state's writes are in the frame below the saved registers, off the bytes `Low`
 keeps. -/
 @[expose] def lowW (S : SState) : Bool :=
   S.mem.all fun w ↦ w.r == 0 &&
-    (decide (416 ≤ w.off ∧ w.off + w.n ≤ 432) || decide (16400 ≤ w.off ∧ w.off + w.n ≤ 25752) ||
-      decide (25944 ≤ w.off ∧ w.off + w.n ≤ 29280))
+    (decide (432 ≤ w.off ∧ w.off + w.n ≤ 448) || decide (8640 ≤ w.off ∧ w.off + w.n ≤ 17992) ||
+      decide (18184 ≤ w.off ∧ w.off + w.n ≤ 21520))
 
 /-- **`Base` after a block** writing off the bytes `Low` keeps (`lowW`). -/
 theorem Base.of_matchLow (hpre : r.Pre) {m m' : MachineData} (hB : Base r m)
     {vars : Nat → BitVec 64} {S : SState} (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF)
-    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 29280)) (hw : lowW S = true)
-    (h20 : S.reg .X20 = some (.lit 136)) (h21 : S.reg .X21 = some (.ptr 0 16600))
-    (h22 : S.reg .X22 = some (.ptr 0 26968)) : Base r m' ∧ Low r m m' := by
+    (hsp : S.sp = .ptr 0 0) (hx29 : S.reg .X29 = some (.ptr 0 21520)) (hw : lowW S = true)
+    (h28 : S.reg .X28 = some (.lit 136)) (h26 : S.reg .X26 = some (.ptr 0 8840))
+    (h22 : S.reg .X22 = some (.ptr 0 19208)) : Base r m' ∧ Low r m m' := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
   simp only [lowW, List.all_eq_true, Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true,
@@ -669,14 +665,14 @@ theorem Base.of_matchLow (hpre : r.Pre) {m m' : MachineData} (hB : Base r m)
     exact ⟨h0, by omega⟩
   refine ⟨hB.of_keep hk (Run.Frame.of_match r hpre hB.frame hm hwf hsp hx29 hfw) ?_ ?_ ?_, hk⟩
   · apply UInt64.toBitVec_inj.mp
-    rw [hm.regs .X20 _ h20, hB.x20]
+    rw [hm.regs .X28 _ h28, hB.x28]
     rfl
   · apply UInt64.toBitVec_inj.mp
-    rw [hm.regs .X21 _ h21, hB.x21]
-    exact eval_ptr 16600
+    rw [hm.regs .X26 _ h26, hB.x26]
+    exact eval_ptr 8840
   · apply UInt64.toBitVec_inj.mp
     rw [hm.regs .X22 _ h22, hB.x22]
-    exact eval_ptr 26968
+    exact eval_ptr 19208
 
 /-- **A block in one region's environment** changes memory only in that region. -/
 theorem same_of_one {m m' : MachineData} {a : BitVec 64} {n : Nat} {vars : Nat → BitVec 64}
@@ -703,14 +699,14 @@ theorem same_of_one {m m' : MachineData} {a : BitVec 64} {n : Nat} {vars : Nat �
 /-- **Bytes a block does not write** are kept, as `Run.bytesAt_kept` with the length given. -/
 theorem keep_blk (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
     (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF) {o n : Nat} {bs : List UInt8}
-    (hl : bs.length = n) (ho : o + n ≤ 29376) (hn : Run.noWriteIn S o n = true)
+    (hl : bs.length = n) (ho : o + n ≤ 21616) (hn : Run.noWriteIn S o n = true)
     (h : BytesAt m.dmem (r.off o) bs) : BytesAt m'.dmem (r.off o) bs :=
   r.bytesAt_kept hpre hm hwf (by rw [hl]; exact ho) h (by rw [hl]; exact hn)
 
 /-- **`bytesOf` of bytes a block does not write.** -/
 theorem bytesOf_blk (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {vars : Nat → BitVec 64}
     {S : SState} (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF) {o n : Nat}
-    (ho : o + n ≤ 29376) (hn : Run.noWriteIn S o n = true) :
+    (ho : o + n ≤ 21616) (hn : Run.noWriteIn S o n = true) :
     bytesOf m'.dmem (r.off o) n = bytesOf m.dmem (r.off o) n :=
   bytesOf_of_bytesAt' (keep_blk hpre hm hwf (Hasher.length_bytesOf ..) ho hn
     (Hasher.bytesAt_bytesOf (r.frame_mapped hpre hF ho).1)) (Hasher.length_bytesOf ..)
@@ -784,8 +780,8 @@ theorem allOf_append {α : Type} {P : α → Prop} :
 /-- The registers `kept` in a state of `Base`. -/
 theorem known_kept {m : MachineData} (hB : Base r m) (vars : Nat → BitVec 64) :
     AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m vars)) kept :=
-  ⟨hB.frame.2.1.trans (eval_ptr 29280).symm, hB.x21.trans (eval_ptr 16600).symm,
-    hB.x22.trans (eval_ptr 26968).symm, hB.x20, trivial⟩
+  ⟨hB.frame.2.1.trans (eval_ptr 21520).symm, hB.x26.trans (eval_ptr 8840).symm,
+    hB.x22.trans (eval_ptr 19208).symm, hB.x28, trivial⟩
 
 /-- **The frame's symbolic state** `frameS k bs` describes a state of `Base` where the registers
 `k` and the bounds `bs` hold. -/
@@ -802,7 +798,7 @@ theorem match_frameS_lit (hpre : r.Pre) {m : MachineData} (hB : Base r m)
     (hk : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m vars)) k) {o v : Nat}
     (h : BytesAt m.dmem (r.off o) (wordBytes v.toUInt64)) :
     Match (r.env m vars) { frameS k with mem := [litW o v] } m :=
-  match_lit (match_frameS (bs := []) hpre hB hk trivial) rfl (r := 0) (b := r.base) (sz := 29376) rfl
+  match_lit (match_frameS (bs := []) hpre hB hk trivial) rfl (r := 0) (b := r.base) (sz := 21616) rfl
     (lit_bytes h)
 
 /-- A register given by a frame pointer. -/

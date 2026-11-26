@@ -8,13 +8,13 @@ public import NativeRustc.Sphincs.EncodeFacts
 public import NativeRustcArm.Sym
 
 /-!
-# The codeword's loop `b110`
+# The codeword's loop `b101`
 
-`b110` (`.LSphincsVerify_41`, directive 1392) runs 16 turns, turn `j` (X8 `8 j`, X11 the frame's
-`26769 + 4 j`) writing the digits `4 j .. 4 j + 3` of the 128-bit digest `X9 · 2⁶⁴ + X10` to
-`26768 + 4 j ..` (`loopWrites`, the digit at bit `s` as `digitSym s`). The executor's result for
+`b101` (`.LSphincsVerify_33`) runs 16 turns, turn `j` (X8 `8 j`, X11 the frame's
+`19009 + 4 j`) writing the digits `4 j .. 4 j + 3` of the 128-bit digest `X9 · 2⁶⁴ + X10` to
+`19008 + 4 j ..` (`loopWrites`, the digit at bit `s` as `digitSym s`). The executor's result for
 each turn is checked by the kernel once (`loopOk_all`); `loop_step` reads one turn off it, `loop`
-runs the turns: the 64 digits `digits V` at `26768`, the rest of the frame kept.
+runs the turns: the 64 digits `digits V` at `19008`, the rest of the frame kept.
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof
@@ -33,25 +33,25 @@ def digitSym (s : Nat) : Sym :=
 
 /-- Turn `j`'s writes: the digits `4 j + 3`, `4 j + 2`, `4 j`, `4 j + 1`. -/
 def loopWrites (j : Nat) : List Write :=
-  [⟨0, 26768 + 4 * j + 3, 1, digitSym (126 - 8 * j - 6)⟩,
-    ⟨0, 26768 + 4 * j + 2, 1, digitSym (126 - 8 * j - 4)⟩,
-    ⟨0, 26768 + 4 * j, 1, digitSym (126 - 8 * j)⟩,
-    ⟨0, 26768 + 4 * j + 1, 1, digitSym (126 - 8 * j - 2)⟩]
+  [⟨0, 19008 + 4 * j + 3, 1, digitSym (126 - 8 * j - 6)⟩,
+    ⟨0, 19008 + 4 * j + 2, 1, digitSym (126 - 8 * j - 4)⟩,
+    ⟨0, 19008 + 4 * j, 1, digitSym (126 - 8 * j)⟩,
+    ⟨0, 19008 + 4 * j + 1, 1, digitSym (126 - 8 * j - 2)⟩]
 
 /-- Turn `j`'s symbolic state. -/
 def loopInit (j : Nat) : SState :=
-  init [(29376, true)] (.ptr 0 0)
-    [(.X8, .lit (8 * j)), (.X11, .ptr 0 ((26769 + 4 * j : Nat) : Int)), (.X29, .ptr 0 29280)]
+  init [(21616, true)] (.ptr 0 0)
+    [(.X8, .lit (8 * j)), (.X11, .ptr 0 ((19009 + 4 * j : Nat) : Int)), (.X29, .ptr 0 21520)]
 
 /-- Turn `j` as the executor runs it: back to the loop's head unless last, X8 and X11 on, X9, X10,
 X29, SP and the callee-saved registers kept, the four digits written. -/
 def loopOk (j : Nat) : Bool :=
-  match exec Sphincs.SphincsVerify.b110 (loopInit j) with
-  | some (S, x) => x == .cond (.lit (j + 1 != 16)) NativeRustcArm.Sphincs.SphincsVerify.label_41 &&
+  match exec Sphincs.SphincsVerify.b101 (loopInit j) with
+  | some (S, x) => x == .cond (.lit (j + 1 != 16)) NativeRustcArm.Sphincs.SphincsVerify.label_33 &&
       S.reg .X8 == some (.lit (8 * j + 8)) &&
-      S.reg .X11 == some (.ptr 0 ((26773 + 4 * j : Nat) : Int)) &&
+      S.reg .X11 == some (.ptr 0 ((19013 + 4 * j : Nat) : Int)) &&
       S.reg .X9 == some (.reg .X9) && S.reg .X10 == some (.reg .X10) &&
-      S.reg .X29 == some (.ptr 0 29280) && S.sp == .ptr 0 0 && S.mem == loopWrites j &&
+      S.reg .X29 == some (.ptr 0 21520) && S.sp == .ptr 0 0 && S.mem == loopWrites j &&
       keeps (loopInit j) S && Run.frameWrites S
   | none => false
 
@@ -71,7 +71,7 @@ theorem eval_digitSym [Labels] (env : Env) {s : Nat} (hs : s < 128) (hs' : s ≠
     exact digit_lo _ _ (by omega)
 
 theorem findWrite_loopWrites (j t : Nat) (ht : t < 4) :
-    findWrite 0 (26768 + 4 * j + t) (loopWrites j) = some (digitSym (126 - 8 * j - 2 * t), 0) := by
+    findWrite 0 (19008 + 4 * j + t) (loopWrites j) = some (digitSym (126 - 8 * j - 2 * t), 0) := by
   interval_cases t <;> simp [findWrite, loopWrites]
 
 /-! ## Frame facts -/
@@ -81,7 +81,7 @@ namespace Run
 variable (r : Run) [Labels]
 
 /-- The frame's bytes `a .. a + n` as addresses. -/
-theorem inRange_off_iff (hpre : r.Pre) {a n : Nat} (h : a + n ≤ 29376) (p : BitVec 64) :
+theorem inRange_off_iff (hpre : r.Pre) {a n : Nat} (h : a + n ≤ 21616) (p : BitVec 64) :
     InRange (r.off a) n p ↔ r.base.toNat + a ≤ p.toNat ∧ p.toNat < r.base.toNat + a + n := by
   have hb := r.base_toNat hpre
   have := r.m0.regs.SP.toNat_lt
@@ -89,7 +89,7 @@ theorem inRange_off_iff (hpre : r.Pre) {a n : Nat} (h : a + n ≤ 29376) (p : Bi
 
 /-- **A block's writes inside the frame's bytes `o .. o + n`** change only those. -/
 theorem written_inRange (hpre : r.Pre) {m : MachineData} {vars : Nat → BitVec 64} {S : SState}
-    {o n : Nat} (hon : o + n ≤ 29376)
+    {o n : Nat} (hon : o + n ≤ 21616)
     (hS : ∀ w ∈ S.mem, w.r = 0 ∧ o ≤ w.off ∧ w.off + w.n ≤ o + n) {p : BitVec 64}
     (hp : Written (r.env m vars) S p) : InRange (r.off o) n p := by
   obtain ⟨w, hw, b, sz, hb, h1, h2⟩ := hp
@@ -107,61 +107,61 @@ end Run
 def digest128 (m : MachineData) : Nat :=
   (m.regs.getXReg .X9).toBitVec.toNat * 2 ^ 64 + (m.regs.getXReg .X10).toBitVec.toNat
 
-theorem label_41 [NativeRustcArm.Host] {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_41 = NativeRustcArm.Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b110Offset) :=
-  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_41_at
+theorem label_33 [NativeRustcArm.Host] {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
+    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_33 = NativeRustcArm.Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b101Offset) :=
+  hp.label NativeRustcArm.Sphincs.SphincsVerify.label_33_at
 
 
 variable [NativeRustcArm.Host]
 
-/-- **A turn of the loop**: turn `j` writes the digits `4 j .. 4 j + 3` at `26768 + 4 j`, and
-goes back to the loop's head, or on to `b111` after the last. -/
+/-- **A turn of the loop**: turn `j` writes the digits `4 j .. 4 j + 3` at `19008 + 4 j`, and
+goes back to the loop's head, or on to `b102` after the last. -/
 theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {j : Nat}
     (hj : j < 16) (m : MachineData) (hF : r.Frame m)
     (h8 : Run.RegIs m .X8 (BitVec.ofNat 64 (8 * j)))
-    (h11 : Run.RegIs m .X11 (r.off (26769 + 4 * j))) :
+    (h11 : Run.RegIs m .X11 (r.off (19009 + 4 * j))) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦
-      st.pc = (if j + 1 = 16 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b111Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b110Offset) ∧ r.Frame st.data ∧
+      st.pc = (if j + 1 = 16 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b102Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b101Offset) ∧ r.Frame st.data ∧
       Run.RegIs st.data .X8 (BitVec.ofNat 64 (8 * (j + 1))) ∧
-      Run.RegIs st.data .X11 (r.off (26769 + 4 * (j + 1))) ∧ digest128 st.data = digest128 m ∧
-      Saved m st.data ∧ SameOutside m.dmem st.data.dmem (InRange (r.off (26768 + 4 * j)) 4) ∧
-      ∀ t < 4, st.data.dmem.get? (r.off (26768 + 4 * j + t)) =
+      Run.RegIs st.data .X11 (r.off (19009 + 4 * (j + 1))) ∧ digest128 st.data = digest128 m ∧
+      Saved m st.data ∧ SameOutside m.dmem st.data.dmem (InRange (r.off (19008 + 4 * j)) 4) ∧
+      ∀ t < 4, st.data.dmem.get? (r.off (19008 + 4 * j + t)) =
         some (UInt8.ofNat (digest128 m >>> (126 - 2 * (4 * j + t)) % 4)))
-      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b110Offset⟩ := by
+      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b101Offset⟩ := by
   have hok := loopOk_all j hj
   rw [loopOk] at hok
-  rcases hx : exec Sphincs.SphincsVerify.b110 (loopInit j) with _ | ⟨S, x⟩
+  rcases hx : exec Sphincs.SphincsVerify.b101 (loopInit j) with _ | ⟨S, x⟩
   · rw [hx] at hok
     exact absurd hok Bool.false_ne_true
   · rw [hx] at hok
     simp only [Bool.and_eq_true, beq_iff_eq] at hok
     obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hxe, hs8⟩, hs11⟩, hs9⟩, hs10⟩, hs29⟩, hssp⟩, hsmem⟩, hkeep⟩, hfw⟩ := hok
     subst hxe
-    have hk := Sphincs.SphincsVerify.b110_in_code.trans hp.1 (List.cons_ne_nil _ _)
+    have hk := Sphincs.SphincsVerify.b101_in_code.trans hp.1 (List.cons_ne_nil _ _)
     have hwf := r.frame_wf hpre hF (fun _ ↦ 0)
     have h11' : (m.regs.getXReg .X11).toBitVec =
-        (Sym.ptr 0 ((26769 + 4 * j : Nat) : Int)).eval (r.env m fun _ ↦ 0) := by
-      show _ = r.base + BitVec.ofInt 64 ((26769 + 4 * j : Nat) : Int)
+        (Sym.ptr 0 ((19009 + 4 * j : Nat) : Int)).eval (r.env m fun _ ↦ 0) := by
+      show _ = r.base + BitVec.ofInt 64 ((19009 + 4 * j : Nat) : Int)
       rw [BitVec.ofInt_natCast]
       exact h11
     have hm := r.match_frame hpre hF (vars := fun _ ↦ 0)
-      (known := [(.X8, .lit (8 * j)), (.X11, .ptr 0 ((26769 + 4 * j : Nat) : Int)),
-        (.X29, .ptr 0 29280)]) (labels := []) (bounds := []) (aliases := [])
+      (known := [(.X8, .lit (8 * j)), (.X11, .ptr 0 ((19009 + 4 * j : Nat) : Int)),
+        (.X29, .ptr 0 21520)]) (labels := []) (bounds := []) (aliases := [])
       ⟨h8, h11', hF.2.1, trivial⟩ trivial trivial trivial
     refine Sym.exec_then hk hx hwf hm fun st hm' hpc ↦ .done _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp only [Sym.PcOk, SBool.eval] at hpc
       rw [hpc]
       by_cases hj1 : j + 1 = 16
       · simp only [hj1, bne_self_eq_false, Bool.false_eq_true, ↓reduceIte]
-        simp only [Run.pc, Nat.add_assoc, NativeRustcArm.Sphincs.SphincsVerify.b110_next]
+        simp only [Run.pc, Nat.add_assoc, NativeRustcArm.Sphincs.SphincsVerify.b101_next]
       · simp only [hj1, ↓reduceIte, bne_iff_ne, ne_eq, not_false_eq_true]
-        exact label_41 hp
+        exact label_33 hp
     · exact Run.Frame.of_match r hpre hF hm' hwf hssp hs29 hfw
     · rw [Run.RegIs, hm'.regs .X8 _ hs8, show 8 * (j + 1) = 8 * j + 8 by omega]
       rfl
     · rw [Run.RegIs, hm'.regs .X11 _ hs11]
-      show r.base + BitVec.ofInt 64 ((26773 + 4 * j : Nat) : Int) = _
-      rw [BitVec.ofInt_natCast, show 26769 + 4 * (j + 1) = 26773 + 4 * j by omega]
+      show r.base + BitVec.ofInt 64 ((19013 + 4 * j : Nat) : Int) = _
+      rw [BitVec.ofInt_natCast, show 19009 + 4 * (j + 1) = 19013 + 4 * j by omega]
       rfl
     · unfold digest128
       rw [hm'.regs .X9 _ hs9, hm'.regs .X10 _ hs10]
@@ -173,8 +173,8 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
       simp only [loopWrites, List.mem_cons, List.not_mem_nil, or_false] at hw
       rcases hw with rfl | rfl | rfl | rfl <;> simp
     · intro t ht
-      rw [show r.off (26768 + 4 * j + t) = r.base + BitVec.ofNat 64 (26768 + 4 * j + t) from rfl,
-        hm'.mem 0 r.base 29376 rfl (26768 + 4 * j + t) (by omega)]
+      rw [show r.off (19008 + 4 * j + t) = r.base + BitVec.ofNat 64 (19008 + 4 * j + t) from rfl,
+        hm'.mem 0 r.base 21616 rfl (19008 + 4 * j + t) (by omega)]
       simp only [Sym.memByte, hsmem, findWrite_loopWrites j t ht]
       apply congrArg some
       rw [byteOf, Nat.mul_zero, Nat.pow_zero, Nat.div_one,
@@ -182,19 +182,19 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
         show 126 - 8 * j - 2 * t = 126 - 2 * (4 * j + t) by omega]
       rfl
 
-/-- **The loop**: from turn `j` with the digits below `4 j` stored, the machine reaches `b111`
-with the 64 digits of `V` at `26768`, the frame's other bytes and the callee-saved registers
+/-- **The loop**: from turn `j` with the digits below `4 j` stored, the machine reaches `b102`
+with the 64 digits of `V` at `19008`, the frame's other bytes and the callee-saved registers
 kept. -/
 theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) (V : Nat) :
     ∀ n j, j + n + 1 = 16 → ∀ m : MachineData, r.Frame m →
-      Run.RegIs m .X8 (BitVec.ofNat 64 (8 * j)) → Run.RegIs m .X11 (r.off (26769 + 4 * j)) →
+      Run.RegIs m .X8 (BitVec.ofNat 64 (8 * j)) → Run.RegIs m .X11 (r.off (19009 + 4 * j)) →
       digest128 m = V →
-      (∀ t < 4 * j, m.dmem.get? (r.off (26768 + t)) = some (digitByte V t)) →
-      Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b111Offset ∧ r.Frame st.data ∧
+      (∀ t < 4 * j, m.dmem.get? (r.off (19008 + t)) = some (digitByte V t)) →
+      Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b102Offset ∧ r.Frame st.data ∧
         Saved m st.data ∧
-        SameOutside m.dmem st.data.dmem (InRange (r.off (26768 + 4 * j)) (64 - 4 * j)) ∧
-        ∀ t < 64, st.data.dmem.get? (r.off (26768 + t)) = some (digitByte V t))
-      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b110Offset⟩ := by
+        SameOutside m.dmem st.data.dmem (InRange (r.off (19008 + 4 * j)) (64 - 4 * j)) ∧
+        ∀ t < 64, st.data.dmem.get? (r.off (19008 + t)) = some (digitByte V t))
+      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b101Offset⟩ := by
   intro n
   induction n with
   | zero =>
@@ -207,7 +207,7 @@ theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
     · rw [hout _ (r.not_inRange_off hpre (by omega) (by omega) (.inl (by omega)))]
       exact hd t htj
     · have := hnew (t - 4 * j) (by omega)
-      rwa [show 26768 + 4 * j + (t - 4 * j) = 26768 + t by omega, hV,
+      rwa [show 19008 + 4 * j + (t - 4 * j) = 19008 + t by omega, hV,
         show 4 * j + (t - 4 * j) = t by omega] at this
   | succ n ih =>
     intro j hj m hF h8 h11 hV hd
@@ -217,13 +217,13 @@ theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
     obtain ⟨m', pc⟩ := st
     simp only at hpc
     subst hpc
-    have hd' : ∀ t < 4 * (j + 1), m'.dmem.get? (r.off (26768 + t)) = some (digitByte V t) := by
+    have hd' : ∀ t < 4 * (j + 1), m'.dmem.get? (r.off (19008 + t)) = some (digitByte V t) := by
       intro t ht
       by_cases htj : t < 4 * j
       · rw [hout _ (r.not_inRange_off hpre (by omega) (by omega) (.inl (by omega)))]
         exact hd t htj
       · have := hnew (t - 4 * j) (by omega)
-        rwa [show 26768 + 4 * j + (t - 4 * j) = 26768 + t by omega, hV,
+        rwa [show 19008 + 4 * j + (t - 4 * j) = 19008 + t by omega, hV,
           show 4 * j + (t - 4 * j) = t by omega] at this
     refine Eventually.mono (ih (j + 1) (by omega) m' hF' h8' h11' (hV'.trans hV) hd')
       fun st ⟨h1, h2, h3, h4, h5⟩ ↦ ⟨h1, h2, Saved.trans hS h3, ?_, h5⟩

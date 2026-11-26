@@ -7,12 +7,12 @@ public import NativeRustcArm.SphincsVerify.Rev
 import Mathlib.Tactic.IntervalCases
 
 /-!
-# `digest_fields`' leaves: the loop `b57`
+# `digest_fields`' leaves: the loop `b48`
 
-`.LSphincsVerify_19` (directive 621): turn `c` (X8 `10 c`, X9 `base + 16400 + 8 c`) reads bits
-`10 c .. 10 c + 9` of `h_msg` (`H`, at X21 `base + 24720`) and stores leaf `c` as a word at X9
-(`LoopInv`); after 24 turns it falls through to `b58` (directive 692) with the 24 leaves' words at
-`16400` (`AfterLoop`, `loop_spec`).
+`.LSphincsVerify_11`: turn `c` (X8 `10 c`, X9 `base + 8640 + 8 c`) reads bits
+`10 c .. 10 c + 9` of `h_msg` (`H`, at X19 `base + 16960`) and stores leaf `c` as a word at X9
+(`LoopInv`); after 24 turns it falls through to `b49` with the 24 leaves' words at `8640`
+(`AfterLoop`, `loop_spec`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Digest
@@ -29,18 +29,18 @@ def leafOf (H : List UInt8) (i : Nat) : Nat :=
 def leavesBytes (H : List UInt8) (c : Nat) : List UInt8 :=
   wordsBytes ((List.range c).map fun i ↦ (leafOf H i).toUInt64)
 
-/-- **At the loop's head, turn `c`**: what the digest keeps, the loop's registers, `H` at `24720`,
-the first `c` leaves at `16400`. -/
+/-- **At the loop's head, turn `c`**: what the digest keeps, the loop's registers, `H` at `16960`,
+the first `c` leaves at `8640`. -/
 def LoopInv (r : Run) (H : List UInt8) (c : Nat) (m : MachineData) : Prop :=
   c < 24 ∧ Keep r m ∧ Run.RegIs m .X8 (BitVec.ofNat 64 (10 * c)) ∧
-    Run.RegIs m .X9 (r.off (16400 + 8 * c)) ∧ Run.RegIs m .X10 (BitVec.ofNat 64 6) ∧
-    Run.RegIs m .X21 (r.off 24720) ∧ Run.RegIs m .X23 (r.off 21648) ∧
-    BytesAt m.dmem (r.off 24720) H ∧ BytesAt m.dmem (r.off 16400) (leavesBytes H c)
+    Run.RegIs m .X9 (r.off (8640 + 8 * c)) ∧ Run.RegIs m .X10 (BitVec.ofNat 64 6) ∧
+    Run.RegIs m .X19 (r.off 16960) ∧
+    BytesAt m.dmem (r.off 16960) H ∧ BytesAt m.dmem (r.off 8640) (leavesBytes H c)
 
-/-- **After the loop**: what the digest keeps, X23, `H` at `24720`, the 24 leaves at `16400`. -/
+/-- **After the loop**: what the digest keeps, `H` at `16960`, the 24 leaves at `8640`. -/
 def AfterLoop (r : Run) (H : List UInt8) (m : MachineData) : Prop :=
-  Keep r m ∧ Run.RegIs m .X23 (r.off 21648) ∧ BytesAt m.dmem (r.off 24720) H ∧
-    BytesAt m.dmem (r.off 16400) (leavesBytes H 24)
+  Keep r m ∧ BytesAt m.dmem (r.off 16960) H ∧
+    BytesAt m.dmem (r.off 8640) (leavesBytes H 24)
 
 end
 
@@ -100,24 +100,24 @@ end
 
 variable [NativeRustcArm.Host]
 
-/-- **A turn of the loop**: leaf `c` stored, then the next turn or `b58`. -/
+/-- **A turn of the loop**: leaf `c` stored, then the next turn or `b49`. -/
 theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {H : List UInt8} (hH : H.length = 64) {c : Nat} {m : MachineData} (hI : LoopInv r H c m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AfterLoop r H st.data) ∨
-      (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b57Offset ∧ LoopInv r H (c + 1) st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b57Offset⟩ := by
-  obtain ⟨hc, hK, h8, h9, h10, h21, h23, hHb, hL⟩ := hI
+    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b49Offset ∧ AfterLoop r H st.data) ∨
+      (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b48Offset ∧ LoopInv r H (c + 1) st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b48Offset⟩ := by
+  obtain ⟨hc, hK, h8, h9, h10, h19, hHb, hL⟩ := hI
   have hF : r.Frame m := hK.1
-  have hwf := wf_frame2 hpre hF (a := 24720) (n := 64) (a' := 16400 + 8 * c) (n' := 8)
+  have hwf := wf_frame2 hpre hF (a := 16960) (n := 64) (a' := 8640 + 8 * c) (n' := 8)
     (by omega) (by omega) (by omega) (fun _ ↦ 0)
-  have hx8 : (Env.ofMachine m [(r.off 24720, 64), (r.off (16400 + 8 * c), 8)]).regs .X8 =
+  have hx8 : (Env.ofMachine m [(r.off 16960, 64), (r.off (8640 + 8 * c), 8)]).regs .X8 =
       BitVec.ofNat 64 (10 * c) := h8
-  have hm : Match (Env.ofMachine m [(r.off 24720, 64), (r.off (16400 + 8 * c), 8)]) s57 m := by
+  have hm : Match (Env.ofMachine m [(r.off 16960, 64), (r.off (8640 + 8 * c), 8)]) s48 m := by
     refine match_ofMachine ⟨rfl, (by intro h; cases h), rfl, (by intro h; cases h), trivial⟩ rfl
       ⟨?_, ?_, ?_, trivial⟩ trivial ?_ trivial
-    · show _ = r.off 24720 + BitVec.ofInt 64 0
-      rw [h21]
+    · show _ = r.off 16960 + BitVec.ofInt 64 0
+      rw [h19]
       simp
-    · show _ = r.off (16400 + 8 * c) + BitVec.ofInt 64 0
+    · show _ = r.off (8640 + 8 * c) + BitVec.ofInt 64 0
       rw [h9]
       simp
     · exact h10
@@ -126,22 +126,21 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
         bix_lt _ hc hx8 (by decide), bix_lt _ hc hx8 (by decide), bix_lt _ hc hx8 (by decide),
         bix_lt _ hc hx8 (by decide), bix_lt _ hc hx8 (by decide), bix_lt _ hc hx8 (by decide),
         trivial⟩
-  have hk := Sphincs.SphincsVerify.b57_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  refine exec_then hk run_b57 hwf hm fun st hm' hpc ↦ ?_
+  have hk := Sphincs.SphincsVerify.b48_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  refine exec_then hk run_b48 hwf hm fun st hm' hpc ↦ ?_
   obtain ⟨m', pc⟩ := st
   simp only [PcOk] at hpc
   rw [cond_eval _ hc hx8] at hpc
   simp only at hm'
-  -- memory: the leaf's word, the rest kept
-  have hso : SameOutside m.dmem m'.dmem (InRange (r.off (16400 + 8 * c)) 8) :=
+  have hso : SameOutside m.dmem m'.dmem (InRange (r.off (8640 + 8 * c)) 8) :=
     sameOutside_region hm' hwf (k := 1) rfl rfl
-  have hK' : Keep r m' := hK.of_range hpre (a := 16400 + 8 * c) (n := 8)
+  have hK' : Keep r m' := hK.of_range hpre (a := 8640 + 8 * c) (n := 8)
     ⟨by omega, by omega⟩ hso (hm'.sp.trans hF.1) ((hm'.regs .X29 _ rfl).trans hF.2.1)
     (hm'.kept hwf)
-  have hb : ∀ k < 30, (Env.ofMachine m [(r.off 24720, 64), (r.off (16400 + 8 * c), 8)]).load 0 k 1 =
+  have hb : ∀ k < 30, (Env.ofMachine m [(r.off 16960, 64), (r.off (8640 + 8 * c), 8)]).load 0 k 1 =
       BitVec.ofNat 64 (H.getD k 0).toNat := fun k hk ↦ load_byte hHb (by omega)
-  have hleaf : BytesAt m'.dmem (r.off (16400 + 8 * c)) (wordBytes (leafOf H c).toUInt64) := by
-    have := hm'.bytesAt_write (r := 1) (o := 0) (n := 8) (b := r.off (16400 + 8 * c)) (sz := 8)
+  have hleaf : BytesAt m'.dmem (r.off (8640 + 8 * c)) (wordBytes (leafOf H c).toUInt64) := by
+    have := hm'.bytesAt_write (r := 1) (o := 0) (n := 8) (b := r.off (8640 + 8 * c)) (sz := 8)
       rfl (by decide) (v := comb t0 t1 t2 t3 t4 t5 t6 t7 t8 t9)
       (fun i hi ↦ findWrite_head (ws := []) hi)
     rw [comb_leaf _ H hc hx8 hb, bytes_word] at this
@@ -150,40 +149,39 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
   have hH' := keep_range hpre hHb hso (by rw [hH]; omega) (by rw [hH]; omega) (by omega)
   have hL' := keep_range hpre hL hso (by rw [length_leavesBytes]; omega)
     (by rw [length_leavesBytes]; omega) (by omega)
-  have hL'' : BytesAt m'.dmem (r.off 16400) (leavesBytes H (c + 1)) := by
+  have hL'' : BytesAt m'.dmem (r.off 8640) (leavesBytes H (c + 1)) := by
     rw [leavesBytes_succ]
     refine bytesAt_append hL' ?_
     rw [length_leavesBytes, Run.off_add]
     exact hleaf
-  have h23' := regIs_keep hm' rfl h23
   by_cases hlast : c + 1 < 24
-  · refine .done _ (.inr ⟨?_, hlast, hK', ?_, ?_, regIs_lit hm' rfl, ?_, h23', hH', hL''⟩)
+  · refine .done _ (.inr ⟨?_, hlast, hK', ?_, ?_, regIs_lit hm' rfl, ?_, hH', hL''⟩)
     · rw [hpc, decide_eq_true hlast]
       simp only [↓reduceIte]
-      exact Run.label_of_block r hp Sphincs.SphincsVerify.b57_in_code rfl
+      exact Run.label_of_block r hp Sphincs.SphincsVerify.b48_in_code rfl
     · unfold Run.RegIs
       rw [hm'.regs .X8 _ rfl, add10_eval _ hx8]
     · unfold Run.RegIs
       rw [hm'.regs .X9 _ rfl]
       show (Env.ofMachine m _ _).base 1 + BitVec.ofInt 64 8 = _
       rw [Env.base_ofMachine m _ _ rfl, show BitVec.ofInt 64 8 = BitVec.ofNat 64 8 by decide,
-        Run.off_add, show 16400 + 8 * c + 8 = 16400 + 8 * (c + 1) by omega]
+        Run.off_add, show 8640 + 8 * c + 8 = 8640 + 8 * (c + 1) by omega]
     · unfold Run.RegIs
-      rw [hm'.regs .X21 _ rfl]
+      rw [hm'.regs .X19 _ rfl]
       simp [Sym.eval]
   · have hc23 : c = 23 := by omega
     subst hc23
-    refine .done _ (.inl ⟨?_, hK', h23', hH', hL''⟩)
+    refine .done _ (.inl ⟨?_, hK', hH', hL''⟩)
     rw [hpc, decide_eq_false hlast]
     simp only [Bool.false_eq_true, ↓reduceIte]
     rfl
 
-/-- **The loop**: from turn `c`, the machine reaches `b58` with the 24 leaves. -/
+/-- **The loop**: from turn `c`, the machine reaches `b49` with the 24 leaves. -/
 theorem loop_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {H : List UInt8} (hH : H.length = 64) {c : Nat} {m : MachineData} (hI : LoopInv r H c m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AfterLoop r H st.data)
-      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b57Offset⟩ := by
-  refine Sym.loop (fun n st ↦ ∃ c, n = 24 - c ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b57Offset ∧ LoopInv r H c st.data)
+    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b49Offset ∧ AfterLoop r H st.data)
+      ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b48Offset⟩ := by
+  refine Sym.loop (fun n st ↦ ∃ c, n = 24 - c ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b48Offset ∧ LoopInv r H c st.data)
     (fun n st ⟨c, hn, hpc, hI⟩ ↦ ?_) ⟨c, rfl, rfl, hI⟩
   obtain ⟨m, pc⟩ := st
   simp only at hpc

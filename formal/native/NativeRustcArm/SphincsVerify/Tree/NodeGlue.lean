@@ -5,10 +5,10 @@ public import NativeRustcArm.SphincsVerify.Tree.NodeA
 /-!
 # The fold's node: what its stretches share
 
-The node's registers every stretch keeps (`NRegs`: X19 the next height, X24 the layer's path, X27
-the layer's word), through a block (`NRegs.of_match`) and a call (`NRegs.of_saved`); bytes inside
-known bytes (`bytesAt_sub`); a word of known bytes as loaded (`load_sub`); the value at the end
-of a block's branch (`pc_cond`).
+The node's registers and path-pointer spill every stretch keeps (`NRegs`: X24 the next height,
+spill `432` the layer's path, X28 the layer's word), through a block (`NRegs.of_match`) and a call
+(`NRegs.of_call`); bytes inside known bytes (`bytesAt_sub`); a word of known bytes as loaded
+(`load_sub`); the value at the end of a block's branch (`pc_cond`).
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.Tree
@@ -21,23 +21,32 @@ public section
 
 variable (r : Run)
 
-/-- **The node's registers**: X19 `z + 1`, X24 the layer's path, X27 the layer's word. -/
+/-- **The node's registers and path spill**: X24 `z + 1`, spill `432` the layer's path, X28 the
+layer's word. -/
 @[expose] def NRegs (l z : Nat) (m : MachineData) : Prop :=
-  Run.RegIs m .X19 (BitVec.ofNat 64 (z + 1)) ∧ Run.RegIs m .X24 (r.off (12468 + 16 * pathStart l)) ∧
-    Run.RegIs m .X27 (BitVec.ofNat 64 (l * 16777216))
+  Run.RegIs m .X24 (BitVec.ofNat 64 (z + 1)) ∧ r.WordAt m 432 (r.addr (4708 + 16 * pathStart l)) ∧
+    Run.RegIs m .X28 (BitVec.ofNat 64 (l * 16777216))
 
 variable {r}
 
-theorem NRegs.of_match [Labels] {l z : Nat} {m m' : MachineData} {vars : Nat → BitVec 64}
-    {S : SState} (h : NRegs r l z m) (hm : Match (r.env m vars) S m')
-    (h19 : S.reg .X19 = some (.reg .X19)) (h24 : S.reg .X24 = some (.reg .X24))
-    (h27 : S.reg .X27 = some (.reg .X27)) : NRegs r l z m' :=
-  ⟨(hm.regs _ _ h19).trans h.1, (hm.regs _ _ h24).trans h.2.1, (hm.regs _ _ h27).trans h.2.2⟩
+theorem NRegs.of_match [Labels] (hpre : r.Pre) {l z : Nat} {m m' : MachineData}
+    {vars : Nat → BitVec 64} {S : SState} (h : NRegs r l z m) (hm : Match (r.env m vars) S m')
+    (hwf : (r.env m vars).WF) (h24 : S.reg .X24 = some (.reg .X24))
+    (h28 : S.reg .X28 = some (.reg .X28)) (hn : Run.noWriteIn S 432 8 = true) :
+    NRegs r l z m' :=
+  ⟨(hm.regs _ _ h24).trans h.1,
+    r.bytesAt_kept hpre hm hwf (by rw [length_wordBytes]; decide) h.2.1
+      (by rw [length_wordBytes]; exact hn),
+    (hm.regs _ _ h28).trans h.2.2⟩
 
-theorem NRegs.of_saved {l z : Nat} {m m' : MachineData} (h : NRegs r l z m) (hS : Saved m m') :
-    NRegs r l z m' := by
-  refine ⟨?_, ?_, ?_⟩ <;> unfold Run.RegIs <;> rw [hS.1 _ rfl]
-  exacts [h.1, h.2.1, h.2.2]
+theorem NRegs.of_call [Labels] (hpre : r.Pre) {l z : Nat} {m m' : MachineData} (hF : r.Frame m)
+    (h : NRegs r l z m) (hS : Saved m m') {a n N : Nat} (ha : 8224 ≤ a) (han : a + n ≤ 21520)
+    (hN : N ≤ finalizeStack) (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) :
+    NRegs r l z m' :=
+  ⟨by unfold Run.RegIs; rw [hS.1 .X24 rfl]; exact h.1,
+    r.bytesAt_of_call hpre hF (by omega) hN hout (by rw [length_wordBytes]; decide)
+      (by rw [length_wordBytes]; omega) h.2.1,
+    by unfold Run.RegIs; rw [hS.1 .X28 rfl]; exact h.2.2⟩
 
 theorem regIs_of_saved {x : XReg} (hx : calleeSaved x = true) {m m' : MachineData} {v : BitVec 64}
     (h : Run.RegIs m x v) (hS : Saved m m') : Run.RegIs m' x v := by
@@ -102,7 +111,7 @@ theorem length_children {l z : Nat} {cur : List UInt8} (hl : l < 3) (hz : z < he
   unfold Run.children; split <;> simp [hc, length_sibling r hl hz]
 
 theorem length_seed : r.seed.length = 16 := by
-  rw [Run.seed, Run.pk, PublicKey.fromBytes, List.length_take, length_pkBytes]
+  rw [Run.seed, Run.pk, PublicKey.fromBytes, List.length_take, r.hpk]
   rfl
 
 theorem eval_ptr' [Labels] {m : MachineData} {vars : Nat → BitVec 64} (o : Nat) :

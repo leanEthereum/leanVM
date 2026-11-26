@@ -33,11 +33,11 @@ def Facts (r : Run) (m : MachineData) (L : List (Nat × Nat × List UInt8))
 
 /-- The bytes `L` are in the frame and miss `a .. a + n`. -/
 def disj (L : List (Nat × Nat × List UInt8)) (a n : Nat) : Bool :=
-  L.all fun p ↦ decide (p.1 + p.2.1 ≤ 29376) && (decide (p.1 + p.2.1 ≤ a) || decide (a + n ≤ p.1))
+  L.all fun p ↦ decide (p.1 + p.2.1 ≤ 21616) && (decide (p.1 + p.2.1 ≤ a) || decide (a + n ≤ p.1))
 
 /-- The bytes `L` are in the frame and no write of `S` reaches them. -/
 def noW (S : SState) (L : List (Nat × Nat × List UInt8)) : Bool :=
-  L.all fun p ↦ decide (p.1 + p.2.1 ≤ 29376) && Run.noWriteIn S p.1 p.2.1
+  L.all fun p ↦ decide (p.1 + p.2.1 ≤ 21616) && Run.noWriteIn S p.1 p.2.1
 
 /-- The registers `K` are callee-saved. -/
 def savedK (K : List (XReg × BitVec 64)) : Bool := K.all fun p ↦ calleeSaved p.1
@@ -45,10 +45,6 @@ def savedK (K : List (XReg × BitVec 64)) : Bool := K.all fun p ↦ calleeSaved 
 /-- The registers `K` are as they were in `S₀` (known there). -/
 def keptK (S₀ S : SState) (K : List (XReg × BitVec 64)) : Bool :=
   K.all fun p ↦ (S₀.reg p.1).isSome && S.reg p.1 == S₀.reg p.1
-
-/-! The side conditions on the facts' offsets and lengths (`shape`) and registers (`regsOf`) only:
-once the lists are unfolded these mention neither the run nor the facts' bytes, so the kernel
-decides them on a block's literal summary. -/
 
 /-- The facts' offsets and lengths. -/
 def shape (L : List (Nat × Nat × List UInt8)) : List (Nat × Nat) := L.map fun p ↦ (p.1, p.2.1)
@@ -58,11 +54,11 @@ def regsOf (K : List (XReg × BitVec 64)) : List XReg := K.map Prod.fst
 
 /-- `disj` on the shape. -/
 def disjS (P : List (Nat × Nat)) (a n : Nat) : Bool :=
-  P.all fun p ↦ decide (p.1 + p.2 ≤ 29376) && (decide (p.1 + p.2 ≤ a) || decide (a + n ≤ p.1))
+  P.all fun p ↦ decide (p.1 + p.2 ≤ 21616) && (decide (p.1 + p.2 ≤ a) || decide (a + n ≤ p.1))
 
 /-- `noW` on the shape. -/
 def noWS (S : SState) (P : List (Nat × Nat)) : Bool :=
-  P.all fun p ↦ decide (p.1 + p.2 ≤ 29376) && Run.noWriteIn S p.1 p.2
+  P.all fun p ↦ decide (p.1 + p.2 ≤ 21616) && Run.noWriteIn S p.1 p.2
 
 /-- `savedK` on the registers. -/
 def savedKS (X : List XReg) : Bool := X.all calleeSaved
@@ -114,7 +110,7 @@ variable (r : Run) [Labels]
 
 /-- **Bytes a change elsewhere keeps.** -/
 theorem BytesL.keep (hpre : r.Pre) {d d' : DataMem} {a n : Nat}
-    (hs : SameOutside d d' (InRange (r.off a) n)) (ha : a + n ≤ 29376)
+    (hs : SameOutside d d' (InRange (r.off a) n)) (ha : a + n ≤ 21616)
     {L : List (Nat × Nat × List UInt8)} (hd : disj L a n = true) (h : BytesL r d L) :
     BytesL r d' L := by
   unfold BytesL at *
@@ -127,7 +123,8 @@ theorem BytesL.keep (hpre : r.Pre) {d d' : DataMem} {a n : Nat}
 
 /-- **Bytes a block keeps**: those no write of its summary reaches. -/
 theorem BytesL.keep_block (hpre : r.Pre) {m m' : MachineData} {vars : Nat → BitVec 64}
-    {S : SState} (hm : Match (r.env m vars) S m') (hwf : (r.env m vars).WF)
+    {S : SState} (hm : Match (envSig r m vars) S m') (hwf : (envSig r m vars).WF)
+    (hfw : Run.frameWrites S = true)
     {L : List (Nat × Nat × List UInt8)} (hd : noW S L = true) (h : BytesL r m.dmem L) :
     BytesL r m'.dmem L := by
   unfold BytesL at *
@@ -136,7 +133,7 @@ theorem BytesL.keep_block (hpre : r.Pre) {m m' : MachineData} {vars : Nat → Bi
   intro p hp
   obtain ⟨hl, hb⟩ := h p hp
   obtain ⟨h1, h2⟩ := hd p hp
-  exact ⟨hl, r.bytesAt_kept hpre hm hwf (by omega) hb (hl ▸ h2)⟩
+  exact ⟨hl, bytesAt_kept_sig r hpre hm hwf hfw (by omega) hb (hl ▸ h2)⟩
 
 omit [Labels] in
 /-- **Registers a callee keeps.** -/

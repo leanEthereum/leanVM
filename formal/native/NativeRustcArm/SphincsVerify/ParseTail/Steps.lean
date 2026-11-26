@@ -10,8 +10,7 @@ public import NativeRustcArm.SphincsVerify.ParseTail.Loop
 
 `step_memcpy`: a straight block from `fs known` ending in `bl memcpy` between frame offsets takes
 `Facts r m L K` to the facts the block adds (`Lnew`, `Knew`), the ones it keeps, and the bytes
-`memcpy` copies. `step_fall`: a straight block falling through. `Facts.weaken` forgets facts,
-`Facts.sub` adds a part of known bytes.
+`memcpy` copies. `step_fall`: a straight block falling through.
 -/
 
 namespace NativeRustcArm.SphincsVerifyProof.ParseTail
@@ -47,28 +46,6 @@ theorem Facts.weaken {r : Run} {m : MachineData} {L L' : List (Nat × Nat × Lis
   ⟨h.1, allOf_iff.mpr fun x hx ↦ allOf_iff.mp h.2.1 x (hL x hx),
     allOf_iff.mpr fun x hx ↦ allOf_iff.mp h.2.2 x (hK x hx)⟩
 
-/-- **A part of known bytes.** -/
-theorem Facts.sub {r : Run} {m : MachineData} {L : List (Nat × Nat × List UInt8)}
-    {K : List (XReg × BitVec 64)} (h : Facts r m L K) {o len : Nat} {bs : List UInt8}
-    (hm : (o, len, bs) ∈ L) {k n : Nat} (hkn : k + n ≤ len) :
-    Facts r m ((o + k, n, slice bs k n) :: L) K := by
-  obtain ⟨hl, hb⟩ := h.2.1.mem hm
-  have hl' : (slice bs k n).length = n := by
-    simp only [slice, List.length_take, List.length_drop]
-    omega
-  have hb' : BytesAt m.dmem (r.off (o + k)) (slice bs k n) := by
-    have := Parse.bytesAt_sub hb (k := k) (n := n) (by omega)
-    rwa [Parse.off_add] at this
-  exact ⟨h.1, ⟨⟨hl', hb'⟩, h.2.1⟩, h.2.2⟩
-
-/-- A part of known bytes, at the offset and as the bytes given. -/
-theorem Facts.sub_eq {r : Run} {m : MachineData} {L : List (Nat × Nat × List UInt8)}
-    {K : List (XReg × BitVec 64)} (h : Facts r m L K) {o len : Nat} {bs : List UInt8}
-    (hm : (o, len, bs) ∈ L) {k n o' : Nat} {bs' : List UInt8} (hkn : k + n ≤ len)
-    (ho : o' = o + k) (hb : bs' = slice bs k n) : Facts r m ((o', n, bs') :: L) K := by
-  subst ho hb
-  exact h.sub hm hkn
-
 /-- No bytes at `a`. -/
 theorem Facts.nil {r : Run} {m : MachineData} {L : List (Nat × Nat × List UInt8)}
     {K : List (XReg × BitVec 64)} (h : Facts r m L K) (a : Nat) : Facts r m ((a, 0, []) :: L) K :=
@@ -91,12 +68,6 @@ theorem Facts.dropK {r : Run} {m : MachineData} {L : List (Nat × Nat × List UI
     {x : XReg × BitVec 64} {K : List (XReg × BitVec 64)} (h : Facts r m L (x :: K)) :
     Facts r m L K :=
   ⟨h.1, h.2.1, h.2.2.2⟩
-
-/-- Forgetting the second register. -/
-theorem Facts.dropK1 {r : Run} {m : MachineData} {L : List (Nat × Nat × List UInt8)}
-    {x y : XReg × BitVec 64} {K : List (XReg × BitVec 64)} (h : Facts r m L (x :: y :: K)) :
-    Facts r m L (x :: K) :=
-  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.2⟩
 
 /-- **Adjacent known bytes**, together. -/
 theorem Facts.concat {r : Run} {m : MachineData} {L : List (Nat × Nat × List UInt8)}
@@ -128,21 +99,21 @@ theorem step_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memset.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
-    (h29 : S'.reg .X29 = some (.ptr 0 29280))
+    (h29 : S'.reg .X29 = some (.ptr 0 21520))
     {a n : Nat} (h0 : S'.reg .X0 = some (.ptr 0 a)) (h2 : S'.reg .X2 = some (.lit n))
-    (ha : a + n ≤ 29280)
+    (ha : a + n ≤ 21520)
     {m : MachineData} {L : List (Nat × Nat × List UInt8)} {K : List (XReg × BitVec 64)}
     (h : Facts r m L K)
-    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m)) known)
+    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (envSig r m)) known)
     (hLb : noW S' L = true) (hKb : keptK (fs known) S' K = true)
-    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (r.env m) S' m' → RegsL m' Knew)
+    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew)
     (hLc : disj L a n = true) (hKc : savedK (Knew ++ K) = true) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data L (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_memset r hp hc hpre hk hx hw hsp h29 h0 h2 (by omega) ha h.1 hkn
     fun m' st' hm' hpc hF hS hout ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
-  · have hwf := r.frame_wf hpre h.1 (fun _ ↦ 0)
-    exact BytesL.keep r hpre hout (by omega) hLc (BytesL.keep_block r hpre hm' hwf hLb h.2.1)
+  · have hwf := envSig_wf r hpre h.1 (fun _ ↦ 0)
+    exact BytesL.keep r hpre hout (by omega) hLc (BytesL.keep_block r hpre hm' hwf hw hLb h.2.1)
   · have hm0 := match_fs r hpre h.1 hkn
     exact RegsL.keep_call hS hKc ((hKn m' hm').append (RegsL.keep_block hm0 hm' hKb h.2.2))
 
@@ -151,25 +122,25 @@ theorem step_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memcpy.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
-    (h29 : S'.reg .X29 = some (.ptr 0 29280))
+    (h29 : S'.reg .X29 = some (.ptr 0 21520))
     {a b n : Nat} (h0 : S'.reg .X0 = some (.ptr 0 a)) (h1 : S'.reg .X1 = some (.ptr 0 b))
-    (h2 : S'.reg .X2 = some (.lit n)) (ha : a + n ≤ 29280) (hb : b + n ≤ 29376)
+    (h2 : S'.reg .X2 = some (.lit n)) (ha : a + n ≤ 21520) (hb : b + n ≤ 21616)
     (hab : a + n ≤ b ∨ b + n ≤ a)
     {m : MachineData} {L : List (Nat × Nat × List UInt8)} {K : List (XReg × BitVec 64)}
     (h : Facts r m L K)
-    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m)) known)
+    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (envSig r m)) known)
     (hLb : noW S' L = true) (hKb : keptK (fs known) S' K = true)
-    {Lnew : List (Nat × Nat × List UInt8)} (hLn : ∀ m', Match (r.env m) S' m' → BytesL r m'.dmem Lnew)
-    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (r.env m) S' m' → RegsL m' Knew)
+    {Lnew : List (Nat × Nat × List UInt8)} (hLn : ∀ m', Match (envSig r m) S' m' → BytesL r m'.dmem Lnew)
+    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew)
     (hLc : disj (Lnew ++ L) a n = true) (hKc : savedK (Knew ++ K) = true)
     {bs : List UInt8} (hsrc : (b, n, bs) ∈ Lnew ++ L) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data ((a, n, bs) :: (Lnew ++ L)) (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_memcpy r hp hc hpre hk hx hw hsp h29 h0 h1 h2 (by omega) ha hb hab h.1 hkn
     fun m' st' hm' hpc hF hS hbytes hout ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
-  · have hwf := r.frame_wf hpre h.1 (fun _ ↦ 0)
+  · have hwf := envSig_wf r hpre h.1 (fun _ ↦ 0)
     have hL' : BytesL r m'.dmem (Lnew ++ L) :=
-      (hLn m' hm').append (BytesL.keep_block r hpre hm' hwf hLb h.2.1)
+      (hLn m' hm').append (BytesL.keep_block r hpre hm' hwf hw hLb h.2.1)
     obtain ⟨hl, hsb⟩ := hL'.mem hsrc
     rw [← hl, bytesOf_eq hsb] at hbytes
     exact ⟨⟨hl, hbytes⟩, BytesL.keep r hpre hout (by omega) hLc hL'⟩
@@ -181,18 +152,18 @@ theorem step_fall (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hne : ds ≠ [])
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .fall))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
-    (h29 : S'.reg .X29 = some (.ptr 0 29280))
+    (h29 : S'.reg .X29 = some (.ptr 0 21520))
     {m : MachineData} {L : List (Nat × Nat × List UInt8)} {K : List (XReg × BitVec 64)}
     (h : Facts r m L K)
-    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m)) known)
+    (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (envSig r m)) known)
     (hLb : noW S' L = true) (hKb : keptK (fs known) S' K = true)
-    {Lnew : List (Nat × Nat × List UInt8)} (hLn : ∀ m', Match (r.env m) S' m' → BytesL r m'.dmem Lnew)
-    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (r.env m) S' m' → RegsL m' Knew) :
+    {Lnew : List (Nat × Nat × List UInt8)} (hLn : ∀ m', Match (envSig r m) S' m' → BytesL r m'.dmem Lnew)
+    {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew) :
     Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data (Lnew ++ L) (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_fall r hp hpre hk hne hx hw hsp h29 h.1 hkn fun st hm' hpc hF ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
-  · have hwf := r.frame_wf hpre h.1 (fun _ ↦ 0)
-    exact (hLn _ hm').append (BytesL.keep_block r hpre hm' hwf hLb h.2.1)
+  · have hwf := envSig_wf r hpre h.1 (fun _ ↦ 0)
+    exact (hLn _ hm').append (BytesL.keep_block r hpre hm' hwf hw hLb h.2.1)
   · exact (hKn _ hm').append (RegsL.keep_block (match_fs r hpre h.1 hkn) hm' hKb h.2.2)
 
 end

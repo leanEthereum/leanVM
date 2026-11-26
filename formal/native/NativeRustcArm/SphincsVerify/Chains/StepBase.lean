@@ -40,25 +40,26 @@ theorem match_frameS (hpre : r.Pre) {l : Nat} {x E : List UInt8} {m : MachineDat
     (hk : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (r.env m)) k) :
     Match (r.env m) (frameS k) m :=
   r.match_frame hpre hK.1 (known := k ++ keptK) (allOf_append hk
-    ⟨known_ptr hK.1.2.1, known_ptr hK.2.2.2.1, known_ptr hK.2.2.2.2.1, hK.2.2.2.2.2.1, trivial⟩) trivial trivial trivial
+    ⟨known_ptr hK.1.2.1, hK.2.2.2.1, known_ptr hK.2.2.2.2.1, known_ptr hK.2.2.2.2.2.1,
+      known_ptr hK.2.2.2.2.2.2.1, trivial⟩) trivial trivial trivial
 
 /-! ## Bytes a block writes in the frame -/
 
 theorem frame_write_load {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m')
-    {o o' n : Nat} (ho : o + n ≤ 29376) (hw : covers S.mem 0 o n (.load 0 o' n) = true)
+    {o o' n : Nat} (ho : o + n ≤ 21616) (hw : covers S.mem 0 o n (.load 0 o' n) = true)
     {bs : List UInt8} (hlen : bs.length = n) (hn : n ≤ 8) (h : BytesAt m.dmem (r.off o') bs) :
     BytesAt m'.dmem (r.off o) bs :=
-  bytesAt_write_load hm (b := r.base) (sz := 29376) rfl ho hw hlen hn h
+  bytesAt_write_load hm (b := r.base) (sz := 21616) rfl ho hw hlen hn h
 
 theorem frame_write_val {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m')
-    {o n : Nat} (ho : o + n ≤ 29376) {v : Sym} (hw : covers S.mem 0 o n v = true) :
+    {o n : Nat} (ho : o + n ≤ 21616) {v : Sym} (hw : covers S.mem 0 o n v = true) :
     BytesAt m'.dmem (r.off o) ((List.range n).map (byteOf (v.eval (r.env m)))) :=
-  bytesAt_write_val hm (b := r.base) (sz := 29376) rfl ho hw
+  bytesAt_write_val hm (b := r.base) (sz := 21616) rfl ho hw
 
 theorem frame_write_lit {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m')
-    {o n : Nat} (ho : o + n ≤ 29376) {c : Nat} (hw : covers S.mem 0 o n (.lit c) = true) :
+    {o n : Nat} (ho : o + n ≤ 21616) {c : Nat} (hw : covers S.mem 0 o n (.lit c) = true) :
     BytesAt m'.dmem (r.off o) ((List.range n).map (byteOf (BitVec.ofNat 64 c))) :=
-  bytesAt_write_lit hm (b := r.base) (sz := 29376) rfl ho hw
+  bytesAt_write_lit hm (b := r.base) (sz := 21616) rfl ho hw
 
 omit [Labels] in
 theorem BytesAt.off_zero {d : DataMem} {o : Nat} {bs : List UInt8}
@@ -67,7 +68,7 @@ theorem BytesAt.off_zero {d : DataMem} {o : Nat} {bs : List UInt8}
 
 /-- **16 bytes copied** by two 8-byte loads and stores. -/
 theorem frame_copy16 {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m')
-    {o o' : Nat} (ho : o + 16 ≤ 29376) (hw1 : covers S.mem 0 o 8 (.load 0 o' 8) = true)
+    {o o' : Nat} (ho : o + 16 ≤ 21616) (hw1 : covers S.mem 0 o 8 (.load 0 o' 8) = true)
     (hw2 : covers S.mem 0 (o + 8) 8 (.load 0 (o' + 8) 8) = true) {bs : List UInt8}
     (hlen : bs.length = 16) (h : BytesAt m.dmem (r.off o') bs) : BytesAt m'.dmem (r.off o) bs := by
   rw [← List.take_append_drop 8 bs]
@@ -90,7 +91,7 @@ theorem frame_copy16 {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m
 
 /-- **Zeros written** in the frame. -/
 theorem frame_write_zero {m m' : MachineData} {S : SState} (hm : Match (r.env m) S m')
-    {o n : Nat} (ho : o + n ≤ 29376) (hz : zeroAt S.mem 0 o n = true) :
+    {o n : Nat} (ho : o + n ≤ 21616) (hz : zeroAt S.mem 0 o n = true) :
     BytesAt m'.dmem (r.off o) (List.replicate n 0) := by
   intro i hi
   rw [List.length_replicate] at hi
@@ -98,7 +99,7 @@ theorem frame_write_zero {m m' : MachineData} {S : SState} (hm : Match (r.env m)
   have h := hz i hi
   rw [List.getElem_replicate]
   show m'.dmem.get? (r.base + BitVec.ofNat 64 o + BitVec.ofNat 64 i) = _
-  rw [addr_add, hm.mem 0 r.base 29376 rfl (o + i) (by omega)]
+  rw [addr_add, hm.mem 0 r.base 21616 rfl (o + i) (by omega)]
   unfold memByte
   revert h
   cases findWrite 0 (o + i) S.mem with
