@@ -19,6 +19,8 @@
   ## Main results
 
   * `usize_total`, `e_total`
+  * `toNat_add_neg`: an offset below a word, as a number
+  * `next_setMem_win`, `next_setMem_win0`: `NEXT` kept by a store into a range in a window
 -/
 
 import Rv64mc.Proof.Runtime.AllocT
@@ -78,6 +80,21 @@ theorem not_dwordsOf {dst a : Word} {n : Nat} (hd : dst.toNat % 8 = 0)
   rw [toNat_alignToDword]
   omega
 
+/-- `t + c` as a number, for `c` the word of `-k` and `k ≤ t`. -/
+theorem toNat_add_neg {t c : Word} {k : Nat} (hc : c.toNat + k = 2 ^ 64) (hk : k ≤ t.toNat) :
+    (t + c).toNat = t.toNat - k := by
+  rw [BitVec.toNat_add]; omega
+
+/-- `NEXT` is kept by a store into a range in a window. -/
+theorem next_setMem_win {env : Env} {M : MachineState} {q v : Word} {n o : Nat} (hW : InWin env q n) (ho : o < n) :
+    env.next (M.setMem (q + BitVec.ofNat 64 o) v) = env.next M := by
+  unfold Env.next
+  rw [MachineState.getMem_setMem_ne (Ne.symm (hW.ne_next_add ho))]
+
+/-- `NEXT` is kept by a store at the start of a range in a window. -/
+theorem next_setMem_win0 {env : Env} {M : MachineState} {q v : Word} {n : Nat} (hW : InWin env q n) (ho : 0 < n) :
+    env.next (M.setMem q v) = env.next M := by
+  simpa using next_setMem_win (M := M) (v := v) hW ho
 
 set_option hygiene false in
 /-- What is left after `rv_autoT` of either template, for `T` of `2 ^ s` bytes. -/
@@ -120,14 +137,11 @@ local macro "clone_close " s:num : tactic => `(tactic| (
       have hW : InWin env (regs .x10) 24 := hpre_8
       have hnP : env.next (((m2.setMem (regs .x10) (regs .x12)).setMem (regs .x10 + 8#64) (r2 .x10)).setMem
           (regs .x10 + 16#64) 0#64) = env.next m2 := by
-        unfold Env.next
-        rw [MachineState.getMem_setMem_ne (Ne.symm (hW.ne_next_add (o := 16) (by decide))),
-          MachineState.getMem_setMem_ne (Ne.symm (hW.ne_next_add (o := 8) (by decide))),
-          MachineState.getMem_setMem_ne (Ne.symm (by simpa using hW.ne_next_add (o := 0) (by decide)))]
+        rw [next_setMem_win hW (o := 16) (by decide), next_setMem_win hW (o := 8) (by decide),
+          next_setMem_win0 hW (by decide)]
       simp only [CopyOut, Lprog.updReg_apply, Tactic.rf, reduceCtorEq, ↓reduceIte, hnP] at keep3_2
       have h8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
-      have h48 : (top + 0xffffffffffffffd0#64).toNat = top.toNat - 48 := by
-        rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
+      have h48 : (top + 0xffffffffffffffd0#64).toNat = top.toNat - 48 := toNat_add_neg rfl (by omega)
       have hown : (regs .x10).toNat + 24 ≤ (env.next m).toNat ∨ top.toNat ≤ (regs .x10).toNat := by
         rw [← hpre_2]; exact hpre_6
       have hn2 := hret2_14.2.1
@@ -139,9 +153,8 @@ local macro "clone_close " s:num : tactic => `(tactic| (
       have hp3 : m3.getMem (regs .x10 + 8#64) = r2 .x10 := by
         rw [keep3_2 _ (by omega) (not_dwordsOf hret2_17 (by omega)),
           MachineState.getMem_setMem_ne (FinishGrow.ne816 ho), MachineState.getMem_setMem_eq]
-      have hnF : env.next (m3.setMem (regs .x10 + 16#64) (regs .x12)) = env.next m3 := by
-        unfold Env.next
-        rw [MachineState.getMem_setMem_ne (Ne.symm (hW.ne_next_add (o := 16) (by decide)))]
+      have hnF : env.next (m3.setMem (regs .x10 + 16#64) (regs .x12)) = env.next m3 :=
+        next_setMem_win hW (o := 16) (by decide)
       have hn3 := hret3_14.1
       rw [hnP] at hn3
       rw [hsh] at hret2_18

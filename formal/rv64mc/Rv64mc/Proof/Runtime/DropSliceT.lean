@@ -6,7 +6,8 @@
   `DropT.vecForm_total`) on each element's inner slice, and writes nothing a caller sees (`DropSpec`'s, as a
   `HoldsT`). Its precondition is that the elements are a vector's buffer (`VecReprT.BufT`, with the length for the
   capacity): none, or allocated below `NEXT` and 8-byte aligned, since it reads two words of each element. The loop
-  is `Total.loop` at its head with the elements left as the measure (`LoopInv`).
+  is `Total.loop` at its head with the elements left as the measure (`LoopInv`). The two templates differ only in
+  the element's size, so both proofs are one script over it (`drop_slice`).
 
   The executor's closer runs `omega` over the whole context, and a branch's outcome on two words is a bit-vector
   equation it splits on: each proof clears it once the step past the branch has its value as a number.
@@ -73,40 +74,45 @@ theorem shl_add_shl {x : Word} {a b : Nat} (h : (2 ^ a + 2 ^ b) * x.toNat < 2 ^ 
     Nat.mul_comm x.toNat, Nat.mul_comm x.toNat]
   exact Nat.mod_eq_of_lt (by rw [Nat.add_mul] at h; exact h)
 
+set_option hygiene false in
+/-- What is left after `rv_autoT` of either template, for elements of `n = 2 ^ a + 2 ^ b` bytes: the loop's body,
+    from its head to its head or to the return, then its entry. -/
+local macro "drop_slice " n:num a:num b:num : tactic => `(tactic| (
+    refine Total.loop (LoopInv env $n ret top regs m) ?_ ((regs .x11).toNat - 1) _ _ ?_
+    · intro k R M hI ih
+      rv_introT hI
+      clear hpre_6 hc
+      rv_symT hp stop [20, 32] with [hL] using [hd]
+      · have hl := env.layout
+        have hx8 : (R .x8 + BitVec.ofNat 64 $n).toNat = (R .x8).toNat + $n :=
+          toNat_add_ofNat (by have := env.heapEnd.isLt; omega)
+        have hk : k ≠ 0 := fun h0 => hc (BitVec.eq_of_toNat_eq (by rw [hx8]; subst h0; omega))
+        clear hc
+        refine ih (k - 1) _ _ (by omega) ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        all_goals try simp only [Tactic.rf]
+        all_goals rv_closeT
+      · clear hc
+        rv_symT hp with [hL] using [hd]
+    · have hl := env.layout
+      have hn0 : (regs .x11).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
+      obtain ⟨hq1, hq2, hq3⟩ := hpre_6.resolve_left hn0
+      unfold Env.Live at hq2
+      have hq : (regs .x10).toNat + 16 + $n * (regs .x11).toNat < 2 ^ 64 := by have := env.heapEnd.isLt; omega
+      have h16 : (regs .x10 + 16#64).toNat = (regs .x10).toNat + 16 := toNat_add_ofNat (by omega)
+      have h9 : (regs .x10 + 16#64 + (regs .x11 <<< $a + regs .x11 <<< $b)).toNat =
+          (regs .x10).toNat + 16 + $n * (regs .x11).toNat := by
+        rw [BitVec.toNat_add, h16, shl_add_shl (by omega)]; omega
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      all_goals try simp only [Tactic.rf]
+      all_goals rv_closeT))
+
 set_option rv_sym.heap true in
 /-- **The drop glue of `Vec<Vec<Form>>` is total**, with 32 bytes of stack beyond the inner drop's. -/
 theorem vecVecForm_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Gen.Core.Ptr.DropGlueVecVecForm.Link)
     (hp : p[i]? = some (Gen.Core.Ptr.DropGlueVecVecForm.tmpl L)) (hL : L.WF p) {need nd : Nat} (hn : 32 + nd ≤ need)
     (hd : DropSpecT env p L.dropGlueVecForm.idx nd) : DropSliceSpecT env 24 p i need := by
   rv_autoT hp with [hL] using [hd]
-  refine Total.loop (LoopInv env 24 ret top regs m) ?_ ((regs .x11).toNat - 1) _ _ ?_
-  -- the loop's body, from its head to its head or to the return
-  · intro k R M hI ih
-    rv_introT hI
-    clear hpre_6 hc
-    rv_symT hp stop [20, 32] with [hL] using [hd]
-    · have hl := env.layout
-      have hx8 : (R .x8 + 24#64).toNat = (R .x8).toNat + 24 := toNat_add_ofNat (by have := env.heapEnd.isLt; omega)
-      have hk : k ≠ 0 := fun h0 => hc (BitVec.eq_of_toNat_eq (by rw [hx8]; subst h0; omega))
-      clear hc
-      refine ih (k - 1) _ _ (by omega) ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      all_goals try simp only [Tactic.rf]
-      all_goals rv_closeT
-    · clear hc
-      rv_symT hp with [hL] using [hd]
-  -- the loop's entry
-  · have hl := env.layout
-    have hn0 : (regs .x11).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
-    obtain ⟨hq1, hq2, hq3⟩ := hpre_6.resolve_left hn0
-    unfold Env.Live at hq2
-    have hq : (regs .x10).toNat + 16 + 24 * (regs .x11).toNat < 2 ^ 64 := by have := env.heapEnd.isLt; omega
-    have h16 : (regs .x10 + 16#64).toNat = (regs .x10).toNat + 16 := toNat_add_ofNat (by omega)
-    have h9 : (regs .x10 + 16#64 + (regs .x11 <<< 4 + regs .x11 <<< 3)).toNat =
-        (regs .x10).toNat + 16 + 24 * (regs .x11).toNat := by
-      rw [BitVec.toNat_add, h16, shl_add_shl (by omega)]; omega
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    all_goals try simp only [Tactic.rf]
-    all_goals rv_closeT
+  drop_slice 24 4 3
 
 set_option rv_sym.heap true in
 /-- **The drop glue of `Vec<BusBlock>` is total**, with 32 bytes of stack beyond the inner drop's. -/
@@ -114,32 +120,7 @@ theorem vecBusBlock_total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Ge
     (hp : p[i]? = some (Gen.Core.Ptr.DropGlueVecBusBlock.tmpl L)) (hL : L.WF p) {need nd : Nat}
     (hn : 32 + nd ≤ need) (hd : DropSpecT env p L.dropGlueVecForm.idx nd) : DropSliceSpecT env 48 p i need := by
   rv_autoT hp with [hL] using [hd]
-  refine Total.loop (LoopInv env 48 ret top regs m) ?_ ((regs .x11).toNat - 1) _ _ ?_
-  · intro k R M hI ih
-    rv_introT hI
-    clear hpre_6 hc
-    rv_symT hp stop [20, 32] with [hL] using [hd]
-    · have hl := env.layout
-      have hx8 : (R .x8 + 48#64).toNat = (R .x8).toNat + 48 := toNat_add_ofNat (by have := env.heapEnd.isLt; omega)
-      have hk : k ≠ 0 := fun h0 => hc (BitVec.eq_of_toNat_eq (by rw [hx8]; subst h0; omega))
-      clear hc
-      refine ih (k - 1) _ _ (by omega) ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      all_goals try simp only [Tactic.rf]
-      all_goals rv_closeT
-    · clear hc
-      rv_symT hp with [hL] using [hd]
-  · have hl := env.layout
-    have hn0 : (regs .x11).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
-    obtain ⟨hq1, hq2, hq3⟩ := hpre_6.resolve_left hn0
-    unfold Env.Live at hq2
-    have hq : (regs .x10).toNat + 16 + 48 * (regs .x11).toNat < 2 ^ 64 := by have := env.heapEnd.isLt; omega
-    have h16 : (regs .x10 + 16#64).toNat = (regs .x10).toNat + 16 := toNat_add_ofNat (by omega)
-    have h9 : (regs .x10 + 16#64 + (regs .x11 <<< 5 + regs .x11 <<< 4)).toNat =
-        (regs .x10).toNat + 16 + 48 * (regs .x11).toNat := by
-      rw [BitVec.toNat_add, h16, shl_add_shl (by omega)]; omega
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    all_goals try simp only [Tactic.rf]
-    all_goals rv_closeT
+  drop_slice 48 5 4
 
 end Rv64mc.Proof.Runtime.DropSliceT
 

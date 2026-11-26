@@ -18,7 +18,6 @@
   ## Main results
 
   * `total`
-  * `next_setMem_win`, `next_setMem_win0`: `NEXT` kept by a store into a range in a window
 -/
 
 import Rv64mc.Proof.Runtime.CloneT
@@ -31,6 +30,7 @@ open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (BufT VecT)
 open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.MemcpyT (MemcpySpecT)
+open Rv64mc.Proof.Runtime.CloneT (next_setMem_win next_setMem_win0)
 
 /-- The closure's total precondition: the result's slot a caller's, in a window and 8-byte aligned; the point
     `len` elements of a vector's buffer. -/
@@ -49,17 +49,6 @@ def ClaimPostT (env : Env) (regs : Reg â†’ Word) (m : MachineState) (_r' : Reg â
 /-- **The total contract of `verify_bus_balance::{closure#0}`**, writing its 48-byte result. -/
 def ClaimSpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
   HoldsT env p i need (ClaimPreT env) (ClaimPostT env) (fun regs _ => InRange (regs .x10) 48) AbortStop
-
-/-- `NEXT` is kept by a store into a range in a window. -/
-theorem next_setMem_win {env : Env} {M : MachineState} {q v : Word} {n o : Nat} (hW : InWin env q n) (ho : o < n) :
-    env.next (M.setMem (q + BitVec.ofNat 64 o) v) = env.next M := by
-  unfold Env.next
-  rw [MachineState.getMem_setMem_ne (Ne.symm (hW.ne_next_add ho))]
-
-/-- `NEXT` is kept by a store at the start of a range in a window. -/
-theorem next_setMem_win0 {env : Env} {M : MachineState} {q v : Word} {n : Nat} (hW : InWin env q n) (ho : 0 < n) :
-    env.next (M.setMem q v) = env.next M := by
-  simpa using next_setMem_win (M := M) (v := v) hW ho
 
 set_option rv_sym.heap true in
 /-- **`verify_bus_balance::{closure#0}` is total**, with 80 bytes of stack beyond its callees'. -/

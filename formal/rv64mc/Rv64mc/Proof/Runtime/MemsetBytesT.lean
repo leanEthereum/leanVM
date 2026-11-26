@@ -25,7 +25,7 @@ namespace Rv64mc.Proof.Runtime.MemsetBytesT
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime Rv64mc.Proof.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin MemsetPreT MemsetSafeT Kept Base TailInv DwInv HeadInv)
-open Rv64mc.Proof.Runtime.CopyT (bat getByte_setMem' byteOffset_ofNat)
+open Rv64mc.Proof.Runtime.CopyT (bat bat_storeMem toNat_and_not7 toNat_neg_and7)
 open Rv64mc.Gen.CompilerBuiltins.Mem.Memset (Link tmpl)
 
 variable {env : Env}
@@ -51,20 +51,8 @@ theorem bat_setByte {M : MachineState} {x : Word} {c : BitVec 8} {b : Nat} (hb :
 
 /-- An aligned doubleword store as bytes. -/
 theorem bat_setMem {M : MachineState} {x v : Word} {b : Nat} (hx : x.toNat % 8 = 0) (hb : b < 2 ^ 64) :
-    bat (M.setMem x v) b = if x.toNat ≤ b ∧ b < x.toNat + 8 then extractByte v (b - x.toNat) else bat M b := by
-  have hxl := x.isLt
-  unfold bat
-  rw [getByte_setMem', byteOffset_ofNat hb]
-  by_cases hA : b / 8 = x.toNat / 8
-  · have : alignToDword (BitVec.ofNat 64 b) = x := by
-      apply BitVec.eq_of_toNat_eq
-      rw [toNat_alignToDword, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hb]; omega
-    rw [ite_eq_left this, ite_eq_left (by omega), show b - x.toNat = b % 8 by omega]
-  · have hne : alignToDword (BitVec.ofNat 64 b) ≠ x := fun h => hA (by
-      have := congrArg BitVec.toNat h
-      rw [toNat_alignToDword, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hb] at this
-      omega)
-    rw [ite_eq_right hne, ite_eq_right (by omega)]
+    bat (M.setMem x v) b = if x.toNat ≤ b ∧ b < x.toNat + 8 then extractByte v (b - x.toNat) else bat M b :=
+  bat_storeMem (w := .b8) hx hb
 
 /-- The doubleword the code stores: `c`'s low byte in each of its eight bytes. -/
 def splat (c : Word) : Word :=
@@ -129,17 +117,6 @@ theorem Fill.setPost {m m' : MachineState} {dst : Word} {n : Nat} {c : BitVec 8}
 private theorem toNat_sub_one {x : Word} (h : 0 < x.toNat) : (x + 18446744073709551615#64).toNat = x.toNat - 1 := by
   rw [BitVec.toNat_add]
   simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod]
-  omega
-
-/-- `y` rounded down to a multiple of 8, as the code computes it. -/
-private theorem toNat_and_not7 (y : Word) : (y &&& 18446744073709551608#64).toNat = y.toNat - y.toNat % 8 := by
-  rw [show (18446744073709551608#64 : Word) = ~~~7#64 by decide]
-  exact toNat_alignToDword y
-
-/-- The bytes from `x` to the next multiple of 8, as the code computes them. -/
-private theorem toNat_neg_and7 (x : Word) : (0#64 - x &&& 7#64).toNat = (8 - x.toNat % 8) % 8 := by
-  rw [Proof.Runtime.Alloc.and7, BitVec.toNat_sub]
-  simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.zero_mod, Nat.add_zero]
   omega
 
 /-- A register file written only at `x12` to `x16` agrees with its start elsewhere. -/

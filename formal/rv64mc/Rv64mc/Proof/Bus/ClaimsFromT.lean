@@ -29,8 +29,8 @@ open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (BufT VecT)
 open Rv64mc.Proof.Runtime.AllocT (AllocSpecT)
 open Rv64mc.Proof.Runtime.MemcpyT (MemcpySpecT)
-open Rv64mc.Proof.Bus.ColumnClaimT (next_setMem_win next_setMem_win0)
 open Rv64mc.Proof.Runtime.TryAllocateInZT (getByte_setMem_apart)
+open Rv64mc.Proof.Runtime.CloneT (toNat_add_neg)
 
 /-- `from`'s total precondition: the result's slot a caller's, in a window and 8-byte aligned; the array a caller's,
     in a window. -/
@@ -70,8 +70,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat)
     have hown : (regs .x10).toNat + 24 ≤ (env.next m).toNat ∨ top.toNat ≤ (regs .x10).toNat := by
       rw [← hpre_2]; exact hpre_6
     have hn1 := hret1_14.2.1
-    have ht32 : (top + 18446744073709551584#64).toNat = top.toNat - 32 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
+    have ht32 : (top + 18446744073709551584#64).toNat = top.toNat - 32 := toNat_add_neg rfl (by omega)
     simp only [show (96#64 : Word).toNat = 96 from rfl] at *
   -- `memcpy`'s ranges: the fresh block, and the source below `NEXT` or in a caller's frame
   · exact Or.inr ⟨.inl ⟨by omega, by omega⟩, by unfold OffStack; omega,
@@ -85,12 +84,9 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat)
       hret3_17 k (by omega)]
     have hs : (regs .x11 + BitVec.ofNat 64 k).toNat = (regs .x11).toNat + k := toNat_add_ofNat (by omega)
     have ha := toNat_alignToDword (regs .x11 + BitVec.ofNat 64 k)
-    have ht8 : (top + 18446744073709551608#64).toNat = top.toNat - 8 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have ht16 : (top + 18446744073709551600#64).toNat = top.toNat - 16 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
-    have ht24 : (top + 18446744073709551592#64).toNat = top.toNat - 24 := by
-      rw [BitVec.toNat_add]; have := top.isLt; simp only [BitVec.toNat_ofNat]; omega
+    have ht8 : (top + 18446744073709551608#64).toNat = top.toNat - 8 := toNat_add_neg rfl (by omega)
+    have ht16 : (top + 18446744073709551600#64).toNat = top.toNat - 16 := toNat_add_neg rfl (by omega)
+    have ht24 : (top + 18446744073709551592#64).toNat = top.toNat - 24 := toNat_add_neg rfl (by omega)
     rw [Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega), Env.next_setMem_stack (by omega),
       Env.next_setMem_stack (by omega)] at keep1_2
     refine (getByte_congr (keep1_2 _ (by omega))).trans ?_
