@@ -108,7 +108,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
 | 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | yes | Proof/Field/ScaledMulT | MultilinearT.scaledMul | none |
 | 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | yes | Proof/Transcript/DuplexT (over SpongeReprT) | TranscriptT2.duplex | keccak tables (InData) |
-| 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | no | - | - | - |
+| 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | yes | Proof/Merkle/HashPairT (safety) | MerkleT.hashPair | keccak tables (InData) |
 | 4 | 142 | `core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<...` | 110 | D | no | - | - | - |
 | 4 | 148 | `verifier::layout::jump_constraints` | 67 | D | no | - | - | - |
 | 4 | 157 | `verifier::layout::gpow` | 2 | A | yes | Proof/Layout/GpowT | LayoutT.gpow | clmul table |
