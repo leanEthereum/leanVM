@@ -2,17 +2,17 @@
 
 Which of the functions `main` reaches have a total contract (`HoldsT`, `Core/HoldsT.lean`), toward `main`'s `MainSpecT` (`Final/MainSpecT.lean`), as `notes/status.md` tracks the partial ones. A function is **total** here when it has a total contract over its template in `Proof/**` (a `T` module) and a `Table` instance at the image (`Rv64mc/Table/*T.lean`: `liftProg Gen.fns`, `Gen.Idx`, `Gen.Needs`, its callees' `Table` instances as arguments). Indices and instruction counts are `Rv64mc/Gen/index.tsv`'s; heights are the call graph's from the leaves (0 a leaf); the partial class is `notes/status.md`'s (A proved at the image, C a contract only, D nothing). The call graph has 229 functions (`_start` is not counted: `Final/StartT.lean` proves it from `MainSpecT`).
 
-Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `MemcpySpecT (223)`, `MemmoveSpecT (225)`, the total contracts of `compiler_builtins`' `memcpy` and `memmove`, stated in `Proof/Runtime/MemcpyT.lean` and `MemmoveT.lean` and proved by wave 1b. The first three are environment facts about the image.
+Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` composes into the instances that take it.) The first three are environment facts about the image.
 
 ## Summary
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 42 | 868 (4.2%) |
-| of which no open hypothesis | 32 | 460 |
-| of which only environment facts open | 38 | 795 |
-| stated, not proved here | 2 | 395 |
-| no total contract | 185 | 19615 |
+| total, with a `Table` instance | 46 | 1516 (7.3%) |
+| of which no open hypothesis | 38 | 1113 |
+| of which only environment facts open | 45 | 1514 |
+| stated, not proved here | 1 | 268 |
+| no total contract | 182 | 19094 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
@@ -24,7 +24,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 0 | 1 | `verifier_rv64::halt` | 4 | A | yes | Proof/Runtime/HaltT | RuntimeT.halt | none |
 | 0 | 21 | `verifier::field::reduce` | 14 | A | yes | Proof/Field/ReduceT | FieldT.reduce | none |
 | 0 | 22 | `verifier::field::clmul_low` | 72 | A | yes | Proof/Field/ClmulLowT | FieldT.clmulLow | clmul table |
-| 0 | 34 | `<verifier::field::E>::sum::<core::iter::adapters::chain::Chain<allo...` | 32 | D | no | - | - | - |
+| 0 | 34 | `<verifier::field::E>::sum::<core::iter::adapters::chain::Chain<allo...` | 32 | D | yes | Proof/Field/SumChainT | FieldSumT.sumChainT | none |
 | 0 | 35 | `<verifier::field::E>::sum::<core::iter::adapters::copied::Copied<co...` | 19 | A | yes | Proof/Field/ESumCopiedT | FieldT.eSumCopied | none |
 | 0 | 46 | `<verifier::hash::Digest>::from_halves` | 61 | A | yes | Proof/Hash/DigestFromHalvesT | DigestT.digestFromHalves | none |
 | 0 | 50 | `verifier::transcript::grinding_bits` | 88 | A | yes | Proof/Transcript/GrindingBitsT | TranscriptT.grindingBits | none |
@@ -34,13 +34,13 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 0 | 73 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::Form>> @ve...` | 1 | A | yes | Proof/Runtime/DropT | RuntimeT.dropVecForm | none |
 | 0 | 105 | `verifier::field::spread` | 54 | A | yes | Proof/Field/SpreadT | FieldT.spread | none |
 | 0 | 111 | `<verifier::transcript::Transcript>::next` | 19 | A | yes | Proof/Transcript/NextT | TranscriptT.next | none |
-| 0 | 123 | `verifier::hash::xor_block` | 430 | C | no | - | - | - |
+| 0 | 123 | `verifier::hash::xor_block` | 430 | C | yes | Proof/Hash/XorBlockT | HashT.xorBlockT | none |
 | 0 | 128 | `verifier::whir::whir_queries` | 21 | A | yes | Proof/Whir/WhirQueriesT | WhirT.whirQueries | WHIR query tables (InData) |
 | 0 | 184 | `verifier::layout::qkeccak_slot` | 12 | A | yes | Proof/Layout/QkeccakSlotT | LayoutLeafT.qkeccakSlot | none |
 | 0 | 185 | `verifier::layout::is_output_lane` | 3 | A | yes | Proof/Layout/IsOutputLaneT | LayoutLeafT.isOutputLane | none |
 | 0 | 206 | `<[core::mem::maybe_uninit::MaybeUninit<verifier::layout::Form>] as ...` | 1 | D | yes | Proof/Runtime/DropT | RuntimeT.partialDropForm | none |
-| 0 | 208 | `verifier::layout::keccak_cell_lanes` | 59 | D | no | - | - | - |
-| 0 | 223 | `compiler_builtins::mem::memcpy` | 127 | C | stated | Proof/Runtime/MemcpyT `MemcpySpecT` (stated; wave 1b proves it) | - | - |
+| 0 | 208 | `verifier::layout::keccak_cell_lanes` | 59 | D | yes | Proof/Layout/KeccakCellLanesT | CellLanesT.keccakCellLanesT | none |
+| 0 | 223 | `compiler_builtins::mem::memcpy` | 127 | C | yes | Proof/Runtime/MemcpyT | MemT.memcpyT | none |
 | 0 | 224 | `compiler_builtins::mem::memset` | 38 | C | yes | Proof/Runtime/MemsetT | RuntimeT.memsetBuiltin | none |
 | 0 | 225 | `compiler_builtins::mem::memmove` | 268 | C | stated | Proof/Runtime/MemmoveT `MemmoveSpecT` (stated; wave 1b proves it) | - | - |
 | 0 | 226 | `memcmp` | 12 | A | yes | Proof/Runtime/MemcmpT | RuntimeT.memcmp | none |
@@ -52,7 +52,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 1 | 72 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::BusBlock>>...` | 21 | C | no | - | - | - |
 | 1 | 104 | `<verifier::field::E>::square` | 36 | A | yes | Proof/Field/ESquareT | FieldT.eSquare | none |
 | 1 | 151 | `verifier::bus::bus_grinding_bits` | 10 | A | yes | Proof/Bus/BusGrindingBitsT | BusT.busGrindingBits | none |
-| 1 | 227 | `memcpy` | 2 | A | yes | Proof/Runtime/MemWrappersT | RuntimeT.memcpy | MemcpySpecT (223) |
+| 1 | 227 | `memcpy` | 2 | A | yes | Proof/Runtime/MemWrappersT | CopyUseT.memcpy | none |
 | 1 | 228 | `memmove` | 2 | A | yes | Proof/Runtime/MemWrappersT | RuntimeT.memmove | MemmoveSpecT (225) |
 | 1 | 229 | `memset` | 2 | A | yes | Proof/Runtime/MemsetT | RuntimeT.memset | none |
 | 2 | 3 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier_rv64` | 47 | C | no | - | - | - |
@@ -62,11 +62,11 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 | 2 | 19 | `verifier::field::base_mul` | 8 | A | yes | Proof/Field/BaseMulT | FieldT.baseMul | clmul table |
 | 2 | 25 | `<verifier::field::E as core::ops::arith::Mul>::mul` | 61 | A | yes | Proof/Field/EMulT | FieldT.eMul | clmul table |
 | 2 | 37 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier` | 56 | C | no | - | - | - |
-| 2 | 41 | `<alloc::raw_vec::RawVecInner>::finish_grow @verifier` | 66 | A | yes | Proof/Runtime/FinishGrowT | RuntimeT.finishGrow | env; MemcpySpecT (223) |
+| 2 | 41 | `<alloc::raw_vec::RawVecInner>::finish_grow @verifier` | 66 | A | yes | Proof/Runtime/FinishGrowT | CopyUseT.finishGrow | env |
 | 2 | 71 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::Table>> @v...` | 25 | C | no | - | - | - |
 | 2 | 114 | `verifier::hash::keccak_f` | 391 | C | no | - | - | - |
 | 2 | 136 | `verifier::ring_switch::frobenius_8` | 13 | A | yes | Proof/Whir/Frobenius8T | WhirT.frobenius8 | none |
-| 2 | 144 | `<verifier::hash::Digest>::words` | 3 | A | yes | Proof/Hash/DigestWordsT | DigestT.digestWords | MemcpySpecT (223) |
+| 2 | 144 | `<verifier::hash::Digest>::words` | 3 | A | yes | Proof/Hash/DigestWordsT | CopyUseT.digestWords | none |
 | 3 | 9 | `alloc::raw_vec::capacity_overflow` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.capacityOverflow | none |
 | 3 | 10 | `<alloc::vec::Vec<_, _>>::remove::assert_failed` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.removeAssertFailed | none |
 | 3 | 11 | `<alloc::vec::Vec<_, _>>::split_off::assert_failed` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.splitOffAssertFailed | none |
