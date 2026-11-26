@@ -393,7 +393,16 @@ jobs:
         id: build
         # Leaves the regeneration, the checks below and a save their time within the job's.
         timeout-minutes: 230
-        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
+        # `--keep-going` builds everything a failure does not block, so that a failed run saves that too.
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests --keep-going
+      # A timed-out or cancelled step leaves `lake` and `lean` running, writing the files the save reads.
+      - name: Stop the build
+        if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
+        run: |
+          pkill -KILL -f lake-build.py || true
+          pkill -KILL -x lake || true
+          pkill -KILL -x lean || true
+          sleep 5
       - name: Save the Lake build's progress
         # A new push cancels a pull request's run: its progress is kept too.
         if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
