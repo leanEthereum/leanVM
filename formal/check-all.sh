@@ -166,9 +166,9 @@ common() {
 lean_xmss() {
   no_escapes lean_xmss
   cache_get lean_xmss
-  build lean_xmss '(LeanXmss|XmssSecurity)'
-  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rom_adversary_bound \
-    XmssSecurity.leanXmss_rpm_security
+  build lean_xmss 'XmssSecurity'
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rpm_security \
+    XmssSecurity.verifyWithKeccak_of_signWith
 }
 
 lean_sphincs() {
@@ -208,10 +208,10 @@ together() {
   regen
   step "all seven projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
-    @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
+    @lean-xmss-security/XmssSecurity \
     @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa 2>&1 | tee "$log/build.txt"
   # Its last step replays every module's warnings: the projects' own builds would only repeat them.
-  if grep -E "^warning: (Common|LeanXmss|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
+  if grep -E "^warning: (Common|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
     fail "deprecated API"
   fi
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done

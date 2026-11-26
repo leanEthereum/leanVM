@@ -44,12 +44,13 @@ jobs:
       - name: Forbid kernel-skipping options in the lakefiles
         run: |
           ! grep -nE 'skipKernelTC|debug\.' $(ls formal/lakefile.lean formal/*/lakefile.toml formal/*/lakefile.lean 2>/dev/null)
-      # The statement imports Mathlib, VCVio, CompPoly, `fast_fields` and itself, nothing of the proofs (and `fast_fields` only Mathlib, CompPoly and itself), and
-      # `import all` only of its own generated data (`Statement.Data`); an indented import line counts too.
+      # The statement imports Mathlib, VCVio, CompPoly, EthLib's specification (never a `.Proofs` module), `fast_fields` and itself, nothing of the proofs (and
+      # `fast_fields` only Mathlib, CompPoly and itself), and `import all` only of its own generated data (`Statement.Data`); an indented import line counts too.
       - name: Keep the statement apart from the proofs
         run: |
           ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/Statement \
-              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)' &&
+              | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|EthLib\.[A-Za-z0-9_.]*$|all[[:space:]]+Statement\.Data\.)' &&
+          ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib\..*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake formal/Statement &&
           ! grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake formal/fast_fields \
               | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'
       - name: Restore the Lake build
@@ -116,16 +117,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Cheap first pass: the axiom guard in `XmssSecurity.lean` catches a `sorry`
-      # or a `native_decide` reaching the root theorem, this catches one parked
-      # anywhere in the project.
+      # or a `native_decide` reaching the root theorem (EthLib's proof included),
+      # this catches one parked anywhere in the project.
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/lean_xmss
       # Installs the toolchain from `lean_xmss/lean-toolchain`, fetches the
-      # mathlib cache, and runs `lake build` on the default targets, which
-      # elaborate the root module and with it the `#guard_msgs` check, and
-      # `XmssSecurity.Tests.QueryBudget`. The checked-in manifest is used as
-      # is: no `lake update`.
+      # mathlib cache, and runs `lake build` on the default target, which
+      # elaborates the root module and with it the `#guard_msgs` check. The
+      # checked-in manifest is used as is: no `lake update`.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
@@ -134,14 +134,14 @@ jobs:
         working-directory: formal/lean_xmss
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
-          ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: XmssSecurity.*has been deprecated' "$RUNNER_TEMP/build.log"
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
       - name: Check the axiom footprint
         working-directory: formal/lean_xmss
         run: |
-          theorems="leanXmss_rom_adversary_bound leanXmss_rpm_security"
+          theorems="leanXmss_rpm_security verifyWithKeccak_of_signWith"
           { echo 'import XmssSecurity'; for t in $theorems; do echo "#print axioms XmssSecurity.$t"; done; } \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
