@@ -3,7 +3,7 @@ module
 public import NativeRustcX64.Sym.Lemmas
 
 /-!
-# The codeword's digits as the loop `b113` computes them
+# The codeword's digits as the loop `b104` computes them
 
 The loop (`.LBB2_39`) takes the 128-bit digest `rax : rdx` (high, low) apart into 64 two-bit
 digits, the digit at bit `s` (`s` even) the low two bits of `rax >> (s - 64)` when `s ≥ 64`

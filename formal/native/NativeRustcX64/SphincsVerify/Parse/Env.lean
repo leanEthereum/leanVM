@@ -6,12 +6,13 @@ public import NativeRustcX64.SphincsVerify.Parse.State
 /-!
 # The parse's environments (x86-64)
 
-Region 0 is the frame, region 1 the 16 bytes below it, region 2 the input, and regions 3 and 4
-the memcpy and memset GOT slots (`regs3`), preserving the input's index. The input words
-(`input_words`), a loaded word
-(`load_word`). After a block of an environment whose regions 0 and 1 are the frame's, with writes
-there (`frameWrites`) or below the return address (`entryWrites`): the stack area
-(`written_stack`), the frame's invariant (`frame_of_block`).
+Regions 0..3 are always `r.frameRegs` (frame, slots below, memcpy GOT, memset GOT), with an
+optional region 4 for an external read-only input buffer:
+- `regsPk`: the 32-byte public key (`pkPtr`) at `b0` (`wfPk`);
+- `regsSig`: the 7740-byte raw signature (`sigPtr`) (`wfSig`, `match_sig`);
+- `regsOpen c`: the 176-byte FORS opening `c` (`sigPtr + 16 + 176 c`) at `b1` (`wfOpen`,
+  `match_open`);
+- `wfSigTurn`: 32 bytes of `sigPtr` and 32 bytes of the frame for the chain-value copy loops.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Parse
@@ -20,26 +21,25 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- The frame's regions and the input. -/
-abbrev regs3 (r : Run) [Labels] : List (BitVec 64 × Nat) :=
-  [(r.base, frameRegion), (r.base - 16#64, 16), (r.input, 7816),
-    (gotAddr "memcpy", 8), (gotAddr "memset", 8)]
+/-- The frame's regions and the 32-byte public key. -/
+abbrev regsPk (r : Run) [Labels] : List (BitVec 64 × Nat) :=
+  r.frameRegs ++ [(r.pkPtr, 32)]
+
+/-- The frame's regions and the 7740-byte raw signature. -/
+abbrev regsSig (r : Run) [Labels] : List (BitVec 64 × Nat) :=
+  r.frameRegs ++ [(r.sigPtr, 7740)]
+
+/-- The frame's regions and FORS opening `c` (176 bytes of the raw signature). -/
+abbrev regsOpen (r : Run) [Labels] (c : Nat) : List (BitVec 64 × Nat) :=
+  r.frameRegs ++ [(r.sigPtr + BitVec.ofNat 64 (16 + 176 * c), 176)]
 
 /-- The writes are in region 0 below the return address, or in region 1. -/
 def entryWrites (S : SState) : Bool :=
-  S.mem.all fun w ↦ (w.r == 0 && decide (w.off + w.n ≤ 29400)) || (w.r == 1 && decide (w.off + w.n ≤ 16))
+  S.mem.all fun w ↦ (w.r == 0 && decide (w.off + w.n ≤ 21624)) || (w.r == 1 && decide (w.off + w.n ≤ 16))
 
 end
 
 public section
-
-theorem slice_words (w : Nat → UInt64) {s n : Nat} (h : s + n ≤ 977) :
-    slice (Native.Keccak.wordsBytes ((List.range 977).map w)) (8 * s) (8 * n) = wb w s n := by
-  rw [slice, slice_wordsBytes, wb]
-  congr 1
-  apply List.ext_getElem (by simp; omega)
-  intro i h1 h2
-  simp
 
 theorem bytesAt_sub {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : BytesAt d a bs) {k n : Nat}
     (hk : k + n ≤ bs.length) : BytesAt d (a + BitVec.ofNat 64 k) (slice bs k n) := by
@@ -50,117 +50,152 @@ theorem bytesAt_sub {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : BytesAt
 
 variable (r : Run) [Labels]
 
-theorem input_toNat (hpre : r.Pre) : r.input.toNat + 8 * 977 ≤ 2 ^ 64 := hpre.2.2.2.2.2.2.1
+/-- A slice of the raw signature at `r.sigPtr + k`. -/
+theorem sig_slice (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
+    {k n : Nat} (hk : k + n ≤ 7740) :
+    BytesAt d (r.sigPtr + BitVec.ofNat 64 k) (slice r.sigB k n) :=
+  bytesAt_sub (r.sig_at hpre hS) (by rw [r.hsig]; exact hk)
 
-/-- **The input words `s .. s + n`** in a state changed only in the stack area. -/
-theorem input_words (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
-    {s n : Nat} (h : s + n ≤ 977) : BytesAt d (r.input + BitVec.ofNat 64 (8 * s)) (wb r.w s n) := by
-  have hlen : (Native.Keccak.wordsBytes ((List.range 977).map r.w)).length = 8 * 977 := by
-    rw [Native.Keccak.Proof.length_wordsBytes, List.length_map, List.length_range]
-  have hin := r.bytesAt_entry hpre hS hpre.2.2.2.2.2.1 (hlen ▸ hpre.2.2.2.2.2.2.2.1)
-    (hlen ▸ hpre.2.2.2.2.2.2.1)
-  rw [← slice_words r.w h]
-  exact bytesAt_sub hin (by rw [hlen]; omega)
-
-/-- The input word `k` at the input's byte `o = 8 k`. -/
-theorem input_word (hpre : r.Pre) {d : DataMem} (hS : SameOutside r.m0.dmem d r.StackArea)
-    {k o : Nat} (ho : o = 8 * k) (h : k < 977) :
-    BytesAt d (r.input + BitVec.ofNat 64 o) (wordBytes (r.w k)) := by
-  have := input_words r hpre hS (s := k) (n := 1) (by omega)
-  rwa [show wb r.w k 1 = wordBytes (r.w k) by simp [wb, Native.Keccak.wordsBytes], ← ho] at this
-
-/-- **The frame's regions and the input are a well-formed environment**. -/
-theorem wf3 (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
-    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) (vars : Nat → BitVec 64) (ret : BitVec 64) :
-    (Env.ofMachine m (regs3 r) vars ret).WF := by
+/-- Helper: appending a 5th external read-only region apart from stack and GOT to `frameRegs` is WF. -/
+private theorem wf_frame_ext (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
+    {p : BitVec 64} {len : Nat}
+    (hmap : Mapped m.dmem p len) (hnw : NoWrap p len)
+    (hA : Apart p len (stackBelow r.m0 sphincsStack) (sphincsStack + 8))
+    (hg1 : Apart (gotAddr "memcpy") 8 p len) (hg2 : Apart (gotAddr "memset") 8 p len)
+    (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (Env.ofMachine m (r.frameRegs ++ [(p, len)]) vars ret).WF := by
   have hw := r.frame_wf hpre hk vars ret
   have hb := r.base_toNat hpre
   have hbl := r.below_toNat hpre
-  have hi := input_toNat r hpre
-  have hA := hpre.2.2.2.2.2.2.2.1
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
-  have hmap := (input_words r hpre hS (s := 0) (n := 977) (by decide)).mapped
-  rw [length_wb] at hmap
-  simp only [Nat.mul_zero, BitVec.add_zero] at hmap
   have h0 : Mapped m.dmem r.base frameRegion ∧ NoWrap r.base frameRegion :=
     ⟨hw.mapped 0 r.base frameRegion rfl, hw.noWrap 0 r.base frameRegion rfl⟩
   have h1 : Mapped m.dmem (r.base - 16#64) 16 ∧ NoWrap (r.base - 16#64) 16 :=
     ⟨hw.mapped 1 (r.base - 16#64) 16 rfl, hw.noWrap 1 (r.base - 16#64) 16 rfl⟩
-  have h3 : Mapped m.dmem (gotAddr "memcpy") 8 ∧ NoWrap (gotAddr "memcpy") 8 :=
+  have h2 : Mapped m.dmem (gotAddr "memcpy") 8 ∧ NoWrap (gotAddr "memcpy") 8 :=
     ⟨hw.mapped 2 (gotAddr "memcpy") 8 rfl, hw.noWrap 2 (gotAddr "memcpy") 8 rfl⟩
-  have h4 : Mapped m.dmem (gotAddr "memset") 8 ∧ NoWrap (gotAddr "memset") 8 :=
+  have h3 : Mapped m.dmem (gotAddr "memset") 8 ∧ NoWrap (gotAddr "memset") 8 :=
     ⟨hw.mapped 3 (gotAddr "memset") 8 rfl, hw.noWrap 3 (gotAddr "memset") 8 rfl⟩
-  refine Sym.Env.wf_of ⟨h0, h1,
-    ⟨fun i hi ↦ hmap i (by omega), by unfold NoWrap; omega⟩, h3, h4, trivial⟩ ?_
+  refine Sym.Env.wf_of ⟨h0, h1, h2, h3, ⟨hmap, hnw⟩, trivial⟩ ?_
   simp only [Apart, Run.sphincsStack_eq] at hA hbl
-  refine List.Pairwise.cons ?_ (List.Pairwise.cons ?_ (List.Pairwise.cons ?_ ?_))
+  dsimp only [Run.frameRegs, List.cons_append, List.nil_append]
+  refine List.Pairwise.cons ?_ (List.Pairwise.cons ?_ (List.Pairwise.cons ?_ (List.Pairwise.cons ?_ (List.pairwise_singleton _ _))))
   · intro e he
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl | rfl
     · exact hw.disjoint 0 1 _ _ _ _ (by decide) rfl rfl
-    · show Apart r.base frameRegion r.input 7816
-      unfold Apart
-      rw [Run.frameRegion_eq]
-      omega
     · exact (r.got_apart_frame hpre (by simp)).symm
     · exact (r.got_apart_frame hpre (by simp)).symm
+    · show Apart r.base frameRegion p len
+      unfold Apart; rw [Run.frameRegion_eq]; omega
   · intro e he
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl
-    · show Apart (r.base - 16#64) 16 r.input 7816
-      unfold Apart
-      omega
     · exact (r.got_apart_below hpre (by simp)).symm
     · exact (r.got_apart_below hpre (by simp)).symm
+    · show Apart (r.base - 16#64) 16 p len
+      unfold Apart; omega
   · intro e he
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl
-    · exact (((r.got hpre).1 "memcpy" (by simp)).2.2.2 (r.input, 8 * 977) (by simp)).symm
-    · exact (((r.got hpre).1 "memset" (by simp)).2.2.2 (r.input, 8 * 977) (by simp)).symm
-  · simpa using (r.got hpre).2
+    · exact hw.disjoint 2 3 _ _ _ _ (by decide) rfl rfl
+    · exact hg1
+  · intro e he
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at he
+    rcases he with rfl
+    exact hg2
 
-/-- **The input's bytes `8 s .. 8 s + k` and the frame's `a .. a + n`** are a well-formed
-environment. -/
-theorem wf_in_frame (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
-    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) {s k a n : Nat} (hs : 8 * s + k ≤ 8 * 977)
-    (hk0 : 0 < k) (ha : a + n ≤ 29400) (vars : Nat → BitVec 64) (ret : BitVec 64) :
-    (Env.ofMachine m [(r.input + BitVec.ofNat 64 (8 * s), k), (r.off a, n)] vars ret).WF := by
-  have hi := input_toNat r hpre
+/-- **The frame's regions and the public key** are a well-formed environment (at `b0`). -/
+theorem wfPk (hpre : r.Pre) (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (Env.ofMachine r.m0 (regsPk r) vars ret).WF := by
+  obtain ⟨hpk, hnw, hA⟩ := r.pk_pre hpre
+  have hmap : Mapped r.m0.dmem r.pkPtr 32 := fun i hi ↦ by
+    rw [hpk i (by rw [r.hpk]; exact hi)]; rfl
+  exact wf_frame_ext r hpre (fun _ h ↦ h) hmap hnw hA
+    (r.got_apart_pk hpre (by simp)) (r.got_apart_pk hpre (by simp)) vars ret
+
+/-- **The frame's regions and the raw signature** are a well-formed environment. -/
+theorem wfSig (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
+    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (Env.ofMachine m (regsSig r) vars ret).WF := by
+  obtain ⟨_, hnw, hA⟩ := r.sig_pre hpre
+  have hmap : Mapped m.dmem r.sigPtr 7740 := fun i hi ↦ by
+    rw [r.sig_at hpre hS i (by rw [r.hsig]; exact hi)]; rfl
+  exact wf_frame_ext r hpre hk hmap hnw hA
+    (r.got_apart_sig hpre (by simp)) (r.got_apart_sig hpre (by simp)) vars ret
+
+/-- **The frame's regions and FORS opening `c`** are a well-formed environment (at `b1`). -/
+theorem wfOpen (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
+    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) {c : Nat} (hc : c < 24)
+    (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (Env.ofMachine m (regsOpen r c) vars ret).WF := by
+  obtain ⟨_, hnw, hA⟩ := r.sig_pre hpre
+  have hoff : (r.sigPtr + BitVec.ofNat 64 (16 + 176 * c)).toNat = r.sigPtr.toNat + (16 + 176 * c) :=
+    Sym.toNat_add_ofNat _ _ (by unfold NoWrap at hnw; omega)
+  have hmap : Mapped m.dmem (r.sigPtr + BitVec.ofNat 64 (16 + 176 * c)) 176 := fun i hi ↦ by
+    rw [addr_add, r.sig_at hpre hS _ (by rw [r.hsig]; omega)]; rfl
+  have hnw' : NoWrap (r.sigPtr + BitVec.ofNat 64 (16 + 176 * c)) 176 := by
+    unfold NoWrap at hnw ⊢; omega
+  have hA' : Apart (r.sigPtr + BitVec.ofNat 64 (16 + 176 * c)) 176
+      (stackBelow r.m0 sphincsStack) (sphincsStack + 8) := by
+    unfold Apart at hA ⊢; omega
+  have hg : ∀ l ∈ ["memcpy", "memset"], Apart (gotAddr l) 8
+      (r.sigPtr + BitVec.ofNat 64 (16 + 176 * c)) 176 := fun l hl ↦ by
+    have h := r.got_apart_sig hpre hl
+    unfold Apart at h ⊢; omega
+  exact wf_frame_ext r hpre hk hmap hnw' hA' (hg "memcpy" (by simp)) (hg "memset" (by simp)) vars ret
+
+/-- **A 32-byte slice of `sigPtr` and a 32-byte slice of the frame** are a well-formed environment. -/
+theorem wfSigTurn (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem)
+    (hS : SameOutside r.m0.dmem m.dmem r.StackArea) {off d : Nat}
+    (hoff : off + 32 ≤ 7740) (hd : d + 32 ≤ 21624)
+    (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (Env.ofMachine m [(r.sigPtr + BitVec.ofNat 64 off, 32), (r.off d, 32)] vars ret).WF := by
+  obtain ⟨_, hnw, hA⟩ := r.sig_pre hpre
   have hbl := r.below_toNat hpre
   have hb := r.base_toNat hpre
-  have ho := r.off_toNat hpre (a := a) (by omega)
-  have hA := hpre.2.2.2.2.2.2.2.1
-  have hmap := (input_words r hpre hS (s := 0) (n := 977) (by decide)).mapped
-  rw [length_wb] at hmap
-  simp only [Nat.mul_zero, BitVec.add_zero] at hmap
-  have hs' : (r.input + BitVec.ofNat 64 (8 * s)).toNat = r.input.toNat + 8 * s :=
-    Sym.toNat_add_ofNat _ _ (by omega)
-  refine Sym.Env.wf_of ⟨⟨fun i hi ↦ ?_, by show NoWrap _ k; unfold NoWrap; rw [hs']; omega⟩,
-    r.frame_mapped hpre hk ha, trivial⟩ (List.pairwise_pair.mpr ?_)
-  · rw [addr_add]
-    exact hmap _ (by omega)
-  · show Apart _ k _ n
-    simp only [Apart, Run.sphincsStack_eq] at hA hbl ⊢
-    rw [hs', ho]
-    omega
+  have ho := r.off_toNat hpre (a := d) (by omega)
+  have hs : (r.sigPtr + BitVec.ofNat 64 off).toNat = r.sigPtr.toNat + off :=
+    Sym.toNat_add_ofNat _ _ (by unfold NoWrap at hnw; omega)
+  have hmap : Mapped m.dmem (r.sigPtr + BitVec.ofNat 64 off) 32 := fun i hi ↦ by
+    rw [addr_add, r.sig_at hpre hS _ (by rw [r.hsig]; omega)]; rfl
+  refine Sym.Env.wf_of ⟨⟨hmap, by dsimp only; unfold NoWrap at hnw ⊢; omega⟩,
+    r.frame_mapped hpre hk hd, trivial⟩ (List.pairwise_pair.mpr ?_)
+  show Apart _ 32 _ 32
+  simp only [Apart, Run.sphincsStack_eq] at hA hbl ⊢
+  omega
 
-omit [Labels] in
-/-- **A loaded word**. -/
-theorem load_word {env : Env} {r' o : Nat} {x : UInt64}
-    (h : BytesAt env.mem0 (env.base r' + BitVec.ofNat 64 o) (wordBytes x)) :
-    env.load r' o 8 = x.toBitVec := by
-  rw [Env.load_of_bytesAt (length_wordBytes x) h]
-  have := ofBytes_regBytes x.toBitVec
-  rwa [regBytes_eq_wordBytes] at this
-
-omit [Labels] in
-theorem base1 : r.base - 16#64 + BitVec.ofInt 64 8 = r.base + BitVec.ofInt 64 (-8) :=
-  (r.alias8).symm
+/-- Match `fSig k` in a frame state with `RBX = r.sigPtr`. -/
+theorem match_sig (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) (hrbx : Run.RegIs m .rbx r.sigPtr)
+    {vars : Nat → BitVec 64} {ret : BitVec 64} {k : List (Reg64 × Sym)}
+    (hk : AllOf (fun p ↦ m.regs.get64 p.1 = p.2.eval (Env.ofMachine m (regsSig r) vars ret)) k) :
+    Match (Env.ofMachine m (regsSig r) vars ret) (fSig k) m := by
+  apply Match.withKnownBytes
+  · apply Match.withKnownBytes
+    · apply match_ofMachine
+      · exact ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
+      · refine ⟨by show rspOf m = r.base + BitVec.ofInt 64 0; simpa only [BitVec.ofInt_ofNat, BitVec.add_zero] using hF.1,
+          by show m.regs.get64 .rbx = r.sigPtr + BitVec.ofInt 64 0; simp only [BitVec.ofInt_ofNat, BitVec.add_zero]; exact hrbx,
+          hk⟩
+      · exact trivial
+      · exact trivial
+      · refine ⟨r.alias8, ?_, ?_, ?_, trivial⟩
+        · change r.base + BitVec.ofInt 64 (-16) = (r.base - 16#64) + BitVec.ofInt 64 0
+          rw [show BitVec.ofInt 64 (-16) = -16#64 by decide, show BitVec.ofInt 64 0 = 0#64 by decide]
+          bv_omega
+        · simp [Sym.eval, Env.base, regsSig, Run.frameRegs, gotAddr]
+        · simp [Sym.eval, Env.base, regsSig, Run.frameRegs, gotAddr]
+    · intro i hi
+      simpa [Sym.eval, Env.base, regsSig, Run.frameRegs] using
+        r.got_byte hpre hF.2.2.1 (by simp : "memcpy" ∈ _) hi
+  · intro i hi
+    simpa [Sym.eval, Env.base, regsSig, Run.frameRegs] using
+      r.got_byte hpre hF.2.2.1 (by simp : "memset" ∈ _) hi
 
 /-- **The places a block's writes cover**, in an environment whose regions 0 and 1 are the
-frame's: in the stack area, and off the saved registers where `frameWrites`. -/
+frame's: in the stack area (`entryWrites`). -/
 theorem written_stack (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29408))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 21632))
     (h1 : regions[1]? = some (r.base - 16#64, 16)) {S : SState} (hw : entryWrites S = true) :
     ∀ p, Sym.Written (Env.ofMachine m regions vars ret) S p → r.StackArea p := by
   have hb := r.base_toNat hpre
@@ -180,15 +215,15 @@ theorem written_stack (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 6
     omega
 
 theorem written_frame (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 29408))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (h0 : regions[0]? = some (r.base, 21632))
     (h1 : regions[1]? = some (r.base - 16#64, 16)) {S : SState} (hw : Run.frameWrites S = true) :
     ∀ p, Sym.Written (Env.ofMachine m regions vars ret) S p →
-      r.StackArea p ∧ ¬InRange (r.off 29352) 48 p := by
+      r.StackArea p ∧ ¬InRange (r.off 21576) 48 p := by
   have hb := r.base_toNat hpre
   rintro p ⟨w, hwm, b, sz, hr, h1', h2⟩
   simp only [Run.frameWrites, List.all_eq_true, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
     decide_eq_true_eq] at hw
-  have hs := r.off_toNat hpre (a := 29352) (by decide)
+  have hs := r.off_toNat hpre (a := 21576) (by decide)
   rw [r.stackArea_iff hpre, Sym.inRange_iff (by rw [hs]; omega), hs]
   rcases hw w hwm with ⟨hw0, hwn⟩ | ⟨hw1, hwn⟩
   · rw [hw0] at hr
@@ -205,13 +240,27 @@ theorem written_frame (hpre : r.Pre) {m : MachineData} {regions : List (BitVec 6
 frame's, its writes there off the saved registers, RSP the base. -/
 theorem frame_of_block (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
     {regions : List (BitVec 64 × Nat)} {vars : Nat → BitVec 64} {ret : BitVec 64}
-    (h0 : regions[0]? = some (r.base, 29408)) (h1 : regions[1]? = some (r.base - 16#64, 16))
+    (h0 : regions[0]? = some (r.base, 21632)) (h1 : regions[1]? = some (r.base - 16#64, 16))
     {S : SState} (hm : Match (Env.ofMachine m regions vars ret) S m')
     (hwf : (Env.ofMachine m regions vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 0))
     (hw : Run.frameWrites S = true) : r.Frame m' :=
   Run.Frame.of_change hF.2.1 hF.2.2.1 hF.2.2.2
     (by rw [rspOf, hm.regs .rsp _ hsp]; simp [Sym.eval, Env.base, h0])
     (hm.sameOutside hwf) (written_frame r hpre h0 h1 hw) (hm.kept hwf)
+
+/-- **At a call after a block** of an environment whose regions 0 and 1 are the frame's. -/
+theorem atCall_of_block (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
+    {regions : List (BitVec 64 × Nat)} {vars : Nat → BitVec 64} {ret : BitVec 64}
+    (h0 : regions[0]? = some (r.base, 21632)) (h1 : regions[1]? = some (r.base - 16#64, 16))
+    {S : SState} (hm : Match (Env.ofMachine m regions vars ret) S m')
+    (hwf : (Env.ofMachine m regions vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 (-8)))
+    (hw : Run.frameWrites S = true) : r.AtCall m' := by
+  have hF' := Run.Frame.of_change hF.2.1 hF.2.2.1 hF.2.2.2 (m' := { m' with regs := m.regs }) hF.1
+    (hm.sameOutside hwf) (written_frame r hpre h0 h1 hw) (hm.kept hwf)
+  refine ⟨?_, hF'.2.1, hF'.2.2.1, hF'.2.2.2⟩
+  rw [rspOf, hm.regs .rsp _ hsp, eval_ptr h0]
+  rw [show BitVec.ofInt 64 (-8) = -8#64 by decide]
+  bv_omega
 
 end
 

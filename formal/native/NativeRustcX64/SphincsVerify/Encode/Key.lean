@@ -7,14 +7,14 @@ public import NativeRustcX64.SphincsVerify.Encode.KeyEnv
 public import NativeRustcX64.SphincsVerify.Encode.KeyMath
 
 /-!
-# The key and the encoder's address: `b104`
+# The key and the encoder's address: `b95`
 
-`b104` (`.LSphincsVerify_38`) computes layer `l`'s key from the index and
+`b95` (`.LSphincsVerify_38`) computes layer `l`'s key from the index and
 `LAYER_HEIGHTS`, spills the layer loop's words (`LayerSpills`), writes the encoder's address
-`OtsKey::adrs(7)` at `2056`, loads the counter into EBX and calls `memset` on hasher A. For each
+`OtsKey::adrs(7)` at `2024`, loads the counter into EBX and calls `memset` on hasher A. For each
 of the three layers the executor's result is checked by the kernel against its expected writes
 (`b104Ok_all`); `b104_spec` runs the block and the call: the invariant `EncBase` with the
-counter, the address at `2056` (`Run.EncAdrs`), hasher A new.
+counter, the address at `2024` (`Run.EncAdrs`), hasher A new.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof
@@ -31,7 +31,7 @@ set_option Elab.async false
 def idxS : Sym := .load 0 552 8
 /-- Layer `l`'s height, loaded from `LAYER_HEIGHTS`. -/
 def hS (l : Nat) : Sym := .load 2 (8 * l) 8
-/-- The byte register `b104` sets to the layers below's heights, from `setne` (`b = l - 1`). -/
+/-- The byte register `b95` sets to the layers below's heights, from `setne` (`b = l - 1`). -/
 def cntS (b : Nat) : Sym :=
   let x : Sym := .bin .merge .W8 (.reg .rax) (.lit b)
   let y : Sym := .bin .merge .W8 x (.bin .shl .W8 x (.lit 3))
@@ -54,32 +54,32 @@ def revL (l : Nat) : Nat := (UnOp.apply .bswap .W32 (BitVec.ofNat 64 l)).toNat
 def wr (S : SState) (o n : Nat) (v : Sym) : Bool :=
   (List.range n).all fun i ↦ findWrite 0 (o + i) S.mem == some (v, i)
 
-/-- `b104`'s start for layer `l`: `AtLayer`'s registers, the chain values' address at `184`. -/
+/-- `b95`'s start for layer `l`: `AtLayer`'s registers, the chain values' address at `184`. -/
 def s104 (l : Nat) : SState :=
   Run.frameStateL
     [(.rcx, .lit (4656 + 1028 * l)), (.rsi, .lit l), (.rdx, .label NativeRustcX64.layerHeightsLabel),
-      (.rbx, .lit 0), (.r12, .ptr 0 4104), (.rbp, .ptr 0 560), (.r13, .ptr 0 2056),
+      (.rbx, .lit 0), (.r12, .ptr 0 4072), (.rbp, .ptr 0 560), (.r13, .ptr 0 2024),
       (.r15, .ptr 0 144)]
-    [(.load 0 184 8, 0, ((25212 + 1028 * l : Nat) : Int))]
+    [(.load 0 184 8, 0, ((17436 + 1028 * l : Nat) : Int))]
 
-/-- `b104` for layer `l` as the executor runs it. -/
+/-- `b95` for layer `l` as the executor runs it. -/
 def b104Ok (l : Nat) : Bool :=
-  match exec Sphincs.SphincsVerify.b104 (s104 l) with
+  match exec Sphincs.SphincsVerify.b95 (s104 l) with
   | some (S, x) =>
-    x == .call NativeRustcX64.Common.Memset.entryLabel && S.reg .rdi == some (.ptr 0 4104) && S.reg .rsi == some (.lit 0) &&
-      S.reg .rdx == some (.lit 344) && S.reg .rbx == some (.load 0 (26236 + 1028 * l) 4) &&
-      S.reg .rsp == some (.ptr 0 (-8)) && S.reg .r12 == some (.ptr 0 4104) &&
-      S.reg .rbp == some (.ptr 0 560) && S.reg .r13 == some (.ptr 0 2056) &&
+    x == .call NativeRustcX64.Common.Memset.entryLabel && S.reg .rdi == some (.ptr 0 4072) && S.reg .rsi == some (.lit 0) &&
+      S.reg .rdx == some (.lit 344) && S.reg .rbx == some (.load 0 (18460 + 1028 * l) 4) &&
+      S.reg .rsp == some (.ptr 0 (-8)) && S.reg .r12 == some (.ptr 0 4072) &&
+      S.reg .rbp == some (.ptr 0 560) && S.reg .r13 == some (.ptr 0 2024) &&
       S.reg .r15 == some (.ptr 0 144) && Run.frameWrites S && Run.noWriteIn S 112 32 &&
       Run.noWriteIn S 144 16 && Run.noWriteIn S 184 8 && Run.noWriteIn S 552 8 &&
-      Run.noWriteIn S 20556 7740 &&
+      Run.noWriteIn S 12780 7740 &&
       wr S 96 8 (.lit l) && wr S 192 8 (.lit (l + 1)) &&
       wr S 200 8 (.lit (4656 + 1028 * (l + 1))) &&
       wr S 168 8 (hS l) && wr S 208 8 (leafS l) && wr S 104 4 (.lit (revL l)) &&
       wr S 88 8 (.un .bswap .W64 (treeS l)) && wr S 68 4 (leafBE l) &&
-      wr S 2056 4 (.lit (revL l)) && wr S 2060 4 (.lit 0) &&
-      wr S 2064 8 (.un .bswap .W64 (treeS l)) && wr S 2072 4 (.lit 117440512) &&
-      wr S 2076 4 (leafBE l) && wr S 2080 8 (.lit 0) && S.reg .r14 == some (.reg .r14)
+      wr S 2024 4 (.lit (revL l)) && wr S 2028 4 (.lit 0) &&
+      wr S 2032 8 (.un .bswap .W64 (treeS l)) && wr S 2040 4 (.lit 117440512) &&
+      wr S 2044 4 (leafBE l) && wr S 2048 8 (.lit 0) && S.reg .r14 == some (.reg .r14)
   | none => false
 
 theorem b104Ok_all : ∀ l < 3, b104Ok l = true := by decide +kernel
@@ -134,7 +134,7 @@ theorem be32_layer {l : Nat} (hl : l < 3) :
     (List.range 4).map (byteOf (BitVec.ofNat 64 (revL l))) = be32 l.toUInt32 := by
   rw [revL, ofNat_toNat_self, bytes_bswap32, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
 
-/-- The mask `b104` computes from the height: `~(-1 << h)`, `2 ^ h - 1`. -/
+/-- The mask `b95` computes from the height: `~(-1 << h)`, `2 ^ h - 1`. -/
 theorem mask_val {l : Nat} (hl : l < 3) :
     UnOp.apply .not .W32 (BinOp.apply .shl .W64 (BitVec.ofNat 64 18446744073709551615)
       (BitVec.ofNat 64 (layerHeights.getD l 0))) =
@@ -161,12 +161,12 @@ namespace Run
 
 variable (r : Run) [Labels]
 
-/-- The encoder's address at `2056`. -/
-def EncAdrs (l : Nat) (m : MachineData) : Prop := BytesAt m.dmem (r.off 2056) ((r.key l).adrs 7)
+/-- The encoder's address at `2024`. -/
+def EncAdrs (l : Nat) (m : MachineData) : Prop := BytesAt m.dmem (r.off 2024) ((r.key l).adrs 7)
 
 /-- A write of the block, in the frame. -/
 theorem write_at {m m' : MachineData} {ret : BitVec 64} {S : SState}
-    (hm : Match (r.envL m ret) S m') {o n : Nat} {v : Sym} (hle : o + n ≤ 29408)
+    (hm : Match (r.envL m ret) S m') {o n : Nat} {v : Sym} (hle : o + n ≤ 21632)
     (h : wr S o n v = true) :
     BytesAt m'.dmem (r.off o) ((List.range n).map (byteOf (v.eval (r.envL m ret)))) :=
   hm.bytesAt_write (r := 0) (b := r.base) (sz := frameRegion) rfl hle (wr_spec h)
@@ -179,13 +179,13 @@ namespace Run
 variable (r : Run) [Labels]
 
 omit [Labels] in
-/-- **Layer `l`'s counter in the frame**: at `26236 + 1028 l`, little-endian. -/
+/-- **Layer `l`'s counter in the frame**: at `18460 + 1028 l`, little-endian. -/
 theorem counter_at {m : MachineData} (hI : r.Inputs m) {l : Nat} (hl : l < 3) :
-    BytesAt m.dmem (r.off (26236 + 1028 * l)) (le32 (r.layerSig l).counter) := by
+    BytesAt m.dmem (r.off (18460 + 1028 * l)) (le32 (r.layerSig l).counter) := by
   have h := bytesAt_slice hI.2 (4656 + 1028 * l + 1024) 4 (by rw [r.length_sigMem]; omega)
-  rw [show r.sig = sigOf r.w from rfl, SigMem.sigMem_counter r.w hl] at h
-  rwa [off_add, show 20556 + (4656 + 1028 * l + 1024) =
-    26236 + 1028 * l by omega] at h
+  rw [show r.sig = sigOfBytes r.sigB from rfl, SigMemBytes.sigMem_counter r.sigB r.hsig hl] at h
+  rwa [off_add, show 12780 + (4656 + 1028 * l + 1024) =
+    18460 + 1028 * l by omega] at h
 
 omit [Labels] in
 theorem word_lit (n : Nat) :
@@ -205,30 +205,30 @@ end Run
 
 variable [Host]
 
-/-- **`b104` and `memset`**: from layer `l`'s state, the machine reaches `b105` with the
-invariant (the counter in EBX), the encoder's address at `2056` and hasher A new. -/
+/-- **`b95` and `memset`**: from layer `l`'s state, the machine reaches `b96` with the
+invariant (the counter in EBX), the encoder's address at `2024` and hasher A new. -/
 theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (hpre : r.Pre) {l : Nat} {s : List UInt8} {m : MachineData} (h : r.AtLayer l s m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b105Offset ∧
+    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b96Offset ∧
       r.EncBase l s (r.layerSig l).counter st.data ∧ r.EncAdrs l st.data ∧
-      Keccak.HasherHolds (bytesOf st.data.dmem (r.off 4104) 344) []) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b104Offset⟩ := by
+      Keccak.HasherHolds (bytesOf st.data.dmem (r.off 4072) 344) []) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset⟩ := by
   obtain ⟨hl, hs, hF, hI, hcx, hsi, hdx, hbx, h12, hbp, h13, h15, hsm, h176, h568, h14⟩ := h
   have hok := b104Ok_all l hl
   rw [b104Ok] at hok
-  rcases hx : exec Sphincs.SphincsVerify.b104 (s104 l) with _ | ⟨S, x⟩
+  rcases hx : exec Sphincs.SphincsVerify.b95 (s104 l) with _ | ⟨S, x⟩
   · rw [hx] at hok
     exact absurd hok Bool.false_ne_true
   rw [hx] at hok
   simp only [Bool.and_eq_true, beq_iff_eq, and_assoc] at hok
   obtain ⟨rfl, hX0, hX1, hX2, hX19, hsp, hX12, hXbp, hX13, hX15, hfw, k112, k144, k176, k568,
     ksig, w96, w200, w208, w160, w216, w104, w88, w60, a0, a4, a8, a16, a20, a24, hX14⟩ := hok
-  have hk := Sphincs.SphincsVerify.b104_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  let ret : BitVec 64 := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b104Offset + Sphincs.SphincsVerify.b104.length)).toBitVec
+  have hk := Sphincs.SphincsVerify.b95_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  let ret : BitVec 64 := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b95Offset + Sphincs.SphincsVerify.b95.length)).toBitVec
   have hwf := r.envL_wf hpre hF ret
   have hm := r.match_frameL hpre hF (ret := ret) (known := [(.rcx, .lit (4656 + 1028 * l)),
-      (.rsi, .lit l), (.rdx, .label NativeRustcX64.layerHeightsLabel), (.rbx, .lit 0), (.r12, .ptr 0 4104),
-      (.rbp, .ptr 0 560), (.r13, .ptr 0 2056), (.r15, .ptr 0 144)])
-    (aliases := [(.load 0 184 8, 0, ((25212 + 1028 * l : Nat) : Int))])
+      (.rsi, .lit l), (.rdx, .label NativeRustcX64.layerHeightsLabel), (.rbx, .lit 0), (.r12, .ptr 0 4072),
+      (.rbp, .ptr 0 560), (.r13, .ptr 0 2024), (.r15, .ptr 0 144)])
+    (aliases := [(.load 0 184 8, 0, ((17436 + 1028 * l : Nat) : Int))])
     ⟨hcx, hsi, hdx, hbx, h12.trans (r.ptr_evalL m ret _).symm,
       hbp.trans (r.ptr_evalL m ret _).symm, h13.trans (r.ptr_evalL m ret _).symm,
       h15.trans (r.ptr_evalL m ret _).symm, trivial⟩
@@ -291,7 +291,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
     r.bytesAt_keptL (m := m) (m' := st.data) hpre hm' hwf (o := o) (bs := bs) ho hb hn
   have hc19 : UInt32.ofNat (reg st.data .rbx).toNat = (r.layerSig l).counter := by
     rw [show reg st.data .rbx = _ from hm'.regs .rbx _ hX19]
-    show UInt32.ofNat ((r.envL m ret).load 0 (26236 + 1028 * l) 4).toNat = _
+    show UInt32.ofNat ((r.envL m ret).load 0 (18460 + 1028 * l) 4).toNat = _
     rw [Sym.Env.load_of_bytesAt (by simp [le32, be32]) (r.counter_at hI hl), le32_load]
   have hdata : r.EncData l s (r.layerSig l).counter st.data :=
     ⟨⟨kept (by rw [r.length_pkBytes]; omega) hI.1 (by rw [r.length_pkBytes]; exact k112),
@@ -305,7 +305,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
       (hm'.regs .r15 _ hX15).trans (r.ptr_evalL m ret _),
       kept (by rw [hs]; omega) hsm (by rw [hs]; exact k144), hc19,
       (hm'.regs .r14 _ hX14).trans h14⟩
-  have hR0 : Run.RegIs st.data .rdi (r.off 4104) :=
+  have hR0 : Run.RegIs st.data .rdi (r.off 4072) :=
     (hm'.regs .rdi _ hX0).trans (r.ptr_evalL m ret _)
   have hR2 : (reg st.data .rdx).toNat = 344 := by
     rw [show reg st.data .rdx = _ from hm'.regs .rdx _ hX2]
@@ -316,7 +316,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
   refine Sym.call_then hpc hc.2.1 (r.memset_pre hpre hc1 hR0 hR2 (by decide))
     fun st' hpc' hrsp hpost ↦ .done _ ?_
   obtain ⟨hB, hout, hS⟩ := r.memset_out hR0 hR2 hpost
-  refine ⟨by simpa only [Run.pc, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b104_next] using hpc',
+  refine ⟨by simpa only [Run.pc, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b95_next] using hpc',
     ⟨hl, hs, r.frame_of_call hpre hc1 hS hrsp (by decide) (Nat.zero_le _) hout,
       r.encData_of_call hpre hc1 hdata hs hS (.inl ⟨le_refl _, le_refl _⟩) (Nat.zero_le _) hout⟩,
     r.bytesAt_of_call hpre hc1 (by decide) (Nat.zero_le _) hout

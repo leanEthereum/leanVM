@@ -6,6 +6,7 @@ public import NativeRustcX64.Code.Common.Memset.Names
 public import NativeRustcX64.Code.Common.Update.Names
 
 public import NativeRustcX64.SphincsVerify.Digest.Keep
+public import NativeRustcX64.SphincsVerify.Bswap
 
 /-!
 # A block of the frame ending in a call (x86-64)
@@ -34,14 +35,14 @@ end
 public section
 
 theorem HasherAt.keepB {r : Run} {S : SState} {m m₁ : MachineData} (hk : KB r S m m₁) {a : Nat}
-    {x : List UInt8} (h : HasherAt r m a x) (ha : a + 344 ≤ 29400)
+    {x : List UInt8} (h : HasherAt r m a x) (ha : a + 344 ≤ 21624)
     (hn : Run.noWriteIn S a 344 = true) : HasherAt r m₁ a x := by
   obtain ⟨b, hb, hh⟩ := h
   have hl := Keccak.length_of_holds hh
   exact ⟨b, hk a b (by omega) (by rw [hl]; exact hn) hb, hh⟩
 
 theorem HasherAt.keepC {r : Run} {m₁ m₂ : MachineData} {a' n : Nat} (hk : KC r m₁ m₂ a' n)
-    {a : Nat} {x : List UInt8} (h : HasherAt r m₁ a x) (ha : a + 344 ≤ 29400)
+    {a : Nat} {x : List UInt8} (h : HasherAt r m₁ a x) (ha : a + 344 ≤ 21624)
     (hd : a + 344 ≤ a' ∨ a' + n ≤ a) : HasherAt r m₂ a x := by
   obtain ⟨b, hb, hh⟩ := h
   have hl := Keccak.length_of_holds hh
@@ -80,7 +81,7 @@ abbrev After (r : Run) (m₁ : MachineData) (a n : Nat) (j' : Nat) (Res : Machin
 
 omit [Host] in
 theorem kc_of_call {r : Run} [Labels] (hpre : r.Pre) {m₁ m₂ : MachineData} (hc : r.AtCall m₁)
-    {a n N : Nat} (ha : a + n ≤ 29400) (hN : N ≤ finalizeStack)
+    {a n N : Nat} (ha : a + n ≤ 21624) (hN : N ≤ finalizeStack)
     (hout : SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n N)) : KC r m₁ m₂ a n :=
   fun _ _ ho hd h ↦ r.bytesAt_of_call hpre hc ha hN hout ho hd h
 
@@ -116,7 +117,7 @@ theorem Run.memcpyCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (hok : keepOK S' = true) (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData}
     (hK : Keep r m) (hk : KnownOK r m (r.pc j').toBitVec k) {a b n : Nat}
     (h0 : S'.reg .rdi = some (.ptr 0 a)) (h1 : S'.reg .rsi = some (.ptr 0 b))
-    (h2 : S'.reg .rdx = some (.lit n)) (ha : Scratch a n) (hbn : b + n ≤ 29400)
+    (h2 : S'.reg .rdx = some (.lit n)) (ha : Scratch a n) (hbn : b + n ≤ 21624)
     (hd : a + n ≤ b ∨ b + n ≤ a) {bs : List UInt8} (hl : bs.length = n) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → KB r S' m m₁ →
       BytesAt m₁.dmem (r.off b) bs ∧
@@ -143,7 +144,7 @@ theorem Run.updateCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (hok : keepOK S' = true) (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData}
     (hK : Keep r m) (hk : KnownOK r m (r.pc j').toBitVec k) {a b n : Nat}
     (h0 : S'.reg .rdi = some (.ptr 0 a)) (h1 : S'.reg .rsi = some (.ptr 0 b))
-    (h2 : S'.reg .rdx = some (.lit n)) (ha : Scratch a 344) (hbn : b + n ≤ 29400)
+    (h2 : S'.reg .rdx = some (.lit n)) (ha : Scratch a 344) (hbn : b + n ≤ 21624)
     (hd : a + 344 ≤ b ∨ b + n ≤ a) {x bs : List UInt8} (hl : bs.length = n)
     {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → KB r S' m m₁ →
@@ -165,6 +166,53 @@ theorem Run.updateCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
   exact hc' m₂ hK₂ hS (kc_of_call hpre hc₁ (by omega) (by decide) hout)
     ⟨_, bytesAt_bytesOf (r.frame_mapped hpre hK₂.1.2.2.2 (by omega)).1, hA'⟩
 
+omit [Host] in
+theorem load_wordAt {r : Run} [Labels] {m : MachineData} {o : Nat} {v : BitVec 64}
+    (hw : r.WordAt m o (UInt64.ofBitVec v)) (ret : BitVec 64) :
+    (r.env m (fun _ ↦ 0) ret).load 0 o 8 = v := by
+  have h : BytesAt (r.env m (fun _ ↦ 0) ret).mem0
+      ((r.env m (fun _ ↦ 0) ret).base 0 + BitVec.ofNat 64 o)
+      (LeanVM.Protocol.KeccakHash.wordBytes (UInt64.ofBitVec v)) := hw
+  rw [Env.load_of_bytesAt (NativeRustc.length_wordBytes _) h, ← bytes_word]
+  have hb := Sym.ofBytes_byteOf v 0 8
+  simp only [Nat.zero_add, Nat.mul_zero, Nat.pow_zero, Nat.div_one] at hb
+  rw [hb, BitVec.ofInt_natCast]
+  apply BitVec.eq_of_toNat_eq
+  have := v.isLt
+  rw [BitVec.toNat_ofNat]
+  omega
+
+/-- **`Hasher::update(a, *(8(%rsp)), 32)`** after a block, updating with the caller's message. -/
+theorem Run.updateCallMsg (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+    (hc : Callees) {ds : List Directive} {j j' : Nat}
+    (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
+    {k : List (Reg64 × Sym)} {S' : SState} (hx : exec ds (frameS k) = some (S', .call NativeRustcX64.Common.Update.entryLabel))
+    (hok : keepOK S' = true) (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData}
+    (hK : Keep r m) (hk : KnownOK r m (r.pc j').toBitVec k) {a : Nat}
+    (h0 : S'.reg .rdi = some (.ptr 0 a)) (h1 : S'.reg .rsi = some (.load 0 8 8))
+    (h2 : S'.reg .rdx = some (.lit 32)) (ha : Scratch a 344)
+    (hmp : r.WordAt m 8 (UInt64.ofBitVec r.msgPtr)) {x : List UInt8}
+    {R : MachineState → Prop}
+    (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → KB r S' m m₁ →
+      HasherAt r m₁ a x ∧
+        After r m₁ a 344 j' (fun m₂ ↦ HasherAt r m₂ a (x ++ r.msg)) R) :
+    Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by
+  unfold Scratch at ha
+  refine Run.frameCall r hp hpre hb hj hx hok hrsp hK hk hc.2.2.1
+    fun m₁ hm₁ hc₁ hI₁ h176 hkb ↦ ?_
+  have r0 := regIs_ptr hm₁ h0
+  have r1 : Run.RegIs m₁ .rsi r.msgPtr := (hm₁.regs .rsi _ h1).trans (load_wordAt hmp _)
+  have r2 := rdx_lit hm₁ h2 (by decide)
+  obtain ⟨hH, hc'⟩ := h m₁ hm₁ hkb
+  refine ⟨r.update_pre_msg hpre hc₁ r0 r1 r2 (by omega) hH.holds_some, fun m₂ hsp hQ ↦ ?_⟩
+  obtain ⟨hA, hout, hS⟩ := r.update_out_msg r0 r1 r2 hQ
+  have hK₂ := Keep.of_call hpre hc₁ hI₁ h176 hS hsp (by unfold Scratch; omega) (by decide) hout
+  have hA' := hA x hH.holds
+  have hmsg1 : BytesAt m₁.dmem r.msgPtr r.msgB := r.msg_at hpre hc₁.2.2.1
+  rw [← r.hmsg, bytesOf_of_bytesAt hmsg1] at hA'
+  exact hc' m₂ hK₂ hS (kc_of_call hpre hc₁ (by omega) (by decide) hout)
+    ⟨_, bytesAt_bytesOf (r.frame_mapped hpre hK₂.1.2.2.2 (by omega)).1, hA'⟩
+
 /-- **`Hasher::finalize(o, a)`** after a block, the hasher at `a` having absorbed `x`. -/
 theorem Run.finalizeCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
@@ -174,7 +222,7 @@ theorem Run.finalizeCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) 
     (hok : keepOK S' = true) (hrsp : S'.reg .rsp = some (.ptr 0 (-8))) {m : MachineData}
     (hK : Keep r m) (hk : KnownOK r m (r.pc j').toBitVec k) {o a : Nat}
     (h0 : S'.reg .rdi = some (.ptr 0 o)) (h1 : S'.reg .rsi = some (.ptr 0 a))
-    (ho : Scratch o 32) (ha : a + 344 ≤ 29400) (hd : o + 32 ≤ a ∨ a + 344 ≤ o) {x : List UInt8}
+    (ho : Scratch o 32) (ha : a + 344 ≤ 21624) (hd : o + 32 ≤ a ∨ a + 344 ≤ o) {x : List UInt8}
     {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → KB r S' m m₁ →
       HasherAt r m₁ a x ∧

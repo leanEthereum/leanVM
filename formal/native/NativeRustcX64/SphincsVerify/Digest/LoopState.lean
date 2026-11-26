@@ -23,10 +23,10 @@ def bix (j : Nat) : Sym :=
 
 /-- At `b55`: `h_msg` (region 0), the leaf's word (region 1, R13), the spill (region 2), the
 pushes' slots (region 3); the byte indices below `30`. -/
-def s55 : SState :=
-  init [64, 8, 8, 16] [(.rsp, .ptr 0 (-2056)), (.r13, .ptr 1 0)] []
+def s46 : SState :=
+  init [64, 8, 8, 16] [(.rsp, .ptr 0 (-2024)), (.r13, .ptr 1 0)] []
     ([0, 2, 3, 4, 5, 6, 7, 8, 9].map fun j ↦ (bix j, 30))
-    [(.ptr 0 (-2048), 2, 0), (.ptr 0 (-2064), 3, 8), (.ptr 0 (-2072), 3, 0)]
+    [(.ptr 0 (-2016), 2, 0), (.ptr 0 (-2032), 3, 8), (.ptr 0 (-2040), 3, 0)]
 
 end
 

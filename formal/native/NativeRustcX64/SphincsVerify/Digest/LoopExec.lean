@@ -18,12 +18,12 @@ open NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 
 set_option Elab.async false
 
-sym_block run_b55 := exec b55 s55
+sym_block run_b46 := exec b46 s46
 
 @[expose] public section
 
-/-- The leaf's value a turn stores (the newest write of `run_b55`'s state). -/
-def leafSym : Sym := match exec b55 s55 with
+/-- The leaf's value a turn stores (the newest write of `run_b46`'s state). -/
+def leafSym : Sym := match exec b46 s46 with
   | some (S, _) => (S.mem.headD ⟨0, 0, 0, .lit 0⟩).v
   | none => .lit 0
 

@@ -5,11 +5,10 @@ public meta import NativeRustcX64.Code.Sphincs.SphincsVerify
 public meta import NativeRustcX64.SphincsVerify.Parse.State
 
 /-!
-# The openings' blocks run by the executor (`b9 .. b13`, x86-64)
+# The openings' blocks run by the executor (`b0 .. b4`, x86-64)
 
-In the frame (`fS`): `b9` the key's words stored and the loop's registers; `b10` an opening's
-path and secret, its loads at the bounded offset R13 (`fS … [(R13, 4225)]`); `b11`, `b12` the
-`memcpy`s' arguments; `b13` the count (no memory).
+`b0`: prologue, stores `msgPtr` at `8`, copies 32-byte `pk` to `112`, sets up the FORS openings
+loop registers. `b1 .. b4`: one turn of the 24-opening loop.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Parse
@@ -18,10 +17,10 @@ open NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 
 set_option Elab.async false
 
-sym_block run_b9 := exec b9 (fS [])
-sym_block run_b10 := exec b10 (fS [(.rbp, .ptr 0 20716), (.r12, .ptr 0 576), (.r15, .label "memcpy")] [(.reg .r13, 4225)])
-sym_block run_b11 := exec b11 (fS [(.r14, .ptr 0 560), (.rbx, .ptr 0 20556), (.r15, .label "memcpy")])
-sym_block run_b12 := exec b12 (fS [(.r14, .ptr 0 560), (.r15, .label "memcpy")])
-sym_block run_b13 := exec b13 (init [])
+sym_block run_b0 := exec b0 entryS
+sym_block run_b1 := exec b1 openS
+sym_block run_b2 := exec b2 (fS [(.r13, .ptr 0 560), (.r14, .ptr 0 12780), (.rbp, .label "memcpy")])
+sym_block run_b3 := exec b3 (fS [(.r13, .ptr 0 560), (.rbp, .label "memcpy")])
+sym_block run_b4 := exec b4 (init [])
 
 end NativeRustcX64.SphincsVerifyProof.Parse

@@ -9,12 +9,12 @@ public import NativeRustcX64.SphincsVerify.Chains.StepBase
 # What the FORS region keeps (x86-64)
 
 Through tree `c` the inputs, the first layer's chain values' address (`184`), the index (`552`),
-the bottom key's tree and key pair words (`80`, `68`), the 24 leaves (`10384`) and the roots so far
-(`20172`) stay (`Base`); within the tree's nodes also its spills: the opening's address (`72`),
+the bottom key's tree and key pair words (`80`, `68`), the 24 leaves (`10352`) and the roots so far
+(`12396`) stay (`Base`); within the tree's nodes also its spills: the opening's address (`72`),
 the leaf index (`88`) (`Spills`). `Keep0`/`Keep`: those and the frame's
 invariant; `KeepC0`/`KeepC`: at a call. A block whose writes miss the kept bytes keeps them
 (`keepOK0`, `keepOK`, decided on the literal state; `Keep0.of_block`, `Keep.of_block`, ...); a call
-changing only scratch bytes (`Scratch`: `560 .. 10384`) and its stack keeps them
+changing only scratch bytes (`Scratch`: `560 .. 10352`) and its stack keeps them
 (`Keep0.of_call`, `Keep.of_call`).
 -/
 
@@ -34,16 +34,16 @@ def rootsUpTo (r : Run) (c : Nat) : List UInt8 := ((List.range c).map r.forsRoot
 structure Base (r : Run) (c : Nat) (m : MachineData) : Prop where
   hc : c < 24
   inputs : r.Inputs m
-  w176 : r.WordAt m 184 (r.addr 25212)
+  w176 : r.WordAt m 184 (r.addr 17436)
   w568 : r.WordAt m 552 r.idx
   w80 : BytesAt m.dmem (r.off 80) (be64 (r.key 0).tree)
   w60 : BytesAt m.dmem (r.off 68) (be32 (r.key 0).leaf)
-  leaves : BytesAt m.dmem (r.off 10384) (leavesBytes r)
-  roots : BytesAt m.dmem (r.off 20172) (rootsUpTo r c)
+  leaves : BytesAt m.dmem (r.off 10352) (leavesBytes r)
+  roots : BytesAt m.dmem (r.off 12396) (rootsUpTo r c)
 
 /-- Tree `c`'s spills: its opening's address, its leaf index. -/
 def Spills (r : Run) (c : Nat) (m : MachineData) : Prop :=
-  r.WordAt m 104 (r.addr (20556 + 176 * c)) ∧ r.WordAt m 72 (r.leafOf c).toUInt64
+  r.WordAt m 104 (r.addr (12780 + 176 * c)) ∧ r.WordAt m 72 (r.leafOf c).toUInt64
 
 /-- The frame and what the region keeps. -/
 def Keep0 (r : Run) (c : Nat) (m : MachineData) : Prop := r.Frame m ∧ Base r c m
@@ -60,18 +60,18 @@ def KeepC (r : Run) (c : Nat) (m : MachineData) : Prop :=
 
 /-- **Bytes a step keeps**, where its literal state does not write them. -/
 def KeptBy (r : Run) (S : SState) (m m' : MachineData) : Prop :=
-  ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 29400 → Run.noWriteIn S o bs.length = true →
+  ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 21624 → Run.noWriteIn S o bs.length = true →
     BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs
 
 /-- The frame's scratch bytes `a .. a + n` the region's calls change. -/
-abbrev Scratch (a n : Nat) : Prop := 560 ≤ a ∧ a + n ≤ 10384
+abbrev Scratch (a n : Nat) : Prop := 560 ≤ a ∧ a + n ≤ 10352
 
 /-- A block's literal state keeps `Base`: its writes in the frame below the saved registers (or
 the slots below it) and off the kept bytes. -/
 def keepOK0 (S : SState) : Bool :=
   Run.frameWrites S && Run.noWriteIn S 68 4 && Run.noWriteIn S 80 8 &&
     Run.noWriteIn S 112 32 && Run.noWriteIn S 184 8 && Run.noWriteIn S 552 8 &&
-    Run.noWriteIn S 10384 192 && Run.noWriteIn S 20172 8124
+    Run.noWriteIn S 10352 192 && Run.noWriteIn S 12396 8124
 
 /-- A block's literal state keeps `Base` and the tree's spills. -/
 def keepOK (S : SState) : Bool :=
@@ -129,7 +129,7 @@ theorem Base.of_kept {c : Nat} {m m' : MachineData} (hB : Base r c m) {S : SStat
   have hk' : ∀ {o : Nat} {bs : List UInt8}, ((68 ≤ o ∧ o + bs.length ≤ 72) ∨
       (80 ≤ o ∧ o + bs.length ≤ 88) ∨ (112 ≤ o ∧ o + bs.length ≤ 144)) ∨
       ((184 ≤ o ∧ o + bs.length ≤ 192) ∨ (552 ≤ o ∧ o + bs.length ≤ 560)) ∨
-      (10384 ≤ o ∧ o + bs.length ≤ 10576) ∨ (20172 ≤ o ∧ o + bs.length ≤ 28296) →
+      (10352 ≤ o ∧ o + bs.length ≤ 10544) ∨ (12396 ≤ o ∧ o + bs.length ≤ 20520) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun ho h ↦ by
     refine hk (by omega) ?_ h
     rcases ho with (ho | ho | ho) | (ho | ho) | ho | ho
@@ -212,7 +212,7 @@ theorem Base.of_call (hpre : r.Pre) {c : Nat} {m m' : MachineData} (hc : r.AtCal
   unfold Scratch at ha
   have hrl := length_rootsUpTo r (c := c) (by omega)
   have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 560 ∨
-      (10384 ≤ o ∧ o + bs.length ≤ 29352) → BytesAt m.dmem (r.off o) bs →
+      (10352 ≤ o ∧ o + bs.length ≤ 21576) → BytesAt m.dmem (r.off o) bs →
       BytesAt m'.dmem (r.off o) bs := fun ho h ↦
     r.bytesAt_of_call hpre hc (a := a) (n := n) (by omega) hN hout (by omega) (by omega) h
   refine ⟨hcl, ⟨hk ?_ i1, hk ?_ i2⟩, hk ?_ s176, hk ?_ s568, hk ?_ s80, hk ?_ s60, hk ?_ sl,

@@ -6,8 +6,8 @@ public import NativeRustcX64.SphincsVerify.Chains.Exec
 /-!
 # What the chains keep (x86-64)
 
-Through the chains the inputs, the layer's spills and R13, the codeword at `3080` and the
-ends so far at `28296` stay (`KeepRest`), and, within chain `i`, its spills: `i` at `80`, `16 i`
+Through the chains the inputs, the layer's spills and R13, the codeword at `3048` and the
+ends so far at `20520` stay (`KeepRest`), and, within chain `i`, its spills: `i` at `80`, `16 i`
 at `176`, the chain's word at `72` (`ChainSp`). `Keep`: those and the frame's invariant;
 `KeepC`: those at a call (RSP 8 below the base). A block whose writes miss the kept bytes keeps
 them (`keepOK`, decided on the literal state; `Keep.of_block`, `KeepC.of_block`); a call
@@ -27,8 +27,8 @@ open LeanVM.Protocol.KeccakHash
 
 /-- The kept bytes and registers outside a chain's spills. -/
 def KeepRest (r : Run) (l : Nat) (x E : List UInt8) (m : MachineData) : Prop :=
-  r.Inputs m ∧ r.LayerSpills l m ∧ Run.RegIs m .r13 (r.off 8328) ∧
-    BytesAt m.dmem (r.off 3080) x ∧ BytesAt m.dmem (r.off 28296) E
+  r.Inputs m ∧ r.LayerSpills l m ∧ Run.RegIs m .r13 (r.off 8296) ∧
+    BytesAt m.dmem (r.off 3048) x ∧ BytesAt m.dmem (r.off 20520) E
 
 /-- Chain `i`'s spills: `i`, `16 i`, its word `BE32(i)`. -/
 def ChainSp (r : Run) (i : Nat) (m : MachineData) : Prop :=
@@ -43,7 +43,7 @@ def KeepC (r : Run) (l : Nat) (x E : List UInt8) (i : Nat) (m : MachineData) : P
   r.AtCall m ∧ KeepRest r l x E m ∧ ChainSp r i m
 
 /-- The frame's scratch bytes `a .. a + n` the chains' calls change. -/
-def Scratch (a n : Nat) : Prop := (560 ≤ a ∧ a + n ≤ 3080) ∨ (3144 ≤ a ∧ a + n ≤ 20556)
+def Scratch (a n : Nat) : Prop := (560 ≤ a ∧ a + n ≤ 3048) ∨ (3112 ≤ a ∧ a + n ≤ 12780)
 
 /-- A block's literal state keeps the kept bytes and registers outside a chain's spills: its
 writes in the frame below the saved registers (or the slots below it) and off them, R13
@@ -51,8 +51,8 @@ as it was. -/
 def restOK (S : SState) : Bool :=
   Run.frameWrites S && Run.noWriteIn S 68 4 && Run.noWriteIn S 88 24 &&
     Run.noWriteIn S 112 32 && Run.noWriteIn S 168 8 && Run.noWriteIn S 184 8 &&
-    Run.noWriteIn S 192 24 && Run.noWriteIn S 552 8 && Run.noWriteIn S 3080 64 &&
-    Run.noWriteIn S 20556 8764 && S.reg .r13 == some (.ptr 0 8328)
+    Run.noWriteIn S 192 24 && Run.noWriteIn S 552 8 && Run.noWriteIn S 3048 64 &&
+    Run.noWriteIn S 12780 8764 && S.reg .r13 == some (.ptr 0 8296)
 
 /-- A block's literal state keeps the chain's spills. -/
 def chainOK (S : SState) : Bool := Run.noWriteIn S 72 16 && Run.noWriteIn S 176 8
@@ -64,11 +64,9 @@ end
 
 public section
 
-theorem length_pkBytes (w : Nat → UInt64) : (pkBytes w).length = 32 := by
-  rw [pkBytes, Native.Keccak.Proof.length_wordsBytes]
-  simp
+theorem length_pkBytes (r : Run) : r.pkB.length = 32 := r.hpk
 
-theorem length_sigMemR (r : Run) : (sigMem r.sig).length = 7740 := SigMem.length_sigMem r.w
+theorem length_sigMemR (r : Run) : (sigMem r.sig).length = 7740 := SigMemBytes.length_sigMem r.sigB r.hsig
 
 theorem length_be32 (v : UInt32) : (be32 v).length = 4 := rfl
 theorem length_be64 (v : UInt64) : (be64 v).length = 8 := rfl
@@ -185,7 +183,7 @@ theorem KeepRest.of_block (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.le
       (88 ≤ o ∧ o + bs.length ≤ 112) ∨ (112 ≤ o ∧ o + bs.length ≤ 144)) ∨
       ((168 ≤ o ∧ o + bs.length ≤ 176) ∨ (184 ≤ o ∧ o + bs.length ≤ 192) ∨
       (192 ≤ o ∧ o + bs.length ≤ 216)) ∨ ((552 ≤ o ∧ o + bs.length ≤ 560) ∨
-      (3080 ≤ o ∧ o + bs.length ≤ 3144)) ∨ (20556 ≤ o ∧ o + bs.length ≤ 29320) →
+      (3048 ≤ o ∧ o + bs.length ≤ 3112)) ∨ (12780 ≤ o ∧ o + bs.length ≤ 21544) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun ho h ↦ by
     refine r.bytesAt_kept hpre hm hwf (by omega) h ?_
     rcases ho with (ho | ho | ho) | (ho | ho | ho) | (ho | ho) | ho
@@ -261,9 +259,9 @@ theorem Keep.of_call (hpre : r.Pre) {l : Nat} {x E : List UInt8} (hx : x.length 
     Keep r l x E i m' := by
   obtain ⟨hc, ⟨⟨i1, i2⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10⟩, h13, hxa, hEa⟩,
     ⟨c1, c2, c3⟩⟩ := hK
-  have ha' : a + n ≤ 29352 := by unfold Scratch at ha; omega
+  have ha' : a + n ≤ 21576 := by unfold Scratch at ha; omega
   have hk : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 560 ∨
-      (3080 ≤ o ∧ o + bs.length ≤ 3144) ∨ (20556 ≤ o ∧ o + bs.length ≤ 29320) →
+      (3048 ≤ o ∧ o + bs.length ≤ 3112) ∨ (12780 ≤ o ∧ o + bs.length ≤ 21544) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun ho h ↦
     r.bytesAt_of_call hpre hc (by omega) hN hout (by omega) (by unfold Scratch at ha; omega) h
   refine ⟨r.frame_of_call hpre hc hS hsp ha' hN hout, ⟨⟨hk ?_ i1, hk ?_ i2⟩, ⟨hk ?_ s1, hk ?_ s2,

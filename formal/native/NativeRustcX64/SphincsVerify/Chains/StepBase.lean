@@ -24,7 +24,7 @@ def Funcs [Labels] (m : MachineData) : Prop :=
 
 /-- The position, hasher A, and the register-held call targets at a step's head. -/
 def Regs [Labels] (r : Run) (m : MachineData) (pos : Nat) : Prop :=
-  Run.RegIs m .rbp (BitVec.ofNat 64 pos) ∧ Run.RegIs m .r12 (r.off 4104) ∧ Funcs m
+  Run.RegIs m .rbp (BitVec.ofNat 64 pos) ∧ Run.RegIs m .r12 (r.off 4072) ∧ Funcs m
 
 end
 

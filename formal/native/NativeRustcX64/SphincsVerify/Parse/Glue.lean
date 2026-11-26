@@ -29,9 +29,6 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym LeanVM.Protocol.KeccakHa
 
 @[expose] public section
 
-/-- The context's address. -/
-abbrev ctx (r : Run) : BitVec 64 := reg r.m0 .rdi
-
 /-- The frame's bytes at the listed offsets: `(o, n, bs)`, `n` bytes `bs` at `o`. -/
 def Facts (r : Run) (d : DataMem) : List (Nat × Nat × List UInt8) → Prop
   | [] => True
@@ -43,19 +40,19 @@ def noW0 (S : SState) (o n : Nat) : Bool :=
 
 /-- The facts are in the frame and no write of region 0 touches them. -/
 def factsOK (S : SState) (L : List (Nat × Nat × List UInt8)) : Bool :=
-  L.all fun p => decide (p.1 + p.2.1 ≤ 29400) && noW0 S p.1 p.2.1
+  L.all fun p => decide (p.1 + p.2.1 ≤ 21624) && noW0 S p.1 p.2.1
 
 /-- The facts are in the frame and apart from the bytes `a .. a + n`. -/
 def factsApart (L : List (Nat × Nat × List UInt8)) (a n : Nat) : Bool :=
-  L.all fun p => decide (p.1 + p.2.1 ≤ 29400) && (decide (p.1 + p.2.1 ≤ a) || decide (a + n ≤ p.1))
+  L.all fun p => decide (p.1 + p.2.1 ≤ 21624) && (decide (p.1 + p.2.1 ≤ a) || decide (a + n ≤ p.1))
 
 /-- The facts' layout is in the frame and no write of region 0 touches it. -/
 def layoutOK (S : SState) (L : List (Nat × Nat)) : Bool :=
-  L.all fun p => decide (p.1 + p.2 ≤ 29400) && noW0 S p.1 p.2
+  L.all fun p => decide (p.1 + p.2 ≤ 21624) && noW0 S p.1 p.2
 
 /-- The facts' layout is in the frame and apart from the bytes `a .. a + n`. -/
 def layoutApart (L : List (Nat × Nat)) (a n : Nat) : Bool :=
-  L.all fun p => decide (p.1 + p.2 ≤ 29400) && (decide (p.1 + p.2 ≤ a) || decide (a + n ≤ p.1))
+  L.all fun p => decide (p.1 + p.2 ≤ 21624) && (decide (p.1 + p.2 ≤ a) || decide (a + n ≤ p.1))
 
 /-- The writes of a state in region `ri`, between `lo` and `hi`. -/
 def writesIn (S : SState) (ri lo hi : Nat) : Bool :=
@@ -165,7 +162,7 @@ variable (r : Run) [Labels]
 /-- **Facts kept by a block** of an environment whose region 0 is the frame, which does not
 write them. -/
 theorem Facts.of_block {m m' : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 29408))
+    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 21632))
     {S' : SState} (hm' : Match (Env.ofMachine m regions vars ret) S' m') :
     ∀ {L : List (Nat × Nat × List UInt8)}, Facts r m.dmem L → factsOK S' L = true →
       Facts r m'.dmem L
@@ -174,14 +171,14 @@ theorem Facts.of_block {m m' : MachineData} {regions : List (BitVec 64 × Nat)}
     simp only [factsOK, List.all_cons, Bool.and_eq_true, decide_eq_true_eq] at hok
     refine ⟨⟨hl, fun i hi ↦ ?_⟩, Facts.of_block hb hm' h hok.2⟩
     obtain ⟨⟨ho, hn⟩, -⟩ := hok
-    rw [off_add, Run.off, hm'.mem 0 r.base 29408 hb (o + i) (by omega)]
+    rw [off_add, Run.off, hm'.mem 0 r.base 21632 hb (o + i) (by omega)]
     unfold memByte
     rw [findWrite_none hn (by omega)]
     have := hb' i hi
     rwa [off_add, Run.off] at this
 
 /-- **Facts kept by a change** of the frame's bytes apart from them. -/
-theorem Facts.keep (hpre : r.Pre) {d d' : DataMem} {a n : Nat} (ha : a + n ≤ 29400)
+theorem Facts.keep (hpre : r.Pre) {d d' : DataMem} {a n : Nat} (ha : a + n ≤ 21624)
     (hs : SameOutside d d' (InRange (r.off a) n)) :
     ∀ {L : List (Nat × Nat × List UInt8)}, Facts r d L → factsApart L a n = true → Facts r d' L
   | [], _, _ => trivial
@@ -194,7 +191,7 @@ theorem Facts.keep (hpre : r.Pre) {d d' : DataMem} {a n : Nat} (ha : a + n ≤ 2
 
 /-- **Facts kept by a call** changing the frame's bytes `a .. a + n` and its stack. -/
 theorem Facts.of_call (hpre : r.Pre) {m m' : MachineData} (hc : r.AtCall m) {a n N : Nat}
-    (ha : a + n ≤ 29400) (hN : N ≤ finalizeStack)
+    (ha : a + n ≤ 21624) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) :
     ∀ {L : List (Nat × Nat × List UInt8)}, Facts r m.dmem L → factsApart L a n = true →
       Facts r m'.dmem L
@@ -429,13 +426,18 @@ theorem alias_pos {A B : BitVec 64} (k : Nat) (h : A = B + BitVec.ofNat 64 k) :
   rw [BitVec.ofInt_natCast]
   exact h
 
-/-- Linear arithmetic of addresses: the frame's and the input's, with constants. -/
+/-- Linear arithmetic of addresses: the frame's and the input buffers', with constants. -/
 macro "bv_lin" : tactic => `(tactic| (
-  try simp only [Run.off, Run.input, ctx]
+  try simp only [Run.off, Run.pkPtr, Run.msgPtr, Run.sigPtr]
   apply BitVec.eq_of_toNat_eq
   simp only [BitVec.toNat_add, BitVec.toNat_sub, BitVec.toNat_ofNat]
   try simp only [show Width.W64.bits = 64 from rfl]
   omega))
+
+theorem pc_next (r : Run) [Host] {st : MachineState} {a b : Nat} {ds : List Directive}
+    (h : st.pc = Host.addrOf (r.k + a + ds.length)) (hb : a + ds.length = b) : st.pc = r.pc b := by
+  rw [h, Nat.add_assoc, hb]
+  rfl
 
 /-- **A loop's exit test**: `X ≠ L` jumps back, `X = L` falls through. -/
 theorem pc_cond [Labels] {env : Env} {X : Sym} {L : Nat} {lab : Label} {next : Int64}
@@ -464,7 +466,7 @@ variable (r : Run) [Labels]
 /-- **Frame bytes kept** by a change in another range of the frame. -/
 theorem fact_keep (hpre : r.Pre) {d d' : DataMem} {o a n L : Nat} {bs : List UInt8}
     (h : BytesAt d (r.off o) bs) (hs : SameOutside d d' (InRange (r.off a) n)) (hl : bs.length = L)
-    (hd : o + L ≤ a ∨ a + n ≤ o) (ho : o + L ≤ 29400) (ha : a + n ≤ 29400) :
+    (hd : o + L ≤ a ∨ a + n ≤ o) (ho : o + L ≤ 21624) (ha : a + n ≤ 21624) :
     BytesAt d' (r.off o) bs :=
   bytesAt_of_sameOutside h hs fun i hi ↦ by
     rw [off_add]
@@ -474,7 +476,7 @@ theorem fact_keep (hpre : r.Pre) {d d' : DataMem} {o a n L : Nat} {bs : List UIn
 (region `ri` the frame from `d`) below the saved registers, RSP the base. -/
 theorem frame_of_hull (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
     {regions : List (BitVec 64 × Nat)} {vars : Nat → BitVec 64} {ret : BitVec 64} {ri d n lo hi : Nat}
-    (hb : regions[ri]? = some (r.off d, n)) (hn : hi ≤ n) (hlo : lo ≤ hi) (hhi : d + hi ≤ 29352)
+    (hb : regions[ri]? = some (r.off d, n)) (hn : hi ≤ n) (hlo : lo ≤ hi) (hhi : d + hi ≤ 21576)
     {S' : SState} (hm' : Match (Env.ofMachine m regions vars ret) S' m')
     (hwf : (Env.ofMachine m regions vars ret).WF) (hw : writesIn S' ri lo hi = true)
     (hsp : rspOf m' = r.base) :

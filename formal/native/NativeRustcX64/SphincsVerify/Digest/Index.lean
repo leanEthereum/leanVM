@@ -24,11 +24,11 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym LeanVM.Protocol.KeccakHa
 /-- A byte of `h_msg`, zero-extended (`movzbl`). -/
 abbrev zb (o : Nat) : Sym := .un (.zext .W8) .W32 (.load 0 o 1)
 
-/-- RBX after `b56`: the index from `h_msg`'s bytes `30 .. 33`. -/
+/-- RBX after `b47`: the index from `h_msg`'s bytes `30 .. 33`. -/
 def idxSym : Sym :=
   .bin .or .W32 (.bin .and .W32 (.bin .shl .W32 (.bin .or .W32 (.bin .or .W32
-    (.bin .shl .W32 (zb 2087) (.lit 8)) (.bin .shl .W32 (zb 2086) (.lit 16))) (zb 2088)) (.lit 8))
-    (.lit 67108608)) (zb 2089)
+    (.bin .shl .W32 (zb 2055) (.lit 8)) (.bin .shl .W32 (zb 2054) (.lit 16))) (zb 2056)) (.lit 8))
+    (.lit 67108608)) (zb 2057)
 
 end
 
@@ -40,10 +40,10 @@ theorem setWidth64_toBitVec (a : UInt8) : BitVec.ofNat 64 a.toNat = BitVec.setWi
 
 /-- **The index's bits.** -/
 theorem idxSym_eval [Labels] (env : Env) (a b c d : UInt8)
-    (ha : env.load 0 2086 1 = BitVec.setWidth 64 a.toBitVec)
-    (hb : env.load 0 2087 1 = BitVec.setWidth 64 b.toBitVec)
-    (hc : env.load 0 2088 1 = BitVec.setWidth 64 c.toBitVec)
-    (hd : env.load 0 2089 1 = BitVec.setWidth 64 d.toBitVec) :
+    (ha : env.load 0 2054 1 = BitVec.setWidth 64 a.toBitVec)
+    (hb : env.load 0 2055 1 = BitVec.setWidth 64 b.toBitVec)
+    (hc : env.load 0 2056 1 = BitVec.setWidth 64 c.toBitVec)
+    (hd : env.load 0 2057 1 = BitVec.setWidth 64 d.toBitVec) :
     idxSym.eval env = (digestInt [a, b, c] 18 <<< 8 ||| digestInt [d] 8).toBitVec := by
   simp only [idxSym, zb]
   sym_simp
@@ -202,38 +202,38 @@ theorem key0_tree (idx : UInt64) : (OtsKey.ofIndex 0 idx).tree = idx >>> 8 := by
 
 variable [Host]
 
-/-- **The index, the leaves copied, the FORS loop's registers**: `b56`, `b57` to `b58`. -/
+/-- **The index, the leaves copied, the FORS loop's registers**: `b47`, `b48` to `b49`. -/
 theorem index_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : AfterLoop r (hMsgBytes r) m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b58Offset ∧ r.AtFors st.data)
-      ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩ := by
+    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset ∧ r.AtFors st.data)
+      ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset⟩ := by
   obtain ⟨hK, hH, hL⟩ := hA
   have hl := length_hMsgBytes r
   have hLl : (leavesBytes (hMsgBytes r) 24).length = 192 := length_leavesBytes _ _
-  refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b56_in_code rfl run_b56 rfl rfl
-    (a := 10384) (b := 4104) (n := 192) hK (knownOK_nil m _) rfl rfl rfl
+  refine Run.memcpyCall r hp hpre hc Sphincs.SphincsVerify.b47_in_code rfl run_b47 rfl rfl
+    (a := 10352) (b := 4072) (n := 192) hK (knownOK_nil m _) rfl rfl rfl
     (.inl ⟨by decide, by decide⟩) (by decide) (by decide) hLl fun m₁ hm₁ hkb₁ ↦
-      ⟨hkb₁ 4104 _ (by omega) (by rw [hLl]; rfl) hL, fun m₂ hK₂ hS₂ hkc₂ hB₂ ↦ ?_⟩
-  have l30 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b56Offset + Sphincs.SphincsVerify.b56.length)).toBitVec) hH (k := 30) (o' := 2086) (by omega) rfl
-  have l31 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b56Offset + Sphincs.SphincsVerify.b56.length)).toBitVec) hH (k := 31) (o' := 2087) (by omega) rfl
-  have l32 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b56Offset + Sphincs.SphincsVerify.b56.length)).toBitVec) hH (k := 32) (o' := 2088) (by omega) rfl
-  have l33 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b56Offset + Sphincs.SphincsVerify.b56.length)).toBitVec) hH (k := 33) (o' := 2089) (by omega) rfl
+      ⟨hkb₁ 4072 _ (by omega) (by rw [hLl]; rfl) hL, fun m₂ hK₂ hS₂ hkc₂ hB₂ ↦ ?_⟩
+  have l30 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b47Offset + Sphincs.SphincsVerify.b47.length)).toBitVec) hH (k := 30) (o' := 2054) (by omega) rfl
+  have l31 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b47Offset + Sphincs.SphincsVerify.b47.length)).toBitVec) hH (k := 31) (o' := 2055) (by omega) rfl
+  have l32 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b47Offset + Sphincs.SphincsVerify.b47.length)).toBitVec) hH (k := 32) (o' := 2056) (by omega) rfl
+  have l33 := frame_load_byte (r := r) (m := m) (ret := (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b47Offset + Sphincs.SphincsVerify.b47.length)).toBitVec) hH (k := 33) (o' := 2057) (by omega) rfl
   have hidx : reg m₁ .rbx = r.idx.toBitVec := by
     rw [show reg m₁ .rbx = idxSym.eval _ from hm₁.regs .rbx idxSym rfl,
       idxSym_eval _ _ _ _ _ l30 l31 l32 l33, idx_eq, digestFields_fst _ hl]
   have hlow : reg m₁ .rbp = (r.idx &&& 255).toBitVec := by
-    rw [show reg m₁ .rbp = (zb 2089).eval _ from hm₁.regs .rbp _ rfl]
+    rw [show reg m₁ .rbp = (zb 2057).eval _ from hm₁.regs .rbp _ rfl]
     show UnOp.apply (.zext .W8) .W32 ((r.env m (fun _ ↦ 0)
-      (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b56Offset + Sphincs.SphincsVerify.b56.length)).toBitVec).load 0 2089 1) = _
+      (r.pc (NativeRustcX64.Sphincs.SphincsVerify.b47Offset + Sphincs.SphincsVerify.b47.length)).toBitVec).load 0 2057 1) = _
     rw [l33, idx_eq, digestFields_fst _ hl, ← idx_low]
     apply BitVec.eq_of_toNat_eq
     simp [UnOp.apply, ext, low]
-  have g12 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r12) (o := 4104) rfl)
+  have g12 := regIs_of_saved hS₂ rfl (regIs_ptr hm₁ (y := .r12) (o := 4072) rfl)
   have gbx : reg m₂ .rbx = r.idx.toBitVec := (hS₂.1 .rbx rfl).trans hidx
   have gbp : reg m₂ .rbp = (r.idx &&& 255).toBitVec := (hS₂.1 .rbp rfl).trans hlow
-  -- b57: the FORS loop's registers and spills
-  refine Run.frameFall r hp hpre Sphincs.SphincsVerify.b57_in_code rfl (List.cons_ne_nil _ _)
-    run_b57 rfl rfl hK₂ (knownOK_nil m₂ _) fun m₃ hm₃ hK₃ hkb₃ ↦ .done _ ⟨rfl, ?_⟩
+  -- b48: the FORS loop's registers and spills
+  refine Run.frameFall r hp hpre Sphincs.SphincsVerify.b48_in_code rfl (List.cons_ne_nil _ _)
+    run_b48 rfl rfl hK₂ (knownOK_nil m₂ _) fun m₃ hm₃ hK₃ hkb₃ ↦ .done _ ⟨rfl, ?_⟩
   obtain ⟨hF₃, hI₃, h176⟩ := hK₃
   have hbp8 : (reg m₂ .rbp).toNat < 256 := by
     rw [gbp, UInt64.toNat_toBitVec, UInt64.toNat_and]
@@ -256,19 +256,19 @@ theorem index_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
     ?_, ?_, ?_, ?_, h176, hm₃.regs .rbx _ rfl, regIs_ptr hm₃ (y := .r15) (o := 560) rfl⟩
   · rw [hr15, bytes_treeWord, htree]
   · rw [hrbp, bytes_leafWord _ _ hbp8 hleaf]
-  · have := hm₃.bytesAt_write (r := 0) (o := 80) (n := 8) (b := r.base) (sz := 29408) rfl
+  · have := hm₃.bytesAt_write (r := 0) (o := 80) (n := 8) (b := r.base) (sz := 21632) rfl
       (by decide) (v := .bin .shl .W64 (.un .bswap .W64 (.reg .rbx)) (.lit 8)) (by decide)
     simp only [Sym.eval, Env.ofMachine_regs] at this
     rw [bytes_word] at this
     rw [← htree, ← bytes_treeWord]
     exact this
-  · have := hm₃.bytesAt_write (r := 0) (o := 68) (n := 4) (b := r.base) (sz := 29408) rfl
+  · have := hm₃.bytesAt_write (r := 0) (o := 68) (n := 4) (b := r.base) (sz := 21632) rfl
       (by decide) (v := .bin .shl .W32 (.reg .rbp) (.lit 24)) (by decide)
     simp only [Sym.eval, Env.ofMachine_regs] at this
     rwa [bytes_leafWord4 _ _ hbp8 hleaf] at this
   · rw [leaves_bytes]
-    exact hkb₃ 10384 _ (by rw [hLl]; omega) (by rw [hLl]; rfl) hB₂
-  · have := hm₃.bytesAt_write (r := 0) (o := 552) (n := 8) (b := r.base) (sz := 29408) rfl
+    exact hkb₃ 10352 _ (by rw [hLl]; omega) (by rw [hLl]; rfl) hB₂
+  · have := hm₃.bytesAt_write (r := 0) (o := 552) (n := 8) (b := r.base) (sz := 21632) rfl
       (by decide) (v := .reg .rbx) (by decide)
     rw [bytes_word] at this
     rw [show r.idx = UInt64.ofBitVec (reg m₂ .rbx) by rw [gbx, UInt64.ofBitVec_toBitVec]]

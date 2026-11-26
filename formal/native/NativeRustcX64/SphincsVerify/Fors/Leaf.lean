@@ -5,11 +5,11 @@ public import NativeRustcX64.SphincsVerify.Fors.State
 /-!
 # A FORS tree's head and leaf (x86-64)
 
-From tree `c`'s head (`AtTree`, `b58`): `b58` spills the opening's address
+From tree `c`'s head (`AtTree`, `b49`): `b49` spills the opening's address
 (`104`), the secret's (`8`), the leaf index (`72`) and `c` (`88`), writes the leaf's address
-at `2056` and zeroes hasher A (`memset`); `b59`, `b60` absorb `PK.seed` and the address,
-`b61` clones A into hasher B (`memcpy`), `b62` absorbs the secret into B, and `b63` finalizes
-B to `8328`; `b64` starts the nodes at height 0 (`AtNode r c 0` at `b65`).
+at `2024` and zeroes hasher A (`memset`); `b50`, `b51` absorb `PK.seed` and the address,
+`b52` clones A into hasher B (`memcpy`), `b53` absorbs the secret into B, and `b54` finalizes
+B to `8296`; `b55` starts the nodes at height 0 (`AtNode r c 0` at `b56`).
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Fors
@@ -28,10 +28,10 @@ theorem eval_ptr0 [Labels] {m : MachineData} {vars : Nat → BitVec 64} {ret : B
   simp [Sym.eval]
 
 omit [Host] in
-/-- The opening's (and the secret's) address, as `b58` computes it. -/
+/-- The opening's (and the secret's) address, as `b49` computes it. -/
 theorem eval_openAddr [Labels] {m : MachineData} {vars : Nat → BitVec 64} {ret : BitVec 64}
     (hpre : r.Pre) {c : Nat} (hc : c < 24) (h13 : m.regs.get64 .rsi = BitVec.ofNat 64 c)
-    {o : Nat} (ho : o ≤ 20716) :
+    {o : Nat} (ho : o ≤ 12940) :
     (Sym.bin .add .W64 (.lit o) (.bin .add .W64 (.ptr 0 0)
       (.bin .mul .W64 (.reg .rsi) (.lit 176)))).eval (r.env m vars ret) =
       (r.addr (o + 176 * c)).toBitVec := by
@@ -54,77 +54,77 @@ theorem mul8 (c : Nat) (hc : c < 24) :
 omit [Host] in
 /-- The bytes of a register's low 4 bytes stored. -/
 theorem bytesAt_trunc4' [Labels] {m m₁ : MachineData} {ret : BitVec 64} {S : SState}
-    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o : Nat} {y : Reg64} (ho : o + 4 ≤ 29408)
+    (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o : Nat} {y : Reg64} (ho : o + 4 ≤ 21632)
     (hw : ∀ i < 4, findWrite 0 (o + i) S.mem = some (.un .trunc .W32 (.reg y), i)) {k : List UInt8}
     (hy : wordBytes (UInt64.ofBitVec (reg m y)) = k ++ [0, 0, 0, 0]) (hk : k.length = 4) :
     BytesAt m₁.dmem (r.off o) k := by
   have := Digest.bytesAt_trunc4 hm (o := o) (y := y) ho hw
   rwa [hy, List.take_left' hk] at this
 
-/-- **A tree's head and leaf**: from `AtTree r c` at `b58`, `AtNode r c 0` at `b65`. -/
+/-- **A tree's head and leaf**: from `AtTree r c` at `b49`, `AtNode r c 0` at `b56`. -/
 theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
     {c : Nat} {m : MachineData} (h : AtTree r c m) {R : MachineState → Prop}
-    (cont : ∀ m', AtNode r c 0 m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b65Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b58Offset⟩ := by
+    (cont : ∀ m', AtNode r c 0 m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩) :
+    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset⟩ := by
   obtain ⟨hK, h13, h12, h14, h15, hbp, hbx, hBptr⟩ := h
   have hc24 := hK.2.c_lt
   have hleaf := r.leafOf_lt hc24
   have h13' : m.regs.get64 .rsi = BitVec.ofNat 64 c := h13
-  -- b58: the spills, the leaf's address, `memset` of hasher A
-  have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b59Offset).toBitVec
-  have hm : Match (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b59Offset).toBitVec) s58 m :=
+  -- b49: the spills, the leaf's address, `memset` of hasher A
+  have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b50Offset).toBitVec
+  have hm : Match (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b50Offset).toBitVec) s58 m :=
     r.match_frame hpre hK.1 (known := [(.rbx, .label "memset")]) (labels := [])
       (bounds := [(.reg .rsi, 24)]) (aliases := []) ⟨hbx, trivial⟩ trivial
       ⟨by show (m.regs.get64 .rsi).toNat < 24; rw [h13']; simp; omega, trivial⟩
       trivial
-  refine Chains.blk r hp b58_in_code (List.cons_ne_nil _ _) run_b58 hwf (fun _ _ ↦ rfl) hm
+  refine Chains.blk r hp b49_in_code (List.cons_ne_nil _ _) run_b49 hwf (fun _ _ ↦ rfl) hm
     fun st₁ hm₁ hpc₁ ↦ ?_
   have hK₁ := KeepC0.of_block hpre hK hm₁ hwf (by decide +kernel) rfl
-  have hload : (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b59Offset).toBitVec).load 0
-      (10384 + (BinOp.apply .mul .W64 (m.regs.get64 .rsi) (BitVec.ofNat 64 8)).toNat) 8 =
+  have hload : (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b50Offset).toBitVec).load 0
+      (10352 + (BinOp.apply .mul .W64 (m.regs.get64 .rsi) (BitVec.ofNat 64 8)).toNat) 8 =
       (r.leafOf c).toUInt64.toBitVec := by
     rw [h13', mul8 c hc24]
     exact Chains.load_word (wordAt_leaf hK.2.leaves hc24)
-  have w72 : r.WordAt st₁.data 104 (r.addr (20556 + 176 * c)) :=
+  have w72 : r.WordAt st₁.data 104 (r.addr (12780 + 176 * c)) :=
     Chains.frame_write_word hm₁ (o := 104) (by decide) (by decide +kernel)
       (eval_openAddr hpre hc24 h13' (by omega))
-  have w8 : r.WordAt st₁.data 8 (r.addr (20716 + 176 * c)) :=
+  have w8 : r.WordAt st₁.data 8 (r.addr (12940 + 176 * c)) :=
     Chains.frame_write_word hm₁ (o := 8)
       (v := .bin .add .W64 (.bin .add .W64 (.ptr 0 0)
-        (.bin .mul .W64 (.reg .rsi) (.lit 176))) (.lit 20716))
+        (.bin .mul .W64 (.reg .rsi) (.lit 176))) (.lit 12940))
       (by decide) (by decide +kernel)
       (by simpa only [Sym.eval, BinOp.apply, low_W64, ext_W64, BitVec.add_comm] using
-        (eval_openAddr hpre hc24 h13' (o := 20716) (by omega)))
+        (eval_openAddr hpre hc24 h13' (o := 12940) (by omega)))
   have w88 : r.WordAt st₁.data 72 (r.leafOf c).toUInt64 :=
     Chains.frame_write_word hm₁ (o := 72)
-      (v := .loadx 0 10384 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
+      (v := .loadx 0 10352 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
       (by decide) (by decide +kernel) hload
   have wCount : r.WordAt st₁.data 88 c.toUInt64 :=
     Chains.frame_write_word hm₁ (o := 88) (v := .reg .rsi) (by decide) (by decide +kernel) h13
-  have had : BytesAt st₁.data.dmem (r.off 2056) (forsNodeAdrs r.idx c 0 (r.leafOf c)) := by
+  have had : BytesAt st₁.data.dmem (r.off 2024) (forsNodeAdrs r.idx c 0 (r.leafOf c)) := by
     rw [leafAdrs_eq]
-    have a0 := Digest.bytesAt_lit8 hm₁ (o := 2056) (v := 0) (by decide) (by decide +kernel)
+    have a0 := Digest.bytesAt_lit8 hm₁ (o := 2024) (v := 0) (by decide) (by decide +kernel)
       bytes_zero8
-    have a1 := Digest.bytesAt_reg8 hm₁ (o := 2064) (y := .r13) (by decide) (by decide +kernel)
+    have a1 := Digest.bytesAt_reg8 hm₁ (o := 2032) (y := .r13) (by decide) (by decide +kernel)
     rw [h15] at a1
-    have a2 := Digest.bytesAt_lit4 hm₁ (o := 2072) (v := 50331648) (by decide)
+    have a2 := Digest.bytesAt_lit4 hm₁ (o := 2040) (v := 50331648) (by decide)
       (by decide +kernel) bytes_typeW
-    have a3 := bytesAt_trunc4' hm₁ (o := 2076) (y := .rbp) (by decide) (by decide +kernel) hbp rfl
-    have a4 := Digest.bytesAt_lit4 hm₁ (o := 2080) (v := 0) (by decide) (by decide +kernel)
+    have a3 := bytesAt_trunc4' hm₁ (o := 2044) (y := .rbp) (by decide) (by decide +kernel) hbp rfl
+    have a4 := Digest.bytesAt_lit4 hm₁ (o := 2048) (v := 0) (by decide) (by decide +kernel)
       bytes_zero4
-    have a5 := Chains.frame_write_val hm₁ (o := 2084) (n := 4)
+    have a5 := Chains.frame_write_val hm₁ (o := 2052) (n := 4)
       (v := .un .trunc .W32 (.un .bswap .W32 (.bin .add .W32
-        (.loadx 0 10384 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
+        (.loadx 0 10352 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
         (.bin .shl .W32 (.un .trunc .W32 (.reg .rsi)) (.lit 10))))) (by decide) (by decide +kernel)
-    have hv : Sym.eval (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b59Offset).toBitVec) (.un .trunc .W32 (.un .bswap .W32
-        (.bin .add .W32 (.loadx 0 10384 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
+    have hv : Sym.eval (r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b50Offset).toBitVec) (.un .trunc .W32 (.un .bswap .W32
+        (.bin .add .W32 (.loadx 0 10352 (.bin .mul .W64 (.reg .rsi) (.lit 8)) 8)
         (.bin .shl .W32 (.un .trunc .W32 (.reg .rsi)) (.lit 10))))) =
         UnOp.apply .trunc .W32 (UnOp.apply .bswap .W32 (BinOp.apply .add .W32
           (BitVec.ofNat 64 (r.leafOf c)) (BinOp.apply .shl .W32
             (UnOp.apply .trunc .W32 (BitVec.ofNat 64 c)) (BitVec.ofNat 64 10)))) := by
       show UnOp.apply .trunc .W32 (UnOp.apply .bswap .W32 (BinOp.apply .add .W32
-        ((r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b59Offset).toBitVec).load 0
-          (10384 + (BinOp.apply .mul .W64 (m.regs.get64 .rsi) (BitVec.ofNat 64 8)).toNat) 8)
+        ((r.env m (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b50Offset).toBitVec).load 0
+          (10352 + (BinOp.apply .mul .W64 (m.regs.get64 .rsi) (BitVec.ofNat 64 8)).toNat) 8)
         (BinOp.apply .shl .W32 (UnOp.apply .trunc .W32 (m.regs.get64 .rsi))
           (BitVec.ofNat 64 10)))) = _
       rw [hload, h13']
@@ -136,8 +136,8 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have hseedl := Digest.length_seed r
   have hsecl := r.length_secret hc24
   -- `memset` of hasher A
-  have h0 : Run.RegIs st₁.data .rdi (r.off 4104) := (hm₁.regs .rdi _ rfl).trans h12
-  refine memset_then hpre hc hpc₁ ⟨hK₁.1, hK₁.2, w72, w88⟩ (a := 4104) (n := 344) h0
+  have h0 : Run.RegIs st₁.data .rdi (r.off 4072) := (hm₁.regs .rdi _ rfl).trans h12
+  refine memset_then hpre hc hpc₁ ⟨hK₁.1, hK₁.2, w72, w88⟩ (a := 4072) (n := 344) h0
     (Chains.toNat_of_lit hm₁ rfl (by decide)) (Chains.toNat_of_lit hm₁ rfl (by decide))
     (by decide) fun m₂ hK₂ hS₂ hkc₂ hz₂ ↦ ?_
   have g13 := hkc₂ (by flen) (by flen) wCount
@@ -148,14 +148,14 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have gbp := Chains.RegIs.of_saved hS₂ rfl (Chains.regIs_reg (v := reg m .rbp) hm₁ rfl rfl)
   have g8 := hkc₂ (by flen) (by flen) w8
   have gad := hkc₂ (by rw [hadl]; omega) (by rw [hadl]; omega) had
-  have gH : HasherAt r m₂ 4104 [] := ⟨_, hz₂, Keccak.holds_new⟩
-  -- b59: `PK.seed`
-  have hwf₂ := r.frame_wf hpre hK₂.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b60Offset).toBitVec
-  refine Chains.blk r hp b59_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b59Offset) (List.cons_ne_nil _ _) run_b59 hwf₂
+  have gH : HasherAt r m₂ 4072 [] := ⟨_, hz₂, Keccak.holds_new⟩
+  -- b50: `PK.seed`
+  have hwf₂ := r.frame_wf hpre hK₂.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b51Offset).toBitVec
+  refine Chains.blk r hp b50_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b50Offset) (List.cons_ne_nil _ _) run_b50 hwf₂
     (fun _ _ ↦ rfl) (match_frameS hpre hK₂.1 ⟨Chains.known_ptr g12, Chains.known_ptr g14, trivial⟩)
     fun st₃ hm₃ hpc₃ ↦ ?_
   refine update_then hpre hc hpc₃ (KeepC.of_block hpre hK₂ hm₃ hwf₂ (by decide +kernel) rfl)
-    (a := 4104) (b := 112) (n := 16) (Chains.regIs_ptr hm₃ rfl) (Chains.regIs_ptr hm₃ rfl)
+    (a := 4072) (b := 112) (n := 16) (Chains.regIs_ptr hm₃ rfl) (Chains.regIs_ptr hm₃ rfl)
     (Chains.toNat_of_lit hm₃ rfl (by decide))
     (by decide) (by decide) (by decide) hseedl
     (HasherAt.kept hpre gH hm₃ hwf₂ (by decide) (by decide +kernel))
@@ -164,7 +164,7 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have g13 := hkc₄ (by flen) (by flen)
     (r.bytesAt_kept hpre hm₃ hwf₂ (by flen) g13 (by rw [NativeRustc.length_wordBytes]; decide +kernel))
   have gBptr := Chains.RegIs.of_saved hS₄ rfl (Chains.regIs_reg hm₃ rfl gBptr)
-  have g12 : Run.RegIs m₄ .r12 (r.off 4104) :=
+  have g12 : Run.RegIs m₄ .r12 (r.off 4072) :=
     Chains.RegIs.of_saved hS₄ rfl (Chains.regIs_ptr hm₃ rfl)
   have g15 := Chains.RegIs.of_saved hS₄ rfl (Chains.regIs_reg hm₃ rfl g15)
   have gbp := Chains.RegIs.of_saved hS₄ rfl (Chains.regIs_reg hm₃ rfl gbp)
@@ -173,12 +173,12 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
       (by rw [NativeRustc.length_wordBytes]; decide +kernel))
   have gad := hkc₄ (by rw [hadl]; omega) (by rw [hadl]; omega)
     (r.bytesAt_kept hpre hm₃ hwf₂ (by rw [hadl]; omega) gad (by rw [hadl]; decide +kernel))
-  -- b60: the leaf's address
-  have hwf₄ := r.frame_wf hpre hK₄.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b61Offset).toBitVec
-  refine Chains.blk r hp b60_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b60Offset) (List.cons_ne_nil _ _) run_b60 hwf₄
+  -- b51: the leaf's address
+  have hwf₄ := r.frame_wf hpre hK₄.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b52Offset).toBitVec
+  refine Chains.blk r hp b51_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b51Offset) (List.cons_ne_nil _ _) run_b51 hwf₄
     (fun _ _ ↦ rfl) (match_frameS hpre hK₄.1 ⟨Chains.known_ptr g12, trivial⟩) fun st₅ hm₅ hpc₅ ↦ ?_
   refine update_then hpre hc hpc₅ (KeepC.of_block hpre hK₄ hm₅ hwf₄ (by decide +kernel) rfl)
-    (a := 4104) (b := 2056) (n := 32) (Chains.regIs_ptr hm₅ rfl) (Chains.regIs_ptr hm₅ rfl)
+    (a := 4072) (b := 2024) (n := 32) (Chains.regIs_ptr hm₅ rfl) (Chains.regIs_ptr hm₅ rfl)
     (Chains.toNat_of_lit hm₅ rfl (by decide))
     (by decide) (by decide) (by decide) hadl
     (HasherAt.kept hpre hH₄ hm₅ hwf₄ (by decide) (by decide +kernel))
@@ -187,25 +187,25 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have g13 := hkc₆ (by flen) (by flen)
     (r.bytesAt_kept hpre hm₅ hwf₄ (by flen) g13 (by rw [NativeRustc.length_wordBytes]; decide +kernel))
   have gBptr := Chains.RegIs.of_saved hS₆ rfl (Chains.regIs_reg hm₅ rfl gBptr)
-  have g12 : Run.RegIs m₆ .r12 (r.off 4104) :=
+  have g12 : Run.RegIs m₆ .r12 (r.off 4072) :=
     Chains.RegIs.of_saved hS₆ rfl (Chains.regIs_ptr hm₅ rfl)
   have g15 := Chains.RegIs.of_saved hS₆ rfl (Chains.regIs_reg hm₅ rfl g15)
   have gbp := Chains.RegIs.of_saved hS₆ rfl (Chains.regIs_reg hm₅ rfl gbp)
   have g8 := hkc₆ (by flen) (by flen)
     (r.bytesAt_kept hpre hm₅ hwf₄ (by flen) g8
       (by rw [NativeRustc.length_wordBytes]; decide +kernel))
-  -- b61: the clone into hasher B
-  have hwf₆ := r.frame_wf hpre hK₆.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b62Offset).toBitVec
-  refine Chains.blk r hp b61_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b61Offset) (List.cons_ne_nil _ _) run_b61 hwf₆
+  -- b52: the clone into hasher B
+  have hwf₆ := r.frame_wf hpre hK₆.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b53Offset).toBitVec
+  refine Chains.blk r hp b52_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b52Offset) (List.cons_ne_nil _ _) run_b52 hwf₆
     (fun _ _ ↦ rfl) (match_frameS hpre hK₆.1 ⟨Chains.known_ptr g12, Chains.known_ptr gBptr, trivial⟩) fun st₇ hm₇ hpc₇ ↦ ?_
   obtain ⟨hA, hAb, hAh⟩ := HasherAt.kept hpre hH₆ hm₇ hwf₆ (by decide) (by decide +kernel)
   refine memcpy_then hpre hc hpc₇ (KeepC.of_block hpre hK₆ hm₇ hwf₆ (by decide +kernel) rfl)
-    (a := 560) (b := 4104) (n := 344) (Chains.regIs_ptr hm₇ rfl) (Chains.regIs_ptr hm₇ rfl)
+    (a := 560) (b := 4072) (n := 344) (Chains.regIs_ptr hm₇ rfl) (Chains.regIs_ptr hm₇ rfl)
     (Chains.toNat_of_lit hm₇ rfl (by decide)) (by decide) (by decide) (by decide)
     (Keccak.length_of_holds hAh) hAb fun m₈ hK₈ hS₈ hkc₈ hB₈ ↦ ?_
   have g13 := hkc₈ (by flen) (by flen)
     (r.bytesAt_kept hpre hm₇ hwf₆ (by flen) g13 (by rw [NativeRustc.length_wordBytes]; decide +kernel))
-  have g12 : Run.RegIs m₈ .r12 (r.off 4104) :=
+  have g12 : Run.RegIs m₈ .r12 (r.off 4072) :=
     Chains.RegIs.of_saved hS₈ rfl (Chains.regIs_ptr hm₇ rfl)
   have gBptr : Run.RegIs m₈ .r15 (r.off 560) :=
     Chains.RegIs.of_saved hS₈ rfl (Chains.regIs_ptr hm₇ rfl)
@@ -216,11 +216,11 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
     (r.bytesAt_kept hpre hm₇ hwf₆ (by flen) g8
       (by rw [NativeRustc.length_wordBytes]; decide +kernel))
   have gB : HasherAt r m₈ 560 (r.seed ++ forsNodeAdrs r.idx c 0 (r.leafOf c)) := ⟨hA, hB₈, hAh⟩
-  -- b62: the secret
-  have hwf₈ := r.frame_wf hpre hK₈.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b63Offset).toBitVec
-  refine Chains.blk r hp b62_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b62Offset) (List.cons_ne_nil _ _) run_b62 hwf₈
+  -- b53: the secret
+  have hwf₈ := r.frame_wf hpre hK₈.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b54Offset).toBitVec
+  refine Chains.blk r hp b53_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b53Offset) (List.cons_ne_nil _ _) run_b53 hwf₈
     (fun _ _ ↦ rfl) (match_frameS hpre hK₈.1 ⟨Chains.known_ptr gBptr, g14, trivial⟩) fun st₉ hm₉ hpc₉ ↦ ?_
-  have h1 : Run.RegIs st₉.data .rsi (r.off (20716 + 176 * c)) := by
+  have h1 : Run.RegIs st₉.data .rsi (r.off (12940 + 176 * c)) := by
     unfold Run.RegIs reg
     rw [hm₉.regs .rsi _ rfl, Chains.load_word g8]
     rfl
@@ -230,7 +230,7 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
     (by omega) (by omega) hsecl (HasherAt.kept hpre gB hm₉ hwf₈ (by decide) (by decide +kernel))
     (r.bytesAt_kept hpre hm₉ hwf₈ (by rw [hsecl]; omega) hK₈.2.1.secret (by
       rw [hsecl]
-      refine Chains.noWriteIn_mono (o := 20172) (n := 8124) ?_ (by omega) (by omega)
+      refine Chains.noWriteIn_mono (o := 12396) (n := 8124) ?_ (by omega) (by omega)
       decide +kernel)) fun m₁₀ hK₁₀ hS₁₀ hkc₁₀ hH₁₀ ↦ ?_
   have g13 := hkc₁₀ (by flen) (by flen)
     (r.bytesAt_kept hpre hm₉ hwf₈ (by flen) g13 (by rw [NativeRustc.length_wordBytes]; decide +kernel))
@@ -240,12 +240,12 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have gbp := Chains.RegIs.of_saved hS₁₀ rfl (Chains.regIs_reg hm₉ rfl gbp)
   have gbx := Chains.RegIs.of_saved hS₁₀ rfl (Chains.regIs_label (y := .rbx) hm₉ rfl)
   have g14 := Chains.RegIs.of_saved hS₁₀ rfl (Chains.regIs_label (y := .r14) hm₉ rfl)
-  -- b63: `finalize` into `8328`
-  have hwf₁₀ := r.frame_wf hpre hK₁₀.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b64Offset).toBitVec
-  refine Chains.blk r hp b63_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b63Offset) (List.cons_ne_nil _ _) run_b63 hwf₁₀
+  -- b54: `finalize` into `8296`
+  have hwf₁₀ := r.frame_wf hpre hK₁₀.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b55Offset).toBitVec
+  refine Chains.blk r hp b54_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b54Offset) (List.cons_ne_nil _ _) run_b54 hwf₁₀
     (fun _ _ ↦ rfl) (match_frameS hpre hK₁₀.1 ⟨Chains.known_ptr gBptr, trivial⟩) fun st₁₁ hm₁₁ hpc₁₁ ↦ ?_
   refine finalize_then hpre hc hpc₁₁ (KeepC.of_block hpre hK₁₀ hm₁₁ hwf₁₀ (by decide +kernel) rfl)
-    (o := 8328) (a := 560) (Chains.regIs_ptr hm₁₁ rfl) (Chains.regIs_ptr hm₁₁ rfl) (by decide)
+    (o := 8296) (a := 560) (Chains.regIs_ptr hm₁₁ rfl) (Chains.regIs_ptr hm₁₁ rfl) (by decide)
     (by decide) (by decide) (HasherAt.kept hpre hH₁₀ hm₁₁ hwf₁₀ (by decide) (by decide +kernel))
     fun m₁₂ hK₁₂ hS₁₂ hkc₁₂ hD ↦ ?_
   have g13 := hkc₁₂ (by flen) (by flen)
@@ -255,9 +255,9 @@ theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (h
   have gbp := Chains.RegIs.of_saved hS₁₂ rfl (Chains.regIs_reg hm₁₁ rfl gbp)
   have gbx := Chains.RegIs.of_saved hS₁₂ rfl (Chains.regIs_reg hm₁₁ rfl gbx)
   have g14 := Chains.RegIs.of_saved hS₁₂ rfl (Chains.regIs_reg hm₁₁ rfl g14)
-  -- b64: the scratch pointers, the nodes from height zero
+  -- b55: the scratch pointers, the nodes from height zero
   have hwf₁₂ := r.frame_wf hpre hK₁₂.1.2.2.2 (fun _ ↦ 0) 0
-  refine Chains.blk r hp b64_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b64Offset) (List.cons_ne_nil _ _) run_b64 hwf₁₂
+  refine Chains.blk r hp b55_in_code (j := NativeRustcX64.Sphincs.SphincsVerify.b55Offset) (List.cons_ne_nil _ _) run_b55 hwf₁₂
     (fun _ h ↦ nomatch h) (match_frameS hpre hK₁₂.1 (k := []) trivial) fun st₁₃ hm₁₃ hpc₁₃ ↦ ?_
   refine Chains.pc_at hpc₁₃ (cont _ ⟨Keep.of_block hpre hK₁₂ hm₁₃ hwf₁₂ (by decide +kernel) rfl,
     by decide, Chains.regIs_lit hm₁₃ rfl, Chains.regIs_ptr hm₁₃ rfl,

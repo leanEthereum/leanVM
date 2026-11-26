@@ -6,11 +6,11 @@ public import NativeRustcX64.Sym.Sound.Shift
 /-!
 # A FORS node's words (x86-64)
 
-What `b65` computes for a node at height `z < 10` of tree `c < 24` from the leaf index `l < 1024`:
+What `b56` computes for a node at height `z < 10` of tree `c < 24` from the leaf index `l < 1024`:
 the bit that orders the children (`bit_eval`: the carry from `btq`), the height's
 word (`bytes_height`), the node's index word (`bytes_nodeIndex`: `c << (9 - z)` plus `l >> (z + 1)`,
 the shift count `9 - z` from `movb $9, %cl; subb %dl, %cl`), the node's address in the pieces
-`b65` writes (`nodeAdrs_eq`); a load's bytes (`bytes_load`) and 16 bytes stored by two 8-byte
+`b56` writes (`nodeAdrs_eq`); a load's bytes (`bytes_load`) and 16 bytes stored by two 8-byte
 writes of loaded values (`write16`).
 -/
 
@@ -38,7 +38,7 @@ theorem bit_eval [Labels] {env : Env} {l z : Nat} (hz : z < 10)
     Nat.mod_eq_of_lt (show z < 64 by omega), BitVec.getLsbD_ofNat]
   simpa [show z < 64 by omega] using testBit_eq l z
 
-/-- The height's word, as `b65` computes it. -/
+/-- The height's word, as `b56` computes it. -/
 theorem bytes_height (z : Nat) :
     (List.range 4).map (byteOf (UnOp.apply .trunc .W32 (UnOp.apply .bswap .W32
       (UnOp.apply .trunc .W32 (BinOp.apply .add .W64 (BitVec.ofNat 64 z) (BitVec.ofNat 64 1)))))) =
@@ -61,13 +61,13 @@ theorem bytes_height (z : Nat) :
         (BitVec.ofNat 64 9))
       (UnOp.apply .trunc .W32 (BitVec.ofNat 64 z)))
 
-/-- `c << (9 - z)`, as `b65` computes it. -/
+/-- `c << (9 - z)`, as `b56` computes it. -/
 theorem shl_cl : ∀ c < 24, ∀ z < 10,
     (BinOp.apply .shl .W32 (BitVec.ofNat 64 c) (clW z)).toNat =
       c * 2 ^ (9 - z) := by
   decide +kernel
 
-/-- **The node's index word**, as `b65` computes it. -/
+/-- **The node's index word**, as `b56` computes it. -/
 theorem bytes_nodeIndex {c z l : Nat} (hc : c < 24) (hz : z < 10) (hl : l < 1024) :
     (List.range 4).map (byteOf (UnOp.apply .trunc .W32 (UnOp.apply .bswap .W32
       (BinOp.apply .add .W32 (BinOp.apply .shl .W32 (BitVec.ofNat 64 c)
@@ -90,7 +90,7 @@ theorem bytes_nodeIndex {c z l : Nat} (hc : c < 24) (hz : z < 10) (hl : l < 1024
     Nat.shiftLeft_eq, Nat.shiftRight_eq_div_pow]
   interval_cases z <;> omega
 
-/-- A node's address, in the pieces `b65` writes. -/
+/-- A node's address, in the pieces `b56` writes. -/
 theorem nodeAdrs_eq (r : Run) (c z : Nat) :
     r.nodeAdrsOf c z = (be32 0 ++ be32 0) ++ (be64 (r.key 0).tree ++ (be32 3 ++
       (be32 (r.key 0).leaf ++ (be32 (z + 1).toUInt32 ++

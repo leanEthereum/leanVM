@@ -5,7 +5,7 @@ public import NativeRustcX64.SphincsVerify.Chains.Steps
 /-!
 # The chains' loop on x86-64: blocks off the frame's regions
 
-`b116` and `b117` index the frame by the chain: their symbolic states have the indexed bytes as
+`b107` and `b108` index the frame by the chain: their symbolic states have the indexed bytes as
 regions of their own, region 0 a prefix of the frame. What such a block changes
 (`sameOutside_region`, `written_three`), keeps (`reg_same`, `KeepRest.of_change`,
 `Frame.of_change'`); the frame's addresses (`off_add_ofInt`, `shl4`); the chain's word and digit
@@ -73,8 +73,8 @@ theorem sameOutside_region {env : Env} {S : SState} {m' : MachineData} (hm : Mat
 `a'' .. a'' + n''`** changes only those bytes. -/
 theorem written_three {env : Env} {S : SState} {m' : MachineData} (hm : Match env S m')
     (hwf : env.WF) (hpre : r.Pre) {n0 : Nat} (h0 : env.regions[0]? = some (r.base, n0))
-    {a n a' n' a'' n'' : Nat} (ha : a + n ≤ 29400) (ha' : a' + n' ≤ 29400)
-    (ha'' : a'' + n'' ≤ 29400)
+    {a n a' n' a'' n'' : Nat} (ha : a + n ≤ 21624) (ha' : a' + n' ≤ 21624)
+    (ha'' : a'' + n'' ≤ 21624)
     (hall : S.mem.all (fun w ↦ w.r == 0 && ((decide (a ≤ w.off) && decide (w.off + w.n ≤ a + n)) ||
       (decide (a' ≤ w.off) && decide (w.off + w.n ≤ a' + n')) ||
       (decide (a'' ≤ w.off) && decide (w.off + w.n ≤ a'' + n'')))) = true) :
@@ -114,16 +114,16 @@ misses them. -/
 theorem KeepRest.of_change {l : Nat} {x E : List UInt8} (hx : x.length = 64)
     (hE : E.length ≤ 1024) {m m' : MachineData} (hK : KeepRest r l x E m)
     {R : BitVec 64 → Prop} (hout : SameOutside m.dmem m'.dmem R)
-    (hR : ∀ o, o < 29400 → (o < 72 ∨ (88 ≤ o ∧ o < 176) ∨ (184 ≤ o ∧ o < 192) ∨
-      (192 ≤ o ∧ o < 560) ∨ (3080 ≤ o ∧ o < 3144) ∨ (20556 ≤ o ∧ o < 28296 + E.length)) →
+    (hR : ∀ o, o < 21624 → (o < 72 ∨ (88 ≤ o ∧ o < 176) ∨ (184 ≤ o ∧ o < 192) ∨
+      (192 ≤ o ∧ o < 560) ∨ (3048 ≤ o ∧ o < 3112) ∨ (12780 ≤ o ∧ o < 20520 + E.length)) →
       ¬R (r.off o))
     (h13 : m'.regs.get64 .r13 = m.regs.get64 .r13) :
     KeepRest r l x E m' := by
   obtain ⟨⟨i1, i2⟩, ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9, s10⟩, g13, hxa, hEa⟩ := hK
   have hkb : ∀ {o : Nat} {bs : List UInt8}, (o + bs.length ≤ 72 ∨
       (88 ≤ o ∧ o + bs.length ≤ 176) ∨ (184 ≤ o ∧ o + bs.length ≤ 192) ∨
-      (192 ≤ o ∧ o + bs.length ≤ 560) ∨ (3080 ≤ o ∧ o + bs.length ≤ 3144) ∨
-      (20556 ≤ o ∧ o + bs.length ≤ 28296 + E.length)) →
+      (192 ≤ o ∧ o + bs.length ≤ 560) ∨ (3048 ≤ o ∧ o + bs.length ≤ 3112) ∨
+      (12780 ≤ o ∧ o + bs.length ≤ 20520 + E.length)) →
       BytesAt m.dmem (r.off o) bs → BytesAt m'.dmem (r.off o) bs := fun {o} {bs} ho h ↦
     bytesAt_of_sameOutside h hout fun i hi hp ↦ by
       rw [Run.off_add] at hp

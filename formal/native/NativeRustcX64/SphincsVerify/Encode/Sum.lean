@@ -9,11 +9,11 @@ meta import NativeRustcX64.Code.Sphincs.SphincsVerify.Part3
 meta import NativeRustcX64.SphincsVerify.Frame
 
 /-!
-# The digits' sum and the codeword's copy: `b114`, `b115`
+# The digits' sum and the codeword's copy: `b105`, `b106`
 
-`b114` loads the 64 digits, spills them, adds them up and jumps to `b195`
-(`return 0`) when the sum is not 128; `b115` stores the digits at `3080` (the
-codeword `x` the chains read), RAX `0`, R12 hasher A, R13 `base + 8328`, and jumps to `b117`. The
+`b105` loads the 64 digits, spills them, adds them up and jumps to `b186`
+(`return 0`) when the sum is not 128; `b106` stores the digits at `3048` (the
+codeword `x` the chains read), RAX `0`, R12 hasher A, R13 `base + 8296`, and jumps to `b108`. The
 sum the executor builds is a tree of additions of the digits' loads: `sumOf` reads its loads off
 it, `sumOf_eval` evaluates it; the kernel checks both blocks' results once (`sumOk`).
 -/
@@ -68,10 +68,10 @@ theorem sumOf_eval [Labels] (env : Env) (e : Sym) :
     exact (Nat.mod_eq_of_lt (BitVec.isLt _)).symm
   | case4 => intro os h; cases h
 
-/-- `b114`'s start. -/
+/-- `b105`'s start. -/
 def s114 : SState := Run.frameState []
 
-/-- The codeword's byte `j`, as `b115` stores it. -/
+/-- The codeword's byte `j`, as `b106` stores it. -/
 def cwS (j : Nat) : Sym := .un .trunc .W8 (.un (.zext .W8) .W32 (.load 0 (560 + j) 1))
 
 /-- The layer's spills and inputs a block keeps. -/
@@ -79,25 +79,25 @@ def spillsKept (S : SState) : Bool :=
   Run.noWriteIn S 68 4 && Run.noWriteIn S 88 8 && Run.noWriteIn S 96 8 &&
     Run.noWriteIn S 104 4 && Run.noWriteIn S 112 32 && Run.noWriteIn S 168 8 &&
     Run.noWriteIn S 184 8 && Run.noWriteIn S 192 8 && Run.noWriteIn S 200 8 &&
-    Run.noWriteIn S 208 8 && Run.noWriteIn S 552 8 && Run.noWriteIn S 20556 7740
+    Run.noWriteIn S 208 8 && Run.noWriteIn S 552 8 && Run.noWriteIn S 12780 7740
 
-/-- `b115`'s result. -/
+/-- `b106`'s result. -/
 def b115Ok (S : SState) : Bool :=
-  match exec Sphincs.SphincsVerify.b115 S with
+  match exec Sphincs.SphincsVerify.b106 S with
   | some (S', x) =>
-    x == .jump NativeRustcX64.Sphincs.SphincsVerify.label_42 && S'.reg .rax == some (.lit 0) &&
-      S'.reg .r12 == some (.ptr 0 4104) && S'.reg .r13 == some (.ptr 0 8328) &&
+    x == .jump NativeRustcX64.Sphincs.SphincsVerify.label_34 && S'.reg .rax == some (.lit 0) &&
+      S'.reg .r12 == some (.ptr 0 4072) && S'.reg .r13 == some (.ptr 0 8296) &&
       S'.reg .rsp == some (.ptr 0 0) && Run.frameWrites S' &&
       spillsKept S' && S'.reg .rbx == some (.label "memset") &&
       S'.reg .r14 == some (.reg .r14) &&
-      (List.range 64).all fun j ↦ findWrite 0 (3080 + j) S'.mem == some (cwS j, 0)
+      (List.range 64).all fun j ↦ findWrite 0 (3048 + j) S'.mem == some (cwS j, 0)
   | none => false
 
-/-- `b114`'s and `b115`'s results. -/
+/-- `b105`'s and `b106`'s results. -/
 def sumOk : Bool :=
-  match exec Sphincs.SphincsVerify.b114 s114 with
+  match exec Sphincs.SphincsVerify.b105 s114 with
   | some (S, .cond (.not (.cmp .eq .W64 e (.lit 128))) l) =>
-    l == NativeRustcX64.Sphincs.SphincsVerify.label_84 && ((sumOf e).map isort) == some (List.range' 560 64) &&
+    l == NativeRustcX64.Sphincs.SphincsVerify.label_76 && ((sumOf e).map isort) == some (List.range' 560 64) &&
       S.reg .rsp == some (.ptr 0 0) && Run.frameWrites S && b115Ok S
   | _ => false
 
@@ -157,17 +157,17 @@ theorem byteOf_cw (x : BitVec 64) :
 
 variable [Host]
 
-theorem label_84 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_84 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b195Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_84_at
+theorem label_76 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
+    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_76 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b186Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_76_at
 
-theorem label_42 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_42 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b117Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_42_at
+theorem label_34 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
+    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_34 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b108Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_34_at
 
-/-- **The sum and the codeword's copy**: from `b114` with the 64 digits of `V` at `560`, the
-machine returns 0 if they do not sum to 128, else reaches the chains (`b117`) with the codeword
-at `3080`. -/
+/-- **The sum and the codeword's copy**: from `b105` with the 64 digits of `V` at `560`, the
+machine returns 0 if they do not sum to 128, else reaches the chains (`b108`) with the codeword
+at `3048`. -/
 theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {l : Nat} {V : Nat} {m : MachineData} (hl : l < 3) (hF : r.Frame m) (hI : r.Inputs m)
     (hL : r.LayerSpills l m)
@@ -175,15 +175,15 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
     (hd : ∀ t < 64, m.dmem.get? (r.off (560 + t)) = some (digitByte V t)) :
     Eventually (step1 Host.exe) (fun st ↦
       (((digits V).map UInt8.toNat).sum ≠ 128 ∧ r.Done false st) ∨
-      (((digits V).map UInt8.toNat).sum = 128 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b117Offset ∧
-        r.AtChains l (digits V) st.data)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b114Offset⟩ := by
+      (((digits V).map UInt8.toNat).sum = 128 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b108Offset ∧
+        r.AtChains l (digits V) st.data)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b105Offset⟩ := by
   have hok := sumOk_eq
   unfold sumOk at hok
   have hwf := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) 0
   have hm := r.match_frame hpre hF (vars := fun _ ↦ 0) (ret := 0) (known := []) (labels := [])
     (bounds := []) (aliases := []) trivial trivial trivial trivial
-  have hk := Sphincs.SphincsVerify.b114_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  rcases hx : exec Sphincs.SphincsVerify.b114 s114 with _ | ⟨S, x⟩
+  have hk := Sphincs.SphincsVerify.b105_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  rcases hx : exec Sphincs.SphincsVerify.b105 s114 with _ | ⟨S, x⟩
   · rw [hx] at hok
     exact absurd hok Bool.false_ne_true
   rw [hx] at hok
@@ -205,11 +205,11 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
         rw [hval, h128]
         rfl
       rw [hc] at hpc1
-      simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b114_next] at hpc1
-      -- b115
+      simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b105_next] at hpc1
+      -- b106
       unfold b115Ok at h115
-      have hk2 := Sphincs.SphincsVerify.b115_in_code.trans hp.1 (List.cons_ne_nil _ _)
-      rcases hx2 : exec Sphincs.SphincsVerify.b115 S with _ | ⟨S2, x2⟩
+      have hk2 := Sphincs.SphincsVerify.b106_in_code.trans hp.1 (List.cons_ne_nil _ _)
+      rcases hx2 : exec Sphincs.SphincsVerify.b106 S with _ | ⟨S2, x2⟩
       · rw [hx2] at h115
         exact absurd h115 Bool.false_ne_true
       rw [hx2] at h115
@@ -219,7 +219,7 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
       refine Sym.exec_at hk2 hx2 hwf (fun _ h ↦ by cases h) hpc1 hm1 fun st2 hm2 hpc2 ↦
         .done _ (.inr ⟨h128, ?_, ?_⟩)
       · simp only [Sym.PcOk] at hpc2
-        rw [hpc2, label_42 hp]
+        rw [hpc2, label_34 hp]
         rfl
       have kept := fun {o : Nat} {bs : List UInt8} ho hb hn ↦
         r.bytesAt_kept (m := m) (m' := st2.data) hpre hm2 hwf (o := o) (bs := bs) ho hb hn
@@ -237,13 +237,13 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
           kept (by rw [Run.length_be32]; omega) s60 (by rw [Run.length_be32]; exact k60),
           kept (by rw [length_wordBytes]; omega) s568 (by rw [length_wordBytes]; exact k568),
           kept (by rw [length_wordBytes]; omega) s176 (by rw [length_wordBytes]; exact k176)⟩,
-        hm2.regs .rax _ hX0, (hm2.regs .r12 _ hX12).trans (r.ptr_eval _ _ _ 4104),
-        (hm2.regs .r13 _ hX13).trans (r.ptr_eval _ _ _ 8328),
+        hm2.regs .rax _ hX0, (hm2.regs .r12 _ hX12).trans (r.ptr_eval _ _ _ 4072),
+        (hm2.regs .r13 _ hX13).trans (r.ptr_eval _ _ _ 8296),
         ?_, hm2.regs .rbx _ hXbx, (hm2.regs .r14 _ hX14).trans h14⟩
       intro i hi
       rw [length_digits] at hi
-      rw [Run.off_add, show r.off (3080 + i) = r.base + BitVec.ofNat 64 (3080 + i) from rfl,
-        hm2.mem 0 r.base frameRegion rfl (3080 + i) (by rw [Run.frameRegion_eq]; omega)]
+      rw [Run.off_add, show r.off (3048 + i) = r.base + BitVec.ofNat 64 (3048 + i) from rfl,
+        hm2.mem 0 r.base frameRegion rfl (3048 + i) (by rw [Run.frameRegion_eq]; omega)]
       simp only [List.all_eq_true, List.mem_range, beq_iff_eq] at hw
       simp only [Sym.memByte, hw i hi, cwS, Sym.eval]
       rw [byteOf_cw, Sym.byteOf_load (by decide) (by decide), Nat.add_zero]
@@ -259,7 +259,7 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
         rfl
       rw [hc] at hpc1
       simp only [Bool.not_false, ↓reduceIte] at hpc1
-      exact Eventually.mono (goto (hpc1.trans (label_84 hp)) (fail_return r hp hpre st.data hF1))
+      exact Eventually.mono (goto (hpc1.trans (label_76 hp)) (fail_return r hp hpre st.data hF1))
         fun st' h' ↦ .inl ⟨h128, h'⟩
   · exact absurd hok Bool.false_ne_true
 

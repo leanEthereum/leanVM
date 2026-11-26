@@ -241,16 +241,16 @@ end
 /-- No write of a block reaches the bytes `Keep` holds. -/
 @[expose] def keepW (S : SState) : Bool :=
   Run.noWriteIn S 88 8 && Run.noWriteIn S 112 32 && Run.noWriteIn S 168 8 &&
-    Run.noWriteIn S 192 24 && Run.noWriteIn S 552 8 && Run.noWriteIn S 20556 7740
+    Run.noWriteIn S 192 24 && Run.noWriteIn S 552 8 && Run.noWriteIn S 12780 7740
 
 section
 variable {r : Run} [Labels]
 
 omit [Labels] in
-theorem length_pkBytes' : (pkBytes r.w).length = 32 := length_pkBytes r.w
+theorem length_pkBytes' : r.pkB.length = 32 := r.hpk
 
 omit [Labels] in
-theorem length_sigMem' : (sigMem r.sig).length = 7740 := SigMem.length_sigMem r.w
+theorem length_sigMem' : (sigMem r.sig).length = 7740 := SigMemBytes.length_sigMem r.sigB r.hsig
 
 /-- **`Keep` after a block** that writes none of its bytes. -/
 theorem Keep.of_match (hpre : r.Pre) {l : Nat} {m m' : MachineData} {vars : Nat → BitVec 64}
@@ -260,7 +260,7 @@ theorem Keep.of_match (hpre : r.Pre) {l : Nat} {m m' : MachineData} {vars : Nat 
   obtain ⟨⟨⟨⟨⟨h88, h112⟩, h160⟩, h200⟩, h568⟩, h20540⟩ := hk
   obtain ⟨⟨hpk, hsig⟩, hT, hH, hN, hO, hL, hI⟩ := hK
   have hw : ∀ v : UInt64, (wordBytes v).length = 8 := length_wordBytes
-  have k := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400)
+  have k := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
     (h : BytesAt m.dmem (r.off o) bs) (hn : Run.noWriteIn S o bs.length = true) ↦
     r.bytesAt_kept hpre hm hwf ho h hn
   have n200 : ∀ o, 192 ≤ o → o + 8 ≤ 216 → Run.noWriteIn S o 8 = true := fun o h1 h2 ↦ by
@@ -283,11 +283,11 @@ theorem Keep.of_match (hpre : r.Pre) {l : Nat} {m m' : MachineData} {vars : Nat 
 /-- **`Keep` after a call** that changed the frame's bytes `a .. a + n` between the spills and the
 parsed signature. -/
 theorem Keep.of_call (hpre : r.Pre) {l : Nat} {m m' : MachineData} (hc : r.AtCall m) {a n N : Nat}
-    (ha : 560 ≤ a) (han : a + n ≤ 20556) (hN : N ≤ finalizeStack)
+    (ha : 560 ≤ a) (han : a + n ≤ 12780) (hN : N ≤ finalizeStack)
     (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) (hK : Keep r l m) : Keep r l m' := by
   obtain ⟨⟨hpk, hsig⟩, hT, hH, hN', hO, hL, hI⟩ := hK
   have hw : ∀ v : UInt64, (wordBytes v).length = 8 := length_wordBytes
-  have k := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400)
+  have k := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
     (hd : o + bs.length ≤ a ∨ a + n ≤ o) (h : BytesAt m.dmem (r.off o) bs) ↦
     r.bytesAt_of_call hpre hc (by omega) hN hout ho hd h
   refine ⟨⟨k (by rw [length_pkBytes']; decide) (by rw [length_pkBytes']; omega) hpk,
@@ -319,7 +319,7 @@ theorem Base.atCall (hpre : r.Pre) {l : Nat} {m m' : MachineData} {vars : Nat �
 theorem Base.of_call (hpre : r.Pre) {l : Nat} {m m' : MachineData} (hl : l < 3) (hc : r.AtCall m)
     (hK : Keep r l m) (hbp : Run.RegIs m .rbp (r.off 560))
     (h14 : Run.RegIs m .r14 (Labels.label "memcpy").toBitVec) (hS : Saved m m')
-    (hsp : rspOf m' = rspOf m + 8#64) {a n N : Nat} (ha : 560 ≤ a) (han : a + n ≤ 20556)
+    (hsp : rspOf m' = rspOf m + 8#64) {a n N : Nat} (ha : 560 ≤ a) (han : a + n ≤ 12780)
     (hN : N ≤ finalizeStack) (hout : SameOutside m.dmem m'.dmem (r.CallOut m a n N)) :
     Base r l m' :=
   ⟨hl, r.frame_of_call hpre hc hS hsp (by omega) hN hout, hK.of_call hpre hc ha han hN hout,
@@ -340,97 +340,97 @@ theorem pc_after {j j' : Nat} {ds : List Directive} (h : j + ds.length = j') :
     Host.addrOf (k + j + ds.length) = Host.addrOf (k + j') := by
   rw [Nat.add_assoc, h]
 
-theorem hb151 (hp : Placed code k) : b151.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b151Offset) :=
+theorem hb151 (hp : Placed code k) : b142.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b142Offset) :=
+  placed_infix hp b142_in_code (List.cons_ne_nil _ _)
+theorem hb152 (hp : Placed code k) : b143.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b143Offset) :=
+  placed_infix hp b143_in_code (List.cons_ne_nil _ _)
+theorem hb153 (hp : Placed code k) : b144.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b144Offset) :=
+  placed_infix hp b144_in_code (List.cons_ne_nil _ _)
+theorem hb154 (hp : Placed code k) : b145.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b145Offset) :=
+  placed_infix hp b145_in_code (List.cons_ne_nil _ _)
+theorem hb155 (hp : Placed code k) : b146.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b146Offset) :=
+  placed_infix hp b146_in_code (List.cons_ne_nil _ _)
+theorem hb156 (hp : Placed code k) : b147.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b147Offset) :=
+  placed_infix hp b147_in_code (List.cons_ne_nil _ _)
+theorem hb157 (hp : Placed code k) : b148.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b148Offset) :=
+  placed_infix hp b148_in_code (List.cons_ne_nil _ _)
+theorem hb158 (hp : Placed code k) : b149.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b149Offset) :=
+  placed_infix hp b149_in_code (List.cons_ne_nil _ _)
+theorem hb159 (hp : Placed code k) : b150.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b150Offset) :=
+  placed_infix hp b150_in_code (List.cons_ne_nil _ _)
+theorem hb160 (hp : Placed code k) : b151.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b151Offset) :=
   placed_infix hp b151_in_code (List.cons_ne_nil _ _)
-theorem hb152 (hp : Placed code k) : b152.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset) :=
+theorem hb161 (hp : Placed code k) : b152.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset) :=
   placed_infix hp b152_in_code (List.cons_ne_nil _ _)
-theorem hb153 (hp : Placed code k) : b153.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b153Offset) :=
+theorem hb162 (hp : Placed code k) : b153.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b153Offset) :=
   placed_infix hp b153_in_code (List.cons_ne_nil _ _)
-theorem hb154 (hp : Placed code k) : b154.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b154Offset) :=
-  placed_infix hp b154_in_code (List.cons_ne_nil _ _)
-theorem hb155 (hp : Placed code k) : b155.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b155Offset) :=
-  placed_infix hp b155_in_code (List.cons_ne_nil _ _)
-theorem hb156 (hp : Placed code k) : b156.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b156Offset) :=
+theorem hb165 (hp : Placed code k) : b156.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b156Offset) :=
   placed_infix hp b156_in_code (List.cons_ne_nil _ _)
-theorem hb157 (hp : Placed code k) : b157.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b157Offset) :=
+theorem hb166 (hp : Placed code k) : b157.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b157Offset) :=
   placed_infix hp b157_in_code (List.cons_ne_nil _ _)
-theorem hb158 (hp : Placed code k) : b158.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b158Offset) :=
+theorem hb167 (hp : Placed code k) : b158.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b158Offset) :=
   placed_infix hp b158_in_code (List.cons_ne_nil _ _)
-theorem hb159 (hp : Placed code k) : b159.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b159Offset) :=
+theorem hb168 (hp : Placed code k) : b159.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b159Offset) :=
   placed_infix hp b159_in_code (List.cons_ne_nil _ _)
-theorem hb160 (hp : Placed code k) : b160.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b160Offset) :=
+theorem hb169 (hp : Placed code k) : b160.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b160Offset) :=
   placed_infix hp b160_in_code (List.cons_ne_nil _ _)
-theorem hb161 (hp : Placed code k) : b161.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b161Offset) :=
+theorem hb170 (hp : Placed code k) : b161.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b161Offset) :=
   placed_infix hp b161_in_code (List.cons_ne_nil _ _)
-theorem hb162 (hp : Placed code k) : b162.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b162Offset) :=
-  placed_infix hp b162_in_code (List.cons_ne_nil _ _)
-theorem hb165 (hp : Placed code k) : b165.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b165Offset) :=
+theorem hb173 (hp : Placed code k) : b164.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b164Offset) :=
+  placed_infix hp b164_in_code (List.cons_ne_nil _ _)
+theorem hb174 (hp : Placed code k) : b165.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b165Offset) :=
   placed_infix hp b165_in_code (List.cons_ne_nil _ _)
-theorem hb166 (hp : Placed code k) : b166.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b166Offset) :=
+theorem hb175 (hp : Placed code k) : b166.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b166Offset) :=
   placed_infix hp b166_in_code (List.cons_ne_nil _ _)
-theorem hb167 (hp : Placed code k) : b167.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b167Offset) :=
+theorem hb176 (hp : Placed code k) : b167.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b167Offset) :=
   placed_infix hp b167_in_code (List.cons_ne_nil _ _)
-theorem hb168 (hp : Placed code k) : b168.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b168Offset) :=
+theorem hb177 (hp : Placed code k) : b168.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b168Offset) :=
   placed_infix hp b168_in_code (List.cons_ne_nil _ _)
-theorem hb169 (hp : Placed code k) : b169.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b169Offset) :=
+theorem hb178 (hp : Placed code k) : b169.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b169Offset) :=
   placed_infix hp b169_in_code (List.cons_ne_nil _ _)
-theorem hb170 (hp : Placed code k) : b170.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b170Offset) :=
+theorem hb179 (hp : Placed code k) : b170.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b170Offset) :=
   placed_infix hp b170_in_code (List.cons_ne_nil _ _)
-theorem hb173 (hp : Placed code k) : b173.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b173Offset) :=
+theorem hb182 (hp : Placed code k) : b173.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b173Offset) :=
   placed_infix hp b173_in_code (List.cons_ne_nil _ _)
-theorem hb174 (hp : Placed code k) : b174.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b174Offset) :=
+theorem hb183 (hp : Placed code k) : b174.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b174Offset) :=
   placed_infix hp b174_in_code (List.cons_ne_nil _ _)
-theorem hb175 (hp : Placed code k) : b175.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset) :=
+theorem hb184 (hp : Placed code k) : b175.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset) :=
   placed_infix hp b175_in_code (List.cons_ne_nil _ _)
-theorem hb176 (hp : Placed code k) : b176.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset) :=
+theorem hb185 (hp : Placed code k) : b176.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset) :=
   placed_infix hp b176_in_code (List.cons_ne_nil _ _)
-theorem hb177 (hp : Placed code k) : b177.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset) :=
+theorem hb186 (hp : Placed code k) : b177.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset) :=
   placed_infix hp b177_in_code (List.cons_ne_nil _ _)
-theorem hb178 (hp : Placed code k) : b178.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b178Offset) :=
+theorem hb187 (hp : Placed code k) : b178.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b178Offset) :=
   placed_infix hp b178_in_code (List.cons_ne_nil _ _)
-theorem hb179 (hp : Placed code k) : b179.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b179Offset) :=
+theorem hb188 (hp : Placed code k) : b179.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b179Offset) :=
   placed_infix hp b179_in_code (List.cons_ne_nil _ _)
-theorem hb182 (hp : Placed code k) : b182.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b182Offset) :=
+theorem hb190 (hp : Placed code k) : b181.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b181Offset) :=
+  placed_infix hp b181_in_code (List.cons_ne_nil _ _)
+theorem hb191 (hp : Placed code k) : b182.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b182Offset) :=
   placed_infix hp b182_in_code (List.cons_ne_nil _ _)
-theorem hb183 (hp : Placed code k) : b183.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b183Offset) :=
-  placed_infix hp b183_in_code (List.cons_ne_nil _ _)
-theorem hb184 (hp : Placed code k) : b184.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b184Offset) :=
-  placed_infix hp b184_in_code (List.cons_ne_nil _ _)
-theorem hb185 (hp : Placed code k) : b185.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b185Offset) :=
-  placed_infix hp b185_in_code (List.cons_ne_nil _ _)
-theorem hb186 (hp : Placed code k) : b186.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b186Offset) :=
-  placed_infix hp b186_in_code (List.cons_ne_nil _ _)
-theorem hb187 (hp : Placed code k) : b187.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b187Offset) :=
-  placed_infix hp b187_in_code (List.cons_ne_nil _ _)
-theorem hb188 (hp : Placed code k) : b188.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b188Offset) :=
-  placed_infix hp b188_in_code (List.cons_ne_nil _ _)
-theorem hb190 (hp : Placed code k) : b190.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b190Offset) :=
-  placed_infix hp b190_in_code (List.cons_ne_nil _ _)
-theorem hb191 (hp : Placed code k) : b191.IsInfixAt Host.prog (k + NativeRustcX64.Sphincs.SphincsVerify.b191Offset) :=
-  placed_infix hp b191_in_code (List.cons_ne_nil _ _)
 
-theorem lbl_65 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_65 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b161Offset) :=
+theorem lbl_65 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_57 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_57_at
+theorem lbl_67 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_59 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b156Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_59_at
+theorem lbl_68 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_60 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b158Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_60_at
+theorem lbl_72 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_64 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b157Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_64_at
+theorem lbl_73 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_65 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b164Offset) :=
   hp.label NativeRustcX64.Sphincs.SphincsVerify.label_65_at
-theorem lbl_67 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_67 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b165Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_67_at
-theorem lbl_68 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_68 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b167Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_68_at
-theorem lbl_72 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_72 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b166Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_72_at
-theorem lbl_73 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_73 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b173Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_73_at
-theorem lbl_74 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_74 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset) :=
+theorem lbl_74 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_66 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b167Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_66_at
+theorem lbl_78 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_70 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b166Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_70_at
+theorem lbl_79 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_71 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b173Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_71_at
+theorem lbl_82 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_74 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b181Offset) :=
   hp.label NativeRustcX64.Sphincs.SphincsVerify.label_74_at
-theorem lbl_78 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_78 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_78_at
-theorem lbl_79 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_79 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b182Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_79_at
-theorem lbl_82 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_82 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b190Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_82_at
-theorem lbl_38 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_38 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b104Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_38_at
-theorem lbl_85 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_85 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b196Offset) :=
-  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_85_at
+theorem lbl_38 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_30 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b95Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_30_at
+theorem lbl_85 (hp : Placed code k) : Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_77 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b187Offset) :=
+  hp.label NativeRustcX64.Sphincs.SphincsVerify.label_77_at
 
 end
 

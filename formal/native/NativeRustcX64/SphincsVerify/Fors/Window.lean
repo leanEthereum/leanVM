@@ -6,7 +6,7 @@ public import NativeRustcX64.SphincsVerify.Frame
 # The frame with a window (x86-64)
 
 Where a block reads or writes 16 bytes of the frame at an offset the proof knows but the block
-computes from a register (`b65`'s path node, `b96`'s root slot), the executor's regions are the
+computes from a register (`b56`'s path node, `b87`'s root slot), the executor's regions are the
 frame's first `n0` bytes (region 0, RSP its base), the 16 slots below it (region 1) and the
 window's 16 bytes at `o2 ≥ n0` (region 2): `Run.winRegs`, `Run.envW`. The environment is well
 formed (`Run.wfW`); a fresh symbolic state matches the machine (`Run.matchW`); after a block whose
@@ -67,7 +67,7 @@ variable (r : Run) [Labels]
 
 /-- **The environment with a window is well formed.** -/
 theorem wfW (hpre : r.Pre) {m : MachineData} (hk : Kept r.m0.dmem m.dmem) {n0 o2 : Nat}
-    (h0 : n0 ≤ o2) (h2 : o2 + 16 ≤ 29400) (vars : Nat → BitVec 64) (ret : BitVec 64) :
+    (h0 : n0 ≤ o2) (h2 : o2 + 16 ≤ 21624) (vars : Nat → BitVec 64) (ret : BitVec 64) :
     (r.envW n0 o2 m vars ret).WF := by
   have hb := r.base_toNat hpre
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
@@ -118,13 +118,13 @@ theorem matchW {m : MachineData} (hF : r.Frame m) {n0 o2 : Nat} {vars : Nat → 
 
 /-- The places a block's writes (`winWrites`) cover are in the stack area off the saved
 registers. -/
-theorem written_areaW (hpre : r.Pre) {m : MachineData} {n0 o2 : Nat} (hn0 : n0 ≤ 29352)
-    (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
+theorem written_areaW (hpre : r.Pre) {m : MachineData} {n0 o2 : Nat} (hn0 : n0 ≤ 21576)
+    (ho2 : o2 + 16 ≤ 21576) {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hw : winWrites S n0 = true) :
     ∀ p, Sym.Written (r.envW n0 o2 m vars ret) S p →
-      r.StackArea p ∧ ¬InRange (r.off 29352) 48 p := by
+      r.StackArea p ∧ ¬InRange (r.off 21576) 48 p := by
   have hb := r.base_toNat hpre
-  have hs := r.off_toNat hpre (a := 29352) (by decide)
+  have hs := r.off_toNat hpre (a := 21576) (by decide)
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
   have h2 := r.off_toNat hpre (a := o2) (by omega)
   rintro p ⟨w, hwm, b, sz, hr, h1, h2'⟩
@@ -153,7 +153,7 @@ theorem rsp_base_of {m' : MachineData} {env : Sym.Env} {S : Sym.SState}
 
 /-- **The invariant after a block with a window**: RSP the base, the writes in the regions. -/
 theorem Frame.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0 o2 : Nat}
-    (hn0 : n0 ≤ 29352) (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64}
+    (hn0 : n0 ≤ 21576) (ho2 : o2 + 16 ≤ 21576) {vars : Nat → BitVec 64} {ret : BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.envW n0 o2 m vars ret) S m')
     (hwf : (r.envW n0 o2 m vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 0))
     (hw : winWrites S n0 = true) : r.Frame m' :=
@@ -162,7 +162,7 @@ theorem Frame.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0
 
 /-- **At a call after a block with a window**: RSP 8 below the base. -/
 theorem AtCall.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n0 o2 : Nat}
-    (hn0 : n0 ≤ 29352) (ho2 : o2 + 16 ≤ 29352) {vars : Nat → BitVec 64} {ret : BitVec 64}
+    (hn0 : n0 ≤ 21576) (ho2 : o2 + 16 ≤ 21576) {vars : Nat → BitVec 64} {ret : BitVec 64}
     {S : Sym.SState} (hm : Sym.Match (r.envW n0 o2 m vars ret) S m')
     (hwf : (r.envW n0 o2 m vars ret).WF) (hsp : S.reg .rsp = some (.ptr 0 (-8)))
     (hw : winWrites S n0 = true) : r.AtCall m' := by
@@ -176,10 +176,10 @@ theorem AtCall.of_matchW (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m) {n
 
 /-- **Bytes a block with a window does not write are kept**: the frame's bytes at `o`, where no
 write of region 0 reaches, apart from the window. -/
-theorem bytesAt_keptW (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat} (ho2 : o2 + 16 ≤ 29400)
+theorem bytesAt_keptW (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat} (ho2 : o2 + 16 ≤ 21624)
     {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hm : Sym.Match (r.envW n0 o2 m vars ret) S m') (hwf : (r.envW n0 o2 m vars ret).WF)
-    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400)
+    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
     (hd : o + bs.length ≤ o2 ∨ o2 + 16 ≤ o) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteW S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
@@ -208,7 +208,7 @@ window nor the frame's bytes at `o` (`noWriteIn`). -/
 theorem bytesAt_keptW' (hpre : r.Pre) {m m' : MachineData} {n0 o2 : Nat}
     {vars : Nat → BitVec 64} {ret : BitVec 64} {S : Sym.SState}
     (hm : Sym.Match (r.envW n0 o2 m vars ret) S m') (hwf : (r.envW n0 o2 m vars ret).WF)
-    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 29400) (h : BytesAt m.dmem (r.off o) bs)
+    {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteIn S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
   have hoff := r.off_toNat hpre (a := o) (by omega)

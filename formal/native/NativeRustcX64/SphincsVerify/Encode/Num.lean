@@ -5,9 +5,9 @@ public import NativeRustc.Sphincs.EncodeFacts
 public import NativeRustcX64.Sym.Run
 
 /-!
-# The digest as the 128-bit number `b112` loads
+# The digest as the 128-bit number `b103` loads
 
-`b112` loads the digest's first 16 bytes as two words and swaps each (`bswapq`): the high word
+`b103` loads the digest's first 16 bytes as two words and swaps each (`bswapq`): the high word
 `rax` and the low word `rdx` of `u128::from_be_bytes` (`beNat_split`). A word's value is the
 little-endian number of its bytes (`toNat_eq_leNat`), a swapped word's the big-endian
 (`bswap64_toNat`), and the bytes of a loaded word are the bytes (`bytes_ofBytes`).

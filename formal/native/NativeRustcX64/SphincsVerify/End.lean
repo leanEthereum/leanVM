@@ -23,19 +23,21 @@ variable [Host]
 theorem verify_correct_of {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) (hc : Callees)
     (h1 : ParseSpec) (h2 : DigestSpec) (h3 : ForsSpec) (h4 : ForsKeySpec) (he : EncodeSpec)
     (hch : ChainsSpec) (ht : TreeSpec)
-    {pk : _root_.Sphincs.PublicKey} {msg : HashSig.Message} {sig : _root_.Sphincs.Signature}
-    {m : MachineData} (hpre : (Run.mk m (Native.SphincsVerifier.encode pk msg sig) k).Pre) :
+    {pk msg sig : List UInt8} (hpk : pk.length = 32) (hmsg : msg.length = 32)
+    (hsig : sig.length = 7740)
+    {m : MachineData} (hpre : (Run.mk m pk msg sig hpk hmsg hsig k).Pre) :
     Eventually (step1 Host.exe) (fun st ↦ st.pc = retOf m ∧
       rspOf st.data = rspOf m + 8#64 ∧
-      reg st.data .rax = (if _root_.Sphincs.verifyWithKeccak pk msg sig then 1 else 0) ∧
+      reg st.data .rax = (if _root_.Sphincs.verifyWithKeccak
+        (Native.SphincsVerifier.decodePk pk) (Native.SphincsVerifier.decodeMsg msg)
+        (Native.SphincsVerifier.decodeSig sig) then 1 else 0) ∧
       SameOutside m.dmem st.data.dmem (InRange (stackBelow m sphincsStack) sphincsStack) ∧
       Saved m st.data) ⟨m, label NativeRustcX64.Sphincs.SphincsVerify.entryLabel⟩ := by
   have h0 := NativeRustcX64.Sphincs.SphincsVerify.entry_at
   have hl : label NativeRustcX64.Sphincs.SphincsVerify.entryLabel = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b0Offset) := hp.label h0
   rw [hl, NativeRustcX64.Sphincs.SphincsVerify.b0Offset, Nat.add_zero]
-  have := run_correct ⟨m, Native.SphincsVerifier.encode pk msg sig, k⟩ hp hc hpre h1 h2 h3 h4 he hch
-    ht
-  rw [NativeRustc.Sphincs.verify_eq] at this
+  have := run_correct ⟨m, pk, msg, sig, hpk, hmsg, hsig, k⟩ hp hc hpre h1 h2 h3 h4 he hch ht
+  rw [NativeRustc.Sphincs.verify_decode_bytes pk msg sig hpk hmsg hsig] at this
   exact this
 
 end

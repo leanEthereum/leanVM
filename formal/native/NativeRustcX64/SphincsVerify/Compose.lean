@@ -52,18 +52,18 @@ theorem resultFrom_some {l : Nat} {s x : List UInt8} (hl : l < 3)
 theorem resultFrom_three (s : List UInt8) : r.resultFrom 3 s = (s == r.pk.root) := rfl
 
 /-- Verification is the layers' from the FORS key. -/
-theorem sphincsVerify_eq : sphincsVerify r.w = r.resultFrom 0 r.forsPk := by
-  have hL : layersFrom (PublicKey.fromBytes (pkBytes r.w)).pkSeed
-      (messageDigest (PublicKey.fromBytes (pkBytes r.w)) (Signature.fromBytes (sigBytes r.w)).randomizer
-        (messageBytes r.w)).1 (Signature.fromBytes (sigBytes r.w)) [0, 1, 2]
-      (forsRecover (PublicKey.fromBytes (pkBytes r.w)).pkSeed
-        (messageDigest (PublicKey.fromBytes (pkBytes r.w))
-          (Signature.fromBytes (sigBytes r.w)).randomizer (messageBytes r.w)).1
-        (messageDigest (PublicKey.fromBytes (pkBytes r.w))
-          (Signature.fromBytes (sigBytes r.w)).randomizer (messageBytes r.w)).2
-        (Signature.fromBytes (sigBytes r.w)).fors) =
+theorem sphincsVerifyBytes_eq : sphincsVerifyBytes r.pkB r.msgB r.sigB = r.resultFrom 0 r.forsPk := by
+  have hL : layersFrom (PublicKey.fromBytes r.pkB).pkSeed
+      (messageDigest (PublicKey.fromBytes r.pkB) (Signature.fromBytes r.sigB).randomizer
+        r.msgB).1 (Signature.fromBytes r.sigB) [0, 1, 2]
+      (forsRecover (PublicKey.fromBytes r.pkB).pkSeed
+        (messageDigest (PublicKey.fromBytes r.pkB)
+          (Signature.fromBytes r.sigB).randomizer r.msgB).1
+        (messageDigest (PublicKey.fromBytes r.pkB)
+          (Signature.fromBytes r.sigB).randomizer r.msgB).2
+        (Signature.fromBytes r.sigB).fors) =
       layersFrom r.seed r.idx r.sig (List.range' 0 (3 - 0)) r.forsPk := rfl
-  unfold sphincsVerify verify resultFrom
+  unfold sphincsVerifyBytes verify resultFrom
   rw [hL]
   cases layersFrom r.seed r.idx r.sig (List.range' 0 (3 - 0)) r.forsPk <;> rfl
 
@@ -84,7 +84,7 @@ what verification gives from layer `l` on. -/
 theorem layers_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (hpre : r.Pre) (he : EncodeSpec) (hch : ChainsSpec) (ht : TreeSpec) :
     ∀ n l s m, l + n = 3 → r.AtLayer l s m →
-      Eventually (step1 Host.exe) (r.Done (r.resultFrom l s)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b104Offset⟩ := by
+      Eventually (step1 Host.exe) (r.Done (r.resultFrom l s)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset⟩ := by
   intro n
   induction n with
   | zero =>
@@ -110,11 +110,11 @@ theorem layers_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
       exact at_pc (fun m hm ↦ ih (l + 1) _ m (by omega) hm) st'' h
 
 /-- **`sphincs_verify` from its regions**: from the entry the machine inevitably returns
-`sphincsVerify` of the input words. -/
+`sphincsVerifyBytes` of the input buffers. -/
 theorem run_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (hpre : r.Pre) (h1 : ParseSpec) (h2 : DigestSpec) (h3 : ForsSpec) (h4 : ForsKeySpec)
     (he : EncodeSpec) (hch : ChainsSpec) (ht : TreeSpec) :
-    Eventually (step1 Host.exe) (r.Done (sphincsVerify r.w))
+    Eventually (step1 Host.exe) (r.Done (sphincsVerifyBytes r.pkB r.msgB r.sigB))
       ⟨r.m0, Host.addrOf r.k⟩ := by
   have e1 := h1 r hp hc hpre r.m0 rfl
   rw [Sphincs.SphincsVerify.b0Offset, Nat.add_zero] at e1
@@ -122,7 +122,7 @@ theorem run_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc :
   refine Eventually.bind (h2 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
   refine Eventually.bind (h3 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
   refine Eventually.bind (h4 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
-  rw [r.sphincsVerify_eq]
+  rw [r.sphincsVerifyBytes_eq]
   exact layers_correct r hp hc hpre he hch ht 3 0 _ m rfl hm
 
 end

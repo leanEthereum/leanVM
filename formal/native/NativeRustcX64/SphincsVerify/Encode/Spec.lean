@@ -5,10 +5,10 @@ public import NativeRustcX64.SphincsVerify.Encode.Sum
 /-!
 # Region 5a: a layer's encoding
 
-From layer `l`'s state at `b104` with message `s` (`AtLayer l s`): the key and the encoder's
+From layer `l`'s state at `b95` with message `s` (`AtLayer l s`): the key and the encoder's
 address (`b104_spec`), the encoder's digest (`hash_spec`), its 64 digits (`loop_run`), their sum
 and the codeword's copy (`sum_spec`). The machine returns 0 where `encode` gives no codeword,
-else reaches the chains at `b117` with the codeword (`encode_spec : EncodeSpec`).
+else reaches the chains at `b108` with the codeword (`encode_spec : EncodeSpec`).
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof
@@ -17,9 +17,9 @@ open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym
 
 public section
 
-/-- **Region 5a, a layer's encoding** (`EncodeSpec`): from `b104` with layer `l`'s state, the
-machine returns 0 if `encode` gives no codeword, else reaches `b117` with the codeword at
-`3080`. -/
+/-- **Region 5a, a layer's encoding** (`EncodeSpec`): from `b95` with layer `l`'s state, the
+machine returns 0 if `encode` gives no codeword, else reaches `b108` with the codeword at
+`3048`. -/
 theorem encode_spec [Host] : EncodeSpec := by
   intro l s r hp hc hpre m h
   have hl : l < 3 := h.1
@@ -42,7 +42,7 @@ theorem encode_spec [Host] : EncodeSpec := by
   refine Eventually.mono (sum_spec r hp hpre hl hF3 hD3.1 hD3.2.1
     (Run.EncData.memcpy r hD3) hd3) fun st h' ↦ ?_
   show (encode r.seed (r.key l) s (r.layerSig l).counter = none ∧ r.Done false st) ∨
-    ∃ x, encode r.seed (r.key l) s (r.layerSig l).counter = some x ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b117Offset ∧
+    ∃ x, encode r.seed (r.key l) s (r.layerSig l).counter = some x ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b108Offset ∧
       r.AtChains l x st.data
   rw [encode_eq]
   simp only [hVdef]

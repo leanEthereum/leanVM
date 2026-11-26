@@ -4,9 +4,9 @@ public import NativeRustcX64.SphincsVerify.Encode.Digits
 public import NativeRustc.Sphincs.Model
 
 /-!
-# The key of layer `l` as `b104` computes it
+# The key of layer `l` as `b95` computes it
 
-`b104` shifts the index right by the heights of the layers below (`shrq %cl`, the count built
+`b95` shifts the index right by the heights of the layers below (`shrq %cl`, the count built
 from `setne`/`shlb`/`addb` in a byte register: `low8_shift`), splits off the tree (`shrq` by the
 height) and the leaf (`andl` with `~(-1 << height)`): `OtsKey.ofIndex`'s fields (`key_tree`,
 `key_leaf`), x86's shift counts taken modulo 64.
@@ -36,7 +36,7 @@ theorem low8_zext (x : BitVec 64) :
   intro i hi
   simp [hi, show i < 64 by omega]
 
-/-- **The shift count `b104` builds** for layers 1 and 2 (`b = l - 1`): `8 + 8 b`, whatever the
+/-- **The shift count `b95` builds** for layers 1 and 2 (`b = l - 1`): `8 + 8 b`, whatever the
 register's other bits. -/
 theorem low8_shift (x : BitVec 64) {b : Nat} (hb : b ≤ 1) :
     low .W8 (UnOp.apply (.zext .W8) .W32 (BinOp.apply .merge .W8

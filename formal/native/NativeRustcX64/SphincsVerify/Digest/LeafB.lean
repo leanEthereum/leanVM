@@ -27,7 +27,7 @@ theorem leaf_6 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 6 + j) / 8)) >>> (7 - (10 * 6 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,
@@ -52,7 +52,7 @@ theorem leaf_7 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 7 + j) / 8)) >>> (7 - (10 * 7 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,
@@ -77,7 +77,7 @@ theorem leaf_8 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 8 + j) / 8)) >>> (7 - (10 * 8 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,
@@ -102,7 +102,7 @@ theorem leaf_9 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 9 + j) / 8)) >>> (7 - (10 * 9 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,
@@ -127,7 +127,7 @@ theorem leaf_10 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 10 + j) / 8)) >>> (7 - (10 * 10 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,
@@ -152,7 +152,7 @@ theorem leaf_11 [Labels] (env : Env) (z : Nat → BitVec 8)
     (hb : ∀ k < 30, env.load 0 k 1 = BitVec.setWidth 64 (z k)) :
     leafSym.eval env =
       bitsVal fun j ↦ (BitVec.setWidth 64 (z ((10 * 11 + j) / 8)) >>> (7 - (10 * 11 + j) % 8)) &&& 1 := by
-  simp only [leafSym, run_b55, List.headD_cons]
+  simp only [leafSym, run_b46, List.headD_cons]
   sym_simp
   rw [hx]
   simp only [bitsVal, List.range_succ, List.range_zero, List.nil_append, List.foldl_append,

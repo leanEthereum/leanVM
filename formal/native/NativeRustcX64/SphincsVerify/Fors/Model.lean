@@ -77,7 +77,7 @@ theorem forsUpTo_succ (c z : Nat) : r.forsUpTo c (z + 1) = r.forsStep c (r.forsU
   simp only [forsUpTo, List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
 
 theorem length_openingOf_path {c : Nat} (hc : c < 24) : (r.openingOf c).path.length = 10 :=
-  SigMem.length_forsPath r.w hc
+  SigMemBytes.length_forsPath r.sigB hc
 
 /-- **The root** is the value after the path's 10 steps. -/
 theorem forsRoot_eq {c : Nat} (hc : c < 24) : r.forsRoot c = r.forsUpTo c 10 := by
@@ -143,10 +143,10 @@ theorem key0_leaf : (r.key 0).leaf = (r.idx &&& 255).toUInt32 := by
   rfl
 
 theorem length_pathNode {c z : Nat} (hc : c < 24) (hz : z < 10) : (r.pathNode c z).length = 16 :=
-  SigMem.length_forsPath_getD r.w hc hz
+  SigMemBytes.length_forsPath_getD r.sigB r.hsig hc hz
 
 theorem length_secret {c : Nat} (hc : c < 24) : (r.openingOf c).secret.length = 16 :=
-  SigMem.length_forsSecret r.w hc
+  SigMemBytes.length_forsSecret r.sigB r.hsig hc
 
 theorem length_th (seed adrs m : List UInt8) : (th seed adrs m).length = 16 := by
   rw [th, List.length_take, NativeRustc.Sphincs.length_hashBytes]

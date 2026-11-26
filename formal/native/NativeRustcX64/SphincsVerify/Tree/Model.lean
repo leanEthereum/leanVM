@@ -10,7 +10,7 @@ Layer `l`'s next message as the machine computes it: the fold's step at height `
 value and the sibling, bit `z` of the key's leaf saying which is left)) and the fold after `z`
 steps (`Run.foldUpTo`, `Tree.foldUpTo_succ`), which after `heightOf l` steps is `Run.layerRoot`
 (`Tree.layerRoot_eq`). Layer `l`'s path from node `pathStart l` of the 26, in the frame at
-`24780 + 16 j` (`Tree.bytesAt_sibling`). The addresses' bytes (`Tree.keyAdrs_one`,
+`17004 + 16 j` (`Tree.bytesAt_sibling`). The addresses' bytes (`Tree.keyAdrs_one`,
 `Tree.nodeAdrs_eq`).
 -/
 
@@ -96,41 +96,39 @@ theorem length_th (seed adrs m : List UInt8) : (th seed adrs m).length = 16 := b
   rw [th, List.length_take, NativeRustc.Sphincs.length_hashBytes]
   rfl
 
-theorem length_pkBytes (w : Nat → UInt64) : (pkBytes w).length = 32 := by
-  rw [pkBytes, Proof.length_wordsBytes]
-  simp
+theorem length_pkBytes (r : Run) : r.pkB.length = 32 := r.hpk
 
 variable (r : Run)
 
-theorem sig_eq : r.sig = sigOf r.w := rfl
+theorem sig_eq : r.sig = sigOfBytes r.sigB := rfl
 
 theorem length_seed : r.seed.length = 16 := by
-  rw [Run.seed, Run.pk, PublicKey.fromBytes, List.length_take, length_pkBytes]
+  rw [Run.seed, Run.pk, PublicKey.fromBytes, List.length_take, r.hpk]
   rfl
 
 theorem length_pkRoot : r.pk.root.length = 16 := by
-  show ((pkBytes r.w).drop 16).length = 16
-  rw [List.length_drop, length_pkBytes]
+  show (r.pkB.drop 16).length = 16
+  rw [List.length_drop, r.hpk]
 
 /-- Layer `l`'s path has `heightOf l` nodes. -/
 theorem length_path {l : Nat} (hl : l < 3) : (r.sig.path l).length = heightOf l := by
-  rw [Signature.path, List.length_take, List.length_drop, sig_eq, SigMem.length_paths]
+  rw [Signature.path, List.length_take, List.length_drop, sig_eq, SigMemBytes.length_paths]
   have := pathStart_lt hl
   unfold pathStart heightOf at *
   omega
 
 theorem sibling_eq {l z : Nat} (hz : z < heightOf l) :
     r.sibling l z = r.sig.paths.getD (pathStart l + z) [] :=
-  SigMem.path_getD r.w hz
+  SigMemBytes.path_getD r.sigB hz
 
 theorem length_sibling {l z : Nat} (hl : l < 3) (hz : z < heightOf l) :
     (r.sibling l z).length = 16 := by
   rw [sibling_eq r hz]
-  have hlt : pathStart l + z < (sigOf r.w).paths.length := by
-    rw [SigMem.length_paths]
+  have hlt : pathStart l + z < (sigOfBytes r.sigB).paths.length := by
+    rw [SigMemBytes.length_paths]
     have := pathStart_lt hl
     omega
-  apply SigMem.length_node r.w
+  apply SigMemBytes.length_node r.sigB r.hsig
   rw [sig_eq, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hlt]
   exact List.getElem_mem _
 

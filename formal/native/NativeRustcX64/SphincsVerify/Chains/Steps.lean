@@ -8,7 +8,7 @@ public import NativeRustc.Sphincs.Digest
 # A chain's steps on x86-64
 
 A step leaves `th` of the step's address and the chain's value (`step`, by `th_short`); the
-steps from position `pos` to 3 leave the chain's end, `chain` from `pos` (`steps`), at `b150`.
+steps from position `pos` to 3 leave the chain's end, `chain` from `pos` (`steps`), at `b141`.
 -/
 
 namespace NativeRustcX64.SphincsVerifyProof.Chains
@@ -48,14 +48,14 @@ theorem step (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre :
     (hcell : BytesAt m.dmem (r.off 1592) v)
     (cont : ∀ m', Keep r l x E i m' → Regs r m' (pos + 1) →
       BytesAt m'.dmem (r.off 1592) (th r.seed (chainAdrs r l i pos) v) →
-      Eventually (step1 Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b150Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩ :=
-  seg_b119 hp hc hpre hx hE hpos hv hK hR hcell fun m' h1 h2 h3 ↦ cont m' h1 h2 (by
+      Eventually (step1 Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩) :
+    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩ :=
+  seg_b110 hp hc hpre hx hE hpos hv hK hR hcell fun m' h1 h2 h3 ↦ cont m' h1 h2 (by
     rw [th_short (by simp [length_seed, length_chainAdrs, hv])]
     exact h3)
 
 /-- **The steps from position `pos`**: `k + 1` steps to position 3 leave `chain` from `pos`; then
-`b150`. -/
+`b141`. -/
 theorem steps (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat}
     {R : MachineState → Prop} :
@@ -63,8 +63,8 @@ theorem steps (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre 
       Keep r l x E i m → Regs r m pos → BytesAt m.dmem (r.off 1592) v →
       (∀ m', Keep r l x E i m' → Regs r m' 3 →
         BytesAt m'.dmem (r.off 1592) (chain r.seed (r.key l) i pos (k + 1) v) →
-        Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b150Offset⟩) →
-      Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b119Offset⟩
+        Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset⟩) →
+      Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩
   | 0, pos, v, m, hk, hv, hK, hR, hcell, cont =>
     step hp hc hpre hx hE (by omega) hv hK hR hcell fun m' h1 h2 h3 ↦ by
       simp only [show pos + 1 = 3 by omega, ↓reduceIte] at h2 ⊢
