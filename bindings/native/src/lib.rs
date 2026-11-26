@@ -378,16 +378,33 @@ pub unsafe extern "C" fn lpq_sphincs_verify(
     signature_len: usize,
 ) -> c_int {
     ffi(|| {
-        let public_key =
-            sphincs::PublicKey::from_bytes(bytes(public_key, public_key_len, "public key")?)
-                .map_err(|e| e.to_string())?;
-        let message = bytes32(message, message_len, "message")?;
-        let signature =
-            sphincs::Signature::from_bytes(bytes(signature, signature_len, "signature")?)
-                .map_err(|e| e.to_string())?;
-        public_key
-            .verify(&message, &signature)
-            .map_err(|e| e.to_string())
+        let pk_slice = bytes(public_key, public_key_len, "public key")?;
+        let pk: &[u8; PUBLIC_KEY_LEN] = pk_slice.try_into().map_err(|_| {
+            lean_pq::Error::InvalidLength {
+                encoding: lean_pq::Encoding::SphincsPublicKey,
+                expected: PUBLIC_KEY_LEN,
+                actual: pk_slice.len(),
+            }
+            .to_string()
+        })?;
+        let message_slice = bytes(message, message_len, "message")?;
+        let message: &[u8; MESSAGE_LEN] = message_slice.try_into().map_err(|_| {
+            format!("message must be exactly {MESSAGE_LEN} bytes, got {message_len}")
+        })?;
+        let sig_slice = bytes(signature, signature_len, "signature")?;
+        let sig: &[u8; sphincs::SIGNATURE_LEN] = sig_slice.try_into().map_err(|_| {
+            lean_pq::Error::InvalidLength {
+                encoding: lean_pq::Encoding::SphincsSignature,
+                expected: sphincs::SIGNATURE_LEN,
+                actual: sig_slice.len(),
+            }
+            .to_string()
+        })?;
+        if proved_sphincs::verify_bytes(pk, message, sig) {
+            Ok(())
+        } else {
+            Err(lean_pq::Error::SphincsVerify.to_string())
+        }
     })
 }
 

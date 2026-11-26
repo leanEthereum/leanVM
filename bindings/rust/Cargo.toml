@@ -21,6 +21,7 @@ lean_vrf = { workspace = true }
 aggregation = { workspace = true, optional = true }
 lean_vm = { workspace = true, optional = true, features = ["cpu_tiers"] }
 lean_xmss = { workspace = true }
+proved-sphincs = { workspace = true }
 thiserror = "2.0.21"
 
 [dev-dependencies]

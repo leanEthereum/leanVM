@@ -1,0 +1,17 @@
+[package]
+name = "proved-sphincs"
+version.workspace = true
+edition = "2021"
+publish = false
+description = "Internal bridge to the formally verified leanSPHINCS assembly"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+lean_sphincs = { workspace = true }
+
+[lints.rust]
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

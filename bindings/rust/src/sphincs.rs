@@ -23,9 +23,9 @@
 use std::fmt;
 
 use lean_sphincs::{
-    key_gen, sign as sphincs_sign, verify as sphincs_verify, LeanSphincsPublicKey,
-    LeanSphincsSignature, SecretKey as UpstreamSecretKey, PUB_KEY_SIZE,
-    SECRET_KEY_LEN as UPSTREAM_SECRET_KEY_LEN, SIG_SIZE,
+    key_gen, sign as sphincs_sign, LeanSphincsPublicKey, LeanSphincsSignature,
+    SecretKey as UpstreamSecretKey, PUB_KEY_SIZE, SECRET_KEY_LEN as UPSTREAM_SECRET_KEY_LEN,
+    SIG_SIZE,
 };
 
 use crate::{Encoding, Error, Message, PUBLIC_KEY_LEN};
@@ -93,7 +93,9 @@ impl PublicKey {
     ///
     /// Fails when the signature does not verify.
     pub fn verify(&self, message: &Message, signature: &Signature) -> Result<(), Error> {
-        if sphincs_verify(&self.0, message, &signature.0) {
+        let pk_bytes = self.0.to_bytes();
+        let sig_bytes = signature.0.to_bytes();
+        if proved_sphincs::verify_bytes(&pk_bytes, message, &sig_bytes) {
             Ok(())
         } else {
             Err(Error::SphincsVerify)
