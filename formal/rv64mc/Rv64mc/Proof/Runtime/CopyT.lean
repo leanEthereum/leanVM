@@ -64,9 +64,6 @@ theorem getByte_same_dword {M : MachineState} {x : Word} {b : Nat} (hb : b < 2 ^
     M.getByte (BitVec.ofNat 64 b) = extractByte (M.getMem (alignToDword x)) (b % 8) := by
   rw [MachineState.getByte, (align_eq_iff hb x).2 hA, byteOffset_ofNat hb]
 
-theorem iteT {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : c) : (if c then a else b) = a := by simp [h]
-theorem iteF {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : ¬ c) : (if c then a else b) = b := by simp [h]
-
 /-- **A store's bytes**: a store of width `w` at `x`, aligned for its width, writes `v`'s low bytes at
     `[x, x + w)` and keeps every other byte. -/
 theorem bat_storeMem {w : Width} {M : MachineState} {x v : Word} {b : Nat} (hx : x.toNat % w.bytes = 0)
@@ -82,49 +79,49 @@ theorem bat_storeMem {w : Width} {M : MachineState} {x v : Word} {b : Nat} (hx :
   cases w <;> simp only [hw1, hw2, hw4, hw8] at hx <;> unfold bat storeMem <;> dsimp only
   · rw [MachineState.setByte, getByte_setMem', hbo, byteOffset_eq_toNat_mod]
     by_cases hA : b / 8 = x.toNat / 8
-    · rw [iteT (hal.2 hA)]
+    · rw [ite_eq_left (hal.2 hA)]
       by_cases hE : b % 8 = x.toNat % 8
       · have := extractByte_replaceByte_same (M.getMem (alignToDword x)) ⟨x.toNat % 8, by omega⟩ (v.truncate 8)
         simp only at this
-        rw [hE, this, iteT (by omega), extractByte_trunc8, show b - x.toNat = 0 by omega]
-      · rw [extractByte_replaceByte_diff _ _ (by omega) (by omega) hE, iteF (by omega), getByte_same_dword hb hA]
-    · rw [iteF (mt hal.1 hA), iteF (by omega)]
+        rw [hE, this, ite_eq_left (by omega), extractByte_trunc8, show b - x.toNat = 0 by omega]
+      · rw [extractByte_replaceByte_diff _ _ (by omega) (by omega) hE, ite_eq_right (by omega),
+          getByte_same_dword hb hA]
+    · rw [ite_eq_right (mt hal.1 hA), ite_eq_right (by omega)]
   · rw [MachineState.setHalfword, getByte_setMem', hbo, byteOffset_eq_toNat_mod]
     by_cases hA : b / 8 = x.toNat / 8
-    · rw [iteT (hal.2 hA), extractByte_replaceHalfword _ _ (by omega) (by omega)]
+    · rw [ite_eq_left (hal.2 hA), extractByte_replaceHalfword _ _ (by omega) (by omega)]
       by_cases h0 : b % 8 = 2 * (x.toNat % 8 / 2)
-      · rw [iteT h0, iteT (by omega), extractByte_trunc16_0, show b - x.toNat = 0 by omega]
+      · rw [ite_eq_left h0, ite_eq_left (by omega), extractByte_trunc16_0, show b - x.toNat = 0 by omega]
       by_cases h1 : b % 8 = 2 * (x.toNat % 8 / 2) + 1
-      · rw [iteF h0, iteT h1, iteT (by omega), extractByte_trunc16_1, show b - x.toNat = 1 by omega]
-      rw [iteF h0, iteF h1, iteF (by omega), getByte_same_dword hb hA]
-    · rw [iteF (mt hal.1 hA), iteF (by omega)]
+      · rw [ite_eq_right h0, ite_eq_left h1, ite_eq_left (by omega), extractByte_trunc16_1,
+          show b - x.toNat = 1 by omega]
+      rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right (by omega), getByte_same_dword hb hA]
+    · rw [ite_eq_right (mt hal.1 hA), ite_eq_right (by omega)]
   · rw [MachineState.setWord32, getByte_setMem', hbo, byteOffset_eq_toNat_mod]
     by_cases hA : b / 8 = x.toNat / 8
-    · rw [iteT (hal.2 hA), extractByte_replaceWord32 _ _ (by omega) (by omega)]
+    · rw [ite_eq_left (hal.2 hA), extractByte_replaceWord32 _ _ (by omega) (by omega)]
       have e := fun k (hk : k < 4) => extractByte_trunc32 v k hk
       by_cases h0 : b % 8 = 4 * (x.toNat % 8 / 4)
-      · rw [iteT h0, iteT (by omega), show b - x.toNat = 0 by omega]; simpa using e 0 (by omega)
+      · rw [ite_eq_left h0, ite_eq_left (by omega), show b - x.toNat = 0 by omega]; simpa using e 0 (by omega)
       by_cases h1 : b % 8 = 4 * (x.toNat % 8 / 4) + 1
-      · rw [iteF h0, iteT h1, iteT (by omega), show b - x.toNat = 1 by omega]; exact e 1 (by omega)
+      · rw [ite_eq_right h0, ite_eq_left h1, ite_eq_left (by omega), show b - x.toNat = 1 by omega]
+        exact e 1 (by omega)
       by_cases h2 : b % 8 = 4 * (x.toNat % 8 / 4) + 2
-      · rw [iteF h0, iteF h1, iteT h2, iteT (by omega), show b - x.toNat = 2 by omega]; exact e 2 (by omega)
+      · rw [ite_eq_right h0, ite_eq_right h1, ite_eq_left h2, ite_eq_left (by omega), show b - x.toNat = 2 by omega]
+        exact e 2 (by omega)
       by_cases h3 : b % 8 = 4 * (x.toNat % 8 / 4) + 3
-      · rw [iteF h0, iteF h1, iteF h2, iteT h3, iteT (by omega), show b - x.toNat = 3 by omega]
+      · rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h2, ite_eq_left h3, ite_eq_left (by omega),
+          show b - x.toNat = 3 by omega]
         exact e 3 (by omega)
-      rw [iteF h0, iteF h1, iteF h2, iteF h3, iteF (by omega), getByte_same_dword hb hA]
-    · rw [iteF (mt hal.1 hA), iteF (by omega)]
+      rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h2, ite_eq_right h3, ite_eq_right (by omega),
+        getByte_same_dword hb hA]
+    · rw [ite_eq_right (mt hal.1 hA), ite_eq_right (by omega)]
   · have hx' : alignToDword x = x := by
       apply BitVec.eq_of_toNat_eq; rw [toNat_alignToDword]; omega
     rw [getByte_setMem', hbo]
     by_cases hA : b / 8 = x.toNat / 8
-    · rw [iteT ((hal.2 hA).trans hx'), iteT (by omega)]; congr 1; omega
-    · rw [iteF (fun h => hA (hal.1 (h.trans hx'.symm))), iteF (by omega)]
-
-theorem extractByte_window (W : Word) (o n t : Nat) (ht : 8 * t + 8 ≤ n) (hn : n ≤ 64) :
-    extractByte (((W >>> (8 * o)).setWidth n).setWidth 64) t = extractByte W (o + t) := by
-  apply BitVec.eq_of_getLsbD_eq; intro i hi
-  simp [extractByte, hi, show t * 8 + i < n by omega, show t * 8 + i < 64 by omega]
-  congr 1; omega
+    · rw [ite_eq_left ((hal.2 hA).trans hx'), ite_eq_left (by omega)]; congr 1; omega
+    · rw [ite_eq_right (fun h => hA (hal.1 (h.trans hx'.symm))), ite_eq_right (by omega)]
 
 theorem ofNat_toNat' (x : Word) : BitVec.ofNat 64 x.toNat = x := by simp
 
@@ -155,6 +152,11 @@ theorem extractByte_loadVal {w : Width} {M : MachineState} {x : Word} {t : Nat} 
       show t * 8 + i < 64 by omega, show t * 8 + i < 32 by omega]
     congr 1; omega
   · rw [hx'.resolve_right (by omega), show x.toNat % 8 + t = t by omega]
+
+/-- `extractByte_loadVal` of an aligned doubleword. -/
+theorem extractByte_getMem {M : MachineState} {x : Word} {t : Nat} (hx : x.toNat % 8 = 0) (ht : t < 8) :
+    extractByte (M.getMem x) t = bat M (x.toNat + t) :=
+  extractByte_loadVal (w := .b8) hx ht
 
 /-- A sign extension keeps the bytes of the width it extends from. -/
 theorem extractByte_sext {w : Width} {v : Word} {t : Nat} (ht : t < w.bytes) :
@@ -227,9 +229,9 @@ theorem Inv.slot {top dst src x v : Word} {n j : Nat} {w : Width} {m M : Machine
   have hw : 0 < w.bytes := by cases w <;> decide
   refine ⟨Kept.slot h.1 hroom hx1 (by omega) hal htop, fun k hk => ?_, fun b hb h1 h2 => ?_⟩
   · unfold OffStack at hdoff
-    rw [bat_storeMem hal (by omega), iteF (by omega)]
+    rw [bat_storeMem hal (by omega), ite_eq_right (by omega)]
     exact h.2.1 k hk
-  · rw [bat_storeMem hal hb, iteF (by omega)]
+  · rw [bat_storeMem hal hb, ite_eq_right (by omega)]
     exact h.2.2 b hb h1 h2
 
 /-- A byte store of the next byte keeps `Inv`, one byte further. -/
@@ -242,9 +244,9 @@ theorem Inv.byte {top dst src x v : Word} {n j : Nat} {m M : MachineState} (h : 
   refine ⟨Kept.setByte h.1 hw (by omega) (by omega) _, fun k hk => ?_, fun b hb hn hs => ?_⟩
   · rw [bat_storeMem h1 (by omega)]
     by_cases hkj : k = j
-    · rw [iteT (by omega), show dst.toNat + k - x.toNat = 0 by omega, hv, hkj]
-    · rw [iteF (by omega)]; exact h.2.1 k (by omega)
-  · rw [bat_storeMem h1 hb, iteF (by omega)]
+    · rw [ite_eq_left (by omega), show dst.toNat + k - x.toNat = 0 by omega, hv, hkj]
+    · rw [ite_eq_right (by omega)]; exact h.2.1 k (by omega)
+  · rw [bat_storeMem h1 hb, ite_eq_right (by omega)]
     exact h.2.2 b hb (by omega) hs
 
 /-- An aligned doubleword store of the next eight bytes keeps `Inv`, eight bytes further. -/
@@ -258,9 +260,9 @@ theorem Inv.word {top dst src x v : Word} {n j : Nat} {m M : MachineState} (h : 
   refine ⟨Kept.setMem h.1 hw hal (by omega) (by omega) _, fun k hk => ?_, fun b hb hn hs => ?_⟩
   · rw [bat_storeMem h1 (by omega)]
     by_cases hkj : j ≤ k
-    · rw [iteT (by omega), hv _ (by omega)]; congr 1; omega
-    · rw [iteF (by omega)]; exact h.2.1 k (by omega)
-  · rw [bat_storeMem h1 hb, iteF (by omega)]
+    · rw [ite_eq_left (by omega), hv _ (by omega)]; congr 1; omega
+    · rw [ite_eq_right (by omega)]; exact h.2.1 k (by omega)
+  · rw [bat_storeMem h1 hb, ite_eq_right (by omega)]
     exact h.2.2 b hb (by omega) hs
 
 /-- A source byte apart from the copied ones and from the stack below `top` reads as at entry. -/
@@ -303,8 +305,24 @@ theorem and_low {x c : Word} {o : Nat} (h : x.toNat % 8 = o) (hc : c &&& 7#64 = 
   calc x &&& c = x &&& (7#64 &&& c) := by rw [BitVec.and_comm 7#64, hc]
     _ = BitVec.ofNat 64 o &&& c := by rw [← BitVec.and_assoc, h7]
 
-/-- **A narrow copy into the stack slot**: `w` bytes of the source at `i` into byte `i` of the slot at `top - 8`, the
-    first `i` already copied, keeps `Inv` and copies the first `i + w`. -/
+/-- **A narrow copy into the stack slot**: `w` bytes of the source at `i` into byte `i` of the slot at `top - 8`, bytes
+    `lo` to `i` already copied, keeps `Inv` and copies bytes `lo` to `i + w`. -/
+theorem slot_copy_from {top dst src X v : Word} {n j lo i B : Nat} {w : Width} {m M : MachineState}
+    (hI : Inv env top dst src n m M j) (hdoff : OffStack env top dst n) (hj : j ≤ n) (hdn : dst.toNat + n < 2 ^ 64)
+    (hroom : env.stackLimit.toNat + 16 ≤ top.toNat) (htop : top.toNat % 8 = 0)
+    (hS : ∀ t, lo ≤ t → t < i → bat M (top.toNat - 8 + t) = bat m (B + t)) (hX : X.toNat = top.toNat - 8 + i)
+    (hal : X.toNat % w.bytes = 0) (hiw : i + w.bytes ≤ 8)
+    (hv : ∀ u, u < w.bytes → extractByte v u = bat m (B + i + u)) :
+    Inv env top dst src n m (storeMem w M X v) j ∧
+      ∀ t, lo ≤ t → t < i + w.bytes → bat (storeMem w M X v) (top.toNat - 8 + t) = bat m (B + t) := by
+  have htl := top.isLt
+  refine ⟨hI.slot hdoff hj hdn hroom htop (by omega) (by omega) hal, fun t ht0 ht => ?_⟩
+  rw [bat_storeMem hal (by omega)]
+  by_cases hti : i ≤ t
+  · rw [ite_eq_left (by omega), hv _ (by omega)]; congr 1; omega
+  · rw [ite_eq_right (by omega)]; exact hS t ht0 (by omega)
+
+/-- `slot_copy_from` from the slot's first byte. -/
 theorem slot_copy {top dst src X v : Word} {n j i B : Nat} {w : Width} {m M : MachineState}
     (hI : Inv env top dst src n m M j) (hdoff : OffStack env top dst n) (hj : j ≤ n) (hdn : dst.toNat + n < 2 ^ 64)
     (hroom : env.stackLimit.toNat + 16 ≤ top.toNat) (htop : top.toNat % 8 = 0)
@@ -312,13 +330,9 @@ theorem slot_copy {top dst src X v : Word} {n j i B : Nat} {w : Width} {m M : Ma
     (hal : X.toNat % w.bytes = 0) (hiw : i + w.bytes ≤ 8)
     (hv : ∀ u, u < w.bytes → extractByte v u = bat m (B + i + u)) :
     Inv env top dst src n m (storeMem w M X v) j ∧
-      ∀ t, t < i + w.bytes → bat (storeMem w M X v) (top.toNat - 8 + t) = bat m (B + t) := by
-  have htl := top.isLt
-  refine ⟨hI.slot hdoff hj hdn hroom htop (by omega) (by omega) hal, fun t ht => ?_⟩
-  rw [bat_storeMem hal (by omega)]
-  by_cases hti : i ≤ t
-  · rw [iteT (by omega), hv _ (by omega)]; congr 1; omega
-  · rw [iteF (by omega)]; exact hS t (by omega)
+      ∀ t, t < i + w.bytes → bat (storeMem w M X v) (top.toNat - 8 + t) = bat m (B + t) :=
+  let ⟨h1, h2⟩ := slot_copy_from (lo := 0) hI hdoff hj hdn hroom htop (fun t _ => hS t) hX hal hiw hv
+  ⟨h1, fun t => h2 t (Nat.zero_le t)⟩
 
 /-- A load of width `w`, sign-extended or not, reads byte `u` of it from `x + u`. -/
 theorem extractByte_load {w : Width} {M : MachineState} {x : Word} {u : Nat} (sg : Bool)
@@ -334,44 +348,17 @@ theorem and1_zero (x : Word) : x &&& 1#64 = 0#64 ↔ x.toNat % 2 = 0 := by
   simp
 
 theorem and2_zero (x : Word) : x &&& 2#64 = 0#64 ↔ x.toNat % 4 < 2 := by
-  have h3 : x &&& 3#64 = BitVec.ofNat 64 (x.toNat % 4) := by
-    apply BitVec.eq_of_toNat_eq
-    rw [BitVec.toNat_and, show (3#64 : Word).toNat = 2 ^ 2 - 1 by decide, Nat.and_two_pow_sub_one_eq_mod,
-      BitVec.toNat_ofNat]
-    omega
-  have : x &&& 2#64 = BitVec.ofNat 64 (x.toNat % 4) &&& 2#64 := by
-    rw [← h3, BitVec.and_assoc]; rfl
-  rw [this]
-  have hl : x.toNat % 4 < 4 := Nat.mod_lt _ (by decide)
-  generalize x.toNat % 4 = k at hl ⊢
-  rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3) with rfl | rfl | rfl | rfl <;> decide
+  rw [and_low rfl (by decide), show x.toNat % 4 = x.toNat % 8 % 4 by omega]
+  have hl : x.toNat % 8 < 8 := Nat.mod_lt _ (by decide)
+  generalize x.toNat % 8 = k at hl ⊢
+  rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 ∨ k = 7) with
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
 
 theorem toNat_shl3 {x : Word} (h : x.toNat < 8) : (x <<< 3).toNat = 8 * x.toNat := by
   rw [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]; omega
 
-/-- `slot_copy` from byte `lo` of the slot on. -/
-theorem slot_copy_from {top dst src X v : Word} {n j lo i B : Nat} {w : Width} {m M : MachineState}
-    (hI : Inv env top dst src n m M j) (hdoff : OffStack env top dst n) (hj : j ≤ n) (hdn : dst.toNat + n < 2 ^ 64)
-    (hroom : env.stackLimit.toNat + 16 ≤ top.toNat) (htop : top.toNat % 8 = 0)
-    (hS : ∀ t, lo ≤ t → t < i → bat M (top.toNat - 8 + t) = bat m (B + t)) (hX : X.toNat = top.toNat - 8 + i)
-    (hal : X.toNat % w.bytes = 0) (hiw : i + w.bytes ≤ 8)
-    (hv : ∀ u, u < w.bytes → extractByte v u = bat m (B + i + u)) :
-    Inv env top dst src n m (storeMem w M X v) j ∧
-      ∀ t, lo ≤ t → t < i + w.bytes → bat (storeMem w M X v) (top.toNat - 8 + t) = bat m (B + t) := by
-  have htl := top.isLt
-  refine ⟨hI.slot hdoff hj hdn hroom htop (by omega) (by omega) hal, fun t ht0 ht => ?_⟩
-  rw [bat_storeMem hal (by omega)]
-  by_cases hti : i ≤ t
-  · rw [iteT (by omega), hv _ (by omega)]; congr 1; omega
-  · rw [iteF (by omega)]; exact hS t ht0 (by omega)
-
 theorem and4_zero (x : Word) : x &&& 4#64 = 0#64 ↔ x.toNat % 8 < 4 := by
-  have h7 : x &&& 7#64 = BitVec.ofNat 64 (x.toNat % 8) := by
-    apply BitVec.eq_of_toNat_eq
-    rw [Proof.Runtime.Alloc.and7, BitVec.toNat_ofNat]; omega
-  have : x &&& 4#64 = BitVec.ofNat 64 (x.toNat % 8) &&& 4#64 := by
-    rw [← h7, BitVec.and_assoc]; rfl
-  rw [this]
+  rw [and_low rfl (by decide)]
   have hl : x.toNat % 8 < 8 := Nat.mod_lt _ (by decide)
   generalize x.toNat % 8 = k at hl ⊢
   rcases (by omega : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 ∨ k = 7) with

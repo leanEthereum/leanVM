@@ -60,7 +60,7 @@ def KInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (
     r .x14 = 27#64 ∧ r .x15 = 17#64 ∧ (r .x16).toNat = 1 + (11 - k) ∧ r .x12 = 1#64
 
 /-- `AbiRegs` through writes of registers it does not read. -/
-macro "abi_ok " h:term : tactic =>
+local macro "abi_ok " h:term : tactic =>
   `(tactic| ((repeat rw [AbiRegs.updReg_iff (by decide)]) <;> exact $h))
 
 /-- The entries after the first, `k` of them left after this one. -/
@@ -105,13 +105,9 @@ theorem loop_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest reg
   · exact ha.1
   · obtain ⟨hF, hs, hc'⟩ := hK4 _ _ _ _
     exact hk _ _ ⟨⟨by abi_ok ha, hF, hs, trivial⟩, hc'⟩
-  · rv_symT hp stop [78]
-    exact back (hne hc_1) ⟨by tnorm; exact h1, by abi_ok ha, by tnorm; exact e32, by tnorm; exact e2, by tnorm,
-      by tnorm, by tnorm; exact e1, by tnorm⟩ (hK4 _ _ _ _)
-  · exact back (hne hc_1) ⟨by tnorm; exact h1, by abi_ok ha, by tnorm; exact e32, by tnorm; exact e2, by tnorm,
-      by tnorm, by tnorm; exact e1, by tnorm⟩ (hK4 _ _ _ _)
-  · exact back (hne hc_1) ⟨by tnorm; exact h1, by abi_ok ha, by tnorm; exact e32, by tnorm; exact e2, by tnorm,
-      by tnorm, by tnorm; exact e1, by tnorm⟩ (hK4 _ _ _ _)
+  on_goal 1 => rv_symT hp stop [78]
+  all_goals exact back (hne hc_1) ⟨by tnorm; exact h1, by abi_ok ha, by tnorm; exact e32, by tnorm; exact e2,
+    by tnorm, by tnorm, by tnorm; exact e1, by tnorm⟩ (hK4 _ _ _ _)
 
 set_option rv_sym.heap true in
 /-- **`keccak_cell_lanes` is total**, with no stack. -/
@@ -123,14 +119,9 @@ theorem total (hp : p[i]? = some (tmpl L)) : CellLanesSafeT env p i 0 := by
     have hl := hpre_9.heapEnd_le
     have hK0 : Kept env top (regs .x10) cellBytes m m := ⟨Env.Frame.refl hpre_5, hpre_4, rfl⟩
     unfold InWin at hw'
-  · rv_symT hp stop [78]
-    refine loop_ok hp hk ⟨hpre_6, hpre_7⟩ hpre_9 11 _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl⟩, ?_, le_rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
-    · repeat (refine Proof.Runtime.MemsetT.Kept.setMem ?_ hw' ?_ ?_ ?_ _)
-      all_goals first | exact hK0 | (rw [toNat_add_ofNat (by omega)]; omega) | omega
-    · dsimp only [Tactic.rf]; rw [toNat_add_ofNat (by omega)]
-  · refine loop_ok hp hk ⟨hpre_6, hpre_7⟩ hpre_9 11 _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl⟩, ?_, le_rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
+  on_goal 1 => rv_symT hp stop [78]
+  all_goals
+    refine loop_ok hp hk ⟨hpre_6, hpre_7⟩ hpre_9 11 _ _ ⟨rfl, AbiRegs.refl rfl, ?_, le_rfl, ?_, rfl, rfl, rfl, rfl, rfl⟩
     · repeat (refine Proof.Runtime.MemsetT.Kept.setMem ?_ hw' ?_ ?_ ?_ _)
       all_goals first | exact hK0 | (rw [toNat_add_ofNat (by omega)]; omega) | omega
     · dsimp only [Tactic.rf]; rw [toNat_add_ofNat (by omega)]

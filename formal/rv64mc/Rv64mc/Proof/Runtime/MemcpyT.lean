@@ -53,13 +53,13 @@ theorem Regs.upd {ret top : Word} {regs r : Reg → Word} (h : Regs ret top regs
     rcases hd with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simpa [updReg_apply]
 
 /-- A side goal about numbers with literals' `toNat` computed. -/
-macro "tlit" : tactic => `(tactic| ((try tnorm) <;> (try simp only [BitVec.toNat_ofNat, Nat.reducePow, Nat.reduceMod,
-  show ((UnOp.sext .b4).eval 6#64 : Word) = 6#64 by decide, show ((UnOp.sext .b4).eval 2#64 : Word) = 2#64 by decide,
-  show ((UnOp.sext .b4).eval 3#64 : Word) = 3#64 by decide])
+local macro "tlit" : tactic => `(tactic| ((try tnorm) <;> (try simp only [BitVec.toNat_ofNat, Nat.reducePow,
+  Nat.reduceMod, show ((UnOp.sext .b4).eval 6#64 : Word) = 6#64 by decide,
+  show ((UnOp.sext .b4).eval 2#64 : Word) = 2#64 by decide, show ((UnOp.sext .b4).eval 3#64 : Word) = 3#64 by decide])
   <;> omega))
 
 /-- `Regs` through the body's writes of scratch registers. -/
-macro "regs_ok " h:term : tactic => `(tactic| ((repeat (apply Regs.upd _ (by decide))) <;> exact $h))
+local macro "regs_ok " h:term : tactic => `(tactic| ((repeat (apply Regs.upd _ (by decide))) <;> exact $h))
 
 /-- What the entry gives every part of the body: `n` bytes, the windows, the stack slot, the two ranges apart. -/
 structure Fx (env : Env) (top dst src : Word) (n : Nat) (m : MachineState) : Prop where
@@ -71,6 +71,12 @@ structure Fx (env : Env) (top dst src : Word) (n : Nat) (m : MachineState) : Pro
   swin : inWindow src n = true
   soff : OffStack env top src n
   disj : ∀ k, k < n → ∀ k', k' < n → dst.toNat + k ≠ src.toNat + k'
+
+set_option hygiene false in
+/-- The entry's windows (`hsw`, `hdw`, `hW`) and the code's bytes (`hcode`) as hypotheses. -/
+local macro "fx_facts " F:term:max hI:term:max : tactic => `(tactic| (
+  have hsw := inWindow_iff.1 ($F).swin; have hdw := ($F).dwin; unfold InWin at hdw; have hW := ($F).win
+  have hcode := ($hI).1.2.2))
 
 variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {Q : State rvIsa → Prop} {ret top : Word}
   {rest : List Frame} {regs : Reg → Word} {m : MachineState}
@@ -95,12 +101,7 @@ theorem ret_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest regs
   rv_symT hp with [h1, hx2]
   refine hk _ _ ⟨⟨?_, hI.1.1, hI.1.2.1, by simpa [updReg_apply] using h10, fun k hk' => ?_, fun b hb hs => ?_⟩,
     hI.1.2.2⟩
-  · obtain ⟨_, h8, h9, h18, h19, h20, h21, h22, h23, h24, h25, h26, h27⟩ := ha
-    exact ⟨by simpa [updReg_apply] using hx2, by simpa [updReg_apply] using h8, by simpa [updReg_apply] using h9,
-      by simpa [updReg_apply] using h18, by simpa [updReg_apply] using h19, by simpa [updReg_apply] using h20,
-      by simpa [updReg_apply] using h21, by simpa [updReg_apply] using h22, by simpa [updReg_apply] using h23,
-      by simpa [updReg_apply] using h24, by simpa [updReg_apply] using h25, by simpa [updReg_apply] using h26,
-      by simpa [updReg_apply] using h27⟩
+  · simpa [AbiRegs, updReg_apply, hx2] using ha.2
   · have := hI.2.1 k hk'
     simpa only [bat, ofNat_add_toNat] using this
   · have := hI.2.2 b.toNat b.isLt (by unfold InRange at hb; omega) (by unfold OffStack at hs; rw [hsp] at hs; omega)
@@ -115,14 +116,15 @@ theorem extractByte_zext_getByte (M : MachineState) (x : Word) :
   apply BitVec.eq_of_getLsbD_eq; intro i hi; simp [extractByte, hi]
 
 /-- A source byte reads as at entry while the copy runs. -/
-theorem Fx.src {top dst src : Word} {n j k : Nat} {M : MachineState} (F : Fx env top dst src n m)
-    (hI : Inv env top dst src n m M j) (hj : j ≤ n) (hk : k < n) :
-    bat M (src.toNat + k) = bat m (src.toNat + k) := by
+theorem Fx.src {top dst src : Word} {n j a : Nat} {M : MachineState} (F : Fx env top dst src n m)
+    (hI : Inv env top dst src n m M j) (hj : j ≤ n) (ha : src.toNat ≤ a) (hn : a < src.toNat + n) :
+    bat M a = bat m a := by
   have hsw := inWindow_iff.1 F.swin
   have hs := F.soff
   unfold OffStack at hs
-  exact hI.src (by omega) (fun ⟨h1, h2⟩ => F.disj (src.toNat + k - dst.toNat) (by omega) k hk (by omega))
-    (by omega)
+  have := hI.src (k := a - src.toNat) (by omega)
+    (fun ⟨h1, h2⟩ => F.disj (a - dst.toNat) (by omega) (a - src.toNat) (by omega) (by omega)) (by omega)
+  rwa [Nat.add_sub_cancel' ha] at this
 
 /-- The last bytes' loop at its head: `c` left, `x13` and `x11` the next byte of each range. -/
 def DInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (c : Nat) (r : Reg → Word)
@@ -138,16 +140,12 @@ theorem loopD_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
     ∀ c r M, DInv env ret top regs m c r M →
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 184, ret, top⟩ :: rest, r, M⟩ := by
   refine Total.loop (I := rvIsa) (DInv env ret top regs m) fun c r M ⟨hR, hI, h13, h11, h12, hc0, hcn⟩ ih => ?_
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hx13 : r .x13 = BitVec.ofNat 64 ((regs .x10).toNat + ((regs .x12).toNat - c)) := by
     rw [← h13, ofNat_toNat']
   have hv : extractByte ((M.getByte (r .x11)).zeroExtend 64) 0 =
       bat m ((regs .x11).toNat + ((regs .x12).toNat - c)) := by
-    rw [extractByte_zext_getByte, h11]; exact F.src hI (by omega) (by omega)
+    rw [extractByte_zext_getByte, h11]; exact F.src hI (by omega) (by omega) (by omega)
   have hI' := hI.byte F.dwin (x := r .x13) (by omega) (by omega) hv
   have h12' := toNat_dec (a := r .x12) (by omega)
   rv_symT hp stop [196]
@@ -170,11 +168,7 @@ theorem tail_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .
     (h13 : (r .x13).toNat = (regs .x10).toNat + j) (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j)
     (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - j) (hj : j ≤ (regs .x12).toNat) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 176, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have h7 := Proof.Runtime.Alloc.and7 (r .x12)
   have h11' : (r .x11 + r .x15).toNat = (regs .x11).toNat + j := by rw [BitVec.toNat_add]; omega
   have h14 : (r .x13 + (r .x12 &&& 7#64)).toNat = (regs .x10).toNat + (regs .x12).toNat := by
@@ -209,16 +203,10 @@ theorem loopC_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 166, ret, top⟩ :: rest, r, M⟩ := by
   refine Total.loop (I := rvIsa) (CInv env ret top regs m)
     fun k r M ⟨j, hR, hI, h14, h16, h13, hk8, hk0, ha14, ha16, h11, h12, hjk⟩ ih => ?_
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hv : ∀ t, t < 8 → extractByte (M.getMem (r .x16)) t = bat m ((regs .x11).toNat + j + t) := by
     intro t ht
-    have := extractByte_loadVal (w := .b8) (M := M) (x := r .x16) (t := t) ha16 ht
-    rw [show Tactic.loadVal .b8 M (r .x16) = M.getMem (r .x16) from rfl] at this
-    rw [this, h16, Nat.add_assoc]; exact F.src hI (by omega) (by omega)
+    rw [extractByte_getMem ha16 ht, h16]; exact F.src hI (by omega) (by omega) (by omega)
   have hI' := hI.word F.dwin (x := r .x14) h14 ha14 (by omega) hv
   have h14' : (r .x14 + 8#64).toNat = (r .x14).toNat + 8 := toNat_add_ofNat (by omega)
   have h16' : (r .x16 + 8#64).toNat = (r .x16).toNat + 8 := toNat_add_ofNat (by omega)
@@ -230,6 +218,11 @@ theorem loopC_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
   · have hc' := BitVec.le_def.1 hc
     rw [h14', h14, h13] at hc'
     refine tail_ok hp F hk hsp (j := j + 8) (by regs_ok hR) hI' ?_ ?_ ?_ (by omega) <;> tnorm <;> omega
+
+theorem slot_addr {top : Word} {r : Reg → Word} (hx2 : r .x2 = top + 0xfffffffffffffff0#64)
+    (hroom : 16 ≤ top.toNat) : (r .x2 + 8#64).toNat = top.toNat - 8 := by
+  rw [hx2, BitVec.add_assoc, BitVec.toNat_add,
+    show (18446744073709551600#64 + 8#64 : Word).toNat = 18446744073709551608 by decide]; omega
 
 /-- The last doubleword of a misaligned source: `x5` holds the bytes from `o` on of the previous source doubleword, the
     stack slot the first `o` bytes of the next. -/
@@ -244,17 +237,11 @@ theorem lastWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
     (h17 : (r .x17).toNat = 8 * o) (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j + 8)
     (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + 8)) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 138, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
-  have hs8 : (r .x2 + 8#64).toNat = top.toNat - 8 := by
-    rw [hx2, BitVec.add_assoc, BitVec.toNat_add,
-      show (18446744073709551600#64 + 8#64 : Word).toNat = 18446744073709551608 by decide]; omega
+  have hs8 := slot_addr hx2 (by omega)
   obtain ⟨s1, s2⟩ := shamt h17 ho1 ho8
   have hv : ∀ t, t < 8 → extractByte (M.getMem (r .x2 + 8#64) <<< (0#64 - r .x17 &&& 56#64 &&& 63#64).toNat |||
       r .x5 >>> (r .x17 &&& 63#64).toNat) t = bat m ((regs .x11).toNat + j + t) := by
@@ -262,18 +249,10 @@ theorem lastWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
     rw [s1, s2, BitVec.or_comm, extractByte_shr_or_shl _ _ o t ho1 ho8 ht]
     split
     · rw [h5 _ (by omega) (by omega)]; congr 1; omega
-    · have := extractByte_loadVal (w := .b8) (M := M) (x := r .x2 + 8#64) (t := t + o - 8)
-        (by rw [hs8]; show _ % 8 = 0; omega) (by show _ < 8; omega)
-      rw [show Tactic.loadVal .b8 M (r .x2 + 8#64) = M.getMem (r .x2 + 8#64) from rfl] at this
-      rw [this, hs8, hS _ (by omega)]; congr 1; omega
+    · rw [extractByte_getMem (by rw [hs8]; omega) (by omega), hs8, hS _ (by omega)]; congr 1; omega
   have hI' := hI.word F.dwin h14 ha14 hj hv
   rv_symT hp stop [176] with [hx2]
   refine tail_ok hp F hk hsp (j := j + 8) (by regs_ok hR) hI' ?_ ?_ ?_ hj <;> tnorm <;> omega
-
-theorem slot_addr {top : Word} {r : Reg → Word} (hx2 : r .x2 = top + 0xfffffffffffffff0#64)
-    (hroom : 16 ≤ top.toNat) : (r .x2 + 8#64).toNat = top.toNat - 8 := by
-  rw [hx2, BitVec.add_assoc, BitVec.toNat_add,
-    show (18446744073709551600#64 + 8#64 : Word).toNat = 18446744073709551608 by decide]; omega
 
 /-- The last byte of `load_aligned_partial`, at `x7 = o - 1`. -/
 theorem lastByte_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
@@ -288,11 +267,7 @@ theorem lastByte_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
     (h6 : (r .x6).toNat + o = (regs .x11).toNat + j + 8) (h7 : (r .x7).toNat + 1 = o)
     (hS : ∀ t, t < o - 1 → bat M (top.toNat - 8 + t) = bat m ((r .x6).toNat + t)) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 128, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
@@ -310,24 +285,15 @@ theorem lastByte_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (re
       rw [show Tactic.loadVal .b1 M (r .x6 + r .x7) = if false then (UnOp.sext .b1).eval
         (Tactic.loadVal .b1 M (r .x6 + r .x7)) else Tactic.loadVal .b1 M (r .x6 + r .x7) from rfl,
         extractByte_load false (Nat.mod_one _) hu, hY]
-      have := F.src (k := (regs .x11).toNat + j + 8 - o + (o - 1) + u - (regs .x11).toNat) hI (by omega) (by omega)
-      rw [show (regs .x11).toNat + ((regs .x11).toNat + j + 8 - o + (o - 1) + u - (regs .x11).toNat) =
-        (r .x6).toNat + (o - 1) + u by omega] at this
-      rw [this])
+      exact F.src hI (by omega) (by omega) (by omega))
   rv_symT hp stop [138] with [hx2]
   · rw [hX]
     exact hW.stack (by rw [BitVec.toNat_ofNat]; omega) (by rw [BitVec.toNat_ofNat]; omega)
   · refine lastWord_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI' ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_
-    · tnorm; exact h14
-    · tnorm; exact ha14
-    · tnorm; exact h13
-    · tnorm; exact h5
-    · intro t ht
-      have hb1 : Width.b1.bytes = 1 := rfl
-      exact (hS' t (by omega)).trans (by congr 1; omega)
-    · tnorm; exact h17
-    · tnorm; exact h11
-    · tnorm; exact h12
+    any_goals (tnorm; assumption)
+    intro t ht
+    have hb1 : Width.b1.bytes = 1 := rfl
+    exact (hS' t (by omega)).trans (by congr 1; omega)
 
 /-- `load_aligned_partial` at its last chunk: a byte if `o` is odd, the bytes below `o`'s low bit copied. -/
 theorem bit0_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .x11) (regs .x12).toNat m)
@@ -346,24 +312,11 @@ theorem bit0_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .
   rv_symT hp stop [128, 138] with [hx2]
   · have := (and1_zero _).1 hc
     refine lastWord_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_
-    · tnorm; exact h14
-    · tnorm; exact ha14
-    · tnorm; exact h13
-    · tnorm; exact h5
-    · intro t ht; exact (hS t (by omega)).trans (by congr 1; omega)
-    · tnorm; exact h17
-    · tnorm; exact h11
-    · tnorm; exact h12
-  · have : ¬ (r .x11).toNat % 2 = 0 := fun h => hc ((and1_zero _).2 h)
+    any_goals (tnorm; assumption)
+    intro t ht; exact (hS t (by omega)).trans (by congr 1; omega)
+  · have : ¬ (r .x11).toNat % 2 = 0 := mt (and1_zero _).2 hc
     refine lastByte_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_ ?_ ?_
-    · tnorm; exact h14
-    · tnorm; exact ha14
-    · tnorm; exact h13
-    · tnorm; exact h5
-    · tnorm; exact h17
-    · tnorm; exact h11
-    · tnorm; exact h12
-    · tnorm; exact h6
+    any_goals (tnorm; assumption)
     · tnorm; omega
     · intro t ht; tnorm; exact hS t (by omega)
 
@@ -381,11 +334,7 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     (h11 : (r .x11).toNat + (r .x15).toNat = (regs .x11).toNat + j + 8)
     (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + 8)) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 110, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
@@ -403,10 +352,8 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
   have hb8 : Width.b8.bytes = 8 := rfl
   have hdn : (regs .x10).toNat + (regs .x12).toNat < 2 ^ 64 := by have := env.heapEnd.isLt; omega
   have src : ∀ M', Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M' j → ∀ u, u < o →
-      bat M' ((r .x6).toNat + 8 + u) = bat m ((r .x6).toNat + 8 + u) := fun M' hI' u hu => by
-    have := F.src (k := (r .x6).toNat + 8 + u - (regs .x11).toNat) hI' (by omega) (by omega)
-    rwa [show (regs .x11).toNat + ((r .x6).toNat + 8 + u - (regs .x11).toNat) = (r .x6).toNat + 8 + u by omega]
-      at this
+      bat M' ((r .x6).toNat + 8 + u) = bat m ((r .x6).toNat + 8 + u) := fun M' hI' u hu =>
+    F.src hI' (by omega) (by omega) (by omega)
   have hI1 := hI.slot (w := .b8) (x := r .x2 + 8#64) (v := 0#64) F.doff (by omega) hdn hroom (by omega)
     (by omega) (by omega) (by rw [hs8]; show _ % 8 = 0; omega)
   have hS0 : ∀ t, t < 0 → bat (Tactic.storeMem .b8 M (r .x2 + 8#64) 0#64) (top.toNat - 8 + t) =
@@ -450,8 +397,8 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     · intro t ht; tnorm; rw [h6']; exact hS2 t (by omega)
   -- `o` is 7: a word, a halfword, then the last byte
   · have ho4 : 4 ≤ o := by have := BitVec.le_def.1 hc_1; rw [h16] at this; exact this
-    have ho2 : ¬ (r .x11).toNat % 4 < 2 := fun h => hc_2 ((and2_zero _).2 h)
-    have ho0 : ¬ (r .x11).toNat % 2 = 0 := fun h => hc ((and1_zero _).2 h)
+    have ho2 : ¬ (r .x11).toNat % 4 < 2 := mt (and2_zero _).2 hc_2
+    have ho0 : ¬ (r .x11).toNat % 2 = 0 := mt (and1_zero _).2 hc
     obtain ⟨hI2, hS2⟩ := cp0 .b4 (.inr rfl) (by rw [hb4]; omega)
     obtain ⟨hI3, hS3⟩ := cp4 hI2 hS2 (by omega)
     refine lastByte_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI3 ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_ ?_ ?_
@@ -461,7 +408,7 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     · intro t ht; tnorm; rw [h6']; exact hS3 t (by omega)
   -- `o` is 6: a word and a halfword
   · have ho4 : 4 ≤ o := by have := BitVec.le_def.1 hc_1; rw [h16] at this; exact this
-    have ho2 : ¬ (r .x11).toNat % 4 < 2 := fun h => hc_2 ((and2_zero _).2 h)
+    have ho2 : ¬ (r .x11).toNat % 4 < 2 := mt (and2_zero _).2 hc_2
     have ho0 := (and1_zero _).1 hc
     obtain ⟨hI2, hS2⟩ := cp0 .b4 (.inr rfl) (by rw [hb4]; omega)
     obtain ⟨hI3, hS3⟩ := cp4 hI2 hS2 (by omega)
@@ -470,8 +417,8 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     · intro t ht; exact (hS3 t (by omega)).trans (by congr 1; omega)
   -- `o` is 3: a halfword, then the last byte
   · have ho4 : o < 4 := by have := BitVec.lt_def.1 hc_1; rw [h16] at this; exact this
-    have ho2 : ¬ (r .x11).toNat % 4 < 2 := fun h => hc_2 ((and2_zero _).2 h)
-    have ho0 : ¬ (r .x11).toNat % 2 = 0 := fun h => hc ((and1_zero _).2 h)
+    have ho2 : ¬ (r .x11).toNat % 4 < 2 := mt (and2_zero _).2 hc_2
+    have ho0 : ¬ (r .x11).toNat % 2 = 0 := mt (and1_zero _).2 hc
     obtain ⟨hI2, hS2⟩ := cp0 .b2 (.inl rfl) (by rw [hb2]; omega)
     refine lastByte_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI2 ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_ ?_ ?_
     any_goals (tnorm; assumption)
@@ -480,7 +427,7 @@ theorem partial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     · intro t ht; tnorm; rw [h6']; exact hS2 t (by omega)
   -- `o` is 2: a halfword
   · have ho4 : o < 4 := by have := BitVec.lt_def.1 hc_1; rw [h16] at this; exact this
-    have ho2 : ¬ (r .x11).toNat % 4 < 2 := fun h => hc_2 ((and2_zero _).2 h)
+    have ho2 : ¬ (r .x11).toNat % 4 < 2 := mt (and2_zero _).2 hc_2
     have ho0 := (and1_zero _).1 hc
     obtain ⟨hI2, hS2⟩ := cp0 .b2 (.inl rfl) (by rw [hb2]; omega)
     refine lastWord_ok hp F hk hsp (j := j) (o := o) (by regs_ok hR) hI2 ho1 ho8 ?_ ?_ ?_ hj hoj ?_ ?_ ?_ ?_ ?_
@@ -515,11 +462,7 @@ theorem loopB_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 90, ret, top⟩ :: rest, r, M⟩ := by
   refine Total.loop (I := rvIsa) (BInv env ret top regs m o) fun k r M
     ⟨j, hR, hI, h14, ha14, h13, hk8, hk16, hjk, h6, ha6, h5, h17, h7, h16, h11o, h11, h12⟩ ih => ?_
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hx2 := hR.2.1.1
   have h6' : (r .x6 + 8#64).toNat = (r .x6).toNat + 8 := toNat_add_ofNat (by omega)
   have h14' : (r .x14 + 8#64).toNat = (r .x14).toNat + 8 := toNat_add_ofNat (by omega)
@@ -527,13 +470,7 @@ theorem loopB_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
   have s1 := (shamt h17 ho1 ho8).1
   have hcur : ∀ t, t < 8 → extractByte (M.getMem (r .x6 + 8#64)) t = bat m ((r .x6).toNat + 8 + t) := by
     intro t ht
-    have := extractByte_loadVal (w := .b8) (M := M) (x := r .x6 + 8#64) (t := t) (by rw [h6']; show _ % 8 = 0; omega)
-      ht
-    rw [show Tactic.loadVal .b8 M (r .x6 + 8#64) = M.getMem (r .x6 + 8#64) from rfl] at this
-    rw [this, h6']
-    have := F.src (k := (r .x6).toNat + 8 + t - (regs .x11).toNat) hI (by omega) (by omega)
-    rwa [show (regs .x11).toNat + ((r .x6).toNat + 8 + t - (regs .x11).toNat) = (r .x6).toNat + 8 + t by omega]
-      at this
+    rw [extractByte_getMem (by rw [h6']; omega) ht, h6']; exact F.src hI (by omega) (by omega) (by omega)
   have hv : ∀ t, t < 8 → extractByte (M.getMem (r .x6 + 8#64) <<< (r .x7 &&& 63#64).toNat |||
       r .x5 >>> (r .x17 &&& 63#64).toNat) t = bat m ((regs .x11).toNat + j + t) := by
     intro t ht
@@ -568,11 +505,7 @@ theorem prev_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .
     (h15 : (r .x15).toNat = N) (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + N))
     (hS : ∀ t, o ≤ t → t < 8 → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t)) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 76, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
@@ -584,10 +517,7 @@ theorem prev_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs .
   have h5 : ∀ t, o ≤ t → t < 8 → extractByte (M.getMem (r .x2 + 8#64)) t =
       bat m ((r .x11 - r .x16).toNat + t) := by
     intro t ht1 ht2
-    have := extractByte_loadVal (w := .b8) (M := M) (x := r .x2 + 8#64) (t := t) (by rw [hs8]; show _ % 8 = 0; omega)
-      ht2
-    rw [show Tactic.loadVal .b8 M (r .x2 + 8#64) = M.getMem (r .x2 + 8#64) from rfl] at this
-    rw [this, hs8, hS t ht1 ht2, h6]
+    rw [extractByte_getMem (by rw [hs8]; omega) ht2, hs8, hS t ht1 ht2, h6]
   rv_symT hp stop [90, 110] with [hx2]
   · have hc' := BitVec.le_def.1 hc
     rw [h14', h13] at hc'
@@ -616,11 +546,7 @@ theorem endWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
     (hS : ∀ t, o ≤ t → t < o + c → bat M (top.toNat - 8 + t) = bat m ((regs .x11).toNat + j - o + t))
     (hc4 : o + c + 4 = 8) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 68, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
@@ -634,9 +560,7 @@ theorem endWord_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
       have := extractByte_load (M := M) (x := r .x11 + r .x17) (u := u) true (by rw [hA, hb4]; omega) hu
       simp only [↓reduceIte] at this
       rw [this, hA]
-      have := F.src (k := j + c + u) hI (by omega) (by omega)
-      rw [← Nat.add_assoc, ← Nat.add_assoc] at this
-      rw [this]; congr 1; omega)
+      exact (F.src hI (by omega) (by omega) (by omega)).trans (by congr 1; omega))
   rv_symT hp stop [76] with [hx2]
   refine prev_ok hp F hk hsp (j := j) (o := o) (N := N) (by regs_ok hR) hI' ho1 ho8 ?_ ?_ ?_ hN8 hN hjN ?_ ?_ h11o
     ?_ ?_ ?_
@@ -662,7 +586,7 @@ theorem endBit2_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (reg
       ?_ ?_ ?_
     any_goals (tnorm; assumption)
     · intro t ht1 ht2; exact hS t ht1 (by omega)
-  · have : ¬ (r .x5).toNat % 8 < 4 := fun h => hc ((and4_zero _).2 h)
+  · have : ¬ (r .x5).toNat % 8 < 4 := mt (and4_zero _).2 hc
     refine endWord_ok hp F hk hsp (j := j) (o := o) (N := N) (c := c) (by regs_ok hR) hI ho1 ho8 ?_ ?_ ?_ hN8 hN hjN
       ?_ ?_ h11o ?_ ?_ ?_ ?_ hS (by omega)
     all_goals (tnorm; assumption)
@@ -677,11 +601,7 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
     (h11 : (r .x11).toNat = (regs .x11).toNat + j) (h16 : (r .x16).toNat = o) (h11o : ((regs .x11).toNat + j) % 8 = o)
     (h15 : (r .x15).toNat = N) (h12 : (r .x12).toNat % 8 = (regs .x12).toNat - (j + N)) :
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 44, ret, top⟩ :: rest, r, M⟩ := by
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hroom := F.room
   have hal := F.al
   have hx2 := hR.2.1.1
@@ -699,9 +619,8 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
   have hI1 := hI.slot (w := .b8) (x := r .x2 + 8#64) (v := 0#64) F.doff (by omega) hdn hroom (by omega)
     (by omega) (by omega) (by rw [hs8]; show _ % 8 = 0; omega)
   have src : ∀ M', Inv env top (regs .x10) (regs .x11) (regs .x12).toNat m M' j → ∀ u, u < 8 - o →
-      bat M' ((regs .x11).toNat + j + u) = bat m ((regs .x11).toNat + j + u) := fun M' hI' u hu => by
-    have := F.src (k := j + u) hI' (by omega) (by omega)
-    rwa [← Nat.add_assoc] at this
+      bat M' ((regs .x11).toNat + j + u) = bat m ((regs .x11).toNat + j + u) := fun M' hI' u hu =>
+    F.src hI' (by omega) (by omega) (by omega)
   -- a byte at `o`, or a halfword at `o + c`
   have cpB := slot_copy_from (w := .b1) (lo := o) (i := o) (B := (regs .x11).toNat + j - o)
     (X := BitVec.ofNat 64 (top.toNat - 8 + o))
@@ -729,25 +648,25 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
   rv_closeT
   -- `8 - o` odd, no halfword: the byte
   · rw [and2_zero, h5] at hc
-    have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
+    rw [and1_zero, h5] at hc_1
     obtain ⟨hI2, hS2⟩ := cpB
     refine endBit2_ok hp F hk hsp (j := j) (o := o) (N := N) (c := 1) (by regs_ok hR) hI2 ho1 ho8 ?_ ?_ ?_ hN8 hN
       hjN ?_ ?_ h11o ?_ ?_ ?_ ?_ ?_ ?_ (by omega)
     any_goals (tnorm; assumption)
     intro t ht1 ht2; exact hS2 t ht1 (by rw [hb1]; omega)
   -- the halfword after the byte: its address and alignment
-  · have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
+  · rw [and1_zero, h5] at hc_1
     rw [toNat_add_ofNat (by omega)]; omega
-  · have hc : ¬ (8 - o) % 4 < 2 := fun h => hc ((and2_zero _).2 (by rw [h5]; exact h))
-    have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
+  · rw [and2_zero, h5] at hc
+    rw [and1_zero, h5] at hc_1
     exact hW.stack (by rw [toNat_add_ofNat (by rw [h6]; omega), h6]; omega)
       (by rw [toNat_add_ofNat (by rw [h6]; omega), h6]; omega)
-  · have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
+  · rw [and1_zero, h5] at hc_1
     rw [toNat_add_ofNat (by rw [h6]; omega), h6]; omega
   -- `8 - o` is 7: the byte, the halfword, the word
-  · have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
-    have hc_2 : ¬ (8 - o) % 4 < 2 := fun h => hc_2 ((and2_zero _).2 (by rw [h5]; exact h))
-    have hc : ¬ (8 - o) % 8 < 4 := fun h => hc ((and4_zero _).2 (by rw [h5]; exact h))
+  · rw [and1_zero, h5] at hc_1
+    rw [and2_zero, h5] at hc_2
+    rw [and4_zero, h5] at hc
     obtain ⟨hI2, hS2⟩ := cpB
     obtain ⟨hI3, hS3⟩ := cpH 1 (BitVec.ofNat 64 (top.toNat - 8 + o) + 1#64) (r .x11 + 1#64) hI2 hS2
       (by rw [toNat_add_ofNat (by rw [h6]; omega), h6]; omega) (by rw [toNat_add_ofNat (by omega), h11])
@@ -757,8 +676,8 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
     any_goals (tnorm; assumption)
     all_goals first | (intro t ht1 ht2; exact hS3 t ht1 (by rw [hb2]; omega)) | tlit
   -- `8 - o` is 3: the byte and the halfword
-  · have hc_1 : ¬ (8 - o) % 2 = 0 := fun h => hc_1 ((and1_zero _).2 (by rw [h5]; exact h))
-    have hc_2 : ¬ (8 - o) % 4 < 2 := fun h => hc_2 ((and2_zero _).2 (by rw [h5]; exact h))
+  · rw [and1_zero, h5] at hc_1
+    rw [and2_zero, h5] at hc_2
     rw [and4_zero, h5] at hc
     obtain ⟨hI2, hS2⟩ := cpB
     obtain ⟨hI3, hS3⟩ := cpH 1 (BitVec.ofNat 64 (top.toNat - 8 + o) + 1#64) (r .x11 + 1#64) hI2 hS2
@@ -771,14 +690,14 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
   -- the halfword alone: its alignment and address
   · rw [and1_zero, h5] at hc_1
     omega
-  · have hc : ¬ (8 - o) % 4 < 2 := fun h => hc ((and2_zero _).2 (by rw [h5]; exact h))
+  · rw [and2_zero, h5] at hc
     exact hW.stack (by rw [h6]; omega) (by rw [h6]; omega)
   · rw [and1_zero, h5] at hc_1
     rw [h6]; omega
   -- `8 - o` is 6: the halfword and the word
   · rw [and1_zero, h5] at hc_1
-    have hc_2 : ¬ (8 - o) % 4 < 2 := fun h => hc_2 ((and2_zero _).2 (by rw [h5]; exact h))
-    have hc : ¬ (8 - o) % 8 < 4 := fun h => hc ((and4_zero _).2 (by rw [h5]; exact h))
+    rw [and2_zero, h5] at hc_2
+    rw [and4_zero, h5] at hc
     obtain ⟨hI3, hS3⟩ := cpH 0 (BitVec.ofNat 64 (top.toNat - 8 + o)) (r .x11) hI1
       (fun t h1 h2 => absurd h2 (by omega)) (by rw [h6, Nat.add_zero]) (by rw [h11, Nat.add_zero])
       (by omega) (by omega)
@@ -788,7 +707,7 @@ theorem endPartial_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (
     intro t ht1 ht2; exact hS3 t ht1 (by rw [hb2]; omega)
   -- `8 - o` is 2: the halfword
   · rw [and1_zero, h5] at hc_1
-    have hc_2 : ¬ (8 - o) % 4 < 2 := fun h => hc_2 ((and2_zero _).2 (by rw [h5]; exact h))
+    rw [and2_zero, h5] at hc_2
     rw [and4_zero, h5] at hc
     obtain ⟨hI3, hS3⟩ := cpH 0 (BitVec.ofNat 64 (top.toNat - 8 + o)) (r .x11) hI1
       (fun t h1 h2 => absurd h2 (by omega)) (by rw [h6, Nat.add_zero]) (by rw [h11, Nat.add_zero])
@@ -854,22 +773,17 @@ theorem loopA_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 20, ret, top⟩ :: rest, r, M⟩ := by
   refine Total.loop (I := rvIsa) (AInv env ret top regs m mis)
     fun c r M ⟨hR, hI, h15, hc0, hcm, h16, h17, h13, h14, ha14, hm7, hn, h11, h12⟩ ih => ?_
-  have hsw := inWindow_iff.1 F.swin
-  have hdw := F.dwin
-  unfold InWin at hdw
-  have hW := F.win
-  have hcode := hI.1.2.2
+  fx_facts F hI
   have hx2 := hR.2.1.1
   have hv : extractByte ((M.getByte (r .x17)).zeroExtend 64) 0 =
       bat m ((regs .x11).toNat + (mis - c)) := by
-    rw [extractByte_zext_getByte, h17]; exact F.src hI (by omega) (by omega)
+    rw [extractByte_zext_getByte, h17]; exact F.src hI (by omega) (by omega) (by omega)
   have hI' := hI.byte F.dwin (x := r .x16) h16 (by omega) hv
   have h15' := toNat_dec (a := r .x15) (by omega)
   rv_symT hp stop [32] with [hx2]
   · have : (r .x15 + 0xffffffffffffffff#64).toNat ≠ 0 := fun h => hc (BitVec.eq_of_toNat_eq h)
     refine ih (c - 1) _ _ (by omega) ⟨by regs_ok hR, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, hm7, hn, ?_, ?_⟩
-    · have e : mis - c + 1 = mis - (c - 1) := by omega
-      rw [e] at hI'; exact hI'
+    · rwa [show mis - c + 1 = mis - (c - 1) by omega] at hI'
     · tnorm; omega
     · tnorm; rw [toNat_add_ofNat (by omega)]; omega
     · tnorm; rw [toNat_add_ofNat (by omega)]; omega
@@ -880,8 +794,7 @@ theorem loopA_ok (hp : p[i]? = some (tmpl L)) (F : Fx env top (regs .x10) (regs 
     · tnorm; exact h12
   · have : (r .x15 + 0xffffffffffffffff#64).toNat = 0 := by rw [hc]; rfl
     refine words_ok hp F hk hsp (j := mis) (by regs_ok hR) ?_ ?_ ?_ ?_ hm7 hn ?_ ?_
-    · have e : mis - c + 1 = mis := by omega
-      rw [e] at hI'; exact hI'
+    · rwa [show mis - c + 1 = mis by omega] at hI'
     · tnorm; exact h13
     · tnorm; exact h14
     · tnorm; exact ha14

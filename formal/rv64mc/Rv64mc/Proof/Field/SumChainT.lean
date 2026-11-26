@@ -50,7 +50,7 @@ variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {Q : State rv
   {rest : List Frame} {regs : Reg → Word} {m : MachineState}
 
 /-- `AbiRegs` through writes of registers it does not read. -/
-macro "abi_ok " h:term : tactic =>
+local macro "abi_ok " h:term : tactic =>
   `(tactic| ((repeat rw [AbiRegs.updReg_iff (by decide)]) <;> exact $h))
 
 /-- The continuation the parts are proved against. -/
@@ -87,7 +87,6 @@ theorem loopB_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest re
     · tnorm; omega
     · unfold Win; tnorm; omega
   · exact ret_ok hp hk hst hnx (by tnorm; exact h1) (by abi_ok ha)
-
 
 /-- The second iterator, present: its pointer and end, then its loop unless it is empty. -/
 theorem second_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest regs m) (hst : env.Static m)
