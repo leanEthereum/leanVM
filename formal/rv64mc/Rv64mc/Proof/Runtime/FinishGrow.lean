@@ -163,6 +163,9 @@ theorem ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]?
       unfold InRange at h1 h2; unfold Env.Live at hlive; rw [hcs] at h1 h2
       have := hret2_16
       omega
+    · have := hret2_14.2.1; have := env.heapEnd.isLt; have := env.layout
+      unfold Env.Live at hlive
+      refine .inr ⟨⟨.inl ?_, ?_⟩, .inl ?_⟩ <;> rw [hcs] <;> omega
     -- after `memcpy`: the frame's slots, above the copy, are kept
     all_goals
       have hlim : env.stackLimit.toNat + 80 ≤ top.toNat := by omega

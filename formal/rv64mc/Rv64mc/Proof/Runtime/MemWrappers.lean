@@ -20,13 +20,13 @@ variable {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat}
 
 theorem memcpy_ok (L : Memcpy.Link) (hp : p[i]? = some (Memcpy.tmpl L)) (hL : L.WF p)
     (h : MemcpySpec env p L.memcpy.idx need) : MemcpySpec env p i need :=
-  tail_ok hp rfl hL.memcpy hL.s0 h (fun _ _ h => by simpa [CopyPre, updReg_apply] using h)
+  tail_ok hp rfl hL.memcpy hL.s0 h (fun _ _ h => by simpa [CopyPre, CopyApart, updReg_apply] using h)
     (fun _ _ _ _ h => by simpa [CopyPost, updReg_apply] using h)
     (fun _ _ _ h => by simpa [CopyOut, updReg_apply] using h)
 
 theorem memmove_ok (L : Memmove.Link) (hp : p[i]? = some (Memmove.tmpl L)) (hL : L.WF p)
     (h : MemmoveSpec env p L.memmove.idx need) : MemmoveSpec env p i need :=
-  tail_ok hp rfl hL.memmove hL.s0 h (fun _ _ h => by simpa [CopyPre, updReg_apply] using h)
+  tail_ok hp rfl hL.memmove hL.s0 h (fun _ _ h => by simpa [CopyPre, CopyApart, updReg_apply] using h)
     (fun _ _ _ _ h => by simpa [CopyPost, updReg_apply] using h)
     (fun _ _ _ h => by simpa [CopyOut, updReg_apply] using h)
 
