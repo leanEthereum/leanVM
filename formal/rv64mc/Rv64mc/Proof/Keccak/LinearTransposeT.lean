@@ -254,4 +254,61 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {ws : List
   all_goals try simp only [hcv]
   all_goals rv_closeT
 
+set_option rv_sym.heap true in
+/-- **From the column sums to the result's loop**: the buffer allocated, its header stored, `reserve`, and the
+    loop's registers. -/
+theorem mid {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {ws : List E}
+    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need nAl nRes nHe : Nat} (hnAl : 30816 + nAl ≤ need)
+    (hnRes : 30816 + nRes ≤ need) (hnHe : 30816 + nHe ≤ need)
+    (hal : HoldsT env p L.alloc.idx nAl Spec.Runtime.AllocPre (Spec.Runtime.AllocPost env) (Stop := AbortStop))
+    (hres : Runtime.ReserveT.ReserveSpecT env 8 16 p L.reserve.idx nRes)
+    (hhe : Runtime.Aborts env p L.handleError.idx nHe)
+    (hd : DataRef.InData env [(L.d_c8_e5d50e4a, Gen.Verifier.Keccak.LinearTransposeE.d_c8_e5d50e4a_words)])
+    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
+    (hstop : ∀ (fr : Frame) (st : List Frame) (r' : rvIsa.Reg → Word) (m' : rvIsa.M), AbortStop regs m r' m' →
+      rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ → Q ⟨fr :: st, r', m'⟩)
+    (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (h16 : top.toNat % 16 = 0) (hW : Windows env top m)
+    (_hge : 0x10000000 ≤ (env.next m).toNat)
+    (hl3 : ∀ P, P.toNat % 8 = 0 → ∀ k R M, LInv3 env ws ret top regs m P 1600 k R M →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 314, ret, top⟩ :: rest, R, M⟩) :
+    ∀ R M, Exit2 env ws ret top regs m R M → M.code = m.code →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 190, ret, top⟩ :: rest, R, M⟩ := by
+  intro R M hinv hcode
+  have htop : env.stackLimit.toNat + 30816 ≤ top.toNat := by omega
+  have := top.isLt
+  have hlay := env.layout
+  have esp := toNat_top (t := top) (c := 18446744073709520800) (by decide) (by omega)
+  have eH := toNat_top (t := top) (c := 18446744073709551544) (by decide) (by omega)
+  obtain ⟨hd0, hd1⟩ := Runtime.FromElemT.data0 hW hd (by decide)
+  rv_introT hinv
+  rv_symT hp stop [314] with [hL] using [hal, hres, hhe]
+  rotate_right
+  · -- the loop's head
+    simp (disch := first | exact Tactic.add_ne_add (by decide) | fail) only [vecLen, vecCap, vecPtr, Layouts.Vec.cap,
+      Layouts.Vec.ptr, Layouts.Vec.len, add_ofNat2, Nat.reduceAdd, MachineState.getMem_setMem_ne,
+      MachineState.getMem_setMem_eq] at hret3_16 hret3_17
+    obtain ⟨hcap, hptr⟩ := hret3_17 (by decide)
+    have hmg : m3.getMem (L.d_c8_e5d50e4a.hi + L.d_c8_e5d50e4a.lo) = 0x3333333333333334#64 :=
+      DataRef.Words.get0 (hd.words (List.mem_singleton_self _)) hret3_15 (by decide)
+    rw [hret3_16, hptr, hmg]
+    obtain ⟨h3, -⟩ := mid_mem htop hinv_13 hinv_14 hinv_15 hinv_16 hret1_14 hret1_16 (by simpa using hret1_18)
+      hret3_14 (fun b hb => by
+        simp only [Spec.Runtime.GrowOut, Spec.Runtime.rvCapAt, Spec.Runtime.rvPtrAt, Layouts.RawVecInner.cap,
+          Layouts.RawVecInner.ptr, Lprog.updReg_apply, Tactic.rf] at hb
+        rcases hb with h | h
+        · left; simpa using h
+        · right; exact h) hcap hptr
+    refine hl3 (r1 .x10) hret1_17 1599 _ _ ⟨0, by omega, ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h3.1,
+      h3.2.1⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, h3⟩, hret3_25.trans (hret1_19.trans hcode)⟩
+    all_goals rv_closeT
+    all_goals simp only [Tactic.rf]
+    · simp
+    · rw [BitVec.add_assoc, BitVec.add_assoc]; rfl
+  all_goals try exact hd0
+  all_goals simp only [Spec.Runtime.rvCapAt, Spec.Runtime.rvPtrAt, Layouts.RawVecInner.cap,
+    Layouts.RawVecInner.ptr, BitVec.add_zero]
+  all_goals have hMn := hinv_13.1
+  all_goals rv_closeT
+
 end Rv64mc.Proof.Keccak.LinearTransposeT
