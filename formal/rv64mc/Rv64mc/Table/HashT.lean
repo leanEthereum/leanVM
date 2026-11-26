@@ -2,16 +2,18 @@
   Rv64mc.Table.HashT
 
   The total contracts of the hash functions proved total, at the image: `xor_block` (`XorBlockSafeT`), a leaf, and
-  `keccak_f` (`KeccakFSafeT`), over the C wrappers `memcpy` and `memset`. Left as a hypothesis: `keccak_f`'s three
+  `keccak_f` (`KeccakFSafeT`), over the C wrappers `memcpy` and `memset`, and `Digest::halves`, over
+  `Digest::words`. Left as a hypothesis: `keccak_f`'s three
   constant tables in the image's static data (`KeccakTables`, `DataRef.InData`), an environment fact.
 
   ## Main results
 
-  * `xorBlockT`, `keccakFT`
+  * `xorBlockT`, `keccakFT`, `digestHalvesT`
 -/
 
 import Rv64mc.Proof.Hash.XorBlockT
 import Rv64mc.Proof.Hash.KeccakFT
+import Rv64mc.Proof.Hash.DigestHalvesT
 import Rv64mc.Table.CopyUseT
 import Rv64mc.Gen.Needs
 import Rv64mc.Gen.Link.Verifier.Hash
@@ -36,6 +38,12 @@ theorem keccakFT (hd : KeccakTables env) :
   HoldsT.mono_need (Proof.Hash.KeccakFT.total (needC := 16) Verifier.Hash.KeccakF.tmpl_eq Verifier.Hash.KeccakF.wf hd
     (CopyUseT.memcpy env) (HoldsT.mono_need (RuntimeT.memset env) (by decide))) (by decide)
 
+/-- **`Digest::halves` at the image** (function 56). -/
+theorem digestHalvesT : Proof.Hash.DigestHalvesT.specT env (liftProg fns) Idx.Verifier.Hash.Digest.Halves
+    Needs.Verifier.Hash.Digest.Halves :=
+  Proof.Hash.DigestHalvesT.total env _ _ _ Verifier.Hash.Digest.Halves.tmpl_eq Verifier.Hash.Digest.Halves.wf
+    (by decide) (CopyUseT.digestWords env)
+
 end Rv64mc.Table.HashT
 
 /-- info: 'Rv64mc.Table.HashT.xorBlockT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -45,3 +53,7 @@ end Rv64mc.Table.HashT
 /-- info: 'Rv64mc.Table.HashT.keccakFT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.HashT.keccakFT
+
+/-- info: 'Rv64mc.Table.HashT.digestHalvesT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.HashT.digestHalvesT
