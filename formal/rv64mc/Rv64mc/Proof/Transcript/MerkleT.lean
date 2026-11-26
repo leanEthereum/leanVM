@@ -45,7 +45,7 @@ open Rv64mc.Proof.Runtime (Aborts)
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (VecT RawVecT BufT)
 open Rv64mc.Proof.Transcript.SpongeReprT Rv64mc.Proof.Transcript.TranscriptReprT
-open Rv64mc.Proof.Transcript.NextScalarsT (ne_of_toNat_lt sret_spongeT vecT_stores)
+open Rv64mc.Proof.Transcript.NextScalarsT (sret_spongeT vecT_stores)
 open Rv64mc.Gen.Verifier.Transcript.Transcript.Merkle (Link tmpl)
 
 /-- A slice `&[K]` at `s` (pointer, length): empty, or its words allocated, in a window, 8-byte aligned. -/
@@ -456,23 +456,12 @@ theorem baseM_call {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : 
       have := hout _ h; rw [e] at this; omega
   refine ⟨Env.Frame.trans hF hf (by rw [hsp]; omega) fun b hb => Or.inl ⟨by have := hout b hb; omega,
     by have := hout b hb; omega⟩, hc.trans hcM, hs, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hsl 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hsl 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hsl 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hsl 32 (by omega) (by omega)]
-    exact h4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hsl 40 (by omega) (by omega)]
-    exact h5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hsl 48 (by omega) (by omega)]
-    exact h6
+  · exact (hsl 8 (by omega) (by omega)).trans h1
+  · exact (hsl 16 (by omega) (by omega)).trans h2
+  · exact (hsl 24 (by omega) (by omega)).trans h3
+  · exact (hsl 32 (by omega) (by omega)).trans h4
+  · exact (hsl 40 (by omega) (by omega)).trans h5
+  · exact (hsl 48 (by omega) (by omega)).trans h6
 
 set_option rv_sym.heap true in
 /-- **The roots' check**, when the transcript is checked: each path's root, then `memcmp` against the root. -/
@@ -654,16 +643,16 @@ theorem copy_step {M : MachineState} {buf : Word} {j : Nat} {A B : Nat → Word}
   have f2 : (buf + BitVec.ofNat 64 (16 * j' + 8)).toNat = buf.toNat + 16 * j' + 8 := by
     rw [toNat_add_ofNat (by omega)]; omega
   rcases Nat.lt_succ_iff_lt_or_eq.1 hj' with h | rfl
-  · rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [f1, e2]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [f1, e1]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [f2, e2]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [f2, e1]; omega))]
+  · rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [f1, e2]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [f1, e1]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [f2, e2]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [f2, e1]; omega))]
     exact hIH j' h
   · have g1 : buf + BitVec.ofNat 64 (16 * j') = buf + BitVec.ofNat 64 (8 + 16 * j') + 18446744073709551608#64 :=
       BitVec.eq_of_toNat_eq (by rw [f1, e1])
     have g2 : buf + BitVec.ofNat 64 (16 * j' + 8) = buf + BitVec.ofNat 64 (8 + 16 * j') :=
       BitVec.eq_of_toNat_eq (by rw [f2, e2]; omega)
-    rw [g1, MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e1, e2]; omega)), MachineState.getMem_setMem_eq,
+    rw [g1, MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e1, e2]; omega)), MachineState.getMem_setMem_eq,
       g2, MachineState.getMem_setMem_eq]
     exact ⟨h1, h2⟩
 
@@ -698,36 +687,25 @@ theorem baseM_fresh2 {env : Env} {ret top : Word} {regs : Reg → Word} {m M : M
   have := hW.heapEnd_le
   have := hW.nextAddr_ge
   have hnx := hB.1.2.1
-  have n1 : a1 ≠ env.nextAddr := ne_of_toNat_lt (Or.inl (by omega))
-  have n2 : a2 ≠ env.nextAddr := ne_of_toNat_lt (Or.inl (by omega))
+  have n1 : a1 ≠ env.nextAddr := Tactic.ne_of_toNat (by omega)
+  have n2 : a2 ≠ env.nextAddr := Tactic.ne_of_toNat (by omega)
   have e1 : env.next (M.setMem a1 v1) = env.next M := Tactic.next_setMem n1
   obtain ⟨hF, hc, hs, s1, s2, s3, s4, s5, s6⟩ := hB
   have hk : ∀ c : Nat, 0 < c → c ≤ 48 → ((M.setMem a1 v1).setMem a2 v2).getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) =
       M.getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) := fun c hc0 hc1 => by
     have e : (top + BitVec.ofNat 64 (2 ^ 64 - c)).toNat = top.toNat - c := by
       rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-    rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e]; omega))]
+    rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e]; omega))]
   refine ⟨Tactic.frame_fresh (Tactic.frame_fresh hF rfl h1 h1') e1 h2 h2',
     by rw [MachineState.code_setMem, MachineState.code_setMem]; exact hc,
     Tactic.static_store (Tactic.static_store hs (Or.inl (by omega))) (Or.inl (by omega)), ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hk 8 (by omega) (by omega)]
-    exact s1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hk 16 (by omega) (by omega)]
-    exact s2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hk 24 (by omega) (by omega)]
-    exact s3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hk 32 (by omega) (by omega)]
-    exact s4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hk 40 (by omega) (by omega)]
-    exact s5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hk 48 (by omega) (by omega)]
-    exact s6
+  · exact (hk 8 (by omega) (by omega)).trans s1
+  · exact (hk 16 (by omega) (by omega)).trans s2
+  · exact (hk 24 (by omega) (by omega)).trans s3
+  · exact (hk 32 (by omega) (by omega)).trans s4
+  · exact (hk 40 (by omega) (by omega)).trans s5
+  · exact (hk 48 (by omega) (by omega)).trans s6
 
 set_option rv_sym.heap true in
 /-- From the exit: `Ok` of the vector into the slot, the return. -/
@@ -779,12 +757,12 @@ theorem fin_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p
         Tactic.next_setMem (hwS.ne_next_add (o := 8) (by omega)), Tactic.next_setMem (hwS.ne_next (Nat.le_refl _)
         (by omega))]
     refine sliceKT_of (hsl k hk) ?_ ?_ (by rw [hn])
-    · rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e16, es]; omega)),
-        MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e8, es]; omega)),
-        MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [es]; omega))]
-    · rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e16, es8]; omega)),
-        MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e8, es8]; omega)),
-        MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [es8]; omega))]
+    · rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e16, es]; omega)),
+        MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e8, es]; omega)),
+        MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [es]; omega))]
+    · rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e16, es8]; omega)),
+        MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e8, es8]; omega)),
+        MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [es8]; omega))]
 
 set_option rv_sym.heap true in
 /-- **The leaves' copy**: each path's leaf slice into the buffer, then the exit. -/
@@ -866,8 +844,8 @@ theorem loop4 (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         (R .x12 + BitVec.ofNat 64 (8 + 16 * ((m.getMem (o + 16#64)).toNat - k)))
         (M.getMem (m.getMem (o + 8#64) + BitVec.ofNat 64 (16 + 56 * ((m.getMem (o + 16#64)).toNat - k))))) =
         env.next M := by
-      rw [Tactic.next_setMem (ne_of_toNat_lt (Or.inl (by rw [hx14]; omega))),
-        Tactic.next_setMem (ne_of_toNat_lt (Or.inl (by rw [ea1]; omega)))]
+      rw [Tactic.next_setMem (Tactic.ne_of_toNat (by rw [hx14]; omega)),
+        Tactic.next_setMem (Tactic.ne_of_toNat (by rw [ea1]; omega))]
   -- the next path
   · have hk2 : 2 ≤ k := by
       by_contra h

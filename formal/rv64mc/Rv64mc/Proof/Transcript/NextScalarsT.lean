@@ -23,7 +23,7 @@
 
   ## Main results
 
-  * `not_iterOut`, `iter_keep`, `baseM_iter`, `ne_of_toNat_lt`, `tr_words`, `baseM_store`, `baseM_callF`, `hdr_words`,
+  * `not_iterOut`, `iter_keep`, `baseM_iter`, `tr_words`, `baseM_store`, `baseM_callF`, `hdr_words`,
     `growOut_hdr`, `vecT_hdr`, `hdr_of_vecT`, `baseM_callS`, `sret_spongeT`, `vecT_stores`, `rd_heap2`, `fin_ok`,
     `store_ok`, `loop`, `first_ok`, `kept`, `total`
 -/
@@ -185,30 +185,13 @@ theorem baseM_iter {env : Env} {ret top : Word} {regs r : Reg → Word} {m M m1 
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl hb))))
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr hb))))
     · exact Or.inl ⟨by omega, by omega⟩
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hkeep 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hkeep 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hkeep 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hkeep 32 (by omega) (by omega)]
-    exact h4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hkeep 40 (by omega) (by omega)]
-    exact h5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hkeep 48 (by omega) (by omega)]
-    exact h6
-  · rw [show (18446744073709551560#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 56) from rfl,
-      hkeep 56 (by omega) (by omega)]
-    exact h7
-
-/-- Two words whose numbers differ. -/
-theorem ne_of_toNat_lt {x y : Word} (h : x.toNat < y.toNat ∨ y.toNat < x.toNat) : x ≠ y := fun e => by
-  rw [e] at h; omega
+  · exact (hkeep 8 (by omega) (by omega)).trans h1
+  · exact (hkeep 16 (by omega) (by omega)).trans h2
+  · exact (hkeep 24 (by omega) (by omega)).trans h3
+  · exact (hkeep 32 (by omega) (by omega)).trans h4
+  · exact (hkeep 40 (by omega) (by omega)).trans h5
+  · exact (hkeep 48 (by omega) (by omega)).trans h6
+  · exact (hkeep 56 (by omega) (by omega)).trans h7
 
 /-- The transcript's words `TranscriptAtT` reads, and its proof's, owned at entry: below `NEXT` then, or at or
     above the stack top. -/
@@ -224,7 +207,8 @@ theorem tr_words {env : Env} {m M : MachineState} {top T : Word} (hO : OwnedT en
   have e8 : (m.getMem (T + 328#64) + 8#64).toNat = (m.getMem (T + 328#64)).toNat + 8 := toNat_add_ofNat (by omega)
   have e16 : (m.getMem (T + 328#64) + 16#64).toNat = (m.getMem (T + 328#64)).toNat + 16 :=
     toNat_add_ofNat (by omega)
-  refine ⟨ne_of_toNat_lt ?_, ne_of_toNat_lt ?_, ne_of_toNat_lt ?_, ne_of_toNat_lt ?_, ne_of_toNat_lt ?_⟩ <;>
+  refine ⟨Tactic.ne_of_toNat ?_, Tactic.ne_of_toNat ?_, Tactic.ne_of_toNat ?_, Tactic.ne_of_toNat ?_,
+    Tactic.ne_of_toNat ?_⟩ <;>
     (try simp only [e320, e328, e8, e16]) <;> omega
 
 /-- **`BaseM` after a store** to a word not the saved registers' nor the transcript's: in the frame below the
@@ -239,13 +223,13 @@ theorem baseM_store {env : Env} {ret top : Word} {regs : Reg → Word} {m M : Ma
   have hlay := env.layout
   have hnM := hF.2.1
   have hnM' := hF.1
-  have hna : a ≠ env.nextAddr := ne_of_toNat_lt (by omega)
+  have hna : a ≠ env.nextAddr := Tactic.ne_of_toNat (by omega)
   have hw := tr_words hO0 hP (a := a) (by omega)
   have hsl : ∀ c : Nat, 0 < c → c ≤ 56 → (M.setMem a v).getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) =
       M.getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) := fun c hc0 hc1 => by
     have e : (top + BitVec.ofNat 64 (2 ^ 64 - c)).toNat = top.toNat - c := by
       rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-    exact MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e]; omega))
+    exact MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e]; omega))
   have hT' : TranscriptAtT env (M.setMem a v) (regs .x11) :=
     hT.of_get (MachineState.getMem_setMem_ne hw.1) (MachineState.getMem_setMem_ne hw.2.1)
       (MachineState.getMem_setMem_ne hw.2.2.1) (MachineState.getMem_setMem_ne hw.2.2.2.1)
@@ -257,26 +241,13 @@ theorem baseM_store {env : Env} {ret top : Word} {regs : Reg → Word} {m M : Ma
   · rcases ha with ha | ha
     · exact Tactic.frame_slot hF (by omega) (by omega)
     · exact Tactic.frame_fresh hF rfl ha.1 (by omega)
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hsl 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hsl 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hsl 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hsl 32 (by omega) (by omega)]
-    exact h4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hsl 40 (by omega) (by omega)]
-    exact h5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hsl 48 (by omega) (by omega)]
-    exact h6
-  · rw [show (18446744073709551560#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 56) from rfl,
-      hsl 56 (by omega) (by omega)]
-    exact h7
+  · exact (hsl 8 (by omega) (by omega)).trans h1
+  · exact (hsl 16 (by omega) (by omega)).trans h2
+  · exact (hsl 24 (by omega) (by omega)).trans h3
+  · exact (hsl 32 (by omega) (by omega)).trans h4
+  · exact (hsl 40 (by omega) (by omega)).trans h5
+  · exact (hsl 48 (by omega) (by omega)).trans h6
+  · exact (hsl 56 (by omega) (by omega)).trans h7
 
 /-- **`BaseM` across a call that writes nothing outside its stack and its allocations**, from a stack top below
     the frame. -/
@@ -296,26 +267,13 @@ theorem baseM_callF {env : Env} {ret top top' : Word} {regs : Reg → Word} {m M
     exact hf.getMem_above (by omega) (by rw [e]; omega) id
   refine ⟨Env.Frame.trans hF hf (by omega) fun _ h => h.elim, hc.trans hcM, hs, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hTT.1,
     hTT.2.1, hTT.2.2.trans hP⟩
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hsl 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hsl 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hsl 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hsl 32 (by omega) (by omega)]
-    exact h4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hsl 40 (by omega) (by omega)]
-    exact h5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hsl 48 (by omega) (by omega)]
-    exact h6
-  · rw [show (18446744073709551560#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 56) from rfl,
-      hsl 56 (by omega) (by omega)]
-    exact h7
+  · exact (hsl 8 (by omega) (by omega)).trans h1
+  · exact (hsl 16 (by omega) (by omega)).trans h2
+  · exact (hsl 24 (by omega) (by omega)).trans h3
+  · exact (hsl 32 (by omega) (by omega)).trans h4
+  · exact (hsl 40 (by omega) (by omega)).trans h5
+  · exact (hsl 48 (by omega) (by omega)).trans h6
+  · exact (hsl 56 (by omega) (by omega)).trans h7
 
 /-- The result's three words stored into a slot in a window, apart from the transcript, keep its sponge
     `SpongeT`. -/
@@ -328,12 +286,12 @@ theorem sret_spongeT {env : Env} {M : MachineState} {a T v0 v1 v2 : Word} (hw : 
   have e8 : (a + 8#64).toNat = a.toNat + 8 := toNat_add_ofNat (by omega)
   have e16 : (a + 16#64).toNat = a.toNat + 16 := toNat_add_ofNat (by omega)
   have e320 : (T + 320#64).toNat = T.toNat + 320 := toNat_add_ofNat (by omega)
-  have n1 : T ≠ a + 16#64 := ne_of_toNat_lt (by rw [e16]; omega)
-  have n2 : T ≠ a + 8#64 := ne_of_toNat_lt (by rw [e8]; omega)
-  have n3 : T ≠ a := ne_of_toNat_lt (by omega)
-  have n4 : T + 320#64 ≠ a + 16#64 := ne_of_toNat_lt (by rw [e16, e320]; omega)
-  have n5 : T + 320#64 ≠ a + 8#64 := ne_of_toNat_lt (by rw [e8, e320]; omega)
-  have n6 : T + 320#64 ≠ a := ne_of_toNat_lt (by rw [e320]; omega)
+  have n1 : T ≠ a + 16#64 := Tactic.ne_of_toNat (by rw [e16]; omega)
+  have n2 : T ≠ a + 8#64 := Tactic.ne_of_toNat (by rw [e8]; omega)
+  have n3 : T ≠ a := Tactic.ne_of_toNat (by omega)
+  have n4 : T + 320#64 ≠ a + 16#64 := Tactic.ne_of_toNat (by rw [e16, e320]; omega)
+  have n5 : T + 320#64 ≠ a + 8#64 := Tactic.ne_of_toNat (by rw [e8, e320]; omega)
+  have n6 : T + 320#64 ≠ a := Tactic.ne_of_toNat (by rw [e320]; omega)
   refine spongeT_of_get hT ?_ ?_
   · rw [MachineState.getMem_setMem_ne n1, MachineState.getMem_setMem_ne n2, MachineState.getMem_setMem_ne n3]
   · rw [MachineState.getMem_setMem_ne n4, MachineState.getMem_setMem_ne n5, MachineState.getMem_setMem_ne n6]
@@ -345,9 +303,9 @@ theorem vecT_stores {env : Env} {M : MachineState} {a c q l : Word} (hw : InWin 
   have hlt := hw.lt
   have e8 : (a + 8#64).toNat = a.toNat + 8 := toNat_add_ofNat (by omega)
   have e16 : (a + 16#64).toNat = a.toNat + 16 := toNat_add_ofNat (by omega)
-  have n1 : a ≠ a + 16#64 := ne_of_toNat_lt (by rw [e16]; omega)
-  have n2 : a ≠ a + 8#64 := ne_of_toNat_lt (by rw [e8]; omega)
-  have n3 : a + 8#64 ≠ a + 16#64 := ne_of_toNat_lt (by rw [e8, e16]; omega)
+  have n1 : a ≠ a + 16#64 := Tactic.ne_of_toNat (by rw [e16]; omega)
+  have n2 : a ≠ a + 8#64 := Tactic.ne_of_toNat (by rw [e8]; omega)
+  have n3 : a + 8#64 ≠ a + 16#64 := Tactic.ne_of_toNat (by rw [e8, e16]; omega)
   have hna : ∀ x : Word, x.toNat = a.toNat ∨ x.toNat = a.toNat + 8 ∨ x.toNat = a.toNat + 16 → x ≠ env.nextAddr :=
     fun x hx => hw.ne_next (by omega) (by omega)
   have hn : env.next (((M.setMem a c).setMem (a + 8#64) q).setMem (a + 16#64) l) = env.next M := by
@@ -371,8 +329,8 @@ theorem rd_heap2 {env : Env} {M : MachineState} {x b1 b2 v w : Word} (hx : env.s
     (h1 : b1.toNat < env.heapEnd.toNat) (h2 : b2.toNat < env.heapEnd.toNat) :
     ((M.setMem b1 v).setMem b2 w).getMem x = M.getMem x := by
   have := env.layout
-  rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by omega)),
-    MachineState.getMem_setMem_ne (ne_of_toNat_lt (by omega))]
+  rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by omega)),
+    MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by omega))]
 
 /-- The header at `sp + 0x38`'s words, as `rvCapAt`, `rvPtrAt`, `vecCap` and `vecLen` name them. -/
 theorem hdr_words (top : Word) :
@@ -458,26 +416,13 @@ theorem baseM_callS {env : Env} {ret top top' : Word} {regs : Reg → Word} {m M
   refine ⟨Env.Frame.trans hF hf (by omega) fun a h => Or.inl (by have := hout a h; constructor <;> omega),
     hc.trans hcM, hs,
     ?_, ?_, ?_, ?_, ?_, ?_, ?_, hTT.1, hTT.2.1, hTT.2.2.trans hP⟩
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hsl 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hsl 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hsl 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hsl 32 (by omega) (by omega)]
-    exact h4
-  · rw [show (18446744073709551576#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 40) from rfl,
-      hsl 40 (by omega) (by omega)]
-    exact h5
-  · rw [show (18446744073709551568#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 48) from rfl,
-      hsl 48 (by omega) (by omega)]
-    exact h6
-  · rw [show (18446744073709551560#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 56) from rfl,
-      hsl 56 (by omega) (by omega)]
-    exact h7
+  · exact (hsl 8 (by omega) (by omega)).trans h1
+  · exact (hsl 16 (by omega) (by omega)).trans h2
+  · exact (hsl 24 (by omega) (by omega)).trans h3
+  · exact (hsl 32 (by omega) (by omega)).trans h4
+  · exact (hsl 40 (by omega) (by omega)).trans h5
+  · exact (hsl 48 (by omega) (by omega)).trans h6
+  · exact (hsl 56 (by omega) (by omega)).trans h7
 
 /-- The shunt at `sp + 0x50` (the copy the loop passes): the transcript, the end `count`, the residual's address,
     and `k` items left. -/
@@ -520,8 +465,8 @@ local macro "tn" : tactic => `(tactic| (rw [BitVec.toNat_add, BitVec.toNat_ofNat
 set_option hygiene false in
 /-- `NEXT` read through stores into the frame and into the buffer. -/
 local macro "next_thru" : tactic => `(tactic| (
-  repeat (rw [Tactic.next_setMem]; rotate_left; exact ne_of_toNat_lt (by
-    first | (right; rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) | (left; (try rw [h8b]); omega)))))
+  repeat (rw [Tactic.next_setMem]; rotate_left; exact Tactic.ne_of_toNat (by
+    first | (rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) | ((try rw [h8b]); omega)))))
 
 set_option rv_sym.heap true in
 /-- From the exit: `Ok` of the vector or the residual's error into the slot, the return. -/
@@ -593,7 +538,7 @@ theorem store_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp :
   have hb1 : (M.getMem (top + 18446744073709551488#64) + R .x18 + 16#64).toNat < env.heapEnd.toNat := by omega
   have hb2 : (M.getMem (top + 18446744073709551488#64) + R .x18 + 24#64).toNat < env.heapEnd.toNat := by omega
   have hnb1 : M.getMem (top + 18446744073709551488#64) + R .x18 + 16#64 ≠ env.nextAddr :=
-    ne_of_toNat_lt (Or.inl (by omega))
+    Tactic.ne_of_toNat (by omega)
   have r128 : ((M.setMem (M.getMem (top + 18446744073709551488#64) + R .x18 + 16#64) (R .x20)).setMem
       (M.getMem (top + 18446744073709551488#64) + R .x18 + 24#64) (R .x21)).getMem (top + 18446744073709551488#64) =
       M.getMem (top + 18446744073709551488#64) := rd_heap2 (by tn) hb1 hb2
@@ -842,7 +787,7 @@ theorem first_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp :
       have hb0 : (env.next m).toNat ≤ (r1 .x10).toNat := by have := hF1.1; omega
       have hb1 : (r1 .x10).toNat + 64 = (env.next m1).toNat := hret1_18
       have hb2 := hret1_14.2.1
-      have hbna : r1 .x10 ≠ env.nextAddr := ne_of_toNat_lt (Or.inl (by omega))
+      have hbna : r1 .x10 ≠ env.nextAddr := Tactic.ne_of_toNat (by omega)
       have h8b : (r1 .x10 + 8#64).toNat = (r1 .x10).toNat + 8 := toNat_add_ofNat (by omega)
       have hO := hBM.2.2.2.2.2.2.2.2.2.2.2.1
       have hk_ := fun (a : Word) (h1 : top.toNat - 192 ≤ a.toNat) (h2 : a.toNat < top.toNat)

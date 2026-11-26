@@ -120,17 +120,10 @@ set_option hygiene false in
 /-- A word `top + c` of the frame, as a number. -/
 local macro "tn" : tactic => `(tactic| (rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega))
 
-/-- A store outside the saved registers' slots keeps them. -/
-theorem Saved.setMem {ret top a v : Word} {regs : Reg → Word} {M : MachineState} (h : Saved ret top regs M)
-    (h96 : 96 ≤ top.toNat) (ha : a.toNat + 8 ≤ top.toNat - 96 ∨ top.toNat ≤ a.toNat) :
-    Saved ret top regs (M.setMem a v) := by
-  have e : ∀ c : Nat, 0 < c → c ≤ 96 → (M.setMem a v).getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) =
-      M.getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) := fun c h0 h1 =>
-    MachineState.getMem_setMem_ne fun he => by
-      have := congrArg BitVec.toNat he
-      rw [BitVec.toNat_add, BitVec.toNat_ofNat] at this
-      have := top.isLt
-      omega
+/-- The saved registers' slots, in a memory that keeps the words `top - c` for `0 < c ≤ 96`. -/
+theorem Saved.keep {ret top : Word} {regs : Reg → Word} {M M' : MachineState} (h : Saved ret top regs M)
+    (e : ∀ c : Nat, 0 < c → c ≤ 96 → M'.getMem (top + BitVec.ofNat 64 (2 ^ 64 - c)) =
+      M.getMem (top + BitVec.ofNat 64 (2 ^ 64 - c))) : Saved ret top regs M' := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
   exact ⟨(e 8 (by omega) (by omega)).trans h1, (e 16 (by omega) (by omega)).trans h2,
     (e 24 (by omega) (by omega)).trans h3, (e 32 (by omega) (by omega)).trans h4,
@@ -138,6 +131,16 @@ theorem Saved.setMem {ret top a v : Word} {regs : Reg → Word} {M : MachineStat
     (e 56 (by omega) (by omega)).trans h7, (e 64 (by omega) (by omega)).trans h8,
     (e 72 (by omega) (by omega)).trans h9, (e 80 (by omega) (by omega)).trans h10,
     (e 88 (by omega) (by omega)).trans h11, (e 96 (by omega) (by omega)).trans h12⟩
+
+/-- A store outside the saved registers' slots keeps them. -/
+theorem Saved.setMem {ret top a v : Word} {regs : Reg → Word} {M : MachineState} (h : Saved ret top regs M)
+    (h96 : 96 ≤ top.toNat) (ha : a.toNat + 8 ≤ top.toNat - 96 ∨ top.toNat ≤ a.toNat) :
+    Saved ret top regs (M.setMem a v) :=
+  h.keep fun c h0 h1 => MachineState.getMem_setMem_ne fun he => by
+    have := congrArg BitVec.toNat he
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat] at this
+    have := top.isLt
+    omega
 
 set_option rv_sym.heap true in
 /-- **The epilogue**: the saved registers restored, the return. -/
@@ -354,15 +357,8 @@ theorem BaseM.call {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : 
       rw [BitVec.toNat_add, BitVec.toNat_ofNat]; have := top.isLt; omega
     exact hf.getMem_above (by rw [hsp]; omega) (by rw [e, hsp]; omega) fun h => by
       have := hout _ h; rw [e] at this; omega
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := hSv
-  refine ⟨Env.Frame.trans hF hf (by rw [hsp]; omega) fun b hb => Or.inl ⟨by have := hout b hb; omega,
-    by have := hout b hb; omega⟩, hc.trans hcM, hs, ?_⟩
-  exact ⟨(hsl 8 (by omega) (by omega)).trans h1, (hsl 16 (by omega) (by omega)).trans h2,
-    (hsl 24 (by omega) (by omega)).trans h3, (hsl 32 (by omega) (by omega)).trans h4,
-    (hsl 40 (by omega) (by omega)).trans h5, (hsl 48 (by omega) (by omega)).trans h6,
-    (hsl 56 (by omega) (by omega)).trans h7, (hsl 64 (by omega) (by omega)).trans h8,
-    (hsl 72 (by omega) (by omega)).trans h9, (hsl 80 (by omega) (by omega)).trans h10,
-    (hsl 88 (by omega) (by omega)).trans h11, (hsl 96 (by omega) (by omega)).trans h12⟩
+  exact ⟨Env.Frame.trans hF hf (by rw [hsp]; omega) fun b hb => Or.inl ⟨by have := hout b hb; omega,
+    by have := hout b hb; omega⟩, hc.trans hcM, hs, hSv.keep hsl⟩
 
 /-- **The two vectors and `BaseM` across `grow_one` of `log_inv_rates`** (the header at `sp + 0x18`). -/
 theorem grow_r {env : Env} {ret top : Word} {regs r : Reg → Word} {m M m1 : MachineState} {n : Nat}

@@ -37,7 +37,7 @@ open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (VecT RawVecT BufT)
 open Rv64mc.Proof.Transcript
 open Rv64mc.Proof.Transcript.SpongeReprT Rv64mc.Proof.Transcript.TranscriptReprT
-open Rv64mc.Proof.Transcript.NextScalarsT (ne_of_toNat_lt sret_spongeT vecT_stores)
+open Rv64mc.Proof.Transcript.NextScalarsT (sret_spongeT vecT_stores)
 open Rv64mc.Gen.Verifier.ReadOod (Link tmpl)
 
 /-- The total precondition: the transcript at `a1` `TranscriptAtT` and owned with its proof, the result's slot (`40`
@@ -120,10 +120,10 @@ theorem spongeT_two {env : Env} {M : MachineState} {a T v w : Word} (hw : InWin 
   have e32 : (a + 32#64).toNat = a.toNat + 32 := toNat_add_ofNat (by omega)
   have e320 : (T + 320#64).toNat = T.toNat + 320 := toNat_add_ofNat (by omega)
   refine spongeT_of_get hT ?_ ?_
-  · rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e32]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e24]; omega))]
-  · rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e32, e320]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e24, e320]; omega))]
+  · rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e32]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e24]; omega))]
+  · rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e32, e320]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e24, e320]; omega))]
 
 /-- A vector's header at `a` is kept by stores at `a + 24` and `a + 32`. -/
 theorem vecT_keep2 {env : Env} {M : MachineState} {a v w : Word} (hw : InWin env a 40) (h : VecT env M a 16) :
@@ -134,8 +134,8 @@ theorem vecT_keep2 {env : Env} {M : MachineState} {a v w : Word} (hw : InWin env
   have hk : ∀ o : Nat, o ≤ 16 → ((M.setMem (a + 24#64) v).setMem (a + 32#64) w).getMem (a + BitVec.ofNat 64 o) =
       M.getMem (a + BitVec.ofNat 64 o) := fun o ho => by
     have e : (a + BitVec.ofNat 64 o).toNat = a.toNat + o := toNat_add_ofNat (by omega)
-    rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e, e32]; omega)),
-      MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e, e24]; omega))]
+    rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e, e32]; omega)),
+      MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e, e24]; omega))]
   have hn : env.next ((M.setMem (a + 24#64) v).setMem (a + 32#64) w) = env.next M := by
     rw [Tactic.next_setMem (hw.ne_next (by rw [e32]; omega) (by rw [e32]; omega)),
       Tactic.next_setMem (hw.ne_next (by rw [e24]; omega) (by rw [e24]; omega))]
@@ -271,8 +271,8 @@ theorem tail_ok (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : 
       apply h
       have e8 : (regs .x10 + 8#64).toNat = (regs .x10).toNat + 8 := toNat_add_ofNat (by omega)
       have e16 : (regs .x10 + 16#64).toNat = (regs .x10).toNat + 16 := toNat_add_ofNat (by omega)
-      rw [MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e16]; omega)),
-        MachineState.getMem_setMem_ne (ne_of_toNat_lt (by rw [e8]; omega)), MachineState.getMem_setMem_eq]
+      rw [MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e16]; omega)),
+        MachineState.getMem_setMem_ne (Tactic.ne_of_toNat (by rw [e8]; omega)), MachineState.getMem_setMem_eq]
 
 /-- A callee writing a result's slot of `n` bytes in the frame, the sponge and the stream offset misses the
     transcript's proof's address and the stream's words, the transcript and its proof owned by the caller. -/
@@ -336,17 +336,10 @@ theorem baseM_call {env : Env} {ret top : Word} {regs r : Reg → Word} {m M m2 
     · exact Or.inl ⟨by omega, by omega⟩
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl hb))))
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr hb))))
-  · rw [show (18446744073709551608#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 8) from rfl, hsl 8 (by omega) (by omega)]
-    exact h1
-  · rw [show (18446744073709551600#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 16) from rfl,
-      hsl 16 (by omega) (by omega)]
-    exact h2
-  · rw [show (18446744073709551592#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 24) from rfl,
-      hsl 24 (by omega) (by omega)]
-    exact h3
-  · rw [show (18446744073709551584#64 : Word) = BitVec.ofNat 64 (2 ^ 64 - 32) from rfl,
-      hsl 32 (by omega) (by omega)]
-    exact h4
+  · exact (hsl 8 (by omega) (by omega)).trans h1
+  · exact (hsl 16 (by omega) (by omega)).trans h2
+  · exact (hsl 24 (by omega) (by omega)).trans h3
+  · exact (hsl 32 (by omega) (by omega)).trans h4
 
 /-- The state on `grind_check`'s error (instruction 28): the registers, `-1` in `x12`, `BaseM`. -/
 def EInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (R : Reg → Word)
