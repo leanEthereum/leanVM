@@ -12,7 +12,7 @@
 
   ## Main results
 
-  * `TabW.entry`, `TabW.entry'`, `shl4_add_toNat`, `succ_shl`, `succ_shl8`
+  * `TabW.entry`, `TabW.entry'`, `succ_shl`, `succ_shl8`
 -/
 
 import Rv64mc.Proof.Runtime.WinT
@@ -44,11 +44,6 @@ theorem TabW.entry' {env : Env} {q x len top : Word} {m : MachineState} (hd : Ta
     (inWindow (x <<< 4 + q) 8 = true ∧ (x <<< 4 + q).toNat % 8 = 0) ∧
       (inWindow (x <<< 4 + q + 8#64) 8 = true ∧ (x <<< 4 + q + 8#64).toNat % 8 = 0) := by
   rw [BitVec.add_comm (x <<< 4) q]; exact hd.entry hW hx
-
-/-- An offset `16 x` from `q`, as the code computes it, as a number, when it does not wrap. -/
-theorem shl4_add_toNat {q x : Word} (h : q.toNat + 16 * x.toNat < 2 ^ 64) :
-    (x <<< 4 + q).toNat = 16 * x.toNat + q.toNat := by
-  rw [BitVec.add_comm, Runtime.WinT.elem_toNat (s := 4) h]; omega
 
 /-- The continuation the parts are proved against. -/
 abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret top : Word) (rest : List Frame)
