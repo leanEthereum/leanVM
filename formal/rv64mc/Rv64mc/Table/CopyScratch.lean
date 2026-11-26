@@ -118,11 +118,15 @@ theorem entryM_next (st : Word → Word) : env.next (entryM st) = heapStart := b
   simp only [hl.1, Nat.le_refl, and_self, ↓reduceIte]
   exact dataAt_of_mem hn
 
-/-- Neither range wraps. -/
-theorem entry_noWrap {dst src n : Word} (hd : dst.toNat + n.toNat < 2 ^ 64) (hs : src.toNat + n.toNat < 2 ^ 64) :
-    NoWrap (entryRegs dst src n .x10) (entryRegs dst src n .x12).toNat ∧
-      NoWrap (entryRegs dst src n .x11) (entryRegs dst src n .x12).toNat :=
-  ⟨hd, hs⟩
+/-- `CopyPre` at the entry: neither range wraps, and for `memcpy` the ranges lie apart. -/
+theorem entry_copyPre {o : Bool} {dst src n : Word} {st : Word → Word} (hd : dst.toNat + n.toNat < 2 ^ 64)
+    (hs : src.toNat + n.toNat < 2 ^ 64)
+    (hap : o = false → dst.toNat + n.toNat ≤ src.toNat ∨ src.toNat + n.toNat ≤ dst.toNat) :
+    CopyPre o (entryRegs dst src n) (entryM st) :=
+  ⟨hd, hs, fun ho b (h1 : InRange dst n.toNat b) (h2 : InRange src n.toNat b) => by
+    unfold InRange at h1 h2
+    have := hap ho
+    omega⟩
 
 /-- `Holds`' precondition at the entry, from the copy's. -/
 theorem entry_pre {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat)
@@ -132,62 +136,61 @@ theorem entry_pre {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat)
   ⟨⟨rfl, rfl⟩, hn, entryM_static st, by rw [entryM_next]; show heapStart.toNat ≤ heapEnd.toNat; decide, h,
     by decide⟩
 
+/-- **A copy's contract at the image is refuted by a run** of function `f`'s body from the entry with `dst`, `src`,
+    `n` and `st` that returns in a state satisfying `P`, if `P` excludes `Post`. -/
+theorem not_holds {f need : Nat} {fd : Lfundef (Op Reg) Reg} (hp : (liftProg Gen.fns)[f]? = some fd)
+    (hn : stackLimit.toNat + need ≤ stackTop.toNat) {Pre : (Reg → Word) → MachineState → Prop}
+    {Post : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop} (dst src n : Word) (st : Word → Word)
+    (hpre : Pre (entryRegs dst src n) (entryM st)) (P : (Reg → Word) → MachineState → Bool)
+    (hrun : Isa.lrunReturns (I := rvIsa) fd.body 0x1000#64 stackTop 1000 (some 0, entryRegs dst src n, entryM st) P
+      = true)
+    (hpost : ∀ r' m', P r' m' = true → ¬ Post (entryRegs dst src n) (entryM st) r' m') :
+    ¬ Holds env (liftProg Gen.fns) f need Pre Post CopyOut := by
+  obtain ⟨r', m', hr, hb⟩ := Isa.lrunReturns_spec hrun
+  exact Isa.Contract.not_of_lrun hp (entry_pre hn _ hpre) hr fun ⟨_, _, _, h⟩ => hpost r' m' hb h
+
 set_option maxRecDepth 100000 in
 /-- **`memcpy` does not keep every byte outside its destination**: copying 16 bytes to `0x20000000` from
     `0x20000104` from `stackTop`, it returns with its slot changed. -/
 theorem memcpy_byteFrame_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
-    ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need (CopyPre false) KeepAllPost CopyOut := by
-  obtain ⟨r', m', hrun, hb⟩ := Isa.lrunReturns_spec (I := rvIsa)
-    (show Isa.lrunReturns (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
-      0x1000#64 stackTop 1000 (some 0, entryRegs 0x20000000#64 0x20000104#64 16#64, entryM onesAtSlot)
-      (fun _ (m' : MachineState) => m'.getByte slot != (entryM onesAtSlot).getByte slot) = true by decide)
-  refine Isa.Contract.not_of_lrun Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq
-    (entry_pre hn _ ⟨(entry_noWrap (by decide) (by decide)).1, (entry_noWrap (by decide) (by decide)).2,
-      fun _ b h1 h2 => ?_⟩) hrun fun ⟨_, _, _, _, _, hf⟩ => ?_
-  · simp only [InRange, entryRegs] at h1 h2
-    simp at h1 h2
-    omega
-  · have := hf slot (by simp [InRange, entryRegs, slot]; decide)
-    simp only [bne_iff_ne, ne_eq] at hb
-    exact hb this
+    ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need (CopyPre false) KeepAllPost CopyOut :=
+  not_holds Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq hn 0x20000000#64 0x20000104#64 16#64 onesAtSlot
+    (entry_copyPre (by decide) (by decide) fun _ => by decide)
+    (fun _ m' => m'.getByte slot != (entryM onesAtSlot).getByte slot) (by decide)
+    fun _ _ hb ⟨_, _, hf⟩ => bne_iff_ne.1 hb (hf slot (by simp [InRange, entryRegs, slot]; decide))
 
 set_option maxRecDepth 100000 in
 /-- **`memmove` does not keep every byte outside its destination**: copying no bytes from `stackTop`, it returns with
     its slot changed (it saves `s0` there). -/
 theorem memmove_byteFrame_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
-    ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memmove need (CopyPre true) KeepAllPost CopyOut := by
-  obtain ⟨r', m', hrun, hb⟩ := Isa.lrunReturns_spec (I := rvIsa)
-    (show Isa.lrunReturns (Gen.CompilerBuiltins.Mem.Memmove.tmpl Gen.CompilerBuiltins.Mem.Memmove.link).body
-      0x1000#64 stackTop 1000 (some 0, entryRegs 0x20000000#64 0x20000100#64 0#64, entryM onesAtSlot)
-      (fun _ (m' : MachineState) => m'.getByte slot != (entryM onesAtSlot).getByte slot) = true by decide)
-  refine Isa.Contract.not_of_lrun Gen.CompilerBuiltins.Mem.Memmove.tmpl_eq
-    (entry_pre hn _ ⟨(entry_noWrap (by decide) (by decide)).1, (entry_noWrap (by decide) (by decide)).2,
-      fun h => nomatch h⟩) hrun fun ⟨_, _, _, _, _, hf⟩ => ?_
-  have := hf slot (by simp [InRange, entryRegs])
-  simp only [bne_iff_ne, ne_eq] at hb
-  exact hb this
+    ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memmove need (CopyPre true) KeepAllPost CopyOut :=
+  not_holds Gen.CompilerBuiltins.Mem.Memmove.tmpl_eq hn 0x20000000#64 0x20000100#64 0#64 onesAtSlot
+    (entry_copyPre (by decide) (by decide) nofun)
+    (fun _ m' => m'.getByte slot != (entryM onesAtSlot).getByte slot) (by decide)
+    fun _ _ hb ⟨_, _, hf⟩ => bne_iff_ne.1 hb (hf slot (by simp [InRange, entryRegs]))
+
+/-- A copy from the entry is refuted by a destination byte other than the source's at entry. -/
+theorem not_copied {dst src n : Word} {st : Word → Word} {m' : MachineState}
+    (hc : ∀ k, k < (entryRegs dst src n .x12).toNat →
+      m'.getByte (entryRegs dst src n .x10 + BitVec.ofNat 64 k) =
+        (entryM st).getByte (entryRegs dst src n .x11 + BitVec.ofNat 64 k))
+    (hb : ((List.range n.toNat).any fun k =>
+      m'.getByte (dst + BitVec.ofNat 64 k) != (entryM st).getByte (src + BitVec.ofNat 64 k)) = true) : False := by
+  obtain ⟨k, hk, hne⟩ := List.any_eq_true.1 hb
+  exact bne_iff_ne.1 hne (hc k (List.mem_range.1 hk))
 
 set_option maxRecDepth 100000 in
 /-- **`memcpy` can copy a source that overlaps its slot wrong**: copying 16 bytes to `0x20000000` from `stackTop - 12`,
     it returns with a destination byte other than the source's at entry. -/
 theorem memcpy_srcOnStack_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
     ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need (CopyPre false) (CopyPost env)
-      CopyOut := by
-  obtain ⟨r', m', hrun, hb⟩ := Isa.lrunReturns_spec (I := rvIsa)
-    (show Isa.lrunReturns (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
-      0x1000#64 stackTop 1000 (some 0, entryRegs 0x20000000#64 (stackTop - 12#64) 16#64, entryM distinctAtTop)
-      (fun _ (m' : MachineState) => (List.range 16).any fun k =>
-        m'.getByte (0x20000000#64 + BitVec.ofNat 64 k) !=
-          (entryM distinctAtTop).getByte (stackTop - 12#64 + BitVec.ofNat 64 k)) = true by decide)
-  refine Isa.Contract.not_of_lrun Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq
-    (entry_pre hn _ ⟨(entry_noWrap (by decide) (by decide)).1, (entry_noWrap (by decide) (by decide)).2,
-      fun _ b h1 h2 => ?_⟩) hrun fun ⟨_, _, _, _, hc, _⟩ => ?_
-  · simp only [InRange, entryRegs] at h1 h2
-    simp [stackTop] at h1 h2
-    omega
-  · obtain ⟨k, hk, hne⟩ := List.any_eq_true.1 hb
-    simp only [bne_iff_ne, ne_eq] at hne
-    exact hne (hc k (by simpa [entryRegs] using hk))
+      CopyOut :=
+  not_holds Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq hn 0x20000000#64 (stackTop - 12#64) 16#64 distinctAtTop
+    (entry_copyPre (by decide) (by decide) fun _ => by decide)
+    (fun _ m' => (List.range 16).any fun k =>
+      m'.getByte (0x20000000#64 + BitVec.ofNat 64 k) !=
+        (entryM distinctAtTop).getByte (stackTop - 12#64 + BitVec.ofNat 64 k)) (by decide)
+    fun _ _ hb ⟨_, hc, _⟩ => not_copied hc hb
 
 set_option maxRecDepth 100000 in
 /-- **`memcpy` can copy into its slot wrong**: copying 24 bytes to `stackTop - 16` from `0x20000104`, a source apart
@@ -195,22 +198,13 @@ set_option maxRecDepth 100000 in
 theorem memcpy_dstOnStack_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
     ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need
       (fun regs m => CopyPre false regs m ∧ OffStack env (regs .x2) (regs .x11) (regs .x12).toNat) (CopyPost env)
-      CopyOut := by
-  obtain ⟨r', m', hrun, hb⟩ := Isa.lrunReturns_spec (I := rvIsa)
-    (show Isa.lrunReturns (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
-      0x1000#64 stackTop 1000 (some 0, entryRegs (stackTop - 16#64) 0x20000104#64 24#64, entryM id)
-      (fun _ (m' : MachineState) => (List.range 24).any fun k =>
-        m'.getByte (stackTop - 16#64 + BitVec.ofNat 64 k) !=
-          (entryM id).getByte (0x20000104#64 + BitVec.ofNat 64 k)) = true by decide)
-  refine Isa.Contract.not_of_lrun Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq
-    (entry_pre hn _ ⟨⟨(entry_noWrap (by decide) (by decide)).1, (entry_noWrap (by decide) (by decide)).2,
-      fun _ b h1 h2 => ?_⟩, .inl (by decide)⟩) hrun fun ⟨_, _, _, _, hc, _⟩ => ?_
-  · simp only [InRange, entryRegs] at h1 h2
-    simp [stackTop] at h1 h2
-    omega
-  · obtain ⟨k, hk, hne⟩ := List.any_eq_true.1 hb
-    simp only [bne_iff_ne, ne_eq] at hne
-    exact hne (hc k (by simpa [entryRegs] using hk))
+      CopyOut :=
+  not_holds Gen.CompilerBuiltins.Mem.Memcpy.tmpl_eq hn (stackTop - 16#64) 0x20000104#64 24#64 id
+    ⟨entry_copyPre (by decide) (by decide) fun _ => by decide, .inl (by decide)⟩
+    (fun _ m' => (List.range 24).any fun k =>
+      m'.getByte (stackTop - 16#64 + BitVec.ofNat 64 k) != (entryM id).getByte (0x20000104#64 + BitVec.ofNat 64 k))
+    (by decide)
+    fun _ _ hb ⟨_, hc, _⟩ => not_copied hc hb
 
 /-! ## Guards of the corrected contracts -/
 
@@ -221,16 +215,12 @@ theorem copySpec_pre_inhabited (st : Word → Word) :
       0x1000#64 stackTop (entryRegs 0x1fffff00#64 0x1fffff84#64 16#64) (entryM st) ∧
     Holds.pre env Gen.Needs.CompilerBuiltins.Mem.Memmove (fun regs m => CopyPre true regs m ∧ CopyApart env regs m)
       0x1000#64 stackTop (entryRegs 0x1fffff00#64 0x1fffff84#64 16#64) (entryM st) := by
-  have hw := entry_noWrap (dst := 0x1fffff00#64) (src := 0x1fffff84#64) (n := 16#64) (by decide) (by decide)
   have ha : CopyApart env (entryRegs 0x1fffff00#64 0x1fffff84#64 16#64) (entryM st) := by
     refine .inr ⟨⟨.inl ?_, by decide⟩, .inl (by decide)⟩
     rw [entryM_next]
     decide
-  refine ⟨entry_pre (by decide) _ ⟨⟨hw.1, hw.2, fun _ b h1 h2 => ?_⟩, ha⟩,
-    entry_pre (by decide) _ ⟨⟨hw.1, hw.2, fun h => nomatch h⟩, ha⟩⟩
-  simp only [InRange, entryRegs] at h1 h2
-  simp at h1 h2
-  omega
+  exact ⟨entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) fun _ => by decide, ha⟩,
+    entry_pre (by decide) _ ⟨entry_copyPre (by decide) (by decide) nofun, ha⟩⟩
 
 /-- A copy's run from `entryM id` is right: it returns `dst`, `[dst, dst + n)` holds what `[src, src + n)` held,
     and the 8 bytes on either side of the destination are kept. -/
