@@ -2,20 +2,20 @@
   Rv64mc.Proof.Transcript.NextSafeT
 
   `Transcript::next`'s second total contract (`specT`), beside `NextT.specT`: from a transcript `TranscriptT`
-  (`TranscriptReprT`) with no functional ghost, and a result's slot in a window apart from it and from its proof, it
-  returns with the transcript `TranscriptT` again and its proof's address kept, writing at most the slot and the
-  stream offset. `NextT.specT` asks the transcript `TranscriptAt` at a ghost state, which a transcript whose sponge
-  went through a permutation no longer has (`SpongeReprT`), so the total contracts of `next`'s callers use this one.
-  Its precondition is `NextT.PreT`'s window and alignment conjuncts on the same objects, without `Next.Pre`
-  (`preT_of_nextT`).
+  (`TranscriptReprT`) owned with its proof (`OwnedT`), with no functional ghost, and a result's slot in a window
+  apart from both, it returns with the transcript `TranscriptT` and owned again and its proof's address kept,
+  writing at most the slot and the stream offset. `NextT.specT` asks the transcript `TranscriptAt` at a ghost state,
+  which a transcript whose sponge went through a permutation no longer has (`SpongeReprT`), so the total contracts
+  of `next`'s callers use this one. `safe` is `NextT.safe`'s proof from `PreS`, `NextT.PreT`'s conjuncts without
+  `Next.Pre` (`preS_of_nextT`); `total` adds the frame's consequence for the transcript (`TranscriptT.frame`).
 
   ## Main definitions
 
-  * `PreT`, `PostT`, `specT`
+  * `PreT`, `PostT`, `specT`, `PreS`
 
   ## Main results
 
-  * `preS_of_nextT`, `safe`, `total`
+  * `preS_of_nextT`, `safe`, `out_miss`, `total`
 -/
 
 import Rv64mc.Proof.Transcript.TranscriptReprT
@@ -59,11 +59,6 @@ theorem preS_of_nextT {env : Env} {t : Model.TState} {regs : Reg → Word} {m : 
     (h : NextT.PreT env t regs m) : PreS env regs m :=
   h.2
 
-/-- A store into `out` that misses `NEXT` stays in the frame. -/
-theorem frame_out_setMem {env : Env} {top b v : Word} {out : Word → Prop} {m M : MachineState}
-    (h : env.Frame top out m M) (hb : out b) (hn : b ≠ env.nextAddr) : env.Frame top out m (M.setMem b v) :=
-  h.trans (Env.Frame.setMem_out h.2.1 hb hn) (Nat.le_refl _) fun _ ha => Or.inr (Or.inr (Or.inr ha))
-
 set_option rv_sym.heap true in
 /-- **`Transcript::next` is safe and returns**, from `PreS`: `NextT.safe`'s proof without `Next.Pre`. -/
 theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (need : Nat) :
@@ -80,7 +75,7 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     have o8 : Next.Out regs m (regs .x10 + 8#64) := Or.inl (by
       simp only [InRange, Layouts.ResultE.byteSize]; rw [toNat_add_ofNat (by omega)]; omega)
   -- past the stream: `Err` stored
-  · exact frame_out_setMem (frame_out_setMem (Env.Frame.refl hpre_5) o0 n0) o8 n8
+  · exact Tactic.frame_out (Tactic.frame_out (Env.Frame.refl hpre_5) o0 n0) o8 n8
   -- within it: the element's two doublewords, then `Ok` and the offset stored
   all_goals
     have hlt : (MachineState.getMem m (regs .x11 + 336#64)).toNat <
@@ -97,7 +92,7 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
   · exact hd0.2
   · have o16 : Next.Out regs m (regs .x10 + 16#64) := Or.inl (by
       simp only [InRange, Layouts.ResultE.byteSize]; rw [toNat_add_ofNat (by omega)]; omega)
-    exact frame_out_setMem (frame_out_setMem (frame_out_setMem (frame_out_setMem (Env.Frame.refl hpre_5)
+    exact Tactic.frame_out (Tactic.frame_out (Tactic.frame_out (Tactic.frame_out (Env.Frame.refl hpre_5)
       (Or.inr rfl) (hT.ne_next_add (by omega))) o16 (hW.ne_next_add (by omega))) o0 n0) o8 n8
 
 /-- `Next.Out` misses the five words `TranscriptT` reads, the slot apart from the transcript and its proof. -/

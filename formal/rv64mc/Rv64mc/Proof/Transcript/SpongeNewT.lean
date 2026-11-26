@@ -6,15 +6,16 @@
   `SpongeT` (`SpongeReprT`): no scalar waiting (`memset` zeroes `n_pending`) and no ground challenge (the tag `0`
   stored). Safety only: the permuted lanes are `keccak_f`'s, whose functional contract is not total
   (`KeccakFSafeT`). `Digest::words`' functional total contract is used through `wordsSafe`, its safety half with
-  the digest's bytes read from memory, so no digest is carried as a ghost.
+  the digest's bytes read from memory, so no digest is carried as a ghost. The body is cut after the permutation
+  (instruction 21, `tail_ok`): the copy into the slot, the tag and the queue zeroed, the return.
 
   ## Main definitions
 
-  * `bytesOf`, `WordsPreS`, `PreT`, `PostT`, `specT`
+  * `bytesOf`, `WordsPreS`, `PreT`, `PostT`, `specT`, `TailInv`
 
   ## Main results
 
-  * `wordsSafe`, `getMem_zero_of_bytes`, `total`
+  * `wordsSafe`, `getMem_zero_of_bytes`, `off320`, `tail_ok`, `total`
 -/
 
 import Rv64mc.Proof.Transcript.SpongeReprT

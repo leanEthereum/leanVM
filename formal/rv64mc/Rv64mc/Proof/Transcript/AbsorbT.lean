@@ -5,7 +5,7 @@
   with the sponge `SpongeT` again, writing nothing outside it and its stack, or ends the run with `a0 = 2` on a
   waiting ground challenge (`panic_fmt`) or a count past three after the permutation (`panic_bounds_check`).
   Safety only, as `DuplexT`: the partial contract's sponge (`Absorb.lean`) is `duplex`'s permuted one. The body is
-  cut after the slot's bound check (instruction 21): the slot `a + 24 n` is then a word `s` with its value as a
+  cut where the slot's address is computed (instruction 25, its first store): the slot `a + 24 n` is then a word `s` with its value as a
   number (`hs`), so the three stores into it and the count's store are stepped with their addresses compared by
   `omega` on numbers.
 
@@ -15,7 +15,7 @@
 
   ## Main results
 
-  * `tail_ok`, `total`
+  * `slot_toNat`, `tail_ok`, `total`
 -/
 
 import Rv64mc.Proof.Transcript.DuplexT

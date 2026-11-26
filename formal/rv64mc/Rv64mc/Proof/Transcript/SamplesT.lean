@@ -10,15 +10,16 @@
   The shape is `FromElemT`'s: the byte count checked, the buffer allocated (the dangling pointer `8` for none), the
   header built in the frame at `sp + 8`, `Vec::reserve` for `count` (which keeps it: the capacity is `count`), the
   loop storing each sample, the header copied to the slot. `rv_autoT` steps to `reserve`'s return (instruction 40),
-  `tail` the rest, `loop` the loop (`Total.loop`, the samples left as the measure).
+  `tail_ok` the branch on `count`, `loop` (`Total.loop`, the samples left as the measure) a pass up to the sample,
+  `after_ok` its stores and the back edge, `fin_ok` the copy and the return.
 
   ## Main definitions
 
-  * `PreT`, `PostT`, `specT`
+  * `PreT`, `PostT`, `specT`, `FinInv`, `LInv`, `LoopCtx`, `TailInv`
 
   ## Main results
 
-  * `total`
+  * `fin_ok`, `cnt_dec`, `after_ok`, `loop`, `hdr_eq`, `tail_ok`, `total`
 -/
 
 import Rv64mc.Proof.Transcript.SampleT
