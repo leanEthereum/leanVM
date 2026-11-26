@@ -23,7 +23,6 @@
 -/
 
 import Rv64mc.Proof.Runtime.FromElemT
-import Rv64mc.Proof.Field.ESumCopied
 import Rv64mc.Gen.Tmpl.Alloc.Vec.SpecFromIterNested.VecOptionE.AsSpecFromIterNestedOptiH0c7a0891.FromIter
 
 namespace Rv64mc.Proof.Runtime.FromIterOptT
@@ -71,7 +70,11 @@ theorem ovf2 {b e : Word} (hle : b.toNat ≤ e.toNat) (h16 : (e.toNat - b.toNat)
   have hback : (e - b) >>> 4 <<< 4 = e - b := by
     apply BitVec.eq_of_toNat_eq; rw [BitVec.toNat_shiftLeft, hsr, Nat.shiftLeft_eq, hd]; omega
   have hand : (e - b) &&& 18446744073709551600#64 = e - b := by
-    rw [← hback]; exact Rv64mc.Proof.Field.ESumCopied.shl4_and _
+    rw [← hback]; apply BitVec.eq_of_getLsbD_eq; intro i hi
+    have hm := (by decide +kernel : ∀ k : Fin 64, (18446744073709551600#64).getLsbD k = decide (4 ≤ k.val)) ⟨i, hi⟩
+    simp only at hm
+    rw [BitVec.getLsbD_and, hm, BitVec.getLsbD_shiftLeft]
+    by_cases h : i < 4 <;> simp [h, hi]; omega
   have h' : (e - b).toNat ≤ 6148914691236517200 := BitVec.le_def.1 h
   refine ⟨hsr, ?_, by omega⟩
   rw [hand, BitVec.toNat_add, hd, BitVec.toNat_shiftLeft, hsr, Nat.shiftLeft_eq]
@@ -88,9 +91,11 @@ def hdr (N : MachineState) (top c q : Word) : MachineState :=
   ((N.setMem (top + 18446744073709551544#64) c).setMem (top + 18446744073709551552#64) q).setMem
     (top + 18446744073709551560#64) 0#64
 
-/-- The header's pointer and length, from its address. -/
+/-- The header's pointer, from its address. -/
 theorem at8 (t : Word) : t + 18446744073709551544#64 + BitVec.ofNat 64 8 = t + 18446744073709551552#64 := by
   rw [BitVec.add_assoc]; rfl
+
+/-- The header's length, from its address. -/
 theorem at16 (t : Word) : t + 18446744073709551544#64 + BitVec.ofNat 64 16 = t + 18446744073709551560#64 := by
   rw [BitVec.add_assoc]; rfl
 
