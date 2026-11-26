@@ -416,4 +416,163 @@ theorem verify_decode (w : Nat → UInt64) :
   unfold sphincsVerify
   rw [hp, hm, hs]
 
+/-! ## Direct raw-byte verification -/
+
+theorem littleEndianBytes_ofLeNat (n : Nat) (b : List UInt8) (hb : b.length = n) :
+    HashSig.littleEndianBytes n (BitVec.ofNat (8 * n) (leNat b)) = b := by
+  rw [XmssVerifier.littleEndianBytes_eq_bytes]
+  apply List.ext_getElem (by simp [XmssVerifier.bytes, hb])
+  intro k h1 h2
+  have hk : k < b.length := h2
+  have hlt : leNat b < 2 ^ (8 * n) := by
+    have := leNat_lt b
+    rw [hb, show 256 ^ n = 2 ^ (8 * n) by rw [pow_mul]; rfl] at this
+    exact this
+  apply UInt8.toNat_inj.mp
+  simp only [XmssVerifier.bytes, List.getElem_map, List.getElem_range, UInt8.toNat_ofNat',
+    BitVec.toNat_ofNat, Nat.mod_eq_of_lt hlt]
+  exact leNat_div_mod b hk
+
+theorem le16_ofLeNat (b : List UInt8) (hb : b.length = 16) :
+    le16 (BitVec.ofNat 128 (leNat b)) = b :=
+  littleEndianBytes_ofLeNat 16 b hb
+
+theorem be32Of_toNat_eq (b : List UInt8) (hb : b.length = 4) :
+    (be32Of b).toNat = (BitVec.ofNat 32 (leNat b.reverse)).toNat := by
+  have hlt : leNat b.reverse < 2 ^ 32 := by
+    have := leNat_lt b.reverse
+    rw [List.length_reverse, hb] at this
+    simpa using this
+  simp only [be32Of, beNat, List.take_of_length_le (by omega : b.length ≤ 4),
+    UInt32.toNat_ofNat', BitVec.toNat_ofNat, Nat.mod_eq_of_lt hlt]
+
+theorem le32_be32Of (b : List UInt8) (hb : b.length = 4) :
+    (be32 (be32Of b)).reverse = b.reverse := by
+  have hrev : (be32 (be32Of b)).reverse = u32Bytes (be32Of b) := by
+    apply List.ext_getElem (by simp [be32, u32Bytes, XmssVerifier.bytes])
+    intro i h1 _
+    have hi : i < 4 := by simpa [be32] using h1
+    apply UInt8.toNat_inj.mp
+    interval_cases i <;>
+      simp [be32, u32Bytes, XmssVerifier.bytes, UInt32.toNat_toUInt8, UInt32.toNat_shiftRight,
+        Nat.shiftRight_eq_div_pow, UInt8.toNat_ofNat']
+  rw [hrev]
+  have hlt : leNat b.reverse < 2 ^ 32 := by
+    have := leNat_lt b.reverse
+    rw [List.length_reverse, hb] at this
+    simpa using this
+  apply List.ext_getElem (by simp [u32Bytes, XmssVerifier.bytes, hb])
+  intro k h1 h2
+  have hk : k < b.reverse.length := h2
+  apply UInt8.toNat_inj.mp
+  simp only [u32Bytes, XmssVerifier.bytes, List.getElem_map, List.getElem_range, UInt8.toNat_ofNat',
+    be32Of_toNat_eq b hb, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hlt]
+  exact leNat_div_mod b.reverse hk
+
+private theorem leNatBytes_eq (b : List UInt8) : SphincsVerifier.leNatBytes b = leNat b := rfl
+private theorem sliceBytes_eq (b : List UInt8) (off len : Nat) :
+    SphincsVerifier.sliceBytes b off len = slice b off len := rfl
+private theorem sigByteLayerOff_eq (l : Nat) : SphincsVerifier.sigByteLayerOff l = sigLayerOff l := rfl
+
+private theorem length_slice_le {b : List UInt8} {off len : Nat} (h : off + len ≤ b.length) :
+    (slice b off len).length = len := by
+  simp only [slice, List.length_take, List.length_drop]
+  omega
+
+private theorem pk_fromBytes_raw (pk : List UInt8) (hpk : pk.length = 32) :
+    PublicKey.fromBytes pk =
+      ⟨littleEndianBytes 16 (SphincsVerifier.decodePk pk).publicSeed,
+        le16 (SphincsVerifier.decodePk pk).root⟩ := by
+  have hp1 : (pk.take 16).length = 16 := by simp [hpk]
+  have hp2 : (pk.drop 16).length = 16 := by simp [hpk]
+  rw [PublicKey.fromBytes, SphincsVerifier.decodePk]
+  dsimp only
+  rw [sliceBytes_eq, sliceBytes_eq, leNatBytes_eq, leNatBytes_eq]
+  have hs1 : slice pk 0 16 = pk.take 16 := by simp [slice]
+  have hs2 : slice pk 16 16 = pk.drop 16 := by
+    rw [slice, List.take_of_length_le (by omega : (pk.drop 16).length ≤ 16)]
+  rw [hs1, hs2, littleEndianBytes_ofLeNat 16 (pk.take 16) hp1, le16_ofLeNat (pk.drop 16) hp2]
+
+private theorem msg_fromBytes_raw (msg : List UInt8) (hmsg : msg.length = 32) :
+    msg = littleEndianBytes 32 (SphincsVerifier.decodeMsg msg) := by
+  rw [SphincsVerifier.decodeMsg, sliceBytes_eq, leNatBytes_eq]
+  have hs : slice msg 0 32 = msg := by
+    rw [slice, List.drop_zero, List.take_of_length_le (by omega : msg.length ≤ 32)]
+  rw [hs]
+  exact (littleEndianBytes_ofLeNat 32 msg hmsg).symm
+
+private theorem randomizer_fromBytes_raw (sig : List UInt8) (hsig : sig.length = 7740) :
+    (Signature.fromBytes sig).randomizer = le16 (SphincsVerifier.decodeSig sig).randomizer := by
+  rw [Signature.fromBytes, SphincsVerifier.decodeSig]
+  dsimp only
+  rw [sliceBytes_eq, leNatBytes_eq]
+  exact (le16_ofLeNat (slice sig 0 16) (length_slice_le (by omega))).symm
+
+private theorem fors_fromBytes_raw (sig : List UInt8) (hsig : sig.length = 7740) :
+    (Signature.fromBytes sig).fors = List.ofFn fun c ↦
+      ⟨le16 ((SphincsVerifier.decodeSig sig).forsOpening c).secret,
+        List.ofFn fun z ↦ le16 (((SphincsVerifier.decodeSig sig).forsOpening c).path z)⟩ := by
+  apply List.ext_getElem (by simp [Signature.fromBytes, forsTreeCount])
+  intro c h1 _
+  have hc : c < 24 := by simpa [Signature.fromBytes] using h1
+  rw [List.getElem_ofFn]
+  simp only [Signature.fromBytes, SphincsVerifier.decodeSig, List.getElem_map, List.getElem_range]
+  rw [ForsTreeOpening.mk.injEq]
+  refine ⟨?_, ?_⟩
+  · simp only [sliceBytes_eq, leNatBytes_eq]
+    exact (le16_ofLeNat (slice sig (16 + 176 * c) 16) (length_slice_le (by omega))).symm
+  · apply List.ext_getElem (by simp [forsTreeHeight])
+    intro z hz1 _
+    have hz : z < 10 := by simpa using hz1
+    simp only [List.getElem_map, List.getElem_range, List.getElem_ofFn, sliceBytes_eq, leNatBytes_eq]
+    exact (le16_ofLeNat (slice sig (32 + 176 * c + 16 * z) 16) (length_slice_le (by omega))).symm
+
+private theorem layerHolds_fromBytes_raw (sig : List UInt8) (hsig : sig.length = 7740) (l : Layer) :
+    LayerHolds (SphincsVerifier.decodeSig sig) (Signature.fromBytes sig) l := by
+  obtain ⟨l, hl⟩ := l
+  have hl3 : l < 3 := hl
+  have hh : layerHeights.getD l 0 = layerHeight ⟨l, hl⟩ := layerHeights_eq ⟨l, hl⟩
+  have hoff : sigLayerOff l + 1028 + 16 * layerHeights.getD l 0 ≤ 7740 := by
+    interval_cases l <;> decide
+  have hget : ((List.range 3).map fun l ↦ (⟨be32Of (slice sig (sigLayerOff l) 4),
+      (List.range 64).map fun i ↦ slice sig (sigLayerOff l + 4 + 16 * i) 16⟩ :
+        LayerSignature)).getD l ⟨0, []⟩ =
+      ⟨be32Of (slice sig (sigLayerOff l) 4),
+        (List.range 64).map fun i ↦ slice sig (sigLayerOff l + 4 + 16 * i) 16⟩ := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hl3]
+    rfl
+  refine ⟨?_, ?_, ?_⟩
+  · rw [Signature.fromBytes, SphincsVerifier.decodeSig]; dsimp only; rw [hget]; dsimp only
+    simp only [sigByteLayerOff_eq, sliceBytes_eq, leNatBytes_eq]
+    exact be32Of_toNat_eq (slice sig (sigLayerOff l) 4) (length_slice_le (by omega))
+  · rw [Signature.fromBytes, SphincsVerifier.decodeSig]; dsimp only; rw [hget]; dsimp only
+    apply List.ext_getElem (by simp [chainCount])
+    intro i hi1 _
+    have hi : i < 64 := by simpa using hi1
+    simp only [List.getElem_map, List.getElem_range, List.getElem_ofFn, sigByteLayerOff_eq,
+      sliceBytes_eq, leNatBytes_eq]
+    exact (le16_ofLeNat (slice sig (sigLayerOff l + 4 + 16 * i) 16) (length_slice_le (by omega))).symm
+  · rw [Signature.path, Signature.fromBytes, SphincsVerifier.decodeSig]; dsimp only
+    rw [path_flatMap _ (fun k _ ↦ by simp) hl3]
+    apply List.ext_getElem (by rw [List.length_map, List.length_range, List.length_ofFn, hh])
+    intro z hz1 _
+    have hz : z < layerHeight ⟨l, hl⟩ := by
+      rw [List.length_map, List.length_range, hh] at hz1; exact hz1
+    simp only [List.getElem_map, List.getElem_range, List.getElem_ofFn, sigByteLayerOff_eq,
+      sliceBytes_eq, leNatBytes_eq]
+    exact (le16_ofLeNat (slice sig (sigLayerOff l + 1028 + 16 * z) 16) (length_slice_le (by omega))).symm
+
+/-- **Raw-byte `sphincs_verify` is leanSPHINCS verification** against `decodePk`/`decodeMsg`/`decodeSig`. -/
+theorem verify_decode_bytes (pk msg sig : List UInt8)
+    (hpk : pk.length = 32) (hmsg : msg.length = 32) (hsig : sig.length = 7740) :
+    sphincsVerifyBytes pk msg sig =
+      verifyWithKeccak (SphincsVerifier.decodePk pk) (SphincsVerifier.decodeMsg msg)
+        (SphincsVerifier.decodeSig sig) := by
+  have h := verify_spec (SphincsVerifier.decodePk pk) (SphincsVerifier.decodeMsg msg)
+    (SphincsVerifier.decodeSig sig) (Signature.fromBytes sig)
+    (randomizer_fromBytes_raw sig hsig) (fors_fromBytes_raw sig hsig)
+    (layerHolds_fromBytes_raw sig hsig)
+  rw [← pk_fromBytes_raw pk hpk, ← msg_fromBytes_raw msg hmsg] at h
+  exact h
+
 end NativeRustc.Sphincs

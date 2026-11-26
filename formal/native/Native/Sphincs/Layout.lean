@@ -81,4 +81,34 @@ def decode (w : Nat → UInt64) : _root_.Sphincs.PublicKey × Message × Signatu
           chainValues := fun i => d (layerOff l.val + 1 + 2 * i.val)
           authenticationPath := fun j => d (layerOff l.val + 129 + 2 * j.val) } })
 
+/-- Little-endian natural number of a byte list. -/
+def leNatBytes (bs : List UInt8) : Nat := bs.foldr (fun b acc => b.toNat + 256 * acc) 0
+
+/-- Slice `bytes[off..off + len]`. -/
+def sliceBytes (bytes : List UInt8) (off len : Nat) : List UInt8 := (bytes.drop off).take len
+
+/-- Byte offset of layer `l` in the 7740-byte canonical signature encoding. -/
+def sigByteLayerOff (l : Nat) : Nat := [4240, 5396, 6552].getD l 0
+
+/-- Decode a 32-byte canonical public key (`PK.seed || PK.root`). -/
+def decodePk (pk : List UInt8) : _root_.Sphincs.PublicKey :=
+  { publicSeed := BitVec.ofNat 128 (leNatBytes (sliceBytes pk 0 16))
+    root := BitVec.ofNat 128 (leNatBytes (sliceBytes pk 16 16)) }
+
+/-- Decode a 32-byte message. -/
+def decodeMsg (msg : List UInt8) : Message :=
+  BitVec.ofNat 256 (leNatBytes (sliceBytes msg 0 32))
+
+/-- Decode a 7740-byte canonical leanSPHINCS signature. -/
+def decodeSig (sig : List UInt8) : Signature :=
+  let d := fun off => BitVec.ofNat 128 (leNatBytes (sliceBytes sig off 16))
+  { randomizer := d 0
+    forsOpening := fun c =>
+      { secret := d (16 + 176 * c.val)
+        path := fun z => d (32 + 176 * c.val + 16 * z.val) }
+    layers := fun l =>
+      { counter := BitVec.ofNat 32 (leNatBytes (sliceBytes sig (sigByteLayerOff l.val) 4).reverse)
+        chainValues := fun i => d (sigByteLayerOff l.val + 4 + 16 * i.val)
+        authenticationPath := fun j => d (sigByteLayerOff l.val + 1028 + 16 * j.val) } }
+
 end Native.SphincsVerifier

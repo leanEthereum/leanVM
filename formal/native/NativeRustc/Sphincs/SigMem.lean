@@ -41,6 +41,9 @@ def sigMem (s : Signature) : List UInt8 :=
 /-- The signature parsed from the input words. -/
 abbrev sigOf (w : Nat → UInt64) : Signature := Signature.fromBytes (sigBytes w)
 
+/-- The signature parsed from raw signature bytes. -/
+abbrev sigOfBytes (sb : List UInt8) : Signature := Signature.fromBytes sb
+
 end
 
 public section
@@ -352,6 +355,250 @@ theorem sigMem_secret {c : Nat} (hc : c < 24) :
     List.take_of_length_le (by rw [length_forsSecret w hc])]
 
 end SigMem
+
+namespace SigMemBytes
+
+variable (sb : List UInt8)
+
+theorem sig_fors : (sigOfBytes sb).fors = (List.range 24).map fun c ↦
+    (⟨slice sb (16 + 176 * c) 16,
+      (List.range 10).map fun z ↦ slice sb (32 + 176 * c + 16 * z) 16⟩ : ForsTreeOpening) :=
+  rfl
+
+theorem sig_paths : (sigOfBytes sb).paths = (List.range 3).flatMap fun l ↦
+    (List.range (layerHeights.getD l 0)).map fun z ↦
+      slice sb (sigLayerOff l + 1028 + 16 * z) 16 := rfl
+
+theorem sig_layers : (sigOfBytes sb).layers = (List.range 3).map fun l ↦
+    (⟨be32Of (slice sb (sigLayerOff l) 4), (List.range 64).map fun i ↦
+      slice sb (sigLayerOff l + 4 + 16 * i) 16⟩ : LayerSignature) := rfl
+
+theorem length_fors : (sigOfBytes sb).fors.length = 24 := by simp [sig_fors]
+
+theorem length_paths : (sigOfBytes sb).paths.length = 26 := by
+  simp [sig_paths, List.flatMap, layerHeights, show List.range 3 = [0, 1, 2] from rfl]
+
+theorem length_layers : (sigOfBytes sb).layers.length = 3 := by simp [sig_layers]
+
+theorem fors_getD {c : Nat} (hc : c < 24) : (sigOfBytes sb).fors.getD c ⟨[], []⟩ =
+    ⟨slice sb (16 + 176 * c) 16,
+      (List.range 10).map fun z ↦ slice sb (32 + 176 * c + 16 * z) 16⟩ := by
+  rw [getD_eq_getElem' _ _ (by rw [length_fors]; exact hc)]
+  simp [sig_fors]
+
+theorem layers_getD {l : Nat} (hl : l < 3) : (sigOfBytes sb).layers.getD l ⟨0, []⟩ =
+    ⟨be32Of (slice sb (sigLayerOff l) 4), (List.range 64).map fun i ↦
+      slice sb (sigLayerOff l + 4 + 16 * i) 16⟩ := by
+  rw [getD_eq_getElem' _ _ (by rw [length_layers]; exact hl)]
+  simp [sig_layers]
+
+theorem length_openingMem (hsb : sb.length = 7740) :
+    ∀ o ∈ (sigOfBytes sb).fors, (openingMem o).length = 176 := by
+  intro o ho
+  rw [sig_fors, List.mem_map] at ho
+  obtain ⟨c, hc, rfl⟩ := ho
+  rw [List.mem_range] at hc
+  simp only [openingMem, List.length_append]
+  rw [length_flatten_uniform _ (n := 16) (by
+      intro x hx
+      rw [List.mem_map] at hx
+      obtain ⟨z, hz, rfl⟩ := hx
+      rw [List.mem_range] at hz
+      exact length_slice (by omega)), length_slice (by omega)]
+  simp
+
+theorem layers_getElem {l : Nat} (hl : l < (sigOfBytes sb).layers.length) :
+    (sigOfBytes sb).layers[l] = (sigOfBytes sb).layers.getD l ⟨0, []⟩ := (getD_eq_getElem' _ _ hl).symm
+
+theorem length_wots {l : Nat} (hl : l < 3) : ((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots.length = 64 := by
+  rw [layers_getD sb hl]
+  simp
+
+theorem length_wots_getD (hsb : sb.length = 7740) {l i : Nat} (hl : l < 3) (hi : i < 64) :
+    (((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots.getD i []).length = 16 := by
+  have := sigLayerOff_le hl
+  rw [layers_getD sb hl, getD_eq_getElem' _ _ (by simpa using hi)]
+  simp only [List.getElem_map, List.getElem_range]
+  exact length_slice (by omega)
+
+theorem length_wots_mem (hsb : sb.length = 7740) {l : Nat} (hl : l < 3) :
+    ∀ x ∈ ((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots, x.length = 16 := by
+  intro x hx
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hx
+  rw [length_wots sb hl] at hi
+  rw [← getD_eq_getElem' _ [] (by rw [length_wots sb hl]; exact hi)]
+  exact length_wots_getD sb hsb hl hi
+
+theorem length_layerMem (hsb : sb.length = 7740) :
+    ∀ s ∈ (sigOfBytes sb).layers, (layerMem s).length = 1028 := by
+  intro s hs
+  obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem hs
+  have hl3 : l < 3 := by rwa [length_layers] at hl
+  rw [layers_getElem sb hl, layerMem, List.length_append,
+    length_flatten_uniform _ (length_wots_mem sb hsb hl3), length_wots sb hl3]
+  simp [le32, be32]
+
+theorem length_node (hsb : sb.length = 7740) : ∀ x ∈ (sigOfBytes sb).paths, x.length = 16 := by
+  intro x hx
+  rw [sig_paths, List.mem_flatMap] at hx
+  obtain ⟨l, hl, hx⟩ := hx
+  rw [List.mem_range] at hl
+  rw [List.mem_map] at hx
+  obtain ⟨z, hz, rfl⟩ := hx
+  rw [List.mem_range] at hz
+  have := sigLayerOff_le hl
+  exact length_slice (by omega)
+
+theorem sig_randomizer : (sigOfBytes sb).randomizer = slice sb 0 16 := by
+  simp only [Signature.fromBytes]
+
+theorem length_randomizer (hsb : sb.length = 7740) : (sigOfBytes sb).randomizer.length = 16 := by
+  rw [sig_randomizer]
+  exact length_slice (by omega)
+
+theorem length_forsMem (hsb : sb.length = 7740) :
+    (((sigOfBytes sb).fors.map openingMem).flatten).length = 4224 := by
+  rw [length_flatten_uniform (n := 176) _ (by
+    intro x hx
+    rw [List.mem_map] at hx
+    obtain ⟨o, ho, rfl⟩ := hx
+    exact length_openingMem sb hsb o ho), List.length_map, length_fors]
+
+theorem length_pathsMem (hsb : sb.length = 7740) : (sigOfBytes sb).paths.flatten.length = 416 := by
+  rw [length_flatten_uniform _ (length_node sb hsb), length_paths]
+
+theorem length_layersMem (hsb : sb.length = 7740) :
+    (((sigOfBytes sb).layers.map layerMem).flatten).length = 3084 := by
+  rw [length_flatten_uniform (n := 1028) _ (by
+    intro x hx
+    rw [List.mem_map] at hx
+    obtain ⟨s, hs, rfl⟩ := hx
+    exact length_layerMem sb hsb s hs), List.length_map, length_layers]
+
+theorem length_sigMem (hsb : sb.length = 7740) : (sigMem (sigOfBytes sb)).length = 7740 := by
+  rw [sigMem, List.length_append, List.length_append, List.length_append, length_forsMem sb hsb,
+    length_pathsMem sb hsb, length_randomizer sb hsb, length_layersMem sb hsb]
+
+theorem sigMem_drop_layers (hsb : sb.length = 7740) (k : Nat) :
+    (sigMem (sigOfBytes sb)).drop (4656 + k) = (((sigOfBytes sb).layers.map layerMem).flatten).drop k := by
+  rw [sigMem, show 4656 + k = (((sigOfBytes sb).fors.map openingMem).flatten).length +
+      ((sigOfBytes sb).paths.flatten.length + ((sigOfBytes sb).randomizer.length + k)) by
+    rw [length_forsMem sb hsb, length_pathsMem sb hsb, length_randomizer sb hsb]; omega,
+    List.drop_length_add_append, List.drop_length_add_append, List.drop_length_add_append]
+
+theorem sigMem_wots (hsb : sb.length = 7740) {l i : Nat} (hl : l < 3) (hi : i < 64) :
+    ((sigMem (sigOfBytes sb)).drop (4656 + 1028 * l + 16 * i)).take 16 =
+      ((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots.getD i [] := by
+  have hil : i < ((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots.length := by
+    rw [length_wots sb hl]; exact hi
+  rw [Nat.add_assoc, sigMem_drop_layers sb hsb,
+    drop_take_flatten (n := 1028) _ (by
+      intro x hx
+      rw [List.mem_map] at hx
+      obtain ⟨s, hs, rfl⟩ := hx
+      exact length_layerMem sb hsb s hs) (by simp [length_layers]; omega) (by omega),
+    List.getElem_map, layers_getElem sb, layerMem, drop_take_append_left _ _ (by
+      rw [length_flatten_uniform _ (length_wots_mem sb hsb hl), length_wots sb hl]; omega),
+    show 16 * i = 16 * i + 0 from rfl,
+    drop_take_flatten _ (length_wots_mem sb hsb hl) hil (by omega), List.drop_zero,
+    getD_eq_getElem' _ _ hil]
+  exact List.take_of_length_le (by rw [length_wots_mem sb hsb hl _ (List.getElem_mem _)])
+
+theorem sigMem_counter (hsb : sb.length = 7740) {l : Nat} (hl : l < 3) :
+    ((sigMem (sigOfBytes sb)).drop (4656 + 1028 * l + 1024)).take 4 =
+      le32 ((sigOfBytes sb).layers.getD l ⟨0, []⟩).counter := by
+  rw [Nat.add_assoc, sigMem_drop_layers sb hsb,
+    drop_take_flatten (n := 1028) _ (by
+      intro x hx
+      rw [List.mem_map] at hx
+      obtain ⟨s, hs, rfl⟩ := hx
+      exact length_layerMem sb hsb s hs) (by simp [length_layers]; omega) (by omega),
+    List.getElem_map, layers_getElem sb, layerMem,
+    show 1024 = (((sigOfBytes sb).layers.getD l ⟨0, []⟩).wots.flatten).length by
+      rw [length_flatten_uniform _ (length_wots_mem sb hsb hl), length_wots sb hl],
+    List.drop_left]
+  exact List.take_of_length_le (by simp [le32, be32])
+
+theorem sigMem_randomizer (hsb : sb.length = 7740) :
+    ((sigMem (sigOfBytes sb)).drop 4640).take 16 = (sigOfBytes sb).randomizer := by
+  rw [sigMem, show 4640 = (((sigOfBytes sb).fors.map openingMem).flatten).length +
+      ((sigOfBytes sb).paths.flatten.length + 0) by
+    rw [length_forsMem sb hsb, length_pathsMem sb hsb],
+    List.drop_length_add_append, List.drop_length_add_append, List.drop_zero,
+    List.take_append_of_le_length (by rw [length_randomizer sb hsb]),
+    List.take_of_length_le (by rw [length_randomizer sb hsb])]
+
+theorem path_getD {l z : Nat} (hz : z < layerHeights.getD l 0) :
+    ((sigOfBytes sb).path l).getD z [] = (sigOfBytes sb).paths.getD ((layerHeights.take l).sum + z) [] := by
+  rw [List.getD_eq_getElem?_getD] at hz
+  simp only [Signature.path, List.getD_eq_getElem?_getD, List.getElem?_take, hz, ite_true,
+    List.getElem?_drop]
+
+theorem sigMem_node (hsb : sb.length = 7740) {j : Nat} (hj : j < 26) :
+    ((sigMem (sigOfBytes sb)).drop (4224 + 16 * j)).take 16 = (sigOfBytes sb).paths.getD j [] := by
+  rw [sigMem, show 4224 + 16 * j = (((sigOfBytes sb).fors.map openingMem).flatten).length + (16 * j + 0) by
+      rw [length_forsMem sb hsb]; omega,
+    List.drop_length_add_append, drop_take_append_left _ _ (by rw [length_pathsMem sb hsb]; omega),
+    drop_take_flatten _ (length_node sb hsb) (by rw [length_paths]; exact hj) (by omega),
+    List.drop_zero, getD_eq_getElem' _ _ (by rw [length_paths]; exact hj)]
+  exact List.take_of_length_le (by rw [length_node sb hsb _ (List.getElem_mem _)])
+
+theorem sigMem_opening (hsb : sb.length = 7740) {c k m : Nat} (hc : c < 24) (hkm : k + m ≤ 176) :
+    ((sigMem (sigOfBytes sb)).drop (176 * c + k)).take m =
+      ((openingMem ((sigOfBytes sb).fors.getD c ⟨[], []⟩)).drop k).take m := by
+  rw [sigMem, drop_take_append_left _ _ (by rw [length_forsMem sb hsb]; omega),
+    drop_take_flatten (n := 176) _ (by
+      intro x hx
+      rw [List.mem_map] at hx
+      obtain ⟨o, ho, rfl⟩ := hx
+      exact length_openingMem sb hsb o ho) (by simp [length_fors]; omega) hkm, List.getElem_map,
+    getD_eq_getElem' _ _ (by rw [length_fors]; exact hc)]
+
+theorem length_forsPath {c : Nat} (hc : c < 24) :
+    ((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.length = 10 := by
+  rw [fors_getD sb hc]
+  simp
+
+theorem length_forsPath_getD (hsb : sb.length = 7740) {c z : Nat} (hc : c < 24) (hz : z < 10) :
+    (((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.getD z []).length = 16 := by
+  rw [fors_getD sb hc, getD_eq_getElem' _ _ (by simpa using hz)]
+  simp only [List.getElem_map, List.getElem_range]
+  exact length_slice (by omega)
+
+theorem length_forsSecret (hsb : sb.length = 7740) {c : Nat} (hc : c < 24) :
+    ((sigOfBytes sb).fors.getD c ⟨[], []⟩).secret.length = 16 := by
+  rw [fors_getD sb hc]
+  exact length_slice (by omega)
+
+theorem length_forsPath_mem (hsb : sb.length = 7740) {c : Nat} (hc : c < 24) :
+    ∀ x ∈ ((sigOfBytes sb).fors.getD c ⟨[], []⟩).path, x.length = 16 := by
+  intro x hx
+  obtain ⟨z, hz, rfl⟩ := List.getElem_of_mem hx
+  rw [length_forsPath sb hc] at hz
+  rw [← getD_eq_getElem' _ [] (by rw [length_forsPath sb hc]; exact hz)]
+  exact length_forsPath_getD sb hsb hc hz
+
+theorem sigMem_path (hsb : sb.length = 7740) {c z : Nat} (hc : c < 24) (hz : z < 10) :
+    ((sigMem (sigOfBytes sb)).drop (176 * c + 16 * z)).take 16 =
+      ((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.getD z [] := by
+  have hpl : (((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.flatten).length = 160 := by
+    rw [length_flatten_uniform _ (length_forsPath_mem sb hsb hc), length_forsPath sb hc]
+  have hzl : z < ((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.length := by
+    rw [length_forsPath sb hc]; exact hz
+  rw [sigMem_opening sb hsb hc (by omega), openingMem, drop_take_append_left _ _ (by omega),
+    show 16 * z = 16 * z + 0 from rfl,
+    drop_take_flatten _ (length_forsPath_mem sb hsb hc) hzl (by omega), List.drop_zero,
+    getD_eq_getElem' _ _ hzl]
+  exact List.take_of_length_le (by rw [length_forsPath_mem sb hsb hc _ (List.getElem_mem _)])
+
+theorem sigMem_secret (hsb : sb.length = 7740) {c : Nat} (hc : c < 24) :
+    ((sigMem (sigOfBytes sb)).drop (176 * c + 160)).take 16 = ((sigOfBytes sb).fors.getD c ⟨[], []⟩).secret := by
+  have hpl : (((sigOfBytes sb).fors.getD c ⟨[], []⟩).path.flatten).length = 160 := by
+    rw [length_flatten_uniform _ (length_forsPath_mem sb hsb hc), length_forsPath sb hc]
+  rw [sigMem_opening sb hsb hc (by omega), openingMem, ← hpl, List.drop_left,
+    List.take_of_length_le (by rw [length_forsSecret sb hsb hc])]
+
+end SigMemBytes
 
 end
 

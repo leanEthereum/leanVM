@@ -316,4 +316,8 @@ signature parsed from their bytes. -/
 def sphincsVerify (w : Nat → UInt64) : Bool :=
   verify (PublicKey.fromBytes (pkBytes w)) (messageBytes w) (Signature.fromBytes (sigBytes w))
 
+/-- **`sphincs_verify`** on raw canonical byte slices (`pk`: 32, `msg`: 32, `sig`: 7740). -/
+def sphincsVerifyBytes (pk msg sig : List UInt8) : Bool :=
+  verify (PublicKey.fromBytes pk) msg (Signature.fromBytes sig)
+
 end NativeRustc.Sphincs

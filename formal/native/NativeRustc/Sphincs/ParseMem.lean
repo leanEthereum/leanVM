@@ -94,4 +94,71 @@ theorem sigBytes_runs (w : Nat → UInt64) :
     List.flatMap_nil, List.append_nil, List.append_assoc]
   rfl
 
+/-! ## Raw signature bytes directly -/
+
+/-- FORS opening `c` in rustc's layout from raw signature bytes `sb`. -/
+def obytesB (sb : List UInt8) (c : Nat) : List UInt8 :=
+  slice sb (32 + 176 * c) 160 ++ slice sb (16 + 176 * c) 16
+
+/-- The three layers' paths from raw signature bytes `sb`. -/
+def pbytesB (sb : List UInt8) : List UInt8 :=
+  slice sb 5268 128 ++ (slice sb 6424 128 ++ slice sb 7580 160)
+
+/-- Layer `l` in rustc's layout from raw signature bytes `sb`: chain values then counter little-endian. -/
+def lbytesB (sb : List UInt8) (l : Nat) : List UInt8 :=
+  slice sb (sigLayerOff l + 4) 1024 ++ (slice sb (sigLayerOff l) 4).reverse
+
+theorem length_obytesB {sb : List UInt8} (hsb : sb.length = 7740) {c : Nat} (hc : c < 24) :
+    (obytesB sb c).length = 176 := by
+  rw [obytesB, List.length_append, length_slice (by omega), length_slice (by omega)]
+
+theorem length_openingsB {sb : List UInt8} (hsb : sb.length = 7740) : ∀ {c : Nat}, c ≤ 24 →
+    ((List.range c).map (obytesB sb)).flatten.length = 176 * c
+  | 0, _ => rfl
+  | c + 1, h => by
+    rw [List.range_succ, List.map_append, List.flatten_append, List.length_append,
+      length_openingsB hsb (by omega)]
+    simp only [List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil,
+      length_obytesB hsb (show c < 24 by omega)]
+    omega
+
+theorem length_pbytesB {sb : List UInt8} (hsb : sb.length = 7740) : (pbytesB sb).length = 416 := by
+  simp only [pbytesB, List.length_append, length_slice (show 5268 + 128 ≤ sb.length by omega),
+    length_slice (show 6424 + 128 ≤ sb.length by omega),
+    length_slice (show 7580 + 160 ≤ sb.length by omega)]
+
+theorem length_lbytesB {sb : List UInt8} (hsb : sb.length = 7740) {l : Nat} (hl : l < 3) :
+    (lbytesB sb l).length = 1028 := by
+  have := sigLayerOff_le hl
+  have hl0 : sigLayerOff l + 1028 ≤ 7740 := by interval_cases l <;> decide
+  rw [lbytesB, List.length_append, List.length_reverse, length_slice (by omega), length_slice (by omega)]
+
+/-- **The parsed signature in rustc's layout**, directly from raw 7740 signature bytes. -/
+theorem sigMem_eq_bytes {sb : List UInt8} (hsb : sb.length = 7740) :
+    sigMem (sigOfBytes sb) = ((List.range 24).map (obytesB sb)).flatten ++ (pbytesB sb ++
+      (slice sb 0 16 ++ (lbytesB sb 0 ++ (lbytesB sb 1 ++ lbytesB sb 2)))) := by
+  have hf : ((sigOfBytes sb).fors.map openingMem).flatten = ((List.range 24).map (obytesB sb)).flatten := by
+    rw [SigMemBytes.sig_fors, List.map_map]
+    refine congrArg List.flatten (List.map_congr_left fun c _ ↦ ?_)
+    simp only [Function.comp, openingMem, obytesB]
+    rw [flatten_slices]
+  have hp : (sigOfBytes sb).paths.flatten = pbytesB sb := by
+    simp only [SigMemBytes.sig_paths, show List.range 3 = [0, 1, 2] from rfl, List.flatMap_cons,
+      List.flatMap_nil, List.append_nil, List.flatten_append, pbytesB]
+    rw [flatten_slices, flatten_slices, flatten_slices]
+    rfl
+  have hl : ∀ l, l < 3 → layerMem ⟨be32Of (slice sb (sigLayerOff l) 4),
+      (List.range 64).map fun i ↦ slice sb (sigLayerOff l + 4 + 16 * i) 16⟩ =
+      lbytesB sb l := fun l hl ↦ by
+    have hle : sigLayerOff l + 4 ≤ sb.length := by rw [hsb]; interval_cases l <;> decide
+    rw [layerMem, lbytesB, le32, le32_be32Of (slice sb (sigLayerOff l) 4) (length_slice hle)]
+    simp only
+    rw [flatten_slices]
+  have hL : ((sigOfBytes sb).layers.map layerMem).flatten =
+      lbytesB sb 0 ++ (lbytesB sb 1 ++ lbytesB sb 2) := by
+    simp only [SigMemBytes.sig_layers, show List.range 3 = [0, 1, 2] from rfl, List.map_cons,
+      List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil]
+    rw [hl 0 (by decide), hl 1 (by decide), hl 2 (by decide)]
+  rw [sigMem, hf, hp, SigMemBytes.sig_randomizer, hL]
+
 end NativeRustc.Sphincs.ParseMem

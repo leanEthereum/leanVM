@@ -14,6 +14,10 @@ The model of the Rust code is the statement's verifier: `NativeRustc.Sphincs.ver
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustc.Sphincs.verify_eq
 
+/-- info: 'NativeRustc.Sphincs.verify_decode_bytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms NativeRustc.Sphincs.verify_decode_bytes
+
 /-- info: 'NativeRustc.Keccak.holds_update' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms NativeRustc.Keccak.holds_update
