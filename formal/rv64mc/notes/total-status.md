@@ -96,7 +96,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 3 | 164 | `verifier::multilinear::padding_weight` | 68 | A | yes | Proof/Multilinear/PaddingWeightT | MultilinearT.paddingWeight | clmul table |
 | 3 | 167 | `<verifier::layout::Form>::term` | 35 | A | yes | Proof/Layout/TermT | LayoutT.term | env |
 | 3 | 170 | `<verifier::field::E>::pow` | 45 | A | yes | Proof/Field/EPowT | LayoutT.ePow | clmul table |
-| 3 | 213 | `<verifier::transcript::Sponge>::new` | 37 | C | no | - | - | - |
+| 3 | 213 | `<verifier::transcript::Sponge>::new` | 37 | C | yes | Proof/Transcript/SpongeNewT (safety, `SpongeT` given) | TranscriptT3.spongeNew | keccak tables (InData) |
 | 4 | 8 | `alloc::raw_vec::handle_error` | 5 | A | yes | Proof/Runtime/PanicsT | RuntimeT.handleError | none |
 | 4 | 14 | `core::panicking::assert_failed::<usize, usize> @core` | 3 | A | yes | Proof/Runtime/PanicsT | RuntimeT.assertFailedUsizeUsize | none |
 | 4 | 26 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 30 | D | yes | Proof/Field/ESumU16T | SumT.eSumU16 | none |
