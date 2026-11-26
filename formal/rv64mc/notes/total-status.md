@@ -42,7 +42,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 0 | 68 | `core::ptr::drop_glue::<alloc::vec::Vec<(verifier::StackWeight, veri...` | 1 | A | yes | Proof/Runtime/DropT | RuntimeT.dropVecStackClaim | none |
 | 0 | 73 | `core::ptr::drop_glue::<alloc::vec::Vec<verifier::layout::Form>> @ve...` | 1 | A | yes | Proof/Runtime/DropT | RuntimeT.dropVecForm | none |
 | 0 | 105 | `verifier::field::spread` | 54 | A | yes | Proof/Field/SpreadT | FieldT.spread | none |
-| 0 | 111 | `<verifier::transcript::Transcript>::next` | 19 | A | yes | Proof/Transcript/NextT | TranscriptT.next | none |
+| 0 | 111 | `<verifier::transcript::Transcript>::next` | 19 | A | yes | Proof/Transcript/NextT; NextSafeT (second contract, over `TranscriptT`) | TranscriptT.next, TranscriptT3.nextSafe | none |
 | 0 | 123 | `verifier::hash::xor_block` | 430 | C | yes | Proof/Hash/XorBlockT | HashT.xorBlockT | none |
 | 0 | 128 | `verifier::whir::whir_queries` | 21 | A | yes | Proof/Whir/WhirQueriesT | WhirT.whirQueries | WHIR query tables (InData) |
 | 0 | 184 | `verifier::layout::qkeccak_slot` | 12 | A | yes | Proof/Layout/QkeccakSlotT | LayoutLeafT.qkeccakSlot | none |
