@@ -2,17 +2,17 @@
 
 Which of the functions `main` reaches have a total contract (`HoldsT`, `Core/HoldsT.lean`), toward `main`'s `MainSpecT` (`Final/MainSpecT.lean`), as `notes/status.md` tracks the partial ones. A function is **total** here when it has a total contract over its template in `Proof/**` (a `T` module) and a `Table` instance at the image (`Rv64mc/Table/*T.lean`: `liftProg Gen.fns`, `Gen.Idx`, `Gen.Needs`, its callees' `Table` instances as arguments). Indices and instruction counts are `Rv64mc/Gen/index.tsv`'s; heights are the call graph's from the leaves (0 a leaf); the partial class is `notes/status.md`'s (A proved at the image, C a contract only, D nothing). The call graph has 229 functions (`_start` is not counted: `Final/StartT.lean` proves it from `MainSpecT`).
 
-Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `from_elem bound (InData)` and `from_iter bound (InData)`, the words bounding `Vec<Option<E>>`'s size that `from_elem::<Option<E>>` and its `spec_from_iter_nested` (141) read in the static data; `keccak tables (InData)`, `keccak_f`'s round constants, `π` and `ρ` tables in the static data (`Table/HashT.lean`'s `KeccakTables`); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
+Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `from_elem bound (InData)` and `from_iter bound (InData)`, the words bounding `Vec<Option<E>>`'s size that `from_elem::<Option<E>>` and its `spec_from_iter_nested` (141) read in the static data; `keccak tables (InData)`, `keccak_f`'s round constants, `π` and `ρ` tables in the static data (`Table/HashT.lean`'s `KeccakTables`); `lane constant (InData)`, the word `try_from_fn` (142) reads in the static data; `KECCAK_PI`, `KECCAK_RHO`, `magic word tables (InData)` and `KECCAK_RHO as u32s (RhoAt)`, the tables `linear_transpose` (36) reads in the static data (the last also their contents, `LinearTranspose.RhoAt`, as the partial `Table` instance has it); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
 
 ## Summary
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 104 | 3803 (18.2%) |
-| of which no open hypothesis | 46 | 1459 |
-| of which only environment facts open | 103 | 3801 |
+| total, with a `Table` instance | 114 | 4673 (22.4%) |
+| of which no open hypothesis | 47 | 1537 |
+| of which only environment facts open | 113 | 4671 |
 | stated, not proved here | 1 | 268 |
-| no total contract | 124 | 16807 |
+| no total contract | 114 | 15937 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
