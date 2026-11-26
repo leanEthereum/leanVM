@@ -21,6 +21,7 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 
 A total proof steps through each call with the callee's total contract, so its callee's `Pre` is a closed goal there. Where the caller is not yet total, the callee's `Pre` was checked against the image's call sites by reading the templates, and becomes a goal of the caller's proof. Some of those goals need a fact from another function's postcondition; the ones named so far:
 
+* `Sponge::absorb` (112), `sample` (52), `absorb_nonce` (149): each calls `Sponge::duplex` (113), whose `DuplexT.PreT` asks the sponge `SpongeT` (`Proof/Transcript/SpongeReprT`: 8-byte aligned, its `328` bytes in a window, `n_pending` at most `4`, the ground tag `0` or `1`) and `Owned` at the call's stack pointer. Every sponge sits in a `Transcript` (`Layouts.Transcript.sponge = 0`), which the partial contracts keep in a caller's frame (`InFrame`), so `Owned` holds by its second disjunct; the field facts follow from the partial `SpongeAt` (`SpongeRust.Inv`, `OptionEAt`).
 * `from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for. `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`.
 
 ## By function
@@ -104,7 +105,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | no | - | - | - |
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
 | 4 | 95 | `<verifier::field::Scaled>::mul` | 177 | A | yes | Proof/Field/ScaledMulT | MultilinearT.scaledMul | none |
-| 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | no | - | - | - |
+| 4 | 113 | `<verifier::transcript::Sponge>::duplex` | 68 | A | yes | Proof/Transcript/DuplexT (over SpongeReprT) | TranscriptT2.duplex | keccak tables (InData) |
 | 4 | 121 | `verifier::merkle::hash_pair` | 111 | C | no | - | - | - |
 | 4 | 142 | `core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<...` | 110 | D | no | - | - | - |
 | 4 | 148 | `verifier::layout::jump_constraints` | 67 | D | no | - | - | - |
