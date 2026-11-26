@@ -19,6 +19,9 @@ concurrency:
 # macros included) runs on any runner.
 env:
   RUSTFLAGS: -C target-cpu=haswell
+  # A Lean `panic!` aborts the process instead of printing and continuing with a default value,
+  # so a panic in elaboration, `#eval` or a compiled test fails its job.
+  LEAN_ABORT_ON_PANIC: "1"
 
 jobs:
   # The statement: definitions and end statements only (`Statement/`), what every other job proves, and the
