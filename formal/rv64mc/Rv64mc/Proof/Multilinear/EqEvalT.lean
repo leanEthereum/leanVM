@@ -4,9 +4,9 @@
   `eq_eval` is total: it returns `EqEval.Post`'s value (`Spec.Multilinear.EqEval`), or ends the run with `a0 = 2`
   when the lengths differ (`assert_eq!`), over any program holding its template, from the total contracts of
   `E::mul` (`EMulT`) and `assert_failed` (`Aborts`). The partial proof (`EqEval.lean`) ported by `rv_autoT`: its
-  loop, there an induction on the elements left, is `Total.loop` at instruction 28 with them as the measure (`LoopInv`, the partial
-  `Inv` and the code map kept). The precondition (`PreT`) adds that each nonempty slice lies in a window (`InWin`)
-  and is 8-byte aligned, for its doubleword loads.
+  loop, there an induction on the elements left, is `Total.loop` at instruction 28 with them as the measure
+  (`LoopInv`, the partial `Inv` and the code map kept). The precondition (`PreT`) adds that each nonempty slice lies
+  in a window (`InWin`) and is 8-byte aligned, for its doubleword loads.
 
   ## Main definitions
 

@@ -96,10 +96,10 @@ A total proof steps through each call with the callee's total contract, so its c
 | 3 | 213 | `<verifier::transcript::Sponge>::new` | 37 | C | no | - | - | - |
 | 4 | 8 | `alloc::raw_vec::handle_error` | 5 | A | yes | Proof/Runtime/PanicsT | RuntimeT.handleError | none |
 | 4 | 14 | `core::panicking::assert_failed::<usize, usize> @core` | 3 | A | yes | Proof/Runtime/PanicsT | RuntimeT.assertFailedUsizeUsize | none |
-| 4 | 26 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 30 | D | no | - | - | - |
+| 4 | 26 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 30 | D | yes | Proof/Field/ESumU16T | SumT.eSumU16 | none |
 | 4 | 29 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 51 | D | no | - | - | - |
-| 4 | 30 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 36 | C | no | - | - | - |
-| 4 | 31 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 35 | D | no | - | - | - |
+| 4 | 30 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 36 | C | yes | Proof/Field/ESumEmbedBitsT | SumT.eSumEmbedBits | none |
+| 4 | 31 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 35 | D | yes | Proof/Field/ESumRcBitsT | SumT.eSumRcBits | none |
 | 4 | 33 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 72 | D | no | - | - | - |
 | 4 | 43 | `<verifier::transcript::Transcript>::new` | 20 | A | no | - | - | - |
 | 4 | 49 | `<verifier::layout::Table>::n_constraints` | 11 | A | yes | Proof/Layout/TableT | LayoutT.nConstraints | N_CONSTRAINTS table (InData) |
