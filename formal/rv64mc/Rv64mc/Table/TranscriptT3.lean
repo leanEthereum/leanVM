@@ -8,13 +8,15 @@
 
   ## Main results
 
-  * `spongeNew`
+  * `spongeNew`, `absorb`
 -/
 
 import Rv64mc.Table.HashT
 import Rv64mc.Table.VecT
 import Rv64mc.Table.CopyUseT
 import Rv64mc.Proof.Transcript.SpongeNewT
+import Rv64mc.Proof.Transcript.AbsorbT
+import Rv64mc.Table.TranscriptT2
 import Rv64mc.Gen.Link.Verifier.Transcript
 
 namespace Rv64mc.Table.TranscriptT3
@@ -29,8 +31,17 @@ theorem spongeNew (hd : HashT.KeccakTables env) :
     (by decide) (by decide) (by decide) (CopyUseT.digestWords env) (VecT.memset env) (HashT.keccakFT env hd)
     (CopyUseT.memcpy env)
 
+theorem absorb (hd : HashT.KeccakTables env) :
+    AbsorbT.specT env (liftProg fns) Idx.Verifier.Transcript.Sponge.Absorb Needs.Verifier.Transcript.Sponge.Absorb :=
+  AbsorbT.total env _ _ _ Verifier.Transcript.Sponge.Absorb.tmpl_eq Verifier.Transcript.Sponge.Absorb.wf (by decide)
+    (by decide) (by decide) (TranscriptT2.duplex env hd) (RuntimeT.panicFmt env) (RuntimeT.panicBoundsCheck env)
+
 end Rv64mc.Table.TranscriptT3
 
 /-- info: 'Rv64mc.Table.TranscriptT3.spongeNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.TranscriptT3.spongeNew
+
+/-- info: 'Rv64mc.Table.TranscriptT3.absorb' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.TranscriptT3.absorb
