@@ -8,8 +8,8 @@
   and `is_output_lane` on the count, reading `offsets[4]` or `offsets[count]` (each checked against the vector's
   length, else `panic_bounds_check`); a `None` offset stores the error (`28`) at `r` and returns tag `2`, any other
   outcome a placement or `None` (tags `1`, `0`). The run ends with the guest's abort (`AbortStop`) where a bounds
-  check does. Safety only: it states the end or the cursor's advance, which its caller's loop needs to end, not the
-  placement.
+  check does. Safety only: it states the end or the cursor's advance, and its writes (`OutT`) leave the slice's `end`
+  alone, which its caller's loop needs to end; not the placement.
 
   The precondition (`IterT`): the shunt's 40 bytes in a caller's frame (at or above the stack pointer), in a window,
   aligned; the slice `[cur, end)` whole words, in a window unless empty; `c` and `r` in windows and aligned, `r` a
@@ -73,9 +73,10 @@ def PostT (_env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → W
     ((m.getMem (regs .x11)).toNat < (m.getMem (regs .x11 + 8#64)).toNat ∧
       m'.getMem (regs .x11) = m.getMem (regs .x11) + 8#64)
 
-/-- What `next` writes besides its stack: the result, the shunt's cursor and count, the residual. -/
+/-- What `next` writes besides its stack: the result, the shunt's cursor and count (not its `end`), the residual. -/
 def OutT (regs : Reg → Word) (m : MachineState) (b : Word) : Prop :=
-  InRange (regs .x10) 24 b ∨ InRange (regs .x11) 24 b ∨ InRange (m.getMem (regs .x11 + 32#64)) 8 b
+  InRange (regs .x10) 24 b ∨ InRange (regs .x11) 8 b ∨ InRange (regs .x11 + 16#64) 8 b ∨
+    InRange (m.getMem (regs .x11 + 32#64)) 8 b
 
 /-- **The total contract of `GenericShunt::next` over `build_layout`'s placements**, or the guest's abort. -/
 def SpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
