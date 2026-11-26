@@ -2,17 +2,17 @@
 
 Which of the functions `main` reaches have a total contract (`HoldsT`, `Core/HoldsT.lean`), toward `main`'s `MainSpecT` (`Final/MainSpecT.lean`), as `notes/status.md` tracks the partial ones. A function is **total** here when it has a total contract over its template in `Proof/**` (a `T` module) and a `Table` instance at the image (`Rv64mc/Table/*T.lean`: `liftProg Gen.fns`, `Gen.Idx`, `Gen.Needs`, its callees' `Table` instances as arguments). Indices and instruction counts are `Rv64mc/Gen/index.tsv`'s; heights are the call graph's from the leaves (0 a leaf); the partial class is `notes/status.md`'s (A proved at the image, C a contract only, D nothing). The call graph has 229 functions (`_start` is not counted: `Final/StartT.lean` proves it from `MainSpecT`).
 
-Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `keccak tables (InData)`, `keccak_f`'s round constants, `π` and `ρ` tables in the static data (`Table/HashT.lean`'s `KeccakTables`); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
+Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts about the image that `alloc` reads (`NEXT`'s data reference is `env.nextAddr`, `env.heapEnd = 0x78000000`); `clmul table`, `clmul_low`'s constant in the static data (`DataRef.InData`, `FieldT.ClmulTable`); `WHIR query tables (InData)`; `N_CONSTRAINTS table (InData)` and `COUNT_COLUMNS tables (InData, CountColumnsData)`, the tables `Table::n_constraints` and `Table::count_columns` read in the static data (the second also its contents, as `Table/Layout.lean` has it); `from_elem bound (InData)` and `from_iter bound (InData)`, the words bounding `Vec<Option<E>>`'s size that `from_elem::<Option<E>>` and its `spec_from_iter_nested` (141) read in the static data; `keccak tables (InData)`, `keccak_f`'s round constants, `π` and `ρ` tables in the static data (`Table/HashT.lean`'s `KeccakTables`); `MemmoveSpecT (225)`, the total contract of `compiler_builtins`' `memmove`, stated in `Proof/Runtime/MemmoveT.lean` and not yet proved. (`memcpy`'s, `MemcpySpecT`, is proved: `Table/MemT.lean`'s `memcpyT`, which `Table/CopyUseT.lean` and `Table/AllocT.lean` compose into the instances that call it.) All but the last are environment facts about the image.
 
 ## Summary
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 89 | 2916 (14.0%) |
+| total, with a `Table` instance | 92 | 3151 (15.1%) |
 | of which no open hypothesis | 42 | 1181 |
-| of which only environment facts open | 88 | 2914 |
+| of which only environment facts open | 91 | 3149 |
 | stated, not proved here | 1 | 268 |
-| no total contract | 139 | 17694 |
+| no total contract | 136 | 17459 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
@@ -21,7 +21,8 @@ Every total function has its `Table` instance, and every `Table` theorem's axiom
 
 A total proof steps through each call with the callee's total contract, so its callee's `Pre` is a closed goal there. Where the caller is not yet total, the callee's `Pre` was checked against the image's call sites by reading the templates, and becomes a goal of the caller's proof. Some of those goals need a fact from another function's postcondition; the ones named so far:
 
-* `from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for. `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`.
+* ~~`from_elem` (58): its post must give `VecT env m' sret 16` with `vecLen` the length asked for.~~ Met: `FromElemT.FromElemSpecT`'s postcondition is `CloneT.ClonePostT env 16` (`VecT`, `vecLen` the count `a2`, the buffer fresh unless empty). `walk` (42) passes that vector's buffer to `Vec<E>::clone` (55) at template steps 429 and 477, and `CloneSpecT`'s `BufT` follows from it by `BufT.of_le`; `walk`'s proof discharges it there.
+* `spec_from_iter_nested` for `Vec<Option<E>>` (141): its `SrcT` asks the source `[a1, a2)` to be whole 16-byte elements in a window, 8-byte aligned. `verify_gkr_grand_products` (152, template step 106: `(x25, x25 + x12)`) and `keccak::verify_layer` (138, step 201: the slice at `x27 + 0x20`) pass a source that is a vector's elements or empty (152's first pass has `x20 := 0`, `x25 := 8`: the empty slice `[8, 8)`, which `SrcT`'s `b = e` case covers); not checked further here: their proofs discharge it, from that vector's `VecT` (`BufT.of_le`) where it is one, so the vector's builder's post must give `VecT`.
 
 ## By function
 
@@ -171,9 +172,9 @@ A total proof steps through each call with the callee's total contract, so its c
 | 6 | 218 | `verifier::bytecode::group_by_word` | 193 | D | no | - | - | - |
 | 7 | 36 | `verifier::keccak::linear_transpose::<verifier::field::E> @verifier` | 196 | A | no | - | - | - |
 | 7 | 51 | `<verifier::transcript::Transcript>::grind_check` | 42 | A | no | - | - | - |
-| 7 | 58 | `<verifier::field::E as alloc::vec::spec_from_elem::SpecFromElem>::f...` | 72 | C | no | - | - | - |
+| 7 | 58 | `<verifier::field::E as alloc::vec::spec_from_elem::SpecFromElem>::f...` | 72 | C | yes | Proof/Runtime/FromElemT | VecT2.fromElemE | env |
 | 7 | 82 | `verifier::whir::ext_row` | 57 | C | no | - | - | - |
-| 7 | 84 | `<core::option::Option<verifier::field::E> as alloc::vec::spec_from_...` | 89 | D | no | - | - | - |
+| 7 | 84 | `<core::option::Option<verifier::field::E> as alloc::vec::spec_from_...` | 89 | D | yes | Proof/Runtime/FromElemOptT | VecT2.fromElemOptionE | env; from_elem bound (InData) |
 | 7 | 102 | `verifier::multilinear::selector_point` | 67 | A | no | - | - | - |
 | 7 | 106 | `<alloc::vec::Vec<verifier::field::E> as alloc::vec::spec_extend::Sp...` | 34 | D | no | - | - | - |
 | 7 | 116 | `verifier::whir::novel_basis` | 108 | C | no | - | - | - |
@@ -183,7 +184,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 7 | 133 | `verifier::ring_switch::ring_coefficients` | 116 | C | no | - | - | - |
 | 7 | 134 | `verifier::ring_switch::ring_target` | 109 | C | no | - | - | - |
 | 7 | 140 | `verifier::keccak::instance_weights` | 132 | C | no | - | - | - |
-| 7 | 141 | `<alloc::vec::Vec<core::option::Option<verifier::field::E>> as alloc...` | 74 | D | no | - | - | - |
+| 7 | 141 | `<alloc::vec::Vec<core::option::Option<verifier::field::E>> as alloc...` | 74 | D | yes | Proof/Runtime/FromIterOptT | VecT2.fromIterOptionE | env; from_iter bound (InData) |
 | 7 | 143 | `<alloc::vec::Vec<verifier::field::E> as alloc::vec::spec_from_iter_...` | 106 | D | no | - | - | - |
 | 7 | 150 | `verifier::bus::bus_layout` | 147 | D | no | - | - | - |
 | 7 | 159 | `<verifier::layout::Form as alloc::vec::spec_from_elem::SpecFromElem...` | 188 | D | no | - | - | - |
