@@ -1,1 +1,1 @@
-import LeanSphincsProofs.Defs
+import LeanSphincsProofs.Theorem

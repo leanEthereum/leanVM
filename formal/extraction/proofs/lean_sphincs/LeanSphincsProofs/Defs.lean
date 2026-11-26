@@ -7,9 +7,10 @@ import Hax
 
 The Rust `verify`, as hax extracts it (`lean_sphincs.scheme.verify`), computes the statement's
 `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`) on the values its arguments stand
-for. This file fixes how a Rust value stands for a statement value, the one assumption the proof
-rests on (`HasherSpec`: `keccak256::Hasher` computes Keccak-256 over the permutation), and the
-statement of each function's theorem, as a `Prop` the files beside this one prove and compose.
+for. This file fixes how a Rust value stands for a statement value, what the proofs ask of the
+hasher (`HasherSpec`: `keccak256::Hasher` computes Keccak-256 over the permutation, which
+`Hasher.lean` proves from what `absorb` and `digest_of` compute), and the statement of each
+function's theorem, as a `Prop` the files beside this one prove and compose.
 
 Rust's byte arrays are the statement's little-endian bit vectors: a digest `[u8; 16]` is the
 `BitVec 128` whose `littleEndianBytes 16` are its bytes.
@@ -75,7 +76,7 @@ def inId (π : KeccakState → KeccakState) : KeccakState → Id KeccakState := 
 def hashBytes (π : KeccakState → KeccakState) (input : List UInt8) : List UInt8 :=
   digestBytes (Id.run (keccak256With (inId π) input))
 
-/-- **The assumption.** `keccak256::Hasher` computes Keccak-256 over `π`: some relation
+/-- **What the proofs ask of the hasher.** `keccak256::Hasher` computes Keccak-256 over `π`: some relation
 `Absorbed h l`, "`h` has absorbed the bytes `l`", holds of a new hasher and the empty string, is
 kept by `update`, and `finalize` gives the digest of what was absorbed.
 
