@@ -8,7 +8,7 @@
 
   ## Main results
 
-  * `spongeNew`, `absorb`
+  * `spongeNew`, `absorb`, `sample`, `absorbNonce`
 -/
 
 import Rv64mc.Table.HashT
@@ -16,6 +16,8 @@ import Rv64mc.Table.VecT
 import Rv64mc.Table.CopyUseT
 import Rv64mc.Proof.Transcript.SpongeNewT
 import Rv64mc.Proof.Transcript.AbsorbT
+import Rv64mc.Proof.Transcript.SampleT
+import Rv64mc.Proof.Transcript.AbsorbNonceT
 import Rv64mc.Table.TranscriptT2
 import Rv64mc.Gen.Link.Verifier.Transcript
 
@@ -36,6 +38,17 @@ theorem absorb (hd : HashT.KeccakTables env) :
   AbsorbT.total env _ _ _ Verifier.Transcript.Sponge.Absorb.tmpl_eq Verifier.Transcript.Sponge.Absorb.wf (by decide)
     (by decide) (by decide) (TranscriptT2.duplex env hd) (RuntimeT.panicFmt env) (RuntimeT.panicBoundsCheck env)
 
+theorem sample (hd : HashT.KeccakTables env) :
+    SampleT.specT env (liftProg fns) Idx.Verifier.Transcript.Sponge.Sample Needs.Verifier.Transcript.Sponge.Sample :=
+  SampleT.total env _ _ _ Verifier.Transcript.Sponge.Sample.tmpl_eq Verifier.Transcript.Sponge.Sample.wf (by decide)
+    (TranscriptT2.duplex env hd)
+
+theorem absorbNonce (hd : HashT.KeccakTables env) :
+    AbsorbNonceT.specT env (liftProg fns) Idx.Verifier.Transcript.Sponge.AbsorbNonce
+      Needs.Verifier.Transcript.Sponge.AbsorbNonce :=
+  AbsorbNonceT.total env _ _ _ Verifier.Transcript.Sponge.AbsorbNonce.tmpl_eq
+    Verifier.Transcript.Sponge.AbsorbNonce.wf (by decide) (by decide) (absorb env hd) (TranscriptT2.duplex env hd)
+
 end Rv64mc.Table.TranscriptT3
 
 /-- info: 'Rv64mc.Table.TranscriptT3.spongeNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -45,3 +58,11 @@ end Rv64mc.Table.TranscriptT3
 /-- info: 'Rv64mc.Table.TranscriptT3.absorb' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.TranscriptT3.absorb
+
+/-- info: 'Rv64mc.Table.TranscriptT3.sample' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.TranscriptT3.sample
+
+/-- info: 'Rv64mc.Table.TranscriptT3.absorbNonce' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.TranscriptT3.absorbNonce

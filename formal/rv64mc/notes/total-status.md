@@ -121,7 +121,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 5 | 28 | `verifier::multilinear::dot` | 44 | A | yes | Proof/Multilinear/DotT (`Pre` unsatisfiable at four call sites, see Obligations) | MultilinearT.dot | clmul table |
 | 5 | 32 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::op...` | 69 | D | no | - | - | - |
 | 5 | 39 | `<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<...` | 11 | A | yes | Proof/Runtime/DoReserveT | AllocT.doReserve | env |
-| 5 | 52 | `<verifier::transcript::Sponge>::sample` | 19 | A | no | - | - | - |
+| 5 | 52 | `<verifier::transcript::Sponge>::sample` | 19 | A | yes | Proof/Transcript/SampleT (safety, `SpongeT` kept) | TranscriptT3.sample | keccak tables (InData) |
 | 5 | 55 | `<alloc::vec::Vec<verifier::field::E> as core::clone::Clone>::clone ...` | 49 | C | yes | Proof/Runtime/CloneT | VecT.cloneE | env |
 | 5 | 62 | `<alloc::raw_vec::RawVec<verifier::bus::ColumnClaim>>::grow_one @ver...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneColumnClaim | env |
 | 5 | 65 | `<alloc::raw_vec::RawVec<(verifier::StackWeight, verifier::field::E)...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneStackClaim | env |
@@ -163,7 +163,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 6 | 115 | `<alloc::vec::Vec<core::option::Option<verifier::field::E>>>::reserv...` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveOptionE | env |
 | 6 | 117 | `<alloc::vec::Vec<verifier::field::K>>::reserve @verifier` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveK | env |
 | 6 | 124 | `<alloc::vec::Vec<u8>>::reserve @verifier` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveU8 | env |
-| 6 | 149 | `<verifier::transcript::Sponge>::absorb_nonce` | 21 | A | no | - | - | - |
+| 6 | 149 | `<verifier::transcript::Sponge>::absorb_nonce` | 21 | A | yes | Proof/Transcript/AbsorbNonceT (safety, `SpongeT` kept) | TranscriptT3.absorbNonce | keccak tables (InData) |
 | 6 | 158 | `verifier::bus::verify_bus_balance::{closure#2} @verifier` | 145 | D | no | - | - | - |
 | 6 | 163 | `<verifier::layout::Form>::add_scaled` | 177 | D | no | - | - | - |
 | 6 | 168 | `<alloc::vec::Vec<verifier::layout::Form> as core::clone::Clone>::cl...` | 142 | D | no | - | - | - |
