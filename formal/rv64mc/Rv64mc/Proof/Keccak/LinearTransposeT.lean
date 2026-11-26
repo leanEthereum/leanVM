@@ -16,6 +16,7 @@
 
 import Rv64mc.Proof.Keccak.LinearTranspose
 import Rv64mc.Proof.Keccak.TryFromFnT
+import Rv64mc.Proof.Runtime.MemsetBytesT
 import Rv64mc.Tactic.SymT
 
 namespace Rv64mc.Proof.Keccak.LinearTransposeT
@@ -310,5 +311,127 @@ theorem mid {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {ws : List
     Layouts.RawVecInner.ptr, BitVec.add_zero]
   all_goals have hMn := hinv_13.1
   all_goals rv_closeT
+
+/-- **A part of a constant table's word**: `w` bytes (`4` or `8`) at offset `j` of word `k` of a table in
+    `env.data`, in a window and aligned. -/
+theorem table_win {env : Env} {top : Word} {m : MachineState} (hW : Windows env top m) {d : DataRef}
+    {ws : List Word} (hd : DataRef.InData env [(d, ws)]) {k : Nat} (hk : k < ws.length) {j w : Nat}
+    (hjw : j + w ≤ 8) (hw : w = 4 ∨ w = 8) (hj : j % w = 0) :
+    inWindow (d.hi + d.lo + BitVec.ofNat 64 (8 * k + j)) w = true ∧
+      (d.hi + d.lo + BitVec.ofNat 64 (8 * k + j)).toNat % w = 0 := by
+  obtain ⟨hwin, h8⟩ := hW.data_ok _ (hd _ (List.mem_singleton_self _) k hk)
+  simp only at hwin h8
+  rw [inWindow_iff] at hwin ⊢
+  have e : d.hi + d.lo + BitVec.ofNat 64 (8 * k + j) = d.hi + d.lo + BitVec.ofNat 64 (8 * k) + BitVec.ofNat 64 j := by
+    rw [BitVec.add_assoc (d.hi + d.lo), BitVec.ofNat_add_ofNat]
+  have e2 : (d.hi + d.lo + BitVec.ofNat 64 (8 * k) + BitVec.ofNat 64 j).toNat =
+      (d.hi + d.lo + BitVec.ofNat 64 (8 * k)).toNat + j := toNat_add_ofNat (by omega)
+  rw [e, e2]
+  rcases hw with rfl | rfl <;> omega
+
+/-- `g`'s fill's inner head with `k + 1` positions left: `Inv1` at lane `lane`, bit `z`, and the code map kept. -/
+def LInv1 (env : Env) (ws : List E) (L : Link) (ret top : Word) (regs : Reg → Word) (m : MachineState) (k : Nat)
+    (R : Reg → Word) (M : MachineState) : Prop :=
+  ∃ lane z, 64 * lane + z + k + 1 = 1600 ∧ z < 64 ∧ Inv1 env ws L ret top regs m lane z R M ∧ M.code = m.code
+
+set_option rv_sym.heap true in
+/-- **`g`'s fill**, from its inner head to the column sums' head (154), through `memset` of the column sums. -/
+theorem loop1 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {ws : List E}
+    (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need nMs nPb : Nat} (hnMs : 30816 + nMs ≤ need)
+    (hnPb : 30816 + nPb ≤ need)
+    (hms : Runtime.MemsetBytesT.MemsetSpecT env p L.memset.idx nMs)
+    (hpb : Runtime.Aborts env p L.panicBoundsCheck.idx nPb)
+    (hpi : DataRef.InData env [(L.d_c200_f4afdee4, Gen.Verifier.Keccak.LinearTransposeE.d_c200_f4afdee4_words)])
+    (hrhoD : DataRef.InData env [(L.d_c100_179d68cc, Gen.Verifier.Keccak.LinearTransposeE.d_c100_179d68cc_words)])
+    (hrho : RhoAt env L.d_c100_179d68cc)
+    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
+    (hstop : ∀ (fr : Frame) (st : List Frame) (r' : rvIsa.Reg → Word) (m' : rvIsa.M), AbortStop regs m r' m' →
+      rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ → Q ⟨fr :: st, r', m'⟩)
+    (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hst : env.Static m)
+    (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) (h16 : top.toNat % 16 = 0) (hW : Windows env top m)
+    (hx : EListAt m (regs .x11) (ws.map Model.limbs)) (hl : env.Live m (regs .x11) (Layouts.E.byteSize * ws.length))
+    (hlen : ws.length = 1600) (hsl : InWin env (regs .x11) (16 * 1600)) (hw8 : (regs .x11).toNat % 8 = 0)
+    (hl2 : ∀ R M, Inv2 env ws ret top regs m 0 R M → M.code = m.code →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 154, ret, top⟩ :: rest, R, M⟩) :
+    ∀ k R M, LInv1 env ws L ret top regs m k R M →
+      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 78, ret, top⟩ :: rest, R, M⟩ := by
+  have htop : env.stackLimit.toNat + 30816 ≤ top.toNat := by omega
+  have hcal : (top + 18446744073709546424#64).toNat % 8 = 0 := by
+    rw [colsBase_toNat (by omega)]; omega
+  refine Total.loop (I := rvIsa) (LInv1 env ws L ret top regs m) fun k R M hI ih => ?_
+  obtain ⟨lane, z, hk, hz, hinv, hcode⟩ := hI
+  have hlane : lane < 25 := by omega
+  have hkn : 64 * lane + z < 1600 := by omega
+  have := top.isLt
+  have hgb := gBase_toNat (top := top) (by omega)
+  have hJ : 64 * Model.keccakPiRust.getD lane 0 + (z + Model.keccakRhoRust.getD lane 0) % 64 < 1600 := by
+    have := pi_lt lane hlane; have := Nat.mod_lt (z + Model.keccakRhoRust.getD lane 0) (show 64 > 0 by decide)
+    omega
+  have hw0 : (regs .x11 + BitVec.ofNat 64 (16 * (64 * Model.keccakPiRust.getD lane 0 +
+      (z + Model.keccakRhoRust.getD lane 0) % 64))).toNat = (regs .x11).toNat + 16 * (64 *
+      Model.keccakPiRust.getD lane 0 + (z + Model.keccakRhoRust.getD lane 0) % 64) :=
+    toNat_add_ofNat (by unfold InWin at hsl; omega)
+  have g0 : (top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * (64 * lane + z))).toNat =
+      top.toNat - 30792 + 16 * (64 * lane + z) := by rw [toNat_elem (by omega), hgb]
+  have g8 : (top + 18446744073709520824#64 + BitVec.ofNat 64 (16 * (64 * lane + z)) + 8#64).toNat =
+      top.toNat - 30792 + 16 * (64 * lane + z) + 8 := by rw [toNat_elem8 (by omega), hgb]
+  rv_introT hinv
+  obtain ⟨f1, f2, f3, f4, f5⟩ := loop1_mem htop hkn hst hinv_13 hinv_14 hinv_24
+  have hg := load_g hinv_13 hnx hx hl hlen hlane hz
+  rv_symT hp stop [64, 68, 88, 154] with [hL] using [hms, hpb]
+  clear hc
+  rw [idx_eq (pi_lt lane hlane)]
+  rv_symT hp stop [58, 64, 68, 78, 154] with [hL] using [hms, hpb]
+  all_goals rw [hg.1, hg.2] at *
+  · -- the next bit
+    have hz1 : z + 1 < 64 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc; omega
+    clear hc
+    refine ih (k - 1) _ _ (by omega) ⟨lane, z + 1, by omega, hz1, ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      f1, f2⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by rw [← Nat.add_assoc]; exact f3⟩, hcode⟩
+    all_goals rv_closeT
+    all_goals simp only [Tactic.rf]
+    all_goals first | rw [succ_ofNat2] | rw [dec_ofNat hz] | rw [step_ptr2]
+  · -- the next lane
+    have hl1 : lane + 1 < 25 := by rw [ofNat_inj (by omega) (by omega)] at hc; omega
+    have hz63 : z = 63 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc_1; omega
+    clear hc hc_1
+    have hp8 : 2 ^ 3 * (lane + 1) = 8 * (lane + 1) + 0 := by omega
+    have hr4 : 2 ^ 2 * (lane + 1) = 8 * ((lane + 1) / 2) + 4 * ((lane + 1) % 2) := by omega
+    have tp := table_win hW hpi (k := lane + 1) (j := 0) (w := 8) (by change lane + 1 < 25; omega) (by omega)
+      (Or.inr rfl) rfl
+    have tr := table_win hW hrhoD (k := (lane + 1) / 2) (j := 4 * ((lane + 1) % 2)) (w := 4)
+      (by change (lane + 1) / 2 < 13; omega) (by omega) (Or.inl rfl) (by omega)
+    rv_symT hp stop [78] with [hL] using [hms, hpb]
+    · rw [shl_ofNat, hp8]; exact tp.1
+    · rw [shl_ofNat, hp8]; exact tp.2
+    · rw [shl_ofNat, hr4]; exact tr.1
+    · rw [shl_ofNat, hr4]; exact tr.2
+    rw [pi_load (hpi.words (List.mem_singleton_self _)) f4 hl1, rho_load hrho f4 hl1]
+    refine ih (k - 1) _ _ (by omega) ⟨lane + 1, 0, by omega, by omega, ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      ?_, f1, f2⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+      by rw [show 64 * (lane + 1) + 0 = 64 * lane + z + 1 by omega]; exact f3⟩, hcode⟩
+    all_goals rv_closeT
+    all_goals simp only [Tactic.rf]
+    all_goals first | rw [succ_ofNat] | rw [lane_ptr'] | rfl
+    rfl
+  · exact f4
+  · -- the last bit: `memset` of the column sums, then the column loop's head
+    have hl24 : lane = 24 := by rw [ofNat_inj (by omega) (by omega)] at hc; omega
+    have hz63 : z = 63 := by rw [dec_ofNat hz, ofNat_inj (by omega) (by omega)] at hc_1; omega
+    clear hc hc_1
+    obtain ⟨g1, g2, g3, g4⟩ := memset_cols (ws := ws) htop (by omega) f1 f2
+      (by rw [show (1600 : Nat) = 64 * lane + z + 1 by omega]; exact f3) hret1_14
+      (fun b hb => by
+        simp only [Spec.Runtime.CopyOut, Spec.Runtime.DwordsOf, Lprog.updReg_apply, Tactic.rf, reduceCtorEq,
+          ite_false] at hb
+        rw [alignToDword_self hcal, hcal] at hb
+        exact hb)
+      (fun k hk => (hret1_17 k (by simpa using hk)).trans (by decide))
+    refine hl2 _ _ ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, g1, g2⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, g3, g4⟩
+      (hret1_19.trans hcode)
+    all_goals rv_closeT
+    · exact start_ofs top 18446744073709546424
+    · exact start_ofs8 top 18446744073709546424
+    · exact start_ofs8 top 18446744073709520824
 
 end Rv64mc.Proof.Keccak.LinearTransposeT
