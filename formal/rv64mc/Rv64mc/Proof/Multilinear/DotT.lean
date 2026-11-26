@@ -93,8 +93,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         rv_closeT
         · exact step_ptr _ _
         · exact step_ptr _ _
-        · rw [← body_val hinv_14 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 (by omega) (by omega)]
-        · rw [← body_val hinv_14 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 (by omega) (by omega)]
+        all_goals rw [← body_val hinv_14 hpre_5 hpre_7 hpre_9 hpre_10 hpre_11 (by omega) (by omega)]
     have he := (end_iff hq (by simp; omega)).1 hc
     simp only [List.length_map] at he
     intro v hv

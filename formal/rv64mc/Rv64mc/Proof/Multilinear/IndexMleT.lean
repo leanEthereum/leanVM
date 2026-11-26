@@ -51,9 +51,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   rv_autoT hp with [hL] using [hmul, hsq]
   all_goals have hlx := live_bound hpre_8 hpre_5
   all_goals simp only [Layouts.E.byteSize] at hlx
-  · have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
-    rw [List.length_eq_zero_iff.1 h0]; rfl
-  · have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
+  iterate 2
+    have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     rw [List.length_eq_zero_iff.1 h0]; rfl
   have h0 : xs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
   obtain ⟨hw, hal⟩ := hpre_9.resolve_left h0
@@ -81,8 +80,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         · exact step_ptr0 _ _
         · rw [body_res _ ex.1 ex.2, st_succ (by omega)]
         · rw [body_res _ ex.1 ex.2, st_succ (by omega)]
-        · rw [body_g _ xs[j], st_succ (by omega)]
-        · rw [body_g _ xs[j], st_succ (by omega)]
+        all_goals rw [body_g _ xs[j], st_succ (by omega)]
     all_goals have he := (end_iff0 hq (by simp; omega)).1 hc
     all_goals simp only [List.length_map] at he
     all_goals have hs := st_succ (xs := xs) (j := j) (by omega)
@@ -94,8 +92,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     · exact start_ptr0 _
     · rw [show st xs 0 = (1, LeanVM.Protocol.Verifier.gen) from rfl, Model.limbs_one]; rfl
     · rw [show st xs 0 = (1, LeanVM.Protocol.Verifier.gen) from rfl, Model.limbs_one]; rfl
-    · rw [show st xs 0 = (1, LeanVM.Protocol.Verifier.gen) from rfl, Model.limbs_gen]; rfl
-    · rw [show st xs 0 = (1, LeanVM.Protocol.Verifier.gen) from rfl, Model.limbs_gen]; rfl
+    all_goals rw [show st xs 0 = (1, LeanVM.Protocol.Verifier.gen) from rfl, Model.limbs_gen]; rfl
 
 end Rv64mc.Proof.Multilinear.IndexMleT
 

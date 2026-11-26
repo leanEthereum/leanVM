@@ -11,7 +11,7 @@
 
   ## Main definitions
 
-  * `SumPreT`, `SumSafeT`, `Cont`
+  * `SumPreT`, `SumSafeT`
 
   ## Main results
 
@@ -55,12 +55,6 @@ variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {Q : State rv
 /-- `AbiRegs` through writes of registers it does not read. -/
 local macro "abi_ok " h:term : tactic =>
   `(tactic| ((repeat rw [AbiRegs.updReg_iff (by decide)]) <;> exact $h))
-
-/-- The continuation the parts are proved against. -/
-abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret top : Word) (rest : List Frame)
-    (regs : Reg → Word) (m : MachineState) : Prop :=
-  ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) (fun _ _ _ => False) ret top regs m r' m' →
-    rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
 
 /-- A nonzero counter decremented, as a number. -/
 theorem dec_toNat {x : Word} (h : 0 < x.toNat) : (x + 18446744073709551615#64).toNat = x.toNat - 1 := by

@@ -48,10 +48,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   rv_autoT hp with [hL] using [hmul]
   all_goals have hlx := live_bound hpre_8 hpre_5
   all_goals simp only [Layouts.E.byteSize] at hlx
-  · have h0 : cs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
-    rw [List.length_eq_zero_iff.1 h0]
-    simp [Model.polyEvalRust, Model.limbs_zero, Model.eZero]
-  · have h0 : cs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
+  iterate 2
+    have h0 : cs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     rw [List.length_eq_zero_iff.1 h0]
     simp [Model.polyEvalRust, Model.limbs_zero, Model.eZero]
   have h0 : cs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
@@ -72,15 +70,13 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         refine ih j _ _ (by omega) ⟨by omega, ?_, by rw [hret1_18, hcode]⟩
         rv_closeT
         · exact back_ptr _ _
-        · rw [← body_val hinv_14 hpre_5 hpre_7 hpre_8 hj]
-        · rw [← body_val hinv_14 hpre_5 hpre_7 hpre_8 hj]
+        all_goals rw [← body_val hinv_14 hpre_5 hpre_7 hpre_8 hj]
     all_goals obtain rfl := (exit_iff (by omega)).1 hc
     all_goals rw [← hor_zero, ← body_val hinv_14 hpre_5 hpre_7 hpre_8 hj]
   · refine ⟨by omega, ?_, by rv_closeT⟩
     rv_closeT
     · rw [List.length_map]; exact PolyEval.start_ptr (by omega) (by omega)
-    · rw [show cs.length - 1 + 1 = cs.length by omega, hor_len, Model.limbs_zero]; rfl
-    · rw [show cs.length - 1 + 1 = cs.length by omega, hor_len, Model.limbs_zero]; rfl
+    all_goals rw [show cs.length - 1 + 1 = cs.length by omega, hor_len, Model.limbs_zero]; rfl
 
 end Rv64mc.Proof.Multilinear.PolyEvalT
 

@@ -49,9 +49,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   rv_autoT hp with [hL] using [hmul]
   all_goals have hlx := live_bound hpre_8 hpre_5
   all_goals simp only [Layouts.E.byteSize] at hlx
-  · have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
-    rw [← post_val, h0]; rfl
-  · have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
+  iterate 2
+    have h0 : xs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     rw [← post_val, h0]; rfl
   have h0 : xs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
   obtain ⟨hw, hal⟩ := hpre_9.resolve_left h0
@@ -87,8 +86,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     rw [show xs.length - 1 - (xs.length - 1) = 0 by omega]
     rv_closeT
     · exact start_ptr _
-    · rw [show low xs (regs .x12) 0 = 1 from rfl, Model.limbs_one]; rfl
-    · rw [show low xs (regs .x12) 0 = 1 from rfl, Model.limbs_one]; rfl
+    all_goals rw [show low xs (regs .x12) 0 = 1 from rfl, Model.limbs_one]; rfl
 
 end Rv64mc.Proof.Multilinear.PaddingWeightT
 

@@ -152,8 +152,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     (hfail : Aborts env p L.sliceIndexFail.idx needF) : specT env p i need := by
   rv_autoT hp stop [32] with [hL, (by omega : env.stackLimit.toNat + 224 ≤ top.toNat), hpre_13.top_le,
     (by decide : (200#64).toNat = 200)] using [hcp, hset]
-  · obtain ⟨ha8, hw, hn4, hg⟩ := And.intro hpre_6 (And.intro hpre_7 (And.intro hpre_8 hpre_9))
-    have h24 : (regs .x10 + 24#64).toNat = (regs .x10).toNat + 24 := toNat_add_ofNat (by omega)
+  · have h24 : (regs .x10 + 24#64).toNat = (regs .x10).toNat + 24 := toNat_add_ofNat (by omega)
     have hsp : (top + 18446744073709551392#64).toNat = top.toNat - 224 := by
       rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
     have := hpre_13.top_le

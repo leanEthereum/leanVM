@@ -10,7 +10,7 @@
 
   ## Main definitions
 
-  * `SumPreT`, `SumSafeT`, `Cont`
+  * `SumPreT`, `SumSafeT`
 
   ## Main results
 
@@ -51,21 +51,6 @@ variable {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} {Q : State rv
 local macro "abi_ok " h:term : tactic =>
   `(tactic| ((repeat rw [AbiRegs.updReg_iff (by decide)]) <;> exact $h))
 
-/-- The continuation the parts are proved against. -/
-abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret top : Word) (rest : List Frame)
-    (regs : Reg → Word) (m : MachineState) : Prop :=
-  ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) (fun _ _ _ => False) ret top regs m r' m' →
-    rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
-
-/-- The next element's offset, from the pointer kept 8 bytes into the current one. -/
-theorem succ_shl (c q : Word) : c <<< 4 + q + 8#64 + 8#64 = (c + 1#64) <<< 4 + q := by
-  apply BitVec.eq_of_toNat_eq
-  simp only [BitVec.toNat_add, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, BitVec.toNat_ofNat]; omega
-
-/-- The next element's second doubleword, from the pointer kept 8 bytes into the current one. -/
-theorem succ_shl8 (c q : Word) : c <<< 4 + q + 8#64 + 16#64 = (c + 1#64) <<< 4 + q + 8#64 := by
-  rw [← succ_shl, BitVec.add_assoc (c <<< 4 + q + 8#64)]; rfl
-
 /-- The return after the loop. -/
 theorem ret_ok (hp : p[i]? = some (tmpl L)) (hk : Cont env p Q ret top rest regs m) (hst : env.Static m)
     (hnx : (env.next m).toNat ≤ env.heapEnd.toNat) {r : Reg → Word} (h1 : r .x1 = ret) (ha : AbiRegs top regs r) :
@@ -88,7 +73,10 @@ theorem loop_ok (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need : Nat}
   have hx10 : (r .x10 + 1#64).toNat = (r .x10).toNat + 1 := toNat_add_ofNat (by omega)
   rv_symT hp stop [30, 64] with [hL, h1, h2, h16, h14] using [hpanic]
   · exact ret_ok hp hk hst hnx (by tnorm; exact h1) (by abi_ok ha)
-  · have hne : (r .x10 + 1#64).toNat ≠ e.toNat := fun h => hc_1 (by rw [h14]; exact BitVec.eq_of_toNat_eq h.symm)
+  -- the bit test's two branches that go round again, the last one first
+  rotate_right
+  iterate 2
+    have hne : (r .x10 + 1#64).toNat ≠ e.toNat := fun h => hc_1 (by rw [h14]; exact BitVec.eq_of_toNat_eq h.symm)
     refine ih (k - 1) _ _ (by omega) ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · tnorm; exact h1
     · tnorm; exact h2
@@ -104,18 +92,6 @@ theorem loop_ok (hp : p[i]? = some (tmpl L)) (hL : L.WF p) {need : Nat}
   · rw [h15, succ_shl]; exact (ht.entry' hW (h16 ▸ hc)).1.2
   · rw [h15, succ_shl8]; exact (ht.entry' hW (h16 ▸ hc)).2.1
   · rw [h15, succ_shl8]; exact (ht.entry' hW (h16 ▸ hc)).2.2
-  · have hne : (r .x10 + 1#64).toNat ≠ e.toNat := fun h => by
-      have : r .x14 = r .x10 + 1#64 := by rw [h14]; exact BitVec.eq_of_toNat_eq h.symm
-      exact hc_1 this
-    refine ih (k - 1) _ _ (by omega) ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    · tnorm; exact h1
-    · tnorm; exact h2
-    · abi_ok ha
-    · tnorm; exact h14
-    · tnorm; exact h16
-    · tnorm; omega
-    · tnorm; omega
-    · tnorm; rw [h15, ← succ_shl8]
 
 /-- **`E::sum` over the embedding's bits is total**, with no stack. -/
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L))

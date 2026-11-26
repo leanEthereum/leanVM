@@ -50,9 +50,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   rv_autoT hp with [hL] using [hmul, hsq]
   all_goals have hb := live_bound hpre_10 hpre_5
   all_goals simp only [Layouts.E.byteSize] at hb
-  · have h0 : gs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
-    rw [List.length_eq_zero_iff.1 h0]; rfl
-  · have h0 : gs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
+  iterate 2
+    have h0 : gs.length = 0 := by simpa using (len_zero (by simp; omega)).1 hc
     rw [List.length_eq_zero_iff.1 h0]; rfl
   have h0 : gs.length ≠ 0 := fun h => hc ((len_zero (by simp; omega)).2 (by simpa using h))
   obtain ⟨hw, hal⟩ := hpre_11.resolve_left h0
@@ -77,8 +76,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         · exact ptr_step _ _
         · rw [← body_psi hinv_14 hpre_5 hpre_9 hpre_10 (by omega)]
         · rw [← body_psi hinv_14 hpre_5 hpre_9 hpre_10 (by omega)]
-        · rw [acc_succ (by omega), RingPsi.step, power_limbs]
-        · rw [acc_succ (by omega), RingPsi.step, power_limbs]
+        all_goals rw [acc_succ (by omega), RingPsi.step, power_limbs]
     all_goals have he := (end_iff hq (by simp; omega)).1 hc
     all_goals simp only [List.length_map] at he
     all_goals rw [ringPsiRust_acc, ← he, ← body_psi hinv_14 hpre_5 hpre_9 hpre_10 (by omega)]
