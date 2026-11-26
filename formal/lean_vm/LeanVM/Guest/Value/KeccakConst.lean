@@ -9,7 +9,10 @@ module
 
 public import LeanVM.Guest.Value.KeccakSponge
 import Statement.LeanVmGuest
-import LeanXmss.Scheme
+import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+import Statement.LeanXmss
+import Common.WithHash
 public import Statement.LeanSphincs
 public import Statement.LeanXmss
 import LeanDa.Scheme

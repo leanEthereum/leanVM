@@ -78,8 +78,12 @@ theorem claims_digest {α : Type} (dec : E → E → E → E → α) (bytes : α
 theorem xmss_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :
     claimListDigest xmssPublicKeyBytes ((List.range n).map fun j => xmssAt rd p (o j)) = keccak256 (cellsBytes cells) := by
   unfold claimListDigest claimListPreimage
-  rw [← claims_digest Sig.xmssClaimOf (fun c : LeanXmssClaim => claimBytesOf c.1.root c.1.parameter c.2)
-    (fun a b c d => claimBytes_cells a b c d) h]
+  rw [← claims_digest Sig.xmssClaimOf (fun c : LeanXmssClaim => claimBytesOf (xmssRoot c) (xmssParam
+      c) c.2)
+    (fun a b c d => claimBytes_cells_xmss a b c d) h]
+  rw [show claimBytes xmssPublicKeyBytes =
+    fun c : LeanXmssClaim => claimBytesOf (xmssRoot c) (xmssParam c) c.2 from funext
+        claimBytes_xmss]
   rfl
 
 theorem sphincs_digest {p : E} {o : ℕ → ℕ} {n : ℕ} {cells : List E} (h : SlotsHold rd p o n cells) :

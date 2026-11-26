@@ -37,7 +37,7 @@ include hrd hR
 
 section Xmss
 
-variable {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
+variable {wX : List E → EthLib.Cryptography.Xmss.Signature} {wXV : MachineValue}
   (hwX : ∀ a : List E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))
   {WX : ℕ} (hWX : ∀ a : List E, a.length ≤ 56 → appCost P wXV [encodeValue a] ≤ WX)
 include hwX hWX

@@ -49,6 +49,10 @@ theorem cell128_eq : Prover.cell128 = Hints.cell128 := by
   funext v
   rw [Prover.cell128, Hints.cell128, cellOfBytes_eq (by simp [HashSig.littleEndianBytes])]
 
+theorem cellOfLanes_eq : Prover.cellOfLanes = Hints.cellOfLanes := by
+  funext w
+  rw [Prover.cellOfLanes, Hints.cellOfLanes, cellOfBytes_eq (by simp)]
+
 theorem cellsOfBytes_eq : Prover.cellsOfBytes = Hints.cellsOfBytes := by
   funext b
   rw [Prover.cellsOfBytes, Hints.cellsOfBytes]
@@ -90,7 +94,7 @@ theorem coveragePlan_eq {α : Type} [BEq α] (d r : List α) (c : List (List α)
 
 theorem xmssLayer_eq : Prover.xmssLayer = Hints.xmssLayer := by
   funext p lay key m part
-  simp only [Prover.xmssLayer, Hints.xmssLayer, cell128_eq]
+  simp only [Prover.xmssLayer, Hints.xmssLayer, cellOfLanes_eq]
   rfl
 
 theorem xmssHints_eq : Prover.xmssHints = Hints.xmssHints := by
@@ -208,7 +212,8 @@ theorem childSlotPushes_eq : Prover.childSlotPushes = Hints.childSlotPushes := b
 theorem honestPushes_eq (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     Prover.honestPushes bytecode seed s w = Hints.honestPushes bytecode seed s w := by
   simp only [Prover.honestPushes, Hints.honestPushes, coveragePlan_eq, cellsOfBytes_eq,
-    xmssHints_eq, sphincsHints_eq, childSlotPushes_eq, childHints_eq, Prover.batchPushes,
+    claimBytes_xmss, xmssHints_eq, sphincsHints_eq, childSlotPushes_eq, childHints_eq,
+        Prover.batchPushes,
     Hints.batchPushes, Batch.lambdaGrindNonceCells_eq, Batch.sumcheckRoundCells_eq]
   rfl
 

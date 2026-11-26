@@ -15,9 +15,8 @@ argument overrides it) and on leanSPHINCS's known answer (`lean_sphincs/tests/le
 * by default, leanSPHINCS's and leanXMSS's verification (`verify`), leanXMSS's signature's leaf
   index (`signature_index`), and the verification of leanSPHINCS's known answer, which must accept,
   and of the same signature with one byte flipped, which must reject;
-* with `--xmss-sign`, leanXMSS's key generation and signing (`key_gen`, `sign`): slow (the
-  statement's hashes go through its byte and bit-vector conversions, and a key builds a tree of
-  `2^16` one-time keys), so run by hand.
+* with `--xmss-sign`, leanXMSS's key generation and signing (`key_gen`, `sign`): slow (a key
+  builds a tree of `2^16` one-time keys), so run by hand.
 
 leanSPHINCS's key generation and signing (its EthLib `key_gen` and `sign` cases, and the known
 answer) are `lean_sphincs`'s `signature-kat`, which compiles the statement's signer with the
@@ -50,8 +49,12 @@ def field (text : String) (key : String) : Option String :=
       some (((t.drop (key.length + 2)).toString.replace "'" "").replace "\"" "")
     else none
 
-/-- A leanXMSS public key: the root, then the parameter. -/
-def publicKeyOf (bytes : List Nat) : PublicKey := ⟨digestAt bytes 0, digestAt bytes 16⟩
+/-- The bytes as a byte array. -/
+def byteArray (bytes : List Nat) : ByteArray := ⟨(bytes.map Nat.toUInt8).toArray⟩
+
+/-- A leanXMSS public key: the root, then the parameter (EthLib's `decodePublicKey`). -/
+def publicKeyOf (bytes : List Nat) : Option EthLib.Cryptography.Xmss.PublicKey :=
+  (EthLib.Cryptography.Xmss.decodePublicKey (byteArray bytes)).toOption
 
 /-- A leanSPHINCS public key: `PK.seed`, then `PK.root` (`from_bytes`,
 `lean_sphincs/scheme.rs`). -/
@@ -71,13 +74,9 @@ def sphincsSignatureOf (bytes : List Nat) : Sphincs.Signature :=
       fun level => digestAt bytes (layerStart layer + 4 + 1024 + 16 * level.val)⟩⟩
 
 /-- A leanXMSS signature (`sign/format.md`): the 4-byte leaf index, then the bottom and top
-layers, each a randomizer, 58 chain values and 16 siblings. -/
-def xmssSignatureOf (bytes : List Nat) : LeanXmss.Signature :=
-  let layerStart (layer : LeanXmss.Layer) : Nat := 4 + 1200 * layer.val
-  ⟨(bitsLE 32 (bytes.take 4)).toFin,
-    fun layer => ⟨digestAt bytes (layerStart layer),
-      fun chain => digestAt bytes (layerStart layer + 16 + 16 * chain.val),
-      fun level => digestAt bytes (layerStart layer + 16 + 928 + 16 * level.val)⟩⟩
+layers, each a randomizer, 58 chain values and 16 siblings (EthLib's `decodeSignature`). -/
+def xmssSignatureOf (bytes : List Nat) : Option EthLib.Cryptography.Xmss.Signature :=
+  (EthLib.Cryptography.Xmss.decodeSignature (byteArray bytes)).toOption
 
 /-- A case's verdict. -/
 inductive Verdict where
@@ -90,20 +89,24 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
   let bytes (key : String) : List Nat := hexBytes ((field text key).getD "")
   match kind with
   | "xmss/key_gen" =>
-    let key := (Id.run (LeanXmss.KeyGenerationAndSigning.keygenFromSeed (m := Id)
-      LeanVM.Semantics.keccakF1600 (bitsLE 256 (bytes "seed")))).1
-    return if key == publicKeyOf (hexBytes output) then .pass else .fail
+    let key := (Id.run (EthLib.Cryptography.Xmss.keyGenWith (LeanXmss.xmssHash (m
+        := Id) LeanVM.Semantics.keccakF1600)
+      (LeanXmss.lanesOfBits (bitsLE 256 (bytes "seed"))))).1
+    return if some key == publicKeyOf (hexBytes output) then .pass else .fail
   | "xmss/sign" =>
-    let (_, secretKey) := Id.run (LeanXmss.KeyGenerationAndSigning.keygenFromSeed (m := Id)
-      LeanVM.Semantics.keccakF1600 (bitsLE 256 (bytes "seed")))
+    let (_, secretKey) := Id.run (EthLib.Cryptography.Xmss.keyGenWith
+      (LeanXmss.xmssHash (m := Id) LeanVM.Semantics.keccakF1600)
+      (LeanXmss.lanesOfBits (bitsLE 256 (bytes "seed"))))
     let index := (field text "leaf_index").bind String.toNat? |>.getD 0
-    let signature := Id.run (LeanXmss.KeyGenerationAndSigning.sign (m := Id)
-      LeanVM.Semantics.keccakF1600 secretKey (BitVec.ofNat 32 index).toFin
-      (bitsLE 256 (bytes "message")))
-    return if signature == some (xmssSignatureOf (hexBytes output)) then .pass else .fail
+    let signature := (Id.run (EthLib.Cryptography.Xmss.signWith
+      (LeanXmss.xmssHash (m := Id) LeanVM.Semantics.keccakF1600) secretKey (UInt32.ofNat index)
+      (LeanXmss.lanesOfBits (bitsLE 256 (bytes "message"))))).1.toOption
+    return if signature == xmssSignatureOf (hexBytes output) then .pass else .fail
   | "xmss/verify" =>
-    let ok := LeanXmss.verifyWithKeccak (publicKeyOf (bytes "public_key"))
-      (bitsLE 256 (bytes "message")) (xmssSignatureOf (bytes "signature"))
+    let ok := match publicKeyOf (bytes "public_key"), xmssSignatureOf (bytes "signature") with
+      | some key, some signature => LeanXmss.verifyWithKeccak key
+          (LeanXmss.lanesOfBits (bitsLE 256 (bytes "message"))) signature
+      | _, _ => false
     return if ok == (output == "true") then .pass else .fail
   | "sphincs/verify" =>
     let ok := Sphincs.verifyWithKeccak (sphincsPublicKeyOf (bytes "public_key"))
@@ -112,7 +115,8 @@ def runCase (kind : String) (text : String) : Verdict := Id.run do
   | "xmss/signature_index" =>
     let sig := bytes "signature"
     if sig.length != 2404 then return .skip
-    return if (xmssSignatureOf sig).leafIndex.val == output.toNat?.getD 0 then .pass else .fail
+    let index := (EthLib.Cryptography.Xmss.signatureIndex (byteArray sig)).toOption
+    return if index.map (·.toNat) == output.toNat? then .pass else .fail
   | _ => return .fail
 
 /-- The known answer's message `m[i] = 7 i + 3` (`known_answer`, `tests/lean_sphincs/scheme.rs`;

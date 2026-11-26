@@ -99,20 +99,33 @@ instance : MachineDecoding Opening where
 instance : MachineDecoding Proof where
   decodeValue | .constructor 0 [s, o] => do pure ⟨← decodeValue s, ← decodeValue o⟩ | _ => none
 
-instance : MachineDecoding HashSig.PublicKey where
+/-- A word of `32` bits: its number modulo `2^32`. -/
+instance : MachineDecoding UInt32 where
+  decodeValue | .nat n => some (UInt32.ofNat n) | _ => none
+
+/-- Two lanes: the number of their `16` bytes, split into its two words. -/
+instance : MachineDecoding EthLib.Cryptography.Hash.Keccak.Lanes2 where
+  decodeValue | .nat n => some ⟨n.toUInt64, (n / 2 ^ 64).toUInt64⟩ | _ => none
+
+instance : MachineDecoding EthLib.Cryptography.Xmss.PublicKey where
   decodeValue | .constructor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
 
 instance : MachineDecoding Sphincs.PublicKey where
   decodeValue | .constructor 0 [r, p] => do pure ⟨← decodeValue r, ← decodeValue p⟩ | _ => none
 
-instance : MachineDecoding LeanXmss.LayerSignature where
+instance : MachineDecoding EthLib.Cryptography.Xmss.LayerSignature where
   decodeValue
     | .constructor 0 [r, c, p] =>
       do pure ⟨← decodeValue r, ← decodeValue c, ← decodeValue p⟩
     | _ => none
 
-instance : MachineDecoding LeanXmss.Signature where
-  decodeValue | .constructor 0 [i, l] => do pure ⟨← decodeValue i, ← decodeValue l⟩ | _ => none
+instance : MachineDecoding EthLib.Cryptography.Xmss.Signature where
+  decodeValue
+    | .constructor 0 [i, .array ls] =>
+      match ls.toList with
+      | [b, t] => do pure ⟨← decodeValue i, ← decodeValue b, ← decodeValue t⟩
+      | _ => none
+    | _ => none
 
 instance : MachineDecoding Sphincs.ForsTreeOpening where
   decodeValue | .constructor 0 [s, p] => do pure ⟨← decodeValue s, ← decodeValue p⟩ | _ => none
@@ -272,19 +285,41 @@ instance : LawfulMachineDecoding Opening := ⟨fun ⟨i, l, p⟩ ↦ by
 instance : LawfulMachineDecoding Proof := ⟨fun ⟨s, o⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue o)⟩ : Option Proof) = _; simp⟩
 
-instance : LawfulMachineDecoding HashSig.PublicKey := ⟨fun ⟨r, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue p)⟩ : Option HashSig.PublicKey) = _; simp⟩
+instance : LawfulMachineDecoding UInt32 := ⟨fun x ↦ by
+  show some (UInt32.ofNat x.toNat) = some x; simp⟩
+
+instance : LawfulMachineDecoding EthLib.Cryptography.Hash.Keccak.Lanes2 := ⟨fun w ↦ by
+  have hlo := w.lo.toNat_lt
+  have hhi := w.hi.toNat_lt
+  show some (⟨(w.lo.toNat + 2 ^ 64 * w.hi.toNat).toUInt64,
+    ((w.lo.toNat + 2 ^ 64 * w.hi.toNat) / 2 ^ 64).toUInt64⟩ :
+      EthLib.Cryptography.Hash.Keccak.Lanes2) = some w
+  congr 1
+  ext
+  · apply UInt64.toNat_inj.mp
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat']
+    omega
+  · apply UInt64.toNat_inj.mp
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat']
+    omega⟩
+
+instance : LawfulMachineDecoding EthLib.Cryptography.Xmss.PublicKey := ⟨fun ⟨r, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue p)⟩ :
+    Option EthLib.Cryptography.Xmss.PublicKey) = _; simp⟩
 
 instance : LawfulMachineDecoding Sphincs.PublicKey := ⟨fun ⟨r, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue p)⟩ : Option Sphincs.PublicKey) = _; simp⟩
 
-instance : LawfulMachineDecoding LeanXmss.LayerSignature := ⟨fun ⟨r, c, p⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue c), ← decodeValue (encodeValue p)⟩ :
-    Option LeanXmss.LayerSignature) = _
+instance : LawfulMachineDecoding EthLib.Cryptography.Xmss.LayerSignature := ⟨fun ⟨r, c, p⟩ ↦ by
+  show (do pure ⟨← decodeValue (encodeValue r), ← decodeValue (encodeValue c),
+    ← decodeValue (encodeValue p)⟩ : Option EthLib.Cryptography.Xmss.LayerSignature) = _
   simp⟩
 
-instance : LawfulMachineDecoding LeanXmss.Signature := ⟨fun ⟨i, l⟩ ↦ by
-  show (do pure ⟨← decodeValue (encodeValue i), ← decodeValue (encodeValue l)⟩ : Option LeanXmss.Signature) = _; simp⟩
+instance : LawfulMachineDecoding EthLib.Cryptography.Xmss.Signature := ⟨fun ⟨i, b, t⟩ ↦ by
+  show (match (#[encodeValue b, encodeValue t] : Array MachineValue).toList with
+    | [b', t'] => do pure ⟨← decodeValue (encodeValue i), ← decodeValue b', ← decodeValue t'⟩
+    | _ => none : Option EthLib.Cryptography.Xmss.Signature) = _
+  simp⟩
 
 instance : LawfulMachineDecoding Sphincs.ForsTreeOpening := ⟨fun ⟨s, p⟩ ↦ by
   show (do pure ⟨← decodeValue (encodeValue s), ← decodeValue (encodeValue p)⟩ : Option Sphincs.ForsTreeOpening) = _; simp⟩

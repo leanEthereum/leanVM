@@ -37,7 +37,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 @[expose] public section
 
 /-- **`main`'s witness, decoded from the frame map `V`**, the leanXMSS reader `sigOf`. -/
-noncomputable def decWitVX (sigOf : Val → LeanXmss.Signature) (σ : Val) (rd : Reader)
+noncomputable def decWitVX (sigOf : Val → EthLib.Cryptography.Xmss.Signature) (σ : Val) (rd :
+    Reader)
     (V : FrameMap) (piOf : Reader → Val → FrameMap → Proof) : NodeWitness :=
   decWit σ rd (fun args => sigOf (V name% «main_loop2» args []))
     (fun p => Sig.sphincsSigOf (V "verify_sig_lean_sphincs" [p, σ (.n (val% «main» "byte_bits"))] []) V)
@@ -64,7 +65,7 @@ def SubSoundW (bytecode : List K) (piOf : Reader → Val → FrameMap → Proof)
 /-- **`main` is sound, its witness decoded from the frame map**, the leanXMSS reader `sigOf`,
 given the segment's statement and `verify_sub`'s with its proof named. -/
 theorem main_sound_VX {bytecode : List K} {piOf : Reader → Val → FrameMap → Proof}
-    {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
+    {sigOf : Val → EthLib.Cryptography.Xmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
     (hv : SubSoundW bytecode piOf) :
     bytecode.length = 2 ^ bytecodeVars → ∀ (rd : Reader), MemOk rd → ∀ (C : CallRel) (V : FrameMap),
       UnfoldsV rd C V → CallRel.Le C (coreProgram.Rel rd) → ∀ (D : Digest) (σ : Val),

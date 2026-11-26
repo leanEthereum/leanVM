@@ -1,5 +1,6 @@
 module
 
+public import LeanVM.Cost.Shapes
 public import LeanVM.Guest.Fast.XmssTables
 public import LeanVM.Guest.Fast.LogG
 public import LeanVM.Guest.Fast.Common
@@ -91,28 +92,33 @@ def lxSibAt (w k r : ℕ) : ℕ :=
   else if r = 7 then lxArmBase w k + 6 * r + 2 else lxArmBase w k + 6 * r + 3
 
 /-- **A layer's signature, off the tables `T`**: the windows' arms `kw` given. -/
-def xPartA (T : XmssTabs) (kw : List ℕ) (layer : ℕ) (σ : Val) : LeanXmss.LayerSignature :=
+def xPartA (T : XmssTabs) (kw : List ℕ) (layer : ℕ) (σ : Val) :
+    EthLib.Cryptography.Xmss.LayerSignature :=
   let ks := lxArmsTaken T.lanes σ (lxDigitBase layer)
-  ⟨xv (σ (.n (lxRhoCell layer))),
-    fun i ↦ xv (σ (.n (lxChainCell T ks (lxDigitBase layer + 70) i.val))),
-    fun l ↦ xv (σ (.n (lxSibAt (2 * layer + l.val / 8) (kw.getD (2 * layer + l.val / 8) 0)
-      (l.val % 8))))⟩
+  ⟨xl (σ (.n (lxRhoCell layer))),
+    Vector.ofFn fun i : Fin EthLib.Cryptography.Xmss.Constants.V ↦
+      xl (σ (.n (lxChainCell T ks (lxDigitBase layer + 70) i.val))),
+    Vector.ofFn fun l : Fin EthLib.Cryptography.Xmss.Constants.LAYER_HEIGHT ↦
+      xl (σ (.n (lxSibAt (2 * layer + l.val / 8) (kw.getD (2 * layer + l.val / 8) 0)
+        (l.val % 8))))⟩
 
 /-- The leaf index from the windows' arms `kw` (`lxIndex`), below `2^32`. -/
 def lxLeafOf (kw : List ℕ) : ℕ :=
   (kw.getD 0 0 + 256 * kw.getD 1 0 + 65536 * kw.getD 2 0 + 16777216 * kw.getD 3 0) % 2 ^ 32
 
 theorem lxLeafOf_lt (kw : List ℕ) :
-    lxLeafOf kw < LeanXmss.lifetime :=
-  Nat.mod_lt _ (by norm_num)
+    lxLeafOf kw < UInt32.size :=
+  Nat.mod_lt _ (by norm_num [UInt32.size])
 
-/-- **The leanXMSS signature `main_loop2`'s iteration checks, off the tables `T`**, from its frame. -/
-def xmssSigOfA (T : XmssTabs) (σ : Val) : LeanXmss.Signature :=
+/-- **The leanXMSS signature `main_loop2`'s iteration checks, off the tables `T`**, from its frame:
+the leaf index, then the function of its two layers. -/
+def xmssSigOfA (T : XmssTabs) (σ : Val) : EthLib.Cryptography.Xmss.Signature :=
   let kw := (List.range 4).map fun w ↦ logGTWith T.lanes (σ (.n (71 + w))) 256
-  ⟨⟨lxLeafOf kw, lxLeafOf_lt kw⟩, fun lay ↦ xPartA T kw lay.val σ⟩
+  LeanVM.Cost.sigOf2 EthLib.Cryptography.Xmss.Signature.mk
+    (UInt32.ofNatLT (lxLeafOf kw) (lxLeafOf_lt kw)) fun lay ↦ xPartA T kw lay.val σ
 
 /-- **The leanXMSS signature `main_loop2`'s iteration checks**, off the tables built. -/
-def xmssSigOfN (σ : Val) : LeanXmss.Signature := xmssSigOfA xmssTabs σ
+def xmssSigOfN (σ : Val) : EthLib.Cryptography.Xmss.Signature := xmssSigOfA xmssTabs σ
 
 theorem xmssSigOfA_tabs (σ : Val) : xmssSigOfA xmssTabs σ = xmssSigOfN σ := rfl
 
@@ -312,24 +318,32 @@ theorem xPartA_eq (σ : Val) {layer b : ℕ} (hL : layer < 2) (hρ : sRho layer 
       sPart layer b σ := by
   unfold xPartA sPart
   dsimp only
-  rw [LeanXmss.LayerSignature.mk.injEq]
-  refine ⟨by rw [hρ], funext fun i ↦ ?_, funext fun l ↦ ?_⟩
-  · rw [sStart_eq (W := sW layer b) rfl σ _ _ i.val i.2, hA]
+  rw [EthLib.Cryptography.Xmss.LayerSignature.mk.injEq]
+  refine ⟨by rw [hρ], ?_, ?_⟩
+  · apply Vector.ext
+    intro i hi
+    have hi58 : i < 58 := hi
+    simp only [Vector.getElem_ofFn]
+    rw [sStart_eq (W := sW layer b) rfl σ _ _ i hi58, hA]
     unfold lxChainCell
     rw [lxGroupTab_eq, offAtA_tabA]
     simp only [xmssTabs]
-    rw [lxArmsTaken_getD σ _ (by have := i.2; simp only [LeanXmss.chainCount] at this; omega)]
-  · have hl : l.val < 16 := l.2
-    rw [sSibAt_eq σ hL hl h0 h1, kw_getD σ (by omega)]
+    rw [lxArmsTaken_getD σ _ (by omega)]
+  · apply Vector.ext
+    intro l hl
+    have hl16 : l < 16 := hl
+    simp only [Vector.getElem_ofFn]
+    rw [sSibAt_eq σ hL hl16 h0 h1, kw_getD σ (by omega)]
 
 /-- **The reader is `xmssSigOf`**: off the tables built, the leanXMSS signature `main_loop2`'s
 iteration checks is the one its soundness reads (`B1/Sig/XmssSegSound.lean`). -/
 theorem xmssSigOfN_eq (σ : Val) : xmssSigOfN σ = xmssSigOf σ := by
-  unfold xmssSigOfN xmssSigOfA xmssSigOf
+  unfold xmssSigOfN xmssSigOfA xmssSigOf LeanVM.Cost.sigOf2
   dsimp only
-  rw [LeanXmss.Signature.mk.injEq]
-  refine ⟨Fin.ext ?_, funext fun lay ↦ ?_⟩
-  · show lxLeafOf _ = lxIndex (sKw σ)
+  rw [EthLib.Cryptography.Xmss.Signature.mk.injEq]
+  refine ⟨?_, ?_, ?_⟩
+  · apply UInt32.toNat_inj.mp
+    rw [UInt32.toNat_ofNatLT, UInt32.toNat_ofNatLT]
     have hlt := lxIndex_lt (k := sKw σ) (fun w _ ↦ sKw_lt σ w)
     unfold lxIndex at hlt ⊢
     unfold lxLeafOf
@@ -337,16 +351,11 @@ theorem xmssSigOfN_eq (σ : Val) : xmssSigOfN σ = xmssSigOf σ := by
     rw [kw_getD σ (by norm_num : 0 < 4), kw_getD σ (by norm_num : 1 < 4),
       kw_getD σ (by norm_num : 2 < 4), kw_getD σ (by norm_num : 3 < 4)]
     exact Nat.mod_eq_of_lt hlt
-  · obtain ⟨v, hv⟩ := lay
-    have hv2 : v < 2 := hv
-    simp only [xmssTabs]
-    interval_cases v
-    · simp only [show (⟨0, hv⟩ : LeanXmss.Layer) = LeanXmss.bottomLayer from rfl, ↓reduceIte]
-      exact xPartA_eq σ (by norm_num) rfl rfl (by rw [lxLeafK0]; rfl) (by rw [lxWin00]; rfl)
-    · have hne : (⟨1, hv⟩ : LeanXmss.Layer) ≠ LeanXmss.bottomLayer :=
-        fun h ↦ absurd (congrArg Fin.val h) (by simp [LeanXmss.bottomLayer])
-      simp only [hne, ↓reduceIte, lxLayer0_end]
-      exact xPartA_eq σ (by norm_num) rfl rfl (by rw [lxLeafK1]; rfl) (by rw [lxWin01]; rfl)
+  · exact xPartA_eq σ (layer := 0) (b := 88) (by norm_num) rfl rfl (by rw [lxLeafK0]; rfl)
+      (by rw [lxWin00]; rfl)
+  · rw [lxLayer0_end]
+    exact xPartA_eq σ (layer := 1) (by norm_num) rfl rfl (by rw [lxLeafK1]; rfl)
+      (by rw [lxWin01]; rfl)
 
 end
 end LeanVM.Guest.Fast

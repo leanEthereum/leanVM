@@ -33,7 +33,7 @@ open LeanVM.Guest.Fast in
 /-- The leanXMSS signature `main_loop2`'s iteration on `args` checks (index `37`: the check is
 inline there), the readers' tables `R` given. -/
 noncomputable def xmssAtFrame (R : ReaderTabs) (Vn : NFrames) (args : List E) :
-    LeanXmss.Signature :=
+    EthLib.Cryptography.Xmss.Signature :=
   xmssSigOfA R.xmss (Vn (fn_idx% main_loop2) args [])
 
 open LeanVM.Guest.Fast in

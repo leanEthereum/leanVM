@@ -9,10 +9,13 @@ module
 
 public import LeanVM.Guest.Hints
 public import LeanVM.Cli.Common
+public import EthLib.Cryptography.Proofs.HashSig.Lanes
 
 @[expose] public section
 
 namespace LeanVM.Cli.GuestCase
+
+open EthLib.Cryptography.HashSig (ofDigestLanes)
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Guest
@@ -80,7 +83,9 @@ def deferR : R DeferredBytecodeClaim := do
 
 def statementR : R NodeStatement := do
   expect "xmss"
-  let xmss ← many do let ((r, p), m) ← claimR; return ((⟨r, p⟩ : HashSig.PublicKey), m)
+  let xmss ← many do
+    let ((r, p), m) ← claimR
+    return ((⟨ofDigestLanes r, ofDigestLanes p⟩ : EthLib.Cryptography.Xmss.PublicKey), m)
   expect "sphincs"
   let sphincs ← many do let ((p, r), m) ← claimR; return ((⟨p, r⟩ : Sphincs.PublicKey), m)
   expect "da"
@@ -99,13 +104,17 @@ def childR : R Child := do
 
 def fn128 {n : Nat} (xs : List (BitVec 128)) : Fin n → BitVec 128 := fun i => xs.getD i 0
 
-def xmssSigR : R LeanXmss.Signature := do
+def lanesVec128 {n : Nat} (xs : List (BitVec 128)) : Vector EthLib.Cryptography.Hash.Keccak.Lanes2 n
+    :=
+  Vector.ofFn fun i => ofDigestLanes (xs.getD i 0)
+
+def xmssSigR : R EthLib.Cryptography.Xmss.Signature := do
   let index ← nat
-  let layer : R LeanXmss.LayerSignature := do
-    return ⟨← d128, fn128 (← many d128), fn128 (← many d128)⟩
+  let layer : R EthLib.Cryptography.Xmss.LayerSignature := do
+    return ⟨ofDigestLanes (← d128), lanesVec128 (← many d128), lanesVec128 (← many d128)⟩
   let bottom ← layer
   let top ← layer
-  return ⟨⟨index % 2 ^ 32, Nat.mod_lt _ (by decide)⟩, fun l => if l.val = 0 then bottom else top⟩
+  return ⟨UInt32.ofNat index, bottom, top⟩
 
 def sphincsSigR : R Sphincs.Signature := do
   let randomizer ← d128
@@ -119,9 +128,10 @@ def sphincsSigR : R Sphincs.Signature := do
   return ⟨randomizer, fun c => fors.getD c ⟨0, fun _ => 0⟩, layer⟩
 
 /-- A raw leanXMSS signature with its claim. -/
-def rawXmssR : R (LeanXmssClaim × LeanXmss.Signature) := do
+def rawXmssR : R (LeanXmssClaim × EthLib.Cryptography.Xmss.Signature) := do
   let ((r, p), m) ← claimR
-  return (((⟨r, p⟩ : HashSig.PublicKey), m), ← xmssSigR)
+  return (((⟨ofDigestLanes r, ofDigestLanes p⟩ : EthLib.Cryptography.Xmss.PublicKey), m),
+      ← xmssSigR)
 
 /-- A raw leanSPHINCS signature with its claim. -/
 def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do

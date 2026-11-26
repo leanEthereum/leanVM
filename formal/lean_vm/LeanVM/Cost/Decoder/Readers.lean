@@ -16,7 +16,8 @@ own, under the statement's encodings of their values (`Statement/LeanVmGuest.lea
 
 * the cells' digests and claims: `digestOfCells`, `deferOfCells`, `fixedOfCells`, and a
   signature claim's four cells (`Sig.xmssClaimOf`, `Sig.sphincsClaimOf`; a bit vector of cells
-  through `cellVal_eq`, `cellPairVal_eq`: its number, a `BitVec.ofFin`);
+  through `cellVal_eq`, `cellPairVal_eq`: its number, a `BitVec.ofFin`; an XMSS claim's halves
+  are lanes, through `xl_eq`);
 * the memory's cells (`cellAt`, `readCells`, `slotCells`), the claims of a table's slots
   (`xmssAt`, `sphincsAt`), a DA digest's slot (`daDigestAt`);
 * **the seed** (`decSeed`) and **the statement** (`decStmt`; compiled `decStmtD`, the
@@ -52,6 +53,23 @@ theorem cellNat_lt (c : E) : Sig.cellNat c < 2 ^ 128 := by
 theorem cellVal_eq (c : E) : Sig.cellVal c = BitVec.ofFin ⟨Sig.cellNat c, cellNat_lt c⟩ :=
   BitVec.eq_of_toNat_eq (by rw [Sig.toNat_cellVal]; rfl)
 cost_rewrite cellVal_eq
+
+/-- A cell's two lanes, from the number of its `128` bits. -/
+theorem xl_eq (c : E) : Sig.xl c = LeanVM.Cost.lanes2OfFin ⟨Sig.cellNat c, cellNat_lt c⟩ := by
+  have h0 := LeanVM.Guest.Value.kToNat_lt (c.limb 0)
+  have h1 := LeanVM.Guest.Value.kToNat_lt (c.limb 1)
+  have hc : Sig.cellNat c = LeanVM.Protocol.Verifier.kToNat (c.limb 0) +
+      2 ^ 64 * LeanVM.Protocol.Verifier.kToNat (c.limb 1) := rfl
+  ext
+  · apply UInt64.toNat_inj.mp
+    show LeanVM.Protocol.Verifier.kToNat (c.limb 0) = (Sig.cellNat c).toUInt64.toNat
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat', hc]
+    omega
+  · apply UInt64.toNat_inj.mp
+    show LeanVM.Protocol.Verifier.kToNat (c.limb 1) = ((Sig.cellNat c) / 2 ^ 64).toUInt64.toNat
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat', hc]
+    omega
+cost_rewrite xl_eq
 
 /-- Two cells' `256` bits, as their number. -/
 theorem cellPairVal_eq (lo hi : E) : Sig.cellPairVal lo hi =

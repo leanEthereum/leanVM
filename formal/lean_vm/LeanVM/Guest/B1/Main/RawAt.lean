@@ -58,15 +58,16 @@ open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul)
 /-- **The raw leanXMSS signatures' honest data.** -/
 structure RawXData (nrx X cv tb : ℕ) (Lin : Layout) where
   slot : ℕ → ℕ
-  pk : ℕ → HashSig.PublicKey
+  pk : ℕ → EthLib.Cryptography.Xmss.PublicKey
   msg : ℕ → HashSig.Message
-  sig : ℕ → LeanXmss.Signature
+  sig : ℕ → EthLib.Cryptography.Xmss.Signature
   slot_lt : ∀ i < nrx, slot i < X
-  verify : ∀ i < nrx, LeanXmss.verifyWithKeccak (pk i) (msg i) (sig i) = true
+  verify : ∀ i < nrx,
+    LeanXmss.verifyWithKeccak (pk i) (LeanXmss.lanesOfBits (msg i)) (sig i) = true
   cover : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ i < nrx, LoadHolds rd (gen ^ cv) (slot i) (gen ^ i)
   claim : ∀ rd, LowDef 23 rd → MemL rd Lin → ∀ i < nrx,
-    Sig.ClaimAt rd (gen ^ (tb + 4 * slot i)) (Sig.cellOf128 (pk i).root)
-      (Sig.cellOf128 (pk i).parameter) (Sig.cellOf128 ((msg i).extractLsb' 0 128))
+    Sig.ClaimAt rd (gen ^ (tb + 4 * slot i)) (Sig.xc (pk i).root)
+      (Sig.xc (pk i).publicParam) (Sig.cellOf128 ((msg i).extractLsb' 0 128))
       (Sig.cellOf128 ((msg i).extractLsb' 128 128))
   regCover : ∀ i < nrx, RegionL Lin (cv + slot i)
   regClaim : ∀ i < nrx, ∀ k < 4, RegionL Lin (tb + 4 * slot i + k)

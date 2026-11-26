@@ -314,6 +314,7 @@ export MachineEncoding (encodeValue)
 open LeanVM.Parameters LeanVM.Semantics Common LeanVM.Protocol.Compile
 
 instance : MachineEncoding UInt64 := ⟨fun x ↦ .nat x.toNat⟩
+instance : MachineEncoding UInt32 := ⟨fun x ↦ .nat x.toNat⟩
 instance : MachineEncoding ℕ := ⟨.nat⟩
 instance {n : ℕ} : MachineEncoding (Fin n) := ⟨fun i ↦ .nat i.val⟩
 instance : MachineEncoding Bool := ⟨MachineValue.ofBool⟩

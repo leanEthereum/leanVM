@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Sig.Codeword
 public import LeanVM.Guest.B1.Sig.Shifts
 public import LeanVM.Guest.B1.Sig.Digest80
 public import LeanVM.Guest.B1.Sig.XmssT
+public import LeanVM.Guest.B1.Sig.XmssScheme
 public import Common.WithHash
 public import LeanVM.Guest.WithHash
 
@@ -19,14 +20,16 @@ public import LeanVM.Guest.WithHash
 `xIdxNat layer L`: the layer's index, the leaf index's key, the top layer's bit `55` set.
 `xStepAddrs_sound`: the step addresses' atoms holding, they hold the index's word plus their
 constants. `xStepAdr_bytes`, `xLeafAdr_bytes`, `xMsgAdr_bytes`, `xNodeAdr_bytes`: the chain step,
-leaf, message and node address cells' bytes are leanXMSS's addresses'. `bytesLE_cellPairVal`: a
-message's bytes are its two cells'. `chainT_eq_xChain'`: a chain is leanXMSS's chain.
+leaf, message and node address cells' bytes are EthLib's addresses' encodings.
+`bytesLE_cellPairVal`: a message's bytes are its two cells' (`lanesBytes_msg`, as four lanes).
+`chainT_eq_xChain'`: a chain is `xChain`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
+open EthLib.Cryptography
 
 @[expose] public section
 
@@ -73,6 +76,12 @@ theorem bytesLE_cellPairVal (c d : E) : HashSig.littleEndianBytes 32 (cellPairVa
     show (2 : Nat) ^ 128 = 256 ^ 16 by norm_num, show 32 = 16 + 16 from rfl,
     leBytes_add_mul _ _ _ _ (by norm_num; omega)]
 
+/-- A message as four lanes has its two cells' bytes, the first low. -/
+theorem lanesBytes_msg (c d : E) :
+    EthLib.Cryptography.Hash.Keccak.lanesBytes (LeanXmss.lanesOfBits (cellPairVal c d)).toArray =
+      cellBytes c ++ cellBytes d := by
+  rw [EthLib.Cryptography.Hash.Keccak.lanesBytes_lanes4, lanesOfBits_bytes, bytesLE_cellPairVal]
+
 /-! ## The target sum -/
 
 theorem xTarget_eq : xTarget = gen ^ 106 := by
@@ -106,11 +115,6 @@ theorem xStepAddrs_atoms (idx : V) (a : Nat) : atomsOnly (xStepAddrs idx a) = tr
 
 theorem atomsOnly_cst_addS (c : Nat) (w : E) (d x y : V) : atomsOnly [cst c w, addS d x y] = true := rfl
 
-/-- The key of layer `layer` a leaf index signs with. -/
-theorem keyAt_val (L : Nat) (hL : L < 2 ^ 32) (layer : Nat) (hl : layer < 2) :
-    (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val = L >>> (16 * layer) := by
-  simp [LeanXmss.keyIndexOnLayer, LeanXmss.layerHeight, Nat.shiftRight_eq_div_pow]
-
 theorem chainT_eq_xChain' {f : Nat → Nat → E → E} {pp : E} {adr : Nat → E} {i : Nat}
     (hf : ∀ s y, f i s y = (hcell [pp, adr s, y, eOfNat i]).1) :
     ∀ (m s : Nat) (x : E), chainT f i m s x = xChain pp adr i m s x
@@ -122,81 +126,75 @@ theorem chainT_eq_xChain' {f : Nat → Nat → E → E} {pp : E} {adr : Nat → 
 /-- **The chain step addresses.** -/
 theorem xStepAdr_bytes {L layer s : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hs : s < 3) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 1 + s * stepMul) 0) =
-      LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩) ⟨s, by
-        simp [HashSig.chainLength, HashSig.winternitzBits]; omega⟩) := by
+      (Xmss.Address.chain (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))
+        ⟨s, by rw [Xmss.Constants.chain_length_eq]; omega⟩).encode.bytes.toList := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)
-      ⟨s, _⟩) =
-      LeanXmss.addressBytes (LeanXmss.tweakFields 1 s (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
-      rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
+  have hN : (Xmss.Address.chain (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))
+      ⟨s, by rw [Xmss.Constants.chain_length_eq]; omega⟩).encode.toNat =
+      L >>> (16 * layer) + 2 ^ 32 * (2 ^ 23 * layer) + 2 ^ 56 * (1 + 32 * s) := by
+    rw [Xmss.Address.toNat_encode_chain, UInt32.toNat_ofNat_of_lt' hk, toNat_lyr hl]
+  rw [← cellBytes_address hN (by interval_cases layer <;> interval_cases s <;> omega), xIdxNat,
     show tw 1 + s * stepMul = 2 ^ 32 * (2 ^ 24 + 2 ^ 29 * s) by simp [tw, stepMul]; ring,
     idx_add_word hk]
   congr 2
-  unfold addrNat
-  rw [Nat.mod_eq_of_lt hk]
   interval_cases layer <;> interval_cases s <;> norm_num <;> omega
 
 /-- **The leaf address.** -/
 theorem xLeafAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 2) 0) =
-      LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) := by
+      (Xmss.Address.leaf (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.bytes.toList := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) =
-      LeanXmss.addressBytes (LeanXmss.tweakFields 2 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
-      rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
+  have hN : (Xmss.Address.leaf (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.toNat =
+      L >>> (16 * layer) + 2 ^ 32 * (2 ^ 23 * layer) + 2 ^ 56 * 2 := by
+    rw [Xmss.Address.toNat_encode_leaf, UInt32.toNat_ofNat_of_lt' hk, toNat_lyr hl]
+  rw [← cellBytes_address hN (by interval_cases layer <;> omega), xIdxNat,
     show tw 2 = 2 ^ 32 * 2 ^ 25 by simp [tw], idx_add_word hk]
   congr 2
-  unfold addrNat
-  rw [Nat.mod_eq_of_lt hk]
   interval_cases layer <;> norm_num <;> omega
 
 /-- **The message address.** -/
 theorem xMsgAdr_bytes {L layer : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) :
     cellBytes (eOfNat (xIdxNat layer L) + word (tw 12) 0) =
-      LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
-          hl⟩)) := by
+      (Xmss.Address.msg (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.bytes.toList := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer,
-      hl⟩)) =
-      LeanXmss.addressBytes (LeanXmss.tweakFields 12 0 (0 + 2 ^ 23 * layer) (L >>> (16 * layer))) by
-      rw [← keyAt_val L hL layer hl]; rfl, fieldBytes_tweakFields, xIdxNat,
+  have hN : (Xmss.Address.msg (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.toNat =
+      L >>> (16 * layer) + 2 ^ 32 * (2 ^ 23 * layer) + 2 ^ 56 * 12 := by
+    rw [Xmss.Address.toNat_encode_msg, UInt32.toNat_ofNat_of_lt' hk, toNat_lyr hl]
+  rw [← cellBytes_address hN (by interval_cases layer <;> omega), xIdxNat,
     show tw 12 = 2 ^ 32 * (12 * 2 ^ 24) by simp [tw], idx_add_word hk]
   congr 2
-  unfold addrNat
-  rw [Nat.mod_eq_of_lt hk]
   interval_cases layer <;> norm_num <;> omega
 
 /-- **The node addresses**: level `l`'s, the parent's index added unless it is the root. -/
 theorem xNodeAdr_bytes {L layer l : Nat} (hL : L < 2 ^ 32) (hl : layer < 2) (hl16 : l < 16) :
     cellBytes (word (xAddrOf layer l) 0 + (if 16 * layer + l + 1 = 32 then 0 else
         eOfNat (L >>> (16 * layer + l + 1)))) =
-      LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
-        ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) := by
+      (Xmss.Address.node (lyr layer) ⟨l + 1, by rw [Xmss.Constants.layer_height_eq]; omega⟩
+        (UInt32.ofNat (L >>> (16 * layer) / 2 ^ (l + 1)))).encode.bytes.toList := by
   have hk := key_lt L layer hL
-  rw [show LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1)
-        ((LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩).val / 2 ^ (l + 1))) =
-      LeanXmss.addressBytes (LeanXmss.tweakFields 3 0 (l + 1 + 2 ^ 23 * layer)
-        ((L >>> (16 * layer)) / 2 ^ (l + 1))) by rw [← keyAt_val L hL layer hl]; rfl,
-    fieldBytes_tweakFields,
-    show xAddrOf layer l = 2 ^ 32 * (3 * 2 ^ 24 + (l + 1) + 2 ^ 23 * layer) by
-      simp [xAddrOf, tw, hiMul, lxTop]; ring]
   have hdiv : L >>> (16 * layer) / 2 ^ (l + 1) = L >>> (16 * layer + l + 1) := by
     rw [Nat.shiftRight_eq_div_pow, Nat.shiftRight_eq_div_pow, Nat.div_div_eq_div_mul, ← pow_add]
     ring_nf
-  rw [hdiv]
   have hlt : L >>> (16 * layer + l + 1) < 2 ^ 32 := lt_of_le_of_lt (Nat.shiftRight_le _ _) hL
+  have hN : (Xmss.Address.node (lyr layer)
+      ⟨l + 1, by rw [Xmss.Constants.layer_height_eq]; omega⟩
+      (UInt32.ofNat (L >>> (16 * layer) / 2 ^ (l + 1)))).encode.toNat =
+      L >>> (16 * layer + l + 1) + 2 ^ 32 * (l + 1 + 2 ^ 23 * layer) + 2 ^ 56 * 3 := by
+    rw [Xmss.Address.toNat_encode_node, hdiv, UInt32.toNat_ofNat_of_lt' hlt, toNat_lyr hl]
+  rw [← cellBytes_address hN (by
+      have : L >>> (16 * layer + l + 1) ≤ 2 ^ 32 := hlt.le
+      interval_cases layer <;> omega),
+    show xAddrOf layer l = 2 ^ 32 * (3 * 2 ^ 24 + (l + 1) + 2 ^ 23 * layer) by
+      simp [xAddrOf, tw, hiMul, lxTop]; ring]
   split
   · rename_i h32
     have h0 : L >>> (16 * layer + l + 1) = 0 := by
       rw [h32, Nat.shiftRight_eq_div_pow]; exact Nat.div_eq_of_lt hL
     rw [h0, add_zero, word_eq_eOfNat]
     congr 2
-    unfold addrNat
     interval_cases layer <;> omega
   · rw [word_add_eOfNat hlt]
     congr 2
-    unfold addrNat
-    rw [Nat.mod_eq_of_lt hlt]
     interval_cases layer <;> omega
 
 end

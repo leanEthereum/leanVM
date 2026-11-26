@@ -7,7 +7,6 @@
 module
 
 public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
 public import Statement.LeanSphincs
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak

@@ -125,14 +125,15 @@ theorem mark_kid {m : ℕ} (h0 : (segsOf σ Kr).a 0 ≤ m) (hm : m < LXS σ + LS
   have := (segsOf σ Kr).kid_spec h0 (by rw [hW.total]; exact hm)
   rwa [segsOf_NC] at this
 
-variable {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+variable {bytecode : List K} {wX : List E → EthLib.Cryptography.Xmss.Signature} {wS : E →
+    Sphincs.Signature}
   {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof}
   {wA : List E → BatchingHints}
 
 /-- **Every raw leanXMSS signature verifies its claim.** -/
 theorem xmss_raw_verify (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n (val% «main» "byte_bits"))) wX wS wD wV wA) :
     ∀ raw ∈ (decWit σ rd wX wS wD wV wA).xmssSignatures,
-      LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true := by
+      LeanXmss.verifyWithKeccak raw.1.1 (LeanXmss.lanesOfBits raw.1.2) raw.2 = true := by
   have hT := MF.total.2
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have hRT := raw_le_total hW
@@ -294,7 +295,8 @@ theorem signatures_held (hm : MemOk rd) (cw : CalleesWC bytecode C rd (σ (.n (v
 omit hK hW in
 /-- **The DA digest**: with the direct DA check, the digest of the claim it returns, which the
 decoded matrix opens; without it, zeros or a child's. -/
-theorem da_rel {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+theorem da_rel {bytecode : List K} {wX : List E → EthLib.Cryptography.Xmss.Signature} {wS : E →
+    Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n (val% «main» "byte_bits"))) wX wS wD wV wA) :
     (∀ c m, (decWit σ rd wX wS wD wV wA).daMatrix = some (c, m) →

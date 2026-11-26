@@ -8,7 +8,6 @@
 module
 
 public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
 public import Statement.LeanSphincs
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
@@ -108,8 +107,11 @@ theorem xmssPreimage_inj {l l' : List LeanXmssClaim}
     l = l' := by
   rw [claimListPreimage_xmss, claimListPreimage_xmss] at h
   exact flatMap_inj (n := 64) (by decide) (fun _ ↦ length_claimBytes _ _ _)
-    (fun ⟨⟨_, _⟩, _⟩ ⟨⟨_, _⟩, _⟩ h ↦ by
-      obtain ⟨rfl, rfl, rfl⟩ := claimBytes_inj h
+    (fun ⟨⟨r, p⟩, m⟩ ⟨⟨r', p'⟩, m'⟩ h ↦ by
+      obtain ⟨h1, h2, h3⟩ := claimBytes_inj h
+      have e1 := lanes_inj_of_ofNat h1
+      have e2 := lanes_inj_of_ofNat h2
+      subst e1 e2 h3
       rfl) h
 
 theorem sphincsPreimage_inj {l l' : List LeanSphincsClaim}

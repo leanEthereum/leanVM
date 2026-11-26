@@ -191,10 +191,9 @@ local notation "σ" => schemeHashOverPermutation
 theorem simulateQ_oracleHash (input : FORS.HashInput) :
     simulateQ σ (FORS.Concrete.oracleHash (m := OracleComp FORS.HashSpec) input) =
       keccakHash queryPermutation input := by
-  change simulateQ σ
-    (LeanXmss.Verification.oracleHashWithHash (m := OracleComp SchemeHashSpec) input) = _
-  simp only [LeanXmss.Verification.oracleHashWithHash, simulateQ_HasQuery_query,
-    schemeHashOverPermutation,
+  change simulateQ σ (HasQuery.query (spec := SchemeHashSpec) (m := OracleComp SchemeHashSpec)
+    input) = _
+  simp only [simulateQ_HasQuery_query, schemeHashOverPermutation,
     keccak256OverPermutation, keccakHash, Functor.map_map]
   refine congrArg (· <$> _) (funext fun digest ↦ ?_)
   simp only [digestBytesEquivBitVec_apply, LeanVM.Protocol.Digest.toBytes, Vector.toList]

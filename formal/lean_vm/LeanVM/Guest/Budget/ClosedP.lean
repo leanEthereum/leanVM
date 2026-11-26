@@ -95,7 +95,8 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 the children's (their claim lists' slots' pushes, `verify_sub`'s hints), the batching's. -/
 noncomputable def mainPopsD (seed : Digest) (s : NodeStatement) (w : NodeWitness) : MainPops :=
   B1.Main.mainPopsH
-    (fun _ => Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2))
+    (fun _ => Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells (xmssRoot c)
+        (xmssParam c) c.2))
     (fun _ => Hints.listPushes "claims"
       (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2))
     (fun _ => B1.Main.l5PopsH (fun c => Hints.childSlotPushes ((xPlan s w).childSlots.getD c []))

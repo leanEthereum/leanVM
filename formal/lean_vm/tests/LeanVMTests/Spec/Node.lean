@@ -1,5 +1,4 @@
 import Statement.LeanVmGuest
-import LeanXmss.Scheme
 import Statement.LeanSphincs
 import LeanDa.Scheme
 import Statement.Fast.Keccak
@@ -99,11 +98,11 @@ example (seed : Digest) (s : NodeStatement) :
 
 /-- The leanXMSS claims. -/
 def xmss : List LeanXmssClaim :=
-  [(⟨BitVec.ofNat 128 0x0123456789abcdef0011223344556677,
-      BitVec.ofNat 128 0x8899aabbccddeeff0f1e2d3c4b5a6978⟩,
+  [(⟨NodeVectors.lanes 0x0123456789abcdef0011223344556677, NodeVectors.lanes
+      0x8899aabbccddeeff0f1e2d3c4b5a6978⟩,
     BitVec.ofNat 256 0xdeadbeef00112233445566778899aabbccddeeff102132435465768798a9bacb),
-   (⟨BitVec.ofNat 128 0x77665544332211000123456789abcdef,
-      BitVec.ofNat 128 0x0f0e0d0c0b0a09080706050403020100⟩, BitVec.ofNat 256 1)]
+   (⟨NodeVectors.lanes 0x77665544332211000123456789abcdef, NodeVectors.lanes
+       0x0f0e0d0c0b0a09080706050403020100⟩, BitVec.ofNat 256 1)]
 
 /-- The leanSPHINCS claims. -/
 def sphincs : List LeanSphincsClaim :=

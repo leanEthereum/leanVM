@@ -33,7 +33,7 @@ open LeanVM.Guest.Fast in
 application, the signatures' readers `wX`, `wS` given (the top's, `xmssAtFrameT`, `sphincsAtFrameT`,
 look their frames up once; `xmssAtFrame`, `sphincsAtFrame` at the frame map). -/
 noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (R : ReaderTabs)
-    (σ : Val) (rd : Reader) (Vn : NFrames) (wX : List E → LeanXmss.Signature)
+    (σ : Val) (rd : Reader) (Vn : NFrames) (wX : List E → EthLib.Cryptography.Xmss.Signature)
     (wS : E → Sphincs.Signature) (cl : E → E → ℕ) : NodeWitness :=
   decWitStaged D σ rd wX wS (daAtFrame D Vn) (proofAtFrame R rd Vn cl)
     (hintsAtFrame rd Vn)

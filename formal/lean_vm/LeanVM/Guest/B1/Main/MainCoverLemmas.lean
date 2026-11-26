@@ -207,13 +207,16 @@ theorem coverS_load {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {k : ℕ
 /-- The leanXMSS table holds the claim at slot `t`. -/
 theorem tableX_claim {rd : Reader} (h : MemL rd (hLmain fs fp seed s w)) {t : ℕ} {c : LeanXmssClaim}
     (ht : (s.claims.xmss ++ (xPlan s w).duplicates)[t]? = some c) :
-    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (Sig.cellOf128 c.1.root)
-      (Sig.cellOf128 c.1.parameter) (Sig.cellOf128 (c.2.extractLsb' 0 128))
+    Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * t)) (Sig.xc c.1.root)
+      (Sig.xc c.1.publicParam) (Sig.cellOf128 (c.2.extractLsb' 0 128))
       (Sig.cellOf128 (c.2.extractLsb' 128 128)) := by
-  have hc4 : claimCells c.1.root c.1.parameter c.2 = _ := claimCells_eq _ _ _
+  have hc4 : claimCells (xmssRoot c) (xmssParam c) c.2 = _ := claimCells_eq _ _ _
+  have e1 : Sig.cellOf128 (xmssRoot c) = Sig.xc c.1.root := Sig.cellOf128_toNat _
+  have e2 : Sig.cellOf128 (xmssParam c) = Sig.xc c.1.publicParam := Sig.cellOf128_toNat _
+  rw [e1, e2] at hc4
   obtain ⟨htl, rfl⟩ := List.getElem?_eq_some_iff.mp ht
   have hr := B1.Main.readsAt_flatMap_of (w := 4) _
-    (fun (c : LeanXmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2)
+    (fun (c : LeanXmssClaim) _ => claimCells_length (xmssRoot c) (xmssParam c) c.2)
     (hOwn_reads h (i := 0) (by omega)) t htl
   rw [← pow_add, hc4] at hr
   exact ⟨hr 0 (by simp), hr 1 (by simp), hr 2 (by simp), hr 3 (by simp)⟩
@@ -223,7 +226,8 @@ theorem tableX_region {t k : ℕ} (ht : t < rX s w) (hk : k < 4) :
   rw [Nat.add_assoc]
   refine hOwn_region (i := 0) (by omega) ?_
   show 4 * t + k < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap _).length
-  rw [length_flatMap_of _ fun (c : LeanXmssClaim) _ => claimCells_length c.1.root c.1.parameter c.2, List.length_append]
+  rw [length_flatMap_of _ fun (c : LeanXmssClaim) _ => claimCells_length (xmssRoot c) (xmssParam c)
+      c.2, List.length_append]
   simp only [rX] at ht
   omega
 

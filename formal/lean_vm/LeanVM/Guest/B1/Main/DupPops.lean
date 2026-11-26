@@ -182,7 +182,8 @@ theorem mfL1_pops (hl : GuestLimits s w) (hn : (hm fs fp seed s w).nxd ≠ 0) {r
     (hv : t.Valid coreProgram rd
       [1, gen ^ (hm fs fp seed s w).nxd, (hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx] rets) :
     t.pops coreProgram rd =
-      (xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells c.1.root c.1.parameter c.2) := by
+      (xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells (xmssRoot c) (xmssParam c) c.2)
+          := by
   have hb := regions_lt hl
   have ed : (hm fs fp seed s w).nxd = (xPlan s w).duplicates.length := rfl
   have hX : rX s w = s.claims.xmss.length + (xPlan s w).duplicates.length := rfl
@@ -195,7 +196,7 @@ theorem mfL1_pops (hl : GuestLimits s w) (hn : (hm fs fp seed s w).nxd ≠ 0) {r
   have hR := mf_reads fs fp seed s w hL (i := 0) (by omega)
   unfold hOwn at hR
   rw [List.getD_cons_zero] at hR
-  have hc : ∀ c : LeanXmssClaim, (claimCells c.1.root c.1.parameter c.2).length = 4 := fun c =>
+  have hc : ∀ c : LeanXmssClaim, (claimCells (xmssRoot c) (xmssParam c) c.2).length = 4 := fun c =>
     mf_claimCells_length _ _ _
   exact mfPops_table hc hR
 

@@ -135,7 +135,8 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
       (ccBM fs SB (hMonoX s w c) (hKid s w c).ex) := by
   have hcov := cover_bound hl
   have hlen := (hl.childClaimListsBelow2Pow23 _ (List.getElem_mem hc)).1
-  have hT := kid_length_flatMap_const (f := fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
+  have hT := kid_length_flatMap_const (f := fun c : LeanXmssClaim => claimCells (xmssRoot c)
+      (xmssParam c) c.2)
     (s.claims.xmss ++ (xPlan s w).duplicates) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.xmss.length) =>
@@ -180,14 +181,14 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
   have hcl : ∀ rd, MemL rd (hLmain fs fp seed s w) → ∀ j < (hKid s w c).ex, ∀ i < 4,
       LoadHolds rd (gen ^ hP fs fp seed s w 0) (4 * o j + i)
         ((w.children[c].statement.claims.xmss.flatMap
-          fun c => claimCells c.1.root c.1.parameter c.2).getD (4 * j + i) 0) := by
+          fun c => claimCells (xmssRoot c) (xmssParam c) c.2).getD (4 * j + i) 0) := by
     intro rd hM j hj i hi
     rw [hKid_ex hc] at hj
     obtain ⟨hlt2, -, hget⟩ := slot j hj
     have h2 : o j < (s.claims.xmss ++ (xPlan s w).duplicates).length := hlt2
     obtain ⟨r1, -⟩ := reads_buf fs fp seed s w hM
     have := loadHolds_getD r1 (k := 4 * o j + i) (by rw [hT]; rw [List.length_append] at h2; omega)
-    rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
+    rw [getD_flatMap_uniform (f := fun c => claimCells (xmssRoot c) (xmssParam c) c.2) _
       (fun a _ => kid_length_claimCells _ _ _) (o j) h2 i hi] at this
     have eT : (s.claims.xmss ++ (xPlan s w).duplicates)[o j]'h2 =
         w.children[c].statement.claims.xmss[j] := by
@@ -196,7 +197,7 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
       rw [List.getElem?_eq_getElem h2] at h
       simpa using h
     rw [eT] at this
-    rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
+    rw [getD_flatMap_uniform (f := fun c => claimCells (xmssRoot c) (xmssParam c) c.2) _
       (fun a _ => kid_length_claimCells _ _ _) j hj i hi]
     exact this
   have hR2 : ∀ j < (hKid s w c).ex, RegionL (hLmain fs fp seed s w) (hP fs fp seed s w 2 + o j) :=
@@ -208,9 +209,9 @@ theorem kidTB_hXP (cert : String → V → ℕ) (hl : GuestLimits s w) {c : ℕ}
     rw [Nat.add_assoc]
     exact region_buf fs fp seed s w (i := 0) (by omega)
       (show _ < ((s.claims.xmss ++ (xPlan s w).duplicates).flatMap
-        fun c => claimCells c.1.root c.1.parameter c.2).length by rw [hT]; omega)
+        fun c => claimCells (xmssRoot c) (xmssParam c) c.2).length by rw [hT]; omega)
   have hcells : (w.children[c].statement.claims.xmss.flatMap
-      fun c => claimCells c.1.root c.1.parameter c.2).length = 4 * (hKid s w c).ex := by
+      fun c => claimCells (xmssRoot c) (xmssParam c) c.2).length = 4 * (hKid s w c).ex := by
     rw [hKid_ex hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _
   have hn : (hKid s w c).ex < B1.Digest.claimBig * B1.Digest.bigFramesCap := by
     rw [hKid_ex hc]; simp only [B1.Digest.claimBig, B1.Digest.bigFramesCap]; omega

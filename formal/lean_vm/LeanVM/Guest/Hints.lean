@@ -10,7 +10,6 @@ module
 public import Statement.LeanVmGuest
 public import LeanVM.Facts.ClaimBytes
 public import LeanVM.Guest.Batch.Def
-public import LeanXmss.Scheme
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
 public import FastFields.QuadExt
@@ -161,43 +160,45 @@ def ordered (right : Bool) (node sibling : BitVec 128) : Entry :=
 
 /-! ## A leanXMSS signature (`lean_xmss_hints`) -/
 
-/-- One layer's hints: the sibling of every node on the path, the randomizer, the codeword's
-digits (`lxDigitGroup` at a time, one push) and the chain values; and the root the layer
-reaches. -/
-def xmssLayer (parameter : HashSig.PublicParameter) (lay : LeanXmss.Layer)
-    (key : LeanXmss.KeyIndex) (message : List UInt8) (part : LeanXmss.LayerSignature) :
-    List (String × Entry) × HashSig.Digest :=
-  let digest := Id.run (LeanXmss.Verification.messageDigest (m := Id) keccakF1600 parameter lay key
-    message part.randomizer)
-  let leaf := (Id.run (LeanXmss.Verification.otsLeaf (m := Id) keccakF1600 parameter lay key message
-    part.randomizer part.chainValues)).getD 0
-  let fold := fun levels ↦ Id.run (LeanXmss.Verification.treeFold (m := Id) keccakF1600
-      parameter lay
-    key part.authenticationPath levels leaf)
+/-- Two lanes as a cell: their `16` bytes. -/
+def cellOfLanes (w : EthLib.Cryptography.Hash.Keccak.Lanes2) : E := cellOfBytes w.bytes.toList
+
+/-- One layer's hints, the one-time key of index `key` signing `message`: the sibling of every node
+on the path, the randomizer, the codeword's digits (`lxDigitGroup` at a time, one push) and the
+chain values; and the root the layer reaches. Its hash is EthLib's leanXMSS hash over
+Keccak-f[1600]. -/ def xmssLayer (parameter : EthLib.Cryptography.Xmss.PublicParam)
+    (layer : EthLib.Cryptography.Xmss.Layer) (key : ℕ) (message : Array UInt64)
+    (part : EthLib.Cryptography.Xmss.LayerSignature) :
+    List (String × Entry) × EthLib.Cryptography.Xmss.Digest :=
+  let hash := LeanXmss.xmssHash (m := Id) keccakF1600
+  let digest := Id.run (EthLib.Cryptography.Xmss.messageDigest hash parameter layer
+    (UInt32.ofNat key) message part.randomizer)
+  let leaf := (Id.run (EthLib.Cryptography.Xmss.otsLeaf hash parameter layer (UInt32.ofNat key)
+    message part.randomizer part.chainValues)).getD default
+  let root := Id.run (EthLib.Cryptography.Xmss.fold hash parameter layer key leaf part.path)
   -- `pair[index >> level & 1 == 0]` of the ordered children is the sibling.
-  let siblings := (List.finRange LeanXmss.layerHeight).map fun l ↦
-    ("lx_path", [cell128 (part.authenticationPath l)])
-  let digits := (List.finRange LeanXmss.chainCount).map fun i ↦
-    (HashSig.digestDigits digest i).val
-  let starts := (List.finRange LeanXmss.chainCount).map fun i ↦
-    ("chain_starts", [cell128 (part.chainValues i)])
-  (siblings ++ [("randomizer", [cell128 part.randomizer]),
+  let siblings := part.path.toList.map fun sibling ↦ ("lx_path", [cellOfLanes sibling])
+  let digits := (List.range EthLib.Cryptography.Xmss.Constants.V).map fun i ↦
+    if h : i < EthLib.Cryptography.Xmss.Constants.DIGITS then
+      (EthLib.Cryptography.Xmss.Internal.digit digest ⟨i, h⟩).val
+    else 0
+  let starts := part.chainValues.toList.map fun value ↦ ("chain_starts", [cellOfLanes value])
+  (siblings ++ [("randomizer", [cellOfLanes part.randomizer]),
       ("lx_digits", (digitHints lxDigitGroup digits).flatten)] ++ starts,
-    fold LeanXmss.layerHeight)
+    root)
 
 /-- A leanXMSS signature's hints: its leaf index shifted by each multiple of `lxWindow`, those
 windows in the exponent, then each layer's, bottom first. -/
-def xmssHints (pk : HashSig.PublicKey) (message : HashSig.Message) (σ : LeanXmss.Signature) :
-    List (String × Entry) :=
-  let index := σ.leafIndex
-  let shifts := (List.range (LeanXmss.layerCount * LeanXmss.layerHeight / lxWindow)).map fun v ↦
-    index.val / 2 ^ (lxWindow * v)
-  let (bottom, root) := xmssLayer pk.parameter LeanXmss.bottomLayer
-    (LeanXmss.keyIndexOnLayer index LeanXmss.bottomLayer) (HashSig.littleEndianBytes 32 message)
-    (σ.layers LeanXmss.bottomLayer)
-  let (top, _) := xmssLayer pk.parameter LeanXmss.topLayer (LeanXmss.keyIndexOnLayer index
-      LeanXmss.topLayer)
-    (HashSig.littleEndianBytes 16 root) (σ.layers LeanXmss.topLayer)
+def xmssHints (pk : EthLib.Cryptography.Xmss.PublicKey) (message : HashSig.Message)
+    (σ : EthLib.Cryptography.Xmss.Signature) : List (String × Entry) :=
+  let index := σ.leafIndex.toNat
+  let shifts :=
+    (List.range (EthLib.Cryptography.Xmss.Constants.LOG_LIFETIME / lxWindow)).map fun v ↦
+      index / 2 ^ (lxWindow * v)
+  let (bottom, root) := xmssLayer pk.publicParam .bottom index
+    (LeanXmss.lanesOfBits message).toArray σ.bottom
+  let (top, _) := xmssLayer pk.publicParam .top (EthLib.Cryptography.Xmss.bottomTree σ.leafIndex)
+    root.toArray σ.top
   ("lx_index", shifts.map fun x ↦ word x 0) ::
     ("lx_windows", shifts.map fun x ↦ count (x % 2 ^ lxWindow)) :: bottom ++ top
 
@@ -482,7 +483,7 @@ def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : No
   let rawS := w.sphincsSignatures
   let xr := coveragePlan s.claims.xmss (rawX.map (·.1)) (w.children.map (·.statement.claims.xmss))
   let sr := coveragePlan s.claims.sphincs (rawS.map (·.1)) (w.children.map (·.statement.claims.sphincs))
-  let xCells := fun (c : LeanXmssClaim) ↦ claimCells c.1.root c.1.parameter c.2
+  let xCells := fun (c : LeanXmssClaim) ↦ claimCells (xmssRoot c) (xmssParam c) c.2
   let sCells := fun (c : LeanSphincsClaim) ↦ claimCells c.1.publicSeed c.1.root c.2
   let slots := fun (offsets : List ℕ) ↦ childSlotPushes offsets
   [("meta", [count s.claims.xmss.length, count xr.duplicates.length, count rawX.length,

@@ -24,6 +24,7 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Memory LeanVM.Protocol.Verifier
+open EthLib.Cryptography
 
 @[expose] public section
 
@@ -157,18 +158,19 @@ theorem sDigest1_pops (σ : Val) (b : Nat) (root : V) :
 /-! ## The check -/
 
 /-- A layer's pops: its randomizer, then its pops after its digest. -/
-def xLayerPops (part : LeanXmss.LayerSignature) (N : Nat) : List Pop :=
-  ("randomizer", [cellOf128 part.randomizer]) :: corePops N (xVals part) (xSibs part)
+def xLayerPops (part : Xmss.LayerSignature) (N : Nat) : List Pop :=
+  ("randomizer", [xc part.randomizer]) :: corePops N (xVals part) (xSibs part)
 
 /-- **The check's pops** for the signature `sig` of `m` under `pk`: the leaf index's shifts and windows, then each layer's, bottom first. -/
-def xSegPops (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) : List Pop :=
-  [("lx_index", (List.range 4).map fun v => eOfNat (sig.leafIndex.val >>> (8 * v))),
-    ("lx_windows", (List.range 4).map fun w => ofK (addressOfIndex (lxWin sig.leafIndex.val w)))] ++
-    (xLayerPops (sig.layers LeanXmss.bottomLayer) (xN0 pk m sig) ++
-      xLayerPops (sig.layers LeanXmss.topLayer) (xN1 pk m sig))
+def xSegPops (pk : Xmss.PublicKey) (m : HashSig.Message) (sig : Xmss.Signature) : List Pop :=
+  [("lx_index", (List.range 4).map fun v => eOfNat (sig.leafIndex.toNat >>> (8 * v))),
+    ("lx_windows", (List.range 4).map fun w => ofK (addressOfIndex (lxWin sig.leafIndex.toNat w)))]
+        ++
+    (xLayerPops (sig.bottom) (xN0 pk m sig) ++
+      xLayerPops (sig.top) (xN1 pk m sig))
 
 /-- **The check pops `xSegPops`** on a valuation holding the values it hints. -/
-theorem xSeg_pops {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss.Signature} {σ : Val}
+theorem xSeg_pops {pk : Xmss.PublicKey} {m : HashSig.Message} {sig : Xmss.Signature} {σ : Val}
     (h : XSegVals pk m sig σ) : FallPops rd σ xSeg (xSegPops pk m sig) := by
   obtain ⟨hh, hw, ⟨r0, d0, s0, p0⟩, ⟨r1, d1, s1, p1⟩⟩ := h
   rw [xSeg_split]
@@ -185,11 +187,11 @@ theorem xSeg_pops {pk : HashSig.PublicKey} {m : HashSig.Message} {sig : LeanXmss
 
 /-- **`verify_lean_xmss` completes popping `xSegPops`**, given the path windows' completeness: on every valuation agreeing below its end with the completing one. -/
 theorem verify_lean_xmss_complete_pops_of (hW : LxWindowsC) (C : CallRel) (rd : Reader) (σ : Val)
-    (pk : HashSig.PublicKey) (m : HashSig.Message) (sig : LeanXmss.Signature) (hm : MemOK rd 256)
+    (pk : Xmss.PublicKey) (m : HashSig.Message) (sig : Xmss.Signature) (hm : MemOK rd 256)
     (htags : LxTagsHold (fun j => σ (sTagParam j)))
-    (hat : ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
+    (hat : ClaimAt rd (σ sSigner) (xc pk.root) (xc pk.publicParam)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)))
-    (hv : LeanXmss.verifyWithKeccak pk m sig = true) :
+    (hv : LeanXmss.verifyWithKeccak pk (LeanXmss.lanesOfBits m) sig = true) :
     Completes C rd 66 (xEnd + 1) xSeg σ
       (fun σ' => ∀ σ'', AgreeBelow (xEnd + 1) σ' σ'' → FallPops rd σ'' xSeg (xSegPops pk m sig)) :=
   (verify_lean_xmss_complete_vals_of hW C rd σ pk m sig hm htags hat hv).mono le_rfl le_rfl

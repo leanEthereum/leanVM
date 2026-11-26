@@ -38,14 +38,15 @@ open LeanVM.Guest.B1 (LowDef CompleteAtDTBR Returns completeAtDTBR_of_relAtInP_o
 
 /-- The duplicate leanXMSS claims' cells. -/
 def dupXPops (s : NodeStatement) (w : NodeWitness) : List Pop :=
-  (xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells c.1.root c.1.parameter c.2)
+  (xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells (xmssRoot c) (xmssParam c) c.2)
 
 /-- The duplicate leanSPHINCS claims' cells. -/
 def dupSPops (s : NodeStatement) (w : NodeWitness) : List Pop :=
   (sPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells c.1.publicSeed c.1.root c.2)
 
 /-- Raw leanXMSS signature `i`'s entries, `d0` past the end. -/
-def xRawPop (s : NodeStatement) (w : NodeWitness) (d0 : LeanXmssClaim × LeanXmss.Signature) (i : ℕ) : List Pop :=
+def xRawPop (s : NodeStatement) (w : NodeWitness) (d0 : LeanXmssClaim ×
+    EthLib.Cryptography.Xmss.Signature) (i : ℕ) : List Pop :=
   ("raw_index", [gen ^ (slotsOf (xPlan s w)).getD i 0]) ::
     Sig.xSegPops ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2
 
@@ -79,7 +80,7 @@ def mainPopsH (px ps p5 : Reader → List Pop) (s : NodeStatement) (w : NodeWitn
 variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest} {s : NodeStatement}
   {w : NodeWitness} {bytecode : List K}
 
-theorem xRawPops_eq (d0 : LeanXmssClaim × LeanXmss.Signature) :
+theorem xRawPops_eq (d0 : LeanXmssClaim × EthLib.Cryptography.Xmss.Signature) :
     xRawPops s w = (List.range' 0 (hRawX s w).length).flatMap (xRawPop s w d0) := by
   unfold xRawPops
   split
@@ -182,7 +183,8 @@ theorem mainGoalsRR_l4 (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s
 
 theorem mainSegs_d0 {q : MainPops} (hq : ∀ rd, q.p0 rd = dupXPops s w) (rd : Reader) :
     SameStreams (if (hm fs 0 seed s w).nxd = 0 then [] else q.p0 rd)
-      ((xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells c.1.root c.1.parameter c.2)) := by
+      ((xPlan s w).duplicates.map fun c ↦ ("dup_claims", claimCells (xmssRoot c) (xmssParam c) c.2))
+          := by
   rw [hq]
   split
   · next h => rw [List.eq_nil_of_length_eq_zero (show (xPlan s w).duplicates.length = 0 from h)]; exact SameStreams.refl _

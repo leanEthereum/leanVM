@@ -123,7 +123,7 @@ end Val
 
 /-- A witness of its fields (`nodeWitnessOfC`): `11`. -/
 theorem nodeWitnessOf_cost (hP : Includes P Decoder.nodeWitnessOfC.costDeps) (c : List LeanVM.Node.Child)
-    (x : List (LeanVM.Node.LeanXmssClaim × LeanXmss.Signature))
+    (x : List (LeanVM.Node.LeanXmssClaim × EthLib.Cryptography.Xmss.Signature))
     (s : List (LeanVM.Node.LeanSphincsClaim × Sphincs.Signature))
     (d : Option (LeanVM.Node.DaClaim × LeanVM.Da.MatrixWitness)) (h : LeanVM.Node.BatchingHints) :
     machineCost P Decoder.nodeWitnessOfC.costIdx
@@ -156,7 +156,7 @@ variable {rd : Reader} {rdV : MachineValue}
   {σ : Val} {σV : MachineValue}
   (hσ : ∀ v : V, RunsApp P σV [encodeValue v] (encodeValue (σ v)))
   {S : ℕ} (hS : ∀ v : V, appCost P σV [encodeValue v] ≤ S)
-  {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
+  {wX : List E → EthLib.Cryptography.Xmss.Signature} {wXV : MachineValue}
   (hwX : ∀ a : List E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))
   {WX : ℕ} (hWX : ∀ a : List E, a.length ≤ 56 → appCost P wXV [encodeValue a] ≤ WX)
   {wS : E → Sphincs.Signature} {wSV : MachineValue}
@@ -308,7 +308,7 @@ theorem decWitN_cost (D : DiscreteLogTables) (Tb : ReaderTabs) (hTb : ReaderTabs
     (hP : Includes P Decoder.decWitNC.costDeps) (hG : GLogBound P D G) (DW : ℕ)
     (hDW : ∀ args rets : List E, args.length + rets.length ≤ 16 → machineCost P Decoder.dvWitNC.costIdx
       [encodeValue D, .closure Decoder.daAtFrameC.lam0.costIdx [VnV, encodeValue args, encodeValue rets],
-        VnV] ≤ DW) {wX : List E → LeanXmss.Signature} {wXV : MachineValue}
+        VnV] ≤ DW) {wX : List E → EthLib.Cryptography.Xmss.Signature} {wXV : MachineValue}
     (hwX : ∀ a : List E, RunsApp P wXV [encodeValue a] (encodeValue (wX a)))
     {WX : ℕ} (hWX : ∀ a : List E, a.length ≤ 56 → appCost P wXV [encodeValue a] ≤ WX)
     {wS : E → Sphincs.Signature} {wSV : MachineValue}

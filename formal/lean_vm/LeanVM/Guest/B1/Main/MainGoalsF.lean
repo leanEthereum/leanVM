@@ -139,11 +139,12 @@ theorem mf_claimCells_bytes (r p : BitVec 128) (m : BitVec 256) :
 
 /-- **The leanXMSS list's digest is its cells'.** -/
 theorem mf_xmss_digest (l : List LeanXmssClaim) :
-    claimListDigest xmssPublicKeyBytes l = keccak256 (cellsBytes (l.flatMap fun c => claimCells c.1.root c.1.parameter c.2)) := by
+    claimListDigest xmssPublicKeyBytes l = keccak256 (cellsBytes (l.flatMap fun c => claimCells
+        (xmssRoot c) (xmssParam c) c.2)) := by
   rw [claimListDigest, claimListPreimage, mf_cellsBytes_flatMap]
   congr 2
   funext c
-  exact (mf_claimCells_bytes _ _ _).symm
+  exact (claimBytes_xmss c).trans (mf_claimCells_bytes _ _ _).symm
 
 /-- **The leanSPHINCS list's digest is its cells'.** -/
 theorem mf_sphincs_digest (l : List LeanSphincsClaim) :

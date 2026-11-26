@@ -80,10 +80,11 @@ theorem xs_lt {i : ℕ} (hi : i < (hRawX s w).length) : (slotsOf (xPlan s w)).ge
   rw [List.getD_eq_getElem _ _ hk]
   exact slotX_lt s w hk
 
-theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.Signature) {i : ℕ}
+theorem xs_verify (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim ×
+    EthLib.Cryptography.Xmss.Signature) {i : ℕ}
     (hi : i < (hRawX s w).length) :
-    LeanXmss.verifyWithKeccak ((hRawX s w).getD i d0).1.1 ((hRawX s w).getD i d0).1.2 ((hRawX s w).getD i d0).2 =
-      true := by
+    LeanXmss.verifyWithKeccak ((hRawX s w).getD i d0).1.1
+      (LeanXmss.lanesOfBits ((hRawX s w).getD i d0).1.2) ((hRawX s w).getD i d0).2 = true := by
   rw [List.getD_eq_getElem _ _ hi]
   exact hn.1.1 _ (List.getElem_mem hi)
 
@@ -97,10 +98,11 @@ theorem xs_cover {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w)) {i : ℕ}
   exact this
 
 theorem xs_claim {rd : Reader} (hL : MemL rd (hLmain fs fp seed s w))
-    (d0 : LeanXmssClaim × LeanXmss.Signature) {i : ℕ} (hi : i < (hRawX s w).length) :
+    (d0 : LeanXmssClaim × EthLib.Cryptography.Xmss.Signature) {i : ℕ} (hi : i < (hRawX s w).length)
+        :
     Sig.ClaimAt rd (gen ^ (hPos seed s w fs fp 0 + 4 * (slotsOf (xPlan s w)).getD i 0))
-      (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.root)
-      (Sig.cellOf128 ((hRawX s w).getD i d0).1.1.parameter)
+      (Sig.xc ((hRawX s w).getD i d0).1.1.root)
+      (Sig.xc ((hRawX s w).getD i d0).1.1.publicParam)
       (Sig.cellOf128 (((hRawX s w).getD i d0).1.2.extractLsb' 0 128))
       (Sig.cellOf128 (((hRawX s w).getD i d0).1.2.extractLsb' 128 128)) := by
   obtain ⟨hk, hc⟩ := xslot hi
@@ -118,7 +120,8 @@ theorem xs_regClaim {i : ℕ} (hi : i < (hRawX s w).length) {k : ℕ} (hk : k < 
 end
 
 /-- **The raw leanXMSS signatures' honest data.** -/
-def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim × LeanXmss.Signature) :
+def rawXD (hn : NodeRelation bytecode seed s w) (d0 : LeanXmssClaim ×
+    EthLib.Cryptography.Xmss.Signature) :
     RawXData (hRawX s w).length (rX s w) (hPos seed s w fs fp 2) (hPos seed s w fs fp 0)
       (hLmain fs fp seed s w) where
   slot i := (slotsOf (xPlan s w)).getD i 0

@@ -33,6 +33,8 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
+open EthLib.Cryptography
+open EthLib.Cryptography.Hash.Keccak (lanesBytes)
 
 @[expose] public section
 
@@ -60,15 +62,16 @@ noncomputable def sSibAt (σ : Val) (layer b l : Nat) : E :=
 /-- **The layer signature a layer of the check holds**: the randomizer, the chain values (each
 chain's hinted start, in the arm its group's dispatch takes), the path (each level's hinted
 sibling, in the arm its window's dispatch takes). -/
-noncomputable def sPart (layer b : Nat) (σ : Val) : LeanXmss.LayerSignature :=
-  ⟨xv (σ (sRho layer b)),
-    fun i => xv (σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i.val)),
-    fun l => xv (sSibAt σ layer b l.val)⟩
+noncomputable def sPart (layer b : Nat) (σ : Val) : Xmss.LayerSignature :=
+  ⟨xl (σ (sRho layer b)),
+    Vector.ofFn fun i : Fin Xmss.Constants.V =>
+      xl (σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i.val)),
+    Vector.ofFn fun l : Fin Xmss.Constants.LAYER_HEIGHT => xl (sSibAt σ layer b l.val)⟩
 
 /-- **The leanXMSS signature the check of `main_loop2` verifies**, read off the loop's valuation. -/
-noncomputable def xmssSigOf (σ : Val) : LeanXmss.Signature :=
-  ⟨⟨lxIndex (sKw σ), lxIndex_lt fun w _ => sKw_lt σ w⟩, fun lay =>
-    if lay = LeanXmss.bottomLayer then sPart 0 88 σ else sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ⟩
+noncomputable def xmssSigOf (σ : Val) : Xmss.Signature :=
+  ⟨UInt32.ofNatLT (lxIndex (sKw σ)) (lxIndex_lt fun w _ => sKw_lt σ w), sPart 0 88 σ,
+    sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ⟩
 
 /-! ## Folds -/
 
@@ -245,16 +248,16 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
         (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++
           ((sWin1 layer b).1 ++ rest)))))) next kret) :
     Stmt.HoldsList C rd σ rest next kret ∧ WinOK σ (2 * layer) ∧ WinOK σ (2 * layer + 1) ∧
-      ∀ (L : Nat) (hL : L < 2 ^ 32), σ (sLxIdx layer b) = eOfNat (xIdxNat layer L) →
+      ∀ (L : Nat), L < 2 ^ 32 → σ (sLxIdx layer b) = eOfNat (xIdxNat layer L) →
         (∀ v < 4, σ (sHis v) = eOfNat (L >>> (8 * v))) → (∀ w < 4, sKw σ w = lxWin L w) →
         (∀ i < 58, σ (sTag i) = eOfNat i) →
-        ∀ {msgCells : List E} {M : HashSig.HashInput}, M = msgCells.flatMap cellBytes → ∀ {aMsg : E},
-        cellBytes aMsg = LeanXmss.tweakBytes
-          (.message ⟨layer, hl⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩)) →
+        ∀ {msgCells : List E} {M : Array UInt64}, lanesBytes M = msgCells.flatMap cellBytes →
+        ∀ {aMsg : E},
+        cellBytes aMsg =
+          (Xmss.Address.msg (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.bytes.toList →
         σ (sD0 layer b) = (hcell (σ sLxPP :: aMsg :: msgCells ++ [σ (sRho layer b)])).1 →
-        @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ sLxPP)) ⟨layer, hl⟩
-          (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩) M (sPart layer b σ) =
-          some (xv (σ (.n (sWin1 layer b).2.2))) := by
+        (Xmss.layerRoot (Xmss.pureHash xF) (xl (σ sLxPP)) (lyr layer) (L >>> (16 * layer)) M
+          (sPart layer b σ)).run = some (xl (σ (.n (sWin1 layer b).2.2))) := by
   have s1 := holdsList_split_atoms (xs := xStepAddrs (sLxIdx layer b) (sA layer b))
     (xStepAddrs_atoms _ _) h
   have hsteps := xStepAddrs_sound (atomsHold_of_holdsList (xStepAddrs_atoms _ _) s1.1)
@@ -279,7 +282,7 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
   refine ⟨s6, ⟨hk0, hpin0⟩, ⟨hk1, hpin1⟩, ?_⟩
   intro L hL hidx hhis hwk htag msgCells M hM aMsg haMsg hd0
   -- the values
-  set key := LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨layer, hl⟩ with hkey
+  have he32 : L >>> (16 * layer) < 2 ^ 32 := key_lt L layer hL
   set W := sW layer b with hW
   set dg := sA layer b + 6 with hdg
   set dig := lxDigit (sK σ dg) with hdig
@@ -291,13 +294,19 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
     simp only [Finset.sum_const, Finset.card_range, smul_eq_mul] at hle
     exact Value.gen_pow_inj (by omega) (by norm_num) h106
   -- the addresses
-  have hadr : ∀ st : HashSig.ChainStep, cellBytes (σ (.n (sA layer b + 2 * st.val + 1))) =
-      LeanXmss.tweakBytes (.chain ⟨layer, hl⟩ key st) := by
+  have hadr : ∀ st : Fin (Xmss.Constants.CHAIN_LENGTH - 1),
+      cellBytes (σ (.n (sA layer b + 2 * st.val + 1))) =
+        (Xmss.Address.chain (lyr layer) (UInt32.ofNat (L >>> (16 * layer))) st).encode.bytes.toList
+            := by
     intro st
-    rw [hsteps st.val st.isLt, hidx]
-    exact xStepAdr_bytes hL hl st.isLt
+    have hst : st.val < 3 := by
+      have := st.isLt
+      have e : Xmss.Constants.CHAIN_LENGTH = 4 := Xmss.Constants.chain_length_eq
+      omega
+    rw [hsteps st.val hst, hidx]
+    exact xStepAdr_bytes hL hl hst
   have haLeaf : cellBytes (σ (.n ((sCw layer b).2.1 + 1))) =
-      LeanXmss.tweakBytes (.leaf ⟨layer, hl⟩ key) := by
+      (Xmss.Address.leaf (lyr layer) (UInt32.ofNat (L >>> (16 * layer)))).encode.bytes.toList := by
     rw [e2, e1, hidx]
     exact xLeafAdr_bytes hL hl
   -- the leaf
@@ -313,77 +322,87 @@ theorem sLayerCore_sound (hpad : PadOK σ sLxPad) (hpow : ∀ s < 13, σ (sPower
       rw [hcells]
       exact cellsBytes_getD_past (by simp; omega))
   rw [hcells, List.take_of_length_le (by rw [length_cellsBytes]; simp)] at hleaf
-  have hlo := hleaf
-  -- the Spec
-  rw [layerRoot_id, otsLeaf_id]
-  have hmd : @LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ (xpp (σ sLxPP))
-      ⟨layer, hl⟩ key M (sPart layer b σ).randomizer = xv (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j)) := by
-    rw [show (sPart layer b σ).randomizer = xv (σ (sRho layer b)) from rfl,
-      messageDigest_cells xq_keccak haMsg hM, ← hd0, hd]
-  rw [hmd, show (58 : Nat) = LeanXmss.chainCount from rfl, decode_lit hdig4 hsum', Option.map_some]
-  refine congrArg some ?_
-  have hrc : ∀ i : LeanXmss.ChainIndex, @LeanXmss.Verification.recoverChainWithHash Id _ ⟨Node.keccakBits⟩
-      (xpp (σ sLxPP)) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩ ((sPart layer b σ).chainValues i) =
-      xv (σ (sTip W (dg + 70) i.val)) := by
+  have hlo : σ (.n (sLeafK layer b).2.2) = (hcell (σ sLxPP :: σ (.n ((sCw layer b).2.1 + 1)) ::
+      List.map (fun i => σ (sTip W (dg + 70) i)) (List.range 58))).1 := hleaf
+  -- the digest
+  have hmd : (Xmss.messageDigest (Xmss.pureHash xF) (xl (σ sLxPP)) (lyr layer)
+      (UInt32.ofNat (L >>> (16 * layer))) M (sPart layer b σ).randomizer).run =
+      xl (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j)) := by
+    rw [show (sPart layer b σ).randomizer = xl (σ (sRho layer b)) from rfl,
+      messageDigest_cells xh_keccak haMsg hM, ← hd0, hd]
+  -- the chain ends
+  have hends : ∀ i : Fin Xmss.Constants.V, Xmss.chainEnd xF (xl (σ sLxPP)) (lyr layer)
+      (UInt32.ofNat (L >>> (16 * layer))) (codeVec dig hdig4) (sPart layer b σ).chainValues i =
+      xl (σ (sTip W (dg + 70) i.val)) := by
     intro i
-    rw [show (sPart layer b σ).chainValues i = xv (σ (sStart W σ dg (dg + 70) i.val)) from rfl,
-      recoverChain_cells xq_keccak (pp := σ sLxPP) (adr := fun s => σ (.n (sA layer b + 2 * s + 1))) hadr]
-    rw [htips i.val i.isLt, chainT_eq_xChain' (fun s y => by rw [htag i.val i.isLt])]
-  rw [show (fun i : LeanXmss.ChainIndex => @LeanXmss.Verification.recoverChainWithHash Id _
-      ⟨Node.keccakBits⟩ (xpp (σ sLxPP)) ⟨layer, hl⟩ key i ⟨dig i.val, hdig4 _⟩
-        ((sPart layer b σ).chainValues i)) = fun i => xv (σ (sTip W (dg + 70) i.val)) from funext hrc]
-  have hlo' : σ (.n (sLeafK layer b).2.2) = (hcell (σ sLxPP :: σ (.n ((sCw layer b).2.1 + 1)) ::
-      List.map (fun i => σ (sTip W (dg + 70) i)) (List.range LeanXmss.chainCount))).1 := hlo
-  rw [leafHash_cells xq_keccak (fun i => σ (sTip W (dg + 70) i)) haLeaf, ← hlo']
-  beta_reduce
+    have hi : i.val < 58 := i.isLt
+    rw [chainEnd_cells xh_keccak (adr := fun s => σ (.n (sA layer b + 2 * s + 1))) hadr
+      (codeVec dig hdig4) (sPart layer b σ).chainValues i
+      (z := σ (sStart W σ dg (dg + 70) i.val)) (by simp [sPart]; rfl)]
+    rw [htips i.val hi, chainT_eq_xChain' (fun s y => by rw [htag i.val hi]), codeVec_val]
   -- the path
-  have hA : ∀ l < LeanXmss.layerHeight, cellBytes (lxNodeAddr L (2 * layer + l / 8) (l % 8)) =
-      LeanXmss.tweakBytes (.node ⟨layer, hl⟩ (l + 1) (key.val / 2 ^ (l + 1))) := by
+  have hA : ∀ (l : Nat) (hl16 : l < Xmss.Constants.LAYER_HEIGHT),
+      cellBytes (lxNodeAddr L (2 * layer + l / 8) (l % 8)) =
+        (Xmss.Address.node (lyr layer) ⟨l + 1, by omega⟩
+          (UInt32.ofNat (L >>> (16 * layer) / 2 ^ (l + 1)))).encode.bytes.toList := by
     intro l hl16
-    have hl16' : l < 16 := by simpa [LeanXmss.layerHeight] using hl16
+    have hl16' : l < 16 := by
+      have := hl16
+      rw [Xmss.Constants.layer_height_eq] at this
+      exact this
     rw [lxNodeAddr_eq hl16']
     exact xNodeAdr_bytes hL hl hl16'
-  rw [show (sPart layer b σ).authenticationPath = fun l => xv (sSibAt σ layer b l.val) from rfl,
-    treeFold_cells xq_keccak hA (sSibAt σ layer b) LeanXmss.layerHeight le_rfl]
-  refine congrArg xv ?_
-  have hout0' : σ (.n (sWin0 layer b).2.2) = mFold (σ sLxPP) (lxAtF σ (2 * layer) (sKw σ (2 * layer)))
-      (lxBitF (sKw σ (2 * layer))) (lxSibF σ (2 * layer) (lxArmB (2 * layer) 0 (sKw σ (2 * layer))
-        ((sLeafK layer b).2.1 + 5))) 8 0 (σ (.n (sLeafK layer b).2.2)) := hout0
-  have hout1' : σ (.n (sWin1 layer b).2.2) = mFold (σ sLxPP)
-      (lxAtF σ (2 * layer + 1) (sKw σ (2 * layer + 1))) (lxBitF (sKw σ (2 * layer + 1)))
-      (lxSibF σ (2 * layer + 1) (lxArmB (2 * layer + 1) 0 (sKw σ (2 * layer + 1))
-        ((sWin0 layer b).2.1 + 5))) 8 0 (σ (.n (sWin0 layer b).2.2)) := hout1
-  rw [hout1', hout0']
-  have hpw : ∀ r < 8, σ (sPower (7 - r)) = eOfNat (2 ^ (7 - r)) := fun r _ => by
-    rw [hpow _ (by omega), Value.gen_pow_eq_eOfNat (by omega)]
-  have hkey' : key.val = L >>> (16 * layer) := keyAt_val L hL layer hl
-  have win : ∀ (j : Nat), j < 2 → ∀ l < 8,
-      lxNodeAddr L (2 * layer + (l + 8 * j) / 8) ((l + 8 * j) % 8) = lxAtF σ (2 * layer + j) (sKw σ (2 * layer + j)) l ∧
-      key.val.testBit (l + 8 * j) = lxBitF (sKw σ (2 * layer + j)) l := by
-    intro j hj l hl8
-    have ew : (l + 8 * j) / 8 = j := by omega
-    have er : (l + 8 * j) % 8 = l := by omega
-    rw [ew, er, hwk _ (by omega)]
-    refine ⟨?_, ?_⟩
-    · unfold lxAtF
-      rw [hpw l hl8]
-      exact (lx_at hL hhis (by omega) hl8).symm
-    · rw [hkey', Nat.testBit_shiftRight, lxBitF]
-      have hb := lx_bit L (2 * layer + j) l hl8
-      rw [show 8 * (2 * layer + j) + l = 16 * layer + (l + 8 * j) by ring] at hb
-      by_cases ht : L.testBit (16 * layer + (l + 8 * j)) = true
-      · rw [ht]; exact (decide_eq_true (hb.mpr ht)).symm
-      · rw [Bool.not_eq_true] at ht
-        rw [ht]
-        exact (decide_eq_false fun h => by rw [hb.mp h] at ht; exact Bool.noConfusion ht).symm
-  rw [show LeanXmss.layerHeight = 16 from rfl]
-  refine xFold_two (fun l hl8 => ?_) (fun l hl8 => ?_) _
-  · obtain ⟨a, bt⟩ := win 0 (by omega) l hl8
-    simp only [Nat.mul_zero, Nat.add_zero] at a bt
-    exact ⟨a, bt, by simp [sSibAt, hl8]⟩
-  · obtain ⟨a, bt⟩ := win 1 (by omega) l hl8
-    simp only [Nat.mul_one] at a bt
-    exact ⟨a, bt, by simp [sSibAt, show ¬ (l + 8 < 8) by omega]⟩
+  have hfold : (Xmss.fold (Xmss.pureHash xF) (xl (σ sLxPP)) (lyr layer) (L >>> (16 * layer))
+      (xl (σ (.n (sLeafK layer b).2.2))) (sPart layer b σ).path).run =
+      xl (σ (.n (sWin1 layer b).2.2)) := by
+    rw [show (sPart layer b σ).path = Vector.ofFn fun k : Fin Xmss.Constants.LAYER_HEIGHT =>
+        xl (sSibAt σ layer b k.val) from rfl,
+      fold_cells xh_keccak hA (sSibAt σ layer b)]
+    refine congrArg xl ?_
+    have hout0' : σ (.n (sWin0 layer b).2.2) = mFold (σ sLxPP) (lxAtF σ (2 * layer) (sKw σ (2 *
+        layer)))
+        (lxBitF (sKw σ (2 * layer))) (lxSibF σ (2 * layer) (lxArmB (2 * layer) 0 (sKw σ (2 * layer))
+          ((sLeafK layer b).2.1 + 5))) 8 0 (σ (.n (sLeafK layer b).2.2)) := hout0
+    have hout1' : σ (.n (sWin1 layer b).2.2) = mFold (σ sLxPP)
+        (lxAtF σ (2 * layer + 1) (sKw σ (2 * layer + 1))) (lxBitF (sKw σ (2 * layer + 1)))
+        (lxSibF σ (2 * layer + 1) (lxArmB (2 * layer + 1) 0 (sKw σ (2 * layer + 1))
+          ((sWin0 layer b).2.1 + 5))) 8 0 (σ (.n (sWin0 layer b).2.2)) := hout1
+    rw [hout1', hout0']
+    have hpw : ∀ r < 8, σ (sPower (7 - r)) = eOfNat (2 ^ (7 - r)) := fun r _ => by
+      rw [hpow _ (by omega), Value.gen_pow_eq_eOfNat (by omega)]
+    have win : ∀ (j : Nat), j < 2 → ∀ l < 8,
+        lxNodeAddr L (2 * layer + (l + 8 * j) / 8) ((l + 8 * j) % 8) =
+          lxAtF σ (2 * layer + j) (sKw σ (2 * layer + j)) l ∧
+        (L >>> (16 * layer)).testBit (l + 8 * j) = lxBitF (sKw σ (2 * layer + j)) l := by
+      intro j hj l hl8
+      have ew : (l + 8 * j) / 8 = j := by omega
+      have er : (l + 8 * j) % 8 = l := by omega
+      rw [ew, er, hwk _ (by omega)]
+      refine ⟨?_, ?_⟩
+      · unfold lxAtF
+        rw [hpw l hl8]
+        exact (lx_at hL hhis (by omega) hl8).symm
+      · rw [Nat.testBit_shiftRight, lxBitF]
+        have hb := lx_bit L (2 * layer + j) l hl8
+        rw [show 8 * (2 * layer + j) + l = 16 * layer + (l + 8 * j) by ring] at hb
+        by_cases ht : L.testBit (16 * layer + (l + 8 * j)) = true
+        · rw [ht]; exact (decide_eq_true (hb.mpr ht)).symm
+        · rw [Bool.not_eq_true] at ht
+          rw [ht]
+          exact (decide_eq_false fun h => by rw [hb.mp h] at ht; exact Bool.noConfusion ht).symm
+    refine xFold_two (fun l hl8 => ?_) (fun l hl8 => ?_) _
+    · obtain ⟨a, bt⟩ := win 0 (by omega) l hl8
+      simp only [Nat.mul_zero, Nat.add_zero] at a bt
+      exact ⟨a, bt, by simp [sSibAt, hl8]⟩
+    · obtain ⟨a, bt⟩ := win 1 (by omega) l hl8
+      simp only [Nat.mul_one] at a bt
+      exact ⟨a, bt, by simp [sSibAt, show ¬ (l + 8 < 8) by omega]⟩
+  refine Xmss.layerRoot_eq (f := xF) (x := codeVec dig hdig4)
+    (ends := Vector.ofFn fun i : Fin Xmss.Constants.V => xl (σ (sTip W (dg + 70) i.val)))
+    (leaf := xl (σ (.n (sLeafK layer b).2.2))) (root := xl (σ (.n (sWin1 layer b).2.2)))
+    (by rw [hmd]; exact codeword_lit hdig4 hsum') (fun i => by rw [hends i]; simp) ?_ hfold
+  rw [leafHash_cells xh_keccak (fun i => σ (sTip W (dg + 70) i)) haLeaf, ← hlo]
+
 
 /-! ## The check -/
 
@@ -448,11 +467,13 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
   have hidx0 : σ (sLxIdx 0 88) = eOfNat (xIdxNat 0 L) := by
     rw [xIdxNat_zero, show sLxIdx 0 88 = sHis 0 from rfl, hhis 0 (by norm_num)]
     rfl
-  have hM0 : HashSig.littleEndianBytes 32 (cellPairVal (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"))) (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")))) =
+  have hM0 : lanesBytes (LeanXmss.lanesOfBits (cellPairVal (σ (.n (val% «main_loop2»
+      "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2"))) (σ (.n (val% «main_loop2»
+      "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))))).toArray =
       [σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3"))].flatMap cellBytes := by
-    rw [bytesLE_cellPairVal]; simp
-  have haMsg0 : cellBytes (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"))) = LeanXmss.tweakBytes
-      (.message ⟨0, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨0, by decide⟩)) := by
+    rw [lanesBytes_msg]; simp
+  have haMsg0 : cellBytes (σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#1"))) =
+      (Xmss.Address.msg (lyr 0) (UInt32.ofNat (L >>> (16 * 0)))).encode.bytes.toList := by
     rw [h90, show σ (sHis 0) = eOfNat (xIdxNat 0 L) from hidx0]
     exact xMsgAdr_bytes hL (by norm_num)
   have r0 := c0.2.2.2 L hL hidx0 hhis hwk htag hM0 haMsg0 h103
@@ -460,25 +481,30 @@ theorem verify_lean_xmss_sound_holds : verify_lean_xmss_sound_Spec xmssSigOf := 
   have hidx1 : σ (sLxIdx 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1) = eOfNat (xIdxNat 1 L) := by
     rw [show sLxIdx 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 = .n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 1) from rfl, h1,
       hhis 2 (by norm_num), xIdxNat_one hL]
-  have hM1 : HashSig.littleEndianBytes 16 (xv (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2)) =
+  have hM1 : lanesBytes (xl (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2)).toArray =
       [σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2].flatMap cellBytes := by
-    rw [bytesLE_xv]; simp
-  have haMsg1 : cellBytes (σ (.n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 4))) = LeanXmss.tweakBytes
-      (.message ⟨1, by decide⟩ (LeanXmss.keyIndexOnLayer ⟨L, hL⟩ ⟨1, by decide⟩)) := by
+    rw [Hash.Keccak.lanesBytes_lanes2, bytes_xl]; simp
+  have haMsg1 : cellBytes (σ (.n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 4))) =
+      (Xmss.Address.msg (lyr 1) (UInt32.ofNat (L >>> (16 * 1)))).encode.bytes.toList := by
     rw [h4, show σ (.n ((sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 + 1)) = eOfNat (xIdxNat 1 L) from hidx1]
     exact xMsgAdr_bytes hL (by norm_num)
   have r1 := c1.2.2.2 L hL hidx1 hhis hwk htag hM1 haMsg1 h6
   -- the claim
   refine ⟨σ (.n (sWin1 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1).2.1), σ sLxPP, σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#2")), σ (.n (val% «main_loop2» "s3.i3:verify_lean_xmss.s7.u0.s3.t.s0#3")),
     ⟨hld0, hld1, hld2, hld3⟩, ?_⟩
-  have lb : (xmssSigOf σ).layers LeanXmss.bottomLayer = sPart 0 88 σ := by simp [xmssSigOf]
-  have lt : (xmssSigOf σ).layers LeanXmss.topLayer = sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ := by
-    simp [xmssSigOf, LeanXmss.topLayer, LeanXmss.bottomLayer]
+  have hli : (xmssSigOf σ).leafIndex.toNat = L := UInt32.toNat_ofNatLT
+  have hbt : Xmss.bottomTree (xmssSigOf σ).leafIndex = L >>> (16 * 1) := by
+    simp [Xmss.bottomTree_eq_div, hli, Nat.shiftRight_eq_div_pow, Xmss.Constants.layer_height_eq]
   rw [xmssVerify_iff]
-  refine ⟨xv (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2), ?_, ?_⟩
-  · rw [lb, sLayer_snd]
+  refine ⟨xl (σ (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.2), ?_, ?_⟩
+  · show (Xmss.layerRoot (Xmss.pureHash xF) (xl (σ sLxPP)) .bottom (xmssSigOf σ).leafIndex.toNat
+      _ (sPart 0 88 σ)).run = _
+    rw [hli, sLayer_snd]
     exact r0
-  · rw [lt, ← hroot]
+  · show (Xmss.layerRoot (Xmss.pureHash xF) (xl (σ sLxPP)) .top
+      (Xmss.bottomTree (xmssSigOf σ).leafIndex) _
+      (sPart 1 (sLayer 0 88 (.n (val% «main_loop2» "xi"))).2.1 σ)).run = _
+    rw [hbt, ← hroot]
     exact r1
 
 end

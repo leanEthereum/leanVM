@@ -66,11 +66,11 @@ theorem mainGoalClXTB (hL : GuestLimits s w) {SB SK : String → ℕ}
     simp only [Coverage.planSlots] at this
     omega
   have e : (hOwn seed s w).getD 0 [] =
-      s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (xPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+      s.claims.xmss.flatMap (fun c => claimCells (xmssRoot c) (xmssParam c) c.2) ++
+        (xPlan s w).duplicates.flatMap (fun c => claimCells (xmssRoot c) (xmssParam c) c.2) := by
     rw [← List.flatMap_append]; rfl
-  have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2)
-    (fun c => mf_claimCells_length c.1.root c.1.parameter c.2) s.claims.xmss
+  have hl := mf_length_flatMap (fun c : LeanXmssClaim => claimCells (xmssRoot c) (xmssParam c) c.2)
+    (fun c => mf_claimCells_length (xmssRoot c) (xmssParam c) c.2) s.claims.xmss
   have key := claim_list_digest_completeAtTB fs cert (Lin := hLmain fs fp seed s w)
     (eP := mfB fs fp seed s w 0) hn hl
     (fun rd h => by

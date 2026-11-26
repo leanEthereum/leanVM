@@ -10,7 +10,6 @@ module
 
 import LeanVM.Guest.B1.Common.Sponge
 import Statement.LeanVmGuest
-import LeanXmss.Scheme
 public import Statement.LeanSphincs
 public import Statement.LeanXmss
 import LeanDa.Scheme

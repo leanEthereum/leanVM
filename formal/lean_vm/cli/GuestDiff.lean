@@ -78,7 +78,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       (s!"child {i}'s proof verifies", verifyDeferred bytecode c.seed (statementDigest c.seed ch.statement)
         ch.freshClaim ch.proof)]) ++
   held w.children "leanXMSS" s.claims.xmss w.xmssSignatures (fun cl σ
-      => LeanXmss.verifyWithKeccak cl.1 cl.2 σ)
+      => LeanXmss.verifyWithKeccak cl.1 (LeanXmss.lanesOfBits cl.2) σ)
     (·.statement.claims.xmss) ++
   held w.children "leanSPHINCS" s.claims.sphincs w.sphincsSignatures (fun cl σ
       => Sphincs.verifyWithKeccak cl.1 cl.2 σ)

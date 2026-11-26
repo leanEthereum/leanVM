@@ -16,7 +16,10 @@ public import LeanVM.Protocol.KnowledgeSoundness
 public import Statement.LeanVmGuest
 public import Statement.Corollaries
 public import Common.Transfer
-public import LeanXmss.Scheme
+public import VCVio.OracleComp.QueryTracking.LoggingOracle.Core
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+public import Statement.LeanXmss
+public import Common.WithHash
 public import Statement.LeanSphincs
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
