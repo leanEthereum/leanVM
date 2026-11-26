@@ -52,7 +52,7 @@ abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret
   ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) CellOut ret top regs m r' m' →
     rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
 
-/-- The loop at its head (the four stores of an entry), `t` entries after the first done. -/
+/-- The loop at its head (the four stores of an entry), `k` entries left after this one. -/
 def KInv (env : Env) (ret top : Word) (regs : Reg → Word) (m : MachineState) (k : Nat) (r : Reg → Word)
     (M : MachineState) : Prop :=
   r .x1 = ret ∧ AbiRegs top regs r ∧ Kept env top (regs .x10) cellBytes m M ∧ k ≤ 11 ∧
