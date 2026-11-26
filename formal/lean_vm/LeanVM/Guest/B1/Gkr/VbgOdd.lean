@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Gkr.Root
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.B1.Sumcheck.Gkr
 public import LeanVM.Guest.B1.Gkr.Holds
+import LeanVM.Guest.KernelLit
 
 /-!
 # The root-most layer, completely
@@ -109,8 +110,7 @@ def rtTwoL : List Stmt :=
   rtVal 351 291 295 6 ++ rtVal 354 299 303 7 ++ rtVal 357 320 324 8 ++
   [.atom (.const (.n 360) (word 128 0)), .atom (.load (.n 360) (.n 139) 9)]
 
-set_option maxRecDepth 10000 in
-theorem rtTwoL_eq : rtTwo = rtTwoL := tbStmtsEqb_sound (by decide +kernel)
+kernel_rfl rtTwoL_eq : rtTwo = rtTwoL
 
 /-- The radix-four arm. -/
 def rtFourL : List Stmt :=
@@ -138,8 +138,7 @@ def rtFourL : List Stmt :=
   chValT 142 232 245 139 2 278 8 ++
   [.atom (.const (.n 287) (word 128 0)), .atom (.load (.n 287) (.n 139) 9)]
 
-set_option maxRecDepth 10000 in
-theorem rtFourL_eq : rtFour = rtFourL := tbStmtsEqb_sound (by decide +kernel)
+kernel_rfl rtFourL_eq : rtFour = rtFourL
 
 section Eval
 

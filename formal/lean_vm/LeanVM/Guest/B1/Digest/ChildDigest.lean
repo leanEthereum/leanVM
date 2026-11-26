@@ -12,6 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
 import LeanVM.Guest.Value.FieldBits
 import LeanVM.ToMathlib.List
+meta import LeanVM.Guest.KernelRfl
 
 /-!
 # `child_claim_list_digest`
@@ -47,8 +48,8 @@ theorem child_claim_list_digest_shape : Fn.body fn% «child_claim_list_digest» 
          .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@1"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@1")))]
         [.call "child_claim_list_any" [.n (val% «child_claim_list_digest» "entries_ptr"), .n (val% «child_claim_list_digest» "region"), .n (val% «child_claim_list_digest» "base"), .n (val% «child_claim_list_digest» "limit_g"), .n (val% «child_claim_list_digest» "bigs"), .n (val% «child_claim_list_digest» "groups"), .n (val% «child_claim_list_digest» "rest")] [.n (val% «child_claim_list_digest» "d0@2"), .n (val% «child_claim_list_digest» "d1@2")],
          .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@2"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@2")))]],
-     .atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))), .ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]] :=
-  stmtsEqb_sound (by decide +kernel)
+     .atom (.copy (.n (val% «child_claim_list_digest» "s2#0")) (.n (val% «child_claim_list_digest» "digest[0]"))), .atom (.copy (.n (val% «child_claim_list_digest» "s2#0[1]")) (.n (val% «child_claim_list_digest» "digest[1]"))), .ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]] := by
+  kernel_rfl
 
 /-- The empty list's chain: the empty message from the zero state. -/
 noncomputable def cc25ZSpec : ChainSpec := ⟨[], 0, true, none, keccakBlocks (atomsIn cc25Zero)⟩

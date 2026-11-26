@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop1»
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop2»
+import LeanVM.Guest.KernelLit
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -32,12 +33,12 @@ def copyLoopT (name : String) : List Stmt :=
     .atom (.const (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#3")) (word 2 0)), .atom (.mul (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "xt")) (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#3"))),
     .callIf (.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#2")) name [.n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "s2#4"), .n (val% «verify_keccak_loop0» «verify_keccak_loop1» «verify_keccak_loop2» "bound"), .n 2, .n 3], .ret []]
 
-theorem copyLoop_body11 : (fn% «verify_keccak_loop0»).body = copyLoopT name% «verify_keccak_loop0»
-    := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body12 : (fn% «verify_keccak_loop1»).body = copyLoopT name% «verify_keccak_loop1»
-    := stmtsEqb_sound (by decide +kernel)
-theorem copyLoop_body13 : (fn% «verify_keccak_loop2»).body = copyLoopT name% «verify_keccak_loop2»
-    := stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl copyLoop_body11 : (fn% «verify_keccak_loop0»).body = copyLoopT name% «verify_keccak_loop0»
+open LeanVM.Guest.KernelLit in
+kernel_rfl copyLoop_body12 : (fn% «verify_keccak_loop1»).body = copyLoopT name% «verify_keccak_loop1»
+open LeanVM.Guest.KernelLit in
+kernel_rfl copyLoop_body13 : (fn% «verify_keccak_loop2»).body = copyLoopT name% «verify_keccak_loop2»
 
 theorem find_copyLoop11 : coreProgram.find? name% «verify_keccak_loop0» = some
     fn% «verify_keccak_loop0» :=

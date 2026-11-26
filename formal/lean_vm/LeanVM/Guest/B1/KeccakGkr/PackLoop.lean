@@ -14,6 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
+import LeanVM.Guest.KernelLit
 
 /-!
 # The pack rounds' loops (`keccak_layer`)
@@ -323,16 +324,16 @@ def remLoopName : ℕ → String
   | 1 => name% «keccak_layer__L1_loop1»
   | _ => name% «keccak_layer__L0_loop1»
 
-theorem pack8_body456 : (fn% «keccak_layer__L1_loop0»).body = pack8T name% «keccak_layer__L1_loop0»
-    := stmtsEqb_sound (by decide +kernel)
-theorem pack8_body458 : (fn% «keccak_layer__L0_loop0»).body = pack8T name% «keccak_layer__L0_loop0»
-    := stmtsEqb_sound (by decide +kernel)
-theorem packRem_body457 : (fn% «keccak_layer__L1_loop1»).body = packRemT
-    name% «keccak_layer__L1_loop1» :=
-  stmtsEqb_sound (by decide +kernel)
-theorem packRem_body459 : (fn% «keccak_layer__L0_loop1»).body = packRemT
-    name% «keccak_layer__L0_loop1» :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl pack8_body456 : (fn% «keccak_layer__L1_loop0»).body = pack8T name% «keccak_layer__L1_loop0»
+open LeanVM.Guest.KernelLit in
+kernel_rfl pack8_body458 : (fn% «keccak_layer__L0_loop0»).body = pack8T name% «keccak_layer__L0_loop0»
+open LeanVM.Guest.KernelLit in
+kernel_rfl packRem_body457 : (fn% «keccak_layer__L1_loop1»).body = packRemT
+    name% «keccak_layer__L1_loop1»
+open LeanVM.Guest.KernelLit in
+kernel_rfl packRem_body459 : (fn% «keccak_layer__L0_loop1»).body = packRemT
+    name% «keccak_layer__L0_loop1»
 
 theorem find_pack8_456 : coreProgram.find? name% «keccak_layer__L1_loop0» = some
     fn% «keccak_layer__L1_loop0» :=

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.Uniform
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop4»
+import LeanVM.Guest.KernelLit
 
 /-!
 # A child's block, evaluated
@@ -81,10 +82,8 @@ def l5Tail : Stmt :=
       .n (val% «main_loop4» "da_digests"), .n
     (val% «main_loop4» "seed_0"), .n (val% «main_loop4» "seed_1"), .n (val% «main_loop4» "child_pi"), .n (val% «main_loop4» "g_squares"), .n (val% «main_loop4» "child_fresh")]
 
-set_option maxRecDepth 100000 in
-theorem l5_body : Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail,
-    .ret []] :=
-  stmtsEqb_sound (by decide +kernel)
+kernel_rfl l5_body :
+    Fn.body (coreProgram.getD idx% «main_loop4» default) = l5Pre ++ [l5Tail, .ret []]
 
 set_option maxRecDepth 100000 in
 theorem l5_params : (coreProgram.getD idx% «main_loop4» default).params = (List.range 16).map V.n

@@ -3,23 +3,23 @@
 is its template, `OsData m`, `Whir/DataSpec.lean`), and `HelperData{k}.lean`, `HelperFind{c}.lean`,
 `HelperTables.lean` and `HelperAll.lean` (every specialization of `level_positions`,
 `level_queries`, `level_residual`, `level_residual_slow`, `level_residual_sum`, `residual_query_slow` and of their loops is its template,
-`Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by kernel evaluation. `Data{m}` reads only its function's core pack, and
+`Whir/HelperT.lean`, `Whir/SlowT.lean`, and the helpers' tables), by the kernel (`Data{m}` by
+`kernel_rfl`, the helpers' bodies too). `Data{m}` reads only its function's core pack, and
 `HelperData{k}` the helpers in core pack `k` (`Guest/Pack/P{k}/Core.lean`) and that pack only;
 they hold for any program that finds the functions (`FnIsP`, `OsDataP`, `Whir/DataSpecP.lean`), and
 `DataAll` and `HelperFind{c}` (eight chunks of packs) find them in `coreProgram`. The sizes are `ligNSizes`
 (`LIG_N_LOG_SIZES`, `Data/Consts.lean`); the functions' keys, indices and packs are read from the core IR
-(`Guest/Data/Core.lean`, `Guest/Pack`, `scripts/coredata.py`), the loops a helper calls and the body lengths from
-`guest-core --show`; the kernel checks them. Run from `lean_vm` after `lake build guest-core`:
+(`Guest/Data/Core.lean`, `Guest/Pack`, `scripts/coredata.py`), with the loops a helper calls; the
+kernel checks them. Run from `lean_vm`:
 
     python3 -I scripts/whir-data [--check]
 """
-import re, subprocess, sys
+import re, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import coredata
 
 FIND_CHUNKS = 8  # the glue modules finding the helpers in `coreProgram`
-RUN = 1100  # statements a kernel evaluation of the body compares
 WHIR = Path("LeanVM/Guest/B1/Whir")
 
 
@@ -29,15 +29,6 @@ def core_indices():
         for m in re.finditer(r'noncomputable def core(\d+) : Core\.Fn where\n  name := "([^"]+)"', t):
             out[m.group(2)] = int(m.group(1))
     return out
-
-
-def show(name):
-    return subprocess.run(["./.lake/build/bin/guest-core", "--show", name], check=True, capture_output=True,
-                          text=True).stdout
-
-
-def body_len(name):
-    return len([ln for ln in show(name).split("\n") if ln.startswith("  ")])
 
 
 BODIES = {}
@@ -97,34 +88,22 @@ def data(m):
     name = f"open_stacked__L{m}"
     key = KEY[name]
     fn = f"(Fn.«{key}».core)"
-    n = body_len(name)
-    runs = (n + RUN - 1) // RUN
-    out = [HDR.format(mod=f"Data{m}", doc=f"`open_stacked__L{m}` is its template, by kernel evaluation.",
-                      imports="public import LeanVM.Guest.B1.Whir.DataSpecP\n" + fn_import(key))]
+    out = [HDR.format(mod=f"Data{m}", doc=f"`open_stacked__L{m}` is its template, by the kernel.",
+                      imports="public import LeanVM.Guest.B1.Whir.DataSpecP\n" + fn_import(key)
+                      + "import LeanVM.Guest.KernelLit\n")]
     out.append(f"""
 /-!
 # Size {m}
 
-`osData_{m} P : OsDataP P {m}` for every `P` that finds the function: its body equal to the
-template (`stmtsEqb_sound`), the body in runs of {RUN} statements, each its own kernel evaluation
-(`run_step`), to bound the kernel's memory.
+`osData_{m} P : OsDataP P {m}` for every `P` that finds the function: its body is the template
+(`kernel_rfl`).
 -/
-""")
-    for r in range(runs):  # the last run compares the rest, so no length is evaluated
-        take = (lambda x: f"(({x}).take {RUN})") if r < runs - 1 else (lambda x: f"({x})")
-        out.append(f"""
-set_option maxRecDepth 100000 in
-theorem os_run_{m}_{r} : stmtsEqb {take(f"{fn}.body.drop {r * RUN}")}
-    {take(f"(osBody (osCfg {m})).drop {r * RUN}")} = true := by decide +kernel
-""")
-    steps = "".join(f"    run_step {RUN} {r * RUN} os_run_{m}_{r} <|\n" for r in range(runs - 1))
-    out.append(f"""
-set_option maxRecDepth 100000 in
-theorem osData_{m} (P : Program) [Finds P "{name}" Fn.«{key}».core] : OsDataP P {m} := by
-  have hb : {fn}.body.drop 0 = (osBody (osCfg {m})).drop 0 :=
-{steps}    stmtsEqb_sound os_run_{m}_{runs - 1}
-  rw [List.drop_zero, List.drop_zero] at hb
-  exact fnIsP_of P "{name}" Fn.«{key}».core (by decide +kernel) hb
+
+open LeanVM.Guest.KernelLit in
+private kernel_rfl os_body_{m} : {fn}.body = osBody (osCfg {m})
+
+theorem osData_{m} (P : Program) [Finds P "{name}" Fn.«{key}».core] : OsDataP P {m} :=
+  fnIsP_of P "{name}" Fn.«{key}».core (by decide +kernel) os_body_{m}
 """)
     out.append(FTR)
     return "".join(out)
@@ -149,11 +128,11 @@ def nums(name, pre):
 def thm(fname, nparams, body):
     """Function `fname`'s data theorem, for any program that finds it, and its instance at
     `coreProgram`, each its own declaration."""
-    key = KEY[fname]
-    return (f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
-            f'theorem {tname(fname)} (P : Program) [Finds P "{fname}" Fn.«{key}».core] :\n'
+    key, t = KEY[fname], tname(fname)
+    return (f'\nprivate kernel_rfl {t}_body : (Fn.«{key}».core).body = {body}\n\n/-- `{fname}`. -/\n'
+            f'theorem {t} (P : Program) [Finds P "{fname}" Fn.«{key}».core] :\n'
             f'    FnIsP P "{fname}" (osParams {nparams}) ({body}) :=\n'
-            f'  fnIsP_of P "{fname}" Fn.«{key}».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))\n',
+            f'  fnIsP_of P "{fname}" Fn.«{key}».core (by decide +kernel) {t}_body\n',
             f'\nset_option maxRecDepth 100000 in\n/-- `{fname}`. -/\n'
             f'theorem {inst(fname)} : FnIs "{fname}" (osParams {nparams}) ({body}) :=\n'
             f'  @{tname(fname)} coreProgram {found(fname)}\n')
@@ -236,10 +215,10 @@ def helpers(idx):
     for k in files:
         chunk = byPack[k]
         out[f"HelperData{k}"] = (HDR.format(
-            mod=f"HelperData{k}", doc="Specializations of `open_stacked`'s helpers are their templates, by kernel evaluation.",
+            mod=f"HelperData{k}", doc="Specializations of `open_stacked`'s helpers are their templates, by the kernel.",
             imports="public import LeanVM.Guest.B1.Whir.HelperT\npublic import LeanVM.Guest.B1.Whir.SlowT\n"
             "public import LeanVM.Guest.B1.Whir.DataSpecP\n"
-            + "".join(dict.fromkeys(fn_import(KEY[f]) for f, _ in chunk)))
+            + "".join(dict.fromkeys(fn_import(KEY[f]) for f, _ in chunk)) + "meta import LeanVM.Guest.KernelLit\n")
             + "".join(x for _, (x, _) in chunk) + FTR)
     # the finds are glue, cheap: FIND_CHUNKS modules, pack `k` in chunk `k % FIND_CHUNKS`
     finds = sorted({k % FIND_CHUNKS for k in files})
