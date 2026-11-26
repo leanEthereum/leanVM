@@ -332,8 +332,8 @@ theorem search (hp : p[i]? = some (tmpl L)) {Q : State rvIsa → Prop} {ret top 
   · exact h54 _ ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ (by simp only [Tactic.rf]; simp)
   · have h0 : (M.getMem (a + 16#64)).toNat ≠ 0 := fun h => hc_1 (BitVec.eq_of_toNat_eq h)
     have h1 : (M.getMem (a + 16#64)).toNat ≠ 1 := fun h => hc (BitVec.eq_of_toNat_eq h)
-    exact bsearch hp hnx hW1 hna hterms hn40 hbo h54 (M.getMem (a + 16#64)).toNat _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl,
-      by omega, by simp only [Tactic.rf]; simp⟩
+    exact bsearch hp hnx hW1 hna hterms hn40 hbo h54 (M.getMem (a + 16#64)).toNat _ _
+      ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, by omega, by simp only [Tactic.rf]; simp⟩
   · have h1 : (M.getMem (a + 16#64)).toNat = 1 := by rw [hc]; rfl
     exact final hp hnx hW1 hna (termT hterms (x := 0#64) (by simp; omega) hn40) hbo (by simp; omega) h54 _
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ rfl rfl rfl
