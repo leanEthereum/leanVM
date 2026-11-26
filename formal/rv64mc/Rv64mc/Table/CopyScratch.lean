@@ -5,13 +5,15 @@
   `memcpy`'s `load_aligned_partial` assembles a partial word in its slot at `sp + 8` when the source is not 8-byte
   aligned against the destination, and `memmove` saves `s0` at `sp + 8`. So at the image's environment, a contract
   that keeps every byte outside the destination (`KeepAllPost`, `CopyPost` before its frame left out that stack) is
-  false of both: `memcpy_byteFrame_false` and `memmove_byteFrame_false`. Nor are the bytes copied right when the
-  source or the destination overlaps the slot: `memcpy_srcOnStack_false`, against `CopyPost` under `CopyPre`
+  false of both: `memcpy_byteFrame_false` and `memmove_byteFrame_false`. Nor are the bytes always copied right when
+  the source or the destination overlaps the slot: `memcpy_srcOnStack_false`, against `CopyPost` under `CopyPre`
   alone, and `memcpy_dstOnStack_false`, under `CopyPre` and a source apart from the stack, which is why
   `MemcpySpec` and `MemmoveSpec` ask `CopyApart` too. Each is a concrete run the kernel evaluates
   (`Isa.lrunReturns`, `Contract.not_of_lrun`) from `stackTop`: `memcpy` copies 16 or 24 bytes from a source 4 bytes
   past an 8-byte boundary, `memmove` copies none. The corrected precondition holds with bytes to copy
-  (`copySpec_pre_inhabited`), and from that state `memcpy` copies a misaligned source right (`memcpy_copies`).
+  (`copySpec_pre_inhabited`), and from that state `memcpy` and `memmove` copy a misaligned source right (`copies`);
+  so do `memcpy` to a destination at or above the stack pointer and `memmove` with overlapping ranges. These runs check
+  `a0`, the copied bytes and the 8 bytes on either side of the destination, not the rest of `Holds`' postcondition.
 
   The entry state holds the image's static data words (`StaticData`, through `Image.WF`'s distinct addresses), so
   that it meets `Holds`' precondition at `env`; every other doubleword is the witness's.
@@ -19,7 +21,8 @@
   ## Main results
 
   * `memcpy_byteFrame_false`, `memmove_byteFrame_false`, `memcpy_srcOnStack_false`, `memcpy_dstOnStack_false`
-  * `copySpec_pre_inhabited`, `memcpy_copies`: guards of the corrected contracts
+  * `copySpec_pre_inhabited`, `copies`, `memcpy_copies_aboveTop`, `memmove_copies_overlap`: guards of the corrected
+    contracts
   * `memcpySpec_of_keepAll`, `memmoveSpec_of_keepAll`: the contracts as they were imply `MemcpySpec`, `MemmoveSpec`
 -/
 
@@ -165,7 +168,7 @@ theorem memmove_byteFrame_false {need : Nat} (hn : stackLimit.toNat + need ≤ s
   exact hb this
 
 set_option maxRecDepth 100000 in
-/-- **`memcpy` does not copy a source that overlaps its slot**: copying 16 bytes to `0x20000000` from `stackTop - 12`,
+/-- **`memcpy` can copy a source that overlaps its slot wrong**: copying 16 bytes to `0x20000000` from `stackTop - 12`,
     it returns with a destination byte other than the source's at entry. -/
 theorem memcpy_srcOnStack_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
     ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need (CopyPre false) (CopyPost env)
@@ -187,7 +190,7 @@ theorem memcpy_srcOnStack_false {need : Nat} (hn : stackLimit.toNat + need ≤ s
     exact hne (hc k (by simpa [entryRegs] using hk))
 
 set_option maxRecDepth 100000 in
-/-- **`memcpy` does not copy into its slot**: copying 24 bytes to `stackTop - 16` from `0x20000104`, a source apart
+/-- **`memcpy` can copy into its slot wrong**: copying 24 bytes to `stackTop - 16` from `0x20000104`, a source apart
     from its stack, it returns with a destination byte other than the source's at entry. -/
 theorem memcpy_dstOnStack_false {need : Nat} (hn : stackLimit.toNat + need ≤ stackTop.toNat) :
     ¬ Holds env (liftProg Gen.fns) Gen.Idx.CompilerBuiltins.Mem.Memcpy need
@@ -229,19 +232,42 @@ theorem copySpec_pre_inhabited (st : Word → Word) :
   simp at h1 h2
   omega
 
+/-- A copy's run from `entryM id` is right: it returns `dst`, `[dst, dst + n)` holds what `[src, src + n)` held,
+    and the 8 bytes on either side of the destination are kept. -/
+noncomputable def CopiedRight (dst src : Word) (n : Nat) (r' : Reg → Word) (m' : MachineState) : Bool :=
+  r' .x10 == dst &&
+    ((List.range n).all fun k =>
+      m'.getByte (dst + BitVec.ofNat 64 k) == (entryM id).getByte (src + BitVec.ofNat 64 k)) &&
+    (List.range 8).all fun k =>
+      m'.getByte (dst - 8#64 + BitVec.ofNat 64 k) == (entryM id).getByte (dst - 8#64 + BitVec.ofNat 64 k) &&
+      m'.getByte (dst + BitVec.ofNat 64 (n + k)) == (entryM id).getByte (dst + BitVec.ofNat 64 (n + k))
+
+/-- `memcpy(dst, src, n)` from `stackTop` and `entryM id` returns with `CopiedRight`. -/
+noncomputable def memcpyRight (dst src n : Word) : Bool :=
+  Isa.lrunReturns (I := rvIsa) (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
+    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM id) (CopiedRight dst src n.toNat)
+
+/-- `memmove(dst, src, n)` from `stackTop` and `entryM id` returns with `CopiedRight`. -/
+noncomputable def memmoveRight (dst src n : Word) : Bool :=
+  Isa.lrunReturns (I := rvIsa) (Gen.CompilerBuiltins.Mem.Memmove.tmpl Gen.CompilerBuiltins.Mem.Memmove.link).body
+    0x1000#64 stackTop 2000 (some 0, entryRegs dst src n, entryM id) (CopiedRight dst src n.toNat)
+
 set_option maxRecDepth 100000 in
-/-- **`memcpy` copies from that state**: with every other doubleword holding its address, it returns `dst` with the
-    16 bytes copied and the 8 bytes on either side kept. -/
-theorem memcpy_copies :
-    Isa.lrunReturns (I := rvIsa) (Gen.CompilerBuiltins.Mem.Memcpy.tmpl Gen.CompilerBuiltins.Mem.Memcpy.link).body
-      0x1000#64 stackTop 1000 (some 0, entryRegs 0x1fffff00#64 0x1fffff84#64 16#64, entryM id)
-      (fun r' (m' : MachineState) => r' .x10 == 0x1fffff00#64 &&
-        ((List.range 16).all fun k =>
-          m'.getByte (0x1fffff00#64 + BitVec.ofNat 64 k) == (entryM id).getByte (0x1fffff84#64 + BitVec.ofNat 64 k)) &&
-        (List.range 8).all fun k =>
-          m'.getByte (0x1ffffef8#64 + BitVec.ofNat 64 k) == (entryM id).getByte (0x1ffffef8#64 + BitVec.ofNat 64 k) &&
-          m'.getByte (0x1fffff10#64 + BitVec.ofNat 64 k) == (entryM id).getByte (0x1fffff10#64 + BitVec.ofNat 64 k))
-      = true := by
+/-- **`memcpy` and `memmove` copy from that state**, with every other doubleword holding its address. -/
+theorem copies : memcpyRight 0x1fffff00#64 0x1fffff84#64 16#64 = true ∧
+    memmoveRight 0x1fffff00#64 0x1fffff84#64 16#64 = true := by
+  decide
+
+set_option maxRecDepth 100000 in
+/-- **`memcpy` copies to a destination on the caller's stack** (`Owned` by `top ≤ dst`, as `Duplex`' calls), from a
+    misaligned source below `NEXT`. -/
+theorem memcpy_copies_aboveTop : memcpyRight (stackTop + 8#64) 0x1fffff84#64 24#64 = true := by
+  decide
+
+set_option maxRecDepth 100000 in
+/-- **`memmove` copies overlapping ranges**, the destination below the source and above it. -/
+theorem memmove_copies_overlap : memmoveRight 0x1fffff00#64 0x1fffff04#64 24#64 = true ∧
+    memmoveRight 0x1fffff04#64 0x1fffff00#64 24#64 = true := by
   decide
 
 end Rv64mc.Table.CopyScratch
@@ -265,3 +291,15 @@ end Rv64mc.Table.CopyScratch
 /-- info: 'Rv64mc.Table.CopyScratch.copySpec_pre_inhabited' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.CopyScratch.copySpec_pre_inhabited
+
+/-- info: 'Rv64mc.Table.CopyScratch.copies' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.CopyScratch.copies
+
+/-- info: 'Rv64mc.Table.CopyScratch.memcpy_copies_aboveTop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.CopyScratch.memcpy_copies_aboveTop
+
+/-- info: 'Rv64mc.Table.CopyScratch.memmove_copies_overlap' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.CopyScratch.memmove_copies_overlap

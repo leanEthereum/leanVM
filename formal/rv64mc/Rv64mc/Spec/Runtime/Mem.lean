@@ -39,7 +39,7 @@ def CopyPre (overlap : Bool) (regs : Reg → Word) (_m : MachineState) : Prop :=
     (overlap = false → ∀ b, InRange (regs .x10) (regs .x12).toNat b → ¬ InRange (regs .x11) (regs .x12).toNat b)
 
 /-- Where a copy's ranges lie, unless there are no bytes: the destination a caller's object (`Env.Owned`), the
-    source apart from the stack below the stack pointer. `memcpy` copies a range on its slot wrong
+    source apart from the stack below the stack pointer. `memcpy` can copy a range on its slot wrong
     (`Table/CopyScratch.lean`); `Owned` asks more than that (not `[NEXT, heapEnd)`), and every caller has it. -/
 def CopyApart (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   (regs .x12).toNat = 0 ∨
