@@ -85,6 +85,10 @@ theorem sh40 {x : Word} (h : 40 * x.toNat < 2 ^ 64) : x <<< 5 + x <<< 3 = BitVec
   have := h
   omega
 
+/-- `40` times a candidate, as a number. -/
+theorem sh40' {x : Word} (h : 40 * x.toNat < 2 ^ 64) : (x <<< 5 + x <<< 3).toNat = 40 * x.toNat := by
+  rw [sh40 h, BitVec.toNat_ofNat, Nat.mod_eq_of_lt h]
+
 /-- A term below the length: its monomial a vector. -/
 theorem termT {M : MachineState} {P n x : Word} (h : TermsT env M P n.toNat) (hx : x.toNat < n.toNat)
     (hn : 40 * n.toNat < 2 ^ 64) : VecT env M (P + (x <<< 5 + x <<< 3)) 8 := by
