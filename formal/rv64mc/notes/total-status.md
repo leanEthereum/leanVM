@@ -159,7 +159,7 @@ A total proof steps through each call with the callee's total contract, so its c
 | 6 | 77 | `verifier::whir::sample_queries` | 139 | C | no | - | - | - |
 | 6 | 79 | `<verifier::whir::Subspace>::at` | 96 | C | no | - | - | - |
 | 6 | 100 | `<verifier::ring_switch::RingWeight>::evaluate` | 10 | A | no | - | - | - |
-| 6 | 109 | `<verifier::transcript::Transcript>::next_scalar` | 34 | A | no | - | - | - |
+| 6 | 109 | `<verifier::transcript::Transcript>::next_scalar` | 34 | A | yes | Proof/Transcript/NextScalarT (safety, `TranscriptT` kept) | TranscriptT3.nextScalar | keccak tables (InData) |
 | 6 | 115 | `<alloc::vec::Vec<core::option::Option<verifier::field::E>>>::reserv...` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveOptionE | env |
 | 6 | 117 | `<alloc::vec::Vec<verifier::field::K>>::reserve @verifier` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveK | env |
 | 6 | 124 | `<alloc::vec::Vec<u8>>::reserve @verifier` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveU8 | env |

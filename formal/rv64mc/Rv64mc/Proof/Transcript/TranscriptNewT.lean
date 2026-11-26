@@ -42,7 +42,7 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
 /-- The total postcondition: the slot a transcript `TranscriptT`, owned with its proof, whose proof is the
     argument. -/
 def PostT (env : Env) (regs : Reg → Word) (_m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
-  TranscriptT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧ proofAddr m' (regs .x10) = regs .x11
+  TranscriptT env m' (regs .x10) ∧ OwnedT env m' (regs .x2) (regs .x10) ∧ m'.getMem (regs .x10 + 328#64) = regs .x11
 
 /-- **The total contract of `Transcript::new`**: `PreT` to `PostT`, writing at most the slot. -/
 def specT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
@@ -148,7 +148,7 @@ theorem postT_of {env : Env} {regs r' : Reg → Word} {m m' : MachineState} (hP 
     (hK : PostK env regs m r' m') (hn : (env.next m).toNat ≤ (env.next m').toNat) : PostT env regs m r' m' := by
   obtain ⟨_, hw, ⟨ho1, ho2⟩, ⟨hqa, hqw, hs⟩, ⟨hq1, hq2⟩, hap, _⟩ := hP
   obtain ⟨hsp, h328, h8, h16⟩ := hK
-  have hq : proofAddr m' (regs .x10) = regs .x11 := h328
+  have hq : m'.getMem (regs .x10 + 328#64) = regs .x11 := h328
   refine ⟨⟨hsp, hw, hq ▸ hap, hq ▸ ⟨hqa, hqw, ?_⟩⟩, ⟨⟨by omega, ho2⟩, hq ▸ ⟨by omega, hq2⟩⟩, hq⟩
   unfold NextT.StreamWin at hs ⊢
   rw [h8, h16]

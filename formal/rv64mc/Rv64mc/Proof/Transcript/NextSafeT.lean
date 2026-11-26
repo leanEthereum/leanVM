@@ -35,12 +35,12 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   TranscriptT env m (regs .x11) ∧ OwnedT env m (regs .x2) (regs .x11) ∧
     InWin env (regs .x10) Layouts.ResultE.byteSize ∧ (regs .x10).toNat % 8 = 0 ∧
     Apart (regs .x10) Layouts.ResultE.byteSize (regs .x11) Layouts.Transcript.byteSize ∧
-    Apart (regs .x10) Layouts.ResultE.byteSize (proofAddr m (regs .x11)) Layouts.Proof.byteSize
+    Apart (regs .x10) Layouts.ResultE.byteSize (m.getMem (regs .x11 + 328#64)) Layouts.Proof.byteSize
 
 /-- The total postcondition: the transcript `TranscriptT` and owned again, its proof's address kept. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   TranscriptT env m' (regs .x11) ∧ OwnedT env m' (regs .x2) (regs .x11) ∧
-    proofAddr m' (regs .x11) = proofAddr m (regs .x11)
+    m'.getMem (regs .x11 + 328#64) = m.getMem (regs .x11 + 328#64)
 
 /-- **`Transcript::next`'s second total contract**: `PreT` to `PostT`, writing at most the slot and the stream
     offset (`Next.Out`). -/
@@ -108,7 +108,7 @@ theorem out_miss {env : Env} {regs : Reg → Word} {m : MachineState} (h : PreT 
   obtain ⟨⟨_, hT, hA, _, hQ, _⟩, _, _, _, hR, hP⟩ := h
   have ha := hT.lt
   have hq := hQ.lt
-  simp only [Apart, proofAddr, Layouts.Transcript.proof, Layouts.Transcript.byteSize, Layouts.Proof.byteSize,
+  simp only [Apart, Layouts.Transcript.byteSize, Layouts.Proof.byteSize,
     Layouts.ResultE.byteSize] at hA hq hR hP ha ⊢
   refine ⟨fun k hk => ?_, fun k hk => ?_⟩ <;>
     simp only [Next.Out, InRange, Layouts.ResultE.byteSize, Layouts.Transcript.stream_offset, not_or] <;>
