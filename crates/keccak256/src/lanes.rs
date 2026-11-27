@@ -214,9 +214,11 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
 }
 
 /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
-/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
+/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone. Inlined or out
+/// of line as [`permute`] is.
 #[cfg(target_arch = "x86_64")]
-#[inline(always)]
+#[cfg_attr(feature = "static-dispatch", inline(never))]
+#[cfg_attr(not(feature = "static-dispatch"), inline(always))]
 pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
     permute_rows(a, true);
 }
