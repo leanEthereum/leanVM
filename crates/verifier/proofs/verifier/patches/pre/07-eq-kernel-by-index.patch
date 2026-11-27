@@ -8,7 +8,7 @@ Tests: bytecode::tests::evaluate_matches_the_fold, where `Bytecode::evaluate` go
 mutation: the inner loop from 1 (`1..half`) -> both fail.
 
 diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
-index 80b788826..819f35e92 100644
+index 9e8966f15..0b046a2ad 100644
 --- a/crates/verifier/src/multilinear.rs
 +++ b/crates/verifier/src/multilinear.rs
 @@ -7,12 +7,13 @@ use crate::{VerifierError, require};

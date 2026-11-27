@@ -12,7 +12,7 @@ mutation: `absorb` one lane short (`0..RATE_LANES - 1`) -> absorb_by_index_match
 Both also fail matches_ethereum_keccak256.
 
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
-index 3a08eb93c..46fa89a7a 100644
+index 3a08eb93c..dc727b911 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
 @@ -112,8 +112,8 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
