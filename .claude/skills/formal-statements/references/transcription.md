@@ -33,7 +33,7 @@ Fiat-Shamir and the verifier:
 - Every value the Rust observes into the transcript, in the Rust's order, and only those. A value that rode the proof stream is bound when it is read; it is not observed again (root `AGENTS.md`, "Security and Fiat-Shamir").
 - Labels and domain separators are copied byte for byte.
 - Grinding: the Rust takes the smallest valid nonce, except where the root `AGENTS.md` names an exception. Transcribe which nonce the verifier accepts, not how the prover finds it.
-- Every check of the Rust verifier is a check in the Lean verifier, in the same place. Reading the proof (a Merkle path's position and sizes, the stream's length) also pins values: transcribe those reads as the Rust does them.
+- Every check of the Rust verifier (each sits behind `Transcript::checked`) is a check in the Lean verifier, in the same place. Reading the proof (a Merkle path's position and sizes, the stream's length) also pins values: transcribe those reads as the Rust does them.
 - The opening's terminal point is rotated before the basis is evaluated (root `AGENTS.md`, "The guest"); every other read of the point stays in round order.
 
 Lean traps:
