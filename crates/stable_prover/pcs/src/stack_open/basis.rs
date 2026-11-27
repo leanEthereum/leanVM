@@ -150,7 +150,11 @@ impl Terms {
                     sequence.feed(h, words);
                 }
             }
-            sequences.into_iter().flat_map(Projection::finish).collect::<Vec<_>>()
+            let mut part = Vec::with_capacity(row);
+            for sequence in sequences {
+                part.extend_from_slice(&sequence.finish());
+            }
+            part
         });
         let mut rows = vec![F128::ZERO; n * row];
         for (task, part) in parts.iter().enumerate() {

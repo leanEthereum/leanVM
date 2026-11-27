@@ -189,14 +189,13 @@ impl AdditiveNttF64 {
     fn layers(&self, runs: &mut [&mut [F64]], layer: usize, index: usize) {
         let g = runs.len().ilog2() as usize;
         // Layer `layer + i` pairs the runs `2^(g - 1 - i)` apart, under one twiddle per `2^(g - i)` runs.
-        let pairs: Vec<(usize, usize, F64)> = (0..g)
-            .flat_map(|i| {
-                let half = 1 << (g - 1 - i);
-                (0..1usize << g)
-                    .filter(move |j| j & half == 0)
-                    .map(move |j| (j, half, self.twiddle(layer + i, index << i | j >> (g - i))))
-            })
-            .collect();
+        let mut pairs = Vec::with_capacity(g << g);
+        for i in 0..g {
+            let half = 1 << (g - 1 - i);
+            for j in (0..1usize << g).filter(|j| j & half == 0) {
+                pairs.push((j, half, self.twiddle(layer + i, index << i | j >> (g - i))));
+            }
+        }
         let len = runs[0].len();
         for at in (0..len).step_by(RUN) {
             let at = at..(at + RUN).min(len);
