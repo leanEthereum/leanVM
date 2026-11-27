@@ -610,5 +610,138 @@ theorem walk_names {c : Ctx} {p : ℕ} {ss : List Stmt} {es : List Ev} {vs : Lis
   · obtain ⟨q, c', h1, h2⟩ := walk_ret c p ss hw
     exact ⟨q, _, c', h1, h2, hv⟩
 
+/-! ## Every position holds a statement -/
+
+mutual
+theorem atL_exists : ∀ (c : Ctx) (p : ℕ) (ss : List Stmt) (q : ℕ), p ≤ q → q < p + sizeL ss →
+    ∃ s c', AtL c p ss q s c'
+  | _, _, [], _, h1, h2 => by simp [sizeL] at h2; omega
+  | c, p, s :: ss, q, h1, h2 => by
+      simp only [sizeL] at h2
+      by_cases hq : q = p
+      · subst hq; exact ⟨s, c, .head c q s ss⟩
+      by_cases hs : q < p + size s
+      · obtain ⟨s', c', h⟩ := atS_exists p s q (by omega) hs
+        exact ⟨s', c', .inside h⟩
+      · obtain ⟨s', c', h⟩ := atL_exists c (p + size s) ss q (by omega) (by omega)
+        exact ⟨s', c', .tail h⟩
+
+theorem atS_exists : ∀ (p : ℕ) (s : Stmt) (q : ℕ), p < q → q < p + size s → ∃ s' c', AtS p s q s' c'
+  | p, .ite x z n, q, h1, h2 => by
+      simp only [size] at h2
+      by_cases hz : q < p + 1 + sizeL z
+      · obtain ⟨s', c', h⟩ := atL_exists ⟨p + 1 + sizeL z, p, p + 1⟩ (p + 1) z q (by omega) hz
+        exact ⟨s', c', .zero h⟩
+      · obtain ⟨s', c', h⟩ := atL_exists ⟨p + 1 + sizeL z + sizeL n, p, p + 1 + sizeL z⟩ (p + 1 + sizeL z) n q
+          (by omega) (by omega)
+        exact ⟨s', c', .nonzero h⟩
+  | p, .match_ x arms, q, h1, h2 => by
+      simp only [size] at h2
+      obtain ⟨s', c', h⟩ := atA_exists p (p + 1) arms q (by omega) (by omega)
+      exact ⟨s', c', .arm h⟩
+  | p, .atom _, q, h1, h2 => by simp only [size] at h2; omega
+  | p, .call .., q, h1, h2 => by simp only [size] at h2; omega
+  | p, .callIf .., q, h1, h2 => by simp only [size] at h2; omega
+  | p, .dispatch .., q, h1, h2 => by simp only [size] at h2; omega
+  | p, .ret _, q, h1, h2 => by simp only [size] at h2; omega
+
+theorem atA_exists : ∀ (t a : ℕ) (bs : List (List Stmt)) (q : ℕ), a ≤ q → q < a + sizeA bs →
+    ∃ s c', AtA t a bs q s c'
+  | _, _, [], _, h1, h2 => by simp [sizeA] at h2; omega
+  | t, a, b :: bs, q, h1, h2 => by
+      simp only [sizeA] at h2
+      by_cases hb : q < a + sizeL b
+      · obtain ⟨s, c', h⟩ := atL_exists ⟨a + sizeL b, t, a⟩ a b q h1 hb
+        exact ⟨s, c', .here h⟩
+      · obtain ⟨s, c', h⟩ := atA_exists t (a + sizeL b) bs q (by omega) (by omega)
+        exact ⟨s, c', .next h⟩
+end
+
+/-! ## A run atom is an event -/
+
+theorem pre_ne_stuck {es : List Ev} {o : Out} (h : o.pre es ≠ .stuck) : o ≠ .stuck := by
+  rintro rfl; exact h rfl
+
+theorem evs_pre_right {es : List Ev} {o : Out} {e : Ev} (h : e ∈ o.evs) : e ∈ (o.pre es).evs := by
+  cases o <;> simp_all [Out.pre, Out.evs]
+
+mutual
+/-- **A run atom is an event** of a path that does not get stuck. -/
+theorem runs_atom : ∀ {c : Ctx} {p : ℕ} {ss : List Stmt} {q : ℕ} {a : Core.Atom} {c' : Ctx},
+    AtL c p ss q (.atom a) c' → RunsL σ p ss q → walk σ ss ≠ .stuck → Ev.atom a ∈ (walk σ ss).evs
+  | _, _, _ :: ss, _, _, _, .head .., _, hw => by
+      simp only [walk, walk1, Out.seq] at hw ⊢
+      cases h2 : walk σ ss <;> simp_all [Out.pre, Out.evs]
+  | _, p, s :: ss, q, a, c', .inside h, hr, hw => by
+      have hb := atS_range h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨-, hr⟩
+      · simp only [walk] at hw ⊢
+        have h1' := runsS_atom h hr
+        cases h1 : walk1 σ s with
+        | fall es =>
+          have := h1' (by rw [h1]; exact fun h ↦ nomatch h); rw [h1] at this
+          simp only [h1, Out.seq] at hw ⊢
+          cases h2 : walk σ ss <;> simp_all [Out.pre, Out.evs]
+        | ret es vs =>
+          have := h1' (by rw [h1]; exact fun h ↦ nomatch h); rw [h1] at this
+          simpa [h1, Out.seq] using this
+        | stuck => simp [h1, Out.seq] at hw
+      · have := runsL_range hr; omega
+  | _, p, s :: ss, q, a, c', .tail h, hr, hw => by
+      have hb := atL_range h
+      simp only [RunsL] at hr
+      rcases hr with hr | ⟨⟨es, hf⟩, hr⟩
+      · have := runsS_range hr; omega
+      · simp only [walk, hf, Out.seq] at hw ⊢
+        exact evs_pre_right (runs_atom h hr (pre_ne_stuck hw))
+
+theorem runsS_atom : ∀ {p : ℕ} {s : Stmt} {q : ℕ} {a : Core.Atom} {c' : Ctx},
+    AtS p s q (.atom a) c' → RunsS σ p s q → walk1 σ s ≠ .stuck → Ev.atom a ∈ (walk1 σ s).evs
+  | p, .ite x z n, q, a, c', .zero h, hr, hw => by
+      have hb := atL_range h
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨h0, hr⟩ | ⟨-, hr⟩
+      · omega
+      · simp only [walk1, h0, ↓reduceIte] at hw ⊢
+        exact evs_pre_right (runs_atom h hr (pre_ne_stuck hw))
+      · have := runsL_range hr; omega
+  | p, .ite x z n, q, a, c', .nonzero h, hr, hw => by
+      have hb := atL_range h
+      simp only [RunsS] at hr
+      rcases hr with rfl | ⟨-, hr⟩ | ⟨h0, hr⟩
+      · omega
+      · have := runsL_range hr; omega
+      · simp only [walk1, h0, ↓reduceIte] at hw ⊢
+        exact evs_pre_right (runs_atom h hr (pre_ne_stuck hw))
+  | p, .match_ x arms, q, a, c', .arm h, hr, hw => by
+      have hb := atA_range h
+      simp only [RunsS] at hr
+      rcases hr with rfl | hr
+      · omega
+      · simp only [walk1] at hw ⊢
+        exact runsA_atom h hr hw
+
+theorem runsA_atom : ∀ {t a : ℕ} {bs : List (List Stmt)} {q : ℕ} {at' : Core.Atom} {c' : Ctx} {x : V} {j : ℕ},
+    AtA t a bs q (.atom at') c' → RunsA σ x j a bs q → walkArms σ x j bs ≠ .stuck →
+      Ev.atom at' ∈ (walkArms σ x j bs).evs
+  | t, a, b :: bs, q, at', c', x, j, .here h, hr, hw => by
+      have hb := atL_range h
+      simp only [RunsA] at hr
+      rcases hr with ⟨h0, hr⟩ | ⟨-, hr⟩
+      · unfold walkArms at hw ⊢
+        simp only [h0, ↓reduceIte] at hw ⊢
+        exact runs_atom h hr hw
+      · have := runsA_range hr; omega
+  | t, a, b :: bs, q, at', c', x, j, .next h, hr, hw => by
+      have hb := atA_range h
+      simp only [RunsA] at hr
+      rcases hr with ⟨-, hr⟩ | ⟨h0, hr⟩
+      · have := runsL_range hr; omega
+      · unfold walkArms at hw ⊢
+        simp only [h0, ↓reduceIte] at hw ⊢
+        exact runsA_atom h hr hw
+end
+
 end
 end LeanVM.Guest.Local
