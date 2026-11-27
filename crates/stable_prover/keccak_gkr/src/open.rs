@@ -68,10 +68,14 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let n = shape.n();
     let eq = eq_table(point);
     let chunks = eq.len().div_ceil(64);
-    let folds: Vec<BitFold> = parallel::map_collect(chunks, |chunk| {
-        let weights: [F128; 64] = std::array::from_fn(|t| eq.get(64 * chunk + t).copied().unwrap_or(F128::ZERO));
-        BitFold::new(&weights)
-    });
+    let folds: Vec<BitFold> = eq
+        .chunks(64)
+        .map(|eq| {
+            let mut weights = [F128::ZERO; 64];
+            weights[..eq.len()].copy_from_slice(eq);
+            BitFold::new(&weights)
+        })
+        .collect();
     let slots: Vec<Vec<F128>> = parallel::map_collect(1 << shape.slot_log(), |slot| {
         let words = &committed[slot * n..][..n];
         let mut out = vec![F128::ZERO; 16 * 64];
