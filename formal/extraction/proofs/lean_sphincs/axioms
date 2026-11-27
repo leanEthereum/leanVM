@@ -1,5 +1,1 @@
-'LeanSphincsProofs.verify_eq_verifyWithKeccak' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- keccak256.absorb,
- keccak256.digest_of]
+'LeanSphincsProofs.verify_eq_verifyWithKeccak' depends on axioms: [propext, Classical.choice, Quot.sound]

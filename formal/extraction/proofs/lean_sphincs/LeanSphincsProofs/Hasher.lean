@@ -3,10 +3,10 @@ import LeanSphincsProofs.Common
 /-!
 # `keccak256::Hasher` computes Keccak-256
 
-`HasherSpec` (`Defs.lean`) assumes all of `keccak256::Hasher`. Its `new`, `update` and `finalize`
-are extracted with their bodies, and so are `block_of` and `final_block`; what is not is the sponge
-step `absorb` and the output `digest_of`. This file proves `HasherSpec` from what those two are
-assumed to compute (`SpongeSpec`): the buffering and the padding are no longer trusted.
+`HasherSpec` (`Defs.lean`) asks that `keccak256::Hasher` compute Keccak-256. This file proves it
+from what the sponge step `absorb` and the output `digest_of` compute (`SpongeSpec`, which
+`Sponge.lean` and `Keccak.lean` prove): the buffering of `update`, `block_of`, and the padding of
+`final_block`.
 -/
 
 open CoreModels Aeneas
@@ -25,7 +25,7 @@ def lane64 (x : Std.U64) : UInt64 := UInt64.ofBitVec x.bv
 def toState (a : Array Std.U64 25#usize) : KeccakState :=
   Vector.ofFn fun i : Fin 25 ↦ lane64 a.val[i.val]!
 
-/-- **The assumption.** What the two functions of `keccak256` that are not extracted compute:
+/-- What `absorb` and `digest_of` compute (proved for Keccak-f[1600] in `Keccak.lean`):
 `absorb` XORs the block's 17 lanes into the state's first 17 and permutes with `π`, and
 `digest_of` gives the first four lanes' bytes, each lane little-endian. -/
 structure SpongeSpec (π : KeccakState → KeccakState) : Prop where

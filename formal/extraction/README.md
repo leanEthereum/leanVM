@@ -112,7 +112,7 @@ Then `formal/extraction/repair.py extract crates/<crate>`, which fills the two l
 
 ## Proofs
 
-`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), given what `keccak256::absorb` and `digest_of` compute. Its README says what the theorem rests on and what proving it found. `hax.sh check` builds it, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares the theorem's axioms with the committed list.
+`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), with no hypothesis: down to Keccak-f[1600], which it also checks against FIPS 202's through [hash-specs](https://github.com/Verified-zkEVM/hash-specs). Its README says what the theorem rests on and what proving it found. `hax.sh check` builds it, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares the theorem's axioms with the committed list.
 
 ## Versions
 

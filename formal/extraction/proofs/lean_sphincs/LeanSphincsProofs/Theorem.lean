@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Hasher
+import LeanSphincsProofs.Keccak
 import LeanSphincsProofs.Hash
 import LeanSphincsProofs.Digest
 import LeanSphincsProofs.Wots
@@ -9,11 +9,10 @@ import LeanSphincsProofs.Verify
 # The theorem
 
 The Rust `verify` of `crates/lean_sphincs`, as extracted, returns on every input, and returns what
-the statement's verification does (`formal/Statement/LeanSphincs.lean`), given what the two
-functions of `keccak256` the extraction leaves opaque compute (`SpongeSpec`, `Hasher.lean`):
-`absorb` XORs a block into the state and permutes it, and `digest_of` reads the digest off the
-state. Each function's theorem is proved in the file beside this one that its name suggests; here
-they are composed.
+the statement's verification does (`formal/Statement/LeanSphincs.lean`). Nothing is assumed: every
+function on its path is extracted with its body, down to the Keccak-f[1600] permutation of
+`keccak256` (`Keccak.lean`). Each function's theorem is proved in the file beside this one that
+its name suggests; here they are composed.
 -/
 
 open CoreModels Aeneas
@@ -34,13 +33,11 @@ theorem verify_spec {π : KeccakState → KeccakState} (H : HasherSpec π) : Ver
     (treeRoot_spec hth treeAdrs_spec adrsWord_spec)
 
 /-- **The extracted `verify` is leanSPHINCS verification as deployed**, `Sphincs.verifyWithKeccak`,
-the function the end statement's unforgeability is about (`Statement/Theorems.lean`), given that
-`keccak256::absorb` and `digest_of` are the sponge step and the digest over Keccak-f[1600]. -/
-theorem verify_eq_verifyWithKeccak (S : SpongeSpec LeanVM.Semantics.keccakF1600)
-    (pk : lean_sphincs.scheme.LeanSphincsPublicKey) (m : Array Std.U8 32#usize)
-    (sig : lean_sphincs.scheme.LeanSphincsSignature) :
+the function the end statement's unforgeability is about (`Statement/Theorems.lean`). -/
+theorem verify_eq_verifyWithKeccak (pk : lean_sphincs.scheme.LeanSphincsPublicKey)
+    (m : Array Std.U8 32#usize) (sig : lean_sphincs.scheme.LeanSphincsSignature) :
     lean_sphincs.scheme.verify pk m sig =
       ok (verifyWithKeccak (toPublicKey pk) (toMessage m) (toSignature sig)) :=
-  verify_spec (hasherSpec_of_sponge S) pk m sig
+  verify_spec (hasherSpec_of_sponge spongeSpec) pk m sig
 
 end LeanSphincsProofs
