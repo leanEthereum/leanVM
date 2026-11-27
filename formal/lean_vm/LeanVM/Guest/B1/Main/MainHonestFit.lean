@@ -73,7 +73,8 @@ theorem hOwn_lengths (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRelation b
   obtain ⟨-, -, hch, -⟩ := hr
   simp only [hOwn, mSizes, List.map_cons, List.map_nil, List.cons.injEq]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩
-  · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells c.1.root c.1.parameter c.2) 4
+  · rw [length_flatMap_const _ (fun c : LeanXmssClaim => claimCells (xmssRoot c) (xmssParam c) c.2)
+      4
       fun c _ => length_claimCells _ _ _]
     simp [hData, MainData.X]
   · rw [length_flatMap_const _ (fun c : LeanSphincsClaim => claimCells c.1.publicSeed c.1.root c.2) 4

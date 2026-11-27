@@ -3,7 +3,7 @@
 
   The schemes' bit vectors as the guest's cells: a 128-bit value is the cell of its two
   64-bit halves, its bytes are the cell's bytes, a hash's truncation is its first output cell, and
-  an address is the cell of its packed fields.
+  a leanXMSS address is the cell of its encoding.
 -/
 
 module
@@ -11,14 +11,18 @@ module
 public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.Value.Keccak
 public import LeanVM.Guest.WithHash
+public import EthLib.Cryptography.Proofs.Hash.Keccak.Lanes
+public import EthLib.Cryptography.Proofs.Xmss.Address
 
 /-!
 # Cells as the schemes' values
 
-The schemes hash byte strings `P || A || payload` of 16-byte fields (`HashSig.littleEndianBytes`,
+leanSPHINCS hashes byte strings `P || A || payload` of 16-byte fields (`HashSig.littleEndianBytes`,
 `Sphincs.bytesLE`), the guest hashes cells (`Value.Keccak.cellBytes`). A field `v : BitVec 128` is
 the cell `cellOf128 v`, and a cell `x` reads back as `cellVal x`, whose bytes are `x`'s
-(`bytesLE_cellVal`).
+(`bytesLE_cellVal`). leanXMSS's fields are EthLib's lanes: a cell `x` is the lanes `xl x`, whose
+bytes are `x`'s (`bytes_xl`), and an address's cell has the bytes of its encoding
+(`cellBytes_address`).
 
 Everything goes through `leBytes n k`, the `k` low little-endian bytes of `n`.
 -/
@@ -256,55 +260,84 @@ theorem cellNat_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat128 n) = 
   have := Nat.mod_add_div n (2 ^ 64)
   omega
 
-/-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs`): `lo`, `hi`
-from bit 32, the type and step byte from bit 56; its high eight bytes are zero. -/
-def tweakNat (f : LeanXmss.TweakFields) : Nat :=
-  f.lo.toNat + 2 ^ 32 * f.hi.toNat + 2 ^ 56 * (f.step ++ f.tag).toNat
-
-/-- **An address's bytes are those of its packed number.** -/
-theorem addressBytes_eq (f : LeanXmss.TweakFields) :
-    LeanXmss.addressBytes f = leBytes (tweakNat f) 16 := by
-  have h1 := f.lo.isLt
-  have h2 := f.hi.isLt
-  have h3 := (f.step ++ f.tag).isLt
-  rw [LeanXmss.addressBytes, bytesLE_eq, bytesLE_eq, bytesLE_eq, bytesLE_eq]
-  simp only [BitVec.toNat_ofNat, BitVec.ofNat_eq_ofNat, Nat.zero_mod]
-  rw [show tweakNat f = f.lo.toNat + 256 ^ 4 * (f.hi.toNat + 256 ^ 3 * ((f.step ++ f.tag).toNat +
-      256 ^ 1 * 0)) by unfold tweakNat; ring,
-    show (16 : Nat) = 4 + (3 + (1 + 8)) from rfl,
-    leBytes_add_mul _ _ _ _ (by omega), leBytes_add_mul _ _ _ _ (by omega),
-    leBytes_add_mul _ _ _ _ (by omega)]
-  simp only [List.append_assoc]
-
-/-- The number an address's four fields pack into: `lo`, `hi` from bit 32, the type and step byte
-from bit 56. -/
-def addrNat (tag step hi lo : Nat) : Nat :=
-  lo % 2 ^ 32 + 2 ^ 32 * (hi % 2 ^ 24) + 2 ^ 56 * (tag % 32 + 32 * (step % 8))
-
-theorem addrNat_lt (tag step hi lo : Nat) : addrNat tag step hi lo < 2 ^ 64 := by
-  have := Nat.mod_lt lo (show 2 ^ 32 > 0 by norm_num)
-  have := Nat.mod_lt hi (show 2 ^ 24 > 0 by norm_num)
-  have := Nat.mod_lt tag (show 32 > 0 by norm_num)
-  have := Nat.mod_lt step (show 8 > 0 by norm_num)
-  unfold addrNat; omega
-
-/-- The type and step byte's number. -/
-theorem toNat_stepTag (tag step : Nat) :
-    (BitVec.ofNat 3 step ++ BitVec.ofNat 5 tag).toNat = tag % 32 + 32 * (step % 8) := by
-  rw [BitVec.toNat_append, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.shiftLeft_eq, mul_comm,
-    two_pow_mul_or (Nat.mod_lt _ (by norm_num))]
+/-- The bytes of `toLE` are the number's little-endian bytes. -/
+theorem toList_toLE (k n : Nat) : (EthLib.Base.ByteOrder.toLE k n).toList = leBytes n k := by
+  simp only [EthLib.Base.ByteOrder.toLE, Vector.toList_ofFn, leBytes, Nat.shiftRight_eq_div_pow,
+    pow_mul]
   norm_num
+
+/-- **A cell holding an address's number has the address's bytes**, for a number below `2^64`
+(`Address.encode`'s second lane is zero). -/
+theorem cellBytes_address {a : EthLib.Cryptography.Xmss.Address} {N : Nat}
+    (h : a.encode.toNat = N) (hN : N < 2 ^ 64) :
+    cellBytes (eOfNat N) = a.encode.bytes.toList := by
+  rw [EthLib.Cryptography.Hash.Keccak.Lanes2.bytes_eq_toLE, toList_toLE, h, cellBytes_eOfNat hN]
+
+/-! ## Cells as EthLib's lanes -/
+
+open EthLib.Cryptography.Hash.Keccak (Lanes2 Lanes4)
+
+/-- A cell's bytes are its two lanes'. -/
+theorem bytes_xl (x : E) : (xl x).bytes.toList = cellBytes x := by
+  simp [xl, Lanes2.bytes, cellBytes, K.toBytes, wordBytes, List.range_succ]
+
+theorem toNat_xl (x : E) : (xl x).toNat = cellNat x := rfl
+
+theorem xl_xc (w : Lanes2) : xl (xc w) = w := by
+  simp [xl, xc]
+
+theorem xc_xl (x : E) : xc (xl x) = x := by
+  rw [xc, eq_ofLimbs x]
+  rfl
+
+theorem xl_inj {x y : E} (h : xl x = xl y) : x = y := by
+  rw [← xc_xl x, ← xc_xl y, h]
+
+/-- A cell as a 128-bit value is its two lanes' number. -/
+theorem ofNat_toNat_xl (x : E) : BitVec.ofNat 128 (xl x).toNat = cellVal x := by
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_ofNat, toNat_xl, toNat_cellVal, Nat.mod_eq_of_lt (cellNat_lt x)]
+
+/-- A cell of a key half's number is the half's cell. -/
+theorem cellOf128_toNat (w : Lanes2) : cellOf128 (BitVec.ofNat 128 w.toNat) = xc w := by
+  have h := ofNat_toNat_xl (xc w)
+  rw [xl_xc] at h
+  rw [h, cellOf128_cellVal]
+
+theorem lane_byte (v : BitVec 256) (k q : Nat) (hq : q < 8) :
+    ((UInt64.ofBitVec (v.extractLsb' (64 * k) 64)) >>> (8 * q).toUInt64).toUInt8 =
+      UInt8.ofBitVec (v.extractLsb' (8 * (8 * k + q)) 8) := by
+  apply UInt8.toNat_inj.mp
+  simp only [UInt64.toNat_toUInt8, UInt8.toNat_ofBitVec, BitVec.extractLsb'_toNat,
+    UInt64.toNat_shiftRight, UInt64.toNat_ofBitVec, Nat.shiftRight_eq_div_pow]
+  have h8 : (8 * q).toUInt64.toNat % 64 = 8 * q := by
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat']
+    omega
+  rw [h8]
+  have e : 2 ^ 64 = 2 ^ (8 * q) * 2 ^ (64 - 8 * q) := by rw [← pow_add]; congr 1; omega
+  rw [e, Nat.mod_mul_right_div_self, Nat.mod_mod_of_dvd _ (pow_dvd_pow 2 (by omega)),
+    Nat.div_div_eq_div_mul, ← pow_add]
+  congr 3
   ring
 
-theorem tweakNat_tweakFields (tag step hi lo : Nat) :
-    tweakNat (LeanXmss.tweakFields tag step hi lo) = addrNat tag step hi lo := by
-  simp only [tweakNat, LeanXmss.tweakFields, BitVec.toNat_ofNat, toNat_stepTag, addrNat]
-
-/-- **An address is the cell of its packed fields.** -/
-theorem fieldBytes_tweakFields (tag step hi lo : Nat) :
-    LeanXmss.addressBytes (LeanXmss.tweakFields tag step hi lo) =
-      cellBytes (eOfNat (addrNat tag step hi lo)) := by
-  rw [addressBytes_eq, tweakNat_tweakFields, cellBytes_eOfNat (addrNat_lt _ _ _ _)]
+/-- **A message as four lanes has the message's bytes.** -/
+theorem lanesOfBits_bytes (v : BitVec 256) :
+    (LeanXmss.lanesOfBits v).bytes.toList = HashSig.littleEndianBytes 32 v := by
+  apply List.ext_getElem (by simp [HashSig.littleEndianBytes])
+  intro j h1 h2
+  have hj : j < 32 := by simpa [HashSig.littleEndianBytes] using h2
+  simp only [HashSig.littleEndianBytes, List.getElem_ofFn, Vector.getElem_toList]
+  rw [EthLib.Cryptography.Hash.Keccak.getElem_lanes4_bytes _ j hj,
+    EthLib.Cryptography.Hash.Keccak.getD_bytesOfLane _ _ (by omega)]
+  have key := lane_byte v (j / 8) (j % 8) (by omega)
+  rw [show 8 * (8 * (j / 8) + j % 8) = 8 * j by omega] at key
+  rw [← key]
+  rcases (by omega : j / 8 = 0 ∨ j / 8 = 1 ∨ j / 8 = 2 ∨ j / 8 = 3) with h | h | h | h <;>
+    simp only [h, LeanXmss.lanesOfBits]
+  · simp [show j < 8 by omega]
+  · simp [show ¬ j < 8 by omega, show j < 16 by omega]
+  · simp [show ¬ j < 8 by omega, show ¬ j < 16 by omega, show j < 24 by omega]
+  · simp [show ¬ j < 8 by omega, show ¬ j < 16 by omega, show ¬ j < 24 by omega]
 
 end
 end LeanVM.Guest.B1.Sig

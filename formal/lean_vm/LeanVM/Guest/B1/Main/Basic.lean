@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Guest.B1.Main.Interface
 public import LeanVM.Guest.B1.Digest.ChildDigest
 public import LeanVM.Facts.ClaimBytes
@@ -119,6 +120,14 @@ theorem claimBytes_cells (a b c d : E) :
     claimBytesOf (Sig.cellVal a) (Sig.cellVal b) (Sig.cellPairVal c d) = cellsBytes [a, b, c, d] := by
   rw [claimBytesOf, bytes16_cellVal, bytes16_cellVal, bytes32_cellPairVal]
   simp [cellsBytes, List.append_assoc]
+
+/-- **A leanXMSS claim's 64 bytes are its four cells' bytes.** -/
+theorem claimBytes_cells_xmss (a b c d : E) :
+    claimBytesOf (xmssRoot (Sig.xmssClaimOf a b c d)) (xmssParam (Sig.xmssClaimOf a b c d))
+      (Sig.xmssClaimOf a b c d).2 = cellsBytes [a, b, c, d] := by
+  have h := claimBytes_cells a b c d
+  rw [← Sig.ofNat_toNat_xl a, ← Sig.ofNat_toNat_xl b] at h
+  exact h
 
 /-! ## Digests in cells -/
 

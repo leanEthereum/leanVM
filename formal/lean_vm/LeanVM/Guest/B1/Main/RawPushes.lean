@@ -57,7 +57,7 @@ theorem rawXD_slot {i : ℕ} (hi : i < (hRawX s w).length) :
 
 /-- **`main_loop2`'s entries are the honest pushes' raw leanXMSS segment**, stream by stream. -/
 theorem rawX_pops_sameStreams (fs : String → ℕ) (fp : ℕ) (hn : NodeRelation bytecode seed s w)
-    (hl : GuestLimits s w) (d0 : LeanXmssClaim × LeanXmss.Signature) :
+    (hl : GuestLimits s w) (d0 : LeanXmssClaim × EthLib.Cryptography.Xmss.Signature) :
     SameStreams ((List.range' 0 ((hRawX s w).length - 0)).flatMap (l2Pops (rawXD fs fp hn d0)))
       ((w.xmssSignatures.zip (coveragePlan s.claims.xmss (w.xmssSignatures.map (·.1))
           (w.children.map (·.statement.claims.xmss))).directSlots).flatMap

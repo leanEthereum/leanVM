@@ -18,13 +18,15 @@ namespace LeanVMTests.Guest.Hints
 open LeanVM.Parameters LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Node LeanVM.Guest
 open LeanVM.Guest.Hints LeanVM.Guest.Coverage
 
-def key : HashSig.PublicKey := ⟨BitVec.ofNat 128 0x1234, BitVec.ofNat 128 0x5678⟩
+def key : EthLib.Cryptography.Xmss.PublicKey := ⟨⟨0x1234, 0⟩, ⟨0x5678, 0⟩⟩
 
 def message : HashSig.Message := BitVec.ofNat 256 0x9abc
 
-def signature : LeanXmss.Signature :=
-  ⟨⟨0x10002, by decide⟩, fun l ↦ ⟨BitVec.ofNat 128 (l.val + 7), fun i ↦ BitVec.ofNat 128 i.val,
-    fun i ↦ BitVec.ofNat 128 (100 + i.val)⟩⟩
+def layerSignature (randomizer : Nat) : EthLib.Cryptography.Xmss.LayerSignature :=
+  ⟨⟨randomizer.toUInt64, 0⟩, Vector.ofFn fun i ↦ ⟨i.val.toUInt64, 0⟩,
+    Vector.ofFn fun i ↦ ⟨(100 + i.val).toUInt64, 0⟩⟩
+
+def signature : EthLib.Cryptography.Xmss.Signature := ⟨0x10002, layerSignature 7, layerSignature 8⟩
 
 def seed : Digest := keccak256 [1, 2, 3]
 
@@ -45,7 +47,8 @@ def get (n : String) : List Entry := (streams.lookup n).getD []
 #guard get "meta" == [[count 1, count 0, count 1, count 0, count 0, count 0, count 0, count 0]]
 #guard get "fs_seed" == [digestCells seed]
 #guard get "signers_split" == [[count 0, count 0, count 1]]
-#guard get "claims" == [claimCells key.root key.parameter message]
+#guard get "claims" ==
+  [claimCells (BitVec.ofNat 128 0x1234) (BitVec.ofNat 128 0x5678) message]
 #guard get "raw_index" == [[count 0]]
 #guard get "leaf_defer" == [[5]]
 /- No blob matrix and no child: the node publishes its own slot, zeros. -/

@@ -26,8 +26,8 @@ namespace SufCma
 /-- **A signature scheme** over the model's oracles: a seed sampler, key generation from a seed, the
 signer answering a request `SigningRequest` with `SigningResponse`, the verifier of a claimed
 forgery `Forgery`, and the winning condition on the signing transcript and the forgery. Key
-generation, the signer and the verifier hash with Keccak-256 over `π`
-(`keccak256With queryPermutation`). -/
+generation, the signer and the verifier hash with Keccak-256 over `π`: leanSPHINCS with
+`keccak256With queryPermutation`, leanXMSS with EthLib's sponge (`LeanXmss.xmssHash`). -/
 structure Scheme (Seed PublicKey SecretKey SigningRequest SigningResponse Forgery : Type) where
   /-- Sample the secret seed. -/
   sampleSeed : ProbComp Seed

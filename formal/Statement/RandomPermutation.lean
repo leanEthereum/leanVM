@@ -104,7 +104,8 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 abbrev DigestBytes := Vector UInt8 32
 
 /-- **The oracles of the random-permutation model**: coins, `π` and `π⁻¹` on Keccak states, and
-nothing else. Every party hashes with Keccak-256 over `π` (`keccak256With queryPermutation`). -/
+nothing else. Every party hashes with Keccak-256 over `π`: `keccak256With queryPermutation`, or
+for leanXMSS EthLib's sponge over `π` (`LeanXmss.xmssHash`). -/
 abbrev RandomPermutationOracles := unifSpec + permutationOracleSpec KeccakState
 
 /-- **The cost that counts permutation calls**: a call of `π` or `π⁻¹` costs one, a coin nothing. -/
@@ -112,8 +113,8 @@ def permutationCallCost : RandomPermutationOracles.Domain → ℕ
   | .inl _ => 0
   | .inr _ => 1
 
-/-- A call `π x` of the permutation. Keccak-256 over `π`, `keccak256With queryPermutation`, makes
-one per block of the padded message (`⌊n / 136⌋ + 1` for `n` bytes). -/
+/-- A call `π x` of the permutation. Keccak-256 over `π` makes one per block of the padded message
+(`⌊n / 136⌋ + 1` for `n` bytes). -/
 def queryPermutation (x : KeccakState) : OracleComp RandomPermutationOracles KeccakState :=
   liftM (RandomPermutationOracles.query (.inr (.forward x)))
 

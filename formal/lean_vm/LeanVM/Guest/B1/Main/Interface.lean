@@ -129,7 +129,8 @@ def VerifySubOut (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) 
 its parameters at which its body without the segment holds (`l2Pre ++ l2Post`, `Sig.loop2_split`),
 and, when the tag parameters hold the chain indices, `sig` verifies the claim at the signer
 `.n 65`. -/
-def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : LeanXmss.Signature) : Prop :=
+def Loop2Out (C : CallRel) (rd : Reader) (args : List E) (sig : EthLib.Cryptography.Xmss.Signature)
+    : Prop :=
   ∃ σ : Val, (fn% «main_loop2»).params.map σ = args ∧
     Stmt.HoldsList C rd σ (Sig.l2Pre ++ Sig.l2Post) False (fun rs => rs = []) ∧
     (Sig.LxTagsHold (fun j => σ (.n (5 + j))) → Sig.XmssOut rd (σ (.n (val% «main_loop2» "s3#2"))) sig)
@@ -245,8 +246,9 @@ def l2Args (σ : Val) : List E :=
 
 /-- The raw leanXMSS signature of mark `j`: the claim of the slot holding the mark, with the
 signature `wX` of `main_loop2`'s iteration `j` (its arguments `g^j :: l2Args σ`). -/
-noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : List E → LeanXmss.Signature) (j : ℕ) :
-    LeanXmssClaim × LeanXmss.Signature :=
+noncomputable def rawXmss (rd : Reader) (σ : Val) (wX : List E → EthLib.Cryptography.Xmss.Signature)
+    (j : ℕ) :
+    LeanXmssClaim × EthLib.Cryptography.Xmss.Signature :=
   let s := slotOf rd σ 0 (lxSlots σ) j
   (xmssAt rd (σ (.n (val% «main» "lx_table"))) s, wX (gen ^ j :: l2Args σ))
 
@@ -258,7 +260,7 @@ noncomputable def rawSphincs (rd : Reader) (σ : Val) (wS : E → Sphincs.Signat
 
 /-- **The witness**: the children, the raw signatures by their marks (`rawXmss`, `rawSphincs`),
 the matrix `da_verify` checks with the claim it returns, the batching's hints. -/
-noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → LeanXmss.Signature)
+noncomputable def decWit (σ : Val) (rd : Reader) (wX : List E → EthLib.Cryptography.Xmss.Signature)
     (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : NodeWitness :=
   ⟨(List.range (nKids σ)).map (decKid rd σ wV),

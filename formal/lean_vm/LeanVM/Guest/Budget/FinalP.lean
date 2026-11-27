@@ -47,11 +47,12 @@ entered popping `[]`. -/
 structure MainSegs (fs : String → ℕ) (seed : Digest) (s : NodeStatement) (w : NodeWitness) (q : MainPops)
     (rd : Reader) : Prop where
   cx : SameStreams (q.px rd) (Hints.listPushes "claims"
-    (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2))
+    (s.claims.xmss.map fun c ↦ Hints.claimCells (xmssRoot c) (xmssParam c) c.2))
   cs : SameStreams (q.ps rd) (Hints.listPushes "claims"
     (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2))
   d0 : SameStreams (if (hm fs 0 seed s w).nxd = 0 then [] else q.p0 rd)
-    ((B1.Main.xPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.root c.1.parameter c.2))
+    ((B1.Main.xPlan s w).duplicates.map fun c ↦ ("dup_claims",
+        Hints.claimCells (xmssRoot c) (xmssParam c) c.2))
   d1 : SameStreams (if (hm fs 0 seed s w).nsd = 0 then [] else q.p1 rd)
     ((B1.Main.sPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.publicSeed c.1.root c.2))
   r2 : SameStreams (if (hm fs 0 seed s w).nrx = 0 then [] else q.p2 rd)

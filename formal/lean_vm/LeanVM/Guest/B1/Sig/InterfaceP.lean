@@ -10,7 +10,6 @@ module
 
 public import LeanVM.Guest.CoreLemmas
 public import Statement.LeanVmGuest
-public import LeanXmss.Scheme
 public import Statement.LeanSphincs
 public import LeanDa.Scheme
 public import Statement.Fast.Keccak
@@ -87,8 +86,14 @@ def cellOf128 (v : BitVec 128) : E :=
 /-- The 256-bit value of two cells, the first low. -/
 def cellPairVal (lo hi : E) : BitVec 256 := cellVal hi ++ cellVal lo
 
+/-- A cell as EthLib's two lanes: its limbs, the low first. -/
+def xl (c : E) : EthLib.Cryptography.Hash.Keccak.Lanes2 := ⟨K.lane (c.limb 0), K.lane (c.limb 1)⟩
+
+/-- Two lanes as a cell: the inverse of `xl`. -/
+def xc (w : EthLib.Cryptography.Hash.Keccak.Lanes2) : E := E.ofLimbs (K.ofLane w.lo) (K.ofLane w.hi)
+
 /-- The leanXMSS claim of four cells: the key's root and parameter, the message's halves. -/
-def xmssClaimOf (a b c d : E) : Node.LeanXmssClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
+def xmssClaimOf (a b c d : E) : Node.LeanXmssClaim := (⟨xl a, xl b⟩, cellPairVal c d)
 
 /-- The leanSPHINCS claim of four cells. -/
 def sphincsClaimOf (a b c d : E) : Node.LeanSphincsClaim := (⟨cellVal a, cellVal b⟩, cellPairVal c d)
@@ -101,9 +106,10 @@ def ClaimAt (rd : Reader) (p a b c d : E) : Prop :=
 
 /-- **What `verify_lean_xmss(p)` establishes for the signature `sig`**: the four words at `p` are a
 leanXMSS claim that `sig` verifies under Keccak-256. -/
-def XmssOut (rd : Reader) (p : E) (sig : LeanXmss.Signature) : Prop :=
+def XmssOut (rd : Reader) (p : E) (sig : EthLib.Cryptography.Xmss.Signature) : Prop :=
   ∃ a b c d, ClaimAt rd p a b c d ∧
-    LeanXmss.verifyWithKeccak (xmssClaimOf a b c d).1 (xmssClaimOf a b c d).2 sig = true
+    LeanXmss.verifyWithKeccak (xmssClaimOf a b c d).1 (LeanXmss.lanesOfBits (xmssClaimOf a b c d).2)
+      sig = true
 
 /-- **What `verify_sig_lean_sphincs(p, _)` establishes for the signature `sig`**: the four words at
 `p` are a leanSPHINCS claim that `sig` verifies under Keccak-256. -/
@@ -127,7 +133,7 @@ def MemOK (rd : Reader) (n : ℕ) : Prop := ∀ i < n, (rd (addressOfIndex i)).i
 loop's valuation**: whenever the check `xSeg` holds of `σ` before `rest` (under any call relation:
 it calls nothing), `rest` holds, and when the carried chain indices (`.n 5` to `.n 55`) hold their
 indices, `sigOf σ` verifies the claim at the pointer `σ (.n 65)`. -/
-def verify_lean_xmss_sound_Spec (sigOf : Val → LeanXmss.Signature) : Prop :=
+def verify_lean_xmss_sound_Spec (sigOf : Val → EthLib.Cryptography.Xmss.Signature) : Prop :=
   ∀ (C : CallRel) (rd : Reader) (σ : Val) (rest : List Stmt) (next : Prop) (kret : List E → Prop),
     Stmt.HoldsList C rd σ (xSeg ++ rest) next kret →
       Stmt.HoldsList C rd σ rest next kret ∧
@@ -152,11 +158,12 @@ holding their indices, on a memory of at least `256` words (the windows and the 
 range-checked below `g^255`), the check `xSeg` holds of a valuation
 changing `σ` only on its own values `66 ..< (xEnd + 1)`, under any call relation. -/
 def verify_lean_xmss_complete_Spec : Prop :=
-  ∀ (C : CallRel) (rd : Reader) (σ : Val) (pk : HashSig.PublicKey) (m : HashSig.Message)
-    (sig : LeanXmss.Signature), MemOK rd 256 → LxTagsHold (fun j => σ (sTagParam j)) →
-    ClaimAt rd (σ sSigner) (cellOf128 pk.root) (cellOf128 pk.parameter)
+  ∀ (C : CallRel) (rd : Reader) (σ : Val) (pk : EthLib.Cryptography.Xmss.PublicKey)
+    (m : HashSig.Message) (sig : EthLib.Cryptography.Xmss.Signature), MemOK rd 256 →
+    LxTagsHold (fun j => σ (sTagParam j)) →
+    ClaimAt rd (σ sSigner) (xc pk.root) (xc pk.publicParam)
       (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) →
-    LeanXmss.verifyWithKeccak pk m sig = true →
+    LeanXmss.verifyWithKeccak pk (LeanXmss.lanesOfBits m) sig = true →
       Completes C rd 66 (xEnd + 1) xSeg σ (fun _ => True)
 
 end

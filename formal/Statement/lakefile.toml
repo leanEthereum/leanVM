@@ -8,6 +8,14 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
+# EthLib, the Lean specification of Ethereum. The statement imports its leanXMSS specification
+# (`Statement/LeanXmss.lean`), and `lean_xmss` carries EthLib's security theorem to the statement.
+# EthLib's VCVio is an older revision than the VCVio required below, and Lake uses the one below.
+[[require]]
+name = "EthLib"
+git = "https://github.com/ethereum/EthLib"
+rev = "ab79ab165e984d5f9227150db48719027018bee1"
+
 # PolyFun is VCVio's requirement, pinned at the revision every project of the repository uses.
 [[require]]
 name = "PolyFun"

@@ -6,7 +6,7 @@ import LeanVM.Guest.EndFinal
 `LeanVM.Guest.End.decode` reads its witness off the memory, through the sorted table of its
 addresses, and off the frames the replayed run entered. The traversal below follows every definition
 `decode` unfolds to (its value, not the proofs it carries) through this repository and the
-schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
+schemes it imports (`LeanVM`, `LeanXmss`, EthLib's leanXMSS, `Sphincs`, `LeanDa`).
 
 * **Classical constructs.** No definition `decode` unfolds to mentions `Classical.choose`,
   `Classical.epsilon`, `Exists.choose`, `Classical.indefiniteDescription`,
@@ -29,7 +29,8 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
 open Lean Meta Elab Command
 
 /-- The prefixes the traversals follow. -/
-def followed : List Name := [`LeanVM, `LeanXmss, `Sphincs, `LeanDa]
+def followed : List Name :=
+  [`LeanVM, `LeanXmss, `EthLib.Cryptography.Xmss, `Sphincs, `LeanDa]
 
 /-- A name ends with one of the suffixes. -/
 def endsWithAny (n : Name) (suffixes : List String) : Bool :=
@@ -100,7 +101,8 @@ run_meta do
 /-- info: [] -/
 #guard_msgs in
 run_meta do
-  let forbidden := ["xmssVerify", "sphincsVerify", "LeanXmss.verify", "Sphincs.verify",
+  let forbidden := ["xmssVerify", "sphincsVerify", "LeanXmss.verifyWithKeccak", "Xmss.verify",
+    "Sphincs.verify",
     "verifyDeferred", "verifyDeferredWith", "Verifier.verify", "verifyWith",
     "MatrixWitness.Opens", "Node.batch"]
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode (endsWithAny · forbidden)

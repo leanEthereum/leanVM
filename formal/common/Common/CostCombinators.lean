@@ -9,9 +9,9 @@ public import Statement.HashSignatures
 # Worst-case permutation calls of the hash-based combinators
 
 Bounds on every path (`QueryCostAtMost`) of the shared combinators of `Statement/HashSignatures.lean`
-(`sequenceFin`, `walkChain`, `foldPath`, `buildTree`) from bounds on their steps, and the cost of a
-Keccak-256 hash over `π` in permutation calls: `⌊n / 136⌋ + 1` for `n` bytes. The schemes' key
-generation, signer and verifier are bounded with them (`Common.XmssCost`, `Common.SphincsCost`).
+(`sequenceFin`, `walkChain`, `foldPath`) from bounds on their steps, and the cost of a
+Keccak-256 hash over `π` in permutation calls: `⌊n / 136⌋ + 1` for `n` bytes. leanSPHINCS's key
+generation, signer and verifier are bounded with them (`Common.SphincsCost`).
 -/
 
 open OracleComp OracleSpec
@@ -63,28 +63,6 @@ theorem foldPath_cost (node : ℕ → ℕ → HashSig.HashInput → OracleComp s
     split
     · exact h _ _ _ _
     · exact h _ _ _ _
-
-theorem buildTree_cost (leaf : ℕ → OracleComp spec HashSig.Digest)
-    (node : ℕ → ℕ → HashSig.HashInput → OracleComp spec HashSig.Digest) (a b : ℕ)
-    (hl : ∀ i, QueryCostAtMost (leaf i) w a)
-    (hn : ∀ l j left right, QueryCostAtMost (node l j (HashSig.OverPermutation.nodePayload left right)) w b) :
-    ∀ l j, QueryCostAtMost (HashSig.OverPermutation.buildTree leaf node l j) w (2 ^ l * a + (2 ^ l - 1) * b)
-  | 0, j => by
-    simp only [HashSig.OverPermutation.buildTree]
-    simpa using hl j
-  | l + 1, j => by
-    simp only [HashSig.OverPermutation.buildTree]
-    refine ((buildTree_cost leaf node a b hl hn l (2 * j)).bind fun _ ↦
-      (buildTree_cost leaf node a b hl hn l (2 * j + 1)).bind fun _ ↦ hn l j _ _).mono ?_
-    have hp : 1 ≤ 2 ^ l := Nat.one_le_two_pow
-    rw [pow_succ]
-    have e1 : (2 ^ l * 2 - 1) * b = (2 ^ l - 1) * b + (2 ^ l - 1) * b + b := by
-      rw [← Nat.add_mul, ← Nat.succ_mul]
-      congr 1
-      omega
-    rw [e1]
-    ring_nf
-    omega
 
 /-- Weight bounds add along a bind whose continuation is bounded on the support. -/
 theorem QueryCostAtMost.bind_of_support {α β : Type} {oa : OracleComp spec α}

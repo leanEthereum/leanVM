@@ -116,7 +116,7 @@ axioms_of() {
   (cd "${axioms_in:-$dir}" && capped lake env bash "$checker" "$dir" "$modules" "$@")
 }
 
-# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, `fast_fields`
+# The statement: definitions and end statements only, importing Mathlib, VCVio, CompPoly, EthLib's specification, `fast_fields`
 # and itself, and `import all` only of its own generated data (`Statement.Data`).
 # Its generated guest data is heavy, so its modules are admitted by memory.
 lakefiles() {
@@ -131,10 +131,13 @@ statement() {
   no_escapes Statement
   no_escapes fast_fields
   lakefiles
-  step "Statement: imports only Mathlib, VCVio, CompPoly, fast_fields and itself"
+  step "Statement: imports only Mathlib, VCVio, CompPoly, EthLib's specification, fast_fields and itself"
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake Statement \
-      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|all[[:space:]]+Statement\.Data\.)'; then
-    fail "Statement imports more than Mathlib, VCVio, CompPoly, fast_fields and itself, or \`import all\` beyond Statement.Data"
+      | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+((Mathlib|VCVio|CompPoly|FastFields|Statement)\.|EthLib\.[A-Za-z0-9_.]*$|all[[:space:]]+Statement\.Data\.)'; then
+    fail "Statement imports more than Mathlib, VCVio, CompPoly, EthLib's specification, fast_fields and itself, or \`import all\` beyond Statement.Data"
+  fi
+  if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+EthLib(\.[A-Za-z0-9_]+)*\.Proofs(\.|$)' --include='*.lean' --exclude-dir=.lake Statement; then
+    fail "Statement imports an EthLib proof module"
   fi
   if grep -rnE '^[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import([[:space:]]|$)' --include='*.lean' --exclude-dir=.lake fast_fields \
       | grep -vE ':[0-9]+:[[:space:]]*((public|private)[[:space:]]+)?(meta[[:space:]]+)?import[[:space:]]+(Mathlib|CompPoly|FastFields)\.'; then
@@ -161,9 +164,9 @@ common() {
 lean_xmss() {
   no_escapes lean_xmss
   cache_get lean_xmss
-  build lean_xmss '(LeanXmss|XmssSecurity)'
-  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rom_adversary_bound \
-    XmssSecurity.leanXmss_rpm_security
+  build lean_xmss 'XmssSecurity'
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_rpm_security \
+    XmssSecurity.verifyWithKeccak_of_signWith
 }
 
 lean_sphincs() {
@@ -203,10 +206,10 @@ together() {
   regen
   step "all seven projects: one build, its modules admitted by memory"
   python3 -I lake-build.py lean_vm LeanVM LeanVMTests "${EXES[@]}" @statement/Statement @common/Common \
-    @lean-xmss-security/LeanXmss @lean-xmss-security/XmssSecurity @lean-xmss-security/+XmssSecurity.Tests.QueryBudget \
+    @lean-xmss-security/XmssSecurity \
     @lean-sphincs-security/Sphincs @lean-sphincs-security/FORS @lean-da-security/LeanDa 2>&1 | tee "$log/build.txt"
   # Its last step replays every module's warnings: the projects' own builds would only repeat them.
-  if grep -E "^warning: (Common|LeanXmss|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
+  if grep -E "^warning: (Common|XmssSecurity|Sphincs|FORS|LeanDa|PqDas).*has been deprecated" "$log/build.txt"; then
     fail "deprecated API"
   fi
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done

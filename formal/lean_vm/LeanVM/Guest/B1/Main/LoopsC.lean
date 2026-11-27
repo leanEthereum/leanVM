@@ -189,7 +189,8 @@ theorem find_loop2 : coreProgram.find? name% «main_loop2» = some fn% «main_lo
 
 /-- **`main_loop2`'s run gives `Loop2Out`**, from the segment's statement: its body is the prelude,
 the segment, the epilogue; the prelude's atoms hold first, the segment hands the epilogue on. -/
-theorem loop2Out_of_body {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_lean_xmss_sound_Spec sigOf)
+theorem loop2Out_of_body {sigOf : Val → EthLib.Cryptography.Xmss.Signature} (hx :
+    Sig.verify_lean_xmss_sound_Spec sigOf)
     {σ : Val} {args : List E} (hp : (fn% «main_loop2»).params.map σ = args)
     (hb : Stmt.HoldsList C rd σ (fn% «main_loop2»).body False (fun rs => rs = [])) :
     Loop2Out C rd args (sigOf σ) := by
@@ -204,7 +205,8 @@ theorem loop2Out_of_body {sigOf : Val → LeanXmss.Signature} (hx : Sig.verify_l
 
 /-- **The callees' contracts with witness functions**, on the calls of `C`. -/
 structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
-    (wX : List E → LeanXmss.Signature) (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.MatrixWitness)
+    (wX : List E → EthLib.Cryptography.Xmss.Signature) (wS : E → Sphincs.Signature) (wD : List E →
+        List E → LeanVM.Da.MatrixWitness)
     (wV : List E → Proof) (wA : List E → BatchingHints) : Prop where
   /-- A raw leanXMSS iteration (`main_loop2`, the leanXMSS check inline): its body around the
   segment, and the signature `wX args` verifying the claim at its signer (`Loop2Out`). -/
@@ -236,7 +238,8 @@ structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
 /-- **A raw leanXMSS signature** at the counter `x` of `main_loop2` on `x :: ps`: a slot `s` below
 the region's bound holding the mark `x`, and, when the tags `ps[4 ..]` hold the chain indices,
 the signature `sig` verifies the claim at slot `s`. -/
-def RawXStepC (rd : Reader) (lxs cover lxt : E) (ps : List E) (x : E) (sig : LeanXmss.Signature) :
+def RawXStepC (rd : Reader) (lxs cover lxt : E) (ps : List E) (x : E) (sig :
+    EthLib.Cryptography.Xmss.Signature) :
     Prop :=
   ∃ s, BelowLog lxs s ∧ LoadHolds rd cover s x ∧
     (Sig.LxTagsHold (fun j => ps.getD (4 + j) 0) → Sig.XmssOut rd (lxt * gen ^ (4 * s)) sig)
@@ -256,7 +259,7 @@ theorem l2_param_getD (σ : Val) {k : ℕ} (hk : k < 55) :
 
 /-- **A run of `main_loop2` read as its meaning gives the raw leanXMSS signature's facts.** -/
 theorem rawX_of_out {rd : Reader} {C : CallRel} (hm : MemOk rd) {x : E} {ps : List E}
-    {sig : LeanXmss.Signature} (hout : Loop2Out C rd (x :: ps) sig) :
+    {sig : EthLib.Cryptography.Xmss.Signature} (hout : Loop2Out C rd (x :: ps) sig) :
     ∀ N lxs cover lxt tags, ps = N :: lxs :: cover :: lxt :: tags →
       RawXStepC rd lxs cover lxt ps x sig := by
   have hok := l3_ok

@@ -22,10 +22,10 @@ path = "../Statement"
 name = "common"
 path = "../common"
 
-# The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
-# and LeanDA, whose security formal/lean_da proves: the schemes are in `Statement/`, and the
-# guest's modules import what is left of their Scheme modules, built here with this package's
-# toolchain and dependencies, so they come first: a later requirement's versions take precedence.
+# The end theorems of leanXMSS (formal/lean_xmss, EthLib's theorem carried to the statement),
+# leanSPHINCS (formal/lean_sphincs) and LeanDA (formal/lean_da), which `LeanVM.lean` collects,
+# built here with this package's toolchain and dependencies, so they come first: a later
+# requirement's versions take precedence.
 [[require]]
 name = "lean-xmss-security"
 path = "../lean_xmss"

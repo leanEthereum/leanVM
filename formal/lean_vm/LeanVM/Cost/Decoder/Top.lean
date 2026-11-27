@@ -64,7 +64,7 @@ theorem sphincsAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd :
 (`xmssAtFrame` at `frameAtA table rd`, `xmssAtFrameT_eq`): `main_loop2`'s frame one binary
 search (`frameFpA`, its key the `56` arguments), then the reader off the frame pointer. -/
 noncomputable def xmssAtFrameT (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader)
-    (args : List E) : LeanXmss.Signature :=
+    (args : List E) : EthLib.Cryptography.Xmss.Signature :=
   xmssSigOfA R.xmss (frameValAt rd (frameFpA table (fn_idx% main_loop2) args []) (fn_idx% main_loop2))
 
 theorem xmssAtFrameT_eq (R : ReaderTabs) (table : Array (CallKey × K)) (rd : Reader) :

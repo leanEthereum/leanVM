@@ -39,7 +39,8 @@ theorem nDirectD_tables : nDirectD discreteLogTables = nDirect := by
 
 /-- **The raw leanXMSS signature of mark `j`** (`rawXmss`). -/
 noncomputable def rawXmssD (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : List E → LeanXmss.Signature) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+    (wX : List E → EthLib.Cryptography.Xmss.Signature) (j : ℕ) : LeanXmssClaim ×
+        EthLib.Cryptography.Xmss.Signature :=
   let s := slotOfD D rd σ 0 (lxSlotsD D σ) j
   (xmssAt rd (σ (.n (val% «main» "lx_table"))) s, wX (gen ^ j :: l2Args σ))
 
@@ -99,14 +100,17 @@ built they are `rawXmssD`, `rawSphincsD`. -/
 
 /-- The raw leanXMSS signature of mark `j` at the address `p53 · a`: its slot's claim and `wX` at
 `main_loop2`'s iteration `j` (its arguments `g^j :: args`, `args` the loop's others, `l2Args`). -/
-noncomputable def xmssRawAt (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
-    (args : List E) (a : K) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+noncomputable def xmssRawAt (rd : Reader) (p53 : E) (wX : List E →
+    EthLib.Cryptography.Xmss.Signature)
+    (args : List E) (a : K) (j : ℕ) : LeanXmssClaim × EthLib.Cryptography.Xmss.Signature :=
   (xmssAtK rd (p53.limb 0 * a), wX (ofK (Parameters.g ^ j) :: args))
 
 /-- **The raw leanXMSS signature of mark `j`** (`rawXmssD`), off the region's table `tm`, `ts`,
 `main_loop2`'s other arguments `args` read once. -/
-noncomputable def xmssRawT (rd : Reader) (p53 : E) (wX : List E → LeanXmss.Signature)
-    (args : List E) (tm ts : Array ℕ) (j : ℕ) : LeanXmssClaim × LeanXmss.Signature :=
+noncomputable def xmssRawT (rd : Reader) (p53 : E) (wX : List E →
+    EthLib.Cryptography.Xmss.Signature)
+    (args : List E) (tm ts : Array ℕ) (j : ℕ) : LeanXmssClaim × EthLib.Cryptography.Xmss.Signature
+        :=
   xmssRawAt rd p53 wX args (Parameters.g ^ (4 * slotIn tm ts j)) j
 
 /-- The raw leanSPHINCS signature at the address `p56 · a`. -/
@@ -120,7 +124,7 @@ noncomputable def sphincsRawT (rd : Reader) (p56 : E) (wS : E → Sphincs.Signat
   sphincsRawAt rd p56 wS (Parameters.g ^ (4 * slotIn tm ts (nrx + j)))
 
 theorem xmssRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
-    (wX : List E → LeanXmss.Signature) (j : ℕ) :
+    (wX : List E → EthLib.Cryptography.Xmss.Signature) (j : ℕ) :
     xmssRawT rd (σ (.n (val% «main» "lx_table"))) wX (l2Args σ) (lxTable D rd σ).1 (lxTable D rd σ).2 j =
       rawXmssD D rd σ wX j := by
   unfold xmssRawT xmssRawAt rawXmssD

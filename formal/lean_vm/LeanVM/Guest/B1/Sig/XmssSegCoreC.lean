@@ -25,6 +25,7 @@ namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier
+open EthLib.Cryptography
 
 @[expose] public section
 
@@ -34,19 +35,15 @@ attribute [local irreducible] kMsg sCodewordT lxWindowT
 
 /-! ## The scheme's side -/
 
-/-- **A digest that decodes** is the literal of its `58` digits, which sum to `106`. -/
-theorem digest_digits {x : E} {enc : LeanXmss.Encoding}
-    (hd : LeanXmss.Codeword.decode (xv x) = some enc) :
-    x = lit (∑ i ∈ Finset.range 58, (xv x).toNat / 4 ^ i % 4 * 4 ^ i) ∧
-      ∑ i ∈ Finset.range 58, (xv x).toNat / 4 ^ i % 4 = 106 := by
-  obtain ⟨-, hs, he⟩ := decode_some hd
+/-- **A digest that is a codeword** is the literal of its `58` digits, which sum to `106`. -/
+theorem digest_digits {x : E} {enc : Vector (Fin Xmss.Constants.CHAIN_LENGTH) Xmss.Constants.V}
+    (hd : Xmss.codeword? (xl x) = some enc) :
+    x = lit (∑ i ∈ Finset.range 58, (xl x).toNat / 4 ^ i % 4 * 4 ^ i) ∧
+      ∑ i ∈ Finset.range 58, (xl x).toNat / 4 ^ i % 4 = 106 := by
+  obtain ⟨-, hs, he⟩ := codeword_some hd
   refine ⟨?_, hs⟩
-  have he' : (xv x).toNat = ∑ i ∈ Finset.range 58, (xv x).toNat / 4 ^ i % 4 * 4 ^ i := he
-  rw [← he']
-  apply cellVal_inj
-  rw [cellVal_lit]
-  show cellVal x = BitVec.ofNat 128 (cellVal x).toNat
-  rw [BitVec.ofNat_toNat, BitVec.setWidth_eq]
+  rw [← he]
+  exact (lit_toNat_xl x).symm
 
 theorem cellPairVal_cellOf128 (m : HashSig.Message) :
     cellPairVal (cellOf128 (m.extractLsb' 0 128)) (cellOf128 (m.extractLsb' 128 128)) = m := by
@@ -58,46 +55,48 @@ theorem cellPairVal_cellOf128 (m : HashSig.Message) :
       rw [Nat.div_lt_iff_lt_mul (by positivity)]; simpa using hm)]
   exact Nat.div_add_mod _ _
 
-/-- **A layer's root exists only when its message digest decodes.** -/
-theorem layerRoot_decode {P : HashSig.PublicParameter} {lay : LeanXmss.Layer} {key : LeanXmss.KeyIndex}
-    {M : HashSig.HashInput} {part : LeanXmss.LayerSignature} {r : HashSig.Digest}
-    (h : @LeanXmss.Verification.layerRootWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part = some r) :
-    ∃ enc, LeanXmss.Codeword.decode
-      (@LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer) =
-        some enc := by
-  rw [layerRoot_id, otsLeaf_id] at h
-  cases hd : LeanXmss.Codeword.decode
-      (@LeanXmss.Verification.messageDigestWithHash Id _ ⟨Node.keccakBits⟩ P lay key M part.randomizer) with
-  | none => rw [hd] at h; simp at h
-  | some enc => exact ⟨enc, rfl⟩
+/-- **A layer's root exists only when its message digest is a codeword.** -/
+theorem layerRoot_decode {P : EthLib.Cryptography.Hash.Keccak.Lanes2} {lay : Xmss.Layer} {e : Nat}
+    {M : Array UInt64} {part : Xmss.LayerSignature} {r : EthLib.Cryptography.Hash.Keccak.Lanes2}
+    (h : (Xmss.layerRoot (Xmss.pureHash xF) P lay e M part).run = some r) :
+    ∃ enc, Xmss.codeword? (Xmss.messageDigest (Xmss.pureHash xF) P lay (UInt32.ofNat e) M
+      part.randomizer).run = some enc := by
+  obtain ⟨x, hx, -⟩ := Xmss.layerRoot_eq_some_iff.mp h
+  exact ⟨x, hx⟩
 
 /-- A layer's chains' starts as cells. -/
-def xVals (part : LeanXmss.LayerSignature) (i : Nat) : E :=
-  if h : i < 58 then cellOf128 (part.chainValues ⟨i, h⟩) else 0
+def xVals (part : Xmss.LayerSignature) (i : Nat) : E :=
+  if h : i < 58 then xc part.chainValues[(⟨i, h⟩ : Fin Xmss.Constants.V)] else 0
 
 /-- A layer's siblings as cells. -/
-def xSibs (part : LeanXmss.LayerSignature) (l : Nat) : E :=
-  if h : l < 16 then cellOf128 (part.authenticationPath ⟨l, h⟩) else 0
+def xSibs (part : Xmss.LayerSignature) (l : Nat) : E :=
+  if h : l < 16 then xc part.path[(⟨l, h⟩ : Fin Xmss.Constants.LAYER_HEIGHT)] else 0
 
 /-- **The valuation holds the layer's signature** when it holds its randomizer, its starts and its
 siblings. -/
-theorem sPart_eq {layer b : Nat} {σ : Val} {part : LeanXmss.LayerSignature}
-    (hr : σ (sRho layer b) = cellOf128 part.randomizer)
+theorem sPart_eq {layer b : Nat} {σ : Val} {part : Xmss.LayerSignature}
+    (hr : σ (sRho layer b) = xc part.randomizer)
     (hs : ∀ i < 58, σ (sStart (sW layer b) σ (sA layer b + 6) (sA layer b + 6 + 70) i) = xVals part i)
     (hp : ∀ l < 16, sSibAt σ layer b l = xSibs part l) :
     sPart layer b σ = part := by
   cases part with
   | mk r cv pa =>
-    simp only [sPart, LeanXmss.LayerSignature.mk.injEq]
-    refine ⟨by rw [hr]; exact cellVal_cellOf128 _, funext fun i => ?_, funext fun l => ?_⟩
-    · have hi : i.val < 58 := i.isLt
-      rw [hs i.val hi]
-      simp only [xVals, hi, ↓reduceDIte]
-      exact cellVal_cellOf128 _
-    · have hl : l.val < 16 := l.isLt
-      rw [hp l.val hl]
-      simp only [xSibs, hl, ↓reduceDIte]
-      exact cellVal_cellOf128 _
+    simp only [sPart, Xmss.LayerSignature.mk.injEq]
+    refine ⟨by rw [hr]; exact xl_xc _, ?_, ?_⟩
+    · apply Vector.ext
+      intro i hi
+      have hi' : i < 58 := hi
+      simp only [Vector.getElem_ofFn]
+      rw [hs i hi']
+      simp only [xVals, hi', ↓reduceDIte]
+      exact xl_xc _
+    · apply Vector.ext
+      intro l hl
+      have hl' : l < 16 := hl
+      simp only [Vector.getElem_ofFn]
+      rw [hp l hl']
+      simp only [xSibs, hl', ↓reduceDIte]
+      exact xl_xc _
 
 /-! ## A layer after its digest -/
 

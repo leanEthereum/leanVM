@@ -52,7 +52,7 @@ name = "FORS"
 # `FORS.lean` imports every module; `FORS/Axioms.lean` checks their axioms.
 roots = ["FORS", "FORS.Axioms"]
 
-# The crates' known answers (EthLib vectors, leanSPHINCS's KAT) against the statement's key
+# The leanSPHINCS crate's known answers (EthLib vectors, leanSPHINCS's KAT) against the statement's key
 # generation, signer and verifier, compiled (cli/SignatureKat.lean); not a default target.
 [[lean_exe]]
 name = "signature-kat"

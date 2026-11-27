@@ -7,9 +7,9 @@ public import Mathlib.Data.Nat.Notation
 
 Keccak-f[1600] as leanVM computes it, and Keccak-256 over any permutation of its state, in any
 monad (`keccak256With`), the deployed one over Keccak-f[1600] (`keccak256`). Every party hashes with
-Keccak-256 over the permutation it is given, `π` in the model (`RandomPermutation.lean`). The
-permutation's state is one type throughout, `KeccakState`: `25` lanes of `64` bits, lane `x + 5y`
-at index `x + 5y`.
+Keccak-256 over the permutation it is given, `π` in the model (`RandomPermutation.lean`): this
+sponge, or for leanXMSS EthLib's (`LeanXmss.xmssHash`). The permutation's state is one type
+throughout, `KeccakState`: `25` lanes of `64` bits, lane `x + 5y` at index `x + 5y`.
 
 The source is `crates/verifier/src/hash.rs` (also `crates/primitives/src/hash.rs`): the round
 constants, rotation offsets and lane permutation (`KECCAK_RC`, `KECCAK_RHO`, `KECCAK_PI`,

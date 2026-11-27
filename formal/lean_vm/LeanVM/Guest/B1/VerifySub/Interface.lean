@@ -12,7 +12,6 @@ import LeanVM.Guest.B1.KeccakGkr.Interface
 import LeanVM.Guest.B1.Ring.Interface
 import LeanVM.Guest.B1.Bits.Meaning
 import Statement.LeanVmGuest
-import LeanXmss.Scheme
 public import Statement.LeanSphincs
 public import Statement.LeanXmss
 import LeanDa.Scheme

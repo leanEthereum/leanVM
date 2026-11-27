@@ -25,7 +25,7 @@ material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuest
 
 Transcribed from leanVM's `crates/aggregation/src/` (the statement, its digest, the batching) and
 `guests/lean_ethereum.py` (the guest program), cited by their items' names. The signature schemes
-are `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
+are `LeanXmss.lean`'s (EthLib's) and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
 `LeanDa.lean`'s. `statement.tex` says why the witness is named by a decoder program, and what a
 claim held through a child does not give.
 -/
@@ -41,7 +41,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
 (`LeanXmssClaim`, `crates/aggregation/src/lib.rs`). -/
-abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
+abbrev LeanXmssClaim : Type := EthLib.Cryptography.Xmss.PublicKey × HashSig.Message
 
 /-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`,
 `crates/aggregation/src/lib.rs`). -/
@@ -85,8 +85,8 @@ collisions (`collisionCandidates`, below). -/
 /-- A leanXMSS key's `32` bytes, its root then its parameter (`LeanXmssPublicKey::to_bytes`,
 `crates/lean_xmss/src/scheme.rs`); a leanSPHINCS key's are `PK.seed ‖ PK.root`
 (`Sphincs.PublicKey.toBytes`). -/
-def xmssPublicKeyBytes (publicKey : HashSig.PublicKey) : List UInt8 :=
-  HashSig.littleEndianBytes 16 publicKey.root ++ HashSig.littleEndianBytes 16 publicKey.parameter
+def xmssPublicKeyBytes (publicKey : EthLib.Cryptography.Xmss.PublicKey) : List UInt8 :=
+  publicKey.root.bytes.toList ++ publicKey.publicParam.bytes.toList
 
 /-- A claim as the `64` bytes its list hashes: the key's bytes (`to_bytes`, by `publicKeyBytes`),
 then the message (`claim_cells`, `lean_xmss_claim_cells`, `lean_sphincs_claim_cells`,
@@ -169,7 +169,7 @@ structure NodeWitness where
   /-- The children. -/
   children : List Child
   /-- The raw leanXMSS signatures, each with the claim it signs. -/
-  xmssSignatures : List (LeanXmssClaim × LeanXmss.Signature)
+  xmssSignatures : List (LeanXmssClaim × EthLib.Cryptography.Xmss.Signature)
   /-- The raw leanSPHINCS signatures, each with the claim it signs. -/
   sphincsSignatures : List (LeanSphincsClaim × Sphincs.Signature)
   /-- The blob matrix the node checks directly, with the DA claim it opens. -/
@@ -220,7 +220,8 @@ times, each raw signature or child's entry holding one (`main`, `child_claims`,
 `child_claims_mono`, `lean_ethereum.py`: each declared claim has a coverage slot of its own, written
 once, and each holder writes one slot); likewise for leanSPHINCS. -/
 def SignatureClaimsHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
-  (∀ raw ∈ witness.xmssSignatures, LeanXmss.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
+  (∀ raw ∈ witness.xmssSignatures,
+    LeanXmss.verifyWithKeccak raw.1.1 (LeanXmss.lanesOfBits raw.1.2) raw.2 = true) ∧
   (∀ raw ∈ witness.sphincsSignatures, Sphincs.verifyWithKeccak raw.1.1 raw.1.2 raw.2 = true) ∧
   statement.claims.xmss.Subperm (witness.xmssSignatures.map (·.1) ++
     (witness.children.map (·.statement.claims.xmss)).flatten) ∧
@@ -358,20 +359,29 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 open LeanVM.Node
 
 /-! ### The encodings of a decoding: a constructor of tag `0` for each structure, its fields in
-order -/
+order, except two lanes, encoded as one number, and leanXMSS's signature, whose two layers form an
+array -/
 
-instance : MachineEncoding HashSig.PublicKey :=
-  ⟨fun k ↦ .constructor 0 [encodeValue k.root, encodeValue k.parameter]⟩
+/-- Two lanes (a leanXMSS digest, parameter or randomizer): the number `lo + 2^64 · hi`, which their
+`16` little-endian bytes encode. -/
+instance : MachineEncoding EthLib.Cryptography.Hash.Keccak.Lanes2 :=
+  ⟨fun w ↦ .nat (w.lo.toNat + 2 ^ 64 * w.hi.toNat)⟩
+
+instance : MachineEncoding EthLib.Cryptography.Xmss.PublicKey :=
+  ⟨fun k ↦ .constructor 0 [encodeValue k.root, encodeValue k.publicParam]⟩
 
 instance : MachineEncoding Sphincs.PublicKey :=
   ⟨fun k ↦ .constructor 0 [encodeValue k.publicSeed, encodeValue k.root]⟩
 
-instance : MachineEncoding LeanXmss.LayerSignature :=
+instance : MachineEncoding EthLib.Cryptography.Xmss.LayerSignature :=
   ⟨fun σ ↦ .constructor 0 [encodeValue σ.randomizer, encodeValue σ.chainValues,
-    encodeValue σ.authenticationPath]⟩
+    encodeValue σ.path]⟩
 
-instance : MachineEncoding LeanXmss.Signature :=
-  ⟨fun σ ↦ .constructor 0 [encodeValue σ.leafIndex, encodeValue σ.layers]⟩
+/-- A signature: its leaf index, then its layers' signatures as an array, bottom first, as
+leanSPHINCS's layers. -/
+instance : MachineEncoding EthLib.Cryptography.Xmss.Signature :=
+  ⟨fun σ ↦ .constructor 0 [encodeValue σ.leafIndex, .array #[encodeValue σ.bottom,
+    encodeValue σ.top]]⟩
 
 instance : MachineEncoding Sphincs.ForsTreeOpening :=
   ⟨fun o ↦ .constructor 0 [encodeValue o.secret, encodeValue o.path]⟩

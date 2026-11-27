@@ -24,9 +24,8 @@ is the deployed Keccak-256 (`keccak256With_keccakF1600`), so:
 
 * the batching's run and the openings' climb (`runBatching_deployed`, `climbTo_eq_withHash`);
 * LeanDA's commitment (`commitCells_keccakF1600`);
-* leanXMSS's verification (`xmssVerify_eq_withHash`): the scheme reads a digest as the
-  little-endian number of its 32 bytes, the guest's reading (`keccakHash_keccakF1600`); the
-  statement's leanSPHINCS is written over the permutation alone.
+* the schemes' hash (`keccakHash_keccakF1600`): a digest read as the little-endian number of its 32
+  bytes, the guest's reading.
 -/
 
 @[expose] public section
@@ -42,26 +41,6 @@ theorem keccakHash_keccakF1600 :
   funext input
   rw [HashSig.OverPermutation.keccakHash, keccak256With_keccakF1600]
   rfl
-
-/-- The statement's leanXMSS verification over `π` is the hash-query one with the hash Keccak-256
-over `π`. -/
-theorem xmss_verify_eq_verifyWithHash {m : Type → Type} [Monad m]
-    (π : KeccakState → m KeccakState) (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : LeanXmss.Signature) :
-    LeanXmss.Verification.verify π pk message σ =
-      @LeanXmss.Verification.verifyWithHash m _ ⟨HashSig.OverPermutation.keccakHash π⟩ pk message
-          σ := rfl
-
-namespace Node
-
-/-- leanXMSS verification over Keccak-f[1600] is the hash-query verification with `keccakBits`. -/
-theorem xmssVerify_eq_withHash (pk : HashSig.PublicKey) (message : HashSig.Message)
-    (σ : LeanXmss.Signature) :
-    LeanXmss.verifyWithKeccak pk message σ =
-      Id.run (@LeanXmss.Verification.verifyWithHash Id _ ⟨keccakBits⟩ pk message σ) := by
-  rw [LeanXmss.verifyWithKeccak, xmss_verify_eq_verifyWithHash, keccakHash_keccakF1600]
-
-end Node
 
 namespace Da
 

@@ -1,20 +1,17 @@
 name = "lean-xmss-security"
 version = "0.1.0"
-defaultTargets = ["LeanXmss", "XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
+defaultTargets = ["XmssSecurity"]
 
 [leanOptions]
 warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
 
-# The statement: definitions and end statements only (`Statement/`).
+# The statement: definitions and end statements only (`Statement/`). leanXMSS is EthLib's, which the
+# statement requires: this project proves the statement's leanXMSS theorem from EthLib's.
 [[require]]
 name = "statement"
 path = "../Statement"
-
-# The proofs shared by the projects: the random-permutation model's indifferentiability and
-# transfers, the duplex lemma.
-[[require]]
-name = "common"
-path = "../common"
 
 # Pinned as the statement pins it, ahead of VCVio's inherited one.
 [[require]]
@@ -37,9 +34,6 @@ rev = "f1e63c780de398fb62206dd5890f27e1ad64e0e6"
 name = "PolyFun"
 git = "https://github.com/Verified-zkEVM/PolyFun"
 rev = "528b3b1fda285487e55704409bd1b058dc18fcad"
-
-[[lean_lib]]
-name = "LeanXmss"
 
 [[lean_lib]]
 name = "XmssSecurity"

@@ -45,7 +45,8 @@ variable (seed : Digest) (s : NodeStatement) (w : NodeWitness)
 
 /-- The raw signatures with their claims (the statement a parameter, as every name of an honest
 run has one). -/
-def hRawX (_ : NodeStatement) (w : NodeWitness) : List (LeanXmssClaim × LeanXmss.Signature) :=
+def hRawX (_ : NodeStatement) (w : NodeWitness) : List (LeanXmssClaim ×
+    EthLib.Cryptography.Xmss.Signature) :=
   w.xmssSignatures
 def hRawS (_ : NodeStatement) (w : NodeWitness) : List (LeanSphincsClaim × Sphincs.Signature) :=
   w.sphincsSignatures
@@ -125,7 +126,8 @@ def hData : MainData where
 
 /-- **`main`'s honest buffers' words**, in allocation order. -/
 def hOwn : List (List E) :=
-  [(s.claims.xmss ++ (xPlan s w).duplicates).flatMap (fun c => claimCells c.1.root c.1.parameter c.2),
+  [(s.claims.xmss ++ (xPlan s w).duplicates).flatMap (fun c => claimCells (xmssRoot c) (xmssParam c)
+      c.2),
     (s.claims.sphincs ++ (sPlan s w).duplicates).flatMap (fun c => claimCells c.1.publicSeed c.1.root c.2),
     hCover s w,
     (List.range 256).map fun v => word v 0,

@@ -1,13 +1,24 @@
 /-
   LeanVM.Guest.B1.Sig.XmssScheme
 
-  leanXMSS verification with Keccak-256 (`LeanXmss.verifyWithKeccak`) as pure functions of the guest's cells.
+  EthLib's leanXMSS verification with Keccak-256 (`LeanXmss.verifyWithKeccak`) as pure functions of
+  the guest's cells.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sig.Bytes
 public import LeanVM.Guest.B1.Sig.Shapes
+public import LeanVM.Guest.Value.KeccakEthLib
+public import EthLib.Cryptography.Proofs.Xmss.Verify
+public import EthLib.Cryptography.Proofs.Xmss.Ots
+public import EthLib.Cryptography.Proofs.Xmss.Tree
+public import EthLib.Cryptography.Proofs.Xmss.Encoding
+public import EthLib.Cryptography.Proofs.Xmss.TweakableHash
+public import EthLib.Cryptography.Proofs.Xmss.Address
+public import EthLib.Cryptography.Proofs.Xmss.Words
+public import EthLib.Cryptography.Proofs.Xmss.Constants
+public import EthLib.Cryptography.Proofs.Merkle.Completeness
 public import Common.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
@@ -16,26 +27,26 @@ import Common.SequenceFin
 /-!
 # leanXMSS over cells
 
-`LeanXmss.verifyWithKeccak` runs `LeanXmss.Verification.verify` in `Id` with Keccak-256 as the oracle. The
-lemmas
-here are stated for any oracle instance on `Id` with the hypothesis `XQ` that it is Keccak-256: the
-kernel then never compares the instance with another term, which would unfold the hash. Each
-routine is a pure function in `Id` (`*_id`, `*_succ`), and a hash of cells' bytes is the first cell
-of their `hcell`, the digest's two cells (`tweakableHash_cells`).
+`LeanXmss.verifyWithKeccak` is EthLib's `verifyWith` over the hash `xF`, EthLib's Keccak-256 of
+lanes over Keccak-f[1600]. The lemmas here are stated for any hash `f` with the hypothesis `XH f`
+that it is Keccak-256 of the lanes' bytes: the kernel then never compares `f` with another term,
+which would unfold the hash. A cell is the two lanes `xl x`, and a hash of cells' bytes is the
+first cell of their `hcell` (`th_cells`).
 
-* `verify_iff`, `xmssVerify_iff`: the bottom layer's root, then the top layer's from it, is the
-  key's;
-* `layerRoot_id`, `otsLeaf_id`, `chainWalk_succ`, `chainWalk_shift`: the routines in `Id`;
-* `chainStep_cells`, `recoverChain_cells` (over `xChain`), `leafHash_cells`, `messageDigest_cells`,
-  `treeFold_cells` (over `xFold`): the routines on cells whose addresses' bytes are the tweaks';
-* `decode_lit`, `decode_some`: a codeword is the literal of its base-4 digits, summing to `106`.
+* `xmssVerify_iff`: the bottom layer's root, then the top layer's from it, is the key's;
+* `chainStep_cells`, `chainEnd_cells` (over `xChain`), `leafHash_cells`, `messageDigest_cells`,
+  `fold_cells` (over `xFold`): the routines on cells whose address cells hold EthLib's address
+  encodings;
+* `codeword_lit`, `codeword_some`: a codeword is the literal of its base-4 digits, summing to
+  `106`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
-open LeanXmss HashSig LeanXmss.Verification HashSig.OverPermutation
+open EthLib.Cryptography
+open EthLib.Cryptography.Hash.Keccak (Lanes2 Lanes4 lanesBytes)
 
 @[expose] public section
 
@@ -44,26 +55,8 @@ def hcell (cs : List E) : E × E := digestHalves (keccak256 (cs.flatMap cellByte
 
 theorem cellsBytes_eq_flatMap (cs : List E) : cellsBytes cs = cs.flatMap cellBytes := rfl
 
-/-- The oracle is Keccak-256. -/
-def XQ (inst : HasQuery LeanXmss.HashSpec Id) : Prop :=
-  ∀ x, (inst.query (spec := LeanXmss.HashSpec) x : Id HashOutput) = Node.keccakBits x
-
-theorem xq_keccak : XQ ⟨Node.keccakBits⟩ := fun _ => rfl
-
-variable {inst : HasQuery LeanXmss.HashSpec Id}
-
-/-- **A hash of cells**: a tweakable hash whose input is the bytes of cells is the value of the
-first cell of their `hcell`. -/
-theorem tweakableHash_cells (hq : XQ inst) {P : PublicParameter} {dom : HashDomain}
-    {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
-    @tweakableHashWithHash Id _ inst P dom payload = cellVal (hcell cs).1 := by
-  unfold tweakableHashWithHash thWithHash
-  simp only [bind, pure, oracleHashWithHash]
-  rw [hq, show thInput P (hashDomainFields dom) payload = cs.flatMap cellBytes from h,
-    truncateHash_keccakBits]
-  rfl
-
-theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequenceFin f = f
+theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α),
+    _root_.HashSig.OverPermutation.sequenceFin f = f
   | 0, f => funext fun i => i.elim0
   | n + 1, f => by
       simp only [Common.sequenceFin_succ]
@@ -72,156 +65,91 @@ theorem sequenceFin_id {α : Type} : ∀ {n : Nat} (f : Fin n → Id α), sequen
       funext i
       refine Fin.cases rfl (fun j => rfl) i
 
+/-- A cell as a 128-bit value. -/
+def xv (x : E) : BitVec 128 := cellVal x
+
+/-! ## The hash -/
+
+/-- leanXMSS's hash over Keccak-f[1600], as a function of lanes. -/
+def xF (lanes : Array UInt64) : Lanes4 := Id.run (LeanXmss.xmssHash (m := Id) keccakF1600 lanes)
+
+/-- The hash `f` is Keccak-256 of the lanes' bytes. -/
+def XH (f : Array UInt64 → Lanes4) : Prop :=
+  ∀ lanes, (f lanes).bytes = (keccak256 (lanesBytes lanes)).toBytes
+
+theorem xh_keccak : XH xF := KeccakEthLib.xmssHash_keccakF1600
+
+theorem xmssHash_eq_pureHash :
+    LeanXmss.xmssHash (m := Id) keccakF1600 = Xmss.pureHash xF := rfl
+
+/-- The layer of number `n`: the bottom for `0`, the top otherwise. -/
+def lyr (n : Nat) : Xmss.Layer := if n = 0 then .bottom else .top
+
+theorem toNat_lyr {n : Nat} (h : n < 2) : (lyr n).toNat = n := by
+  interval_cases n <;> rfl
+
+theorem lyr_zero : lyr 0 = .bottom := rfl
+
+theorem lyr_one : lyr 1 = .top := rfl
+
+variable {f : Array UInt64 → Lanes4}
+
+/-! ## Verification -/
+
 /-- **Verification**: the bottom layer's root, then the top layer's from it, is the key's. -/
-theorem verify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
-    @LeanXmss.Verification.verifyWithHash Id _ inst pk msg σ = true ↔
-      ∃ r0, @layerRootWithHash Id _ inst pk.parameter bottomLayer (keyIndexOnLayer σ.leafIndex
-          bottomLayer)
-          (littleEndianBytes 32 msg) (σ.layers bottomLayer) = some r0 ∧
-        @layerRootWithHash Id _ inst pk.parameter topLayer (keyIndexOnLayer σ.leafIndex topLayer) (littleEndianBytes 16 r0)
-          (σ.layers topLayer) = some pk.root := by
-  rw [LeanXmss.Verification.verifyWithHash.eq_def]
-  simp only [bind, pure]
-  split
-  next r0 h1 =>
-    split
-    next r h2 =>
-      rw [decide_eq_true_iff]
-      constructor
-      · rintro rfl; exact ⟨r0, h1, h2⟩
-      · rintro ⟨r0', h1', h2'⟩
-        have e := Option.some.inj (h1.symm.trans h1')
-        subst e
-        exact Option.some.inj (h2.symm.trans h2')
-    next h2 =>
-      refine ⟨fun h => absurd h Bool.false_ne_true, ?_⟩
-      rintro ⟨r0', h1', h2'⟩
-      have e := Option.some.inj (h1.symm.trans h1')
-      subst e
-      exact absurd h2' (h2 _)
-  next h1 =>
-    refine ⟨fun h => absurd h Bool.false_ne_true, ?_⟩
-    rintro ⟨r0', h1', -⟩
-    exact absurd h1' (h1 _)
-
-theorem idRun {α : Type} (x : Id α) : Id.run x = x := rfl
-
-theorem xmssVerify_iff (pk : PublicKey) (msg : Message) (σ : Signature) :
+theorem xmssVerify_iff (pk : Xmss.PublicKey) (msg : Xmss.Message) (σ : Xmss.Signature) :
     LeanXmss.verifyWithKeccak pk msg σ = true ↔
-      ∃ r0, @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter bottomLayer
-          (keyIndexOnLayer σ.leafIndex bottomLayer) (littleEndianBytes 32 msg) (σ.layers
-              bottomLayer) = some r0 ∧
-        @layerRootWithHash Id _ ⟨Node.keccakBits⟩ pk.parameter topLayer (keyIndexOnLayer σ.leafIndex
-            topLayer)
-          (littleEndianBytes 16 r0) (σ.layers topLayer) = some pk.root := by
-  rw [Node.xmssVerify_eq_withHash, idRun]
-  exact verify_iff pk msg σ
+      ∃ r0, (Xmss.layerRoot (Xmss.pureHash xF) pk.publicParam .bottom σ.leafIndex.toNat
+          msg.toArray σ.bottom).run = some r0 ∧
+        (Xmss.layerRoot (Xmss.pureHash xF) pk.publicParam .top (Xmss.bottomTree σ.leafIndex)
+          r0.toArray σ.top).run = some pk.root :=
+  Xmss.verify_iff
 
-/-! ## The routines in `Id` -/
+/-! ## A hash of cells -/
 
-theorem layerRoot_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
-    (part : LayerSignature) :
-    @layerRootWithHash Id _ inst P lay key msg part =
-      (@otsLeafWithHash Id _ inst P lay key msg part.randomizer part.chainValues).map
-        (fun leaf => @treeFoldWithHash Id _ inst P lay key part.authenticationPath layerHeight leaf) := by
-  rw [layerRootWithHash.eq_def]
-  simp only [bind, pure]
-  split
-  next leaf h => rw [h]; rfl
-  next h =>
-    cases h' : @otsLeafWithHash Id _ inst P lay key msg part.randomizer part.chainValues with
-    | none => rfl
-    | some leaf => exact absurd h' (h leaf)
+theorem toBytes_toList (d : LeanVM.Protocol.Digest) :
+    (LeanVM.Protocol.Digest.toBytes d).toList = digestBytes d := rfl
 
-theorem otsLeaf_id (P : PublicParameter) (lay : Layer) (key : KeyIndex) (msg : HashInput)
-    (R : Randomizer) (vals : ChainIndex → HashSig.Digest) :
-    @otsLeafWithHash Id _ inst P lay key msg R vals =
-      (Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R)).map fun enc =>
-        @leafHashWithHash Id _ inst P lay key fun i => @recoverChainWithHash Id _ inst P lay key i (enc i) (vals i) := by
-  rw [otsLeafWithHash.eq_def]
-  simp only [bind, pure]
-  split
-  next enc h => rw [h, sequenceFin_id]; rfl
-  next h =>
-    cases h' : Codeword.decode (@messageDigestWithHash Id _ inst P lay key msg R) with
-    | none => rfl
-    | some enc => exact absurd h' (h enc)
+theorem bytes_halfOf_zero (w : Lanes4) :
+    (Lanes2.mk w.w0 w.w1).bytes.toList = w.bytes.toList.take 16 := by
+  simp [Lanes2.bytes, Lanes4.bytes]
 
-theorem dite_of {c : Prop} [Decidable c] (h : c) {α : Sort*} (t : c → α) (e : ¬c → α) :
-    dite c t e = t h := by simp [h]
+/-- **A hash of cells**: a tweakable hash whose input is the bytes of cells is the lanes of the
+first cell of their `hcell`. -/
+theorem th_cells (hf : XH f) {P : Lanes2} {A : Xmss.Address} {M : Array UInt64} {cs : List E}
+    (h : P.bytes.toList ++ A.encode.bytes.toList ++ lanesBytes M = cs.flatMap cellBytes) :
+    (Xmss.th (Xmss.pureHash f) P A M).run = xl (hcell cs).1 := by
+  apply Lanes2.bytes_injective
+  apply Vector.toList_inj.mp
+  rw [bytes_xl, Xmss.th_run, Xmss.halfOf_zero, bytes_halfOf_zero, hf (Xmss.thInput P A M),
+    Xmss.lanesBytes_thInput, h,
+    toBytes_toList, hcell, digestBytes_eq, List.take_left' (length_cellBytes _)]
 
-theorem chainWalk_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex)
-    (start n : Nat) (v : HashSig.Digest) :
-    @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
-      if hstep : start + n < chainLength - 1 then
-        @tweakableHashWithHash Id _ inst P (.chain lay key ⟨start + n, hstep⟩)
-          (chainPayload i (@chainWalkWithHash Id _ inst P lay key i start n v))
-      else 0 := by
-  rw [chainWalk_eq_succ]
-  simp only [bind]
-  split <;> rfl
+/-- A digit is below `4`. -/
+theorem hxlt (x : Vector (Fin Xmss.Constants.CHAIN_LENGTH) Xmss.Constants.V)
+    (i : Fin Xmss.Constants.V) : (x[i] : Nat) < 4 := by
+  have h := (x[i]).isLt
+  have e : Xmss.Constants.CHAIN_LENGTH = 4 := Xmss.Constants.chain_length_eq
+  omega
 
-/-- The first step of a walk taken first. -/
-theorem chainWalk_shift (P : PublicParameter) (lay : Layer) (key : KeyIndex) (i : ChainIndex) :
-    ∀ (n start : Nat) (v : HashSig.Digest) (hs : start < chainLength - 1),
-      start + n + 1 ≤ chainLength - 1 →
-      @chainWalkWithHash Id _ inst P lay key i start (n + 1) v =
-        @chainWalkWithHash Id _ inst P lay key i (start + 1) n
-          (@tweakableHashWithHash Id _ inst P (.chain lay key ⟨start, hs⟩) (chainPayload i v))
-  | 0, start, v, hs, _ => by
-      rw [chainWalk_succ, dite_of (by omega), chainWalk_eq_zero, chainWalk_eq_zero]
-      rfl
-  | n + 1, start, v, hs, h => by
-      have h1 : start + (n + 1) < chainLength - 1 := by omega
-      have h2 : start + 1 + n < chainLength - 1 := by omega
-      rw [chainWalk_succ, dite_of h1, chainWalk_shift P lay key i n start v hs (by omega),
-        chainWalk_succ, dite_of h2]
-      have : (⟨start + (n + 1), h1⟩ : ChainStep) = ⟨start + 1 + n, h2⟩ := Fin.ext (by simp only; omega)
-      rw [this]
+theorem index_lt (i : Fin Xmss.Constants.V) : i.val < 2 ^ 64 := by
+  have := i.isLt
+  simp only [Xmss.Constants.V] at this
+  omega
 
-theorem treeFold_succ (P : PublicParameter) (lay : Layer) (key : KeyIndex)
-    (path : Fin layerHeight → HashSig.Digest) (m : Nat) (v : HashSig.Digest) :
-    @treeFoldWithHash Id _ inst P lay key path (m + 1) v =
-      let current := @treeFoldWithHash Id _ inst P lay key path m v
-      let sibling := if hlevel : m < layerHeight then path ⟨m, hlevel⟩ else 0
-      if key.val.testBit m then
-        @tweakableHashWithHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload sibling current)
-      else
-        @tweakableHashWithHash Id _ inst P (.node lay (m + 1) (key.val / 2 ^ (m + 1))) (nodePayload current sibling) := by
-  rw [treeFold_eq_succ]
-  simp only [bind]
+/-! ## A chain -/
 
-/-! ## Hashes of cells -/
-
-/-- A cell as a leanXMSS digest. -/
-def xv (x : E) : HashSig.Digest := cellVal x
-
-/-- A cell as a leanXMSS public parameter. -/
-def xpp (x : E) : PublicParameter := cellVal x
-
-theorem bytesLE_xv (x : E) : littleEndianBytes 16 (xv x) = cellBytes x := bytesLE_cellVal x
-
-theorem bytesLE_xpp (x : E) : littleEndianBytes 16 (xpp x) = cellBytes x := bytesLE_cellVal x
-
-theorem bytesLE_ofNat_cell {i : Nat} (hi : i < 2 ^ 64) :
-    littleEndianBytes 16 (BitVec.ofNat 128 i) = cellBytes (eOfNat i) := by
-  rw [bytesLE_eq, cellBytes_eOfNat hi, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
-
-/-- A hash of cells, as a digest. -/
-theorem tweakableHash_xv (hq : XQ inst) {P : PublicParameter} {dom : HashDomain}
-    {payload : HashInput} {cs : List E} (h : tweakableHashInput P dom payload = cs.flatMap cellBytes) :
-    @tweakableHashWithHash Id _ inst P dom payload = xv (hcell cs).1 := tweakableHash_cells hq h
-
-/-- **A chain step over cells**, its address's bytes those of the step's tweak. -/
-theorem chainStep_cells (hq : XQ inst) {pp a x : E} {lay : Layer} {key : KeyIndex} {i : ChainIndex}
-    {s : ChainStep} (ha : cellBytes a = tweakBytes (.chain lay key s)) :
-    @tweakableHashWithHash Id _ inst (xpp pp) (.chain lay key s) (chainPayload i (xv x)) =
-      xv (hcell [pp, a, x, eOfNat i.val]).1 := by
-  apply tweakableHash_xv hq
-  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv x) ++ littleEndianBytes 16 (BitVec.ofNat 128 i.val)) = _
-  rw [bytesLE_xpp, bytesLE_xv, ← ha,
-    bytesLE_ofNat_cell (by have := i.isLt; simp [chainCount] at this; omega)]
-  simp
+/-- **A chain step over cells**, its address's bytes those of the step's address. -/
+theorem chainStep_cells (hf : XH f) {pp a x : E} {layer : Xmss.Layer} {e : UInt32}
+    {i : Fin Xmss.Constants.V} {mu : Fin (Xmss.Constants.CHAIN_LENGTH - 1)}
+    (ha : cellBytes a = (Xmss.Address.chain layer e mu).encode.bytes.toList) :
+    (Xmss.chainStep (Xmss.pureHash f) (xl pp) layer e i mu (xl x)).run =
+      xl (hcell [pp, a, x, eOfNat i.val]).1 := by
+  rw [Xmss.chainStep_eq_th]
+  apply th_cells hf
+  rw [Hash.Keccak.lanesBytes_append, Hash.Keccak.lanesBytes_lanes2,
+    Xmss.lanesBytes_index _ (index_lt i), toList_toLE, ← ha]
+  simp [bytes_xl, cellBytes_eOfNat (index_lt i)]
 
 /-- `n` chain steps from position `s` on cells: the step leaving position `s` hashes `P`, its
 address `adr s`, the value and the chain index. -/
@@ -229,26 +157,35 @@ def xChain (pp : E) (adr : Nat → E) (i : Nat) : Nat → Nat → E → E
   | 0, _, x => x
   | n + 1, s, x => xChain pp adr i n (s + 1) (hcell [pp, adr s, x, eOfNat i]).1
 
-/-- **A chain walked from digit `d` over cells.** -/
-theorem recoverChain_cells (hq : XQ inst) {pp : E} {adr : Nat → E} {lay : Layer} {key : KeyIndex}
-    {i : ChainIndex} (hadr : ∀ (s : ChainStep), cellBytes (adr s) = tweakBytes (.chain lay key s)) :
-    ∀ (d : WinternitzDigit) (x : E), @recoverChainWithHash Id _ inst (xpp pp) lay key i d (xv x) =
-      xv (xChain pp adr i.val (3 - d.val) d.val x) := by
-  have hwalk : ∀ (n start : Nat) (x : E), start + n ≤ chainLength - 1 →
-      @chainWalkWithHash Id _ inst (xpp pp) lay key i start n (xv x) = xv (xChain pp adr i.val n start x) := by
-    intro n
-    induction n with
-    | zero => intro start x _; rw [chainWalk_eq_zero]; rfl
-    | succ n ih =>
-        intro start x h
-        rw [chainWalk_shift _ _ _ _ _ _ _ (by omega) h, chainStep_cells hq (hadr ⟨start, by omega⟩),
-          ih (start + 1) _ (by omega)]
-        rfl
-  intro d x
-  have hd := d.isLt
-  simp only [chainLength, winternitzBits] at hd
-  rw [recoverChainWithHash, show chainLength - 1 - d.val = 3 - d.val by simp [chainLength, winternitzBits]]
-  exact hwalk _ _ _ (by simp [chainLength, winternitzBits]; omega)
+/-- **A chain walked over cells**, its addresses' bytes those of the steps'. -/
+theorem chain_cells (hf : XH f) {pp : E} {adr : Nat → E} {layer : Xmss.Layer} {e : UInt32}
+    (hadr : ∀ s : Fin (Xmss.Constants.CHAIN_LENGTH - 1),
+      cellBytes (adr s.val) = (Xmss.Address.chain layer e s).encode.bytes.toList)
+    (i : Fin Xmss.Constants.V) :
+    ∀ (n start : Nat) (h : start + n < Xmss.Constants.CHAIN_LENGTH) (z : E),
+      (Xmss.chain (Xmss.pureHash f) (xl pp) layer e i start n h (xl z)).run =
+        xl (xChain pp adr i.val n start z)
+  | 0, start, h, z => by simp [xChain]
+  | n + 1, start, h, z => by
+      rw [Xmss.chain_succ_run h, chainStep_cells hf (hadr ⟨start, by
+        simp only [Xmss.Constants.CHAIN_LENGTH] at h ⊢; omega⟩)]
+      exact chain_cells hf hadr i n (start + 1) (by omega) _
+
+/-- **A chain end over cells**: chain `i` walked from the position its digit names to position
+`3`, `3 - x_i` steps. -/
+theorem chainEnd_cells (hf : XH f) {pp : E} {adr : Nat → E} {layer : Xmss.Layer} {e : UInt32}
+    (hadr : ∀ s : Fin (Xmss.Constants.CHAIN_LENGTH - 1),
+      cellBytes (adr s.val) = (Xmss.Address.chain layer e s).encode.bytes.toList)
+    (x : Vector (Fin Xmss.Constants.CHAIN_LENGTH) Xmss.Constants.V)
+    (y : Vector Lanes2 Xmss.Constants.V) (i : Fin Xmss.Constants.V) {z : E} (hy : y[i] = xl z) :
+    Xmss.chainEnd f (xl pp) layer e x y i =
+      xl (xChain pp adr i.val (3 - (x[i] : Nat)) (x[i] : Nat) z) := by
+  have hk : (x[i] : Nat) + (3 - (x[i] : Nat)) = Xmss.Constants.CHAIN_LENGTH - 1 := by
+    have := hxlt x i
+    have e : Xmss.Constants.CHAIN_LENGTH = 4 := Xmss.Constants.chain_length_eq
+    omega
+  rw [Xmss.chainEnd_eq_chain hk, hy]
+  exact chain_cells hf hadr i _ _ _ z
 
 theorem ofFn_val_eq {α : Type} (n : Nat) (g : Nat → α) :
     (List.ofFn fun i : Fin n => g i.val) = (List.range n).map g := by
@@ -256,34 +193,50 @@ theorem ofFn_val_eq {α : Type} (n : Nat) (g : Nat → α) :
   intro i h1 h2
   simp
 
-theorem flatMap_bytesLE_xv : ∀ (l : List E), List.flatMap (littleEndianBytes 16) (l.map xv) = l.flatMap cellBytes
-  | [] => rfl
-  | x :: l => by
-      show littleEndianBytes 16 (xv x) ++ List.flatMap (littleEndianBytes 16) (l.map xv) = cellBytes x ++ l.flatMap cellBytes
-      rw [bytesLE_xv, flatMap_bytesLE_xv l]
-
 /-- **The one-time leaf over cells.** -/
-theorem leafHash_cells (hq : XQ inst) {pp a : E} {lay : Layer} {key : KeyIndex} (tips : Nat → E)
-    (ha : cellBytes a = tweakBytes (.leaf lay key)) :
-    @leafHashWithHash Id _ inst (xpp pp) lay key (fun i => xv (tips i.val)) =
-      xv (hcell (pp :: a :: (List.range chainCount).map tips)).1 := by
-  apply tweakableHash_xv hq
-  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++
-    (List.ofFn fun i : ChainIndex => xv (tips i.val)).flatMap (littleEndianBytes 16) = _
-  rw [bytesLE_xpp, ← ha, show (List.ofFn fun i : ChainIndex => xv (tips i.val)) =
-      ((List.range chainCount).map tips).map xv
-    from (ofFn_val_eq chainCount (fun i => xv (tips i))).trans (List.map_map.symm)]
-  exact (congrArg (fun t => cellBytes pp ++ cellBytes a ++ t) (flatMap_bytesLE_xv _)).trans (by simp)
+theorem leafHash_cells (hf : XH f) {pp a : E} {layer : Xmss.Layer} {e : UInt32} (tips : Nat → E)
+    (ha : cellBytes a = (Xmss.Address.leaf layer e).encode.bytes.toList) :
+    (Xmss.otsLeafHash (Xmss.pureHash f) (xl pp) layer e
+        (Vector.ofFn fun i : Fin Xmss.Constants.V => xl (tips i.val))).run =
+      xl (hcell (pp :: a :: (List.range 58).map tips)).1 := by
+  rw [Xmss.otsLeafHash_eq_th]
+  apply th_cells hf
+  rw [Xmss.lanesBytes_digestLanes, bytes_xl, ← ha, Vector.toList_ofFn, List.map_ofFn]
+  have e1 : (List.ofFn ((fun d : Lanes2 => d.bytes.toList) ∘ fun i : Fin Xmss.Constants.V =>
+      xl (tips i.val))) = List.ofFn fun i : Fin Xmss.Constants.V => cellBytes (tips i.val) :=
+    List.ofFn_inj.mpr (funext fun i => bytes_xl _)
+  rw [e1, ofFn_val_eq Xmss.Constants.V (fun j => cellBytes (tips j))]
+  simp [List.flatMap, List.map_map, Function.comp_def, List.append_assoc]
+  rfl
 
 /-- **The message digest over cells.** -/
-theorem messageDigest_cells (hq : XQ inst) {pp a rho : E} {lay : Layer} {key : KeyIndex}
-    {M : HashInput} {cs : List E} (ha : cellBytes a = tweakBytes (.message lay key))
-    (hM : M = cs.flatMap cellBytes) :
-    @messageDigestWithHash Id _ inst (xpp pp) lay key M (xv rho) = xv (hcell (pp :: a :: cs ++ [rho])).1 := by
-  apply tweakableHash_xv hq
-  show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (M ++ littleEndianBytes 16 (xv rho)) = _
-  rw [bytesLE_xpp, bytesLE_xv, ← ha, hM]
-  simp
+theorem messageDigest_cells (hf : XH f) {pp a rho : E} {layer : Xmss.Layer} {e : UInt32}
+    {M : Array UInt64} {cs : List E}
+    (ha : cellBytes a = (Xmss.Address.msg layer e).encode.bytes.toList)
+    (hM : lanesBytes M = cs.flatMap cellBytes) :
+    (Xmss.messageDigest (Xmss.pureHash f) (xl pp) layer e M (xl rho)).run =
+      xl (hcell (pp :: a :: cs ++ [rho])).1 := by
+  rw [Xmss.messageDigest_eq_th]
+  apply th_cells hf
+  rw [Hash.Keccak.lanesBytes_append, hM, Hash.Keccak.lanesBytes_lanes2, ← ha]
+  simp [bytes_xl]
+
+/-! ## A tree -/
+
+/-- **A node over cells**, its address's bytes those of the node's. -/
+theorem nodeHash_cells (hf : XH f) {pp a l r : E} {layer : Xmss.Layer}
+    {p : EthLib.Cryptography.Merkle.Position} (hp : p.level ≤ Xmss.Constants.LAYER_HEIGHT)
+    (ha : cellBytes a = (Xmss.Address.node layer ⟨p.level, Nat.lt_succ_of_le hp⟩
+      (UInt32.ofNat p.index)).encode.bytes.toList) :
+    (Xmss.nodeHash (Xmss.pureHash f) (xl pp) layer p (xl l) (xl r)).run =
+      xl (hcell [pp, a, l, r]).1 := by
+  rw [Xmss.nodeHash_of_le _ _ _ hp]
+  apply th_cells hf
+  have e1 : (#[(xl l).lo, (xl l).hi, (xl r).lo, (xl r).hi] : Array UInt64) =
+      (xl l).toArray ++ (xl r).toArray := rfl
+  rw [e1, Hash.Keccak.lanesBytes_append, Hash.Keccak.lanesBytes_lanes2,
+    Hash.Keccak.lanesBytes_lanes2, ← ha]
+  simp [bytes_xl]
 
 /-- `m` levels of a Merkle path on cells, the last level taken last: level `l` hashes `P`, its
 address `A l` and the pair in the order of bit `l`. -/
@@ -293,28 +246,41 @@ def xFold (pp : E) (A : Nat → E) (bits : Nat → Bool) (sibs : Nat → E) : Na
       let y := xFold pp A bits sibs m x
       (hcell [pp, A m, if bits m then sibs m else y, if bits m then y else sibs m]).1
 
-/-- **A layer's tree over cells**: the fold of a path whose addresses' bytes are the nodes'
-tweaks, its bits the key's. -/
-theorem treeFold_cells (hq : XQ inst) {pp : E} {A : Nat → E} {lay : Layer} {key : KeyIndex}
-    (hA : ∀ l < layerHeight, cellBytes (A l) = tweakBytes (.node lay (l + 1) (key.val / 2 ^ (l + 1))))
+/-- **A layer's tree over cells**: the climb of a path whose addresses' bytes are the nodes'
+addresses', its bits the key's. -/
+theorem climb_cells (hf : XH f) {pp : E} {A : Nat → E} {layer : Xmss.Layer} {e : Nat}
+    (hA : ∀ (l : Nat) (hl : l < Xmss.Constants.LAYER_HEIGHT), cellBytes (A l) =
+      (Xmss.Address.node layer ⟨l + 1, by omega⟩ (UInt32.ofNat (e / 2 ^ (l +
+          1)))).encode.bytes.toList)
     (sibs : Nat → E) :
-    ∀ m ≤ layerHeight, ∀ x : E,
-      @treeFoldWithHash Id _ inst (xpp pp) lay key (fun l => xv (sibs l.val)) m (xv x) =
-        xv (xFold pp A (fun l => key.val.testBit l) sibs m x)
-  | 0, _, x => by rw [treeFold_eq_zero]; rfl
+    ∀ m ≤ Xmss.Constants.LAYER_HEIGHT, ∀ x : E,
+      (EthLib.Cryptography.Merkle.climb (Xmss.nodeHash (Xmss.pureHash f) (xl pp) layer) ⟨0,
+          e⟩ (xl x)
+        (List.ofFn fun k : Fin m => xl (sibs k.val))).run =
+        xl (xFold pp A (fun l => e.testBit l) sibs m x)
+  | 0, _, x => by simp [xFold]
   | m + 1, hm, x => by
-      rw [treeFold_succ]
-      simp only [xFold]
-      rw [treeFold_cells hq hA sibs m (by omega) x, dite_of (by omega)]
-      split
-      · apply tweakableHash_xv hq
-        show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv (sibs m)) ++ littleEndianBytes 16 (xv _)) = _
-        rw [bytesLE_xpp, bytesLE_xv, bytesLE_xv, ← hA m (by omega)]
-        simp_all
-      · apply tweakableHash_xv hq
-        show littleEndianBytes 16 (xpp pp) ++ tweakBytes _ ++ (littleEndianBytes 16 (xv _) ++ littleEndianBytes 16 (xv (sibs m))) = _
-        rw [bytesLE_xpp, bytesLE_xv, bytesLE_xv, ← hA m (by omega)]
-        simp_all
+      rw [EthLib.Cryptography.Merkle.climb_ofFn_succ (hash := Xmss.nodeHash (Xmss.pureHash f) (xl
+          pp) layer) e
+        (fun k => xl (sibs k)) m (xl x), Id.run_bind, climb_cells hf hA sibs m (by omega) x]
+      by_cases hb : e.testBit m = true
+      · simp only [xFold, hb, ↓reduceIte]
+        exact nodeHash_cells hf (p := ⟨m + 1, e / 2 ^ (m + 1)⟩) hm (hA m (by omega))
+      · simp only [xFold, hb]
+        exact nodeHash_cells hf (p := ⟨m + 1, e / 2 ^ (m + 1)⟩) hm (hA m (by omega))
+
+/-- **A layer's tree over cells, in full**: the fold of its `16` siblings. -/
+theorem fold_cells (hf : XH f) {pp : E} {A : Nat → E} {layer : Xmss.Layer} {e : Nat}
+    (hA : ∀ (l : Nat) (hl : l < Xmss.Constants.LAYER_HEIGHT), cellBytes (A l) =
+      (Xmss.Address.node layer ⟨l + 1, by omega⟩ (UInt32.ofNat (e / 2 ^ (l +
+          1)))).encode.bytes.toList)
+    (sibs : Nat → E) (x : E) :
+    (Xmss.fold (Xmss.pureHash f) (xl pp) layer e (xl x)
+        (Vector.ofFn fun k : Fin Xmss.Constants.LAYER_HEIGHT => xl (sibs k.val))).run =
+      xl (xFold pp A (fun l => e.testBit l) sibs 16 x) := by
+  refine (congrArg Id.run (Xmss.fold_ofFn (Xmss.pureHash f) (xl pp) layer e (xl x)
+    (fun k => xl (sibs k)))).trans ?_
+  exact climb_cells hf hA sibs 16 le_rfl x
 
 /-! ## The codeword -/
 
@@ -356,49 +322,37 @@ theorem cellVal_lit (N : Nat) : cellVal (lit N) = BitVec.ofNat 128 N := by
 
 theorem xv_lit (N : Nat) : xv (lit N) = BitVec.ofNat 128 N := cellVal_lit N
 
-theorem digit_ofNat {n : Nat} (N : Nat) (i : Fin n) :
-    (digestDigits (BitVec.ofNat 128 N) i).val = N % 2 ^ 128 / 4 ^ i.val % 4 := by
-  show (BitVec.extractLsb' (2 * i.val) 2 (BitVec.ofNat 128 N)).toNat = _
-  rw [BitVec.extractLsb'_toNat, BitVec.toNat_ofNat, Nat.shiftRight_eq_div_pow, pow_mul]
-  norm_num
+theorem toNat_xl_lit {N : Nat} (h : N < 2 ^ 128) : (xl (lit N)).toNat = N := by
+  rw [toNat_xl, cellNat_lit, Nat.mod_eq_of_lt h]
 
-theorem digit_val {n : Nat} (d : HashSig.Digest) (i : Fin n) :
-    (digestDigits d i).val = d.toNat / 4 ^ i.val % 4 := by
-  show (BitVec.extractLsb' (2 * i.val) 2 d).toNat = _
-  rw [BitVec.extractLsb'_toNat, Nat.shiftRight_eq_div_pow, pow_mul]
-  norm_num
+/-- A cell is the literal of its lanes' number. -/
+theorem lit_toNat_xl (x : E) : lit (xl x).toNat = x := by
+  apply xl_inj
+  apply Lanes2.toNat_injective
+  rw [toNat_xl_lit (Lanes2.toNat_lt _)]
+
+/-- The digits `dig`, each below `4`, as a codeword's vector. -/
+def codeVec (dig : Nat → Nat) (hd : ∀ j, dig j < 4) :
+    Vector (Fin Xmss.Constants.CHAIN_LENGTH) Xmss.Constants.V :=
+  Vector.ofFn fun i => ⟨dig i.val, by rw [Xmss.Constants.chain_length_eq]; exact hd i.val⟩
+
+theorem codeVec_val (dig : Nat → Nat) (hd : ∀ j, dig j < 4) (i : Fin Xmss.Constants.V) :
+    ((codeVec dig hd)[i] : Nat) = dig i.val := by
+  simp [codeVec]
 
 /-- **A codeword's digits**: the digest holding the literal of `58` digits below 4 summing to
-106 decodes to them. -/
-theorem decode_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
-    (hs : ∑ i ∈ Finset.range chainCount, dig i = targetSum) :
-    Codeword.decode (xv (lit (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j))) =
-      some fun i => ⟨dig i.val, hd _⟩ := by
-  have hlt := base4_lt hd chainCount
-  have hlt' : ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j < 2 ^ 116 := by
-    have : (4 : Nat) ^ chainCount = 2 ^ 116 := by norm_num [chainCount]
-    omega
-  rw [xv_lit]
-  have henc : (digestDigits (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) :
-      Encoding) = fun i => ⟨dig i.val, hd _⟩ := by
-    funext i
-    apply Fin.ext
-    rw [digit_ofNat, Nat.mod_eq_of_lt (a := ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)
-        (by omega)]
-    exact base4_digit hd _ _ i.isLt
-  have hv : Codeword.Valid (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)) := by
-    refine ⟨?_, ?_⟩
-    · have ht : (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)).toNat =
-          ∑ j ∈ Finset.range chainCount, dig j * 4 ^ j := by
-        rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
-      show (BitVec.ofNat 128 (∑ j ∈ Finset.range chainCount, dig j * 4 ^ j)).toNat / 2 ^ (2 *
-          58) = 0
-      rw [ht]
-      exact Nat.div_eq_of_lt (by norm_num at hlt' ⊢; omega)
-    · rw [henc, Codeword.sum, ← hs, ← Fin.sum_univ_eq_sum_range]
-  simp only [Codeword.decode]
-  split_ifs
-  rw [henc]
+106 is the codeword of them. -/
+theorem codeword_lit {dig : Nat → Nat} (hd : ∀ j, dig j < 4)
+    (hs : ∑ i ∈ Finset.range 58, dig i = 106) :
+    Xmss.codeword? (xl (lit (∑ j ∈ Finset.range 58, dig j * 4 ^ j))) = some (codeVec dig hd) := by
+  have hlt : ∑ j ∈ Finset.range 58, dig j * 4 ^ j < 2 ^ 128 :=
+    lt_trans (base4_lt hd 58) (by norm_num)
+  rw [Xmss.codeword?_eq_some_iff, toNat_xl_lit hlt]
+  refine ⟨?_, ?_⟩
+  · simp only [codeVec_val]
+    exact (Fin.sum_univ_eq_sum_range (fun j => dig j * 4 ^ j) Xmss.Constants.V).symm
+  · simp only [codeVec_val]
+    exact (Fin.sum_univ_eq_sum_range (fun j => dig j) Xmss.Constants.V).trans hs
 
 theorem base4_expand : ∀ n N, N < 4 ^ n → ∑ j ∈ Finset.range n, N / 4 ^ j % 4 * 4 ^ j = N
   | 0, N, h => by simp only [pow_zero, Nat.lt_one_iff] at h; simp [h]
@@ -415,27 +369,27 @@ theorem base4_expand : ∀ n N, N < 4 ^ n → ∑ j ∈ Finset.range n, N / 4 ^ 
       simp only [pow_zero, Nat.div_one, Nat.mul_one]
       omega
 
-/-- **A codeword's digits, read back**: a digest that decodes holds the literal of its base-4
-digits, which sum to 106. -/
-theorem decode_some {d : HashSig.Digest} {enc : Encoding} (h : Codeword.decode d = some enc) :
-    (∀ i : ChainIndex, (enc i).val = d.toNat / 4 ^ i.val % 4) ∧
-      ∑ i ∈ Finset.range chainCount, d.toNat / 4 ^ i % 4 = targetSum ∧
-      d.toNat = ∑ j ∈ Finset.range chainCount, d.toNat / 4 ^ j % 4 * 4 ^ j := by
-  simp only [Codeword.decode] at h
-  split at h
-  next hv =>
-    cases h
-    refine ⟨fun i => digit_val d i, ?_, ?_⟩
-    · rw [← hv.2, Codeword.sum, ← Fin.sum_univ_eq_sum_range]
-      exact Finset.sum_congr rfl fun i _ => (digit_val d i).symm
-    · have h1 := hv.1
-      have hlt : d.toNat < 4 ^ chainCount := by
-        simp only [winternitzBits, chainCount] at h1
-        rw [Nat.div_eq_zero_iff] at h1
-        norm_num [chainCount] at h1 ⊢
-        omega
-      exact (base4_expand _ _ hlt).symm
-  next => cases h
+/-- **A codeword's digits, read back**: a digest that is a codeword holds the literal of its
+base-4 digits, which sum to 106. -/
+theorem codeword_some {d : Lanes2} {x : Vector (Fin Xmss.Constants.CHAIN_LENGTH) Xmss.Constants.V}
+    (h : Xmss.codeword? d = some x) :
+    (∀ i : Fin Xmss.Constants.V, (x[i] : Nat) = d.toNat / 4 ^ i.val % 4) ∧
+      ∑ i ∈ Finset.range 58, d.toNat / 4 ^ i % 4 = 106 ∧
+      d.toNat = ∑ j ∈ Finset.range 58, d.toNat / 4 ^ j % 4 * 4 ^ j := by
+  obtain ⟨hdig, -, -⟩ := Xmss.codeword?_eq_some h
+  have hsum := Xmss.sum_of_codeword h
+  have htn := Xmss.toNat_of_codeword h
+  have e1 : ∑ i : Fin Xmss.Constants.V, (x[i] : Nat) =
+      ∑ i ∈ Finset.range 58, d.toNat / 4 ^ i % 4 := by
+    rw [Finset.sum_congr rfl (fun i _ => hdig i)]
+    exact Fin.sum_univ_eq_sum_range (fun j => d.toNat / 4 ^ j % 4) Xmss.Constants.V
+  refine ⟨hdig, ?_, ?_⟩
+  · rw [← e1, hsum, Xmss.Constants.target_sum_eq]
+  · calc d.toNat = ∑ i : Fin Xmss.Constants.V, (x[i] : Nat) * 4 ^ i.val := htn
+      _ = ∑ i : Fin Xmss.Constants.V, (d.toNat / 4 ^ i.val % 4) * 4 ^ i.val :=
+          Finset.sum_congr rfl (fun i _ => by rw [hdig i])
+      _ = _ := Fin.sum_univ_eq_sum_range (fun j => d.toNat / 4 ^ j % 4 * 4 ^ j)
+          Xmss.Constants.V
 
 end
 end LeanVM.Guest.B1.Sig

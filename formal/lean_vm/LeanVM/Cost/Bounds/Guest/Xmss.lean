@@ -206,7 +206,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
   have hks := lxArmsTaken_le (σ := σ) T.lanes (lxDigitBase layer)
   have hc := cellNat_cost P (by includes) (σ (.n (lxRhoCell layer)))
   have := hS (.n (lxRhoCell layer))
-  have m0 := ofFnFrom_cost P (by includes) (n := LeanXmss.chainCount) (by decide) _
+  have m0 := ofFnFrom_cost P (by includes) (n := EthLib.Cryptography.Xmss.Constants.V) (by decide) _
     (.closure Decoder.xPartNC.lam0.costIdx [encodeValue T, encodeValue layer, σV,
       encodeValue (lxArmsTaken T.lanes σ (lxDigitBase layer))])
     (fun i ↦ RunsApp.of_spec (Decoder.xPartNC.lam0.costSpec P (by includes) T layer σ σV hσ _ i))
@@ -215,7 +215,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
         List.nil_append, Decoder.xPartNC.lam0.costEq P (by includes) T layer σ σV hσ,
         List.length_cons, List.length_cons, List.length_cons, List.length_cons, List.length_nil]
       have hi := i.isLt
-      simp only [LeanXmss.chainCount] at hi
+      simp only [EthLib.Cryptography.Xmss.Constants.V] at hi
       have := lxChainCell_cost P (by includes) T hT _ hks.1 hks.2 (lxDigitBase layer + 70)
         (by omega) i.val hi
       have := cellNat_cost P (by includes)
@@ -225,7 +225,8 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
         (lxDigitBase layer + 70) i.val))
       limbs_one
       omega) 0 (Nat.zero_le _)
-  have m1 := ofFnFrom_cost P (by includes) (n := LeanXmss.layerHeight) (by decide) _
+  have m1 := ofFnFrom_cost P (by includes) (n := EthLib.Cryptography.Xmss.Constants.LAYER_HEIGHT)
+      (by decide) _
     (.closure Decoder.xPartNC.lam1.costIdx [encodeValue kw, encodeValue layer, σV])
     (fun l ↦ RunsApp.of_spec (Decoder.xPartNC.lam1.costSpec P (by includes) kw layer σ σV hσ l))
     (S + 200) (fun l ↦ by
@@ -233,7 +234,7 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
         Decoder.xPartNC.lam1.costEq P (by includes) kw layer σ σV hσ, List.length_cons,
         List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [LeanXmss.layerHeight] at hl
+      simp only [EthLib.Cryptography.Xmss.Constants.LAYER_HEIGHT] at hl
       have hkd : kw.getD (2 * layer + l.val / 8) 0 ≤ 256 := by
         rw [List.getD_eq_getElem?_getD]
         cases h : kw[2 * layer + l.val / 8]? with
@@ -249,7 +250,8 @@ theorem xPartA_cost (hP : Includes P Decoder.xPartNC.costDeps) (T : XmssTabs) (h
       have := Nat.mul_le_mul_left 15 hkw
       limbs_one
       omega) 0 (Nat.zero_le _)
-  simp only [LeanXmss.chainCount, LeanXmss.layerHeight, Nat.sub_zero] at m0 m1 ⊢
+  simp only [EthLib.Cryptography.Xmss.Constants.V, EthLib.Cryptography.Xmss.Constants.LAYER_HEIGHT,
+    Nat.sub_zero] at m0 m1 ⊢
   unfold xPartPrice
   omega
 
@@ -279,7 +281,7 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) (T : Xmss
     obtain ⟨w, -, rfl⟩ := List.mem_map.1 hx
     exact logGTWith_le _ _ _
   have hleaf := lxLeafOf_cost P (by includes) _ hkw.1 hkw.2
-  have m := ofFnFrom_cost P (by includes) (n := LeanXmss.layerCount) (by decide) _
+  have m := ofFnFrom_cost P (by includes) (n := 2) (by decide) _
     (.closure Decoder.xmssSigOfNC.lam1.costIdx [encodeValue T, σV,
       encodeValue ((List.range 4).map fun w ↦ logGTWith T.lanes (σ (.n (71 + w))) 256)])
     (fun l ↦ RunsApp.of_spec (Decoder.xmssSigOfNC.lam1.costSpec P (by includes) T σ σV hσ _ l))
@@ -288,10 +290,9 @@ theorem xmssSigOfN_cost (hP : Includes P Decoder.xmssSigOfNC.costDeps) (T : Xmss
         Decoder.xmssSigOfNC.lam1.costEq P (by includes) T σ σV hσ, List.length_cons,
         List.length_cons, List.length_cons, List.length_nil]
       have hl := l.isLt
-      simp only [LeanXmss.layerCount] at hl
       have := xPartA_cost P hσ hS (by includes) T hT _ hkw.1 hkw.2 l.val (by omega)
       omega) 0 (Nat.zero_le _)
-  simp only [LeanXmss.layerCount, Nat.sub_zero] at m ⊢
+  simp only [Nat.sub_zero] at m ⊢
   unfold xmssPrice
   omega
 

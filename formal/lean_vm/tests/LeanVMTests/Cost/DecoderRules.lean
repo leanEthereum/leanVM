@@ -1,6 +1,7 @@
 import LeanVM.Cost.FastLib
 import LeanVM.Guest.Fast.Sphincs
 import Statement.Theorems
+import EthLib.Cryptography.Proofs.HashSig.Lanes
 
 /-!
 # Tests: the compiler's support for the guest decoder
@@ -15,6 +16,7 @@ value), the guest's value names `V` and `Seg`.
 namespace LeanVMTests.Cost.DecoderRules
 
 open LeanVM.Cost LeanVM.Parameters LeanVM.Node
+open EthLib.Cryptography.HashSig (ofDigestLanes)
 
 def orNat (a b : ℕ) : ℕ := a ||| b
 cost_compile orNat := orNat
@@ -37,10 +39,12 @@ cost_compile bvNat := bvNat
 def bvFin (n : ℕ) (h : n < 2 ^ 128) : BitVec 128 := BitVec.ofFin ⟨n, h⟩
 cost_compile bvFin := bvFin
 
-def mkKey (r p : BitVec 128) : HashSig.PublicKey := ⟨r, p⟩
+def mkKey (r p : BitVec 128) : EthLib.Cryptography.Xmss.PublicKey :=
+  ⟨LeanVM.Cost.lanes2OfFin ⟨r.toNat, r.isLt⟩, LeanVM.Cost.lanes2OfFin ⟨p.toNat, p.isLt⟩⟩
 cost_compile mkKey := mkKey
 
-def keyRoot (k : HashSig.PublicKey) : ℕ := k.root.toNat
+def keyRoot (k : EthLib.Cryptography.Xmss.PublicKey) : EthLib.Cryptography.Hash.Keccak.Lanes2 :=
+  k.root
 cost_compile keyRoot := keyRoot
 
 def mkSpKey (s r : BitVec 128) : Sphincs.PublicKey := ⟨s, r⟩
@@ -54,7 +58,8 @@ def mkChild (s : NodeStatement) (f : LeanVM.Protocol.Verifier.BytecodeClaim)
     (π : LeanVM.Protocol.Compile.Proof) : Child := ⟨s, f, π⟩
 cost_compile mkChild := mkChild
 
-def raws (c : LeanXmssClaim) (σ : LeanXmss.Signature) : List (LeanXmssClaim × LeanXmss.Signature) :=
+def raws (c : LeanXmssClaim) (σ : EthLib.Cryptography.Xmss.Signature) :
+    List (LeanXmssClaim × EthLib.Cryptography.Xmss.Signature) :=
   [(c, σ), (c, σ)]
 cost_compile raws := raws
 
@@ -62,7 +67,8 @@ def mkDa (r : LeanVM.Protocol.Digest) (z : E) (rows : List (List E)) :
     Option (DaClaim × LeanVM.Da.MatrixWitness) := some (⟨r, z⟩, ⟨rows⟩)
 cost_compile mkDa := mkDa
 
-def mkWitness (cs : List Child) (xs : List (LeanXmssClaim × LeanXmss.Signature))
+def mkWitness (cs : List Child)
+    (xs : List (LeanXmssClaim × EthLib.Cryptography.Xmss.Signature))
     (ss : List (LeanSphincsClaim × Sphincs.Signature)) (d : Option (DaClaim × LeanVM.Da.MatrixWitness))
     (n : E) (m : List (E × E)) (v : E) : NodeWitness := ⟨cs, xs, ss, d, ⟨n, m, v⟩⟩
 cost_compile mkWitness := mkWitness
@@ -71,12 +77,18 @@ def mkDecoded (seed : LeanVM.Protocol.Digest) (s : NodeStatement) (w : NodeWitne
     SeedStatementAndWitness := ⟨seed, s, w⟩
 cost_compile mkDecoded := mkDecoded
 
-def layerSwap (r : BitVec 128) (σ : LeanXmss.LayerSignature) : LeanXmss.LayerSignature :=
-  ⟨r, σ.chainValues, σ.authenticationPath⟩
+def layerSwap (r : BitVec 128) (σ : EthLib.Cryptography.Xmss.LayerSignature) :
+    EthLib.Cryptography.Xmss.LayerSignature :=
+  ⟨LeanVM.Cost.lanes2OfFin ⟨r.toNat, r.isLt⟩, σ.chainValues, σ.path⟩
 cost_compile layerSwap := layerSwap
 
-def xmssLeaf (σ : LeanXmss.Signature) : ℕ := σ.leafIndex.val
-cost_compile xmssLeaf := xmssLeaf
+/-- A signature built as the reader builds it: its leaf index, then the function of its two layers
+(`sigOf2`). -/
+def mkXSig (n : ℕ) (hn : n < UInt32.size) (b t : EthLib.Cryptography.Xmss.LayerSignature) :
+    EthLib.Cryptography.Xmss.Signature :=
+  LeanVM.Cost.sigOf2 EthLib.Cryptography.Xmss.Signature.mk (UInt32.ofNatLT n hn)
+    fun l ↦ if l.val = 0 then b else t
+cost_compile mkXSig := mkXSig
 
 def sphincsRandomizer (σ : Sphincs.Signature) : ℕ := σ.randomizer.toNat
 cost_compile sphincsRandomizer := sphincsRandomizer
@@ -130,8 +142,10 @@ def proof : LeanVM.Protocol.Compile.Proof := ⟨[x], [[⟨3, [K.ofLane 5], [dige
 def child : Child := mkChild stmt claim proof
 #guard runOn mkChild.costDeps mkChild.costIdx [encodeValue stmt, encodeValue claim, encodeValue proof] == some (encodeValue child)
 
-def layer : LeanXmss.LayerSignature := ⟨r, fun _ ↦ p, fun i ↦ BitVec.ofNat 128 i.val⟩
-def xsig : LeanXmss.Signature := ⟨⟨12345, by decide⟩, fun _ ↦ layer⟩
+def layer : EthLib.Cryptography.Xmss.LayerSignature :=
+  ⟨ofDigestLanes r, Vector.ofFn fun _ ↦ ofDigestLanes p,
+    Vector.ofFn fun i ↦ ofDigestLanes (BitVec.ofNat 128 i.val)⟩
+def xsig : EthLib.Cryptography.Xmss.Signature := ⟨12345, layer, layer⟩
 #guard runOn raws.costDeps raws.costIdx [encodeValue (mkKey r p, m), encodeValue xsig] ==
   some (encodeValue (raws (mkKey r p, m) xsig))
 
@@ -151,7 +165,8 @@ def decoded : SeedStatementAndWitness := mkDecoded digest stmt witness
 
 #guard runOn layerSwap.costDeps layerSwap.costIdx
   [encodeValue p, encodeValue layer] == some (encodeValue (layerSwap p layer))
-#guard runOn xmssLeaf.costDeps xmssLeaf.costIdx [encodeValue xsig] == some (encodeValue (12345 : ℕ))
+#guard runOn mkXSig.costDeps mkXSig.costIdx
+  [encodeValue (12345 : ℕ), encodeValue layer, encodeValue layer] == some (encodeValue xsig)
 
 def ssig : Sphincs.Signature :=
   ⟨BitVec.ofNat 128 77, fun _ ↦ ⟨p, fun _ ↦ r⟩, fun l ↦ slayerOf 99 r l⟩

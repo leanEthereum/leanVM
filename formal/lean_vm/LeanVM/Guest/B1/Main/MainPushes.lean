@@ -180,10 +180,11 @@ lists', the duplicates', the raw signatures', the DA check's, the children's, th
 theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
     {pe px ps p0 p1 p2 p3 pd p5 pa pst : List Pop} (he : pe = []) (hst : pst = [])
     (hx : SameStreams px (Hints.listPushes "claims"
-      (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2)))
+      (s.claims.xmss.map fun c ↦ Hints.claimCells (xmssRoot c) (xmssParam c) c.2)))
     (hs : SameStreams ps (Hints.listPushes "claims"
       (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2)))
-    (h0 : SameStreams p0 ((xPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.root c.1.parameter c.2)))
+    (h0 : SameStreams p0 ((xPlan s w).duplicates.map fun c ↦ ("dup_claims",
+        Hints.claimCells (xmssRoot c) (xmssParam c) c.2)))
     (h1 : SameStreams p1
       ((sPlan s w).duplicates.map fun c ↦ ("dup_claims", Hints.claimCells c.1.publicSeed c.1.root c.2)))
     (h2 : SameStreams p2 ((w.xmssSignatures.zip (xPlan s w).directSlots).flatMap
@@ -234,9 +235,10 @@ theorem main_pops_honest (fs : String → ℕ) (fp : ℕ) (hl : GuestLimits s w)
       Hints.count (sPlan s w).duplicates.length, Hints.count w.sphincsSignatures.length,
       Hints.count w.children.length, Hints.count ((w.daMatrix.map fun _ ↦ 1).getD 0)]),
       ("fs_seed", Hints.digestCells seed)] ++
-    Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2) ++
+    Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ Hints.claimCells (xmssRoot c) (xmssParam c)
+        c.2) ++
     Hints.listPushes "claims" (s.claims.sphincs.map fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2) ++
-    ((xPlan s w).duplicates.map (fun c ↦ Hints.claimCells c.1.root c.1.parameter c.2) ++
+    ((xPlan s w).duplicates.map (fun c ↦ Hints.claimCells (xmssRoot c) (xmssParam c) c.2) ++
       (sPlan s w).duplicates.map (fun c ↦ Hints.claimCells c.1.publicSeed c.1.root c.2)).map ("dup_claims", ·) ++
     (w.xmssSignatures.zip (xPlan s w).directSlots).flatMap
       (fun (c, slot) ↦ ("raw_index", [Hints.count slot]) :: Hints.xmssHints c.1.1 c.1.2 c.2) ++

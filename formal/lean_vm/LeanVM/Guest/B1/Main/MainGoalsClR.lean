@@ -70,7 +70,8 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : 
 `q.px`, the list's honest pushes. -/
 theorem mainGoalClXR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop}
     {q : MainPops} (hS : MainStatics fs SB SK)
-    (hq : ∀ rd, q.px rd = Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells c.1.root c.1.parameter c.2)) :
+    (hq : ∀ rd, q.px rd = Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells (xmssRoot
+        c) (xmssParam c) c.2)) :
     CompleteAtDTBR fs cert 23 "claim_list_digest" (hLmain fs fp seed s w)
       [(hm fs fp seed s w).a77, gen ^ (hm fs fp seed s w).nlx]
       (Returns (B1.Digest.digestCells (hm fs fp seed s w).xd)) (mainPredsHP fs SB SK Bv Pvs s w q).Px
@@ -79,8 +80,8 @@ theorem mainGoalClXR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
   refine CompleteAtDTB.withPops (mainGoalClXTB fs cert fp seed s w hL hS.ls hS.l15 hS.l16 hS.cl).with_total
     fun rd _ hM t rets hv hT => ?_
   have e : (hOwn seed s w).getD 0 [] =
-      s.claims.xmss.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) ++
-        (xPlan s w).duplicates.flatMap (fun c => claimCells c.1.root c.1.parameter c.2) := by
+      s.claims.xmss.flatMap (fun c => claimCells (xmssRoot c) (xmssParam c) c.2) ++
+        (xPlan s w).duplicates.flatMap (fun c => claimCells (xmssRoot c) (xmssParam c) c.2) := by
     rw [← List.flatMap_append]; rfl
   have hr := mf_reads fs fp seed s w hM (i := 0) (by omega)
   rw [e] at hr
@@ -111,9 +112,11 @@ theorem mainGoalClSR (hL : GuestLimits s w) {SB SK : String → ℕ} {Bv : ℕ �
 
 /-- `MainSegs.cx` for `q.px` the leanXMSS list's pushes. -/
 theorem mainSegs_cx {q : MainPops}
-    (hq : ∀ rd, q.px rd = Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells c.1.root c.1.parameter c.2))
+    (hq : ∀ rd, q.px rd = Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells (xmssRoot
+        c) (xmssParam c) c.2))
     (rd : Reader) :
-    SameStreams (q.px rd) (Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells c.1.root c.1.parameter c.2)) :=
+    SameStreams (q.px rd) (Hints.listPushes "claims" (s.claims.xmss.map fun c ↦ claimCells (xmssRoot
+        c) (xmssParam c) c.2)) :=
   SameStreams.of_eq (hq rd)
 
 /-- `MainSegs.cs` for `q.ps` the leanSPHINCS list's pushes. -/

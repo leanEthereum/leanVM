@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.Spec
 public import LeanVM.Cost.Encoding
 public import LeanVM.Cost.FieldMul
+public import LeanVM.Cost.Shapes
 
 /-!
 # The compiler's rules
@@ -1236,6 +1237,53 @@ theorem bvOfNat {w : ℕ} [MachineEncoding (BitVec w)] (henc : ∀ v : BitVec w,
       (c + 1 + max (limbCount n) (limbCount (2 ^ w - 1))) := by
   rw [henc, BitVec.toNat_ofNat, ← Nat.and_two_pow_sub_one_eq_mod]
   exact op₂ (b := 2 ^ w - 1) h (natLit (2 ^ w - 1)) (linearlyPriced_le (limbs_le_max_left Nat.and_le_left))
+
+/-- `lanes2OfFin`: two lanes `lo`, `hi` encode the number `lo + 2^64 · hi`, the number `i` they
+are made from. -/
+theorem lanes2OfFin {inst : MachineEncoding EthLib.Cryptography.Hash.Keccak.Lanes2}
+    (henc : ∀ w : EthLib.Cryptography.Hash.Keccak.Lanes2,
+      @encodeValue _ inst w = .nat (w.lo.toNat + 2 ^ 64 * w.hi.toNat))
+    {t : Term} {i : Fin (2 ^ 128)} {c : ℕ} (h : Runs P env t (encodeValue i) c) :
+    Runs P env t (@encodeValue _ inst (LeanVM.Cost.lanes2OfFin i)) c := by
+  have hi := i.isLt
+  have e : @encodeValue _ inst (LeanVM.Cost.lanes2OfFin i) = encodeValue i := by
+    rw [henc]
+    show MachineValue.nat (i.val.toUInt64.toNat + 2 ^ 64 * (i.val / 2 ^ 64).toUInt64.toNat) =
+      MachineValue.nat i.val
+    simp only [Nat.toUInt64_eq, UInt64.toNat_ofNat']
+    have h1 : i.val / 2 ^ 64 < 2 ^ 64 := by
+      rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
+      calc i.val < 2 ^ 128 := hi
+        _ = 2 ^ 64 * 2 ^ 64 := by norm_num
+    rw [Nat.mod_eq_of_lt h1]
+    have := Nat.mod_add_div i.val (2 ^ 64)
+    congr 1
+  rw [e]; exact h
+
+/-- A structure of a value and two layers' values, encoded as a constructor of the value and the
+array of the layers: a constructor of their runs. -/
+theorem sigOf2 {I Λ Γ : Type} [MachineEncoding I] [MachineEncoding Λ] [MachineEncoding Γ]
+    (mk : I → Λ → Λ → Γ)
+    (henc : ∀ i b t, encodeValue (mk i b t) =
+      MachineValue.constructor 0 [encodeValue i, .array #[encodeValue b, encodeValue t]])
+    {t u : Term} {i : I} {ls : Fin 2 → Λ} {c d : ℕ} (h : Runs P env t (encodeValue i) c)
+    (hl : Runs P env u (encodeValue ls) d) :
+    Runs P env (.constructor 0 [t, u]) (encodeValue (LeanVM.Cost.sigOf2 mk i ls)) (c + d + 3) := by
+  have hls : encodeValue ls = MachineValue.array #[encodeValue (ls 0), encodeValue (ls 1)] := by
+    show MachineValue.array (Array.ofFn fun k ↦ encodeValue (ls k)) = _
+    congr 1
+  have e : encodeValue (LeanVM.Cost.sigOf2 mk i ls) =
+      MachineValue.constructor 0 [encodeValue i, encodeValue ls] := by
+    rw [LeanVM.Cost.sigOf2, henc, hls]
+  rw [e]
+  exact (Runs.ctor (k := 0) (RunsList.cons h (RunsList.cons hl RunsList.nil))).cost_eq (by simp)
+
+/-- `UInt32.ofNatLT`: the number `n` below `2^32` is the number of its `UInt32`. -/
+theorem uint32OfNatLT {t : Term} {n : ℕ} {hn : n < UInt32.size} {c : ℕ}
+    (h : Runs P env t (encodeValue n) c) :
+    Runs P env t (encodeValue (UInt32.ofNatLT n hn)) c := by
+  show Runs P env t (MachineValue.nat (UInt32.ofNatLT n hn).toNat) c
+  rw [UInt32.toNat_ofNatLT]; exact h
 
 end Rule
 

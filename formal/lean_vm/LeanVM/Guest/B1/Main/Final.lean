@@ -66,7 +66,8 @@ instance : Nonempty KidRec :=
 
 /-- **A child's proof**: its fresh claim at `child_fresh · g^(24c)`, and the deferring verifier
 accepts its proof for the decoded child's statement under the decoded seed. -/
-theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+theorem kid_sub {bytecode : List K} {wX : List E → EthLib.Cryptography.Xmss.Signature} {wS : E →
+    Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n (val% «main» "byte_bits"))) wX wS wD wV wA) (MF : MainFacts C rd σ)
     (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
@@ -107,7 +108,7 @@ theorem kid_sub {bytecode : List K} {wX : List E → LeanXmss.Signature} {wS : E
 below `coreProgram.Rel` (TRIAGE #96), given the callees' contracts on `C`'s calls. -/
 theorem main_sound_C {bytecode : List K}
     (hbl : bytecode.length = 2 ^ bytecodeVars) (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
-    {wX : List E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+    {wX : List E → EthLib.Cryptography.Xmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.MatrixWitness} {wV : List E → Proof} {wA : List E → BatchingHints}
     (cw : CalleesWC bytecode C rd (σ (.n (val% «main» "byte_bits"))) wX wS wD wV wA) {D : Digest}
     (hp0 : LoadHolds rd 1 0 (digestHalves D).1) (hp1 : LoadHolds rd 1 1 (digestHalves D).2)
