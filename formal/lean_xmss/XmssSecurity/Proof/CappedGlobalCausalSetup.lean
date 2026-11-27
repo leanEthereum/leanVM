@@ -31,6 +31,9 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
+variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
+  (edgeHigh : GlobalChainEdgeIndex → Digest)
+
 noncomputable def trajectoryProgrammedGlobalChainKeygen :
     ProbComp ProgrammedGlobalChainKeygenView :=
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
@@ -363,7 +366,6 @@ noncomputable def revealGlobalSignature
         (revealGlobalSignatureChains (.inr (topKeyOf request.leafIndex)) topEncoding allChains bottom.1).run bottom.2
 
 noncomputable def globalSignatureFullRevealResult
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) : Signature × GlobalCausalHashState :=
@@ -374,7 +376,6 @@ noncomputable def globalSignatureFullRevealResult
       globalSignatureRevealResult table (.inr (topKeyOf request.leafIndex)) topEncoding allChains bottom.1 bottom.2
 
 noncomputable def globalSignatureFullRevealTrace
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) :
     RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex :=
@@ -385,7 +386,6 @@ noncomputable def globalSignatureFullRevealTrace
         globalSignatureRevealTrace table (.inr (topKeyOf request.leafIndex)) topEncoding allChains
 
 theorem simulate_eagerTrace_revealGlobalSignature
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -452,7 +452,6 @@ theorem revealGlobalSignature_run_isProbeQueryBoundP
         bottom.1 bottom.2
 
 theorem globalSignatureFullRevealResult_cache
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -466,7 +465,6 @@ theorem globalSignatureFullRevealResult_cache
       rw [globalSignatureRevealResult_cache, globalSignatureRevealResult_cache]
 
 theorem globalSignatureFullRevealResult_randomness
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -480,7 +478,6 @@ theorem globalSignatureFullRevealResult_randomness
       rw [globalSignatureRevealResult_randomness, globalSignatureRevealResult_randomness]
 
 theorem globalSignatureFullRevealResult_keygenCache
-    (table : GlobalChainValueIndex → Digest)
     (topSigned : TopIndex → Option (Randomness × Encoding))
     (request : SignRequest) (encoding : ChainIndex → Digit) (signature : Signature)
     (state : GlobalCausalHashState) :
@@ -675,7 +672,6 @@ def GlobalSigningComparableHashInput
       (message, randomness)
 
 def GlobalSigningRevealsAgree
-    (table : GlobalChainValueIndex → Digest)
     (state : GlobalCausalHashState) : Prop :=
   ∀ index value, state.revealed index = some value → table index = value
 

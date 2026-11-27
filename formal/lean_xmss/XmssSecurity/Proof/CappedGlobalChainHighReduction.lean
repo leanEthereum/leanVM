@@ -25,6 +25,9 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
+variable (table : GlobalChainValueIndex → Digest) (keyView : ProgrammedGlobalChainKeygenView)
+  (edgeHigh : GlobalChainEdgeIndex → Digest)
+
 noncomputable def globalHighDirectUniformImpl :
     QueryImpl unifSpec
       (StateT GlobalCausalHashState
@@ -33,8 +36,6 @@ noncomputable def globalHighDirectUniformImpl :
   globalCausalUniformImpl
 
 noncomputable def globalHighDirectOracleExecution
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)
       (OracleWorld.Range input × GlobalCausalHashState) :=
@@ -45,26 +46,21 @@ noncomputable def globalHighDirectOracleExecution
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey
           hashInput).run state
 
-noncomputable def globalHighDirectOracleImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
+noncomputable def globalHighDirectOracleImpl :
     QueryImpl OracleWorld
       (StateT GlobalCausalHashState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
   fun input state => globalHighDirectOracleExecution keyView edgeHigh input state
 
-noncomputable def globalHighDirectSigningImpl
-    (keyView : ProgrammedGlobalChainKeygenView) :
+noncomputable def globalHighDirectSigningImpl :
     QueryImpl SigningSpec
       (StateT GlobalCausalHashState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
   fun request state => globalFilteredCausalSigningQuery keyView request state
 
-noncomputable def globalHighDirectBaseMappedAdversaryImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
+noncomputable def globalHighDirectBaseMappedAdversaryImpl :
     QueryImpl (OracleWorld + SigningSpec)
       (StateT GlobalCausalHashState
         (OracleComp
@@ -72,9 +68,7 @@ noncomputable def globalHighDirectBaseMappedAdversaryImpl
   globalHighDirectOracleImpl keyView edgeHigh +
     globalHighDirectSigningImpl keyView
 
-noncomputable def globalHighDirectVerifierImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
+noncomputable def globalHighDirectVerifierImpl :
     QueryImpl OracleWorld
       (StateT GlobalCausalHashState
         (OracleComp
@@ -342,7 +336,6 @@ theorem globalHighDirectForgeryPrimaryProbeTrace_all_probes
   globalForgeryPrimaryProbeTrace_all_probes _ action haction
 
 theorem globalHighDirectForgeryPrimaryProbeTrace_agrees
-    (table : GlobalChainValueIndex → Digest)
     (result : GlobalHighDirectResult) :
     RevealProbeOracleSimulation.TraceAgrees table
       (globalHighDirectForgeryPrimaryProbeTrace result) := by
@@ -393,9 +386,7 @@ theorem globalHighMonitoredPublicProjection_eq_append_direct
 abbrev GlobalHighDirectTracedState :=
   GlobalCausalHashState × AttackerActionTrace
 
-noncomputable def globalHighDirectTracedMappedAdversaryImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
+noncomputable def globalHighDirectTracedMappedAdversaryImpl :
     QueryImpl (OracleWorld + SigningSpec)
       (StateT GlobalHighDirectTracedState
         (OracleComp
@@ -406,9 +397,7 @@ noncomputable def globalHighDirectTracedMappedAdversaryImpl
     pure (result.1,
       (result.2, state.2 ++ attackerActionFragment input result.1))
 
-noncomputable def globalHighDirectTracedVerifierImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
+noncomputable def globalHighDirectTracedVerifierImpl :
     QueryImpl OracleWorld
       (StateT GlobalHighDirectTracedState
         (OracleComp
@@ -440,7 +429,6 @@ theorem globalHighMonitoredMappedAdversaryImpl_support_actionTrace_eq
   rfl
 
 theorem map_globalHighMonitored_adversary_full_query
-    (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
