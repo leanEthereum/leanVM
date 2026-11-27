@@ -43,6 +43,23 @@ pub struct Acc8([[V; 2]; R]);
 #[derive(Clone, Copy, Debug)]
 pub struct Wide8([[V; 2]; Q]);
 
+/// `[f(0), .., f(N - 1)]` over a few registers, written out: a build that does not unroll would keep a loop over them.
+#[inline]
+fn each<const N: usize, T: Copy>(f: impl Fn(usize) -> T) -> [T; N] {
+    const { assert!(1 <= N && N <= 4) };
+    let mut out = [f(0); N];
+    if N > 1 {
+        out[1] = f(1);
+    }
+    if N > 2 {
+        out[2] = f(2);
+    }
+    if N > 3 {
+        out[3] = f(3);
+    }
+    out
+}
+
 /// Eight words in registers.
 #[inline]
 fn regs(x: [u64; 8]) -> [V; Q] {
@@ -98,14 +115,14 @@ impl F64x8 {
 
     #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
-        Self(core::array::from_fn(|q| v::xor(self.0[q], rhs.0[q])))
+        Self(each(|q| v::xor(self.0[q], rhs.0[q])))
     }
 
     /// The even elements' products in one register and the odd ones' in another, then the reduction puts them back
     /// in memory order.
     #[inline]
     pub(super) fn product(self, rhs: Self) -> Self {
-        Self(core::array::from_fn(|q| {
+        Self(each(|q| {
             let (a, b) = (self.0[q], rhs.0[q]);
             reduce_pair([v::clmul::<0x00>(a, b), v::clmul::<0x11>(a, b)])
         }))
@@ -134,13 +151,13 @@ impl F128x8 {
 
     #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
-        Self(core::array::from_fn(|r| v::xor(self.0[r], rhs.0[r])))
+        Self(each(|r| v::xor(self.0[r], rhs.0[r])))
     }
 
     /// The eight products, unreduced: three carry-less multiplications per register.
     #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> Acc8 {
-        Acc8(core::array::from_fn(|r| karatsuba(self.0[r], rhs.0[r])))
+        Acc8(each(|r| karatsuba(self.0[r], rhs.0[r])))
     }
 
     /// The eight mixed products `self[i] * k[i]`, unreduced: two carry-less multiplications per register, each
@@ -148,7 +165,7 @@ impl F128x8 {
     #[inline]
     pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
         let k = v::spread(k.0);
-        Acc8(core::array::from_fn(|r| {
+        Acc8(each(|r| {
             [v::clmul::<0x00>(self.0[r], k[r]), v::clmul::<0x11>(self.0[r], k[r])]
         }))
     }
@@ -159,7 +176,7 @@ impl Acc8 {
 
     #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
-        Self(core::array::from_fn(|r| {
+        Self(each(|r| {
             [v::xor(self.0[r][0], rhs.0[r][0]), v::xor(self.0[r][1], rhs.0[r][1])]
         }))
     }
@@ -167,17 +184,20 @@ impl Acc8 {
     /// Every lane reduced.
     #[inline]
     pub fn reduce(self) -> F128x8 {
-        F128x8(self.0.map(reduce_pair))
+        F128x8(each(|r| reduce_pair(self.0[r])))
     }
 
     /// The sum of the eight lanes, reduced once.
     #[inline]
     pub fn sum(self) -> F128 {
-        let [d0, d1] = self
-            .0
-            .into_iter()
-            .reduce(|s, x| [v::xor(s[0], x[0]), v::xor(s[1], x[1])])
-            .unwrap();
+        // The registers' XOR, written out for the two or four of them.
+        const { assert!(R == 2 || R == 4) };
+        let d = self.0;
+        let sum = |k: usize| {
+            let pair = |r: usize| v::xor(d[r][k], d[r + 1][k]);
+            if R == 4 { v::xor(pair(0), pair(2)) } else { pair(0) }
+        };
+        let (d0, d1) = (sum(0), sum(1));
         F128::new(reduce(v::lane_sum(d0)), reduce(v::lane_sum(d1)))
     }
 }
@@ -189,21 +209,19 @@ impl Wide8 {
     #[inline]
     pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
         let (a, b) = (regs(a), regs(b));
-        Self(core::array::from_fn(|q| {
-            [v::clmul::<0x00>(a[q], b[q]), v::clmul::<0x11>(a[q], b[q])]
-        }))
+        Self(each(|q| [v::clmul::<0x00>(a[q], b[q]), v::clmul::<0x11>(a[q], b[q])]))
     }
 
     #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
-        Self(core::array::from_fn(|q| {
+        Self(each(|q| {
             [v::xor(self.0[q][0], rhs.0[q][0]), v::xor(self.0[q][1], rhs.0[q][1])]
         }))
     }
 
     #[inline]
     pub(super) fn to_array(self) -> [u128; 8] {
-        let out: [[V; 2]; Q] = self.0.map(|[even, odd]| v::interleave(even, odd));
+        let out: [[V; 2]; Q] = each(|q| v::interleave(self.0[q][0], self.0[q][1]));
         // SAFETY: both sides are plain bits of one size.
         unsafe { transmute::<[[V; 2]; Q], [u128; 8]>(out) }
     }
@@ -214,7 +232,7 @@ impl Wide8 {
 #[inline]
 pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let (a, b) = (regs(a), regs(b));
-    words(core::array::from_fn(|q| {
+    words(each(|q| {
         v::unpacklo(v::clmul::<0x00>(a[q], b[q]), v::clmul::<0x11>(a[q], b[q]))
     }))
 }
@@ -249,7 +267,7 @@ impl ByteMap {
 #[inline]
 pub fn xor8(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let (a, b) = (regs(a), regs(b));
-    words(std::array::from_fn(|i| v::xor(a[i], b[i])))
+    words(each(|i| v::xor(a[i], b[i])))
 }
 
 /// Every byte of `x` through `m`: one affine byte map per register.
@@ -257,7 +275,8 @@ pub fn xor8(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
 #[inline]
 pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
     let matrix = v::splat(m.matrix, m.matrix);
-    words(regs(x).map(|x| v::affine(x, matrix)))
+    let x = regs(x);
+    words(each(|q| v::affine(x[q], matrix)))
 }
 
 /// `m` of each 16-bit field of each lane, by nibble lookups: per output byte, the low and the high byte of every
