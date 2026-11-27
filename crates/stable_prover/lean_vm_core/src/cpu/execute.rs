@@ -1,7 +1,7 @@
 //! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
 //! [`Trace`]. Its Lean transcription is `formal/Statement/Prover/Execute.lean`: a change here lands there too.
 
-use super::hints::{BitsDest, GPow, MAX_CELLS, QuickMap, RHint, bounded_dlog};
+use super::hints::{BitsDest, GPow, MAX_CELLS, RHint, WordMap, bounded_dlog};
 use super::*;
 use primitives::field::{F64, F128};
 
@@ -271,7 +271,7 @@ struct Mem {
     /// The highest access count any cell reached.
     counts: u32,
     /// The cells a `DEREF` linked each cell to.
-    links: QuickMap<u32, Vec<u32>>,
+    links: WordMap<Vec<u32>>,
     /// Cells an instruction read before anything wrote them.
     unwritten_reads: Vec<u32>,
 }
@@ -326,7 +326,7 @@ impl Mem {
         if self.store(cell, v)? {
             let mut todo = vec![cell];
             while let Some(c) = todo.pop() {
-                for p in self.links.remove(&c).unwrap_or_default() {
+                for p in self.links.get_mut(c.into()).map(std::mem::take).unwrap_or_default() {
                     if self.store(p, v)? {
                         todo.push(p);
                     }
@@ -359,7 +359,7 @@ impl Mem {
             if c.state == State::Unwritten {
                 c.state = State::Linked;
             }
-            self.links.entry(x).or_default().push(y);
+            self.links.entry(x.into(), Vec::new).push(y);
         }
     }
 
@@ -377,14 +377,21 @@ impl Mem {
 struct Advice<'a> {
     next_free: u32,
     witness: &'a [(String, Vec<Vec<F128>>)],
-    streams: QuickMap<&'a str, Stream<'a>>,
+    /// The streams popped so far, by name: a few, so a scan finds one.
+    streams: Vec<(&'a str, Stream<'a>)>,
 }
 
 impl<'a> Advice<'a> {
     /// Stream `name`, at its next entry.
     fn stream(&mut self, name: &'a str) -> &mut Stream<'a> {
-        let witness = self.witness;
-        (self.streams.entry(name)).or_insert_with(|| Stream::new(witness, name))
+        let i = match self.streams.iter().position(|(n, _)| *n == name) {
+            Some(i) => i,
+            None => {
+                self.streams.push((name, Stream::new(self.witness, name)));
+                self.streams.len() - 1
+            }
+        };
+        &mut self.streams[i].1
     }
 }
 
@@ -467,7 +474,7 @@ pub fn execute(
     let mut advice = Advice {
         next_free: program.main_frame,
         witness,
-        streams: QuickMap::default(),
+        streams: Vec::new(),
     };
     // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
     let mut hints: Vec<&[RHint]> = vec![&[]; program.prog.len()];

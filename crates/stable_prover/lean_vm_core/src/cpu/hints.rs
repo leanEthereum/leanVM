@@ -2,8 +2,6 @@
 //! compiler shares), and the g-power table + reverse index the hint interpreter grows on demand.
 
 use primitives::field::{F64, div_by_g, mul_by_g};
-use std::collections::HashMap;
-use std::hash::{BuildHasherDefault, Hasher};
 
 pub(crate) use isa::{BitsDest, RHint};
 
@@ -28,37 +26,81 @@ pub(crate) const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
 pub struct GPow {
     pow: Vec<F64>,
     /// `g^k ↦ k` for the announced `k`.
-    index: WordMap,
+    index: WordMap<u32>,
     /// The same for every multiple `k` of `STRIDE` that `pow` covers.
-    coarse: WordMap,
+    coarse: WordMap<u32>,
 }
 
-/// A map for the interpreter's hot lookups, by field element, cell or stream name, which the default hasher would
-/// make cost more than the step that looks them up. The keys are not chosen by an adversary.
-pub(crate) type QuickMap<K, V> = HashMap<K, V, BuildHasherDefault<QuickHasher>>;
-type WordMap = QuickMap<u64, u32>;
+/// A map from 64-bit keys for the interpreter's hot lookups, by field element or cell: open addressing with linear
+/// probing, never deleting. The keys are not chosen by an adversary.
+pub(crate) struct WordMap<V> {
+    slots: Vec<Option<(u64, V)>>,
+    len: usize,
+}
 
-/// One multiply per word, FNV-1a over bytes.
-#[derive(Default)]
-pub(crate) struct QuickHasher(u64);
-
-impl Hasher for QuickHasher {
-    fn write(&mut self, bytes: &[u8]) {
-        for &b in bytes {
-            self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+impl<V> Default for WordMap<V> {
+    fn default() -> Self {
+        Self {
+            slots: Vec::new(),
+            len: 0,
         }
     }
+}
 
-    fn write_u32(&mut self, x: u32) {
-        self.write_u64(x.into());
+impl<V> WordMap<V> {
+    /// The slot holding `key`, or the empty one it would go in. The table is not empty.
+    fn slot(&self, key: u64) -> usize {
+        let mask = self.slots.len() - 1;
+        let hash = (key ^ (key >> 32)).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        let mut i = (hash >> (64 - self.slots.len().trailing_zeros())) as usize;
+        while let Some((k, _)) = &self.slots[i] {
+            if *k == key {
+                break;
+            }
+            i = (i + 1) & mask;
+        }
+        i
     }
 
-    fn write_u64(&mut self, x: u64) {
-        self.0 = (self.0 ^ x ^ (x >> 32)).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    pub(crate) fn get(&self, key: u64) -> Option<&V> {
+        let slot = self.slots.get(self.slot_of(key)?)?;
+        slot.as_ref().map(|(_, v)| v)
     }
 
-    fn finish(&self) -> u64 {
-        self.0
+    pub(crate) fn get_mut(&mut self, key: u64) -> Option<&mut V> {
+        let i = self.slot_of(key)?;
+        self.slots[i].as_mut().map(|(_, v)| v)
+    }
+
+    fn slot_of(&self, key: u64) -> Option<usize> {
+        (!self.slots.is_empty()).then(|| self.slot(key))
+    }
+
+    /// The value at `key`, `make()` put there first if there is none.
+    pub(crate) fn entry(&mut self, key: u64, make: impl FnOnce() -> V) -> &mut V {
+        if 2 * (self.len + 1) > self.slots.len() {
+            // At most half full: double, and put every entry back.
+            let old = std::mem::take(&mut self.slots);
+            self.slots = (0..(2 * old.len()).max(16)).map(|_| None).collect();
+            for (k, v) in old.into_iter().flatten() {
+                let i = self.slot(k);
+                self.slots[i] = Some((k, v));
+            }
+        }
+        let i = self.slot(key);
+        if self.slots[i].is_none() {
+            self.slots[i] = Some((key, make()));
+            self.len += 1;
+        }
+        &mut self.slots[i].as_mut().expect("filled above").1
+    }
+
+    pub(crate) fn insert(&mut self, key: u64, value: V) {
+        let mut value = Some(value);
+        let slot = self.entry(key, || value.take().expect("taken once"));
+        if let Some(value) = value {
+            *slot = value;
+        }
     }
 }
 
@@ -71,8 +113,9 @@ impl GPow {
         let mut g = Self {
             pow: vec![F64::ONE],
             index: WordMap::default(),
-            coarse: WordMap::from_iter([(F64::ONE.0, 0)]),
+            coarse: WordMap::default(),
         };
+        g.coarse.insert(F64::ONE.0, 0);
         g.grow_to(upto);
         g
     }
@@ -128,7 +171,7 @@ impl GPow {
 
     /// The exponent of `x` if announced.
     pub(crate) fn lookup(&self, x: F64) -> Option<u32> {
-        self.index.get(&x.0).copied()
+        self.index.get(x.0).copied()
     }
 
     /// The exponent of `x` if it is not announced: divide by `g` down to a multiple of
@@ -137,7 +180,7 @@ impl GPow {
     fn resolve(&self, x: F64) -> Option<usize> {
         let mut y = x;
         for j in 0..STRIDE {
-            if let Some(&k) = self.coarse.get(&y.0) {
+            if let Some(&k) = self.coarse.get(y.0) {
                 return Some(k as usize + j);
             }
             y = div_by_g(y);
