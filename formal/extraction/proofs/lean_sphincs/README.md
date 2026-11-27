@@ -48,6 +48,12 @@ formal/extraction/hax.sh extract                       # the extraction is gener
 - **How Rust values are read.** `toPublicKey`, `toMessage` and `toSignature` (`Defs.lean`) are definitions to be read, not proved. They are total and `toDigest` is injective, so distinct Rust inputs are distinct statement inputs. The byte encodings (`from_bytes`, `to_bytes`) are not covered.
 - **hash-specs**, as a pivot only: the Rust permutation and the statement's are each proved equal to its Keccak-f on lanes, so its definitions do not enter what the theorem says.
 
+## To do: EthLib's specification
+
+The theorem's right-hand side is leanVM's own statement, `formal/Statement/LeanSphincs.lean`. For leanXMSS, [#885](https://github.com/leanEthereum/leanVM/pull/885) replaces leanVM's statement by [EthLib](https://github.com/ethereum/EthLib)'s; it leaves leanSPHINCS's as it is and names it a follow-up. Once the statement here is EthLib's, this theorem is about EthLib's verifier, and the proofs are to be repaired against it (`.claude/skills/sync-fork`).
+
+EthLib has the specification already: `EthLib.Cryptography.Sphincs.Verify.verifyWith`, over a hash on bytes. Read side by side with the statement, it is the same scheme: the parameters, the address layout, the message digest, the chain, tree and FORS conventions, and the sizes agree. What differs is how values are written (bytes for little-endian bit vectors, `Vector` for functions on `Fin`, a hash on bytes for a permutation with the sponge around it) and which Keccak-f definition is underneath. Until upstream moves, stating this theorem against EthLib directly would take a bridge between the two specifications, which is the work upstream's follow-up will do. Lean, Mathlib and hash-specs are at the versions EthLib uses; that it builds beside Aeneas and hax in this package is untested.
+
 ## What the proofs found
 
 No disagreement between the Rust and the statement: byte and bit orders, the address layout, the digest's fields, the codeword and its sum, the chains, the folds and the layer paths all match. What the work did turn up is about the approach:
