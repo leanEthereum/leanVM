@@ -308,7 +308,15 @@ jobs:
         working-directory: formal/lean_vm
     steps:
       - uses: actions/checkout@v4
-      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
+      # Only `main` saves a finished build, without Mathlib's build, which `lake exe cache get` fetches.
+      # A cold build outlasts one run on the runner's cores, so any branch also saves a failed or timed-out
+      # build's progress, under its run's key; the next run restores the newest and continues it.
+      - name: The Lake build's cache keys
+        id: lake-key
+        # The files derived from the guest are not committed, nor written yet: their sources stand in.
+        run: |
+          echo 'deps=lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-' >> "$GITHUB_OUTPUT"
+          echo 'key=lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}' >> "$GITHUB_OUTPUT"
       - name: Restore the Lake build
         id: lake-cache
         uses: actions/cache/restore@v4
@@ -322,9 +330,10 @@ jobs:
             formal/lean_xmss/.lake/build
             formal/lean_sphincs/.lake/build
             formal/lean_da/.lake/build
-          # The files derived from the guest are not committed, nor written yet: their sources stand in.
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
-          restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
+          key: ${{ steps.lake-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.lake-key.outputs.key }}-
+            ${{ steps.lake-key.outputs.deps }}
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_vm
@@ -376,7 +385,34 @@ jobs:
       # runs the one `lake build` with the modules admitted by their recorded memory, those of the
       # statement package (`Statement/`, its guest data as heavy) and the other dependencies included.
       - name: Build
-        run: python3 -I ../lake-build.py . LeanVM LeanVMTests
+        id: build
+        # Leaves the regeneration, the checks below and a save their time within the job's.
+        timeout-minutes: 230
+        # `--keep-going` builds everything a failure does not block, so that a failed run saves that too.
+        run: python3 -I ../lake-build.py . LeanVM LeanVMTests --keep-going
+      # A timed-out or cancelled step leaves `lake` and `lean` running, writing the files the save reads.
+      - name: Stop the build
+        if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
+        run: |
+          pkill -KILL -f lake-build.py || true
+          pkill -KILL -x lake || true
+          pkill -KILL -x lean || true
+          sleep 5
+      - name: Save the Lake build's progress
+        # A new push cancels a pull request's run: its progress is kept too.
+        if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_vm/.lake
+            !formal/lean_vm/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
+            formal/lean_xmss/.lake/build
+            formal/lean_sphincs/.lake/build
+            formal/lean_da/.lake/build
+          key: ${{ steps.lake-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
       # The end theorems' axioms asked from outside the build, as for the other projects.
       - name: Check the axiom footprint
         run: |
