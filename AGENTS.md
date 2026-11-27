@@ -37,7 +37,7 @@ Everything else exists once, leaves first:
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
 - `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
-- `formal/extraction/`: the hax extraction of the Rust to Lean (Charon, then Aeneas), separate from the proofs above. A crate takes part by a `hax.toml` beside its `Cargo.toml`; today `verifier`, `keccak256`, `lean_xmss` and `lean_sphincs`. See "The Lean extraction" below.
+- `formal/extraction/`: the hax extraction of the Rust to Lean (Charon, then Aeneas), separate from the proofs above. A crate takes part by a `hax.toml` beside its `Cargo.toml`; today every crate but the experimental ones, `allocator` and `lean_vrf`. See "The Lean extraction" below.
 
 Rules:
 

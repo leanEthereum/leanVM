@@ -1,0 +1,17 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/bench-harness/lean.
+#
+# The benchmark harness is the allocator, timing, tracing and terminal output, none of which
+# the extraction models, so the scenario is a minimal one rooted at `Timing`'s accessors.
+[scenario.bench-harness]
+backend = "lean"
+include = [
+  "crate::Timing::push",
+  "crate::Timing::samples",
+  "crate::Timing::mean",
+]
+opaque = [
+  # `f64` arithmetic and constants, which Aeneas does not translate.
+  "crate::mean_and_ci",
+  "crate::t_critical_95",
+]

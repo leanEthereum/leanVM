@@ -2,7 +2,7 @@
 
 The Rust crates that declare a scenario are translated to Lean by [hax](https://hax.cryspen.com/)'s Lean backend (Charon, then Aeneas), so that Lean can state and prove things about the code that runs, not about a transcription of it. This directory is the infrastructure: one command extracts and typechecks, and nothing it generates is committed. Nothing is proved here yet. What the extractions leave out, and why, is in [LIMITATIONS.md](LIMITATIONS.md).
 
-Extracted today: `verifier`, `keccak256`, `lean_xmss` and `lean_sphincs`. Adding a crate is a `hax.toml` beside its `Cargo.toml` ([Adding a crate](#adding-a-crate)).
+Extracted today: every crate but the experimental ones (`experimental_*`), `allocator` and `lean_vrf`; `formal/extraction/report.sh` lists them. Adding a crate is a `hax.toml` beside its `Cargo.toml` ([Adding a crate](#adding-a-crate)).
 
 ## Using it
 

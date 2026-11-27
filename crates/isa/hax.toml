@@ -1,0 +1,20 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/isa/lean.
+[scenario.isa]
+backend = "lean"
+opaque = [
+  # Formatting and the hints' text form: string patterns (`core::str::pattern::Pattern`), which
+  # Aeneas does not translate, and reports with no position in the crate.
+  "crate::pretty",
+  "crate::export_hints",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::_::code_len",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::program::encode",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::_::fn_at",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::_::site_at",  # Lean: unknown constant `alloc.string.tostring.blanket.to_string`
+  "crate::program::g_pow",  # Lean: unknown identifier `core.iter.sources.successors.successors`
+  "crate::program::g_pow::TABLES",  # Lean: unknown identifier `std.sync.once_lock.oncelock`
+  "crate::{impl core::clone::Clone for crate::CompiledProgram}::clone",  # Lean: application type mismatch: the argument
+]

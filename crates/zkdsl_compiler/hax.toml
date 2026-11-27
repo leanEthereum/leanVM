@@ -1,0 +1,311 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/zkdsl-compiler/lean.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+# Each is grouped by what stops it, so the list is also the work left. What is extracted is
+# the AST, the IR and the plain data around them; the parser and the lowering are opaque.
+[scenario.zkdsl-compiler]
+backend = "lean"
+opaque = [
+  # The lowering state `FnLower<'a>` holds `&'a mut` borrows and shared borrows of borrowed
+  # data (`&'a HashMap<&'a str, &'a Func>`), and Aeneas cannot end or join those borrows in a
+  # method of it (`fresh`, lower.rs:263, a three-line counter bump, already fails). So every
+  # method is opaque but the three that read a constant out of the state.
+  "crate::lower::_::fail",
+  "crate::lower::_::fresh",
+  "crate::lower::_::emit",
+  "crate::lower::_::set",
+  "crate::lower::_::set_const",
+  "crate::lower::_::deref",
+  "crate::lower::_::anchor",
+  "crate::lower::_::check_not_reserved",
+  "crate::lower::_::rebind",
+  "crate::lower::_::bind_targets",
+  "crate::lower::_::pure",
+  "crate::lower::_::frame_cell",
+  "crate::lower::_::one",
+  "crate::lower::_::const_cell",
+  "crate::lower::_::zero",
+  "crate::lower::_::halt",
+  "crate::lower::_::copy",
+  "crate::lower::_::self_fp",
+  "crate::lower::_::patch_local",
+  "crate::lower::_::branch",
+  "crate::lower::_::ret_targets",
+  "crate::lower::_::lower_match",
+  "crate::lower::_::table_jump",
+  "crate::lower::_::lower_if",
+  "crate::lower::_::lower_assert_ne",
+  "crate::lower::_::bound_cell",
+  "crate::lower::_::lower_assert_lt",
+  "crate::lower::_::expr",
+  "crate::lower::_::pow_expr",
+  "crate::lower::_::expr_into",
+  "crate::lower::_::stmt",
+  "crate::lower::_::lower_for",
+  "crate::lower::builtins::_::lower_keccak",
+  "crate::lower::builtins::_::lower_keccak_cells",
+  "crate::lower::builtins::_::keccak_len",
+  "crate::lower::builtins::_::keccak_out",
+  "crate::lower::builtins::_::keccak_finish",
+  "crate::lower::builtins::_::emit_keccak_message",
+  "crate::lower::builtins::_::xor_byte",
+  "crate::lower::builtins::_::keccak_rate",
+  "crate::lower::builtins::_::sponge_xor",
+  "crate::lower::builtins::_::sponge_run",
+  "crate::lower::builtins::_::lower_builtin",
+  "crate::lower::builtins::_::sponge_cells",
+  "crate::lower::builtins::_::keccak_operand",
+  "crate::lower::builtins::_::prev_state",
+  "crate::lower::builtins::_::try_cell_run",
+  "crate::lower::builtins::_::sponge_cell",
+  "crate::lower::builtins::_::keccak_pad_run",
+  "crate::lower::builtins::_::bits_dest",
+  "crate::lower::builtins::_::lower_hint_witness",
+  "crate::lower::call::_::lower_call",
+  "crate::lower::call::_::lower_dispatched_call",
+  "crate::lower::call::_::try_inline",
+  "crate::lower::call::_::lower_return",
+  "crate::lower::call::_::specialize",
+  "crate::lower::call::_::call",
+  "crate::lower::call::_::call_into",
+  "crate::lower::call::_::const_substs",
+  "crate::lower::call::_::callee_def",
+  "crate::lower::call::_::take_inline_ret_cell",
+  "crate::lower::call::_::const_arg",
+  "crate::lower::eval::_::eval",
+  "crate::lower::eval::_::try_const_index",
+  "crate::lower::eval::_::const_index",
+  "crate::lower::eval::_::gpow_exp",
+  "crate::lower::eval::_::const_array_elem",
+  "crate::lower::eval::_::const_len",
+  "crate::lower::eval::_::add_identity",
+  "crate::lower::eval::_::mul_identity",
+  "crate::lower::eval::_::try_lit",
+  "crate::lower::eval::_::check_const_leaves",
+  "crate::lower::eval::_::const_gpow",
+  "crate::lower::mem::_::cell_run",
+  "crate::lower::mem::_::heap_addr",
+  "crate::lower::mem::_::check_heap_bound",
+  "crate::lower::mem::_::stack_addr",
+  "crate::lower::mem::_::heap_base",
+  "crate::lower::mem::_::array_ptr",
+  "crate::lower::mem::_::materialize",
+  "crate::lower::mem::_::stack_of",
+  "crate::lower::mem::_::alloc_stack",
+  "crate::lower::mem::_::heap_to_stack",
+  "crate::lower::mem::_::deref_run",
+  # Builds the `FnLower` and lowers through it; also calls `Func::param_shapes` (excluded).
+  "crate::lower::lower_func",
+  # The whole-program driver: an environment variable, `HashMap`s of borrowed keys, and
+  # `Iterator::find` (excluded below).
+  "crate::compile",
+
+  # Recursion through a closure (`args.iter().for_each(|a| f(a, ..))`): Aeneas does not
+  # translate a function mutually recursive with a closure's `Fn*` impl.
+  "crate::ast::free_vars_expr",
+  "crate::ast::free_vars_stmt",
+  "crate::ast::scoped_vars",
+  "crate::parser::subst::subst_var",
+  "crate::lower::contains_return",
+  "crate::lower::call::stmt_inline_safe",
+  "crate::parser::expr::parse_expr",
+  "crate::parser::expr::fold_ops",
+  # The AST's recursive types nest through `Vec` (`Expr::Call(String, Vec<Expr>)`, a block's
+  # `Vec<Stmt>`), and Aeneas's `Vec` is a subtype of `List`, which Lean's kernel does not
+  # accept in a nested inductive. So the types are opaque, and with them their derived impls.
+  "crate::ast::Expr",
+  "crate::ast::Stmt",
+  "crate::ast::StmtKind",
+  "{impl core::clone::Clone for crate::ast::Expr}::clone",
+  "{impl core::clone::Clone for crate::ast::Stmt}::clone",
+  "{impl core::clone::Clone for crate::ast::StmtKind}::clone",
+  "{impl core::cmp::PartialEq<crate::ast::Expr> for crate::ast::Expr}::eq",
+  # The functions that build or take apart those opaque types.
+  "crate::ast::_::new",
+  "crate::ast::_::at",
+  "crate::lower::plus_k",
+  "crate::parser::consts::const_int_expr",
+  "crate::parser::consts::gpow_bound",
+  "crate::parser::consts::parse_const",
+  "crate::parser::subst::subst_kind",
+  "crate::parser::subst::subst_stmts",
+
+  # Aeneas does not yet translate an early return or a break out of a loop.
+  "crate::parser::parse_with_replacements",  # parser.rs:42, a return in nested loops
+  "crate::parser::parse_match",  # parser.rs:861
+  "crate::parser::infer_return_shapes",  # parser.rs:279, a break to an outer loop in `scan`
+  "crate::parser::_::func_header",  # parser.rs:447
+
+  # String handling through `core::str`'s `Pattern` methods (`find`, `starts_with`,
+  # `strip_suffix`, ..): Aeneas does not translate the trait's generic associated type
+  # `Searcher<'a>`.
+  "crate::lower::builtins::_::keccak_kwargs",
+  "crate::parser::locate",
+  "crate::parser::strip_log",
+  "crate::parser::whole_call",
+  "crate::parser::_::func_inner",
+  "crate::parser::_::stmt_inner",
+  "crate::parser::_::if_stmt",
+  "crate::parser::consts::parse_f192_const",
+  "crate::parser::expr::call_args",
+  "crate::parser::expr::string_lit",
+  "crate::parser::expr::strip_const_wrapper",
+  # Byte scans of a `&str` that return subslices of it: Aeneas cannot join their loop states
+  # ("could not match the contexts").
+  "crate::parser::expr::split_add",
+  "crate::parser::expr::split_mul",
+  "crate::parser::expr::split_top",
+  "crate::parser::expr::split_assign",
+  "crate::parser::expr::split_aug",
+  "crate::parser::expr::strip_comment",
+  "crate::parser::expr::top_level_cmp",
+  "crate::parser::_::here",  # a closure returning a borrow of `self`
+
+  # A function item passed as a closure (`String::as_str`, `stmt_inline_safe`), or a closure
+  # inserting a borrow into a set it captures: its `Fn*` impl relates a higher-ranked lifetime
+  # to a free one, which Aeneas does not translate.
+  "crate::parser::consts::apply_replacements",
+  "crate::lower::call::body_inlinable",
+  "crate::ast::binds_anywhere",
+  "crate::disassemble",
+
+  # Iterator adapters CoreModels' `Iterator` (only `next`) lacks: `any`, `take`, `map`, `sum`.
+  "crate::ast::_::has_const_params",
+  "crate::lower::_::arg",
+  "crate::lower::_::arg_cells",
+  # `Cow<[Stmt]>`, which CoreModels does not model.
+  # String operations CoreModels does not model: `format!`, `str::trim`, `str::chars`,
+  # indexing a `str` by a range.
+  "crate::parser::consts::eval_const_int",
+  "crate::parser::expr::binding_name",
+  "crate::parser::expr::is_ident",
+  "crate::parser::expr::split_once_top",
+
+  # The derived `Clone` of a struct holding a tuple: Aeneas's builtin `Clone` of the tuple does
+  # not match the hax Lean library's `Clone`.
+  "{impl core::clone::Clone for crate::ast::Ast}::clone",
+  "{impl core::clone::Clone for crate::lower::Scope}::clone",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::assemble",  # Aeneas: internal error: please file an issue
+  "crate::ast::_::shape",  # Aeneas: unimplemented
+  "crate::ast::binds_through",  # Aeneas: internal error: please file an issue
+  "crate::ast::rebinds_in_block",  # Aeneas: internal error: please file an issue
+  "crate::field::_::G",  # Aeneas: internal error: please file an issue
+  "crate::field::_::ONE",  # Aeneas: internal error: please file an issue
+  "crate::field::_::ZERO",  # Aeneas: internal error: please file an issue
+  "crate::field::_::pow",  # Aeneas: internal error: please file an issue
+  "crate::field::as_base",  # Aeneas: internal error: please file an issue
+  "crate::field::g_pow",  # Aeneas: internal error: please file an issue
+  "crate::field::int",  # Aeneas: internal error: please file an issue
+  "crate::field::word",  # Aeneas: internal error: please file an issue
+  "crate::lower::FOLD_MAX",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::RET_FP",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::RET_PC",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::alias_of",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::all_inline",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::binding_cell",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::bound",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::end",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::fit",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::free_cell",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::int",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::let_binding",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::new_branch",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::range_check",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::ret",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::set_int",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::settle_loop_captures",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::stack",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::table_jump_via",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::unbound",  # Aeneas: internal error: please file an issue
+  "crate::lower::_::width",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::BLOCK_CELLS",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::MAX_EXPONENT_BITS",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::RATE",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::STATE_CELLS",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::_::pad_tail_in_place",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::keccak_pad_value",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::pad_tail_in_place",  # Aeneas: internal error: please file an issue
+  "crate::lower::builtins::two_to_one_close",  # Aeneas: internal error: please file an issue
+  "crate::lower::call::_::check_returns",  # Aeneas: internal error: please file an issue
+  "crate::lower::call::_::return_into",  # Aeneas: internal error: please file an issue
+  "crate::lower::call::split_tail_return",  # Aeneas: internal error: please file an issue
+  "crate::lower::calls_or_allocates",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::_::diverging_readings",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::_::gaddr_of",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::_::try_const_int",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::_::try_field_const",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::field_pow",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::gmul",  # Aeneas: internal error: please file an issue
+  "crate::lower::eval::small_gpow",  # Aeneas: internal error: please file an issue
+  "crate::lower::has_return",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::_::constant_exponent",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::_::hoist_heap_bufs",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::_::reserve",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::_::runs_on_to",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::_::written_in",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::hint_writes",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::reservation",  # Aeneas: internal error: please file an issue
+  "crate::lower::hoist::touched",  # Aeneas: internal error: please file an issue
+  "crate::lower::mem::_::check_bound",  # Aeneas: internal error: please file an issue
+  "crate::lower::mem::_::heap_addr_span",  # Aeneas: internal error: please file an issue
+  "crate::lower::param_binding",  # Aeneas: internal error: please file an issue
+  "crate::lower_all",  # Aeneas: internal error: please file an issue
+  "crate::parser::BUILTINS",  # Aeneas: internal error: please file an issue
+  "crate::parser::_::block",  # Aeneas: internal error: please file an issue
+  "crate::parser::_::func",  # Aeneas: internal error: please file an issue
+  "crate::parser::_::stmt",  # Aeneas: internal error: please file an issue
+  "crate::parser::consts::f128_literal",  # Aeneas: internal error: please file an issue
+  "crate::parser::consts::is_int_arith",  # Aeneas: internal error: please file an issue
+  "crate::parser::consts::parse_gpow_bound",  # Aeneas: internal error: please file an issue
+  "crate::parser::expr::depth0",  # Aeneas: internal error: please file an issue
+  "crate::parser::expr::not_reserved",  # Aeneas: internal error: please file an issue
+  "crate::parser::parse",  # Aeneas: internal error: please file an issue
+  "crate::parser::parse_with_constants",  # Aeneas: internal error: please file an issue
+  "crate::parser::stream_name",  # Aeneas: internal error: please file an issue
+  "crate::parser::subst::subst_all",  # Aeneas: internal error: please file an issue
+  "crate::parser::subst::subst_list",  # Aeneas: internal error: please file an issue
+  "crate::parser::subst::subst_shared",  # Aeneas: internal error: please file an issue
+  "crate::parser::subst::subst_vars",  # Aeneas: internal error: please file an issue
+  "crate::resolve",  # Aeneas: internal error: please file an issue
+  "crate::ast::binds",  # Aeneas: unexpected error
+  "crate::ast::taken_arm",  # Aeneas: unexpected error
+
+  # Rejected since the sync with upstream of 2026-11-24: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::lower::_::copy_next_frame",  # Aeneas: unreachable
+  "crate::lower::hoist::_::hoist_past_first_branch",  # Aeneas: internal error, please file an issue
+  "crate::lower::hoist::_::move_hints",  # Aeneas: could not match the contexts
+  "crate::lower::hoist::_::sized_by",  # Aeneas: unreachable
+  "crate::opt::_::new",  # Aeneas: higher-ranked vtables are not supported
+  "crate::opt::_::of",  # Aeneas: unimplemented
+  "crate::opt::compact",  # Aeneas: higher-ranked vtables are not supported
+  "crate::opt::copy_of",  # Aeneas: not allowed to expand enumerations with several variants
+  "crate::opt::new",  # Aeneas: higher-ranked vtables are not supported
+  "crate::opt::optimize",  # Aeneas: unimplemented
+  "crate::opt::remove_copies",  # Aeneas: could not match the contexts
+  "crate::opt::rename",  # Aeneas: higher-ranked vtables are not supported
+  "crate::opt::store_next_frame_copies",  # Aeneas: could not match the contexts
+  "crate::opt::_::hinted",  # Lean: unknown identifier `core.bool.insts.coremarkercopy`
+  "crate::opt::_::in_run",  # Lean: unknown constant `core.slice.iter.iter.insts.coreitertraitsiteratorite
+  "crate::opt::block_end",  # Lean: unknown identifier `core.slice.slice.partition_point`
+  "crate::opt::block_starts",  # Lean: unknown constant `alloc.vec.vec.insts.coreitertraitscollectextend.exte
+  "crate::opt::drop_dead",  # Lean: unknown identifier `core.mem.take`
+]
+exclude = [
+  # Signatures Aeneas does not translate, so not even opaque: an `impl Iterator` result, and
+  # closures over `&mut Self` (higher-ranked lifetimes). Their callers are opaque above.
+  "crate::ast::_::param_shapes",
+  "crate::lower::_::scoped",
+  "crate::lower::_::lower_match_dispatch",
+  # Their signatures crash Aeneas while translating the `Iterator` trait.
+  "core::iter::traits::iterator::Iterator::find",
+  "core::slice::iter::_::find",
+  "crate::opt::visit",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating (in its signature)
+  "crate::opt::visit_hint",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating (in its signature)
+  "crate::lower::hoist::_::reservation_hints",  # Lean: unknown identifier `core.iter.adapters.flatten.flatmap`
+  "crate::lower::call::substitute_body",  # Lean: function expected at
+]

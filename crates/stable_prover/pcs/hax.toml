@@ -1,0 +1,156 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/pcs/lean.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+# Each is grouped by what stops it; a patch in proofs/pcs/patches/pre that rewrites the
+# construct would take the item off it (the crate has none since the sync of 2026-11-23).
+[scenario.pcs]
+backend = "lean"
+opaque = [
+  # Defined per host by `cfg(target_arch)` (additive_ntt_f64.rs:694, :721, :731): opaque, so
+  # the extraction is the same on every host.
+  "crate::ntt::additive_ntt_f64::prefetch",
+  "crate::ntt::additive_ntt_f64::L2_WORDS",
+  "crate::ntt::additive_ntt_f64::LOG_SUBS_PER_WORKER",
+
+  # A thread-local scratch buffer (additive_ntt_f64.rs:758): Aeneas has no thread locals.
+  "crate::ntt::additive_ntt_f64::with_scratch",
+
+  # The Merkle builder: a lock-free tree over atomics and a `OnceLock`, whose tasks write
+  # `MaybeUninit` digests through raw pointers.
+  "crate::merkle",
+
+  # Raw pointers and uninitialized memory (`parallel::SendPtr`, `MaybeUninit`, `uninit_vec`),
+  # which have no model.
+  "crate::ntt::additive_ntt_f64::replicate",
+  "crate::ntt::additive_ntt_f64::fused_rows",
+  "crate::stack_open::basis::_::new",
+  "crate::whir::build_initial_basis",
+  "crate::whir::fold_out_buf",
+
+
+  # Call an encode that takes a `&RowSink` (excluded below).
+  "crate::ntt::additive_ntt_f64::_::encode_interleaved_in_place",
+  "crate::whir::commit",
+  "crate::whir::ligero_commit_ext",
+
+  # Kernels whose closures, handed to the `parallel` pool, write disjoint mutable slices or
+  # rows borrowed from a shared buffer: Aeneas cannot join loop states that hold such borrows,
+  # nor nested borrows (`&mut [&mut [F64]; N]`).
+  "crate::ntt::additive_ntt_f64::_::gathered_pass",
+  "crate::ntt::additive_ntt_f64::butterfly_interleaved_fused_2layer",
+  "crate::ntt::additive_ntt_f64::butterfly_interleaved_fused_3layer",
+  "crate::ntt::additive_ntt_f64::radix8_butterflies",
+  "crate::ntt::additive_ntt_f64::transpose_lane_major",
+  "crate::ring_switch::combine_deferred_chunk",
+  "crate::ring_switch::fold_1b_rows",
+  "crate::stack_open::basis::_::add",
+  "crate::stack_open::basis::build",
+  "crate::whir::_::fold_lane",
+  "crate::whir::_::glue_pending",
+  "crate::whir::fold_and_msg_blocks",
+  "crate::whir::fold_and_msg_lsb",
+  "crate::whir::fold_base_and_msg_blocks",
+  "crate::whir::lane_fold",
+  "crate::whir::lifted_lane_fold",
+  "crate::whir_induce::induce_sumcheck_evaluate_at_residual",
+  "crate::whir_induce::induce_sumcheck_poly",
+  "crate::whir_induce::induce_sumcheck_poly_via_ntt",
+  "crate::whir_induce::transpose_dense_rest",
+  "crate::whir_induce::transpose_layers_ext_windowed",
+  "crate::whir_induce::transpose_sparse_windowed",
+
+  # The WHIR prover's level loop, which mutates a `SumcheckProver<'a>` that borrows the
+  # witness (whir.rs:1300), and returns from inside it (whir.rs:1359): an Aeneas internal error.
+  "crate::whir::recursive_prover_with_prepared_basis",
+  "crate::stack_open::open_batch_mixed_whir_stacked",
+
+  # Aeneas internal errors, each still to be reduced to a reportable case.
+  "crate::whir::msg_terms_lone",  # whir.rs:588, a loop over a zip, its accumulator returned twice
+
+  # The security analysis computes in `f64`, which Aeneas does not translate.
+  "crate::whir_config::ANALYSIS_LOG_Q",
+  "crate::whir_config::_::paper_predicted_bits",
+  "crate::whir_config::johnson_algebraic_bits_for",
+  "crate::whir_config::johnson_eta_for_m",
+  "crate::whir_config::johnson_interleaved_list_log2",
+  "crate::whir_config::johnson_m_param",
+  "crate::whir_config::optimize_johnson_level",
+  "crate::whir_config::paper_ood_bits",
+  "crate::whir_config::paper_per_query_bits",
+  "crate::whir_config::paper_thm_ca_johnson_log_a",
+  "crate::whir_config::reduced_rate",
+
+  # Aeneas does not yet translate an early return out of a loop: `?` in the config's derivation.
+  "crate::whir_config::derive_ladder",
+  "crate::whir_config::_::validate",
+  "crate::whir_config::_::derive_config_with_log_inv_rate",
+  # Hands `derive_ladder` a closure over mutable state, which the hax Lean library's `FnMut`
+  # does not model (whir_config.rs:294).
+  "crate::whir_config::derive_ladder_shape",
+
+  # `Iterator::copied` (whir_config.rs:140), excluded below.
+  "crate::whir_config::_::level_shapes",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::_ASSERT_4308D381",  # Aeneas: there should be no bottoms in the value
+  "crate::ntt::_::encode_lane_major",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::ntt::_::inverse_transform",  # Aeneas: arrow types are not supported yet
+  "crate::ntt::_::layers",  # Aeneas: can not apply a projection to the ⊥ value
+  "crate::ntt::_::standard",  # Aeneas: internal error, please file an issue
+  "crate::ntt::_::top_layers",  # Aeneas: found a case of unsupported nested borrows
+  "crate::ntt::_::transform",  # Aeneas: internal error: please file an issue
+  "crate::ntt::_::transform_block",  # Aeneas: unreachable
+  "crate::ntt::butterfly",  # Aeneas: arrow types are not supported yet
+  "crate::ntt::forward",  # Aeneas: name clash detected: the following identifiers are bound to the same n
+  "crate::ntt::inverse",  # Aeneas: error when registering the name for id: stable_pcs::ntt::{impl core::o
+  "crate::stack_open::_::qkeccak_vars",  # Aeneas: unimplemented
+  "crate::stack_open::basis::_::end_run",  # Aeneas: unimplemented
+  "crate::stack_open::basis::_::finish",  # Aeneas: unimplemented
+  "crate::stack_open::basis::_::lift",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::stack_open::basis::_::project",  # Aeneas: internal error, please file an issue
+  "crate::stack_open::basis::initial_basis",  # Aeneas: internal error: please file an issue
+  "crate::stack_open::basis::table",  # Aeneas: internal error, please file an issue
+  "crate::stack_open::open",  # Aeneas: could not match the contexts
+  "crate::sumcheck::product_sumcheck",  # Aeneas: unreachable
+  "crate::whir::_::table",  # Aeneas: nested borrows are not supported yet
+  "crate::whir::open",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::whir::{impl crate::whir::FoldRounds for crate::whir::Dense}::table",  # Aeneas left its body out
+  "crate::whir_induce::induce_basis",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::whir_lanes::_::fold",  # Aeneas: nested borrows are not supported yet
+  "crate::whir_lanes::_::table",  # Aeneas: internal error: please file an issue
+  "crate::whir_lanes::{impl crate::whir::FoldRounds for crate::whir_lanes::LaneRounds}::table",  # Aeneas: internal error: please file an issue
+  "crate::collect_chunks",  # Lean: unknown identifier `alloc.vec.vecarray.into_flattened`
+  "crate::ntt::_::encode_interleaved_in_place",  # Lean: type mismatch
+  "crate::ntt::_::encode_rows",  # Lean: type mismatch
+  "crate::ntt::_::twiddle",  # Lean: unknown identifier `core.usize.insts.coreopsbitshrshared0usizeusize.sh
+  "crate::ntt::written",  # Lean: expected a product type, got
+  "crate::ntt::zip_rows",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::ring_switch::_::add_chunk",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::ring_switch::_::apply",  # Lean: unknown identifier `core.num.u128.trailing_zeros`
+  "crate::ring_switch::transpose_s_hat",  # Lean: unknown identifier `core.num.u128.trailing_zeros`
+  "crate::stack_open::basis::_::feed",  # Lean: unknown constant `core.option.option.get_or_insert_with`
+  "crate::stack_open::basis::dot_block",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::stack_open::commit",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::whir::commit_ext",  # Lean: type mismatch
+  "crate::whir::fold_rounds",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::whir::sample_queries",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::whir_induce::tensor",  # Lean: type mismatch
+  "crate::whir_lanes::_::count",  # Lean: unknown identifier `core.usize.insts.coreopsarithdivshared0usizeusize.
+  "crate::whir_lanes::row",  # Lean: unknown identifier `core.shared0slice.insts.coredefaultdefault`
+  "crate::xmul::constants",  # Lean: unknown identifier `std.sync.once_lock.oncelock.get_or_init`
+  "crate::xmul::constants::A",  # Lean: unknown identifier `std.sync.once_lock.oncelock`
+]
+exclude = [
+  # A `&RowSink`, a `dyn Fn`, in the signature: Aeneas has no dynamic trait types.
+  "crate::ntt::additive_ntt_f64::RowSink",
+  "crate::ntt::additive_ntt_f64::_::transform",
+  "crate::ntt::additive_ntt_f64::_::encode_interleaved_in_place_with",
+  "crate::ntt::additive_ntt_f64::_::encode_interleaved_with",
+  "crate::whir_ntt_ext::encode_interleaved_ext",
+  # Their signatures crash Aeneas while translating the `Iterator` trait.
+  "core::iter::traits::iterator::Iterator::copied",
+  "core::iter::traits::iterator::Iterator::find",
+  "core::slice::iter::_::find",
+]

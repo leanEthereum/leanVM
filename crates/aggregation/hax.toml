@@ -1,0 +1,166 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/aggregation/lean.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+# Each is grouped by what stops it, so the list is also the work left.
+[scenario.aggregation]
+backend = "lean"
+opaque = [
+  # Proving: tracing spans (their callsite statics form type and function groups Aeneas
+  # rejects), the thread pool and prover kernels.
+  "crate::aggregation::_::recompute",
+  "crate::aggregation::_::recompute_scalar",
+  "crate::aggregation::aggregate_deferred_claims",
+  "crate::aggregation::aggregate_with_stats",
+  "crate::aggregation::round_msg_base",
+  "crate::aggregation::fold_lsb_base",
+  "crate::aggregation::fold_lsb",
+  "crate::aggregation::round_msg",
+  "crate::aggregation::weighted_eq_table",
+
+  # Process-wide caches in `OnceLock` statics.
+  "crate::aggregation::stacked_bytecode",
+  "crate::aggregation::scalar_bytecode",
+  "crate::aggregation::unified_guest",
+  "crate::aggregation::bytecode_window",
+
+  # The guest's zkDSL source, built with `format!` and a map of string placeholders (one a
+  # `dyn` closure, aggregation.rs:2412), then compiled.
+  "crate::aggregation::f192_literal",
+  "crate::aggregation::literals",
+  "crate::aggregation::placeholder_map",
+  "crate::aggregation::compile_guest",
+
+  # The wire format, bincode over serde.
+  "crate::aggregation::_::to_bytes",
+  "crate::aggregation::_::from_bytes",
+  "crate::aggregation::_::to_bytes_without_pubkeys",
+  "crate::aggregation::_::from_bytes_without_pubkeys",
+
+  # Aeneas cannot end or join the borrows of these loops (aggregation.rs:1153 `walk_claims`,
+  # 1438 `plan`, 1516 `plan_coverage`, 1558 `lean_xmss_hints`, 1588 `push_lean_sphincs_hints`),
+  # or translate a function item over references used as a closure (`gen_verify`'s
+  # `sides.map(leaf::layout)`: a higher-ranked lifetime).
+  "crate::aggregation::walk_claims",
+  "crate::aggregation::_::plan",
+  "crate::aggregation::plan_coverage",
+  "crate::aggregation::lean_xmss_hints",
+  "crate::aggregation::push_lean_sphincs_hints",
+  "crate::aggregation::gen_verify",
+
+  # Standard-library items CoreModels lacks: the order of tuples and arrays (strict sorting
+  # of the signer and root lists, a `Region`'s `Ord` keys), `slice::IterMut`, `Rev::fold`, and
+  # `iter_mut().find` (whose signature crashes Aeneas, see `exclude`).
+  "crate::aggregation::check_signer_set",
+  "crate::aggregation::check_da_roots",
+  "crate::aggregation::_::n_total",
+  "crate::aggregation::_::n_slots",
+  "crate::aggregation::slot_weights",
+  "crate::aggregation::digit_hints",
+  "crate::aggregation::_::push",
+
+  # Match on `leanvm_core::leaf::Coord`, recursive through a `Vec`, which a hand-written mirror
+  # cannot declare (the hax Lean library's `Vec` is not a nested-inductive container).
+  "crate::aggregation::coord_kind",
+  "crate::aggregation::coord_scale",
+  "crate::aggregation::push_coord_terms",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::child::col_group_order",  # Aeneas: internal error: please file an issue
+  "crate::child::gen_verify",  # Aeneas: internal error: please file an issue
+  "crate::child::merkle_hints",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::coverage::_::plan",  # Aeneas: unreachable
+  "crate::coverage::plan_coverage",  # Aeneas: can't end abstraction 5 as it is set as non-endable
+  "crate::deferred::_::recompute",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::deferred::aggregate_deferred_claims",  # Aeneas: internal error: please file an issue
+  "crate::deferred::bytecode_rows",  # Aeneas: internal error: please file an issue
+  "crate::deferred::bytecode_sums",  # Aeneas: unimplemented
+  "crate::guest::compile_guest",  # Aeneas: there should be no bottoms in the value
+  "crate::hints::_::push",  # Aeneas: internal error: please file an issue
+  "crate::hints::_::witness",  # Aeneas: unimplemented
+  "crate::hints::lean_sphincs_hints",  # Aeneas: end_abs_aux: detected a loop in the chain of ids: abs@2(level:0) -> ab
+  "crate::hints::lean_xmss_hints",  # Aeneas: end_abs_aux: detected a loop in the chain of ids: abs@2(level:0) -> ab
+  "crate::node::aggregate",  # Aeneas: internal error: please file an issue
+  "crate::placeholders::_::levels",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::placeholders::_::literal",  # Aeneas: unimplemented
+  "crate::placeholders::_::new",  # Aeneas: internal error, please file an issue
+  "crate::placeholders::_ASSERT_A1250DFF",  # Aeneas: internal error: please file an issue
+  "crate::placeholders::claim_placeholders",  # Aeneas: unreachable
+  "crate::placeholders::constants",  # Aeneas: internal error: please file an issue
+  "crate::placeholders::keccak_placeholders",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::placeholders::literal",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::placeholders::opening_placeholders",  # Aeneas: internal error: please file an issue
+  "crate::proof::_::from_bytes",  # Aeneas: internal error: please file an issue
+  "crate::proof::_::to_bytes",  # Aeneas: internal error: please file an issue
+  "crate::proof::_::verify",  # Aeneas: internal error: please file an issue
+  "crate::proof::decode",  # Aeneas: internal error: please file an issue
+  "crate::proof::encode",  # Aeneas: internal error: please file an issue
+  "crate::proof::is_sorted",  # Aeneas: internal error: please file an issue
+  "crate::statement::_ASSERT_03CCE640",  # Aeneas: internal error: please file an issue
+  "crate::statement::lean_sphincs_claim_cells",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::statement::lean_xmss_claim_cells",  # Aeneas: unimplemented: found an occurrence of a lifetime constraint relating
+  "crate::statement::statement_digest",  # Aeneas: unimplemented
+  "crate::child::block_groups",  # Aeneas: internal error: please file an issue
+  "crate::child::col_groups",  # Aeneas: internal error: please file an issue
+  "crate::deferred::bytecode_value",  # Aeneas: could not find: trait_impl_id: 87
+  "crate::placeholders::_::folds_before",  # Aeneas: could not find: trait_impl_id: 226
+  "crate::placeholders::signature_placeholders",  # Aeneas: could not find: trait_impl_id: 231
+  "crate::error::_::fmt",  # Aeneas: could not find: trait_impl_id: 16
+  "{impl core::cmp::Eq for crate::error::AggregateError}",  # Aeneas left its body out
+  "crate::placeholders::placeholder_map",  # Aeneas: internal error: please file an issue
+  "crate::cells::cell_bytes",  # Lean: invalid field `flat_map`: the environment does not contain `core.iter.
+  "crate::child::group_runs",  # Lean: invalid field `collect`: the environment does not contain `core.iter.t
+  "crate::child::whir_levels",  # Lean: unknown identifier `core.shared1usize.insts.coreopsarithaddshared0usiz
+  "crate::claim_pool::coord_difference",  # Lean: unknown identifier `core.tuplevut.insts.corecmpord`
+  "crate::deferred::absorb_round",  # Lean: unknown constant `alloc.vec.vec.insts.coreitertraitscollectextend.exte
+  "crate::deferred::bytecode_vars",  # Lean: type mismatch
+  "crate::guest::GUEST_SOURCE",  # Lean: invalid escape sequence
+  "crate::guest::fs_seed",  # Lean: type mismatch
+  "crate::guest::unified_guest",  # Lean: unknown identifier `std.sync.once_lock.oncelock.get_or_init`
+  "crate::guest::unified_guest::GUEST",  # Lean: unknown identifier `std.sync.once_lock.oncelock`
+  "crate::node::sorted_claims",  # Lean: type mismatch
+  "crate::placeholders::_::list",  # Lean: invalid field `collect`: the environment does not contain `core.iter.t
+  "crate::placeholders::_::set",  # Lean: unknown identifier `core.shared0t.insts.corefmtdisplay`
+  "crate::placeholders::da_placeholders",  # Lean: unknown identifier `core.num.usize.checked_ilog2`
+  "crate::placeholders::straight_line",  # Lean: unknown constant `alloc.collections.btree.set.btreeset.insert`
+  "crate::statement::claim_list_digest",  # Lean: invalid field `flatten`: the environment does not contain `core.iter.t
+
+  # Rejected since the sync with upstream of 2026-11-24: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::placeholders::_::positions_before",  # Aeneas: could not find: trait_impl_id: 98
+]
+exclude = [
+  # The derived `PartialEq` and `Eq` of the error type: Aeneas reaches an "unreachable" in `core::cmp`.
+  "{impl core::cmp::PartialEq<_> for crate::error::AggregateError}",
+  "{impl core::cmp::Eq for crate::error::AggregateError}",  # it rests on the `PartialEq`
+  # Takes a function pointer (`Level`), which Aeneas does not translate even in a signature.
+  "crate::placeholders::_::per_level",
+  # `Error::source` is not a field of the hax Lean library's `Error`.
+  "{impl core::error::Error for crate::aggregation::AggregateVerifyError}",
+  "{impl core::error::Error for crate::aggregation::AggregationError}",
+  # Derived `Clone` of a container of tuples: Aeneas's builtin `Clone` does not match the hax
+  # Lean library's. Unused by the extracted code.
+  "{impl core::clone::Clone for crate::aggregation::EthereumProof}",
+  "{impl core::clone::Clone for crate::aggregation::SignatureClaims}",
+  # bincode's options type, used only by the opaque wire format; and the serde impls.
+  "crate::aggregation::wire",
+  "{impl serde_core::ser::Serialize for _}",
+  "{impl serde_core::de::Deserialize for _}",
+  # Their signatures crash Aeneas while translating the `Iterator` trait.
+  "core::iter::traits::iterator::Iterator::cloned",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::copied",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::filter",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::find",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::unzip",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::slice::iter::_::find",  # its signature crashes Aeneas on the `Iterator` trait
+  "{impl core::iter::traits::accum::Product<_> for _}",  # its signature crashes Aeneas on the `Iterator` trait
+  "{impl core::iter::traits::accum::Sum<_> for _}",  # its signature crashes Aeneas on the `Iterator` trait
+  "crate::child::block_group_order",  # Lean: overloaded, errors 
+  "crate::claim_pool::claim_pool",  # Lean: overloaded, errors 
+  "crate::placeholders::bus_placeholders",  # Lean: overloaded, errors 
+  "crate::placeholders::bytecode_placeholders",  # Lean: overloaded, errors 
+  "crate::claim_pool::coord_kind",  # Lean: unknown identifier `stable_lean_vm_core.leaf.coord`
+  "crate::claim_pool::coord_scale",  # Lean: unknown identifier `stable_lean_vm_core.leaf.coord`
+  "crate::claim_pool::push_coord_terms",  # Lean: unknown identifier `stable_lean_vm_core.leaf.coord`
+]

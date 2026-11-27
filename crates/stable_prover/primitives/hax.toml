@@ -1,0 +1,116 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/primitives/lean.
+#
+# The extraction describes the portable code paths: hax.sh switches the target features off,
+# so every `cfg(target_feature)` choice takes its software fallback (`gf2_64::software`,
+# `gf2_64x3::software`, the scalar Keccak). What a bare `cfg(target_arch)` selects differs
+# between aarch64 and x86-64 even then, so those items are excluded or opaque below, which
+# keeps the extraction identical on both hosts.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+[scenario.primitives]
+backend = "lean"
+opaque = [
+  # Bodies chosen by a bare `cfg(target_arch)`: NEON on aarch64, streaming stores on x86-64.
+  # The signature is the same on every host.
+  "crate::bits::bit_transpose_64bytes",
+  "crate::stream::copy_raw",
+  "{impl core::ops::drop::Drop for crate::stream::Stream}",
+  # `LANES` is the width of `hash::Backend`, NEON's two lanes on aarch64, and these two
+  # dispatch on it.
+  "crate::hash::LANES",
+  "crate::hash::hash_many_from_state",
+  "crate::hash::keccak_f_many",
+
+  # Raw pointers, which Aeneas does not dereference: the batched hash's lane loads and
+  # stores, the streaming copies.
+  "crate::hash::hash_group",
+  "crate::hash::hash_many_with",
+  "crate::hash::permute_group",
+  "{impl crate::hash::Lanes64 for u64}::load",
+  "{impl crate::hash::Lanes64 for u64}::store",
+  "crate::stream::_::copy",
+  "crate::stream::_::copy_uninit",
+
+  # Uninitialized memory (`MaybeUninit`, `set_len`), filled in place.
+  "crate::uninit_vec",
+  "crate::multilinear::eq_table",
+  "crate::multilinear::fill_eq_doubling",
+  "crate::multilinear::fold_high_k",
+
+  # The thread pool (crates/parallel): closures over `&mut` chunks, which Aeneas cannot join
+  # in a loop, and calls into another crate.
+  "crate::par_collect",
+  "crate::field::g_powers",
+  "crate::multilinear::fill_eq_table_uninit",
+  "crate::multilinear::mle_eval_par",
+
+  # `.map(Weights8::new)` (multilinear.rs:262): a function item as a closure over a
+  # reference, whose higher-ranked lifetime Aeneas does not translate.
+  "crate::multilinear::packed_eq",
+
+  # A table built once into a `OnceLock` static.
+  "crate::field::g_pow32_by_lookup",
+
+  # Formatting through strings and floats.
+  "crate::pretty_integer",
+  "crate::pretty_f64",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::field::lanes::portable::transpose_bits",  # Aeneas: internal error: please file an issue
+  "crate::multilinear::eq_eval",  # Aeneas: could not find: trait_impl_id: 52
+  "crate::multilinear::eq_table_serial",  # Aeneas: internal error, please file an issue
+  "crate::multilinear::fold",  # Aeneas: internal error, please file an issue
+  "crate::multilinear::mle_eval",  # Aeneas: could not find: trait_impl_id: 50
+  "crate::multilinear::shrink_eq_high",  # Aeneas: unimplemented
+  "crate::bit_fold::_::fold_columns",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::bit_fold::_::fold_row",  # Lean: unknown identifier `alloc.sharedavec.insts.coreitertraitscollectintoit
+  "crate::bit_fold::_::new",  # Lean: unknown identifier `core.num.usize.isolate_lowest_one`
+  "crate::cast_slice",  # Lean: unknown identifier `core.slice.slice.as_ptr`
+  "crate::cast_slice_mut",  # Lean: unknown identifier `core.mem.size_of_val`
+  "crate::field::dot",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::field::lanes::_::store",  # Lean: unknown identifier `core.mutaarray.insts.coreconverttryfrommutaslicetr
+  "crate::field::lanes::_::sum",  # Lean: unknown constant `core.array.iter.intoiter.insts.coreitertraitsiterato
+  "crate::field::lanes::portable::_::sum",  # Lean: unknown constant `core.array.iter.intoiter.insts.coreitertraitsiterato
+  "crate::field::lanes::portable::transpose_bytes",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::log2_ceil_usize",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::log2_strict_usize",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::field::index_mle",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::field::g_pow",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::field::powers",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::field::div_by_g",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+  "crate::field::lanes::{impl core::ops::arith::MulAssign for crate::field::lanes::portable::F128x8}::mul_assign",  # Lean: unknown identifier `core.array.insts.coremarkercopy`
+]
+exclude = [
+  # SIMD modules and kernels under a bare `cfg(target_arch)`, present on one host only.
+  "crate::field::neon",
+  "crate::field::gf2_64::x86_64",
+  "crate::bits::bit_transpose_64bytes_neon",
+  "crate::stream::stream_lines",
+  "crate::hash::arm",
+  "crate::hash::Backend",
+
+  # `par_collect`'s drop guard over `MaybeUninit` slots, and `g_pow32_by_lookup`'s static.
+  "crate::PartialInit",
+  "{impl core::ops::drop::Drop for crate::PartialInit}",
+  "crate::field::g_pow32_by_lookup::TABLES",
+
+  # The serde derives: their visitors do not translate, and nothing extracted uses them.
+  "{impl serde_core::de::Deserialize for crate::field::gf2_64::F64}",
+  "{impl serde_core::ser::Serialize for crate::field::gf2_64::F64}",
+  "{impl serde_core::de::Deserialize for crate::field::gf2_64x3::F192}",
+  "{impl serde_core::ser::Serialize for crate::field::gf2_64x3::F192}",
+  "core::iter::traits::iterator::Iterator::cloned",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::copied",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::filter",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::find",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::unzip",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::slice::iter::_::find",  # its signature crashes Aeneas on the `Iterator` trait
+  # `Sum` and `Product` take `I: Iterator`: with them Aeneas translates the whole `Iterator` trait
+  # and crashes on it (an internal error at iter/traits/iterator.rs:42).
+  "{impl core::iter::traits::accum::Sum<_> for _}",
+  "{impl core::iter::traits::accum::Product<_> for _}",
+  # The grind's search on the pool: `find_first` takes a `&dyn Fn`.
+  "{impl fiat_shamir_prover::Search for crate::transcript::Pool}",
+]

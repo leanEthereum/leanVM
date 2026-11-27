@@ -1,0 +1,159 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/lean-vm-core/lean.
+#
+# What is extracted with bodies: the instruction set (`cpu::isa`), the `Program` and its hints,
+# the tables' identities and shapes (`tables`, `colval`), and `GPow`'s lookups. The prover's
+# machinery is not: `opaque` items are extracted as signatures only, axioms in
+# Assumptions/FunsExternal.lean, grouped by what stops them, so the list is also the work left.
+[scenario.lean-vm-core]
+backend = "lean"
+# The constants of opaque modules that the crates using this one read, translated with their
+# values: charon reaches them only as roots, rustc having inlined every use, and the most
+# specific pattern makes them transparent.
+include = [
+  "crate",
+  "crate::keccak::STATE_CELLS",
+]
+charon-args = [
+  "--include", "crate::keccak::STATE_CELLS",
+  "--include", "crate::keccak::RATE_CELLS",
+  "--include", "crate::leaf::N_TUPLE_BITS",
+  "--include", "crate::leaf::N_BYTECODE_SELECTORS",
+  "--include", "crate::pcs::MIN_MU",
+  "--include", "crate::pcs::MAX_MU",
+]
+opaque = [
+  # With this module's bodies Aeneas stops outright ("Can't get the list of fields of this adt"),
+  # naming no item: opaque whole until the cause is narrowed to one.
+  "crate::tables",
+
+  # Whole modules of prover machinery: `parallel` dispatch, `unsafe` uninitialized buffers and
+  # streaming stores, `tracing` spans. `gkr` also holds a bare `cfg(target_arch = "x86_64")`
+  # closure (gkr.rs:389), which an opaque body keeps out of the host-independent output.
+  "crate::gkr",
+  "crate::leaf",
+  "crate::pcs",
+  "crate::witness",
+  "crate::keccak",  # `while_executing` spawns threads (keccak.rs:137)
+  "crate::cpu::layout",
+  "crate::cpu::trace",
+  # A table's constraint is a `Box<dyn Fn>` (constraints.rs:49): Aeneas has no dynamic trait types.
+  "crate::constraints",
+  # The interpreter: early returns inside its opcode loop (execute.rs:275), a `&mut dyn FnMut`
+  # Keccak hook, zeroed pages by `unsafe`, `DBG_PROF` from the environment.
+  "crate::cpu::execute",
+
+  # The prove and verify entry points and their glue: they build the opaque modules' types,
+  # walk `tables()` (`&dyn Table`, excluded below), or open `tracing` spans (`verify`).
+  "crate::cpu::prove",
+  "crate::cpu::verify",
+  "crate::cpu::airs",
+  "crate::cpu::sigmas",
+  "crate::cpu::finish_claims",
+  "crate::cpu::bind_pi_claim",
+  "crate::cpu::slot_claims",
+  "crate::cpu::keccak_output_claim",
+  "crate::cpu::block_owners",
+  "crate::cpu::bus_wiring",
+  "crate::cpu::table_spans",
+  "crate::cpu::xi_form_base",
+  "crate::cpu::xi_form_pows",
+  "crate::cpu::RowForm",
+  "crate::cpu::_::new",  # RowForm::new
+  "crate::cpu::_::eval_unreduced",
+  "{impl core::clone::Clone for crate::cpu::RowForm}",
+  "crate::cpu::Stats",
+  "crate::cpu::_::details",
+  # `.map(to_scalar)` (cpu/mod.rs:717): a function item as a closure over a reference, whose
+  # higher-ranked lifetime Aeneas does not translate.
+  "crate::cpu::scalar_proof",
+  # Writes through `as_chunks_mut().iter_mut()` zipped with a `flat_map` (cpu/mod.rs:723).
+  "crate::cpu::public_input_bytes",
+  # Reads the bytecode table as bytes, by `unsafe`.
+  "crate::cpu::_::assemble",
+
+  # `Program`'s diagnostics and prover-side advice: string formatting (`site_at`), a slice
+  # pattern Aeneas mistranslates ("Inconsistent projection", `code_len`), `find` (excluded
+  # below, `fn_at`), `HashMap::insert` (`set_witness`).
+  "crate::cpu::_::site_at",
+  "crate::cpu::_::code_len",
+  "crate::cpu::_::fn_at",
+  "crate::cpu::_::set_witness",
+  # Derived `Clone` of a struct holding a `Vec` of tuples: Aeneas's builtin tuple `Clone`
+  # does not match the hax Lean library's.
+  "{impl core::clone::Clone for crate::cpu::Program}",
+  # The same mismatch, in an array of tuples (tables.rs:410).
+  "crate::tables::KECCAK_CELLS",
+
+  # `GPow`'s hash index: Aeneas rejects the `u32` arithmetic on its probe chain ("Unimplemented
+  # binary operation", hints.rs:112 and :161), and `new` steps a `RangeInclusive`, which the
+  # hax Lean library cannot iterate.
+  "crate::cpu::hints::_::new",
+  "crate::cpu::hints::_::note",
+  "crate::cpu::hints::_::widen",
+
+  # A bus coordinate (`leaf::Coord`) nests itself in a `Vec` (`Coord::Sum`), which Lean
+  # rejects as a nested inductive, so `leaf` keeps it opaque, and everything that builds one is
+  # opaque too: the flush builder and every table's `flushes`.
+  "crate::tables::_::pair",
+  "crate::tables::_::state_step",
+  "crate::tables::_::state_derived",
+  "crate::tables::_::bytecode",
+  "crate::tables::_::memory_coords",
+  "crate::tables::_::memory",
+  "crate::tables::_::memory_k",
+  "crate::tables::arith_result",  # also indexes a constant table of slices (`TOWER_LANES`)
+  "crate::tables::deref_store",
+  "crate::tables::layout_limb",
+  "{impl crate::tables::Table for _}::flushes",
+  # Filling a table's columns: `parallel` dispatch, raw pointers, atomics (`FillCtx`). Its
+  # methods are named by `_` because Charon does not match the impl `{FillCtx<'a>}`, so
+  # `FlushBuilder::new` is opaque with `FillCtx::new`.
+  "crate::tables::FillCtx",
+  "crate::tables::_::new",
+  "crate::tables::_::g_at",
+  "crate::tables::_::ternary_operands",
+  "crate::tables::_::col",
+  "crate::tables::_::cols",
+  "crate::tables::_::cols_at",
+  "crate::tables::_::limbs",
+  "{impl crate::tables::Table for _}::fill",
+
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::cpu::hints::bounded_dlog",  # Aeneas: not implemented yet
+  "crate::cpu::pi_point",  # Aeneas: unexpected error
+  "crate::cpu::slot_claim",  # Aeneas: unexpected error
+  "crate::eq::eq_sums",  # Aeneas: internal error, please file an issue
+  "crate::prover::_::combine_rows",  # Aeneas: internal error: please file an issue
+  "crate::prover::_::dot_rows",  # Aeneas: internal error: please file an issue
+  "crate::prover::_::prove",  # Aeneas: internal error: please file an issue
+  "crate::prover::{impl isa::prover::Prover for crate::prover::StableProver}::combine_rows",  # Aeneas: internal error: please file an issue
+  "crate::prover::{impl isa::prover::Prover for crate::prover::StableProver}::dot_rows",  # Aeneas: internal error: please file an issue
+  "crate::prover::{impl isa::prover::Prover for crate::prover::StableProver}::prove",  # Aeneas: internal error: please file an issue
+  "crate::tables::_::constraint",  # Aeneas: unexpected error
+  "crate::cpu::hints::GPow",  # Lean: unknown identifier `core.hash.buildhasherdefault`
+  "crate::cpu::hints::_::grow_to",  # Aeneas: unexpected error
+  "crate::cpu::hints::_::lookup",  # Aeneas: unexpected error
+  "crate::cpu::hints::_::pow",  # Aeneas: unexpected error
+  "crate::cpu::hints::_::resolve",  # Aeneas: unexpected error
+  "crate::cpu::announce_public",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::cpu::hints::_::log_below",  # Lean: type mismatch
+  "crate::filled",  # Lean: unknown identifier `stable_parallel.filled`
+  "crate::prover::{impl isa::prover::Prover for crate::prover::StableProver}::set_num_threads",  # Lean: unknown identifier `stable_parallel.set_num_threads`
+]
+exclude = [
+  # `&dyn Table`: Aeneas has no dynamic trait types, and an opaque item still needs its
+  # signature translated.
+  "crate::tables::tables",
+  "crate::tables::fill_table",
+  # Their signatures crash Aeneas while translating the `Iterator` trait; the crate's uses are
+  # all in opaque items.
+  "core::iter::traits::iterator::Iterator::copied",
+  "core::iter::traits::iterator::Iterator::find",
+  "core::slice::iter::_::find",
+  "core::iter::traits::iterator::Iterator::unzip",
+  "core::iter::traits::iterator::Iterator::cloned",
+  "{impl core::hash::Hasher for crate::cpu::hints::QuickHasher}",  # Lean: `write_u32` is not a field of structure `core.hash.hasher`
+]

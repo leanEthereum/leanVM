@@ -1,0 +1,97 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/keccak-gkr/lean.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+[scenario.keccak-gkr]
+backend = "lean"
+opaque = [
+  # Parallel dispatch (`parallel::*`, threads) over closures that borrow the caller's state, and
+  # the raw pointers (`SendPtr`) the workers write their disjoint slices through.
+  "crate::_::of_inputs",
+  "crate::open::fold_packs",
+  "crate::open::output_claim",
+  "crate::open::spare_slices",
+  "crate::prover::_::pack_products",
+  "crate::prover::_::skip_sums",
+  "crate::prover::_::table",
+  "crate::prover::_::fold",
+  "crate::witness::_::generate",
+  "crate::witness::_::from_blocks",
+  "crate::witness::_::from_extents",
+  "crate::witness::block",
+  "crate::witness::block_lanes",
+  "crate::witness::_::write",
+  "crate::witness::_::write_block",
+  "crate::witness::_::slot",  # a raw pointer into the extent
+
+  # Reached only from the parallel passes above, and each stops Aeneas on its own: arrays of
+  # borrows (`[&[u64; 3]; 5]`, `[(&mut _, _); 2]`), `as_chunks`/`iter_mut` zips, `get_unchecked`.
+  "crate::prover::_::pack",
+  "crate::prover::_::add_rows",
+  "crate::prover::_::factors",  # two mutable sub-slices in one tuple
+  "crate::prover::_::add_pair",  # a loop over `[low, high]`
+  "crate::prover::_::add_padding",  # an `as_chunks` zip
+  "crate::kernels::skip_row_portable",  # an array of borrows: Aeneas's nested borrows
+  "crate::kernels::_::run",  # builds that array of borrows
+  "crate::power::dot_pair_portable",  # a loop over `[(&mut _, _); 2]`
+  "crate::power::_::dot_pair",  # its arrays of rows and a `chain(..).all(..)`
+  "crate::open::le_bytes",
+
+
+  # Its NEON arm is under a bare `cfg(target_arch = "aarch64")`, so its body differs by host.
+  "crate::prover::_::add",
+
+  # Its body is chosen by `cfg_select!` on a bare `target_arch` (the NEON transpose on every
+  # aarch64 host), so only the signature is the same on every host.
+  "crate::witness::transpose64",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::kernels::field_map",  # Aeneas: unimplemented
+  "crate::skip::_::new",  # Aeneas: internal error: please file an issue
+  "crate::kernels::embed_run",  # Aeneas: could not match the contexts
+  "crate::layer::_::task_weights",  # Aeneas: internal error: please file an issue
+  "crate::open::open_inputs",  # Aeneas: unreachable
+  "crate::open::slices",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::product::block_sums",  # Aeneas: could not match the contexts
+  "crate::product::polynomial",  # Aeneas: unimplemented
+  "crate::protocol::instance_weights",  # Aeneas: internal error: please file an issue
+  "crate::skip::block_sums",  # Aeneas: unreachable
+  "crate::skip::sums",  # Aeneas: internal error: please file an issue
+  "crate::table::_::rows",  # Aeneas: could not match the contexts
+  "crate::table::fill",  # Aeneas: found a case of unsupported nested borrows
+  "crate::table::fold_rows",  # Aeneas: could not read a borrow
+  "crate::table::prove_rounds",  # Aeneas: can not apply a projection to the ⊥ value
+  "crate::witness::commit_states",  # Aeneas: joining region abstractions containing shared loans whose shared value
+  "crate::witness::run_block",  # Aeneas: internal error: please file an issue
+  "crate::_::prove",  # Lean: type mismatch
+  "crate::kernels::map_sums",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+  "crate::layer::_::round",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::layer::prove_layer",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::layer::prove_positions",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::open::open_outputs",  # Lean: unknown constant `stable_primitives.transcript.pool.insts.fiat_shamir_
+  "crate::protocol::first_claim",  # Lean: unknown identifier `alloc.array.insts.coreconverttryfromvecvec.try_fro
+  "crate::skip::_::eval",  # Lean: unknown identifier `core.p.insts.coreopsfunctionfnmuttupleu64arrayu88`
+  "crate::skip::extend",  # Lean: unknown identifier `core.sharedaarray.insts.coreitertraitscollectintoi
+  "crate::skip::prove_rounds",  # Lean: unknown constant `core.iter.traits.iterator.iterator.sum.default`
+  "crate::table::_::new",  # Lean: unknown identifier `stable_parallel.filled`
+]
+exclude = [
+  # Their signatures crash Aeneas while translating the `Iterator` trait.
+  "core::iter::traits::iterator::Iterator::find",
+  "core::slice::iter::_::find",
+  # The vector kernels, under `cfg(target_arch)`: out of scope, and the NEON ones exist on every
+  # aarch64 host, not only with a feature on.
+  "crate::witness::neon",
+  "crate::witness::avx2",
+  "crate::witness::x86",
+  # The derived `Clone` of a column, whose phantom field borrows the committed block mutably:
+  # Aeneas gives its `clone` a backward function the `Clone` model has no room for. Used only by
+  # the opaque witness writers.
+  "{impl core::clone::Clone for crate::witness::Column}",
+  "{impl core::marker::Copy for crate::witness::Column}",
+  "core::iter::traits::iterator::Iterator::cloned",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::copied",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::filter",  # its signature crashes Aeneas on the `Iterator` trait
+  "core::iter::traits::iterator::Iterator::unzip",  # its signature crashes Aeneas on the `Iterator` trait
+]

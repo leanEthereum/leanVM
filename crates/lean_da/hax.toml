@@ -1,0 +1,30 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/lean-da/lean.
+[scenario.lean-da]
+backend = "lean"
+opaque = [
+  # A reinterpreting cast (`unsafe`): field elements as their limbs, symbols as bytes.
+  "crate::encode::encode_rows",  # encode.rs:36, the NTT over the codeword as `F64`s
+  "crate::membership::dual_codeword",  # membership.rs:71, the NTT over the `F192` limbs
+  "crate::commit::as_bytes",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::commit::_::column",  # Aeneas: internal error, please file an issue
+  "crate::commit::_::merkle_path_for_cell",  # Aeneas: end_abs_aux: detected a loop in the chain of ids: abs@2(level:0) -> ab
+  "crate::commit::blob_merkle_nodes",  # Aeneas: unimplemented
+  "crate::commit::_::build",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::commit::_::cell",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::commit::_::row",  # Lean: unknown identifier `core.slice.slice.as_chunks`
+  "crate::commit::fill_levels",  # Lean: unknown identifier `keccak256.lanes.hash_many`
+  "crate::commit::verify_cell",  # Lean: unknown identifier `core.sharedaarray.insts.coreitertraitscollectintoi
+]
+exclude = [
+  # Its only caller, `encode_rows`, is opaque.
+  "crate::encode::as_field_mut",
+  # Serde: the derived (de)serializers, which Aeneas cannot translate (a visitor mutually
+  # recursive with its trait impl).
+  "{impl serde_core::ser::Serialize for _}",
+  "{impl serde_core::de::Deserialize for _}",
+  "crate::commit::siblings",  # Lean: unknown identifier `core.iter.sources.from_fn.fromfn`
+]

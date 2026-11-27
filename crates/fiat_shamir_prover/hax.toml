@@ -1,0 +1,32 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/fiat-shamir-prover/lean.
+#
+# `opaque` items are extracted as signatures only, axioms in Assumptions/FunsExternal.lean.
+[scenario.fiat-shamir-prover]
+backend = "lean"
+opaque = [
+  # Proof-of-work search: a parallel batched search (`parallel::find_first`) whose closure
+  # borrows the state, which Aeneas cannot join across the loop (lib.rs:172).
+  "crate::_::grind_pow",
+
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::_::find_first",  # Aeneas: internal error: please file an issue
+  "crate::{impl crate::Search for crate::Sequential}::find_first",  # Aeneas: internal error: please file an issue
+  "crate::_::grind_from",  # Lean: unknown identifier `keccak256.lanes.first_nonce`
+  "crate::_::sample",  # Lean: type mismatch
+  "crate::_::sample_vec",  # Lean: type mismatch
+  "crate::merkle::hash_words",  # Lean: invalid field `flat_map`: the environment does not contain `core.iter.
+  "crate::merkle::open",  # Lean: invalid field `map`: the environment does not contain `core.iter.trait
+]
+exclude = [
+  # Wire encoding, derived by serde: its traits are mutually recursive, which Aeneas does not
+  # model, and `Deserialize`'s visitors do not translate.
+  "{impl serde_core::ser::Serialize for crate::merkle::PrunedMerklePaths}",
+  "{impl serde_core::de::Deserialize for crate::merkle::PrunedMerklePaths}",
+  "{impl serde_core::ser::Serialize for crate::transcript::Proof}",
+  "{impl serde_core::de::Deserialize for crate::transcript::Proof}",
+  # Their signatures crash Aeneas while translating the `Iterator` trait.
+  "core::iter::traits::iterator::Iterator::find",
+  "core::slice::iter::_::find",
+]

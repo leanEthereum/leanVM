@@ -1,0 +1,29 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/parallel/lean.
+#
+# A thread pool: workers, atomics, parking, `thread_local!`, and raw pointers handed across
+# threads, none of which the toolchain translates. The extraction is scoped to the pure
+# arithmetic the pool's callers read (`include`); the pool's shape, which depends on the host
+# and the environment, is an opaque item.
+[scenario.parallel]
+backend = "lean"
+include = [
+  "crate::init",
+  "crate::SendPtr",
+  "crate::chunks_mut",
+  "crate::map_collect",
+  "crate::map_reduce",
+  "crate::find_first",
+]
+opaque = [
+  # Read once from `LEANVM_NUM_THREADS` and the OS into a `OnceLock`.
+  "crate::topology::topology",
+
+  # The entry points the extracted crates call: dispatches to the pool. (`SendPtr`, the raw
+  # pointer they hand it, is transparent: they build one.)
+  "crate::init",
+  "crate::chunks_mut",
+  "crate::map_collect",
+  "crate::map_reduce",
+  "crate::find_first",
+]

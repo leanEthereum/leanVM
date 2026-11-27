@@ -1,0 +1,13 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/claims/lean.
+[scenario.claims]
+backend = "lean"
+opaque = [
+  # Rejected since the sync with upstream of 2026-11-23: each to be patched, modelled, or reduced to a
+  # reportable case.
+  "crate::_::from_bytes",  # Aeneas: unimplemented
+  "crate::_::to_bytes",  # Aeneas: unimplemented
+  "crate::decode_claims",  # Lean: unknown identifier `core.slice.slice.split_first_chunk`
+  "crate::encode_claims",  # Lean: unknown constant `alloc.vec.vec.insts.coreitertraitscollectextend.exte
+  "crate::{impl core::clone::Clone for crate::AggregateClaims}::clone",  # Lean: application type mismatch: the argument
+]
