@@ -1,11 +1,11 @@
-# Defence: wave 6g, first pass: a `FlushesFormT` move lemma (`FlushesMoveT`), `Flushes::memory` (197), `Flushes::memory_if` (210), SUMARR_TITLE; a finding against the `Flushes` builders' postconditions (what `tables` (175) needs); everything else on the list not done
+# Defence: wave 6g, first pass: a `FlushesFormT` move lemma (`FlushesMoveT`), `Flushes::memory` (197), `Flushes::memory_if` (210), `<Form>::sum::<[Form; 3]>` (204); a finding against the `Flushes` builders' postconditions (what `tables` (175) needs); everything else on the list not done
 
-Base: 0152cc78ad. Head: HEAD_COMMIT (commits COMMITS).
-Check: CHECK_LINE
+Base: 0152cc78ad. Head: c022192588 (commits ad062c84da `FlushesMoveT` and `memory`, 3f58494141 `memory_if`, 27a6d22d46 notes, c022192588 `sum` of three).
+Check: `cd formal/rv64mc && timeout 3600 systemd-run --user --scope -q -p MemoryMax=16G lake build Rv64mc.Proof.Layout.FlushesMoveT Rv64mc.Proof.Layout.MemoryT Rv64mc.Proof.Layout.MemoryIfT Rv64mc.Proof.Layout.SumArr3T Rv64mc.Table.FlushesT6g Rv64mc.Table.FormT6g` -> `Build completed successfully (5444 jobs).` (the last run was cached; the fresh build lines from the per-commit runs of the same command over subsets: `Built Rv64mc.Proof.Layout.FlushesMoveT (5.9s)`, `MemoryT (20s)`, `MemoryIfT (28s)`, `SumArr3T (19s)`, `Table.FlushesT6g (4.0s)`, `Table.FormT6g (5.7s)`; no warnings from these modules).
 
 Skills loaded: lean4:prove, lean4:refactor, writing-lean-proofs (all three available; I followed their no-statement-change and verify-mechanically rules, not their interactive prompts, since this is a scripted pass).
 
-Total functions after this pass: COUNT_LINE. Summary counts left to the merge, as asked.
+Total functions after this pass: `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` -> `174 10305` (the summary table says 171 before this pass: +197, +210, +204). Summary counts left to the merge, as asked.
 
 ## Decisions
 
@@ -34,27 +34,34 @@ Total functions after this pass: COUNT_LINE. Summary counts left to the merge, a
 - **`counted`'s Pre** at step 59: `cnt_pre` (prefix `[constant, address copy]` at `sp+0x30`, `form` the second sum at `sp+0x18`).
 - **Engineering (a reviewer may question)**: first attempt kept all the reasoning inside `total` after `rv_autoT`; it timed out (200000 heartbeats at `whnf`). The fix moved every arithmetic step into lemmas with small contexts (`at2`, `at4`, `at6`, `cnt_pre`, `saved_read`, `post`, `saved_frame`, `chain_frame`), so `total` only applies them. One executor run over the whole body (seven calls). `exact cnt_pre ... rfl ...` hit `maxRecDepth` (the 6e pitfall); `refine ... ?_` then `all_goals rfl` works. No `maxHeartbeats` raised.
 
-SUMARR_ENTRY
-
 ### D4. Finding: the `Flushes` builders' postconditions do not give what `tables` (175) needs
 - **Checked as the task asks** ("each Flushes builder's result against tables (175)"). `tables` allocates the `Vec<Table>` buffer (`x9 = alloc(480)`, template instruction 57) after `flushes_keccak` but before `flushes_arith` (twice), `flushes_set`, `flushes_deref`, `flushes_jump`; at the end it `memcpy`s each 72-byte `Table` (its `Flushes` at `+0x18`) into that buffer (instructions 169 to 202). For each `Flushes` copied earlier to stay `FlushesFormT` (D1's `move`, `hf`), every builder result's footprint must avoid that buffer. `FlushesFormT` says the footprint is below `NEXT` and apart from the `Flushes`' own buffers only; the buffer `x9` is below `NEXT` at the builders' entries, so nothing in the current posts excludes a footprint word inside it.
 - **What would fix it**: builders' posts with "the result's `FFoot` lies at or above `NEXT` at entry" (true: each starts from `Flushes::default()`), which needs a footprint monotonicity (`FFoot m' self x → FFoot m self x ∨ next m ≤ x`; for `state_derived` also `npc`'s/`nfp`'s terms) of `pair`, `state_derived`, `state_step`, `counted`, `memory`, `memory_if`, `bytecode`, `memory_cols`. `pair`'s follows from `PairT.PostT` alone; `state_derived`'s and `counted`'s need new proofs of their last parts (`fin`) because `StateDerivedT.PostT` drops the pushed vectors' freshness (`NewV`, `held3`) that their proofs have at `pair`'s call. `CountedT.mid` and `StateDerivedT.mid` take their continuation as a hypothesis, so only `fin` and `total` would be re-run.
 - **What I did**: recorded it as an obligation (`notes/total-status.md`, "Obligations", the `tables` entry) and under "Owed by contracts already total". I kept `MemoryT`/`MemoryIfT`'s posts equal to `counted`'s (`StateDerivedT.PostT`), since a stronger post cannot be derived from `counted`'s current one. When the second contracts exist, `memory` and `memory_if` need second contracts too (their proofs are post-agnostic up to `post`, which forwards `counted`'s).
 - **Rejected**: (a) giving `memory`/`memory_if` a fresh-footprint post now: not provable from `CountedT.SpecT`. (b) Re-proving `state_derived`, `state_step`, `counted` with the stronger post in this pass: a 1000-line and a 630-line module's `fin` and `total`; I judged it would have consumed the pass (it is the next thing I would do). (c) Ignoring it: `tables` would then be unprovable with these posts, and the task names this check explicitly.
 
+### D5. `<Form>::sum::<[Form; 3]>` (204): `Proof/Layout/SumArr3T.lean`, `Table/FormT6g.sumArr3`
+- **Contract**: `PreT` = `sret` (`a0`) `StackObj`, 8-aligned; the array (`a1`) `StackObj` of 72 bytes, `FormsT ... 3`. `PostT` = `FormT` of `sret` at exit and `MemoryIfT.Fresh40` (its whole terms' block, to capacity, in `[NEXT at entry, NEXT at exit)`, or capacity 0). `OutT` = `sret`'s 24 bytes. `Stop = AbortStop`. Safety only (class D).
+- **Why `Fresh40` in the post**: its only caller `flushes_deref` (190, step 89; cg.json agrees) passes the sum on to later builder steps (`memory`'s `values`, `state_step`'s operands), and a fresh block is what lets a later `add`/`counted` show apartness from blocks it already holds (`add_pre`'s and `TermsApart`'s shape). Not used yet by any proof.
+- **Call site**: `sret = sp + 0x18`, the array `sp + 0x30` holding `col(9, 0)` (step 73) and `prod(5, 9, 0)`, `prod(6, 9, 0)` (steps 79, 85): frame slots; their `FormT` from `ColAlT`/`ProdAlT` with `formT_of`. Argued; new obligation entry.
+- **The three `add`s** (`pre_at`): `self` is `Form::zero()` (capacity 0, `zero_ok`) and then the running sum moved to `sp + 0x18` (`step`, `StateDerivedT.FormT.move`); its block is fresh since the entry or empty (`Inv`'s `Fresh40`, from `MemoryIfT.add_res`), while `other` (the array's element, in the caller's frame, terms below `NEXT` at the entry) lies before it, which is `FormAddT.PreT`'s apartness. These are three more of the fourteen sites of the 193 obligation entry, noted there.
+- **Engineering a reviewer may question**: (1) `fin` is `@[irreducible]`: the final memory is a three-store chain over `add`'s output; `exact s8` against the executor's goal (`Tactic.rf ... .x1 = ret`) ran for minutes and several GB (killed at 200 to 400 s, repeatedly) both with the chain unfolded and after sealing it, until the register file's projection was rewritten first (`rw [Tactic.rf_get_x1]`); `simp only [Tactic.rf_get_x2, ...]` over the thirteen ABI goals also ran away, so each is closed by its own `rw [Tactic.rf_get_xk]`. I did not find the exact cause; the sealing plus per-register `rw` is what works (19 s build). (2) The state after each `add` and the copies is a lemma (`after`, `step`), as in D3.
+
+
 ## Invariants of the whole change
-- Only new Lean files plus README and notes: `git diff --name-status 0152cc78ad HEAD` lists `A` for NEWFILES and `M` for `formal/rv64mc/README.md`, `formal/rv64mc/notes/total-status.md`.
+- Only new Lean files plus README and notes: `git diff --name-status 0152cc78ad HEAD` lists `A` for `Proof/Layout/FlushesMoveT.lean`, `MemoryT.lean`, `MemoryIfT.lean`, `SumArr3T.lean`, `Table/FlushesT6g.lean`, `Table/FormT6g.lean` and `M` for `formal/rv64mc/README.md`, `formal/rv64mc/notes/total-status.md`.
 - No `sorry`, `admit`, `axiom`, `native_decide`, `bv_decide`, `implemented_by`, `maxHeartbeats`: `git diff 0152cc78ad HEAD -- '*.lean' | grep -cE '^\+.*\b(sorry|admit|native_decide|bv_decide|implemented_by|maxHeartbeats)\b|^\+axiom'` -> `0`.
-- IRREDUCIBLE_LINE
-- `#guard_msgs in #print axioms` pinning `[propext, Classical.choice, Quot.sound]` on `FlushesMoveT.move`, `MemoryT.total`, `MemoryIfT.total`, SUMARR_PINS `FlushesT6g.memory`, `FlushesT6g.memoryIf`.
+- Eight `@[irreducible]` definitions added (`git diff 0152cc78ad HEAD | grep '^+.*irreducible'`): `MemoryT.PreS`, `KPre`, `KPost`; `MemoryIfT.PreS`, `APre`, `APost`; `SumArr3T.PreS`, `fin`. The first seven are definitional aliases of an existing pre or post (as waves 6e's `PPre`, `CPre`); `fin` is the final store chain (D5), with `fin_eq` its unfolding. Each is unfolded only by its `*_eq` lemma or `unfold` where it is proved or applied; no `SpecT`/`PreT`/`PostT` mentions one.
+- `#guard_msgs in #print axioms` pinning `[propext, Classical.choice, Quot.sound]` on `FlushesMoveT.move`, `MemoryT.total`, `MemoryIfT.total`, `SumArr3T.total`, `FormT6g.sumArr3`, `FlushesT6g.memory`, `FlushesT6g.memoryIf`.
 - No em or en dash added: `git diff 0152cc78ad HEAD | grep "^+" | grep -c "—\|–"` -> `0`.
-- Open hypotheses of the new `Table` theorems: `memory`, `memoryIf`: env; clmul table; `Vec<Form> spec_extend bound (InData)`, `[&[Form]] concat bound (InData)` (all through `counted`, as `FlushesT6e.counted` has them; all already in the legend). SUMARR_TABLE No new environment fact.
+- Open hypotheses of the new `Table` theorems: `memory`, `memoryIf`: env; clmul table; `Vec<Form> spec_extend bound (InData)`, `[&[Form]] concat bound (InData)` (all through `counted`, as `FlushesT6e.counted` has them; all already in the legend). `sumArr3`: env; clmul table (through `add`). No new environment fact.
 - `Tactic/`, `Gen/`, every existing `.lean` file untouched.
 
 ## Not done (in list order)
+- **Order**: I took `<Form>::sum::<[Form; 3]>` (204) before `bytecode` (195) and `memory_cols` (196), which precede it on the list, because its shape (three `add`s, no loop) fitted the remaining budget and `bytecode`/`memory_cols` did not; neither was started, so nothing of theirs is half done.
 - **`bytecode` (195)**: not started. Shape read: `alloc(24 (1 + len))`, two `Vec<Form>::spec_extend`s into it (`SpecExtendFormT`, one source the 24-byte block `constant` filled, one the argument vector), a drop, `gpow`, `col`, `counted`. Every callee is total; the obstacle is volume only.
 - **`memory_cols` (196)**: not started. Shape read: it loads `columns[0]` without a length check (the callers pass lengths 1 or 2), so its `Pre` must ask `1 ≤ len` and the words readable; it moves `Form` headers through several frame slots before calling `memory`. Every callee is total.
-- **The `Form::sum` family**: SUMARR_NOTDONE `207` (a loop over a mapped iterator with `prod`), `211` (a flattening loop with `memcpy`), `203` (a chain of two array iterators with `memcpy` and a partial drop): not started.
+- **The `Form::sum` family**: `204` is done (D5); `207` (a loop over a mapped iterator with `prod`), `211` (a flattening loop with `memcpy`), `203` (a chain of two array iterators with `memcpy` and a partial drop): not started.
 - **`layout_limb` (209)** (needs 211), the `flushes_*` (187 to 191), `tables` (175), `build_layout` (45), `group_by_word` (218), `StackWeight::evaluate` (99), `ColumnClaim::on_stack` (130): not started. `tables` is additionally blocked by D4. `flushes_jump`'s discharge of 6e's argued `TermsApart` (the empty `Flushes`) is therefore not proved yet.
 - `notes/total-status.md` summary counts: left to the merge.
 
@@ -63,4 +70,5 @@ SUMARR_ENTRY
 - **`MemoryT.PreT`/`MemoryIfT.PreT`'s `StackObj` of `address`**: argued at all five image sites (frame slots, or `memory_cols`' argument), not proved. A heap `address` would make the contract vacuous there.
 - **`SliceFT` of `values`**: argued (frame arrays at every site), as for `counted`'s `b`.
 - **`FlushesMoveT` is unused** in this pass (D1); its hypotheses were designed for `tables`' heap copy, but no proof has exercised them yet.
-- **Sealed aliases**: `MemoryT.PreS`, `KPre`, `KPost`, `MemoryIfT.PreS`, `APre`, `APost`SUMARR_SEALED, each a definitional alias of an existing pre/post, unfolded only where proved or applied.
+- **Executor runaways not understood** (D5): `exact` or `simp only` against a goal `Tactic.rf ... .xk = v` whose arguments contain a store chain ran for minutes; per-register `rw [Tactic.rf_get_xk]` works. A reviewer who knows `Tactic.rf`'s compilation may see the real cause.
+- **Sealed aliases**: `MemoryT.PreS`, `KPre`, `KPost`, `MemoryIfT.PreS`, `APre`, `APost`, `SumArr3T.PreS`, `fin`, each a definitional alias of an existing pre/post, unfolded only where proved or applied.

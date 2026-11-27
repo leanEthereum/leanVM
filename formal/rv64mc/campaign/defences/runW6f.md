@@ -1,6 +1,6 @@
 # Defence: wave 6f, pass 1: the five `E::sum` closures (18, 29, 33, 24, 27), `Input::digest` (5), `Scaler::new` (93) and `novel_eval` (80) total with `Table` instances; `ring_switch` (61) and the rest of the list not done
 
-Base: e0b25661c3. Head: aca10074f6 (branch formal/rv64mc-total-w6f, worktree /home/devops/leanEthereum/leanVM-t-symt, 11 commits, not pushed: 97e9d48e53 (18), 1b59d23eb8 (29), c65fdd8cbf (33), 0f51bb38f6 (24), a9dfcf15bb (27), f5cf0dcdc9 (header width), 0b76d8fa08 (5), da8d428d46 (93), 30326ae345 (80), d9b2ec57a9 (README), aca10074f6 (obligations)).
+Base: e0b25661c3. Head: dda69ebd22 after pass 2 (see "## Pass 2"; pass 1's head was aca10074f6) (branch formal/rv64mc-total-w6f, worktree /home/devops/leanEthereum/leanVM-t-symt, pass 1's 11 commits, not pushed: 97e9d48e53 (18), 1b59d23eb8 (29), c65fdd8cbf (33), 0f51bb38f6 (24), a9dfcf15bb (27), f5cf0dcdc9 (header width), 0b76d8fa08 (5), da8d428d46 (93), 30326ae345 (80), d9b2ec57a9 (README), aca10074f6 (obligations)).
 
 Check: `cd formal/rv64mc && timeout 3600 systemd-run --user --scope -q -p MemoryMax=16G lake build Rv64mc.Proof.Field.ESumNovelT Rv64mc.Proof.Field.ESumProjectT Rv64mc.Proof.Field.ESumFormT Rv64mc.Proof.Field.ESumBlockT Rv64mc.Proof.Field.ESumLaneT Rv64mc.Proof.Runtime.InputDigestT Rv64mc.Proof.Multilinear.ScalerNewT Rv64mc.Proof.Whir.NovelEvalT Rv64mc.Table.SumT6f Rv64mc.Table.RuntimeT6f Rv64mc.Table.MultilinearT6f Rv64mc.Table.WhirT6f` -> `Build completed successfully (5546 jobs).` (the final run cached; each module was rebuilt by `lake build` after its last source change, with `warningAsError`: two linter failures, an unused hypothesis in `ESumFormT.off_eq` and a dead `all_goals rv_closeT` in `InputDigestT.total`, were fixed that way). Build times from those runs (`lake build`'s own report): `ESumNovelT` 17 s, `ESumProjectT` 15 s, `ESumFormT` 16 s, `ESumBlockT` about 34 s (`lake env lean`), `ESumLaneT` 77 s, `InputDigestT` 24 s, `ScalerNewT` 9 s, `NovelEvalT` 9 s, the `Table` modules under 8 s each.
 
@@ -89,3 +89,67 @@ Skills: lean4:prove, lean4:refactor and writing-lean-proofs loaded.
 - `ESumProjectT` and `ESumNovelT`/`ESumLaneT` state `index = 0` for the zip or range start as given; `ESumProjectT` handles any start (the `max(start, 16)` bound), the zips do not (a nonzero index is not covered). All callers in the image pass `0` (checked in the templates of 80, 32 is a range not a zip, 138 not read beyond the brief's argument).
 - `MultilinearT6f.scalerNew` carries a non-environment hypothesis (D5); a reviewer may prefer it not to be a `Table` theorem at all.
 - `InputDigestT`'s frame `Out := DigestOut` includes the reader's two words; `InputWordT`'s `WordOut` is included by `call_ok`'s `hout`. The final `Frame` at the return comes from `Mem` (`epi` reads `hI` facts), not from a separate lemma; check that the returned `HoldsT.post`'s frame is `Frame top (DigestOut regs m) m m'` with the entry's `regs`, not the callee's.
+
+## Pass 2
+
+Head: dda69ebd22 (3 commits on aca10074f6, not pushed: 56b229de90 (61), fedf08d0b8 (86), dda69ebd22 (97)). Skills: lean4:prove, lean4:refactor and writing-lean-proofs loaded.
+
+Check: `cd formal/rv64mc && timeout 3600 systemd-run --user --scope -q -p MemoryMax=16G lake build Rv64mc.Proof.Whir.RingSwitchT Rv64mc.Proof.Whir.LanesOfT Rv64mc.Proof.Whir.InducedWeightT Rv64mc.Table.WhirT6f` -> `Build completed successfully (5638 jobs).` (each module rebuilt by `lake build` after its last change: `RingSwitchT` 58 s, `LanesOfT` 44 s, `InducedWeightT` 48 s, `WhirT6f` 10 s; no warnings from `lake env lean` on the three proof files).
+
+### What is done
+
+| idx | function | contract | module | `Table` theorem | open hypotheses |
+|---|---|---|---|---|---|
+| 61 | `ring_switch` | `RingSwitchT.specT` (safety, `TranscriptAtT`/`OwnedT` kept, proof's address kept, `OkW`; `Out` the slot, sponge, stream offset; `AbortStop`) | Proof/Whir/RingSwitchT | WhirT6f.ringSwitch | env; clmul table; keccak tables (InData) |
+| 86 | `verify_whir`'s `lanes_of` closure | `LanesOfT.specT` (the slot `VecT` of `len` (level `0`) or `len / 2` elements, fresh unless no capacity; `SretOut 24`; `AbortStop`) | Proof/Whir/LanesOfT | WhirT6f.lanesOf | env |
+| 97 | `induced_weight` | `InducedWeightT.specT` (safety, `Post := True`, `SretOut 24`, `AbortStop`) | Proof/Whir/InducedWeightT | WhirT6f.inducedWeight | env; clmul table |
+
+`awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` -> `175 10523` (pass 1 `172 10252`). Each `total` and each new `Table` theorem has a `#guard_msgs in #print axioms` pinning `[propext, Classical.choice, Quot.sound]`.
+
+### Decisions
+
+#### P2-D1. `ring_switch` (61): safety with the transcript kept; the functional `switchSpec` owed
+- **What**: `PreT`: transcript (`a4`) `TranscriptAtT` and `OwnedT`; slot (`a0`, 64 bytes) `InWin`, aligned, `Owned`, `Apart` from the transcript and from its proof; point header (`a1`) `VecT 16`, `Owned 24`, `Apart` from the transcript and from the slot; `s` (`a2`, `a3`) none or `InWin` and aligned. `PostT`: `TranscriptAtT`, `OwnedT` at `sp`, the proof's address kept, `OkW` (unless the word at `slot + 16` is the niche `-1`, `VecT` at `slot + 16` and `slot + 40`, the weight's point and coefficients). `Out`: the slot, the sponge (328 bytes), the stream offset (narrower than the partial `SwitchOut`, so better for callers). `Stop := AbortStop`.
+- **Why safety**: class C; the functional contract needs `samples`', `ring_coefficients`' and `ring_target`'s functional contracts, all safety-only. Recorded in "Owed by contracts already total".
+- **Why `OkW`**: `walk` (42) passes the weight at `slot + 16` to `RingWeight::evaluate`, whose `PreT` asks `VecT` at the weight and at `weight + 24`; checked against `RingWeightEvaluateT.PreT`.
+- **Why the point's `Owned` and two `Apart`s**: the header is read at instruction 96 after four calls; `point_kept` reads it through `Mem`'s frame (`getMem_owned_out`), which needs the header owned by the caller and outside `Out` (the slot, sponge, stream offset).
+- **Structure** (D3 of pass 1's plan, redone): one executor run over two calls timed out (tried: `rt_ok` over `ring_coefficients` and `ring_target`, and `mid_ok` over `grind_check` and `samples`), so nine parts, each over at most one call: `kept` (prologue to instruction 32; the `PreT` facts packed into `Ctx` and cleared before the run), `mid_ok` (`grind_check`, the branch), `err_ok`, `sam_ok`, `len_ok`, `rc_ok`, `rt_ok`, `fin_ok`, `out_ok`. Each part's invariant is a register predicate (`ARegs`, `BRegs`, `CRegs`, `RRegs`, `DRegs`, `GRegs`) and `BaseM` (`SavedT.MemOk` with the eight slots, `TranscriptAtT`, `OwnedT` at `top`, the proof's address). Heavy facts are hidden from the executor's closer in a `PLift` (as pass 1's `ESumLaneT`). `base_call` carries `BaseM` across a call whose `out` is frame words below the slots, the sponge and the stream offset (it derives `TranscriptAtT` by `frameS`), `sponge_keep` the sponge across a call writing none of it, `base_slot` `BaseM` across a frame store.
+- **The panic**: `len_ok` refutes `panic_fmt`'s branch (`samples(16)`'s `PostT` gives the length `16`); `panic_fmt` is not a hypothesis of `total`.
+- **Evidence**: `RingSwitchT.total`; `WhirT6f.ringSwitch` takes `TranscriptT3.grindCheck`, `TranscriptT3.samples`, `WhirT6d.ringCoefficients`, `WhirT6d.ringTarget`.
+
+#### P2-D2. `lanes_of` (86): `ExtRowT`'s pieces reused
+- **What**: `PreT` is `ExtRowT.PreT` on `(a0, a2, a3)` (slot `InWin`, aligned, `Owned`; the row `ExtRowT.SliceW`). `PostT`: `VecT 16` at the slot, its length `len` if `a1 = 0` else `len / 2`, its capacity `0` or its buffer fresh.
+- **Why reuse**: at level `0` its frame (64 bytes, five slots at the same offsets) and header at `sp` are `ext_row`'s, so `ExtRowT.Hdr`, `Hdr.push2`, `Hdr.vecT`, `Hdr.reserve` apply unchanged. `Hdr` contains `ExtRowT.Saved`, an existing five-slot definition: this module defines no new `Saved` (the brief's `SavedT` rule is about new definitions); I chose reuse over restating `Hdr` over `SavedT`.
+- **The tail call**: above level `0` the executor discharged `ExtRowT.PreT` at the tail call from `PreT` (no goal left), and `PostT` from `ExtRowT.PostT` (three goals, closed by unfolding `vecLen`/`vecCap`/`vecPtr`).
+- **Obligation struck**: `notes/total-status.md`'s `ext_row` entry said 86's proof must discharge `ExtRowT.PreT` at its tail call; it now does (marked struck, 74's call still argued).
+- **Loop**: `Total.loop` on the words left (`LInv`), the source read backwards from `row + 8 (k - 1)`, the end test against `row - 8` (no wrap: `row ≥ 8` from `InWin`).
+
+#### P2-D3. `induced_weight` (97): safety only
+- **What**: `PreT`: slot (24 bytes) `InWin`, aligned, `Owned`; `queries` (8-byte elements), `query_weights`, `point` (16-byte) each `SliceN` (none, or `InWin` and aligned). `Post := True`, `Out := SretOut 24`, `AbortStop`.
+- **Why `Post := True`**: class C; the partial `Post` is `Model.inducedWeightRust`'s value, which needs `Subspace::new`'s and `Subspace::at`'s functional contracts (owed). `GluedWeight::evaluate` (89) only returns the result. Recorded as owed.
+- **Structure**: `total` runs the prologue to `Subspace::new`'s call (instruction 48), the `point.len ≠ message_log` error path closing automatically; `new_ok` steps the call (its frame by `MemOk.call_at`, so no slot is read through the call; an earlier version read the 13 slots through the call by `simp`/`omega` per slot and took 11 minutes, so it was replaced), the count `min`, and builds `Frm` (`frm_init`); `outer` (`Total.loop` on queries left) steps `Subspace::at`; `inner` (`Total.loop` on pairs left) is `inner_a` (two `base_mul`s) then `inner_b` (`E::mul`, cursors, and through instruction 72 to the next query or the exit): three calls in one run timed out. `keep_call` carries `Mem` and `Frm` across a call whose `out` lies in `what`'s slot.
+- **Window facts**: each load's window is given to the closer as `inWindow ... = true` facts computed before the run (`InWin.dword`, `WinT.elem_toNat`); `what`'s buffer window from `Subspace::at`'s `VecT` (`BufT` with the length at most the capacity, the count at most the length).
+
+### Claims
+- No existing statement changed; no existing module edited except this wave's `Table/WhirT6f.lean` (three theorems and imports added), `notes/total-status.md` (rows 61, 86, 97; four obligation entries; two owed entries; one obligation struck) and `README.md` (one sentence per module). `git diff --stat aca10074f6 HEAD` lists exactly these plus the three new proof files.
+- No `sorry`, `admit`, `axiom`, `native_decide`, `bv_decide`, raised `maxHeartbeats` in the four Lean files (grep empty); no em or en dashes in them or the notes/README (grep count 0); lines within 120 columns.
+- Every loop has a `Total.loop` measure: `LanesOfT.loop` (words left), `InducedWeightT.outer` (queries left), `InducedWeightT.inner` (pairs left).
+
+### Call sites (Pre at every image caller, from `cg.json`)
+- 61's caller is 42 (`walk`) only: slot `sp + 0x2c0`, point `sp + 0x440`, transcript `sp + 0x98` (`Gen/Tmpl/Verifier/Walk.lean`, the call at `L.base + 0x938`): windows, alignment, `Owned` and the three frame-to-frame `Apart`s by offsets; `Apart` slot/proof as `ReadOodT.PreT` already asks of 42's callers' slots; argued, added to "Obligations".
+- 86's caller is 74 only: slot a frame slot, row `SliceW` from `merkle`'s opened leaves (`SliceKT`); argued, added.
+- 97's caller is 89 only: slot its own `sret`, slices from `VecT`s and `x`; argued, added.
+- Callee `Pre`s discharged by these proofs (machine-checked): `GrindCheckT.PreT`, `SamplesT.PreT`, `RingCoefficientsT.PreT`, `RingTargetT.PreT` at 61; `ExtRowT.PreT`, `ReserveSpecT`'s pre, `AllocPre` at 86; `SubspaceNewT.PreT`, `SubspaceAtT.PreT` (its `VecT`s from `Frm`) at 97.
+
+### Not done (pass 2)
+- `sumcheck_round_poly` (107): not started. 13 calls (`next_scalars`, `next_scalar`, `grind_check`, `grinding_bits`, `<[Vec<E>]>::concat`, `E::mul`, `E::sum`, `alloc`, `panic_nounwind_fmt`) and a transcript threaded through; at one call per executor run (what 61 needed) it is about seven parts with `BaseM`-style invariants (`RingSwitchT.base_call` is the pattern). Obstacle: budget.
+- `is_valid_encoding_of_a_leanisa_program` (216, class A, 287 instructions, two loops) and the `GenericShunt` (171): not started (budget).
+- `GluedWeight::evaluate` (89) became ready with 97 (`frontier_now.py`); class A, so its total contract with the partial postcondition rests on `induced_weight`'s partial spec (no proof), as `Scaler::new` did in pass 1 (D5). Not attempted.
+- Functional contracts recorded as owed: `ring_switch`'s `switchSpec`, `induced_weight`'s `spec`.
+
+### Where to look hardest
+- `RingSwitchT.PreT`'s point conjuncts (`Owned`, `Apart` from slot and transcript) at `walk`: argued from offsets only; `walk`'s point header at `sp + 0x440` must be the `Vec` moved in, not a reborrow of a heap header.
+- `RingSwitchT.Out` omits the transcript's other words: `base_call`'s `hout` obligations at each call show every callee writes only frame words, the sponge or the stream offset.
+- `LanesOfT.PostT`'s length uses `if regs .x11 = 0#64`: the closure's `level` is passed in `a1` by value (the template compares `a1` with `0` directly); check 74's template passes it so.
+- `InducedWeightT.keep_call`'s `hout` bound (`top - 128 ≤ a`, `a + 104 < top`): only `Subspace::at`'s slot; `base_mul`/`E::mul` write nothing.
+- `frm_init` and `new_ok`: `Frm`'s `sp + 0x10` word is `point + 8` from `R .x21 = regs .x16` (added to `NRegs`, closed by `rfl` at the entry).
