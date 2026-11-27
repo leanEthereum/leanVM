@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsComplete
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The arms, complete
@@ -108,7 +109,7 @@ theorem armT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {slots : Nat → Nat
   have hpe' : V.n eo ≠ V.n po := fun e => by simp only [V.mk.injEq, true_and] at e; exact hpe e.symm
   have hprodE : ∀ (p : Stmt) (a : Atom), SSA [p] → (∀ x ∈ Stmt.valsList [p], x = .n po ∨ NBv B x) →
       (∀ x ∈ outsList [p], x = .n po) → DefOK a → (∀ v ∈ aOuts a, v ∉ aReads a) → aOuts a = [.n eo] →
-      SSA ([p] ++ [.atom a]) ∧ ∀ x ∈ outsList ([p] ++ [.atom a]), x = .n po ∨ x = .n eo :=
+      SSA ([p] ⧺ [.atom a]) ∧ ∀ x ∈ outsList ([p] ⧺ [.atom a]), x = .n po ∨ x = .n eo :=
     fun p a hp hv ho hd hr he => ⟨SSA.append' hp (ssa_single_atom hd hr) hv (Q := fun x => x = .n eo)
       (fun x hx => by simpa [outsList, he] using hx) (fun x e h => by
         subst e

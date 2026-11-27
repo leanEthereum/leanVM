@@ -27,6 +27,7 @@ import LeanVM.Guest.Data.ValNames.«bus_grind_check__L7»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L8»
 import LeanVM.Guest.Data.ValNames.«bus_grind_check__L9»
 meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `bus_grind_check`
@@ -90,10 +91,10 @@ theorem busGrindBits_mem : ∀ d ∈ busGrindDeployed, busGrindBits d ∈ grindB
 def bgZero (d : ℕ) : ℕ := gcLen (busGrindBits d)
 
 /-- `bus_grind_check__L{d}`'s statements before its return: the grind, then the `0` it returns. -/
-def bgPre (d : ℕ) : List Stmt := gcPre (busGrindBits d) ++ [.atom (.const (.n (bgZero d)) (word 0 0))]
+def bgPre (d : ℕ) : List Stmt := gcPre (busGrindBits d) ⧺ [.atom (.const (.n (bgZero d)) (word 0 0))]
 
 /-- `bus_grind_check__L{d}`'s expansion: the grind, then `0` returned. -/
-def bgBody (d : ℕ) : List Stmt := bgPre d ++ [.ret [.n (bgZero d)]]
+def bgBody (d : ℕ) : List Stmt := bgPre d ⧺ [.ret [.n (bgZero d)]]
 
 set_option maxRecDepth 100000 in
 theorem bus_grind_check_found_0 : coreProgram.find? (busGrindName 0) = some

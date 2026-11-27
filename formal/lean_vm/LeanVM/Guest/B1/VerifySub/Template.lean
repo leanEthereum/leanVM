@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Whir.Split
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 public import LeanVM.Guest.B1.Tables.InterfaceP
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub` as a template
@@ -109,12 +110,12 @@ def vsHeadT : List Stmt :=
 /-- The eight announced words: `x_i` at `27 + 3 i` (`i < 4`) and `52 + 3 (i - 4)`, rows `1 .. 6`
 stored in `table_rows`, the first four absorbed after the fourth. -/
 def vsReadsT : List Stmt :=
-  fsNextT (.n (val% «verify_sub» "stream")) 0 (val% «verify_sub» "x@1") ++ fsNextT (.n (val% «verify_sub» "stream")) 1 (val% «verify_sub» "x@2") ++ [vsLd 30 26 0] ++ fsNextT (.n (val% «verify_sub» "stream")) 2 (val% «verify_sub» "x@3") ++
-    [vsLd 33 26 1] ++ fsNextT (.n (val% «verify_sub» "stream")) 3 (val% «verify_sub» "x@4") ++ [vsLd 36 26 2] ++
+  fsNextT (.n (val% «verify_sub» "stream")) 0 (val% «verify_sub» "x@1") ⧺ fsNextT (.n (val% «verify_sub» "stream")) 1 (val% «verify_sub» "x@2") ⧺ [vsLd 30 26 0] ⧺ fsNextT (.n (val% «verify_sub» "stream")) 2 (val% «verify_sub» "x@3") ⧺
+    [vsLd 33 26 1] ⧺ fsNextT (.n (val% «verify_sub» "stream")) 3 (val% «verify_sub» "x@4") ⧺ [vsLd 36 26 2] ⧺
     [keccakA [.n (val% «verify_sub» "rate[0]@1"), .n (val% «verify_sub» "rate[1]@1"), .n (val% «verify_sub» "rate[2]@1"), .n (val% «verify_sub» "rate[3]@1"), .n (val% «verify_sub» "rate[4]@1"), .n (val% «verify_sub» "rate[5]@1"), .n (val% «verify_sub» "rate[6]@1"), .n (val% «verify_sub» "rate[7]@1"), .n (val% «verify_sub» "sp[8]"), .n (val% «verify_sub» "sp[9]"), .n (val% «verify_sub» "sp[10]"), .n (val% «verify_sub» "sp[11]"),
-      .n (val% «verify_sub» "sp[12]")] (vsRun 39 13)] ++
-    fsNextT (.n (val% «verify_sub» "stream")) 4 (val% «verify_sub» "x@5") ++ [vsLd 52 26 3] ++ fsNextT (.n (val% «verify_sub» "stream")) 5 (val% «verify_sub» "x@6") ++ [vsLd 55 26 4] ++
-    fsNextT (.n (val% «verify_sub» "stream")) 6 (val% «verify_sub» "x@7") ++ [vsLd 58 26 5] ++ fsNextT (.n (val% «verify_sub» "stream")) 7 (val% «verify_sub» "x@8")
+      .n (val% «verify_sub» "sp[12]")] (vsRun 39 13)] ⧺
+    fsNextT (.n (val% «verify_sub» "stream")) 4 (val% «verify_sub» "x@5") ⧺ [vsLd 52 26 3] ⧺ fsNextT (.n (val% «verify_sub» "stream")) 5 (val% «verify_sub» "x@6") ⧺ [vsLd 55 26 4] ⧺
+    fsNextT (.n (val% «verify_sub» "stream")) 6 (val% «verify_sub» "x@7") ⧺ [vsLd 58 26 5] ⧺ fsNextT (.n (val% «verify_sub» "stream")) 7 (val% «verify_sub» "x@8")
 
 /-- The rate and the memory's log as `g`-powers, `dims_g`, `kb` in the frame and `kappa_base`
 . -/
@@ -125,8 +126,8 @@ def vsSizesT : List Stmt :=
     vsRange 72 74 75 76 73, vsConst 77 (word 4294967296 0), vsConst 78 (word 2 0),
     vsMul 72 79 78, vsRange 79 80 81 82 77, vsLd 72 71 0,
     .atom (.hint (.witness "table_logs" (.heap (.n (val% «verify_sub» "dims_g")) 1 6))), vsAlloc 83 8,
-    vsConst 84 (word 1 0), vsCopy 85 72] ++
-  (List.range 6).map (fun t ↦ vsLd (86 + t) 71 (1 + t)) ++
+    vsConst 84 (word 1 0), vsCopy 85 72] ⧺
+  (List.range 6).map (fun t ↦ vsLd (86 + t) 71 (1 + t)) ⧺
   (List.range 8).map (fun i ↦ vsLd (84 + i) 83 i)
 
 /-- The running product after push block `b`. -/
@@ -141,15 +142,15 @@ def vsPushStep (b : ℕ) : List Stmt :=
 
 /-- The push blocks' total, the bus depth, `zeta`. -/
 def vsPushT : List Stmt :=
-  (List.range 54).flatMap vsPushStep ++
+  (List.range 54).flatMap vsPushStep ⧺
     [vsCall "log2_ceil_in_the_exponent__L0_L34" [252, 4] [253],
       vsAlloc (val% «verify_sub» "zeta") 34]
 
 /-- The last four words absorbed, the root's two words read. -/
 def vsRootsT : List Stmt :=
   [keccakA [.n (val% «verify_sub» "rate[0]@2"), .n (val% «verify_sub» "rate[1]@2"), .n (val% «verify_sub» "rate[2]@2"), .n (val% «verify_sub» "rate[3]@2"), .n (val% «verify_sub» "rate[4]@2"), .n (val% «verify_sub» "rate[5]@2"), .n (val% «verify_sub» "rate[6]@2"), .n (val% «verify_sub» "rate[7]@2"), .n (val% «verify_sub» "nxt[8]@1"), .n (val% «verify_sub» "nxt[9]@1"), .n (val% «verify_sub» "nxt[10]@1"),
-    .n (val% «verify_sub» "nxt[11]@1"), .n (val% «verify_sub» "nxt[12]@1")] (vsRun 255 13)] ++
-  fsNextT (.n (val% «verify_sub» "stream")) 8 (val% «verify_sub» "x@9") ++ fsNextT (.n (val% «verify_sub» "stream")) 9 (val% «verify_sub» "x@10")
+    .n (val% «verify_sub» "nxt[11]@1"), .n (val% «verify_sub» "nxt[12]@1")] (vsRun 255 13)] ⧺
+  fsNextT (.n (val% «verify_sub» "stream")) 8 (val% «verify_sub» "x@9") ⧺ fsNextT (.n (val% «verify_sub» "stream")) 9 (val% «verify_sub» "x@10")
 
 /-- `LIG_MIN_SHIFT_INV = g^-20`. -/
 def vsGinv20 : E := word 14347465658197868555 0
@@ -171,10 +172,10 @@ def vsSqpNames : List String :=
 grind, the point at `ood_z` from its challenge, the value and the bus grind's nonce
 (`opening_message`). -/
 def vsOodT : List Stmt :=
-  fsNonceT (.n (val% «verify_sub» "stream")) 10 (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++ zero2T 286 ++
+  fsNonceT (.n (val% «verify_sub» "stream")) 10 (val% «verify_sub» "s38.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ⧺ zero2T 286 ⧺
   [keccakA [.n (val% «verify_sub» "rate[0]@3"), .n (val% «verify_sub» "rate[1]@3"), .n (val% «verify_sub» "rate[2]@3"), .n (val% «verify_sub» "rate[3]@3"), .n (val% «verify_sub» "rate[4]@3"), .n (val% «verify_sub» "rate[5]@3"), .n (val% «verify_sub» "rate[6]@3"), .n (val% «verify_sub» "rate[7]@3"), .n (val% «verify_sub» "nxt[8]@2"), .n (val% «verify_sub» "nxt[9]@2"),
-    .n (val% «verify_sub» "nxt[10]@2"), .n (val% «verify_sub» "nxt[11]@2"), .n (val% «verify_sub» "nxt[12]@2")] (vsRun 288 13)] ++
-  gcInlineOT 15 301 winTabAt (.n (val% «verify_sub» "nxt[1]@3")) (.n (val% «verify_sub» "g_squares")) ++
+    .n (val% «verify_sub» "nxt[10]@2"), .n (val% «verify_sub» "nxt[11]@2"), .n (val% «verify_sub» "nxt[12]@2")] (vsRun 288 13)] ⧺
+  gcInlineOT 15 301 winTabAt (.n (val% «verify_sub» "nxt[1]@3")) (.n (val% «verify_sub» "g_squares")) ⧺
   [vsAlloc 355 30,
     .dispatch (.n (val% «verify_sub» "size_sel")) vsSqpNames [.n (val% «verify_sub» "nxt[8]@3"), .n (val% «verify_sub» "nxt[9]@3"), .n (val% «verify_sub» "nxt[10]@3"), .n (val% «verify_sub» "nxt[11]@3"), .n (val% «verify_sub» "nxt[12]@3"), .n (val% «verify_sub» "nxt[0]@3"), .n (val% «verify_sub» "ood_z")]
       (vsRun 356 5),
@@ -195,7 +196,7 @@ def vsBgNames : List String :=
 /-- The bus grind: `g^(μ - 20)` below `g^13`, its check dispatched on it. -/
 def vsBusGrindT : List Stmt :=
   [vsConst 372 vsGinvBus, vsMul 373 253 372, vsConst 374 (word 8192 0),
-    vsRange 373 375 376 377 374] ++ vsTabsT 378 379 ++
+    vsRange 373 375 376 377 374] ⧺ vsTabsT 378 379 ⧺
   [.dispatch (.n (val% «verify_sub» "bus_grind")) vsBgNames [.n (val% «verify_sub» "pow_word"), .n (val% «verify_sub» "done~2")] [.n (val% «verify_sub» "done")]]
 
 /-- The capacity's first value before slot weight `i + 1`'s permutation. -/
@@ -203,19 +204,19 @@ def vsFpwCap (i : ℕ) : ℕ := if i = 0 then 381 else 382 + 13 * i
 
 /-- The sixteen slot weights, the first `opening_message`'s, then `β`. -/
 def vsFpwT : List Stmt :=
-  (List.range 5).map (fun i ↦ vsCopy (381 + i) (366 + i)) ++ [vsAlloc 386 16, vsLd 364 386 0] ++
+  (List.range 5).map (fun i ↦ vsCopy (381 + i) (366 + i)) ⧺ [vsAlloc 386 16, vsLd 364 386 0] ⧺
   (List.range 15).flatMap (fun i ↦ [vsPermT (vsFpwCap i) (387 + 13 * i),
-    vsLd (387 + 13 * i) 386 (i + 1)]) ++ [vsPermT 577 582]
+    vsLd (387 + 13 * i) 386 (i + 1)]) ⧺ [vsPermT 577 582]
 
 /-- The bus's GKR, the tables, the Keccak reduction. -/
 def vsCallsT : List Stmt :=
-  vsTabsT 595 596 ++
+  vsTabsT 595 596 ⧺
   [vsCall "verify_bus_gkr" [590, 591, 592, 593, 594, 371, 253, 254, 596, 25] ((List.range 7).map (597 + ·)),
-    vsAlloc 604 34, vsAlloc 605 4] ++ vsTabsT 606 607 ++
+    vsAlloc 604 34, vsAlloc 605 4] ⧺ vsTabsT 606 607 ⧺
   [vsCall "verify_tables" [597, 598, 599, 600, 601, 602, 0, 1, 254, 253, 71, 26, 4, 386, 582, 6,
       604, 603, 607, 605, 25] ((List.range 10).map (608 + ·)),
     vsLd 618 71 6, vsAlloc 619 78, vsAlloc 620 64, vsConst 621 (word 3710851743744 0),
-    vsMul 622 617 621] ++ vsTabsT 623 624 ++
+    vsMul 622 617 621] ⧺ vsTabsT 623 624 ⧺
   [vsCall "verify_keccak" [608, 609, 610, 611, 612, 613, 618, 604, 622, 619, 620, 624, 25]
       ((List.range 7).map (625 + ·))]
 
@@ -228,12 +229,12 @@ def vsChCap (i : ℕ) : ℕ := if i = 0 then 648 else 702 + 14 * i
 /-- The ring map's sixteen challenges: a grind's nonce absorbed, the first drawn by its
 permutation, fifteen squeezed, then stored in `map_challenges`. -/
 def vsMapsT : List Stmt :=
-  (List.range 5).map (fun i ↦ vsCopy (632 + i) (625 + i)) ++ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ++
+  (List.range 5).map (fun i ↦ vsCopy (632 + i) (625 + i)) ⧺ fsNonceT (.n (val% «verify_sub» "cursor@4")) 0 (val% «verify_sub» "s63.i0:fs_grind_squeeze.s0.e.s0.e.s0#0") ⧺
   [keccakA [.n (val% «verify_sub» "rate[0]@4"), .n (val% «verify_sub» "rate[1]@4"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[1]"), .n (val% «verify_sub» "s3#0[2]"), .n (val% «verify_sub» "s3#0[3]"), .n (val% «verify_sub» "s3#0[4]"), .n (val% «verify_sub» "sp[0]@3"), .n (val% «verify_sub» "sp[1]@3"), .n (val% «verify_sub» "sp[2]@3"), .n (val% «verify_sub» "sp[3]@3"),
-    .n (val% «verify_sub» "sp[4]@3")] (vsRun 640 13)] ++
-  gcInlineOT 13 653 winTabAt (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "g_squares")) ++
-  [vsCopy 707 640] ++
-  (List.range 15).flatMap (fun i ↦ vsSqzT (vsChCap i) (708 + 14 * i)) ++
+    .n (val% «verify_sub» "sp[4]@3")] (vsRun 640 13)] ⧺
+  gcInlineOT 13 653 winTabAt (.n (val% «verify_sub» "nxt[1]@20")) (.n (val% «verify_sub» "g_squares")) ⧺
+  [vsCopy 707 640] ⧺
+  (List.range 15).flatMap (fun i ↦ vsSqzT (vsChCap i) (708 + 14 * i)) ⧺
   vsAlloc 918 16 :: (List.range 16).map (fun i ↦ vsLd (vsCh i) 918 i)
 
 /-- The squarings of `c_table`'s term `q + 1` in block `b` (from `s`), from the previous power. -/
@@ -246,14 +247,14 @@ def vsSqT (b s q : ℕ) : List Stmt :=
 /-- Block `b` of `c_table` (from `s = 920 + 64 b`): `c[8p + b] = f_p · g_b^(2^(8p))`. -/
 def vsCtabBlock (b : ℕ) : List Stmt :=
   let s := 920 + 64 * b
-  [vsMul s (vsCh 0) (vsCh (8 + b)), vsLd s 919 b] ++
+  [vsMul s (vsCh 0) (vsCh (8 + b)), vsLd s 919 b] ⧺
   (List.range 7).flatMap fun q ↦
     let t := s + 1 + 9 * q
-    vsSqT b s q ++ [vsMul (t + 8) (vsCh (q + 1)) (t + 7), vsLd (t + 8) 919 (8 * (q + 1) + b)]
+    vsSqT b s q ⧺ [vsMul (t + 8) (vsCh (q + 1)) (t + 7), vsLd (t + 8) 919 (8 * (q + 1) + b)]
 
 /-- `c_table`, then `ring_switch_target`. -/
 def vsCtabT : List Stmt :=
-  vsAlloc 919 64 :: (List.range 8).flatMap vsCtabBlock ++
+  vsAlloc 919 64 :: (List.range 8).flatMap vsCtabBlock ⧺
     [vsCall "ring_switch_target" [620, 918] [1432]]
 
 /-- The pooled claim of the `i`-th batched one: the output lanes' `105 .. 129` are left out. -/
@@ -278,7 +279,7 @@ def vsLamStep (i : ℕ) : List Stmt :=
 /-- The batching challenge, the target: the `134` pooled claims, the Keccak reduction's, the
 out-of-domain value. -/
 def vsLamT : List Stmt :=
-  vsPermT 912 1433 :: (List.range 134).flatMap vsLamStep ++
+  vsPermT 912 1433 :: (List.range 134).flatMap vsLamStep ⧺
     [vsMul 1982 1981 631, vsAdd 1983 1980 1982, vsMul 1984 1981 1433, vsLd 1985 361 0,
       vsMul 1986 1984 1985, vsAdd 1987 1983 1986]
 
@@ -291,21 +292,21 @@ def vsOpenNames : List String :=
 /-- The dispatch to `open_stacked` on the stack's size `size_sel`, the rate `rate_sel` its first
 argument, the terminal, the deferred claim. -/
 def vsTailT : List Stmt :=
-  [vsConst 1988 (word 2 0), vsMul 1989 630 1988] ++ vsTabsT 1990 1991 ++
+  [vsConst 1988 (word 2 0), vsMul 1989 630 1988] ⧺ vsTabsT 1990 1991 ⧺
   [.dispatch (.n (val% «verify_sub» "size_sel")) vsOpenNames
       [.n (val% «verify_sub» "rate_sel"), .n (val% «verify_sub» "nxt[8]@36"), .n (val% «verify_sub» "nxt[9]@36"), .n (val% «verify_sub» "nxt[10]@36"), .n (val% «verify_sub» "nxt[11]@36"), .n (val% «verify_sub» "nxt[12]@36"), .n (val% «verify_sub» "target@136"), .n (val% «verify_sub» "x@9"), .n (val% «verify_sub» "x@10"), .n (val% «verify_sub» "sumcheck_target~2"),
         .n (val% «verify_sub» "sumcheck_target~4")]
       (vsRun 1992 5),
     vsCall "check_opening_terminal" [4, 254, 604, 616, 253, 614, 72, 618, 83, 1433, 275, 619, 919,
-      1993, 1994, 1995, 1996, 1992, 355, 276] []] ++
-  (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ++
-  (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ++
+      1993, 1994, 1995, 1996, 1992, 355, 276] []] ⧺
+  (List.range 19).flatMap (fun k ↦ [vsLd (1997 + k) 254 k, vsLd (1997 + k) 5 k]) ⧺
+  (List.range 4).flatMap (fun k ↦ [vsLd (2016 + k) 605 k, vsLd (2016 + k) 5 (19 + k)]) ⧺
   [vsLd 615 5 23, .ret []]
 
 /-- **`verify_sub`'s body as a template.** -/
 def vsT : List Stmt :=
-  vsHeadT ++ vsReadsT ++ vsSizesT ++ vsPushT ++ vsRootsT ++ vsPlaceT ++ vsOodT ++ vsBusGrindT ++
-    vsFpwT ++ vsCallsT ++ vsMapsT ++ vsCtabT ++ vsLamT ++ vsTailT
+  vsHeadT ⧺ vsReadsT ⧺ vsSizesT ⧺ vsPushT ⧺ vsRootsT ⧺ vsPlaceT ⧺ vsOodT ⧺ vsBusGrindT ⧺
+    vsFpwT ⧺ vsCallsT ⧺ vsMapsT ⧺ vsCtabT ⧺ vsLamT ⧺ vsTailT
 
 end
 end LeanVM.Guest.B1.VerifySub

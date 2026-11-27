@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Opening.Witness
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.AcceptableChild
 import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A query and an iteration, their witnesses named
@@ -280,7 +281,7 @@ when the loop is called at `1` with the bound `N_v = g^N`, its iterations `j < N
 frames `V f (g^j :: N_v :: rest) []`. -/
 theorem loopV_frames {C : CallRel} {V : FrameMap} (hU : UnfoldsVP P rd C V) {f : String} {fn : Fn}
     (hf : P.find? f = some fn) {A : List Stmt} {c : ℕ} {args : List Core.V}
-    (hb : fn.body = A ++ [.callIf (.n c) f args, .ret []]) (hA : FlatC A) {Nv : E}
+    (hb : fn.body = A ⧺ [.callIf (.n c) f args, .ret []]) (hA : FlatC A) {Nv : E}
     {rest : List E}
     (hc : ∀ (τ : Val) (x : E), fn.params.map τ = x :: Nv :: rest → BlockOkC C rd τ A →
       τ (.n c) = x * gen + Nv ∧ args.map τ = x * gen :: Nv :: rest)

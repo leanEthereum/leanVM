@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_residual`, placed
@@ -113,7 +114,7 @@ theorem lr_kidsFromIn_nil {fs : String → ℕ} {cert : String → V → ℕ} {r
   ⟨rfl, fun _ h ↦ h.elim⟩
 
 theorem lr_notLoop {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
-    {pre : List Stmt} {vs : List V} (hv : vs ≠ []) (hb : fn.body = pre ++ [.ret vs]) :
+    {pre : List Stmt} {vs : List V} (hv : vs ≠ []) (hb : fn.body = pre ⧺ [.ret vs]) :
     coreProgram.loop name = false := by
   obtain ⟨a, l, rfl⟩ := List.exists_cons_of_ne_nil hv
   rw [Program.loop_of_find? hf, Fn.loop, hb]
@@ -242,7 +243,7 @@ theorem lr_relAtIn {name loop1 loop2 : String} {q : ℕ}
       exact ⟨by simp, by simp, hlR0, hlR1⟩
   have hstr : (lrBodyA loop1 loop2).all Main.Stmt.straight = true := by
     simp [lrBodyA, osLoopCallR, Main.Stmt.straight, os_powSteps_straight]
-  have hb' : fn.body = lrBodyA loop1 loop2 ++
+  have hb' : fn.body = lrBodyA loop1 loop2 ⧺
       [.ret [.n (18 + osPowLen resBatch + 6), .n (18 + osPowLen resBatch + 7)]] := by
     rw [hb, lrBody_split]
   have hw := Main.walk_straight σ [.n (18 + osPowLen resBatch + 6), .n (18 + osPowLen resBatch + 7)]

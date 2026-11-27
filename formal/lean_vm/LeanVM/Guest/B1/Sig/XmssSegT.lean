@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Sig.XmssGroups
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop2»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The leanXMSS check in `main_loop2`, as a template
@@ -83,7 +84,7 @@ def sWots (steps : Nat → V) : WotsT where
 
 /-- The prologue (`lean_ethereum.py`). -/
 def sPrologue : List Stmt :=
-  [loadS sLxPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ++
+  [loadS sLxPP sSigner 1, hintW "lx_index" (runV 67 4), hintW "lx_windows" (runV 71 4)] ⧺
     (List.range 13).map (fun s => cst (75 + s) (word (2 ^ s) 0))
 
 /-! ## The codeword -/
@@ -212,15 +213,15 @@ def sDigest0 (b : Nat) : List Stmt :=
   [hintW "randomizer" [.n b], cst (b + 1) (word (tw 12) 0), addS (.n (b + 2)) (sHis 0) (.n (b + 1)),
     loadS (.n (b + 3)) sSigner 2, loadS (.n (b + 4)) sSigner 3, copyS (.n (b + 5)) (.n b),
     cst (b + 6) (word 1 0), cst (b + 7) (word 0 0), cst (b + 8) (word 0 0),
-    cst (b + 9) (word (2 ^ 63) 0)] ++
-  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ++
+    cst (b + 9) (word (2 ^ 63) 0)] ⧺
+  (List.range 5).map (fun k => cst (b + 10 + k) (word (if k = 0 then 1 else 0) 0)) ⧺
   [kecS [sLxPP, .n (b + 2), .n (b + 3), .n (b + 4), .n (b + 5), .n (b + 6), .n (b + 7), .n (b + 8),
     .n (b + 9), .n (b + 11), .n (b + 12), .n (b + 13), .n (b + 14)] (runV (b + 15) 1) false false]
 
 /-- The top layer's index and message digest from base `b`, over the bottom root `root`. -/
 def sDigest1 (b : Nat) (root : V) : List Stmt :=
   [cst b (word lxTop 0), addS (.n (b + 1)) (sHis 2) (.n b), hintW "randomizer" [.n (b + 2)],
-    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ++
+    cst (b + 3) (word (tw 12) 0), addS (.n (b + 4)) (.n (b + 1)) (.n (b + 3))] ⧺
   k64 sLxPad sLxPP (.n (b + 4)) root (.n (b + 2)) (b + 5) (b + 6)
 
 def sA (layer b : Nat) : Nat := if layer = 0 then b + 16 else b + 7
@@ -252,7 +253,7 @@ def sLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
 def xSeg : List Stmt :=
   let l0 := sLayer 0 88 (.n (val% «main_loop2» "xi"))
   let l1 := sLayer 1 l0.2.1 l0.2.2
-  sPrologue ++ l0.1 ++ l1.1 ++
+  sPrologue ⧺ l0.1 ⧺ l1.1 ⧺
     [loadS (.n l1.2.1) sSigner 0, .atom (.assertEq l1.2.2 (.n l1.2.1))]
 
 /-- `main_loop2`'s statements before the check (`lean_ethereum.py`): the raw index, its

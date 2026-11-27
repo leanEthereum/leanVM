@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad_loop0»
 import LeanVM.Guest.Data.ValNames.«da_verify_blob_loop0»
 import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1.Da
 
@@ -35,7 +36,7 @@ def tailAt (f : String) (c n : ℕ) : List Stmt :=
 def blobLPre : List Stmt :=
   [.call "da_verify_blob" [.n (val% «da_verify_loop0» "weights")] [.n (val% «da_verify_loop0» "b0"), .n (val% «da_verify_loop0» "b1")], .atom (.mul (.n (val% «da_verify_loop0» "slot~0")) (.n (val% «da_verify_loop0» "xi")) (.n (val% «da_verify_loop0» "xi"))),
     .atom (.mul (.n (val% «da_verify_loop0» "slot")) (.n (val% «da_verify_loop0» "roots")) (.n (val% «da_verify_loop0» "slot~0"))), .atom (.load (.n (val% «da_verify_loop0» "b0")) (.n (val% «da_verify_loop0» "slot")) 0),
-    .atom (.load (.n (val% «da_verify_loop0» "b1")) (.n (val% «da_verify_loop0» "slot")) 1)] ++ stepAtC 8
+    .atom (.load (.n (val% «da_verify_loop0» "b1")) (.n (val% «da_verify_loop0» "slot")) 1)] ⧺ stepAtC 8
 
 /-- `da_pad_loop0`'s block: the padding blob's root at `roots·n_blob²·x²`. -/
 def padLPre : List Stmt :=
@@ -44,7 +45,7 @@ def padLPre : List Stmt :=
     .atom (.const (.n (val% «da_pad_loop0» "s1#0")) (word 8002054802297438051 4108169256045952147)),
     .atom (.load (.n (val% «da_pad_loop0» "s1#0")) (.n (val% «da_pad_loop0» "pad")) 0),
     .atom (.const (.n (val% «da_pad_loop0» "s2#0")) (word 12830724869163462953 1721925254677230945)),
-    .atom (.load (.n (val% «da_pad_loop0» "s2#0")) (.n (val% «da_pad_loop0» "pad")) 1)] ++ stepAtC 10
+    .atom (.load (.n (val% «da_pad_loop0» "s2#0")) (.n (val% «da_pad_loop0» "pad")) 1)] ⧺ stepAtC 10
 
 /-- `da_verify_blob_loop0(xb, weights, base)`'s block: cell `xb`'s check on `weights[xb]`, the
 running sum's step from word `512` to `513` at `base·xb`, the digest at the leaf `base·xb²`, then
@@ -62,7 +63,7 @@ def cellLPre : List Stmt :=
 
 /-- `da_verify_blob_loop0`'s body: its block and the tail call. -/
 def cellLBody : List Stmt :=
-  cellLPre ++ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")], .ret []]
+  cellLPre ⧺ [.callIf (.n (val% «da_verify_blob_loop0» "s7#3")) name% «da_verify_blob_loop0» [.n (val% «da_verify_blob_loop0» "s7#5"), .n (val% «da_verify_blob_loop0» "weights"), .n (val% «da_verify_blob_loop0» "base")], .ret []]
 
 set_option maxRecDepth 100000 in
 theorem dv_loops_body : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = blobLPre ++

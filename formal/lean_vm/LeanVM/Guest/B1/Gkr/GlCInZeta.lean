@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Gkr.Loop8
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_bus_gkr_loop0`, loading from a region
@@ -31,7 +32,7 @@ open LeanVM.Protocol.Verifier (gen)
 /-- `verify_bus_gkr_loop0`'s statements before its `ret`. -/
 def vbzPre : List Stmt := l8Body.dropLast
 
-theorem vbzBody_pre_eq : l8Body = vbzPre ++ [.ret []] := by simp [vbzPre, l8Body]
+theorem vbzBody_pre_eq : l8Body = vbzPre ⧺ [.ret []] := by simp [vbzPre, l8Body]
 
 theorem vbz_flat : vbzPre.all Stmt.flat = true := by decide +kernel
 

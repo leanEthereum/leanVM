@@ -19,6 +19,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_verify`, placed
@@ -255,7 +256,7 @@ theorem dv_completeAtB_z (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ} (
   unfold dvCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨hflat, hni⟩, haddr⟩, halloc⟩, hloads⟩ := hcok
-  have hb : Fn.body fn% «da_verify» = dvP ++ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := rfl
+  have hb : Fn.body fn% «da_verify» = dvP ⧺ [.ret [.n (val% «da_verify» "s11#0"), .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]] := rfl
   have hbufL : ∀ bb, bufL bb (dvSizes r L) [rootsCells r L syms] = [(bb, rootsCells r L syms)] :=
     fun bb => by simp [bufL, bases, dvSizes]
   refine ((completeAt_flatDepRet (fs := fs) (cert := cert) find_da_verify

@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A radix-four layer, loading from a region
@@ -44,7 +45,7 @@ theorem ptrIn_pow {R : ℕ → Prop} {p : E} {a B B' : ℕ} (h : PtrIn R p B) (h
 
 /-- The loop's next record and guard. -/
 def glLoopPostA : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ⧺
   [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
     .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 12), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 13),
     .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
@@ -56,9 +57,9 @@ def glLoopNext (nm : String) : Stmt := .callIf (.n (valf% «gkr_layer» «_loop0
 
 /-- The loop's statements before its `ret`. -/
 def glLoopPreK (nm : String) : List Stmt :=
-  glLoopPre ++ glLoopRounds ++ glLoopPostA ++ [glLoopNext nm]
+  glLoopPre ⧺ glLoopRounds ⧺ glLoopPostA ⧺ [glLoopNext nm]
 
-theorem glLoopBody_eq (nm : String) : glLoopBody nm = glLoopPreK nm ++ [.ret []] := by
+theorem glLoopBody_eq (nm : String) : glLoopBody nm = glLoopPreK nm ⧺ [.ret []] := by
   simp [glLoopBody, glLoopPreK, glLoopPostA, glLoopNext, glLoopPost]
 
 theorem gll_all {f : Stmt → Bool} (h : (glLoopPre ++ glLoopRounds ++ glLoopPostA).all f = true)
@@ -173,7 +174,7 @@ noncomputable def glPreK (p o : ℕ) : List Stmt := (glBody p o (glLoopName p o)
 /-- The layer's kernel facts: its `ret` last, flat, no dispatch, its loads through `glInTbl`,
 its one call the loop's. -/
 noncomputable def glInCheck (p o : ℕ) : Bool :=
-  tbStmtsEqb (glBody p o (glLoopName p o)) (glPreK p o ++ [.ret []]) &&
+  tbStmtsEqb (glBody p o (glLoopName p o)) (glPreK p o ⧺ [.ret []]) &&
     (glPreK p o).all Stmt.flat && (glPreK p o).all noDispB && (glPreK p o).all noLoadIte &&
     (glPreK p o).all (loadsViaB (glInTbl p o)) &&
     tbStmtsEqb ((glPreK p o).filterMap Main.Stmt.callS |>.map fun x ↦ Stmt.callIf
@@ -183,7 +184,7 @@ noncomputable def glInCheck (p o : ℕ) : Bool :=
 theorem gl_inCheck : ∀ p < 4, ∀ o < 2, glInCheck p o = true := by decide +kernel
 
 theorem gl_inFacts {p o : ℕ} (hp : p < 4) (ho : o < 2) :
-    glBody p o (glLoopName p o) = glPreK p o ++ [.ret []] ∧ (glPreK p o).all Stmt.flat = true ∧
+    glBody p o (glLoopName p o) = glPreK p o ⧺ [.ret []] ∧ (glPreK p o).all Stmt.flat = true ∧
       (glPreK p o).all noDispB = true ∧ (glPreK p o).all noLoadIte = true ∧
       (glPreK p o).all (loadsViaB (glInTbl p o)) = true ∧
       (glPreK p o).filterMap Main.Stmt.callS =

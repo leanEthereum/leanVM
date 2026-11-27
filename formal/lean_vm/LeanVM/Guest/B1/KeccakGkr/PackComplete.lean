@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCBlock
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The pack rounds' loops, completely
@@ -446,7 +447,7 @@ def remT : List Stmt :=
     .atom (.const (.n (valf% «keccak_layer» «_loop1» "s15#3")) (word 2 0)), .atom (.mul (.n (valf% «keccak_layer» «_loop1» "s15#4")) (.n (valf% «keccak_layer» «_loop1» "x1")) (.n (valf% «keccak_layer» «_loop1» "s15#3")))]
 
 theorem packRemPre_split : packRemPre = remA ++ fsNextT (.n (valf% «keccak_layer» «_loop1» "cur_i")) 0 (valf% «keccak_layer» «_loop1» "x@1") ++ fsNextT (.n (valf% «keccak_layer» «_loop1» "cur_i")) 1 (valf% «keccak_layer» «_loop1» "x@2") ++
-    remZ ++ [.atom remK] ++ remT := rfl
+    remZ ⧺ [.atom remK] ⧺ remT := rfl
 
 /-- The remainder block's stores. -/
 def packRemS : List Atom :=

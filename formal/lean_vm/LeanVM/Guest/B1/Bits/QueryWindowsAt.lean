@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Main.RelAtInE
 public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `decode_query_windows`, placed (`guests/lean_ethereum.py`)
@@ -96,13 +97,13 @@ theorem qw_mem_blockAtoms {a : Atom} : ∀ {ss : List Stmt}, Stmt.atom a ∈ ss 
 
 /-- The body's statements before its `ret`. -/
 def qwPre (d cd : ℕ) : List Stmt :=
-  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++ (qwPositions d cd 0 (128 / d) 41 none).1 ++
+  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ⧺ (qwPositions d cd 0 (128 / d) 41 none).1 ⧺
     (qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
-      (qwPositions d cd 0 (128 / d) 41 none).2.2).1 ++
+      (qwPositions d cd 0 (128 / d) 41 none).2.2).1 ⧺
     [.atom (.assertEq ((qwRest d 0 (qwRestN d) (qwPositions d cd 0 (128 / d) 41 none).2.1
       (qwPositions d cd 0 (128 / d) 41 none).2.2).2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (.n (valf% «decode_query_windows» "squeezed_word")))]
 
-theorem qwBody_eq (d cd : ℕ) : qwBody d cd = qwPre d cd ++ [.ret []] := by
+theorem qwBody_eq (d cd : ℕ) : qwBody d cd = qwPre d cd ⧺ [.ret []] := by
   simp [qwBody, qwPre]
 
 theorem qwPre_atoms (d cd : ℕ) : AllAtoms (qwPre d cd) := by

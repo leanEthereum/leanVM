@@ -72,6 +72,7 @@ HDR = '''/-
 module
 
 public import LeanVM.Guest.B1.Tables.Vt.SelMath
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table blocks' selectors
@@ -109,7 +110,7 @@ def vtSelT (w b t : ℕ) (prev : Option ℕ) : List Stmt :=
     .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (28 + t))) (.heap (.n w) 0 9))),
     .dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (vtEqV t), .n (vtGV t)]
       [.n (vtSelE w t), .n (vtSelE w t + 1)],
-    .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ++ vtSelTail w t prev
+    .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ⧺ vtSelTail w t prev
 '''
 
 if __name__ == '__main__':

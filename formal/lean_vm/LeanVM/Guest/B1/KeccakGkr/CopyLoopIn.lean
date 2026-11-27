@@ -12,6 +12,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop1»
 import LeanVM.Guest.Data.ValNames.«verify_keccak_loop2»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The copy loops, completely
@@ -33,7 +34,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 /-- An iteration's statements before its return. -/
 def copyPre (name : String) : List Stmt := (copyLoopT name).dropLast
 
-theorem copyLoopT_split (name : String) : copyLoopT name = copyPre name ++ [.ret []] := rfl
+theorem copyLoopT_split (name : String) : copyLoopT name = copyPre name ⧺ [.ret []] := rfl
 
 theorem copy_straight (name : String) : (copyPre name).all Stmt.straight = true := rfl
 

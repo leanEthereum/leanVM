@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Sumcheck.Meaning
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # GKR rounds between records
@@ -48,12 +49,12 @@ def gkCapPrev : ℕ → ℕ
 
 /-- Round `q`. -/
 def gkRound (q : ℕ) : List Stmt :=
-  fsNextT (.n 2) (4 * q) (11 + 39 * q) ++ fsNextT (.n 2) (4 * q + 1) (14 + 39 * q) ++
-  fsNextT (.n 2) (4 * q + 2) (17 + 39 * q) ++ fsNextT (.n 2) (4 * q + 3) (20 + 39 * q) ++
+  fsNextT (.n 2) (4 * q) (11 + 39 * q) ⧺ fsNextT (.n 2) (4 * q + 1) (14 + 39 * q) ⧺
+  fsNextT (.n 2) (4 * q + 2) (17 + 39 * q) ⧺ fsNextT (.n 2) (4 * q + 3) (20 + 39 * q) ⧺
   [keccakA [.n (12 + 39 * q), .n (13 + 39 * q), .n (15 + 39 * q), .n (16 + 39 * q),
       .n (18 + 39 * q), .n (19 + 39 * q), .n (21 + 39 * q), .n (22 + 39 * q),
       .n (gkCapPrev q), .n (gkCapPrev q + 1), .n (gkCapPrev q + 2), .n (gkCapPrev q + 3),
-      .n (gkCapPrev q + 4)] (gkRun13 (23 + 39 * q))] ++
+      .n (gkCapPrev q + 4)] (gkRun13 (23 + 39 * q))] ⧺
   [.atom (.load (.n (36 + 39 * q)) (.n 1) q),
     .atom (.add (.n (37 + 39 * q)) (.n (11 + 39 * q)) (.n (14 + 39 * q))),
     .atom (.add (.n (38 + 39 * q)) (.n (37 + 39 * q)) (.n (17 + 39 * q))),
@@ -78,7 +79,7 @@ def gkCurLoad : Bool → List Stmt
 /-- The record's capacity and claim (and, `lc`, its cursor). -/
 def gkHead (lc : Bool) : List Stmt :=
   [.atom (.load (.n 5) (.n 0) 0), .atom (.load (.n 6) (.n 0) 1), .atom (.load (.n 7) (.n 0) 2),
-    .atom (.load (.n 8) (.n 0) 3), .atom (.load (.n 9) (.n 0) 4)] ++ gkCurLoad lc ++
+    .atom (.load (.n 8) (.n 0) 3), .atom (.load (.n 9) (.n 0) 4)] ⧺ gkCurLoad lc ⧺
   [.atom (.load (.n 10) (.n 0) 6)]
 
 /-- The zero after an odd count's challenges. -/
@@ -89,7 +90,7 @@ def gkPad (n : ℕ) : List Stmt :=
 
 /-- The rounds and the next record, up to the returned `0`. -/
 def gkPre (lc : Bool) (n : ℕ) : List Stmt :=
-  gkHead lc ++ ((List.range n).map gkRound).flatten ++ gkPad n ++
+  gkHead lc ⧺ ((List.range n).map gkRound).flatten ⧺ gkPad n ⧺
   [.atom (.load (.n (31 + 39 * (n - 1))) (.n 0) 7),
     .atom (.load (.n (32 + 39 * (n - 1))) (.n 0) 8),
     .atom (.load (.n (33 + 39 * (n - 1))) (.n 0) 9),

@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.Tables.FlatLift
 import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub`, flat
@@ -31,7 +32,7 @@ open LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Tables
 def vsCPre : List Stmt := vsT.dropLast
 
 open LeanVM.Guest.KernelLit in
-kernel_rfl vsT_splitPre : vsT = vsCPre ++ [.ret []]
+kernel_rfl vsT_splitPre : vsT = vsCPre ⧺ [.ret []]
 
 theorem vs_cflat : vsCPre.all Stmt.flat = true := by decide +kernel
 

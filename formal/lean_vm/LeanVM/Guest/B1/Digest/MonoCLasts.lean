@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Digest.MonoCLast
 public import LeanVM.Guest.B1.Digest.ChildListAt0
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The walk's last claims, completely
@@ -129,7 +130,7 @@ theorem mlc_core {k : ℕ} (hk : k < 17) {rec region mark limit entries : E} {rP
     (hend : mStart o (s + k) ≤ L) (hdef : BoundMem rd (L + 1)) :
     ∃ (vs : List V) (σ : Val),
       (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).body =
-          (mlAtoms k).map Stmt.atom ++ [.ret vs] ∧
+          (mlAtoms k).map Stmt.atom ⧺ [.ret vs] ∧
       (coreProgram.getD (idx% «child_claim_list_mono_last__L0» + k) default).params.map σ =
           [rec, region, mark, limit] ∧
       (∀ a ∈ mlAtoms k, a.Holds rd σ) ∧

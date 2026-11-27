@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsSoundFors
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A layer, sound
@@ -32,7 +33,7 @@ open LeanVM.Protocol.Verifier (eOfNat)
 `A0`, then the encoding's 68-byte `keccak` of `P`, `A0`, `enc_at`, `signed` and the counter, then
 the call's `A0`. -/
 def layerPre (pad : Nat) (pp a0 : V) (ac : Option E) (key signed ctr : V) (b : Nat) : List Stmt :=
-  ([cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] ++ a0Pre ac (b + 2)) ++
+  ([cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] ++ a0Pre ac (b + 2)) ⧺
     ((kMsg pad [.cell pp, .cell (a0Cell a0 ac (b + 2)), .cell (.n (b + 1)), .cell signed, .cell ctr]
       68 false none (b + 2 + a0W ac)).1 ++ a0Pre ac (b + 10 + a0W ac))
 
@@ -47,9 +48,9 @@ theorem kEnc_shape (pad : Nat) (pp a0 ea signed ctr : V) (y : Nat) :
 theorem sHtLayer_split (pad : Nat) (pp a0 : V) (ac : Option E) (key signed ctr : V)
     (bit val : Nat → V) (off height b : Nat) :
     sHtLayer pad pp a0 ac key signed ctr bit val off height b =
-      (layerPre pad pp a0 ac key signed ctr b ++
+      (layerPre pad pp a0 ac key signed ctr b ⧺
           [.call "sp_wots" [pp, a0Cell a0 ac (b + 10 + a0W ac), key, .n (b + 9 + a0W ac)]
-            [.n (b + 10 + 2 * a0W ac)]] ++
+            [.n (b + 10 + 2 * a0W ac)]] ⧺
           (sPath pad pp a0 ac bit val off height 0 (.n (b + 10 + 2 * a0W ac))
             (b + 10 + 2 * a0W ac + 1)).1,
         (sPath pad pp a0 ac bit val off height 0 (.n (b + 10 + 2 * a0W ac))

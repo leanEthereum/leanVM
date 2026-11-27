@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `check_opening_terminal_loop0`, completely
@@ -47,7 +48,7 @@ theorem find_loop15 : coreProgram.find? name% «check_opening_terminal_loop0» =
     fn% «check_opening_terminal_loop0» :=
   coreProgram_find?_at (j := idx% «check_opening_terminal_loop0») rfl
 
-theorem l15_body : Fn.body fn% «check_opening_terminal_loop0» = l15Pre ++ [.ret []] := by
+theorem l15_body : Fn.body fn% «check_opening_terminal_loop0» = l15Pre ⧺ [.ret []] := by
   obtain ⟨fn, hf, -, hb⟩ := loop15Found
   rw [find_loop15, Option.some.injEq] at hf
   subst hf

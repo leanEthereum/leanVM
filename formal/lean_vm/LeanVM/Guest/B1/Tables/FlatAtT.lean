@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.Budget.Kids
 public import LeanVM.Guest.Budget.Bounded
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies, placed, by a tree of honest shape
@@ -43,7 +44,7 @@ theorem kidsFromInT_mono {rd : Reader} {σ : Val} {R R' : ℕ → Prop} (hR : �
 /-- **`relAtIn_flat` by the node at `σ`**, its callees' trees satisfying `Ts` (`KidsT`). -/
 theorem relAtInT_flat {rd : Reader} {R D Dk : ℕ → Prop} {fp N : ℕ} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) (hl : coreProgram.loop f = false) {args rets : List E}
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs]) (hst : pre.all Stmt.flat = true)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs]) (hst : pre.all Stmt.flat = true)
     (haddrs : pre.filterMap Main.Stmt.addrS = []) {sizes : List ℕ} {own : List (List E)}
     (hown : List.Forall₂ (fun c s => c.length ≤ s) own sizes) {C : CallRel} {σ : Val}
     (hp : fn.params.map σ = args) (hdo : ∀ s ∈ pre, DispOk σ s)
@@ -90,7 +91,7 @@ theorem relAtInT_flat {rd : Reader} {R D Dk : ℕ → Prop} {fp N : ℕ} {f : St
 memory `rd`. -/
 theorem completeAt_flatDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
@@ -139,7 +140,7 @@ theorem completeAt_flatDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f = s
 theorem completeAt_flatOutDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Res : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
@@ -187,7 +188,7 @@ theorem completeAt_flatOutDTBR {f : String} {fn : Fn} (hf : coreProgram.find? f 
 the callees' bounds `Bs` (`kidsBoundL`, at most `KB` at every frame pointer). -/
 theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
@@ -218,7 +219,7 @@ theorem completeAt_flatDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = so
 theorem completeAt_flatOutDTB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E) (rets : ℕ → List E)
     (Res : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)

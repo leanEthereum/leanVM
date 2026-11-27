@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Digest.MonoAt
 public import LeanVM.Guest.B1.Digest.LoopAtP
 public import LeanVM.Guest.B1.Digest.ValidPops
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The gap walk's helpers, with their pops
@@ -57,7 +58,7 @@ theorem atomsPops_wit {as : List Atom} {S : List Atom} {w : ℕ → E} {σ : Val
 
 /-- **`relAtIn_atoms` by a tree popping its atoms' entries.** -/
 theorem relAtInP_atoms {fs : String → ℕ} {cert : String → V → ℕ} {f : String} {fn : Fn} {as : List Atom}
-    {vs : List V} (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ++ [.ret vs])
+    {vs : List V} (hf : coreProgram.find? f = some fn) (hb : fn.body = as.map Stmt.atom ⧺ [.ret vs])
     (hl : coreProgram.loop f = false) (hna : as.all (fun a => !atomAllocB a) = true)
     {σ : Val} {args rets : List E} {fp : ℕ} {R D : ℕ → Prop}
     (hp : fn.params.map σ = args) (hh : ∀ a ∈ as, a.Holds rd σ) (hr : vs.map σ = rets)

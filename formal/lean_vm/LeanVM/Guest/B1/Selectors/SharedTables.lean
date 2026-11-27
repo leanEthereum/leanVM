@@ -15,6 +15,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `shared_selector_tables`
@@ -41,19 +42,19 @@ def lpPre : List Stmt :=
   [.atom (.mul (.n (val% «shared_selector_tables_loop0» "x4~0")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "xq"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "x4")) (.n (val% «shared_selector_tables_loop0» "x4~0")) (.n (val% «shared_selector_tables_loop0» "x4~0"))),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "x16~0")) (.n (val% «shared_selector_tables_loop0» "x4")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "x16")) (.n (val% «shared_selector_tables_loop0» "x16~0")) (.n (val% «shared_selector_tables_loop0» "x16~0"))),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#0")) (.n (val% «shared_selector_tables_loop0» "eq_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#1")) (.n (val% «shared_selector_tables_loop0» "s2#0")) (.n (val% «shared_selector_tables_loop0» "x16"))),
-    .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "zeta_hi")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "zeta1_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ++
-  nbEq 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 4 ++
+    .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "zeta_hi")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "zeta1_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ⧺
+  nbEq 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 4 ⧺
   [.atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u30.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u30.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 30),
-    .atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 31)] ++
-  [.atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#0")) (.n (val% «shared_selector_tables_loop0» "g_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "gsq_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ++
-  nbG 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "s3#0")) 4 ++
+    .atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 31)] ⧺
+  [.atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#0")) (.n (val% «shared_selector_tables_loop0» "g_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "gsq_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ⧺
+  nbG 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "s3#0")) 4 ⧺
   [.atom (.const (.n (val% «shared_selector_tables_loop0» "s5#0")) (word 2 0)), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s5#1")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "s5#0"))),
     .atom (.add (.n (val% «shared_selector_tables_loop0» "s5#2")) (.n (val% «shared_selector_tables_loop0» "s5#1")) (.n (val% «shared_selector_tables_loop0» "bound"))), .atom (.const (.n (val% «shared_selector_tables_loop0» "s5#3")) (word 2 0)),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "s5#4")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "s5#3")))]
 
 /-- `shared_selector_tables_loop0`'s body. -/
 def lpBody : List Stmt :=
-  lpPre ++ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"),
+  lpPre ⧺ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"),
       .n (val% «shared_selector_tables_loop0» "g_tab"), .n (val% «shared_selector_tables_loop0» "gsq_hi")], .ret []]
 
 noncomputable def lpCheck : Bool :=
@@ -105,7 +106,7 @@ def ssPre : List Stmt :=
 noncomputable def ssCheck : Bool :=
   match coreProgram.find? "shared_selector_tables" with
   | some fn => decide (fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")]) &&
-      tbStmtsEqb fn.body (ssPre ++ [.ret []])
+      tbStmtsEqb fn.body (ssPre ⧺ [.ret []])
   | none => false
 
 theorem ssCheck_eq : ssCheck = true := by decide +kernel
@@ -121,7 +122,7 @@ theorem lpFound : ∃ fn : Fn, coreProgram.find? name% «shared_selector_tables_
   · exact absurd h (by simp)
 
 theorem ssFound : ∃ fn : Fn, coreProgram.find? "shared_selector_tables" = some fn ∧
-    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ++ [.ret []] := by
+    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ⧺ [.ret []] := by
   have h := ssCheck_eq
   unfold ssCheck at h
   split at h

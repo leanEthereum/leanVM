@@ -19,6 +19,7 @@ public import LeanVM.Guest.Pack.P61.Core
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
 import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1
 
@@ -65,12 +66,12 @@ def mcNode (L k b : ℕ) : List Stmt :=
 
 /-- The expansion of `verify_merkle_cap` at `L` leaves. -/
 def mcBody (L : ℕ) : List Stmt :=
-  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ++
+  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ⧺
   [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
     .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
     .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
-    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
-  ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
+    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ⧺
+  ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ⧺
   [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]"))),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
 

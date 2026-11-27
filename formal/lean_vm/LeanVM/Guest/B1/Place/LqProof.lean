@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Opening.QueriesPlacedD2
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_queries`, placed
@@ -42,7 +43,7 @@ abbrev lqPreB (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
 
 theorem lqBody_pre (q base folds leaf d cd mu nhs hbits fin : ℕ) :
     lqBody q base folds leaf d cd mu nhs hbits fin =
-      lqPreB q base folds leaf d cd mu nhs hbits fin ++
+      lqPreB q base folds leaf d cd mu nhs hbits fin ⧺
         [.ret [.n 19, .n 20, .n 21, .n (22 + osPowLen q)]] :=
   lqBody_split ..
 

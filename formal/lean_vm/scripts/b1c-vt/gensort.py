@@ -90,6 +90,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Vt.Base
 public import LeanVM.Guest.B1.Tables.InterfaceP
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The block certification's statements
@@ -182,7 +183,7 @@ def vtRp (p0 r : ℕ) : ℕ := if r = 0 then p0 else p0 + 13 + 18 * (r - 1)
 first block's offset the group's base, then one step a block. -/
 def vtBoffT (kv off gi bv len : ℕ) : List Stmt :=
   [.atom (.mul (.n (bv - 2)) (.n 12) (.n kv)), .atom (.load (.n (bv - 1)) (.n (bv - 2)) off),
-    .atom (.load (.n bv) (.n 36) gi)] ++
+    .atom (.load (.n bv) (.n 36) gi)] ⧺
   (List.range (len - 1)).map fun i ↦ .atom (.mul (.n (bv + 1 + i)) (.n (bv + i)) (.n (bv - 1)))
 
 theorem vtPush0_check :
