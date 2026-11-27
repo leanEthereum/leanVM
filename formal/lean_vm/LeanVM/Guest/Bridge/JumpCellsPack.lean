@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.AlignDefs
 /-!
 # The alignment context's tables
 
-`getF_trieOf`: an entry found in `trieOf l` is one of `l`'s. `getF_buildT`: `buildT d L` finds entry `n` of `L` below `2^d - 1`. `packGo_digits`: the cells packed `2^20`-ary, 64 to a chunk (`packGo`), are read back digit by digit. `locAt_ofData`: so the context's cell map is the certificate's cells, but for the hint-only cells, at every value below `2^30`.
+`getF_trieOf`: an entry found in `trieOf l` is one of `l`'s. `getF_buildT`: `buildT d L` finds entry `n` of `L` below `2^d - 1`. `packGo_digits`: the cells packed `2^20`-ary, 64 to a chunk (`packGo`), are read back digit by digit. `locT_buildT`: so the packed cells' trie, read by `locT`, holds the certificate's cells at every value below `2^30`. `locAt_ofData`: and the context's cell map is the certificate's cells, but for the hint-only cells, at every value below `2^30`.
 -/
 
 namespace LeanVM.Guest.Bridge
