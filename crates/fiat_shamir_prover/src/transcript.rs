@@ -46,6 +46,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         self.fs.sample()
     }
 
+    #[inline(never)]
     pub fn sample_vec(&mut self, n: usize) -> Vec<F> {
         self.fs.sample_vec(n)
     }
@@ -65,6 +66,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         self.stream.push(verifier::E::new(c0, c1));
     }
 
+    #[inline(never)]
     pub fn add_scalars(&mut self, xs: &[F]) {
         for &x in xs {
             self.add_scalar(x);
