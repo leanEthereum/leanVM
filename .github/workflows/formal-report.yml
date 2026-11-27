@@ -1,0 +1,40 @@
+name: Formal report
+
+# Reports, never refuses: `formal/tools/pr-report.py` lists what a pull request changes that a
+# `formal/` reviewer should look at (the statement, budgets and suppressions, leftovers, long files
+# and declarations, prose, unsafe Unicode) as the job summary and warning annotations. It exits 0
+# whatever it finds; only a failure of the tool itself or of its self-test fails the job. The gates
+# are `lean.yml`'s.
+#
+# `pull_request`: the tool reads the pull request's diff with a read-only token and no secrets.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "formal/**"
+      - ".claude/skills/**"
+      - "CONTRIBUTING.md"
+      - "AGENTS.md"
+      - ".github/workflows/formal-report.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: formal-report-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Test the report tool
+        run: python3 -I formal/tools/test_pr_report.py
+      - name: Report
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 -I formal/tools/pr-report.py --base "origin/$BASE_REF" --github
