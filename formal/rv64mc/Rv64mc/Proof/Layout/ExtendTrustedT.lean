@@ -20,8 +20,10 @@
 
   The postcondition: the vector `VecT` again, its length grown by `n`, its buffer the entry's or allocated since the
   entry (`PairT.KeptOrFresh`), all its `BusBlock`s' coordinates `Vec<Form>`s whose footprints avoid it, the new
-  ones' footprints in `[NEXT at entry, NEXT at exit)` (a caller keeps another vector's blocks across the call by
-  it: they lie below `NEXT` at entry, so apart from the new ones and from a buffer the call allocates). What it
+  ones' footprints in `[NEXT at entry, NEXT at exit)`. A caller keeps another vector's blocks across the call by
+  the order of the calls: each buffer a call allocates (`KeptOrFresh` with `VecT`) and each footprint it creates
+  lie in that call's `[NEXT at entry, NEXT at exit)`, so what different calls allocate is apart, the buffer at entry
+  (in `OutT`) included, which an earlier call allocated and which lies below `NEXT` at entry too. What it
   writes besides its stack and fresh blocks is the header and the buffer at entry (`OutT`). When `reserve` grows the
   buffer, the old `BusBlock`s' headers move with its bytes (`Grown`, `word_of_grown`) and their footprints, below
   `NEXT` at entry, stay below the new block.
