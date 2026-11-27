@@ -1,5 +1,18 @@
+Gap: `absorb`'s `state.iter_mut().zip(block)` and `digest_of`'s `out.as_chunks_mut::<8>().0.iter_mut().zip(state)` - Aeneas stops on each function (`[Error] Unimplemented`); the hax Lean library has no `Iterator` for `IterMut` and no `as_chunks_mut`
+Both loops go by index. `absorb` XORs lane `i` of the block into lane `i` of the state for
+`i < RATE_LANES`, which is where the zip stopped, the block being the shorter; then permutes, as
+before. `digest_of` writes lane `i`, little endian, to bytes `8i..8i + 8` for `i < OUT_LEN / 8`,
+the output's four chunks, where that zip stopped.
+Tests: absorb_by_index_matches_the_zip and digest_of_by_index_matches_the_chunks (no branches),
+each against the loop copied from the source, on the zero state, the all-ones state and states
+whose lanes all differ. matches_ethereum_keccak256 covers both through `hash`, against the `sha3`
+crate.
+mutation: `absorb` one lane short (`0..RATE_LANES - 1`) -> absorb_by_index_matches_the_zip fails;
+`digest_of` one lane short (`0..OUT_LEN / 8 - 1`) -> digest_of_by_index_matches_the_chunks fails.
+Both also fail matches_ethereum_keccak256.
+
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
-index 94a9d6b5c..845c7352b 100644
+index 3a08eb93c..46fa89a7a 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
 @@ -112,8 +112,8 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
@@ -23,4 +36,46 @@ index 94a9d6b5c..845c7352b 100644
 +        out[8 * i..8 * i + 8].copy_from_slice(&state[i].to_le_bytes());
      }
      out
+ }
+@@ -501,4 +501,41 @@ mod tests {
+             }
+         }
+     }
++
++    /// States and rate blocks for the sponge tests: zero, all ones, and words that differ in every lane.
++    fn states() -> Vec<[u64; STATE_LANES]> {
++        let word = |s: u64, i: usize| (s << 56 | (i as u64 + 1)).wrapping_mul(0x9E37_79B9_7F4A_7C15);
++        let mut states = vec![[0; STATE_LANES], [u64::MAX; STATE_LANES]];
++        states.extend((1..6).map(|s| core::array::from_fn(|i| word(s, i))));
++        states
++    }
++
++    /// `absorb` by index against the zip it replaces (no branches): every rate lane XORed in, no other, then permuted.
++    #[test]
++    fn absorb_by_index_matches_the_zip() {
++        for state in states() {
++            for other in states() {
++                let block: [u64; RATE_LANES] = core::array::from_fn(|i| other[STATE_LANES - 1 - i]);
++                let (mut got, mut want) = (state, state);
++                absorb(&mut got, &block);
++                for (s, b) in want.iter_mut().zip(&block) {
++                    *s ^= b;
++                }
++                keccak_f(&mut want);
++                assert_eq!(got, want);
++            }
++        }
++    }
++
++    /// `digest_of` by index against the chunks it replaces (no branches).
++    #[test]
++    fn digest_of_by_index_matches_the_chunks() {
++        for state in states() {
++            let mut want = [0u8; OUT_LEN];
++            for (chunk, lane) in want.as_chunks_mut::<8>().0.iter_mut().zip(&state) {
++                *chunk = lane.to_le_bytes();
++            }
++            assert_eq!(digest_of(&state), want);
++        }
++    }
  }

@@ -1,8 +1,33 @@
+Gap: `verify`'s visitors `|_| ()` to `fors_recover` and `tree_fold` - Aeneas gives an `FnMut` closure returning `()` a mistyped `call_mut`, and `fors_recover` passes its visitor on as `&mut visit`, which is not translated
+`verify` calls `fors_root` and `tree_root`, added here: `fors_recover` and `tree_fold` without the
+visitor, over `keccak256::path_root` (keccak256 02), which is `path_fold` without one.
+`fors_root` also builds the roots in a loop over the trees, where `fors_recover` has
+`array::from_fn` with a closure that captures the visitor. `fors_recover` and `tree_fold` stay, for
+the callers that watch; `fors_recover` is opaque in the extraction. Not a mechanical rewrite: the
+claim is that a fold whose visitor does nothing computes what the fold with no visitor does.
+Tool bugs: https://github.com/AeneasVerif/aeneas/issues/960 (the closure's `call_mut`),
+https://github.com/pereq-dev/hax/issues/2405 (`&mut visit`).
+Tests: tree_root_matches_tree_fold, against `tree_fold` with a counting visitor: the same root and
+one call a level, on every layer, for paths of the tree's height, of one node and of none, at
+leaves with both values of every bit.
+fors_root_matches_fors_recover, against `fors_recover` with a counting visitor: the same key and
+one call a level of every tree, at four sets of leaves that give every tree a left and a right
+child at every level.
+verify_matches_the_source (`std`), against `verify` copied from the source, on a real signature:
+accepted; refused at the early `false`, with a bottom counter that gives no codeword; refused with
+a counter or a path node changed on each layer, another message, a FORS secret changed, another
+root.
+mutation: `tree_root`'s leaf index `^ 1` -> tree_root_matches_tree_fold fails; `fors_root`'s first
+tree skipped (`1..FORS_TREES`) -> fors_root_matches_fors_recover fails; `fors_root`'s path index
+`^ 1` -> it fails; `verify` folding every layer on the bottom layer's path (`path(0)`) ->
+verify_matches_the_source fails; `verify` accepting where there is no codeword (`return true`) ->
+it fails; `verify`'s FORS key at index `idx ^ 1` -> it fails.
+
 diff --git a/crates/lean_sphincs/src/fors.rs b/crates/lean_sphincs/src/fors.rs
-index 37db00ec0..ec2658795 100644
+index 37db00ec0..349dfc71b 100644
 --- a/crates/lean_sphincs/src/fors.rs
 +++ b/crates/lean_sphincs/src/fors.rs
-@@ -104,3 +104,14 @@ pub fn fors_recover(
+@@ -104,3 +104,48 @@ pub fn fors_recover(
      });
      fors_key(pk_seed, idx, &roots)
  }
@@ -17,8 +42,42 @@ index 37db00ec0..ec2658795 100644
 +    }
 +    fors_key(pk_seed, idx, &roots)
 +}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// `fors_root` against `fors_recover` with a visitor: the same key, the visitor called once a level of every tree,
++    /// at leaves that give every tree a left and a right child at every level.
++    #[test]
++    fn fors_root_matches_fors_recover() {
++        let pk_seed: PkSeed = core::array::from_fn(|i| (i * 11 + 3) as u8);
++        let digest = |x: usize| -> Digest {
++            (x as u128 + 1)
++                .wrapping_mul(0x9E37_79B9_7F4A_7C15_F39C_C060)
++                .to_le_bytes()
++        };
++        let opening: ForsOpening = core::array::from_fn(|c| ForsTreeOpening {
++            secret: digest(c),
++            path: core::array::from_fn(|z| digest(100 + 16 * c + z)),
++        });
++        let last = (1 << FORS_HEIGHT) - 1;
++        let cases: [(u64, [usize; FORS_TREES]); 4] = [
++            (0, [0; FORS_TREES]),
++            (0x2aa_aaaa, [last; FORS_TREES]),
++            (0x155_5555, core::array::from_fn(|c| (c * 0x2f + 0x155) & last)),
++            ((1 << H) - 1, core::array::from_fn(|c| (c * 0x6b + 0x2aa) & last)),
++        ];
++        for (idx, leaves) in cases {
++            let mut seen = 0;
++            let want = fors_recover(&pk_seed, idx, &leaves, &opening, |_| seen += 1);
++            assert_eq!(fors_root(&pk_seed, idx, &leaves, &opening), want, "index {idx:#x}");
++            assert_eq!(seen, FORS_TREES * FORS_HEIGHT);
++        }
++    }
++}
 diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.rs
-index 394383b90..b87b41b85 100644
+index 77ab95779..e5059c975 100644
 --- a/crates/lean_sphincs/src/scheme.rs
 +++ b/crates/lean_sphincs/src/scheme.rs
 @@ -289,17 +289,22 @@ pub fn tree_fold(
@@ -45,4 +104,102 @@ index 394383b90..b87b41b85 100644
 +        signed = tree_root(pk_seed, &key, leaf, signature.path(layer));
      }
      signed == pk.root
+ }
+@@ -316,4 +321,97 @@ mod tests {
+             assert_eq!(path_range(layer), start..start + LAYER_HEIGHTS[layer]);
+         }
+     }
++
++    /// `tree_root` against `tree_fold` with a visitor: the same root, the visitor called once a level, on every layer,
++    /// for a path of its tree's height and for shorter ones down to none, with a left and a right child at every level.
++    #[test]
++    fn tree_root_matches_tree_fold() {
++        let pk_seed: PkSeed = core::array::from_fn(|i| (i * 11 + 3) as u8);
++        let digest = |x: u64| -> Digest {
++            u128::from(x + 1)
++                .wrapping_mul(0x9E37_79B9_7F4A_7C15_F39C_C060)
++                .to_le_bytes()
++        };
++        for layer in 0..LAYERS {
++            for height in [0, 1, LAYER_HEIGHTS[layer]] {
++                let path: Vec<Digest> = (0..height as u64).map(digest).collect();
++                for leaf in [0, 1, 0x155, 0x2aa, (1 << LAYER_HEIGHTS[layer]) - 1] {
++                    let key = OtsKey {
++                        layer,
++                        tree: 0x12_3456_789a ^ u64::from(leaf),
++                        leaf,
++                    };
++                    let mut seen = 0;
++                    let want = tree_fold(&pk_seed, &key, digest(99), &path, |_| seen += 1);
++                    assert_eq!(
++                        tree_root(&pk_seed, &key, digest(99), &path),
++                        want,
++                        "layer {layer}, leaf {leaf}"
++                    );
++                    assert_eq!(seen, height);
++                }
++            }
++        }
++    }
++
++    /// `verify` as the source has it: the two folds with visitors that do nothing.
++    #[cfg(feature = "std")]
++    fn verify_with_visitors(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphincsSignature) -> bool {
++        let pk_seed = &pk.pk_seed;
++        let (idx, leaves) = message_digest(pk, &signature.randomizer, message);
++        let mut signed = fors_recover(pk_seed, idx, &leaves, &signature.fors, |_| ());
++        for (layer, layer_sig) in signature.layers.iter().enumerate() {
++            let key = OtsKey::of_index(layer, idx);
++            let Some((_, leaf)) = wots_leaf(pk_seed, &key, &signed, layer_sig.counter, &layer_sig.wots) else {
++                return false;
++            };
++            signed = tree_fold(pk_seed, &key, leaf, signature.path(layer), |_| ());
++        }
++        signed == pk.root
++    }
++
++    /// `verify` against the source's. A signature is accepted. Refused, by each of its two ends: a bottom counter that
++    /// gives no codeword, which is the early `false`; on every layer a counter changed and a path node changed; another
++    /// message, a FORS secret changed, and another key's root.
++    #[cfg(feature = "std")]
++    #[test]
++    fn verify_matches_the_source() {
++        let sk: SecretKey = core::array::from_fn(|i| (i * 5 + 1) as u8);
++        let pk = key_gen(&sk);
++        let message: Message = core::array::from_fn(|i| (3 + i) as u8);
++        let signature = sign(&sk, &message);
++        assert!(verify(&pk, &message, &signature));
++        assert!(verify_with_visitors(&pk, &message, &signature));
++
++        let (idx, leaves) = message_digest(&pk, &signature.randomizer, &message);
++        let fors_key = fors_root(&pk.pk_seed, idx, &leaves, &signature.fors);
++        let (key, bottom) = (OtsKey::of_index(0, idx), &signature.layers[0]);
++        let no_codeword = (bottom.counter + 1..)
++            .find(|&c| wots_leaf(&pk.pk_seed, &key, &fors_key, c, &bottom.wots).is_none())
++            .unwrap();
++        let mut early = signature.clone();
++        early.layers[0].counter = no_codeword;
++        let mut refused = vec![(pk, message, early)];
++        for layer in 0..LAYERS {
++            let mut counter = signature.clone();
++            counter.layers[layer].counter ^= 1;
++            refused.push((pk, message, counter));
++            let mut path = signature.clone();
++            path.paths[path_range(layer).start][0] ^= 1;
++            refused.push((pk, message, path));
++        }
++        let mut other = message;
++        other[0] ^= 1;
++        refused.push((pk, other, signature.clone()));
++        let mut secret = signature.clone();
++        secret.fors[FORS_TREES - 1].secret[0] ^= 1;
++        refused.push((pk, message, secret));
++        let mut key = pk;
++        key.root[0] ^= 1;
++        refused.push((key, message, signature.clone()));
++        for (case, (pk, message, signature)) in refused.iter().enumerate() {
++            assert!(!verify(pk, message, signature), "case {case}");
++            assert!(!verify_with_visitors(pk, message, signature), "case {case}");
++        }
++    }
  }

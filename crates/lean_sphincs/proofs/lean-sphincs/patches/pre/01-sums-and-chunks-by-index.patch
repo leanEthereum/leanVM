@@ -1,5 +1,24 @@
+Gap: `h_msg`'s `out.as_chunks_mut::<32>().0.iter_mut().enumerate()`, and `Iterator::sum` in `path_range`, `OtsKey::of_index` and `codeword` - Lean rejects the translation: the hax Lean library has no `Iterator` for `IterMut`, no `as_chunks_mut`, and no `Iterator::sum`
+Each becomes a loop by index.
+`h_msg`: call `i`'s digest goes to bytes `32i..32(i + 1)` for `i < DIGEST_CALLS`, which is the
+chunks of `out` in order.
+`path_range` and `OtsKey::of_index`: `LAYER_HEIGHTS[..layer].iter().sum()` is the sum of
+`LAYER_HEIGHTS[l]` for `l < layer`.
+`codeword`: the sum of the chunks `x[i] as usize` for `i < V`. Additions in the same order, none
+of which can overflow (at most `3 * V`).
+Tests: each against the expression copied from the source.
+h_msg_by_index_matches_the_chunks (no branches), on four inputs;
+path_range_by_index_matches_the_sum and of_index_by_index_matches_the_sum (no branches), on every
+layer, so with none, one and two layers below, the second at nine indices;
+codeword_by_index_matches_the_iterator: four digests whose chunks sum to `T`, with every chunk
+value among them (`Some`), each with its first or last chunk changed (`None`), and four other
+digests (`None`).
+mutation: `h_msg`'s first call skipped (`1..DIGEST_CALLS`) -> it fails; `path_range`'s sum from
+layer 1 (`1..layer`) -> it fails; `of_index`'s sum from layer 1 -> it fails; `codeword`'s sum from
+chunk 1 (`1..V`) -> it fails. Each fails its own test.
+
 diff --git a/crates/lean_sphincs/src/hash.rs b/crates/lean_sphincs/src/hash.rs
-index d7e52dd76..cb3e2a2f5 100644
+index d7e52dd76..ce17f800f 100644
 --- a/crates/lean_sphincs/src/hash.rs
 +++ b/crates/lean_sphincs/src/hash.rs
 @@ -133,8 +133,9 @@ pub fn h_msg(r: &Digest, pk_seed: &PkSeed, pk_root: &Digest, m: &Message) -> [u8
@@ -14,8 +33,30 @@ index d7e52dd76..cb3e2a2f5 100644
      }
      out
  }
+@@ -164,4 +165,21 @@ mod tests {
+         assert_eq!(adrs.as_bytes()[..], bytes[..]);
+         assert_eq!(adrs.with_type(WOTS_PK).as_bytes()[20..], [0; 12]);
+     }
++
++    /// `h_msg` by index against the chunks it replaces (no branches): every call's digest, whole and in order.
++    #[test]
++    fn h_msg_by_index_matches_the_chunks() {
++        for seed in 0..4u8 {
++            let bytes = |salt: u8| core::array::from_fn(|i| (i as u8).wrapping_mul(29).wrapping_add(salt ^ seed));
++            let (r, pk_seed, pk_root): (Digest, PkSeed, Digest) = (bytes(1), bytes(2), bytes(3));
++            let m: Message = core::array::from_fn(|i| (i as u8).wrapping_mul(7).wrapping_add(seed));
++            let mut z = Hasher::new();
++            z.update(&r).update(&pk_seed).update(&pk_root).update(&m);
++            let mut want = [0; 32 * DIGEST_CALLS];
++            for (i, call) in want.as_chunks_mut::<32>().0.iter_mut().enumerate() {
++                *call = z.clone().update(&(i as u32).to_be_bytes()).finalize();
++            }
++            assert_eq!(h_msg(&r, &pk_seed, &pk_root, &m), want);
++        }
++    }
+ }
 diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.rs
-index 0844f6107..394383b90 100644
+index 0844f6107..77ab95779 100644
 --- a/crates/lean_sphincs/src/scheme.rs
 +++ b/crates/lean_sphincs/src/scheme.rs
 @@ -89,7 +89,10 @@ pub struct LeanSphincsSignature {
@@ -30,8 +71,26 @@ index 0844f6107..394383b90 100644
      start..start + LAYER_HEIGHTS[layer]
  }
  
+@@ -300,3 +303,17 @@ pub fn verify(pk: &LeanSphincsPublicKey, message: &Message, signature: &LeanSphi
+     }
+     signed == pk.root
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// `path_range`'s start by index against the sum it replaces, on every layer: none below, one and two.
++    #[test]
++    fn path_range_by_index_matches_the_sum() {
++        for layer in 0..LAYERS {
++            let start: usize = LAYER_HEIGHTS[..layer].iter().sum();
++            assert_eq!(path_range(layer), start..start + LAYER_HEIGHTS[layer]);
++        }
++    }
++}
 diff --git a/crates/lean_sphincs/src/wots.rs b/crates/lean_sphincs/src/wots.rs
-index a3c1b545b..36c325eb3 100644
+index a3c1b545b..dda152101 100644
 --- a/crates/lean_sphincs/src/wots.rs
 +++ b/crates/lean_sphincs/src/wots.rs
 @@ -25,7 +25,11 @@ impl OtsKey {
@@ -60,3 +119,78 @@ index a3c1b545b..36c325eb3 100644
  }
  
  /// `Wots.sign`: the LEAST admissible counter, and the chain value each chunk
+@@ -125,3 +133,74 @@ pub(crate) fn wots_public_leaf(sk: &ExpandedKey, key: &OtsKey) -> Digest {
+     let ends = core::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
+     wots_leaf_hash(&sk.pk_seed, key, &ends)
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// `OtsKey::of_index`'s shift by index against the sum it replaces, on every layer: none below, one and two.
++    #[test]
++    fn of_index_by_index_matches_the_sum() {
++        for layer in 0..LAYERS {
++            for idx in [
++                0,
++                1,
++                0xff,
++                0x100,
++                0x1_2345,
++                0x2aa_aaaa,
++                0x155_5555,
++                (1 << H) - 1,
++                u64::MAX,
++            ] {
++                let height = LAYER_HEIGHTS[layer];
++                let e = idx >> LAYER_HEIGHTS[..layer].iter().sum::<usize>();
++                let want = OtsKey {
++                    layer,
++                    tree: e >> height,
++                    leaf: (e & ((1 << height) - 1)) as u32,
++                };
++                assert_eq!(OtsKey::of_index(layer, idx), want, "layer {layer}, index {idx:#x}");
++            }
++        }
++    }
++
++    /// `codeword` as the source has it: the sum by iterator.
++    fn codeword_by_iterator(digest: &Digest) -> Option<[u8; V]> {
++        let d = u128::from_be_bytes(*digest);
++        let x: [u8; V] = core::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);
++        (x.iter().map(|&chunk| chunk as usize).sum::<usize>() == TARGET_SUM).then_some(x)
++    }
++
++    /// `codeword`'s sum by index against the iterator it replaces: digests whose chunks sum to `T`, every chunk value
++    /// among them, the same digests with the first chunk or the last changed, and digests far from `T`.
++    #[test]
++    fn codeword_by_index_matches_the_iterator() {
++        // A byte is four chunks: 2, 2, 2, 2; 3, 1, 3, 1; 3s then 1s; 0, 3, 3, 2.
++        let hits: [Digest; 4] = [
++            [0xaa; N],
++            [0xdd; N],
++            core::array::from_fn(|i| if i < N / 2 { 0xff } else { 0x55 }),
++            [0x3e; N],
++        ];
++        for digest in hits {
++            assert!(codeword(&digest).is_some());
++            assert_eq!(codeword(&digest), codeword_by_iterator(&digest));
++            for (at, flip) in [(0, 0x40), (0, 0xc0), (N - 1, 0x01), (N - 1, 0x03)] {
++                let mut miss = digest;
++                miss[at] ^= flip;
++                assert_eq!(codeword(&miss), None, "byte {at} ^ {flip:#x}");
++                assert_eq!(codeword_by_iterator(&miss), None);
++            }
++        }
++        for digest in [
++            [0; N],
++            [0xff; N],
++            [0x1b; N],
++            core::array::from_fn(|i| (i * 37 + 5) as u8),
++        ] {
++            assert_eq!(codeword(&digest), None);
++            assert_eq!(codeword_by_iterator(&digest), None);
++        }
++    }
++}

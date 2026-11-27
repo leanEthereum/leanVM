@@ -1,5 +1,19 @@
+Gap: the visitors of `path_fold` that do nothing (leanXMSS's and leanSPHINCS's `verify`) - Aeneas gives an `FnMut` closure returning `()` a mistyped `call_mut`, and a visitor passed on as `&mut visit` is not translated
+Adds `path_root`: `path_fold` without the `visit` parameter and without its one call. The two
+`verify` patches call it (lean_xmss 01, lean_sphincs 02); `path_fold` stays for the callers that
+watch. Not a mechanical rewrite. The claim is that the fold with a visitor that does nothing
+computes what the fold with no visitor does: `visit` takes the pair by shared reference and
+returns `()`, so nothing the fold computes depends on it, and a visitor that does nothing has no
+effect to lose.
+Tool bugs: https://github.com/AeneasVerif/aeneas/issues/960 (the closure's `call_mut`),
+https://github.com/pereq-dev/hax/issues/2405 (`&mut visit`).
+Tests: path_root_matches_path_fold, against `path_fold` with a counting visitor: the same root, and
+the visitor called once a level, at heights 0 to 11, at indices with both values of every bit the
+path reads, under a `node` that tells apart the height, the index and the order of the children.
+mutation: children swapped (`== 0` -> `!= 0`) -> it fails; node height `z` for `z + 1` -> it fails.
+
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
-index 22857ce84..94a9d6b5c 100644
+index f5937ca4c..3a08eb93c 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
 @@ -228,6 +228,26 @@ pub fn path_fold<const N: usize>(
@@ -29,3 +43,23 @@ index 22857ce84..94a9d6b5c 100644
  /// Keccak-256 of `data`, Ethereum's `keccak256`: FIPS 202's sponge over Keccak-f\[1600\] with
  /// rate [`RATE`] and Keccak's original padding.
  pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
+@@ -466,4 +486,19 @@ mod tests {
+             }
+         }
+     }
++
++    /// `path_root` against `path_fold` with a visitor: the same root, the visitor called once a level, at every height
++    /// from none up and with a left and a right child at every level.
++    #[test]
++    fn path_root_matches_path_fold() {
++        for height in [0, 1, 2, 3, 8, 11] {
++            let (leaf, path) = leaf_and_path(height);
++            for e in indices(height) {
++                let mut seen = 0;
++                let want = path_fold(leaf, e, &path, |_| seen += 1, mix);
++                assert_eq!(path_root(leaf, e, &path, mix), want, "height {height}, index {e}");
++                assert_eq!(seen, height);
++            }
++        }
++    }
+ }

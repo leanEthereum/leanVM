@@ -1,5 +1,38 @@
+Gap: `lanes::permute` picked by `cfg(target_arch)`, and `Lane`'s default `absorb` and `digests` - the extraction would differ by host, and Aeneas translates neither default body, which leaves `impl Lane for u64` without a usable instance
+Three changes, so that the permutation extracts for the one lane type every host has, `u64`.
+
+(a) One `permute` on every host. The source has two: x86-64's alternates between two states, a row
+at a time, and its `permute_first_row` computes only the first row in the last round; every other
+architecture's works in place. The patch gives every host the second, so on x86-64 the extracted
+body is not the one a build of the source runs there. x86-64's `permute`, `permute_first_row` and
+`round` stay, for tests only, as `permute_two_states` and `permute_first_row_two_states`.
+(b) `Lane::absorb` and `Lane::digests`, which only batched hashing calls, move to a trait `Batch:
+Lane` with no default bodies. The defaults become `absorb_by_lane` and `digests_by_lane`, which
+`u64` and `Avx2` delegate to; `Avx512`'s and `Neon`'s own versions move to their `Batch` impls
+unchanged. `hash_many_with` and `hash_group` ask for `Batch`. Nothing but the trait an item sits in
+changes. Tool bug: https://github.com/pereq-dev/hax/issues/2404.
+(c) `theta`'s `d.iter_mut().enumerate()` and `permute`'s `for &rc in &RC` go by index.
+
+Tests: the_permutation_matches_the_source_on_every_backend (none has a branch on its input), on
+`u64` and on each vector backend the CPU runs, from the zero state, the all-ones state and 16
+states whose lanes all differ: `permute` against `permute_two_states` and against the in-place
+form with its iterators, copied from the source; lanes `0..5` of `permute_first_row` against
+`permute_first_row_two_states`; `theta` against its iterator form, copied. Run on aarch64 and,
+with `--target x86_64-apple-darwin`, on x86-64 under Rosetta, where the CPU reports no AVX2, so
+that run compared `u64` alone. The oracles are `cfg(test)` on every host, being generic code, so
+the comparison runs wherever the tests do. They share `theta`, `pi_row` and `chi_row` with
+`permute` and say nothing about those: `theta` has its own comparison, and the whole permutation
+is checked by matches_ethereum_keccak256, against the `sha3` crate.
+the_scalar_batch_matches_one_shot: `hash_many_with::<u64>`, which is `Batch for u64`, against
+`hash_from_state` on each input. every_backend_matches_the_scalar_one and
+batched_hash_matches_one_shot, the source's own, cover the vector backends' `Batch`.
+mutation: `permute` one round short (`0..RC.len() - 1`) -> the_permutation_.. fails, on aarch64 and
+on x86-64; round constants reversed (`RC[RC.len() - 1 - round]`) -> it fails; `theta` one column
+short (`0..4`) -> it fails, at the `theta` comparison; `Batch for u64`'s `absorb` one word short ->
+the_scalar_batch_matches_one_shot and every_backend_matches_the_scalar_one fail.
+
 diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
-index e99148e23..c5dac1ca3 100644
+index e99148e23..e87d7ff76 100644
 --- a/crates/keccak256/src/lanes.rs
 +++ b/crates/keccak256/src/lanes.rs
 @@ -38,29 +38,38 @@ pub(crate) trait Lane: Copy {
@@ -70,30 +103,36 @@ index e99148e23..c5dac1ca3 100644
      }
      d
  }
-@@ -202,7 +211,7 @@ pub const _ASSERT_8D708A96: () = assert!(RC.len().is_multiple_of(2));
+@@ -202,9 +211,9 @@ pub const _ASSERT_8D708A96: () = assert!(RC.len().is_multiple_of(2));
  /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
  /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
  /// before χ spills.
 -#[cfg(target_arch = "x86_64")]
-+#[cfg(any())]
++#[cfg(test)]
  #[inline(always)]
- pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+-pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
++pub(crate) fn permute_two_states<S: Lane>(a: &mut [S; STATE_LANES]) {
      let mut c = parities(a);
-@@ -215,7 +224,7 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+     let mut e = *a;
+     for &[rc0, rc1] in RC.as_chunks::<2>().0 {
+@@ -215,9 +224,9 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
  
  /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
  /// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
 -#[cfg(target_arch = "x86_64")]
-+#[cfg(any())]
++#[cfg(test)]
  #[inline(always)]
- pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+-pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
++pub(crate) fn permute_first_row_two_states<S: Lane>(a: &mut [S; STATE_LANES]) {
      let mut c = parities(a);
+     let mut e = *a;
+     for &[rc0, rc1] in RC[..RC.len() - 2].as_chunks::<2>().0 {
 @@ -230,7 +239,7 @@ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
  
  /// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
  /// whole round, of `out` on exit.
 -#[cfg(target_arch = "x86_64")]
-+#[cfg(any())]
++#[cfg(test)]
  #[inline(always)]
  fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
      let d = theta(c);
@@ -205,3 +244,108 @@ index e99148e23..c5dac1ca3 100644
          let name = core::any::type_name::<S>();
          let w = MAX_WIDTH as u64;
          let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+@@ -903,4 +938,104 @@ mod tests {
+             }
+         }
+     }
++
++    /// The words of each lane, state by state.
++    fn words<S: Lane>(lanes: &[S]) -> Vec<[u64; MAX_WIDTH]> {
++        lanes.iter().map(|&lane| scatter(lane)).collect()
++    }
++
++    /// `permute` as the source has it off x86-64: the round constants and the rows by iterator.
++    fn permute_by_iterator<S: Lane>(a: &mut [S; STATE_LANES]) {
++        let mut c = parities(a);
++        for &rc in &RC {
++            let d = theta(&c);
++            let rows = [
++                pi_row(a, &d, 0),
++                pi_row(a, &d, 1),
++                pi_row(a, &d, 2),
++                pi_row(a, &d, 3),
++                pi_row(a, &d, 4),
++            ];
++            for (y, &row) in rows.iter().enumerate() {
++                chi_row(a, &mut c, y, row, rc);
++            }
++        }
++    }
++
++    /// `theta` as the source has it: its columns by iterator.
++    fn theta_by_iterator<S: Lane>(c: &[S; 5]) -> [S; 5] {
++        let mut d = *c;
++        for (x, d) in d.iter_mut().enumerate() {
++            *d = S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]);
++        }
++        d
++    }
++
++    /// On backend `S`, the permutation every host is given against the two the source has: x86-64's, which alternates
++    /// between two states, whole and for the first row alone, and the other architectures', by iterator. And `theta`
++    /// by index against its iterator. None has a branch on its input.
++    fn the_permutation_matches_the_source<S: Lane>() {
++        let name = core::any::type_name::<S>();
++        let word = |s: u64, i: usize, l: usize| {
++            (s << 40 | (l as u64) << 32 | (i as u64 + 1)).wrapping_mul(0x9E37_79B9_7F4A_7C15)
++        };
++        let mut inputs = vec![[S::splat(0); STATE_LANES], [S::splat(u64::MAX); STATE_LANES]];
++        inputs.extend((0..16).map(|s| core::array::from_fn(|i| gather(|l| word(s, i, l)))));
++        for input in inputs {
++            let (mut got, mut two_states, mut by_iterator) = (input, input, input);
++            permute(&mut got);
++            permute_two_states(&mut two_states);
++            permute_by_iterator(&mut by_iterator);
++            assert_eq!(words(&got), words(&two_states), "{name} permute, against two states");
++            assert_eq!(words(&got), words(&by_iterator), "{name} permute, against the iterator");
++
++            let (mut got, mut two_states) = (input, input);
++            permute_first_row(&mut got);
++            permute_first_row_two_states(&mut two_states);
++            assert_eq!(words(&got[..5]), words(&two_states[..5]), "{name} permute_first_row");
++
++            let c: [S; 5] = core::array::from_fn(|x| input[7 + 3 * x]);
++            assert_eq!(words(&theta(&c)), words(&theta_by_iterator(&c)), "{name} theta");
++        }
++    }
++
++    /// The extracted lane type, and every vector backend this CPU runs.
++    #[test]
++    fn the_permutation_matches_the_source_on_every_backend() {
++        the_permutation_matches_the_source::<u64>();
++        #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
++        {
++            if cpu_has!("avx2") {
++                the_permutation_matches_the_source::<x86::Avx2>();
++            }
++            if cpu_has!("avx512f") {
++                the_permutation_matches_the_source::<x86::Avx512>();
++            }
++        }
++        #[cfg(all(target_arch = "aarch64", target_endian = "little", target_feature = "neon"))]
++        {
++            the_permutation_matches_the_source::<arm::Neon<false>>();
++            if cpu_has!("sha3") {
++                the_permutation_matches_the_source::<arm::Neon<true>>();
++            }
++        }
++    }
++
++    /// The scalar backend's batch, which is `absorb` and `digests` a lane at a time, against hashing each input alone.
++    #[test]
++    fn the_scalar_batch_matches_one_shot() {
++        let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
++        for len in [0usize, 8, 64, 135, 136, 137, 408] {
++            let n = 3;
++            let data: Vec<u8> = (0..n * len).map(|i| (i * 31 + len) as u8).collect();
++            let mut got = vec![MaybeUninit::uninit(); n * OUT_LEN];
++            hash_many_with::<u64>(&data, len, &template, &mut got);
++            // SAFETY: the hash writes every byte of its output.
++            let got = unsafe { got.assume_init_ref() };
++            for i in 0..n {
++                let want = hash_from_state(&data[i * len..][..len], &template);
++                assert_eq!(got[i * OUT_LEN..][..OUT_LEN], want, "input {i} of {len} bytes");
++            }
++        }
++    }
+ }
