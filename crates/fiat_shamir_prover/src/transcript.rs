@@ -41,6 +41,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
         }
     }
 
+    #[inline(never)]
     pub fn sample(&mut self) -> F {
         self.fs.sample()
     }
@@ -57,7 +58,7 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
 
     /// Transmit a scalar into the proof AND bind it into the state (the two are
     /// inseparable: you cannot send without binding).
-    #[inline]
+    #[inline(never)]
     pub fn add_scalar(&mut self, x: F) {
         self.fs.observe(x);
         let [c0, c1] = x.to_limbs();
