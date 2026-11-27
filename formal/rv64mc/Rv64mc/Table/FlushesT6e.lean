@@ -3,18 +3,22 @@
 
   `Flushes::pair` over a `Flushes` of `Form`s (`PairFormT`) at the image (`liftProg Gen.fns`), from its total
   contract there (`FlushesT.pair`), and `Flushes::state_derived` (`StateDerivedT`) over it and the aligned `Form`
-  builders (`FormT6e`), and `Flushes::state_step` (`StateStepT`) over both. Left as hypotheses, environment facts: `alloc`'s two (`RuntimeT.alloc`, through `grow_one`)
-  and, for `state_derived` and `state_step`, `clmul_low`'s constant (`FieldT.ClmulTable`, through `col`).
+  builders (`FormT6e`), `Flushes::state_step` (`StateStepT`) over both, and `Flushes::counted` (`CountedT`) over
+  `concat` (`FormT6e.concatForm`), `col` and `pair`. Left as hypotheses, environment facts: `alloc`'s two
+  (`RuntimeT.alloc`, through `grow_one`) and, for `state_derived`, `state_step` and `counted`, `clmul_low`'s constant
+  (`FieldT.ClmulTable`, through `col`); for `counted`, `concat`'s and `spec_extend`'s bounds' words in the static
+  data (`DataRef.InData`).
 
   ## Main results
 
-  * `pairForm`, `stateDerived`, `stateStep`
+  * `pairForm`, `stateDerived`, `stateStep`, `counted`
 -/
 
 import Rv64mc.Table.FlushesT
 import Rv64mc.Table.FormT6e
 import Rv64mc.Proof.Layout.PairFormT
 import Rv64mc.Proof.Layout.StateStepT
+import Rv64mc.Proof.Layout.CountedT
 
 namespace Rv64mc.Table.FlushesT6e
 
@@ -43,6 +47,19 @@ theorem stateStep (hd : FieldT.ClmulTable env) :
   StateStepT.total env _ _ _ Verifier.Layout.Flushes.StateStep.tmpl_eq Verifier.Layout.Flushes.StateStep.wf
     (by decide) (by decide) (FormT6e.colAl env hnext hend hd) (stateDerived env hnext hend hd)
 
+/-- **`Flushes::counted` at the image** (function 198), given `concat`'s and `spec_extend`'s bounds' words in the
+    static data. -/
+theorem counted (hd : FieldT.ClmulTable env)
+    (hdc : DataRef.InData env [(Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.link.d_c8_d6dfd6bc,
+      Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.d_c8_d6dfd6bc_words)])
+    (hds : DataRef.InData env
+      [(Alloc.Vec.SpecExtend.VecForm.AsSpecExtendRefFormIterForm.SpecExtend.link.d_c8_51ab739d,
+        Alloc.Vec.SpecExtend.VecForm.AsSpecExtendRefFormIterForm.SpecExtend.d_c8_51ab739d_words)]) :
+    CountedT.SpecT env (liftProg fns) Idx.Verifier.Layout.Flushes.Counted Needs.Verifier.Layout.Flushes.Counted :=
+  CountedT.total env _ _ _ Verifier.Layout.Flushes.Counted.tmpl_eq Verifier.Layout.Flushes.Counted.wf
+    (by decide) (by decide) (by decide) (FormT6e.concatForm env hnext hend hdc hds) (FormT6e.colAl env hnext hend hd)
+    (pairForm env hnext hend)
+
 end Rv64mc.Table.FlushesT6e
 
 /-- info: 'Rv64mc.Table.FlushesT6e.pairForm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -56,3 +73,7 @@ end Rv64mc.Table.FlushesT6e
 /-- info: 'Rv64mc.Table.FlushesT6e.stateStep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.FlushesT6e.stateStep
+
+/-- info: 'Rv64mc.Table.FlushesT6e.counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.FlushesT6e.counted
