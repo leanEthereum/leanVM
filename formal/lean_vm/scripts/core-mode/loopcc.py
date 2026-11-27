@@ -194,7 +194,7 @@ def _results(verbose=False):
                     finally:
                         I.F.clear()
                         I.F.update({'ptr', 'pfr'})
-                out[k]['text'] = callc.ldata(k, out[k])
+                out[k]['text'] = callc.ldata(k, out[k], data=True)
             except No as e:
                 why[str(e).split(':')[0]] += 1
                 if verbose == 'why':
@@ -211,6 +211,7 @@ def _results(verbose=False):
 GEN = callc.GEN
 head = genfiles.header('core-mode/loopcc.py --emit')
 HEADER = """public import LeanVM.Guest.CoreMode.Defs
+meta import LeanVM.Guest.DataLit
 
 set_option maxRecDepth 100000
 set_option linter.all false
