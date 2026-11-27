@@ -44,8 +44,8 @@ def main(check=False):
     tab = {}
     for f in glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')):
         mod = 'LeanVM.Guest.Bridge.ProgAl.' + os.path.basename(f)[:-5]
-        for j, ex, en in re.findall(r'^kernel_rfl tab(\d+) : \(Bridge\.extraOf \1, Bridge\.entsOf \1, Bridge\.adviceOf \1\) = '
-                                    r'\((\[[^\]]*\]), (\[.*\]), Data\.adviceFn\1\)$', open(f, encoding='utf-8').read(), re.M):
+        for j, ex, en in re.findall(r'^theorem tab(\d+) : \(Bridge\.extraOf \1, Bridge\.entsOf \1, Bridge\.adviceOf \1\) = '
+                                    r'\((\[[^\]]*\]), (\[.*\]), Data\.adviceFn\1\) :=$', open(f, encoding='utf-8').read(), re.M):
             tab[int(j)] = (mod, ex, en)
         for j in re.findall(r'^kernel_rfl plumbEq(\d+) :', open(f, encoding='utf-8').read(), re.M):
             plumb.setdefault(int(j), ('Bridge.ProgAl', mod))

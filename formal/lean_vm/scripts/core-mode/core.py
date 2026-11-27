@@ -816,7 +816,7 @@ def main(check=False):
     # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
     frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
-    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
+    tabs = index(r'^theorem tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
     files = {}
     S = route.sigs()
     # the long loop helpers: their core data apart, their passes in windows (`long_loop`)
