@@ -95,7 +95,7 @@ theorem glRounds_succ (B n : ℕ) (cur pt npt : V) (noff : ℕ) (claim0 : V) (ca
     glCapAfter]
 
 /-- A record's capacity cells, `glCap b`'s values. -/
-theorem tbCapAt_glCap {rd : Reader} {σ : Val} {rec : E} {off b : ℕ}
+theorem capAt_glCap {rd : Reader} {σ : Val} {rec : E} {off b : ℕ}
     (h : ∀ k < 5, LoadHolds rd rec (off + k) (σ (.n (b + k)))) :
     TbCapAt rd rec off 1 ((glCap b).map σ) := by
   refine ⟨by simp [glCap], fun j hj => ?_⟩

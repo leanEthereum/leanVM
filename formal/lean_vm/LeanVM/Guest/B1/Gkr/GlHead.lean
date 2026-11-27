@@ -144,7 +144,7 @@ theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHead
     obtain ⟨hc, hr⟩ := h
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     simp only [glCapAfter, glClaimAfter, Nat.mul_zero, ↓reduceIte, pow_zero, mul_one]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), hr.1, hr.2⟩
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), hr.1, hr.2⟩
   · have hp0 : p ≠ 0 := by omega
     simp only [glHeadStore, hp0, ↓reduceIte, glHeadStoreP, tb_holdsList_append_noRet
       (tb_noRetList_mapAtoms 5 _), tb_holdsList_mapAtoms] at h
@@ -159,7 +159,7 @@ theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHead
       simp only [glClaimAfter, show 2 * p ≠ 0 by omega, ↓reduceIte]
       rw [show 58 + 39 * (2 * p) - 1 = 57 + 78 * p by omega]
     rw [e1, e2, show 4 * (2 * p) = 8 * p by ring, ← c, ← m]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), l1, l2⟩
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), l1, l2⟩
 
 /-- **The loop's call**, on `qrow = pt·g^(2p)` and `nqrow = qrow·g^42`. -/
 theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
@@ -204,7 +204,7 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
     obtain ⟨hc, hr⟩ := hl
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     rw [← hw]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa [Nat.add_assoc] using hc k hk), hr.1,
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa [Nat.add_assoc] using hc k hk), hr.1,
       hr.2⟩
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glTailSetup, ↓reduceIte, glTailSetup0, holdsList_append, Stmt.HoldsList,
