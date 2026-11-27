@@ -31,6 +31,7 @@ opaque = [
   "crate::lanes::first_nonce",
   "crate::lanes::hash_many",
   "crate::lanes::hash_many_from_state",
+  "crate::lanes::hash_many_from_state_uninit",
   "crate::lanes::digest_halves_from",
 
   # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be

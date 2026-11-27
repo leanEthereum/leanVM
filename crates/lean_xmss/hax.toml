@@ -29,6 +29,10 @@ opaque = [
   "crate::wots::wots_sign",  # Lean: unknown identifier `alloc.slice.slice.concat`
   "crate::wots::wots_public_leaves",  # Aeneas: internal error, please file an issue
   "crate::hash::th_many",  # Lean: unknown identifier `keccak256.lanes.hash_many`
+  "crate::wots::chain_ends",  # Aeneas: unreachable
+  "crate::scheme::_::evict",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.drain`
+  "crate::scheme::_::get",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.iter`
+  "crate::scheme::_::set_bottom_tree_cache_size",  # Lean: unknown constant `std.sync.poison.mutex.mutex.lock`
 ]
 exclude = [
   # Serde: the derived (de)serializers and the array helper, which Aeneas cannot translate
