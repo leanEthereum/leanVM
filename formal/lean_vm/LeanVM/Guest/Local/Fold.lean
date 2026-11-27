@@ -43,6 +43,15 @@ theorem bindO_eq_some {α β : Type} {o : Option α} {k : α → Option β} {b :
   | none => cases h
   | some a => exact ⟨a, rfl, h⟩
 
+/-- `k n`, `n` evaluated first (the kernel would otherwise carry `n` as a growing term). -/
+def seqN {β : Type} (n : ℕ) (k : ℕ → β) : β :=
+  match n with
+  | 0 => k 0
+  | m + 1 => k (m + 1)
+
+@[simp] theorem seqN_eq {β : Type} (n : ℕ) (k : ℕ → β) : seqN n k = k n := by
+  cases n <;> rfl
+
 variable {St : Type}
 
 /-- What a walk returns: the position after it, its state, the arm ends left. -/
@@ -61,7 +70,7 @@ variable (step : St → ℕ → Stmt → Ctx → Option St)
 
 /-- A statement without blocks: its step. -/
 noncomputable def leafF (s : Stmt) (c : Ctx) (p : ℕ) (st : St) (es : List ℕ) : Option (FoldR St) :=
-  bindO (step st p s c) fun st ↦ some (p + 1, st, es)
+  bindO (step st p s c) fun st ↦ seqN (p + 1) fun p' ↦ some (p', st, es)
 
 /-- An `ite`: its step, then its zero and nonzero blocks as arms. -/
 noncomputable def iteF (x : V) (z n : List Stmt) (rz rn : Ctx → ℕ → St → List ℕ → Option (FoldR St)) (c : Ctx)
@@ -322,6 +331,7 @@ theorem leaf_spec {s : Stmt} {c : Ctx} {p : ℕ} {st : St} {es : List ℕ} {x : 
       step (f p) p s c = some (f (p + 1)) ∧
       ∀ q s' c', AtS p s q s' c' → step (f q) q s' c' = some (f (q + 1)) := by
   obtain ⟨st1, h1, h⟩ := bindO_eq_some h
+  rw [seqN_eq] at h
   cases h
   refine ⟨by rw [hs], splice (fun _ ↦ st) (fun _ ↦ st1) (p + 1), splice_lo (Nat.lt_succ_self p),
     splice_hi (by omega), by rw [splice_lo (Nat.lt_succ_self p), splice_hi le_rfl]; exact h1,
