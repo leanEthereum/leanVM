@@ -3,19 +3,23 @@
 
   The WHIR functions' total contracts of wave 6b at the image (`liftProg Gen.fns`): each function's total theorem at
   its index, with the generated link, the stack `Gen.Needs` gives (its bound over each callee's by `decide`), and its
-  callees' total theorems (`sample_queries`: `TranscriptT3.sample`, `RuntimeT.alloc`, `RuntimeT.handleError`). Left
+  callees' total theorems (`sample_queries`: `TranscriptT3.sample`, `RuntimeT.alloc`, `RuntimeT.handleError`;
+  `Subspace::at`: `FieldT.baseMul`, `FieldT.spread`, `FieldT.reduce`, `RuntimeT.alloc`, `RuntimeT.handleError`). Left
   as hypotheses: `log2_strict`'s two constant tables in the image's static data (`DataRef.InData`, as
-  `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through `Sponge::sample`), and the
-  allocator's two facts (`NEXT`'s data reference and the heap's end), environment facts.
+  `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through `Sponge::sample`), `clmul_low`'s
+  (`FieldT.ClmulTable`, through `base_mul`), and the allocator's two facts (`NEXT`'s data reference and the heap's
+  end), environment facts.
 
   ## Main results
 
-  * `sampleQueries`
+  * `sampleQueries`, `subspaceAt`
 -/
 
 import Rv64mc.Table.TranscriptT3
 import Rv64mc.Table.RuntimeT
+import Rv64mc.Table.FieldT
 import Rv64mc.Proof.Whir.SampleQueriesT
+import Rv64mc.Proof.Whir.SubspaceAtT
 import Rv64mc.Gen.Link.Verifier.Whir
 
 namespace Rv64mc.Table.WhirT6b
@@ -35,8 +39,24 @@ theorem sampleQueries (hd : HashT.KeccakTables env)
     (needH := Needs.Alloc.RawVec.HandleError) (by decide) (by decide) (by decide)
     (TranscriptT3.sample env hd) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
 
+/-- `Subspace::at`. -/
+theorem subspaceAt (hd : FieldT.ClmulTable env)
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    SubspaceAtT.specT env (liftProg fns) Idx.Verifier.Whir.Subspace.At Needs.Verifier.Whir.Subspace.At :=
+  SubspaceAtT.total env _ _ _ Verifier.Whir.Subspace.At.tmpl_eq Verifier.Whir.Subspace.At.wf
+    (needB := Needs.Verifier.Field.BaseMul) (needS := Needs.Verifier.Field.Spread)
+    (needR := Needs.Verifier.Field.Reduce) (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (needH := Needs.Alloc.RawVec.HandleError) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (FieldT.baseMul env hd) (FieldT.spread env) (FieldT.reduce env) (RuntimeT.alloc env hnext hend)
+    (RuntimeT.handleError env)
+
 end Rv64mc.Table.WhirT6b
 
 /-- info: 'Rv64mc.Table.WhirT6b.sampleQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.WhirT6b.sampleQueries
+
+/-- info: 'Rv64mc.Table.WhirT6b.subspaceAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.WhirT6b.subspaceAt
