@@ -32,8 +32,8 @@ loads when its heap side is known written (`hq`) or its offset is in the oracle 
 whose heap cell the core heap certificate proves written), and links otherwise, learning nothing;
 through a cell known to hold `fp·g^e` (a next frame's pointer) its heap side is the frame's own cell
 `e + o`, which holds `[c]` and is written once `c` is (`nextF`).
-Hints read and write as the mode walk's `stepHints` says of its written cells, stepped from
-the written cells among those they may read (`readT`). A taken jump is
+Hints read and write as the mode walk's `stepHints` says of its written cells, stepped from the
+written cells among those they may read (`readT`), stack runs at once (`wsRuns`). A taken jump is
 one of `Exec`'s kinds: a forward jump; a table jump through a cell to the offsets `tgt` lists
 (that it lands at one is a hypothesis of the soundness, the reference's choice); a call, whose
 callee frame cell `q` must have its callees' entry cells written past it (and the self frame
@@ -41,11 +41,11 @@ pointer of a loop), its return point getting the cells every callee guarantees; 
 signature's return cells written; a loop's tail call into `fp·g^e`, its entry cells, self frame
 pointer and header held there; `main`'s halting jump.
 
-Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel, and the
-written and nonzero cells are the bits of a number (`Bits`), which the kernel's `Nat` operations
-test, extend, intersect and compare at once; a long
-function is checked in windows, at cuts (`FFun.cutAt`) where one path is live and no edge
-pending, the walk going on from a given weaker state.
+Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel; the written
+and nonzero cells and the oracle are the bits of a number (`Bits`), which the kernel's `Nat`
+operations test, extend, intersect and compare at once. A long function is checked in windows, at
+cuts (`FFun.cutAt`) where one path is live and no edge pending, the walk going on from a given
+weaker state.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -148,8 +148,9 @@ def divOk (b c : ℕ) : Bool :=
 
 /-- The meet of two paths' states, `Exec`'s state restarted at the join. -/
 noncomputable def meet (B : FSt) : FSt :=
-  ⟨St.init (Trie.inter Sym.beq A.st.env B.st.env), Bits.inter A.w B.w, Bits.inter A.nz B.nz, Trie.inter (fun _ _ ↦ true) A.hq B.hq,
-    Trie.inter (fun _ _ ↦ true) A.hs B.hs, Trie.inter Nat.beq A.cp B.cp, Trie.inter Nat.beq A.one B.one⟩
+  ⟨St.init (Trie.inter Sym.beq A.st.env B.st.env), Bits.inter A.w B.w, Bits.inter A.nz B.nz,
+    Trie.inter (fun _ _ ↦ true) A.hq B.hq, Trie.inter (fun _ _ ↦ true) A.hs B.hs, Trie.inter Nat.beq A.cp B.cp,
+    Trie.inter Nat.beq A.one B.one⟩
 
 /-- `Exec`'s state restarted at a join. -/
 def reset : FSt := { A with st := St.init A.st.env }
