@@ -4,7 +4,7 @@
 //!
 //! What the transcription has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the proof's byte encoding ([`Proof::to_bytes`]) and what the statement of an aggregate adds, [`da`].
 //!
-//! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
+//! [`verify_execution`] walks the protocol and checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: it walks the transcript alone, computing no value, with the walk's checks on the proof's shape.
 
 #![forbid(unsafe_code)]
 
@@ -43,11 +43,14 @@ pub use hash::Digest;
 pub use multilinear::stack_offsets;
 pub use whir::{Subspace, WhirConfig, derive_config, subspace_roots};
 
-use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
+use bus::{ColumnClaim, N_TREES, replay_bus, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
 use hash::{ROUNDS, STATE_LANES};
-use keccak::{KeccakShape, verify_keccak};
-use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, build_layout};
+use keccak::{KeccakShape, replay_keccak, verify_keccak};
+use layout::{
+    BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, N_TABLES,
+    OP_KECCAK, QKECCAK, build_layout,
+};
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
@@ -197,6 +200,12 @@ pub fn verify_execution(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 ///
 /// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, Keccak and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape, a Merkle path at a position the protocol did not open.
 pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
+    replay(bytecode, public_input, proof)
+}
+
+/// [`verify_execution`]'s walk with its checks left out: what [`replay_unchecked`] must agree with, for its tests.
+#[doc(hidden)]
+pub fn __walk_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
     walk(bytecode, public_input, proof, false)
 }
 
@@ -253,6 +262,82 @@ pub fn verify_keccak_batch(
     verify_stacked_opening(&mut transcript, root, stack_log, log_inv_rate, &claims)?;
     transcript.finish()?;
     Ok(())
+}
+
+/// [`walk`]'s transcript alone, in its order: what it reads, grinds and samples, and its checks on the proof's shape
+/// (the announced sizes, the stream's and the openings' lengths, the paths' positions), but no value: the challenges
+/// depend on the stream alone.
+fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
+    let mut transcript = Transcript::new(proof, bytecode.fiat_shamir_iv, Digest(*public_input), false);
+    let announced = transcript.next_scalars(2 + N_TABLES)?;
+    require(
+        announced.iter().all(|value| value.c1 == 0),
+        VerifierError::AnnouncedHighLimb,
+    )?;
+    let log_memory = announced[0].c0;
+    let table_rows: Vec<u64> = announced[1..1 + N_TABLES].iter().map(|value| value.c0).collect();
+    let log_inverse_rate = announced[1 + N_TABLES].c0;
+    require(
+        (MIN_LOG_INV_RATE as u64..=MAX_LOG_INV_RATE as u64).contains(&log_inverse_rate),
+        VerifierError::PcsInverseRate,
+    )?;
+    let layout = build_layout(bytecode, log_memory, &table_rows)?;
+    require(
+        (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
+        VerifierError::CommittedSize,
+    )?;
+    // The root and its OOD sample.
+    transcript.next_scalars(2)?;
+    transcript.grind_check(OOD_GRINDING_BITS)?;
+    transcript.samples(layout.stack_log);
+    transcript.next_scalar()?;
+
+    let bytecode_point = replay_bus(&layout, &mut transcript)?;
+
+    // The table sumcheck: xi, the rounds, each table's columns.
+    let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
+    transcript.grind_check(grinding_bits((n_constraints + N_TREES) as u128 - 1))?;
+    transcript.sample();
+    let n_rounds = layout.table_log_heights.iter().copied().max().unwrap_or(0);
+    transcript::replay_sumcheck(&mut transcript, 4, n_rounds, false)?;
+    for table in &layout.tables {
+        transcript.next_scalars(table.width())?;
+    }
+    transcript.sample(); // the public input's challenge
+
+    let keccak_start = transcript.stream_offset();
+    replay_keccak(&mut transcript, layout.keccak, layout.table_log_heights[OP_KECCAK])?;
+    let keccak_scalars = keccak_start..transcript.stream_offset();
+    // The ring switch's map challenges.
+    transcript.grind_check(BATCH_GRINDING_BITS)?;
+    transcript.samples(2 * ring_switch::RING_MAP_WIDTH);
+
+    // The stacked claims: the ring switch's, every claim on a committed column, the OOD sample's.
+    let committed = |column: &usize| layout.placements[*column].is_some();
+    let bus_claims = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS];
+    let table_claims = GLOBAL_COLUMN_BASES
+        .into_iter()
+        .zip(&layout.tables)
+        .flat_map(|(base, table)| base..base + table.width());
+    let public_claims = [MEMORY_0, MEMORY_1];
+    let output_claim = (layout.keccak.segments() > 1).then_some(QKECCAK);
+    let on_stack = bus_claims
+        .into_iter()
+        .chain(table_claims)
+        .chain(public_claims)
+        .chain(output_claim)
+        .filter(committed);
+    require(on_stack.count() + 2 <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
+    transcript.sample();
+    whir::replay_whir(&mut transcript, layout.stack_log, log_inverse_rate as usize)?;
+    transcript.finish()?;
+    Ok(Summary {
+        log_memory: layout.log_memory,
+        table_rows,
+        log_inv_rate: log_inverse_rate as usize,
+        bytecode_point,
+        keccak_scalars,
+    })
 }
 
 fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bool) -> Result<Summary, VerifierError> {

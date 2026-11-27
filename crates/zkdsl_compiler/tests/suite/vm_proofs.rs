@@ -39,6 +39,51 @@ fn hashing_proof() -> (isa::Program, [F128; 2], Proof) {
     (program, pi, proof)
 }
 
+/// The replay reads a proof as the walk does with its checks left out: the same summary of an honest proof at every
+/// rate, and the same answer on one cut short, extended, reshaped or announcing other sizes.
+#[test]
+fn the_replay_agrees_with_the_unchecked_walk() {
+    let program = compile(&parse(HASHING).expect("parse"));
+    let pi = chained_digest(1);
+    let bytes = lean_vm_core::cpu::public_input_bytes(&pi);
+    let both = |proof: &Proof| {
+        (
+            verifier::replay_unchecked(program.bytecode(), &bytes, proof),
+            verifier::__walk_unchecked(program.bytecode(), &bytes, proof),
+        )
+    };
+    for rate in lean_vm_core::pcs::MIN_LOG_INV_RATE..=lean_vm_core::pcs::MAX_LOG_INV_RATE {
+        let (proof, _) = prove(&program, &[], pi, rate).unwrap();
+        let (replay, walk) = both(&proof);
+        assert!(replay.is_ok(), "rate {rate}");
+        assert_eq!(replay, walk, "rate {rate}");
+        let len = proof.stream.len();
+        let mut variants: Vec<Proof> = [1, 2, 7, len / 3, len / 2, len - 1]
+            .map(|cut| {
+                let mut p = proof.clone();
+                p.stream.truncate(len - cut);
+                p
+            })
+            .into();
+        let edit = |f: &dyn Fn(&mut Proof)| {
+            let mut p = proof.clone();
+            f(&mut p);
+            p
+        };
+        variants.push(edit(&|p| p.stream.push(verifier::E::new(0, 0))));
+        variants.push(edit(&|p| drop(p.merkle_openings.pop())));
+        variants.push(edit(&|p| p.merkle_openings[0].reverse()));
+        variants.push(edit(&|p| p.stream[len / 2] = verifier::E::new(1, 2)));
+        for announced in 0..2 + verifier::layout::N_TABLES {
+            variants.push(edit(&|p| p.stream[announced].c0 += 1));
+        }
+        for (i, p) in variants.iter().enumerate() {
+            let (replay, walk) = both(p);
+            assert_eq!(replay, walk, "rate {rate}, variant {i}");
+        }
+    }
+}
+
 /// Out-of-process verification: everything travels in the two channels, so a proof
 /// serializes, crosses a process boundary and verifies.
 #[test]

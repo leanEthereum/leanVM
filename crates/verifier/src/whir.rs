@@ -4,7 +4,7 @@ use crate::field::{E, K, ONE, ZERO, powers};
 use crate::hash::Digest;
 use crate::layout::{MAX_STACKED_LOG, MIN_STACKED_LOG};
 use crate::multilinear::{log2_strict, multilinear_eval};
-use crate::transcript::{Transcript, sumcheck};
+use crate::transcript::{Transcript, replay_sumcheck, sumcheck};
 use crate::{VerifierError, require};
 
 /// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
@@ -222,6 +222,43 @@ struct GluedClaim {
 /// point. A non-final level then commits the folded lane's low part, sends its high part, and glues its OOD claim
 /// and its queries, each opened row folded as the lanes were and corrected by the high part. The final level sends
 /// the whole folded lane, checks the queries against it, and closes with a sumcheck over the low part.
+/// [`verify_whir`]'s transcript alone, for a replay: every level's rounds, openings and queries, no value computed.
+pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rate: usize) -> Result<(), VerifierError> {
+    let config = derive_config(log_n, log_inv_rate)?;
+    let mut folded = 0;
+    for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
+        for _ in 0..fold_count {
+            transcript.next_scalars(4)?;
+            transcript.grind_check(FOLD_GRINDING_BITS)?;
+            transcript.samples(2);
+        }
+        folded += fold_count;
+        let mu = log_n - folded;
+        let block_length = 1 << (mu + level_rate);
+        let leaf_words = if level == 0 { 1 << fold_count } else { 2 << fold_count };
+        // A replay checks no root, so any stands in for the level's.
+        let root = Digest([0; 32]);
+        if level == config.folds.len() - 1 {
+            transcript.next_scalars((1 << mu) + fold_count)?;
+            transcript.grind_check(QUERY_GRINDING_BITS)?;
+            let queries = sample_queries(transcript, block_length, config.queries[level])?;
+            transcript.merkle(root, block_length, &queries, leaf_words)?;
+            replay_sumcheck(transcript, 3, mu, false)?;
+            break;
+        }
+        // The next root and the high part, the OOD sample, then the queries and lambda.
+        transcript.next_scalars(2 + fold_count)?;
+        transcript.grind_check(OOD_GRINDING_BITS)?;
+        transcript.samples(mu);
+        transcript.next_scalar()?;
+        transcript.grind_check(QUERY_GRINDING_BITS)?;
+        let queries = sample_queries(transcript, block_length, config.queries[level])?;
+        transcript.sample();
+        transcript.merkle(root, block_length, &queries, leaf_words)?;
+    }
+    Ok(())
+}
+
 pub fn verify_whir(
     transcript: &mut Transcript,
     log_n: usize,

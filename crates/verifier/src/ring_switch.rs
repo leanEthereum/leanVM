@@ -8,7 +8,7 @@ use crate::transcript::Transcript;
 use crate::whir::BATCH_GRINDING_BITS;
 
 /// Phi's challenges come in two rows of this many: `f_p` then `g_b`.
-const RING_MAP_WIDTH: usize = 8;
+pub(crate) const RING_MAP_WIDTH: usize = 8;
 
 /// `value^(2^(8 p))`.
 fn frobenius_8(value: E, p: usize) -> E {

@@ -56,6 +56,7 @@ Rules:
 - **The zkDSL compiler's accepted language or output**: its Lean front end, `formal/lean_vm/LeanVM/Guest/Source.lean` and `Expand.lean`. If the guest's bytecode changes, see "Changing the spec" in `formal/AGENTS.md`.
 - **A new program in `crates/zkdsl_compiler/tests/programs/`**: its digest in `tests/suite/determinism.rs` (`GOLDEN`), the regenerated `formal/lean_vm/tests/LeanVMTests/Guest/Programs.lean` (`formal/lean_vm/scripts/regen-guest.sh`), the count in `tests/LeanVMTests/Guest/Data.lean`.
 - **The layout** (`placements_of`, the schema): both provers and all three verifiers (`crates/verifier`'s `layout.rs`). `col_kappas` stays derived from `col_kappa_sources`.
+- **The verifier's transcript** (what it reads, grinds or samples, and in what order): `crates/verifier`'s replay (`replay`, `replay_bus`, `replay_keccak`, `replay_whir`).
 - **A rename in the leanVM document**: both provers, `crates/verifier`, the Lean verifier and the guest.
 - **An experimental crate's manifest, a new one, or `keccak256`'s or `fiat_shamir_prover`'s manifest**: `crates/experimental_tiers/generate.sh`, then run it.
 - **A new `cfg(target_feature)` gate in the experimental tree, `keccak256` or `fiat_shamir_prover`**: the feature in `generate.sh`'s `gated` and in a tier, or, for an architecture's baseline (`sse2`, `neon`), in its exception list; `generate.sh` fails until then.
@@ -136,7 +137,7 @@ Security and Fiat-Shamir:
 
 The Rust verifier:
 
-- `verify_execution` checks a proof. `replay_unchecked` walks the same code and checks nothing.
+- `verify_execution` checks a proof. `replay_unchecked` walks the transcript alone, computing no value: what the walk reads, grinds and samples, and its checks on the proof's shape. `the_replay_agrees_with_the_unchecked_walk` (the compiler suite) holds it to the walk with its checks left out.
 - Every check sits behind `Transcript::checked`. Nothing else depends on the mode.
 - Reading the proof is not a check: a Merkle path's position and sizes, and the stream's length, are pinned in both modes.
 - `aggregate` does not verify its children. It replays them (`AggregateError::InvalidChild` if it cannot), and the guest rejects the rest as `AggregateError::ProvingFailed`. Call `AggregateProof::verify` on an unchecked child first.

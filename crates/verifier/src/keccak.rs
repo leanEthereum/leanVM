@@ -10,7 +10,7 @@ use crate::field::{E, K, ONE, ZERO};
 use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
-use crate::transcript::{Transcript, grinding_bits, sumcheck};
+use crate::transcript::{Transcript, grinding_bits, replay_sumcheck, sumcheck};
 use crate::{VerifierError, require};
 
 const PACK_BITS: usize = 4;
@@ -236,6 +236,42 @@ pub(crate) struct KeccakOpenings {
 /// The reduction: a random claim on every segment's output at `instance`, `depth` layers down to the committed inputs.
 /// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
 /// are committed.
+/// [`verify_keccak`]'s transcript alone, for a replay, on the KECCAK table's `log_steps` rows.
+pub(crate) fn replay_keccak(
+    transcript: &mut Transcript,
+    shape: KeccakShape,
+    log_steps: usize,
+) -> Result<(), VerifierError> {
+    require(
+        log_steps == shape.log_steps && shape.log_steps >= PACK_BITS,
+        VerifierError::AnnouncedTableSizes,
+    )?;
+    let segment_bits = log2_ceil(shape.segments() as u64);
+    transcript.grind_check(grinding_bits((segment_bits + LANE_BITS) as u128))?;
+    transcript.samples(segment_bits + LANE_BITS);
+    if shape.segments() > 1 {
+        transcript.next_scalar()?;
+    }
+    for _ in 0..shape.depth {
+        transcript.next_scalars(PRODUCT_BITS)?;
+        transcript.grind_check(grinding_bits(PRODUCT_BITS as u128 - 1))?;
+        transcript.sample();
+        replay_sumcheck(transcript, 3, shape.pack_bits() + segment_bits, true)?;
+        replay_sumcheck(transcript, 4, LOCAL_BITS, false)?;
+        transcript.next_scalars(3)?;
+        transcript.grind_check(grinding_bits(2))?;
+        transcript.sample();
+    }
+    if shape.segments() > 1 {
+        replay_sumcheck(transcript, 3, shape.slot_bits(), false)?;
+        transcript.next_scalar()?;
+    }
+    replay_sumcheck(transcript, 3, PACK_BITS, false)?;
+    replay_sumcheck(transcript, 3, shape.slot_bits(), false)?;
+    transcript.next_scalars(K_BITS)?;
+    Ok(())
+}
+
 pub(crate) fn verify_keccak(
     transcript: &mut Transcript,
     shape: KeccakShape,

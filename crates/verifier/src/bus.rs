@@ -8,7 +8,7 @@ use crate::layout::{
 use crate::multilinear::{
     Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
 };
-use crate::transcript::{Transcript, grinding_bits, sumcheck};
+use crate::transcript::{Transcript, grinding_bits, replay_sumcheck, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
 /// The grind before the fingerprint `(weights, beta)`: unequal push and pull multisets pass the product check with
@@ -72,6 +72,37 @@ fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Resul
     }
 
     Ok((count, point, values))
+}
+
+/// [`verify_bus_balance`]'s transcript alone, for a replay: where the bytecode sumcheck leaves the stacked bytecode.
+pub fn replay_bus(layout: &Layout, transcript: &mut Transcript) -> Result<Vec<E>, VerifierError> {
+    let depth = bus_layout(
+        &framework_log_rows(layout.log_memory, layout.log_bytecode),
+        &layout.push,
+    )
+    .depth;
+    require(depth < 64, VerifierError::AnnouncedTableSizes)?;
+    transcript.grind_check(bus_grinding_bits(depth))?;
+    transcript.samples((1 << BUS_BITS) + 1); // the weights, then beta
+    // The GKR: the roots, then each layer's combiner, rounds, children and `y`.
+    transcript.next_scalars(2)?;
+    let mut point: Vec<E> = Vec::new();
+    let mut layer = depth;
+    while layer > 0 {
+        let step = if layer % 2 == 1 { 1 } else { 2 };
+        transcript.grind_check(grinding_bits(N_TREES as u128 - 1))?;
+        transcript.sample();
+        let x = replay_sumcheck(transcript, (1 << step) + 1, point.len(), true)?;
+        transcript.next_scalars(N_TREES << step)?;
+        transcript.grind_check(grinding_bits((step << usize::from(layer == step)) as u128))?;
+        point = [transcript.samples(step), x].concat();
+        layer -= step;
+    }
+    // The framework columns and the bytecode's share, then its sumcheck and its value.
+    transcript.next_scalars(5)?;
+    let slot_point = replay_sumcheck(transcript, 3, BUS_BITS, false)?;
+    transcript.next_scalar()?;
+    Ok([&point[..layout.log_bytecode], &slot_point].concat())
 }
 
 /// Where a side's blocks sit in the stacked leaf cube. Split by kind because framework coordinates are
