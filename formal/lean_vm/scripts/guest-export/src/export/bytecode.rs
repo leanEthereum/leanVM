@@ -19,7 +19,8 @@ pub const DATA: &str = "../Statement/Data";
 pub const FUNCTIONS: &str = "LeanVM/Guest/Data/Functions.lean";
 
 /// The bodies are not exposed, so a module that only names the data is not rebuilt when it changes; one that
-/// evaluates it `import all`s `Bytecode` (or `AdviceHints`), which `import all`s its chunks.
+/// evaluates it `import all`s `Bytecode` or `LeanVM.Guest.Data.Functions` (or `AdviceHints`), which `import all`s
+/// its chunks.
 pub const HIDDEN: &str = "The bodies are not exposed, for build locality; their values are those written here.";
 
 /// Instructions per chunk definition: `LeanVM.Guest.chunkSize`.
