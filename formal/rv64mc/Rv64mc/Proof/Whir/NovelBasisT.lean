@@ -3,11 +3,11 @@
 
   `verifier::whir::novel_basis(what: &[K], count) -> Vec<K>` is total (`specT`): from a result's slot of `24` bytes
   owned, in a window, 8-byte aligned, and `what` (`a1`, `a2`) none or in a window and 8-byte aligned (`SliceK`), it
-  returns with the slot a vector of `K`s (`VecT`) of `count` elements, its buffer allocated since the entry, writing
-  at most the slot besides what it allocates (`SretOut`, the partial contract's), or the run ends with `a0 = 2` where
-  `alloc` (through `panic_nounwind_fmt` or `handle_error`), `reserve` or the `assert!` (`panic_fmt`) does. Safety
-  only: the partial contract's values (`Spec/Whir/Subspace.lean`'s `basisSpec`, `Model.novelBasisRust`) are owed. It
-  has no partial proof (class C).
+  returns with the slot a vector of `K`s (`VecT`) of `count` elements, its buffer allocated since the entry unless it
+  has no capacity, writing at most the slot besides what it allocates (`SretOut`, the partial contract's), or the run
+  ends with `a0 = 2` where `alloc` (through `panic_nounwind_fmt` or `handle_error`), `reserve` or the `assert!`
+  (`panic_fmt`) does. Safety only: the partial contract's values (`Spec/Whir/Subspace.lean`'s `basisSpec`,
+  `Model.novelBasisRust`) are owed. It has no partial proof (class C).
 
   The basis starts as `[1]` and doubles per value of `what` until it has `count` elements: each pass allocates the
   products' buffer of the basis's length `n` (`reserve(n)` on it finds the room), stores the `n` products

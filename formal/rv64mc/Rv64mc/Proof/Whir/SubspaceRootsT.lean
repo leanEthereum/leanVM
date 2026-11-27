@@ -3,10 +3,11 @@
 
   `verifier::whir::subspace_roots(log_n) -> Vec<K>` is total (`specT`): from a result's slot of `24` bytes owned, in a
   window, 8-byte aligned (`log_n` anything), it returns with the slot a vector of `K`s (`VecT`) of `log_n + 1`
-  elements, its buffer allocated since the entry, writing at most the slot besides what it allocates (`SretOut`, the
-  partial contract's), or the run ends with `a0 = 2` where `alloc` (through `panic_nounwind_fmt` or `handle_error`),
-  `log_n`'s size check (`handle_error`) or `grow_one` does. Safety only: the partial contract's values
-  (`Spec/Whir/Subspace.lean`'s `rootsSpec`, `Model.subspaceRootsRust`) are owed. It has no partial proof (class C).
+  elements, its buffer allocated since the entry unless it has no capacity, writing at most the slot besides what it
+  allocates (`SretOut`, the partial contract's), or the run ends with `a0 = 2` where `alloc` (through
+  `panic_nounwind_fmt` or `handle_error`), `log_n`'s size check (`handle_error`) or `grow_one` does. Safety only: the
+  partial contract's values (`Spec/Whir/Subspace.lean`'s `rootsSpec`, `Model.subspaceRootsRust`) are owed. It has no
+  partial proof (class C).
 
   `roots` starts as `[1]` (its header at `sp + 0x28`), `layer` as `log_n` words (`1 << i`, its buffer `p`). Each of
   the `log_n` passes rewrites every word of `layer` (`spread`, `reduce`, `base_mul`), takes its first word
