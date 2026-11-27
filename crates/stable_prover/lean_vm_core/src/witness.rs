@@ -78,18 +78,15 @@ pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackS
 /// written in its final place. A virtual column gets an empty window: it is not in the stack, so its values need
 /// storage of their own.
 pub(crate) fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
-    let mut order: Vec<usize> = (0..placements.len()).filter(|&i| !placements[i].is_virtual()).collect();
-    isa::sort::sort_by_key(&mut order, |&i| placements[i].offset);
-
     let mut windows: Vec<&mut [F64]> = Vec::with_capacity(placements.len());
     windows.resize_with(placements.len(), || &mut []);
     let mut rest = q;
     let mut placed = 0usize;
-    for &i in &order {
-        assert_eq!(
-            placements[i].offset, placed,
-            "the stacked columns must tile from 0 with no gap"
-        );
+    for _ in placements.iter().filter(|p| !p.is_virtual()) {
+        // Each column has at least one word, so the column at each next offset is a new one.
+        let i = (placements.iter())
+            .position(|p| !p.is_virtual() && p.offset == placed)
+            .expect("the stacked columns must tile from 0 with no gap");
         let (window, tail) = rest.split_at_mut(1 << placements[i].n_vars);
         windows[i] = window;
         rest = tail;

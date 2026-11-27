@@ -101,17 +101,14 @@ impl Witness {
     pub(crate) fn columns(&self) -> Vec<&[F64]> {
         let q_keccak = self.layout.placements[QKECCAK].offset;
         let steps = 1 << self.layout.taus[verifier::layout::OP_KECCAK];
-        let mut cols: Vec<&[F64]> = self
-            .layout
-            .placements
-            .iter()
-            .enumerate()
-            .map(|(i, p)| match keccak_value(i) {
+        let mut cols: Vec<&[F64]> = Vec::with_capacity(N_COLUMNS);
+        for (i, p) in self.layout.placements.iter().enumerate() {
+            cols.push(match keccak_value(i) {
                 Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
                 _ if p.is_virtual() => &[][..],
                 _ => &self.q[p.offset..][..1 << p.n_vars],
-            })
-            .collect();
+            });
+        }
         for (i, buf) in &self.virt {
             cols[*i] = buf;
         }
@@ -192,32 +189,6 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
     // ---- bus blocks ----
     use Coord::{Col, Const, Index, Public};
 
-    let mut push: Vec<Block> = Vec::new();
-    let mut pull: Vec<Block> = Vec::new();
-
-    // Shared blocks (cross-instruction infra, not owned by any single table).
-    // boundary state.
-    push.push(Block::full(0, vec![Const(SEP_STATE), Const(one), Const(one)]));
-    pull.push(Block::full(
-        0,
-        vec![Const(SEP_STATE), Const(g_pow(final_pc as usize)), Const(one)],
-    ));
-    // memory seed + finalize (every address real, no padding). The value is the
-    // full two-limb 128-bit word.
-    push.push(Block::full(
-        log_mem,
-        vec![Const(SEP_MEM), Index, Const(one), Col(MEMORY_0), Col(MEMORY_1)],
-    ));
-    pull.push(Block::full(
-        log_mem,
-        vec![
-            Const(SEP_MEM),
-            Index,
-            Col(MEMORY_FINAL_COUNTERS),
-            Col(MEMORY_0),
-            Col(MEMORY_1),
-        ],
-    ));
     // bytecode seed + finalize (program columns are public; padding entries
     // self-cancel at count 1, so the whole 2^log_bytecode is "real").
     let bytecode_block = |count: Coord| {
@@ -226,27 +197,50 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         coords.extend((coords.len()..1 << verifier::layout::BUS_BITS).map(Public));
         Block::full(log_bytecode, coords)
     };
-    push.push(bytecode_block(Const(one)));
-    pull.push(bytecode_block(Col(BYTECODE_FINAL_COUNTERS)));
+    // Shared blocks (cross-instruction infra, not owned by any single table): the boundary state, the memory's seed
+    // and finalize (every address real, no padding; the value is the full two-limb 128-bit word), the bytecode's.
+    let mut push = vec![
+        Block::full(0, vec![Const(SEP_STATE), Const(one), Const(one)]),
+        Block::full(
+            log_mem,
+            vec![Const(SEP_MEM), Index, Const(one), Col(MEMORY_0), Col(MEMORY_1)],
+        ),
+        bytecode_block(Const(one)),
+    ];
+    let mut pull = vec![
+        Block::full(
+            0,
+            vec![Const(SEP_STATE), Const(super::g_power(final_pc as usize)), Const(one)],
+        ),
+        Block::full(
+            log_mem,
+            vec![
+                Const(SEP_MEM),
+                Index,
+                Col(MEMORY_FINAL_COUNTERS),
+                Col(MEMORY_0),
+                Col(MEMORY_1),
+            ],
+        ),
+        bytecode_block(Col(BYTECODE_FINAL_COUNTERS)),
+    ];
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
     let mut count_blocks: Vec<Block> = Vec::new();
-    for (t, table) in tables::tables().iter().enumerate() {
-        let base = GLOBAL_COLUMN_BASES[t];
+    for (t, table) in tables::tables().into_iter().enumerate() {
         let padding = table.padding();
-        let table_block = |coords: Vec<Coord>| Block {
-            kappa: taus[t],
-            rows: rows[t],
-            padding: coords.iter().map(|c| crate::leaf::coord_at(c, &padding)).collect(),
-            coords: offset_coords(base, coords),
-            owner: Some(t),
-        };
         let mut fb = FlushBuilder::new();
         table.flushes(&mut fb);
-        push.extend(fb.push.into_iter().map(table_block));
-        pull.extend(fb.pull.into_iter().map(table_block));
-        count_blocks.extend(table.count_columns().map(|c| table_block(vec![Col(c)])));
+        let mut counts = Vec::new();
+        for c in table.count_columns() {
+            counts.push(vec![Col(c)]);
+        }
+        for (blocks, flushes) in [(&mut push, fb.push), (&mut pull, fb.pull), (&mut count_blocks, counts)] {
+            for coords in flushes {
+                blocks.push(table_block(t, taus[t], rows[t], &padding, coords));
+            }
+        }
     }
 
     let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
@@ -258,6 +252,18 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         shape,
         taus,
         rows,
+    }
+}
+
+/// Table `t`'s block of the flush `coords`, in its local columns, at the table's height.
+#[inline(never)]
+fn table_block(t: usize, kappa: usize, rows: usize, padding: &[F64], coords: Vec<Coord>) -> Block {
+    Block {
+        kappa,
+        rows,
+        padding: coords.iter().map(|c| crate::leaf::coord_at(c, padding)).collect(),
+        coords: offset_coords(GLOBAL_COLUMN_BASES[t], coords),
+        owner: Some(t),
     }
 }
 
@@ -283,10 +289,12 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
     let mut windows = witness::split_stack(&mut q, &l.placements);
     // An output lane is in neither the stack nor `q_keccak`, but the bus reads it: it has a buffer of its own.
     let steps = 1 << l.taus[verifier::layout::OP_KECCAK];
-    let mut virt: Vec<(usize, Vec<F64>)> = (0..N_COLUMNS)
-        .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
-        .map(|i| (i, vec![F64::ZERO; steps]))
-        .collect();
+    let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
+    for i in 0..N_COLUMNS {
+        if matches!(keccak_value(i), Some(KeccakLane::Output(_))) {
+            virt.push((i, vec![F64::ZERO; steps]));
+        }
+    }
     for (i, buf) in virt.iter_mut() {
         windows[*i] = buf;
     }

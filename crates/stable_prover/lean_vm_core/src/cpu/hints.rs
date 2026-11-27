@@ -26,28 +26,20 @@ pub(crate) const MAX_INDEX: usize = 1 << verifier::MAX_LOG_BYTECODE;
 pub struct GPow {
     pow: Vec<F64>,
     /// `g^k ↦ k` for the announced `k`.
-    index: WordMap<u32>,
+    index: WordMap,
     /// The same for every multiple `k` of `STRIDE` that `pow` covers.
-    coarse: WordMap<u32>,
+    coarse: WordMap,
 }
 
-/// A map from 64-bit keys for the interpreter's hot lookups, by field element or cell: open addressing with linear
-/// probing, never deleting. The keys are not chosen by an adversary.
-pub(crate) struct WordMap<V> {
-    slots: Vec<Option<(u64, V)>>,
+/// A map from 64-bit keys to `u32` for the interpreter's hot lookups, by field element or cell: open addressing with
+/// linear probing, never deleting. The keys are not chosen by an adversary.
+#[derive(Default)]
+pub(crate) struct WordMap {
+    slots: Vec<Option<(u64, u32)>>,
     len: usize,
 }
 
-impl<V> Default for WordMap<V> {
-    fn default() -> Self {
-        Self {
-            slots: Vec::new(),
-            len: 0,
-        }
-    }
-}
-
-impl<V> WordMap<V> {
+impl WordMap {
     /// The slot holding `key`, or the empty one it would go in. The table is not empty.
     fn slot(&self, key: u64) -> usize {
         let mask = self.slots.len() - 1;
@@ -62,44 +54,46 @@ impl<V> WordMap<V> {
         i
     }
 
-    pub(crate) fn get(&self, key: u64) -> Option<&V> {
-        let slot = self.slots.get(self.slot_of(key)?)?;
-        slot.as_ref().map(|(_, v)| v)
+    pub(crate) fn get(&self, key: u64) -> Option<u32> {
+        if self.slots.is_empty() {
+            return None;
+        }
+        self.slots[self.slot(key)].map(|(_, v)| v)
     }
 
-    pub(crate) fn get_mut(&mut self, key: u64) -> Option<&mut V> {
-        let i = self.slot_of(key)?;
-        self.slots[i].as_mut().map(|(_, v)| v)
-    }
-
-    fn slot_of(&self, key: u64) -> Option<usize> {
-        (!self.slots.is_empty()).then(|| self.slot(key))
-    }
-
-    /// The value at `key`, `make()` put there first if there is none.
-    pub(crate) fn entry(&mut self, key: u64, make: impl FnOnce() -> V) -> &mut V {
+    /// The slot for `key`, with room for one more entry: empty if `key` is new.
+    #[inline(never)]
+    fn entry(&mut self, key: u64) -> &mut Option<(u64, u32)> {
         if 2 * (self.len + 1) > self.slots.len() {
             // At most half full: double, and put every entry back.
-            let old = std::mem::take(&mut self.slots);
-            self.slots = (0..(2 * old.len()).max(16)).map(|_| None).collect();
+            let size = (2 * self.slots.len()).max(16);
+            let old = std::mem::replace(&mut self.slots, vec![None; size]);
             for (k, v) in old.into_iter().flatten() {
                 let i = self.slot(k);
                 self.slots[i] = Some((k, v));
             }
         }
         let i = self.slot(key);
-        if self.slots[i].is_none() {
-            self.slots[i] = Some((key, make()));
-            self.len += 1;
-        }
-        &mut self.slots[i].as_mut().expect("filled above").1
+        &mut self.slots[i]
     }
 
-    pub(crate) fn insert(&mut self, key: u64, value: V) {
-        let mut value = Some(value);
-        let slot = self.entry(key, || value.take().expect("taken once"));
-        if let Some(value) = value {
-            *slot = value;
+    pub(crate) fn insert(&mut self, key: u64, value: u32) {
+        let slot = self.entry(key);
+        let new = slot.is_none();
+        *slot = Some((key, value));
+        self.len += usize::from(new);
+    }
+
+    /// The value at `key`, `value` put there first if there is none.
+    pub(crate) fn get_or_insert(&mut self, key: u64, value: u32) -> u32 {
+        let slot = self.entry(key);
+        match *slot {
+            Some((_, v)) => v,
+            None => {
+                *slot = Some((key, value));
+                self.len += 1;
+                value
+            }
         }
     }
 }
@@ -128,9 +122,13 @@ impl GPow {
 
     /// Extend the forward table to cover index `upto`.
     pub fn grow_to(&mut self, upto: usize) {
-        if upto < self.pow.len() {
-            return;
+        if upto >= self.pow.len() {
+            self.extend(upto);
         }
+    }
+
+    #[inline(never)]
+    fn extend(&mut self, upto: usize) {
         assert!(upto < MAX_INDEX, "address space overflow (program too large)");
         // ×g is ×x = `mul_by_g` (shift+fold), not a full product.
         for k in self.pow.len()..=upto {
@@ -171,7 +169,7 @@ impl GPow {
 
     /// The exponent of `x` if announced.
     pub(crate) fn lookup(&self, x: F64) -> Option<u32> {
-        self.index.get(x.0).copied()
+        self.index.get(x.0)
     }
 
     /// The exponent of `x` if it is not announced: divide by `g` down to a multiple of
@@ -180,7 +178,7 @@ impl GPow {
     fn resolve(&self, x: F64) -> Option<usize> {
         let mut y = x;
         for j in 0..STRIDE {
-            if let Some(&k) = self.coarse.get(y.0) {
+            if let Some(k) = self.coarse.get(y.0) {
                 return Some(k as usize + j);
             }
             y = div_by_g(y);

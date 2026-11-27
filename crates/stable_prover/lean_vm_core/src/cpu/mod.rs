@@ -28,11 +28,12 @@ pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 /// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not
 /// announced: it seeds the transcript.
 fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
-    ps.add_scalar(F128::new(log_mem as u64, 0));
-    for n in rows {
+    let mut sizes = [log_mem; tables::N_TABLES + 2];
+    sizes[1..=tables::N_TABLES].copy_from_slice(&rows);
+    sizes[tables::N_TABLES + 1] = log_inv_rate;
+    for n in sizes {
         ps.add_scalar(F128::new(n as u64, 0));
     }
-    ps.add_scalar(F128::new(log_inv_rate as u64, 0));
 }
 
 pub use verifier::Proof;
@@ -88,21 +89,37 @@ fn airs<'a>(
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
     let pows = primitives::field::powers(xi, n_xi_powers());
-    let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
-    tables::tables()
-        .iter()
-        .zip(taus)
-        .enumerate()
-        .map(|(t, (&table, &tau))| {
-            let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
-            let bus_forms = (0..verifier::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
-            constraints::Air {
-                tau,
-                cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
-                form: constraints::Form::sum(bus_forms.chain([identities])),
-            }
-        })
-        .collect()
+    let mut airs = Vec::with_capacity(tables::N_TABLES);
+    let mut offset = 0;
+    for (t, table) in tables::tables().into_iter().enumerate() {
+        let n = table.n_constraints();
+        let identities = table.constraint(&pows[offset..][..n]);
+        offset += n;
+        let mut form = constraints::Form::new(identities.coeffs.len());
+        for s in 0..verifier::N_BUS_TREES {
+            add_scaled(&mut form, &bus.forms[s][t], pows[base + s]);
+        }
+        add_scaled(&mut form, &identities, F128::ONE);
+        airs.push(constraints::Air {
+            tau: taus[t],
+            cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
+            form,
+        });
+    }
+    airs
+}
+
+/// `out += w·f`, over the same columns, `f`'s products listed after `out`'s.
+#[inline(never)]
+fn add_scaled(out: &mut constraints::Form, f: &constraints::Form, w: F128) {
+    assert_eq!(out.coeffs.len(), f.coeffs.len(), "forms over the same columns");
+    for (slot, &c) in out.coeffs.iter_mut().zip(&f.coeffs) {
+        *slot += c * w;
+    }
+    out.constant += f.constant * w;
+    for &(a, b, q) in &f.prods {
+        out.prods.push((a, b, q * w));
+    }
 }
 
 /// Where the bus forms' `ξ`-powers start: after every table's identities, one power per tree, shared by every table.
@@ -220,18 +237,23 @@ fn finish_claims(
     table_claims: &[constraints::Claims],
     r_pi: F128,
 ) -> Vec<pcs::StackClaim> {
-    let bus = bus_claims.into_iter().map(|c| (c.col, c.point));
-    let tables = (0..tables::N_TABLES).flat_map(|t| {
-        (GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t])
+    let mut claims = Vec::new();
+    for c in bus_claims {
+        claims.push(slot_claim(l, c.col, c.point));
+    }
+    for t in 0..tables::N_TABLES {
+        for col in GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t] {
             // the Keccak reduction's claim on the output (`keccak_output_claim`)
-            .filter(|&col| !matches!(keccak_value(col), Some(KeccakLane::Output(_))))
-            .map(move |col| (col, table_claims[t].chi.clone()))
-    });
+            if !matches!(keccak_value(col), Some(KeccakLane::Output(_))) {
+                claims.push(slot_claim(l, col, table_claims[t].chi.clone()));
+            }
+        }
+    }
     let pi = pi_point(r_pi, l);
-    let pi = [MEMORY_0, MEMORY_1].map(|col| (col, pi.clone()));
-    (bus.chain(tables).chain(pi))
-        .map(|(col, point)| slot_claim(l, col, point))
-        .collect()
+    for col in [MEMORY_0, MEMORY_1] {
+        claims.push(slot_claim(l, col, pi.clone()));
+    }
+    claims
 }
 
 /// The point of the public-input binding (§sec:e2e-pi): each committed `MEM` limb at
@@ -242,6 +264,12 @@ fn pi_point(r: F128, l: &Layout) -> Vec<F128> {
     let mut point = vec![F128::ZERO; l.placements[MEMORY_0].n_vars];
     point[0] = r;
     point
+}
+
+/// `g^k`, out of line for the cold paths that need one.
+#[inline(never)]
+pub(crate) fn g_power(k: usize) -> F64 {
+    g_pow(k)
 }
 
 /// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
@@ -274,6 +302,7 @@ pub fn verify(
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
 /// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
 /// `q_keccak`, which folds into the one opening like every other point claim.
+#[inline(never)]
 fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::StackClaim {
     let offset = match keccak_value(col) {
         Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),

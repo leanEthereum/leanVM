@@ -325,8 +325,9 @@ struct Mem {
     used: usize,
     /// The highest access count any cell reached.
     counts: u32,
-    /// The cells a `DEREF` linked each cell to.
-    links: WordMap<Vec<u32>>,
+    /// The cells a `DEREF` linked each cell to: its list in `link_lists`.
+    links: WordMap,
+    link_lists: Vec<Vec<u32>>,
     /// Cells an instruction read before anything wrote them.
     unwritten_reads: Vec<u32>,
 }
@@ -335,14 +336,20 @@ impl Mem {
     /// Cover cell `idx`.
     fn ensure(&mut self, idx: usize) {
         if idx >= self.used {
-            self.used = idx + 1;
-            while self.pages.len() <= idx >> PAGE_LOG {
-                self.pages.push(vec![Cell::UNWRITTEN; 1 << PAGE_LOG]);
-            }
+            self.grow(idx);
+        }
+    }
+
+    #[inline(never)]
+    fn grow(&mut self, idx: usize) {
+        self.used = idx + 1;
+        while self.pages.len() <= idx >> PAGE_LOG {
+            self.pages.push(vec![Cell::UNWRITTEN; 1 << PAGE_LOG]);
         }
     }
 
     /// Cell `c`, covered.
+    #[inline(never)]
     fn at(&mut self, c: u32) -> &mut Cell {
         self.ensure(c as usize);
         let c = c as usize;
@@ -377,11 +384,13 @@ impl Mem {
     }
 
     /// Write-once store, carried to every cell linked to this one.
+    #[inline(never)]
     fn put(&mut self, cell: u32, v: F128) -> Result<(), Fault> {
         if self.store(cell, v)? {
             let mut todo = vec![cell];
             while let Some(c) = todo.pop() {
-                for p in self.links.get_mut(c.into()).map(std::mem::take).unwrap_or_default() {
+                let linked = (self.links.get(c.into())).map(|i| std::mem::take(&mut self.link_lists[i as usize]));
+                for p in linked.unwrap_or_default() {
                     if self.store(p, v)? {
                         todo.push(p);
                     }
@@ -414,7 +423,12 @@ impl Mem {
             if c.state == State::Unwritten {
                 c.state = State::Linked;
             }
-            self.links.entry(x.into(), Vec::new).push(y);
+            let n = self.link_lists.len() as u32;
+            let i = self.links.get_or_insert(x.into(), n);
+            if i == n {
+                self.link_lists.push(Vec::new());
+            }
+            self.link_lists[i as usize].push(y);
         }
     }
 
@@ -470,8 +484,32 @@ fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32
     g.log(p).ok_or(Fault::NotAGPower { what, value: p })
 }
 
+/// `v^{-1}`, `v` nonzero: one copy for the back-solve and the hint.
+#[inline(never)]
+fn inverse(v: F128) -> F128 {
+    v.inv()
+}
+
+/// The word in cell `fp + offset`, as a hint reads it.
+#[inline(never)]
+fn word_at(m: &Mem, fp: u32, offset: u32) -> Result<F128, Fault> {
+    Ok(m.get(cell_at(fp, offset)?))
+}
+
+/// The word in cell `fp + offset`, which has to lie in K.
+#[inline(never)]
+fn k_word_at(m: &Mem, fp: u32, offset: u32, what: &'static str) -> Result<F64, Fault> {
+    in_k(what, word_at(m, fp, offset)?)
+}
+
+/// `g^k` as a word.
+fn g_word(k: usize) -> F128 {
+    F128::from(super::g_power(k))
+}
+
 /// Where a computed-advice bit buffer of `len` cells starts: a frame run needs no lookup at all, which is the point of
 /// having one.
+#[inline(never)]
 fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, len: u32, what: &'static str) -> Result<u32, Fault> {
     match dest {
         BitsDest::Stack(base) => run_at(fp, base, len),
@@ -592,7 +630,8 @@ pub fn execute(
                         if known.is_zero() {
                             return Err(fail(Fault::BackSolveThroughZero));
                         }
-                        m.put(if ha { ab } else { aa }, m.get(ac) * known.inv()).map_err(fail)?;
+                        m.put(if ha { ab } else { aa }, m.get(ac) * inverse(known))
+                            .map_err(fail)?;
                     }
                 }
                 let (va, vb) = (m.read(aa), m.read(ab));
@@ -753,12 +792,30 @@ pub fn execute(
     })
 }
 
+/// Pop the next entry of stream `name` into the `len` cells from `base`.
+#[inline(never)]
+fn put_witness<'a>(m: &mut Mem, advice: &mut Advice<'a>, name: &'a str, base: u32, len: u32) -> Result<(), Fault> {
+    for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
+        m.put(base + k as u32, value)?;
+    }
+    Ok(())
+}
+
+/// Write the low `nbits` bits of `v`, one per cell from `base`.
+#[inline(never)]
+fn put_bits(m: &mut Mem, base: u32, nbits: u32, v: u128) -> Result<(), Fault> {
+    for j in 0..nbits {
+        m.put(base + j, F128::from((v >> j) & 1))?;
+    }
+    Ok(())
+}
+
 /// Apply a hint scheduled before an instruction at frame `fp`.
 fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut Advice<'a>) -> Result<(), Fault> {
     let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
     // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
     let dyn_size = |m: &Mem, g: &mut GPow, size: u32| {
-        let size = in_k("HeapBuf size", m.get(cell_at(fp, size)?))?;
+        let size = k_word_at(m, fp, size, "HeapBuf size")?;
         g.log(size).ok_or(not_a_g_power("HeapBuf size", size))
     };
     match *h {
@@ -778,7 +835,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         // A dispatched call's frame, sized by the arm `m[fp+sel] = g^k` selects.
         RHint::AllocArm { ptr, sel, ref sizes } => {
             const WHAT: &str = "dispatch selector";
-            let x = in_k(WHAT, m.get(cell_at(fp, sel)?))?;
+            let x = k_word_at(m, fp, sel, WHAT)?;
             let k = g.log(x).ok_or(not_a_g_power(WHAT, x))?;
             let cells = *sizes.get(k as usize).ok_or(not_a_g_power(WHAT, x))?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
@@ -790,7 +847,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             start_inverse,
             tail,
         } => {
-            let span = in_k("loop bound", m.get(cell_at(fp, end)?))? * F64(start_inverse.0);
+            let span = k_word_at(m, fp, end, "loop bound")? * F64(start_inverse.0);
             let n = (!span.is_zero())
                 .then(|| g.log(span))
                 .flatten()
@@ -804,17 +861,11 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             cell_at(fp, cell)?;
         }
         RHint::WitnessStack { ref name, base, len } => {
-            let base = run_at(fp, base, len)?;
-            for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
-                m.put(base + k as u32, value)?;
-            }
+            put_witness(m, advice, name, run_at(fp, base, len)?, len)?;
         }
         RHint::WitnessHeap { ref name, ptr, lo, len } => {
             let heap = heap_base(m, g, cell_at(fp, ptr)?, "hint_witness heap pointer")?;
-            let base = run_at(heap, lo, len)?;
-            for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
-                m.put(base + k as u32, value)?;
-            }
+            put_witness(m, advice, name, run_at(heap, lo, len)?, len)?;
         }
         RHint::Log2Ceil {
             bits,
@@ -830,24 +881,20 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
                 u128::BITS - (word - 1).leading_zeros()
             };
             let dst = cell_at(fp, dst)?;
-            m.put(dst, F128::from(primitives::field::g_pow(log.max(floor) as usize)))?;
+            m.put(dst, g_word(log.max(floor) as usize))?;
         }
         RHint::BitDecompose { value, bits, nbits } => {
             assert!(nbits <= 128, "a machine word has 128 bits");
-            let v = u128::from(m.get(cell_at(fp, value)?));
+            let v = u128::from(word_at(m, fp, value)?);
             let base = bits_base(m, g, fp, bits, nbits, "decompose pointer")?;
-            for j in 0..nbits {
-                m.put(base + j, F128::from((v >> j) & 1))?;
-            }
+            put_bits(m, base, nbits, v)?;
         }
         RHint::BitDecomposeExp { value, bits, nbits } => {
             const WHAT: &str = "hint_decompose_bits_exponent value";
-            let x = in_k(WHAT, m.get(cell_at(fp, value)?))?;
+            let x = k_word_at(m, fp, value, WHAT)?;
             let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
             let base = bits_base(m, g, fp, bits, nbits, "hint_decompose_bits_exponent pointer")?;
-            for j in 0..nbits {
-                m.put(base + j, F128::new(((n >> j) & 1) as u64, 0))?;
-            }
+            put_bits(m, base, nbits, n)?;
         }
         RHint::WindowsExp {
             value,
@@ -858,12 +905,12 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             count,
         } => {
             assert!(start + width * count <= 128, "a machine word has 128 bits");
-            let v = u128::from(m.get(cell_at(fp, value)?));
+            let v = u128::from(word_at(m, fp, value)?);
             let base = bits_base(m, g, fp, dest, at.saturating_add(count), "windows pointer")?;
             for i in 0..count {
                 let bit = |j| (((v >> (start + i * width + j)) & 1) as usize) << j;
                 let window = (0..width).fold(0, |n, j| n | bit(j));
-                m.put(base + at + i, F128::from(primitives::field::g_pow(window)))?;
+                m.put(base + at + i, g_word(window))?;
             }
         }
         RHint::DigitDecomposeExp {
@@ -876,13 +923,13 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             start_cell,
         } => {
             const WHAT: &str = "hint_decompose_digits_exponent value";
-            let x = in_k(WHAT, m.get(cell_at(fp, value)?))?;
+            let x = k_word_at(m, fp, value, WHAT)?;
             let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
             let start = match start_cell {
                 None => start,
                 Some(c) => {
                     const WHAT: &str = "hint_decompose_digits_exponent start";
-                    let y = in_k(WHAT, m.get(cell_at(fp, c)?))?;
+                    let y = k_word_at(m, fp, c, WHAT)?;
                     bounded_dlog(y, 7).ok_or(not_a_g_power(WHAT, y))? as u32
                 }
             };
@@ -891,20 +938,20 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             for j in 0..ndigits {
                 let at = start + digit_bits * j;
                 let digit = if at >= 128 { 0 } else { (n >> at) & mask };
-                m.put(base + j, F128::from(primitives::field::g_pow(digit as usize)))?;
+                m.put(base + j, g_word(digit as usize))?;
             }
         }
         RHint::FieldLimbs { value, base, len } => {
             assert!((1..=2).contains(&len), "an F128 value has two K limbs");
-            let limbs = m.get(cell_at(fp, value)?).to_limbs();
+            let limbs = word_at(m, fp, value)?.to_limbs();
             let base = run_at(fp, base, len)?;
             for j in 0..len {
                 m.put(base + j, F128::new(limbs[j as usize], 0))?;
             }
         }
         RHint::Inverse { value, dst } => {
-            let v = m.get(cell_at(fp, value)?);
-            m.put(cell_at(fp, dst)?, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+            let v = word_at(m, fp, value)?;
+            m.put(cell_at(fp, dst)?, if v.is_zero() { F128::ZERO } else { inverse(v) })?;
         }
     }
     Ok(())
