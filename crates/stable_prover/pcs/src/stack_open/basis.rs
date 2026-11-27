@@ -259,6 +259,7 @@ impl<'a> Projection<'a> {
     }
 
     /// Adds each ring's fold of the run, weighted by its mass, to its sum.
+    #[inline(never)]
     fn end_run(&mut self) {
         for ((fold, mass), sigma) in self.folds.iter_mut().zip(&mut self.masses).zip(&mut self.sigmas) {
             if let Some(fold) = fold.take() {
