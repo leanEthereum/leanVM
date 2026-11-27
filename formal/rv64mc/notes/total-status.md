@@ -327,7 +327,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 10 | 137 | `verifier::multilinear::eq_kernel` | 102 | C | no | - | - | - |
 | 10 | 195 | `<verifier::layout::Flushes>::bytecode` | 117 | D | no | - | - | - |
 | 10 | 197 | `<verifier::layout::Flushes>::memory` | 41 | D | yes | Proof/Layout/MemoryT (safety: `StateDerivedT.PostT`, `counted`'s; `self` `FlushesT` and a `Flushes` of `Form`s, `address` a `FormT` frame object, `values` `SliceFT`; `counted`'s pre and post sealed, `cnt_pre` from `constant`'s `Form`, `address` moved and `col`'s) | FlushesT6g.memory | env; clmul table; Vec<Form> spec_extend bound (InData), [&[Form]] concat bound (InData) |
-| 10 | 210 | `<verifier::layout::Flushes>::memory_if` | 68 | D | no | - | - | - |
+| 10 | 210 | `<verifier::layout::Flushes>::memory_if` | 68 | D | yes | Proof/Layout/MemoryIfT (safety: `StateDerivedT.PostT`, `counted`'s; `MemoryT.PreT`'s arguments one register later; the counter `col + prod + prod` by two `add`s, each `self`'s whole block fresh and before `other`'s (`Fresh40`, `add_pre`); one executor pass, the state after each pair of calls a lemma) | FlushesT6g.memoryIf | env; clmul table; Vec<Form> spec_extend bound (InData), [&[Form]] concat bound (InData) |
 | 11 | 54 | `verifier::bus::table_sumcheck` | 517 | C | no | - | - | - |
 | 11 | 64 | `<alloc::vec::Vec<(verifier::StackWeight, verifier::field::E)>>::ext...` | 55 | D | no | - | - | - |
 | 11 | 74 | `verifier::whir::verify_whir::<verifier::verify_stacked_opening::{cl...` | 928 | C | no | - | - | - |

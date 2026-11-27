@@ -189,9 +189,11 @@ theorem cnt_pre {m M1 M2 : MachineState} {top : Word} {regs R2 R' : Reg → Word
     (.inr ⟨by omega, by omega⟩) (by omega)
     (by rw [k2c _ (by omega) (by omega), w0]; simpa using k1a 0 (by omega))
     (by
-      rw [StateDerivedT.add_add (d := 18446744073709551536#64) rfl, k2c _ (by omega) (by omega), w8]; exact k1a 8 (by omega))
+      rw [StateDerivedT.add_add (d := 18446744073709551536#64) rfl, k2c _ (by omega) (by omega), w8]
+      exact k1a 8 (by omega))
     (by
-      rw [StateDerivedT.add_add (d := 18446744073709551544#64) rfl, k2c _ (by omega) (by omega), w16]; exact k1a 16 (by omega))
+      rw [StateDerivedT.add_add (d := 18446744073709551544#64) rfl, k2c _ (by omega) (by omega), w16]
+      exact k1a 16 (by omega))
     fun x l1 l2 => k02 x (.inl (by rcases hfa.foot with h | ⟨-, h, -⟩ <;> omega))
   have G3 : FormT env M2 (top + 18446744073709551552#64) :=
     TermAlT.formT_of d2 d3 (by omega) (Nat.le_refl _) x2 hE (.inr ⟨by omega, by omega⟩) (by omega)
