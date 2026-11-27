@@ -5,7 +5,9 @@ nonzero parameters, every dynamic allocation's size is nonzero in `K`, every lis
 program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`), its callee words (`Res.nzUp`) and the values each body pins itself (`Res.ownNz`)
 are derived here, by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to
-`CarryNzList.lean`. `--check` writes nothing and fails when a file differs.
+`CarryNzList.lean`. The kernel decides the witnessed checks (`Res.carryGW`, `Res.carryNzW`, `Fam/CarryWit.lean`): each
+list of names read through its table (`CarryTab.lean`), each function's searches over the events of its spine their
+derivations use (`carrywit.py`). `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/carry.py [--check]"""
 import sys, os, glob, re
 
@@ -13,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import resgen
 import heapc
+import carrywit
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import genfiles  # noqa: E402
 import coredata  # noqa: E402
@@ -24,9 +27,6 @@ OUT = resgen.OUT
 RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 270), (370, 3), (373, 3), (376, 3), (379, 2), (381, 19), (400, 200), (600, 200), (800, 200), (1000, 200), (1200, None)]
 # `Res.nzDepth`, `Res.kDepth`
 NZ_DEPTH, K_DEPTH = 12, 8
-# a function alone in its range with more than `NZ_MIN` top-level statements has its nonzero facts' pass over its body
-# checked in `NZ_N` slices of them (`Res.allBSlice`): the kernel's memory grows over one evaluation
-NZ_MIN, NZ_N = 4000, 8
 
 
 # ---- the core IR, as `Res.carryNzG` reads it -------------------------------------------------------------------------
@@ -61,11 +61,11 @@ def functions():
     """Each core function by name: its parameter count, loop flag (`Fn.loop`) and body."""
     F = {}
     for text in BD.core_texts().values():
-        params, body, name = BD.core_fn(text)
-        body = view(body)
+        params, raw, name = BD.core_fn(text)
+        body = view(raw)
         assert params == list(range(len(params))), name
         loop = len(body) >= 2 and body[-1] == ('ret', []) and body[-2][0] == 'callIf' and body[-2][2] == name
-        F[name] = dict(np=len(params), loop=loop, body=body)
+        F[name] = dict(np=len(params), loop=loop, body=body, raw=raw)
     return F
 
 
@@ -364,6 +364,78 @@ def nz_lists(F):
     return carried, up, own, bad
 
 
+def witnesses(F, carried, up, own, kc):
+    """Each function's sub-spines (`carrywit.py`), by name: of `Res.carryGW` over `Bridge.spine`, of `Res.carryNzW` over
+    `Memory.spineE`. A search with no derivation over the body's spine fails the generator."""
+    ups = set(up)
+    upf = lambda g, i: (g, i) in ups
+    C = Check(F, carried, upf)
+    owns = {}
+    for f, v in own:
+        owns.setdefault(f, []).append(v)
+    kcs = {}
+    for f, p, k in kc:
+        kcs.setdefault(f, []).append((p, k))
+    gbits, nzbits, bad = {}, {}, []
+    for f, G in F.items():
+        body, raw = G['body'], G['raw']
+        # carryG
+        A = carrywit.AtomWit(carrywit.atom_spine(raw, heapc.noret))
+        cv = sorted(p for p, k in kcs.get(f, ()) if k == 'inK') + ([0] if G['loop'] else [])
+        sub = set()
+        def need(r, what):
+            if r is None:
+                bad.append((f, what))
+            else:
+                sub.update(r)
+        for g, args, _ in C.sites(f):
+            for p, k in kcs.get(g, ()):
+                if k == 'inK':
+                    need(A.kof(cv, K_DEPTH, args[p]) if p < len(args) else None, ('carried', g, p))
+        for a in carrywit.raw_atoms(raw):
+            if a[0] == 'hint' and a[1][0] == 'witness' and a[1][2][0] == 'heap':
+                p = a[1][2][1]
+                r = A.ptr(p)
+                need(r if r is not None else A.kof(cv, K_DEPTH, p), ('witness', p))
+        gbits[f] = sub
+        # carryNzG
+        top = spine(body)
+        W = carrywit.EvWit(top, C.kv(f), upf, POWS())
+        W0 = carrywit.EvWit(top, [], upf, POWS())
+        sub = set()
+        for v, _ in C.dyns(f):
+            need(W.nz(NZ_DEPTH, v), ('size', v))
+        for g, args, _ in C.sites(f):
+            for p in sorted(carried.get(g, ())):
+                need(W.nz(NZ_DEPTH, args[p]) if p < len(args) else None, ('site', g, p))
+        for g, i in up:
+            if g != f:
+                continue
+            if i < G['np']:
+                need(W0.nz(NZ_DEPTH, i), ('up', i))
+            else:
+                for s, _ in scoped(body, top):
+                    if s[0] == 'ret':
+                        j = i - G['np']
+                        need(W0.nz(NZ_DEPTH, s[1][j]) if j < len(s[1]) else None, ('ret', i))
+        sels = []
+        for s in body:
+            if s[0] == 'match':
+                sels.append((s[1], len(s[2])))
+            if not heapc.noret(s):
+                break
+        for v in owns.get(f, ()):
+            r = W0.sel_tab(sels, v)
+            if r is not None:
+                sub.update(r)
+            elif v not in C.arm_nz(body):
+                bad.append((f, 'own', v))
+        nzbits[f] = sub
+    if bad:
+        sys.exit('carry: no witness for:\n  ' + '\n  '.join(map(str, bad[:40])))
+    return gbits, nzbits
+
+
 # ---- the modules ---------------------------------------------------------------------------------------------------
 
 header = genfiles.header('core-mode/carry.py')
@@ -391,32 +463,42 @@ def render():
     n = resgen.coreCount()
     ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
     assert sum(m for _, m in ranges) == n and all(m > 0 for _, m in ranges), ranges
-    mods = []
     keys = coredata.keys(os.path.join(resgen.ROOT, 'Data'))
+    names = carrywit.name_strings(os.path.join(resgen.ROOT, 'Data', 'NameStrings.lean'))
+    kc = [(names[f], p, k) for f, p, k in carrywit.lean_carried(os.path.join(resgen.ROOT, 'CoreMode', 'Fam', 'CarryDefs.lean'))]
+    gbits, nzbits = witnesses(F, carried, up, own, kc)
+    mod = 'LeanVM.Guest.CoreMode.Gen.CarryTab'
+    t = [header(mod, 'The tables of the carried and nonzero facts\' lists of names (`Res.tabOk`).')]
+    t.append('public import LeanVM.Guest.CoreMode.Fam.CarryWit\n\nnamespace LeanVM.Guest.Res\n\n@[expose] public section\n\n')
+    tabs = (('carriedT', 'carried', 'NTab (ℕ × Kd)', [(f, (p, k)) for f, p, k in kc], lambda c: '(%d, .%s)' % c),
+            ('carriedNzT', 'carriedNz', 'NTab ℕ', [(f, p) for f in carried for p in carried[f]], str),
+            ('nzUpT', 'nzUp', 'NTab ℕ', up, str), ('ownNzT', 'ownNz', 'NTab ℕ', own, str))
+    for d, l, ty, es, val in tabs:
+        t.append('/-- `%s` by its names\' codes. -/\nnoncomputable def %s : %s :=\n  %s\n\n' % (l, d, ty, carrywit.tab(es, val)))
+    t.append('end\n\npublic section\n\n')
+    for d, l, _, _, _ in tabs:
+        t.append('theorem %s_ok : tabOk %s %s id = true := by decide +kernel\n\n' % (d, l, d))
+    t.append('end\n\nend LeanVM.Guest.Res\n')
+    files[mod] = ''.join(t)
+    mods = []
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
         t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
-        one = keys[a] if m == 1 and keys[a] in F and len(F[keys[a]]['body']) > NZ_MIN else None
-        # the nonzero facts by the indexed check (`Fam/CarryIdx.lean`), equal to `carryNzG`
-        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryIdx\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\n' % (a, a, m))
-        if one:
-            # its pass over its body in slices
-            f, n = 'Fn.«%s».core' % one, len(F[one]['body'])
-            cuts = sorted({n * c // NZ_N for c in range(NZ_N + 1)})
-            for c in range(len(cuts) - 1):
-                t.append('theorem carryNz_%d_s%d : allBSlice (nzStmt (kvNz %s)) %s.body (spineE %s.body) %d %d = true :=\n'
-                         '  allBSlice_nzStmtI (by decide +kernel)\n\n' % (a, c, f, f, f, cuts[c], cuts[c + 1]))
-            prf = 'allB_drop_of_le (by decide +kernel)'
-            for c in reversed(range(len(cuts) - 1)):
-                prf = 'allB_drop_of_slice (by decide) carryNz_%d_s%d\n      (%s)' % (a, c, prf)
-            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d 1 :=\n'
-                     '  rangeOk_one (f := %s) rfl <| carryNzG_of\n    (allB_of_drop_zero\n      (%s))\n'
-                     '    (by decide +kernel) (by decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, f, prf))
-        else:
-            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
-                     '  rangeOk_carryNz (by unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
+        t.append('public import LeanVM.Guest.CoreMode.Gen.CarryTab\nmeta import LeanVM.Guest.Packed.NatLit\n\n'
+                 'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n')
+        for w, bits, what in (('gW', gbits, '`carryGW`'), ('nzW', nzbits, '`carryNzW`')):
+            items = [(j, bits[names[keys[j]]]) for j in range(a, a + m) if bits.get(names[keys[j]])]
+            t.append('/-- The sub-spines of %s, by function index. -/\nnoncomputable def %s%d : NTree ℕ :=\n  %s\n\n'
+                     % (what, w, a, carrywit.ntree(items, carrywit.hexbits)))
+        t.append('public section\n\n'
+                 'theorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d :=\n'
+                 '  RangeOk.imp (fun _ _ h ↦ carryG_of_wit carriedT_ok h)\n'
+                 '    (show RangeOk (fun j fn ↦ carryGW carriedT fn ((gW%d.find j).getD 0)) %d %d by\n'
+                 '      unfold RangeOk; decide +kernel)\n\n' % (a, a, m, a, a, m))
+        t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
+                 '  RangeOk.imp (fun _ _ h ↦ carryNzG_of_wit carriedNzT_ok nzUpT_ok ownNzT_ok h)\n'
+                 '    (show RangeOk (fun j fn ↦ carryNzW carriedNzT nzUpT ownNzT fn ((nzW%d.find j).getD 0)) %d %d by\n'
+                 '      unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]
