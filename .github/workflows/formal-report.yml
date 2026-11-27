@@ -15,6 +15,7 @@ on:
       - ".claude/skills/**"
       - "CONTRIBUTING.md"
       - "AGENTS.md"
+      - "README.md"
       - ".github/workflows/formal-report.yml"
 
 permissions:
