@@ -162,13 +162,8 @@ theorem final (hp : p[i]? = some (tmpl L)) {Q : State rvIsa → Prop} {ret top :
   have hA := loopA hp (sp := sp) (a := a) (o := o) (e := e) (P := P) hnx hb1 hb2 hidx h54
   rv_introT hR
   rv_symT hp stop [82]
-  · rw [BitVec.lt_def] at hc
-    refine hA (min (M.getMem (P + (idx <<< 5 + idx <<< 3) + 16#64)).toNat l2.toNat) _ _ ⟨rfl,
-      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, BitVec.eq_of_toNat_eq ?_, by omega, 0, by omega,
-      by simp only [Tactic.rf]; omega, by simp only [Tactic.rf]; omega⟩
-    simp only [Tactic.rf]
-    rw [toNat_add_ofNat (by omega), BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]; omega
-  · rw [BitVec.le_def] at hc
+  all_goals
+    simp only [BitVec.lt_def, BitVec.le_def] at hc
     refine hA (min (M.getMem (P + (idx <<< 5 + idx <<< 3) + 16#64)).toNat l2.toNat) _ _ ⟨rfl,
       ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, BitVec.eq_of_toNat_eq ?_, by omega, 0, by omega,
       by simp only [Tactic.rf]; omega, by simp only [Tactic.rf]; omega⟩
@@ -282,14 +277,8 @@ theorem bsearch (hp : p[i]? = some (tmpl L)) {Q : State rvIsa → Prop} {ret top
       · exact h264 _ (by omega) R' hk h10 h11 h12 h13' h14' h15
   rv_introT hR
   rv_symT hp stop [296]
-  · rw [BitVec.lt_def] at hc
-    refine hB (min (M'.getMem (P + ((R .x13 >>> 1 + R .x14) <<< 5 + (R .x13 >>> 1 + R .x14) <<< 3) +
-      16#64)).toNat l2.toNat) _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      BitVec.eq_of_toNat_eq ?_, by omega, 0, by omega, by simp only [Tactic.rf]; omega,
-      by simp only [Tactic.rf]; omega⟩
-    simp only [Tactic.rf]
-    rw [toNat_add_ofNat (by omega), BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]; omega
-  · rw [BitVec.le_def] at hc
+  all_goals
+    simp only [BitVec.lt_def, BitVec.le_def] at hc
     refine hB (min (M'.getMem (P + ((R .x13 >>> 1 + R .x14) <<< 5 + (R .x13 >>> 1 + R .x14) <<< 3) +
       16#64)).toNat l2.toNat) _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
       BitVec.eq_of_toNat_eq ?_, by omega, 0, by omega, by simp only [Tactic.rf]; omega,

@@ -26,15 +26,6 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime Rv64mc.Proof.Runtime.C
 open Rv64mc.Proof.Runtime.MemsetT (InWin Kept)
 open Rv64mc.Gen.CompilerBuiltins.Mem.Memmove (Link tmpl)
 
-/-- A side goal about numbers with literals' `toNat` computed. -/
-local macro "tlit" : tactic => `(tactic| ((try tnorm) <;> (try simp only [BitVec.toNat_ofNat, Nat.reducePow,
-  Nat.reduceMod, show ((UnOp.sext .b4).eval 6#64 : Word) = 6#64 by decide,
-  show ((UnOp.sext .b4).eval 2#64 : Word) = 2#64 by decide, show ((UnOp.sext .b4).eval 3#64 : Word) = 3#64 by decide])
-  <;> omega))
-
-/-- `Regs` through the body's writes of scratch registers. -/
-local macro "regs_ok " h:term : tactic => `(tactic| ((repeat (apply Regs.upd _ (by decide))) <;> exact $h))
-
 set_option hygiene false in
 /-- The entry's windows (`hsw`, `hdw`, `hW`) and the code's bytes (`hcode`) as hypotheses. -/
 local macro "fx_facts " F:term:max hI:term:max : tactic => `(tactic| (
@@ -214,10 +205,6 @@ theorem alB_ok (hp : p[i]? = some (tmpl L)) (F : FxB env top (regs .x10) (regs .
     · tnorm; omega
 
 /-! ## A misaligned source's last doubleword -/
-
-theorem slot_addr {top : Word} {r : Reg → Word} (hx2 : r .x2 = top + 0xfffffffffffffff0#64)
-    (hroom : 16 ≤ top.toNat) : (r .x2).toNat = top.toNat - 16 := by
-  rw [hx2, BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega
 
 /-- The destination's first doubleword, from the scratch doubleword (the bytes from `o` on, the source's from
     `jw % 8`) and `x28` (the first `o` bytes of the source doubleword after them). -/

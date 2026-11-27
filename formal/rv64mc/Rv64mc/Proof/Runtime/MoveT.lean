@@ -12,7 +12,7 @@
 
   ## Main definitions
 
-  * `Regs`, `Fx`, `FxF`, `FxB`, `FInv`, `InvB`, `BInv`, `Cont`
+  * `Regs`, `Fx`, `FxF`, `FxB`, `FInv`, `InvB`, `BInv`, `Cont`; the tactics `regs_ok`, `tlit` (scoped)
 
   ## Main results
 
@@ -59,6 +59,15 @@ theorem Regs.upd {ret top : Word} {regs r : Reg → Word} (h : Regs ret top regs
     rcases hd with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
       first | exact absurd rfl h8 | decide
 
+/-- `Regs` through the body's writes of scratch registers. -/
+scoped macro "regs_ok " h:term : tactic => `(tactic| ((repeat (apply Regs.upd _ (by decide))) <;> exact $h))
+
+/-- A side goal about numbers with literals' `toNat` computed. -/
+scoped macro "tlit" : tactic => `(tactic| ((try tnorm) <;> (try simp only [BitVec.toNat_ofNat, Nat.reducePow,
+  Nat.reduceMod, show ((UnOp.sext .b4).eval 6#64 : Word) = 6#64 by decide,
+  show ((UnOp.sext .b4).eval 2#64 : Word) = 2#64 by decide, show ((UnOp.sext .b4).eval 3#64 : Word) = 3#64 by decide])
+  <;> omega))
+
 /-- What the entry gives every part of the body: `n` bytes, the windows, the stack slots. -/
 structure Fx (env : Env) (top dst src : Word) (n : Nat) (m : MachineState) : Prop where
   win : Windows env top m
@@ -94,6 +103,11 @@ theorem getMem_saved {top x v : Word} {w : Width} {M : MachineState} (htop : top
   have := congrArg BitVec.toNat h
   rw [toNat_alignToDword, toNat_top8 (by omega)] at this
   omega
+
+/-- The scratch doubleword's address. -/
+theorem slot_addr {top : Word} {r : Reg → Word} (hx2 : r .x2 = top + 0xfffffffffffffff0#64)
+    (hroom : 16 ≤ top.toNat) : (r .x2).toNat = top.toNat - 16 := by
+  rw [hx2, BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega
 
 theorem toNat_dec {a : Word} (h : 0 < a.toNat) : (a + 0xffffffffffffffff#64).toNat = a.toNat - 1 := by
   rw [BitVec.toNat_add]; simp only [BitVec.toNat_ofNat]; omega
@@ -209,8 +223,7 @@ theorem BInv.byte {top dst src x v s0 : Word} {n j : Nat} {m M : MachineState}
     · rw [ite_eq_right (by omega)]; exact h.1.2.1 k (by omega) hk
   · rw [bat_storeMem h1 hb, ite_eq_right (by omega)]
     exact h.1.2.2 b hb (by omega) hs
-  · rw [show Tactic.storeMem .b1 M x v = Tactic.storeMem .b1 M x v from rfl,
-      getMem_saved (by omega) (by omega) (Nat.mod_one _) (F.dtop (x := x.toNat) (by omega) (by omega))]
+  · rw [getMem_saved (by omega) (by omega) (Nat.mod_one _) (F.dtop (x := x.toNat) (by omega) (by omega))]
     exact h.2
 
 theorem BInv.word {top dst src x v s0 : Word} {n j : Nat} {m M : MachineState}

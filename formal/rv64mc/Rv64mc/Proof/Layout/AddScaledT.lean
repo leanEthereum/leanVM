@@ -22,7 +22,7 @@
 
   ## Main definitions
 
-  * `PreT`, `PostT`, `OutT`, `SpecT`, `Slots`, `MemOk`
+  * `PreT`, `PostT`, `OutT`, `SpecT`, `MemOk`
 
   ## Main results
 
@@ -47,6 +47,7 @@ open Rv64mc.Proof.Runtime.MemcmpT (MemcmpSpecT)
 open Rv64mc.Proof.Runtime.MemmoveT (MemmoveSpecT)
 open Rv64mc.Proof.Layout.FormReprT
 open Rv64mc.Proof.Layout.PairT (Apart KeptOrFresh)
+open Rv64mc.Proof.Layout.CloneFormsT (Slots)
 open Rv64mc.Proof.Layout.AddScaledSearchT (SKeep search inWin_word sh40 sh40' termT)
 open Rv64mc.Proof.Runtime.GrowOne (rvCapAt_eq rvPtrAt_eq)
 open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq)
@@ -78,17 +79,8 @@ def SpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
 
 /-! ## The frame -/
 
-/-- The prologue's thirteen saved words in `M`, at `top - 8` down to `top - 104`. -/
-def Slots (M : MachineState) (top ret : Word) (regs : Reg → Word) : Prop :=
-  M.getMem (top + 18446744073709551608#64) = ret ∧ M.getMem (top + 18446744073709551600#64) = regs .x8 ∧
-    M.getMem (top + 18446744073709551592#64) = regs .x9 ∧ M.getMem (top + 18446744073709551584#64) = regs .x18 ∧
-    M.getMem (top + 18446744073709551576#64) = regs .x19 ∧ M.getMem (top + 18446744073709551568#64) = regs .x20 ∧
-    M.getMem (top + 18446744073709551560#64) = regs .x21 ∧ M.getMem (top + 18446744073709551552#64) = regs .x22 ∧
-    M.getMem (top + 18446744073709551544#64) = regs .x23 ∧ M.getMem (top + 18446744073709551536#64) = regs .x24 ∧
-    M.getMem (top + 18446744073709551528#64) = regs .x25 ∧ M.getMem (top + 18446744073709551520#64) = regs .x26 ∧
-    M.getMem (top + 18446744073709551512#64) = regs .x27
-
-/-- What every part keeps of memory: the slots, the frame, the static data, the code. -/
+/-- What every part keeps of memory: the prologue's thirteen saved words (`CloneFormsT.Slots`, at `top - 8` down
+    to `top - 104`), the frame, the static data, the code. -/
 def MemOk (env : Env) (m : MachineState) (top ret : Word) (regs : Reg → Word) (M : MachineState) : Prop :=
   Slots M top ret regs ∧ env.Frame top (OutT regs m) m M ∧ env.Static M ∧ M.code = m.code
 

@@ -175,8 +175,8 @@ theorem fin_mem {env : Env} {m M : MachineState} {top ret q c P e0 e1 e2 : Word}
   have hwq : ∀ k, k + 24 ≤ 72 → InWin env (q + BitVec.ofNat 64 k) 24 := fun k hk => .inl ⟨by rw [e k (by omega)]; omega,
     by rw [e k (by omega)]; omega⟩
   have F0 : FormT env ((((heap6 M q e0 e1 e2).setMem (regs .x10) 3#64).setMem (regs .x10 + 8#64) q).setMem
-      (regs .x10 + 16#64) 3#64) q := by
-    exact CloneFormsT.new_form (c := 0#64) (P := 8#64) (L := 0#64) (hq0 ▸ hwq 0 (by omega)) hq8 r0' r8' r16'
+      (regs .x10 + 16#64) 3#64) q :=
+    CloneFormsT.new_form (c := 0#64) (P := 8#64) (L := 0#64) (hq0 ▸ hwq 0 (by omega)) hq8 r0' r8' r16'
       (by decide) (.inl ⟨rfl, rfl⟩)
   have F1 : FormT env ((((heap6 M q e0 e1 e2).setMem (regs .x10) 3#64).setMem (regs .x10 + 8#64) q).setMem
       (regs .x10 + 16#64) 3#64) (q + 24#64) := by
@@ -267,13 +267,9 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
   have hW2 := hW.top_le
   have hlay := env.layout
   have hW3 := hW.nextAddr_ge
-  have hw : ∀ k : Nat, k ≤ 16 → k % 8 = 0 → inWindow (regs .x10 + BitVec.ofNat 64 k) 8 = true ∧
-      (regs .x10 + BitVec.ofNat 64 k).toNat % 8 = 0 := fun k hk hk8 => by
-    have e : (regs .x10 + BitVec.ofNat 64 k).toNat = (regs .x10).toNat + k := toNat_add_ofNat (by omega)
-    rw [inWindow_iff, e]; unfold InWin at hwin; exact ⟨by omega, by omega⟩
-  have w0 : inWindow (regs .x10) 8 = true := by simpa using (hw 0 (by omega) rfl).1
-  have w8 := hw 8 (by omega) rfl
-  have w16 := hw 16 (by omega) rfl
+  have w0 : inWindow (regs .x10) 8 = true := (hwin.dword (x := regs .x10) (o := 0) hW hal rfl (by omega) rfl).1
+  have w8 := hwin.dword_add (x := regs .x10) (o := 0) (k := 8) hW hal rfl (by omega) rfl
+  have w16 := hwin.dword_add (x := regs .x10) (o := 0) (k := 16) hW hal rfl (by omega) rfl
   have hex := exit hp hL hk hlim hW h16
   rv_introT hR
   rv_symT hp stop [316] with [hL]

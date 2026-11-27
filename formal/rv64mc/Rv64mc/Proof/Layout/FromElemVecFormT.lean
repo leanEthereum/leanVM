@@ -523,13 +523,9 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
   have hW2 := hW.top_le
   have hlay := env.layout
   have hW3 := hW.nextAddr_ge
-  have hw : ∀ k : Nat, k ≤ 16 → k % 8 = 0 → inWindow (regs .x10 + BitVec.ofNat 64 k) 8 = true ∧
-      (regs .x10 + BitVec.ofNat 64 k).toNat % 8 = 0 := fun k hk hk8 => by
-    have e : (regs .x10 + BitVec.ofNat 64 k).toNat = (regs .x10).toNat + k := toNat_add_ofNat (by omega)
-    rw [inWindow_iff, e]; unfold InWin at hwin; exact ⟨by omega, by omega⟩
-  have w0 : inWindow (regs .x10) 8 = true := by simpa using (hw 0 (by omega) rfl).1
-  have w8 := hw 8 (by omega) rfl
-  have w16 := hw 16 (by omega) rfl
+  have w0 : inWindow (regs .x10) 8 = true := (hwin.dword (x := regs .x10) (o := 0) hW hal rfl (by omega) rfl).1
+  have w8 := hwin.dword_add (x := regs .x10) (o := 0) (k := 8) hW hal rfl (by omega) rfl
+  have w16 := hwin.dword_add (x := regs .x10) (o := 0) (k := 16) hW hal rfl (by omega) rfl
   have hR := And.intro r2 (And.intro r8 (And.intro r9 (And.intro r10 r18)))
   rv_introT hR
   rv_symT hp stop [120] with [hL]
