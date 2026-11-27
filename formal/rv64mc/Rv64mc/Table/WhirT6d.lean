@@ -6,12 +6,14 @@
   `decide`), and its callees' total theorems (`ring_coefficients`: `AllocT.reserveE`, `RuntimeT.alloc`,
   `RuntimeT.handleError`, `FieldT.eMul`, `WhirT.frobenius8`, `CopyUseT.memcpy`; `ring_target`: `RuntimeT.alloc`,
   `RuntimeT.handleError`, `AllocT.reserveE`, `MultilinearT.ringPsi`, `WhirT.frobenius8`, `MultilinearT.polyEval`,
-  `FieldT.eMul`). Left as hypotheses: `clmul_low`'s constant table (`FieldT.ClmulTable`, through `E::mul`) and the
-  allocator's two facts (`NEXT`'s data reference and the heap's end), all environment facts.
+  `FieldT.eMul`; `Subspace::new`: `WhirT6b.subspaceRoots`, `RuntimeT.alloc`, `RuntimeT.handleError`,
+  `AllocT.reserveK`, `FieldT6d.kInv`). Left as hypotheses: `clmul_low`'s constant table (`FieldT.ClmulTable`,
+  through `E::mul` and `base_mul`) and the allocator's two facts (`NEXT`'s data reference and the heap's end), all
+  environment facts.
 
   ## Main results
 
-  * `ringCoefficients`, `ringTarget`
+  * `ringCoefficients`, `ringTarget`, `subspaceNew`
 -/
 
 import Rv64mc.Table.RuntimeT
@@ -22,6 +24,10 @@ import Rv64mc.Table.CopyUseT
 import Rv64mc.Table.MultilinearT
 import Rv64mc.Proof.Whir.RingCoefficientsT
 import Rv64mc.Proof.Whir.RingTargetT
+import Rv64mc.Proof.Whir.SubspaceNewT
+import Rv64mc.Table.WhirT6b
+import Rv64mc.Table.FieldT6d
+import Rv64mc.Gen.Link.Verifier.Whir
 import Rv64mc.Gen.Link.Verifier.RingSwitch
 
 namespace Rv64mc.Table.WhirT6d
@@ -59,6 +65,19 @@ theorem ringTarget (hd : FieldT.ClmulTable env)
     (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env) (AllocT.reserveE env hnext hend)
     (MultilinearT.ringPsi env hd) (WhirT.frobenius8 env) (MultilinearT.polyEval env hd) (FieldT.eMul env hd)
 
+/-- `Subspace::new`. -/
+theorem subspaceNew (hd : FieldT.ClmulTable env)
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    SubspaceNewT.specT env (liftProg fns) Idx.Verifier.Whir.Subspace.New Needs.Verifier.Whir.Subspace.New :=
+  SubspaceNewT.total env _ _ _ Verifier.Whir.Subspace.New.tmpl_eq Verifier.Whir.Subspace.New.wf
+    (needS := Needs.Verifier.Whir.SubspaceRoots) (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (needH := Needs.Alloc.RawVec.HandleError) (needR := Needs.Alloc.Vec.VecK.Reserve)
+    (needI := Needs.Verifier.Field.K.Inv)
+    (by decide) (by decide) (by decide) (by decide) (by decide)
+    (WhirT6b.subspaceRoots env hd hnext hend) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
+    (AllocT.reserveK env hnext hend) (FieldT6d.kInv env hd)
+
 end Rv64mc.Table.WhirT6d
 
 /-- info: 'Rv64mc.Table.WhirT6d.ringCoefficients' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -68,3 +87,7 @@ end Rv64mc.Table.WhirT6d
 /-- info: 'Rv64mc.Table.WhirT6d.ringTarget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.WhirT6d.ringTarget
+
+/-- info: 'Rv64mc.Table.WhirT6d.subspaceNew' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.WhirT6d.subspaceNew
