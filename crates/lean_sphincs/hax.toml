@@ -1,0 +1,27 @@
+# The Lean extraction of this crate (formal/extraction/README.md), regenerated with
+# `formal/extraction/hax.sh extract` into proofs/lean-sphincs/lean.
+# Proved: `verify`, as extracted, is the statement's, in formal/extraction/proofs/lean_sphincs
+# (see its README.md). A change here or to the patches can break that proof: `hax.sh check` builds it.
+[scenario.lean-sphincs]
+backend = "lean"
+opaque = [
+  # `verify` and everything it calls are extracted with their bodies, down to `keccak256::Hasher`.
+  # What is left is signing, serialization, and the folds that show their nodes to a visitor.
+
+  # The visitor: `&mut visit` instantiates `path_fold`'s type parameter with a mutable borrow,
+  # which Aeneas does not translate. Patch 02 gives `verify` the fold with no visitor.
+  "crate::fors::fors_recover",
+
+  # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be
+  # patched, modelled, or reduced to a reportable case.
+  "crate::scheme::_::from_bytes",  # Aeneas: unimplemented
+  "crate::scheme::merkle_levels",  # Aeneas: internal error, please file an issue
+  "crate::scheme::_::to_bytes",  # Lean: unknown identifier `core.sharedaarray.insts.coreitertraitscollectintoi
+  "crate::scheme::sign",  # Lean: unknown constant `core.slice.iter.itermut.insts.coreitertraitsiterator
+]
+exclude = [
+  "{impl serde_core::ser::Serialize for _}",
+  "{impl serde_core::de::Deserialize for _}",
+  "{impl core::hash::Hash for _}",
+  "crate::scheme::key_gen",
+]

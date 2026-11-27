@@ -1,0 +1,273 @@
+Gap: `verify`'s visitor `|_| {}` to `layer_root`, and the `std` build's batched `chain_ends` - Aeneas gives an `FnMut` closure returning `()` a mistyped `call_mut`; the batched form runs through `keccak256::hash_many`, per-host SIMD that is opaque in the extraction
+Two changes.
+
+`verify` calls `layer_root_unwatched`, added here: `layer_root` without the visitor, over
+`keccak256::path_root` (keccak256 02), which is `path_fold` without one. `layer_root` stays, for
+the callers that watch. `verify`'s `and_then(..).is_some_and(..)` becomes two `let .. else`s: no
+codeword on either layer is `false`, otherwise the top root is compared with the key's. Not a
+mechanical rewrite: the claim is that a fold whose visitor does nothing computes what the fold with
+no visitor does. Tool bug: https://github.com/AeneasVerif/aeneas/issues/960.
+
+`chain_ends` is the portable form in every build. The source has two: without `std`, a `from_fn` of
+`chain` per chain; with `std`, every chain a step at a time, each step one batch through
+`th_digests_many`. The extraction, and the proof of `verify`, cover the first only. The second
+stays, for tests only, as `chain_ends_batched`. They agree on digits below `CHAIN_LEN`, which is
+all `codeword` gives; on a larger digit the portable form's `CHAIN_LEN - 1 - start` underflows and
+the batched one returns the value as it is, a difference `wots_leaf` cannot reach.
+
+Tests: three, all under `std`.
+layer_root_unwatched_matches_layer_root, against `layer_root` with a counting visitor, on both
+layers of two real signatures whose leaf indices between them take both children at every level:
+the same codeword and root, one call a level; with a path node changed, the same other root; with
+a message whose digest is no codeword, `None` from both and no call.
+chain_ends_matches_the_batched_one, the evidence that the form a `std` build runs agrees with the
+one proved: on both layers and three keys, nine words that put every digit value on every chain,
+and a signature's own codeword (checked to sum to `T` and hold every digit value) with its chain
+values, where both also equal the key's chain ends computed by `chain`.
+verify_matches_the_source, against `verify` copied from the source, on a real signature: accepted;
+refused with no codeword at the bottom, with none at the top, and with another root at the top.
+mutation: `layer_root_unwatched`'s node level `+ 1` -> layer_root_unwatched_matches_layer_root
+fails; its path index `^ 1` -> it fails; `chain_ends` walking every chain from position 0 ->
+chain_ends_matches_the_batched_one fails; `chain_ends` one step short -> it fails; `verify`
+accepting where the bottom has no codeword (`return true`) -> verify_matches_the_source fails; the
+same at the top -> it fails; `verify`'s top layer checked against the message, not the bottom
+root -> it fails.
+
+diff --git a/crates/lean_xmss/src/scheme.rs b/crates/lean_xmss/src/scheme.rs
+index 60997d7fc..4390a9d84 100644
+--- a/crates/lean_xmss/src/scheme.rs
++++ b/crates/lean_xmss/src/scheme.rs
+@@ -332,11 +332,29 @@ impl LeanXmssExpandedSecretKey {
+ pub fn verify(pk: &LeanXmssPublicKey, message: &Message, signature: &LeanXmssSignature) -> bool {
+     let pp = &pk.public_param;
+     let leaf_index = signature.leaf_index;
+-    layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
+-        .and_then(|(_, bottom_root)| {
+-            layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
+-        })
+-        .is_some_and(|(_, root)| root == pk.merkle_root)
++    let Some((_, bottom_root)) = layer_root_unwatched(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom)
++    else {
++        return false;
++    };
++    let Some((_, root)) = layer_root_unwatched(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top) else {
++        return false;
++    };
++    root == pk.merkle_root
++}
++
++/// [`layer_root`] with nothing watching.
++fn layer_root_unwatched(
++    pp: &PublicParam,
++    layer: usize,
++    e: u32,
++    message: &[u8],
++    signature: &LayerSignature,
++) -> Option<([u8; V], Digest)> {
++    let (codeword, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
++    let root = keccak256::path_root(leaf, e as usize, &signature.path, |level, j, children| {
++        node(pp, layer, level, j as u32, children)
++    });
++    Some((codeword, root))
+ }
+ 
+ /// The codeword of a layer's signature by key `e` and the root it reaches, or `None`
+@@ -356,3 +374,129 @@ pub fn layer_root(
+     });
+     Some((codeword, root))
+ }
++
++#[cfg(all(test, feature = "std"))]
++mod tests {
++    use super::*;
++
++    /// `layer_root_unwatched` against `layer_root` with a visitor, on both layers of signatures at two leaf indices
++    /// that between them take a left and a right child at every level: the same codeword and root, the visitor called
++    /// once a level. With a path node changed, the same other root. With another message, whose digest is no codeword,
++    /// `None` from both, and the visitor never called.
++    #[test]
++    fn layer_root_unwatched_matches_layer_root() {
++        let (sk, pk) = key_gen(&[3; SECRET_KEY_LEN]);
++        let pp = &pk.public_param;
++        let message: Message = core::array::from_fn(|i| (i * 3 + 7) as u8);
++        for leaf_index in [0x5555_aaaa, 0xaaaa_5555] {
++            let signature = sign(&sk, &message, leaf_index);
++            let bottom_root = layer_root_unwatched(pp, 0, layer_index(leaf_index, 0), &message, &signature.bottom)
++                .unwrap()
++                .1;
++            let layers: [(usize, &[u8], &LayerSignature); 2] =
++                [(0, &message, &signature.bottom), (1, &bottom_root, &signature.top)];
++            for (layer, signed, layer_signature) in layers {
++                let e = layer_index(leaf_index, layer);
++                let mut seen = 0;
++                let want = layer_root(pp, layer, e, signed, layer_signature, |_| seen += 1);
++                assert!(want.is_some());
++                assert_eq!(
++                    layer_root_unwatched(pp, layer, e, signed, layer_signature),
++                    want,
++                    "layer {layer}"
++                );
++                assert_eq!(seen, LAYER_HEIGHT);
++
++                let mut moved = layer_signature.clone();
++                moved.path[LAYER_HEIGHT / 2][0] ^= 1;
++                let other = layer_root(pp, layer, e, signed, &moved, |_| ());
++                assert_ne!(other, want);
++                assert_eq!(
++                    layer_root_unwatched(pp, layer, e, signed, &moved),
++                    other,
++                    "layer {layer}"
++                );
++
++                let mut seen = 0;
++                let unsigned = [0x5a; 32];
++                assert_eq!(
++                    layer_root(pp, layer, e, &unsigned, layer_signature, |_| seen += 1),
++                    None
++                );
++                assert_eq!(layer_root_unwatched(pp, layer, e, &unsigned, layer_signature), None);
++                assert_eq!(seen, 0);
++            }
++            let top_root = layer_root_unwatched(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top);
++            assert_eq!(top_root.unwrap().1, pk.merkle_root);
++        }
++    }
++
++    /// `verify` as the source has it: `layer_root` with visitors that do nothing, and `Option`'s combinators.
++    fn verify_with_visitors(pk: &LeanXmssPublicKey, message: &Message, signature: &LeanXmssSignature) -> bool {
++        let pp = &pk.public_param;
++        let leaf_index = signature.leaf_index;
++        layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
++            .and_then(|(_, bottom_root)| {
++                layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
++            })
++            .is_some_and(|(_, root)| root == pk.merkle_root)
++    }
++
++    /// `verify` against the source's. A signature is accepted. Refused, by each of its three ends: no codeword at the
++    /// bottom (another message, another randomizer), none at the top (another randomizer, or another bottom root,
++    /// from a chain value or a path node changed), and another root at the top (a chain value or a path node changed,
++    /// another leaf index, another key's root).
++    #[test]
++    fn verify_matches_the_source() {
++        let (sk, pk) = key_gen(&[3; SECRET_KEY_LEN]);
++        let message: Message = core::array::from_fn(|i| (i * 3 + 7) as u8);
++        let signature = sign(&sk, &message, 0x5555_aaaa);
++        assert!(verify(&pk, &message, &signature));
++        assert!(verify_with_visitors(&pk, &message, &signature));
++
++        let pp = &pk.public_param;
++        let (bottom_e, top_e) = (
++            layer_index(signature.leaf_index, 0),
++            layer_index(signature.leaf_index, 1),
++        );
++        let bottom_root = layer_root_unwatched(pp, 0, bottom_e, &message, &signature.bottom)
++            .unwrap()
++            .1;
++        let changed = |change: &dyn Fn(&mut LeanXmssSignature)| {
++            let mut signature = signature.clone();
++            change(&mut signature);
++            signature
++        };
++
++        let mut other = message;
++        other[0] ^= 1;
++        assert_eq!(layer_root_unwatched(pp, 0, bottom_e, &other, &signature.bottom), None);
++        let bottom_randomizer = changed(&|s| s.bottom.randomizer[0] ^= 1);
++        assert_eq!(
++            layer_root_unwatched(pp, 0, bottom_e, &message, &bottom_randomizer.bottom),
++            None
++        );
++        let top_randomizer = changed(&|s| s.top.randomizer[0] ^= 1);
++        assert_eq!(
++            layer_root_unwatched(pp, 1, top_e, &bottom_root, &top_randomizer.top),
++            None
++        );
++        let mut key = pk;
++        key.merkle_root[0] ^= 1;
++        let refused = [
++            (pk, other, signature.clone()),
++            (pk, message, bottom_randomizer),
++            (pk, message, top_randomizer),
++            (pk, message, changed(&|s| s.bottom.chain_values[V - 1][0] ^= 1)),
++            (pk, message, changed(&|s| s.bottom.path[0][0] ^= 1)),
++            (pk, message, changed(&|s| s.top.chain_values[0][0] ^= 1)),
++            (pk, message, changed(&|s| s.top.path[LAYER_HEIGHT - 1][0] ^= 1)),
++            (pk, message, changed(&|s| s.leaf_index ^= 1)),
++            (key, message, signature.clone()),
++        ];
++        for (case, (pk, message, signature)) in refused.iter().enumerate() {
++            assert!(!verify(pk, message, signature), "case {case}");
++            assert!(!verify_with_visitors(pk, message, signature), "case {case}");
++        }
++    }
++}
+diff --git a/crates/lean_xmss/src/wots.rs b/crates/lean_xmss/src/wots.rs
+index baa9af2ff..06a393c8f 100644
+--- a/crates/lean_xmss/src/wots.rs
++++ b/crates/lean_xmss/src/wots.rs
+@@ -150,7 +150,6 @@ pub fn wots_leaf(
+ }
+ 
+ /// Each chain's end, from the value at its digit's position.
+-#[cfg(not(feature = "std"))]
+ fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+     core::array::from_fn(|i| {
+         let start = x[i] as usize;
+@@ -160,8 +159,8 @@ fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Dig
+ 
+ /// Each chain's end, from the value at its digit's position: as [`chain`] computes it, each step one batch over the
+ /// chains still running.
+-#[cfg(feature = "std")]
+-fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
++#[cfg(all(test, feature = "std"))]
++fn chain_ends_batched(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+     let mut ends = *values;
+     for from in 0..CHAIN_LEN - 1 {
+         let running: Vec<usize> = (0..V).filter(|&i| usize::from(x[i]) <= from).collect();
+@@ -226,4 +225,45 @@ mod tests {
+             }
+         }
+     }
++
++    /// The portable `chain_ends`, the one extracted, against the batched one a `std` build runs. On both layers: every
++    /// digit value on every chain, from chain values that open nothing; and a signature's codeword and chain values,
++    /// where both reach the key's own chain ends.
++    #[test]
++    fn chain_ends_matches_the_batched_one() {
++        let seed = scheme_seed(&[7; 32]);
++        let pp = public_param(&seed);
++        let values: [Digest; V] = core::array::from_fn(|i| {
++            (i as u128 + 1)
++                .wrapping_mul(0x9E37_79B9_7F4A_7C15_F39C_C060)
++                .to_le_bytes()
++        });
++        let mut words: Vec<[u8; V]> = (0..CHAIN_LEN).map(|digit| [digit as u8; V]).collect();
++        words.extend((0..CHAIN_LEN).map(|shift| core::array::from_fn(|i| ((i + shift) % CHAIN_LEN) as u8)));
++        words.push(core::array::from_fn(|i| ((i * 7 + i / 5) % CHAIN_LEN) as u8));
++        for layer in 0..2 {
++            for e in [0, 0x1_0005, u32::MAX] {
++                for x in &words {
++                    assert_eq!(
++                        chain_ends(&pp, layer, e, x, &values),
++                        chain_ends_batched(&pp, layer, e, x, &values),
++                        "layer {layer}, key {e}, digits {x:?}"
++                    );
++                }
++
++                let message = [layer as u8 + 1; 32];
++                let (randomizer, opened) = wots_sign(&pp, &seed, layer, e, &message).unwrap();
++                let x = codeword(&message_digest(&pp, layer, e, &randomizer, &message)).unwrap();
++                assert_eq!(x.iter().map(|&digit| usize::from(digit)).sum::<usize>(), TARGET_SUM);
++                assert!(
++                    (0..CHAIN_LEN).all(|digit| x.contains(&(digit as u8))),
++                    "every digit value"
++                );
++                let secrets = wots_secrets(&pp, &seed, layer, e);
++                let ends = core::array::from_fn(|i| chain(&pp, layer, e, i, 0, CHAIN_LEN - 1, secrets[i]));
++                assert_eq!(chain_ends(&pp, layer, e, &x, &opened), ends);
++                assert_eq!(chain_ends_batched(&pp, layer, e, &x, &opened), ends);
++            }
++        }
++    }
+ }
