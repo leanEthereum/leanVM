@@ -202,18 +202,29 @@ const _: () = assert!(RC.len().is_multiple_of(2));
 /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
 /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
 /// before χ spills.
+///
+/// With `static-dispatch`, one copy per backend, out of line: a backend is then picked only where the build enables its
+/// feature, so the copy runs its instructions. Without, `dispatch!` enables the feature on the caller alone, into which
+/// the rounds must inline.
 #[cfg(target_arch = "x86_64")]
-#[inline(always)]
+#[cfg_attr(feature = "static-dispatch", inline(never))]
+#[cfg_attr(not(feature = "static-dispatch"), inline(always))]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     permute_rows(a, false);
 }
 
-/// [`permute`], where with `first_row` only the first row of the result is read, as a digest, a grind's lane or a
-/// challenge reads it: lanes `0..5` come out permuted, the others are left stale, the last round computing that row
-/// alone. One copy of the rounds serves both.
+/// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
+/// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
 #[cfg(target_arch = "x86_64")]
 #[inline(always)]
-pub(crate) fn permute_rows<S: Lane>(a: &mut [S; STATE_LANES], first_row: bool) {
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+    permute_rows(a, true);
+}
+
+/// [`permute`], or with `first_row` [`permute_first_row`]: one source for both, each caller passing a constant.
+#[cfg(target_arch = "x86_64")]
+#[inline(always)]
+fn permute_rows<S: Lane>(a: &mut [S; STATE_LANES], first_row: bool) {
     let mut c = parities(a);
     let mut e = *a;
     let pairs = RC.as_chunks::<2>().0;
@@ -275,10 +286,10 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
     }
 }
 
-/// The whole [`permute`]: every lane comes out permuted, which covers the first row a `first_row` caller reads.
+/// The whole [`permute`]: every lane comes out permuted, which covers the first row the callers read.
 #[cfg(not(target_arch = "x86_64"))]
 #[inline(always)]
-pub(crate) fn permute_rows<S: Lane>(a: &mut [S; STATE_LANES], _first_row: bool) {
+pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
     permute(a);
 }
 
@@ -437,7 +448,7 @@ fn first_nonce_with<S: Lane>(
     while first < nonces.end {
         let mut st = template;
         st[at] = gather(|l| first.wrapping_add(l as u64));
-        permute_rows(&mut st, true);
+        permute_first_row(&mut st);
         let n = (nonces.end - first).min(S::WIDTH as u64) as usize;
         if let Some(l) = scatter(st[out])[..n].iter().position(|w| w & mask == 0) {
             return Some(first + l as u64);
@@ -501,7 +512,7 @@ fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], ou
     }
     st[words] = st[words].xor(S::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(S::splat(END_BIT));
-    permute_rows(&mut st, true);
+    permute_first_row(&mut st);
     S::digests(&st, out);
 }
 
@@ -524,7 +535,7 @@ fn digest_halves_with<S: Lane>(template: &[u64; STATE_LANES], at: usize, values:
         for (j, shift) in [(0, 0), (1, 64)] {
             st[at + j] = st[at + j].xor(gather(|l| (values[l] >> shift) as u64));
         }
-        permute_rows(&mut st, true);
+        permute_first_row(&mut st);
         let (lo, hi) = (scatter(st[0]), scatter(st[1]));
         for (l, out) in out.iter_mut().enumerate() {
             *out = u128::from(lo[l]) | u128::from(hi[l]) << 64;
