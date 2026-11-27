@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.B1.Gkr.LayerTail
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.KernelLit
 
 /-!
 # The root-most layer
@@ -52,13 +53,13 @@ noncomputable def rtTwo : List Stmt := Stmt.renameList rtUn (core% «verify_bus_
 /-- The radix-four root layer, the `ite`'s then arm, renumbered (`rtUn`). -/
 noncomputable def rtFour : List Stmt := Stmt.renameList rtUn (core% «verify_bus_gkr» s388_t)
 
+open LeanVM.Guest.KernelLit in
 /-- The else arm is `rtTwo` in the body's numbering. -/
-theorem rtTwo_eq : (core% «verify_bus_gkr» s388_e) = Stmt.renameList rtSh rtTwo :=
-  tbStmtsEqb_sound (by decide +kernel)
+kernel_rfl rtTwo_eq : (core% «verify_bus_gkr» s388_e) = Stmt.renameList rtSh rtTwo
 
+open LeanVM.Guest.KernelLit in
 /-- The then arm is `rtFour` in the body's numbering. -/
-theorem rtFour_eq : (core% «verify_bus_gkr» s388_t) = Stmt.renameList rtSh rtFour :=
-  tbStmtsEqb_sound (by decide +kernel)
+kernel_rfl rtFour_eq : (core% «verify_bus_gkr» s388_t) = Stmt.renameList rtSh rtFour
 
 theorem rtTwo_noRet : Stmt.noRetList rtTwo = true := by decide +kernel
 
