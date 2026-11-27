@@ -2,7 +2,6 @@ module
 
 public import LeanVM.Guest.CoreMode.FrameFact
 public import LeanVM.Guest.Local.Hop
-import all LeanVM.Guest.Local.Layout
 
 /-!
 # The local frame check's invariant

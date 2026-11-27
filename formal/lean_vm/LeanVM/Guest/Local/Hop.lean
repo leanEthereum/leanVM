@@ -1,7 +1,6 @@
 module
 
 public import LeanVM.Guest.Local.Layout
-import all LeanVM.Guest.Local.Layout
 
 /-!
 # A jump is a hop of the layout

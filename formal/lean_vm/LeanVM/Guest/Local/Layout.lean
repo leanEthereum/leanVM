@@ -579,18 +579,18 @@ end Facts
 /-! ## The soundness reading -/
 
 /-- The last element of `a :: t`. -/
-def lastOf : ℕ → List ℕ → ℕ
+@[expose] def lastOf : ℕ → List ℕ → ℕ
   | a, [] => a
   | _, v :: t => lastOf v t
 
 /-- Each consecutive pair of `a :: t` satisfies `P`. -/
-def Hops (P : ℕ → ℕ → Prop) : ℕ → List ℕ → Prop
+@[expose] def Hops (P : ℕ → ℕ → Prop) : ℕ → List ℕ → Prop
   | _, [] => True
   | a, v :: t => P a v ∧ Hops P v t
 
 /-- A hop of a run of the machine within the function: forward, and every offset it skips in a
 block whose range holds neither of its ends (an arm the branch or the join jumps over). -/
-def Hop (L : Layout) (u v : ℕ) : Prop :=
+@[expose] def Hop (L : Layout) (u v : ℕ) : Prop :=
   u < v ∧ ∀ y r, u < y → y < v → L.InRun r y → ¬ L.InRange (L.run r).b u ∧ ¬ L.InRange (L.run r).b v
 
 theorem lastOf_ge {L : Layout} : ∀ (a : ℕ) (t : List ℕ), Hops (Hop L) a t → a ≤ lastOf a t
