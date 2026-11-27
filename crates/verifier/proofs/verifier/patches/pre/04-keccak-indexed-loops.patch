@@ -1,3 +1,25 @@
+Gap: `hash.rs`'s loops over `as_chunks`, `as_chunks_mut` and `iter_mut().zip(..)` (`keccak_f`, `xor_block`, `keccak_hash`, `Digest::words`, `Digest::from_halves`) - the hax Lean library has no `as_chunks`, no `as_chunks_mut` and no `Iterator` for `IterMut`, so Lean rejects the translation
+The verifier's own Keccak, by index.
+`keccak_f`: the column parities `c` and θ's `d` are filled by loops over `x < 5`, where the source
+has `array::from_fn`; θ is `a[i] ^= d[i % 5]` over the 25 lanes, where it went row by row; χ is
+`a[i] = b[i] ^ (!b[row + (x + 1) % 5] & b[row + (x + 2) % 5])` with `x = i % 5` and `row = i - x`,
+the same lanes of row `i / 5`. ρ, π and ι are untouched.
+`xor_block`: lane `i` takes bytes `8i..8i + 8` of the block, little endian, for `i < RATE / 8`,
+where the zip stopped.
+`keccak_hash`: block `k` is `data[k * RATE..(k + 1) * RATE]` for `k < data.len() / RATE` and the
+tail is the rest, which is `as_chunks::<RATE>()`; the digest is lanes 0 to 3, little endian.
+`Digest::words` and `Digest::from_halves`: word `i` is bytes `8i..8i + 8`.
+Checked against the tool for `keccak_hash`'s digest, `words` and `from_halves`; the hunks of
+`keccak_f` and `xor_block` no longer come out alone, patch 05 having changed `xor_block` again.
+Tests: hash::tests::matches_reference_vectors, `keccak_hash` against known digests, which goes
+through `keccak_f` and `xor_block` (no direct test of either, nor of `words` or `from_halves`);
+`-p stable_lean_vm_core --test verifiers`.
+mutation: `keccak_f`'s θ column shifted (`d[(i + 1) % 5]`) -> both fail; χ's row offset dropped ->
+both fail; `xor_block` skipping lane 0 -> both fail; `keccak_hash` one block short -> both fail;
+its digest from lanes 1 to 4 -> both fail; `Digest::words` big endian -> the real-proof suite
+fails, NOT caught by `cargo test -p verifier`; `Digest::from_halves` with its words reversed ->
+the same: caught by the real-proof suite only.
+
 diff --git a/crates/verifier/src/hash.rs b/crates/verifier/src/hash.rs
 index ede515873..4733cfadc 100644
 --- a/crates/verifier/src/hash.rs

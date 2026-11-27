@@ -1,3 +1,12 @@
+Gap: `eq_kernel`'s loop over `split_at_mut` halves, `low.iter_mut().zip(high)` - Aeneas hits an internal error on the loop and the extraction fails
+The two halves are indexed in the one vector. Round `k` has `half = 1 << k`, which is `low.len()`,
+and for `i < half` it writes `h = scale.mul(out[i])` to `out[i + half]`, the entry of `high` the
+zip paired with `out[i]`, then adds `h` to `out[i]`: the split's reads and writes, in its order.
+Tests: bytecode::tests::evaluate_matches_the_fold, where `Bytecode::evaluate` goes through
+`eq_kernel` and is compared with `multilinear_eval` (no test of `eq_kernel` alone);
+`-p stable_lean_vm_core --test verifiers`.
+mutation: the inner loop from 1 (`1..half`) -> both fail.
+
 diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
 index 80b788826..819f35e92 100644
 --- a/crates/verifier/src/multilinear.rs

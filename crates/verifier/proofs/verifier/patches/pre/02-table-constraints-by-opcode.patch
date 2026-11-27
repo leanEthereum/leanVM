@@ -1,3 +1,15 @@
+Gap: `Table`'s field `constraints: fn(&[E]) -> Vec<E>` - Aeneas has no function pointers ("Arrow types are not supported yet"), on the type and on everything that holds one
+The field becomes a method, `Table::constraints`, that picks by `opcode`: `jump_constraints` for
+`OP_JUMP`, no constraint for any other. That is the field's value in every `Table` there is:
+`tables()` is the only place one is built, it gave `jump_constraints` to the `OP_JUMP` table and
+`|_| vec![]` to the five others, and the opcodes are distinct. The two call sites,
+`table_sumcheck` and `n_constraints`, call the method. A `Table` built elsewhere with another
+function would no longer be expressible; none is.
+Tests: no test calls `Table::constraints` directly; `-p stable_lean_vm_core --test verifiers`
+verifies real proofs through `table_sumcheck`.
+mutation: the opcode test flipped (`!=`) -> the real-proof suite fails. NOT caught by
+`cargo test -p verifier`.
+
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
 index d53d67389..1de9fbb69 100644
 --- a/crates/verifier/src/bus.rs

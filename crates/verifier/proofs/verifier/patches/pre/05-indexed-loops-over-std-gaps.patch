@@ -1,3 +1,42 @@
+Gap: standard-library items with no model, one loop or expression each: `Vec` by value in a `zip`, `as_chunks_mut`, `<[_]>::concat`, `Option` as an iterator (`flatten`), `sort_by_key`, `iter_mut()`, `for .. in &mut vec`, `1..=n`, an array repeat of a tuple, `try_into` to an array reference - Lean rejects each translation (unknown constant, or a type mismatch), and Aeneas fails on the last
+Each is rewritten to what the library has. By item, with what the tool said of the source's form:
+`bus_layout`: `.zip(offsets)` is `.zip(offsets.iter())` with the index copied out (Lean: the
+`Vec`'s `IntoIterator` does not fit).
+`Scaled`'s tables: the nested `as_chunks_mut` become an offset, table `limb * WINDOWS_PER_LIMB +
+window` at `<< WINDOW`, the same entries in the same order (no `as_chunks_mut`).
+`xor_block` takes `&[u8]`, and `keccak_hash` passes it the block's slice, of `RATE` bytes as
+before, without `try_into().unwrap()` (Aeneas: internal error on the `unwrap`).
+`Flushes::counted`, `Flushes::bytecode`, `Placement::stack_point`: `[a, b, ..].concat()` is a
+`to_vec` then `push` and `extend_from_slice`, in the same order (no `concat`).
+`layout_limb`: `Form::sum` over the three `Option`s flattened is the zero form plus each term that
+is there, in the same order; `Form::sum` is that fold (no `IntoIterator` for `Option`).
+`stack_offsets`: `sort_by_key(|&i| (Reverse(sizes[i]), i))` is an insertion sort: each index, in
+order, goes after every block that is not smaller, so larger blocks come first and equal ones stay
+in index order (no `sort_by_key`).
+`ring_weight`: the zip of `frobenius.iter_mut()` with `r_prime` goes by index, up to
+`frobenius.len()`; the function asserts `r.len() == r_prime.len()` first (no `Iterator` for
+`IterMut`).
+`Sponge`'s `pending`: `[(ZERO, 0); RATE_SCALARS]` is written out, four entries; the type checks
+the count (Lean: type mismatch on the repeat).
+`subspace_roots`: `1..=log_n` is `1..log_n + 1`, and `for value in &mut layer` goes by index (no
+`Iterator` for `RangeInclusive`, none for `&mut Vec`).
+Tests: multilinear::tests::stack_offsets_by_insertion_matches_the_sort, added here, against the
+sort copied from the source: no block, one, sizes in each order, and ties. For the others, no
+direct test: field::tests::extension_field_matches_reference and
+bytecode::tests::evaluate_matches_the_fold reach `Scaled`'s tables,
+whir::tests::novel_basis_matches_the_vanishing_products reaches `subspace_roots`, and
+`-p stable_lean_vm_core --test verifiers` verifies real proofs through all of them.
+mutation: `stack_offsets` with ties by later index (`<=`) -> NOT caught, by `cargo test -p
+verifier` or by the real-proof suite: the prover lays its blocks out with `stack_offsets` too, so
+the two sides agree on any order. Hence the direct test, which fails on it.
+`Scaled`'s table offset `(limb + window) << WINDOW` -> both suites fail; `subspace_roots` skipping
+the layer's first value -> both fail. Caught by the real-proof suite, NOT by `cargo test -p
+verifier`: `bus_layout`'s index `+ 1`; `counted`'s counter after its suffix; `bytecode`'s opcode
+after its operands; `layout_limb` without its `prod(flag, a, 0)` term; `stack_point` with the
+selector first; `ring_weight` skipping its first variable.
+Not mutated: `xor_block`'s parameter type, `pending` and `1..log_n + 1`, which have nothing to
+break that still compiles and differs.
+
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
 index 1de9fbb69..051bd42af 100644
 --- a/crates/verifier/src/bus.rs
@@ -107,7 +146,7 @@ index 3784f2555..15bad417a 100644
  
  fn flushes_keccak() -> Flushes {
 diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
-index 9d408a523..80b788826 100644
+index 9d408a523..9e8966f15 100644
 --- a/crates/verifier/src/multilinear.rs
 +++ b/crates/verifier/src/multilinear.rs
 @@ -121,7 +121,9 @@ pub struct Placement {
@@ -139,6 +178,48 @@ index 9d408a523..80b788826 100644
      let mut offsets = vec![0; sizes.len()];
      let mut total = 0;
      for index in order {
+@@ -147,3 +156,41 @@ pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
+ fn selector_point(selector: u64, length: usize) -> Vec<E> {
+     (0..length).map(|bit| E::new(selector >> bit & 1, 0)).collect()
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// `stack_offsets` as the source has it: the order from the library's sort.
++    fn stack_offsets_by_sort(sizes: &[usize]) -> (Vec<u64>, usize) {
++        let mut order: Vec<usize> = (0..sizes.len()).collect();
++        order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
++        let mut offsets = vec![0; sizes.len()];
++        let mut total = 0;
++        for index in order {
++            offsets[index] = total;
++            total += 1 << sizes[index];
++        }
++        (offsets, log2_ceil(total))
++    }
++
++    /// `stack_offsets` by insertion against the sort it replaces: no block, one, sizes in each order, and ties, which
++    /// go by index.
++    #[test]
++    fn stack_offsets_by_insertion_matches_the_sort() {
++        let cases: [&[usize]; 9] = [
++            &[],
++            &[5],
++            &[1, 2, 3, 4],
++            &[4, 3, 2, 1],
++            &[3, 3, 3],
++            &[2, 7, 2, 7, 0, 2],
++            &[0, 0, 1, 0, 1, 1, 0],
++            &[6, 1, 6, 4, 1, 4, 6, 0],
++            &[10, 3, 10, 12, 3, 3, 12, 0, 5],
++        ];
++        for sizes in cases {
++            assert_eq!(stack_offsets(sizes), stack_offsets_by_sort(sizes), "{sizes:?}");
++        }
++    }
++}
 diff --git a/crates/verifier/src/ring_switch.rs b/crates/verifier/src/ring_switch.rs
 index 9ba09d9ef..a002bd678 100644
 --- a/crates/verifier/src/ring_switch.rs

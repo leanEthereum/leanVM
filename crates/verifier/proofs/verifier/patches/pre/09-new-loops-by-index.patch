@@ -1,3 +1,12 @@
+Gap: `Subspace::at`'s `for (&root, &inverse) in self.roots.iter().zip(&self.inverses)` - Aeneas stops on the function (`[Error] Unimplemented`) and the extraction fails
+The loop goes by index, up to `self.roots.len()`. The fields are private and `Subspace::new`, the
+only constructor, gives `inverses` one entry per root, so the zip ran that far too.
+Tests: whir::tests::novel_basis_matches_the_vanishing_products, which compares `at`'s values
+with the vanishing polynomials multiplied out; whir::tests::times_x_is_multiplication_by_x and
+whir::tests::affine_row_fold_and_high_correction, which go through `at`;
+`-p stable_lean_vm_core --test verifiers`.
+mutation: the inverses taken in reverse -> the three and the real-proof suite fail.
+
 diff --git a/crates/verifier/src/whir.rs b/crates/verifier/src/whir.rs
 index 48cbbde0c..6516836c1 100644
 --- a/crates/verifier/src/whir.rs

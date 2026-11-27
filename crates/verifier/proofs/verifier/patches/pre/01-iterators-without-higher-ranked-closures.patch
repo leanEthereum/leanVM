@@ -1,3 +1,24 @@
+Gap: `Iterator::copied`, `filter` and `find` in functions that are translated (`bus_block_sizes`, `instance_weights`, `Table::count_columns`, `qkeccak_slot`) - their signatures crash Aeneas on the whole `Iterator` trait, so the scenario excludes them, and a body that calls one is lost
+With the three excluded: `bus_block_sizes` and `qkeccak_slot` hit an Aeneas internal error and
+their bodies are ignored; `instance_weights` is translated, but to a shift by a reference
+(`e >> b`, `b` the `&usize` `filter` hands its closure) that Lean has no model of.
+`bus_block_sizes`: the framework's sizes, then each block's `log_rows`, pushed in order: what
+`copied().chain(..).collect()` gave.
+`instance_weights`: `filter(bit set).map(powers[b])` summed is `map(bit set ? powers[b] : ZERO)`
+summed: the terms left out are zeros.
+`Table::count_columns`: returns the `Vec` of the indices the `filter` kept, in order, and
+`table_bus_blocks`, its one caller, iterates that.
+`qkeccak_slot`: on `0..QKECCAK_SPARE`, which starts at 0, `position` is `find`: the index is the
+element.
+Tests: no test calls these directly, and `cargo test -p verifier` does not tell a wrong one
+apart. `-p stable_lean_vm_core --test verifiers` (verifies_at_every_rate,
+tampers_fail_their_check, replay_reads_the_summary_unchecked) verifies real proofs through all
+four.
+mutation: `bus_block_sizes` pushing `log_rows + 1` -> the real-proof suite fails;
+`instance_weights`' bit test flipped -> it fails; `count_columns` in reverse order -> it fails;
+`qkeccak_slot` matching `local + 1` -> it fails. NOT caught by `cargo test -p verifier`, any of
+the four.
+
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
 index 849df1074..d53d67389 100644
 --- a/crates/verifier/src/bus.rs

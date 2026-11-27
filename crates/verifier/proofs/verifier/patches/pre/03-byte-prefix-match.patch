@@ -1,3 +1,11 @@
+Gap: `str::starts_with("cnt")` in `Table::count_columns` - Aeneas stops in `core::str::pattern` (`[Error] Unimplemented`), and the extraction fails
+The column's name is matched as bytes: `as_bytes().starts_with(b"cnt")`. A `str` starts with an
+ASCII prefix exactly when its UTF-8 bytes start with the prefix's bytes. On top of patch 01,
+which made `count_columns` a loop.
+Tests: no test calls `count_columns` directly. layout::tests::stack_offsets_fit_at_size_limits
+builds the layout through it; `-p stable_lean_vm_core --test verifiers`.
+mutation: the prefix `b"cnx"`, so that no column counts -> both fail.
+
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
 index 1037c18ef..3784f2555 100644
 --- a/crates/verifier/src/layout.rs
