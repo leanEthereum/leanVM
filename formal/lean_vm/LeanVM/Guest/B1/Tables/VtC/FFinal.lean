@@ -53,7 +53,7 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ) {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {t : ℕ} (ht : t < 6) :
+    (hW : ReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
         [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@3"))) (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5")))
         (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1.getD t []).map
@@ -102,11 +102,11 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ)
-    (hz1 : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hz1 : ReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
     (hxi : σ (.n (val% «verify_tables» "zc_xi_pows[0]")) = 1 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[1]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ∧ σ (.n (val% «verify_tables» "zc_xi_pows[2]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 ∧
       σ (.n (val% «verify_tables» "zc_xi_pows[3]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 ∧ σ (.n (val% «verify_tables» "zc_xi_pows[4]")) = σ (.n (val% «verify_tables» "nxt[0]@3")) ^ 4)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
+    (hW : ReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
     (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
     (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod"))) j (pts.take j).prod)
@@ -167,7 +167,7 @@ theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     w0, w1, w2, w3, w4, w5, n0, n1, n2, n3, n4, n5, (vt_constraints _).1, (vt_constraints _).2.1,
     (vt_constraints _).2.2.1, (vt_constraints _).2.2.2.1, (vt_constraints _).2.2.2.2.1,
     (vt_constraints _).2.2.2.2.2, jumpConstraints_eq]
-  rw [vt_air_totalF hV, v0, v1, v2, v3, v4, v5, xp0, xp1, xp2, xp3, xp4, tb_word_one]
+  rw [vt_air_totalF hV, v0, v1, v2, v3, v4, v5, xp0, xp1, xp2, xp3, xp4, word_one]
   simp only [powers, powersFrom, dot, List.take, List.drop, List.zipWith_cons_cons,
     List.zipWith_nil_right, List.foldl_cons, List.foldl_nil]
   ring

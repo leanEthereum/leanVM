@@ -64,7 +64,7 @@ theorem straight_of_atoms {ss : List Stmt} (h : ∀ s ∈ ss, ∃ a, s = .atom a
 /-- **The children** read at `τ 80·g^off` and absorbed four at a permutation over `cap`. -/
 theorem glct_kids {off : ℕ} (hG : ∀ s ∈ glKids off, GoodS rd [] w τ s) {cap : List E}
     (hcap : (glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")).map τ = cap) {ch : List E} (hch : ch.length = 12)
-    (hr : TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) ch) :
+    (hr : ReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) ch) :
     Stmt.HoldsList C rd τ (glKids off) True kret ∧
       (∀ i < 12, τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i)) = ch.getD i 0 ∧ τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i + 3)) = τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i)) ∧
         FsPackOk τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") i)) (chB (val% «gkr_layer__L0_L0» "x@9") i + 1) dsObserve) ∧
@@ -77,7 +77,7 @@ theorem glct_kids {off : ℕ} (hG : ∀ s ∈ glKids off, GoodS rd [] w τ s) {c
     have gb : ∀ s ∈ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") i, GoodS rd [] w τ s := fun s hs ↦ hG s (glKids_chT hi hs)
     have hl : LoadHolds rd (τ (.n (val% «gkr_layer__L0_L0» "tcur"))) (off + i) (ch.getD i 0) := by
       have := hr i (by rw [hch]; exact hi)
-      rw [← List.getD_eq_getElem _ 0, tb_loadHolds_mul_gen_pow] at this
+      rw [← List.getD_eq_getElem _ 0, loadHolds_mul_gen_pow] at this
       exact this
     obtain ⟨e0, -, hfs⟩ := fsNextT_good (C := C) (kret := kret) (S := [])
       (fun s hs ↦ gb s (by unfold chT; exact List.mem_append_left _ hs)) (by simp) hl
@@ -148,7 +148,7 @@ theorem glct_check (hG : ∀ s ∈ glCheck, GoodS rd [] w τ s)
   have a248 : τ (.n (val% «gkr_layer__L0_L0» "combined@3")) = τ (.n (val% «gkr_layer__L0_L0» "product@9")) + τ (.n (val% «gkr_layer__L0_L0» "combined@3~0")) :=
     g (.add (.n (val% «gkr_layer__L0_L0» "combined@3")) (.n (val% «gkr_layer__L0_L0» "product@9")) (.n (val% «gkr_layer__L0_L0» "combined@3~0"))) (by simp [glCheck])
   have e248 : τ (.n (val% «gkr_layer__L0_L0» "combined@3")) = τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) := by
-    rw [hcl, a248, m247, a243, m242, a238, m237, c236, tb_word_zero, m235, m234, m233, m241, m240,
+    rw [hcl, a248, m247, a243, m242, a238, m237, c236, word_zero, m235, m234, m233, m241, m240,
       m239, m246, m245, m244, chWords_eq, chWords_eq, chWords_eq,
       show τ (.n (val% «gkr_layer__L0_L0» "evals[0]")) = τ (.n (val% «gkr_layer__L0_L0» "x@9")) from cp 0 (by omega), show τ (.n (val% «gkr_layer__L0_L0» "evals[1]")) = τ (.n (val% «gkr_layer__L0_L0» "x@10")) from cp 1 (by omega),
       show τ (.n (val% «gkr_layer__L0_L0» "evals[2]")) = τ (.n (val% «gkr_layer__L0_L0» "x@11")) from cp 2 (by omega), show τ (.n (val% «gkr_layer__L0_L0» "evals[3]")) = τ (.n (val% «gkr_layer__L0_L0» "x@12")) from cp 3 (by omega),
@@ -307,11 +307,11 @@ theorem glct_next {cw : ℕ} (hcw : cw < 64)
     exact ⟨s20 0 (by omega), s20 1 (by omega), s20 2 (by omega), s20 3 (by omega), s20 4 (by omega)⟩
   · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨c277, m278, ?_⟩
-    rw [m278, c277, tb_word_two_pow hcw]; exact s25
+    rw [m278, c277, word_two_pow hcw]; exact s25
   · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨c305, m306, m307, m308, m309, m310, m311, ?_⟩
     rw [show τ (.n (val% «gkr_layer__L0_L0» "s44#6")) = τ (.n (val% «gkr_layer__L0_L0» "round_pos")) * (τ (.n (val% «gkr_layer__L0_L0» "x_m")) * gen) ^ 7 by
-      rw [m311, m310, m309, m308, m307, m306, c305, tb_word_gen]; ring]
+      rw [m311, m310, m309, m308, m307, m306, c305, word_gen]; ring]
     exact s29
 
 end

@@ -167,14 +167,14 @@ theorem rank0_ok (hlow : LowDefB 14 rd) {v R s gi : ℕ} (hv : 37 ≤ v)
   have m10 : σ (.n (v + 10)) = σ (.n (val% «verify_tables» "group_base")) * gen ^ gi := by rw [g9, ev]
   have m11 : σ (.n (v + 11)) = σ (.n (val% «verify_tables» "group_size")) * gen ^ gi := by rw [g11, ev]
   obtain ⟨e12, l12⟩ := read_of (g12.resolve_left s12) (by rw [m11]; exact hsz)
-  refine ⟨?_, ev, e8, e12, by rw [g8, tb_word_one]⟩
+  refine ⟨?_, ev, e8, e12, by rw [g8, word_one]⟩
   simp only [vtRank0T, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
     implies_true, and_true, vsh_atom]
   refine ⟨l0, g1, hrc, g3, g4, ?_, g6, l8, g8, g9, ?_, g11, l12⟩
   · show LoadHolds rd _ _ _
     rw [m6, g3]; exact hside
   · show LoadHolds rd _ _ _
-    rw [m10, g8, tb_word_one]; exact hbase
+    rw [m10, g8, word_one]; exact hbase
 
 /-- **A later rank, honestly**: the previous rank's key `g^(d+1)` times this one's. -/
 theorem rank_ok (hlow : LowDefB 14 rd) {v R s pk gin gi d : ℕ} (hv : 37 ≤ v) (hpk : pk < v)
@@ -290,9 +290,9 @@ local notation "σv" => vtσ rd w args
 rank's statements hold and give `VtRankFacts`, the running offset the prefix sum. -/
 theorem side_ok (hl : args.length = 21) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : ℕ}
     (hv : 37 ≤ v0) (hm : 1 ≤ m)
-    (h0 : tbStmtsEqb (vtRank0T v0 R0 s) ((vtAt p0).take (vtRank0T v0 R0 s).length) = true)
+    (h0 : stmtsEqb (vtRank0T v0 R0 s) ((vtAt p0).take (vtRank0T v0 R0 s).length) = true)
     (hr : ∀ r < m, 1 ≤ r →
-      tbStmtsEqb (vtRankAt v0 R0 s r) ((vtAt (vtRp p0 r)).take (vtRankAt v0 R0 s r).length) = true)
+      stmtsEqb (vtRankAt v0 R0 s r) ((vtAt (vtRp p0 r)).take (vtRankAt v0 R0 s r).length) = true)
     (hS0 : ∀ a ∈ [Atom.load (.n v0) (.n (val% «verify_tables» "group_order")) R0, .load (.n (v0 + 8)) (.n (v0 + 7)) 0,
       .load (.n (v0 + 12)) (.n (v0 + 11)) 0], a ∉ vtSL)
     (hS : ∀ r < m, 1 ≤ r → ∀ a ∈ [Atom.load (.n (vtRv v0 r)) (.n (val% «verify_tables» "group_order")) (R0 + r),
@@ -367,7 +367,7 @@ theorem side_ok (hl : args.length = 21) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : �
     induction k with
     | zero =>
       intro _ st hst
-      have e := tbStmtsEqb_sound (vtPre_drop p0 ▸ h0)
+      have e := stmtsEqb_sound (vtPre_drop p0 ▸ h0)
       rw [vtRank0T_length] at e
       have := (P 0 (by omega)).1
       simp only [↓reduceIte] at this
@@ -377,7 +377,7 @@ theorem side_ok (hl : args.length = 21) (hlow : LowDefB 14 rd) {v0 p0 R0 s m : �
       rw [show 13 + 18 * (k + 1) = (13 + 18 * k) + 18 by ring] at hst
       refine forall_slice_join (ih (by omega)) ?_ st hst
       intro st' hst'
-      have e := tbStmtsEqb_sound (vtPre_drop _ ▸ hr (k + 1) (by omega) (by omega))
+      have e := stmtsEqb_sound (vtPre_drop _ ▸ hr (k + 1) (by omega) (by omega))
       rw [vtRankAt_length, show vtRp p0 (k + 1) = p0 + (13 + 18 * k) by simp [vtRp]; omega] at e
       have := (P (k + 1) (by omega)).1
       simp only [show k + 1 ≠ 0 by omega, ↓reduceIte] at this

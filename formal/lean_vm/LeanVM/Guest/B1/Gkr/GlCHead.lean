@@ -68,7 +68,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     rw [m15, m14, m13, m12, m11, e10, e0, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
   have ld : ∀ k v, LoadHolds rd layers (10 * L + k) v → LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k v := by
-    intro k v h; rw [e15, tb_loadHolds_mul_gen_pow]; exact h
+    intro k v h; rw [e15, loadHolds_mul_gen_pow]; exact h
   have key : ∀ k ∈ glPreKeys, some k ∉ S.map loadKey := hk
   have r16 : ∀ k < 5, σ (.n ((valf% «gkr_layer» "sp[0]@1") + k)) = s.cap.getD k 0 ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k (σ (.n ((valf% «gkr_layer» "sp[0]@1") + k))) := fun k hk' ↦
@@ -82,7 +82,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   have c24 : σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) = word 0 0 := g (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) (word 0 0)) (by simp [glPre])
   have c25 : σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) = word 0 0 := g (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) (word 0 0)) (by simp [glPre])
   have c26 : σ (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) = word 0 0 := g (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) (word 0 0)) (by simp [glPre])
-  rw [tb_word_zero] at c23 c24 c25 c26
+  rw [word_zero] at c23 c24 c25 c26
   -- the combiner's permutation
   have hcapE : ((List.range 5).map fun k ↦ V.n ((valf% «gkr_layer» "sp[0]@1") + k)).map σ = s.cap := by
     rw [tb_eq_map_getD hcl, List.map_map]
@@ -129,7 +129,7 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
   have m57 := good_mul (g (.mul (.n (valf% «gkr_layer» "claim@2~0")) (.n (valf% «gkr_layer» "nxt[0]@1")) (.n (valf% «gkr_layer» "claim@1"))) (by simp [glPre])) (by omega) (by omega)
   have a58 : σ (.n (valf% «gkr_layer» "claim@2")) = σ (.n (valf% «gkr_layer» "layer_vals[0]")) + σ (.n (valf% «gkr_layer» "claim@2~0")) := g (.add (.n (valf% «gkr_layer» "claim@2")) (.n (valf% «gkr_layer» "layer_vals[0]")) (.n (valf% «gkr_layer» "claim@2~0"))) (by simp [glPre])
   have e53 : σ (.n (valf% «gkr_layer» "point_row")) = pts * gen ^ (40 * (j + 1)) := by
-    rw [m53, m52, m51, m50, m49, m48, m47, m46, c45, tb_word_gen, e4, e2, ← pow_succ]
+    rw [m53, m52, m51, m50, m49, m48, m47, m46, c45, word_gen, e4, e2, ← pow_succ]
     ring
   have e54 : σ (.n (valf% «gkr_layer» "head")) = rounds * pos := by rw [m54, e1, e44]
   have e58 : σ (.n (valf% «gkr_layer» "claim@2")) = polyEval st.values s.squeeze.1 := by
@@ -145,8 +145,8 @@ theorem glc_pre (hG : ∀ s ∈ glPre, GoodS rd S w σ s)
     and_true, SHolds, Atom.Holds]
   exact ⟨m9, m10, m11, m12, m13, m14, m15, (r16 0 (by omega)).2, (r16 1 (by omega)).2,
     (r16 2 (by omega)).2, (r16 3 (by omega)).2, (r16 4 (by omega)).2, l21, c22,
-    by rw [c23, tb_word_zero], by rw [c24, tb_word_zero], by rw [c25, tb_word_zero],
-    by rw [c26, tb_word_zero], k27, l41, l42, l43, l44, c45, m46, m47, m48, m49, m50, m51,
+    by rw [c23, word_zero], by rw [c24, word_zero], by rw [c25, word_zero],
+    by rw [c26, word_zero], k27, l41, l42, l43, l44, c45, m46, m47, m48, m49, m50, m51,
     m52, m53, m54, m55, a56, m57, a58⟩
 
 end

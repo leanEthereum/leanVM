@@ -45,17 +45,17 @@ def okP : Atom → Bool
 
 /-- **The kept atoms of `vtPre` hold.** -/
 def VtP (rd : Reader) (σ : Val) : Prop :=
-  ∀ (n : ℕ) (a : Atom), tbStmtsEqb [.atom a] ((vtPre.drop n).take 1) = true → okP a = true →
+  ∀ (n : ℕ) (a : Atom), stmtsEqb [.atom a] ((vtPre.drop n).take 1) = true → okP a = true →
     a.Holds rd σ
 
 theorem VtP.atom {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtPre.drop n).take 1) = true) (hok : okP a = true := by decide) :
+    (heq : stmtsEqb [.atom a] ((vtPre.drop n).take 1) = true) (hok : okP a = true := by decide) :
     a.Holds rd σ :=
   h n a heq hok
 
 /-- `VtP.atom` at `vtAt`, what a kernel check evaluates fast. -/
 theorem VtP.atomAt {rd : Reader} {σ : Val} (h : VtP rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true) (hok : okP a = true := by decide) :
+    (heq : stmtsEqb [.atom a] ((vtAt n).take 1) = true) (hok : okP a = true := by decide) :
     a.Holds rd σ :=
   h n a (vtPre_drop n ▸ heq) hok
 
@@ -69,7 +69,7 @@ variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The honest valuation satisfies `VtP`.** -/
 theorem vtP_honest (hl : args.length = 21) {W : List E} (hW16 : 16 ≤ W.length)
-    (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) : VtP rd (vtσ rd w args) := by
+    (hW : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) W) : VtP rd (vtσ rd w args) := by
   intro n a heq hok
   have hs : Stmt.atom a ∈ vtPre := vt_mem_slice (blk := [_]) heq List.mem_cons_self
   have hg := vt_goodS (rd := rd) (w := w) hl hs
@@ -118,7 +118,7 @@ theorem vtB_retsM (hl : args.length = 21) {x : V} {fs : List String} {args' rets
 
 /-- **A block's statements hold** when those evaluation alone does not settle do. -/
 theorem vtB_blockA (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true)
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true)
     (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   intro s hs

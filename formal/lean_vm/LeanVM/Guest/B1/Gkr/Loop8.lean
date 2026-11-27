@@ -40,7 +40,7 @@ def l8Body : List Stmt :=
 
 noncomputable def l8Check : Bool :=
   match coreProgram.find? name% «verify_bus_gkr_loop0» with
-  | some fn => decide (fn.params = [.n (val% «verify_bus_gkr_loop0» "xt"), .n (val% «verify_bus_gkr_loop0» "bound"), .n (val% «verify_bus_gkr_loop0» "zeta"), .n (val% «verify_bus_gkr_loop0» "final_point_row")]) && tbStmtsEqb fn.body l8Body
+  | some fn => decide (fn.params = [.n (val% «verify_bus_gkr_loop0» "xt"), .n (val% «verify_bus_gkr_loop0» "bound"), .n (val% «verify_bus_gkr_loop0» "zeta"), .n (val% «verify_bus_gkr_loop0» "final_point_row")]) && stmtsEqb fn.body l8Body
   | none => false
 
 theorem l8Check_eq : l8Check = true := by decide +kernel
@@ -52,7 +52,7 @@ theorem l8Found : ∃ fn : Fn, coreProgram.find? name% «verify_bus_gkr_loop0» 
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- **An iteration of `verify_bus_gkr_loop0`**: the word at `row·x` is the one at `zeta·x`. -/
@@ -65,12 +65,12 @@ theorem l8_step {rd : Reader} {N zeta row : E} (d : ℕ) (x : E)
   rw [B1.relN_succ_iff_fnSem (coreProgram_find?_at (j := idx% «verify_bus_gkr_loop0») rfl)]
   vc [B1.word_gen]
   rintro ⟨w, hr, hz, -, hc, -⟩
-  exact ⟨fun w' hw => tb_loadHolds_unique hr hw ▸ hz, hc⟩
+  exact ⟨fun w' hw => loadHolds_unique hr hw ▸ hz, hc⟩
 
 /-- **`verify_bus_gkr_loop0` from `1` below `g^m`**: the point at `row` is at `zeta`. -/
 theorem l8_loop {rd : Reader} {N zeta row : E} {m : ℕ} (hN : N = gen ^ m) (hm : 0 < m)
     (hmb : m < 2 ^ 62) (h : coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, N, zeta, row] [])
-    {pt : List E} (hl : pt.length = m) (hpt : TbReadsAt rd row pt) : TbReadsAt rd zeta pt := by
+    {pt : List E} (hl : pt.length = m) (hpt : ReadsAt rd row pt) : ReadsAt rd zeta pt := by
   rw [← pow_zero gen] at h
   obtain ⟨m', -, hN', hall⟩ := tb_loop_sound (B := fun x ↦ ∀ w, LoadHolds rd (row * x) 0 w →
     LoadHolds rd (zeta * x) 0 w) (fun d x hx => l8_step d x hx) 0 h
@@ -80,8 +80,8 @@ theorem l8_loop {rd : Reader} {N zeta row : E} {m : ℕ} (hN : N = gen ^ m) (hm 
     omega
   intro k hk
   have := hall k (by omega) (by omega) pt[k]
-    (by rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hpt k hk)
-  rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at this
+    (by rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hpt k hk)
+  rw [loadHolds_mul_gen_pow, Nat.add_zero] at this
   exact this
 
 end

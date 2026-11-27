@@ -109,7 +109,7 @@ def TermPre (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Col
       bus.point.length ≤ 40 ∧ layout.tableLogHeights.length = 6 ∧
       (∀ h ∈ layout.tableLogHeights, h < 33) ∧
       glm = gen ^ layout.logMemory ∧ gtau = gen ^ τ ∧
-      Tables.TbReadsAt rd kb (1 :: gen ^ layout.logMemory :: layout.tableLogHeights.map (gen ^ ·)) ∧
+      LeanVM.Guest.B1.ReadsAt rd kb (1 :: gen ^ layout.logMemory :: layout.tableLogHeights.map (gen ^ ·)) ∧
       Tables.GTabsAt rd (gsq * gen ^ 34) ∧ lamCl = lam ∧
       out.column = qkeccak ∧ out.point.length = τ + qkeccakSlotBits ∧ ReadsAt rd zv out.point ∧
       ringPoint.length = τ + qkeccakSlotBits ∧ ReadsAt rd (zv * gen ^ qkeccakVarsCap) ringPoint ∧

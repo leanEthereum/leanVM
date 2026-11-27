@@ -36,7 +36,7 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
     (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod"))) j (pts.take j).prod)
     (hpe : EqPrefix rd (σ (.n (val% «verify_tables» "zc_peq"))) 1 (σ (.n (val% «verify_tables» "chi"))) (σ (.n (val% «verify_tables» "zeta1"))) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0))
-    (hz1 : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n)
+    (hz1 : ReadsAt rd (σ (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·))) (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n)
     {heights : List ℕ} {t : ℕ} (ht : t < heights.length) (hh : heights.getD t 0 ≤ n)
     {x τv cp pe : E} (hx : σ (.n (val% «verify_tables» "g_zc_n")) = x * τv) (hτv : τv = gen ^ heights.getD t 0)
     (hcpL : LoadHolds rd (σ (.n (val% «verify_tables» "zc_cprod")) * x) 0 cp) (hpeL : LoadHolds rd (σ (.n (val% «verify_tables» "zc_peq")) * τv) 0 pe) :
@@ -46,11 +46,11 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
     have e : x * gen ^ hg = gen ^ (n - hg) * gen ^ hg := by
       rw [← pow_add, Nat.sub_add_cancel hh, ← hgn, hx, hτv]
     exact mul_right_cancel₀ (pow_ne_zero _ gen_ne_zero) e
-  rw [hxv, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hcpL
-  have ecp := tb_loadHolds_unique hcpL (hcp (n - hg) (by omega))
-  rw [hτv, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hpeL
+  rw [hxv, loadHolds_mul_gen_pow, Nat.add_zero] at hcpL
+  have ecp := loadHolds_unique hcpL (hcp (n - hg) (by omega))
+  rw [hτv, loadHolds_mul_gen_pow, Nat.add_zero] at hpeL
   obtain ⟨as, bs, hal, hbl, has, hbs, hpre⟩ := hpe
-  have hchiR : TbReadsAt rd (σ (.n (val% «verify_tables» "chi"))) pts.reverse := fun k hk ↦ by
+  have hchiR : ReadsAt rd (σ (.n (val% «verify_tables» "chi"))) pts.reverse := fun k hk ↦ by
     simp only [List.length_reverse] at hk
     have := hchi (n - 1 - k) (by omega)
     rw [show n - 1 - (n - 1 - k) = k by omega, List.getD_eq_getElem _ _ (by omega)] at this
@@ -60,7 +60,7 @@ theorem vt_weight_guest {rd : Reader} {σ : Val} {point pts : List E} {n : ℕ}
   have eas : as = pts.reverse := tbReadsAt_unique has hchiR (by simp; omega)
   have ebs : bs = (point.map (1 + ·)).take n :=
     tbReadsAt_unique hbs (tbReadsAt_take hz1 n) (by simp; omega)
-  have epe := tb_loadHolds_unique hpeL (hpre hg hh)
+  have epe := loadHolds_unique hpeL (hpre hg hh)
   rw [vt_weight heights point pts hpl hnp ht hh, ecp, epe, eas, ebs]
 
 /-- The batching challenge's powers. -/
@@ -72,7 +72,7 @@ theorem vt_xi_pow {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have a2 := h.atomAt 2329 (.mul (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "zc_xi_pows[1]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
   have a3 := h.atomAt 2330 (.mul (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "zc_xi_pows[2]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
   have a4 := h.atomAt 2331 (.mul (.n (val% «verify_tables» "zc_xi_pows[4]")) (.n (val% «verify_tables» "zc_xi_pows[3]")) (.n (val% «verify_tables» "nxt[0]@3"))) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_one] at a0 a1 a2 a3 a4
+  simp only [Atom.Holds, word_one] at a0 a1 a2 a3 a4
   refine ⟨a0, by rw [a1, a0, one_mul], by rw [a2, a1, a0]; ring, by rw [a3, a2, a1, a0]; ring,
     by rw [a4, a3, a2, a1, a0]; ring⟩
 
@@ -98,13 +98,13 @@ include hμ
 
 /-- **The final check.** -/
 theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.length = 2 ^ 23)
-    {point : List E} (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
+    {point : List E} (hz : ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
     (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
     (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
+    (hW : ReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
     (hgn : σ (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
     (hcp : ∀ j ≤ n, LoadHolds Lm.read (σ (.n (val% «verify_tables» "zc_cprod"))) j (pts.take j).prod)
@@ -169,7 +169,7 @@ theorem vt_asm_final {σ : Val} (h : VtH Lm.read σ) (bc : List K) (hbc : bc.len
     w0, w1, w2, w3, w4, w5, n0, n1, n2, n3, n4, n5, (vt_constraints _).1, (vt_constraints _).2.1,
     (vt_constraints _).2.2.1, (vt_constraints _).2.2.2.1, (vt_constraints _).2.2.2.2.1,
     (vt_constraints _).2.2.2.2.2, jumpConstraints_eq]
-  rw [vt_air_total h, v0, v1, v2, v3, v4, v5, xp0, xp1, xp2, xp3, xp4, tb_word_one]
+  rw [vt_air_total h, v0, v1, v2, v3, v4, v5, xp0, xp1, xp2, xp3, xp4, word_one]
   simp only [powers, powersFrom, dot, List.take, List.drop, List.zipWith_cons_cons,
     List.zipWith_nil_right, List.foldl_cons, List.foldl_nil]
   ring

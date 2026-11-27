@@ -93,7 +93,7 @@ theorem glY_noRet : Stmt.noRetList glY = true := by decide
 theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
     (h : Stmt.HoldsList C rd τ (glKids off ++ glCheck ++ glY ++ glNext (off + 12)) True kret)
     (z23 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]")) = 0) (z24 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) = 0) (z25 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]")) = 0) (z26 : τ (.n (val% «gkr_layer__L0_L0» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) = 0) :
-    TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) ∧
+    ReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) ∧
       τ (.n (val% «gkr_layer__L0_L0» "nclaim@2")) = polyEval [prodE (glCh τ 0), prodE (glCh τ 1), prodE (glCh τ 2)] (τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@1"))) ∧
       ((glSponge τ).squeezeN 2).1 = [τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@6")), τ (.n (val% «gkr_layer__L0_L0» "nxt[0]@7"))] ∧
       ((glSponge τ).squeezeN 2).2 = ⟨(glCap (val% «gkr_layer__L0_L0» "nxt[8]@7")).map τ, []⟩ ∧
@@ -114,10 +114,10 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
       FsPackOk τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i))) (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + i) + 1) dsObserve :=
     fun m hm i hi => (EV (4 * m + i) (by omega)).2.1
   -- the reads
-  have hreads : TbReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) := by
+  have hreads : ReadsAt rd (τ (.n (val% «gkr_layer__L0_L0» "tcur")) * gen ^ off) (glCh τ 0 ++ (glCh τ 1 ++ glCh τ 2)) := by
     intro k hk
     have hk12 : k < 12 := by simpa [chWords_length] using hk
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     convert (EV k hk12).1 using 1
     simp only [chWords_eq]
     interval_cases k <;> rfl
@@ -154,8 +154,8 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
   obtain ⟨s0, s1, s2, s3, s4, c277, m278, l278, v0, v1, v2, v3, v4, v5, v6, v7, v8, l0,
     w0, w1, w2, w3, w4, w5, w6, w7, w8, l1, u0, u1, u2, u3, u4, u5, u6, u7, u8, l2,
     c305, m306, m307, m308, m309, m310, m311, l311⟩ := hN'
-  rw [tb_word_two_pow (by omega)] at c277
-  rw [tb_word_gen] at c305
+  rw [word_two_pow (by omega)] at c277
+  rw [word_gen] at c305
   have hw : ∀ m < 3, glCh τ m = [τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m) + 3)), τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 1) + 3)),
       τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 2) + 3)), τ (.n (chB (val% «gkr_layer__L0_L0» "x@9") (4 * m + 3) + 3))] := by
     intro m hm
@@ -163,7 +163,7 @@ theorem gl_tail {off : ℕ} (hoff : off ≤ 8)
   refine ⟨hreads, ?_, hsq, ?_, fun t ht => ?_, fun k hk => ?_, ?_, l262, l276, ?_⟩
   · -- the check (`gkr_product_check`, Horner in the combiner from the top tree)
     have hC' := hC
-    simp only [glCheck, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, tb_word_zero] at hC'
+    simp only [glCheck, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, word_zero] at hC'
     obtain ⟨m233, m234, m235, c236, m237, a238, m239, m240, m241, m242, a243, m244, m245, m246,
       m247, a248, q⟩ := hC'
     rw [e_add_eq_zero_iff.mp q, a248, m247, a243, m242, a238, m237, c236, m235, m234, m233, m241,

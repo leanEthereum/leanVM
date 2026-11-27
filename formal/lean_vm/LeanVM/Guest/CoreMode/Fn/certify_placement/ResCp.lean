@@ -66,8 +66,8 @@ theorem cp_keys {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel}
   refine ⟨fun gi hgi ↦ ?_, fun r hr ↦ ?_, fun r hr ↦ ?_⟩
   · obtain ⟨-, hq, hrc, hload, hkey, hkeyL, -⟩ := holds_cpGroup hgi (hgroups gi hgi)
     obtain ⟨x, hx, ex⟩ := cp_rc34 hμ Lm hq hrc
-    rw [ex, tb_loadHolds_mul_gen_pow] at hload
-    have e5 := tb_loadHolds_unique hload (by rw [add_comm]; exact hrk x hx)
+    rw [ex, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hload
+    have e5 := LeanVM.Guest.B1.loadHolds_unique hload (by rw [add_comm]; exact hrk x hx)
     refine ⟨_, ?_, hkeyL⟩
     rw [hkey, e5]
     intro h0
@@ -79,8 +79,8 @@ theorem cp_keys {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {C : CallRel}
     · unfold CpFacts
       simp only [cpRB, cpRK, cpRP, cpRT, ↓reduceIte, Nat.mul_zero, Nat.add_zero]
       refine ⟨cp_rc9 hμ Lm c139 rc138, by rw [← m143]; exact l144, by rw [← m146]; exact l145,
-        ⟨_, by rw [← m147]; exact l148, by rw [c145, tb_word_one, one_mul]⟩,
-        fun _ ↦ by rw [c145, tb_word_one], fun h ↦ absurd h (by omega),
+        ⟨_, by rw [← m147]; exact l148, by rw [c145, LeanVM.Guest.B1.word_one, one_mul]⟩,
+        fun _ ↦ by rw [c145, LeanVM.Guest.B1.word_one], fun h ↦ absurd h (by omega),
         fun h ↦ absurd h (by omega)⟩
     · obtain ⟨r', rfl⟩ : ∃ r', r = r' + 1 := ⟨r - 1, by omega⟩
       exact cpFacts_succ hμ Lm (hranks r' (by omega))
@@ -135,8 +135,8 @@ theorem cp_onto {rd : Reader} {σ : Core.Val}
   obtain ⟨Kf, hKf⟩ := tb_exists_fun_of_forall (n := 9) hK
   have hkey : ∀ r < 9, σ (.n (cpRK r)) = Kf (π r) := fun r hr ↦ by
     have := (hf r hr).2.1
-    rw [(hπ r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero] at this
-    exact tb_loadHolds_unique this (hKf _ (hπ r hr).1).2
+    rw [(hπ r hr).2, LeanVM.Guest.B1.loadHolds_mul_gen_pow, Nat.add_zero] at this
+    exact LeanVM.Guest.B1.loadHolds_unique this (hKf _ (hπ r hr).1).2
   have hdist := cp_distinct (k := fun r ↦ σ (.n (cpRK r)))
     (fun r hr ↦ by rw [hkey r hr]; exact (hKf _ (hπ r hr).1).1)
     (fun r hr ↦ by
@@ -164,9 +164,9 @@ theorem nzVal_cp155 : NzVal "certify_placement" (.n (val% «certify_placement» 
   obtain ⟨hK, hf, -⟩ := cp_keys (by omega) r.img hb.1 htab
   obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf 1 (by omega)
   have eK : cpRK 1 = 155 := rfl
-  rw [eK, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  rw [eK, hg, LeanVM.Guest.B1.loadHolds_mul_gen_pow, Nat.add_zero] at hld
   obtain ⟨K, hK0, hKl⟩ := hK gi hgi
-  rw [tb_loadHolds_unique hld hKl]
+  rw [LeanVM.Guest.B1.loadHolds_unique hld hKl]
   exact hK0
 
 end

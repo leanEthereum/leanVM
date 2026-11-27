@@ -71,7 +71,7 @@ theorem l10_atoms : AllAtoms l10Atoms := fun s hs ↦ by
 
 noncomputable def l10Check : Bool :=
   match coreProgram.find? name% «verify_tables_loop0» with
-  | some fn => decide (fn.params = (List.range 6).map V.n) && tbStmtsEqb fn.body l10Body
+  | some fn => decide (fn.params = (List.range 6).map V.n) && stmtsEqb fn.body l10Body
   | none => false
 
 theorem l10Check_eq : l10Check = true := by decide +kernel
@@ -83,7 +83,7 @@ theorem l10Found : ∃ fn : Fn, coreProgram.find? name% «verify_tables_loop0» 
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- What an iteration at `x` gives: the round on the record `rounds·x^7`, the next record's cursor

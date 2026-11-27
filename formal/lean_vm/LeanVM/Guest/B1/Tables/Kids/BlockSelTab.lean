@@ -101,7 +101,7 @@ theorem block_selector_tab_relIn {n : ℕ} (hn : n < 34) {rd : Reader} {R : ℕ 
       obtain ⟨hld, he', hg'⟩ := btNib_ptr (hpre.1 k hk)
       obtain ⟨u, hu, hdu⟩ := hd k hk
       rw [p0] at hld
-      have hc : σ (.n (btC k)) = gen ^ u := tb_loadHolds_unique hld hdu
+      have hc : σ (.n (btC k)) = gen ^ u := loadHolds_unique hld hdu
       have hw4 := btW_le n k
       have h16 : 2 ^ btW n k ≤ 16 :=
         calc 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4

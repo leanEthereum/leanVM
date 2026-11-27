@@ -161,10 +161,10 @@ noncomputable def zTail : List Stmt := [
     .atom (.copy (.n (val% «verify_tables» "s92#0[8]")) (.n (val% «verify_tables» "nxt[0]@42"))),
     .atom (.copy (.n (val% «verify_tables» "s92#0[9]")) (.n (val% «verify_tables» "cursor@5")))]
 
-theorem zBlk_at : tbStmtsEqb zBlk ((vtPre.drop (pos% «verify_tables» "g_zc_n")).take zBlk.length) = true := by
+theorem zBlk_at : stmtsEqb zBlk ((vtPre.drop (pos% «verify_tables» "g_zc_n")).take zBlk.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
-theorem zTail_at : tbStmtsEqb zTail ((vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take zTail.length) = true := by
+theorem zTail_at : stmtsEqb zTail ((vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take zTail.length) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 /-! ## The honest rounds -/
@@ -224,8 +224,8 @@ theorem zcRoundsW_len {cap0 : List E} {cl0 cur0 : E} {xs : List E} (h : cap0.len
 
 /-- **The records**, one by one. -/
 theorem zcRoundsW_reads {rd : Reader} {R : E} {cap0 : List E} {cl0 cur0 : E} {xs : List E}
-    (h : cap0.length = 5) {n : ℕ} (hR : TbReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n)) :
-    ∀ j ≤ n, TbReadsAt rd (R * gen ^ (7 * j)) (zcRecW cap0 cl0 cur0 xs j) := by
+    (h : cap0.length = 5) {n : ℕ} (hR : ReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n)) :
+    ∀ j ≤ n, ReadsAt rd (R * gen ^ (7 * j)) (zcRecW cap0 cl0 cur0 xs j) := by
   induction n with
   | zero =>
     intro j hj
@@ -242,19 +242,19 @@ theorem zcRoundsW_reads {rd : Reader} {R : E} {cap0 : List E} {cl0 cur0 : E} {xs
 
 /-- A record's parts. -/
 theorem zc_rec_parts {rd : Reader} {p : E} {cap : List E} {a b : E} (h5 : cap.length = 5)
-    (h : TbReadsAt rd p (cap ++ [a, b])) :
+    (h : ReadsAt rd p (cap ++ [a, b])) :
     CapAt rd p 0 1 cap ∧ LoadHolds rd p 5 a ∧ LoadHolds rd p 6 b := by
-  rw [tbReadsAt_append, h5, tbReadsAt_cons, tbReadsAt_singleton, tb_loadHolds_mul_gen_pow,
-    mul_assoc, ← pow_succ, tb_loadHolds_mul_gen_pow] at h
+  rw [tbReadsAt_append, h5, tbReadsAt_cons, tbReadsAt_singleton, loadHolds_mul_gen_pow,
+    mul_assoc, ← pow_succ, loadHolds_mul_gen_pow] at h
   refine ⟨⟨h5, fun j hj => ?_⟩, h.2.1, h.2.2⟩
   simpa using h.1 j hj
 
 /-- **Every iteration of `verify_tables_loop0` has its facts** on the honest buffers and words. -/
 theorem zc_l10B {rd : Reader} {R tabs rkb C : E} {cap0 : List E} {cl0 cur0 : E} {xs : List E} {n : ℕ}
     (h5 : cap0.length = 5)
-    (hR : TbReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n))
-    (hC : TbReadsAt rd C (zcCprodW cap0 cl0 xs n)) (hrk : TbReadsAt rd rkb (zcRkW cap0 cl0 xs n))
-    (hxs : TbReadsAt rd cur0 xs) (hxl : xs.length = 3 * n) :
+    (hR : ReadsAt rd R (zcRoundsW cap0 cl0 cur0 xs n))
+    (hC : ReadsAt rd C (zcCprodW cap0 cl0 xs n)) (hrk : ReadsAt rd rkb (zcRkW cap0 cl0 xs n))
+    (hxs : ReadsAt rd cur0 xs) (hxl : xs.length = 3 * n) :
     ∀ j < n, L10B rd R tabs rkb C (gen ^ j) := by
   intro j hj
   have e7 : R * (gen ^ j) ^ 7 = R * gen ^ (7 * j) := by rw [← pow_mul, mul_comm j 7]
@@ -263,12 +263,12 @@ theorem zc_l10B {rd : Reader} {R tabs rkb C : E} {cap0 : List E} {cl0 cur0 : E} 
     (zcRoundsW_reads h5 hR (j + 1) (by omega))
   have e71 : R * gen ^ (7 * (j + 1)) = R * gen ^ (7 * j) * gen ^ 7 := by ring
   rw [e71] at hc1 hcur1 hcl1
-  rw [tb_loadHolds_mul_gen_pow] at hcur1 hcl1
+  rw [loadHolds_mul_gen_pow] at hcur1 hcl1
   have hrd : ReadsAt rd (cur0 * gen ^ (3 * j))
       [xs.getD (3 * j) 0, xs.getD (3 * j + 1) 0, xs.getD (3 * j + 2) 0] := by
     intro k hk
     simp only [List.length_cons, List.length_nil] at hk
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     have hk' := hxs (3 * j + k) (by omega)
     interval_cases k
     · show LoadHolds rd cur0 (3 * j + 0) (xs.getD (3 * j) 0)
@@ -284,12 +284,12 @@ theorem zc_l10B {rd : Reader} {R tabs rkb C : E} {cap0 : List E} {cl0 cur0 : E} 
     exact ⟨(zcRec cap0 cl0 xs j).1, _, _, _, hc0, hrd, hc1, rfl⟩
   · rw [e7, show cur0 * gen ^ (3 * j) * gen ^ 3 = cur0 * gen ^ (3 * (j + 1)) by ring]
     exact hcur1
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]
     simpa [zcRkW] using hrk j (by simp [zcRkW]; omega)
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]
     have := hC j (by simp [zcCprodW]; omega)
     simpa [zcCprodW] using this
-  · rw [tb_loadHolds_mul_gen_pow]
+  · rw [loadHolds_mul_gen_pow]
     have := hC (j + 1) (by simp [zcCprodW]; omega)
     simp only [zcCprodW, List.getElem_map, List.getElem_range] at this
     rwa [List.range_succ, List.map_append, List.prod_append, List.map_singleton,
@@ -297,7 +297,7 @@ theorem zc_l10B {rd : Reader} {R tabs rkb C : E} {cap0 : List E} {cl0 cur0 : E} 
 
 /-- **`chi` is `zc_rk` reversed** on the honest buffers. -/
 theorem zc_chiRev {rd : Reader} {rkb chi : E} {cap0 : List E} {cl0 : E} {xs : List E} {n : ℕ}
-    (hrk : TbReadsAt rd rkb (zcRkW cap0 cl0 xs n)) (hchi : TbReadsAt rd chi (zcChis cap0 cl0 xs n)) :
+    (hrk : ReadsAt rd rkb (zcRkW cap0 cl0 xs n)) (hchi : ReadsAt rd chi (zcChis cap0 cl0 xs n)) :
     ∀ x < n, ∃ v, LoadHolds rd rkb (n - 1 - x) v ∧ LoadHolds rd chi x v := by
   intro x hx
   refine ⟨zcCh cap0 cl0 xs (n - 1 - x), ?_, ?_⟩

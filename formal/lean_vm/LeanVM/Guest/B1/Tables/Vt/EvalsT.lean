@@ -87,13 +87,13 @@ def vtPermT (j : ℕ) : Stmt :=
     vtPermCap j) (lyOuts (vtPermData.getD j (0, 0)).2)
 
 theorem vtEval_check : ∀ k < 153,
-    tbStmtsEqb (vtEvalT (vtEvalData.getD k (0, 0)).2 k)
+    stmtsEqb (vtEvalT (vtEvalData.getD k (0, 0)).2 k)
       ((vtAt (vtEvalData.getD k (0, 0)).1).take (vtEvalT (vtEvalData.getD k (0, 0)).2 k).length) =
       true := by
   decide +kernel
 
 theorem vtPerm_check : ∀ j < 38,
-    tbStmtsEqb [vtPermT j] ((vtAt (vtPermData.getD j (0, 0)).1).take 1) = true := by
+    stmtsEqb [vtPermT j] ((vtAt (vtPermData.getD j (0, 0)).1).take 1) = true := by
   decide +kernel
 
 end

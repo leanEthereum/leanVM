@@ -57,9 +57,9 @@ theorem vtEvL_mem_ite {c : V} {z n : List Stmt} (hs : Stmt.ite c z n ∈ vtPre) 
   List.mem_map_of_mem (mem_flatIte_ite hs t ht)
 
 /-- The statement at a position of the body, by kernel comparison. -/
-theorem vt_mem_at (p : ℕ) (s : Stmt) (h : tbStmtsEqb [s] ((vtPre.drop p).take 1) = true) :
+theorem vt_mem_at (p : ℕ) (s : Stmt) (h : stmtsEqb [s] ((vtPre.drop p).take 1) = true) :
     s ∈ vtPre := by
-  have e := tbStmtsEqb_sound h
+  have e := stmtsEqb_sound h
   have : s ∈ (vtPre.drop p).take 1 := by rw [← e]; simp
   exact List.mem_of_mem_drop (List.mem_of_mem_take this)
 
@@ -78,9 +78,9 @@ theorem vt_param (hl : args.length = 21) {i : ℕ} (hi : i < 21) :
 /-! ## By position -/
 
 theorem vt_mem_slice {n : ℕ} {blk : List Stmt}
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) {s : Stmt} (hs : s ∈ blk) :
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true) {s : Stmt} (hs : s ∈ blk) :
     s ∈ vtPre := by
-  rw [tbStmtsEqb_sound heq] at hs
+  rw [stmtsEqb_sound heq] at hs
   exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
 
 theorem vt_goodS (hl : args.length = 21) {s : Stmt} (hs : s ∈ vtPre) :
@@ -92,7 +92,7 @@ theorem vt_goodS (hl : args.length = 21) {s : Stmt} (hs : s ∈ vtPre) :
 
 /-- **A block's equations**, read at position `n`. -/
 theorem vt_goodL (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
     GoodL rd w (vtσ rd w args) blk := by
   have h : ∀ s ∈ blk, GoodS rd vtSL w (vtσ rd w args) (fixNe s) :=
     fun s hs ↦ vt_goodS hl (vt_mem_slice heq hs)
@@ -104,7 +104,7 @@ theorem vt_goodL (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
 
 /-- **A read** gives the word at its address (`0` if none). -/
 theorem vt_read (hl : args.length = 21) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
+    (heq : stmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
     (hS : Atom.load d p off ∉ vtSL) :
     vtσ rd w args d = rdAt rd (vtσ rd w args p) off := by
   have h := vt_goodS (rd := rd) (w := w) hl (vt_mem_slice (blk := [_]) heq List.mem_cons_self)
@@ -113,7 +113,7 @@ theorem vt_read (hl : args.length = 21) (n : ℕ) {d p : V} {off : ℕ}
 
 /-- A read of a word the memory holds holds, and reads it. -/
 theorem vt_readH (hl : args.length = 21) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
+    (heq : stmtsEqb [.atom (.load d p off)] ((vtPre.drop n).take 1) = true)
     (hS : Atom.load d p off ∉ vtSL) {v : E} (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) := by
   have e : vtσ rd w args d = v := by
@@ -151,48 +151,48 @@ theorem vsh_auto (hl : args.length = 21) {s : Stmt} (hs : s ∈ vtPre) (ha : aut
 
 /-- **A block's statements hold** when the ones evaluation alone does not settle (`rest`) do. -/
 theorem vt_block (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) (rest : List Stmt)
-    (hrest : tbStmtsEqb (blk.filter (fun s ↦ !autoB s)) rest = true)
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true) (rest : List Stmt)
+    (hrest : stmtsEqb (blk.filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   intro s hs
   cases ha : autoB s
-  · exact h s (tbStmtsEqb_sound hrest ▸ List.mem_filter.mpr ⟨hs, by simp [ha]⟩)
+  · exact h s (stmtsEqb_sound hrest ▸ List.mem_filter.mpr ⟨hs, by simp [ha]⟩)
   · exact vsh_auto hl (vt_mem_slice heq hs) ha
 
 /-! ## At `vtAt`: what a kernel check evaluates fast -/
 
-theorem vt_memAt (n : ℕ) (s : Stmt) (heq : tbStmtsEqb [s] ((vtAt n).take 1) = true) :
+theorem vt_memAt (n : ℕ) (s : Stmt) (heq : stmtsEqb [s] ((vtAt n).take 1) = true) :
     s ∈ vtPre :=
   vt_mem_slice (blk := [_]) (vtPre_drop n ▸ heq) List.mem_cons_self
 
 /-- The equations of the statement at position `n`, read at `vtAt`. -/
 theorem vt_goodAt (hl : args.length = 21) (n : ℕ) (s : Stmt)
-    (heq : tbStmtsEqb [s] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [s] ((vtAt n).take 1) = true) :
     GoodS rd vtSL w (vtσ rd w args) (fixNe s) :=
   (vt_goodL (rd := rd) (w := w) hl n [s] (vtPre_drop n ▸ heq)).1
 
 theorem vt_copyAt (hl : args.length = 21) (n : ℕ) {d x : V}
-    (heq : tbStmtsEqb [.atom (.copy d x)] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.atom (.copy d x)] ((vtAt n).take 1) = true) :
     vtσ rd w args d = vtσ rd w args x :=
   vt_goodAt (rd := rd) (w := w) hl n _ heq
 
 theorem vt_constAt (hl : args.length = 21) (n : ℕ) {d : V} {e : E}
-    (heq : tbStmtsEqb [.atom (.const d e)] ((vtAt n).take 1) = true) : vtσ rd w args d = e :=
+    (heq : stmtsEqb [.atom (.const d e)] ((vtAt n).take 1) = true) : vtσ rd w args d = e :=
   vt_goodAt (rd := rd) (w := w) hl n _ heq
 
 theorem vt_allocAt (hl : args.length = 21) (n : ℕ) {d : V} {k : ℕ}
-    (heq : tbStmtsEqb [.atom (.hint (.alloc d k))] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.atom (.hint (.alloc d k))] ((vtAt n).take 1) = true) :
     vtσ rd w args d = w d.idx :=
   vt_goodAt (rd := rd) (w := w) hl n _ heq
 
 theorem vt_allocDynAt (hl : args.length = 21) (n : ℕ) {d s : V}
-    (heq : tbStmtsEqb [.atom (.hint (.allocDyn d s))] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.atom (.hint (.allocDyn d s))] ((vtAt n).take 1) = true) :
     vtσ rd w args d = w d.idx :=
   vt_goodAt (rd := rd) (w := w) hl n _ heq
 
 theorem vt_mulAt (hl : args.length = 21) (n : ℕ) {d x y : ℕ} (hx : x < d) (hy : y < d)
-    (heq : tbStmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] ((vtAt n).take 1) = true) :
     vtσ rd w args (.n d) = vtσ rd w args (.n x) * vtσ rd w args (.n y) := by
   have h := vt_goodAt (rd := rd) (w := w) hl n _ heq
   simp only [GoodS, fixNe, Good] at h
@@ -201,21 +201,21 @@ theorem vt_mulAt (hl : args.length = 21) (n : ℕ) {d x y : ℕ} (hx : x < d) (h
 
 /-- **A read at `vtAt`** of a word the memory holds holds, and reads it. -/
 theorem vt_readAt (hl : args.length = 21) (n : ℕ) {d p : V} {off : ℕ}
-    (heq : tbStmtsEqb [.atom (.load d p off)] ((vtAt n).take 1) = true)
+    (heq : stmtsEqb [.atom (.load d p off)] ((vtAt n).take 1) = true)
     (hS : Atom.load d p off ∉ vtSL) {v : E} (hm : LoadHolds rd (vtσ rd w args p) off v) :
     vtσ rd w args d = v ∧ VSH (coreProgram.Rel rd) rd (vtσ rd w args) (.atom (.load d p off)) :=
   vt_readH hl n (vtPre_drop n ▸ heq) hS hm
 
 /-- **A slice holds** when its statements beyond evaluation (`rest`, the kernel's filter) do. -/
 theorem vt_blockR (hl : args.length = 21) (a len : ℕ) (rest : List Stmt)
-    (hrest : tbStmtsEqb (((vtAt a).take len).filter (fun s ↦ !autoB s)) rest = true)
+    (hrest : stmtsEqb (((vtAt a).take len).filter (fun s ↦ !autoB s)) rest = true)
     (h : ∀ s ∈ rest, s ∈ vtPre → VSH (coreProgram.Rel rd) rd (vtσ rd w args) s) :
     ∀ s ∈ (vtPre.drop a).take len, VSH (coreProgram.Rel rd) rd (vtσ rd w args) s := by
   rw [← vtPre_drop] at hrest
   intro s hs
   have hm : s ∈ vtPre := List.mem_of_mem_drop (List.mem_of_mem_take hs)
   cases ha : autoB s
-  · exact h s (tbStmtsEqb_sound hrest ▸ List.mem_filter.mpr ⟨hs, by simp [ha]⟩) hm
+  · exact h s (stmtsEqb_sound hrest ▸ List.mem_filter.mpr ⟨hs, by simp [ha]⟩) hm
   · exact vsh_auto hl hm ha
 
 /-- Two adjacent slices hold, so does their union. -/
@@ -241,7 +241,7 @@ noncomputable def loadsBelow (ps : List (ℕ × ℕ)) : Bool :=
 every load through it below `b` (`loadsBelow`): the memory holds the word at its offset, and a
 read reads it. -/
 theorem vt_bufLoad (hl : args.length = 21) {ps : List (ℕ × ℕ)} (hok : loadsBelow ps = true)
-    {p b : ℕ} (hpb : (p, b) ∈ ps) {W : List E} (hW : TbReadsAt rd (vtσ rd w args (.n p)) W)
+    {p b : ℕ} (hpb : (p, b) ∈ ps) {W : List E} (hW : ReadsAt rd (vtσ rd w args (.n p)) W)
     (hb : b ≤ W.length) {d : V} {off : ℕ} (hs : Stmt.atom (.load d (.n p) off) ∈ vtEvL) :
     LoadHolds rd (vtσ rd w args (.n p)) off (W.getD off 0) ∧
       (Atom.load d (.n p) off ∉ vtSL → vtσ rd w args d = W.getD off 0) := by

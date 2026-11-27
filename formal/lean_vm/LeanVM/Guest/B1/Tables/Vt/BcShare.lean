@@ -79,9 +79,9 @@ theorem vt_list16 (w : List E) (hw : w.length = 16) :
 set_option maxRecDepth 10000 in
 /-- **The bytecode share.** -/
 theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
-    (hwl : weights.length = 16) (hW : TbReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) (low : List E) :
-    ∃ ys : List E, ys.length = 6 ∧ TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) (ys ++ [σ (.n (val% «verify_tables» "x@8"))]) ∧
-      TbReadsAt rd (σ (.n (val% «verify_tables» "bc_point"))) [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))] ∧
+    (hwl : weights.length = 16) (hW : ReadsAt rd (σ (.n (val% «verify_tables» "fp_w"))) weights) (low : List E) :
+    ∃ ys : List E, ys.length = 6 ∧ ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) (ys ++ [σ (.n (val% «verify_tables» "x@8"))]) ∧
+      ReadsAt rd (σ (.n (val% «verify_tables» "bc_point"))) [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))] ∧
       σ (.n (val% «verify_tables» "cursor@4")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 6 ∧
       [σ (.n (val% «verify_tables» "sp[0]@2")), σ (.n (val% «verify_tables» "sp[1]@2")), σ (.n (val% «verify_tables» "sp[2]@2")), σ (.n (val% «verify_tables» "sp[3]@2")), σ (.n (val% «verify_tables» "sp[4]@2"))] =
         [σ (.n (val% «verify_tables» "bfs0@3")), σ (.n (val% «verify_tables» "bfs1@3")), σ (.n (val% «verify_tables» "bfs2@3")), σ (.n (val% «verify_tables» "bfs3@3")), σ (.n (val% «verify_tables» "bfs4@3"))] ∧
@@ -218,20 +218,20 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
     rfl
   -- the claims
   have hw128 : σ (.n (val% «verify_tables» "bfs0@1~8")) = gen ^ 7 := by
-    rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, tb_word_two_pow (by norm_num)]
+    rw [a1938, show (128 : ℕ) = 2 ^ 7 by norm_num, word_two_pow (by norm_num)]
   have hc1 : σ (.n (val% «verify_tables» "bc_claim@1")) = σ (.n (val% «verify_tables» "x@6")) + σ (.n (val% «verify_tables» "nxt[0]@2")) * (σ (.n (val% «verify_tables» "x@5")) + (1 + σ (.n (val% «verify_tables» "nxt[0]@2"))) *
       σ (.n (val% «verify_tables» "x@7"))) := by
-    rw [a1937, a1936, a1935, a1934, a1933, a1932, tb_word_one, d43, d47, d51]
+    rw [a1937, a1936, a1935, a1934, a1933, a1932, word_one, d43, d47, d51]
   have hfin : σ (.n (val% «verify_tables» "bc_claim@4")) = dot (eqKernel [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))])
       weights * σ (.n (val% «verify_tables» "x@8")) := by
-    have hl0 := tb_loadHolds_unique l0 s0
-    have hl1 := tb_loadHolds_unique l1 s1
-    have hl2 := tb_loadHolds_unique l2 s2
-    have hl3 := tb_loadHolds_unique l3 s3
+    have hl0 := loadHolds_unique l0 s0
+    have hl1 := loadHolds_unique l1 s1
+    have hl2 := loadHolds_unique l2 s2
+    have hl3 := loadHolds_unique l3 s3
     have hw : ∀ i (hi : i < 16), LoadHolds rd (σ (.n (val% «verify_tables» "fp_w"))) i (weights.getD i 0) := fun i hi ↦ by
       rw [List.getD_eq_getElem _ _ (by omega)]; exact hW i (by omega)
     have ew := fun {i : ℕ} {v : E} (hi : i < 16) (hv : LoadHolds rd (σ (.n (val% «verify_tables» "fp_w"))) i v) ↦
-      tb_loadHolds_unique hv (hw i hi)
+      loadHolds_unique hv (hw i hi)
     have e1972 : σ (.n (val% «verify_tables» "w_fold[14]")) = multilinearEval ((List.range 16).map fun i ↦ weights.getD i 0)
         [σ (.n (val% «verify_tables» "nxt[0]@2")), σ (.n (val% «verify_tables» "bc_r@1")), σ (.n (val% «verify_tables» "bc_r@2")), σ (.n (val% «verify_tables» "bc_r@3"))] := by
       rw [a2018, a2017, a2016, a2011, a2010, a2009, a2014, a2013, a2012, a1998, a1997, a1996,
@@ -275,15 +275,15 @@ theorem vt_bc {rd : Reader} {σ : Val} (h : VtH rd σ) {weights : List E}
       (σ (.n (val% «verify_tables» "x@8"))) dsObserve)
   -- the reads
   have hp1 : σ (.n (val% «verify_tables» "bfs0@1~9")) = σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 := by rw [a1939, hw128]
-  have hrd : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
+  have hrd : ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) ([x0, x1] ++ ([x2, x3] ++ ([x4, x5] ++
       [σ (.n (val% «verify_tables» "x@8"))]))) := by
-    have r01 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) [x0, x1] := fun k hk ↦ by
+    have r01 : ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7) [x0, x1] := fun k hk ↦ by
       have := hx01 k hk; rwa [hp1] at this
-    have r23 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2) [x2, x3] := fun k hk ↦ by
+    have r23 : ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2) [x2, x3] := fun k hk ↦ by
       have := hx23 k hk; rwa [u1, hp1] at this
-    have r45 : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2) [x4, x5] := fun k hk ↦ by
+    have r45 : ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2) [x4, x5] := fun k hk ↦ by
       have := hx45 k hk; rwa [u2, u1, hp1] at this
-    have rv : TbReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2) [σ (.n (val% «verify_tables» "x@8"))] := by
+    have rv : ReadsAt rd (σ (.n (val% «verify_tables» "cursor@1")) * gen ^ 7 * gen ^ 2 * gen ^ 2 * gen ^ 2) [σ (.n (val% «verify_tables» "x@8"))] := by
       rw [tbReadsAt_singleton, ← hp1, ← u1, ← u2, ← u3]; exact lv
     exact tbReadsAt_append.mpr ⟨r01, tbReadsAt_append.mpr ⟨r23, tbReadsAt_append.mpr ⟨r45, rv⟩⟩⟩
   refine ⟨[x0, x1, x2, x3, x4, x5], rfl, by simpa using hrd, ?_, ?_, ?_, cv, ?_⟩

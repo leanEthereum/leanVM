@@ -61,7 +61,7 @@ def vbgCallZ : Stmt := .callIf (.n (val% «verify_bus_gkr» "s36#1")) name% «ve
 
 /-- Every statement is an atom, an `ite` of atoms, the dispatch or the call. -/
 def vbgKindB (s : Stmt) : Bool :=
-  atomsDeep s || tbStmtsEqb [s] [vbgCallL] || tbStmtsEqb [s] [vbgCallZ]
+  atomsDeep s || stmtsEqb [s] [vbgCallL] || stmtsEqb [s] [vbgCallZ]
 
 theorem vbg_kinds : vbgPre.all vbgKindB = true := by decide +kernel
 
@@ -154,18 +154,18 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     (hrun : RunsTo (gkrPhase depth) ⟨cap0, []⟩ xs r ⟨cap', []⟩)
     (hc : ∃ sp, (⟨cap0, []⟩ : Fs).Carries sp) {tabs stream : E}
     {ec ez eL eR eP eO eB eM eV eS : ℕ} {rd : Reader} {R : ℕ → Prop} (hlow : LowDef κ rd)
-    (hx : TbReadsAt rd (ofK (addressOfIndex ec)) xs)
-    (hz : TbReadsAt rd (ofK (addressOfIndex ez)) r.2.1)
-    (hL : TbReadsAt rd (ofK (addressOfIndex eL)) (vbgLayersW depth cap0 xs (ofK (addressOfIndex
+    (hx : ReadsAt rd (ofK (addressOfIndex ec)) xs)
+    (hz : ReadsAt rd (ofK (addressOfIndex ez)) r.2.1)
+    (hL : ReadsAt rd (ofK (addressOfIndex eL)) (vbgLayersW depth cap0 xs (ofK (addressOfIndex
         ec))))
-    (hR : TbReadsAt rd (ofK (addressOfIndex eR)) (vbgRoundsW depth cap0 xs (ofK
+    (hR : ReadsAt rd (ofK (addressOfIndex eR)) (vbgRoundsW depth cap0 xs (ofK
         (addressOfIndex ec))))
-    (hP : TbReadsAt rd (ofK (addressOfIndex eP)) (vbgRowsW depth cap0 xs))
-    (hO : TbReadsAt rd (ofK (addressOfIndex eO)) vbgOddW)
-    (hB : TbReadsAt rd (ofK (addressOfIndex eB)) vbgBndW)
-    (hM : TbReadsAt rd (ofK (addressOfIndex eM)) vbgRemW)
-    (hV : TbReadsAt rd (ofK (addressOfIndex eV)) (vbgValsW depth cap0 xs))
-    (hS : TbReadsAt rd (ofK (addressOfIndex eS)) vbgSizesW)
+    (hP : ReadsAt rd (ofK (addressOfIndex eP)) (vbgRowsW depth cap0 xs))
+    (hO : ReadsAt rd (ofK (addressOfIndex eO)) vbgOddW)
+    (hB : ReadsAt rd (ofK (addressOfIndex eB)) vbgBndW)
+    (hM : ReadsAt rd (ofK (addressOfIndex eM)) vbgRemW)
+    (hV : ReadsAt rd (ofK (addressOfIndex eV)) (vbgValsW depth cap0 xs))
+    (hS : ReadsAt rd (ofK (addressOfIndex eS)) vbgSizesW)
     (hReg : VbgR R depth xs ec ez eL eR eP) :
     (∀ s ∈ vbgPre, VSH (coreProgram.RelIn rd R) rd
       (vbgσ rd depth cap0 tabs stream ec ez eL eR eP eO eB eM eV eS) s) ∧
@@ -221,9 +221,9 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     exact h
   obtain ⟨e5, e6, e15, e16, e17, e18, e64, e66, e67, e166, e399, e401, e427, eS17, e88, e91⟩ :=
     vbg_ptrs hσ hG hcl hargs hW
-  have g : ∀ a : Atom, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom a] [t]) = true → Good rd vbgS W σ a :=
+  have g : ∀ a : Atom, vbgEvL.any (fun t ↦ stmtsEqb [.atom a] [t]) = true → Good rd vbgS W σ a :=
     fun a h ↦ hG _ (vbg_mem h)
-  have mul : ∀ d x y : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] [t])
+  have mul : ∀ d x y : ℕ, vbgEvL.any (fun t ↦ stmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] [t])
       = true → x < d → y < d → σ (.n d) = σ (.n x) * σ (.n y) :=
     fun d x y h hx hy ↦ good_mul (g _ h) hx hy
   have e7 : σ (.n (val% «verify_bus_gkr» "zeta")) = ofK (addressOfIndex ez) := by
@@ -232,16 +232,16 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     rw [hσ, ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; omega), hargs]; simp [hcl]
   have e9 : σ (.n (val% «verify_bus_gkr» "stream")) = stream := by
     rw [hσ, ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; omega), hargs]; simp [hcl]
-  have one : ∀ d : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.const (.n d) (word 1 0))] [t]) =
-      true → σ (.n d) = 1 := fun d h ↦ by rw [← tb_word_one]; exact g _ h
+  have one : ∀ d : ℕ, vbgEvL.any (fun t ↦ stmtsEqb [.atom (.const (.n d) (word 1 0))] [t]) =
+      true → σ (.n d) = 1 := fun d h ↦ by rw [← word_one]; exact g _ h
   have c424 := one (val% «verify_bus_gkr» "s36#0") (by decide +kernel)
   have c426 := one (val% «verify_bus_gkr» "s36#2") (by decide +kernel)
   -- the tables at `depth`: `depth_odd`, `four_bounds`, `four_rem`
-  have tab : ∀ {e : ℕ} {f : ℕ → ℕ}, TbReadsAt rd (ofK (addressOfIndex e))
+  have tab : ∀ {e : ℕ} {f : ℕ → ℕ}, ReadsAt rd (ofK (addressOfIndex e))
       ((List.range 33).map fun k ↦ gen ^ f k) →
       LoadHolds rd (ofK (addressOfIndex e) * gen ^ depth) 0 (gen ^ f depth) := by
     intro e f h
-    rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+    rw [loadHolds_mul_gen_pow, Nat.add_zero]
     have := h depth (by simp; omega)
     simpa using this
   have r167 := good_read (g (.load (.n (val% «verify_bus_gkr» "odd_g")) (.n (val% «verify_bus_gkr» "odd_g~0")) 0) (by decide +kernel)) (by decide +kernel)
@@ -291,7 +291,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     rw [m413, m412, m411, m410, m409, e408, e16, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
   have c415 : σ (.n (val% «verify_bus_gkr» "final_point_row~0")) = gen := by
-    rw [← tb_word_gen]; exact g (.const (.n (val% «verify_bus_gkr» "final_point_row~0")) (word 2 0)) (by decide +kernel)
+    rw [← word_gen]; exact g (.const (.n (val% «verify_bus_gkr» "final_point_row~0")) (word 2 0)) (by decide +kernel)
   have m416 := mul (val% «verify_bus_gkr» "final_point_row~1") (val% «verify_bus_gkr» "n_pairs") (val% «verify_bus_gkr» "final_point_row~0") (by decide +kernel) (by omega) (by omega)
   have m417 := mul (val% «verify_bus_gkr» "final_point_row~2") (val% «verify_bus_gkr» "final_point_row~1") (val% «verify_bus_gkr» "final_point_row~1") (by decide +kernel) (by omega) (by omega)
   have m418 := mul (val% «verify_bus_gkr» "final_point_row~3") (val% «verify_bus_gkr» "final_point_row~2") (val% «verify_bus_gkr» "final_point_row~2") (by decide +kernel) (by omega) (by omega)
@@ -307,12 +307,12 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     g (.add (.n (val% «verify_bus_gkr» "s36#1")) (.n (val% «verify_bus_gkr» "s36#0")) (.n (val% «verify_bus_gkr» "g_bus_mu"))) (by decide +kernel)
   -- `gkr_sizes` at `depth`: the round records' and the point rows' sizes
   have hs0 : LoadHolds rd (ofK (addressOfIndex eS) * gen ^ depth) 0 (gen ^ (7 * gkRecCount depth)) := by
-    rw [tb_loadHolds_mul_gen_pow, Nat.add_zero, ← vbgSizesW_lo (by omega),
+    rw [loadHolds_mul_gen_pow, Nat.add_zero, ← vbgSizesW_lo (by omega),
       List.getD_eq_getElem _ _ (by simp [vbgSizesW]; omega)]
     exact hS depth (by simp [vbgSizesW]; omega)
   have hs33 : LoadHolds rd (ofK (addressOfIndex eS) * gen ^ depth) 33
       (gen ^ ((depth / 2 + 2) * 40)) := by
-    rw [tb_loadHolds_mul_gen_pow, ← vbgSizesW_hi (by omega), Nat.add_comm depth 33,
+    rw [loadHolds_mul_gen_pow, ← vbgSizesW_hi (by omega), Nat.add_comm depth 33,
       List.getD_eq_getElem _ _ (by simp [vbgSizesW]; omega)]
     exact hS (33 + depth) (by simp [vbgSizesW]; omega)
   have r89 := good_read (g (.load (.n (val% «verify_bus_gkr» "rounds~1")) (.n (val% «verify_bus_gkr» "rounds~0")) 0) (by decide +kernel))
@@ -327,7 +327,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
     simp only [vbgKindB, Bool.or_eq_true] at hk
     rcases hk with (ha | hL') | hZ
     · exact vsh_atomsDeep ha hv
-    · have e := tbStmtsEqb_sound hL'
+    · have e := stmtsEqb_sound hL'
       simp only [List.cons.injEq, and_true] at e
       subst e
       obtain ⟨j, hj, hx, h⟩ := hv
@@ -343,7 +343,7 @@ theorem vbg_run {depth κ : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) (hκ : 
       simp only [List.map_cons, List.map_nil, e16, e17, e18, r400.1, r402.1, e169, e6, e8, e9]
         at h ⊢
       exact vbg_layers_relIn hd hrun ⟨sp, hsp⟩ hm hReg.x hReg.l hReg.rr hReg.r h
-    · have e := tbStmtsEqb_sound hZ
+    · have e := stmtsEqb_sound hZ
       simp only [List.cons.injEq, and_true] at e
       subst e
       refine ⟨hv.1, fun hne ↦ ?_⟩
@@ -529,13 +529,13 @@ theorem vbg_lift_facts {κ depth : ℕ} (hd2 : 2 ≤ depth) (hd : depth ≤ 32) 
     have hL' := hL
     rw [hreg] at hL'
     obtain ⟨hLin, hB⟩ := Main.memL_append.mp hL'
-    have hx : TbReadsAt rd (ofK (addressOfIndex ec)) xs := hLin (ec, xs) (by simp)
-    have hz : TbReadsAt rd (ofK (addressOfIndex ez)) r.2.1 := hLin (ez, r.2.1) (by simp)
+    have hx : ReadsAt rd (ofK (addressOfIndex ec)) xs := hLin (ec, xs) (by simp)
+    have hz : ReadsAt rd (ofK (addressOfIndex ez)) r.2.1 := hLin (ez, r.2.1) (by simp)
     have hw : ∀ b ws, (b, ws) ∈ [(vbgEL fs fp, vbgLayersW depth cap0 xs (ofK (addressOfIndex ec))), (vbgES fs depth fp, vbgSizesW), (vbgER fs depth fp, vbgRoundsW depth cap0 xs (ofK (addressOfIndex ec))),
         (vbgEP fs depth fp, vbgRowsW depth cap0 xs),
         (vbgEO fs depth fp, vbgOddW), (vbgEB fs depth fp, vbgBndW),
         (vbgEM fs depth fp, vbgRemW),
-        (vbgEV fs depth fp, vbgValsW depth cap0 xs)] → TbReadsAt rd (ofK (addressOfIndex b)) ws :=
+        (vbgEV fs depth fp, vbgValsW depth cap0 xs)] → ReadsAt rd (ofK (addressOfIndex b)) ws :=
       fun b ws h ↦ hB (b, ws) h
     have hReg : VbgR (RegionL (vbgL fs depth cap0 xs r.2.1 ec ez fp)) depth xs ec ez
         (vbgEL fs fp) (vbgER fs depth fp) (vbgEP fs depth fp) :=

@@ -127,9 +127,9 @@ theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq 
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
       subst hc
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e76 : σ (.n (val% «shared_selector_tables_loop0» "s5#4")) = gen ^ (k + 1) := by rw [h78, h77, tb_word_gen, p0, pow_succ]
+      have e76 : σ (.n (val% «shared_selector_tables_loop0» "s5#4")) = gen ^ (k + 1) := by rw [h78, h77, word_gen, p0, pow_succ]
       have e74 : σ (.n (val% «shared_selector_tables_loop0» "s5#2")) = gen ^ (k + 1) + gen ^ K := by
-        rw [h76, h75, h74, tb_word_gen, p0, p1, pow_succ]
+        rw [h76, h75, h74, word_gen, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'
         · exact h'

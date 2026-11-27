@@ -28,30 +28,30 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 
 @[expose] public section
 
-theorem vtB_flatP : tbStmtsEqb ((List.range 51).flatMap fun i ↦ vtSelT
+theorem vtB_flatP : stmtsEqb ((List.range 51).flatMap fun i ↦ vtSelT
     (vtPushSel.getD i default).2.2.1 (vtPushSel.getD i default).1
     (vtPushSel.getD i default).2.2.2.1 (vtPushSel.getD i default).2.2.2.2)
     ((vtPre.drop (pos% «verify_tables» "digits@1")).take (span% «verify_tables» "digits@1" "selector_sums[0]")) = true := by simp only [vtPre_drop]; decide +kernel
 
-theorem vtB_flatC : tbStmtsEqb ((List.range 45).flatMap fun i ↦ vtSelT
+theorem vtB_flatC : stmtsEqb ((List.range 45).flatMap fun i ↦ vtSelT
     (vtCountSel.getD i default).2.2.1 (vtCountSel.getD i default).1
     (vtCountSel.getD i default).2.2.2.1 (vtCountSel.getD i default).2.2.2.2)
     ((vtPre.drop (pos% «verify_tables» "digits@52")).take (span% «verify_tables» "digits@52" "selector_sums[2]")) = true := by simp only [vtPre_drop]; decide +kernel
 
 theorem vtB_index_stmts :
-    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")]] ((vtPre.drop (pos% «verify_tables» "coord_val@1")).take 1) = true ∧
-    tbStmtsEqb [.dispatch (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")]] ((vtPre.drop (pos% «verify_tables» "coord_val@2")).take 1) = true :=
+    stmtsEqb [.dispatch (.n (val% «verify_tables» "kb[1]")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@1")]] ((vtPre.drop (pos% «verify_tables» "coord_val@1")).take 1) = true ∧
+    stmtsEqb [.dispatch (.n (val% «verify_tables» "kappa_g@2")) vtImNames [.n (val% «verify_tables» "zeta")] [.n (val% «verify_tables» "coord_val@2")]] ((vtPre.drop (pos% «verify_tables» "coord_val@2")).take 1) = true :=
   by simp only [vtPre_drop]; decide +kernel
 
 /-- A slice is a checked block's statements. -/
 theorem vtB_tmpl {P : Stmt → Prop} {blk : List Stmt} {pos : ℕ}
-    (hc : tbStmtsEqb blk ((vtPre.drop pos).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
+    (hc : stmtsEqb blk ((vtPre.drop pos).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
     ∀ s ∈ (vtPre.drop pos).take blk.length, P s := by
-  rw [← tbStmtsEqb_sound hc]; exact h
+  rw [← stmtsEqb_sound hc]; exact h
 
 /-- A slice is a checked block's statements, checked at `vtAt`. -/
 theorem vtB_tmplAt {P : Stmt → Prop} {blk : List Stmt} {pos : ℕ}
-    (hc : tbStmtsEqb blk ((vtAt pos).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
+    (hc : stmtsEqb blk ((vtAt pos).take blk.length) = true) (h : ∀ s ∈ blk, P s) :
     ∀ s ∈ (vtPre.drop pos).take blk.length, P s :=
   vtB_tmpl (vtPre_drop pos ▸ hc) h
 
@@ -95,7 +95,7 @@ theorem vtP_beta1 {rd : Reader} {σ : Val} (h : VtP rd σ) : σ (.n (val% «veri
   have a1 := h.atomAt 1716 (.const (.n (val% «verify_tables» "beta_1~0")) (word 1 0)) (by decide +kernel)
   have a2 := h.atomAt 1717 (.add (.n (val% «verify_tables» "beta_1")) (.n (val% «verify_tables» "beta")) (.n (val% «verify_tables» "beta_1~0"))) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
-  rw [a2, a1, tb_word_one]
+  rw [a2, a1, word_one]
 
 section
 variable {rd : Reader} {wo : ℕ → E} {args : List E}
@@ -105,7 +105,7 @@ local notation "σv" => vtσ rd wo args
 /-- **`index_mle`'s arm, complete.** -/
 theorem vtB_indexArm (hl : args.length = 21) {x r : V} {point : List E} {κ : ℕ}
     (hm : Stmt.dispatch x vtImNames [.n (val% «verify_tables» "zeta")] [r] ∈ vtPre) (hx : σv x = gen ^ κ)
-    (hκ : κ < 34) (hκμ : κ ≤ point.length) (hz : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point)
+    (hκ : κ < 34) (hκμ : κ ≤ point.length) (hz : ReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) point)
     (hr : wo r.idx = indexMle (point.take κ)) :
     VSH (coreProgram.Rel rd) rd σv (.dispatch x vtImNames [.n (val% «verify_tables» "zeta")] [r]) ∧
       σv r = indexMle (point.take κ) := by
@@ -154,7 +154,7 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     simp only
     rw [List.getD_eq_getElem D.weights 0 (by omega)]
     exact hW i (by omega)
-  have hWσ : TbReadsAt rd (σv (.n (val% «verify_tables» "fp_w"))) D.weights := by
+  have hWσ : ReadsAt rd (σv (.n (val% «verify_tables» "fp_w"))) D.weights := by
     rw [p 13 (by norm_num)]; exact hW
   have hP := vtP_honest hl (by omega) hWσ
   -- the selectors
@@ -184,8 +184,8 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     rw [vt_mulAt hl 854 (d := 866) (x := 26) (y := 865) (by norm_num) (by norm_num)
         (by decide +kernel), vt_constAt hl 853 (d := .n (val% «verify_tables» "kappa_g@2~0")) (e := word 524288 0)
         (by decide +kernel), show (524288 : ℕ) = 2 ^ 19 by norm_num,
-      tb_word_two_pow (by norm_num), e0, one_mul]
-  have hz8 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) D.point := by rw [p 8 (by norm_num)]; exact hz
+      word_two_pow (by norm_num), e0, one_mul]
+  have hz8 : ReadsAt rd (σv (.n (val% «verify_tables» "zeta"))) D.point := by rw [p 8 (by norm_num)]; exact hz
   obtain ⟨I1, i1⟩ := vtB_indexArm hl (vt_memAt 839 _ (vtAt_eqb vtB_index_stmts.1)) k1 (by omega)
     hlmμ hz8 hwI.1
   obtain ⟨I2, i2⟩ := vtB_indexArm hl (vt_memAt 869 _ (vtAt_eqb vtB_index_stmts.2)) k2
@@ -242,13 +242,13 @@ theorem vtB_complete {D : VtBIn} (H : VtBHyp rd wo args D) :
     · exact g824
     · intro s hs
       change s ∈ (vtPre.drop (pos% «verify_tables» "digits@1")).take (span% «verify_tables» "digits@1" "selector_sums[0]") at hs
-      rw [← tbStmtsEqb_sound vtB_flatP] at hs
+      rw [← stmtsEqb_sound vtB_flatP] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vP j (List.mem_range.mp hj) s hs
     · exact g1332
     · intro s hs
       change s ∈ (vtPre.drop (pos% «verify_tables» "digits@52")).take (span% «verify_tables» "digits@52" "selector_sums[2]") at hs
-      rw [← tbStmtsEqb_sound vtB_flatC] at hs
+      rw [← stmtsEqb_sound vtB_flatC] at hs
       obtain ⟨j, hj, hs⟩ := List.mem_flatMap.mp hs
       exact vC j (List.mem_range.mp hj) s hs
     · exact g1912

@@ -42,10 +42,10 @@ def notIteB : Stmt → Bool
 
 /-- **A slice of a body** is in its evaluation list, when it has no `ite`. -/
 theorem good_slice {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte pre, G s) (n : ℕ)
-    (blk : List Stmt) (heq : tbStmtsEqb blk ((pre.drop n).take blk.length) = true)
+    (blk : List Stmt) (heq : stmtsEqb blk ((pre.drop n).take blk.length) = true)
     (hni : blk.all notIteB = true) : ∀ s ∈ blk, G s := by
   intro s hs
-  have e := tbStmtsEqb_sound heq
+  have e := stmtsEqb_sound heq
   have hp : s ∈ pre := by
     rw [e] at hs
     exact List.mem_of_mem_drop (List.mem_of_mem_take hs)
@@ -56,9 +56,9 @@ theorem good_slice {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte
 
 /-- **An `ite`'s branches** are in the evaluation list. -/
 theorem good_ite {pre : List Stmt} {G : Stmt → Prop} (hG : ∀ s ∈ flatIte pre, G s) (n : ℕ)
-    (c : V) (z n' : List Stmt) (heq : tbStmtsEqb [.ite c z n'] ((pre.drop n).take 1) = true) :
+    (c : V) (z n' : List Stmt) (heq : stmtsEqb [.ite c z n'] ((pre.drop n).take 1) = true) :
     ∀ t ∈ z ++ n', G t := by
-  have e := tbStmtsEqb_sound heq
+  have e := stmtsEqb_sound heq
   have hp : Stmt.ite c z n' ∈ pre := by
     have : Stmt.ite c z n' ∈ (pre.drop n).take 1 := by rw [← e]; simp
     exact List.mem_of_mem_drop (List.mem_of_mem_take this)

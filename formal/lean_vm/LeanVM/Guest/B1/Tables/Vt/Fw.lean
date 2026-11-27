@@ -30,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 @[expose] public section
 
 theorem vt_index_arm {rd : Reader} {σ : Val} {v r : ℕ} {point : List E} {κ : ℕ}
-    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) point) (hκ : κ ≤ point.length) (hκ34 : κ < 34)
+    (hz : ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) point) (hκ : κ ≤ point.length) (hκ34 : κ < 34)
     (hv : σ (.n v) = gen ^ κ)
     (hd : ∃ (j : ℕ) (h : j < vtImNames.length), σ (.n v) = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd vtImNames[j] ([V.n (val% «verify_tables» "zeta")].map σ) ([V.n r].map σ)) :
@@ -45,7 +45,7 @@ theorem vt_index_arm {rd : Reader} {σ : Val} {v r : ℕ} {point : List E} {κ :
 
 /-- **The framework's claims.** -/
 theorem vt_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
-    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) point) {lm : ℕ} (hlm : lm ≤ point.length) (hlm34 : lm < 34)
+    (hz : ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) point) {lm : ℕ} (hlm : lm ≤ point.length) (hlm34 : lm < 34)
     (h19 : 19 ≤ point.length) (hk1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm) (hk2 : σ (.n (val% «verify_tables» "kappa_g@2")) = gen ^ 19) :
     σ (.n (val% «verify_tables» "coord_val@1")) = indexMle (point.take lm) ∧ σ (.n (val% «verify_tables» "coord_vals[302]")) = σ (.n (val% «verify_tables» "coord_val@1")) ∧
       σ (.n (val% «verify_tables» "coord_val@2")) = indexMle (point.take 19) ∧ σ (.n (val% «verify_tables» "coord_vals[307]")) = σ (.n (val% «verify_tables» "coord_val@2")) ∧
@@ -65,9 +65,9 @@ theorem vt_fw {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
   have q0 := h.atomAt 1207 (.load (.n (val% «verify_tables» "coord_val@3")) (.n (val% «verify_tables» "claim_pool")) 0) (by decide +kernel)
   have q1 := h.atomAt 1209 (.load (.n (val% «verify_tables» "coord_val@4")) (.n (val% «verify_tables» "claim_pool")) 1) (by decide +kernel)
   simp only [Atom.Holds] at s1 s2 r1 r2 p0 p1 p2 p3 q0 q1
-  exact ⟨vt_index_arm hz hlm hlm34 hk1 d1, tb_loadHolds_unique r1 s1,
-    vt_index_arm hz h19 (by norm_num) hk2 d2, tb_loadHolds_unique r2 s2,
-    tb_loadHolds_unique q0 p0, tb_loadHolds_unique q1 p1, p0, p1, p2, p3⟩
+  exact ⟨vt_index_arm hz hlm hlm34 hk1 d1, loadHolds_unique r1 s1,
+    vt_index_arm hz h19 (by norm_num) hk2 d2, loadHolds_unique r2 s2,
+    loadHolds_unique q0 p0, loadHolds_unique q1 p1, p0, p1, p2, p3⟩
 
 end
 end LeanVM.Guest.B1.Tables

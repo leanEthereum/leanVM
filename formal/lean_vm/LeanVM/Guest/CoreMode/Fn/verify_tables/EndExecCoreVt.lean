@@ -67,9 +67,9 @@ theorem vt_exps (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.f
       refine ⟨τ, h1, ?_⟩
       have := kl (t + 1) (by omega)
       rw [show (val% «verify_tables» "kb[1]") + 1 + t = (val% «verify_tables» "kb[1]") + (t + 1) by omega]
-      exact tb_loadHolds_unique this h2)
+      exact LeanVM.Guest.B1.loadHolds_unique this h2)
   have k1 : σ (.n (val% «verify_tables» "kb[1]")) = gen ^ lm := by
-    have := tb_loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
+    have := LeanVM.Guest.B1.loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
     simpa using this
   have hkb : ∀ i < 8, σ (.n (val% «verify_tables» "kb[0]" + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi

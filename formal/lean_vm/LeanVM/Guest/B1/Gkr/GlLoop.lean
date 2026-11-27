@@ -69,8 +69,8 @@ theorem gl_loop_step {p o : ℕ} (hp : p < 4) (ho : o < 2) {N head qrow nqrow ta
   obtain ⟨hcap', hpost⟩ := hpost
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost hcap'
   obtain ⟨c339, m340, l340, l338, c341, m342, a343, c344, m345, _hk, hnext, -⟩ := hpost
-  rw [tb_word_two_pow (by norm_num)] at c339
-  rw [tb_word_gen] at c341 c344
+  rw [word_two_pow (by norm_num)] at c339
+  rw [word_gen] at c341 c344
   refine ⟨?_, fun hne => ?_⟩
   · have e7 : σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7 = σ (.n (valf% «gkr_layer» «_loop0» "rd")) := by
       rw [m6, a9, a8, a7, a6]; ring

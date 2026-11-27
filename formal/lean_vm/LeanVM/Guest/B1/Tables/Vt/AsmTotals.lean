@@ -46,7 +46,7 @@ theorem vt_beta1 {rd : Reader} {σ : Val} (h : VtH rd σ) : σ (.n (val% «verif
   have a1 := h.atomAt 1716 (.const (.n (val% «verify_tables» "beta_1~0")) (word 1 0)) (by decide +kernel)
   have a2 := h.atomAt 1717 (.add (.n (val% «verify_tables» "beta_1")) (.n (val% «verify_tables» "beta")) (.n (val% «verify_tables» "beta_1~0"))) (by decide +kernel)
   simp only [Atom.Holds] at a1 a2
-  rw [a2, a1, tb_word_one]
+  rw [a2, a1, word_one]
 
 /-- The framework blocks' copies the totals read: the coordinate values and the pull side's eq
 weights. -/
@@ -78,13 +78,13 @@ include hμ
 
 /-- **The three totals.** -/
 theorem vt_asm_totals {σ : Val} (h : VtH Lm.read σ) {bc : List K} (hbc : bc.length = 2 ^ 23)
-    {point : List E} (hz : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
+    {point : List E} (hz : ReadsAt Lm.read (σ (.n (val% «verify_tables» "zeta"))) point)
     (hmu : σ (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
     (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) {lm : ℕ} (hlm : lm ≤ 32)
     {rows : List ℕ} (hr : rows.length = 6) (hτ : ∀ t < 6, vtHt rows t < 33)
     (hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights)
+    (hW : ReadsAt Lm.read (σ (.n (val% «verify_tables» "fp_w"))) weights)
     (hpw : ∀ t < 6, σ (.n (vtPadV t)) = paddingWeight (point.take (vtHt rows t)) (vtRw rows t)) :
     σ (.n (val% «verify_tables» "bus_table_total[0]")) = (vtAcc0 (layoutOf bc lm rows) weights (σ (.n (val% «verify_tables» "beta"))) point
       [σ (.n (val% «verify_tables» "x@1")), σ (.n (val% «verify_tables» "x@2"))] (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0")))).2 ∧

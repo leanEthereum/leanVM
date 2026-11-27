@@ -33,14 +33,14 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 `claim'`. -/
 def GlRun (rd : Reader) (n : ℕ) (cur pt claim : E) (cap cap' : List E) (claim' : E) : Prop :=
   ∃ (cs : List (List E)) (es : List E),
-    cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ TbReadsAt rd cur cs.flatten ∧
-    es.length = n ∧ TbReadsAt rd pt es ∧
-    TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim ⟨cap, []⟩).1 ∧
+    cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ ReadsAt rd cur cs.flatten ∧
+    es.length = n ∧ ReadsAt rd pt es ∧
+    ReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim ⟨cap, []⟩).1 ∧
     cap' = (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧ claim' = (gkrRun cs es claim ⟨cap, []⟩).2.1
 
 theorem glRun_zero {rd : Reader} {cur pt claim : E} {cap : List E} :
     GlRun rd 0 cur pt claim cap cap claim :=
-  ⟨[], [], rfl, by simp, tbReadsAt_nil _ _, rfl, tbReadsAt_nil _ _, tbReadsAt_nil _ _, rfl, rfl⟩
+  ⟨[], [], rfl, by simp, readsAt_nil _ _, rfl, readsAt_nil _ _, readsAt_nil _ _, rfl, rfl⟩
 
 /-- **Two runs in sequence.** -/
 theorem glRun_append {rd : Reader} {n1 n2 : ℕ} {cur pt claim claim1 claim2 : E}
@@ -115,25 +115,25 @@ theorem glRun_one {B q : ℕ} {cur pt npt : V} {noff : ℕ} {claimV : V} {cap : 
       ((glCap (B + 20)).map σ) (σ (.n (B + 38))) := by
   obtain ⟨xs, hl, hrd, hch, hcap, hst, e, he, hcl⟩ := holds_gkRoundN h
   have hst' : LoadHolds rd (σ pt * gen ^ q) 42 (σ (.n (B + 12))) := by
-    rw [tb_loadHolds_mul_gen_pow, Nat.add_comm, ← tb_loadHolds_mul_gen_pow, ← hnpt,
-      tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow, Nat.add_comm, ← loadHolds_mul_gen_pow, ← hnpt,
+      loadHolds_mul_gen_pow]
     exact hst
   refine ⟨[xs], [e], rfl, by simp [hl], ?_, rfl, ?_, ?_, ?_, ?_⟩
   · intro k hk
     simp only [List.flatten_cons, List.flatten_nil, List.append_nil] at hk ⊢
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     have := hrd k (by omega)
     simpa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk] using this
   · intro k hk
     simp only [List.length_cons, List.length_nil] at hk
     obtain rfl : k = 0 := by omega
-    rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+    rw [loadHolds_mul_gen_pow, Nat.add_zero]
     exact he
   · intro k hk
     simp only [gkrRun, List.length_cons, List.length_nil] at hk
     obtain rfl : k = 0 := by omega
     simp only [gkrRun, List.getElem_cons_zero]
-    rw [← hch, tb_loadHolds_mul_gen_pow, Nat.add_zero]
+    rw [← hch, loadHolds_mul_gen_pow, Nat.add_zero]
     exact hst'
   · simp only [gkrRun]
     rw [← hcap]

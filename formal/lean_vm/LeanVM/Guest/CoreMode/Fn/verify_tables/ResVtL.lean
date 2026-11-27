@@ -93,10 +93,10 @@ theorem l10_next {x N rounds tabs rkb cprod cur : E} {rets : List E} {j : ℕ}
     simp only [Atom.Holds] at m6 m7 m8 m9 m10 l11 c51 m52 l13
     have e10 : σ (.n 10) = σ (.n 2) * σ (.n 0) ^ 7 := by rw [m10, m9, m8, m7, m6]; ring
     rw [e10] at l11 l13
-    obtain rfl := Tables.tb_loadHolds_unique l11 h0
+    obtain rfl := LeanVM.Guest.B1.loadHolds_unique l11 h0
     rw [m52, c51, word_eight] at l13
     rw [show (gen ^ (j + 1)) ^ 7 = (gen ^ j) ^ 7 * gen ^ 7 by ring, ← mul_assoc,
-      Tables.tb_loadHolds_mul_gen_pow, ← hx]
+      LeanVM.Guest.B1.loadHolds_mul_gen_pow, ← hx]
     exact l13
 
 /-! ## `verify_tables`' calls -/

@@ -295,8 +295,8 @@ theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds r
           have hst := hh _ he3
           simp only [Ev.Holds, Atom.Holds] at hst
           rw [veq_eq hT, ho] at hst
-          rw [hJe, ← Value.gen_pow_eq_ofK, B1.Tables.tb_loadHolds_mul_gen_pow] at hld
-          rw [B1.Tables.tb_loadHolds_unique hld hst]
+          rw [hJe, ← Value.gen_pow_eq_ofK, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hld
+          rw [LeanVM.Guest.B1.loadHolds_unique hld hst]
           exact hnz w hw
         | _ => simp at h3
       · simp at h2
@@ -480,8 +480,8 @@ theorem selTabAt_sound (hM : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Hold
     have hst := hh _ he3
     simp only [Ev.Holds, Atom.Holds] at hst
     rw [veq_eq hT, ho] at hst
-    rw [hJe, ← Value.gen_pow_eq_ofK, B1.Tables.tb_loadHolds_mul_gen_pow] at hld
-    rw [B1.Tables.tb_loadHolds_unique hld hst]
+    rw [hJe, ← Value.gen_pow_eq_ofK, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hld
+    rw [LeanVM.Guest.B1.loadHolds_unique hld hst]
     exact nzOf_sound hM (by simp) hh hup _ _ hw
   | _ => simp at h3
 

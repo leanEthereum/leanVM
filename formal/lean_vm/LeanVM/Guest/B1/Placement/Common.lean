@@ -57,8 +57,8 @@ theorem tb_rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {K : ℕ
 
 /-- A run of mapped words, entry by entry. -/
 theorem tbReadsAt_map_iff {rd : Reader} {p : E} {l : List ℕ} {f : ℕ → E} :
-    TbReadsAt rd p (l.map f) ↔ ∀ c < l.length, LoadHolds rd p c (f (l.getD c 0)) := by
-  unfold TbReadsAt
+    ReadsAt rd p (l.map f) ↔ ∀ c < l.length, LoadHolds rd p c (f (l.getD c 0)) := by
+  unfold ReadsAt
   constructor
   · intro h c hc
     have := h c (by simpa using hc)
@@ -152,7 +152,7 @@ theorem tb_stackOffsets_length (sizes : List ℕ) : (stackOffsets sizes).1.lengt
 
 /-- `g^33`, as the data writes it: the range check below `SIZE_BITS = 34`. -/
 theorem word_g33 : word 8589934592 0 = ofK (Parameters.addressOfIndex 33) := by
-  rw [tb_word_eOfNat]
+  rw [word_eOfNat]
   show ofK (K.ofBits 8589934592) = ofK (Parameters.addressOfIndex 33)
   rw [show K.ofBits 8589934592 = Parameters.addressOfIndex 33 by decide +kernel]
 

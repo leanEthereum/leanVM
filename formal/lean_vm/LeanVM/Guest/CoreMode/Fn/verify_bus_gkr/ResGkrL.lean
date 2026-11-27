@@ -62,13 +62,13 @@ theorem gll_next {p o : ℕ} (hp : p < 4) (ho : o < 2) {rd : Reader} {σ : Core.
   simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at hA
   obtain ⟨m6, m7, m8, m9, m10, l17, c339, m340, l340⟩ := hA
   simp only [Atom.Holds] at m6 m7 m8 m9 m10 l17 c339 m340 l340
-  rw [tb_word_two_pow (by norm_num)] at c339
+  rw [LeanVM.Guest.B1.word_two_pow (by norm_num)] at c339
   have hrd : σ (.n (valf% «gkr_layer» «_loop0» "rd")) = σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7 := by
     rw [m10, m9, m8, m7, m6]; ring
   rw [hrd] at l17 l340
-  obtain rfl : σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur := tb_loadHolds_unique l17 h0
+  obtain rfl : σ (.n (valf% «gkr_layer» «_loop0» "cur")) = cur := LeanVM.Guest.B1.loadHolds_unique l17 h0
   refine ⟨rfl, ?_⟩
-  have h := (tb_loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 7 5 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
+  have h := (LeanVM.Guest.B1.loadHolds_mul_gen_pow rd (σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7) 7 5 (σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ 32)).mpr
     (by rw [← c339, ← m340]; exact l340)
   rwa [mul_assoc, ← mul_pow] at h
 
@@ -145,7 +145,7 @@ theorem glLQ_step (hr : r.Ok) :
       have hw2 := hw
       rw [hbL] at hw2
       have := hh _ (topAtoms_on_path hw2 (List.contains_iff_mem.mp hat))
-      simpa [Ev.Holds, Atom.Holds, tb_word_one] using this
+      simpa [Ev.Holds, Atom.Holds, LeanVM.Guest.B1.word_one] using this
     have hhd : J.hdr.2 = ofK (addressOfIndex I.fp) := by rw [hhdr, hH]
     obtain ⟨rest, hrest⟩ := glLoopArgs_eq p
     rw [hargs, hrest] at hpar

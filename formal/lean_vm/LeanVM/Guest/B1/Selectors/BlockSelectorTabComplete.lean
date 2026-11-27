@@ -181,8 +181,8 @@ theorem btk_xeLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have hl : 2 ^ btW n k - 2 + btkU n bs k < (eqLevels (nib zs k) (nib zs1 k)).length := by
     rw [eqLevels_length hlen hlen1, pow_succ]; omega
   have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).1) hl
-  rw [tb_loadHolds_mul_gen_pow] at h1
-  rw [tb_loadHolds_mul_gen_pow,
+  rw [loadHolds_mul_gen_pow] at h1
+  rw [loadHolds_mul_gen_pow,
     show btkU n bs k + (32 * k + 2 ^ btW n k - 2) = 32 * k + (2 ^ btW n k - 2 + btkU n bs k) by
       omega]
   exact h1
@@ -195,8 +195,8 @@ theorem btk_xgLoad {rd : Reader} {eqt gt : E} {n : ℕ} {zs zs1 gs : List E} (bs
   have hl : btkU n bs k < (gTable (nib gs k)).length := by
     rw [gTable_length hlen]; exact btkU_lt n bs k
   have h1 := tbReadsAt_getD ((hrt k (by simpa [btN] using hk)).2) hl
-  rw [tb_loadHolds_mul_gen_pow] at h1
-  rw [tb_loadHolds_mul_gen_pow, add_comm]
+  rw [loadHolds_mul_gen_pow] at h1
+  rw [loadHolds_mul_gen_pow, add_comm]
   exact h1
 
 /-- Nibble `k`'s eq weight, as a product. -/
@@ -272,7 +272,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
           LoadHolds rd (gen ^ (2 ^ btW n k - 1 - btkU n bs k)) 0
             (cskRd rd (2 ^ btW n k - 1 - btkU n bs k)) :=
         ⟨csk_load hlow (by omega), by
-          rw [← pow_add, Nat.add_sub_cancel' (by omega), tb_word_two_pow (by omega)],
+          rw [← pow_add, Nat.add_sub_cancel' (by omega), word_two_pow (by omega)],
           csk_load hlow (by omega)⟩
       have hxe := btk_xeLoad bs hzl hz1l hrt hk
       have hxg := btk_xgLoad bs hgl hrt hk
@@ -348,7 +348,7 @@ theorem block_selector_tab_complete_holds : block_selector_tab_complete_Spec := 
       obtain rfl := List.length_eq_zero_iff.mp hzl
       obtain rfl := List.length_eq_zero_iff.mp hz1l
       obtain rfl := List.length_eq_zero_iff.mp hgl
-      simp [btRet, hF, btkVal, bitsEq, bitsPow, tb_word_one]
+      simp [btRet, hF, btkVal, bitsEq, bitsPow, word_one]
     · simp only [btRet, h0, ↓reduceIte, List.map_cons, List.map_nil]
       show [F (btC (btN n)), F (btC (btN n) + 1)] = _
       obtain ⟨h1, h2⟩ := btk_products h0 hbl hzl hz1l hgl

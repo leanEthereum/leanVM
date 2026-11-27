@@ -120,10 +120,10 @@ theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   obtain ⟨c1, c2, e277, m278, e279, r278, hn⟩ := h
   refine ⟨?_, hn⟩
   -- the placement
-  have hsq : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares"))) Tables.gSquaresList := fun k hk ↦ by
+  have hsq : LeanVM.Guest.B1.ReadsAt L.read (σ (.n (val% «verify_sub» "g_squares"))) Tables.gSquaresList := fun k hk ↦ by
     simp only [Tables.gSquaresList, List.length_map, List.length_range] at hk
     simpa [Tables.gSquaresList] using hexp.1 k hk
-  have hrk : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares")) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
+  have hrk : LeanVM.Guest.B1.ReadsAt L.read (σ (.n (val% «verify_sub» "g_squares")) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
     simp only [Tables.rankKeysList, List.length_map, List.length_range] at hk
     rw [loadHolds_mul_gen_pow]
     simpa [Tables.rankKeysList] using hexp.2.2.1 k hk

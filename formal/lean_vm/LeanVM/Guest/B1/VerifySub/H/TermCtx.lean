@@ -108,7 +108,7 @@ theorem ptsP_length (hr : H.rows.length = 6) (hlmμ : H.lm ≤ H.point.length)
 theorem vtH_tctx (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 23)
     (hlmμ : H.lm ≤ H.point.length) (h19 : 19 ≤ H.point.length)
     (hτμ : ∀ t < 6, vtHt H.rows t ≤ H.point.length) {rd : Reader} {zeta chi : E}
-    (hz : TbReadsAt rd zeta H.point) (hc : TbReadsAt rd chi H.chiW) :
+    (hz : ReadsAt rd zeta H.point) (hc : ReadsAt rd chi H.chiW) :
     TCtx rd H.L H.bus H.claims [zeta, chi, H.rm, gen ^ H.point.length, gen ^ H.n] := by
   have hbus : H.bus = H.busH := (vt_spec h).2.2.1
   have hcol := vtH_columns h hr
@@ -169,7 +169,7 @@ theorem nT_le (hbl : bytecode.length = 2 ^ 23) : S.nT ≤ 30 := by
 /-- **`verify_tables`' context on an honest child**, on a memory holding the bus point at `zeta`
 and `chi`'s words. -/
 theorem H_tctx (hbl : bytecode.length = 2 ^ 23) {rd : Reader} {zeta chi : E}
-    (hz : Tables.TbReadsAt rd zeta S.rG.2.1) (hc : Tables.TbReadsAt rd chi S.H.chiW) :
+    (hz : LeanVM.Guest.B1.ReadsAt rd zeta S.rG.2.1) (hc : LeanVM.Guest.B1.ReadsAt rd chi S.H.chiW) :
     Tables.TCtx rd S.layout S.bus S.claims [zeta, chi, S.H.rm, gen ^ S.d, gen ^ S.nT] := by
   obtain ⟨h, -, -, -⟩ := S.H_run hbl
   have hs := S.H_shape hbl

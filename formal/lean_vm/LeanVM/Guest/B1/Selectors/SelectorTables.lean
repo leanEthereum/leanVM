@@ -70,7 +70,7 @@ def stPre : List Stmt :=
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && stmtsEqb fn.body (stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
@@ -82,7 +82,7 @@ theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem stLevel_noRet (j w : ℕ) : Stmt.noRetList (stLevel j w) = true := by
@@ -166,15 +166,15 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
 
 /-- **The eq levels of nibble `j`**: level `w`'s entry `i` is the table's entry `i·2^(3 - w)`. -/
 theorem stLevels {j : ℕ} (hj : j < 8) {p p1 : List E} (hp : p.length = 32) (hp1 : p1.length = 32)
-    (hpt : TbReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : TbReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
+    (hpt : ReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : ReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
     (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     ∀ w < 4, ∀ i < 2 ^ (w + 1), σ (.n (stV j w i)) = selEqEntry p p1 j w (i * 2 ^ (3 - w)) := by
   obtain ⟨⟨l0, l1⟩, hL1, hL2, hL3, -⟩ := holds_stNib h
-  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → TbReadsAt rd pq q → ∀ s < 4, ∀ x,
+  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → ReadsAt rd pq q → ∀ s < 4, ∀ x,
       LoadHolds rd pq (4 * j + s) x → x = q.getD (4 * j + s) 0 := fun q pq hq hr s hs x hx => by
     have := hr (4 * j + s) (by omega)
     rw [List.getD_eq_getElem _ _ (by omega)]
-    exact tb_loadHolds_unique hx this
+    exact loadHolds_unique hx this
   intro w hw
   induction w with
   | zero =>

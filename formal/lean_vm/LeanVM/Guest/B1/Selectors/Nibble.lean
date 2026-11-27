@@ -176,7 +176,7 @@ theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0)
     intro u hu
     rw [Finset.prod_range_one]
     interval_cases u
-    · simp [nbGV, bitPick, h1, tb_word_one]
+    · simp [nbGV, bitPick, h1, word_one]
     · simp [nbGV, bitPick, nbGL]
   | succ t ih =>
     intro u hu
@@ -203,8 +203,8 @@ theorem nbGs {c : ℕ} {pgs : V} {w : ℕ} (h1 : σ (.n c) = word 1 0)
 their eq levels. -/
 theorem holds_nbEq {B : ℕ} {pz pz1 peq : V} {w : ℕ} (hw1 : 1 ≤ w) (hw4 : w ≤ 4)
     (h : Stmt.HoldsList C rd σ (nbEq B pz pz1 peq w) True kret) :
-    ∃ zs zs1 : List E, zs.length = w ∧ zs1.length = w ∧ TbReadsAt rd (σ pz) zs ∧
-      TbReadsAt rd (σ pz1) zs1 ∧ TbReadsAt rd (σ peq) (eqLevels zs zs1) := by
+    ∃ zs zs1 : List E, zs.length = w ∧ zs1.length = w ∧ ReadsAt rd (σ pz) zs ∧
+      ReadsAt rd (σ pz1) zs1 ∧ ReadsAt rd (σ peq) (eqLevels zs zs1) := by
   have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => nbLevel_noRet B pz pz1 (t + 1))
   have n0 : Stmt.noRetList [Stmt.atom (.load (.n B) pz1 0), Stmt.atom (.load (.n (B + 1)) pz 0)] =
     true := rfl
@@ -275,7 +275,7 @@ theorem holds_nbEq {B : ℕ} {pz pz1 peq : V} {w : ℕ} (hw1 : 1 ≤ w) (hw4 : w
 /-- **`sel_g_nibble`**: for `1 ≤ w`, it reads `w` shares and stores their `g`-power table. -/
 theorem holds_nbG {c : ℕ} {pgs pgo : V} {w : ℕ} (hw1 : 1 ≤ w)
     (h : Stmt.HoldsList C rd σ (nbG c pgs pgo w) True kret) :
-    ∃ gl : List E, gl.length = w ∧ TbReadsAt rd (σ pgs) gl ∧ TbReadsAt rd (σ pgo) (gTable gl) := by
+    ∃ gl : List E, gl.length = w ∧ ReadsAt rd (σ pgs) gl ∧ ReadsAt rd (σ pgo) (gTable gl) := by
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => nbGStep_noRet c pgs (t + 1))
   have n0 : Stmt.noRetList [Stmt.atom (.const (.n c) (word 1 0)),
     Stmt.atom (.load (.n (c + 1)) pgs 0)] = true := rfl

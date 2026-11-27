@@ -127,7 +127,7 @@ def block_lemma(t,sd,bi,s,B,blk,ch,diff=False):
     for q in sorted(acc):
         o=parse_atom(RAW[q])
         if o[0]=='load':
-            L.append(f'  have e{q} := tb_loadHolds_unique a{q} (hw {o[1][2]} (by norm_num))')
+            L.append(f'  have e{q} := loadHolds_unique a{q} (hw {o[1][2]} (by norm_num))')
             rws.append(f'e{q}')
         else:
             rws.append(f'a{q}')
