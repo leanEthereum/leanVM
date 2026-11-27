@@ -910,21 +910,13 @@ impl Table for KeccakTable {
                 F64(if high { free.c1 } else { free.c0 }),
             ]);
         });
-        // The permutations eight at a time, with the batched one.
-        let outputs = parallel::map_collect(rows.len().div_ceil(8), |g| {
-            let mut states = [[0; primitives::hash::STATE_LANES]; 8];
-            for (state, r) in states.iter_mut().zip(&rows[8 * g..]) {
-                let k = op(r);
-                *state = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
-            }
-            primitives::hash::keccak_f_many(&mut states);
-            states
-        })
-        .into_flattened();
         ctx.fill_cols(out, rows.len(), V_OUT..N, &|i, v| {
             let r = &rows[i];
+            let k = op(r);
+            let mut state = state_of_cells(k.in_odd, |c| ctx.mem.word(k.cell(r.fp, c) as usize));
+            primitives::hash::keccak_f(&mut state);
             let (lanes, counts) = v.split_at_mut(R0 - V_OUT);
-            for (slot, &w) in lanes.iter_mut().zip(&outputs[i]) {
+            for (slot, &w) in lanes.iter_mut().zip(&state) {
                 *slot = F64(w);
             }
             for (slot, &k) in counts.iter_mut().zip(r.r.iter().chain([&r.bytecode_read])) {
