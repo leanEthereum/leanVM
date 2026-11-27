@@ -36,13 +36,11 @@ namespace Rv64mc.Proof.Layout.CountedT
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters Rv64mc.Spec.Runtime Rv64mc.Spec.Layout
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
-open Rv64mc.Proof.Runtime.VecReprT (BufT VecT)
-open Rv64mc.Proof.Runtime.GrowOne (rvCapAt_eq rvPtrAt_eq)
-open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq)
-open Rv64mc.Proof.Layout.FormReprT (FormT FormsT vecT_lt)
+open Rv64mc.Proof.Runtime.VecReprT (VecT)
+open Rv64mc.Proof.Layout.FormReprT (FormT)
 open Rv64mc.Proof.Layout.FromElemVecFormT (VecFormT)
-open Rv64mc.Proof.Layout.ExtendTrustedT (InFoot VecFormT.foot_lt VecFormT.keep')
-open Rv64mc.Proof.Layout.PairT (FlushesT OutT KeptOrFresh)
+open Rv64mc.Proof.Layout.ExtendTrustedT (InFoot VecFormT.keep')
+open Rv64mc.Proof.Layout.PairT (FlushesT OutT)
 open Rv64mc.Proof.Layout.PairFormT (lo hi HeldT FlushesFormT vecT_bufCap)
 open Rv64mc.Proof.Layout.PlacementNextT (StackObj)
 open Rv64mc.Proof.Layout.ConcatFormT (SliceFT keepM)
@@ -300,9 +298,7 @@ theorem saved_get {m : MachineState} {top ret x : Word} {regs : Reg → Word} (h
     (hx : x.toNat < top.toNat - 72 ∨ top.toNat ≤ x.toNat) : (saved m top ret regs).getMem x = m.getMem x := by
   obtain ⟨e8, e16, e24, e32, e40, e48, e56, e64, e72, -⟩ := offs (top := top) h192
   unfold saved
-  rw [StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega),
-    StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega),
-    StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega)]
+  repeat rw [StateDerivedT.get_ne (by omega)]
 
 /-- The stores before the first `concat`: the frame, the nine saved words, the code. -/
 theorem chainA_ok {m : MachineState} {top ret : Word} {regs : Reg → Word}
@@ -354,8 +350,7 @@ theorem chainB_get {M : MachineState} {top x : Word} {regs : Reg → Word} (h192
     (hx : x.toNat < top.toNat - 144 ∨ top.toNat - 96 ≤ x.toNat) : (chainB M top regs).getMem x = M.getMem x := by
   obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, e104, e112, e120, e128, e136, e144, -, -⟩ := offs (top := top) h192
   unfold chainB
-  rw [StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega),
-    StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega), StateDerivedT.get_ne (by omega)]
+  repeat rw [StateDerivedT.get_ne (by omega)]
 
 theorem chainB_frame {m M : MachineState} {top : Word} {regs : Reg → Word}
     (hlim : env.stackLimit.toNat + 192 ≤ top.toNat) (hF : env.Frame top Tactic.F m M) :
@@ -430,20 +425,6 @@ theorem newV_of {m M M' : MachineState} {R r : Reg → Word} (h : CPost env R M 
   unfold CPost at h
   exact ⟨h.1, fun b hb => by have := ConcatFormT.PostT.foot h b hb; omega⟩
 
-/-- `self`'s buffers in a memory keeping its 48 bytes. -/
-theorem lohi_eq {m M : MachineState} {a : Word} (hlt : a.toNat + 48 < 2 ^ 64)
-    (hs : ∀ b : Word, a.toNat ≤ b.toNat → b.toNat < a.toNat + 48 → M.getMem b = m.getMem b) :
-    lo M a = lo m a ∧ hi M a = hi m a ∧ lo M (a + 24#64) = lo m (a + 24#64) ∧
-      hi M (a + 24#64) = hi m (a + 24#64) := by
-  have w : ∀ k, k ≤ 40 → M.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) := fun k hk' => by
-    have ek : (a + BitVec.ofNat 64 k).toNat = a.toNat + k := toNat_add_ofNat (by omega)
-    exact hs _ (by omega) (by omega)
-  have a8 : a + 24#64 + 8#64 = a + 32#64 := by rw [BitVec.add_assoc]; rfl
-  unfold lo hi
-  simp only [vecPtr_eq, vecCap_eq, a8]
-  rw [show M.getMem a = m.getMem a by simpa using w 0 (by omega), w 8 (by omega), w 24 (by omega), w 32 (by omega)]
-  exact ⟨rfl, rfl, rfl, rfl⟩
-
 /-- **`pair`'s precondition** (template step 53): `self` kept from the entry, `push` and `pull` the two fresh
     `Vec<Form>`s at `top - 192` and `top - 168`. -/
 theorem pair_pre {m M : MachineState} {top : Word} {regs R' : Reg → Word} (hP : PreT env regs m)
@@ -461,7 +442,7 @@ theorem pair_pre {m M : MachineState} {top : Word} {regs R' : Reg → Word} (hP 
   have kM := keepM (by omega) hF
   obtain ⟨hFM, -⟩ := StateDerivedT.FlushesFormT.keep hFF hF.1 (fun b hb => kM b (.inl hb))
     (fun b h1 h2 => kM b (.inr (by omega)))
-  have hl := lohi_eq (m := m) (M := M) (a := regs .x10) (by omega) fun b h1 h2 => kM b (.inr (by omega))
+  have hl := StateDerivedT.lohi_eq (m := m) (M := M) (a := regs .x10) (by omega) fun b h1 h2 => kM b (.inr (by omega))
   unfold PairFormT.PreT PairT.PreT PairT.FlushesT
   rw [r2, r10, r11, r12]
   exact ⟨⟨⟨hFM.1, hFM.2.1, ⟨by omega, ha2⟩, hFM.2.2.1⟩, hal, ⟨by omega, by omega⟩, by omega, ⟨by omega, by omega⟩,
@@ -485,43 +466,7 @@ theorem fin_post {m M m1 : MachineState} {top ret : Word} {regs R' r1 : Reg → 
   obtain ⟨e8, e16, e24, e32, e40, e48, e56, e64, e72, -, -, -, -, -, -, -, -, -, -, e192⟩ :=
     offs (top := top) (by omega)
   have kC := keepM (by omega) hF
-  have ea : ∀ k, k ≤ 40 → (regs .x10 + BitVec.ofNat 64 k).toNat = (regs .x10).toNat + k :=
-    fun k hk => toNat_add_ofNat (by omega)
-  have e24' := ea 24 (by omega)
-  have ka : ∀ x : Word, (regs .x10).toNat ≤ x.toNat → M.getMem x = m.getMem x := fun x hx => kC x (.inr (by omega))
-  have a8 : regs .x10 + 24#64 + 8#64 = regs .x10 + 32#64 := StateDerivedT.add_add rfl
-  have a16 : regs .x10 + 24#64 + 16#64 = regs .x10 + 40#64 := StateDerivedT.add_add rfl
-  have w0 := ka (regs .x10) (by omega)
-  have w8 := ka (regs .x10 + 8#64) (by rw [ea 8 (by omega)]; omega)
-  have w16 := ka (regs .x10 + 16#64) (by rw [ea 16 (by omega)]; omega)
-  have w24 := ka (regs .x10 + 24#64) (by omega)
-  have w32 := ka (regs .x10 + 32#64) (by rw [ea 32 (by omega)]; omega)
-  have w40 := ka (regs .x10 + 40#64) (by rw [ea 40 (by omega)]; omega)
-  have hout : ∀ b, PairT.OutT R' M b → OutT regs m b := fun b hb => by
-    unfold OutT PairT.SlotOut at hb ⊢
-    rw [r10, a8, a16, w0, w8, w16, w24, w32, w40] at hb
-    rw [a8, a16]
-    exact hb
-  have bv1 := vecT_bufCap hV1
-  have bv2 := vecT_bufCap hV2
-  have slotLow : ∀ b, OutT regs m b → b.toNat < (env.next m).toNat ∨ (regs .x10).toNat ≤ b.toNat := fun b hb => by
-    unfold OutT PairT.SlotOut InRange at hb
-    rw [vecPtr_eq, vecCap_eq] at bv1
-    rw [vecPtr_eq, vecCap_eq, a8] at bv2
-    rcases hb with hb | hb | hb
-    · exact .inr hb.1
-    · rcases bv1 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 16#64)).toNat + 24 ≤ (m.getMem (regs .x10)).toNat * 24 := by omega
-        exact .inl (by omega)
-    · rw [a8, a16] at hb
-      rcases bv2 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 40#64)).toNat + 24 ≤ (m.getMem (regs .x10 + 24#64)).toNat * 24 := by
-          omega
-        exact .inl (by omega)
+  obtain ⟨hout, slotLow, hpost⟩ := StateDerivedT.self_kept hV1 hV2 hmM (fun x hx _ => kC x (.inr (by omega))) r10
   have k1 : ∀ x : Word, top.toNat - 72 ≤ x.toNat → x.toNat < top.toNat → m1.getMem x = M.getMem x :=
     fun x l1 l2 => hFp.2.2 x fun hw => by
       rcases hw with hw | hw | hw | hw
@@ -539,16 +484,7 @@ theorem fin_post {m M m1 : MachineState} {top ret : Word} {regs R' r1 : Reg → 
     by rw [k1 _ (by omega) (by omega), t9]⟩, F2, fun r' => ?_⟩
   unfold StateDerivedT.PPost PairFormT.PostT PairT.PostT PairT.PostM at hPo
   obtain ⟨⟨-, hl1, hl2, -, -, hK1, hK2⟩, hFF1⟩ := hPo
-  rw [r10] at hl1 hl2 hK1 hK2 hFF1
-  refine ⟨hFF1, ?_, ?_, ?_, ?_⟩
-  · rw [hl1, vecLen_eq, vecLen_eq, w16]
-  · rw [hl2, vecLen_eq, vecLen_eq, a16, w40]
-  · rcases hK1 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, w8], by rw [hc, vecCap_eq, vecCap_eq, w0]⟩
-    · exact .inr (by omega)
-  · rcases hK2 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, a8, w32], by rw [hc, vecCap_eq, vecCap_eq, w24]⟩
-    · exact .inr (by omega)
+  exact hpost r1 r' m1 ⟨hFF1, hl1, hl2, hK1, hK2⟩
 
 set_option rv_sym.heap true in
 /-- **From the second `concat`'s return** (instruction 98): `pair`, then the return. -/

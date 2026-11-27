@@ -47,9 +47,7 @@ theorem preT_of_ringPsiT {env : Env} {v : E} {gs : List E} {regs : Reg → Word}
 /-- **The second contract gives `RingPsiT`'s.** -/
 theorem specT.ringPsiT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} (h : specT env p i need) :
     RingPsiT.specT env p i need := fun v gs =>
-  Isa.TContract.mono (h v gs)
-    (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, preT_of_ringPsiT hP, hal⟩, hw⟩)
-    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
+  Multilinear.OwnSliceT.mono_pre (h v gs) fun _ _ => preT_of_ringPsiT
 
 /-- What one pass computes, from the element of `g` the loop loads through the frame, `g` `OwnSlice`. -/
 theorem body_psi {env : Env} {top : Word} {m M : MachineState} {v : E} {gs : List E} {q : Word} {j : Nat}

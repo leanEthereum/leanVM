@@ -185,6 +185,37 @@ theorem elemsHeld_keep {m M : MachineState} {a v : Word} (hV : VecT env m v 24) 
   · rw [l1, h1]; exact hs.2.1 x (hsub x hx)
   · rw [l2, h2]; exact hs.2.2 x (hsub x hx)
 
+/-- `self`'s six words in a memory keeping its 48 bytes. -/
+theorem kept48 {m M : MachineState} {a : Word} (hlt : a.toNat + 48 < 2 ^ 64)
+    (hs : ∀ b : Word, a.toNat ≤ b.toNat → b.toNat < a.toNat + 48 → M.getMem b = m.getMem b) :
+    M.getMem a = m.getMem a ∧ M.getMem (a + 8#64) = m.getMem (a + 8#64) ∧
+      M.getMem (a + 16#64) = m.getMem (a + 16#64) ∧ M.getMem (a + 24#64) = m.getMem (a + 24#64) ∧
+      M.getMem (a + 32#64) = m.getMem (a + 32#64) ∧ M.getMem (a + 40#64) = m.getMem (a + 40#64) := by
+  have w : ∀ k, k ≤ 40 → M.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) := fun k hk' => by
+    have ek : (a + BitVec.ofNat 64 k).toNat = a.toNat + k := toNat_add_ofNat (by omega)
+    exact hs _ (by omega) (by omega)
+  exact ⟨by simpa using w 0 (by omega), w 8 (by omega), w 16 (by omega), w 24 (by omega), w 32 (by omega),
+    w 40 (by omega)⟩
+
+/-- `self`'s buffers in a memory keeping its 48 bytes. -/
+theorem lohi_eq {m M : MachineState} {a : Word} (hlt : a.toNat + 48 < 2 ^ 64)
+    (hs : ∀ b : Word, a.toNat ≤ b.toNat → b.toNat < a.toNat + 48 → M.getMem b = m.getMem b) :
+    lo M a = lo m a ∧ hi M a = hi m a ∧ lo M (a + 24#64) = lo m (a + 24#64) ∧
+      hi M (a + 24#64) = hi m (a + 24#64) := by
+  obtain ⟨w0, w8, -, w24, w32, -⟩ := kept48 hlt hs
+  have a8 : a + 24#64 + 8#64 = a + 32#64 := by rw [BitVec.add_assoc]; rfl
+  unfold lo hi
+  simp only [vecPtr_eq, vecCap_eq, a8, w0, w8, w24, w32]
+  exact ⟨trivial, trivial, trivial, trivial⟩
+
+/-- `self`'s buffers in a memory keeping its 48 bytes. -/
+theorem off_eq {m M : MachineState} {a : Word} (hlt : a.toNat + 48 < 2 ^ 64)
+    (hs : ∀ b : Word, a.toNat ≤ b.toNat → b.toNat < a.toNat + 48 → M.getMem b = m.getMem b) : Off M a = Off m a := by
+  obtain ⟨l1, h1, l2, h2⟩ := lohi_eq hlt hs
+  funext x
+  unfold Off
+  rw [l1, h1, l2, h2]
+
 /-- **A `Flushes` of `Form`s is kept** by a memory agreeing below `NEXT` and on its 48 bytes. -/
 theorem FlushesFormT.keep {m M : MachineState} {a : Word} (h : FlushesFormT env m a)
     (hn : (env.next m).toNat ≤ (env.next M).toNat)
@@ -195,29 +226,15 @@ theorem FlushesFormT.keep {m M : MachineState} {a : Word} (h : FlushesFormT env 
   have hlt := vecT_lt hV1
   have hlt2 := vecT_lt hV2
   have e24 : (a + 24#64).toNat = a.toNat + 24 := toNat_add_ofNat (by omega)
-  have w : ∀ k, k ≤ 40 → M.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) := fun k hk' => by
-    have ek : (a + BitVec.ofNat 64 k).toNat = a.toNat + k := toNat_add_ofNat (by omega)
-    exact hs _ (by omega) (by omega)
-  have w0 : M.getMem a = m.getMem a := by simpa using w 0 (by omega)
-  have w8 : M.getMem (a + 8#64) = m.getMem (a + 8#64) := w 8 (by omega)
-  have w16 : M.getMem (a + 16#64) = m.getMem (a + 16#64) := w 16 (by omega)
-  have w24 : M.getMem (a + 24#64) = m.getMem (a + 24#64) := w 24 (by omega)
-  have w32 : M.getMem (a + 32#64) = m.getMem (a + 32#64) := w 32 (by omega)
-  have w40 : M.getMem (a + 40#64) = m.getMem (a + 40#64) := w 40 (by omega)
+  obtain ⟨w0, w8, w16, w24, w32, w40⟩ := kept48 (by omega) hs
   have a8 : a + 24#64 + 8#64 = a + 32#64 := by rw [BitVec.add_assoc]; rfl
   have a16 : a + 24#64 + 16#64 = a + 40#64 := by rw [BitVec.add_assoc]; rfl
-  have hlo : lo M a = lo m a ∧ hi M a = hi m a ∧ lo M (a + 24#64) = lo m (a + 24#64) ∧
-      hi M (a + 24#64) = hi m (a + 24#64) := by
-    unfold lo hi
-    simp only [vecPtr_eq, vecCap_eq, a8, w0, w8, w24, w32]
-    exact ⟨trivial, trivial, trivial, trivial⟩
-  have hoff : Off M a = Off m a := by
-    funext x; unfold Off; rw [hlo.1, hlo.2.1, hlo.2.2.1, hlo.2.2.2]
+  have hlo := lohi_eq (by omega) hs
   refine ⟨⟨vecT_keep hV1 hn fun b h1 h2 => hs b h1 (by omega),
     vecT_keep hV2 hn fun b h1 h2 => hs b (by omega) (by omega), ?_,
     elemsHeld_keep hV1 hE1 hn hk (by rw [vecPtr_eq, vecPtr_eq, w8]) (by rw [vecLen_eq, vecLen_eq, w16]) hlo,
     elemsHeld_keep hV2 hE2 hn hk (by rw [vecPtr_eq, vecPtr_eq, a8, w32])
-      (by rw [vecLen_eq, vecLen_eq, a16, w40]) hlo⟩, hoff⟩
+      (by rw [vecLen_eq, vecLen_eq, a16, w40]) hlo⟩, off_eq (by omega) hs⟩
   unfold BufsApart
   rw [w0, w8, w24, w32]
   exact hBA
@@ -292,22 +309,8 @@ theorem chain2_get {M : MachineState} {B top : Word} (h112 : 112 ≤ top.toNat)
   have t48 := top_sub (top := top) (c := 18446744073709551568#64) (k := 48) rfl (by omega)
   simp only [chain2]
   refine ⟨fun x h1 h2 => ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega),
-      get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega)]
   all_goals
     repeat (first | rw [MachineState.getMem_setMem_eq] | rw [get_ne (by omega)])
-
-/-- `self`'s buffers in a memory keeping its 48 bytes. -/
-theorem off_eq {m M : MachineState} {a : Word} (hlt : a.toNat + 48 < 2 ^ 64)
-    (hs : ∀ b : Word, a.toNat ≤ b.toNat → b.toNat < a.toNat + 48 → M.getMem b = m.getMem b) : Off M a = Off m a := by
-  have w : ∀ k, k ≤ 40 → M.getMem (a + BitVec.ofNat 64 k) = m.getMem (a + BitVec.ofNat 64 k) := fun k hk' => by
-    have ek : (a + BitVec.ofNat 64 k).toNat = a.toNat + k := toNat_add_ofNat (by omega)
-    exact hs _ (by omega) (by omega)
-  have a8 : a + 24#64 + 8#64 = a + 32#64 := by rw [BitVec.add_assoc]; rfl
-  funext x
-  unfold Off lo hi
-  simp only [vecPtr_eq, vecCap_eq, a8]
-  rw [show M.getMem a = m.getMem a by simpa using w 0 (by omega), w 8 (by omega), w 24 (by omega), w 32 (by omega)]
 
 /-- **A held `Vec<Form>` is kept** by a memory agreeing on its header and footprint, `self`'s buffers the same. -/
 theorem HeldT.keep {M M' : MachineState} {a s : Word} (h : HeldT env M a s)
@@ -328,6 +331,57 @@ theorem terms_off {m M : MachineState} {a f : Word} {x0 : Nat} (h1 : VecT env m 
 
 /-- `t + c + k` as one offset. -/
 theorem add_add {t c k d : Word} (h : c + k = d) : t + c + k = t + d := by rw [BitVec.add_assoc, h]
+
+/-- **`self` kept from the entry `m` by `M`** (its 48 bytes, `NEXT` no lower): what `pair` writes from `M` it writes
+    from `m`, each slot it writes besides `self` below `NEXT`, and `PostT` from `M` is `PostT` from `m`. -/
+theorem self_kept {m M : MachineState} {regs R : Reg → Word} (hV1 : VecT env m (regs .x10) 24)
+    (hV2 : VecT env m (regs .x10 + 24#64) 24) (hn : (env.next m).toNat ≤ (env.next M).toNat)
+    (hs : ∀ b : Word, (regs .x10).toNat ≤ b.toNat → b.toNat < (regs .x10).toNat + 48 → M.getMem b = m.getMem b)
+    (r10 : R .x10 = regs .x10) :
+    (∀ b, OutT R M b → OutT regs m b) ∧
+      (∀ b, OutT regs m b → b.toNat < (env.next m).toNat ∨ (regs .x10).toNat ≤ b.toNat) ∧
+      ∀ r r' m1, PostT env R M r m1 → PostT env regs m r' m1 := by
+  have hlt := vecT_lt hV1
+  have hlt2 := vecT_lt hV2
+  have e24 : (regs .x10 + 24#64).toNat = (regs .x10).toNat + 24 := toNat_add_ofNat (by omega)
+  obtain ⟨w0, w8, w16, w24, w32, w40⟩ := kept48 (by omega) hs
+  have a8 : regs .x10 + 24#64 + 8#64 = regs .x10 + 32#64 := add_add rfl
+  have a16 : regs .x10 + 24#64 + 16#64 = regs .x10 + 40#64 := add_add rfl
+  refine ⟨fun b hb => ?_, fun b hb => ?_, fun r r' m1 hP => ?_⟩
+  · unfold OutT PairT.SlotOut at hb ⊢
+    rw [r10, a8, a16, w0, w8, w16, w24, w32, w40] at hb
+    rw [a8, a16]
+    exact hb
+  · have bv1 := vecT_bufCap hV1
+    have bv2 := vecT_bufCap hV2
+    unfold OutT PairT.SlotOut InRange at hb
+    rw [vecPtr_eq, vecCap_eq] at bv1
+    rw [vecPtr_eq, vecCap_eq, a8] at bv2
+    rcases hb with hb | hb | hb
+    · exact .inr hb.1
+    · rcases bv1 with h | ⟨-, h, -⟩
+      · omega
+      · unfold Env.Live at h
+        have : 24 * (m.getMem (regs .x10 + 16#64)).toNat + 24 ≤ (m.getMem (regs .x10)).toNat * 24 := by omega
+        exact .inl (by omega)
+    · rw [a8, a16] at hb
+      rcases bv2 with h | ⟨-, h, -⟩
+      · omega
+      · unfold Env.Live at h
+        have : 24 * (m.getMem (regs .x10 + 40#64)).toNat + 24 ≤ (m.getMem (regs .x10 + 24#64)).toNat * 24 := by
+          omega
+        exact .inl (by omega)
+  · obtain ⟨hFF1, hl1, hl2, hK1, hK2⟩ := hP
+    rw [r10] at hl1 hl2 hK1 hK2 hFF1
+    refine ⟨hFF1, ?_, ?_, ?_, ?_⟩
+    · rw [hl1, vecLen_eq, vecLen_eq, w16]
+    · rw [hl2, vecLen_eq, vecLen_eq, a16, w40]
+    · rcases hK1 with ⟨hp, hc⟩ | h
+      · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, w8], by rw [hc, vecCap_eq, vecCap_eq, w0]⟩
+      · exact .inr (by omega)
+    · rcases hK2 with ⟨hp, hc⟩ | h
+      · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, a8, w32], by rw [hc, vecCap_eq, vecCap_eq, w24]⟩
+      · exact .inr (by omega)
 
 /-- **`pair`'s precondition at instruction 72**, from the invariant at 53 and the stores between. -/
 theorem pair_pre {m M : MachineState} {top B : Word} {regs R' : Reg → Word}
@@ -451,44 +505,8 @@ theorem fin_post {m M m1 : MachineState} {top ret B : Word} {regs R' r1 : Reg �
     · omega
     · rw [hw] at hx; omega
     · exact hw
-  have ea : ∀ k, k ≤ 40 → (regs .x10 + BitVec.ofNat 64 k).toNat = (regs .x10).toNat + k :=
-    fun k hk => toNat_add_ofNat (by omega)
-  have e24 := ea 24 (by omega)
-  have ka : ∀ x : Word, (regs .x10).toNat ≤ x.toNat → (chain2 M B top).getMem x = m.getMem x :=
-    fun x hx => kC x (.inr (by omega))
-  have a8 : regs .x10 + 24#64 + 8#64 = regs .x10 + 32#64 := add_add rfl
-  have a16 : regs .x10 + 24#64 + 16#64 = regs .x10 + 40#64 := add_add rfl
-  have w0 := ka (regs .x10) (by omega)
-  have w8 := ka (regs .x10 + 8#64) (by rw [ea 8 (by omega)]; omega)
-  have w16 := ka (regs .x10 + 16#64) (by rw [ea 16 (by omega)]; omega)
-  have w24 := ka (regs .x10 + 24#64) (by omega)
-  have w32 := ka (regs .x10 + 32#64) (by rw [ea 32 (by omega)]; omega)
-  have w40 := ka (regs .x10 + 40#64) (by rw [ea 40 (by omega)]; omega)
-  have hout : ∀ b, PairT.OutT R' (chain2 M B top) b → OutT regs m b := fun b hb => by
-    unfold OutT PairT.SlotOut at hb ⊢
-    rw [r10, a8, a16, w0, w8, w16, w24, w32, w40] at hb
-    rw [a8, a16]
-    exact hb
-  have bv1 := vecT_bufCap hV1
-  have bv2 := vecT_bufCap hV2
-  have slotLow : ∀ b, OutT regs m b → b.toNat < (env.next m).toNat ∨ (regs .x10).toNat ≤ b.toNat := fun b hb => by
-    unfold OutT PairT.SlotOut InRange at hb
-    rw [vecPtr_eq, vecCap_eq] at bv1
-    rw [vecPtr_eq, vecCap_eq, a8] at bv2
-    rcases hb with hb | hb | hb
-    · exact .inr hb.1
-    · rcases bv1 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 16#64)).toNat + 24 ≤ (m.getMem (regs .x10)).toNat * 24 := by omega
-        exact .inl (by omega)
-    · rw [a8, a16] at hb
-      rcases bv2 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 40#64)).toNat + 24 ≤ (m.getMem (regs .x10 + 24#64)).toNat * 24 := by
-          omega
-        exact .inl (by omega)
+  have nC : (env.next m).toNat ≤ (env.next (chain2 M B top)).toNat := by rw [hnC]; exact hmM
+  obtain ⟨hout, slotLow, hpost⟩ := self_kept hV1 hV2 nC (fun x hx _ => kC x (.inr (by omega))) r10
   have k1 : ∀ x : Word, top.toNat - 40 ≤ x.toNat → x.toNat < top.toNat → m1.getMem x = M.getMem x := fun x l1 l2 => by
     rw [← cg x (.inr (by omega)) (.inr l1)]
     refine hFp.2.2 x fun hw => ?_
@@ -522,17 +540,7 @@ theorem fin_post {m M m1 : MachineState} {top ret B : Word} {regs R' r1 : Reg �
     by rw [g _ 40 rfl (by omega) (by omega), t5]⟩, F2, fun r' => ?_⟩
   unfold PPost PairFormT.PostT PairT.PostT PairT.PostM at hP
   obtain ⟨⟨-, hl1, hl2, -, -, hK1, hK2⟩, hFF1⟩ := hP
-  rw [r10] at hl1 hl2 hK1 hK2 hFF1
-  have nC : (env.next m).toNat ≤ (env.next (chain2 M B top)).toNat := by rw [hnC]; exact hmM
-  refine ⟨hFF1, ?_, ?_, ?_, ?_⟩
-  · rw [hl1, vecLen_eq, vecLen_eq, w16]
-  · rw [hl2, vecLen_eq, vecLen_eq, a16, w40]
-  · rcases hK1 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, w8], by rw [hc, vecCap_eq, vecCap_eq, w0]⟩
-    · exact .inr (by omega)
-  · rcases hK2 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, a8, w32], by rw [hc, vecCap_eq, vecCap_eq, w24]⟩
-    · exact .inr (by omega)
+  exact hpost r1 r' m1 ⟨hFF1, hl1, hl2, hK1, hK2⟩
 
 set_option rv_sym.heap true in
 /-- **From instruction 53 to the return**: the second block's last two `Form`s and both headers stored, `pair`. -/
@@ -784,8 +792,6 @@ theorem chain1_get {M : MachineState} {B top v0 v8 v16 w0 w8 w16 : Word} (h112 :
   have t96 := top_sub (top := top) (c := 18446744073709551520#64) (k := 96) rfl (by omega)
   simp only [chain1]
   refine ⟨fun x h1 h2 => ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · rw [get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega),
-      get_ne (by omega), get_ne (by omega), get_ne (by omega), get_ne (by omega)]
   all_goals
     repeat (first | rw [MachineState.getMem_setMem_eq] | rw [get_ne (by omega)])
 

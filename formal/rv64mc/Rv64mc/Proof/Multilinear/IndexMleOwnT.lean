@@ -45,9 +45,7 @@ theorem preT_of_indexMleT {env : Env} {xs : List E} {regs : Reg → Word} {m : M
 /-- **The second contract gives `IndexMleT`'s.** -/
 theorem specT.indexMleT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} (h : specT env p i need) :
     IndexMleT.specT env p i need := fun xs =>
-  Isa.TContract.mono (h xs)
-    (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, preT_of_indexMleT hP, hal⟩, hw⟩)
-    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
+  OwnSliceT.mono_pre (h xs) fun _ _ => preT_of_indexMleT
 
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needM needS : Nat} (hnM : 64 + needM ≤ need) (hnS : 64 + needS ≤ need)

@@ -45,9 +45,7 @@ theorem preT_of_paddingWeightT {env : Env} {xs : List E} {regs : Reg → Word} {
 /-- **The second contract gives `PaddingWeightT`'s.** -/
 theorem specT.paddingWeightT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} (h : specT env p i need) :
     PaddingWeightT.specT env p i need := fun xs =>
-  Isa.TContract.mono (h xs)
-    (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, preT_of_paddingWeightT hP, hal⟩, hw⟩)
-    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
+  OwnSliceT.mono_pre (h xs) fun _ _ => preT_of_paddingWeightT
 
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needM : Nat} (hnM : 96 + needM ≤ need) (hmul : Field.EMulT.specT env p L.mul.idx needM) :

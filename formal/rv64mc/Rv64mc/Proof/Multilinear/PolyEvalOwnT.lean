@@ -46,9 +46,7 @@ theorem preT_of_polyEvalT {env : Env} {cs : List E} {pt : E} {regs : Reg → Wor
 /-- **The second contract gives `PolyEvalT`'s.** -/
 theorem specT.polyEvalT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} (h : specT env p i need) :
     PolyEvalT.specT env p i need := fun cs pt =>
-  Isa.TContract.mono (h cs pt)
-    (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, preT_of_polyEvalT hP, hal⟩, hw⟩)
-    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
+  OwnSliceT.mono_pre (h cs pt) fun _ _ => preT_of_polyEvalT
 
 /-- What one pass computes, from the coefficient the loop loads through the frame, the slice `OwnSlice`. -/
 theorem body_val {env : Env} {top : Word} {m M : MachineState} {cs : List E} {pt : E} {regs : Reg → Word} {i : Nat}

@@ -16,7 +16,7 @@
   ## Main results
 
   * `OwnSlice.of_live`, `OwnSlice.of_bufT`, `OwnSlice.of_frame`, `OwnSlice.frame`, `OwnSlice.drop`,
-    `OwnSlice.take`, `OwnSlice.load`, `OwnSlice.keep`, `OwnSlice.end_lt`, `EListAt.drop`
+    `OwnSlice.take`, `OwnSlice.load`, `OwnSlice.keep`, `OwnSlice.end_lt`, `mono_pre`, `EListAt.drop`
 -/
 
 import Rv64mc.Proof.Multilinear.DotOwnT
@@ -114,6 +114,16 @@ theorem keep {M : MachineState} {es : List (Word × Word)} (h : OwnSlice env m t
     · exact he.keep (Env.Frame.keeps_above hf hlim ha fun _ _ h => h)
 
 end OwnSlice
+
+/-- **A contract holds from a stronger precondition**, as the leaves' second contracts give their first. -/
+theorem mono_pre {env : Env} {p : Lprog (Op Reg) Reg} {f need : Nat} {Pre Pre' : (Reg → Word) → MachineState → Prop}
+    {Post : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop}
+    {Out : (Reg → Word) → MachineState → Word → Prop}
+    {Stop : (Reg → Word) → MachineState → (Reg → Word) → MachineState → Prop}
+    (h : HoldsT env p f need Pre Post Out Stop) (hp : ∀ regs m, Pre' regs m → Pre regs m) :
+    HoldsT env p f need Pre' Post Out Stop :=
+  Isa.TContract.mono h (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, hp _ _ hP, hal⟩, hw⟩)
+    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
 
 /-- The last elements of a slice, from the `k`th. -/
 theorem EListAt.drop {m : MachineState} {a : Word} {es : List (Word × Word)} (h : EListAt m a es) (k : Nat) :

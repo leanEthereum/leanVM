@@ -49,9 +49,7 @@ theorem preT_of_eqEvalT {env : Env} {xs ys : List E} {regs : Reg → Word} {m : 
 /-- **The second contract gives `EqEvalT`'s.** -/
 theorem specT.eqEvalT {env : Env} {p : Lprog (Op Reg) Reg} {i need : Nat} (h : specT env p i need) :
     EqEvalT.specT env p i need := fun xs ys =>
-  Isa.TContract.mono (h xs ys)
-    (fun _ _ _ _ ⟨⟨he, hs, hst, hn, hP, hal⟩, hw⟩ => ⟨⟨he, hs, hst, hn, preT_of_eqEvalT hP, hal⟩, hw⟩)
-    (fun _ _ _ _ _ _ _ h => h) fun _ _ _ _ _ _ _ h => h
+  OwnSliceT.mono_pre (h xs ys) fun _ _ => preT_of_eqEvalT
 
 /-- What one pass computes, from the elements the loop loads through the frame, the slices `OwnSlice`. -/
 theorem body_val {env : Env} {top : Word} {m M : MachineState} {xs ys : List E} {regs : Reg → Word} {j : Nat}

@@ -28,13 +28,11 @@ import Rv64mc.Gen.Tmpl.Verifier.Layout.Flushes.StateStep
 namespace Rv64mc.Proof.Layout.StateStepT
 
 open RiscvZkvm.Rv64 Lprog Lprog.RiscV LeanVM.Parameters Rv64mc.Spec.Runtime Rv64mc.Spec.Layout
-open Rv64mc.Proof.Runtime.MemsetT (InWin)
-open Rv64mc.Proof.Runtime.VecReprT (VecT)
-open Rv64mc.Proof.Runtime.VecHdrT (vecCap_eq vecPtr_eq vecLen_eq)
+open Rv64mc.Proof.Runtime.VecHdrT (vecPtr_eq vecLen_eq)
 open Rv64mc.Proof.Layout.FormReprT (FormT)
-open Rv64mc.Proof.Layout.PairT (FlushesT OutT KeptOrFresh)
-open Rv64mc.Proof.Layout.PairFormT (FlushesFormT vecT_bufCap)
-open Rv64mc.Proof.Layout.StateDerivedT (Off off_eq off_of_ge get_ne top_sub fkeep add_add From)
+open Rv64mc.Proof.Layout.PairT (FlushesT OutT)
+open Rv64mc.Proof.Layout.PairFormT (FlushesFormT)
+open Rv64mc.Proof.Layout.StateDerivedT (off_of_ge get_ne top_sub fkeep From)
 open Rv64mc.Gen.Verifier.Layout.Flushes.StateStep (Link tmpl)
 
 variable {env : Env}
@@ -162,42 +160,7 @@ theorem post {m M2 m3 : MachineState} {top : Word} {regs R' r3 : Reg → Word}
       · omega
       · rw [hw] at hx; omega
       · exact hw
-  have ea : ∀ k, k ≤ 40 → (regs .x10 + BitVec.ofNat 64 k).toNat = (regs .x10).toNat + k :=
-    fun k hk => toNat_add_ofNat (by omega)
-  have ka : ∀ x : Word, (regs .x10).toNat ≤ x.toNat → M2.getMem x = m.getMem x := fun x hx => kM x (.inr (by omega))
-  have a8 : regs .x10 + 24#64 + 8#64 = regs .x10 + 32#64 := add_add rfl
-  have a16 : regs .x10 + 24#64 + 16#64 = regs .x10 + 40#64 := add_add rfl
-  have w0 := ka (regs .x10) (by omega)
-  have w8 := ka (regs .x10 + 8#64) (by rw [ea 8 (by omega)]; omega)
-  have w16 := ka (regs .x10 + 16#64) (by rw [ea 16 (by omega)]; omega)
-  have w24 := ka (regs .x10 + 24#64) (by rw [ea 24 (by omega)]; omega)
-  have w32 := ka (regs .x10 + 32#64) (by rw [ea 32 (by omega)]; omega)
-  have w40 := ka (regs .x10 + 40#64) (by rw [ea 40 (by omega)]; omega)
-  have hout : ∀ b, OutT R' M2 b → OutT regs m b := fun b hb => by
-    unfold OutT PairT.SlotOut at hb ⊢
-    rw [s10, a8, a16, w0, w8, w16, w24, w32, w40] at hb
-    rw [a8, a16]
-    exact hb
-  have bv1 := vecT_bufCap hV1
-  have bv2 := vecT_bufCap hV2
-  have slotLow : ∀ b, OutT regs m b → b.toNat < (env.next m).toNat ∨ (regs .x10).toNat ≤ b.toNat := fun b hb => by
-    unfold OutT PairT.SlotOut InRange at hb
-    rw [vecPtr_eq, vecCap_eq] at bv1
-    rw [vecPtr_eq, vecCap_eq, a8] at bv2
-    rcases hb with hb | hb | hb
-    · exact .inr hb.1
-    · rcases bv1 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 16#64)).toNat + 24 ≤ (m.getMem (regs .x10)).toNat * 24 := by omega
-        exact .inl (by omega)
-    · rw [a8, a16] at hb
-      rcases bv2 with h | ⟨-, h, -⟩
-      · omega
-      · unfold Env.Live at h
-        have : 24 * (m.getMem (regs .x10 + 40#64)).toNat + 24 ≤ (m.getMem (regs .x10 + 24#64)).toNat * 24 := by
-          omega
-        exact .inl (by omega)
+  obtain ⟨hout, slotLow, hpost⟩ := StateDerivedT.self_kept hV1 hV2 hF.1 (fun x hx _ => kM x (.inr (by omega))) s10
   refine ⟨fun x l1 l2 => hFs.2.2 x fun hw => ?_, (Tactic.frame_weaken hF).trans hFs (by omega)
     fun b hb => .inr (.inr (.inr (hout b hb))), fun r' => ?_⟩
   · rcases hw with hw | hw | hw | hw
@@ -207,19 +170,8 @@ theorem post {m M2 m3 : MachineState} {top : Word} {regs R' r3 : Reg → Word}
     · rcases slotLow x (hout x hw) with h | h
       · have := hF.2.1; have := hF.1; omega
       · omega
-  unfold SPost StateDerivedT.PostT at hP
-  obtain ⟨hFF1, hl1, hl2, hK1, hK2⟩ := hP
-  rw [s10] at hl1 hl2 hK1 hK2 hFF1
-  have nC := hF.1
-  refine ⟨hFF1, ?_, ?_, ?_, ?_⟩
-  · rw [hl1, vecLen_eq, vecLen_eq, w16]
-  · rw [hl2, vecLen_eq, vecLen_eq, a16, w40]
-  · rcases hK1 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, w8], by rw [hc, vecCap_eq, vecCap_eq, w0]⟩
-    · exact .inr (by omega)
-  · rcases hK2 with ⟨hp, hc⟩ | h
-    · exact .inl ⟨by rw [hp, vecPtr_eq, vecPtr_eq, a8, w32], by rw [hc, vecCap_eq, vecCap_eq, w24]⟩
-    · exact .inr (by omega)
+  unfold SPost at hP
+  exact hpost r3 r' m3 hP
 
 set_option rv_sym.heap true in
 theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
