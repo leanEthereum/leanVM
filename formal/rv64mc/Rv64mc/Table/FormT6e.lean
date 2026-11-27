@@ -3,12 +3,14 @@
 
   `Form::term`'s, `constant`'s and `col`'s second total contracts at the image (`liftProg Gen.fns`), next to
   `LayoutT.lean`'s first ones: their postconditions with the result's buffers 8-byte aligned (`TermAlT.FormAl`); and
-  `<Form as Add>::add`'s total contract (`FormAddT`, over `FormT6a.addScaled`). Left as hypotheses, environment
-  facts: `alloc`'s two (`RuntimeT.alloc`) and, for `col` and `add`, `clmul_low`'s constant (`FieldT.ClmulTable`).
+  `<Form as Add>::add`'s total contract (`FormAddT`, over `FormT6a.addScaled`); `<[&[Form]] as Concat<Form>>::concat`'s
+  (`ConcatFormT`, over `FormT6c.specExtendForm`). Left as hypotheses, environment facts: `alloc`'s two
+  (`RuntimeT.alloc`); for `col` and `add`, `clmul_low`'s constant (`FieldT.ClmulTable`); for `concat`, its bound's
+  word and `spec_extend`'s in the static data (`DataRef.InData`).
 
   ## Main results
 
-  * `termAl`, `constantAl`, `colAl`, `formAdd`
+  * `termAl`, `constantAl`, `colAl`, `formAdd`, `concatForm`
 -/
 
 import Rv64mc.Table.LayoutT
@@ -16,6 +18,8 @@ import Rv64mc.Proof.Layout.ConstantAlT
 import Rv64mc.Proof.Layout.ColAlT
 import Rv64mc.Table.FormT6a
 import Rv64mc.Proof.Layout.FormAddT
+import Rv64mc.Table.FormT6c
+import Rv64mc.Proof.Layout.ConcatFormT
 
 namespace Rv64mc.Table.FormT6e
 
@@ -46,6 +50,21 @@ theorem formAdd (hd : FieldT.ClmulTable env) :
   FormAddT.total env _ _ _ Verifier.Layout.Form.AsAdd.Add.tmpl_eq Verifier.Layout.Form.AsAdd.Add.wf (by decide)
     (FormT6a.addScaled env hnext hend hd)
 
+/-- **`<[&[Form]] as Concat<Form>>::concat` at the image** (function 199), given its bound's word and
+    `spec_extend`'s in the static data. -/
+theorem concatForm
+    (hd : DataRef.InData env [(Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.link.d_c8_d6dfd6bc,
+      Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.d_c8_d6dfd6bc_words)])
+    (hds : DataRef.InData env
+      [(Alloc.Vec.SpecExtend.VecForm.AsSpecExtendRefFormIterForm.SpecExtend.link.d_c8_51ab739d,
+        Alloc.Vec.SpecExtend.VecForm.AsSpecExtendRefFormIterForm.SpecExtend.d_c8_51ab739d_words)]) :
+    ConcatFormT.SpecT env (liftProg fns) Idx.Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat
+      Needs.Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat :=
+  ConcatFormT.total env _ _ Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.link
+    Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.tmpl_eq Alloc.Slice.SliceRefSliceForm.AsConcatForm.Concat.wf hd
+    (by decide) (by decide) (by decide) (RuntimeT.alloc env hnext hend) (FormT6c.specExtendForm env hnext hend hds)
+    (RuntimeT.handleError env)
+
 end Rv64mc.Table.FormT6e
 
 /-- info: 'Rv64mc.Table.FormT6e.termAl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -63,3 +82,7 @@ end Rv64mc.Table.FormT6e
 /-- info: 'Rv64mc.Table.FormT6e.formAdd' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.FormT6e.formAdd
+
+/-- info: 'Rv64mc.Table.FormT6e.concatForm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.FormT6e.concatForm
