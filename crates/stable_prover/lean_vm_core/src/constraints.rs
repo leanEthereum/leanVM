@@ -296,14 +296,10 @@ type State = Vec<F128x8>;
 
 /// `Σ_terms w·v(c)`, unreduced.
 #[inline]
-fn dot(terms: &[(usize, F128x8)], v: impl Fn(usize) -> F64x8) -> Acc8 {
-    terms
-        .iter()
-        .fold(Acc8::ZERO, |acc, &(c, w)| acc + w.mul_base_unreduced(v(c)))
-}
-
-fn splat(terms: &Lin) -> Vec<(usize, F128x8)> {
-    terms.iter().map(|&(c, w)| (c, F128x8::splat(w))).collect()
+fn dot(terms: &Lin, v: impl Fn(usize) -> F64x8) -> Acc8 {
+    terms.iter().fold(Acc8::ZERO, |acc, &(c, w)| {
+        acc + F128x8::splat(w).mul_base_unreduced(v(c))
+    })
 }
 
 /// `Σ_b f(b)` over the vectors of eight rows `0..vectors`, reduced once per task.
@@ -357,6 +353,7 @@ fn add_state_message(lo: &[F128x8], hi: &[F128x8], eq: F128x8, ends: [bool; 2], 
 
 /// A state of `rows` rows, at most eight, in one vector per column, as one vector per row: row `i` of column `c` in
 /// lane 0 of `state[i·width + c]`.
+#[inline(never)]
 fn unpack(state: &State, width: usize, rows: usize) -> State {
     (0..rows * width)
         .map(|v| shifted(state[v % width], v / width))
@@ -374,11 +371,6 @@ fn shifted(v: F128x8, lane: usize) -> F128x8 {
 /// `left_g` lifted to `E` and `right_g`.
 fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
     let width = form.width();
-    // The linear parts, `lin` then each `right_g`, go to the even columns.
-    let linear: Vec<_> = std::iter::once(&form.lin)
-        .chain(form.groups.iter().map(|(_, right)| right))
-        .map(splat)
-        .collect();
     let vectors = rows.div_ceil(8);
     let mut state = crate::filled(vectors * width, F128x8::ZERO);
     let chunk = crate::chunk(vectors);
@@ -386,7 +378,9 @@ fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
         for (b, out) in (task * chunk..).zip(out.chunks_exact_mut(width)) {
             let (i, n) = (8 * b, (rows - 8 * b).min(8));
             let load = |c: usize| load_k(cols[c], i, n);
-            for (k, terms) in linear.iter().enumerate() {
+            // The linear parts, `lin` then each `right_g`, go to the even columns.
+            for k in 0..=form.groups.len() {
+                let terms = if k == 0 { &form.lin } else { &form.groups[k - 1].1 };
                 out[2 * k] = dot(terms, load).reduce();
             }
             for (g, (left, _)) in form.groups.iter().enumerate() {
