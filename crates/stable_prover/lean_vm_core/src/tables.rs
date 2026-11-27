@@ -222,40 +222,56 @@ impl<'a> FillCtx<'a> {
         at: usize,
         f: impl Fn(usize) -> [F64; N] + Sync,
     ) {
+        self.fill_cols(out, n_rows, at..at + N, &|row, values| values.copy_from_slice(&f(row)));
+    }
+
+    /// [`Self::cols_at`] with the width and the closure erased: one copy for every table's columns.
+    #[inline(never)]
+    fn fill_cols(
+        &self,
+        out: &mut [&mut [F64]],
+        n_rows: usize,
+        at: Range<usize>,
+        f: &(dyn Fn(usize, &mut [F64]) + Sync),
+    ) {
         /// Rows per task.
         const CHUNK: usize = 1 << 12;
-        /// Rows staged at a time. A row's values go to `N` windows a power of two apart, which share cache sets, so
-        /// they are written a column's run at a time rather than a row at a time.
+        /// Rows staged at a time. A row's values go to windows a power of two apart, which share cache sets, so they
+        /// are written a column's run at a time rather than a row at a time.
         const STAGE: usize = 64;
         assert!(n_rows <= self.height, "a table's rows must fit its cube");
-        let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        let window: &mut [&mut [F64]; N] = (&mut out[at..at + N]).try_into().unwrap();
-        let columns = window.each_mut().map(|column| {
+        let (padding, width) = (&self.padding[at.clone()], at.len());
+        // Every column's chunk for each task, split up front, so that the tasks write disjoint slices.
+        let mut tasks: Vec<Vec<&mut [F64]>> = (0..self.height.div_ceil(CHUNK))
+            .map(|_| Vec::with_capacity(width))
+            .collect();
+        for column in &mut out[at] {
             assert_eq!(column.len(), self.height, "a column's window is the table's height");
-            &mut **column
-        });
-        // All `N` columns in one pass, each row's values computed once.
-        parallel::map_reduce_chunks_mut(
-            columns,
-            [CHUNK; N],
-            || (),
-            |_, task, mut chunks| {
-                for start in (0..chunks[0].len()).step_by(STAGE) {
-                    let len = STAGE.min(chunks[0].len() - start);
-                    let mut staged = [[F64::ZERO; N]; STAGE];
-                    for (i, values) in staged[..len].iter_mut().enumerate() {
-                        let row = task * CHUNK + start + i;
-                        *values = if row < n_rows { f(row) } else { padding };
-                    }
-                    for (k, column) in chunks.iter_mut().enumerate() {
-                        for (slot, values) in column[start..start + len].iter_mut().zip(&staged) {
-                            *slot = values[k];
-                        }
+            for (task, chunk) in tasks.iter_mut().zip(column.chunks_mut(CHUNK)) {
+                task.push(chunk);
+            }
+        }
+        // All the columns in one pass, each row's values computed once.
+        parallel::chunks_mut(&mut tasks, 1, |task, chunks| {
+            let chunks = &mut chunks[0];
+            let mut staged = vec![F64::ZERO; STAGE * width];
+            for start in (0..chunks[0].len()).step_by(STAGE) {
+                let len = STAGE.min(chunks[0].len() - start);
+                for (i, values) in staged.chunks_mut(width).take(len).enumerate() {
+                    let row = task * CHUNK + start + i;
+                    if row < n_rows {
+                        f(row, values);
+                    } else {
+                        values.copy_from_slice(padding);
                     }
                 }
-            },
-            |_, _| (),
-        );
+                for (k, column) in chunks.iter_mut().enumerate() {
+                    for (slot, values) in column[start..start + len].iter_mut().zip(staged.chunks(width)) {
+                        *slot = values[k];
+                    }
+                }
+            }
+        });
     }
 
     /// The two `K`-lanes of the 128-bit word in memory cell `addr`.
