@@ -25,9 +25,9 @@ noncomputable def faRetAtC (X : Bridge.AlignCtx) (body : List Stmt) (fas : List 
   | .atom (.frameAddr p (r :: rs)) => ((List.range' (B * c) B).all fun k ↦ !decide (k < rs.length + 1) ||
       (!(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome)) &&
+        | none => false) || A.hasW (X.locAt r.idx + k))) &&
       (c != 0 || fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) ||
-        (A.w.get (X.locAt r.idx + q.2)).isSome)
+        A.hasW (X.locAt r.idx + q.2))
   | _ => true
 
 /-- Each frame run of the statements has at most `n` values. -/
@@ -172,11 +172,11 @@ theorem dstInF_of {body : List Stmt} {v : V} (h : dstIn body v = true) : dstInF 
 /-- `faRetAt`'s check of a frame run's values from `k` on, the run's cells from `c`. -/
 noncomputable def runW (body : List Stmt) (D : Trie Unit) (A : FSt) (c : ℕ) : ℕ → List V → Bool
   | _, [] => true
-  | k, v :: vs => (!dstInF D body v || (A.w.get (c + k)).isSome) && runW body D A c (k + 1) vs
+  | k, v :: vs => (!dstInF D body v || A.hasW (c + k)) && runW body D A c (k + 1) vs
 
 theorem runW_spec {body : List Stmt} {A : FSt} {c : ℕ} : ∀ (k : ℕ) (l : List V),
     runW body (dstT body) A c k l = true → ∀ j (hj : j < l.length),
-      (!dstIn body l[j] || (A.w.get (c + (k + j))).isSome) = true
+      (!dstIn body l[j] || A.hasW (c + (k + j))) = true
   | _, [], _, j, hj => absurd hj (Nat.not_lt_zero _)
   | k, v :: vs, h, j, hj => by
     simp only [runW, Bool.and_eq_true] at h
@@ -195,7 +195,7 @@ theorem runW_spec {body : List Stmt} {A : FSt} {c : ℕ} : ∀ (k : ℕ) (l : Li
 noncomputable def faRetAtF (X : Bridge.AlignCtx) (body : List Stmt) (D : Trie Unit) (fas : List (ℕ × ℕ)) (A : FSt) :
     Stmt → Bool
   | .atom (.frameAddr p (r :: rs)) => runW body D A (X.locAt r.idx) 0 (r :: rs) &&
-      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || A.hasW (X.locAt r.idx + q.2)
   | _ => true
 
 theorem faRetAt_of_F {X : Bridge.AlignCtx} {body : List Stmt} {fas : List (ℕ × ℕ)} {A : FSt} {s : Stmt}

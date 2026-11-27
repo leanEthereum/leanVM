@@ -1208,12 +1208,35 @@ noncomputable def dspJ (Cf : CFun) (k od of : ℕ) : Bool :=
         fs.all fun f ↦ pcs.any fun t ↦ Cf.X.entOk t f
     | _, _, _ => false
 
+/-- `t.get n`, the key read by `Nat.rec` and `Nat.beq`, in about half the kernel's steps: a check reading a
+trie at every offset of a function's code reads it so. -/
+noncomputable def getQ {α : Type} (t : Exec.Trie α) : ℕ → Option α :=
+  Exec.Trie.rec (motive := fun _ ↦ ℕ → Option α) (fun _ ↦ none)
+    (fun v _ _ gl gr n ↦ Nat.rec (motive := fun _ ↦ Option α) v
+      (fun m _ ↦ bif Nat.beq (m % 2) 0 then gl (m / 2) else gr (m / 2)) n) t
+
+theorem getQ_eq {α : Type} (t : Exec.Trie α) (n : ℕ) : getQ t n = t.get n := by
+  induction t generalizing n with
+  | nil => rfl
+  | node v l r ihl ihr =>
+    rw [Exec.Trie.get_node]
+    cases n with
+    | zero => rfl
+    | succ m =>
+      change (bif Nat.beq (m % 2) 0 then getQ l (m / 2) else getQ r (m / 2)) = _
+      rw [ihl, ihr]
+      rcases Nat.mod_two_eq_zero_or_one m with h | h
+      · rw [h, show (m + 1) % 2 = 1 by omega, show (m + 1) / 2 = m / 2 by omega]
+        rfl
+      · rw [h, show (m + 1) % 2 = 0 by omega, show (m + 1) / 2 - 1 = m / 2 by omega]
+        rfl
+
 /-- From offset `i`: each `JUMP` the frame walk reads a table for (`tgt`) is a table jump through a
 target cell the alignment's context gives a table (`arms`), no pc and not `0`, the walk's table the
 offsets of the slots of every `match` on its selector, no callee's. -/
 noncomputable def tgtGo (Cf : CFun) (ml : List (ℕ × ℕ)) : ℕ → List OffsetInstruction → Bool
   | _, [] => true
-  | i, ins :: code => (match Cf.frame.tgt.get i with
+  | i, ins :: code => (match getQ Cf.frame.tgt i with
       | none => match ins with
         | .jump _ od of => !dspSite Cf.X od of
         | _ => true
@@ -1339,10 +1362,10 @@ theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf
 /-- **The frame walk's residual divisors** (`FFun.nzr`): at each offset, each a frame cell the walk's state there
 has written and the mode certificate's residuals there (`res`) say nonzero. -/
 noncomputable def nzrOk (Cf : CFun) (res : Exec.Trie (List Mode.Res)) (code : List OffsetInstruction) : Bool :=
-  (List.range code.length).all fun i ↦ match Cf.frame.nzr.get i with
+  (List.range code.length).all fun i ↦ match getQ Cf.frame.nzr i with
     | none => true
     | some os => match retSt Cf.frame code i with
-      | some A => os.all fun o ↦ (A.w.get o).isSome && ((res.get i).getD []).contains (.nz o)
+      | some A => os.all fun o ↦ A.hasW o && ((res.get i).getD []).contains (.nz o)
       | none => false
 
 /-- A value an atom of the body defines. -/
@@ -1358,8 +1381,8 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (
   | .atom (.frameAddr p (r :: rs)) => ((List.range (rs.length + 1)).all fun k ↦
       !(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome) &&
-      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
+        | none => false) || A.hasW (X.locAt r.idx + k)) &&
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || A.hasW (X.locAt r.idx + q.2)
   | _ => true
 
 /-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
