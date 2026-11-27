@@ -172,7 +172,7 @@ pub fn aggregate<P: Prover>(
     let mut signatures = signatures.into_iter();
     for (region, name) in cover.iter().zip(["raw_index", "sp_raw_index"]) {
         for (&offset, signature) in region.raw.iter().zip(&mut signatures) {
-            hints.push(name, vec![count(offset)]);
+            hints.push_count(name, offset);
             hints.extend(signature?);
         }
     }
@@ -189,17 +189,15 @@ pub fn aggregate<P: Prover>(
             }
             hints.push("signers_split", list_split(offsets.len()));
             // Strictly increasing slots go as gaps (`child_claim_list_mono`).
-            if offsets.is_sorted_by(|a, b| a < b) {
-                hints.push("child_mono", vec![count(1)]);
-                let mut next = 0;
-                for &offset in offsets {
-                    hints.push("child_claim_gap", vec![count(offset - next)]);
+            let mono = offsets.is_sorted_by(|a, b| a < b);
+            hints.push_count("child_mono", usize::from(mono));
+            let mut next = 0;
+            for &offset in offsets {
+                if mono {
+                    hints.push_count("child_claim_gap", offset - next);
                     next = offset + 1;
-                }
-            } else {
-                hints.push("child_mono", vec![count(0)]);
-                for &offset in offsets {
-                    hints.push("child_claim_index", vec![count(offset)]);
+                } else {
+                    hints.push_count("child_claim_index", offset);
                 }
             }
         }
@@ -237,7 +235,7 @@ pub fn aggregate<P: Prover>(
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
-        hints.push("da_n_blobs", vec![count(matrix.n_blobs())]);
+        hints.push_count("da_n_blobs", matrix.n_blobs());
         // Padding rows are constants the guest bakes, so only the real rows' symbols ride the stream, blob by blob.
         for i in 0..matrix.n_blobs() {
             for j in 0..CELLS_PER_ROW {
@@ -246,7 +244,7 @@ pub fn aggregate<P: Prover>(
             }
         }
     }
-    hints.push("da_pick", vec![count(da_pick)]);
+    hints.push_count("da_pick", da_pick);
 
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {

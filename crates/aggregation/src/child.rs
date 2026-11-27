@@ -68,8 +68,15 @@ pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) ->
 /// each group's first member. A group that came back after another would be named twice, so the run count checks
 /// each group is one run.
 fn group_order(keys: &[(usize, usize)], groups: &[usize]) -> Vec<F128> {
+    // An insertion sort: a child has a few hundred members at most.
     let mut order: Vec<usize> = (0..keys.len()).collect();
-    isa::sort::sort_by_key(&mut order, |&member| keys[member]);
+    for i in 1..order.len() {
+        let mut j = i;
+        while j > 0 && keys[order[j - 1]] > keys[order[j]] {
+            order.swap(j - 1, j);
+            j -= 1;
+        }
+    }
     let mut runs: Vec<usize> = Vec::with_capacity(order.len());
     for member in order {
         let group = groups.partition_point(|&start| start <= member) - 1;
@@ -190,7 +197,11 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
             nodes[1] = node;
             hints.push(("merkle_children", path_siblings));
         }
-        hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
+        let mut caps = Vec::with_capacity(2 * nodes.len());
+        for node in &nodes {
+            caps.extend(hash_to_scalars::<F128>(node));
+        }
+        hints.push(("merkle_caps", caps));
         hints.push(("merkle_cap_active", active));
     }
     hints

@@ -74,6 +74,11 @@ impl Hints {
         }
     }
 
+    /// An entry of one count ([`count`]).
+    pub(super) fn push_count(&mut self, name: &str, n: usize) {
+        self.push(name, vec![count(n)]);
+    }
+
     pub(super) fn extend(&mut self, entries: SubHints) {
         for (name, entry) in entries {
             self.push(name, entry);
