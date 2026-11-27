@@ -115,11 +115,13 @@ fn parities<S: Lane>(a: &[S; STATE_LANES]) -> [S; 5] {
 /// θ's effect on each column, from the column parities `c`.
 #[inline(always)]
 fn theta<S: Lane>(c: &[S; 5]) -> [S; 5] {
-    let mut d = *c;
-    for (x, d) in d.iter_mut().enumerate() {
-        *d = S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]);
-    }
-    d
+    [
+        S::theta_d(c[4], c[1]),
+        S::theta_d(c[0], c[2]),
+        S::theta_d(c[1], c[3]),
+        S::theta_d(c[2], c[4]),
+        S::theta_d(c[3], c[0]),
+    ]
 }
 
 /// Lane `i` of `a` after θ.
@@ -175,20 +177,31 @@ fn pi_row<S: Lane>(a: &[S; STATE_LANES], d: &[S; 5], y: usize) -> [S; 5] {
 /// into the column parities `c`.
 #[inline(always)]
 fn chi_row<S: Lane>(out: &mut [S; STATE_LANES], c: &mut [S; 5], y: usize, [b0, b1, b2, b3, b4]: [S; 5], rc: u64) {
-    let mut r = [
-        S::chi(b0, b1, b2),
+    let mut r0 = S::chi(b0, b1, b2);
+    if y == 0 {
+        r0 = r0.xor(S::splat(rc));
+    }
+    // Written out, not looped: a build that does not unroll would keep a loop over the lanes.
+    let r = [
+        r0,
         S::chi(b1, b2, b3),
         S::chi(b2, b3, b4),
         S::chi(b3, b4, b0),
         S::chi(b4, b0, b1),
     ];
-    if y == 0 {
-        r[0] = r[0].xor(S::splat(rc));
-    }
-    for x in 0..5 {
-        out[5 * y + x] = r[x];
-        c[x] = if y == 0 { r[x] } else { c[x].xor(r[x]) };
-    }
+    let row: &mut [S; 5] = (&mut out[5 * y..][..5]).try_into().unwrap();
+    *row = r;
+    *c = if y == 0 {
+        r
+    } else {
+        [
+            c[0].xor(r[0]),
+            c[1].xor(r[1]),
+            c[2].xor(r[2]),
+            c[3].xor(r[3]),
+            c[4].xor(r[4]),
+        ]
+    };
 }
 
 // The x86 rounds go in pairs, one into each state.
