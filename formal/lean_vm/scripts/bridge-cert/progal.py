@@ -166,7 +166,7 @@ end LeanVM.Guest.Bridge
             # the callees' link modules, for their `core`, `code` equations
             + ''.join(f'public import LeanVM.Guest.Checked.{m}\n'
                       for m in sorted({mod} | {lk[c][1] for j in js for c in callees[j]}))
-            + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
+            + 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n'
             + ''.join(f'public import LeanVM.Guest.CoreMode.GlueE.«{q}»\n' for q in glue)
             + '''meta import LeanVM.Guest.KernelLit
 

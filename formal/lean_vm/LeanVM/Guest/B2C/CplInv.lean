@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.B2C.CplSpec
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 
 /-!
 # Inverting the walk

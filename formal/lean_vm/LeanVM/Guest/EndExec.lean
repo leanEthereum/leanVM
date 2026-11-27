@@ -14,7 +14,7 @@ public import LeanVM.Guest.EndRpm
 public import LeanVM.Guest.Budget.Fits
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Guest.CoreMode.Route
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

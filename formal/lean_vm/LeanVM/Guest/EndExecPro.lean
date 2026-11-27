@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.EndExec
 public import LeanVM.Guest.Mode.JumpTables
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

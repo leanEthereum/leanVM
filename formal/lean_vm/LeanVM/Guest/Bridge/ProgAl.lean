@@ -15,7 +15,7 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.CheckSplit
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.JumpTable
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

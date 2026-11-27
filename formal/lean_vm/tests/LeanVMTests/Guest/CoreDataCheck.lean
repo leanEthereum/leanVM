@@ -2,7 +2,7 @@ import LeanVM.Guest.Data.Source
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Code
 import LeanVM.Guest.Renumber
-import Statement.Data.Bytecode
+import LeanVM.Guest.Data.Functions
 
 /-!
 # The core IR's data, checked

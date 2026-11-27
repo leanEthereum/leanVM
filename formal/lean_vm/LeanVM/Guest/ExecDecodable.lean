@@ -7,7 +7,8 @@
 module
 
 public import LeanVM.Guest.Mode.InvCert
-import all Statement.Data.Bytecode
+import LeanVM.Guest.Bytecode
+import all LeanVM.Guest.Data.Functions
 
 /-!
 # The guest program decodes
@@ -129,8 +130,9 @@ theorem decodable_of_offSmall {ins : OffsetInstruction} (h : offSmall ins = true
     exact List.mem_map.mpr ⟨c.val, List.mem_range.mpr c.isLt, rfl⟩
 
 /-- **Every instruction of the guest program decodes.** -/
-theorem guest_decodable : ∀ i, Decodable (guestProgram.instructions i) := fun i ↦
-  decodable_of_offSmall (offSmall_instructionAtPc _ functions_offSmall i.val)
+theorem guest_decodable : ∀ i, Decodable (guestProgram.instructions i) := by
+  rw [guestProgram_eq]
+  exact fun i ↦ decodable_of_offSmall (offSmall_instructionAtPc _ functions_offSmall i.val)
 
 end
 

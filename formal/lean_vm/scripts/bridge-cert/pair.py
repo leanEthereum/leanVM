@@ -133,7 +133,7 @@ theorem pok{j} : Bridge.PairJ {j} := Bridge.pairJ_of Checked.code{j} Checked.cor
             HEAD(mod=f'LeanVM.Guest.Bridge.PairChk.{lmod}',
                         what=f"The functions of `Checked.{lmod}` pass the computed hints' data check over `Bridge.ctxOf`.")
             + ''.join(f'public import {m}\n' for m in sorted(imps)) + '''meta import LeanVM.Guest.KernelLit
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Bridge.PairChk

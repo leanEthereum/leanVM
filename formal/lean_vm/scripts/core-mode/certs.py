@@ -33,7 +33,7 @@ header = genfiles.header('core-mode/certs.py')
 
 def imports(ms):
     # the certificates read the deployed guest's data, which `Statement/Data` does not expose
-    return ''.join('public import %s\n' % m for m in sorted(ms)) + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
+    return ''.join('public import %s\n' % m for m in sorted(ms)) + 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n'
 
 
 def fq(k): return 'Fn.«%s»' % k

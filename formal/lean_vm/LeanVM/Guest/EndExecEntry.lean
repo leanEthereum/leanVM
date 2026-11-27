@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.SoundFacts
 public import LeanVM.Guest.CheckSound
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

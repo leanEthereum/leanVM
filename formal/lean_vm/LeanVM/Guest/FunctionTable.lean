@@ -6,8 +6,8 @@
 
 module
 
-public import Statement.Data.Bytecode
-import all Statement.Data.Bytecode
+public import LeanVM.Guest.Data.Functions
+import all LeanVM.Guest.Data.Functions
 public import LeanVM.Guest.Code
 
 /-!

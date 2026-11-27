@@ -35,7 +35,7 @@ def load():
     pows = {int(k): int(e) for k, e in re.findall(r'\.node (\d+) (\d+)', g)}
     t = open(os.path.join(STATEMENT, 'Data', 'Bytecode00.lean')).read()
     blk = t[t.index('def f0c0'):]
-    t0 = open(os.path.join(STATEMENT, 'Data', 'Bytecode.lean')).read()
+    t0 = open(os.path.join(ROOT, 'Data', 'Functions.lean')).read()
     n0 = int(re.search(r'def f0 : CompiledFunction :=\s*⟨"[^"]*", \d+, (\d+)', t0).group(1))
     f0 = [(int(a), int(b)) for a, b, _ in re.findall(r'\.set (\d+) (\d+) (\d+)', blk)][:n0]
     jt = {s: pows.get(k) for s, k in f0}

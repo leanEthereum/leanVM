@@ -10,8 +10,8 @@ STATEMENT_DATA = os.path.join(LEAN_VM, '..', 'Statement', 'Data')
 
 
 def _halt():
-    """The halting pc, the program's last: `2^logSize - 1` (`Statement/Data/Bytecode.lean`)."""
-    t = open(os.path.join(STATEMENT_DATA, 'Bytecode.lean'), encoding='utf-8').read()
+    """The halting pc, the program's last: `2^logSize - 1` (`LeanVM/Guest/Data/Functions.lean`)."""
+    t = open(os.path.join(LEAN_VM, 'LeanVM', 'Guest', 'Data', 'Functions.lean'), encoding='utf-8').read()
     return 2 ** int(re.search(r'def logSize : ℕ := (\d+)', t).group(1)) - 1
 
 

@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.Bridge.PairChk.All
 public import LeanVM.Guest.B2C.CplRun
 public import LeanVM.Guest.Mode.Hints
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

@@ -337,8 +337,14 @@ end LeanVM.Node
 
 namespace LeanVM.Guest
 
-/-- **The deployed leanISA guest program**, assembled from the generated `Statement/Data/`. -/
-def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions 19 (by decide)
+/-- The deployed guest's instructions from pc `0`, in order: the generated `Statement/Data/`'s
+blocks, joined. -/
+def guestCode : Array OffsetInstruction := Data.blocks.flatten.toArray
+
+/-- **The deployed leanISA guest program**: `2^19` slots, the guest's instructions from pc `0`, then
+the padding `SET fp[0] = 0`. -/
+def guestProgram : LeanVM.Semantics.LeanIsaProgram :=
+  ⟨19, by decide, fun i ↦ (guestCode.getD i.val .padding).toLeanIsaInstruction⟩
 
 end LeanVM.Guest
 

@@ -1,5 +1,5 @@
 import LeanVM.Guest.Data.Source
-import Statement.Data.Bytecode
+import LeanVM.Guest.Data.Functions
 import LeanVM.Guest.Code
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Renumber
@@ -3230,7 +3230,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
   let splitFiles (j w : ℕ) (gs : List (ℕ × ℕ × List (ℕ × ℕ))) : List (String × String) :=
     let xname := s!"X_{I[j]!.key}_{w}"
     let xfile := (xname, checkedHeader xname "What the groups of arms of a window of one `match` compute alike, once." ++
-      "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.B2C.WinLit\nimport all Statement.Data.Bytecode\n\n" ++
+      "public import LeanVM.Guest.B2C.SplitPre\npublic meta import LeanVM.Guest.B2C.WinLit\nimport all LeanVM.Guest.Data.Functions\n\n" ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.B2C\n\n@[expose] public section\n\n" ++
       s!"/-- `{fns[j]!.name}`, window {w}: what its groups of arms compute alike. -/\n" ++
       s!"win_lit x{j}_{w} {j} {w}\n\nend\nend LeanVM.Guest.Checked\n")
@@ -3245,7 +3245,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
         s!"    {listText (g.2.2.map pairText)} = true :=\n  checkWinS_of_pre x{j}_{w}_eq (by decide +kernel)\n\n")
     let gfiles := if one then [] else chunks.map fun (c, k) =>
       (cname k, checkedHeader (cname k) "The kernel's checks of groups of arms of a window of one `match`." ++
-        s!"public import LeanVM.Guest.Checked.{xname}\nimport all Statement.Data.Bytecode\n\n" ++ asyncOff ++
+        s!"public import LeanVM.Guest.Checked.{xname}\nimport all LeanVM.Guest.Data.Functions\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
         groupText c ++ "end\nend LeanVM.Guest.Checked\n")
     let n := gs.length
@@ -3253,7 +3253,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     let wfile := (checkedName I[j]!.key w, checkedHeader (checkedName I[j]!.key w)
         "The kernel's check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.CheckSplit\n" ++
-      (if one then s!"public import LeanVM.Guest.Checked.{xname}\n" else "") ++ "import all Statement.Data.Bytecode\n" ++
+      (if one then s!"public import LeanVM.Guest.Checked.{xname}\n" else "") ++ "import all LeanVM.Guest.Data.Functions\n" ++
       (if one then "\n" ++ asyncOff
         else String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.Checked.{cname k}\n") ++ "\n") ++
       "namespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
@@ -3394,7 +3394,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
     let n := s!"Link{c / linkBlock}"
     (n, checkedHeader n "Compiled functions as their packs have them, and their signatures as `glob` has them." ++
       "public import LeanVM.Guest.CheckWinC\npublic import LeanVM.Guest.B2C.Cpl\npublic import LeanVM.Guest.B2C.Share\n" ++
-      "meta import LeanVM.Guest.KernelLit\nimport all Statement.Data.Bytecode\n" ++
+      "meta import LeanVM.Guest.KernelLit\nimport all LeanVM.Guest.Data.Functions\n" ++
       String.join ((js.map fun j => [bundleMod j, sigMod j, I[j]!.coreMod]).flatten.eraseDups.map
         fun m => s!"public import {m}\n") ++
       "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Check\n\n@[expose] public section\n\n" ++
@@ -3942,7 +3942,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
   let files := groups.toList.zipIdx.map fun (js, g) =>
     (cplwDir / (mname js ++ ".lean"), header ("B2C.Cplw." ++ mname js)
       "The kernel's completeness checks of parts of windows of compiled functions." ++
-      "public import LeanVM.Guest.B2C.Cpl\npublic import Mathlib.Tactic.IntervalCases\nimport all Statement.Data.Bytecode\n\n" ++
+      "public import LeanVM.Guest.B2C.Cpl\npublic import Mathlib.Tactic.IntervalCases\nimport all LeanVM.Guest.Data.Functions\n\n" ++
       asyncOff ++ "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, i, k) =>
         (if bigWin j i then "set_option maxHeartbeats 1000000 in\n" else "") ++
@@ -3970,7 +3970,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     let gfiles := if one then [] else chunks.map fun (c, k) =>
       (cplwDir / (gname k ++ ".lean"), header ("B2C.Cplw." ++ gname k)
         "The kernel's completeness checks of groups of arms of a window of one `match`." ++
-        s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\nimport all Statement.Data.Bytecode\n\n" ++ asyncOff ++
+        s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\nimport all LeanVM.Guest.Data.Functions\n\n" ++ asyncOff ++
         "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++
         groupText c ++ "end\nend LeanVM.Guest.B2C.Cplw\n")
     let nG := gs.length
@@ -3979,7 +3979,7 @@ def cplFiles (fps : List FnParts) (splits : Std.HashMap (ℕ × ℕ) (List (ℕ 
     let wfile := (cplwDir / (wname ++ ".lean"), header ("B2C.Cplw." ++ wname)
         "The kernel's completeness check of a window of one `match`, by groups of its arms." ++
       "public import LeanVM.Guest.B2C.CplSplit\n" ++
-      (if one then s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\n" else "") ++ "import all Statement.Data.Bytecode\n" ++
+      (if one then s!"public import LeanVM.Guest.Checked.X_{key j}_{w}\n" else "") ++ "import all LeanVM.Guest.Data.Functions\n" ++
       (if one then "\n" ++ asyncOff
         else String.join (chunks.map fun (_, k) => s!"public import LeanVM.Guest.B2C.Cplw.{gname k}\n") ++ "\n") ++
       "namespace LeanVM.Guest.B2C.Cplw\n\n@[expose] public section\n\n" ++

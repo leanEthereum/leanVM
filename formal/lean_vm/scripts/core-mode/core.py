@@ -872,7 +872,7 @@ def main(check=False):
             body.append(cfun_m(k, j, frame_term(frames[k])))
         base = 'LeanVM.Guest.CoreMode.Gen.«%s»' % p
         mod = f'{base}.Core'
-        data = 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
+        data = 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
         pub = lambda ms: ''.join('public import %s\n' % m for m in sorted(ms))
         # past `SPLIT_W`, the core data apart (`Defs`) and the independent checks in windows beside each other
         cut = split_pack(decls_of(''.join(t for _, t in body)), core_leaf)

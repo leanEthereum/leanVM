@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory
 public import LeanVM.Guest.Memory.TableCells
 public import LeanVM.Guest.JumpTable.Keys
 public import LeanVM.Guest.JumpTable.Code
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 
 /-!
 # The jump table
