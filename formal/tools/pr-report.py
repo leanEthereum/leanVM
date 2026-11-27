@@ -3,38 +3,36 @@
 
   python3 -I formal/tools/pr-report.py [--base REF] [--github]
 
-Compares `HEAD` with its merge base with `REF` (default `origin/main`), from anywhere inside the
-repository, and prints a Markdown report. `--github` also prints a `::warning` annotation per finding
-and appends the report to `$GITHUB_STEP_SUMMARY`. Exits 0 whatever it finds, 2 on a usage or git error.
+Compares `HEAD` with its merge base with `REF` (default `origin/main`), from anywhere inside the repository, and
+prints a Markdown report. `--github` also prints a `::warning` annotation per finding and appends the report to
+`$GITHUB_STEP_SUMMARY`. Exits 0 whatever it finds, 2 on a usage or git error.
 
 What it reports, from the lines the diff adds (or removes, where said):
 
-* The statement: files changed under `formal/Statement/`, by kind (the trusted files, at the top and in
-  `Verifier/`; `Data/`; `Prover/`; `Fast/` and `Lemmas/`, proofs only; build configuration); the
-  declarations added, removed or changed in the trusted files and `Prover/` (a changed declaration is
-  one whose lines, docstring included, the diff touches); the fields added to or removed from
-  `structure Theorems`; whether `formal/statement.tex` changed with them. Any change outside `Fast/` and
-  `Lemmas/` changes what is proved.
-* Budgets and suppressions in `.lean` files: `set_option` of `maxHeartbeats`, `maxRecDepth`,
-  `synthInstance.*` or `linter.*`, and `@[nolint`, added and removed.
-* Leftovers in `.lean` files: `#eval`, `#print`, `#check`, `#reduce` (except under `#guard_msgs`, in
-  `tests/`, `scripts/` or `tools/` directories, and in the files directly in a proof project's directory,
-  the libraries' roots, which pin axioms); commented-out declarations (`-- theorem ...`, or a declaration
-  line inside a `/- -/` comment that is not a docstring); `TODO`, `FIXME`, `XXX`.
-* Size: `.lean` files the diff adds or changes that are over 1500 lines, and declarations it adds or
-  changes that are over 100 lines, both reading aids, not rules. Files ignored by git and files whose
-  first lines say they are generated are left out.
-* Prose: em-dashes and en-dashes in `.md` and `.tex` files under `formal/` and `.claude/skills/`, in the
-  root's `.md` files, and in Lean comments under `formal/`; history and planning words (`used to`,
-  `no longer`, `previously`, `now proved`, `milestone`, `wave`, `Phase` and a letter or number, `WIP`) in
-  Lean comments.
-* Unsafe Unicode: bidirectional and invisible format characters (U+200B to U+200F, U+202A to U+202E,
-  U+2066 to U+2069, U+FEFF) in any file.
+* The statement: files changed under `formal/Statement/`, by kind (`Data/`; `Prover/`; `Fast/` and `Lemmas/`,
+  proofs only; other `.lean` files, trusted; other files, build configuration); the declarations added, removed or
+  changed in the trusted files and `Prover/` (a changed declaration is one whose lines, docstring included, the diff
+  touches); the fields added to or removed from `structure Theorems`; whether `formal/statement.tex` changed with
+  them. Any change outside `Fast/` and `Lemmas/` changes what is proved.
+* Budgets and suppressions in `.lean` files: `set_option` of `maxHeartbeats`, `maxRecDepth`, `synthInstance.*` or
+  `linter.*`, and `@[nolint`, added and removed.
+* Leftovers in `.lean` files: `#eval`, `#print`, `#check`, `#reduce` (except under `#guard_msgs`, in `tests/`,
+  `scripts/` or `tools/` directories, and in the files directly in a proof project's directory, the libraries'
+  roots, which pin axioms); commented-out declarations (`-- theorem ...`, or a declaration line inside a `/- -/`
+  comment that is not a docstring); `TODO`, `FIXME`, `XXX`.
+* Size: `.lean` files the diff adds or changes that are over 1500 lines, and declarations it adds or changes that
+  are over 100 lines, both reading aids, not rules. Files ignored by git and files whose first lines say they are
+  generated are left out.
+* Prose: em-dashes and en-dashes in `.md` and `.tex` files under `formal/` and `.claude/skills/`, in the root's
+  `.md` files, and in Lean comments under `formal/`; history and planning words (`used to`, `no longer`,
+  `previously`, `now proved`, `milestone`, `wave`, `Phase` and a letter or number, `WIP`) in Lean comments.
+* Unsafe Unicode: bidirectional and invisible format characters (U+200B to U+200F, U+202A to U+202E, U+2066 to
+  U+2069, U+FEFF) in any file.
 
-What it does not check: whether a statement change is right (a person reads it); proofs, axioms or the
-build (the Lean gates do); hard-wrapped Markdown; anything in a line the diff does not add, except the
-removals counted above; Lean syntax beyond a line scan, so a declaration header split oddly, a comment
-marker inside a string, or prose that looks like a declaration can be missed or reported wrongly.
+What it does not check: whether a statement change is right (a person reads it); proofs, axioms or the build (the
+Lean gates do); hard-wrapped Markdown; anything in a line the diff does not add, except the removals counted
+above; Lean syntax beyond a line scan, so a declaration header split oddly, a comment marker inside a string, or
+prose that looks like a declaration can be missed or reported wrongly.
 """
 import os
 import re
@@ -196,19 +194,17 @@ def statement(files, base):
         if not path.endswith(".lean") or kind not in ("trusted", "Prover"):
             continue
         new_text, old_text = show("HEAD", path), show(base, path)
-        new = touched(decls(new_text), [ln for ln, _ in added])
-        old = touched(decls(old_text), [ln for ln, _ in removed])
-        allnew, allold = {(k, n) for k, n, _, _ in decls(new_text)}, {(k, n) for k, n, _, _ in decls(old_text)}
+        d_new, d_old = decls(new_text), decls(old_text)
+        new, old = touched(d_new, [ln for ln, _ in added]), touched(d_old, [ln for ln, _ in removed])
+        allnew, allold = {(k, n) for k, n, _, _ in d_new}, {(k, n) for k, n, _, _ in d_old}
         for key in sorted(set(new) | set(old)):
             verb = "added" if key not in allold else "removed" if key not in allnew else "changed"
             line = new[key][0] if key in new else old[key][0]
             out.append(finding(path, line, f"{key[0]} `{key[1]}` {verb}"))
         if path == "formal/Statement/Theorems.lean":
             f_new, f_old = theorem_fields(new_text), theorem_fields(old_text)
-            for f in sorted(f_new - f_old):
-                out.append(finding(path, 1, f"field `Theorems.{f}` added"))
-            for f in sorted(f_old - f_new):
-                out.append(finding(path, 1, f"field `Theorems.{f}` removed"))
+            for fields, verb in ((f_new - f_old, "added"), (f_old - f_new, "removed")):
+                out += [finding(path, 1, f"field `Theorems.{f}` {verb}") for f in sorted(fields)]
     changed = [f"- {k}: {', '.join(v)}" for k, v in kinds.items() if v]
     if not changed:
         return SECTIONS.append(("The statement", ["No file under `formal/Statement/` changed."]))
@@ -253,15 +249,15 @@ def leftovers(files, heads):
         if status == "D":
             continue
         lines = heads[path].split("\n")
-        kinds, comments = scan(heads[path])
+        kinds = scan(heads[path])[0]
         exempt = is_root(path) or {"tests", "scripts", "tools"} & set(path.split("/")[:-1])
         for ln, t in added:
             prev = lines[ln - 2] if ln >= 2 else ""
             if DEBUG.match(t) and not exempt and not prev.lstrip().startswith("#guard_msgs"):
                 out.append(finding(path, ln, f"debug command: `{clip(t)}`"))
             s = t.lstrip()
-            inner = s[2:] if s.startswith("--") else s[2:] if s.startswith("/-") and s[2:3] not in "-!" else (
-                s if kinds[ln - 1] == "plain" else None)
+            opener = s.startswith("--") or s.startswith("/-") and s[2:3] not in "-!"
+            inner = s[2:] if opener else s if kinds[ln - 1] == "plain" else None
             if inner is not None and COMMENTED_DECL.match(inner):
                 out.append(finding(path, ln, f"commented-out declaration: `{clip(t)}`"))
             if LEFTOVER.search(t):
@@ -297,7 +293,7 @@ def prose(files, heads):
         in_scope = path.startswith(("formal/", ".claude/skills/")) or top
         if status == "D" or not in_scope:
             continue
-        if path.endswith((".md", ".tex")) and (top and path.endswith(".md") or not top):
+        if path.endswith(".md") or path.endswith(".tex") and not top:
             for ln, t in added:
                 if DASH.search(t):
                     out.append(finding(path, ln, f"em-dash or en-dash: `{clip(t)}`"))

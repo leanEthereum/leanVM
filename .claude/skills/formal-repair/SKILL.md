@@ -5,7 +5,7 @@ description: Bring leanVM's formal/ proofs back to green after a change to the R
 
 # Repair the proofs after a change
 
-A change to the Rust or the guest breaks proofs in clusters: one moved definition, one renumbered body, one new check, and dozens of failures downstream. Repair the cause, at the layer that owns it, not each failure where it shows. The recipes for each kind of change are `formal/AGENTS.md`, "Changing the spec": read the one for your change first; this skill does not repeat them.
+A change to the Rust or the guest breaks proofs in clusters: one moved definition, one renumbered body, one new check, and dozens of failures downstream. Repair the cause, at the layer that owns it, not each failure where it shows. The recipes for each kind of change are `formal/AGENTS.md`, "Changing the spec": read the one for your change first.
 
 **Never** edit a statement to make a proof pass (a statement change goes to the maintainers through `formal-statements`), hand-edit a generated file, or raise a budget to make a timeout go away.
 

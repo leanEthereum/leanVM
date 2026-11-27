@@ -7,7 +7,7 @@ description: Write or change a Lean definition or theorem statement in leanVM's 
 
 The statement is the deliverable; the proof is replaceable. A wrong statement makes every proof of it worthless, and no build finds it. So the order is fixed: write the statement, convince yourself it means what it should, then prove it. **If the proof is hard, the statement does not move.**
 
-Work as the specialist the statement needs: a cryptographer or proof-system engineer for security statements and the verifier, a zkVM and compiler engineer for the ISA, the executor and the guest. The rules are `formal/CONTRIBUTING.md` ("The trusted statement"); this skill is how to meet them. Proof mechanics are elsewhere (`formal-proofs`, `lean4:prove`).
+Work as the specialist the statement needs: a cryptographer or proof-system engineer for security statements and the verifier, a zkVM and compiler engineer for the ISA, the executor and the guest. The rules are `formal/CONTRIBUTING.md` ("The trusted statement"). Proof mechanics are elsewhere (`formal-proofs`, `lean4:prove`).
 
 **Done means:** every new or changed declaration has a source you cite by name, each hypothesis is justified, a witness shows the hypotheses satisfiable, the substitution test fails, and, for a change to `formal/Statement/`, the four items of the statement-change protocol below are in the pull request.
 

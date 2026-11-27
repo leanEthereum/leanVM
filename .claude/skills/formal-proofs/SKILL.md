@@ -5,7 +5,7 @@ description: Write, refactor or golf Lean proofs in leanVM's formal/ so the next
 
 # Write a proof the next agent can repair
 
-Proofs in `formal/` break whenever the Rust, the guest or a dependency changes, and the next agent repairs them without your context. Write for that agent: the argument visible, each step stated, nothing that depends on a position or an accident of elaboration. The rules are `formal/CONTRIBUTING.md` ("Proofs the next agent can repair", "Budgets and build cost"); this skill applies them. For search, tactics and error triage use the `lean4` plugin's skills (`lean4:prove`, `lean4:golf`, `lean4:refactor`) or their equivalents; this skill does not repeat them.
+Proofs in `formal/` break whenever the Rust, the guest or a dependency changes, and the next agent repairs them without your context. Write for that agent: the argument visible, each step stated, nothing that depends on a position or an accident of elaboration. The rules are `formal/CONTRIBUTING.md` ("Proofs the next agent can repair", "Budgets and build cost"). For search, tactics and error triage use the `lean4` plugin's skills (`lean4:prove`, `lean4:golf`, `lean4:refactor`) or their equivalents.
 
 **The statement does not move.** A proof never changes the statement it proves. If it seems to need to, stop and use `formal-statements`.
 
