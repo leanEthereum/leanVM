@@ -358,8 +358,11 @@ fn shifted(v: F128x8, shift: usize, n: usize) -> F128x8 {
 /// `left_g` lifted to `E` and `right_g`.
 fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
     let width = form.width();
-    let lin = splat(&form.lin);
-    let rights: Vec<_> = form.groups.iter().map(|(_, right)| splat(right)).collect();
+    // The linear parts, `lin` then each `right_g`, go to the even columns.
+    let linear: Vec<_> = std::iter::once(&form.lin)
+        .chain(form.groups.iter().map(|(_, right)| right))
+        .map(splat)
+        .collect();
     let vectors = rows.div_ceil(8);
     let mut state = crate::filled(vectors * width, F128x8::ZERO);
     let chunk = crate::chunk(vectors);
@@ -367,10 +370,11 @@ fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
         for (b, out) in (task * chunk..).zip(out.chunks_exact_mut(width)) {
             let (i, n) = (8 * b, (rows - 8 * b).min(8));
             let load = |c: usize| load_k(cols[c], i, n);
-            out[0] = dot(&lin, load).reduce();
-            for (g, ((left, _), right)) in form.groups.iter().zip(&rights).enumerate() {
+            for (k, terms) in linear.iter().enumerate() {
+                out[2 * k] = dot(terms, load).reduce();
+            }
+            for (g, (left, _)) in form.groups.iter().enumerate() {
                 out[1 + 2 * g] = F128x8::from_array(&load(*left).to_array().map(F128::from));
-                out[2 + 2 * g] = dot(right, load).reduce();
             }
         }
     });

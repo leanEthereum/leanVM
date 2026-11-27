@@ -310,10 +310,15 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
 /// largest down, its blocks in index order.
 fn by_offset(tree: &Tree) -> Vec<usize> {
     let largest = tree.blocks.iter().map(|b| b.kappa).max().unwrap_or(0);
-    (0..=largest)
-        .rev()
-        .flat_map(|kappa| (0..tree.blocks.len()).filter(move |&b| tree.blocks[b].kappa == kappa))
-        .collect()
+    let mut order = Vec::with_capacity(tree.blocks.len());
+    for kappa in (0..=largest).rev() {
+        for (b, block) in tree.blocks.iter().enumerate() {
+            if block.kappa == kappa {
+                order.push(b);
+            }
+        }
+    }
+    order
 }
 
 /// The leaves of a tree's padding rows, which hold the identity, as sorted runs.
