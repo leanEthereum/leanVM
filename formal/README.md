@@ -4,6 +4,8 @@ Lean 4 proofs, all in the random-permutation model, that leanVM is knowledge sou
 
 Key file: [Theorems.lean](./Statement/Theorems.lean)
 
+To contribute, read [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ```sh
 cd formal
 ./check-all.sh lean      # build and kernel-check every Lean project: no sorry, axioms Lean's three (needs cargo: it first writes the files derived from the guest, which are not committed)

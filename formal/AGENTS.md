@@ -2,6 +2,8 @@
 
 What is proved is [`statement.tex`](statement.tex), the one document a reviewer reads; this file is for contributors and agents. Each project's root module and its modules' docstrings say how its proof goes.
 
+The quality bar is [`CONTRIBUTING.md`](CONTRIBUTING.md); agents apply it with the skills below (Skills).
+
 ## The repository
 
 - Seven Lake projects, each built in its own directory: `Statement` (the statement: definitions and end statements only), `fast_fields` (proved `@[csimp]` lemmas that compile CompPoly's `GF(2^64)` and its degree-two extensions on machine words; `Statement` requires it and `Statement.Field` imports it, so the statement's definitions compile with them), and the proofs, `common`, `lean_vm`, `lean_xmss`, `lean_sphincs` and `lean_da`; the root is no Lean project. `lake build` at the root (`check-all.sh`) is the full gate; `.github/workflows/lean.yml` runs the same checks, a job per project (`fast_fields`' in the statement's).
@@ -101,3 +103,15 @@ lake exe signature-kat ../../crates ../../crates/lean_sphincs/tests/lean_sphincs
 - `python3 -I tools/escape-scan.py DIR...`: fails on a proof escape outside comments (the gate runs it).
 - `bash tools/test-axiom-footprint.sh`: tests the axiom footprint check on small compiled modules.
 - `python3 -I tools/docnames.py`: names `statement.tex` and the docs cite that no Lean file has.
+
+## Skills
+
+The repository's skills, in `../.claude/skills/`, are Markdown any agent can read; proof mechanics are the `lean4` plugin's. They start from `python3 -I tools/pr-report.py [--base REF]`, which reports what a change does to the statement, budgets, leftovers, sizes and prose and never fails on a finding (`.github/workflows/formal-report.yml` runs it on pull requests; `tools/test_pr_report.py` tests it).
+
+| task | skill |
+| --- | --- |
+| write or change a definition or statement; transcribe Rust, the guest or `doc/leanvm` | `formal-statements` |
+| write, refactor or golf a proof | `formal-proofs` |
+| bring the proofs back after a change to the Rust, the guest, a parameter or a dependency | `formal-repair` |
+| review a pull request or branch, your own included | `formal-review` |
+| make a branch ready for review | `formal-pr` |

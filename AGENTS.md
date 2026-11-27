@@ -36,7 +36,7 @@ Everything else exists once, leaves first:
 - `bindings/`: language bindings of the schemes and aggregation. A separate Cargo workspace: run cargo from `bindings/`, see `bindings/README.md`.
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
-- `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
+- `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`), `formal/CONTRIBUTING.md` the quality bar, which agents apply with the `.claude/skills/formal-*` skills.
 
 Rules:
 
