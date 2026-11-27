@@ -6,7 +6,7 @@
 //!                 eq(point, (y, m)) * weights[j] * mu[i] * bit(y, j, i)
 //! ```
 
-use primitives::field::{F128, powers};
+use primitives::field::F128;
 use primitives::multilinear::eq_table;
 use verifier::keccak::{BITS, EMBED_BITS, PACK, RMFE_EMBED, along, linear_transpose};
 
@@ -31,9 +31,9 @@ pub fn first_claim(instance: &[F128], segment: &[F128], r_lane: &[F128]) -> Clai
     }
 }
 
-/// The instance weights of a claim made at the polynomial point `s`: each unit vector's embedding at `s`.
-pub fn instance_weights(s: F128) -> [F128; PACK] {
-    let powers = powers(s, EMBED_BITS);
+/// The instance weights of a claim made at the polynomial point `s`, from its `powers`: each unit vector's embedding
+/// at `s`.
+pub fn instance_weights(powers: &[F128]) -> [F128; PACK] {
     std::array::from_fn(|i| {
         (0..EMBED_BITS)
             .filter(|b| RMFE_EMBED[i] >> b & 1 == 1)

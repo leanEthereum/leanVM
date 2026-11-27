@@ -8,12 +8,14 @@
 //! 4. a sumcheck over the bit position, on tables of 2048;
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
-use primitives::field::F128;
-use primitives::multilinear::{fold, poly_eval};
+use primitives::field::{F128, powers};
+use primitives::multilinear::{eq_table, fold, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS, along};
 
+use crate::kernels::PACKS_LOG;
 use crate::protocol::{Claim, instance_weights, next_weights};
+use crate::skip::SKIP;
 use crate::table::{Summand, Tables};
 use crate::witness::Witness;
 use crate::{product, skip, table};
@@ -28,9 +30,14 @@ pub(crate) fn prove_layer(
     tables: &mut Tables,
 ) -> Claim {
     let layer = Layer::new(witness, step);
+    // The weights of a block's pairs of groups, by block then segment, and of the tasks: step 1 weighs a block by
+    // them too, its packs' low variables being the skip's and the half.
+    const { assert!(PACKS_LOG == SKIP + 1) };
+    let eq = eq_table(&claim.point[PACKS_LOG..]);
+    let tasks = layer.task_weights(&eq);
 
     // 1. The product polynomial.
-    let (product, per_pack) = product::polynomial(&layer, claim);
+    let (product, per_pack) = product::polynomial(&layer, claim, &tasks);
     ps.add_scalars(&product);
 
     // 2. `s`: the product polynomial has degree PRODUCT_BITS - 1.
@@ -38,7 +45,8 @@ pub(crate) fn prove_layer(
     // accepts any passing nonce, so the prover grinds on.
     let bits = fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1);
     let s = ps.grind_sample(bits, |s| s.to_limbs()[1] != 0);
-    let mu = instance_weights(s);
+    let powers = powers(s, skip::COEFFS);
+    let mu = instance_weights(&powers);
     let kappa = mu.iter().sum();
     let mut sumcheck = Sumcheck {
         value: poly_eval(&product, s),
@@ -46,10 +54,10 @@ pub(crate) fn prove_layer(
     };
 
     // 3. The pack and the segment.
-    let sums = skip::sums(&layer, claim, s, &per_pack);
+    let sums = skip::sums(&layer, claim, &powers, &tasks, &per_pack);
     skip::prove_rounds(ps, claim, sums, &mut sumcheck);
     let summand = Summand::new(claim, kappa);
-    let values = table::fill(&layer, claim, &summand, &mu, &sumcheck.point, tables);
+    let values = table::fill(&layer, &summand, &mu, &sumcheck.point, &eq, tables);
     let folded = table::prove_rounds(ps, claim, &summand, values, tables, &mut sumcheck);
 
     // 4. The bit position.
@@ -113,13 +121,14 @@ impl<'a> Layer<'a> {
     /// the blocks it stands for.
     pub fn task_weights(&self, eq: &[F128]) -> Vec<F128> {
         let (n_blocks, written) = (self.n_blocks(), self.written());
-        let eq = |segment: usize| &eq[n_blocks * segment..][..n_blocks];
-        (0..self.segments())
-            .flat_map(|m| {
-                let padding = (written < n_blocks).then(|| eq(m)[written..].iter().sum());
-                eq(m)[..written].iter().copied().chain(padding)
-            })
-            .collect()
+        let mut out = Vec::with_capacity(self.n_tasks());
+        for eq in eq.chunks_exact(n_blocks).take(self.segments()) {
+            out.extend_from_slice(&eq[..written]);
+            if written < n_blocks {
+                out.push(eq[written..].iter().sum());
+            }
+        }
+        out
     }
 }
 

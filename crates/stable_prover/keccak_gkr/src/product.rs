@@ -29,10 +29,13 @@ const RUN_WORDS: usize = PACKS * PRODUCT_BYTES;
 const SUMS: usize = 8 * RUN_WORDS;
 
 /// `U`, and the 32 packs' parts of it before their weights `eq(point[..5], pack)`, which the skip's binary points
-/// read.
-pub(crate) fn polynomial(layer: &Layer, claim: &Claim) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
+/// read. `tasks` are the tasks' weights in `eq(point[5..])`.
+pub(crate) fn polynomial(
+    layer: &Layer,
+    claim: &Claim,
+    tasks: &[F128],
+) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
     let maps: Vec<FieldMap> = claim.weights.as_chunks::<8>().0.iter().map(field_map).collect();
-    let tasks = layer.task_weights(&eq_table(&claim.point[PACKS_LOG..]));
     // Each worker's scratch rides beside its sums.
     let scratch = || (vec![[0; RUN_WORDS]; BITS / 8], Box::new([0; SUMS]));
     let (_, sums) = parallel::fold_reduce(

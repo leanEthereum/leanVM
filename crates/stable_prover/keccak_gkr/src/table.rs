@@ -104,14 +104,13 @@ impl PackFold {
 /// the padding block's, folded once.
 pub(crate) fn fill(
     layer: &Layer,
-    claim: &Claim,
     summand: &Summand,
     mu: &[F128; PACK],
     challenges: &[F128],
+    eq: &[F128],
     tables: &mut Tables,
 ) -> (F128, F128) {
     let fold = PackFold::new(mu, challenges);
-    let eq = eq_table(&claim.point[SKIP + 1..]);
     let (n_blocks, written) = (layer.n_blocks(), layer.written());
     let padding = |segment: usize| {
         let mut out = vec![F128::ZERO; 2 * BITS];
@@ -128,7 +127,7 @@ pub(crate) fn fill(
         fold: &fold,
         padding,
     };
-    write_pairs(summand, &source, &mut tables.0[0], &eq)
+    write_pairs(summand, &source, &mut tables.0[0], eq)
 }
 
 /// Send the rounds after the skip, the first one's values being `values`, and return the table's last row: `T`, the

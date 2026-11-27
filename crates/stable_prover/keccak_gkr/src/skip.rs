@@ -18,7 +18,7 @@
 
 use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
-use primitives::field::{F128, F128Unreduced, clmul8_low, powers};
+use primitives::field::{F128, F128Unreduced, clmul8_low};
 use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::transcript::ProverState;
@@ -63,18 +63,25 @@ const MIXED_POINTS: [[usize; 3]; MIXED] = {
     out
 };
 
-/// The summand at every point of `{0, 1, infinity}^SKIP`, by its ternary digits. `per_pack` are the packs' parts of
-/// `U` from the product pass.
-pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRODUCT_BITS]]) -> Vec<F128> {
-    let at = AtS::new(s);
+/// The summand at every point of `{0, 1, infinity}^SKIP`, by its ternary digits, from the [`COEFFS`] `powers` of
+/// `s`. `tasks` are the tasks' weights in `eq(point[SKIP + 1..])`, and `per_pack` the packs' parts of `U` from the
+/// product pass.
+pub(crate) fn sums(
+    layer: &Layer,
+    claim: &Claim,
+    powers: &[F128],
+    tasks: &[F128],
+    per_pack: &[[F128; PRODUCT_BITS]],
+) -> Vec<F128> {
+    let at = AtS::new(powers);
     // Word `k` of each position's weight as a polynomial in `s`, at `words[k][j]`.
     let mut words = [vec![0; BITS], vec![0; BITS]];
     for (j, &w) in claim.weights.iter().enumerate() {
         [words[0][j], words[1][j]] = at.poly(w).to_limbs();
     }
-    // Each task's weight, for each half: the groups of a block alternate.
-    let eq = eq_table(&claim.point[SKIP..]);
-    let groups = [0, 1].map(|half| layer.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
+    // Each task's weight, for each half: the groups of a block alternate, the half being the first variable.
+    let half = claim.point[SKIP];
+    let groups = [F128::ONE + half, half].map(|h| tasks.iter().map(|&t| h * t).collect::<Vec<F128>>());
     // Each worker's scratch rides beside its sums.
     let scratch = || (vec![[[0; 8]; SLOTS]; 5], vec![[Wide8::ZERO; 2]; SLOTS]);
     let (_, mixed) = parallel::fold_reduce(
@@ -97,9 +104,9 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRO
         },
     );
     let mut sums: Vec<F128> = mixed.iter().map(|s| s.reduce()).collect();
-    let at_s: Vec<F128> = per_pack.iter().map(|p| poly_eval(p, s)).collect();
+    let at_s: Vec<F128> = per_pack.iter().map(|p| poly_eval(p, powers[1])).collect();
     for q in 0..GROUP {
-        sums[ternary(q)] = interp(at_s[q], at_s[GROUP + q], claim.point[SKIP]);
+        sums[ternary(q)] = interp(at_s[q], at_s[GROUP + q], half);
     }
     sums
 }
@@ -165,17 +172,17 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
         let c = sumcheck.round(ps, zero, Some(one), infinity, claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
         let c2 = c * (c + F128::ONE);
-        sums = sums
-            .as_chunks::<3>()
-            .0
-            .iter()
-            .map(|v| v[0] + c * (v[0] + v[1]) + c2 * v[2])
-            .collect();
+        let len = sums.len() / 3;
+        for k in 0..len {
+            let v = &sums[3 * k..][..3];
+            sums[k] = v[0] + c * (v[0] + v[1]) + c2 * v[2];
+        }
+        sums.truncate(len);
     }
 }
 
 /// Coefficients a polynomial [`AtS::eval`] reads may have: a weight's 128 and a product's 47.
-const COEFFS: usize = 192;
+pub const COEFFS: usize = 192;
 
 /// Field elements as binary polynomials at `s`.
 struct AtS {
@@ -186,10 +193,10 @@ struct AtS {
 }
 
 impl AtS {
-    fn new(s: F128) -> Self {
+    /// From the [`COEFFS`] powers of `s`.
+    fn new(powers: &[F128]) -> Self {
         // Gauss-Jordan on the powers of `s` below 128, each tagged with its exponent: the reduced rows are the unit
         // vectors, tagged with their polynomials.
-        let powers = powers(s, COEFFS);
         let mut rows: Vec<(u128, u128)> = (0..128).map(|i| (u128::from(powers[i]), 1u128 << i)).collect();
         for k in 0..128 {
             let pivot = (k..128)
@@ -204,7 +211,7 @@ impl AtS {
             }
         }
         let unit: Vec<F128> = rows.iter().map(|row| F128::from(row.1)).collect();
-        let [unit, powers] = [&unit[..], &powers[..]].map(BitFold::new);
+        let [unit, powers] = [&unit[..], powers].map(BitFold::new);
         Self { unit, powers }
     }
 
@@ -224,13 +231,14 @@ impl AtS {
 mod tests {
     use super::*;
     use primitives::field::gf2_64::mul_wide;
+    use primitives::field::powers;
     use primitives::test_rng::Rng;
 
     #[test]
     fn polynomials_take_their_values_at_s() {
         let mut rng = Rng::new(41);
         let s = rng.ext();
-        let at = AtS::new(s);
+        let at = AtS::new(&powers(s, COEFFS));
         let eval = |words: &[u64]| -> F128 {
             let powers = powers(s, 64 * words.len());
             (0..64 * words.len())

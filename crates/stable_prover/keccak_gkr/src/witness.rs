@@ -90,7 +90,9 @@ pub struct Witness {
     pub(crate) written: usize,
 }
 
-/// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
+/// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`. Out of line: one copy for every
+/// caller.
+#[inline(never)]
 pub(crate) fn transpose64(a: &mut [u64; 64]) {
     // Swap the off-diagonal `j` by `j` blocks of every `2j` by `2j` block, `j` halving: rows `i` and `i + j` of a
     // block, which the compiler vectorizes over `i`.
