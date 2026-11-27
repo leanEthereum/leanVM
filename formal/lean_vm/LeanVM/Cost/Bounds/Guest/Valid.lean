@@ -186,7 +186,7 @@ theorem valid_cursor {input : PublicInput} {t : Execution guestProgram}
       (lsTable discreteLogTables rd σ) c ∈ w.children := by
     simp only [w, decWitNStaged, decWitStaged, decWitAt, decWitTab, nodeWitnessOf, kidsT]
     exact List.mem_map.2 ⟨c, List.mem_range.2 hc, rfl⟩
-  have hacc := (hrel _ hmem).2
+  have hacc := hrel _ hmem
   have hs := LeanVM.Guest.Child.stream_le_of_verifyDeferred hacc
   have hl := cursor_le_stream Fast.readerTabs.whir rd fr
     (frameAtA (entryArrayT pcTableT (Fast.preTestAt discreteLogTables Fast.preTable Fast.genPows rd)

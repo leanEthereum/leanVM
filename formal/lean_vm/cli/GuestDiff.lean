@@ -94,8 +94,8 @@ def nodeRel (c : Case) : List (String × Bool) :=
   [if w.children = [] then
       ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
-      (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.freshClaim, ch.statement.deferredClaim⟩)
-        w.batchingHints).map DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
+      (Batch.batch (Nat.log2 bytecode.length) (w.childClaims c.seed) w.batchingHints).map
+        DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
 
 /-- `Limits`' parts, each by name. -/
 def limits (c : Case) : List (String × Bool) :=

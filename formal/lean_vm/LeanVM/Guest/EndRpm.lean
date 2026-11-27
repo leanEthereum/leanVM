@@ -25,6 +25,7 @@ public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.BytecodeShape
 
 @[expose] public section
 

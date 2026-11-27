@@ -12,6 +12,7 @@ public import LeanVM.Guest.Child.Reads
 public import LeanVM.Guest.B1.VerifySub.Sizes
 public import LeanVM.Protocol.Verifier.Phases
 public import LeanVM.Protocol.Verifier.Claims
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # Children the verifier accepts

@@ -1,13 +1,12 @@
 import Statement.Corollaries
 import LeanVM.Protocol.LeanVMRpmAS
-import LeanVM.Guest.Batch.Rpm
 
 /-!
 # The end statements against their capped forms
 
-* **Query counts.** `KnowledgeSoundness` and `AggregateSound` hold for every `Q`, and
-  `BatchingSound` for every `QA`; each is equivalent to its form capped at `2^128` queries, past
-  which its bound exceeds `1` (`one_le_knowledgeSoundnessBound`, `one_le_batchingBound`).
+* **Query counts.** `KnowledgeSoundness` and `AggregateSound` hold for every `Q`; each is
+  equivalent to its form capped at `2^128` queries, past which its bound exceeds `1`
+  (`one_le_knowledgeSoundnessBound`).
 -/
 
 open scoped ENNReal
@@ -60,28 +59,5 @@ theorem aggregateSound_iff_capped (guest : LeanIsaProgram) (decoder : LeanVM.Cos
   ⟨fun h A Q hA ↦ (le_or_gt Q (2 ^ 128)).elim (h A Q hA) fun hQ ↦
       (prEvent_le_one _).trans (one_le_knowledgeSoundnessBound hQ),
     fun h A Q hA _ ↦ h A Q hA⟩
-
-/-- `BatchingSound` capped at `QA ≤ 2^128`. -/
-def BatchingSoundCapped : Prop :=
-  ∀ (M : ℕ) (bytecode : List K), bytecode.length = 2 ^ Nat.log2 bytecode.length →
-    M ≤ 2 ^ 64 - 1 →
-    ∀ (adversary : OracleComp Common.RandomPermutationOracles (Unit × Proof)) (QA : ℕ),
-    Common.QueryCostAtMost adversary Common.permutationCallCost QA → QA ≤ 2 ^ 128 →
-    batchingQueryBound bytecode M ≤ 2 ^ 96 →
-    Pr{let outcome ← Common.runWithRandomPermutation (do
-         let output ← adversary
-         let accepted ←
-           runBatching Common.queryPermutation (boundedBatchingProgram M bytecode) output.2
-         return (output, accepted))}[
-      outcome.2 = true ∧ SomeChildClaimFalse bytecode M outcome.1.2] ≤
-      (((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) + 1) * (max (2 * M - 3) 8 : ℕ) *
-          (2 : ℝ≥0∞)⁻¹ ^ 130 +
-        5 * ((QA + batchingQueryBound bytecode M : ℕ) : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
-
-theorem batchingSound_iff_capped : BatchingSoundCapped ↔ BatchingSound :=
-  ⟨fun h M b hb hM A QA hA hQV ↦ (le_or_gt QA (2 ^ 128)).elim
-      (fun hQA ↦ h M b hb hM A QA hA hQA hQV)
-      fun hQA ↦ (prEvent_le_one _).trans (one_le_batchingBound hQA),
-    fun h M b hb hM A QA hA _ hQV ↦ h M b hb hM A QA hA hQV⟩
 
 end LeanVM.Statement.Windows

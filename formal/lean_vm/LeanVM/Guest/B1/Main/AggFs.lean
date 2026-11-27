@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.AggFs
 
-  The batching (`Node.batch`) on the guest's carried sponge, rows of a sponge in memory, and a
+  The batching (`Batch.batch`) on the guest's carried sponge, rows of a sponge in memory, and a
   checker, by kernel evaluation, of a straight-line chain of `KECCAK`s absorbing packed words.
 -/
 
@@ -17,7 +17,7 @@ import LeanVM.ToMathlib.List
 /-!
 # The batching's sponge
 
-* `batch_fs`: `Node.batch` on the carried sponge (`Fs`): the seed's capacity absorbs the
+* `batch_fs`: `Batch.batch` on the carried sponge (`Fs`): the seed's capacity absorbs the
   batching's words (`aggAbs`), the hinted nonce's permutation (`aggN`, `Fs.nonceState`) passes the
   proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `bsRun` runs the
   sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried sponge's operations
@@ -41,10 +41,10 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 /-! ## The batching on the carried sponge -/
 
-/-- **`bsRun` is `Node.batchRounds`** on a sponge the guest carries. -/
+/-- **`bsRun` is `Batch.batchRounds`** on a sponge the guest carries. -/
 theorem bsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Sponge),
     s.Carries sp → ∃ sp', (bsRun rounds claim s).2.Carries sp' ∧
-      (Node.batchRounds claim rounds).run sp = ((bsRun rounds claim s).1, sp')
+      (Batch.batchRounds (m := Id) keccakF1600 claim rounds).run sp = ((bsRun rounds claim s).1, sp')
   | [], claim, s, sp, h => ⟨sp, h, rfl⟩
   | (g1, gInf) :: rest, claim, s, sp, h => by
     have ha := carries_absorb (carries_absorb h g1 dsObserve) gInf dsObserve
@@ -57,12 +57,12 @@ theorem bsRun_run : ∀ (rounds : List (E × E)) (claim : E) (s : Fs) (sp : Spon
     set X := Id.run (Compile.absorb (m := Id) keccakF1600
       (Id.run (Compile.absorb (m := Id) keccakF1600 sp g1 dsObserve)) gInf dsObserve) with hX
     set c := (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).1 with hc
-    have key : (Node.batchRounds claim ((g1, gInf) :: rest)).run sp =
-        ((c :: ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+    have key : (Batch.batchRounds (m := Id) keccakF1600 claim ((g1, gInf) :: rest)).run sp =
+        ((c :: ((Batch.batchRounds (m := Id) keccakF1600 ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
           rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.1,
-          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+          ((Batch.batchRounds (m := Id) keccakF1600 ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
           rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).1.2),
-          ((Node.batchRounds ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
+          ((Batch.batchRounds (m := Id) keccakF1600 ((gInf * c + (claim + g1 + g1 + gInf)) * c + (claim + g1))
           rest).run (Id.run (Compile.squeeze (m := Id) keccakF1600 X)).2).2) := rfl
     rw [key, e1, hrun]
     rfl
@@ -73,9 +73,9 @@ theorem bsRun_len : ∀ (rounds : List (E × E)) (claim : E) (s : Fs),
   | (_, _) :: rest, _, _ => by simp [bsRun, bsRun_len rest]
 
 /-- The batching's initial sponge, carried: the seed's capacity, nothing waiting. -/
-def aggS0 : Fs := ⟨capOf batchSeed, []⟩
+def aggS0 : Fs := ⟨capOf Batch.batchSeed, []⟩
 
-theorem carries_aggS0 : aggS0.Carries ⟨batchSeed, [], none⟩ := ⟨rfl, rfl, rfl⟩
+theorem carries_aggS0 : aggS0.Carries ⟨Batch.batchSeed, [], none⟩ := ⟨rfl, rfl, rfl⟩
 
 theorem carries_obsAll : ∀ (xs : List E) {s : Fs} {sp : Sponge}, s.Carries sp →
     (s.absorbAll xs dsObserve).Carries (Batch.obsAll sp xs)
@@ -114,9 +114,9 @@ theorem powStep_carried {s : Fs} {sp : Sponge} (hs : s.Carries sp) (n : E) :
   rw [powStep_eq, perm_eq (carries_absorb hs n dsPowNonce)]
   rfl
 
-/-- **`Node.batch` on the carried sponge.** -/
+/-- **`Batch.batch` on the carried sponge.** -/
 theorem batch_fs (cs : List ChildClaims) (h : BatchingHints) :
-    batch cs h =
+    Batch.batchCore cs h =
       if powOk Batch.batchLambdaGrindBits (Keccak.lane (aggN cs h.lambdaGrindNonce) 2) then
         if (aggRun cs h).1.2 = h.finalBytecodeValue *
             Batch.batchedBytecodeWeight cs (aggLam cs h.lambdaGrindNonce).1 (aggRun cs h).1.1

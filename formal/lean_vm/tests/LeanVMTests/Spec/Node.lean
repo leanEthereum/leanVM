@@ -6,9 +6,10 @@ import Statement.Fast.Keccak
 import FastFields.QuadExt
 import FastFields.FieldWords
 import LeanVM.Facts.Verifier
-import LeanVM.Facts.NodeWith
+import LeanVM.Guest.Batch.Def
 import LeanVM.Facts.DaWith
 import LeanVMTests.Spec.NodeVectors
+import LeanVM.Facts.BytecodeShape
 
 /-!
 # The deferring verifier and the node's statement: inhabitants, known answers and mutations
@@ -28,7 +29,7 @@ import LeanVMTests.Spec.NodeVectors
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
   `crates/aggregation/src/` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked
-  bytecode are the Spec's, with the permutation as a parameter too (`batchWith`); a batching hint off
+  bytecode are the Spec's; a batching hint off
   by one, the children swapped, and another seed or no DA claim in the statement change the
   outcome. What is slow in the
   interpreter, `lake exe node-vectors` (`cli/NodeVectors.lean`) checks compiled: that their seed
@@ -39,7 +40,7 @@ import LeanVMTests.Spec.NodeVectors
 namespace LeanVMTests.Spec.Node
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
-open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Node
+open LeanVM.Protocol.Compile LeanVM.Protocol.KeccakHash LeanVM.Node LeanVM.Guest.Batch
 
 /-- The UTF-8 bytes of a string. -/
 def utf8 (s : String) : List UInt8 := s.toUTF8.toList
@@ -134,7 +135,7 @@ bakes as `AGG_SEED_*`. -/
 
 /- No children: the empty sumcheck closes on the zero claim, the nonce `0` passing the proof of
 work. -/
-#guard (batch [] ⟨0, [], 0⟩).isSome
+#guard (batch 0 [] ⟨0, [], 0⟩).isSome
 
 /-! ## The Rust vectors -/
 
@@ -153,21 +154,21 @@ def vectorStatement : NodeStatement :=
 #guard statementDigest seed0 vectorStatement ≠ NodeVectors.statementDigest
 
 /- The batching of the two children, with the Rust's hints, defers the Rust's claim. -/
-#guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodePoint) =
+#guard (batch 23 NodeVectors.children NodeVectors.hints).map (·.bytecodePoint) =
   some NodeVectors.batched.bytecodePoint
-#guard (batch NodeVectors.children NodeVectors.hints).map (·.bytecodeValue) =
+#guard (batch 23 NodeVectors.children NodeVectors.hints).map (·.bytecodeValue) =
   some NodeVectors.batched.bytecodeValue
 
-/- The batching with Keccak-f as a parameter, from `batchSeed`, is the same. -/
-#guard (Id.run (batchWith (m := Id) keccakF1600 batchSeed NodeVectors.children
-  NodeVectors.hints)).map (·.bytecodePoint) = some NodeVectors.batched.bytecodePoint
 
 -- Mutation: a final value one off.
-#guard (batch NodeVectors.children { NodeVectors.hints with
+#guard (batch 23 NodeVectors.children { NodeVectors.hints with
   finalBytecodeValue := NodeVectors.hints.finalBytecodeValue + 1 }).isNone
 
+-- Mutation: one variable fewer than the hints' rounds.
+#guard (batch 22 NodeVectors.children NodeVectors.hints).isNone
+
 -- Mutation: the children swapped, the same hints.
-#guard (batch NodeVectors.children.reverse NodeVectors.hints).isNone
+#guard (batch 23 NodeVectors.children.reverse NodeVectors.hints).isNone
 
 -- Mutation: no DA claim, the zero digest in its place.
 #guard statementDigest NodeVectors.seed { vectorStatement with

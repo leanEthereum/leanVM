@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.Child.Merkle
 public import LeanVM.Guest.Child.Accepted
 public import LeanVM.Guest.Child.Range
@@ -416,8 +417,9 @@ theorem acceptableChildren_or_collide {bytecode : List K} (hbl : bytecode.length
     (hrel : NodeRelation bytecode seed statement witness) :
     ChildrenOk bytecode seed witness ∨ ∃ child ∈ witness.children, OpeningsCollide child.proof := by
   refine or_iff_not_imp_right.mpr fun hc child hchild ↦ ?_
+  have hshape := (hrel.child_shapes child hchild).2
   unfold NodeRelation at hrel
-  obtain ⟨hshape, hv⟩ := hrel.2.2.1 child hchild
+  have hv := hrel.2.2.1 child hchild
   exact acceptableChild_of_accepted hbl hshape hv <|
     (capsAgree_or_collide bytecode seed child).resolve_right fun h ↦ hc ⟨child, hchild, h⟩
 

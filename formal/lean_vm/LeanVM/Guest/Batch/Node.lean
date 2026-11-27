@@ -2,7 +2,7 @@
   LeanVM.Guest.Batch.Node
 
   A node's batching as the statement states it (`NodeRelation`: the program `nodeBatchingProgram` run on the stream
-  of the children's claims and the hints) is the guest program's transcript `Node.batch`.
+  of the children's claims and the hints) is the guest program's transcript `batch`.
 -/
 
 module
@@ -13,12 +13,13 @@ public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # A node's batching
 
 `batchRun_batchOf_iff`: for a deferred claim `d` of the bytecode's shape, the batching program `nodeBatchingProgram (· = d)` accepts the stream of the children's claims and the
-hints exactly where `Node.batch` defers `d`. The program reads the sumcheck's `log₂ |bytecode|`
+hints exactly where `batch` defers `d`. The program reads the sumcheck's `log₂ |bytecode|`
 rounds; an accepting run consumes the whole stream, so the hints have that many rounds
 (`rounds_length_of_accepts`), and `batch` defers a claim at a point of as many coordinates as the
 hints have rounds.
@@ -144,14 +145,14 @@ theorem rounds_length_of_accepts {check : DeferredBytecodeClaim → Prop} {bytec
       at h1 hle
     omega
 
-/-- **With the program's rounds, a node's batching is `Node.batch`**: for hints of
+/-- **With the program's rounds, a node's batching is `batch`**: for hints of
 `log₂ |bytecode|` rounds, the program accepts the stream exactly where `batch`
 defers `d`. -/
 theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
     {d : DeferredBytecodeClaim}
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
+      ⟨batchingStream cs h, []⟩) = true ↔ batchCore cs h = some d := by
   change (match runD (nodeBatchingProgram (· = d) bytecode cs)
       ⟨⟨batchSeed, [], none⟩, batchingStream cs h, [], []⟩ with
     | some (true, s) => s.stream.isEmpty && s.openings.isEmpty
@@ -172,7 +173,7 @@ theorem batchRun_iff_of_rounds {bytecode : List K} {cs : List ChildClaims} {h : 
 
 /-- `batch` defers a claim at a point of as many coordinates as the hints have rounds. -/
 theorem batch_point_length {cs : List ChildClaims} {h : BatchingHints} {d : DeferredBytecodeClaim}
-    (hb : batch cs h = some d) : d.bytecodePoint.length = h.sumcheckMessages.length := by
+    (hb : batchCore cs h = some d) : d.bytecodePoint.length = h.sumcheckMessages.length := by
   have e := hb
   rw [batch_eq'] at e
   split_ifs at e
@@ -190,12 +191,12 @@ theorem shape_of_batchRun {bytecode : List K} {cs : List ChildClaims} {h : Batch
   have hr := rounds_length_of_accepts hacc
   rw [DeferredBytecodeClaim.HasBytecodeShape, batch_point_length ((batchRun_iff_of_rounds hr).mp hacc), hr]
 
-/-- **A node's batching is `Node.batch`**: for a deferred claim of the bytecode's shape, the
+/-- **A node's batching is `batch`**: for a deferred claim of the bytecode's shape, the
 program accepts the stream exactly where `batch` defers that claim. -/
 theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
     {d : DeferredBytecodeClaim} (hd : d.HasBytecodeShape bytecode) :
     Id.run (runBatchingWithHash (m := Id) keccak256 keccakF1600 (nodeBatchingProgram (· = d) bytecode cs)
-      ⟨batchingStream cs h, []⟩) = true ↔ batch cs h = some d := by
+      ⟨batchingStream cs h, []⟩) = true ↔ batchCore cs h = some d := by
   constructor
   · intro hacc
     exact (batchRun_iff_of_rounds (rounds_length_of_accepts hacc)).mp hacc
@@ -207,32 +208,41 @@ theorem batchRun_batchOf_iff {bytecode : List K} {cs : List ChildClaims} {h : Ba
 
 /-! ## `NodeRelation` with the guest program's transcript -/
 
-/-- `NodeRelation` with the batching as the guest program's transcript (`Node.batch`). -/
+/-- `NodeRelation` with the batching as its checks and the guest program's transcript
+(`batchCore`), and the deferred claim's shape. -/
 def _root_.LeanVM.Node.NodeRelB (bytecode : List K) (seed : Digest) (s : NodeStatement)
     (w : NodeWitness) : Prop :=
   s.deferredClaim.HasBytecodeShape bytecode ∧
-  (∀ c ∈ w.children, c.statement.deferredClaim.HasBytecodeShape bytecode ∧
-    verifyDeferred bytecode seed (statementDigest seed c.statement) c.freshClaim c.proof = true) ∧
+  ChildrenProven bytecode seed w ∧
   SignatureClaimsHeld s w ∧
   (match w.daMatrix with
     | some (c, m) => s.claims.daDigest = daClaimDigest c ∧ m.Opens c.daRoot c.membershipChallenge
     | none => s.claims.daDigest = zeroDigest ∨ ∃ c ∈ w.children, c.statement.claims.daDigest = s.claims.daDigest) ∧
   if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
-  else batch (w.children.map fun c ↦
-    ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩) w.batchingHints = some s.deferredClaim
+  else BatchChecks (Nat.log2 bytecode.length) (w.childClaims seed) w.batchingHints ∧
+    batchCore (w.childClaims seed) w.batchingHints = some s.deferredClaim
+
+/-- `DeferredClaimBatched` with `batch`'s checks and transcript apart. -/
+theorem _root_.LeanVM.Node.deferredClaimBatched_iff {bytecode : List K} {seed : Digest}
+    {s : NodeStatement} {w : NodeWitness} :
+    DeferredClaimBatched bytecode seed s w ↔
+      if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
+      else BatchChecks (Nat.log2 bytecode.length) (w.childClaims seed) w.batchingHints ∧
+        batchCore (w.childClaims seed) w.batchingHints = some s.deferredClaim := by
+  unfold DeferredClaimBatched
+  split
+  · exact Iff.rfl
+  · exact batch_eq_some_iff
 
 /-- **The batched deferred claim has the bytecode's shape**: the zero point's, or the batching
-sumcheck's challenges. -/
+sumcheck's `log₂ |bytecode|` challenges. -/
 theorem _root_.LeanVM.Node.DeferredClaimBatched.hasBytecodeShape {bytecode : List K}
     {seed : Digest} {s : NodeStatement} {w : NodeWitness}
     (hb : DeferredClaimBatched bytecode seed s w) : s.deferredClaim.HasBytecodeShape bytecode := by
-  unfold DeferredClaimBatched at hb
+  rw [deferredClaimBatched_iff] at hb
   split at hb
-  · unfold DeferredBytecodeClaim.HasZeroPoint at hb
-    rw [DeferredBytecodeClaim.HasBytecodeShape, hb, List.length_replicate]
-  · dsimp only at hb
-    rw [LeanVM.Guest.Batch.runBatching_deployed] at hb
-    exact shape_of_batchRun hb
+  · rw [DeferredBytecodeClaim.HasBytecodeShape, hb, List.length_replicate]
+  · rw [DeferredBytecodeClaim.HasBytecodeShape, batch_point_length hb.2, hb.1.2.1]
 
 /-- **A node's deferred claim has the bytecode's shape**, under `NodeRelation`. -/
 theorem _root_.LeanVM.Node.NodeRelation.hasBytecodeShape {bytecode : List K} {seed : Digest}
@@ -246,33 +256,17 @@ theorem _root_.LeanVM.Node.DeferredBytecodeClaim.HoldsWithShape.hasBytecodeShape
     claim.HasBytecodeShape bytecode := by
   rw [DeferredBytecodeClaim.HasBytecodeShape, ← h.1, Nat.log2_two_pow]
 
-/-- **`NodeRelation` is `NodeRelB`**: the statement's batching program accepts the node's stream
-exactly where the guest program's transcript defers the node's claim. -/
+/-- **`NodeRelation` is `NodeRelB`**, its conditions reordered. -/
 theorem _root_.LeanVM.Node.nodeRel_iff {bytecode : List K} {seed : Digest} {s : NodeStatement}
     {w : NodeWitness} : NodeRelation bytecode seed s w ↔ NodeRelB bytecode seed s w := by
-  have key : s.deferredClaim.HasBytecodeShape bytecode →
-      (DeferredClaimBatched bytecode seed s w ↔
-        if w.children = [] then s.deferredClaim.HasZeroPoint bytecode
-        else batch (w.children.map fun c ↦
-          ⟨statementDigest seed c.statement, c.freshClaim, c.statement.deferredClaim⟩)
-            w.batchingHints = some s.deferredClaim) := by
-    intro h1
-    unfold DeferredClaimBatched
-    split
-    · exact Iff.rfl
-    · dsimp only
-      rw [LeanVM.Guest.Batch.runBatching_deployed]
-      exact batchRun_batchOf_iff (h := w.batchingHints) h1
   constructor
   · intro h
     have h1 := h.hasBytecodeShape
-    unfold NodeRelation DaDigestHeld at h
-    unfold NodeRelB
     obtain ⟨hsig, hda, h2, hb⟩ := h
-    exact ⟨h1, h2, hsig, hda, (key h1).mp hb⟩
-  · unfold NodeRelation NodeRelB DaDigestHeld
-    rintro ⟨h1, h2, hsig, hda, hb⟩
-    exact ⟨hsig, hda, h2, (key h1).mpr hb⟩
+    unfold DaDigestHeld at hda
+    exact ⟨h1, h2, hsig, hda, deferredClaimBatched_iff.mp hb⟩
+  · rintro ⟨-, h2, hsig, hda, hb⟩
+    exact ⟨hsig, hda, h2, deferredClaimBatched_iff.mpr hb⟩
 
 end
 end LeanVM.Guest.Batch

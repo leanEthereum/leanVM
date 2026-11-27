@@ -87,7 +87,7 @@ theorem work_fields (held : SignatureClaimsHeld s w) :
 
 /-- The blob matrix checked directly: at most one, of at most `DA_MAX_ROWS` rows (`LeanDa.maxRows`),
 padded to `DA_MAX_ROWS`. -/
-theorem da_le (hlim : DeployedLimits s w) :
+theorem da_le (hlim : DeployedLimitsB s w) :
     (w.daMatrix.map fun _ ↦ 1).getD 0 ≤ 1 ∧
       (w.daMatrix.map fun p ↦ p.2.rows.length).getD 0 ≤ guest_const% DA_MAX_ROWS ∧
       (w.daMatrix.map fun _ ↦ LeanDa.maxRows).getD 0 ≤ guest_const% DA_MAX_ROWS := by
@@ -97,7 +97,7 @@ theorem da_le (hlim : DeployedLimits s w) :
     exact ⟨le_rfl, hr, by simp [LeanDa.maxRows, LeanDa.logMaxRows]⟩
 
 /-- The coverage table at the caps. -/
-theorem coverageSlots_le (hlim : DeployedLimits s w) : coverageSlots w ≤ 2048 + 512 + 2 ^ 17 := by
+theorem coverageSlots_le (hlim : DeployedLimitsB s w) : coverageSlots w ≤ 2048 + 512 + 2 ^ 17 := by
   have := hlim.atMost2048Xmss; have := hlim.atMost512Sphincs; have := hlim.atMost2Pow17ChildClaims
   unfold coverageSlots
   omega
@@ -113,7 +113,7 @@ theorem declared_le (held : SignatureClaimsHeld s w) :
   omega
 
 /-- **The deployed budget's words at the caps**, a child charged at the largest arm. -/
-theorem words_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) :
+theorem words_le (hlim : DeployedLimitsB s w) (held : SignatureClaimsHeld s w) :
     (Count.deployedWords deployedBvAt).eval (work s w) ≤ 2 ^ 26 := by
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields held
   obtain ⟨d1, d2, d3⟩ := da_le hlim
@@ -126,7 +126,7 @@ theorem words_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) :
 
 /-- **The deployed budget's instructions of each opcode at the caps**, a child charged at the
 largest arm. -/
-theorem instrs_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) (op : Opcode) :
+theorem instrs_le (hlim : DeployedLimitsB s w) (held : SignatureClaimsHeld s w) (op : Opcode) :
     (Count.deployedInstrs op).eval (work s w) ≤ 2 ^ instrLog op := by
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩ := work_fields held
   obtain ⟨d1, d2, d3⟩ := da_le hlim
@@ -141,7 +141,7 @@ theorem instrs_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) (
     omega
 
 /-- **The deployed budget's size at the caps is at most `2^30`.** -/
-theorem size_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) :
+theorem size_le (hlim : DeployedLimitsB s w) (held : SignatureClaimsHeld s w) :
     (deployedBudget deployedBvAt).size (work s w) ≤ 2 ^ 30 := by
   unfold End.Budget.size
   rw [Count.deployedBudget_words]
@@ -151,7 +151,7 @@ theorem size_le (hlim : DeployedLimits s w) (held : SignatureClaimsHeld s w) :
   norm_num
 
 /-- **A node within the deployed limits has its coverage table below `2^23`.** -/
-theorem _root_.LeanVM.Guest.GuestLimits.of_limits (hlim : DeployedLimits s w)
+theorem _root_.LeanVM.Guest.GuestLimits.of_limits (hlim : DeployedLimitsB s w)
     (held : SignatureClaimsHeld s w) : GuestLimits s w :=
   ⟨hlim, held, by have := coverageSlots_le hlim; omega⟩
 

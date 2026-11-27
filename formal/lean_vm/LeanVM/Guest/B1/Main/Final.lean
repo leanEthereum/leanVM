@@ -137,9 +137,7 @@ theorem main_sound_C {bytecode : List K}
     intro ch hch
     obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hch
     rw [List.mem_range, nKids_eq] at hc
-    refine ⟨?_, (kid_sub cw MF hK hW hc).2.2⟩
-    show (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
-    rw [deferOfCells_point (length_readCells _ _ _), hlog]
+    exact (kid_sub cw MF hK hW hc).2.2
   · -- the DA digest
     obtain ⟨hsome, hnone⟩ := da_rel MF cw
     cases hd : (decWit σ rd wX wS wD wV wA).daMatrix with
@@ -179,26 +177,48 @@ theorem main_sound_C {bytecode : List K}
       have hch : (decWit σ rd wX wS wD wV wA).children = (List.range (lg σ 6)).map (decKid rd σ wV) := by
         show (List.range (nKids σ)).map _ = _
         rw [nKids_eq]
-      rw [hdef, hch]
-      refine hb _ (by simp) fun c hc => ?_
-      simp only [List.length_map, List.length_range] at hc
-      simp only [List.getElem_map, List.getElem_range]
-      obtain ⟨hfl, hfr, -⟩ := kid_sub cw MF hK hW hc
-      have k := hK c hc
-      have hkd := kid_digest MF hK hW hc
-      simp only [digestCells, List.cons.injEq, and_true] at hkd
-      refine ⟨hfl, ?_, ?_, ?_, hfr, ?_⟩
-      · show (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
-        exact deferOfCells_point (length_readCells _ _ _)
-      · show LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c)
-          (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).1
-        rw [← hkd.1]; exact k.pi0
-      · show LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c + 1)
-          (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).2
-        rw [← hkd.2]; exact k.pi1
-      · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).cells
-        rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]
-        exact k.defreads
+      rw [hdef]
+      have hcs : (decWit σ rd wX wS wD wV wA).childClaims (decSeed σ) =
+          ((List.range (lg σ 6)).map (decKid rd σ wV)).map fun c ↦
+            ⟨statementDigest (decSeed σ) c.statement, c.freshClaim, c.statement.deferredClaim⟩ := by
+        unfold NodeWitness.childClaims
+        rw [hch]
+      have hcore : Batch.batchCore ((decWit σ rd wX wS wD wV wA).childClaims (decSeed σ))
+          (decWit σ rd wX wS wD wV wA).batchingHints = some out := by
+        rw [hcs]
+        refine hb _ (by simp) fun c hc => ?_
+        simp only [List.length_map, List.length_range] at hc
+        simp only [List.getElem_map, List.getElem_range]
+        obtain ⟨hfl, hfr, -⟩ := kid_sub cw MF hK hW hc
+        have k := hK c hc
+        have hkd := kid_digest MF hK hW hc
+        simp only [digestCells, List.cons.injEq, and_true] at hkd
+        refine ⟨hfl, ?_, ?_, ?_, hfr, ?_⟩
+        · show (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).bytecodePoint.length = _
+          exact deferOfCells_point (length_readCells _ _ _)
+        · show LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c)
+            (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).1
+          rw [← hkd.1]; exact k.pi0
+        · show LoadHolds rd (σ (.n (val% «main» "child_pi"))) (2 * c + 1)
+            (digestHalves (statementDigest (decSeed σ) (kidStmt rd σ c))).2
+          rw [← hkd.2]; exact k.pi1
+        · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * c)) 24)).cells
+          rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]
+          exact k.defreads
+      refine ⟨⟨?_, ?_, ?_⟩, hcore⟩
+      · rw [hcs]
+        simp only [List.length_map, List.length_range]
+        exact MF.kids.2
+      · rw [hlog, ← Batch.batch_point_length hcore, hol]
+      · rw [hcs]
+        intro c hc
+        obtain ⟨ch, hch', rfl⟩ := List.mem_map.mp hc
+        obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hch'
+        rw [List.mem_range] at hi
+        have hv := (kid_sub cw MF hK hW hi).2.2
+        refine ⟨verifyDeferred_shaped hv, ?_⟩
+        show (deferOfCells (readCells rd (σ (.n (val% «main» "child_carried")) * gen ^ (24 * i)) 24)).bytecodePoint.length = _
+        rw [deferOfCells_point (length_readCells _ _ _), hlog]
 
 end
 end LeanVM.Guest.B1.Main

@@ -8,6 +8,7 @@
 module
 
 public import Statement.LeanVmGuestCompleteness
+public import LeanVM.Guest.Batch.Def
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Consts
@@ -30,8 +31,8 @@ namespace LeanVM.Guest.Batch
 
 open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Node
 
-theorem lambdaGrindNonceCells_eq (h : BatchingHints) : lambdaGrindNonceCells h = [h.lambdaGrindNonce] := by
-  simp only [lambdaGrindNonceCells, show batchLambdaGrindBits ≠ 0 by decide, ite_false]
+theorem lambdaGrindNonceCells_eq (h : BatchingHints) : lambdaGrindNonceCells h = [h.lambdaGrindNonce] :=
+  rfl
 
 theorem sumcheckRoundCells_eq : sumcheckRoundCells = fun g ↦ [g.1, g.2] := rfl
 
@@ -53,11 +54,6 @@ theorem sumcheckRoundsProgram_succ (claim : E) (k : ℕ) :
 end LeanVM.Guest.Batch
 
 namespace LeanVM.Guest
-
-/-- The deployed limits' child count, at `maxRecursions = 16`. -/
-theorem DeployedLimits.children_le_sixteen {s : LeanVM.Node.NodeStatement} {w : LeanVM.Node.NodeWitness}
-    (hl : DeployedLimits s w) : w.children.length ≤ 16 :=
-  hl.atMostSixteenChildren
 
 end LeanVM.Guest
 

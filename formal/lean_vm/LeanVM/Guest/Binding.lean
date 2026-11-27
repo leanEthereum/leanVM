@@ -17,6 +17,7 @@ public import FastFields.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Protocol.KeccakHash
 public import LeanVM.Facts.ClaimBytes
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The statement's digest binds

@@ -102,6 +102,6 @@ run_meta do
 run_meta do
   let forbidden := ["xmssVerify", "sphincsVerify", "LeanXmss.verify", "Sphincs.verify",
     "verifyDeferred", "verifyDeferredWith", "Verifier.verify", "verifyWith",
-    "MatrixWitness.Opens", "Node.batch"]
+    "MatrixWitness.Opens", "Batch.batch", "Batch.batchWith"]
   let (_, hits) ← traverse ``LeanVM.Guest.End.decode (endsWithAny · forbidden)
   logInfo (showHits hits)

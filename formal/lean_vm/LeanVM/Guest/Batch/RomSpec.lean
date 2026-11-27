@@ -13,6 +13,7 @@ public import LeanVM.Protocol.Compile.SpecRules.Cert
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.ToCompPoly.PowerBatching
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The batching's doom specification

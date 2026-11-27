@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Guest.EndSound
 public import LeanVM.Guest.Located.ReplayFast
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The guest's soundness

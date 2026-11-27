@@ -209,7 +209,7 @@ theorem honestPushes_eq (bytecode : List K) (seed : Digest) (s : NodeStatement) 
     Prover.honestPushes bytecode seed s w = Hints.honestPushes bytecode seed s w := by
   simp only [Prover.honestPushes, Hints.honestPushes, coveragePlan_eq, cellsOfBytes_eq,
     xmssHints_eq, sphincsHints_eq, childSlotPushes_eq, childHints_eq, Prover.batchPushes,
-    Hints.batchPushes, Batch.lambdaGrindNonceCells_eq, Batch.sumcheckRoundCells_eq]
+    Hints.batchPushes]
   rfl
 
 end

@@ -44,8 +44,8 @@ theorem honestExecution_complete_of_childrenOk (G : ExecGaps Ks Km E0 X Pro) (st
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
       execution.committedSize ≤ 2 ^ 30 :=
-  execute_guest_complete G _ _ _ hrel (GuestLimits.of_limits hlim hrel.1) hok
-    (budget_of_limits hlim hrel.1 hok)
+  execute_guest_complete G _ _ _ hrel (GuestLimits.of_limits (hlim.toB hrel) hrel.1) hok
+    (budget_of_limits (hlim.toB hrel) hrel.1 hok)
 
 /-- **The executor runs the guest program to completion on the guest's advice** on every node within
 the deployed limits, unless a child's proof exhibits a Keccak-256 collision

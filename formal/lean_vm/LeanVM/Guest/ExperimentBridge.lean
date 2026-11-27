@@ -16,7 +16,7 @@ model's oracles; the proofs' run the two calls against the model
 
 * `honestProofWithDeployedKeccak_eq_withHash`: the honest prover's proof with the deployed
   Keccak-f[1600] is the two-call prover's with the deployed Keccak;
-* `batchingSound_of_withHash`: the adversary, then the batching over `π`, is the adversary's run
+* `batchingStreamSound_of_withHash`: the adversary, then the batching over `π`, is the adversary's run
   with its transcript recorded, then the batching with the two calls, the transcript forgotten
   (`logged_run_forget`).
 -/
@@ -87,8 +87,8 @@ theorem batchingGame_eq_withHash (A : OracleComp RandomPermutationOracles (Unit 
   simp only [runWithRandomPermutation, Rpm.runAdversaryThen, simulateQ_bind, simulateQ_pure,
     StateT.run'_eq, StateT.run_bind, StateT.run_pure, map_bind, map_pure, hA, bind_map_left, hB]
 
-/-- **`BatchingSound`, from the experiment with the two calls.** -/
-theorem batchingSound_of_withHash (h : BatchingSoundWithHash) : BatchingSound := by
+/-- **`BatchingStreamSound`, from the experiment with the two calls.** -/
+theorem batchingStreamSound_of_withHash (h : BatchingSoundWithHash) : BatchingStreamSound := by
   intro M bytecode hb hM A QA hA hQV
   rw [batchingGame_eq_withHash, prEvent_map]
   exact h M bytecode hb hM A QA hA hQV

@@ -1,4 +1,5 @@
 import LeanVM.Guest.EndRpm
+import LeanVM.Facts.BytecodeShape
 
 /-!
 # Tests: the guest's soundness, its witness named

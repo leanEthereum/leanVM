@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Batch.Rounds
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The batching is sound, challenge by challenge
@@ -53,7 +54,7 @@ def spB (cs : List ChildClaims) (h : BatchingHints) : Sponge := (sqL cs.length (
 /-- **`Node.batch` in the transcript's names**: the deferred claim at the sumcheck's
 challenges, if the proof of work and the final check pass. -/
 theorem batch_eq' (cs : List ChildClaims) (h : BatchingHints) :
-    batch cs h =
+    batchCore cs h =
       if powOk batchLambdaGrindBits (powB cs h).1 then
         if (rsRun h.sumcheckMessages (claimB cs h) (spB cs h)).1.2 = h.finalBytecodeValue *
               batchedBytecodeWeight cs (lambdasB cs h)
@@ -142,7 +143,7 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
 holds, of children whose claims have the bytecode's shape, makes every child's claims true, or
 one of its challenges is bad. -/
 theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredBytecodeClaim} (hb : batch cs h = some d) (hd : d.HoldsWithShape bytecode)
+    {d : DeferredBytecodeClaim} (hb : batchCore cs h = some d) (hd : d.HoldsWithShape bytecode)
     (hf : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length)
     (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
     (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsWithShape bytecode) ∨ BatchBad bytecode cs h := by

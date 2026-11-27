@@ -106,8 +106,8 @@ def batchSeedValue : KeccakState :=
     159208925504336485]
 
 /-- **The batching seed's value.** -/
-theorem batchSeed_eq : Node.batchSeed = batchSeedValue := by
-  rw [Node.batchSeed, keccak256_batchLabel, seedInput_eq, keccakF_eq_iff]; decide +kernel
+theorem batchSeed_eq : Batch.batchSeed = batchSeedValue := by
+  rw [Batch.batchSeed, keccak256_batchLabel, seedInput_eq, keccakF_eq_iff]; decide +kernel
 
 /-- `AGG_SEED_0 .. AGG_SEED_4` as the host bakes them (`dsl_u128` of the capacity cells). -/
 def aggSeed : List ℕ :=
@@ -120,7 +120,7 @@ def aggSeed : List ℕ :=
 capacity a `cap=seed` duplex step reads. -/
 theorem aggSeed_cells (c : Fin 5) :
     LeanVM.Guest.litField (aggSeed.getD c 0) =
-      cellsOfState Node.batchSeed false ⟨8 + c, by omega⟩ := by
+      cellsOfState Batch.batchSeed false ⟨8 + c, by omega⟩ := by
   rw [batchSeed_eq]
   apply E.ext
   intro i

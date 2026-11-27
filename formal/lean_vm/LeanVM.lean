@@ -4,6 +4,7 @@ public import LeanVM.Protocol.LeanVM
 public import LeanVM.Protocol.LeanVMRpm
 public import LeanVM.Guest.Batch.Children
 public import LeanVM.Guest.Batch.Rpm
+public import LeanVM.Guest.Batch.Transcript
 public import LeanVM.Guest.EndRpm
 public import LeanVM.Guest.Budget.Closed
 public import LeanVM.Prover.End
@@ -86,9 +87,8 @@ random-permutation model where an adversary is involved, except the memory-decod
   for a decoder program `D` that computes it within its size bound and budget
   (`LeanVM.Guest.End.guestKnowledge_of_decode`), the compiled
   `LeanVM.Cost.compiledGuestWitnessDecoder`;
-* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
-  recursion step, the batching of the children's deferred claims run outside the circuit, sound in
-  the random-permutation model (from `batch_rpm`);
+* `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuest.lean`): the
+  batching over the model's `π`, sound in the random-permutation model (`Batch/Transcript.lean`);
 * `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
   (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
   the advice `Statement/LeanVmGuestProver.lean` makes from the statement and the witness, on every node
@@ -112,7 +112,7 @@ The other theorems pinned below are steps or corollaries: the bounds' numbers (t
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.AS.extractL_cost`,
 `LeanVM.Cost.Bounds.AS.asPrice_le`, `LeanVM.Cost.AS.asPrice_within`), the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
-random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
+random-permutation model `batch_rpm`, `batch_rpm_bits`, `batch_stream_sound_holds`), `decode_binds`, `guest_sound`,
 `aggregate_knowledge`, the guest's completeness on the children it accepts
 (`LeanVM.Guest.Budget.guest_complete_on_acceptable_children`, `AcceptableChild`,
 `LeanVM/Guest/AcceptableChild.lean`; a node `NodeRelation` admits has such children, or a child's
@@ -192,6 +192,10 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 /-- info: 'LeanVM.Guest.Batch.batch_rpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rpm_bits
+
+/-- info: 'LeanVM.Guest.Batch.batch_stream_sound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.batch_stream_sound_holds
 
 /-- info: 'LeanVM.Guest.Batch.batch_sound_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

@@ -10,14 +10,16 @@ module
 public import LeanVM.Guest.Batch.Sound
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Guest.AcceptableChild
+public import LeanVM.Guest.Batch.Bounded
+public import LeanVM.Facts.BytecodeShape
 
 /-!
 # The batching as a verifier program
 
-`Node.batch` runs on the duplex sponge of the verifier language: `observe` is a read's
+`batch` runs on the duplex sponge of the verifier language: `observe` is a read's
 absorption (tag `1`) and `sample` a sample's squeeze. So the batching is a program
-`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.VerifierProgram`; defined in `Statement/LeanVmGuestCompleteness.lean`,
-with the batching's end statement `BatchingSound`) whose prover sends the count `g^n` and
+`boundedBatchingProgram M bytecode` (`LeanVM.Protocol.Compile.VerifierProgram`; defined in `Bounded.lean`,
+with `BatchingStreamSound`) whose prover sends the count `g^n` and
 three zeros, each child's words and the zeros to a whole rate (`childCells`), the sumcheck's
 messages and the final value, and whose challenges are the lambdas and the sumcheck's challenges.
 It reads the count as the `n < M` with `g^n` the first scalar (`countOf`), checks the padding,
@@ -46,7 +48,6 @@ theorem padRate_eq (ws : List E) : padToRate ws = ws ++ List.replicate (zerosToW
 theorem length_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c) :
     c.words.length = childWordCount (Nat.log2 bytecode.length) := by
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h2
   simp [ChildClaims.words, DeferredBytecodeClaim.cells, childWordCount, h1, h2]
   omega
 
@@ -66,7 +67,6 @@ theorem parseChild_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasByt
     parseChild (Nat.log2 bytecode.length) c.words = c := by
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
   simp [parseChild, ChildClaims.words, DeferredBytecodeClaim.cells,
@@ -79,7 +79,6 @@ theorem parseChild_childCells {bytecode : List K} {c : ChildClaims} (hc : ChildH
   rw [childCells_eq hc]
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
   simp [parseChild, ChildClaims.words, DeferredBytecodeClaim.cells,
@@ -374,7 +373,7 @@ theorem runProof_batchAny {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) {bytecode : List K}
     (hr : h.sumcheckMessages.length = Nat.log2 bytecode.length) :
     Id.run (runProofWithHash keccak256 keccakF1600 (boundedBatchingProgram M bytecode) batchSeed
         ⟨batchingStream cs h, []⟩) = true ↔
-      ∃ d, batch cs h = some d ∧ d.HoldsWithShape bytecode := by
+      ∃ d, batchCore cs h = some d ∧ d.HoldsWithShape bytecode := by
   have hstream : batchingStream cs h = childCountCells cs.length ++ (cs.flatMap childCells ++
       (h.lambdaGrindNonce :: (h.sumcheckMessages.flatMap (fun g ↦ [g.1, g.2]) ++
         [h.finalBytecodeValue]))) := by

@@ -37,8 +37,7 @@ structure Theorems
   /-- The executor runs the guest program to a valid execution on every node within the deployed
   limits, or a child's proof exhibits a Keccak-256 collision (`LeanVmGuestCompleteness.lean`). -/
   guestExecutionComplete : LeanVM.Guest.Completeness.GuestExecutionComplete
-  /-- The batching of the children's claims, run outside the circuit, is sound
-  (`LeanVmGuestCompleteness.lean`). -/
+  /-- The batching of `NodeRelation`, over the model's `π`, is sound (`LeanVmGuest.lean`). -/
   batchingSound : LeanVM.Guest.Batch.BatchingSound
 
   /-- leanXMSS is strongly unforgeable, for one key (`LeanXmss.lean`). -/
