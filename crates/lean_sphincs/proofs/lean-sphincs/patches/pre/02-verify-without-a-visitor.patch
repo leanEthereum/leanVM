@@ -1,7 +1,8 @@
 diff --git a/crates/lean_sphincs/src/fors.rs b/crates/lean_sphincs/src/fors.rs
+index 37db00ec0..ec2658795 100644
 --- a/crates/lean_sphincs/src/fors.rs
 +++ b/crates/lean_sphincs/src/fors.rs
-@@ -104,3 +104,14 @@
+@@ -104,3 +104,14 @@ pub fn fors_recover(
      });
      fors_key(pk_seed, idx, &roots)
  }
@@ -17,9 +18,10 @@ diff --git a/crates/lean_sphincs/src/fors.rs b/crates/lean_sphincs/src/fors.rs
 +    fors_key(pk_seed, idx, &roots)
 +}
 diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.rs
+index 394383b90..b87b41b85 100644
 --- a/crates/lean_sphincs/src/scheme.rs
 +++ b/crates/lean_sphincs/src/scheme.rs
-@@ -289,17 +289,22 @@
+@@ -289,17 +289,22 @@ pub fn tree_fold(
      })
  }
  

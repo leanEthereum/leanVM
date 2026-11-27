@@ -1,5 +1,5 @@
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
-index 60b46652e..2d89baefd 100644
+index 1037c18ef..3784f2555 100644
 --- a/crates/verifier/src/layout.rs
 +++ b/crates/verifier/src/layout.rs
 @@ -217,7 +217,7 @@ impl Table {

@@ -1,7 +1,8 @@
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
+index 6de43bf24..22857ce84 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
-@@ -211,7 +211,9 @@
+@@ -213,7 +213,9 @@ pub fn path_fold<const N: usize>(
      mut visit: impl FnMut(&[[u8; N]; 2]),
      node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
  ) -> [u8; N] {
@@ -12,7 +13,7 @@ diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
          // Bit `z` of `e` says whether the node is the right child.
          let children = if (e >> z) & 1 == 0 {
              [current, sibling]
-@@ -219,8 +221,9 @@
+@@ -221,8 +223,9 @@ pub fn path_fold<const N: usize>(
              [sibling, current]
          };
          visit(&children);

@@ -1,7 +1,8 @@
 diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
+index e99148e23..c5dac1ca3 100644
 --- a/crates/keccak256/src/lanes.rs
 +++ b/crates/keccak256/src/lanes.rs
-@@ -37,30 +37,39 @@
+@@ -38,29 +38,38 @@ pub(crate) trait Lane: Copy {
      fn theta_d(c_prev: Self, c_next: Self) -> Self {
          c_prev.xor(c_next.rotl::<1>())
      }
@@ -23,11 +24,16 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
  
      /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
 -    #[inline(always)]
--    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+-    fn digests(st: &[Self; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
 -        let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
 -        for (words, &lane) in words.iter_mut().zip(st) {
 -            *words = scatter(lane);
-+    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]);
+-        }
+-        for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
+-            for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+-                bytes.write_copy_of_slice(&words[w][l].to_le_bytes());
+-            }
++    fn digests(st: &[Self; STATE_LANES], out: &mut [MaybeUninit<u8>]);
 +}
 +
 +/// [`Lane::absorb`] for a lane type with no instructions of its own for it.
@@ -42,24 +48,18 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
 +
 +/// [`Lane::digests`] for a lane type with no instructions of its own for it.
 +#[inline(always)]
-+fn digests_by_lane<S: Lane>(st: &[S; STATE_LANES], out: &mut [u8]) {
++fn digests_by_lane<S: Lane>(st: &[S; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
 +    let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
 +    for (words, &lane) in words.iter_mut().zip(st) {
 +        *words = scatter(lane);
 +    }
 +    for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
 +        for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-+            *bytes = words[w][l].to_le_bytes();
++            bytes.write_copy_of_slice(&words[w][l].to_le_bytes());
          }
--        for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
--            for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
--                *bytes = words[w][l].to_le_bytes();
--            }
--        }
      }
  }
- 
-@@ -115,8 +124,8 @@
+@@ -116,8 +125,8 @@ fn parities<S: Lane>(a: &[S; STATE_LANES]) -> [S; 5] {
  #[inline(always)]
  fn theta<S: Lane>(c: &[S; 5]) -> [S; 5] {
      let mut d = *c;
@@ -70,7 +70,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
      }
      d
  }
-@@ -201,7 +210,7 @@
+@@ -202,7 +211,7 @@ pub const _ASSERT_8D708A96: () = assert!(RC.len().is_multiple_of(2));
  /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
  /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
  /// before χ spills.
@@ -79,7 +79,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
  #[inline(always)]
  pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
      let mut c = parities(a);
-@@ -214,7 +223,7 @@
+@@ -215,7 +224,7 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
  
  /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
  /// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
@@ -88,7 +88,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
  #[inline(always)]
  pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
      let mut c = parities(a);
-@@ -229,7 +238,7 @@
+@@ -230,7 +239,7 @@ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
  
  /// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
  /// whole round, of `out` on exit.
@@ -97,7 +97,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
  #[inline(always)]
  fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
      let d = theta(c);
-@@ -254,11 +263,11 @@
+@@ -255,11 +264,11 @@ fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_L
  /// ρ and π are written by output row, χ takes the rows in turn, and the next round's column parities accumulate from
  /// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it. With 32
  /// vector registers (NEON) nothing spills, and the x86 form's second state only adds loads and stores.
@@ -111,7 +111,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
          let d = theta(&c);
          let rows = [
              pi_row(a, &d, 0),
-@@ -274,7 +283,6 @@
+@@ -275,7 +284,6 @@ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
  }
  
  /// The whole [`permute`]: every lane comes out permuted, which covers the first row the callers read.
@@ -119,50 +119,46 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
  #[inline(always)]
  pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
      permute(a);
-@@ -307,7 +315,18 @@
-     #[inline(always)]
-     fn chi(a: Self, b: Self, c: Self) -> Self {
-         a ^ (!b & c)
-+    }
-+}
-+
+@@ -311,6 +319,17 @@ impl Lane for u64 {
+     }
+ }
+ 
 +impl Batch for u64 {
 +    #[inline(always)]
 +    fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
 +        absorb_by_lane(st, inputs, len, at, words)
-     }
++    }
 +    #[inline(always)]
-+    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
++    fn digests(st: &[Self; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
 +        digests_by_lane(st, out)
 +    }
- }
- 
++}
++
  /// Whether the CPU runs target feature `$f`: the OS's answer with `std`, else whether the build enables it.
-@@ -455,7 +474,7 @@
+ #[cfg(any(
+     all(target_arch = "x86_64", target_feature = "sse2"),
+@@ -463,7 +482,7 @@ pub fn hash_many_from_state_uninit(data: &[u8], len: usize, state: &[u64; STATE_
  
  /// [`hash_many_from_state`] on backend `S`, [`Lane::WIDTH`] inputs at a time and the remainder one at a time.
  #[inline(always)]
--fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
-+fn hash_many_with<S: Batch>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+-fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
++fn hash_many_with<S: Batch>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
      let n = out.len() / OUT_LEN;
      for (g, digests) in out.chunks_exact_mut(S::WIDTH * OUT_LEN).enumerate() {
          hash_group::<S>(&data[g * S::WIDTH * len..][..S::WIDTH * len], len, state, digests);
-@@ -467,7 +486,7 @@
+@@ -475,7 +494,7 @@ fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES],
  
  /// The digests of [`Lane::WIDTH`] inputs of `len` bytes, input `l` at `inputs[l * len..]`.
  #[inline(always)]
--fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
-+fn hash_group<S: Batch>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+-fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
++fn hash_group<S: Batch>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
      let mut st = splat_all::<S>(state);
      let (blocks, tail) = (len / RATE, len % RATE);
      for b in 0..blocks {
-@@ -582,6 +601,18 @@
-         fn chi(a: Self, b: Self, c: Self) -> Self {
-             // SAFETY: avx2 is on (see the module).
-             Self(unsafe { _mm256_xor_si256(a.0, _mm256_andnot_si256(b.0, c.0)) })
-+        }
-+    }
-+
+@@ -593,6 +612,18 @@ mod x86 {
+         }
+     }
+ 
 +    impl super::Batch for Avx2 {
 +        #[inline(always)]
 +        fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
@@ -170,12 +166,15 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
 +        }
 +
 +        #[inline(always)]
-+        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
++        fn digests(st: &[Self; STATE_LANES], out: &mut [core::mem::MaybeUninit<u8>]) {
 +            super::digests_by_lane(st, out)
-         }
-     }
- 
-@@ -632,7 +663,9 @@
++        }
++    }
++
+     /// Eight states in a ZMM register, with a native rotate and `vpternlogq` for χ and the column parity.
+     #[derive(Clone, Copy)]
+     pub(super) struct Avx512(__m512i);
+@@ -640,7 +671,9 @@ mod x86 {
                  let t = _mm512_ternarylogic_epi64::<0x96>(a.0, b.0, c.0);
                  Self(_mm512_ternarylogic_epi64::<0x96>(t, d.0, e.0))
              }
@@ -186,7 +185,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
          /// `absorb` on eight inputs: each input's words in rows of eight, transposed into one register per
          /// word.
          #[inline(always)]
-@@ -772,7 +805,9 @@
+@@ -780,7 +813,9 @@ mod arm {
                  return Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) });
              }
              c_prev.xor(c_next.rotl::<1>())
@@ -197,7 +196,7 @@ diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
          /// `absorb` on two inputs: two words of each per load, `ZIP1` and `ZIP2` turning the two rows into
          /// two lanes.
          #[inline(always)]
-@@ -820,7 +855,7 @@
+@@ -828,7 +863,7 @@ mod tests {
      use super::*;
  
      /// Every batched entry point on backend `S` against one state at a time: whole groups and a remainder.

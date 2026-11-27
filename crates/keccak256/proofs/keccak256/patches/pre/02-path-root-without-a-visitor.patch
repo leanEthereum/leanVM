@@ -1,15 +1,11 @@
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
+index 22857ce84..94a9d6b5c 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
-@@ -221,6 +221,26 @@
-             [sibling, current]
-         };
-         visit(&children);
-+        current = node(z + 1, e >> (z + 1), &children);
-+    }
-+    current
-+}
-+
+@@ -228,6 +228,26 @@ pub fn path_fold<const N: usize>(
+     current
+ }
+ 
 +/// [`path_fold`] with nothing watching.
 +pub fn path_root<const N: usize>(
 +    leaf: [u8; N],
@@ -25,6 +21,11 @@ diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
 +        } else {
 +            [sibling, current]
 +        };
-         current = node(z + 1, e >> (z + 1), &children);
-     }
-     current
++        current = node(z + 1, e >> (z + 1), &children);
++    }
++    current
++}
++
+ /// Keccak-256 of `data`, Ethereum's `keccak256`: FIPS 202's sponge over Keccak-f\[1600\] with
+ /// rate [`RATE`] and Keccak's original padding.
+ pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {

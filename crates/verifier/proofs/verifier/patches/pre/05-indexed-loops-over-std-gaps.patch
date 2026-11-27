@@ -1,8 +1,8 @@
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
-index e31b40fe4..3be68db4d 100644
+index 1de9fbb69..051bd42af 100644
 --- a/crates/verifier/src/bus.rs
 +++ b/crates/verifier/src/bus.rs
-@@ -90,8 +90,8 @@ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
+@@ -99,8 +99,8 @@ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
      let (offsets, depth) = stack_offsets(&sizes);
      let mut framework: Vec<Placement> = sizes
          .iter()
@@ -14,7 +14,7 @@ index e31b40fe4..3be68db4d 100644
      let tables = framework.split_off(framework_log_rows.len());
      BusLayout {
 diff --git a/crates/verifier/src/field.rs b/crates/verifier/src/field.rs
-index be27bdb19..d995cb703 100644
+index be27bdb19..debd55fb7 100644
 --- a/crates/verifier/src/field.rs
 +++ b/crates/verifier/src/field.rs
 @@ -217,12 +217,13 @@ impl Scaled {
@@ -57,7 +57,7 @@ index 4733cfadc..2cd7daaf3 100644
      }
      let tail = &data[n_blocks * RATE..];
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
-index 2d89baefd..634371b76 100644
+index 3784f2555..15bad417a 100644
 --- a/crates/verifier/src/layout.rs
 +++ b/crates/verifier/src/layout.rs
 @@ -162,12 +162,18 @@ impl Flushes {
@@ -107,10 +107,10 @@ index 2d89baefd..634371b76 100644
  
  fn flushes_keccak() -> Flushes {
 diff --git a/crates/verifier/src/multilinear.rs b/crates/verifier/src/multilinear.rs
-index 9d408a523..6e09c2222 100644
+index 9d408a523..80b788826 100644
 --- a/crates/verifier/src/multilinear.rs
 +++ b/crates/verifier/src/multilinear.rs
-@@ -121,7 +125,9 @@ pub struct Placement {
+@@ -121,7 +121,9 @@ pub struct Placement {
  impl Placement {
      pub fn stack_point(&self, point: &[E], stack_log: usize) -> Vec<E> {
          let above = selector_point(self.index >> self.variables, stack_log - self.variables);
@@ -121,7 +121,7 @@ index 9d408a523..6e09c2222 100644
      }
  
      /// eq weight of the coordinates above the window.
-@@ -133,8 +139,15 @@ impl Placement {
+@@ -133,8 +135,15 @@ impl Placement {
  
  /// Blocks of `2^size` laid end to end, largest first, ties by index: their offsets, and the total's `log2`, rounded up.
  pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {

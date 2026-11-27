@@ -1,7 +1,8 @@
 diff --git a/crates/lean_sphincs/src/hash.rs b/crates/lean_sphincs/src/hash.rs
+index d7e52dd76..cb3e2a2f5 100644
 --- a/crates/lean_sphincs/src/hash.rs
 +++ b/crates/lean_sphincs/src/hash.rs
-@@ -133,8 +133,9 @@
+@@ -133,8 +133,9 @@ pub fn h_msg(r: &Digest, pk_seed: &PkSeed, pk_root: &Digest, m: &Message) -> [u8
      let mut z = Hasher::new();
      z.update(r).update(pk_seed).update(pk_root).update(m);
      let mut out = [0; 32 * DIGEST_CALLS];
@@ -14,9 +15,10 @@ diff --git a/crates/lean_sphincs/src/hash.rs b/crates/lean_sphincs/src/hash.rs
      out
  }
 diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.rs
+index 0844f6107..394383b90 100644
 --- a/crates/lean_sphincs/src/scheme.rs
 +++ b/crates/lean_sphincs/src/scheme.rs
-@@ -89,7 +89,10 @@
+@@ -89,7 +89,10 @@ pub struct LeanSphincsSignature {
  
  /// Where layer `layer`'s path sits among a signature's path nodes: after every layer below it.
  fn path_range(layer: usize) -> core::ops::Range<usize> {
@@ -29,9 +31,10 @@ diff --git a/crates/lean_sphincs/src/scheme.rs b/crates/lean_sphincs/src/scheme.
  }
  
 diff --git a/crates/lean_sphincs/src/wots.rs b/crates/lean_sphincs/src/wots.rs
+index a3c1b545b..36c325eb3 100644
 --- a/crates/lean_sphincs/src/wots.rs
 +++ b/crates/lean_sphincs/src/wots.rs
-@@ -25,7 +25,11 @@
+@@ -25,7 +25,11 @@ impl OtsKey {
      /// the layer dropped, the rest split into a tree and a leaf.
      pub fn of_index(layer: usize, idx: u64) -> Self {
          let height = LAYER_HEIGHTS[layer];
@@ -44,7 +47,7 @@ diff --git a/crates/lean_sphincs/src/wots.rs b/crates/lean_sphincs/src/wots.rs
          Self {
              layer,
              tree: e >> height,
-@@ -85,7 +89,11 @@
+@@ -85,7 +89,11 @@ fn encode(encoder: &keccak256::Hasher, c: u32) -> Option<[u8; V]> {
  fn codeword(digest: &Digest) -> Option<[u8; V]> {
      let d = u128::from_be_bytes(*digest);
      let x: [u8; V] = core::array::from_fn(|i| ((d >> (W * (V - 1 - i))) & (CHAIN_LEN as u128 - 1)) as u8);

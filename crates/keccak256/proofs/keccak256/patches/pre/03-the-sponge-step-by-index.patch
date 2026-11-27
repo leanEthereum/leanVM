@@ -1,8 +1,8 @@
 diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
-index 4a61c3e05..dfa7f8339 100644
+index 94a9d6b5c..845c7352b 100644
 --- a/crates/keccak256/src/lib.rs
 +++ b/crates/keccak256/src/lib.rs
-@@ -110,8 +110,8 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+@@ -112,8 +112,8 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
  /// One sponge step: XOR the rate block `block` into `state` and permute.
  #[inline]
  fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
@@ -13,7 +13,7 @@ index 4a61c3e05..dfa7f8339 100644
      }
      keccak_f(state);
  }
-@@ -137,8 +137,8 @@ fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
+@@ -139,8 +139,8 @@ fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
  #[inline]
  pub fn digest_of(state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
      let mut out = [0u8; OUT_LEN];

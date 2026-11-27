@@ -1,8 +1,8 @@
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
-index 8655ef581..e31b40fe4 100644
+index d53d67389..1de9fbb69 100644
 --- a/crates/verifier/src/bus.rs
 +++ b/crates/verifier/src/bus.rs
-@@ -284,7 +284,7 @@ pub fn table_sumcheck(
+@@ -293,7 +293,7 @@ pub fn table_sumcheck(
              let n_constraints = table.n_constraints();
              let summand = dot(
                  &constraint_powers[cursor..cursor + n_constraints],
@@ -12,7 +12,7 @@ index 8655ef581..e31b40fe4 100644
              let form_values: Vec<E> = forms.iter().map(|form| form.evaluate(evaluations)).collect();
              terminal += weight * (summand + dot(form_powers, &form_values));
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
-index 4b5f04544..60b46652e 100644
+index e0077b9f2..1037c18ef 100644
 --- a/crates/verifier/src/layout.rs
 +++ b/crates/verifier/src/layout.rs
 @@ -195,12 +195,19 @@ pub struct Table {

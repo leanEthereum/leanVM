@@ -1,25 +1,26 @@
 diff --git a/crates/verifier/src/bus.rs b/crates/verifier/src/bus.rs
-index b2d3a98ec..8655ef581 100644
+index 849df1074..d53d67389 100644
 --- a/crates/verifier/src/bus.rs
 +++ b/crates/verifier/src/bus.rs
-@@ -83,11 +83,10 @@ struct BusLayout {
+@@ -87,11 +87,11 @@ pub(crate) fn framework_log_rows(log_memory: usize, log_bytecode: usize) -> [usi
  }
  
- fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
--    let sizes: Vec<usize> = framework_log_rows
+ pub(crate) fn bus_block_sizes(framework_log_rows: &[usize], blocks: &[BusBlock]) -> Vec<usize> {
+-    framework_log_rows
 -        .iter()
 -        .copied()
 -        .chain(blocks.iter().map(|block| block.log_rows))
--        .collect();
+-        .collect()
 +    let mut sizes: Vec<usize> = framework_log_rows.to_vec();
 +    for block in blocks {
 +        sizes.push(block.log_rows);
 +    }
-     let (offsets, depth) = stack_offsets(&sizes);
-     let mut framework: Vec<Placement> = sizes
-         .iter()
++    sizes
+ }
+ 
+ fn bus_layout(framework_log_rows: &[usize], blocks: &[BusBlock]) -> BusLayout {
 diff --git a/crates/verifier/src/keccak.rs b/crates/verifier/src/keccak.rs
-index 5fb1682bf..3c6476349 100644
+index 01f352766..f536c6368 100644
 --- a/crates/verifier/src/keccak.rs
 +++ b/crates/verifier/src/keccak.rs
 @@ -115,7 +115,7 @@ fn instance_weights(s: E) -> Vec<E> {
@@ -32,7 +33,7 @@ index 5fb1682bf..3c6476349 100644
  }
  
 diff --git a/crates/verifier/src/layout.rs b/crates/verifier/src/layout.rs
-index 3721aa75d..4b5f04544 100644
+index 88ccb02b3..e0077b9f2 100644
 --- a/crates/verifier/src/layout.rs
 +++ b/crates/verifier/src/layout.rs
 @@ -207,8 +207,14 @@ impl Table {
@@ -61,7 +62,7 @@ index 3721aa75d..4b5f04544 100644
          return Some(QKECCAK_SLOTS + k);
      }
      (KECCAK_IN..KECCAK_OUT).contains(&local).then(|| local - KECCAK_IN)
-@@ -584,7 +590,12 @@ pub fn build_layout<'a>(
+@@ -522,7 +528,12 @@ fn table_bus_blocks(tables: &[Table], table_log_heights: &[usize], table_rows: &
          };
          push.extend(table.flushes.push.iter().map(block));
          pull.extend(table.flushes.pull.iter().map(block));
@@ -73,5 +74,5 @@ index 3721aa75d..4b5f04544 100644
 +                .map(|local| block(&vec![col(local, 0)])),
 +        );
      }
- 
-     let keccak = keccak_shape(&table_log_heights);
+     [push, pull, count]
+ }
