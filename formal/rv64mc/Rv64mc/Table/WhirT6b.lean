@@ -5,7 +5,9 @@
   its index, with the generated link, the stack `Gen.Needs` gives (its bound over each callee's by `decide`), and its
   callees' total theorems (`sample_queries`: `TranscriptT3.sample`, `RuntimeT.alloc`, `RuntimeT.handleError`;
   `Subspace::at`: `FieldT.baseMul`, `FieldT.spread`, `FieldT.reduce`, `RuntimeT.alloc`, `RuntimeT.handleError`;
-  `ext_row`: `AllocT.reserveE`, `RuntimeT.alloc`, `RuntimeT.handleError`). Left
+  `ext_row`: `AllocT.reserveE`, `RuntimeT.alloc`, `RuntimeT.handleError`; `novel_basis`: `AllocT.reserveK`,
+  `RuntimeT.alloc`, `RuntimeT.handleError`, `FieldT.baseMul`, `CopyUseT.memcpy`, `RuntimeT.panicNounwindFmt`,
+  `RuntimeT.panicFmt`). Left
   as hypotheses: `log2_strict`'s two constant tables in the image's static data (`DataRef.InData`, as
   `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through `Sponge::sample`), `clmul_low`'s
   (`FieldT.ClmulTable`, through `base_mul`), and the allocator's two facts (`NEXT`'s data reference and the heap's
@@ -13,7 +15,7 @@
 
   ## Main results
 
-  * `sampleQueries`, `subspaceAt`, `extRow`
+  * `sampleQueries`, `subspaceAt`, `extRow`, `novelBasis`
 -/
 
 import Rv64mc.Table.TranscriptT3
@@ -23,6 +25,8 @@ import Rv64mc.Proof.Whir.SampleQueriesT
 import Rv64mc.Proof.Whir.SubspaceAtT
 import Rv64mc.Proof.Whir.ExtRowT
 import Rv64mc.Table.AllocT
+import Rv64mc.Table.CopyUseT
+import Rv64mc.Proof.Whir.NovelBasisT
 import Rv64mc.Gen.Link.Verifier.Whir
 
 namespace Rv64mc.Table.WhirT6b
@@ -63,6 +67,19 @@ theorem extRow (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr =
     (needH := Needs.Alloc.RawVec.HandleError) (by decide) (by decide) (by decide)
     (AllocT.reserveE env hnext hend) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
 
+/-- `novel_basis`. -/
+theorem novelBasis (hd : FieldT.ClmulTable env)
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    NovelBasisT.specT env (liftProg fns) Idx.Verifier.Whir.NovelBasis Needs.Verifier.Whir.NovelBasis :=
+  NovelBasisT.total env _ _ _ Verifier.Whir.NovelBasis.tmpl_eq Verifier.Whir.NovelBasis.wf
+    (needR := Needs.Alloc.Vec.VecK.Reserve) (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (needH := Needs.Alloc.RawVec.HandleError) (needB := Needs.Verifier.Field.BaseMul) (needM := Needs.Memcpy)
+    (needP := Needs.Core.Panicking.PanicNounwindFmt) (needQ := Needs.Core.Panicking.PanicFmt)
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+    (AllocT.reserveK env hnext hend) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
+    (FieldT.baseMul env hd) (CopyUseT.memcpy env) (RuntimeT.panicNounwindFmt env) (RuntimeT.panicFmt env)
+
 end Rv64mc.Table.WhirT6b
 
 /-- info: 'Rv64mc.Table.WhirT6b.sampleQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -76,3 +93,7 @@ end Rv64mc.Table.WhirT6b
 /-- info: 'Rv64mc.Table.WhirT6b.extRow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.WhirT6b.extRow
+
+/-- info: 'Rv64mc.Table.WhirT6b.novelBasis' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.WhirT6b.novelBasis
