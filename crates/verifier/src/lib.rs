@@ -48,8 +48,7 @@ use field::{ZERO, powers};
 use hash::{ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, replay_keccak, verify_keccak};
 use layout::{
-    BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, N_TABLES,
-    OP_KECCAK, QKECCAK, TABLE_WIDTHS, build_layout,
+    GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_KECCAK, QKECCAK, TABLE_WIDTHS, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
@@ -271,6 +270,19 @@ pub fn verify_keccak_batch(
     Ok(())
 }
 
+/// The stacked claims of every execution proof: the ring switch's; the bus's four; one per table column but the Keccak
+/// output lanes, which are not committed; the two public ones; q_keccak's output claim when the reduction has more than
+/// one segment; and the OOD sample's. No announced size changes it, so a replay's bound on it holds at compile time.
+const EXECUTION_STACKED_CLAIMS: usize = {
+    let (mut columns, mut table) = (0, 0);
+    while table < N_TABLES {
+        columns += TABLE_WIDTHS[table];
+        table += 1;
+    }
+    1 + 4 + columns - STATE_LANES + 2 + (ROUNDS / layout::KECCAK_DEPTH > 1) as usize + 1
+};
+const _: () = assert!(EXECUTION_STACKED_CLAIMS <= MAX_STACKED_CLAIMS);
+
 /// [`walk`]'s transcript alone, in its order: what it reads, grinds and samples, and its checks on the proof's shape
 /// (the announced sizes, the stream's and the openings' lengths, the paths' positions), but no value: the challenges
 /// depend on the stream alone.
@@ -281,7 +293,10 @@ fn replay(
     proof: &Proof,
 ) -> Result<Summary, VerifierError> {
     let mut transcript = Transcript::new(proof, fiat_shamir_iv, Digest(*public_input), false);
-    let announced = transcript.next_scalars(2 + N_TABLES)?;
+    let mut announced = [ZERO; 2 + N_TABLES];
+    for value in &mut announced {
+        *value = transcript.next_scalar()?;
+    }
     require(
         announced.iter().all(|value| value.c1 == 0),
         VerifierError::AnnouncedHighLimb,
@@ -299,9 +314,9 @@ fn replay(
         VerifierError::CommittedSize,
     )?;
     // The root and its OOD sample.
-    transcript.next_scalars(2)?;
+    transcript.skip_scalars(2)?;
     transcript.grind_check(OOD_GRINDING_BITS)?;
-    transcript.samples(layout.stack_log);
+    transcript.skip_samples(layout.stack_log);
     transcript.next_scalar()?;
 
     let bytecode_point = replay_bus(&layout, &mut transcript)?;
@@ -312,7 +327,7 @@ fn replay(
     let n_rounds = layout.table_log_heights.iter().copied().max().unwrap_or(0);
     transcript::replay_sumcheck(&mut transcript, 4, n_rounds, false)?;
     for width in TABLE_WIDTHS {
-        transcript.next_scalars(width)?;
+        transcript.skip_scalars(width)?;
     }
     transcript.sample(); // the public input's challenge
 
@@ -321,24 +336,8 @@ fn replay(
     let keccak_scalars = keccak_start..transcript.stream_offset();
     // The ring switch's map challenges.
     transcript.grind_check(BATCH_GRINDING_BITS)?;
-    transcript.samples(2 * ring_switch::RING_MAP_WIDTH);
-
-    // The stacked claims: the ring switch's, every claim on a committed column, the OOD sample's.
-    let committed = |column: &usize| layout.placements[*column].is_some();
-    let bus_claims = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS];
-    let table_claims = GLOBAL_COLUMN_BASES
-        .into_iter()
-        .zip(TABLE_WIDTHS)
-        .flat_map(|(base, width)| base..base + width);
-    let public_claims = [MEMORY_0, MEMORY_1];
-    let output_claim = (layout.keccak.segments() > 1).then_some(QKECCAK);
-    let on_stack = bus_claims
-        .into_iter()
-        .chain(table_claims)
-        .chain(public_claims)
-        .chain(output_claim)
-        .filter(committed);
-    require(on_stack.count() + 2 <= MAX_STACKED_CLAIMS, VerifierError::StackedClaims)?;
+    transcript.skip_samples(2 * ring_switch::RING_MAP_WIDTH);
+    // The stacked claims' batching challenge (`EXECUTION_STACKED_CLAIMS` of them), then the opening.
     transcript.sample();
     whir::replay_whir(&mut transcript, layout.stack_log, log_inverse_rate as usize)?;
     transcript.finish()?;

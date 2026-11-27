@@ -228,9 +228,9 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
     let mut folded = 0;
     for (level, (&fold_count, &level_rate)) in config.folds.iter().zip(&config.log_inv_rates).enumerate() {
         for _ in 0..fold_count {
-            transcript.next_scalars(4)?;
+            transcript.skip_scalars(4)?;
             transcript.grind_check(FOLD_GRINDING_BITS)?;
-            transcript.samples(2);
+            transcript.skip_samples(2);
         }
         folded += fold_count;
         let mu = log_n - folded;
@@ -239,7 +239,7 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
         // A replay checks no root, so any stands in for the level's.
         let root = Digest([0; 32]);
         if level == config.folds.len() - 1 {
-            transcript.next_scalars((1 << mu) + fold_count)?;
+            transcript.skip_scalars((1 << mu) + fold_count)?;
             transcript.grind_check(QUERY_GRINDING_BITS)?;
             let queries = sample_queries(transcript, block_length, config.queries[level])?;
             transcript.merkle(root, block_length, &queries, leaf_words)?;
@@ -247,9 +247,9 @@ pub(crate) fn replay_whir(transcript: &mut Transcript, log_n: usize, log_inv_rat
             break;
         }
         // The next root and the high part, the OOD sample, then the queries and lambda.
-        transcript.next_scalars(2 + fold_count)?;
+        transcript.skip_scalars(2 + fold_count)?;
         transcript.grind_check(OOD_GRINDING_BITS)?;
-        transcript.samples(mu);
+        transcript.skip_samples(mu);
         transcript.next_scalar()?;
         transcript.grind_check(QUERY_GRINDING_BITS)?;
         let queries = sample_queries(transcript, block_length, config.queries[level])?;

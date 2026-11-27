@@ -161,6 +161,21 @@ impl<'a> Transcript<'a> {
         (0..count).map(|_| self.next_scalar()).collect()
     }
 
+    /// [`Self::next_scalars`] for a replay, which keeps none of them.
+    pub fn skip_scalars(&mut self, count: usize) -> Result<(), VerifierError> {
+        for _ in 0..count {
+            self.next_scalar()?;
+        }
+        Ok(())
+    }
+
+    /// [`Self::samples`] for a replay, which reads none of them.
+    pub fn skip_samples(&mut self, count: usize) {
+        for _ in 0..count {
+            self.sample();
+        }
+    }
+
     /// The nonce is absorbed with its own tag, and the permutation that draws the next challenge must leave its third
     /// lane with the low `bits` bits zero. A grind of zero bits is nothing: no nonce, no permutation.
     pub fn grind_check(&mut self, bits: u32) -> Result<(), VerifierError> {
@@ -257,13 +272,13 @@ pub fn replay_sumcheck(
     rounds: usize,
     eq_factor: bool,
 ) -> Result<Vec<E>, VerifierError> {
-    (0..rounds)
-        .map(|_| {
-            transcript.next_scalars(count - 1)?;
-            transcript.grind_check(grinding_bits((count - 1 + usize::from(eq_factor)) as u128))?;
-            Ok(transcript.sample())
-        })
-        .collect()
+    let mut challenges = Vec::with_capacity(rounds);
+    for _ in 0..rounds {
+        transcript.skip_scalars(count - 1)?;
+        transcript.grind_check(grinding_bits((count - 1 + usize::from(eq_factor)) as u128))?;
+        challenges.push(transcript.sample());
+    }
+    Ok(challenges)
 }
 
 pub fn sumcheck(

@@ -567,17 +567,35 @@ fn stacked_blocks(columns: usize) -> Vec<usize> {
         .collect()
 }
 
-/// The stack of columns of these log sizes: each stacked column's offset, and its log size, floored at the PCS minimum.
-fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
+/// The stack of columns of these log sizes: each stacked column, in column order, with its offset, and the stack's log
+/// size, floored at the PCS minimum.
+fn stack(kappas: &[usize]) -> (Vec<(usize, u64)>, usize) {
     let blocks = stacked_blocks(kappas.len());
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    // Inserted one by one: collecting would sort them first.
-    let mut offsets = BTreeMap::new();
-    for (column, offset) in blocks.into_iter().zip(block_offsets) {
-        offsets.insert(column, offset);
-    }
-    (offsets, MIN_STACKED_LOG.max(total_log))
+    (
+        blocks.into_iter().zip(block_offsets).collect(),
+        MIN_STACKED_LOG.max(total_log),
+    )
+}
+
+/// Every column's placement in the [`stack`] of these log sizes: none for a Keccak output lane.
+fn placements(kappas: &[usize], offsets: &[(usize, u64)]) -> Vec<Option<Placement>> {
+    let offset = |column: usize| {
+        let at = offsets.binary_search_by_key(&column, |&(column, _)| column).ok()?;
+        Some(offsets[at].1)
+    };
+    let placement = |(column, &kappa): (usize, &usize)| {
+        let index = match qkeccak_slot(column) {
+            Some(slot) => offset(QKECCAK)? + ((slot as u64) << kappa),
+            None => offset(column)?,
+        };
+        Some(Placement {
+            variables: kappa,
+            index,
+        })
+    };
+    kappas.iter().enumerate().map(placement).collect()
 }
 
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at
@@ -591,11 +609,18 @@ pub fn min_execution_stacked_log(log_bytecode: usize) -> usize {
 pub(crate) const PUSH_BLOCKS: [usize; N_TABLES] = [5, 5, 3, 5, 5, 28];
 pub(crate) const N_CONSTRAINTS: usize = 2;
 
+/// Each table's columns with a block of their own in the stack ([`stacked_blocks`]): the KECCAK table's but the input
+/// lanes and the spare slots' columns, which q_keccak carries, and the output lanes, which are not committed.
+const STACKED_WIDTHS: [usize; N_TABLES] = {
+    let mut widths = TABLE_WIDTHS;
+    widths[OP_KECCAK] -= 2 * STATE_LANES + QKECCAK_SPARE;
+    widths
+};
+
 /// The layout's sizes alone, with [`build_layout`]'s checks of the announced ones: all a replay needs.
 pub(crate) struct Sizes {
     pub log_memory: usize,
     pub log_bytecode: usize,
-    pub placements: Vec<Option<Placement>>,
     pub stack_log: usize,
     pub table_log_heights: Vec<usize>,
     pub keccak: KeccakShape,
@@ -613,23 +638,16 @@ pub(crate) fn sizes(bytecode_len: usize, log_memory: u64, table_rows: &[u64]) ->
     let log_memory = log_memory as usize;
     let table_log_heights = table_log_heights(table_rows);
     let keccak = keccak_shape(&table_log_heights);
-    let kappas = column_kappas(log_memory, log_bytecode, &table_log_heights);
-    let (offsets, stack_log) = stack(&kappas);
-    let placement = |(column, &kappa): (usize, &usize)| {
-        let index = match qkeccak_slot(column) {
-            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
-            None => *offsets.get(&column)?,
-        };
-        Some(Placement {
-            variables: kappa,
-            index,
-        })
-    };
-    let placements = kappas.iter().enumerate().map(placement).collect();
+    // The stack's words, a block per stacked column: memory's three, the bytecode's and q_keccak's, then each table's.
+    let q_keccak = keccak.log_steps + keccak.slot_bits();
+    let mut words = (3 << log_memory) + (1 << log_bytecode) + (1 << q_keccak);
+    for (&columns, &height) in STACKED_WIDTHS.iter().zip(&table_log_heights) {
+        words += (columns as u64) << height;
+    }
+    let stack_log = MIN_STACKED_LOG.max(log2_ceil(words));
     Ok(Sizes {
         log_memory,
         log_bytecode,
-        placements,
         stack_log,
         table_log_heights,
         keccak,
@@ -642,6 +660,8 @@ pub fn build_layout<'a>(
     table_rows: &[u64],
 ) -> Result<Layout<'a>, VerifierError> {
     let sizes = sizes(bytecode.len(), log_memory, table_rows)?;
+    let kappas = column_kappas(sizes.log_memory, sizes.log_bytecode, &sizes.table_log_heights);
+    let placements = placements(&kappas, &stack(&kappas).0);
     let tables = tables();
     let [push, pull, count] = table_bus_blocks(&tables, &sizes.table_log_heights, table_rows);
     Ok(Layout {
@@ -652,7 +672,7 @@ pub fn build_layout<'a>(
         push,
         pull,
         count,
-        placements: sizes.placements,
+        placements,
         stack_log: sizes.stack_log,
         table_log_heights: sizes.table_log_heights,
         keccak: sizes.keccak,
@@ -698,6 +718,46 @@ mod tests {
         check("bus push", bus_block_sizes(&framework_log_rows, &push));
         check("bus pull", bus_block_sizes(&framework_log_rows, &pull));
         check("bus count", bus_block_sizes(&[], &count));
+    }
+
+    /// The stacked claims a replay bounds at compile time are the walk's, at the smallest and the largest sizes.
+    #[test]
+    fn execution_stacked_claims_counts_the_walks_claims() {
+        for (log_memory, log_bytecode, rows) in [
+            (MIN_LOG_MEMORY, 1, TABLE_LOG_FLOORS.map(|_| 1)),
+            (MAX_LOG_MEMORY, MAX_LOG_BYTECODE, [1 << MAX_TABLE_LOG; N_TABLES]),
+        ] {
+            let heights = table_log_heights(&rows);
+            let kappas = column_kappas(log_memory, log_bytecode, &heights);
+            let placements = placements(&kappas, &stack(&kappas).0);
+            let tables = GLOBAL_COLUMN_BASES
+                .into_iter()
+                .zip(TABLE_WIDTHS)
+                .flat_map(|(base, width)| base..base + width);
+            let output = (keccak_shape(&heights).segments() > 1).then_some(QKECCAK);
+            let columns = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS]
+                .into_iter()
+                .chain(tables)
+                .chain([MEMORY_0, MEMORY_1])
+                .chain(output)
+                .filter(|&column| placements[column].is_some());
+            assert_eq!(columns.count() + 2, crate::EXECUTION_STACKED_CLAIMS);
+        }
+    }
+
+    /// The stack's log size [`sizes`] sums is the one [`stack`] lays out.
+    #[test]
+    fn sizes_stack_log_is_the_stacks() {
+        let bytecode_len = |log: usize| 1 << (log + BUS_BITS);
+        for (log_memory, log_bytecode, rows) in [
+            (MIN_LOG_MEMORY, 1, [1; N_TABLES]),
+            (20, 14, [3 << 16, 1, 5000, 1 << 18, 7, 1 << 12]),
+            (MAX_LOG_MEMORY, MAX_LOG_BYTECODE, [1 << MAX_TABLE_LOG; N_TABLES]),
+        ] {
+            let sizes = sizes(bytecode_len(log_bytecode), log_memory as u64, &rows).expect("sizes in range");
+            let kappas = column_kappas(log_memory, log_bytecode, &table_log_heights(&rows));
+            assert_eq!(sizes.stack_log, stack(&kappas).1);
+        }
     }
 
     #[test]

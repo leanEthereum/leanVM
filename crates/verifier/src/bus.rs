@@ -6,7 +6,8 @@ use crate::layout::{
     MEMORY_FINAL_COUNTERS, PUSH_BLOCKS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Sizes, Table, constant, gpow,
 };
 use crate::multilinear::{
-    Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
+    Placement, dot, eq_eval, eq_kernel, index_mle, log2_ceil, multilinear_eval, padding_weight, poly_eval,
+    stack_offsets,
 };
 use crate::transcript::{Transcript, grinding_bits, replay_sumcheck, sumcheck};
 use crate::{StackClaim, VerifierError, require};
@@ -76,19 +77,17 @@ fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Resul
 
 /// [`verify_bus_balance`]'s transcript alone, for a replay: where the bytecode sumcheck leaves the stacked bytecode.
 pub fn replay_bus(sizes: &Sizes, transcript: &mut Transcript) -> Result<Vec<E>, VerifierError> {
-    // The push side's blocks: the framework's, then each table's at its height.
-    let framework = framework_log_rows(sizes.log_memory, sizes.log_bytecode);
-    let tables = PUSH_BLOCKS
-        .iter()
-        .zip(&sizes.table_log_heights)
-        .flat_map(|(&n, &height)| [height].repeat(n));
-    let blocks: Vec<usize> = framework.into_iter().chain(tables).collect();
-    let depth = stack_offsets(&blocks).1;
+    // The push side's depth, from its blocks' rows: the framework's (`framework_log_rows`), then each table's.
+    let mut rows: u64 = 1 + (1 << sizes.log_memory) + (1 << sizes.log_bytecode);
+    for (&blocks, &height) in PUSH_BLOCKS.iter().zip(&sizes.table_log_heights) {
+        rows += (blocks as u64) << height;
+    }
+    let depth = log2_ceil(rows);
     require(depth < 64, VerifierError::AnnouncedTableSizes)?;
     transcript.grind_check(bus_grinding_bits(depth))?;
-    transcript.samples((1 << BUS_BITS) + 1); // the weights, then beta
+    transcript.skip_samples((1 << BUS_BITS) + 1); // the weights, then beta
     // The GKR: the roots, then each layer's combiner, rounds, children and `y`.
-    transcript.next_scalars(2)?;
+    transcript.skip_scalars(2)?;
     let mut point: Vec<E> = Vec::new();
     let mut layer = depth;
     while layer > 0 {
@@ -96,16 +95,18 @@ pub fn replay_bus(sizes: &Sizes, transcript: &mut Transcript) -> Result<Vec<E>, 
         transcript.grind_check(grinding_bits(N_TREES as u128 - 1))?;
         transcript.sample();
         let x = replay_sumcheck(transcript, (1 << step) + 1, point.len(), true)?;
-        transcript.next_scalars(N_TREES << step)?;
+        transcript.skip_scalars(N_TREES << step)?;
         transcript.grind_check(grinding_bits((step << usize::from(layer == step)) as u128))?;
-        point = [transcript.samples(step), x].concat();
+        point = transcript.samples(step);
+        point.extend(x);
         layer -= step;
     }
     // The framework columns and the bytecode's share, then its sumcheck and its value.
-    transcript.next_scalars(5)?;
-    let slot_point = replay_sumcheck(transcript, 3, BUS_BITS, false)?;
+    transcript.skip_scalars(5)?;
+    point.truncate(sizes.log_bytecode);
+    point.extend(replay_sumcheck(transcript, 3, BUS_BITS, false)?);
     transcript.next_scalar()?;
-    Ok([&point[..sizes.log_bytecode], &slot_point].concat())
+    Ok(point)
 }
 
 /// Where a side's blocks sit in the stacked leaf cube. Split by kind because framework coordinates are
