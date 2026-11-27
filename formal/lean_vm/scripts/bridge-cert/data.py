@@ -541,13 +541,16 @@ def isa_hint(e):
 
 def fn_thms(thms, ns='LeanVM.Guest'):
     """Per-function theorems in one section of namespace `ns`: each `(k, name, stmt, prf)` declared as
-    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined)."""
+    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined),
+    or a term (`:= t`)."""
     out = []
     for t in thms:
         if isinstance(t, str):
             # a command of its own (`Bridge/ChkLit.lean`'s `alloc_chk%`, `align_chk%`)
             out.append(t); continue
         k, name, stmt, prf = t
+        if prf.startswith(':= '):
+            out.append(f'theorem Fn.«{k}».{name} : {stmt} {prf}\n'); continue
         tac = '; '.join(x.strip() for x in prf.strip().split('\n'))
         out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
     return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +

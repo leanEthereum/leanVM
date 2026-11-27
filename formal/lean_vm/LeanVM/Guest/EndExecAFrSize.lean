@@ -292,7 +292,7 @@ theorem calFind_spec {cs : List ℕ} {f : String} {m : ℕ} {lp : Bool} {en : Op
   obtain ⟨x, hx, hxe⟩ := Option.map_eq_some_iff.mp h
   obtain ⟨hmem, hp⟩ := List.mem_of_find?_eq_some hx, List.find?_some hx
   obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hmem
-  simp only [beq_iff_eq] at hp
+  simp only [nameEq_iff] at hp
   simp only [Prod.mk.injEq] at hxe
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hxe
   exact ⟨c, hc, hp, rfl, rfl, rfl, rfl⟩

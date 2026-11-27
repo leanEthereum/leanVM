@@ -11,7 +11,7 @@ public import LeanVM.Guest.Bridge.AlignDefs
 /-!
 # The alignment context's tables
 
-`getF_trieOf`: an entry found in `trieOf l` is one of `l`'s. `getF_buildT`: `buildT d L` finds entry `n` of `L` below `2^d - 1`. `packGo_digits`: the cells packed `2^20`-ary, 64 to a chunk (`packGo`), are read back digit by digit. `locAt_ofData`: so the context's cell map is the certificate's cells, but for the hint-only cells, at every value below `2^30`.
+`getF_trieOf`: an entry found in `trieOf l` is one of `l`'s. `getF_buildT`: `buildT d L` finds entry `n` of `L` below `2^d - 1`. `packGo_digits`: the cells packed `2^20`-ary, 64 to a chunk (`packGo`), are read back digit by digit. `locT_buildT`: so the packed cells' trie, read by `locT`, holds the certificate's cells at every value below `2^30`. `locAt_ofData`: and the context's cell map is the certificate's cells, but for the hint-only cells, at every value below `2^30`.
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -167,6 +167,21 @@ theorem packGo_digits : ∀ (cs : List ℕ) (j acc : ℕ), j < 64 → acc < 2 ^ 
         hdig, List.map_singleton, digit_at hacc hc, List.append_assoc]
       rfl
 
+/-- Cell `i` of the packed chunks' trie `t`: `AlignCtx.locAt` but for the hint-only cells. -/
+@[expose] noncomputable def locT (t : Trie ℕ) (i : ℕ) : ℕ :=
+  match getF t (Nat.div i 64) with
+  | some ch => digit ch (Nat.mod i 64)
+  | none => 0
+
+/-- **The packed cells' trie reads the certificate's cells**, at a value below `2^30`. -/
+theorem locT_buildT {locs : List ℕ} (hlocs : locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true) {i : ℕ}
+    (hi : i < 2 ^ 30) : locT (buildT 32 (packGo locs 0 0)) i = locs.getD i 0 := by
+  have hall : ∀ c ∈ locs, c < 2 ^ 20 := fun c hc ↦ by simpa [cellBits] using List.all_eq_true.mp hlocs c hc
+  have hd := packGo_digits locs 0 0 (by norm_num) (by norm_num) hall i
+  simp only [List.range_zero, List.map_nil, List.nil_append] at hd
+  rw [locT, show Nat.div i 64 = i / 64 from rfl, getF_buildT 32 _ _ (by omega)]
+  exact hd
+
 /-- **The context's cell map is the certificate's**, at a value below `2^30` without a hint-only
 cell. -/
 theorem locAt_ofData {locs : List ℕ} {extra : List (ℕ × ℕ)} {entry : ℕ} {main : Bool} {p : B2C.Plumb}
@@ -174,14 +189,8 @@ theorem locAt_ofData {locs : List ℕ} {extra : List (ℕ × ℕ)} {entry : ℕ}
     (hlocs : locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true) {i : ℕ} (hx : extra.lookup i = none)
     (hi : i < 2 ^ 30) :
     (AlignCtx.ofData locs extra entry main p pows jt ents halt len).locAt i = locs.getD i 0 := by
-  have hall : ∀ c ∈ locs, c < 2 ^ 20 := fun c hc ↦ by
-    have := List.all_eq_true.mp hlocs c hc
-    simpa [cellBits] using this
-  have hd := packGo_digits locs 0 0 (by norm_num) (by norm_num) hall i
-  simp only [List.range_zero, List.map_nil, List.nil_append] at hd
   simp only [AlignCtx.locAt, AlignCtx.ofData, hx, Option.getD_none]
-  rw [show Nat.div i 64 = i / 64 from rfl, getF_buildT 32 _ _ (by omega)]
-  exact hd
+  exact locT_buildT hlocs hi
 
 end
 
