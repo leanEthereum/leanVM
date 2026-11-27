@@ -73,7 +73,7 @@ theorem envOk_mem {Fn : FFun} (h : envOk Fn = true) {n : ℕ} {v : Exec.Sym} (hm
 /-- **The entry state holds** where the entry facts do. -/
 theorem entryF_holds {Fn : FFun} (henv : envOk Fn = true) {s : St} (h : EntryFr img Fn.sig s) :
     FHolds img s (entryF Fn) := by
-  refine ⟨⟨stHolds_init fun n v hv ↦ ?_, fun _ h ↦ by simp [entryF] at h, fun _ _ _ h ↦ by simp [entryF] at h,
+  refine ⟨⟨stHolds_init fun n v hv ↦ ?_, fun _ h ↦ by simp [entryF, Bits.has] at h, fun _ _ _ h ↦ by simp [entryF] at h,
     fun _ _ h ↦ by simp [entryF] at h, fun _ _ h ↦ by simp [entryF] at h⟩,
     ⟨fun o ho ↦ ?_, fun _ _ _ h ↦ by simp [entryF] at h⟩⟩
   · rcases get_envOf Fn.F.env .nil hv with hm | hm
@@ -86,9 +86,7 @@ theorem entryF_holds {Fn : FFun} (henv : envOk Fn = true) {s : St} (h : EntryFr 
   · have : o ∈ (match Fn.sig.self with
         | some o => o :: Fn.sig.entry
         | none => Fn.sig.entry) := by
-      rcases get_foldl_set_unit _ .nil ho with hm | hm
-      · exact hm
-      · simp at hm
+      exact Bits.has_ofList ho
     split at this
     · rename_i so hso
       rcases List.mem_cons.mp this with rfl | hm
@@ -104,7 +102,7 @@ falling through or taken as its exit says. -/
 theorem offF_cases {Fn : FFun} {i : ℕ} {hs : List Hint} {A : FSt} {ins : OffsetInstruction}
     {pend pend' : FPend} {cur' : Option FSt} (h : offF Fn i hs A ins pend = some (cur', pend')) :
     ∃ A1, stepHintsF A hs = some A1 ∧
-      (((∀ c d f, ins ≠ .jump c d f) ∧ ∃ A3, stepF Fn.O Fn.S i (addNzs A1 ((Fn.nzr.get i).getD [])) ins = some A3 ∧
+      (((∀ c d f, ins ≠ .jump c d f) ∧ ∃ A3, stepF Fn.Ob Fn.S i (addNzs A1 ((Fn.nzr.get i).getD [])) ins = some A3 ∧
           cur' = some (execF Fn.F (Fn.entry + i) A3 ins)) ∨
        (∃ c d f, ins = .jump c d f ∧
           (addNzs A1 ((Fn.nzr.get i).getD [])).hasW c = true ∧
@@ -168,8 +166,12 @@ theorem offF_cases {Fn : FFun} {i : ℕ} {hs : List Hint} {A : FSt} {ins : Offse
 
 /-! ## The hints -/
 
-theorem hintAbs_holds {s : St} {A : FSt} (h : FWr s A) : Mode.Holds s (hintAbs A.w) where
-  w := h.w
+theorem readT_has {w : ℕ} {hs : List Hint} {o : ℕ} (h : (readT w hs).get o = some ()) : Bits.has w o = true :=
+  (get_foldl_set_unit _ .nil h).elim (fun hm ↦ (List.mem_filter.mp hm).2) (by simp)
+
+theorem hintAbs_holds {s : St} {A : FSt} (h : FWr s A) (hs : List Hint) :
+    Mode.Holds s (hintAbs (readT A.w hs)) where
+  w o ho := h.w o (readT_has ho)
   v _ _ hx := by simp [hintAbs] at hx
   nz _ hx := by simp [hintAbs] at hx
   hv _ hx := by simp [hintAbs] at hx
@@ -203,6 +205,38 @@ theorem stepOk_hintsAt {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prove
         (by rw [List.foldlM_cons, e1]; exact e2) (m1.trans m2) hi)
       (fun s2 e2 m2 hB2 ↦ hk s2 (by rw [List.foldlM_cons, e1]; exact e2) (m1.trans m2) hB2)
 
+/-- Stack runs written by the mode walk: what its state held, and the run's cells. -/
+theorem writeRun_w {A : Mode.Abs} {base len o : ℕ}
+    (h : A.w.get o = some () ∨ (base ≤ o ∧ o < base + len ∧ o < Bits.lim)) :
+    (Mode.writeRun A (some base, none) 0 len none).w.get o = some () := by
+  simp only [Mode.writeRun, Mode.foldlA_eq]
+  induction len with
+  | zero => exact h.elim id fun h ↦ absurd h.2.1 (by omega)
+  | succ n ih =>
+    rw [List.range_succ, List.foldl_append, List.foldl_cons, List.foldl_nil]
+    simp only [Mode.Abs.addW]
+    rcases h with h | ⟨h1, h2, h3⟩
+    · exact get_set_unit_of (Or.inl (ih (Or.inl h)))
+    · by_cases he : o = base + 0 + n
+      · exact get_set_unit_of (Or.inr ⟨he, he ▸ h3⟩)
+      · exact get_set_unit_of (Or.inl (ih (Or.inr ⟨h1, by omega, h3⟩)))
+
+/-- **Stack runs at once** (`wsRuns`): the mode walk steps the same hints, and every cell the runs add
+it writes. -/
+theorem wsRuns_spec {wa : ℕ} : ∀ (hs : List Hint) (w w' : ℕ) (A : Mode.Abs), wsRuns w hs = some w' →
+    (∀ o, Bits.has w o = true → Bits.has wa o = true ∨ A.w.get o = some ()) →
+    ∃ B, Mode.stepHints A hs = some B ∧ ∀ o, Bits.has w' o = true → Bits.has wa o = true ∨ B.w.get o = some ()
+  | [], _, _, A, h, hw => by cases h; exact ⟨A, rfl, hw⟩
+  | x :: hs, w, w', A, h, hw => by
+    cases x with
+    | witnessStack _ base len =>
+      obtain ⟨B, hB, hB'⟩ := wsRuns_spec hs _ w' (Mode.writeRun A (some base, none) 0 len none) h fun o ho ↦ by
+        rcases Bits.has_addRun ho with ho | ho
+        · exact (hw o ho).imp_right fun h ↦ writeRun_w (Or.inl h)
+        · exact Or.inr (writeRun_w (Or.inr ho))
+      exact ⟨B, by simpa [Mode.stepHints, Mode.stepHint] using hB, hB'⟩
+    | _ => simp [wsRuns] at h
+
 /-- **The hints**: each one's needs, once its inputs are written, and the instruction's obligations
 after them, from the state after the hints. -/
 theorem stepOk_hintsF {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prover.Exec.Op} {s : St} {A A1 : FSt}
@@ -216,10 +250,20 @@ theorem stepOk_hintsF {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prover
     cases h
     exact hk s rfl (Mode.Moves.refl' hf) hA
   | cons x xs =>
-    obtain ⟨B, hB, rfl⟩ := Option.map_eq_some_iff.mp h
-    exact stepOk_hintsAt (x :: xs) s (hintAbs A.w) B hf (hintAbs_holds hA.2) hB hh fun s1 e1 hm hB1 ↦
+    simp only [stepHintsF] at h
+    -- the state after the hints, and what of it the mode walk's state `B` holds
+    obtain ⟨B, hB, w', rfl, hw⟩ : ∃ B, Mode.stepHints (hintAbs (readT A.w (x :: xs))) (x :: xs) = some B ∧
+        ∃ w', A1 = { A with w := w' } ∧ ∀ o, Bits.has w' o = true → Bits.has A.w o = true ∨ B.w.get o = some () := by
+      rcases e : wsRuns A.w (x :: xs) with _ | w' <;> rw [e] at h
+      · obtain ⟨B, hB, rfl⟩ := Option.map_eq_some_iff.mp h
+        refine ⟨B, hB, _, rfl, fun o ho ↦ ?_⟩
+        simp only [Bits.has, Nat.testBit_or, Bool.or_eq_true] at ho
+        exact ho.imp id Bits.get_of_has_ofTrie
+      · cases h
+        exact (wsRuns_spec _ _ _ _ e fun _ ↦ .inl).imp fun B h ↦ ⟨h.1, _, rfl, h.2⟩
+    exact stepOk_hintsAt (x :: xs) s _ B hf (hintAbs_holds hA.2 (x :: xs)) hB hh fun s1 e1 hm hB1 ↦
       hk s1 e1 hm ⟨by rw [hm.fp]; exact ⟨hA.1.st, hA.1.nz, hA.1.hs, hA.1.cp, hA.1.one⟩,
-        ⟨hB1.w, (hA.2.mono hm.le hm.fp).hq⟩⟩
+        ⟨fun o ho ↦ (hw o ho).elim ((hA.2.mono hm.le hm.fp).w o) (hB1.w o), (hA.2.mono hm.le hm.fp).hq⟩⟩
 
 theorem addNzs_holds {s : St} : ∀ {A : FSt} {os : List ℕ}, FHolds img s A →
     (∀ o ∈ os, ∃ v, Rd img s.fp o = some v ∧ v ≠ 0) → FHolds img s (addNzs A os)
@@ -446,7 +490,7 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
           ⟨pt, ft, h', -⟩
       · exact ⟨h0, h1⟩
       all_goals simp [hjk] at h'
-    exact .ret hregs (fun o ho ↦ hA.2.w o (has_iff.mp (List.all_eq_true.mp hr o ho))) (hrj' h01.1 h01.2)
+    exact .ret hregs (fun o ho ↦ hA.2.w o (List.all_eq_true.mp hr o ho)) (hrj' h01.1 h01.2)
   | call pt q r =>
     obtain ⟨p, a, hp, hpK, hpt, hra⟩ := hregs
     simp only [Registers.mk.injEq] at hra
@@ -581,14 +625,14 @@ theorem exit_out (hκ : κ ≤ 28) {Fn : FFun} {code : List OffsetInstruction} {
         obtain ⟨v, hv1, hv2⟩ := hA.1.cp t c' hct
         rw [hfp', rd_shift, show e + (t - e) = t by omega, hv1, hv2]
       refine .tail e (hnr nofun) hpc' hfp' ⟨fun o ho ↦ ?_, fun o hso ↦ ?_⟩ ?_ ?_ hret
-      · have := hA.2.w _ (has_iff.mp (hent o ho))
+      · have := hA.2.w _ (hent o ho)
         rw [hfp', Nat.add_assoc]
         exact written_mono hle this
       · rw [hso] at hsf
         unfold selfAt at hsf
         simp only [Bool.and_eq_true] at hsf
         obtain ⟨hw, hc⟩ := hsf
-        refine ⟨by rw [hfp', Nat.add_assoc]; exact written_mono hle (hA.2.w _ (has_iff.mp hw)), ?_⟩
+        refine ⟨by rw [hfp', Nat.add_assoc]; exact written_mono hle (hA.2.w _ hw), ?_⟩
         have hfpgAt : ∀ t, fpgAt A e t = true → Rd img s1.fp t = some (ofK (g ^ s1.fp * addressOfIndex e)) := by
           intro t ht
           unfold fpgAt at ht
@@ -702,7 +746,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     refine ⟨hmo, fun s' e' hf' hle' ↦ ?_⟩
     have e'' := e'
     obtain ⟨hw', hfp', hpc', hle3⟩ := stepF_wr hg1 hm.fine.fp (by rw [hpc1]; exact hszC) hA2.2
-      (fun ho ↦ hO ho s1 e1 hm) h3 (fun a o c mode e p hci he hp ↦ by
+      (fun ho ↦ hO (hacc.oracle i ho) s1 e1 hm) h3 (fun a o c mode e p hci he hp ↦ by
         have ha : a < 2 ^ 28 := by have := hsmall i hi; rw [hci] at this; exact this.1
         have hr := hA2.1.st.1 a _ he
         rw [rd_get hκ hm.fine ha hr hp]
@@ -714,7 +758,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
       obtain ⟨-, hc, -⟩ := stepF_deref h3
       obtain ⟨p, x, hp, -, hx, -, -, hcell⟩ := Mode.deref_vals hg1 e'
       obtain ⟨-, hst⟩ := hcell rfl
-      obtain ⟨v, hv⟩ := Mem.get_of_written (hA2.2.w c' (has_iff.mp (hc hS)))
+      obtain ⟨v, hv⟩ := Mem.get_of_written (hA2.2.w c' (hc hS))
       exact ⟨p, x, by rw [hfp']; exact hle3.get _ _ hp, hx, written_of_get (hst v hv)⟩
     have hv' : FVal img s'.fp (execF Fn.F (Fn.entry + i) A3 code[i]) := by
       rw [hfp']; exact execF_val (by omega) hpows (stepF_val hA2.1 hh h3) hh
@@ -726,7 +770,7 @@ theorem frame_step {prog : LeanIsaProgram} (hκ : κ ≤ 28) {C : Ctx} {Inv : St
     have hsm := hsmall i hi
     rw [hins] at hsm hf
     obtain ⟨sc, sd, sf⟩ := hsm
-    have hW : ∀ o, A2.hasW o = true → s1.mem.written (s1.fp + o) = true := fun o ho ↦ hA2.2.w o (has_iff.mp ho)
+    have hW : ∀ o, A2.hasW o = true → s1.mem.written (s1.fp + o) = true := fun o ho ↦ hA2.2.w o ho
     have hreads : Reads s1 (.jump c d f) := ⟨hW c hwc, hW d hwd, hW f hwf⟩
     rw [hop]
     have hmo : OpModed (refMem img) s1 (opOfOff code[i]) := by

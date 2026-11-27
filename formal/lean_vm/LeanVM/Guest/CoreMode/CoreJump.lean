@@ -1377,11 +1377,10 @@ theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryIma
   simp only [hA, stmtsAll_eq, List.all_eq_true] at hr'
   -- a frame run's cell `k` written in the walk's state, at its address
   have hcell : ∀ (p r : V) (rs : List V) (k : ℕ), Ev.atom (.frameAddr p (r :: rs)) ∈ es →
-      (A.w.get (Cf.X.locAt r.idx + k)).isSome = true → WrK s1.mem (cellAt σ p k) := by
+      A.hasW (Cf.X.locAt r.idx + k) = true → WrK s1.mem (cellAt σ p k) := by
     intro p r rs k hfa hkk
     have hp := hσ.fa hn es vs hw p r rs hfa
-    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hkk
-    have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hu)
+    have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hkk)
     refine ⟨s.fp + (Cf.X.locAt r.idx + k), ?_, written_lt hfine hwr, hwr⟩
     simp only [cellAt, hp, limb_ofK, addressOfIndex, pow_add]
     simp [mul_assoc]
@@ -1425,8 +1424,8 @@ theorem nzr_hnz {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : C
     obtain ⟨A, hA, hH⟩ := atF_ret har hacc hi hat
     simp only [hz, hA, List.all_eq_true] at h
     have ho' := h o ho
-    simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.contains_iff_mem] at ho'
-    obtain ⟨⟨u, hu⟩, hr⟩ := ho'
+    simp only [Bool.and_eq_true, List.contains_iff_mem] at ho'
+    obtain ⟨hu, hr⟩ := ho'
     have hw := hH.2.w o hu
     obtain ⟨v, hv, hv0⟩ := hres s ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩ (.nz o) hr hw
     exact ⟨v, rdE_of_get hκ hs.agree hv hv0, hv0⟩

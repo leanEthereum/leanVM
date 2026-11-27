@@ -141,11 +141,11 @@ theorem optFSeq_eq {β : Type} (o : Option FSt) (k : Option FSt → β) : optFSe
   cases o with
   | none => rfl
   | some A => obtain ⟨st, w, nz, hq, hs, cp, one⟩ := A; simp only [optFSeq, FSt.force,
-      Exec.St.seq_eq, Exec.Trie.seq_eq]
+      Exec.St.seq_eq, Exec.natSeq_eq, Exec.Trie.seq_eq]
 
 theorem FSt.force_eq {β : Type} (A : FSt) (k : FSt → β) : A.force k = k A := by
   obtain ⟨st, w, nz, hq, hs, cp, one⟩ := A
-  simp only [FSt.force, Exec.St.seq_eq, Exec.Trie.seq_eq]
+  simp only [FSt.force, Exec.St.seq_eq, Exec.natSeq_eq, Exec.Trie.seq_eq]
 
 /-- **The pass reads the hints by pc** through its cursor. -/
 theorem frameRun_eq {Fn : FFun} (hd : Mode.pcsIncr Fn.hints = true) :
@@ -496,15 +496,23 @@ def AtF (Fn : FFun) (code : List OffsetInstruction) (i : ℕ) (s : Prover.Exec.S
 variable {img}
 
 /-- The walk's pass from its entry state: `frameOk`'s, with the hints by pc. -/
-def FrameAcc (Fn : FFun) (code : List OffsetInstruction) : Prop :=
+def FramePassOk (Fn : FFun) (code : List OffsetInstruction) : Prop :=
   frameRunH Fn code 0 (some (entryF Fn)) [] = some (none, [])
+
+/-- **The frame walk accepts a function's code**: it reads the oracle, and its pass goes through. -/
+structure FrameAcc (Fn : FFun) (code : List OffsetInstruction) : Prop where
+  oracle : OracleOk Fn
+  pass : FramePassOk Fn code
+
+theorem oracleOk_of {Fn : FFun} (h : oracleChk Fn = true) : OracleOk Fn := fun i hi ↦
+  List.all_eq_true.mp h i (Bits.has_ofNats hi)
 
 theorem frameAcc_of {Fn : FFun} {code : List OffsetInstruction} (hd : Mode.pcsIncr Fn.hints = true)
     (h : frameOk Fn code = true) : envOk Fn = true ∧ armsOk Fn = true ∧ FrameAcc Fn code := by
   unfold frameOk at h
   simp only [Bool.and_eq_true] at h
-  refine ⟨h.1.1, h.1.2, ?_⟩
-  unfold FrameAcc
+  refine ⟨h.1.1.2, h.1.2, oracleOk_of h.1.1.1, ?_⟩
+  unfold FramePassOk
   rw [← frameRun_eq hd code 0 Fn.hints _ _ ⟨hd, fun _ hx ↦ hx, fun _ hx _ ↦ hx⟩]
   split at h
   · rename_i e; exact e
@@ -518,7 +526,7 @@ theorem preF_succ {Fn : FFun} {code : List OffsetInstruction} {i : ℕ} (hi : i 
 
 theorem preF_isSome {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc Fn code) (i : ℕ) :
     ∃ S, preF Fn code i = some S := by
-  unfold FrameAcc at hw
+  have hw : _ = _ := hw.pass
   rw [← List.take_append_drop i code, frameRunH_append] at hw
   obtain ⟨S, hS, -⟩ := Option.bind_eq_some_iff.mp hw
   exact ⟨S, hS⟩
@@ -526,7 +534,7 @@ theorem preF_isSome {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc F
 theorem preF_end {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc Fn code)
     {i : ℕ} (hi : code.length ≤ i) {cur : Option FSt} {pend : FPend}
     (h : preF Fn code i = some (cur, pend)) : cur = none ∧ pend = [] := by
-  unfold FrameAcc at hw
+  have hw : _ = _ := hw.pass
   unfold preF at h
   rw [List.take_of_length_le hi] at h
   rw [h] at hw
