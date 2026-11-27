@@ -11,7 +11,6 @@ public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplSem
 public import LeanVM.Guest.JumpTable
 import Mathlib.Data.List.GetD
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # The walk along a path
@@ -923,7 +922,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
       (by rw [htg]; exact hp.ok.tg) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
       (by rw [endAtC_nm hse]; exact hp.nm)
-  have hc1 : (calls (ebef ⧺ [.call f args rets])).length = n + 1 := calls_append_one rfl
+  have hc1 : (calls (ebef ++ [.call f args rets])).length = n + 1 := calls_append_one rfl
   refine walk_step H ih rfl rfl hw hes hs hshape ?_ hcw ?_
   · rw [hc1]
     refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,

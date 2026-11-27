@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplWalk
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Table jumps along a path
@@ -551,7 +550,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
       (by rw [htg]; exact htg1) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
       (by rw [endAtC_nm hse]; exact hp.nm)
-  have hc1 : (calls (ebef ⧺ [.call fs[k] args rets])).length = n + 1 := calls_append_one rfl
+  have hc1 : (calls (ebef ++ [.call fs[k] args rets])).length = n + 1 := calls_append_one rfl
   refine walk_step H ih rfl
     (show walk1 σ (.dispatch v fs args rets) = .fall [.call fs[k] args rets] from hpk) hw hes hs
     hshape ?_ hcw hok
