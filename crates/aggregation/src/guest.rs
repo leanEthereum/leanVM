@@ -29,6 +29,7 @@ static GUEST: OnceLock<Program> = OnceLock::new();
 ///
 /// # Panics
 /// Without `compile-guest`, if no guest is installed.
+#[inline(never)]
 pub fn unified_guest() -> &'static Program {
     #[cfg(feature = "compile-guest")]
     let guest = GUEST.get_or_init(compile_unified_guest);

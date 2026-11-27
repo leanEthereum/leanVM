@@ -162,6 +162,7 @@ impl<'a> Transcript<'a> {
     }
 
     /// [`Self::next_scalars`] for a replay, which keeps none of them.
+    #[inline(never)]
     pub fn skip_scalars(&mut self, count: usize) -> Result<(), VerifierError> {
         for _ in 0..count {
             self.next_scalar()?;
@@ -170,6 +171,7 @@ impl<'a> Transcript<'a> {
     }
 
     /// [`Self::samples`] for a replay, which reads none of them.
+    #[inline(never)]
     pub fn skip_samples(&mut self, count: usize) {
         for _ in 0..count {
             self.sample();
