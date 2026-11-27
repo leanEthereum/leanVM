@@ -265,11 +265,11 @@ mod tests {
                         .map(|i| v(i % stride * lane_block + i / stride))
                         .collect()
                 };
-                let mut reference = Dense {
-                    f: transpose(&|i| stack.get(i).map_or(F128::ZERO, |&word| F128::from(word))),
-                    w: transpose(&|i| dense[i]),
+                let mut reference = Dense::new(
+                    &transpose(&|i| stack.get(i).map_or(F128::ZERO, |&word| F128::from(word))),
+                    &transpose(&|i| dense[i]),
                     stride,
-                };
+                );
                 for round in 0..LANE_ROUNDS {
                     let ch = FoldChallenges {
                         alpha: rng.ext(),
@@ -279,9 +279,9 @@ mod tests {
                     reference.fold(&ch);
                     lanes.fold(&ch);
                 }
-                let (p, w) = lanes.finish();
-                assert_eq!(p, reference.f, "{context}, lane");
-                assert_eq!(w, reference.w, "{context}, weight");
+                let ((p, w), (p_want, w_want)) = (lanes.finish(), reference.finish());
+                assert_eq!(p, p_want, "{context}, lane");
+                assert_eq!(w, w_want, "{context}, weight");
             }
         }
     }

@@ -31,6 +31,9 @@ const BLOCK: usize = 1 << LOW_VARS;
 /// A block in lanes of eight.
 const LANES: usize = BLOCK / 8;
 
+/// Writes block `h` of each of item `i`'s sequences ([`Terms::project`]).
+type Blocks<'a> = dyn Fn(usize, usize, &mut [[F64; BLOCK]]) + Sync + 'a;
+
 /// A block's `E` values, eight to a lane.
 fn in_lanes(v: &[F128; BLOCK]) -> [F128x8; LANES] {
     core::array::from_fn(|i| F128x8::load(&v[8 * i..][..8]))
@@ -129,29 +132,30 @@ impl Terms {
         self.claims.len() + DEGREE_E * self.rings.len()
     }
 
-    /// The projections of `n` items onto the terms, each item `S` sequences of `2^lane_vars` words: `blocks(i, h, out)`
+    /// The projections of `n` items onto the terms, each item `s` sequences of `2^lane_vars` words: `blocks(i, h, out)`
     /// writes block `h` of each of item `i`'s sequences. A row of [`Self::n_terms`] per sequence, item by item.
-    pub(crate) fn project<const S: usize>(
+    pub(crate) fn project(
         &self,
         n: usize,
-        blocks: impl Fn(usize, usize, &mut [[F64; BLOCK]; S]) + Sync,
+        s: usize,
+        blocks: &Blocks<'_>,
     ) -> Vec<F128> {
-        let (row, n_blocks) = (S * self.n_terms(), self.n_blocks());
+        let (row, n_blocks) = (s * self.n_terms(), self.n_blocks());
         // Each item's blocks in ranges, enough tasks to balance the pool.
         let per = n_blocks.div_ceil((8 * parallel::num_threads()).div_ceil(n.max(1)));
         let n_ranges = n_blocks.div_ceil(per);
         let parts = parallel::map_collect(n * n_ranges, |task| {
             let (item, k) = (task / n_ranges, task % n_ranges);
             let range = k * per..((k + 1) * per).min(n_blocks);
-            let mut sequences: [Projection; S] = core::array::from_fn(|_| Projection::new(self, range.clone()));
-            let mut words = [[F64::ZERO; BLOCK]; S];
+            let mut sequences: Vec<Projection> = (0..s).map(|_| Projection::new(self, range.clone())).collect();
+            let mut words = vec![[F64::ZERO; BLOCK]; s];
             for h in range {
                 blocks(item, h, &mut words);
                 for (sequence, words) in sequences.iter_mut().zip(&words) {
                     sequence.feed(h, words);
                 }
             }
-            sequences.map(Projection::finish).concat()
+            sequences.into_iter().flat_map(Projection::finish).collect::<Vec<_>>()
         });
         let mut rows = vec![F128::ZERO; n * row];
         for (task, part) in parts.iter().enumerate() {

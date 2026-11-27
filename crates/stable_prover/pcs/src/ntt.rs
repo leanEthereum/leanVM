@@ -136,7 +136,7 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         start: usize,
         out: &mut [O],
-        done: impl Fn(&[F64], &mut [O]) + Sync,
+        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
     ) {
         let log_d = log2_strict_usize(data.len() / num_ntts);
         assert!(log_d <= self.dim && start <= log_d);
@@ -156,7 +156,7 @@ impl AdditiveNttF64 {
             .collect();
         parallel::chunks_mut(&mut blocks, 1, |b, block| {
             let (block, out) = &mut block[0];
-            self.transform_block(block, out, num_ntts, split, b, &done);
+            self.transform_block(block, out, num_ntts, split, b, done);
         });
     }
 
@@ -216,7 +216,7 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         layer: usize,
         index: usize,
-        done: &impl Fn(&[F64], &mut [O]),
+        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
     ) {
         let rows = block.len() / num_ntts;
         if block.len() <= CHUNK || rows == 1 {
@@ -268,11 +268,10 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         log_inv_rate: usize,
         out: &mut [O],
-        done: impl Fn(&[F64], &mut [O]) + Sync,
+        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
     ) -> Vec<F64> {
-        let mut data = written(msg.len() << log_inv_rate, |w, out| copy_cyclic(msg, w, out));
-        self.transform(&mut data, num_ntts, log_inv_rate, out, done);
-        data
+        let lanes: Vec<usize> = (0..num_ntts).collect();
+        self.encode(msg, &lanes, num_ntts, log_inv_rate, out, done)
     }
 
     /// The codeword of a lane-major message, `n_lanes` blocks of `2^log_rows` words: a row of the codeword holds one
@@ -283,20 +282,36 @@ impl AdditiveNttF64 {
         n_lanes: usize,
         log_inv_rate: usize,
         out: &mut [O],
-        done: impl Fn(&[F64], &mut [O]) + Sync,
+        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
     ) -> Vec<F64> {
         let msg_rows = msg.len() / n_lanes;
+        let lanes: Vec<usize> = (0..n_lanes).map(|t| (n_lanes - 1 - t) * msg_rows).collect();
+        self.encode(msg, &lanes, 1, log_inv_rate, out, done)
+    }
+
+    /// The codeword of the message whose row `r`, lane `t` is `msg[lanes[t] + r * row_stride]`, its rows a power of
+    /// two, handed to `done` as in [`Self::encode_rows`].
+    fn encode<O: Send>(
+        &self,
+        msg: &[F64],
+        lanes: &[usize],
+        row_stride: usize,
+        log_inv_rate: usize,
+        out: &mut [O],
+        done: &(dyn Fn(&[F64], &mut [O]) + Sync),
+    ) -> Vec<F64> {
+        let (n_lanes, msg_rows) = (lanes.len(), msg.len() / lanes.len());
         assert!(
             msg.len() == n_lanes * msg_rows && msg_rows.is_power_of_two(),
-            "the message is n_lanes lane blocks"
+            "the message is whole rows"
         );
-        // A piece of the codeword reads each lane block along the rows it covers: the blocks lie a power of two apart,
-        // and reading them across would keep evicting each other from the cache.
+        // A piece of the codeword reads each lane along the rows it covers: a lane-major message's lanes lie a power
+        // of two apart, and reading them across would keep evicting each other from the cache.
         let mut data = written(msg.len() << log_inv_rate, |w, out| {
-            for (t, block) in msg.chunks_exact(msg_rows).rev().enumerate() {
+            for (t, &lane) in lanes.iter().enumerate() {
                 for r in w / n_lanes..(w + out.len()).div_ceil(n_lanes) {
                     if let Some(o) = (r * n_lanes + t).checked_sub(w).and_then(|i| out.get_mut(i)) {
-                        *o = block[r & (msg_rows - 1)];
+                        *o = msg[lane + (r & (msg_rows - 1)) * row_stride];
                     }
                 }
             }

@@ -22,37 +22,20 @@ use crate::sumcheck::product_sumcheck;
 use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128x8, dot, powers};
 use primitives::hash::OUT_LEN;
-use primitives::multilinear::eq_table;
+use primitives::multilinear::{eq_table, fold};
 use primitives::transcript::ProverState;
 
 use crate::merkle::{LeafHasher, MerkleTree};
 use crate::ntt::AdditiveNttF64;
 use crate::whir_induce::induce_basis;
-use crate::whir_lanes::LaneRounds;
+use crate::whir_lanes::{Folded, LaneRounds, Lanes};
+use crate::xmul::x_at;
 use verifier::{
     FOLD_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MIN_LOG_INV_RATE, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, WhirConfig,
 };
 
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
-
-/// The pairs `(v[2q], v[2q + 1])` for the eight `q` from `q`, as their first and their second elements, zero past `v`.
-fn pairs8(v: &[F128], q: usize) -> (F128x8, F128x8) {
-    let at = |i: usize| v.get(i).copied().unwrap_or(F128::ZERO);
-    let first = core::array::from_fn(|j| at(2 * (q + j)));
-    let second = core::array::from_fn(|j| at(2 * (q + j) + 1));
-    (F128x8::from_array(&first), F128x8::from_array(&second))
-}
-
-/// `interp(x[2q], x[2q + 1], r)` for every pair: the pooled SIMD form of [`fold`](primitives::multilinear::fold)
-/// `(x, 1, r)`, for the large weight table.
-fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
-    let r = F128x8::splat(r);
-    crate::collect_chunks(x.len() / 2, |k| {
-        let (lo, hi) = pairs8(x, 8 * k);
-        (lo + r * (lo + hi)).to_array()
-    })
-}
 
 /// [`dot`] with the pool.
 fn dot_par(a: &[F128], b: &[F128]) -> F128 {
@@ -110,45 +93,56 @@ pub(crate) fn commit(message: &[F64], log_n: usize, log_inv_rate: usize) -> Prov
         message.len() == n_lanes << log_rows && (1..=1 << INITIAL_FOLDING_FACTOR).contains(&n_lanes),
         "the message is whole lane blocks of the stack"
     );
-    let log_domain = log_rows + log_inv_rate;
-    let hasher = LeafHasher::new(n_lanes, 1 << INITIAL_FOLDING_FACTOR);
-    let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
-    let codeword = {
-        AdditiveNttF64::standard(log_domain).encode_lane_major(
-            message,
-            n_lanes,
-            log_inv_rate,
-            &mut leaves,
-            |rows, out| hasher.hash(rows, out),
-        )
-    };
-    let tree = MerkleTree::from_leaves(leaves);
-    ProverData {
-        codeword,
-        row_words: n_lanes,
-        leaf_words: 1 << INITIAL_FOLDING_FACTOR,
-        tree,
-    }
+    commit_words(
+        message,
+        n_lanes,
+        1 << INITIAL_FOLDING_FACTOR,
+        log_rows + log_inv_rate,
+        log_inv_rate,
+        true,
+    )
 }
 
 /// Commit to a deeper level's `E` message, `2^log_msg_cols` rows of `2^log_lanes` lanes.
 fn commit_ext(message: &[F128], log_msg_cols: usize, log_lanes: usize, log_inv_rate: usize) -> ProverData {
     assert_eq!(message.len(), 1 << (log_msg_cols + log_lanes));
-    let (log_domain, row_words) = (log_msg_cols + log_inv_rate, 2 << log_lanes);
-    let hasher = LeafHasher::new(row_words, row_words);
+    let words = primitives::cast_slice(message);
+    commit_words(
+        words,
+        2 << log_lanes,
+        2 << log_lanes,
+        log_msg_cols + log_inv_rate,
+        log_inv_rate,
+        false,
+    )
+}
+
+/// The oracle of `message`'s codeword on `2^log_domain` rows of `row_words`, leaves of `leaf_words`: the message lane
+/// by lane ([`AdditiveNttF64::encode_lane_major`]) or row by row ([`AdditiveNttF64::encode_rows`]).
+fn commit_words(
+    message: &[F64],
+    row_words: usize,
+    leaf_words: usize,
+    log_domain: usize,
+    log_inv_rate: usize,
+    lane_major: bool,
+) -> ProverData {
+    let hasher = LeafHasher::new(row_words, leaf_words);
     let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
-    let codeword = {
-        let words = primitives::cast_slice(message);
-        AdditiveNttF64::standard(log_domain).encode_rows(words, row_words, log_inv_rate, &mut leaves, |rows, out| {
-            hasher.hash(rows, out)
-        })
+    let (ntt, hash) = (
+        AdditiveNttF64::standard(log_domain),
+        &|rows: &[F64], out: &mut [Hash]| hasher.hash(rows, out),
+    );
+    let codeword = if lane_major {
+        ntt.encode_lane_major(message, row_words, log_inv_rate, &mut leaves, hash)
+    } else {
+        ntt.encode_rows(message, row_words, log_inv_rate, &mut leaves, hash)
     };
-    let tree = MerkleTree::from_leaves(leaves);
     ProverData {
         codeword,
         row_words,
-        leaf_words: row_words,
-        tree,
+        leaf_words,
+        tree: MerkleTree::from_leaves(leaves),
     }
 }
 
@@ -173,7 +167,7 @@ pub(crate) trait FoldRounds {
 }
 
 /// A level's `k` fold rounds: each round's table, then `(alpha, beta)` after a grind.
-fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, k: usize) {
+fn fold_rounds(ps: &mut ProverState, lanes: &mut dyn FoldRounds, k: usize) {
     for _ in 0..k {
         ps.add_scalars(&lanes.table());
         ps.grind(FOLD_GRINDING_BITS);
@@ -185,41 +179,56 @@ fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, k: usize) {
     }
 }
 
-/// A deeper level's lanes and weight in the clear: coefficient `c` of lane `l` at `c * stride + l`, the lanes' low
-/// coefficients then the high ones the level's folds have added, and the weight over the low ones. A round's pair `q`
-/// is then `(F, G) = (f[2q], f[2q + 1])` under the weights `(w[2q], w[2q + 1])`.
+/// A deeper level's lanes and the weight over each lane's `low` low coefficients, in the clear and lane by lane: lane
+/// `l` of the weight at `l * low_stride`, zero past `low`. A round's pairs are lanes `(2m, 2m + 1)`.
 pub(crate) struct Dense {
-    pub(crate) f: Vec<F128>,
-    pub(crate) w: Vec<F128>,
-    pub(crate) stride: usize,
+    f: Folded,
+    w: Vec<F128>,
+    low: usize,
+    low_stride: usize,
 }
 
 impl Dense {
-    /// `X F` at pairs `q..q + 8`: coefficient `c` of `X` times lane `2m`, where pair `q` is `(c, m)`.
-    fn xf8(&self, q: usize) -> F128x8 {
-        let (f, s) = (&self.f, self.stride);
-        F128x8::from_array(&core::array::from_fn(|j| {
-            let (c, m) = ((q + j) / (s / 2), (q + j) % (s / 2));
-            crate::xmul::x_coef(|i| f.get(i * s + 2 * m).copied().unwrap_or(F128::ZERO), c)
-        }))
+    /// The `n_lanes` lanes of `p` under the weight `w` over their low coefficients, coefficient `c` of lane `l` at
+    /// `c * n_lanes + l` in both.
+    pub(crate) fn new(p: &[F128], w: &[F128], n_lanes: usize) -> Self {
+        let w = Folded::transpose(w, n_lanes);
+        Self {
+            f: Folded::transpose(p, n_lanes),
+            low: w.len,
+            low_stride: w.stride,
+            w: w.coefs,
+        }
+    }
+
+    /// The one lane left, low coefficients then high, and the weight over its low ones.
+    pub(crate) fn finish(self) -> (Vec<F128>, Vec<F128>) {
+        let mut w = self.w;
+        w.truncate(self.low);
+        (self.f.into_lane(), w)
     }
 }
 
 impl FoldRounds for Dense {
     fn table(&mut self) -> FoldTable {
-        assert!(self.stride >= 2 && self.stride.is_power_of_two());
-        let low_pairs = self.w.len() / 2;
+        let (f, low) = (&self.f, self.low);
+        let n_chunks = low.div_ceil(CHUNK);
         parallel::map_reduce(
-            low_pairs.div_ceil(CHUNK),
+            f.count() / 2 * n_chunks,
             || [F128::ZERO; 4],
             |t| {
+                let (m, k) = (t / n_chunks, t % n_chunks);
+                let (lf, lg) = (f.lane(2 * m), f.lane(2 * m + 1));
+                let w = |l: usize| &self.w[l * self.low_stride..][..self.low_stride];
+                let (lw0, lw1) = (w(2 * m), w(2 * m + 1));
                 let mut acc = [Acc8::ZERO; 4];
-                for q in (t * CHUNK..((t + 1) * CHUNK).min(low_pairs)).step_by(8) {
-                    let ((f, g), (w0, w1), xf) = (pairs8(&self.f, q), pairs8(&self.w, q), self.xf8(q));
-                    acc[0] += w0.mul_unreduced(g);
-                    acc[1] += (w0 + w1).mul_unreduced(f);
-                    acc[2] += w0.mul_unreduced(xf);
-                    acc[3] += w1.mul_unreduced(xf);
+                for c in (k * CHUNK..((k + 1) * CHUNK).min(low)).step_by(8) {
+                    let (f, g) = (F128x8::load(&lf[c..][..8]), F128x8::load(&lg[c..][..8]));
+                    let (w0, w1) = (F128x8::load(&lw0[c..][..8]), F128x8::load(&lw1[c..][..8]));
+                    let xf = F128x8::from_array(&core::array::from_fn(|j| x_at(lf, c + j)));
+                    for (acc, (w, v)) in acc.iter_mut().zip([(w0, g), (w0 + w1, f), (w0, xf), (w1, xf)]) {
+                        *acc += w.mul_unreduced(v);
+                    }
                 }
                 acc.map(Acc8::sum)
             },
@@ -228,14 +237,8 @@ impl FoldRounds for Dense {
     }
 
     fn fold(&mut self, ch: &FoldChallenges) {
-        let (alpha, beta) = (F128x8::splat(ch.alpha), F128x8::splat(ch.beta));
-        // One column longer: `X F` reaches one coefficient past `F`.
-        let pairs = (self.f.len() / self.stride + 1) * self.stride / 2;
-        let f = crate::collect_chunks(pairs, |k| {
-            let (f, g) = pairs8(&self.f, 8 * k);
-            ((alpha.mul_unreduced(f) + beta.mul_unreduced(self.xf8(8 * k))).reduce() + g).to_array()
-        });
-        (self.f, self.w, self.stride) = (f, fold_pairs(&self.w, ch.alpha), self.stride / 2);
+        self.f = Lanes::Folded(std::mem::take(&mut self.f)).fold(ch);
+        self.w = fold(&self.w, self.low_stride, ch.alpha);
     }
 }
 
@@ -264,13 +267,9 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
     let mut oracle = committed;
     for level in 0..levels {
         if level > 0 {
-            let mut dense = Dense {
-                f: p,
-                w,
-                stride: 1 << config.folds[level],
-            };
+            let mut dense = Dense::new(&p, &w, 1 << config.folds[level]);
             fold_rounds(ps, &mut dense, config.folds[level]);
-            (p, w) = (dense.f, dense.w);
+            (p, w) = dense.finish();
         }
         let mu = w.len().ilog2() as usize;
         let block_len = oracle.block_len();
@@ -322,7 +321,7 @@ mod tests {
     use crate::stack_open::{RingSwitchOpen, StackClaim, commit, open};
     use crate::whir_induce::novel_basis_at;
     use crate::whir_induce::tests::novel_sum_at;
-    use primitives::multilinear::fold;
+    use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
     use verifier::Subspace;
 
@@ -383,18 +382,21 @@ mod tests {
         ] {
             let (s, low) = (1usize << log_stride, 1usize << mu);
             let n_cols = low + high;
-            let mut dense = Dense {
-                f: rng.ext_vec(n_cols * s),
-                w: rng.ext_vec(low * s),
-                stride: s,
-            };
+            let (f_in, w_in) = (rng.ext_vec(n_cols * s), rng.ext_vec(low * s));
+            let mut dense = Dense::new(&f_in, &w_in, s);
             let ch = challenges(&mut rng);
             let lane = |v: &[F128], l: usize, cols: usize| (0..cols).map(|c| v[c * s + l]).collect::<Vec<_>>();
             let mut want = [F128::ZERO; 4];
-            let mut folded = Vec::new();
+            let (mut folded, mut w_want) = (Vec::new(), Vec::new());
             for m in 0..s / 2 {
-                let (f, g) = (lane(&dense.f, 2 * m, n_cols), lane(&dense.f, 2 * m + 1, n_cols));
-                let (w0, w1) = (lane(&dense.w, 2 * m, low), lane(&dense.w, 2 * m + 1, low));
+                let (f, g) = (lane(&f_in, 2 * m, n_cols), lane(&f_in, 2 * m + 1, n_cols));
+                let (w0, w1) = (lane(&w_in, 2 * m, low), lane(&w_in, 2 * m + 1, low));
+                w_want.push(
+                    w0.iter()
+                        .zip(&w1)
+                        .map(|(&lo, &hi)| interp(lo, hi, ch.alpha))
+                        .collect::<Vec<_>>(),
+                );
                 let xf: Vec<F128> = (0..=n_cols).map(|c| crate::xmul::x_at(&f, c)).collect();
                 let ip = |w: &[F128], v: &[F128]| w.iter().zip(v).map(|(&a, &b)| a * b).sum::<F128>();
                 for (s, v) in want
@@ -410,15 +412,18 @@ mod tests {
                         .collect::<Vec<_>>(),
                 );
             }
-            let w_want = fold(&dense.w, 1, ch.alpha);
             assert_eq!(dense.table(), want, "table, stride {s}, mu {mu}, high {high}");
             dense.fold(&ch);
-            let f_want: Vec<F128> = (0..(n_cols + 1) * s / 2)
-                .map(|i| folded[i % (s / 2)][i / (s / 2)])
-                .collect();
-            assert_eq!(dense.f, f_want, "lanes, stride {s}, mu {mu}, high {high}");
-            assert_eq!(dense.w, w_want, "weight, stride {s}, mu {mu}, high {high}");
-            assert_eq!(dense.stride, s / 2);
+            assert_eq!(dense.f.count(), s / 2);
+            for (m, (f_want, w_want)) in folded.iter().zip(&w_want).enumerate() {
+                assert_eq!(
+                    dense.f.lane(m)[..=n_cols],
+                    f_want[..],
+                    "lane {m}, stride {s}, mu {mu}, high {high}"
+                );
+                let w = &dense.w[m * dense.low_stride..][..low];
+                assert_eq!(w, &w_want[..], "weight {m}, stride {s}, mu {mu}, high {high}");
+            }
         }
     }
 
@@ -430,16 +435,12 @@ mod tests {
         for (k, mu, log_inv_rate) in [(1usize, 4usize, 1usize), (2, 6, 2), (4, 8, 1), (4, 10, 3)] {
             let f = rng.ext_vec(1 << (mu + k));
             let oracle = commit_ext(&f, mu, k, log_inv_rate);
-            let mut dense = Dense {
-                f,
-                w: rng.ext_vec(1 << (mu + k)),
-                stride: 1 << k,
-            };
+            let mut dense = Dense::new(&f, &rng.ext_vec(1 << (mu + k)), 1 << k);
             let rounds: Vec<_> = (0..k).map(|_| challenges(&mut rng)).collect();
             for ch in &rounds {
                 dense.fold(ch);
             }
-            let p = dense.f;
+            let (p, _) = dense.finish();
             assert_eq!(p.len(), (1 << mu) + k);
             for q in (0..20).map(|_| rng.next_u64() as usize % oracle.block_len()) {
                 let x = F64(q as u64);

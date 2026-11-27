@@ -34,38 +34,77 @@ fn coefs<T: Copy + Default>(lane: &[T], c: usize) -> [T; 8] {
     core::array::from_fn(|j| lane.get(c + j).copied().unwrap_or_default())
 }
 
+/// Lanes of `len` coefficients, `stride` apart, a multiple of eight, zeros between.
+#[derive(Default)]
+pub(crate) struct Folded {
+    pub(crate) coefs: Vec<F128>,
+    pub(crate) len: usize,
+    pub(crate) stride: usize,
+}
+
+impl Folded {
+    /// The `n_lanes` lanes of `v`, coefficient `c` of lane `l` at `c * n_lanes + l`.
+    pub(crate) fn transpose(v: &[F128], n_lanes: usize) -> Self {
+        let len = v.len() / n_lanes;
+        let stride = len.next_multiple_of(8);
+        let coefs = crate::collect_chunks(n_lanes * stride, |k| {
+            let (l, c) = (8 * k / stride, 8 * k % stride);
+            core::array::from_fn::<_, 8, _>(|j| {
+                if c + j < len {
+                    v[(c + j) * n_lanes + l]
+                } else {
+                    F128::ZERO
+                }
+            })
+        });
+        Self { coefs, len, stride }
+    }
+
+    pub(crate) fn count(&self) -> usize {
+        self.coefs.len() / self.stride
+    }
+
+    /// Lane `l`.
+    pub(crate) fn lane(&self, l: usize) -> &[F128] {
+        row(&self.coefs, self.stride, l)
+    }
+
+    /// The one lane left.
+    pub(crate) fn into_lane(mut self) -> Vec<F128> {
+        assert_eq!(self.count(), 1, "every lane variable is folded");
+        self.coefs.truncate(self.len);
+        self.coefs
+    }
+}
+
 /// The lanes that carry data.
-enum Lanes {
+pub(crate) enum Lanes {
     /// Round 1's: the committed stack, lanes of `len` words end to end.
     Stack { words: Vec<F64>, len: usize },
-    /// A later round's: lanes of `len` coefficients, `stride` apart, zeros between.
-    Folded {
-        coefs: Vec<F128>,
-        len: usize,
-        stride: usize,
-    },
+    /// A later round's.
+    Folded(Folded),
 }
 
 impl Lanes {
     fn count(&self) -> usize {
         match self {
             Lanes::Stack { words, len } => words.len() / len,
-            Lanes::Folded { coefs, stride, .. } => coefs.len() / stride,
+            Lanes::Folded(lanes) => lanes.count(),
         }
     }
 
     fn len(&self) -> usize {
         match self {
-            Lanes::Stack { len, .. } | Lanes::Folded { len, .. } => *len,
+            Lanes::Stack { len, .. } | Lanes::Folded(Folded { len, .. }) => *len,
         }
     }
 
     /// The lanes `G + alpha F + beta X F`, one coefficient longer, written by the pool eight coefficients at a time.
-    fn fold(&self, ch: &FoldChallenges) -> Lanes {
+    pub(crate) fn fold(&self, ch: &FoldChallenges) -> Folded {
         let (alpha, beta) = (F128x8::splat(ch.alpha), F128x8::splat(ch.beta));
         let (n_pairs, len) = (self.count().div_ceil(2), 1 + self.len());
         let stride = len.next_multiple_of(8);
-        let coefs = parallel::map_collect(n_pairs * stride / 8, |k| {
+        let coefs = crate::collect_chunks(n_pairs * stride, |k| {
             let (m, c) = (8 * k / stride, 8 * k % stride);
             let p = match self {
                 Lanes::Stack { words, len } => {
@@ -75,17 +114,16 @@ impl Lanes {
                     (alpha.mul_base_unreduced(f) + beta.mul_base_unreduced(xf)).reduce()
                         + F128x8::from_array(&coefs(g, c).map(F128::from))
                 }
-                Lanes::Folded { coefs: v, stride, .. } => {
-                    let (f, g) = (row(v, *stride, 2 * m), row(v, *stride, 2 * m + 1));
+                Lanes::Folded(lanes) => {
+                    let (f, g) = (lanes.lane(2 * m), lanes.lane(2 * m + 1));
                     let xf = F128x8::from_array(&core::array::from_fn(|j| x_at(f, c + j)));
                     let f = F128x8::from_array(&coefs(f, c));
                     (alpha.mul_unreduced(f) + beta.mul_unreduced(xf)).reduce() + F128x8::from_array(&coefs(g, c))
                 }
             };
             p.to_array()
-        })
-        .into_flattened();
-        Lanes::Folded { coefs, len, stride }
+        });
+        Folded { coefs, len, stride }
     }
 }
 
@@ -123,12 +161,10 @@ impl LaneRounds {
             (1, self.terms.n_terms()),
             "every lane variable is folded"
         );
-        let Lanes::Folded { mut coefs, len, .. } = self.lanes else {
+        let Lanes::Folded(lanes) = self.lanes else {
             panic!("a fold before the end")
         };
-        coefs.truncate(len);
-        let w = self.terms.lift(&self.a);
-        (coefs, w)
+        (lanes.into_lane(), self.terms.lift(&self.a))
     }
 }
 
@@ -138,7 +174,10 @@ impl FoldRounds for LaneRounds {
         match &self.lanes {
             Lanes::Stack { words, len } => {
                 // Each pair's `F`, `G` and `X F`, in one pass over the pair.
-                let rows = self.terms.project(n_pairs, |m, h, [f_out, g_out, xf_out]| {
+                let rows = self.terms.project(n_pairs, 3, &|m, h, out| {
+                    let [f_out, g_out, xf_out] = out else {
+                        unreachable!("three sequences")
+                    };
                     let (f, g) = (row(words, *len, 2 * m), row(words, *len, 2 * m + 1));
                     f_out.copy_from_slice(&f[h * BLOCK..][..BLOCK]);
                     match g.get(h * BLOCK..(h + 1) * BLOCK) {
@@ -149,23 +188,23 @@ impl FoldRounds for LaneRounds {
                         *o = x_at(f, h * BLOCK + i);
                     }
                 });
-                self.p = rows.chunks_exact(3 * nt).flat_map(|r| &r[..2 * nt]).copied().collect();
-                self.pxf = rows.chunks_exact(3 * nt).flat_map(|r| &r[2 * nt..]).copied().collect();
+                (self.p, self.pxf) = (Vec::with_capacity(2 * nt * n_pairs), Vec::with_capacity(nt * n_pairs));
+                for r in rows.chunks_exact(3 * nt) {
+                    self.p.extend_from_slice(&r[..2 * nt]);
+                    self.pxf.extend_from_slice(&r[2 * nt..]);
+                }
             }
-            Lanes::Folded { coefs, stride, .. } => {
+            Lanes::Folded(lanes) => {
                 // `X F` as its two limbs, each a `K` sequence.
-                let rows = self.terms.project(n_pairs, |m, h, [lo, hi]| {
-                    let f = row(coefs, *stride, 2 * m);
+                let rows = self.terms.project(n_pairs, 2, &|m, h, out| {
+                    let [lo, hi] = out else { unreachable!("two sequences") };
+                    let f = lanes.lane(2 * m);
                     for (i, (lo, hi)) in lo.iter_mut().zip(hi).enumerate() {
                         [lo.0, hi.0] = x_at(f, h * BLOCK + i).to_limbs();
                     }
                 });
-                self.pxf = rows
-                    .chunks_exact(2 * nt)
-                    .flat_map(|r| {
-                        let (lo, hi) = r.split_at(nt);
-                        lo.iter().zip(hi).map(|(&lo, &hi)| lo + F128::Y * hi)
-                    })
+                self.pxf = (0..nt * n_pairs)
+                    .map(|i| rows[i / nt * 2 * nt + i % nt] + F128::Y * rows[i / nt * 2 * nt + nt + i % nt])
                     .collect();
             }
         }
@@ -200,6 +239,6 @@ impl FoldRounds for LaneRounds {
                 at(2 * m + 1) + alpha * at(2 * m) + beta * self.pxf[i]
             })
             .collect();
-        self.lanes = self.lanes.fold(ch);
+        self.lanes = Lanes::Folded(self.lanes.fold(ch));
     }
 }
