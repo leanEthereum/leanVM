@@ -79,21 +79,17 @@ impl DeferredBytecodeClaim {
 /// The rows of [`BLOCK`] entries of the stacked bytecode that hold its populated slots: every other row is
 /// structurally zero.
 fn bytecode_rows() -> Range<usize> {
-    static ROWS: std::sync::OnceLock<Range<usize>> = std::sync::OnceLock::new();
-    ROWS.get_or_init(|| {
-        let rows = unified_guest().stacked_bytecode().as_chunks::<BLOCK>().0;
-        let per_slot = rows.len() >> BUS_BITS;
-        assert!(
-            per_slot.is_multiple_of(8),
-            "a slot is whole groups of rows, as `Prover::combine_rows` may require"
-        );
-        let live = |s: &usize| rows[s * per_slot..(s + 1) * per_slot].iter().flatten().any(|&v| v != 0);
-        let slots = || 0..1 << BUS_BITS;
-        let start = slots().find(live).expect("the bytecode is not all zero");
-        let end = slots().rfind(live).expect("the bytecode is not all zero") + 1;
-        start * per_slot..end * per_slot
-    })
-    .clone()
+    let rows = unified_guest().stacked_bytecode().as_chunks::<BLOCK>().0;
+    let per_slot = rows.len() >> BUS_BITS;
+    assert!(
+        per_slot.is_multiple_of(8),
+        "a slot is whole groups of rows, as `Prover::combine_rows` may require"
+    );
+    let live = |s: &usize| rows[s * per_slot..(s + 1) * per_slot].iter().flatten().any(|&v| v != 0);
+    let slots = || 0..1 << BUS_BITS;
+    let start = slots().find(live).expect("the bytecode is not all zero");
+    let end = slots().rfind(live).expect("the bytecode is not all zero") + 1;
+    start * per_slot..end * per_slot
 }
 
 /// Low row variables of the stacked bytecode, which the batch binds first.

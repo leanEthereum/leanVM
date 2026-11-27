@@ -5,6 +5,7 @@ use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use ::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 pub use aggregation::{AggregateError, AggregateProof};
 use isa::Prover;
+use std::sync::{Mutex, PoisonError};
 
 #[cfg(feature = "experimental_prover")]
 type P = experimental_dispatch::ExperimentalProver;
@@ -55,6 +56,9 @@ pub fn aggregate(
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
+    // Two proofs at once would share the pool and hold both proofs' memory.
+    static PROVING: Mutex<()> = Mutex::new(());
+    let _proving = PROVING.lock().unwrap_or_else(PoisonError::into_inner);
     aggregation::aggregate::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
