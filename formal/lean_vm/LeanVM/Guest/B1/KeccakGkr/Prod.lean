@@ -257,7 +257,7 @@ theorem spOk_perm {s : Fs} {st : List V × List (V × V)} (h : SpOk σ s st) {in
     (ho : outs.length = 13 := by first | rfl | simp) :
     s.perm = permOf (ins.map σ) ∧
       ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState s.perm false ⟨k, hk⟩ := by
-  obtain ⟨-, -, hout⟩ := keccakA_perm hk ho
+  obtain ⟨-, -, hout⟩ := keccak_outs hk ho
   have hlen := pendOk_length h.2
   have hp : s.perm = permOf (ins.map σ) := by
     rw [perm_eq_cells s (by omega), hin, List.map_append, List.map_append, pendOk_cells h.2,
