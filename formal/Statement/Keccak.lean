@@ -162,11 +162,4 @@ def digestBytes (digest : Digest) : List UInt8 := digest.toList.flatMap wordByte
 
 end KeccakHash
 
-/-- The 32 bytes of a digest as a vector, LeanDA's form of a digest (`Common.DigestBytes`). -/
-def Digest.toBytes (digest : Digest) : Vector UInt8 32 :=
-  ⟨(KeccakHash.digestBytes digest).toArray, by
-    obtain ⟨⟨l⟩, hl⟩ := digest
-    match l, hl with
-    | [_, _, _, _], _ => rfl⟩
-
 end LeanVM.Protocol

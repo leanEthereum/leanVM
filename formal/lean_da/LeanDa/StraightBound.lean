@@ -81,7 +81,7 @@ theorem isWeightBound_walkM {ι : Type} {spec : OracleSpec.{0, 0} ι}
 
 theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (H : List UInt8 → OracleComp spec Common.DigestBytes) (w : ι → ℕ) (hH : ∀ a, QueryCostAtMost (H a) w 1)
-    (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
+    (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) :
     QueryCostAtMost (verifyCellMWithHash H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
     isWeightBound_pure _ _ 0).mono (by simp only [List.length_append, List.length_singleton]; omega)

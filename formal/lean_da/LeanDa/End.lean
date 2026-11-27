@@ -81,7 +81,7 @@ theorem expand_pK (x : LeanVM.Semantics.KeccakState) :
   simp [pK, expand, queryPermutation]
 
 theorem expand_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : CellOpening) :
+    (τ : ByteOpening) :
     simulateQ expand (verifyCellMWithHash hK r com p x τ) =
       verifyCellMWithHash keccak256OverPermutation r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ expand x) (fun _ ↦ simulateQ_pure _ _)
@@ -105,19 +105,26 @@ def trivialArgument (r : ℕ) : ArgumentRpmH r Unit Unit where
   prove _ _ _ := pure ()
   verify _ _ _ := pure true
 
+/-- A position-binding adversary's output with its digests as bytes, the commitment's proof empty. -/
+def positionBindingOutBytes {r : ℕ}
+    (out : LeanVM.Protocol.Digest × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening) :
+    (Common.DigestBytes × Unit) × Fin (r * 128) × Cell × ByteOpening × Cell × ByteOpening :=
+  ((out.1.toBytes, ()), out.2.1, out.2.2.1, out.2.2.2.1.toBytes, out.2.2.2.2.1,
+    out.2.2.2.2.2.toBytes)
+
 /-- **The position-binding game is the game with the hash oracle, expanded**, for the argument
-that accepts everything. -/
+that accepts everything, the adversary's digests read as bytes. -/
 theorem positionBindingGame_eq_expand (r : ℕ) (adversary : PositionBindingAdversary r) :
     positionBindingGame r adversary =
       simulateQ expand (posBindingGameH r (trivialArgument r)
-        (fun _ ↦ (fun out ↦ ((out.1, ()), out.2)) <$> simulateQ embed adversary)) := by
+        (fun _ ↦ positionBindingOutBytes <$> simulateQ embed adversary)) := by
   unfold positionBindingGame posBindingGameH
   have h0 : (liftM (trivialArgument r).setup : OracleComp KSpecH Unit) = pure () := rfl
   rw [h0, pure_bind, bind_map_left, simulateQ_bind, simulateQ_expand_embed]
   refine bind_congr fun out ↦ ?_
   obtain ⟨commitment, position, cell, opening, cell', opening'⟩ := out
-  simp [trivialArgument, expand_verifyCellM, verifyCellM_eq_withHash,
-    keccakDigestBytes_queryPermutation]
+  by_cases h : cell = cell' <;> simp [trivialArgument, expand_verifyCellM, verifyCellM_eq_withHash,
+    keccakDigestBytes_queryPermutation, positionBindingOutBytes, h]
 
 /-- **LeanDA is position binding in the random-permutation model** (`LeanDaPositionBinding`): the
 game is the game with the hash oracle, expanded, with the same distribution and the same
@@ -150,10 +157,15 @@ def proofMatrix : Nark.Extractor (Unit × Common.DigestBytes × MembershipChalle
 def withNoOpening (out : Common.DigestBytes × (Fin (r * 128) → Cell)) :
     CbOut r (Fin (r * 128) → Cell) := (out, [])
 
+/-- The membership adversary with its root as bytes. -/
+def byteAdversary (adversary : MembershipAdversary r) :
+    OracleComp RandomPermutationOracles (Common.DigestBytes × (Fin (r * 128) → Cell)) :=
+  (fun out ↦ (out.1.toBytes, out.2)) <$> adversary
+
 /-- **The membership adversary as a code-binding adversary on byte states** that opens no cell:
 its root, and its matrix as the proof. -/
 def memAdv (adversary : MembershipAdversary r) : CodeBindingAdvB r Unit (Fin (r * 128) → Cell) :=
-  fun _ ↦ withNoOpening r <$> simulateQ relabel (simulateQ embed adversary)
+  fun _ ↦ withNoOpening r <$> simulateQ relabel (simulateQ embed (byteAdversary r adversary))
 
 open Classical in
 /-- Whether a matrix is not a matrix of codewords. -/
@@ -179,7 +191,7 @@ noncomputable def memGame (adversary : MembershipAdversary r) :
 
 /-- The same with the hash oracle. -/
 noncomputable def memGameH (adversary : MembershipAdversary r) : OracleComp KSpecH Bool := do
-  let out ← simulateQ embed adversary
+  let out ← simulateQ embed (byteAdversary r adversary)
   let ok ← relationMWithHash hK pK out.1 out.2
   pure (ok && notCodeword r out.2)
 
@@ -206,7 +218,8 @@ theorem prEvent_membershipGame (adversary : MembershipAdversary r) :
 theorem memGame_eq_expand (adversary : MembershipAdversary r) :
     memGame r adversary = simulateQ expand (memGameH r adversary) := by
   simp only [memGame, memGameH, simulateQ_bind, simulateQ_pure, simulateQ_expand_embed,
-    expand_relationM, relationM_eq_withHash, keccakDigestBytes_queryPermutation]
+    expand_relationM, relationM_eq_withHash, keccakDigestBytes_queryPermutation, byteAdversary,
+    bind_map_left]
 
 /-! ### The verifier's part: the nonce search, then the verdict -/
 
@@ -282,12 +295,15 @@ theorem relabel_memGameH (adversary : MembershipAdversary r) :
 theorem isWeightBound_memAdv (adversary : MembershipAdversary r) (Q : ℕ)
     (hQ : QueryCostAtMost adversary permutationCallCost Q) :
     QueryCostAtMost (codeBindingGame2 r (acceptAll r) (memAdv r adversary)) permCalls2 Q := by
-  have hE : QueryCostAtMost (simulateQ embed adversary) permCallsH Q :=
-    (isWeightBound_expand_iff _ _).mp (by rw [simulateQ_expand_embed]; exact hQ)
-  have hB : QueryCostAtMost (simulateQ relabel (simulateQ embed adversary)) permCallsB Q :=
+  have hQ' : QueryCostAtMost (byteAdversary r adversary) permutationCallCost Q :=
+    isWeightBound_map _ hQ
+  have hE : QueryCostAtMost (simulateQ embed (byteAdversary r adversary)) permCallsH Q :=
+    (isWeightBound_expand_iff _ _).mp (by rw [simulateQ_expand_embed]; exact hQ')
+  have hB : QueryCostAtMost (simulateQ relabel (simulateQ embed (byteAdversary r adversary)))
+      permCallsB Q :=
     isWeightBound_relabel hE
   have h0 : QueryCostAtMost (rpmGame2 (liftM (acceptAll r).setup)
-      (fun _ : Unit ↦ simulateQ relabel (simulateQ embed adversary))
+      (fun _ : Unit ↦ simulateQ relabel (simulateQ embed (byteAdversary r adversary)))
       (fun _ _ ↦ (pure () : OracleComp Rom2 Unit))) permCalls2 Q :=
     ((isWeightBound_hEmbed2_setup (acceptAll r).setup).bind fun _ ↦
       (isWeightBound_advEmbed hB).bind fun _ ↦ isWeightBound_pure _ _ 0).mono (by omega)

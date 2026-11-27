@@ -100,9 +100,6 @@ section
 
 open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
-/-- A 32-byte Keccak-256 digest. -/
-abbrev DigestBytes := Vector UInt8 32
-
 /-- **The oracles of the random-permutation model**: coins, `π` and `π⁻¹` on Keccak states, and
 nothing else. Every party hashes with Keccak-256 over `π` (`keccak256With queryPermutation`). -/
 abbrev RandomPermutationOracles := unifSpec + permutationOracleSpec KeccakState

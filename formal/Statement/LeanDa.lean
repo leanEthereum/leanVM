@@ -44,8 +44,8 @@ export LeanVM.Parameters (K E K.ofBits K.ofLane K.lane)
 open LeanVM.Parameters (E.toBytes)
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol (Digest)
-open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
-open LeanVM.Protocol.Compile (Sponge absorbNonce squeeze seedInput)
+open LeanVM.Protocol.KeccakHash (keccak256With digestBytes)
+open LeanVM.Protocol.Compile (Sponge absorbNonce squeeze seedInput climb)
 
 /-- An enumeration of `K` through its bits, for proofs only: compiled, it would list `2^64`
 elements when a program starts. -/
@@ -86,7 +86,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   row's that of the zero codeword (`root_of_padding_blob`). A tree hashes neighbours in pairs, level
   by level (`fill_levels`). The commitment hashes the root of the tree over the padded rows' blob
   roots with the row count, a 32-byte little-endian word (`BlobMatrix::commitment`, `mix_in_count`,
-  `countBytes`).
+  `countDigest`).
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + logMaxRows` that the two make (`BlobMatrix::merkle_path_for_cell`, `openCellWith`), checked
@@ -109,9 +109,10 @@ The row count `r` is a parameter: the crate takes `1 ≤ r ≤ maxRows` (`BlobMa
 other count with a `BlobCountError`, `commit.rs`, `lib.rs`);
 position binding holds for every `r`, completeness for `r ≤ maxRows`, the membership test's
 soundness for `r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
-Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
+Keccak-256 over it (`keccak256With`, the hash `H` below): the crate's is Keccak-f[1600], the
 hash Keccak-256 (`verifier/src/hash.rs`); in the end statements `π` is the random
-permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir_prover::merkle::Hash`).
+permutation. A digest is leanVM's (`Digest`, four 64-bit words), hashed and climbed as its 32
+little-endian bytes (`digestBytes`, `fiat_shamir_prover::merkle::Hash`).
 -/
 
 /-! ### Shapes (`lib.rs`) -/
@@ -180,13 +181,6 @@ def matrixRow {r : ℕ} (cells : Fin (r * 128) → Cell) (i : Fin r) : Row :=
 def cellsOfRows (rows : List (List E)) : Fin (rows.length * 128) → Cell :=
   fun p s ↦ (rows.getD (p / 128) []).getD (128 * (p % 128) + s) 0
 
-/-- **LeanDA's hash** over a permutation `π` of the Keccak state in any monad: Keccak-256 over `π`
-(`keccak256With`), its digest's 32 bytes (`Digest.toBytes`). The crate's is Keccak-256 over
-Keccak-f[1600] (`verifier/src/hash.rs`); the end statements' is over the random permutation. -/
-def keccakDigestBytes {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
-    (bytes : List UInt8) : m DigestBytes :=
-  LeanVM.Protocol.Digest.toBytes <$> keccak256With π bytes
-
 /-! ### The commitment (`commit.rs`)
 
 The commitment, the openings and their check, and the membership challenge over a permutation `π`
@@ -197,11 +191,9 @@ algorithms (`commitCells`, `openCell`). -/
 bytes, `y^0` first (`as_bytes`). -/
 def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap E.toBytes
 
-/-- The 64 bytes of a pair of digests (`hash_pair`, `fill_levels`). -/
-def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
-
-/-- The row count as the commitment hashes it: a 32-byte little-endian word (`mix_in_count`). -/
-def countBytes (r : ℕ) : DigestBytes := Vector.ofFn fun i : Fin 32 ↦ UInt8.ofNat (r / 256 ^ (i : ℕ))
+/-- The row count as the commitment hashes it: a 32-byte little-endian word (`mix_in_count`), as
+the digest of those bytes. -/
+def countDigest (r : ℕ) : Digest := Vector.ofFn fun i : Fin 4 ↦ UInt64.ofNat (r / 2 ^ (64 * (i : ℕ)))
 
 /-- Cell `j` of row `i` of the matrix padded to `maxRows` rows: zero below the `r` rows. -/
 def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
@@ -214,34 +206,31 @@ def sibling (index : ℕ) : ℕ := if index % 2 = 0 then index + 1 else index - 
 blob roots. -/
 structure CellOpening where
   /-- The siblings from the cell's leaf up to the commitment, `7 + logMaxRows` of them (`MERKLE_PATH_LEN`). -/
-  path : List DigestBytes
+  path : List Digest
 deriving Inhabited
 
 /-- `leanDA/rs-membership/v1`, the label of the challenge's transcript (`LABEL`). -/
 def membershipLabel : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
 
-/-- The digest of 32 bytes: its four little-endian words (`Digest::words`). -/
-def digestOfBytes (bytes : DigestBytes) : Digest :=
-  Vector.ofFn fun i : Fin 4 ↦ littleEndianLane bytes.toList i
-
 section Monadic
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`. -/
-def merkleLevelUpWith (nodeAt : ℕ → m DigestBytes) (i : ℕ) : m DigestBytes := do
+/-- One level up a Merkle tree: node `i` hashes nodes `2i` and `2i + 1`, their 64 bytes
+(`hash_pair`, `fill_levels`). -/
+def merkleLevelUpWith (nodeAt : ℕ → m Digest) (i : ℕ) : m Digest := do
   let a ← nodeAt (2 * i)
   let b ← nodeAt (2 * i + 1)
-  keccakDigestBytes π (pairBytes a b)
+  keccak256With π (digestBytes a ++ digestBytes b)
 
 /-- The root of the Merkle tree over the leaves `nodeAt 0 … nodeAt (2^d - 1)`
 (`merkle_nodes_from_leaves`, `fill_levels`). -/
-def merkleRootWith : ℕ → (ℕ → m DigestBytes) → m DigestBytes
+def merkleRootWith : ℕ → (ℕ → m Digest) → m Digest
   | 0, nodeAt => nodeAt 0
   | d + 1, nodeAt => merkleRootWith d (merkleLevelUpWith π nodeAt)
 
 /-- The authentication path of leaf `index`, siblings from the bottom. -/
-def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestBytes)
+def merklePathWith : ℕ → (ℕ → m Digest) → ℕ → m (List Digest)
   | 0, _, _ => pure []
   | d + 1, nodeAt, index => do
     let s ← nodeAt (sibling index)
@@ -250,19 +239,19 @@ def merklePathWith : ℕ → (ℕ → m DigestBytes) → ℕ → m (List DigestB
 
 /-- The leaves of padded row `i`'s tree: its `128` cell digests, `e_{i,j} = H(W_{i,j})`
 (`blob_merkle_nodes`). -/
-def cellLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : m DigestBytes :=
-  keccakDigestBytes π (cellBytes (paddedCell cells i j))
+def cellLeavesWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : m Digest :=
+  keccak256With π (cellBytes (paddedCell cells i j))
 
 /-- **The blob root of padded row `i`**: the Merkle root of its cell digests (`blob_merkle_nodes`; a
 padding row's is `root_of_padding_blob`). -/
-def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
+def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m Digest :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
 /-- **The commitment to a matrix** (`BlobMatrix::commitment`): the Merkle root of the padded rows'
 blob roots, hashed with the row count (`mix_in_count`). -/
-def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes := do
+def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m Digest := do
   let tree ← merkleRootWith π logMaxRows (blobRootWith π cells)
-  keccakDigestBytes π (pairBytes tree (countBytes r))
+  keccak256With π (digestBytes tree ++ digestBytes (countDigest r))
 
 /-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
@@ -271,21 +260,15 @@ def openCellWith {r : ℕ} (cells : Fin (r * 128) → Cell) (p : Fin (r * 128)) 
   let high ← merklePathWith π logMaxRows (blobRootWith π cells) (positionRow p)
   pure ⟨low ++ high⟩
 
-/-- Climb from `node` at index `index` along the siblings `path`. -/
-def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
-  | _, node, [] => pure node
-  | index, node, s :: rest => do
-    let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
-    climbWith (index / 2) d rest
-
 /-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings, then
-the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in its
-blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows` rows the
-last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows` rows. -/
-def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
+the row count's word, climbs (`climb`, the verifier's Merkle climb) from the cell's digest, at index
+`128 i + j` (the position: `j` in its blob's tree, then `i` in the tree over the blob roots), to the
+commitment. For `r ≤ maxRows` rows the last step is at index `0`, the crate's `mix_in_count`. The
+crate also refuses `r > maxRows` rows. -/
+def verifyCellWith (r : ℕ) (commitment : Digest) (position : Fin (r * 128)) (cell : Cell)
     (opening : CellOpening) : m Bool := do
-  let d ← keccakDigestBytes π (cellBytes cell)
-  let root ← climbWith π position d (opening.path ++ [countBytes r])
+  let d ← keccak256With π (cellBytes cell)
+  let root ← climb π d position (opening.path ++ [countDigest r])
   pure (decide (opening.path.length = 7 + logMaxRows) && decide (root = commitment))
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
@@ -330,16 +313,16 @@ end Search
 transcript's sponge seeded with the label's hash as its IV and the root as its public input
 (`Sponge::new`), then the challenge of the smallest nonce `0, 1, …` whose proof of work is valid
 (`grindWith`), or none if no `u64` nonce is valid. -/
-def membershipChallengeWith (root : DigestBytes) : m (Option E) := do
+def membershipChallengeWith (root : Digest) : m (Option E) := do
   let iv ← keccak256With π membershipLabel
-  let state ← π (seedInput iv (digestOfBytes root))
+  let state ← π (seedInput iv root)
   grindWith π ⟨state, [], none⟩ 0 nonceCount
 
 end Monadic
 
 /-- **The commitment to a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
 def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell) :
-    DigestBytes :=
+    Digest :=
   Id.run (commitCellsWith (fun x ↦ pure (π x)) cells)
 
 /-- The honest opening of a position over a permutation `π` (`openCellWith` over `Id`). -/
@@ -385,7 +368,7 @@ pass the membership test on the root's challenge, drawn by the deployed duplex
 (`membershipChallengeWith`), the hash Keccak-256 over `π`. In the games `π` is the model's
 (`queryPermutation`). -/
 noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState) {r : ℕ}
-    (root : DigestBytes) (cells : Fin (r * 128) → Cell) : m Bool := do
+    (root : Digest) (cells : Fin (r * 128) → Cell) : m Bool := do
   let z ← membershipChallengeWith π root
   let d ← commitCellsWith π cells
   pure (decide (d = root) && membershipCheckOpt z cells)
@@ -393,7 +376,7 @@ noncomputable def relationWith {m : Type → Type} [Monad m] (π : KeccakState �
 /-! ## The games in the random-permutation model
 
 The adversary queries coins, `π` and `π⁻¹` (`RandomPermutationOracles`), and LeanDA's verifier
-hashes with Keccak-256 over `π` (`keccakDigestBytes queryPermutation`). A game is run against the
+hashes with Keccak-256 over `π` (`keccak256With queryPermutation`). A game is run against the
 lazily sampled permutation (`runWithRandomPermutation`). No argument system appears: these are the
 guarantees of LeanDA's commitment and of its membership test. An argument that proves the relation
 with knowledge, over the same `π`, composes them into Wagner's code binding, which is not stated
@@ -402,7 +385,7 @@ here; leanVM's, whose relation uses the deployed Keccak-f[1600], does not. -/
 /-- A position-binding adversary: a commitment, a position, and two cells with their openings. -/
 abbrev PositionBindingAdversary (r : ℕ) :=
   OracleComp RandomPermutationOracles
-    (DigestBytes × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
+    (Digest × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
 
 /-- **The position-binding game**: the adversary, then the two openings' verifications; it wins
 when both verify, at two different cells. -/
@@ -415,7 +398,7 @@ def positionBindingGame (r : ℕ) (adversary : PositionBindingAdversary r) :
 
 /-- A membership adversary: a root and a matrix. -/
 abbrev MembershipAdversary (r : ℕ) :=
-  OracleComp RandomPermutationOracles (DigestBytes × (Fin (r * 128) → Cell))
+  OracleComp RandomPermutationOracles (Digest × (Fin (r * 128) → Cell))
 
 /-- **The membership game**: the adversary, then the relation's check of its root and matrix
 (`relationWith` over `π`: the commitment and the membership test on the root's challenge); the

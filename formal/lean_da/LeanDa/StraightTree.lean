@@ -359,7 +359,7 @@ variable (f)
 
 /-- **The inputs an opening's check hashes**: the cell's bytes and the climb's, the count's word
 its last sibling. -/
-def verifyIn (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Set (List UInt8) :=
+def verifyIn (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) : Set (List UInt8) :=
   insert (cellBytes x) (walkIn f p (cellDigestWithHash f x) (τ.path ++ [countBytes r]))
 
 variable {f}
@@ -369,7 +369,7 @@ injective on a set holding the commitment's and the check's inputs: its climb me
 pair at the root of the tree over the blob roots, that tree at the cell's blob root, and the cell's
 blob tree at the cell's digest. -/
 theorem verifyCell_agree (hr : r ≤ maxRows) {S : Set (List UInt8)} (hinj : Set.InjOn f S)
-    {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : CellOpening}
+    {c : Fin (r * 128) → Cell} {p : Fin (r * 128)} {x : Cell} {τ : ByteOpening}
     (hc : commitIn f c ⊆ S) (hv : verifyIn f p x τ ⊆ S)
     (hver : verifyCell f r (commitCellsWithHash f c) p x τ = true) : x = c p := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hver
@@ -508,7 +508,7 @@ theorem walkM_some (path : List Common.DigestBytes) :
 
 /-- **An opening's check over a partial hash that returns** returns the pure check, its inputs
 in the hash's domain. -/
-theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening)
+theorem verifyCellM_some {r : ℕ} (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening)
     (b : Bool) (hb : verifyCellMWithHash g r com p x τ = some b) :
     b = verifyCell f r com p x τ ∧ ∀ a ∈ verifyIn f p x τ, g a ≠ none := by
   simp only [verifyCellMWithHash, Option.bind_eq_bind', Option.pure_def, Option.bind_eq_some_iff, Option.some.injEq] at hb

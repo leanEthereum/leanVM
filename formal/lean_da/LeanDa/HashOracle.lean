@@ -59,7 +59,7 @@ variable (r : ℕ) {Crs Proof : Type} (ps : ArgumentRpmH r Crs Proof)
 /-- A position-binding adversary: from the commitment key, a commitment, a position, and two cells
 with their openings. -/
 abbrev PosBindingAdvRpmH (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × Fin (r * 128) × Cell × CellOpening × Cell × CellOpening)
+  Unit × Crs → OracleComp KSpecH ((DigestBytes × Proof) × Fin (r * 128) × Cell × ByteOpening × Cell × ByteOpening)
 
 /-- **The position-binding game**: the argument's setup, the adversary, then the verifications:
 the argument's of the root's proof and the two openings'; it wins when all verify, at two

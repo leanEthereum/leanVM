@@ -200,7 +200,7 @@ theorem findCollision_spec (idx : ℕ) (a b : List UInt8) (p q : List Common.Dig
 
 /-- **Two verifying openings of one position to different cells give a collision.** -/
 theorem openingsCollision_spec {r : ℕ} {com : Common.DigestBytes} {p : Fin (r * 128)} {x x' : Cell}
-    {τ τ' : CellOpening} (hx : x ≠ x') (hτ : verifyCell H r com p x τ = true)
+    {τ τ' : ByteOpening} (hx : x ≠ x') (hτ : verifyCell H r com p x τ = true)
     (hτ' : verifyCell H r com p x' τ' = true) :
     (openingsCollision H r p x τ x' τ').1 ≠ (openingsCollision H r p x τ x' τ').2 ∧
       H (openingsCollision H r p x τ x' τ').1 = H (openingsCollision H r p x τ x' τ').2 := by

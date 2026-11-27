@@ -78,7 +78,7 @@ theorem walkM_id (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Dig
     exact ih _ _
 
 /-- **Over a pure function, the verification is `verifyCell`.** -/
-theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
+theorem verifyCellM_id (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) :
     verifyCellMWithHash (m := Id) (fun a ↦ pure (H a)) r com p x τ = verifyCell H r com p x τ := by
   simp only [verifyCellMWithHash, verifyCell, walkM_id, cellDigestWithHash]
   rfl

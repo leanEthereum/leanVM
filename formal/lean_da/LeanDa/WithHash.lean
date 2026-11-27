@@ -2,15 +2,17 @@ module
 
 public import Statement.LeanDa
 public import Common.WithHash
+public import Common.DigestBytes
 
 /-!
 # LeanDA with a hash of its own
 
 The statement's LeanDA (`Statement/LeanDa.lean`) hashes with Keccak-256 over the permutation it is
-given (`LeanDa.keccakDigestBytes`). Benedikt Wagner's framework and its proofs reason with the hash
-a parameter of its own, `H`, beside the sponge's permutation `P`: these are LeanDA's algorithms in
-that form, each the statement's definition with the hash a parameter (the commitment, the openings,
-the membership challenge's duplex, the relation). `LeanDa.WithHashBridge` proves the statement's
+given (`keccak256With`), to leanVM's digests. Benedikt Wagner's framework and its proofs reason
+with the hash a parameter of its own, `H`, answering `32` bytes, beside the sponge's permutation
+`P`: these are LeanDA's algorithms in that form, each the statement's definition with the hash a
+parameter and its digests as bytes (the commitment, the openings, the membership challenge's
+duplex, the relation). `LeanDa.WithHashBridge` proves the statement's
 definitions equal to these with the hash Keccak-256 over the permutation.
 
 The framework is Benedikt Wagner's (https://github.com/b-wagn/fv-pq-da, Apache-2.0,
@@ -28,6 +30,39 @@ namespace LeanDa
 open LeanVM.Parameters (K.toBytes E.toBytes)
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol.KeccakHash (keccak256With littleEndianLane)
+
+/-! ## Digests as bytes
+
+The statement's LeanDA hashes to leanVM's digests (`Digest`, four words); Benedikt Wagner's
+framework and its random oracle answer `32` bytes (`DigestBytes`). These are the statement's
+byte-level pieces in that form, which `LeanDa.WithHashBridge` relates to the statement's through
+`Digest.toBytes` and its inverse `digestOfBytes`. -/
+
+/-- Keccak-256 over `π`, its digest as `32` bytes: the hash of the framework's form over a
+permutation. -/
+def keccakDigestBytes {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
+    (bytes : List UInt8) : m DigestBytes :=
+  LeanVM.Protocol.Digest.toBytes <$> keccak256With π bytes
+
+/-- The 64 bytes of a pair of digests (`hash_pair`, `fill_levels`). -/
+def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
+
+/-- The row count as the commitment hashes it, as bytes (`countDigest`, `mix_in_count`). -/
+def countBytes (r : ℕ) : DigestBytes := (countDigest r).toBytes
+
+/-- The digest of 32 bytes: its four little-endian words (`Digest::words`). -/
+def digestOfBytes (bytes : DigestBytes) : LeanVM.Protocol.Digest :=
+  Vector.ofFn fun i : Fin 4 ↦ littleEndianLane bytes.toList i
+
+/-- The opening of a cell with its digests as bytes (the statement's `CellOpening`). -/
+structure ByteOpening where
+  /-- The siblings from the cell's leaf up to the commitment, `7 + logMaxRows` of them. -/
+  path : List DigestBytes
+deriving Inhabited
+
+/-- An opening's bytes. -/
+def CellOpening.toBytes (opening : CellOpening) : ByteOpening :=
+  ⟨opening.path.map LeanVM.Protocol.Digest.toBytes⟩
 
 /-! ## The challenge's sponge as the proofs read it
 
@@ -155,7 +190,7 @@ def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
 
 /-- The honest opening of a position: the cell's path in its blob's tree, then its blob root's in
 the tree over the blob roots. -/
-def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : CellOpening :=
+def openCellWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : ByteOpening :=
   ⟨merklePathWithHash H 7 (cellLeavesWithHash H c (positionRow p)) (positionCell p) ++
     merklePathWithHash H logMaxRows (blobRootWithHash H c) (positionRow p)⟩
 
@@ -198,7 +233,8 @@ end Pure
 
 /-- **The commitment to a matrix of codewords, as the crate computes it** (`BlobMatrix::commitment`,
 `commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
-`commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
+`commitCells π (cellsOfRows rows)` as bytes (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`,
+and `commitCells_eq_withHash`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
 fast. -/
 def commitCodewords (π : KeccakState → KeccakState) (rows : List (List E)) : DigestBytes :=
@@ -227,7 +263,7 @@ def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
 /-- **Verification of a cell opening**: a path of `7 + logMaxRows` siblings, then the row count's
 word, that climbs from the cell's digest, at index `128 i + j` (the position), to the commitment. -/
 def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : CellOpening) : m Bool := do
+    (τ : ByteOpening) : m Bool := do
   let d ← H (cellBytes x)
   let root ← walkMWithHash H (p : ℕ) d (τ.path ++ [countBytes r])
   pure (decide (τ.path.length = 7 + logMaxRows) && decide (root = com))

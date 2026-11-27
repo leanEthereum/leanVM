@@ -241,7 +241,7 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py`):
 `1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the commitment to the matrix they
-form, `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
+form, `LeanDa.commitCells`, over Keccak-f[1600]), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
 which the guest program builds from `z`: `da_vector`, `lean_ethereum.py`). Only where
 `z` is the root's membership challenge, as the deployed outer verifier derives it (no end statement
@@ -252,7 +252,7 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root : Digest) (z : E)
     (witness : LeanVM.Da.MatrixWitness) : Prop :=
   1 ≤ witness.rows.length ∧ witness.rows.length ≤ LeanDa.maxRows ∧
     (∀ row ∈ witness.rows, row.length = 2 ^ LeanDa.logM) ∧
-    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root.toBytes ∧
+    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (LeanDa.dualCodewordAt z) (fun b ↦ row.getD b 0) = 0
 
 /-- **Every child is proven**: its deferred claim has the bytecode's shape, and the deferring

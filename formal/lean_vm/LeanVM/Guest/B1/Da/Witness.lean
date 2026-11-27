@@ -119,7 +119,7 @@ theorem opens_eq {w : LeanVM.Da.MatrixWitness} {root : Digest} {z : E} (hw : w.O
     root = daRoot w.rows.length (wLog w) (wSyms w) := by
   have ho := opens_of (z := z) hw.1 hw.2.1 rfl (wSyms_len hw) (wDot hw)
   rw [← witness_eq hw] at ho
-  exact toBytes_inj (hw.2.2.2.1.symm.trans ho.2.2.2.1)
+  exact hw.2.2.2.1.symm.trans ho.2.2.2.1
 
 end
 end LeanVM.Guest.B1.Da

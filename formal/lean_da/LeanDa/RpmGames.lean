@@ -64,7 +64,7 @@ theorem walkM_map (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
   | cons s rest ih =>
     simp only [walkMWithHash, hbind, ih]
 
-theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
+theorem verifyCellM_map (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) :
     φ (verifyCellMWithHash H r com p x τ) = verifyCellMWithHash (fun a ↦ φ (H a)) r com p x τ := by
   simp only [verifyCellMWithHash, hbind, hpure, walkM_map φ hpure hbind]
 
@@ -185,7 +185,7 @@ theorem relabel_commitCellsM (c : Fin (r * 128) → Cell) :
     (fun _ _ ↦ simulateQ_bind _ _ _)]
   simp only [relabel_hK]
 
-theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
+theorem relabel_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) :
     simulateQ relabel (verifyCellMWithHash hK r com p x τ) = verifyCellMWithHash hKB r com p x τ := by
   rw [verifyCellM_map (fun x ↦ simulateQ relabel x) (fun _ ↦ simulateQ_pure _ _)
     (fun _ _ ↦ simulateQ_bind _ _ _)]

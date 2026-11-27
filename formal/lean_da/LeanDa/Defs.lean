@@ -97,7 +97,7 @@ def verifyRpm {m : Type → Type} [Monad m] (H : List UInt8 → m Common.DigestB
     (P : LeanVM.Semantics.KeccakState → m LeanVM.Semantics.KeccakState)
     (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × MembershipChallenge → (Fin (r * 128) → Cell) → Bool}
     (ps : Nark (Unit × Common.DigestBytes × MembershipChallenge) (Fin (r * 128) → Cell) Crs Proof rel) (crs : Crs)
-    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : m
+    (com : Common.DigestBytes × Proof) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) : m
         Bool := do
   let z ← membershipChallengeVecM H P com.1
   let v ← verifyCellMWithHash H r com.1 p x τ
@@ -130,7 +130,7 @@ def walk : ℕ → Common.DigestBytes → List Common.DigestBytes → Common.Dig
 /-- **Verification of a cell opening** with a pure hash (`verifyCellWith` over `Id`): a path of
 `7 + logMaxRows` siblings, then the row count's word, that climbs from the cell's digest, at index
 the position, to the commitment. -/
-def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) : Bool :=
+def verifyCell (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) : Bool :=
   decide (τ.path.length = 7 + logMaxRows) &&
     decide (walk H p (cellDigestWithHash H x) (τ.path ++ [countBytes r]) = com)
 
@@ -147,8 +147,8 @@ def findCollision : List (List UInt8) → List (List UInt8) → List UInt8 × Li
   | _, _ => ([], [])
 
 /-- The collision two openings of one position give. -/
-def openingsCollision (r : ℕ) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) (x' : Cell)
-    (τ' : CellOpening) : List UInt8 × List UInt8 :=
+def openingsCollision (r : ℕ) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) (x' : Cell)
+    (τ' : ByteOpening) : List UInt8 × List UInt8 :=
   findCollision H (hashInputs H p (cellBytes x) (τ.path ++ [countBytes r]))
     (hashInputs H p (cellBytes x') (τ'.path ++ [countBytes r]))
 
@@ -213,7 +213,7 @@ abbrev pKB (L : Lanes) : OracleComp KSpecB Lanes :=
 
 /-- A code-binding adversary on byte states. -/
 abbrev CodeBindingAdvB (r : ℕ) (Crs Proof : Type) :=
-  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening))
+  Unit × Crs → OracleComp KSpecB ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × ByteOpening))
 
 /-! ### The games in the two-oracle form
 
@@ -252,7 +252,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 /-- The verifier's part of the code-binding game: every opening verifies, and no codeword agrees
 with the opened cells. -/
 noncomputable def codeBindingPost (crs : Crs)
-    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) : OracleComp Rom2 Bool := do
+    (out : (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × ByteOpening)) : OracleComp Rom2 Bool := do
   let verdicts ← out.2.mapM fun o ↦ verifyRpm hR pR r ps crs out.1 o.1 o.2.1 o.2.2
   pure (verdicts.all id && !decide ((leanDaErasureCode r).Consistent (out.2.map fun o ↦ (o.1,
       o.2.1))))
@@ -585,7 +585,7 @@ variable (r : ℕ) {Crs Proof : Type}
 its permutation queries simulated from `H` and `F`, `F` answered by the duplex lemma's simulator. -/
 noncomputable def advSim (A : CodeBindingAdvB r Crs Proof) (crs : Crs) :
     OracleComp (unifSpec + GSpec (List UInt8) DigestBytes Common.DigestBytes Draw nLabels)
-      ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)) :=
+      ((Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × ByteOpening)) :=
   (simulateQ (simImpl daDuplex hP gaP) (hQ (St := KState) daDuplex.label >>= fun _ ↦
     advS2 keccakPadding KState.zero (A ((), crs)))).run' SimSt.init
 
