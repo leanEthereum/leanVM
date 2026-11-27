@@ -14,8 +14,11 @@ The statement's leanSPHINCS in the random-permutation model
 hash query answered by Keccak-256 over `π`, through the maps of the keys, the signatures and the
 forgeries: key generation (`simulateQ_crateKeygen`), the signer (`simulateQ_crateSign`), both in
 `Sphincs/CrateSim.lean`, and the verifier (`simulateQ_verify`) correspond, and so do the winning
-conditions (`win_eq`). So the statement's game is the crate's copy's against the adversary read
-through the maps (`Sphincs.Transport.forgeryGame_eq`), which `Sphincs/AdvRpm.lean` uses.
+conditions (`win_eq`), the statement's with the model's limit on the signing requests
+(`limitedScheme`). So that scheme's game is the crate's copy's against the adversary read through
+the maps (`Sphincs.Transport.forgeryGame_eq`), and, against an adversary within the limit, the
+statement's (`Sphincs.Transport.forgeryGame_winningCondition_congr`), which `Sphincs/AdvRpm.lean`
+uses.
 -/
 
 open OracleComp OracleSpec ENNReal Common Common.SufCma
@@ -40,13 +43,22 @@ theorem map_eq_some_iff (answer : Option FORS.Signature) (signature : Signature)
     · rintro rfl
       exact signatureEquiv.right_inv signature
 
+/-- The statement's scheme with the model's winning condition: a forgery the signer did not return,
+in a log of at most `signatureLimit` requests (`FORS.SigningTranscript.Valid`). Against an adversary
+of at most `signatureLimit` requests it is the statement's game
+(`Transport.forgeryGame_winningCondition_congr`). -/
+noncomputable def limitedScheme :=
+  { RandomPermutationModel.sufCmaScheme with
+    winningCondition := fun log forgery ↦
+      decide (log.length ≤ signatureLimit ∧
+        ¬SignerReturnedForgery id log forgery.message forgery.signature) }
+
 /-- **The same winning condition**, the log read through the signatures' map. -/
 theorem win_eq (log : QueryLog (FORS.Message →ₒ Option FORS.Signature)) (forgery : Forgery) :
-    RandomPermutationModel.sufCmaScheme.winningCondition
+    limitedScheme.winningCondition
         (Transport.mapLog (Option.map ofModelSignature) log) forgery =
       crateScheme.win log (toModelForgery forgery) := by
-  simp only [RandomPermutationModel.sufCmaScheme, crateScheme, modelScheme,
-    SigningTranscript.WithinSignatureLimit, FORS.SigningTranscript.Valid,
+  simp only [limitedScheme, crateScheme, modelScheme, FORS.SigningTranscript.Valid,
     FORS.SigningTranscript.Contains, SignerReturnedForgery, toModelForgery]
   have hlength : List.length (Transport.mapLog (Option.map ofModelSignature) log) =
       List.length log :=

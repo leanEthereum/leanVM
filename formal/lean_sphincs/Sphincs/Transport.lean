@@ -135,4 +135,60 @@ theorem forgeryGame_eq (S₁ : SchemeWithHash Seed PK₁ SK₁ Req Resp₁ F₁)
   refine bind_congr fun z ↦ ?_
   simp only [Prod.map, id, hverify, hwin]
 
+/-! ## A winning condition read on short logs -/
+
+/-- **The signing log has at most the requests' entries**: an adversary that makes at most `n`
+signing requests on every path (`signingRequestCost`) leaves a log of at most `n` entries. -/
+theorem log_length_le (S : Scheme Seed PK₂ SK₂ Req Resp₂ F₂) (sk : SK₂) {α : Type}
+    (oa : OracleComp (RandomPermutationOracles + (Req →ₒ Resp₂)) α) {n : ℕ}
+    (hn : QueryCostAtMost oa signingRequestCost n) {z : α × QueryLog (Req →ₒ Resp₂)}
+    (hz : z ∈ support (simulateQ (statementGameImpl S sk) oa).run) : z.2.length ≤ n := by
+  induction oa using OracleComp.inductionOn generalizing n z with
+  | pure a =>
+    simp at hz
+    subst hz
+    simp
+  | query_bind t k ih =>
+    unfold QueryCostAtMost at hn
+    rw [isQueryBound_query_bind_iff] at hn
+    obtain ⟨hcost, hrest⟩ := hn
+    rcases t with t | r
+    · have h₂ : (statementGameImpl S sk (.inl t)).run =
+          (·, ∅) <$> (liftM (RandomPermutationOracles.query t) :
+            OracleComp RandomPermutationOracles _) := rfl
+      simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
+        OracleQuery.cont_query, id_map, WriterT.run_bind', h₂, bind_map_left,
+        mem_support_bind_iff, support_map, Set.mem_image] at hz
+      obtain ⟨u, -, z', hz', rfl⟩ := hz
+      have := ih u (hrest u) hz'
+      simpa [signingRequestCost] using this
+    · have h₂ : (statementGameImpl S sk (.inr r)).run = (fun u ↦ (u, [⟨r, u⟩])) <$>
+          S.sign sk r := by
+        simp [statementGameImpl]
+      simp only [simulateQ_bind, simulateQ_query, OracleQuery.input_query,
+        OracleQuery.cont_query, id_map, WriterT.run_bind', h₂, bind_map_left,
+        mem_support_bind_iff, support_map, Set.mem_image] at hz
+      obtain ⟨u, -, z', hz', rfl⟩ := hz
+      have := ih u (hrest u) hz'
+      simp only [signingRequestCost] at hcost this
+      simp only [Prod.map_snd, List.length_append, List.length_singleton]
+      omega
+
+/-- **Winning conditions that agree on logs of at most `n` entries make the same game** against an
+adversary of at most `n` signing requests on every path (`log_length_le`). -/
+theorem forgeryGame_winningCondition_congr (S : Scheme Seed PK₂ SK₂ Req Resp₂ F₂)
+    (winningCondition : QueryLog (Req →ₒ Resp₂) → F₂ → Bool) {n : ℕ}
+    (hwin : ∀ log f, log.length ≤ n → winningCondition log f = S.winningCondition log f)
+    (main : PK₂ → OracleComp (RandomPermutationOracles + (Req →ₒ Resp₂)) F₂)
+    (hn : ∀ pk, QueryCostAtMost (main pk) signingRequestCost n) :
+    forgeryGame { S with winningCondition } main = forgeryGame S main := by
+  unfold forgeryGame
+  refine bind_congr fun seed ↦ bind_congr fun keys ↦ ?_
+  rcases keys with ⟨pk, sk⟩
+  dsimp only
+  refine bind_congr_of_forall_mem_support _ fun z hz ↦ ?_
+  rcases z with ⟨forgery, log⟩
+  have hlen := log_length_le S sk (main pk) (hn pk) hz
+  simp only [hwin log forgery hlen]
+
 end Sphincs.Transport
