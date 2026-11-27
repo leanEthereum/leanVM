@@ -319,14 +319,12 @@ def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
   ∃ p ∈ pairs, p.1 ≠ p.2 ∧ keccak256 p.1 = keccak256 p.2
 
 /-- **The statement's digest binds the seed and the statement**: two statements whose deferred
-claims have the shape of one bytecode and whose digests (under two seeds) are equal are the same
-statement under the same seed, or one of the candidate pairs is a Keccak-256 collision. The shape
-fixes the length of the deferred claim's point, which the digest does not record. Proved by
-`LeanVM.Guest.Binding.digest_binds`. -/
+claims' points have the same length and whose digests (under two seeds) are equal are the same
+statement under the same seed, or one of the candidate pairs is a Keccak-256 collision. The
+digest does not record the point's length. Proved by `LeanVM.Guest.Binding.digest_binds`. -/
 def StatementDigestBinds : Prop :=
-  ∀ (bytecode : List K) (seed seed' : Digest) (statement statement' : NodeStatement),
-    statement.deferredClaim.HasBytecodeShape bytecode →
-    statement'.deferredClaim.HasBytecodeShape bytecode →
+  ∀ (seed seed' : Digest) (statement statement' : NodeStatement),
+    statement.deferredClaim.bytecodePoint.length = statement'.deferredClaim.bytecodePoint.length →
     statementDigest seed statement = statementDigest seed' statement' →
     (seed = seed' ∧ statement = statement') ∨
       HasCollision (collisionCandidates seed statement seed' statement')

@@ -27,12 +27,13 @@ deferred claim's cells, each as its two lanes (`statement_digest`,
 (`digestBytes`, 32 bytes; `claimBytesOf`, 64; `E.toBytes`, 16). So
 two statements with the same digest are equal, or one of the three Keccak-256
 hashes on the way was given two different inputs with the same output: the pairs
-`collisionCandidates` lists (`statementDigest_binds`, and `digest_binds : StatementDigestBinds`).
+`collisionCandidates` lists (`statementDigest_binds_of_length`, and
+`digest_binds : StatementDigestBinds`).
 
 The deferred claim's cells carry no lengths: `[x] ++ [y]` and `[x, y] ++ []` are the same cells.
 The binding needs the two deferred claims' points to have the same length, which
-`DeferredBytecodeClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds_of_length` takes the length
-itself). Nothing else is assumed of the statements.
+`DeferredBytecodeClaim.HasBytecodeShape` gives at one bytecode (`statementDigest_binds`). Nothing
+else is assumed of the statements.
 
 A consumer compares the public input's digest with that of its own statement under the deployed
 seed, while the guest's execution decodes a seed and a statement of that digest
@@ -196,9 +197,9 @@ theorem statementDigest_binds {b : List K} {seed seed' : Digest} {s s' : NodeSta
     (seed = seed' ∧ s = s') ∨ HasCollision (collisionCandidates seed s seed' s') :=
   statementDigest_binds_of_length (hs.trans hs'.symm) h
 
-/-- **`StatementDigestBinds`** (`Statement/LeanVmGuest.lean`): `statementDigest_binds`. -/
+/-- **`StatementDigestBinds`** (`Statement/LeanVmGuest.lean`): `statementDigest_binds_of_length`. -/
 theorem digest_binds : StatementDigestBinds :=
-  fun _ _ _ _ _ hs hs' h ↦ statementDigest_binds hs hs' h
+  fun _ _ _ _ hb h ↦ statementDigest_binds_of_length hb h
 
 /-! ## What a consumer learns -/
 

@@ -512,7 +512,7 @@ its budget, a seed $\sigma'$, a statement $s'$ and a witness $w'$ with
 \mathrm{dig}_{\sigma'}(s') = x \qquad\text{and}\qquad \mathrm{NodeRel}(B, \sigma', s', w').
 \]
 \item \textbf{The digest binds} (\lean{StatementDigestBinds}). Let $(\sigma, s)$ and $(\sigma_0, s_0)$
-be seeds and statements whose deferred claims have the bytecode's shape. If
+be seeds and statements whose deferred claims' points have the same length (which the digest does not record). If
 $\mathrm{dig}_\sigma(s) = \mathrm{dig}_{\sigma_0}(s_0)$, then $(\sigma, s) = (\sigma_0, s_0)$, or
 Keccak-256 collides on one of three pairs of inputs (\lean{collisionCandidates}): those of the
 outer hash, of $H(\enc(\Cx))$ and of $H(\enc(\Cs))$. The DA digest enters the outer input as it
