@@ -8,7 +8,7 @@ Needs Nim 2.2.12+. In your `.nimble`:
 
 <!-- x-release-please-start-version -->
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.0"
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.1"
 ```
 <!-- x-release-please-end -->
 
@@ -16,7 +16,7 @@ Or from the command line:
 
 <!-- x-release-please-start-version -->
 ```sh
-nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.0"
+nimble install "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.1"
 ```
 <!-- x-release-please-end -->
 
@@ -25,7 +25,7 @@ With [nimbus-build-system](https://github.com/status-im/nimbus-build-system), ve
 <!-- x-release-please-start-version -->
 ```sh
 git submodule add https://github.com/leanEthereum/leanVM vendor/leanVM
-git -C vendor/leanVM checkout bindings-v0.19.0
+git -C vendor/leanVM checkout bindings-v0.19.1
 ```
 <!-- x-release-please-end -->
 

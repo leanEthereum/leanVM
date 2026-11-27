@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/leanEthereum/leanVM/compare/bindings-v0.19.0...bindings-v0.19.1) (2026-11-27)
+
+
+### Performance Improvements
+
+* **lean_vrf:** hash whole subtrees in batches ([fdd593c](https://github.com/leanEthereum/leanVM/commit/fdd593cb6c207b21cb824db5bd19311e67e0a8aa))
+
 ## [0.19.0](https://github.com/leanEthereum/leanVM/compare/bindings-v0.18.0...bindings-v0.19.0) (2026-11-26)
 
 

@@ -8,7 +8,7 @@ Needs Zig 0.16+.
 
 <!-- x-release-please-start-version -->
 ```sh
-version=0.19.0
+version=0.19.1
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 <!-- x-release-please-end -->
