@@ -16,8 +16,8 @@
 use std::ops::Range;
 
 use crate::eq::SplitEq;
-use primitives::field::{Acc8, F128, F128x8};
-use primitives::multilinear::interp;
+use primitives::field::{Acc8, F128, F128x8, dot};
+use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 
@@ -41,7 +41,8 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
 /// product by construction, so one root is sent for both, then the count's. `ones` are each tree's runs of leaves
 /// known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's value there.
 ///
-/// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`.
+/// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`, or
+/// `u_0` in a binary layer.
 pub(crate) fn prove_products(
     leaves: [Vec<F128>; N_BUS_TREES],
     ones: [Ones; N_BUS_TREES],
@@ -66,45 +67,34 @@ pub(crate) fn prove_products(
         }
         levels
     });
-    let tops = levels.each_mut().map(|levels| {
-        let (mut top, _) = levels.pop().unwrap();
-        top.resize(1 << (mu % 2), F128::ONE);
-        top
+    // An odd-depth tree's root-most layer is binary: one row, the top level's two nodes, and no sumcheck rounds.
+    let roots: [F128; N_BUS_TREES] = levels.each_mut().map(|levels| {
+        let (top, _) = levels.pop().unwrap();
+        let root = top.iter().copied().product();
+        if mu % 2 == 1 {
+            levels.push((top, Ones::new()));
+        }
+        root
     });
-    let roots: [F128; N_BUS_TREES] = tops.each_ref().map(|top| top.iter().copied().product());
     assert_eq!(roots[0], roots[1], "push and pull products must agree");
     ps.add_scalar(roots[0]);
     ps.add_scalar(roots[2]);
     let (mut point, mut values) = (Vec::new(), roots);
-
-    if mu % 2 == 1 {
-        // The root-most layer is binary, its two children the top level, with no sumcheck rounds.
-        // Its `λ` is drawn as every layer's, though it batches nothing.
-        ps.grind(fiat_shamir::grinding_bits(N_BUS_TREES as u128 - 1));
-        let _: F128 = ps.sample();
-        for top in &tops {
-            ps.add_scalars(top);
-        }
-        ps.grind(y_grind(1, mu == 1));
-        let u = ps.sample();
-        values = tops.each_ref().map(|top| interp(top[0], top[1], u));
-        point = vec![u];
-    }
     while !levels[0].is_empty() {
+        let step = if point.is_empty() && mu % 2 == 1 { 1 } else { 2 };
         let layer = Layer::new(levels.each_mut().map(|levels| levels.pop().unwrap()));
         ps.grind(fiat_shamir::grinding_bits(N_BUS_TREES as u128 - 1));
         let lambda = ps.sample();
         let (chi, mut children) = layer.sumcheck(&point, lambda, ps);
         for children in &mut children {
-            children.resize(4, F128::ONE);
+            children.resize(1 << step, F128::ONE);
             ps.add_scalars(children);
         }
-        ps.grind(y_grind(2, levels[0].is_empty()));
-        let (u0, u1) = (ps.sample(), ps.sample());
-        values = children
-            .each_ref()
-            .map(|c| interp(interp(c[0], c[1], u0), interp(c[2], c[3], u0), u1));
-        point = [vec![u0, u1], chi].concat();
+        ps.grind(y_grind(step, levels[0].is_empty()));
+        let u: Vec<F128> = (0..step).map(|_| ps.sample()).collect();
+        let weights = eq_table(&u);
+        values = children.each_ref().map(|c| dot(&weights, c));
+        point = [u, chi].concat();
     }
     (point, values)
 }
@@ -201,7 +191,7 @@ impl Layer {
         // verifier multiplies in the line `eq(point[j], X)`.
         let mut messages = match rounds {
             0 => [[F128::ZERO; 4]; N_BUS_TREES],
-            _ => self.messages(&SplitEq::new(&point[1..])),
+            _ => self.pass(None, Some(&SplitEq::new(&point[1..]))),
         };
         for j in 0..rounds {
             let mut coeffs: [F128; 4] = std::array::from_fn(|c| {
@@ -215,42 +205,16 @@ impl Layer {
             let r = ps.sample();
             chi.push(r);
             let next = (j + 1 < rounds).then(|| SplitEq::new(&point[j + 2..]));
-            messages = self.fold(r, next.as_ref());
+            messages = self.pass(Some(r), next.as_ref());
         }
         (chi, self.rows)
     }
 
-    /// Each tree's round polynomial, the pairs of its rows weighted by `eq`.
-    fn messages(&self, eq: &SplitEq) -> Messages {
-        let groups = self.rows.each_ref().map(|rows| rows.len().div_ceil(4 * GROUP));
-        // The trees' groups end to end, tree `t`'s from `first[t]`, a task a chunk of them.
-        let first: [usize; N_BUS_TREES] = std::array::from_fn(|t| groups[..t].iter().sum());
-        let total = groups.iter().sum();
-        let chunk = crate::chunk(total);
-        parallel::map_reduce(
-            total.div_ceil(chunk),
-            || [[F128::ZERO; 4]; N_BUS_TREES],
-            |task| {
-                std::array::from_fn(|t| {
-                    let mut acc = [Acc8::ZERO; 4];
-                    let start = (task * chunk).max(first[t]) - first[t];
-                    let end = ((task + 1) * chunk).min(first[t] + groups[t]).saturating_sub(first[t]);
-                    for k in start..end {
-                        if !known(&self.ones[t], GROUP * k, GROUP) {
-                            add_message(&padded(&self.rows[t], 4 * GROUP * k), eq.lanes(k), &mut acc);
-                        }
-                    }
-                    acc.map(Acc8::sum)
-                })
-            },
-            add_messages,
-        )
-    }
-
-    /// Bind the lowest row variable to `r`, writing the folded rows over the spare buffers, which then hold the rows
-    /// they replace. With `next`, also the next round's messages, from the folded rows while they are at hand.
-    fn fold(&mut self, r: F128, next: Option<&SplitEq>) -> Messages {
-        let (r, span) = (F128x8::splat(r), 2 * GROUP);
+    /// Each tree's round polynomial, the pairs of its rows weighted by `eq`: with `r`, of the rows with the lowest row
+    /// variable bound to `r`, written over the spare buffers, which then hold the rows they replace; without, of the
+    /// rows as they are, read in place.
+    fn pass(&mut self, r: Option<F128>, eq: Option<&SplitEq>) -> Messages {
+        let span = 2 * GROUP;
         for (rows, spare) in self.rows.iter().zip(&mut self.spare) {
             let len = 4 * GROUP * rows.len().div_ceil(4 * span);
             if spare.len() < len {
@@ -259,7 +223,7 @@ impl Layer {
             spare.truncate(len);
         }
         let chunk = crate::chunk(self.spare.iter().map(|spare| spare.len() / (4 * GROUP)).sum());
-        let (rows, ones) = (&self.rows, &self.ones);
+        let (rows, ones, r) = (&self.rows, &self.ones, r.map(F128x8::splat));
         let messages = parallel::map_reduce_chunks_mut(
             self.spare.each_mut().map(|spare| spare.as_mut_slice()),
             [4 * GROUP * chunk; N_BUS_TREES],
@@ -273,9 +237,21 @@ impl Layer {
                             *group = [F128::ONE; 4 * GROUP];
                             continue;
                         }
-                        fold_rows(&rows[t], 4 * span * k, r, group);
-                        if let Some(eq) = next {
-                            add_message(group, eq.lanes(k), &mut acc);
+                        match (r, eq) {
+                            (Some(r), eq) => {
+                                fold_rows(&rows[t], 4 * span * k, r, group);
+                                if let Some(eq) = eq {
+                                    add_message(group, eq.lanes(k), &mut acc);
+                                }
+                            }
+                            (None, Some(eq)) => {
+                                for k in [2 * k, 2 * k + 1] {
+                                    if !known(&ones[t], GROUP * k, GROUP) {
+                                        add_message(&padded(&rows[t], 4 * GROUP * k), eq.lanes(k), &mut acc);
+                                    }
+                                }
+                            }
+                            (None, None) => {}
                         }
                     }
                     for (m, acc) in messages[t].iter_mut().zip(acc) {
@@ -285,9 +261,11 @@ impl Layer {
             },
             add_messages,
         );
-        std::mem::swap(&mut self.rows, &mut self.spare);
-        for ones in &mut self.ones {
-            *ones = coarsen(ones, 2);
+        if r.is_some() {
+            std::mem::swap(&mut self.rows, &mut self.spare);
+            for ones in &mut self.ones {
+                *ones = coarsen(ones, 2);
+            }
         }
         messages
     }
@@ -340,7 +318,7 @@ fn add_message(group: &[F128; 4 * GROUP], eq: F128x8, acc: &mut [Acc8; 4]) {
 mod tests {
     use super::*;
     use crate::cpu::to_scalar;
-    use primitives::multilinear::eq_table;
+    use primitives::multilinear::interp;
 
     fn mle_eval_e(table: &[F128], point: &[F128]) -> F128 {
         assert_eq!(table.len(), 1 << point.len());
@@ -365,8 +343,8 @@ mod tests {
             let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
             let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
-            let layer = Layer::new([0, 1, 2].map(|_| (below.clone(), Ones::new())));
-            let message = layer.messages(&SplitEq::new(&point))[2];
+            let mut layer = Layer::new([0, 1, 2].map(|_| (below.clone(), Ones::new())));
+            let message = layer.pass(None, Some(&SplitEq::new(&point)))[2];
             let direct = |x: F128| {
                 (0..width / 2)
                     .map(|row| {
