@@ -17,11 +17,18 @@ This folder lets an agent with no prior context continue the campaign. Read this
 
 ## Setup
 
-1. Toolchain: elan with Lean `v4.36.0` (from `formal/rv64mc/lean-toolchain`); Python 3; Rust (for regenerating the lift). `formal/rv64mc/README.md` is the project's own documentation; read its "Trusted" and "Layout" sections.
-2. Generate `Rv64mc/Gen/` once: `formal/rv64mc/README.md` says how (`scripts/regen.sh` builds the guest and lifts it, `scripts/regen.sh --check` verifies the binary against the committed `image.sha256`; `scripts/type-layouts.sh` writes the type layouts). `.lake/packages`: `lake update`, then `lake exe cache get` for Mathlib (same README). Never edit or delete `Rv64mc/Gen/` by hand afterwards, and never run `regen.sh` again during the campaign: every proof is against this exact lift.
-3. Build: `cd formal/rv64mc && LEAN_ABORT_ON_PANIC=1 lake build Rv64mc` (CI sets `LEAN_ABORT_ON_PANIC=1` so that a Lean panic fails the build instead of continuing with a default term). Fetch Mathlib's cache first if Lake offers it. Lake 5 runs about 32 Lean processes at once and has no `-j`: give the build at least 32 GB, or build in import order a few modules at a time (`python3 campaign/scripts/topo.py . > campaign/topo.txt` writes the order).
-4. `python3 campaign/scripts/callgraph.py . campaign/cg.json` writes the call graph from the lift (function index, instruction count, height above the leaves, loop back-edges, callees). `plan.py`, `frontier_now.py` read it. It is gitignored: never commit what a script writes.
-5. Optional: the Lean language server through an MCP server (`lean-lsp-mcp`, `uvx lean-lsp-mcp`) makes each check incremental (see `PROVING.md`, "Iterating").
+On a machine prepared from the handoff archive (`HANDOFF.md` in the archive), steps 1 and 2 are done by its `install.sh`.
+
+1. Toolchain: elan (the `lean-toolchain` files pin Lean `v4.36.0`), git, Python 3. Rust is needed only to regenerate the lift, which the campaign never does. `formal/rv64mc/README.md` is the project's own documentation; read its "Trusted" and "Layout" sections.
+2. `Rv64mc/Gen/` (gitignored) is the lift every proof is against. Take it from the archive (`Gen.tar.gz`, unpacked in `formal/rv64mc/Rv64mc/`) or generate it (`scripts/regen.sh` builds the guest with Rust and lifts it, `--check` verifies the binary against the committed `image.sha256`; `scripts/type-layouts.sh` writes `Gen/Layouts.lean`). Never edit or delete it afterwards, and never run `regen.sh` again during the campaign.
+3. Packages: `cd formal/rv64mc && lake exe cache get` (Mathlib's build), which also clones the other requirements at `lake-manifest.json`'s commits; they build once.
+4. Build: `LEAN_ABORT_ON_PANIC=1 lake build Rv64mc` (CI sets it so that a Lean panic fails the build instead of continuing with a default term). Lake 5 runs about 32 Lean processes at once and has no `-j`: give it at least 32 GB, or build in import order a few modules at a time (`python3 campaign/scripts/topo.py . > campaign/topo.txt` writes the order).
+5. `python3 campaign/scripts/callgraph.py . campaign/cg.json` writes the call graph from the lift (function index, instruction count, height above the leaves, loop back-edges, callees). `plan.py` and `frontier_now.py` read it. It is gitignored: never commit what a script writes.
+6. Optional: the Lean language server through an MCP server (`lean-lsp-mcp`; `claude mcp add lean-lsp -- uvx lean-lsp-mcp`, which needs `uv`) makes each check incremental (`PROVING.md`, "Iterating").
+
+## Pushing from a machine without GitHub access
+
+The working machine commits; another machine pushes. On the working machine, `formal/rv64mc/campaign/transfer/export.sh <file>.bundle` packs every local branch's commits that no remote-tracking branch has; copy the file over (`scp`); on the pushing machine, `formal/rv64mc/campaign/transfer/import-push.sh <file>.bundle` fetches and lists them, and `… --push` pushes each branch to `origin` (fast-forward only; a diverged branch is refused). After a push, `git fetch origin` on the working machine (the repository is public) so that the next export holds only new commits. Pull request text (titles, descriptions) cannot be set from the working machine: write it to a file, copy it over with the bundle, and apply it on the pushing machine (`gh api -X PATCH repos/leanEthereum/leanVM/pulls/878 -F body=@<file>`).
 
 ## The loop
 
@@ -45,6 +52,7 @@ This folder lets an agent with no prior context continue the campaign. Read this
 | path | what |
 | --- | --- |
 | `README.md`, `PROVING.md`, `PARALLEL.md`, `REVIEW.md` | this guide |
+| `transfer/export.sh`, `transfer/import-push.sh` | carry commits from a machine that cannot push to one that can ("Pushing from a machine without GitHub access") |
 | `scripts/lean-slot.sh` | runs a Lean command in one of a fixed number of host-wide slots under a memory cap (`PARALLEL.md`, "Resources") |
 | `scripts/plan.py` | the remaining functions by track, with what each waits on |
 | `scripts/callgraph.py` | writes `cg.json` from `Rv64mc/Gen/` |
