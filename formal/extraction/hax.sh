@@ -322,17 +322,26 @@ EOF
   exit 1
 }
 
-# Write each rebased commit back as its patch; a patch whose commit the rebase dropped is
-# already in the source, and goes.
+# A patch's heading: what stands before its first `diff --git` line, which says what the patch is
+# for and what tests it (README.md, "Patches"). `git apply` skips it.
+patch_heading() {
+  [[ ! -f "$1" ]] || awk '/^diff --git / { exit } { print }' "$1"
+}
+
+# Write each rebased commit back as its patch, under the heading the patch had; a patch whose
+# commit the rebase dropped is already in the source, and goes.
 refresh_export() {
-  local onto commit patch kept=()
+  local onto commit patch heading kept=()
   onto=$(cat "$refresh_state")
+  heading=$(mktemp)
   while read -r commit; do
     patch=$(git -C "$refresh_tree" log -1 --format=%s "$commit")
+    patch_heading "$root/$patch" >"$heading"
     git -C "$refresh_tree" diff --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ \
-      "$commit^" "$commit" >"$root/$patch"
+      "$commit^" "$commit" | cat "$heading" - >"$root/$patch"
     kept+=("$patch")
   done < <(git -C "$refresh_tree" rev-list --reverse "$onto..HEAD")
+  rm -f "$heading"
   while read -r patch; do
     if [[ ! " ${kept[*]} " == *" $patch "* ]]; then
       rm "$patch"

@@ -64,6 +64,11 @@ def hunks_of(patch):
     return files
 
 
+def heading_of(patch):
+    """What stands before the patch's first diff: its heading (README.md, "Patches")."""
+    return re.split(r"(?m)^(?=diff --git )", patch, maxsplit=1)[0] if "diff --git " in patch else ""
+
+
 def refit(crate, patch_path):
     """Keep the hunks of the patch that apply to the working tree, and leave them applied."""
     text = patch_path.read_text()
@@ -91,12 +96,13 @@ def patches():
         for crate in sorted(scenarios()):
             here = str(crate.relative_to(ROOT))
             for patch in sorted(crate.glob("proofs/*/patches/pre/*.patch")):
+                heading = heading_of(patch.read_text())
                 kept, dropped, _, _ = refit(crate, patch)
                 diff = run(["git", "diff", "--", f"{here}/src"]).stdout
                 if not diff.strip():
                     patch.unlink()
                 elif dropped:
-                    patch.write_text(diff)
+                    patch.write_text(heading + diff)
                 subprocess.run(["git", "add", "-A", "--", f"{here}/src"], cwd=ROOT, check=True)
                 state = "deleted" if not diff.strip() else "as it was" if not dropped else "reduced"
                 print(f"{patch.relative_to(ROOT)}: {kept} hunks kept, {dropped} dropped ({state})")
