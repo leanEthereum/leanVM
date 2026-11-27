@@ -404,8 +404,10 @@ jobs:
           pkill -KILL -x lean || true
           sleep 5
       - name: Save the Lake build's progress
-        # A new push cancels a pull request's run: its progress is kept too.
-        if: always() && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled') && steps.lake-cache.outputs.cache-hit != 'true'
+        # A new push cancels a pull request's run: its progress is kept too. A branch other than `main` also
+        # keeps a finished build, which only `main` saves under the sources' key, so its next push builds only
+        # what it changed.
+        if: always() && steps.lake-cache.outputs.cache-hit != 'true' && (steps.build.outcome == 'failure' || steps.build.outcome == 'cancelled' || (steps.build.outcome == 'success' && github.ref != 'refs/heads/main'))
         uses: actions/cache/save@v4
         with:
           path: |
