@@ -1,11 +1,11 @@
-use super::cells::{count, pack_16_bytes};
+use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
 use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateProof, decode, encode};
-use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
+use super::statement::{CLAIM_GROUP, Claim, claim_list_digest, claim_lists, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Program;
@@ -341,9 +341,10 @@ fn aggregate_two_to_one() {
     let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE + big);
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
-    let cover = super::coverage::plan_coverage(&[], &[], &[left.clone(), right.clone()], None).unwrap();
+    let lists = [&left, &right].map(|(claims, _)| claim_lists(claims));
+    let cover = super::coverage::plan_coverage(&[vec![], vec![]], &lists, None).unwrap();
     assert!(
-        !cover.lean_xmss.children[1].is_sorted_by(|a, b| a < b),
+        !cover[0].children[1].is_sorted_by(|a, b| a < b),
         "the right list takes the repeated-slot walk"
     );
     // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.
@@ -724,7 +725,9 @@ fn a_child_walk_cannot_step_back() {
         for &gap in gaps {
             hints.push("child_claim_gap", vec![gap]);
         }
-        execute(&guest, &hints.0, claim_list_digest(child.iter().copied()))
+        let bytes = cell_bytes(child.iter().flatten().copied());
+        let claims: Vec<Claim> = bytes.as_chunks::<32>().0.as_chunks::<2>().0.to_vec();
+        execute(&guest, &hints.0, claim_list_digest(&claims))
     };
     assert!(walk(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
     let back = count(1).inv();

@@ -5,7 +5,8 @@ use super::error::AggregateError;
 use super::hints::SubHints;
 use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{block_kappa_sources, col_kappa_sources, from_scalar, layout_of};
-use lean_vm_core::leaf::{self, Block};
+use lean_vm_core::leaf;
+use lean_vm_core::witness::Placement;
 use primitives::field::F128;
 
 /// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
@@ -63,11 +64,20 @@ pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) ->
         .collect()
 }
 
-/// `count(g)` for each run of one group `g` in `groups`, in order. A group that came back after another would be
-/// named twice, which the caller's count of runs catches.
-fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<F128> {
-    let mut runs: Vec<usize> = groups.collect();
-    runs.dedup();
+/// `count(g)` for each run of one group `g` in the stacking order, which `keys` sorts the members by, `groups` holding
+/// each group's first member. A group that came back after another would be named twice, so the run count checks
+/// each group is one run.
+fn group_order(keys: &[(usize, usize)], groups: &[usize]) -> Vec<F128> {
+    let mut order: Vec<usize> = (0..keys.len()).collect();
+    isa::sort::sort_by_key(&mut order, |&member| keys[member]);
+    let mut runs: Vec<usize> = Vec::with_capacity(order.len());
+    for member in order {
+        let group = groups.partition_point(|&start| start <= member) - 1;
+        if runs.last() != Some(&group) {
+            runs.push(group);
+        }
+    }
+    assert_eq!(runs.len(), groups.len(), "a group's members are consecutive");
     runs.into_iter().map(count).collect()
 }
 
@@ -83,14 +93,14 @@ pub(super) fn gen_verify(
     let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
     let layout = layout_of(kbc, summary.log_memory, rows);
     let taus = layout.taus;
-    let sides = [layout.push, layout.pull, layout.count];
+    let sides = [&layout.push, &layout.pull, &layout.count].map(|blocks| leaf::layout(blocks));
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
+    let fits = sides.iter().all(|side| side.mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
-    let column_offsets: Vec<usize> = layout.placements.iter().map(|p| p.offset).collect();
+    let block_offsets = sides.map(|side| side.offsets);
     let mu = layout.shape.mu;
     let mut stream: Vec<F128> = proof.stream.iter().copied().map(from_scalar).collect();
     stream.resize(STREAM_CAP, F128::ZERO);
@@ -104,57 +114,37 @@ pub(super) fn gen_verify(
         ("zc_tau_max", vec![count(rounds)]),
         // Every table's log height, which the guest certifies against its row count.
         ("table_logs", taus.iter().map(|&t| count(t)).collect()),
-        ("col_group_order", col_group_order(kbc, &column_offsets)),
-        ("block_group_order", block_group_order(kbc, &sides)),
+        ("col_group_order", col_group_order(kbc, &layout.placements)),
+        ("block_group_order", block_group_order(kbc, &block_offsets)),
     ];
     let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
     hints.extend(merkle_hints(config.queries, &depth, proof));
     Ok(hints)
 }
 
-/// The committed columns in their stacking order (`column_offsets`, from `placements_of`: descending kappa, then
-/// index), each run of a column group ([`col_groups`]) named once. The guest certifies the order before it reads
-/// claims by it.
-fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<F128> {
-    let sources = col_kappa_sources(kbc);
-    // Compact index to global column.
-    let committed: Vec<usize> = (0..sources.len()).filter(|&c| sources[c].is_some()).collect();
-    let groups = col_groups(&sources.iter().flatten().copied().collect::<Vec<_>>());
-    let mut stacked: Vec<usize> = (0..committed.len()).collect();
-    isa::sort::sort_by_key(&mut stacked, |&compact| column_offsets[committed[compact]]);
-    let order = group_runs(
-        stacked
-            .into_iter()
-            .map(|compact| groups.partition_point(|&start| start <= compact) - 1),
-    );
-    assert_eq!(order.len(), groups.len(), "a column group's columns are consecutive");
-    order
+/// The committed columns in their stacking order (`placements_of`: descending kappa, then index), each run of a column
+/// group ([`col_groups`]) named once. The guest certifies the order before it reads claims by it.
+fn col_group_order(kbc: usize, placements: &[Placement]) -> Vec<F128> {
+    let (mut keys, mut sources) = (Vec::new(), Vec::new());
+    for (placement, source) in placements.iter().zip(col_kappa_sources(kbc)) {
+        if let Some(source) = source {
+            keys.push((0, placement.offset));
+            sources.push(source);
+        }
+    }
+    group_order(&keys, &col_groups(&sources))
 }
 
-/// Per bus side, its blocks in their stacking order (`leaf::layout`'s offsets), each run of a block group
+/// Per bus side, its blocks in their stacking order (their `offsets` in the side's layout), each run of a block group
 /// ([`block_groups`]) named once. The guest certifies the native verifier's order (descending kappa, then index)
 /// before it derives offsets from it.
-fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
-    let mut side_starts = vec![0];
-    for blocks in sides {
-        side_starts.push(side_starts.last().unwrap() + blocks.len());
+fn block_group_order(kbc: usize, offsets: &[Vec<usize>]) -> Vec<F128> {
+    let (mut keys, mut side_starts) = (Vec::new(), Vec::new());
+    for (side, offsets) in offsets.iter().enumerate() {
+        side_starts.push(keys.len());
+        keys.extend(offsets.iter().map(|&offset| (side, offset)));
     }
-    let groups = block_groups(&block_kappa_sources(kbc), &side_starts);
-    let mut stacked = Vec::new();
-    for (blocks, start) in sides.iter().zip(&side_starts) {
-        let offsets = leaf::layout(blocks).offsets;
-        let mut order: Vec<usize> = (0..blocks.len()).collect();
-        isa::sort::sort_by_key(&mut order, |&i| offsets[i]);
-        stacked.extend(order.into_iter().map(|i| start + i));
-    }
-    // A group never crosses a side, so runs never merge across one.
-    let order = group_runs(
-        stacked
-            .into_iter()
-            .map(|block| groups.partition_point(|&start| start <= block) - 1),
-    );
-    assert_eq!(order.len(), groups.len(), "a block group's blocks are consecutive");
-    order
+    group_order(&keys, &block_groups(&block_kappa_sources(kbc), &side_starts))
 }
 
 /// The stacked WHIR opening's Merkle witness, per level: each query's leaf row and the sibling of every node it

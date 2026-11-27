@@ -141,27 +141,23 @@ type Input = (
 fn decode(input: &[u8]) -> Option<Input> {
     let mut r = Reader(input);
     let log_inv_rate = usize::from(r.array::<1>()?[0]);
-    let children = (0..r.len()?)
-        .map(|_| {
-            Some((
-                AggregateClaims::from_bytes(r.bytes()?)?,
-                AggregateProof::from_bytes(r.bytes()?)?,
-            ))
-        })
-        .collect::<Option<_>>()?;
-    let xmss = (0..r.len()?)
-        .map(|_| {
-            let pk = LeanXmssPublicKey::from_bytes(r.array()?);
-            Some((pk, *r.array()?, LeanXmssSignature::from_bytes(r.array()?)))
-        })
-        .collect::<Option<_>>()?;
-    let sphincs = (0..r.len()?)
-        .map(|_| {
-            let pk = LeanSphincsPublicKey::from_bytes(r.array()?);
-            Some((pk, *r.array()?, LeanSphincsSignature::from_bytes(r.array()?)))
-        })
-        .collect::<Option<_>>()?;
-    r.0.is_empty().then_some((log_inv_rate, children, xmss, sphincs))
+    let (mut children, mut xmss, mut sphincs) = (Vec::new(), Vec::new(), Vec::new());
+    for _ in 0..r.len()? {
+        let claims = AggregateClaims::from_bytes(r.bytes()?)?;
+        children.push((claims, AggregateProof::from_bytes(r.bytes()?)?));
+    }
+    for _ in 0..r.len()? {
+        let pk = LeanXmssPublicKey::from_bytes(r.array()?);
+        xmss.push((pk, *r.array()?, LeanXmssSignature::from_bytes(r.array()?)));
+    }
+    for _ in 0..r.len()? {
+        let pk = LeanSphincsPublicKey::from_bytes(r.array()?);
+        sphincs.push((pk, *r.array()?, LeanSphincsSignature::from_bytes(r.array()?)));
+    }
+    if !r.0.is_empty() {
+        return None;
+    }
+    Some((log_inv_rate, children, xmss, sphincs))
 }
 
 struct Reader<'a>(&'a [u8]);

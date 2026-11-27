@@ -1,9 +1,9 @@
 //! Claim-list digests and a node's public statement.
 
+use super::AggregateClaims;
 use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::DeferredBytecodeClaim;
 use super::guest::fs_seed;
-use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use primitives::field::F128;
 
@@ -29,30 +29,36 @@ pub(super) fn list_split(n: usize) -> Vec<F128> {
     ]
 }
 
-/// One scheme's declared claims, hashed plainly: 64 bytes a claim, its pubkey then
-/// the message it signed, and an empty list hashes the empty string. The guest
-/// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
-pub(super) fn claim_list_digest(claims: impl IntoIterator<Item = [F128; 4]>) -> [F128; 2] {
-    cell_hash(claims.into_iter().flatten())
-}
+/// A claim of either scheme: its pubkey's bytes (`to_bytes`), then the message. Both pubkeys derive `Ord` over their
+/// two 16-byte fields in `to_bytes` order, so claims sort as these bytes do.
+pub(super) type Claim = [[u8; 32]; 2];
 
-/// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
-/// two halves (`to_bytes`), then the message that pubkey signed.
-fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> [F128; 4] {
+/// Both lists of `claims`, leanXMSS then leanSPHINCS.
+pub(super) fn claim_lists(claims: &AggregateClaims) -> [Vec<Claim>; 2] {
     [
-        pack_16_bytes(&pk[..16]),
-        pack_16_bytes(&pk[16..]),
-        pack_16_bytes(&message[..16]),
-        pack_16_bytes(&message[16..]),
+        claims
+            .lean_xmss
+            .iter()
+            .map(|(pk, message)| [pk.to_bytes(), *message])
+            .collect(),
+        claims
+            .lean_sphincs
+            .iter()
+            .map(|(pk, message)| [pk.to_bytes(), *message])
+            .collect(),
     ]
 }
 
-pub(super) fn lean_xmss_claim_cells((pk, message): &LeanXmssClaim) -> [F128; 4] {
-    claim_cells(&pk.to_bytes(), message)
+/// One scheme's declared claims, hashed plainly: 64 bytes a claim, and an empty list hashes the empty string. The
+/// guest computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
+pub(super) fn claim_list_digest(claims: &[Claim]) -> [F128; 2] {
+    hash_to_scalars(&keccak256::hash(claims.as_flattened().as_flattened()))
 }
 
-pub(super) fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F128; 4] {
-    claim_cells(&pk.to_bytes(), message)
+/// A claim as the four cells the guest hashes and its verifier reads, each 16 bytes little-endian.
+pub(super) fn claim_cells(claim: &Claim) -> Vec<F128> {
+    let halves = claim.as_flattened().as_chunks::<16>().0;
+    halves.iter().map(|half| pack_16_bytes(half)).collect()
 }
 
 /// The statement's fixed header, ahead of the deferred cells: the seed, the two
@@ -78,12 +84,46 @@ fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
 /// preimage from every other use of the hash here. The header cells, then the
 /// deferred cells, each hashed as its two lanes. Each claim list's digest binds its
 /// own length through the hash's padding, so the pair binds both lists whole.
-pub(super) fn statement_digest(claims: &AggregateClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
+pub(super) fn statement_digest(
+    lists: &[Vec<Claim>; 2],
+    da_commitment: Option<[u8; 32]>,
+    defer: &DeferredBytecodeClaim,
+) -> [F128; 2] {
     let header: [[F128; 2]; STATEMENT_HEADER / 2] = [
         fs_seed(),
-        claim_list_digest(claims.lean_xmss.iter().map(lean_xmss_claim_cells)),
-        claim_list_digest(claims.lean_sphincs.iter().map(lean_sphincs_claim_cells)),
-        hash_to_scalars(&verifier::da::digest(claims.da_commitment)),
+        claim_list_digest(&lists[0]),
+        claim_list_digest(&lists[1]),
+        hash_to_scalars(&verifier::da::digest(da_commitment)),
     ];
     cell_hash(header.into_iter().flatten().chain(defer.cells()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Claim;
+    use lean_sphincs::LeanSphincsPublicKey;
+    use lean_xmss::LeanXmssPublicKey;
+
+    /// Both schemes' claims sort as their bytes, which the coverage and the digests sort and hash.
+    #[test]
+    fn claims_sort_as_their_bytes() {
+        let mut claims: Vec<Claim> = Vec::new();
+        for i in 0..64 {
+            for value in [0, 7, 255] {
+                let mut claim = [[7; 32]; 2];
+                claim[i / 32][i % 32] = value;
+                claims.push(claim);
+            }
+        }
+        let lean_xmss = |[pk, message]: &Claim| (LeanXmssPublicKey::from_bytes(pk), *message);
+        let lean_sphincs = |[pk, message]: &Claim| (LeanSphincsPublicKey::from_bytes(pk), *message);
+        for a in &claims {
+            assert_eq!(lean_xmss(a).0.to_bytes(), a[0]);
+            assert_eq!(lean_sphincs(a).0.to_bytes(), a[0]);
+            for b in &claims {
+                assert_eq!(lean_xmss(a).cmp(&lean_xmss(b)), a.cmp(b));
+                assert_eq!(lean_sphincs(a).cmp(&lean_sphincs(b)), a.cmp(b));
+            }
+        }
+    }
 }

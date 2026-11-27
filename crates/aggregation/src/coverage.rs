@@ -1,12 +1,12 @@
 //! The coverage table: which slot each raw signature and child claim writes.
 
+use super::AggregateClaims;
 use super::error::AggregateError;
-use super::proof::AggregateProof;
-use super::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim};
+use super::statement::{Claim, claim_lists};
 use std::collections::BTreeSet;
 
 /// The coverage slot each write in the guest's coverage walk targets, in walk
-/// order: the raw signatures first, then each child's claim lists.
+/// order: the raw signatures first, then each child's claim lists. Its regions, leanXMSS then leanSPHINCS.
 ///
 /// The table is one contiguous region per scheme, each its declared claims followed
 /// by its own duplicate slots:
@@ -27,42 +27,44 @@ use std::collections::BTreeSet;
 /// Keeping each region contiguous is what binds the scheme: the guest addresses
 /// every writer as an offset into one region, bounded by that region's size, one
 /// range check per write, so no signature can reach a claim of the other scheme.
-pub(super) struct Coverage {
-    pub(super) lean_xmss: Region<LeanXmssClaim>,
-    pub(super) lean_sphincs: Region<LeanSphincsClaim>,
-}
+pub(super) type Coverage = [Region; 2];
 
 /// One scheme's region of the coverage table.
-pub(super) struct Region<K> {
+pub(super) struct Region {
     /// The declared claims, strictly sorted.
-    pub(super) signers: Vec<K>,
-    pub(super) dups: Vec<K>,
+    pub(super) signers: Vec<Claim>,
+    pub(super) dups: Vec<Claim>,
     /// The slot of each raw signature, in the order given.
     pub(super) raw: Vec<usize>,
     /// Per child, the slot of each of its claims.
     pub(super) children: Vec<Vec<usize>>,
 }
 
-impl<K: Ord + Clone> Region<K> {
-    /// Declares the union of the raw claims and the children's, or exactly
+/// The order that sorts `claims`, stably, keeping the first of each repeat.
+pub(super) fn sorted_firsts(claims: &[Claim]) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..claims.len()).collect();
+    isa::sort::sort_by_key(&mut order, |&i| claims[i]);
+    order.dedup_by_key(|i| claims[*i]);
+    order
+}
+
+impl Region {
+    /// The region of scheme `scheme` (0 or 1): declares the union of the raw claims and the children's, or exactly
     /// `declare`, which they must cover.
-    fn plan<'a>(
-        raw: &[K],
-        children: impl Iterator<Item = &'a [K]> + Clone,
-        declare: Option<&[K]>,
-    ) -> Result<Self, AggregateError>
-    where
-        K: 'a,
-    {
-        let mut signers = raw.to_vec();
-        for child in children.clone() {
-            signers.extend_from_slice(child);
+    fn plan(
+        scheme: usize,
+        raw: &[Claim],
+        children: &[[Vec<Claim>; 2]],
+        declare: Option<&[Claim]>,
+    ) -> Result<Self, AggregateError> {
+        let mut all = raw.to_vec();
+        for child in children {
+            all.extend_from_slice(&child[scheme]);
         }
-        isa::sort::sort(&mut signers);
-        signers.dedup();
+        let mut signers: Vec<Claim> = sorted_firsts(&all).into_iter().map(|i| all[i]).collect();
         if let Some(declare) = declare {
             // Inserted one by one: collecting would sort them first.
-            let mut wanted: BTreeSet<&K> = BTreeSet::new();
+            let mut wanted: BTreeSet<&Claim> = BTreeSet::new();
             wanted.extend(declare);
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
@@ -71,19 +73,24 @@ impl<K: Ord + Clone> Region<K> {
                 ));
             }
         }
+        // A claim takes its declared slot once; later or undeclared occurrences take fresh slots outside the hashed
+        // prefix.
         let mut claimed = vec![false; signers.len()];
         let mut dups = Vec::new();
-        let raw = raw
-            .iter()
-            .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
-            .collect();
+        let mut take_slot = |claim: &Claim| match signers.binary_search(claim) {
+            Ok(pos) if !claimed[pos] => {
+                claimed[pos] = true;
+                pos
+            }
+            _ => {
+                dups.push(*claim);
+                signers.len() + dups.len() - 1
+            }
+        };
+        let raw = raw.iter().map(&mut take_slot).collect();
         let children = children
-            .map(|child| {
-                child
-                    .iter()
-                    .map(|claim| take_slot(&signers, &mut claimed, &mut dups, claim))
-                    .collect()
-            })
+            .iter()
+            .map(|child| child[scheme].iter().map(&mut take_slot).collect())
             .collect();
         Ok(Self {
             signers,
@@ -94,37 +101,13 @@ impl<K: Ord + Clone> Region<K> {
     }
 }
 
-/// A claim takes its declared slot once; subsequent or omitted occurrences take
-/// fresh slots outside the hashed prefix.
-fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mut Vec<K>, claim: &K) -> usize {
-    match claims.binary_search(claim) {
-        Ok(pos) if !claimed[pos] => {
-            claimed[pos] = true;
-            pos
-        }
-        _ => {
-            duplicates.push(claim.clone());
-            claims.len() + duplicates.len() - 1
-        }
-    }
-}
-
+/// Both regions, from each scheme's raw claims (sorted, without repeats) and each child's claim lists.
 pub(super) fn plan_coverage(
-    raw_lean_xmss: &[LeanXmssClaim],
-    raw_lean_sphincs: &[LeanSphincsClaim],
-    children: &[(AggregateClaims, AggregateProof)],
+    raw: &[Vec<Claim>; 2],
+    children: &[[Vec<Claim>; 2]],
     declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateError> {
-    Ok(Coverage {
-        lean_xmss: Region::plan(
-            raw_lean_xmss,
-            children.iter().map(|(claims, _)| claims.lean_xmss.as_slice()),
-            declare.map(|claims| claims.lean_xmss.as_slice()),
-        )?,
-        lean_sphincs: Region::plan(
-            raw_lean_sphincs,
-            children.iter().map(|(claims, _)| claims.lean_sphincs.as_slice()),
-            declare.map(|claims| claims.lean_sphincs.as_slice()),
-        )?,
-    })
+    let declare = declare.map(claim_lists);
+    let plan = |s: usize| Region::plan(s, &raw[s], children, declare.as_ref().map(|lists| lists[s].as_slice()));
+    Ok([plan(0)?, plan(1)?])
 }

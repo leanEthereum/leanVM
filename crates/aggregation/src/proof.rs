@@ -2,7 +2,7 @@
 
 use super::deferred::{DeferredBytecodeClaim, bytecode_vars};
 use super::guest::unified_guest;
-use super::statement::statement_digest;
+use super::statement::{Claim, claim_lists, statement_digest};
 use claims::AggregateClaims;
 use lean_vm_core::cpu::public_input_bytes;
 use primitives::field::F128;
@@ -38,8 +38,8 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
 }
 
 /// Whether each list is strictly sorted, so that no claim counts twice.
-pub(super) fn is_sorted(claims: &AggregateClaims) -> bool {
-    claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1])
+pub(super) fn is_sorted(lists: &[Vec<Claim>; 2]) -> bool {
+    lists.iter().all(|list| list.is_sorted_by(|a, b| a < b))
 }
 
 impl AggregateProof {
@@ -61,11 +61,12 @@ impl AggregateProof {
     /// proof is valid.
     pub fn verify(&self, claims: &AggregateClaims) -> bool {
         // The cheap check first: the rest evaluates the bytecode at a point the sender chose.
-        if !is_sorted(claims) {
+        let lists = claim_lists(claims);
+        if !is_sorted(&lists) {
             return false;
         }
         let defer = DeferredBytecodeClaim::recompute(self.bytecode_point.clone());
-        let pi = statement_digest(claims, &defer);
+        let pi = statement_digest(&lists, claims.da_commitment, &defer);
         let verdict = verifier::verify_execution(unified_guest().bytecode(), &public_input_bytes(&pi), &self.proof);
         if let Err(error) = &verdict {
             tracing::debug!(%error, "the proof does not verify");
