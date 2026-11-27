@@ -63,6 +63,7 @@ def hint_buf(h):
 
 
 def hint_atoms(ss):
+    """The hint atoms of a body, at any depth."""
     for s in ss:
         if s[0] == 'atom' and s[1] == 'hint':
             yield s[2]

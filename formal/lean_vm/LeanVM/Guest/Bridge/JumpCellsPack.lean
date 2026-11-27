@@ -176,9 +176,7 @@ theorem packGo_digits : ∀ (cs : List ℕ) (j acc : ℕ), j < 64 → acc < 2 ^ 
 /-- **The packed cells' trie reads the certificate's cells**, at a value below `2^30`. -/
 theorem locT_buildT {locs : List ℕ} (hlocs : locs.all (fun c ↦ Nat.blt c (2 ^ cellBits)) = true) {i : ℕ}
     (hi : i < 2 ^ 30) : locT (buildT 32 (packGo locs 0 0)) i = locs.getD i 0 := by
-  have hall : ∀ c ∈ locs, c < 2 ^ 20 := fun c hc ↦ by
-    have := List.all_eq_true.mp hlocs c hc
-    simpa [cellBits] using this
+  have hall : ∀ c ∈ locs, c < 2 ^ 20 := fun c hc ↦ by simpa [cellBits] using List.all_eq_true.mp hlocs c hc
   have hd := packGo_digits locs 0 0 (by norm_num) (by norm_num) hall i
   simp only [List.range_zero, List.map_nil, List.nil_append] at hd
   rw [locT, show Nat.div i 64 = i / 64 from rfl, getF_buildT 32 _ _ (by omega)]

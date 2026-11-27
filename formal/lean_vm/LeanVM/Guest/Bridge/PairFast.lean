@@ -36,7 +36,7 @@ end
 
 public section
 
-theorem pairChkAt_congr {extra : List (ℕ × ℕ)} {loc₁ loc₂ : ℕ → ℕ} {n : ℕ} (body : List Stmt)
+private theorem pairChkAt_congr {extra : List (ℕ × ℕ)} {loc₁ loc₂ : ℕ → ℕ} {n : ℕ} (body : List Stmt)
     (h : ∀ v, cellOk extra loc₁ n v = cellOk extra loc₂ n v) :
     pairChkAt extra loc₁ n body = pairChkAt extra loc₂ n body := by
   have : pairAtomOk extra loc₁ n (spine body) = pairAtomOk extra loc₂ n (spine body) := by
