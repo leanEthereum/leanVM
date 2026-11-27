@@ -672,9 +672,9 @@ theorem slice_lt {m : MachineState} {top q l : Word} (hs : SliceFT env m top q l
   · omega
   · rw [h]; have := q.isLt; omega
 
-set_option rv_sym.heap true in
-/-- **The third slice**, from instruction 112: its `spec_extend`, then the return. -/
-theorem at112 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
+section Slices
+
+variable {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
     (hL : L.WF p) {need needS : Nat} (hnS : 96 + needS ≤ need)
     (hse : HoldsT env p L.specExtend.idx needS (SEPre env) (SEPost env) SpecExtendFormT.OutT AbortStop)
     {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
@@ -683,7 +683,12 @@ theorem at112 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (
     (hstop : ∀ fr st r' m', AbortStop regs m r' m' → rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ →
       Q ⟨fr :: st, r', m'⟩)
     (hneed : env.stackLimit.toNat + need ≤ top.toNat) (hW : Windows env top m) (h16 : top.toNat % 16 = 0)
-    (h2 : regs .x2 = top) (hpre : PreT env regs m) :
+    (h2 : regs .x2 = top) (hpre : PreT env regs m)
+include hp hL hnS hse hk hstop hneed hW h16 h2 hpre
+
+set_option rv_sym.heap true in
+/-- **The third slice**, from instruction 112: its `spec_extend`, then the return. -/
+theorem at112 :
     ∀ R M, (R .x2 = top + 18446744073709551520#64 ∧ R .x8 = regs .x10 ∧ R .x9 = regs .x11 ∧
         R .x18 = m.getMem (regs .x11 + 40#64) ∧ Saved regs R) → Slots M top ret regs →
       env.Frame top Tactic.F m M → env.Static M → M.code = m.code →
@@ -707,16 +712,7 @@ theorem at112 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (
 
 set_option rv_sym.heap true in
 /-- **The second slice**, from instruction 96: its `spec_extend`, then the third slice. -/
-theorem at96 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
-    (hL : L.WF p) {need needS : Nat} (hnS : 96 + needS ≤ need)
-    (hse : HoldsT env p L.specExtend.idx needS (SEPre env) (SEPost env) SpecExtendFormT.OutT AbortStop)
-    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
-    (hk : ∀ r' m', HoldsT.post env (PostT env) SretVecOut ret top regs m r' m' →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩)
-    (hstop : ∀ fr st r' m', AbortStop regs m r' m' → rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ →
-      Q ⟨fr :: st, r', m'⟩)
-    (hneed : env.stackLimit.toNat + need ≤ top.toNat) (hW : Windows env top m) (h16 : top.toNat % 16 = 0)
-    (h2 : regs .x2 = top) (hpre : PreT env regs m) :
+theorem at96 :
     ∀ R M, (R .x2 = top + 18446744073709551520#64 ∧ R .x8 = regs .x10 ∧ R .x9 = regs .x11 ∧
         R .x19 = m.getMem (regs .x11 + 24#64) ∧ R .x18 = m.getMem (regs .x11 + 40#64) ∧ Saved regs R) →
       Slots M top ret regs → env.Frame top Tactic.F m M → env.Static M → M.code = m.code →
@@ -740,16 +736,7 @@ theorem at96 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (t
 set_option rv_sym.heap true in
 /-- **From the join after `alloc`** (instruction 74): the header `(c, B, 0)` at `sp + 8`, the first slice's
     `spec_extend`, then the second slice. -/
-theorem at74 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (tmpl L))
-    (hL : L.WF p) {need needS : Nat} (hnS : 96 + needS ≤ need)
-    (hse : HoldsT env p L.specExtend.idx needS (SEPre env) (SEPost env) SpecExtendFormT.OutT AbortStop)
-    {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
-    (hk : ∀ r' m', HoldsT.post env (PostT env) SretVecOut ret top regs m r' m' →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩)
-    (hstop : ∀ fr st r' m', AbortStop regs m r' m' → rvIsa.accept p stmtCtx ⟨fr :: st, r', m'⟩ →
-      Q ⟨fr :: st, r', m'⟩)
-    (hneed : env.stackLimit.toNat + need ≤ top.toNat) (hW : Windows env top m) (h16 : top.toNat % 16 = 0)
-    (h2 : regs .x2 = top) (hpre : PreT env regs m) :
+theorem at74 :
     ∀ R M, (R .x2 = top + 18446744073709551520#64 ∧ R .x8 = regs .x10 ∧ R .x9 = regs .x11 ∧
         R .x20 = m.getMem (regs .x11 + 8#64) ∧ R .x19 = m.getMem (regs .x11 + 24#64) ∧
         R .x18 = m.getMem (regs .x11 + 40#64) ∧ Saved regs R) →
@@ -778,6 +765,8 @@ theorem at74 {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]? = some (t
       hret1_16 rfl rfl rfl
     rw [Nat.zero_add] at hA1
     exact h96 _ _ ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ hsl1 hF1 hret1_15 (hret1_17.trans hc0) hA1
+
+end Slices
 
 /-- The prologue's eight saved words over `m`. -/
 def saved (m : MachineState) (top ret : Word) (regs : Reg → Word) : MachineState :=
