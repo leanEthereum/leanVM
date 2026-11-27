@@ -92,6 +92,38 @@ pub fn th_digests(pk_seed: &PkSeed, adrs: &Adrs, values: &[Digest]) -> Digest {
     th(pk_seed, adrs, values.as_flattened())
 }
 
+pub(crate) struct ThBatch<const LEN: usize> {
+    inputs: [[u8; LEN]; keccak256::LANES],
+    outputs: [keccak256::Hash; keccak256::LANES],
+}
+
+impl<const LEN: usize> ThBatch<LEN> {
+    pub(crate) fn new(pk_seed: &PkSeed) -> Self {
+        let mut inputs = [[0; LEN]; keccak256::LANES];
+        for input in &mut inputs {
+            input[..N].copy_from_slice(pk_seed);
+        }
+        Self {
+            inputs,
+            outputs: [[0; keccak256::OUT_LEN]; keccak256::LANES],
+        }
+    }
+
+    pub(crate) fn set(&mut self, lane: usize, adrs: &Adrs, payload: &[u8]) {
+        self.inputs[lane][N..PREFIX_LEN].copy_from_slice(adrs.as_bytes());
+        self.inputs[lane][PREFIX_LEN..].copy_from_slice(payload);
+    }
+
+    pub(crate) fn hash(&mut self, count: usize) -> impl Iterator<Item = Digest> + '_ {
+        keccak256::hash_many(
+            self.inputs[..count].as_flattened(),
+            LEN,
+            self.outputs[..count].as_flattened_mut(),
+        );
+        self.outputs[..count].iter().map(|output| keccak256::truncate(*output))
+    }
+}
+
 /// `PRF(PK.seed, SK.seed, ADRS)`.
 pub fn prf(pk_seed: &PkSeed, sk_seed: &SecretKey, adrs: &Adrs) -> Digest {
     th(pk_seed, adrs, sk_seed)
@@ -142,6 +174,27 @@ pub fn h_msg(r: &Digest, pk_seed: &PkSeed, pk_root: &Digest, m: &Message) -> [u8
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn partial_batches_match_scalar_hashes() {
+        let pk_seed = std::array::from_fn(|i| i as u8);
+        let mut batch = ThBatch::<{ PREFIX_LEN + 2 * N }>::new(&pk_seed);
+        for count in (0..=keccak256::LANES).rev() {
+            let expected: Vec<_> = (0..count)
+                .map(|lane| {
+                    let adrs = Adrs::new(count as u32, 0x1234_5678_9abc)
+                        .with_type(FORS_TREE)
+                        .with_key_pair(17)
+                        .with_tree_height(3)
+                        .with_tree_index(lane as u32);
+                    let payload: [u8; 2 * N] = std::array::from_fn(|i| (i + lane * 7 + count) as u8);
+                    batch.set(lane, &adrs, &payload);
+                    th(&pk_seed, &adrs, &payload)
+                })
+                .collect();
+            assert_eq!(batch.hash(count).collect::<Vec<_>>(), expected);
+        }
+    }
 
     #[test]
     fn address_layout() {

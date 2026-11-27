@@ -104,3 +104,107 @@ pub fn fors_recover(
     });
     fors_key(pk_seed, idx, &roots)
 }
+
+pub(crate) fn fors_recover_batched(
+    pk_seed: &PkSeed,
+    idx: u64,
+    leaves: &[usize; FORS_TREES],
+    opening: &ForsOpening,
+) -> Digest {
+    if keccak256::LANES == 1 {
+        return fors_recover(pk_seed, idx, leaves, opening, |_| ());
+    }
+    fors_key(pk_seed, idx, &fors_roots_batched(pk_seed, idx, leaves, opening))
+}
+
+fn fors_roots_batched(
+    pk_seed: &PkSeed,
+    idx: u64,
+    leaves: &[usize; FORS_TREES],
+    opening: &ForsOpening,
+) -> [Digest; FORS_TREES] {
+    let mut roots = [[0; N]; FORS_TREES];
+    let mut batch = ThBatch::<{ PREFIX_LEN + N }>::new(pk_seed);
+    for (group, roots) in roots.chunks_mut(keccak256::LANES).enumerate() {
+        for lane in 0..roots.len() {
+            let c = group * keccak256::LANES + lane;
+            batch.set(lane, &fors_node_adrs(idx, c, 0, leaves[c]), &opening[c].secret);
+        }
+        let count = roots.len();
+        for (root, digest) in roots.iter_mut().zip(batch.hash(count)) {
+            *root = digest;
+        }
+    }
+    let mut batch = ThBatch::<{ PREFIX_LEN + 2 * N }>::new(pk_seed);
+    for z in 0..FORS_HEIGHT {
+        for (group, roots) in roots.chunks_mut(keccak256::LANES).enumerate() {
+            for (lane, &current) in roots.iter().enumerate() {
+                let c = group * keccak256::LANES + lane;
+                let s = leaves[c];
+                let sibling = opening[c].path[z];
+                let children = if (s >> z) & 1 == 0 {
+                    [current, sibling]
+                } else {
+                    [sibling, current]
+                };
+                batch.set(
+                    lane,
+                    &fors_node_adrs(idx, c, z + 1, s >> (z + 1)),
+                    children.as_flattened(),
+                );
+            }
+            let count = roots.len();
+            for (root, digest) in roots.iter_mut().zip(batch.hash(count)) {
+                *root = digest;
+            }
+        }
+    }
+    roots
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn batched_roots_match_tree_major_recovery() {
+        let pk_seed = std::array::from_fn(|i| (7 * i + 3) as u8);
+        let opening = std::array::from_fn(|c| ForsTreeOpening {
+            secret: std::array::from_fn(|i| (c * 11 + i) as u8),
+            path: std::array::from_fn(|z| std::array::from_fn(|i| (c * 17 + z * 7 + i) as u8)),
+        });
+        let mask = (1 << FORS_HEIGHT) - 1;
+        let leaves = std::array::from_fn(|c| match c % 4 {
+            0 => 0,
+            1 => mask,
+            2 => 0x155 & mask,
+            _ => 0x2aa & mask,
+        });
+        for idx in [0, 1, (1 << H) - 1] {
+            let roots = fors_roots_batched(&pk_seed, idx, &leaves, &opening);
+            for c in 0..FORS_TREES {
+                let leaf = fors_leaf(&pk_seed, idx, c, leaves[c], &opening[c].secret);
+                let root = keccak256::path_fold(
+                    leaf,
+                    leaves[c],
+                    &opening[c].path,
+                    |_| (),
+                    |z, j, pair| fors_node(&pk_seed, idx, c, z, j, pair),
+                );
+                assert_eq!(roots[c], root, "tree {c}, index {idx}");
+            }
+            assert_eq!(
+                fors_recover_batched(&pk_seed, idx, &leaves, &opening),
+                fors_recover(&pk_seed, idx, &leaves, &opening, |_| ())
+            );
+            let same = [opening[0]; FORS_TREES];
+            let roots = fors_roots_batched(&pk_seed, idx, &[0; FORS_TREES], &same);
+            for c in 0..FORS_TREES {
+                assert!(
+                    !roots[..c].contains(&roots[c]),
+                    "tree addresses must separate identical openings"
+                );
+            }
+        }
+    }
+}

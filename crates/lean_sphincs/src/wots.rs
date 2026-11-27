@@ -118,10 +118,82 @@ pub fn wots_leaf(
     Some((x, wots_leaf_hash(pk_seed, key, &ends)))
 }
 
+pub(crate) fn wots_leaf_batched(
+    pk_seed: &PkSeed,
+    key: &OtsKey,
+    message: &Digest,
+    c: u32,
+    signature: &[Digest; V],
+) -> Option<([u8; V], Digest)> {
+    if keccak256::LANES == 1 {
+        return wots_leaf(pk_seed, key, message, c, signature);
+    }
+    let x = encode(&encoder(pk_seed, key, message), c)?;
+    let ends = wots_ends_batched(pk_seed, key, &x, signature);
+    Some((x, wots_leaf_hash(pk_seed, key, &ends)))
+}
+
+fn wots_ends_batched(pk_seed: &PkSeed, key: &OtsKey, x: &[u8; V], signature: &[Digest; V]) -> [Digest; V] {
+    let mut ends = *signature;
+    let adrs = key.adrs(WOTS_HASH);
+    let mut batch = ThBatch::<{ PREFIX_LEN + N }>::new(pk_seed);
+    let mut indices = [0; keccak256::LANES];
+    for step in 0..CHAIN_LEN - 1 {
+        let mut active = (0..V).filter(|&i| x[i] as usize <= step);
+        loop {
+            let mut count = 0;
+            for i in active.by_ref().take(keccak256::LANES) {
+                indices[count] = i;
+                batch.set(count, &adrs.with_chain(i as u32).with_hash(step as u32), &ends[i]);
+                count += 1;
+            }
+            if count == 0 {
+                break;
+            }
+            for (&i, digest) in indices[..count].iter().zip(batch.hash(count)) {
+                ends[i] = digest;
+            }
+        }
+    }
+    ends
+}
+
 /// `wots_pkGen`: the leaf of a one-time key, from the secret key, what building a
 /// tree spends its hashes on.
 pub(crate) fn wots_public_leaf(sk: &ExpandedKey, key: &OtsKey) -> Digest {
     let secrets = wots_secrets(sk, key);
     let ends = core::array::from_fn(|i| chain(&sk.pk_seed, key, i, 0, CHAIN_LEN - 1, secrets[i]));
     wots_leaf_hash(&sk.pk_seed, key, &ends)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn batched_chains_match_scalar_endpoints() {
+        let pk_seed = std::array::from_fn(|i| (5 * i + 1) as u8);
+        let signature = std::array::from_fn(|i| std::array::from_fn(|j| (i * 7 + j) as u8));
+        for layer in 0..LAYERS {
+            let key = OtsKey::of_index(layer, (1 << H) - 1);
+            for count in 0..=V {
+                let mut x = [(CHAIN_LEN - 1) as u8; V];
+                for j in 0..count {
+                    x[(j * 17) % V] = (j % (CHAIN_LEN - 1)) as u8;
+                }
+                let ends = wots_ends_batched(&pk_seed, &key, &x, &signature);
+                for i in 0..V {
+                    let start = x[i] as usize;
+                    assert_eq!(
+                        ends[i],
+                        chain(&pk_seed, &key, i, start, CHAIN_LEN - 1 - start, signature[i]),
+                        "layer {layer}, active chains {count}, chain {i}"
+                    );
+                    if start == CHAIN_LEN - 1 {
+                        assert_eq!(ends[i], signature[i]);
+                    }
+                }
+            }
+        }
+    }
 }
