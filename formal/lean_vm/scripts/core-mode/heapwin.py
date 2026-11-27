@@ -11,7 +11,8 @@ windows cover a loop helper's body without its tail (`loopBody`), or a function'
 its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/<fn>/` (`loopcc.py`):
 
 * `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures as `CFun.sigOf` reads
-  them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
+  them, which the context of a function with at least `SIGK` callees reads by the names' keys: `sigK`, `hsigK`,
+  `SigIx.lean`); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
   certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
   context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
   rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at most `SPART` characters
@@ -47,6 +48,11 @@ W_LINE, W_ATOM, W_CERT, W_FA, W_ENT = 0.2, 15, 0.02, 0.4, 0.5
 BLK = 32
 DEPTH = 20                      # `Exec.indexDepth`: keys past it are dropped by `setF`
 KEYMAX = 2 ** DEPTH - 1
+# the callees' signatures as `CFun.sigOf` reads them (`sigW`), and the number of callees from which a context reads
+# them by the names' keys instead (`sigK`, `SigIx.lean`'s `sigK_eq`, whose left side is `SIGW`): with fewer, the keys
+# cost the kernel more than the scan of the names
+SIGW = '(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})'
+SIGK = 100
 
 
 class Meter:
@@ -444,6 +450,19 @@ HEADER = genfiles.header('core-mode/heapwin.py')
 DATA = 'meta import LeanVM.Guest.DataLit\n'
 
 
+def core_name(k):
+    """The name `core.name` holds: the compiler's name whose stable name is `k` (`coreir.load`'s `stable`)."""
+    ns = [n for n, s in I.STABLE.items() if s == k]
+    if len(ns) > 1:
+        raise SystemExit(f'heapwin: {k} is the stable name of {ns}')
+    return ns[0] if ns else k
+
+
+def str_key(name):
+    """`CoreMode.strKey`: the name's UTF-8 bytes as base-256 digits, the first the least significant, under a 1."""
+    return int.from_bytes(name.encode() + b'\x01', 'little')
+
+
 def repack(text):
     """Code lines over 120 characters packed (`pack`), at their indentation plus four."""
     out = []
@@ -563,12 +582,12 @@ def wprf(d):
 
 def emit(k, H, sts, cs, po, splits, gen):
     """The modules of one function: `[(name, text)]`. `gen`, a dict of `root` (the modules' prefix), `sub` (the
-    namespace under the function's), `data` (the certificate's modules), `sigw` (the callees' signatures, as Lean),
+    namespace under the function's), `data` (the certificate's modules), `names` (the callees, in `csigs`' order),
     `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`); for an arm
     of a split certificate (`HCert.arms`), `ns` and `base` (its namespace, where `core` and `hcert` are the arm's, and
     its modules' prefix), `lpre` (the prefix of its lists' declarations) and `one` (the theorem `heapOkC1`'s)."""
     pack, core_mod = po[k][0], po[k][1]
-    data, sub, sigw = gen['data'], gen['sub'], gen['sigw']
+    data, sub = gen['data'], gen['sub']
     ns = gen.get('ns', f'LeanVM.Guest.Fn.«{k}»')
     base = gen.get('base', f'{gen["root"]}.«{k}»')
     mods = []
@@ -582,7 +601,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     fl = lcx(H, pre=gen.get('pre', 'sig_pre'), lpre=gen.get('lpre', ''))
     head = (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
             ''.join(f'public import {m}\n' for m in data) + imps)
-    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
+    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {SIGW}\n'
     # the equations, in groups of at most `CXDEC` characters of the certificate's lists they read (`CxH<j>`, each
     # importing the definitions) if more than one, else in `Cx`
     groups, g = [], []
@@ -622,13 +641,24 @@ def emit(k, H, sts, cs, po, splits, gen):
         cx += ''.join(f'public import {base}.CxH{j}\n' for j in range(len(groups)))
     else:
         cx += f'public import {prev}\n' if prev else head
-    cx += DATA + '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
+    sigk = len(gen['names']) >= SIGK
+    cx += ('public import LeanVM.Guest.CoreMode.SigIx\n' if sigk else '') + DATA
+    cx += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
     cx += '\n' + ''.join(cur) if cur else ''
     cx += thm(groups[0]) if len(groups) == 1 else ''
+    # past `SIGK` callees, their signatures read by their names' keys (`SigIx.lean`), the keys stated once
+    sig = 'sigW'
+    if sigk:
+        own, keys = str_key(core_name(k)), ', '.join(str(str_key(f)) for f in gen['names'])
+        sig = f'sigK {own} hcert.sig sigKeys csigs'
+        cx += (f'\n/-- The keys of the callees\' names (`strKey`). -/\nnoncomputable def sigKeys : List ℕ :=\n'
+               f'  data% [{keys}]\n\n/-- The callees\' signatures, read by key. -/\n'
+               f'theorem hsigK : sigW = {sig} :=\n  sigK_eq (by decide +kernel) (by decide +kernel)\n')
     cx += (f'\n/-- The context, its tries stated. -/\nnoncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
-           'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
-    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
-           'hcxHV hcxEQ\n')
+           f'cxRS, cxDV, cxHV, hcert.gargs, {sig}, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
+    lit = 'cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ'
+    prf = f' by\n  rw [hsigK]\n  exact {lit}' if sigk else f'\n  {lit}'
+    cx += f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :={prf}\n'
     # the states, in modules of at most `SPART` characters (the first in `Cx`, then `S<j>`, each importing the last),
     # each sharing the previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
     lits = Lits()
@@ -715,7 +745,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     if one:
         thm = thm.replace('heapOkC', 'heapOkC1')
     ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC{one} Fn.«{k}».pows\n'
-           f'    {sigw}\n    core hcert = true :=\n'
+           f'    {SIGW}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) {sub}.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'{sub}.{last}\n')
     ok += f'\nend\nend {ns}\n'
