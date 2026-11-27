@@ -206,6 +206,20 @@ struct Layer<'a> {
 /// A row of a table in the power basis: two words per position, laid out by word.
 const ROW: usize = 2 * BITS;
 
+/// The tail is written with streaming stores, its table and every level folded from it, when the table holds at
+/// least this many bytes (32 MiB).
+///
+/// # Why this value
+///
+/// - A table this large is evicted from L3 before the next pass reads it, so an ordinary store only adds the line
+///   fetch a streaming store skips.
+/// - A smaller one stays in L3 for the next pass, which a streaming store would give up. A 2^18-permutation batch's
+///   table is about 26 MB at depth 24 and 52 MB at depth 12.
+/// - 32 MiB is the L3 of one Zen 4 or Zen 5 die.
+/// - Under a larger table the folded levels keep streaming stores even once they are small: with ordinary stores
+///   there, a 2^20-permutation batch measured slower.
+const STREAM_MIN_BYTES: usize = 32 << 20;
+
 impl Layer<'_> {
     /// The blocks a segment's tasks walk: those written, then the padding block once, standing
     /// for every block after them.
@@ -517,11 +531,13 @@ struct Round<'a> {
     eval: PolyEval,
     weights: Vec<u64>,
     constant: Vec<u64>,
+    /// Whether the passes write with streaming stores ([`STREAM_MIN_BYTES`]).
+    stream: bool,
 }
 
 impl<'a> Round<'a> {
     /// `polys` are the claim's weights in the power basis.
-    fn new(field: &'a PowerField, claim: &Claim, polys: &[Element], s: F128, kappa: F128) -> Self {
+    fn new(field: &'a PowerField, claim: &Claim, polys: &[Element], s: F128, kappa: F128, stream: bool) -> Self {
         let w = &claim.weights;
         let (mut weights, mut constant) = (vec![0u64; ROW], vec![0u64; ROW]);
         for j in 0..BITS {
@@ -533,6 +549,7 @@ impl<'a> Round<'a> {
             eval: PolyEval::new(s, 48),
             weights: field.split_row(&weights, BITS),
             constant,
+            stream,
         }
     }
 
@@ -595,7 +612,11 @@ impl<'a> Round<'a> {
                 // SAFETY: each task owns its rows of `dst`, among the `to.len()` it holds.
                 let out = unsafe { ptr.slice((to.live * segment + group * t) * ROW, n * ROW) };
                 // Built in cache for the round values, then published: the next round reads them.
-                primitives::stream::Stream::new().copy(out, &rows[..n * ROW]);
+                if self.stream {
+                    primitives::stream::Stream::new().copy(out, &rows[..n * ROW]);
+                } else {
+                    out.copy_from_slice(&rows[..n * ROW]);
+                }
             },
             Sums::merge,
         );
@@ -797,12 +818,13 @@ pub fn prove_layer(
     // The groups, blocks and segments, on a table in the power basis. Each pass over it writes the rows after the
     // one or two variables bound since the last one, and sums the next round's values over them, or the next
     // two rounds'.
-    let round = Round::new(&field, claim, &polys, s, kappa);
     let mut layout = Rows {
         m: 2 * shape.n_blocks(),
         live: 2 * witness.written(),
         segments: 1 << shape.seg_log(),
     };
+    let table_bytes = size_of::<u64>() * layer.rounds.len() * layout.live * ROW;
+    let round = Round::new(&field, claim, &polys, s, kappa, table_bytes >= STREAM_MIN_BYTES);
     let (mut src, mut dst) = scratch.table.split_at_mut(layout.m * layout.segments * ROW);
     let pads = &mut scratch.pads;
     let (mut values, mut quad) = tracing::info_span!("Tables")
