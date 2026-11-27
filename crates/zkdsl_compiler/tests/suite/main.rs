@@ -15,6 +15,7 @@ mod loop_frames;
 mod miscompiles;
 mod pack64x2;
 mod print_debug;
+mod program_bytes;
 mod py_source;
 mod range_check;
 mod sharing;

@@ -4,6 +4,7 @@
 //! verifier's field elements; [`g_pow`] is the g-power a bytecode operand or index holds. Each prover tree implements [`Prover`]. [`pretty_integer`] and [`pretty_f64`] format the
 //! counts the compiler, provers and benchmarks print.
 
+mod bytes;
 mod export_hints;
 mod pretty;
 mod program;
