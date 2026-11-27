@@ -1,0 +1,63 @@
+/-
+  Rv64mc.Proof.Field.ESumWinT
+
+  What the total contracts of the `E::sum` closures share: a table of `E`s (`16` bytes each) at a pointer with a
+  length word, in a window and 8-byte aligned unless it is empty (`TabW`), an entry the code reads after checking
+  its index against that length in a window and aligned (`TabW.entry`), the continuation their parts are proved
+  against (`Cont`), and the next entry's offsets from the pointer the filtered loops keep (`succ_shl`, `succ_shl8`).
+
+  ## Main definitions
+
+  * `TabW`, `Cont`
+
+  ## Main results
+
+  * `TabW.entry`, `TabW.entry'`, `succ_shl`, `succ_shl8`
+-/
+
+import Rv64mc.Proof.Runtime.WinT
+
+namespace Rv64mc.Proof.Field.ESumWinT
+
+open RiscvZkvm.Rv64 Lprog Lprog.RiscV
+open Rv64mc.Proof.Runtime.MemsetT (InWin)
+
+/-- A table of `len` `E`s at `q`: empty, or in a window and 8-byte aligned. -/
+def TabW (env : Env) (q len : Word) : Prop :=
+  len.toNat = 0 ∨ (InWin env q (16 * len.toNat) ∧ q.toNat % 8 = 0)
+
+/-- An entry below the length: both its doublewords in a window and aligned. -/
+theorem TabW.entry {env : Env} {q x len top : Word} {m : MachineState} (hd : TabW env q len)
+    (hW : Windows env top m) (hx : x < len) :
+    (inWindow (q + x <<< 4) 8 = true ∧ (q + x <<< 4).toNat % 8 = 0) ∧
+      (inWindow (q + x <<< 4 + 8#64) 8 = true ∧ (q + x <<< 4 + 8#64).toNat % 8 = 0) := by
+  have hxl : x.toNat < len.toNat := hx
+  rcases hd with h0 | ⟨hw, hal⟩
+  · omega
+  have := hw.lt
+  have he : (q + x <<< 4).toNat = q.toNat + 16 * x.toNat := Runtime.WinT.elem_toNat (s := 4) (by omega)
+  exact ⟨hw.dword hW hal he (by omega) (by omega), hw.dword_add (k := 8) hW hal he (by omega) (by omega)⟩
+
+/-- `TabW.entry` with the offset first, as the code adds it. -/
+theorem TabW.entry' {env : Env} {q x len top : Word} {m : MachineState} (hd : TabW env q len)
+    (hW : Windows env top m) (hx : x < len) :
+    (inWindow (x <<< 4 + q) 8 = true ∧ (x <<< 4 + q).toNat % 8 = 0) ∧
+      (inWindow (x <<< 4 + q + 8#64) 8 = true ∧ (x <<< 4 + q + 8#64).toNat % 8 = 0) := by
+  rw [BitVec.add_comm (x <<< 4) q]; exact hd.entry hW hx
+
+/-- The continuation the parts are proved against. -/
+abbrev Cont (env : Env) (p : Lprog (Op Reg) Reg) (Q : State rvIsa → Prop) (ret top : Word) (rest : List Frame)
+    (regs : Reg → Word) (m : MachineState) : Prop :=
+  ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) (fun _ _ _ => False) ret top regs m r' m' →
+    rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩
+
+/-- The next element's offset, from the pointer kept 8 bytes into the current one. -/
+theorem succ_shl (c q : Word) : c <<< 4 + q + 8#64 + 8#64 = (c + 1#64) <<< 4 + q := by
+  apply BitVec.eq_of_toNat_eq
+  simp only [BitVec.toNat_add, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, BitVec.toNat_ofNat]; omega
+
+/-- The next element's second doubleword, from the pointer kept 8 bytes into the current one. -/
+theorem succ_shl8 (c q : Word) : c <<< 4 + q + 8#64 + 16#64 = (c + 1#64) <<< 4 + q + 8#64 := by
+  rw [← succ_shl, BitVec.add_assoc (c <<< 4 + q + 8#64)]; rfl
+
+end Rv64mc.Proof.Field.ESumWinT

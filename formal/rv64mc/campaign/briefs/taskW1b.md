@@ -1,0 +1,32 @@
+# Wave 1b: the loops of the compiler's memory builtins, and the hash leaves
+
+Worktree: /home/devops/leanEthereum/leanVM-t-symt (branch formal/rv64mc-total-w1b, head e8794dc66a). Lake project formal/rv64mc, warm.
+
+## Deliverables, in order
+
+1. `compiler_builtins::mem::memcpy` (index 223, 127 instructions, 10 back-edges) and `memmove` (225, 268 instructions, 20 back-edges): total contracts in new modules `Proof/Runtime/MemcpyT.lean` (`MemcpySpecT`) and `MemmoveT.lean` (`MemmoveSpecT`), with the functional postcondition of `Spec/Runtime/Mem.lean`'s `MemcpySpec`/`MemmoveSpec` (the bytes copied: callers copy vector headers whose pointers their later safety reads), their memory frame (the destination's bytes), and the source and destination in windows (`InWin`) in `Pre`. Every loop by `Total.loop` with a measure. These are used by `finish_grow`, every `grow_one`, `keccak_f`, `keccak_hash`, `Sponge::new`, `Digest::words` and more: check each call site's facts against the `Pre` (a sibling agent states the C wrappers 227 and 228 over contracts of exactly these names and shapes, so publish the statements early in your first commit and keep them).
+2. `verifier::hash::xor_block` (123, 430 instructions, class C: spec in `Spec/Hash/`), `verifier::hash::keccak_f` (114, 391, class C, calls memcpy and memset), `verifier::layout::keccak_cell_lanes` (208, D, 3 loops), `E::sum::<Chain<…>>` (34, D, 4 loops): total contracts, functional postconditions where a spec exists and callers need it, safety ones otherwise.
+3. Your rows for `notes/total-status.md` (created by the sibling wave; put them in your defence, not in the file) and `Table` instances in `Rv64mc/Table/<Family>T.lean` for functions whose callees are all total (memcpy, memmove, memset are leaves; `keccak_f` needs memset's, which exists, `MemsetT`).
+
+## Context (common to wave 1)
+
+The campaign proves `main`'s total contract `MainSpecT` (`Final/MainSpecT.lean`) bottom-up: a `HoldsT` (`Core/HoldsT.lean`) for each of the 229 functions `main` reaches. The call graph, by height (0 = leaf) with each function's partial-proof class from `notes/status.md` (A: partial proof at the image; C: spec only; D: nothing), is formal/rv64mc/campaign/waves.md; each function's callees are in cg.json next to it. Already total: `halt` and the panic chain (`Aborts`, HaltT/PanicsT), `alloc`, `Input::word`, `memset` and its C wrapper, `reduce`, `spread`, `E::square`, `Digest::from_halves`, `memcmp`.
+
+Read first: formal/rv64mc/README.md, notes/total-correctness.md (the two recipes: port a partial proof with `rv_autoT`/`rv_symT`, or prove a safety-only total contract and combine it with the partial proof by `HoldsT.of_holds_code`/`of_holds_post`), notes/how-to-prove-a-function.md, Tactic/SymT.lean's header, and the existing total proofs Proof/Field/{ReduceT,ESquareT}.lean, Proof/Hash/DigestFromHalvesT.lean, Proof/Runtime/{MemcmpT,AllocT,MemsetT,PanicsT}.lean.
+
+What the end needs, and so what each contract must give:
+* `MainSpecT` asks only safety and termination: a panic or the allocator's failure ending the run with `a0 = 2` is allowed. Take `Stop` uniformly as `Core/AbortStop.lean`'s `AbortStop` (`a0 = 2`, which is `main`'s `MainStopT`) for every function that may abort, weakening a finer callee stop (`AllocStop`) by `HoldsT.mono_stop`; `False` (the default) for one that never aborts.
+* Postconditions: a function with a partial proof keeps its partial postcondition and memory frame (port, or `of_holds_code`). A function without one states what its callers need for their own safety and termination: the memory frame (`Out`), and the representation facts of what it returns or writes (a vector's pointer, capacity and length in a window and aligned, contents where a caller's later safety reads them, e.g. a copied pointer). Prefer the existing spec in `Spec/` when it has a contract (class C), adding window facts.
+* Preconditions: each pointer argument's bytes in a window (`InWin`) and aligned for the widest access through it, plus what the partial spec has. **Every `Pre` must hold at every call site in the image** (else the contract is vacuous where it is used): check each call site in the callers' templates (`Rv64mc/Gen/Tmpl/`), and say in the defence which call-site fact discharges each conjunct.
+* Each loop: `Total.loop` with a measure (see `MemcmpT`, `MemsetT`).
+* At the image: for every function made total in this wave whose callees all have total contracts at the image, a `Table` instance in a new `Rv64mc/Table/<Family>T.lean` (as `Table/Runtime.lean` instantiates the partial ones: `liftProg Gen.fns`, `Gen.Idx`, `Gen.Needs`, the generated `tmpl_eq`, `link`, `wf`), including the functions already total above, with the callees' `Table` instances as arguments, so that no hypothesis is left but environment facts. This is how the campaign composes toward `main`.
+
+Constraints:
+- No existing statement changes (`Holds`, `HoldsT`, `TContract`, `Total`, `MainSpec*`, end theorems, `EndStatement.lean`, existing specs and partial proofs). New modules for new proofs.
+- Build only what you changed: `cd formal/rv64mc && timeout 3600 systemd-run --user --scope -q -p MemoryMax=16G lake build <module names>`; one `lake build` of your own at a time; check `free -g` first (another agent builds in a sibling worktree; keep at least 10 GB available). Never `lake clean`, never delete `.lake` or `Rv64mc/Gen`, never run `scripts/regen.sh`. A `timeout` on every Lean command.
+- No `sorry`, `admit`, `axiom`, `native_decide`, `bv_decide`, `implemented_by`; no raised `maxHeartbeats` without a stated reason. A `#guard_msgs in #print axioms` block pinning `[propext, Classical.choice, Quot.sound]` (or fewer) for each `Table` theorem.
+- Style (formal/AGENTS.md, the repo AGENTS.md): header docstring per module; comments only where necessary; no measurements in comments; no em-dashes or en-dashes; one symbol one meaning.
+- Stop when the next function's gain is marginal or the budget is spent, and list in the defence what is done and what is left, per function, with the obstacle.
+- Commit on the branch with conventional messages (`feat(formal): …`) ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; do not push.
+
+Module names: put your `Table` instances in `Rv64mc/Table/MemT.lean` and `Rv64mc/Table/HashT.lean` (and `LayoutT.lean`/`FieldT.lean` only if needed); the sibling wave avoids these names except `FieldT.lean`, so name yours `Table/FieldSumT.lean` if needed.

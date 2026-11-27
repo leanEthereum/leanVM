@@ -30,7 +30,8 @@
   * a load at `d.hi + d.lo + 8 k` reads word `k` of a constant table where a hypothesis `DataRef.Words env d ws`
     gives it (`dataRead`, `Core/ReprLemmas.lean`).
 
-  It stops at a program counter in `stop`, at the target of a backward jump (a loop's head, for a loop lemma), at a
+  It stops at a program counter in `stop`, at the target of a backward jump (a loop's head, for a loop lemma) unless
+  `through` names it (`through *`: every one), where a path comes back to a program counter it has passed, at a
   call without a contract, and where the function returns, which `finish` closes by the contract's continuation,
   leaving the postcondition to `closeSide`.
 
@@ -42,7 +43,7 @@
 
   ## Main results
 
-  * `rv_sym hp stop [pcs] with [facts] using [contracts]`: step a goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩`
+  * `rv_sym hp stop [pcs] through [heads] with [facts] using [contracts]`: step a goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩`
   * `rv_auto hp …`: a contract `rvIsa.Contract p c fn Pre Post`, from the entry
   * `rv_intro h`, `rv_close`: a loop invariant's facts into the register file; the side goals' closer
   * `rv_mem`: the goal's reads of registers, `NEXT` and memory resolved
@@ -482,6 +483,7 @@ partial def arithProp (ty : Expr) (fuel : Nat := 8) : MetaM (Option Expr) := do
     let some b ← arithProp ty.appArg! fuel | return none
     return some (mkApp2 ty.appFn!.appFn! a b)
   | some ``Not =>
+    unless n == 1 do return none
     let some a ← arithProp ty.appArg! fuel | return none
     return some (mkNot a)
   | some ``True | some ``False => return some ty
@@ -828,7 +830,8 @@ def neByHyp (a b : Expr) : MetaM (Option Expr) := do
           let off := pat.appArg!
           unless off.isAppOfArity ``BitVec.ofNat 2 do return
           let n := off.appArg!
-          unless n.isAppOfArity ``HMul.hMul 6 && (← natVal? n.appFn!.appArg!) == some 8 do return
+          let k ← if n.isApp && n.appFn!.isApp then natVal? n.appFn!.appArg! else pure none
+          unless n.isAppOfArity ``HMul.hMul 6 && k == some 8 do return
           let km := n.appArg!
           unless km.isMVar do return
           let (_, c) ← affine t
@@ -1618,6 +1621,7 @@ def dataLoad (M x w s : Expr) : MetaM (Option (Expr × Expr)) := do
   let val := if sgn && raw ≥ 2 ^ (bits - 1) then raw + (2 ^ 64 - 2 ^ bits) else raw
   let some hs ← holdsGoal (← mkAppM ``Rv64mc.Env.Static #[env, M]) | return none
   let ws ← inferType hw
+  unless ws.isApp do return none
   let hv ← mkDecideProof (← mkEq (← mkAppM ``GetElem?.getElem? #[ws.appArg!, mkNatLit k]) (← mkAppM ``Option.some #[elems[k]!]))
   let hc ← mkDecideProof (← mkEq (mkNatLit cx) (mkNatLit (8 * k + o)))
   let ho ← mkDecideProof (← mkAppM ``LT.lt #[mkNatLit o, mkNatLit 8])
@@ -1874,8 +1878,12 @@ def cheapDefEq (a b : Expr) : MetaM Bool := do
 def alignGoal (ty : Expr) : MetaM (Option Expr) := do
   unless ty.isAppOfArity ``Eq 3 do return none
   let lhs := ty.appFn!.appArg!
-  unless lhs.isAppOfArity ``HMod.hMod 6 && (← natVal? lhs.appArg!) == some 16 && (← natVal? ty.appArg!) == some 0 do
-    return none
+  -- both sides evaluated before the shape is tested: `natVal?` can run out of recursion depth (on
+  -- `(x <<< 4 + q + 18446744073709551600#64).toNat`), and `closeSideSafe` then leaves the whole goal, which
+  -- `FromElemT.tail` closes by hand
+  let lv ← if lhs.isApp then natVal? lhs.appArg! else pure none
+  let rv ← natVal? ty.appArg!
+  unless lhs.isAppOfArity ``HMod.hMod 6 && lv == some 16 && rv == some 0 do return none
   let n := lhs.appFn!.appArg!
   unless n.isAppOfArity ``BitVec.toNat 2 do return none
   let some (_, _, top, _) ← rawStack | return none
@@ -2127,7 +2135,8 @@ def calleeProof (cfg : Cfg) (R tgt f : Expr) : MetaM (Option Expr) := do
       let lhs := ty.appFn!.appArg!
       if lhs.isAppOfArity ``Option.map 4 then
         let g := lhs.appArg!
-        if g.isAppOf ``GetElem?.getElem? && (← withReducible (isDefEq g.appArg! f)) then
+        let same ← if g.isApp then withReducible (isDefEq g.appArg! f) else pure false
+        if g.isAppOf ``GetElem?.getElem? && same then
           let rhs := ty.appArg!
           if rhs.isAppOfArity ``Option.some 2 then addr := some (rhs.appArg!, pf)
   let some (entry, ha) := addr | return none
@@ -2265,7 +2274,9 @@ partial def run (cfg : Cfg) (g0 : MVarId) : MetaM (List MVarId) := do
         if let some gp := gp? then left := left ++ (← closeSideSafe gp) else left := left.push g
         continue
     if ((cfg.stops.contains a.pc || cfg.heads.contains a.pc) && g != g0) || seen.contains a.pc then
-      trace[rv_sym] "left at {a.pc}: a stop or a loop's head"
+      let why := if seen.contains a.pc then "a program counter it has passed" else if cfg.stops.contains a.pc then
+        "a stop" else "a loop's head"
+      trace[rv_sym] "left at {a.pc}: {why}"
       left := left.push g; continue
     let seen := a.pc :: seen
     let some ins := cfg.body[a.pc]? | left := left.push g; continue
@@ -2563,13 +2574,18 @@ syntax rvThrough := "*" <|> ("[" num,* "]")
 syntax rvSymArgs := (" stop " "[" num,* "]")? (" through " rvThrough)? (" with " "[" term,* "]")?
   (" using " "[" term,* "]")?
 
+/-- The loop heads `through` passes: every one (`*`, as `none`) or those listed. -/
+def throughHeads (t : Syntax) : MetaM (Option (List Nat)) :=
+  match t with
+  | `(rvThrough| *) => return none
+  | `(rvThrough| [$ks,*]) => return some (ks.getElems.toList.map (·.getNat))
+  | _ => throwError "rv_sym: `through` takes `*` or a list of program counters"
+
 /-- The arguments, elaborated in the main goal's context (after `rv_auto` has opened the contract: its `regs`, `m`,
     `top`, `ret` and `hpre_k` in scope). -/
 def elabArgs (hp : Syntax) (args : Syntax) : TacticM Cfg := withMainContext do
   let stops := if args[0].isNone then [] else args[0][2].getSepArgs.toList.filterMap (·.isNatLit?)
-  let through : Option (List Nat) := if args[1].isNone then some [] else
-    let t := args[1][1]
-    if t[0].isToken "*" then none else some (t[1].getSepArgs.toList.filterMap (·.isNatLit?))
+  let through ← if args[1].isNone then pure (some []) else throughHeads args[1][1]
   let facts ← if args[2].isNone then pure #[] else args[2][2].getSepArgs.mapM fun t => elabTerm t none
   let specs ← if args[3].isNone then pure #[] else args[3][2].getSepArgs.mapM fun t => elabTerm t none
   let cfg ← mkCfg (← elabTerm hp none) stops facts specs
@@ -2577,8 +2593,9 @@ def elabArgs (hp : Syntax) (args : Syntax) : TacticM Cfg := withMainContext do
   | none => return { cfg with heads := [] }
   | some ks => return { cfg with heads := cfg.heads.filter (!ks.contains ·) }
 
-/-- **`rv_sym hp stop [pcs] with [facts] using [contracts]`**: step the goal `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩` through the
-    body of the template `hp : p[fn]? = some fd` names. -/
+/-- **`rv_sym hp stop [pcs] through [heads] with [facts] using [contracts]`**: step the goal
+    `SafeN … ⟨⟨fn, pc, …⟩ :: …⟩` through the body of the template `hp : p[fn]? = some fd` names, not stopping at the
+    loop heads in `through` (`through *`: at none). -/
 syntax (name := rvSym) "rv_sym " term rvSymArgs : tactic
 
 @[tactic rvSym] def evalRvSym : Tactic := fun stx => do
@@ -2600,7 +2617,7 @@ def openContract (g : MVarId) : MetaM MVarId := do
     let g ← g.tryClear (fvs[8]!)
     absorbFacts g (hs.map mkFVar)
 
-/-- **`rv_auto hp stop [pcs] with [facts] using [contracts]`**: a goal `rvIsa.Contract p c fn Pre Post` for the
+/-- **`rv_auto hp stop [pcs] through [heads] with [facts] using [contracts]`**: a goal `rvIsa.Contract p c fn Pre Post` for the
     template `hp : p[fn]? = some fd`, stepped from the entry: the precondition split into hypotheses, every call
     through its contract, and what the postcondition says of the stack pointer, the saved registers and the memory
     above the frame closed. What is left is the postcondition's functional part, any callee precondition that is
