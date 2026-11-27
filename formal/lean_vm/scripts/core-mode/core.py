@@ -127,7 +127,8 @@ def datac_of(k, po):
     """The text of `k`'s namespace in its pack's `DataC`, or ''."""
     f = os.path.join(GEN, po[k][0], 'DataC.lean')
     if f not in _DATAC:
-        _DATAC[f] = open(f, encoding='utf-8').read() if os.path.exists(f) else ''
+        # the lists `callc.py` writes `data% [...]` (`Guest/DataLit.lean`) read as the literals
+        _DATAC[f] = open(f, encoding='utf-8').read().replace('data% ', '') if os.path.exists(f) else ''
     s = _DATAC[f]
     i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
     if i < 0:
