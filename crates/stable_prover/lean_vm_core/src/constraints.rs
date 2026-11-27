@@ -280,7 +280,7 @@ impl Grouped {
 type State = Vec<F128x8>;
 
 /// `Σ_terms w·v(c)`, unreduced.
-#[inline(always)]
+#[inline]
 fn dot(terms: &[(usize, F128x8)], v: impl Fn(usize) -> F64x8) -> Acc8 {
     terms
         .iter()
@@ -349,7 +349,7 @@ fn message_joined(form: &Grouped, state: &State, eqr: &[F128], half: usize, at_o
 }
 
 /// One vector of rows' terms of a joined table's message, its lower and upper rows `lo` and `hi`.
-#[inline(always)]
+#[inline]
 fn add_state_message(lo: &[F128x8], hi: &[F128x8], eq: F128x8, at_one: bool, acc: &mut [Acc8; 2]) {
     let end = if at_one { hi } else { lo };
     let (mut end_value, mut quadratic) = (Acc8::ZERO, Acc8::ZERO);

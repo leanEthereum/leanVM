@@ -52,7 +52,7 @@ pub use backend::{
 
 /// The carry-less product of two 64-bit polynomials: PMULL on aarch64, PCLMULQDQ on x86-64, the portable schoolbook
 /// elsewhere. Its own arms rather than the backend's, as x86-64 has PCLMULQDQ well before VPCLMULQDQ.
-#[inline(always)]
+#[inline]
 pub fn mul_wide(a: u64, b: u64) -> u128 {
     cfg_select! {
         all(target_arch = "aarch64", target_feature = "aes") => {
@@ -107,7 +107,7 @@ impl Linear16 {
     }
 
     /// The image of `x`.
-    #[inline(always)]
+    #[inline]
     pub fn apply(&self, x: u16) -> u32 {
         self.bytes[0][x as usize & 0xff] ^ self.bytes[1][x as usize >> 8]
     }
@@ -115,7 +115,7 @@ impl Linear16 {
 
 impl F64x8 {
     /// The eight elements of `src`, which holds exactly eight.
-    #[inline(always)]
+    #[inline]
     pub fn load(src: &[F64]) -> Self {
         Self::from_array(src.try_into().expect("a lane load reads eight elements"))
     }
@@ -123,20 +123,20 @@ impl F64x8 {
 
 impl F128x8 {
     /// The eight elements of `src`, which holds exactly eight.
-    #[inline(always)]
+    #[inline]
     pub fn load(src: &[F128]) -> Self {
         Self::from_array(src.try_into().expect("a lane load reads eight elements"))
     }
 
     /// Write the eight elements over `dst`, which holds exactly eight.
-    #[inline(always)]
+    #[inline]
     pub fn store(self, dst: &mut [F128]) {
         let dst: &mut [F128; 8] = dst.try_into().expect("a lane store writes eight elements");
         *dst = self.to_array();
     }
 
     /// The eight mixed products `self[i] * k[i]`.
-    #[inline(always)]
+    #[inline]
     pub fn mul_base(self, k: F64x8) -> Self {
         self.mul_base_unreduced(k).reduce()
     }
@@ -144,7 +144,7 @@ impl F128x8 {
 
 impl Wide8 {
     /// The sum of the eight lanes.
-    #[inline(always)]
+    #[inline]
     pub fn sum(self) -> u128 {
         self.to_array().into_iter().fold(0, |a, b| a ^ b)
     }
@@ -154,14 +154,14 @@ macro_rules! additive {
     ($($t:ty),*) => {$(
         impl Add for $t {
             type Output = Self;
-            #[inline(always)]
+            #[inline]
             fn add(self, rhs: Self) -> Self {
                 self.xor(rhs)
             }
         }
 
         impl AddAssign for $t {
-            #[inline(always)]
+            #[inline]
             fn add_assign(&mut self, rhs: Self) {
                 *self = self.xor(rhs);
             }
@@ -172,7 +172,7 @@ additive!(F64x8, F128x8, Acc8, Wide8);
 
 impl Mul for F64x8 {
     type Output = Self;
-    #[inline(always)]
+    #[inline]
     fn mul(self, rhs: Self) -> Self {
         self.product(rhs)
     }
@@ -180,14 +180,14 @@ impl Mul for F64x8 {
 
 impl Mul for F128x8 {
     type Output = Self;
-    #[inline(always)]
+    #[inline]
     fn mul(self, rhs: Self) -> Self {
         self.mul_unreduced(rhs).reduce()
     }
 }
 
 impl MulAssign for F128x8 {
-    #[inline(always)]
+    #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }

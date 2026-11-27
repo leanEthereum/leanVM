@@ -33,14 +33,14 @@ pub struct Wide8([V; 8]);
 const ZERO: V = unsafe { core::mem::zeroed() };
 
 /// Eight words in registers.
-#[inline(always)]
+#[inline]
 fn regs(x: [u64; 8]) -> [V; 4] {
     // SAFETY: both sides are plain bits of one size.
     unsafe { transmute(x) }
 }
 
 /// One product, the scalar [`F128`] multiply, kept in vector registers.
-#[inline(always)]
+#[inline]
 pub(crate) fn mul(a: F128, b: F128) -> F128 {
     // SAFETY: both sides of each transmute are 128 plain bits.
     unsafe {
@@ -54,29 +54,29 @@ pub(crate) fn mul(a: F128, b: F128) -> F128 {
 impl F64x8 {
     pub const ZERO: Self = Self([ZERO; 4]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(k: F64) -> Self {
         // SAFETY: NEON is part of the aarch64 baseline.
         Self([unsafe { vdupq_n_u64(k.0) }; 4])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(k: &[F64; 8]) -> Self {
         Self(regs(k.map(|k| k.0)))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F64; 8] {
         // SAFETY: both sides are plain bits of one size.
         unsafe { transmute::<[V; 4], [F64; 8]>(self.0) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|q| xor(self.0[q], rhs.0[q])))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn product(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|q| {
             let (a, b) = (self.0[q], rhs.0[q]);
@@ -88,38 +88,38 @@ impl F64x8 {
 impl F128x8 {
     pub const ZERO: Self = Self([ZERO; 8]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(e: F128) -> Self {
         // SAFETY: both sides are plain bits of one size.
         Self([unsafe { transmute::<F128, V>(e) }; 8])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(e: &[F128; 8]) -> Self {
         // SAFETY: both sides are plain bits of one size.
         Self(unsafe { transmute::<[F128; 8], [V; 8]>(*e) })
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F128; 8] {
         // SAFETY: both sides are plain bits of one size.
         unsafe { transmute::<[V; 8], [F128; 8]>(self.0) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| xor(self.0[i], rhs.0[i])))
     }
 
     /// The eight products, unreduced: four carry-less multiplications each.
-    #[inline(always)]
+    #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> Acc8 {
         Acc8(core::array::from_fn(|i| schoolbook(self.0[i], rhs.0[i])))
     }
 
     /// The eight mixed products `self[i] * k[i]`, unreduced: each coefficient against `k[i]`, spread over both
     /// qwords.
-    #[inline(always)]
+    #[inline]
     pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
         Acc8(core::array::from_fn(|i| {
             // SAFETY: NEON is part of the aarch64 baseline.
@@ -137,7 +137,7 @@ impl F128x8 {
 impl Acc8 {
     pub const ZERO: Self = Self([[ZERO; 2]; 8]);
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| {
             [xor(self.0[i][0], rhs.0[i][0]), xor(self.0[i][1], rhs.0[i][1])]
@@ -145,13 +145,13 @@ impl Acc8 {
     }
 
     /// Every lane reduced.
-    #[inline(always)]
+    #[inline]
     pub fn reduce(self) -> F128x8 {
         F128x8(self.0.map(reduce_pair))
     }
 
     /// The sum of the eight lanes, reduced once.
-    #[inline(always)]
+    #[inline]
     pub fn sum(self) -> F128 {
         let s = self
             .0
@@ -167,7 +167,7 @@ impl Wide8 {
     pub const ZERO: Self = Self([ZERO; 8]);
 
     /// The eight carry-less products `a[i] * b[i]`.
-    #[inline(always)]
+    #[inline]
     pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
         let (a, b) = (regs(a), regs(b));
         Self(core::array::from_fn(|i| {
@@ -176,12 +176,12 @@ impl Wide8 {
         }))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| xor(self.0[i], rhs.0[i])))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn to_array(self) -> [u128; 8] {
         // SAFETY: both sides are plain bits of one size.
         unsafe { transmute::<[V; 8], [u128; 8]>(self.0) }
@@ -189,7 +189,7 @@ impl Wide8 {
 }
 
 /// The low 64 bits of the eight carry-less products `a[i] * b[i]`: one ZIP1 of each pair's low halves.
-#[inline(always)]
+#[inline]
 pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let (a, b) = (regs(a), regs(b));
     // SAFETY: NEON is part of the aarch64 baseline.
@@ -199,7 +199,7 @@ pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
 }
 
 /// Every byte of `x` through `m`: a table lookup per nibble.
-#[inline(always)]
+#[inline]
 pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
     // SAFETY: NEON is part of the aarch64 baseline; the loads read the two 16-byte tables, and both sides of each
     // transmute are plain bits of one size.
@@ -217,26 +217,26 @@ pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
 }
 
 /// The 128-bit carry-less product of the low qwords.
-#[inline(always)]
+#[inline]
 fn lo(a: V, b: V) -> V {
     // SAFETY: the module's cfg enables aes; both sides of the transmute are 128 plain bits.
     unsafe { transmute::<u128, V>(vmull_p64(vgetq_lane_u64::<0>(a), vgetq_lane_u64::<0>(b))) }
 }
 
 /// The 128-bit carry-less product of the high qwords.
-#[inline(always)]
+#[inline]
 fn hi(a: V, b: V) -> V {
     // SAFETY: the module's cfg enables aes; both sides of the transmute are 128 plain bits.
     unsafe { transmute::<u128, V>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
 }
 
-#[inline(always)]
+#[inline]
 fn xor(a: V, b: V) -> V {
     // SAFETY: NEON is part of the aarch64 baseline.
     unsafe { veorq_u64(a, b) }
 }
 
-#[inline(always)]
+#[inline]
 fn xor3(a: V, b: V, c: V) -> V {
     #[cfg(target_feature = "sha3")]
     // SAFETY: the cfg enables sha3, which carries EOR3.
@@ -248,7 +248,7 @@ fn xor3(a: V, b: V, c: V) -> V {
 }
 
 /// `x * p` for a 128-bit polynomial `p` of degree at most 126: a one-bit shift across the qwords.
-#[inline(always)]
+#[inline]
 fn times_x(p: V) -> V {
     // SAFETY: NEON is part of the aarch64 baseline.
     unsafe { vorrq_u64(vshlq_n_u64::<1>(p), vextq_u64::<1>(ZERO, vshrq_n_u64::<63>(p))) }
@@ -256,7 +256,7 @@ fn times_x(p: V) -> V {
 
 /// One 128-bit coefficient `lo + hi * x^64` reduced into the low qword: `hi * 0x1B = [a, s]` with `s` of at most
 /// four bits, `s * 0x1B = [b, 0]`, and the result `lo + a + b`.
-#[inline(always)]
+#[inline]
 fn reduce_lane(d: V) -> V {
     // SAFETY: NEON is part of the aarch64 baseline.
     let r = unsafe { vdupq_n_u64(R64) };
@@ -265,14 +265,14 @@ fn reduce_lane(d: V) -> V {
 }
 
 /// An element's two coefficients reduced, as its register `[c0, c1]`.
-#[inline(always)]
+#[inline]
 fn reduce_pair([d0, d1]: [V; 2]) -> V {
     // SAFETY: NEON is part of the aarch64 baseline.
     unsafe { vzip1q_u64(reduce_lane(d0), reduce_lane(d1)) }
 }
 
 /// The y-folded schoolbook product: with `y^2 = x y + 1`, `d0 = a0 b0 + a1 b1` and `d1 = a0 b1 + a1 b0 + x a1 b1`.
-#[inline(always)]
+#[inline]
 fn schoolbook(a: V, b: V) -> [V; 2] {
     // SAFETY: NEON is part of the aarch64 baseline.
     let swapped = unsafe { vextq_u64::<1>(a, a) };

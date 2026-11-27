@@ -31,21 +31,21 @@ const RUN: usize = 1 << 7;
 const ITEM: usize = 1 << 12;
 
 /// `u' = u + v t; v' = v + u'`.
-#[inline(always)]
+#[inline]
 fn forward<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
     let u = u + v * t;
     (u, v + u)
 }
 
 /// The inverse of [`forward`]: `v' = v + u; u' = u + v' t`.
-#[inline(always)]
+#[inline]
 fn inverse<T: Copy + Add<Output = T> + Mul<Output = T>>(u: T, v: T, t: T) -> (T, T) {
     let v = v + u;
     (u + v * t, v)
 }
 
 /// `step` on every word pair of two rows under twiddle `t`: eight words at a time, then the rest one by one.
-#[inline(always)]
+#[inline]
 fn zip_rows(
     top: &mut [F64],
     bot: &mut [F64],

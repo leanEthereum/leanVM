@@ -44,21 +44,21 @@ pub struct Acc8([[V; 2]; R]);
 pub struct Wide8([[V; 2]; Q]);
 
 /// Eight words in registers.
-#[inline(always)]
+#[inline]
 fn regs(x: [u64; 8]) -> [V; Q] {
     // SAFETY: both sides are plain bits of one size.
     unsafe { transmute(x) }
 }
 
 /// The eight words of registers.
-#[inline(always)]
+#[inline]
 fn words(x: [V; Q]) -> [u64; 8] {
     // SAFETY: both sides are plain bits of one size.
     unsafe { transmute(x) }
 }
 
 /// One product, the scalar [`F128`] multiply: [`karatsuba`] and [`reduce_pair`] on one XMM register.
-#[inline(always)]
+#[inline]
 pub(crate) fn mul(a: F128, b: F128) -> F128 {
     // SAFETY: the module's cfg enables vpclmulqdq and avx2, which imply pclmulqdq and ssse3; each transmute is of 16
     // plain bytes.
@@ -81,29 +81,29 @@ pub(crate) fn mul(a: F128, b: F128) -> F128 {
 impl F64x8 {
     pub const ZERO: Self = Self([v::ZERO; Q]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(k: F64) -> Self {
         Self([v::splat(k.0, k.0); Q])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(k: &[F64; 8]) -> Self {
         Self(regs(k.map(|k| k.0)))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F64; 8] {
         words(self.0).map(F64)
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|q| v::xor(self.0[q], rhs.0[q])))
     }
 
     /// The even elements' products in one register and the odd ones' in another, then the reduction puts them back
     /// in memory order.
-    #[inline(always)]
+    #[inline]
     pub(super) fn product(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|q| {
             let (a, b) = (self.0[q], rhs.0[q]);
@@ -115,37 +115,37 @@ impl F64x8 {
 impl F128x8 {
     pub const ZERO: Self = Self([v::ZERO; R]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(e: F128) -> Self {
         Self([v::splat(e.c0, e.c1); R])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(e: &[F128; 8]) -> Self {
         // SAFETY: both sides are plain bits of one size.
         Self(unsafe { transmute::<[F128; 8], [V; R]>(*e) })
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F128; 8] {
         // SAFETY: both sides are plain bits of one size.
         unsafe { transmute::<[V; R], [F128; 8]>(self.0) }
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|r| v::xor(self.0[r], rhs.0[r])))
     }
 
     /// The eight products, unreduced: three carry-less multiplications per register.
-    #[inline(always)]
+    #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> Acc8 {
         Acc8(core::array::from_fn(|r| karatsuba(self.0[r], rhs.0[r])))
     }
 
     /// The eight mixed products `self[i] * k[i]`, unreduced: two carry-less multiplications per register, each
     /// coefficient against `k[i]`, spread over both qwords of element `i`'s lane.
-    #[inline(always)]
+    #[inline]
     pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
         let k = v::spread(k.0);
         Acc8(core::array::from_fn(|r| {
@@ -157,7 +157,7 @@ impl F128x8 {
 impl Acc8 {
     pub const ZERO: Self = Self([[v::ZERO; 2]; R]);
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|r| {
             [v::xor(self.0[r][0], rhs.0[r][0]), v::xor(self.0[r][1], rhs.0[r][1])]
@@ -165,13 +165,13 @@ impl Acc8 {
     }
 
     /// Every lane reduced.
-    #[inline(always)]
+    #[inline]
     pub fn reduce(self) -> F128x8 {
         F128x8(self.0.map(reduce_pair))
     }
 
     /// The sum of the eight lanes, reduced once.
-    #[inline(always)]
+    #[inline]
     pub fn sum(self) -> F128 {
         let [d0, d1] = self
             .0
@@ -186,7 +186,7 @@ impl Wide8 {
     pub const ZERO: Self = Self([[v::ZERO; 2]; Q]);
 
     /// The eight carry-less products `a[i] * b[i]`.
-    #[inline(always)]
+    #[inline]
     pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
         let (a, b) = (regs(a), regs(b));
         Self(core::array::from_fn(|q| {
@@ -194,14 +194,14 @@ impl Wide8 {
         }))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|q| {
             [v::xor(self.0[q][0], rhs.0[q][0]), v::xor(self.0[q][1], rhs.0[q][1])]
         }))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn to_array(self) -> [u128; 8] {
         let out: [[V; 2]; Q] = self.0.map(|[even, odd]| v::interleave(even, odd));
         // SAFETY: both sides are plain bits of one size.
@@ -211,7 +211,7 @@ impl Wide8 {
 
 /// The low 64 bits of the eight carry-less products `a[i] * b[i]`: the even and odd products' low qwords, unpacked
 /// in place.
-#[inline(always)]
+#[inline]
 pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let (a, b) = (regs(a), regs(b));
     words(core::array::from_fn(|q| {
@@ -247,7 +247,7 @@ impl ByteMap {
 
 /// Every byte of `x` through `m`: one affine byte map per register.
 #[cfg(target_feature = "gfni")]
-#[inline(always)]
+#[inline]
 pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
     let matrix = v::splat(m.matrix, m.matrix);
     words(regs(x).map(|x| v::affine(x, matrix)))
@@ -256,7 +256,7 @@ pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
 /// `m` of each 16-bit field of each lane, by nibble lookups: per output byte, the low and the high byte of every
 /// field looked up in place, the high one's moved onto the low one, then the four bytes of each image gathered by
 /// unpacking.
-#[inline(always)]
+#[inline]
 pub fn map_fields(m: &Linear16, x: [u64; 8]) -> [[u64; 8]; 4] {
     const NIBBLES: u64 = 0x0f0f_0f0f_0f0f_0f0f;
     const LOW_BYTES: u64 = 0x00ff_00ff_00ff_00ff;
@@ -284,10 +284,10 @@ pub fn map_fields(m: &Linear16, x: [u64; 8]) -> [[u64; 8]; 4] {
 }
 
 /// Eight rows of eight words transposed, as four 4 by 4 blocks of YMM registers.
-#[inline(always)]
+#[inline]
 pub fn transpose_words(rows: &[[u64; 8]; 8]) -> [[u64; 8]; 8] {
     /// The 4 by 4 transpose of the words of four registers.
-    #[inline(always)]
+    #[inline]
     fn transpose4(a: [__m256i; 4]) -> [__m256i; 4] {
         // SAFETY: the module's cfg enables avx2.
         unsafe {
@@ -318,7 +318,7 @@ pub fn transpose_words(rows: &[[u64; 8]; 8]) -> [[u64; 8]; 8] {
 /// gathers word `c`'s bytes from the rows, last row first, and an affine byte map with each word as its matrix
 /// transposes its bits.
 #[cfg(target_feature = "gfni")]
-#[inline(always)]
+#[inline]
 pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
     /// In each 128-bit lane, byte `c` of its second word then byte `c` of its first, for each `c`.
     const PAIRS: [u8; 16] = [8, 0, 9, 1, 10, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7];
@@ -342,7 +342,7 @@ pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
 /// Sixteen rows of 64 bytes transposed: byte `b` of output `n` is byte `n` of `rows[b]`. Within each 128-bit lane,
 /// four rounds of unpacks pair registers 8, 4, 2 and 1 apart; fed the rows in bit-reversed order, they leave
 /// register `i` holding column `i`.
-#[inline(always)]
+#[inline]
 pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
     let r = rows.map(regs);
     let mut out = [[[0u128; W]; 16]; Q];
@@ -383,7 +383,7 @@ const G_SPILL: [u8; 16] = {
 ///
 /// `lo ^ g(hi) ^ g(spill)`, with `g(h) = z ^ z<<3` for `z = h ^ h<<1`, and `g(spill)` one in-lane byte lookup on the
 /// top nibble of `hi`.
-#[inline(always)]
+#[inline]
 fn reduce_qwords(lo: V, hi: V) -> V {
     let z = v::xor(hi, v::shl::<1>(hi));
     let g_spill = v::lookup(G_SPILL, v::shr::<60>(hi));
@@ -391,7 +391,7 @@ fn reduce_qwords(lo: V, hi: V) -> V {
 }
 
 /// `[d0, d1]` per 128-bit lane, each a coefficient's 128-bit polynomial, reduced to `[c0, c1]`.
-#[inline(always)]
+#[inline]
 fn reduce_pair([d0, d1]: [V; 2]) -> V {
     reduce_qwords(v::unpacklo(d0, d1), v::unpackhi(d0, d1))
 }
@@ -399,7 +399,7 @@ fn reduce_pair([d0, d1]: [V; 2]) -> V {
 /// The y-folded Karatsuba product, lane by lane: with `p0 = a0 b0`, `p1 = a1 b1`, `p01 = (a0 + a1)(b0 + b1)` and
 /// `y^2 = x y + 1`, the coefficients are `d0 = p0 + p1` and `d1 = p01 + p0 + p1 + x p1`. Both qwords of `a + swap(a)`
 /// hold `a0 + a1`, so every product reads one qword of each operand's 128-bit lane.
-#[inline(always)]
+#[inline]
 fn karatsuba(a: V, b: V) -> [V; 2] {
     let (p0, p1) = (v::clmul::<0x00>(a, b), v::clmul::<0x11>(a, b));
     let p01 = v::clmul::<0x00>(v::xor(a, v::swap(a)), v::xor(b, v::swap(b)));
@@ -429,13 +429,13 @@ mod v {
         all(target_feature = "avx512f", target_feature = "avx512bw") => {
             pub type V = __m512i;
 
-            #[inline(always)]
+            #[inline]
             pub fn shl<const N: u32>(a: V) -> V {
                 // SAFETY: the backend's cfg and this arm's enable avx512f.
                 unsafe { _mm512_slli_epi64::<N>(a) }
             }
 
-            #[inline(always)]
+            #[inline]
             pub fn shr<const N: u32>(a: V) -> V {
                 // SAFETY: as `shl`.
                 unsafe { _mm512_srli_epi64::<N>(a) }
@@ -444,13 +444,13 @@ mod v {
         _ => {
             pub type V = __m256i;
 
-            #[inline(always)]
+            #[inline]
             pub fn shl<const N: i32>(a: V) -> V {
                 // SAFETY: the backend's cfg enables avx2.
                 unsafe { _mm256_slli_epi64::<N>(a) }
             }
 
-            #[inline(always)]
+            #[inline]
             pub fn shr<const N: i32>(a: V) -> V {
                 // SAFETY: as `shl`.
                 unsafe { _mm256_srli_epi64::<N>(a) }
@@ -462,41 +462,41 @@ mod v {
     pub const ZERO: V = unsafe { core::mem::zeroed() };
 
     /// `[lo, hi]` in every 128-bit lane.
-    #[inline(always)]
+    #[inline]
     pub fn splat(lo: u64, hi: u64) -> V {
         let (l, h) = (lo as i64, hi as i64);
         width!(_mm512_set_epi64(h, l, h, l, h, l, h, l), _mm256_set_epi64x(h, l, h, l))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn xor(a: V, b: V) -> V {
         width!(_mm512_xor_si512(a, b), _mm256_xor_si256(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn and(a: V, b: V) -> V {
         width!(_mm512_and_si512(a, b), _mm256_and_si256(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn or(a: V, b: V) -> V {
         width!(_mm512_or_si512(a, b), _mm256_or_si256(a, b))
     }
 
     /// The carry-less product of a qword of each 128-bit lane of `a` and one of `b`'s, chosen by `I`.
-    #[inline(always)]
+    #[inline]
     pub fn clmul<const I: i32>(a: V, b: V) -> V {
         width!(_mm512_clmulepi64_epi128::<I>(a, b), _mm256_clmulepi64_epi128::<I>(a, b))
     }
 
     /// The qwords of each 128-bit lane swapped.
-    #[inline(always)]
+    #[inline]
     pub fn swap(a: V) -> V {
         width!(_mm512_shuffle_epi32::<0x4E>(a), _mm256_shuffle_epi32::<0x4E>(a))
     }
 
     /// `x * p` for each 128-bit lane `p` of degree at most 126: a one-bit shift across the qwords.
-    #[inline(always)]
+    #[inline]
     pub fn times_x(p: V) -> V {
         width!(
             _mm512_or_si512(
@@ -511,7 +511,7 @@ mod v {
     }
 
     /// Each byte `b < 16` replaced by `table[b]`.
-    #[inline(always)]
+    #[inline]
     pub fn lookup(table: [u8; 16], b: V) -> V {
         // SAFETY: the transmute is of 16 plain bytes.
         let t = unsafe { core::mem::transmute::<[u8; 16], __m128i>(table) };
@@ -523,7 +523,7 @@ mod v {
 
     /// Each byte through the matrix of its word in `m`.
     #[cfg(target_feature = "gfni")]
-    #[inline(always)]
+    #[inline]
     pub fn affine(x: V, m: V) -> V {
         width!(
             _mm512_gf2p8affine_epi64_epi8::<0>(x, m),
@@ -531,48 +531,48 @@ mod v {
         )
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpacklo8(a: V, b: V) -> V {
         width!(_mm512_unpacklo_epi8(a, b), _mm256_unpacklo_epi8(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpackhi8(a: V, b: V) -> V {
         width!(_mm512_unpackhi_epi8(a, b), _mm256_unpackhi_epi8(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpacklo16(a: V, b: V) -> V {
         width!(_mm512_unpacklo_epi16(a, b), _mm256_unpacklo_epi16(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpackhi16(a: V, b: V) -> V {
         width!(_mm512_unpackhi_epi16(a, b), _mm256_unpackhi_epi16(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpacklo32(a: V, b: V) -> V {
         width!(_mm512_unpacklo_epi32(a, b), _mm256_unpacklo_epi32(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpackhi32(a: V, b: V) -> V {
         width!(_mm512_unpackhi_epi32(a, b), _mm256_unpackhi_epi32(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpacklo(a: V, b: V) -> V {
         width!(_mm512_unpacklo_epi64(a, b), _mm256_unpacklo_epi64(a, b))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn unpackhi(a: V, b: V) -> V {
         width!(_mm512_unpackhi_epi64(a, b), _mm256_unpackhi_epi64(a, b))
     }
 
     /// The XOR of the 128-bit lanes.
-    #[inline(always)]
+    #[inline]
     pub fn lane_sum(a: V) -> u128 {
         let x = width!(
             {
@@ -587,7 +587,7 @@ mod v {
 
     /// Eight `K` elements spread one to a 128-bit lane, in both its qwords: lane `j` of register `r` is
     /// `k[W r + j]`.
-    #[inline(always)]
+    #[inline]
     pub fn spread(k: [V; super::Q]) -> [V; super::R] {
         width!(
             [
@@ -604,7 +604,7 @@ mod v {
     }
 
     /// Products of the even qwords and of the odd ones, one per 128-bit lane, in memory order over two registers.
-    #[inline(always)]
+    #[inline]
     pub fn interleave(even: V, odd: V) -> [V; 2] {
         width!(
             [

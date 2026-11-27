@@ -118,7 +118,7 @@ fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
 }
 
 /// Whether the `n` rows from `first` all lie in `ones`.
-#[inline(always)]
+#[inline]
 fn known(ones: &[Range<usize>], first: usize, n: usize) -> bool {
     let i = ones.partition_point(|r| r.end < first + n);
     ones.get(i).is_some_and(|r| r.start <= first)
@@ -146,13 +146,13 @@ fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
 }
 
 /// Eight lanes, lane `p` being `value(p)`.
-#[inline(always)]
+#[inline]
 fn lanes(value: impl Fn(usize) -> F128) -> F128x8 {
     F128x8::from_array(&std::array::from_fn(value))
 }
 
 /// `values[start..start + N]`, the identity past the end.
-#[inline(always)]
+#[inline]
 fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
     match values.get(start..start + N) {
         Some(run) => run.try_into().unwrap(),
@@ -317,7 +317,7 @@ impl Layer {
 
 /// Group `k` of `rows` folded by each of `folds` in turn, written over `out`: the [`GROUP`] rows folded from the
 /// `GROUP << folds.len()` rows from `(GROUP << folds.len())·k`, the identity past the end of `rows`.
-#[inline(always)]
+#[inline]
 fn fold_group(rows: &[F128], k: usize, folds: &[F128x8], out: &mut [F128; 4 * GROUP]) {
     match *folds {
         [] => *out = padded(rows, 4 * GROUP * k),
@@ -333,7 +333,7 @@ fn fold_group(rows: &[F128], k: usize, folds: &[F128x8], out: &mut [F128; 4 * GR
 
 /// `out`'s row `i` is `interp(row 2i, row 2i + 1, r)` of the rows from `rows[start]`, child by child, two output rows
 /// at a time.
-#[inline(always)]
+#[inline]
 fn fold_rows(rows: &[F128], start: usize, r: F128x8, out: &mut [F128]) {
     for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
         let pairs: [F128; 16] = padded(rows, start + 16 * i);
@@ -349,7 +349,7 @@ fn fold_rows(rows: &[F128], start: usize, r: F128x8, out: &mut [F128]) {
 /// weight scales child 0's line, and with it the product.
 ///
 /// Karatsuba throughout: in characteristic two, `x_i·y_j + x_j·y_i = (x_i + x_j)·(y_i + y_j) + x_i·y_i + x_j·y_j`.
-#[inline(always)]
+#[inline]
 fn add_message(group: &[F128; 4 * GROUP], eq: F128x8, acc: &mut [Acc8; 4]) {
     // `g[c]` is child `c` of each pair's lower row, `g[4 + c]` of its upper.
     let g: [F128x8; 8] = std::array::from_fn(|j| lanes(|p| group[8 * p + j]));

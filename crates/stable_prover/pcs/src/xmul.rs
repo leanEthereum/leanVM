@@ -45,7 +45,7 @@ fn constants() -> &'static [F64; 64] {
 }
 
 /// `(X h)[c]`, coefficient `i` of `h` being `h(i)`, zero past its end.
-#[inline(always)]
+#[inline]
 pub(crate) fn x_coef<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
     match c {
         0 => T::default(),

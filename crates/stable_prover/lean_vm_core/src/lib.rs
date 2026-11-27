@@ -51,7 +51,7 @@ pub(crate) fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
 }
 
 /// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
-#[inline(always)]
+#[inline]
 pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
     if n >= 8 {
         F64x8::load(&values[i..i + 8])
@@ -61,7 +61,7 @@ pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
 }
 
 /// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
-#[inline(always)]
+#[inline]
 pub(crate) fn load_e(values: &[F128], i: usize, n: usize) -> F128x8 {
     if n >= 8 {
         F128x8::load(&values[i..i + 8])

@@ -245,7 +245,7 @@ impl<'a> Formula<'a> {
     }
 
     /// The leaves of rows `z..z + 8`, each a sum of products reduced once.
-    #[inline(always)]
+    #[inline]
     fn leaves(&self, cols: &[&[F64]], z: usize) -> [F128; 8] {
         if z >= self.rows {
             return [F128::ONE; 8];

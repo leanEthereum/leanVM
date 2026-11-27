@@ -26,7 +26,7 @@ pub const fn mul_by_g(a: F64) -> F64 {
 /// Divide by `x = g` in `K`, the inverse of the product by `g`.
 ///
 /// Bit 0 of the input says whether that product folded: if so, unfold it and set bit 63.
-#[inline(always)]
+#[inline]
 pub const fn div_by_g(a: F64) -> F64 {
     F64(if a.0 & 1 == 1 {
         (a.0 ^ R64) >> 1 | 1 << 63

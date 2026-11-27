@@ -26,7 +26,7 @@ impl SplitEq {
     }
 
     /// `eq` at `8k..8k + 8`, zero past the hypercube.
-    #[inline(always)]
+    #[inline]
     pub(crate) fn lanes(&self, k: usize) -> F128x8 {
         let (block, at) = ((8 * k) >> self.lo_bits, (8 * k) & (self.lo.len() - 1));
         match (self.hi.get(block), self.lo.get(at..at + 8)) {

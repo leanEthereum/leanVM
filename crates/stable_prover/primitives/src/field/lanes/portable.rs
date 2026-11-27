@@ -19,7 +19,7 @@ pub const fn mul_wide(a: u64, b: u64) -> u128 {
 }
 
 /// One `E` product.
-#[inline(always)]
+#[inline]
 pub(crate) fn mul(a: F128, b: F128) -> F128 {
     a.mul_unreduced(b).reduce()
 }
@@ -43,27 +43,27 @@ pub struct Wide8([u128; 8]);
 impl F64x8 {
     pub const ZERO: Self = Self([F64::ZERO; 8]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(k: F64) -> Self {
         Self([k; 8])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(k: &[F64; 8]) -> Self {
         Self(*k)
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F64; 8] {
         self.0
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] + rhs.0[i]))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn product(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] * rhs.0[i]))
     }
@@ -72,34 +72,34 @@ impl F64x8 {
 impl F128x8 {
     pub const ZERO: Self = Self([F128::ZERO; 8]);
 
-    #[inline(always)]
+    #[inline]
     pub fn splat(e: F128) -> Self {
         Self([e; 8])
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn from_array(e: &[F128; 8]) -> Self {
         Self(*e)
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn to_array(self) -> [F128; 8] {
         self.0
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] + rhs.0[i]))
     }
 
     /// The eight products `self[i] * rhs[i]`, unreduced.
-    #[inline(always)]
+    #[inline]
     pub fn mul_unreduced(self, rhs: Self) -> Acc8 {
         Acc8(core::array::from_fn(|i| self.0[i].mul_unreduced(rhs.0[i])))
     }
 
     /// The eight mixed products `self[i] * k[i]`, unreduced.
-    #[inline(always)]
+    #[inline]
     pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
         Acc8(core::array::from_fn(|i| self.0[i].mul_base_unreduced(k.0[i])))
     }
@@ -108,19 +108,19 @@ impl F128x8 {
 impl Acc8 {
     pub const ZERO: Self = Self([F128Unreduced::ZERO; 8]);
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] ^ rhs.0[i]))
     }
 
     /// Every lane reduced.
-    #[inline(always)]
+    #[inline]
     pub fn reduce(self) -> F128x8 {
         F128x8(self.0.map(F128Unreduced::reduce))
     }
 
     /// The sum of the eight lanes, reduced once.
-    #[inline(always)]
+    #[inline]
     pub fn sum(self) -> F128 {
         self.0.into_iter().fold(F128Unreduced::ZERO, |s, x| s ^ x).reduce()
     }
@@ -130,24 +130,24 @@ impl Wide8 {
     pub const ZERO: Self = Self([0; 8]);
 
     /// The eight carry-less products `a[i] * b[i]`.
-    #[inline(always)]
+    #[inline]
     pub fn mul(a: [u64; 8], b: [u64; 8]) -> Self {
         Self(core::array::from_fn(|i| super::mul_wide(a[i], b[i])))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn xor(self, rhs: Self) -> Self {
         Self(core::array::from_fn(|i| self.0[i] ^ rhs.0[i]))
     }
 
-    #[inline(always)]
+    #[inline]
     pub(super) fn to_array(self) -> [u128; 8] {
         self.0
     }
 }
 
 /// The low 64 bits of the eight carry-less products `a[i] * b[i]`.
-#[inline(always)]
+#[inline]
 pub fn clmul8_low(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     core::array::from_fn(|i| super::mul_wide(a[i], b[i]) as u64)
 }
@@ -178,7 +178,7 @@ impl ByteMap {
 }
 
 /// Every byte of `x` through `m`.
-#[inline(always)]
+#[inline]
 pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
     x.map(|w| {
         u64::from_le_bytes(
@@ -189,20 +189,20 @@ pub fn map_bytes(m: &ByteMap, x: [u64; 8]) -> [u64; 8] {
 }
 
 /// `m` of each 16-bit field of each lane: field `f` of lane `i` to lane `i` of output `f`.
-#[inline(always)]
+#[inline]
 pub fn map_fields(m: &Linear16, x: [u64; 8]) -> [[u64; 8]; 4] {
     core::array::from_fn(|f| x.map(|w| u64::from(m.apply((w >> (16 * f)) as u16))))
 }
 
 /// Eight rows of eight words transposed.
-#[inline(always)]
+#[inline]
 pub fn transpose_words(rows: &[[u64; 8]; 8]) -> [[u64; 8]; 8] {
     core::array::from_fn(|c| core::array::from_fn(|r| rows[r][c]))
 }
 
 /// The 8 by 64 bit matrix of `rows` transposed: bit `k` of byte `n` is bit `n` of `rows[k]`. Each word's bytes are
 /// gathered by row, then each 8 by 8 block is transposed in place, both by swaps of masked shifts.
-#[inline(always)]
+#[inline]
 pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
     // Byte `k` of word `c` is byte `c` of row `k`.
     let mut w = rows;
@@ -232,7 +232,7 @@ pub fn transpose_bits(rows: [u64; 8]) -> [u64; 8] {
 }
 
 /// Sixteen rows of 64 bytes transposed: byte `b` of output `n` is byte `n` of `rows[b]`.
-#[inline(always)]
+#[inline]
 pub fn transpose_bytes(rows: &[[u64; 8]; 16]) -> [u128; 64] {
     let bytes = rows.map(|r| {
         let mut b = [0u8; 64];
