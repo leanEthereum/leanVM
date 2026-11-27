@@ -155,14 +155,14 @@ impl F128x8 {
     }
 
     /// The eight products, unreduced: three carry-less multiplications per register.
-    #[inline]
+    #[inline(never)]
     pub fn mul_unreduced(self, rhs: Self) -> Acc8 {
         Acc8(each(|r| karatsuba(self.0[r], rhs.0[r])))
     }
 
     /// The eight mixed products `self[i] * k[i]`, unreduced: two carry-less multiplications per register, each
     /// coefficient against `k[i]`, spread over both qwords of element `i`'s lane.
-    #[inline]
+    #[inline(never)]
     pub fn mul_base_unreduced(self, k: F64x8) -> Acc8 {
         let k = v::spread(k.0);
         Acc8(each(|r| {
@@ -182,7 +182,7 @@ impl Acc8 {
     }
 
     /// Every lane reduced.
-    #[inline]
+    #[inline(never)]
     pub fn reduce(self) -> F128x8 {
         F128x8(each(|r| reduce_pair(self.0[r])))
     }
