@@ -55,7 +55,6 @@ public import FORS.ScanSigner.LazySigner
 public import FORS.ScanSigner.LoopWalk
 public import FORS.ScanSigner.Scan
 public import FORS.ScanSigner.ScanReveals
-public import FORS.ScanSigner.SignatureLaw
 public import FORS.GraphView.Cache
 public import FORS.GraphView.Correctness
 public import FORS.GraphView.Cost
@@ -172,11 +171,6 @@ public import FORS.SmallBudget.SampleBound
 public import FORS.SmallBudget.SampleEvents
 public import FORS.LargeBudget.HonestCoupling
 public import FORS.LargeBudget.Covers
-public import FORS.LargeBudget.HeavyPotential
-public import FORS.LargeBudget.HeavyPotentialH
-public import FORS.LargeBudget.HeavyRoute
-public import FORS.LargeBudget.HeavyRouteH
-public import FORS.LargeBudget.HeavyTerm
 public import FORS.LargeBudget.Route
 public import FORS.LargeBudget.RouteH
 public import FORS.LargeBudget.RouteStartH
@@ -185,7 +179,6 @@ public import FORS.LargeBudget.WeightedPotential
 public import FORS.LargeBudget.WeightedPotentialH
 public import FORS.LargeBudget.WeightedScan
 public import FORS.Certificates.Build
-public import FORS.Certificates.Closing
 public import FORS.Certificates.ClosingAdv
 public import FORS.Certificates.H26
 public import FORS.Certificates.VerifyCost

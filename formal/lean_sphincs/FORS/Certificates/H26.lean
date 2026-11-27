@@ -1,7 +1,6 @@
 module
 
 public import FORS.Certificates.Build
-public import FORS.Certificates.Closing
 
 @[expose] public section
 
@@ -260,8 +259,8 @@ theorem cover_h26_L_0_ok : checkCoverW 26 26 24 10 264193 1182000000 51248745113
     (by decide +kernel)
 
 /-- The covers reach every budget below `2^127`. -/
-theorem covers_h26_L_ok : ForsPotential.checkCoversH 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] [] = true := by
-  simp only [ForsPotential.checkCoversH, ForsPotential.checkCoversHeavy, Bool.and_eq_true]
+theorem covers_h26_L_ok : checkCovers 26 26 24 10 264193 1182000000 512487451133699472151040029945233409 [cover_h26_b26_0] = true := by
+  simp only [checkCovers, Bool.and_eq_true]
   exact ⟨cover_h26_L_0_ok, by decide +kernel⟩
 
 end FORS.Security.H0
