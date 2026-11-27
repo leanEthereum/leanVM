@@ -165,7 +165,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 3 | 12 | `core::panicking::assert_failed_inner` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.assertFailedInner | none |
 | 3 | 15 | `core::slice::index::slice_index_fail` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.sliceIndexFail | none |
 | 3 | 16 | `core::panicking::panic_bounds_check` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicBoundsCheck | none |
-| 3 | 18 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 62 | D | no | - | - | - |
+| 3 | 18 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 62 | D | yes | Proof/Field/ESumNovelT (safety; the zip's index `0`, both sides slices; loop by `Total.loop`) | SumT6f.eSumNovel | clmul table |
 | 3 | 40 | `<alloc::raw_vec::RawVecInner>::grow_amortized @verifier` | 41 | A | yes | Proof/Runtime/GrowAmortizedT | AllocT.growAmortized | env |
 | 3 | 56 | `<verifier::hash::Digest>::halves` | 19 | A | yes | Proof/Hash/DigestHalvesT | HashT.digestHalvesT | none |
 | 3 | 63 | `alloc::boxed::box_new_uninit` | 11 | A | yes | Proof/Runtime/BoxNewUninitT | AllocT.boxNewUninit | env |
