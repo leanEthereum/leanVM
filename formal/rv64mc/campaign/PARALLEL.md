@@ -41,6 +41,7 @@ A batch is about 4 to 12 functions (one worker session, a few hours); then revie
 
 ## Resources
 
+- **Every Lean command goes through `campaign/scripts/lean-slot.sh`** (`campaign/scripts/lean-slot.sh [--timeout SECS] lake build …` or `… lake env lean <file>`, from `formal/rv64mc`): it runs at most `LEAN_SLOTS` Lean commands on the host at once (default 2, each under `MemoryMax=$LEAN_SLOT_MEM`, default 14G, with `LEAN_ABORT_ON_PANIC=1`), so the number of workers is not bounded by memory. Workers spend about half their time reasoning, so four workers on two slots keep both slots busy. Raise `LEAN_SLOTS` on a bigger host; set the same `LEAN_SLOT_DIR` for every worker.
 - Each Lean process checking one of these proof files uses a few GB; Lake's full build about 32 at once. Size the number of parallel workers to memory: with the earlier 62 GB host, two workers capped at 16 GB each was the limit and workers waited for memory.
 - One `lake build` per worktree at a time. Builds in different worktrees do not share outputs: seed each new worktree's `.lake` by `rsync` from a built one at the same commit.
 - Never `lake clean`, never delete `.lake` or `Rv64mc/Gen`, never run `scripts/regen.sh` mid-campaign.

@@ -45,6 +45,7 @@ This folder lets an agent with no prior context continue the campaign. Read this
 | path | what |
 | --- | --- |
 | `README.md`, `PROVING.md`, `PARALLEL.md`, `REVIEW.md` | this guide |
+| `scripts/lean-slot.sh` | runs a Lean command in one of a fixed number of host-wide slots under a memory cap (`PARALLEL.md`, "Resources") |
 | `scripts/plan.py` | the remaining functions by track, with what each waits on |
 | `scripts/callgraph.py` | writes `cg.json` from `Rv64mc/Gen/` |
 | `scripts/frontier_now.py` | the functions whose callees are all total |

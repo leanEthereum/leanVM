@@ -72,9 +72,10 @@ theorem sumArr3 (hd : FieldT.ClmulTable env) :
 
 ## Iterating
 
-- Check one file: `cd formal/rv64mc && timeout 1800 lake env lean Rv64mc/Proof/<path>.lean`. It re-elaborates the whole file: 20 to 35 s typically, minutes for large ones. In the last waves about half of all wall-clock time went to these checks.
+- Check one file: `cd formal/rv64mc && campaign/scripts/lean-slot.sh --timeout 1800 lake env lean Rv64mc/Proof/<path>.lean` (`lean-slot.sh` queues it with the other workers' Lean commands, `PARALLEL.md`, "Resources"). It re-elaborates the whole file: 20 to 35 s typically, minutes for large ones. In the last waves about half of all wall-clock time went to these checks.
 - Much faster: the Lean language server re-elaborates only from the first edited declaration, and inside a tactic proof from the edited step. Through an MCP server (`lean-lsp-mcp`): `lean_diagnostic_messages` after each edit, `lean_goal` for the state at a line, and `lean_multi_attempt` to try several tactics at one position without editing (the fastest way to close the executor's leftover side goals). Each open file is a Lean process holding the file's imports (several GB): close files you are done with. If several worktrees share one MCP server, check it handles several Lake projects before relying on it.
-- Before each commit: `lake build <the new modules>` (with `LEAN_ABORT_ON_PANIC=1`) and the axioms pin.
+- Before each commit: `campaign/scripts/lean-slot.sh lake build <the new modules>` and the axioms pin.
+- A long proof checks faster split across modules: put finished parts in their own module (`…T/Parts.lean` or similar) that the main module imports, so that Lake caches them and a check re-elaborates only the part being written.
 - Give every Lean command a `timeout`.
 
 ## Per function, the commit contains
