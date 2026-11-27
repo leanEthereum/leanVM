@@ -25,7 +25,7 @@ namespace RevealProbeOracleSimulation
 variable {Index : Type} [Fintype Index] [DecidableEq Index]
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_support_traceAgrees
+theorem simulate_eagerTrace_support_traceAgrees {α : Type _}
     (table : Index → Digest) (computation : OracleComp (World Index) α)
     (result : α × ActionTrace Index)
     (hresult : result ∈ support

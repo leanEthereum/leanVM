@@ -11,6 +11,9 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run_rev__L»
 import LeanVM.Guest.B1.Common.Vc
+import LeanVM.Guest.B1.Common.Family
+import LeanVM.Guest.StmtsAppend
+meta import LeanVM.Guest.KernelRfl
 
 /-!
 # `eq_prefix_run_rev`, `eq_prefix_chain_rev`
@@ -110,8 +113,8 @@ def rvBlk (n : ℕ) : ℕ → List Stmt
 
 /-- The expansion of `eq_prefix_run_rev__L{n}`. -/
 def rvBody (n : ℕ) : List Stmt :=
-  [.atom (.const (.n (valf% «eq_prefix_run_rev» "s0#0")) (word 1 0)), .atom (.load (.n (valf% «eq_prefix_run_rev» "s0#0")) (.n (valf% «eq_prefix_run_rev» "chain")) 0)] ++
-    ((List.range n).map (rvBlk n)).flatten ++ [.atom (.const (.n (rvA n)) (word 0 0)), .ret [.n (rvA n)]]
+  [.atom (.const (.n (valf% «eq_prefix_run_rev» "s0#0")) (word 1 0)), .atom (.load (.n (valf% «eq_prefix_run_rev» "s0#0")) (.n (valf% «eq_prefix_run_rev» "chain")) 0)] ⧺
+    ((List.range n).map (rvBlk n)).flatten ⧺ [.atom (.const (.n (rvA n)) (word 0 0)), .ret [.n (rvA n)]]
 
 /-- The sum `a + b1[k]` at coordinate `k` (coordinate `0`'s is its product). -/
 def rvS : ℕ → ℕ
@@ -263,252 +266,18 @@ theorem rv_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunRevName
 
 /-! ## The specializations -/
 
-theorem eq_prefix_run_rev_L0_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 0 "") args rets ↔
-      MeaningEqPrefixRunRev 0 rd args rets :=
-  rv_iff 0 (f := fn% «eq_prefix_run_rev__L0»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L0») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L1_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 1 "") args rets ↔
-      MeaningEqPrefixRunRev 1 rd args rets :=
-  rv_iff 1 (f := fn% «eq_prefix_run_rev__L1»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L1») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L2_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 2 "") args rets ↔
-      MeaningEqPrefixRunRev 2 rd args rets :=
-  rv_iff 2 (f := fn% «eq_prefix_run_rev__L2»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L2») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L3_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 3 "") args rets ↔
-      MeaningEqPrefixRunRev 3 rd args rets :=
-  rv_iff 3 (f := fn% «eq_prefix_run_rev__L3»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L3») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L4_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 4 "") args rets ↔
-      MeaningEqPrefixRunRev 4 rd args rets :=
-  rv_iff 4 (f := fn% «eq_prefix_run_rev__L4»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L4») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L5_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 5 "") args rets ↔
-      MeaningEqPrefixRunRev 5 rd args rets :=
-  rv_iff 5 (f := fn% «eq_prefix_run_rev__L5»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L5») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L6_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 6 "") args rets ↔
-      MeaningEqPrefixRunRev 6 rd args rets :=
-  rv_iff 6 (f := fn% «eq_prefix_run_rev__L6»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L6») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L7_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 7 "") args rets ↔
-      MeaningEqPrefixRunRev 7 rd args rets :=
-  rv_iff 7 (f := fn% «eq_prefix_run_rev__L7»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L7») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L8_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 8 "") args rets ↔
-      MeaningEqPrefixRunRev 8 rd args rets :=
-  rv_iff 8 (f := fn% «eq_prefix_run_rev__L8»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L8») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L9_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 9 "") args rets ↔
-      MeaningEqPrefixRunRev 9 rd args rets :=
-  rv_iff 9 (f := fn% «eq_prefix_run_rev__L9»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L9») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L10_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 10 "") args rets ↔
-      MeaningEqPrefixRunRev 10 rd args rets :=
-  rv_iff 10 (f := fn% «eq_prefix_run_rev__L10»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L10») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L11_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 11 "") args rets ↔
-      MeaningEqPrefixRunRev 11 rd args rets :=
-  rv_iff 11 (f := fn% «eq_prefix_run_rev__L11»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L11») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L12_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 12 "") args rets ↔
-      MeaningEqPrefixRunRev 12 rd args rets :=
-  rv_iff 12 (f := fn% «eq_prefix_run_rev__L12»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L12») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L13_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 13 "") args rets ↔
-      MeaningEqPrefixRunRev 13 rd args rets :=
-  rv_iff 13 (f := fn% «eq_prefix_run_rev__L13»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L13») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L14_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 14 "") args rets ↔
-      MeaningEqPrefixRunRev 14 rd args rets :=
-  rv_iff 14 (f := fn% «eq_prefix_run_rev__L14»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L14») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L15_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 15 "") args rets ↔
-      MeaningEqPrefixRunRev 15 rd args rets :=
-  rv_iff 15 (f := fn% «eq_prefix_run_rev__L15»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L15») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L16_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 16 "") args rets ↔
-      MeaningEqPrefixRunRev 16 rd args rets :=
-  rv_iff 16 (f := fn% «eq_prefix_run_rev__L16»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L16») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L17_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 17 "") args rets ↔
-      MeaningEqPrefixRunRev 17 rd args rets :=
-  rv_iff 17 (f := fn% «eq_prefix_run_rev__L17»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L17») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L18_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 18 "") args rets ↔
-      MeaningEqPrefixRunRev 18 rd args rets :=
-  rv_iff 18 (f := fn% «eq_prefix_run_rev__L18»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L18») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L19_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 19 "") args rets ↔
-      MeaningEqPrefixRunRev 19 rd args rets :=
-  rv_iff 19 (f := fn% «eq_prefix_run_rev__L19»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L19») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L20_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 20 "") args rets ↔
-      MeaningEqPrefixRunRev 20 rd args rets :=
-  rv_iff 20 (f := fn% «eq_prefix_run_rev__L20»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L20») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L21_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 21 "") args rets ↔
-      MeaningEqPrefixRunRev 21 rd args rets :=
-  rv_iff 21 (f := fn% «eq_prefix_run_rev__L21»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L21») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L22_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 22 "") args rets ↔
-      MeaningEqPrefixRunRev 22 rd args rets :=
-  rv_iff 22 (f := fn% «eq_prefix_run_rev__L22»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L22») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L23_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 23 "") args rets ↔
-      MeaningEqPrefixRunRev 23 rd args rets :=
-  rv_iff 23 (f := fn% «eq_prefix_run_rev__L23»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L23») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L24_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 24 "") args rets ↔
-      MeaningEqPrefixRunRev 24 rd args rets :=
-  rv_iff 24 (f := fn% «eq_prefix_run_rev__L24»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L24») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L25_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 25 "") args rets ↔
-      MeaningEqPrefixRunRev 25 rd args rets :=
-  rv_iff 25 (f := fn% «eq_prefix_run_rev__L25»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L25») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L26_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 26 "") args rets ↔
-      MeaningEqPrefixRunRev 26 rd args rets :=
-  rv_iff 26 (f := fn% «eq_prefix_run_rev__L26»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L26») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L27_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 27 "") args rets ↔
-      MeaningEqPrefixRunRev 27 rd args rets :=
-  rv_iff 27 (f := fn% «eq_prefix_run_rev__L27»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L27») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L28_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 28 "") args rets ↔
-      MeaningEqPrefixRunRev 28 rd args rets :=
-  rv_iff 28 (f := fn% «eq_prefix_run_rev__L28»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L28») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L29_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 29 "") args rets ↔
-      MeaningEqPrefixRunRev 29 rd args rets :=
-  rv_iff 29 (f := fn% «eq_prefix_run_rev__L29»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L29») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L30_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 30 "") args rets ↔
-      MeaningEqPrefixRunRev 30 rd args rets :=
-  rv_iff 30 (f := fn% «eq_prefix_run_rev__L30»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L30») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L31_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 31 "") args rets ↔
-      MeaningEqPrefixRunRev 31 rd args rets :=
-  rv_iff 31 (f := fn% «eq_prefix_run_rev__L31»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L31») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-theorem eq_prefix_run_rev_L32_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunRevNames.getD 32 "") args rets ↔
-      MeaningEqPrefixRunRev 32 rd args rets :=
-  rv_iff 32 (f := fn% «eq_prefix_run_rev__L32»)
-    (coreProgram_find?_at (j := idx% «eq_prefix_run_rev__L32») rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
+/-- The deployed `eq_prefix_run_rev__L{n}`, `n ≤ 32`, are the template. -/
+private theorem eq_prefix_run_rev_found :
+    coreRunB (idxs% «eq_prefix_run_rev__L» 0 33) (eqPrefixRunRevNames.getD · "")
+      (shapeB [.n (valf% «eq_prefix_run_rev» "chain"), .n (valf% «eq_prefix_run_rev» "out"),
+        .n (valf% «eq_prefix_run_rev» "src"), .n (valf% «eq_prefix_run_rev» "b1")]
+        rvBody) = true := by
+  decide +kernel
 
 /-- **`eq_prefix_run_rev`'s core IR is its meaning**, every specialization. -/
-theorem eq_prefix_run_rev_holds : eq_prefix_run_rev_Spec := by
-  intro n hn
-  interval_cases n
-  exacts [eq_prefix_run_rev_L0_iff, eq_prefix_run_rev_L1_iff, eq_prefix_run_rev_L2_iff,
-    eq_prefix_run_rev_L3_iff, eq_prefix_run_rev_L4_iff, eq_prefix_run_rev_L5_iff,
-    eq_prefix_run_rev_L6_iff, eq_prefix_run_rev_L7_iff, eq_prefix_run_rev_L8_iff,
-    eq_prefix_run_rev_L9_iff, eq_prefix_run_rev_L10_iff, eq_prefix_run_rev_L11_iff,
-    eq_prefix_run_rev_L12_iff, eq_prefix_run_rev_L13_iff, eq_prefix_run_rev_L14_iff,
-    eq_prefix_run_rev_L15_iff, eq_prefix_run_rev_L16_iff, eq_prefix_run_rev_L17_iff,
-    eq_prefix_run_rev_L18_iff, eq_prefix_run_rev_L19_iff, eq_prefix_run_rev_L20_iff,
-    eq_prefix_run_rev_L21_iff, eq_prefix_run_rev_L22_iff, eq_prefix_run_rev_L23_iff,
-    eq_prefix_run_rev_L24_iff, eq_prefix_run_rev_L25_iff, eq_prefix_run_rev_L26_iff,
-    eq_prefix_run_rev_L27_iff, eq_prefix_run_rev_L28_iff, eq_prefix_run_rev_L29_iff,
-    eq_prefix_run_rev_L30_iff, eq_prefix_run_rev_L31_iff, eq_prefix_run_rev_L32_iff]
+theorem eq_prefix_run_rev_holds : eq_prefix_run_rev_Spec := fun n hn ↦
+  have ⟨_, hf, hp, hb⟩ := coreRunB_shape eq_prefix_run_rev_found (Nat.lt_succ_of_le hn)
+  rv_iff n hf hp hb
 
 /-! ## `eq_prefix_chain_rev` -/
 
@@ -519,8 +288,8 @@ theorem find_eq_prefix_chain_rev :
 theorem eq_prefix_chain_rev_body : Fn.body fn% «eq_prefix_chain_rev» =
     [.atom (.const (.n (val% «eq_prefix_chain_rev» "s0#0")) (word (2 ^ 32) 0)),
       .atom (.rangeCheck (.n (val% «eq_prefix_chain_rev» "count_g")) (.n (val% «eq_prefix_chain_rev» "s0#1")) (.n (val% «eq_prefix_chain_rev» "s0#2")) (.n (val% «eq_prefix_chain_rev» "s0#3")) (.n (val% «eq_prefix_chain_rev» "s0#0"))),
-      .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")], .ret []] :=
-  stmtsEqb_sound (by decide +kernel)
+      .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")], .ret []] := by
+  kernel_rfl
 
 /-- **`eq_prefix_chain_rev`'s core IR is its meaning.** -/
 theorem eq_prefix_chain_rev_holds : eq_prefix_chain_rev_Spec := by

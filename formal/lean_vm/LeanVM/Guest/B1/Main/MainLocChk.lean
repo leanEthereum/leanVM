@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainCChk
+import LeanVM.Guest.B1.Common.KeyTrie
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
 
@@ -20,19 +21,22 @@ set_option maxRecDepth 100000 in
 theorem mOrcStmts_ok : mOrcStmts.all (fun s => mFlatE.any (stmtEqb · s)) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem mDefAtoms_ok : mDefAtoms.all (fun a => (atomsIn mFlatE).any (atomEqb a)) = true := by
-  decide +kernel
+theorem mDefAtoms_ok : mDefAtoms.all (fun a => (atomsIn mFlatE).any (atomEqb a)) = true :=
+  all_any_of_allMatch' (kx := atomKey) (ky := atomKey) (d := 12) (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem mStores_eq : mStores = mStoresL := by decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem mByte_ok : (List.range 256).all (fun v =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n ((val% «main» "s43.u0.s0#0") + v)) (word v 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n ((val% «main» "s43.u0.s0#0") + v)) (word v 0)))) = true :=
+  all_any_of_allMatch' (kx := fun v ↦ (val% «main» "s43.u0.s0#0") + v) (ky := atomKey) (d := 12)
+    (by decide +kernel)
 
 set_option maxRecDepth 100000 in
 theorem mLeafC_ok : (List.range 23).all (fun k =>
-    (atomsIn mFlatE).any (atomEqb (.const (.n (420 + k)) (word 0 0)))) = true := by decide +kernel
+    (atomsIn mFlatE).any (atomEqb (.const (.n (420 + k)) (word 0 0)))) = true :=
+  all_any_of_allMatch' (kx := (420 + ·)) (ky := atomKey) (d := 12) (by decide +kernel)
 
 /-- Membership in `mStoresL`, a load compared field by field (`atomEqb`), not by `DecidableEq Atom`. -/
 def mStoreB : Atom → Bool

@@ -29,9 +29,9 @@ open LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 
-theorem vbg_mem {s : Stmt} (h : vbgEvL.any (fun t ↦ tbStmtsEqb [s] [t]) = true) : s ∈ vbgEvL := by
+theorem vbg_mem {s : Stmt} (h : vbgEvL.any (fun t ↦ stmtsEqb [s] [t]) = true) : s ∈ vbgEvL := by
   obtain ⟨t, ht, he⟩ := List.any_eq_true.mp h
-  have := tbStmtsEqb_sound he
+  have := stmtsEqb_sound he
   simp only [List.cons.injEq, and_true] at this
   rw [this]; exact ht
 
@@ -71,9 +71,9 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
     rw [hσ]; exact ev_params rd W (by rw [hl]; exact hc') (by rw [hl]; exact hi)
   have e5 : σ (.n (val% «verify_bus_gkr» "cursor@1")) = cur := by rw [par 5 (by omega), hargs]; simp [hcl]
   have e6 : σ (.n (val% «verify_bus_gkr» "g_bus_mu")) = gen ^ depth := by rw [par 6 (by omega), hargs]; simp [hcl]
-  have g : ∀ a : Atom, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom a] [t]) = true → Good rd vbgS W σ a :=
+  have g : ∀ a : Atom, vbgEvL.any (fun t ↦ stmtsEqb [.atom a] [t]) = true → Good rd vbgS W σ a :=
     fun a h ↦ hG _ (vbg_mem h)
-  have mul : ∀ d x y : ℕ, vbgEvL.any (fun t ↦ tbStmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] [t])
+  have mul : ∀ d x y : ℕ, vbgEvL.any (fun t ↦ stmtsEqb [.atom (.mul (.n d) (.n x) (.n y))] [t])
       = true → x < d → y < d → σ (.n d) = σ (.n x) * σ (.n y) :=
     fun d x y h hx hy ↦ good_mul (g _ h) hx hy
   have c10 : σ (.n (val% «verify_bus_gkr» "layers~0")) = gen ^ 2 := by
@@ -83,7 +83,7 @@ theorem vbg_ptrs (hσ : σ = B1.Val.ofArgs (ev rd W args vbgEvL))
   have m13 := mul 13 12 12 (by decide +kernel) (by omega) (by omega)
   have m14 := mul 14 13 11 (by decide +kernel) (by omega) (by omega)
   have m15 := mul 15 14 14 (by decide +kernel) (by omega) (by omega)
-  have al : ∀ (a : Atom) (d : ℕ), vbgEvL.any (fun t ↦ tbStmtsEqb [.atom a] [t]) = true →
+  have al : ∀ (a : Atom) (d : ℕ), vbgEvL.any (fun t ↦ stmtsEqb [.atom a] [t]) = true →
       Good rd vbgS W σ a = (σ (.n d) = W d) → σ (.n d) = W d :=
     fun a d h e ↦ e ▸ g a h
   have e16 : σ (.n (val% «verify_bus_gkr» "layers")) = layers := by

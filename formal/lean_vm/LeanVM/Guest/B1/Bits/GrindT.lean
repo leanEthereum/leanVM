@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Renumber
 public import LeanVM.Guest.Word
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `grind_check`'s body (TRIAGE #21)
@@ -82,7 +83,7 @@ def gcTailPre (b : ℕ) : List Stmt :=
 
 /-- **`grind_check`'s expansion**, from its word `.n 0` and its tables `.n 1`. -/
 def gcPre (b : ℕ) : List Stmt :=
-  gcHead b ++ ((List.range (gcW b)).map fun i => gcIterAt (gcW b) (i + 1)).flatten ++ gcTailPre b
+  gcHead b ⧺ ((List.range (gcW b)).map fun i => gcIterAt (gcW b) (i + 1)).flatten ⧺ gcTailPre b
 
 /-- Its values: the word, the tables and its own, `.n 0 ..< .n (gcLen b)`. -/
 def gcLen (b : ℕ) : ℕ := 10 * gcW b + 16

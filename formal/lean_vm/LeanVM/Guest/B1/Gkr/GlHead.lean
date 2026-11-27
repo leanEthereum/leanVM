@@ -67,14 +67,14 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
     rw [m15, m14, m13, m12, m11, e10, ← pow_add, ← pow_add, ← pow_add, ← pow_add]
     ring_nf
   have ld : ∀ k w, LoadHolds rd (σ (.n (valf% «gkr_layer» "layer"))) k w ↔ LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * L + k) w := by
-    intro k w; rw [e15, tb_loadHolds_mul_gen_pow]
+    intro k w; rw [e15, loadHolds_mul_gen_pow]
   -- the slot's capacity, the combiner's permutation
   have hcapL := tb_holds_slice hnr h 7 ((List.range 5).map fun k ↦
     Stmt.atom (.load (.n ((valf% «gkr_layer» "sp[0]@1") + k)) (.n (valf% «gkr_layer» "layer")) k)) (by decide +kernel)
   rw [tb_holdsList_mapAtoms] at hcapL
   simp only [Atom.Holds] at hcapL
   have ecap : ∀ k < 5, σ (.n ((valf% «gkr_layer» "sp[0]@1") + k)) = s.cap.getD k 0 := fun k hk =>
-    tb_loadHolds_unique ((ld k _).mp (hcapL k hk)) (hcap k hk)
+    loadHolds_unique ((ld k _).mp (hcapL k hk)) (hcap k hk)
   have l21 := a 12 (.load (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "layer")) 5) (by decide +kernel)
   have c23 := a 14 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]")) (word 0 0)) (by decide +kernel)
   have c24 := a 15 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]")) (word 0 0)) (by decide +kernel)
@@ -82,7 +82,7 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
   have c26 := a 17 (.const (.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")) (word 0 0)) (by decide +kernel)
   have k1 := a 18 (.keccak ([.n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[1]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[2]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[3]"), .n (valf% «gkr_layer» "s4.i1:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s1.t.s0#0[4]")] ++
       (List.range 5).map fun k ↦ .n ((valf% «gkr_layer» "sp[0]@1") + k)) (lyOuts (valf% «gkr_layer» "nxt[0]@1")) false false) (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at l21 c23 c24 c25 c26
+  simp only [Atom.Holds, word_zero] at l21 c23 c24 c25 c26
   obtain ⟨hP, hB⟩ := ly_keccak k1
   have hcapE : ((List.range 5).map fun k ↦ V.n ((valf% «gkr_layer» "sp[0]@1") + k)).map σ = s.cap := by
     rw [tb_eq_map_getD hcl, List.map_map]
@@ -114,12 +114,12 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
   have m57 := a 35 (.mul (.n (valf% «gkr_layer» "claim@2~0")) (.n (valf% «gkr_layer» "nxt[0]@1")) (.n (valf% «gkr_layer» "claim@1"))) (by decide +kernel)
   have a58 := a 36 (.add (.n (valf% «gkr_layer» "claim@2")) (.n (valf% «gkr_layer» "layer_vals[0]")) (.n (valf% «gkr_layer» "claim@2~0"))) (by decide +kernel)
   simp only [Atom.Holds] at l41 l42 l43 l44 c45 m46 m47 m48 m49 m50 m51 m52 m53 m54 m55 a56 m57 a58
-  rw [tb_word_gen] at c45
-  have e41 := tb_loadHolds_unique ((ld _ _).mp l41) (hval 0 (by omega))
-  have e42 := tb_loadHolds_unique ((ld _ _).mp l42) (hval 1 (by omega))
-  have e43 := tb_loadHolds_unique ((ld _ _).mp l43) (hval 2 (by omega))
-  have e44 := tb_loadHolds_unique ((ld _ _).mp l44) hpos
-  have e21 := tb_loadHolds_unique ((ld _ _).mp l21) hcur
+  rw [word_gen] at c45
+  have e41 := loadHolds_unique ((ld _ _).mp l41) (hval 0 (by omega))
+  have e42 := loadHolds_unique ((ld _ _).mp l42) (hval 1 (by omega))
+  have e43 := loadHolds_unique ((ld _ _).mp l43) (hval 2 (by omega))
+  have e44 := loadHolds_unique ((ld _ _).mp l44) hpos
+  have e21 := loadHolds_unique ((ld _ _).mp l21) hcur
   have e53 : σ (.n (valf% «gkr_layer» "point_row")) = σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) := by
     rw [m53, m52, m51, m50, m49, m48, m47, m46, c45, hx, ← pow_succ]
     ring
@@ -135,7 +135,7 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
 
 /-- **The head record's stores**: the state after the head rounds. -/
 theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHeadStore p) True kret) :
-    TbCapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 1 ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
+    CapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 1 ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 5 (σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 6 (σ (glClaimAfter 58 (2 * p) (.n (valf% «gkr_layer» "claim@2")))) := by
   rcases Nat.eq_zero_or_pos p with rfl | hp
@@ -144,14 +144,14 @@ theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHead
     obtain ⟨hc, hr⟩ := h
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     simp only [glCapAfter, glClaimAfter, Nat.mul_zero, ↓reduceIte, pow_zero, mul_one]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), hr.1, hr.2⟩
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), hr.1, hr.2⟩
   · have hp0 : p ≠ 0 := by omega
     simp only [glHeadStore, hp0, ↓reduceIte, glHeadStoreP, tb_holdsList_append_noRet
       (tb_noRetList_mapAtoms 5 _), tb_holdsList_mapAtoms] at h
     obtain ⟨hc, hr⟩ := h
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     obtain ⟨c, m, l1, l2⟩ := hr
-    rw [tb_word_two_pow (by omega)] at c
+    rw [word_two_pow (by omega)] at c
     have e1 : glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1")) = glCap (39 + 78 * p) := by
       simp only [glCapAfter, show 2 * p ≠ 0 by omega, ↓reduceIte]
       rw [show 58 + 39 * (2 * p) - 19 = 39 + 78 * p by omega]
@@ -159,7 +159,7 @@ theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHead
       simp only [glClaimAfter, show 2 * p ≠ 0 by omega, ↓reduceIte]
       rw [show 58 + 39 * (2 * p) - 1 = 57 + 78 * p by omega]
     rw [e1, e2, show 4 * (2 * p) = 8 * p by ring, ← c, ← m]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), l1, l2⟩
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa using hc k hk), l1, l2⟩
 
 /-- **The loop's call**, on `qrow = pt·g^(2p)` and `nqrow = qrow·g^42`. -/
 theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
@@ -170,8 +170,8 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
   · simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil] at h
     obtain ⟨c59, a60, c61, c62, m63, -, hc, -⟩ := h
-    rw [tb_word_one] at c59 c61
-    rw [tb_word_two_pow (by norm_num)] at c62
+    rw [word_one] at c59 c61
+    rw [word_two_pow (by norm_num)] at c62
     intro hne
     have := hc (by rw [a60, c59]; exact hne)
     rw [c61, m63, c62] at this
@@ -180,8 +180,8 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
     simp only [glLoopCall, hp0, ↓reduceIte, glLoopCallP, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil] at h
     obtain ⟨c1, a2, c3, c4, m5, c6, m7, -, hc, -⟩ := h
-    rw [tb_word_one] at c1 c3
-    rw [tb_word_two_pow (by omega)] at c4 c6
+    rw [word_one] at c1 c3
+    rw [word_two_pow (by omega)] at c4 c6
     intro hne
     have := hc (by rw [a2, c1]; exact hne)
     rw [c3, m5, m7, c4, c6] at this
@@ -191,11 +191,11 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
 theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
     σ (.n (71 + glD p)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * σ (.n (valf% «gkr_layer» "x_m")) ^ 8 ∧
       σ (.n (74 + glD p)) = σ (.n (71 + glD p)) * gen ^ 42 ∧
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      CapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
   have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7 →
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      CapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
     intro w hl hw
@@ -204,13 +204,13 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
     obtain ⟨hc, hr⟩ := hl
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hr hc
     rw [← hw]
-    exact ⟨tbCapAt_glCap (off := 0) (fun k hk => by simpa [Nat.add_assoc] using hc k hk), hr.1,
+    exact ⟨capAt_glCap (off := 0) (fun k hk => by simpa [Nat.add_assoc] using hc k hk), hr.1,
       hr.2⟩
   rcases Nat.eq_zero_or_pos p with rfl | hp1
   · simp only [glTailSetup, ↓reduceIte, glTailSetup0, holdsList_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
     obtain ⟨r0, r1, r2, r3, m64, m65, m66, m67, m68, c69, m70, m71, hl⟩ := h
-    rw [tb_word_two_pow (by norm_num)] at c69
+    rw [word_two_pow (by norm_num)] at c69
     have hD : glD 0 = 0 := rfl
     simp only [hD, Nat.add_zero, Nat.mul_zero, pow_zero, mul_one]
     refine ⟨by rw [m68, m67, m66, m65]; ring, by rw [m71, m70, c69, m68, m67]; ring,
@@ -219,7 +219,7 @@ theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTail
     simp only [glTailSetup, hp0, ↓reduceIte, glTailSetupP, holdsList_append, Stmt.HoldsList,
       Stmt.Holds, Atom.Holds] at h
     obtain ⟨r0, r1, r2, r3, m0, m1, m2, m3, c4, m5, m6, c7, m8, m9, hl⟩ := h
-    rw [tb_word_two_pow (by omega)] at c4 c7
+    rw [word_two_pow (by omega)] at c4 c7
     obtain ⟨hcap, hcur, hcl⟩ := hloads _ hl (by rw [m0, r3, r2, r1, r0]; ring)
     rw [glD_pos hp0] at hcap hcur hcl ⊢
     rw [show 71 + (78 * p + 6) = 77 + 78 * p by omega, show 74 + (78 * p + 6) = 80 + 78 * p by omega]

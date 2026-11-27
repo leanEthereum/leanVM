@@ -194,7 +194,7 @@ def _results(verbose=False):
                     finally:
                         I.F.clear()
                         I.F.update({'ptr', 'pfr'})
-                out[k]['text'] = callc.ldata(k, out[k])
+                out[k]['text'] = callc.ldata(k, out[k], data=True)
             except No as e:
                 why[str(e).split(':')[0]] += 1
                 if verbose == 'why':
@@ -211,6 +211,7 @@ def _results(verbose=False):
 GEN = callc.GEN
 head = genfiles.header('core-mode/loopcc.py --emit')
 HEADER = """public import LeanVM.Guest.CoreMode.Defs
+public meta import LeanVM.Guest.DataLit
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -237,7 +238,7 @@ def windows(R, po):
             continue
         gen = dict(root='LeanVM.Guest.CoreMode.GenWL', sub='HeapWL', final='heap_okW',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % po[k][0]],
-                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+                   names=sorted(R[k]['cs']))
         for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENWL, k, name + '.lean')] = text
     return files

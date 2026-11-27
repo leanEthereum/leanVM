@@ -152,10 +152,10 @@ theorem SigOkP.of_ok {G : Mode.Sig} {Cf : CFun} {np nr : ℕ} {jt : Mode.Rng} (h
 
 /-! ## The shape -/
 
-theorem retsN_len {σ : Val} {body : List Stmt} {n : ℕ} (hn : retsN n (stmtsOf body) = true)
+theorem retIs_len {σ : Val} {body : List Stmt} {n : ℕ} (hn : stmtsAll (retIs n) body = true)
     {es : List Ev} {vs : List V} (hw : walk σ body = .ret es vs) : vs.length = n := by
-  have h := List.all_eq_true.mp hn _ (Bridge.walk_retS body hw)
-  simpa using h
+  rw [stmtsAll_eq] at hn
+  simpa [retIs] using List.all_eq_true.mp hn _ (Bridge.walk_retS body hw)
 
 theorem calls_mid {a b : List Ev} {f : String} {args rets : List V} :
     (calls (a ++ Ev.call f args rets :: b))[(calls a).length]? = some ⟨f, args, rets, true⟩ := by
@@ -238,6 +238,7 @@ theorem pow_of_ofK {a b : ℕ} (h : ofK ((g : K) ^ a) = ofK (g ^ b)) : (g : K) ^
 /-- A body without `frameAddr` atoms guarantees no frame run cell (`FAW`). -/
 theorem noFAW {body : List Stmt} (h : noFA body = true) {σ : Val} {es : List Ev} {vs : List V}
     (hw : walk σ body = .ret es vs) {fas : List (ℕ × ℕ)} (x : K) : ¬ FAW σ fas es x := by
+  rw [noFA, stmtsAll_eq] at h
   rintro (⟨p, run, i, v, he, -⟩ | ⟨kp, i, run, -, he, -⟩) <;>
   · have hs := Bridge.walk_atomS body (by rw [hw]; exact he)
     have := List.all_eq_true.mp h _ hs
@@ -281,6 +282,7 @@ theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List
     (hs : Stmt.call f a r ∈ stmtsOf Cf.fn.body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf Cf.fn.body) ∨
       ∃ x fs, Stmt.dispatch x fs a r ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
     callChkM Cf f a = true := by
+  rw [callsB, stmtsAll_eq] at hcb
   rcases hs with hs | ⟨-, c, hs⟩ | ⟨x, fs, hs, hf⟩
   · exact List.all_eq_true.mp hcb _ hs
   · exact List.all_eq_true.mp hcb _ hs
@@ -320,7 +322,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
     SigOk (WrF Cf rd σ es) Cf.H.sig.postN Cf.H.sig.postRN (Cf.H.sig.nv.map (vw σ)) := by
   cases hk with
   | m1 hok hpo hstr0 hrm hpv hre =>
-    simp only [Bool.and_eq_true, List.isEmpty_iff] at hstr0
+    simp only [Bool.and_eq_true, List.isEmpty_iff, stmtsAll_eq] at hstr0
     obtain ⟨⟨⟨⟨⟨hstr, hpP⟩, hpPR⟩, hpQ⟩, hN1⟩, hN2⟩ := hstr0
     have hok' := hok
     unfold heapOk at hok'
@@ -410,7 +412,7 @@ theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
     have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := fun e he ↦ by
       cases e with
       | call f args rets =>
-        simp only [Bool.and_eq_true] at hstr0
+        simp only [Bool.and_eq_true, stmtsAll_eq] at hstr0
         rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
           simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
       | _ => trivial
@@ -426,7 +428,7 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true)
     (he : Ev.call f args rets ∈ es) : callsB Cf = true := by
   cases hk with
   | m1 _ _ hstr0 _ _ _ =>
-    simp only [Bool.and_eq_true] at hstr0
+    simp only [Bool.and_eq_true, stmtsAll_eq] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
   | c _ _ hcb _ _ => exact hcb
@@ -434,7 +436,8 @@ theorem callsB_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true)
 theorem callsB_of' {Cf : CFun} (hk : HeapK Cf) : callsB Cf = true := by
   cases hk with
   | m1 _ _ hstr0 _ _ _ =>
-    simp only [Bool.and_eq_true] at hstr0
+    simp only [Bool.and_eq_true, stmtsAll_eq] at hstr0
+    rw [callsB, stmtsAll_eq]
     refine List.all_eq_true.mpr fun s hs ↦ ?_
     have := List.all_eq_true.mp hstr0.1.1.1.1.1 s hs
     cases s <;> simp_all [isCall]
@@ -446,7 +449,7 @@ theorem ders_of {Cf : CFun} (hk : HeapK Cf) (hst : bodyCore Cf.fn.body = true) {
     (he : Ev.call f args rets ∈ es) : Cf.H.ders = [] := by
   cases hk with
   | m1 _ _ hstr0 _ _ _ =>
-    simp only [Bool.and_eq_true] at hstr0
+    simp only [Bool.and_eq_true, stmtsAll_eq] at hstr0
     rcases body_callS hst hw he with h | ⟨-, c, h⟩ | ⟨x, fs, h, -⟩ <;>
       simpa [isCall] using List.all_eq_true.mp hstr0.1.1.1.1.1 _ h
   | c _ _ _ _ hd => exact hd
@@ -560,7 +563,7 @@ theorem wrk_rwF {f : Mode.Base × ℕ → Option (ℕ × ℕ)} (hf : ExpKeep f) 
     obtain ⟨x, hx, hlt, hw⟩ := h _ (List.mem_map.mpr ⟨j - a, List.mem_range.mpr (by omega), rfl⟩)
     refine ⟨x, ⟨?_, hlt⟩, hw⟩
     rw [← hx]
-    simp only [CCell.addr, CCell.val, addressOfIndex, pow_add, ofK_mul', show a + (j - a) = j by omega]
+    simp only [CCell.addr, CCell.val, addressOfIndex, pow_add, ofK_mul, show a + (j - a) = j by omega]
     ring_nf
   · cases hl
 

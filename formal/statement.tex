@@ -333,9 +333,9 @@ $128\,r$ positions.
 row's \emph{blob root} (\lean{blobRootWith}), builds the Merkle tree over the blob roots, the rows
 padded to \lean{maxRows} with zero codewords, so every path has $7 + \mbox{\lean{logMaxRows}}$
 siblings, and publishes the hash of its root with the row count $r$ (\lean{commitCells},
-\lean{countBytes}). To \emph{open} a position, it gives the cell and its path, in its blob's tree
+\lean{countDigest}). To \emph{open} a position, it gives the cell and its path, in its blob's tree
 and then in the tree over the blob roots; the opening verifies if they and the row count hash back
-to the root (\lean{verifyCellWith}).
+to the root (\lean{verifyCellWith}, through the verifier's Merkle climb). Digests are leanVM's throughout, four 64-bit words hashed as their $32$ little-endian bytes.
 
 \paragraph{The membership test.} A Merkle root alone does not show that the rows
 are codewords. LeanDA's relation between a root and a matrix (\lean{relationWith}) asks that
@@ -512,7 +512,7 @@ its budget, a seed $\sigma'$, a statement $s'$ and a witness $w'$ with
 \mathrm{dig}_{\sigma'}(s') = x \qquad\text{and}\qquad \mathrm{NodeRel}(B, \sigma', s', w').
 \]
 \item \textbf{The digest binds} (\lean{StatementDigestBinds}). Let $(\sigma, s)$ and $(\sigma_0, s_0)$
-be seeds and statements whose deferred claims have the bytecode's shape. If
+be seeds and statements whose deferred claims' points have the same length (which the digest does not record). If
 $\mathrm{dig}_\sigma(s) = \mathrm{dig}_{\sigma_0}(s_0)$, then $(\sigma, s) = (\sigma_0, s_0)$, or
 Keccak-256 collides on one of three pairs of inputs (\lean{collisionCandidates}): those of the
 outer hash, of $H(\enc(\Cx))$ and of $H(\enc(\Cs))$. The DA digest enters the outer input as it

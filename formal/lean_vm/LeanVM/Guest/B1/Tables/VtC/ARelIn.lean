@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Eq.EqPrefixRevIn
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The calls, placed
@@ -133,24 +134,24 @@ def otrCall (k : ℕ) : Stmt :=
 
 /-- `verify_tables`' calls, in order. -/
 def vtCalls : List Stmt :=
-  (List.range 6).map pwCall ++ [porCall] ++ (List.range 6).map shCall ++
-    [fwCall 0, fwCall 1, imCall (val% «verify_tables» "kb[1]") (val% «verify_tables» "coord_val@1"), fwCall 2, imCall (val% «verify_tables» "kappa_g@2") (val% «verify_tables» "coord_val@2")] ++
-    (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ++
-    (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ++
+  (List.range 6).map pwCall ⧺ [porCall] ⧺ (List.range 6).map shCall ⧺
+    [fwCall 0, fwCall 1, imCall (val% «verify_tables» "kb[1]") (val% «verify_tables» "coord_val@1"), fwCall 2, imCall (val% «verify_tables» "kappa_g@2") (val% «verify_tables» "coord_val@2")] ⧺
+    (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ⧺
+    (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ⧺
     [otrCall 0, otrCall 1, otrCall 2, loopCall, epcCall]
 
 set_option maxRecDepth 100000 in
 /-- **The calls, by the kernel**: the statements that are not plain. -/
-theorem vt_calls : tbStmtsEqb (vtPre.filter fun s ↦ !plainStB s) vtCalls = true := by
+theorem vt_calls : stmtsEqb (vtPre.filter fun s ↦ !plainStB s) vtCalls = true := by
   decide +kernel
 
 theorem vt_call_mem {s : Stmt} (hs : s ∈ vtPre) (hp : plainStB s = false) : s ∈ vtCalls := by
-  rw [← tbStmtsEqb_sound vt_calls]
+  rw [← stmtsEqb_sound vt_calls]
   exact List.mem_filter.mpr ⟨hs, by simp [hp]⟩
 
 set_option maxRecDepth 100000 in
 /-- The shared tables' pointers: `zeta`, `zeta1` and the exponent table at `g^τ`. -/
-theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (vtShZ t)) (.n (val% «verify_tables» "zeta")) (.n ((val% «verify_tables» "kb[2]") + t))),
+theorem vt_sh_muls : ∀ t < 6, stmtsEqb [.atom (.mul (.n (vtShZ t)) (.n (val% «verify_tables» "zeta")) (.n ((val% «verify_tables» "kb[2]") + t))),
     .atom (.mul (.n (vtShZ t + 1)) (.n (val% «verify_tables» "zeta1")) (.n ((val% «verify_tables» "kb[2]") + t))),
     .atom (.mul (.n (vtShZ t + 2)) (.n (val% «verify_tables» "g_squares")) (.n ((val% «verify_tables» "kb[2]") + t)))]
     ((vtPre.drop (vtShC t)).take 3) = true := by
@@ -158,7 +159,7 @@ theorem vt_sh_muls : ∀ t < 6, tbStmtsEqb [.atom (.mul (.n (vtShZ t)) (.n (val%
 
 set_option maxRecDepth 100000 in
 /-- A framework block's pointers. -/
-theorem vt_fw_muls : ∀ b < 3, tbStmtsEqb (vtFwSelT (vtFwW b) b ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0)
+theorem vt_fw_muls : ∀ b < 3, stmtsEqb (vtFwSelT (vtFwW b) b ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0)
     ([none, some (val% «verify_tables» "eq_hi@1"), some (val% «verify_tables» "selector_sum@1")].getD b none))
     ((vtPre.drop ([pos% «verify_tables» "s30.u0.s2.u0.s3.e.s2.e.s0#0", pos% «verify_tables» "s30.u0.s2.u1.s3.e.s2.e.s0#0", pos% «verify_tables» "s30.u0.s2.u2.s3.e.s2.e.s0#0"].getD b 0)).take
       (vtFwSelT (vtFwW b) b ([val% «verify_tables» "kb[0]", val% «verify_tables» "kb[1]", val% «verify_tables» "kappa_g@2"].getD b 0) ([none, some (val% «verify_tables» "eq_hi@1"), some (val% «verify_tables» "selector_sum@1")].getD b none)).length)
@@ -422,7 +423,7 @@ theorem vt_fw_kv (I : VtIn H B w rd) {b : ℕ} (hb : b < 3) :
         (vt_mem_at 854 _ (by decide +kernel)) (by norm_num) (by norm_num),
       vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 865) (e := word 524288 0)
         (vt_mem_at 853 _ (by decide +kernel)), show (524288 : ℕ) = 2 ^ 19 by norm_num,
-      tb_word_two_pow (by norm_num), vt_kb0 I, one_mul]
+      word_two_pow (by norm_num), vt_kb0 I, one_mul]
 
 theorem vt_fw_up (I : VtIn H B w rd) {b : ℕ} (hb : b < 3)
     (h : VSH (coreProgram.Rel rd) rd σv (fwCall b)) :
@@ -488,7 +489,7 @@ theorem vt_im_up (I : VtIn H B w rd) {b r : ℕ} (hb : b = 1 ∨ b = 2)
 
 /-- **`block_selector_tab`'s digits**: nibbles of the offset above `τ`. -/
 theorem vt_digits {sb : E} {off τ n : ℕ} (hob : off < 2 ^ (τ + n)) (hn : n ≤ 36)
-    (h : TbReadsAt rd sb (offDigits off τ)) :
+    (h : ReadsAt rd sb (offDigits off τ)) :
     ∀ k < btN n, ∃ u < 2 ^ btW n k, LoadHolds rd sb k (gen ^ u) := by
   intro k hk
   have hr := offDigits_reads hn hob h
@@ -500,12 +501,12 @@ theorem vt_digits {sb : E} {off τ n : ℕ} (hob : off < 2 ^ (τ + n)) (hn : n �
   rwa [← List.getD_eq_getElem _ 0 hlen, btk_digit hbl hk] at this
 
 theorem vt_sel_up (I : VtIn H B w rd) {x : ℕ × ℕ × ℕ × ℕ × Option ℕ}
-    (hchk : tbStmtsEqb (vtSelT x.2.2.1 x.1 x.2.2.2.1 x.2.2.2.2)
+    (hchk : stmtsEqb (vtSelT x.2.2.1 x.1 x.2.2.2.1 x.2.2.2.2)
       ((vtAt x.2.1).take (vtSelT x.2.2.1 x.1 x.2.2.2.1 x.2.2.2.2).length) = true)
     (ht : x.2.2.2.1 < 6) (hw0 : val% «verify_tables» "block_index_mle" < x.2.2.1)
     {j : ℕ} (hj1 : 22 ≤ j) (hj : j < 118) (hjv : vtAllocVars.getD j 0 = x.2.2.1) {off : ℕ}
     (hob : off < 2 ^ H.μ)
-    (hdig : TbReadsAt rd (w x.2.2.1) (offDigits off (H.τ x.2.2.2.1)))
+    (hdig : ReadsAt rd (w x.2.2.1) (offDigits off (H.τ x.2.2.2.1)))
     (h : VSH (coreProgram.Rel rd) rd σv (selCall x)) :
     VSH (coreProgram.RelIn rd (H.reg B)) rd σv (selCall x) := by
   obtain ⟨b, pos, v, t, prev⟩ := x
@@ -541,10 +542,10 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   have e2597 : σv (.n (val% «verify_tables» "s73#1")) = 1 + gen ^ H.n := by
     rw [vt_add (d := 2323) (x := 2322) (y := 2240) (vt_mem_at 2352 _ (by decide +kernel)),
       vt_const (vt_mem_at 2351 (.atom (.const (.n (val% «verify_tables» "s73#0")) (word 1 0))) (by decide +kernel)),
-      tb_word_one, e2500]
+      word_one, e2500]
   have e2598 : σv (.n (val% «verify_tables» "s73#2")) = gen ^ 0 := by
     rw [vt_const (vt_mem_at 2353 (.atom (.const (.n (val% «verify_tables» "s73#2")) (word 1 0))) (by decide +kernel)),
-      tb_word_one, pow_zero]
+      word_one, pow_zero]
   have hK : 0 < H.n := by
     rcases Nat.eq_zero_or_pos H.n with h0 | h0
     · exact absurd (by rw [e2597, h0, pow_zero]; exact CharTwo.add_self_eq_zero 1) hne
@@ -556,7 +557,7 @@ theorem vt_loop_up (I : VtIn H B w rd) (h : VSH (coreProgram.Rel rd) rd σv loop
   rw [e2598, e2500, a2589, a2592, a2635] at hc ⊢
   obtain ⟨d, hd⟩ := hc
   -- the rounds' cursor words
-  have hR : TbReadsAt rd (w 2316)
+  have hR : ReadsAt rd (w 2316)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n) := by
     have := vt_own_reads I.hm I.hw (j := 118 + 0) (by norm_num)
     rw [ownW_getD_Z H B (k := 0) (by norm_num), show vtAllocVars.getD (118 + 0) 0 = 2316 by decide]
@@ -615,7 +616,7 @@ theorem vt_otr_cursor (I : VtIn H B w rd) {k : ℕ} (hk : k < 3) :
         (vt_mem_at 1634 _ (by decide +kernel)) (by norm_num) (by norm_num),
       vt_const (H := H) (B := B) (w := w) (rd := rd) (d := 1570) (e := word 128 0)
         (vt_mem_at 1633 _ (by decide +kernel)), show (128 : ℕ) = 2 ^ 7 by norm_num,
-      tb_word_two_pow (by norm_num), vt_p (by norm_num)]
+      word_two_pow (by norm_num), vt_p (by norm_num)]
     rfl
   · show σv (.n (val% «verify_tables» "cursor@2")) = _
     have g : GoodS rd vtSL w σv (otrCall 0) := vt_goodS rfl (vt_mem_at 1635 (otrCall 0) (by decide +kernel))

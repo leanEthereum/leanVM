@@ -194,7 +194,7 @@ theorem cappedCacheTracedMappedAdversaryImpl_query_preservesOtherValidEncodingIn
             secretKey request.leafIndex targetLeafIndex request.message targetInput
             initialCache finalCache (some signature) hbase hleafIndex hnone
 
-theorem cappedCacheTracedMappedAdversaryImpl_cachesLe
+theorem cappedCacheTracedMappedAdversaryImpl_cachesLe {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
@@ -213,7 +213,7 @@ theorem cappedCacheTracedMappedAdversaryImpl_cachesLe
         publicKey secretKey input state.1 state.2 queryResult hstate hquery)
     computation (initialCache, initialTrace) htrace result hmem
 
-theorem cappedCacheTracedMappedAdversaryImpl_successfulEncodingsCached
+theorem cappedCacheTracedMappedAdversaryImpl_successfulEncodingsCached {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
@@ -232,7 +232,7 @@ theorem cappedCacheTracedMappedAdversaryImpl_successfulEncodingsCached
         publicKey secretKey input state.1 state.2 queryResult hstate hquery)
     computation (initialCache, initialTrace) htrace result hmem
 
-theorem cappedCacheTracedMappedAdversaryImpl_preservesOtherValidEncodingInputs
+theorem cappedCacheTracedMappedAdversaryImpl_preservesOtherValidEncodingInputs {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
@@ -310,7 +310,7 @@ theorem cappedSelectivelyLoggedMappedAdversaryImpl_eq_mapped
       rw [cappedSelectivelyLoggedMappedAdversaryImpl_apply_inr,
         cappedMappedAdversaryImpl_apply_inr]
 
-theorem cappedCacheTracedMappedAdversaryImpl_cache_projection
+theorem cappedCacheTracedMappedAdversaryImpl_cache_projection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace) :
@@ -323,7 +323,7 @@ theorem cappedCacheTracedMappedAdversaryImpl_cache_projection
     (cappedUnloggedMappedAdversaryImpl publicKey secretKey) signingCacheTraceUpdate
     computation initialCache initialTrace
 
-theorem cappedCacheTracedMappedAdversaryImpl_log_projection
+theorem cappedCacheTracedMappedAdversaryImpl_log_projection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace) :
@@ -364,7 +364,7 @@ theorem cappedSelectivelyLoggedMappedAdversaryImpl_query_run_eq_logTraced
   intro result
   simp [signingLogUpdate]
 
-theorem cappedSelectivelyLoggedMappedAdversaryImpl_run_eq_logTraced
+theorem cappedSelectivelyLoggedMappedAdversaryImpl_run_eq_logTraced {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialLog : QueryLog SigningSpec) :
@@ -388,7 +388,7 @@ theorem cappedSelectivelyLoggedMappedAdversaryImpl_run_eq_logTraced
       simpa [List.append_assoc] using
         ih prefixResult.1.1 prefixResult.2 (initialLog ++ prefixResult.1.2)
 
-theorem cappedCacheTracedMappedAdversaryImpl_log_projection_eq_mapped
+theorem cappedCacheTracedMappedAdversaryImpl_log_projection_eq_mapped {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) :

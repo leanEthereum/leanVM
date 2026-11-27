@@ -29,8 +29,8 @@ finite number of lanes.
   interpolant, proved as `lemma43` (`AffineCombinerLemma43.lean`).
 * `card_excSet_le_nAff` (`thm:mca-affine`): under `InterpolantCount` over the algebraic closure,
   at most `nAff q n d A m D B = q² ε_aff` exceptional pairs.
-* `card_foldBad_le_nAff` (`lem:fold-list`): the escapes `(α, β)` of a fold round number at most
-  `nAff + 2 L q`, that is the Annex's `ε_aff + 2L/|E|` times `q²`.
+* The escapes `(α, β)` of a fold round (`lem:fold-list`) number at most `nAff + 2 L q`, that is
+  the Annex's `ε_aff + 2L/|E|` times `q²` (`card_foldBadR_le_nAff'`, `AffineCombinerLemma43.lean`).
 -/
 
 namespace LeanVM.Protocol.Whir.AffineCombiner
@@ -98,26 +98,6 @@ theorem card_excSet_le_nAff (dom : ι ↪ F) {d A m D B : ℕ}
       ≤ (nAffPersistent (Fintype.card F) (Fintype.card ι) d B : ℚ) +
           ((nonpersSet dom (packW b f) (packW b g) d A B).card : ℚ) := by exact_mod_cast h
     _ ≤ _ := by gcongr; exact hN _ _
-
-/-- **One affine fold round** (Annex B, `lem:fold-list`, counting form). Let `(A - 1)² > n d`,
-`(m, D, B)` admissible for `(n, d, A)`, and `InterpolantCount` hold over the algebraic closure.
-If every pair of `lst(f, g; A - 1, d)` violates `Λ₀ F + Λ₁ G = c`, then for every table at most `nAff + 2 jl n (A - 1) d q` challenges `(α, β)` let a tuple of
-`lst(fold; A, d)` satisfy the new claim: probability `ε_aff + 2 L / q`. -/
-theorem card_foldBad_le_nAff [DecidableEq F] (dom : ι ↪ F) (f g : ρ → ι → F) {d A m D B : ℕ}
-    (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
-    (hadm : Admissible (Fintype.card ι) d A m D B)
-    (hN : InterpolantCount (AlgebraicClosure F) dom d A m D B)
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
-    ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ) ≤
-      nAff (Fintype.card F) (Fintype.card ι) d A m D B +
-        2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by
-  have h := card_foldBad_le dom f g hgap Λ₀ Λ₁ c hviol u₀ v c₀ c₁
-  have hmca := card_excSet_le_nAff dom hadm hN g f
-  calc ((foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card : ℚ)
-      ≤ ((excSet dom g f d A).card : ℚ) +
-          2 * jl (Fintype.card ι) (A - 1) d * (Fintype.card F : ℚ) := by exact_mod_cast h
-    _ ≤ _ := by gcongr
 
 end
 end LeanVM.Protocol.Whir.AffineCombiner

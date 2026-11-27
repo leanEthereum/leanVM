@@ -8,18 +8,21 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
 import LeanVM.Guest.B1.Common.Vc
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
-# `eq_prefix_run`, `eq_prefix_chain` (TRIAGE #25, #26)
+# `eq_prefix_run`, `eq_prefix_chain`
 
-`eq_prefix_run__L{n}` (core function `39 + n`) stores the seed at `chain[0]`, then per coordinate
-`k < n` (`epBlk k`) reads `a[k]`, `b1[k]`, multiplies the running product by their sum and stores
-it at `chain[k + 1]`; it returns `0`. `eq_prefix_chain` range-checks `count_g = g^n` below
-`g^41` and dispatches to `eq_prefix_run__L{n}`.
+`eq_prefix_run__L{n}` stores the seed at `chain[0]`, then per coordinate `k < n` (`epBlk k`) reads
+`a[k]`, `b1[k]`, multiplies the running product by their sum and stores it at `chain[k + 1]`; it
+returns `0`. `eq_prefix_chain` range-checks `count_g = g^n` below `g^41` and dispatches to
+`eq_prefix_run__L{n}`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -59,7 +62,7 @@ def epBlk (k : ℕ) : List Stmt :=
 
 /-- The expansion of `eq_prefix_run__L{n}`. -/
 def epBody (n : ℕ) : List Stmt :=
-  [.atom (.load (.n (valf% «eq_prefix_run» "seed")) (.n (valf% «eq_prefix_run» "chain")) 0)] ++ ((List.range n).map epBlk).flatten ++
+  [.atom (.load (.n (valf% «eq_prefix_run» "seed")) (.n (valf% «eq_prefix_run» "chain")) 0)] ⧺ ((List.range n).map epBlk).flatten ⧺
     [.atom (.const (.n (4 + 4 * n)) (word 0 0)), .ret [.n (4 + 4 * n)]]
 
 /-- What coordinate `k` asks. -/
@@ -165,298 +168,17 @@ theorem ep_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (eqPrefixRunNames.g
 
 /-! ## The specializations -/
 
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L0_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 0 "") args rets ↔ MeaningEqPrefixRun 0 rd args rets :=
-  ep_iff 0 (f := fn% «eq_prefix_run__L0») (coreProgram_find?_at (j := idx% «eq_prefix_run__L0»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L1_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 1 "") args rets ↔ MeaningEqPrefixRun 1 rd args rets :=
-  ep_iff 1 (f := fn% «eq_prefix_run__L1») (coreProgram_find?_at (j := idx% «eq_prefix_run__L1»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L2_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 2 "") args rets ↔ MeaningEqPrefixRun 2 rd args rets :=
-  ep_iff 2 (f := fn% «eq_prefix_run__L2») (coreProgram_find?_at (j := idx% «eq_prefix_run__L2»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L3_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 3 "") args rets ↔ MeaningEqPrefixRun 3 rd args rets :=
-  ep_iff 3 (f := fn% «eq_prefix_run__L3») (coreProgram_find?_at (j := idx% «eq_prefix_run__L3»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L4_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 4 "") args rets ↔ MeaningEqPrefixRun 4 rd args rets :=
-  ep_iff 4 (f := fn% «eq_prefix_run__L4») (coreProgram_find?_at (j := idx% «eq_prefix_run__L4»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L5_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 5 "") args rets ↔ MeaningEqPrefixRun 5 rd args rets :=
-  ep_iff 5 (f := fn% «eq_prefix_run__L5») (coreProgram_find?_at (j := idx% «eq_prefix_run__L5»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L6_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 6 "") args rets ↔ MeaningEqPrefixRun 6 rd args rets :=
-  ep_iff 6 (f := fn% «eq_prefix_run__L6») (coreProgram_find?_at (j := idx% «eq_prefix_run__L6»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L7_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 7 "") args rets ↔ MeaningEqPrefixRun 7 rd args rets :=
-  ep_iff 7 (f := fn% «eq_prefix_run__L7») (coreProgram_find?_at (j := idx% «eq_prefix_run__L7»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L8_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 8 "") args rets ↔ MeaningEqPrefixRun 8 rd args rets :=
-  ep_iff 8 (f := fn% «eq_prefix_run__L8») (coreProgram_find?_at (j := idx% «eq_prefix_run__L8»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L9_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 9 "") args rets ↔ MeaningEqPrefixRun 9 rd args rets :=
-  ep_iff 9 (f := fn% «eq_prefix_run__L9») (coreProgram_find?_at (j := idx% «eq_prefix_run__L9»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L10_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 10 "") args rets ↔ MeaningEqPrefixRun 10 rd args rets :=
-  ep_iff 10 (f := fn% «eq_prefix_run__L10») (coreProgram_find?_at (j := idx% «eq_prefix_run__L10»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L11_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 11 "") args rets ↔ MeaningEqPrefixRun 11 rd args rets :=
-  ep_iff 11 (f := fn% «eq_prefix_run__L11») (coreProgram_find?_at (j := idx% «eq_prefix_run__L11»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L12_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 12 "") args rets ↔ MeaningEqPrefixRun 12 rd args rets :=
-  ep_iff 12 (f := fn% «eq_prefix_run__L12») (coreProgram_find?_at (j := idx% «eq_prefix_run__L12»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L13_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 13 "") args rets ↔ MeaningEqPrefixRun 13 rd args rets :=
-  ep_iff 13 (f := fn% «eq_prefix_run__L13») (coreProgram_find?_at (j := idx% «eq_prefix_run__L13»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L14_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 14 "") args rets ↔ MeaningEqPrefixRun 14 rd args rets :=
-  ep_iff 14 (f := fn% «eq_prefix_run__L14») (coreProgram_find?_at (j := idx% «eq_prefix_run__L14»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L15_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 15 "") args rets ↔ MeaningEqPrefixRun 15 rd args rets :=
-  ep_iff 15 (f := fn% «eq_prefix_run__L15») (coreProgram_find?_at (j := idx% «eq_prefix_run__L15»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L16_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 16 "") args rets ↔ MeaningEqPrefixRun 16 rd args rets :=
-  ep_iff 16 (f := fn% «eq_prefix_run__L16») (coreProgram_find?_at (j := idx% «eq_prefix_run__L16»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L17_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 17 "") args rets ↔ MeaningEqPrefixRun 17 rd args rets :=
-  ep_iff 17 (f := fn% «eq_prefix_run__L17») (coreProgram_find?_at (j := idx% «eq_prefix_run__L17»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L18_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 18 "") args rets ↔ MeaningEqPrefixRun 18 rd args rets :=
-  ep_iff 18 (f := fn% «eq_prefix_run__L18») (coreProgram_find?_at (j := idx% «eq_prefix_run__L18»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L19_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 19 "") args rets ↔ MeaningEqPrefixRun 19 rd args rets :=
-  ep_iff 19 (f := fn% «eq_prefix_run__L19») (coreProgram_find?_at (j := idx% «eq_prefix_run__L19»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L20_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 20 "") args rets ↔ MeaningEqPrefixRun 20 rd args rets :=
-  ep_iff 20 (f := fn% «eq_prefix_run__L20») (coreProgram_find?_at (j := idx% «eq_prefix_run__L20»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L21_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 21 "") args rets ↔ MeaningEqPrefixRun 21 rd args rets :=
-  ep_iff 21 (f := fn% «eq_prefix_run__L21») (coreProgram_find?_at (j := idx% «eq_prefix_run__L21»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L22_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 22 "") args rets ↔ MeaningEqPrefixRun 22 rd args rets :=
-  ep_iff 22 (f := fn% «eq_prefix_run__L22») (coreProgram_find?_at (j := idx% «eq_prefix_run__L22»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L23_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 23 "") args rets ↔ MeaningEqPrefixRun 23 rd args rets :=
-  ep_iff 23 (f := fn% «eq_prefix_run__L23») (coreProgram_find?_at (j := idx% «eq_prefix_run__L23»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L24_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 24 "") args rets ↔ MeaningEqPrefixRun 24 rd args rets :=
-  ep_iff 24 (f := fn% «eq_prefix_run__L24») (coreProgram_find?_at (j := idx% «eq_prefix_run__L24»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L25_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 25 "") args rets ↔ MeaningEqPrefixRun 25 rd args rets :=
-  ep_iff 25 (f := fn% «eq_prefix_run__L25») (coreProgram_find?_at (j := idx% «eq_prefix_run__L25»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L26_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 26 "") args rets ↔ MeaningEqPrefixRun 26 rd args rets :=
-  ep_iff 26 (f := fn% «eq_prefix_run__L26») (coreProgram_find?_at (j := idx% «eq_prefix_run__L26»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L27_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 27 "") args rets ↔ MeaningEqPrefixRun 27 rd args rets :=
-  ep_iff 27 (f := fn% «eq_prefix_run__L27») (coreProgram_find?_at (j := idx% «eq_prefix_run__L27»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L28_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 28 "") args rets ↔ MeaningEqPrefixRun 28 rd args rets :=
-  ep_iff 28 (f := fn% «eq_prefix_run__L28») (coreProgram_find?_at (j := idx% «eq_prefix_run__L28»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L29_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 29 "") args rets ↔ MeaningEqPrefixRun 29 rd args rets :=
-  ep_iff 29 (f := fn% «eq_prefix_run__L29») (coreProgram_find?_at (j := idx% «eq_prefix_run__L29»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L30_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 30 "") args rets ↔ MeaningEqPrefixRun 30 rd args rets :=
-  ep_iff 30 (f := fn% «eq_prefix_run__L30») (coreProgram_find?_at (j := idx% «eq_prefix_run__L30»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L31_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 31 "") args rets ↔ MeaningEqPrefixRun 31 rd args rets :=
-  ep_iff 31 (f := fn% «eq_prefix_run__L31») (coreProgram_find?_at (j := idx% «eq_prefix_run__L31»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L32_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 32 "") args rets ↔ MeaningEqPrefixRun 32 rd args rets :=
-  ep_iff 32 (f := fn% «eq_prefix_run__L32») (coreProgram_find?_at (j := idx% «eq_prefix_run__L32»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L33_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 33 "") args rets ↔ MeaningEqPrefixRun 33 rd args rets :=
-  ep_iff 33 (f := fn% «eq_prefix_run__L33») (coreProgram_find?_at (j := idx% «eq_prefix_run__L33»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L34_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 34 "") args rets ↔ MeaningEqPrefixRun 34 rd args rets :=
-  ep_iff 34 (f := fn% «eq_prefix_run__L34») (coreProgram_find?_at (j := idx% «eq_prefix_run__L34»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L35_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 35 "") args rets ↔ MeaningEqPrefixRun 35 rd args rets :=
-  ep_iff 35 (f := fn% «eq_prefix_run__L35») (coreProgram_find?_at (j := idx% «eq_prefix_run__L35»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L36_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 36 "") args rets ↔ MeaningEqPrefixRun 36 rd args rets :=
-  ep_iff 36 (f := fn% «eq_prefix_run__L36») (coreProgram_find?_at (j := idx% «eq_prefix_run__L36»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L37_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 37 "") args rets ↔ MeaningEqPrefixRun 37 rd args rets :=
-  ep_iff 37 (f := fn% «eq_prefix_run__L37») (coreProgram_find?_at (j := idx% «eq_prefix_run__L37»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L38_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 38 "") args rets ↔ MeaningEqPrefixRun 38 rd args rets :=
-  ep_iff 38 (f := fn% «eq_prefix_run__L38») (coreProgram_find?_at (j := idx% «eq_prefix_run__L38»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L39_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 39 "") args rets ↔ MeaningEqPrefixRun 39 rd args rets :=
-  ep_iff 39 (f := fn% «eq_prefix_run__L39») (coreProgram_find?_at (j := idx% «eq_prefix_run__L39»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem eq_prefix_run_L40_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (eqPrefixRunNames.getD 40 "") args rets ↔ MeaningEqPrefixRun 40 rd args rets :=
-  ep_iff 40 (f := fn% «eq_prefix_run__L40») (coreProgram_find?_at (j := idx% «eq_prefix_run__L40»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
+/-- The deployed `eq_prefix_run__L{n}`, `n ≤ 40`, are the template. -/
+private theorem eq_prefix_run_found :
+    coreRunB (idxs% «eq_prefix_run__L» 0 41) (eqPrefixRunNames.getD · "")
+    (shapeB [.n (valf% «eq_prefix_run» "chain"), .n (valf% «eq_prefix_run» "seed"),
+      .n (valf% «eq_prefix_run» "a"), .n (valf% «eq_prefix_run» "b1")] epBody) = true := by
+  decide +kernel
 
 /-- **`eq_prefix_run`'s core IR is its meaning**, every specialization. -/
-theorem eq_prefix_run_holds : eq_prefix_run_Spec := by
-  intro n hn
-  interval_cases n
-  exacts [eq_prefix_run_L0_iff, eq_prefix_run_L1_iff, eq_prefix_run_L2_iff, eq_prefix_run_L3_iff, eq_prefix_run_L4_iff, eq_prefix_run_L5_iff, eq_prefix_run_L6_iff, eq_prefix_run_L7_iff, eq_prefix_run_L8_iff, eq_prefix_run_L9_iff, eq_prefix_run_L10_iff, eq_prefix_run_L11_iff, eq_prefix_run_L12_iff, eq_prefix_run_L13_iff, eq_prefix_run_L14_iff, eq_prefix_run_L15_iff, eq_prefix_run_L16_iff, eq_prefix_run_L17_iff, eq_prefix_run_L18_iff, eq_prefix_run_L19_iff, eq_prefix_run_L20_iff, eq_prefix_run_L21_iff, eq_prefix_run_L22_iff, eq_prefix_run_L23_iff, eq_prefix_run_L24_iff, eq_prefix_run_L25_iff, eq_prefix_run_L26_iff, eq_prefix_run_L27_iff, eq_prefix_run_L28_iff, eq_prefix_run_L29_iff, eq_prefix_run_L30_iff, eq_prefix_run_L31_iff, eq_prefix_run_L32_iff, eq_prefix_run_L33_iff, eq_prefix_run_L34_iff, eq_prefix_run_L35_iff, eq_prefix_run_L36_iff, eq_prefix_run_L37_iff, eq_prefix_run_L38_iff, eq_prefix_run_L39_iff, eq_prefix_run_L40_iff]
+theorem eq_prefix_run_holds : eq_prefix_run_Spec := fun n hn ↦
+  have ⟨_, hf, hp, hb⟩ := coreRunB_shape eq_prefix_run_found (Nat.lt_succ_of_le hn)
+  ep_iff n hf hp hb
 
 /-! ## `eq_prefix_chain` -/
 
@@ -466,8 +188,8 @@ theorem find_eq_prefix_chain : coreProgram.find? "eq_prefix_chain" = some fn% «
 theorem eq_prefix_chain_body : Fn.body fn% «eq_prefix_chain» =
     [.atom (.const (.n (val% «eq_prefix_chain» "s0#0")) (word (2 ^ 40) 0)),
       .atom (.rangeCheck (.n (val% «eq_prefix_chain» "count_g")) (.n (val% «eq_prefix_chain» "s0#1")) (.n (val% «eq_prefix_chain» "s0#2")) (.n (val% «eq_prefix_chain» "s0#3")) (.n (val% «eq_prefix_chain» "s0#0"))),
-      .dispatch (.n (val% «eq_prefix_chain» "count_g")) eqPrefixRunNames [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1")] [.n (val% «eq_prefix_chain» "done")], .ret []] :=
-  stmtsEqb_sound (by decide +kernel)
+      .dispatch (.n (val% «eq_prefix_chain» "count_g")) eqPrefixRunNames [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1")] [.n (val% «eq_prefix_chain» "done")], .ret []] := by
+  kernel_rfl
 
 theorem word_g40 : word 1099511627776 0 = gen ^ 40 := word_two_pow (a := 40) (by decide)
 

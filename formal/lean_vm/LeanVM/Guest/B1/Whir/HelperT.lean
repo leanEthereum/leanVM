@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Template
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The templates of `open_stacked`'s helpers
@@ -51,13 +52,13 @@ stored in its row `1`, the first word decoded, the loop over the other squeezes,
 capacity loaded and returned. -/
 def lpBody (d cd : ℕ) (loop : String) : List Stmt :=
   [osCst 10 (gw 1), osMul 11 9 10, osMul 12 11 11, osMul 13 12 12, osMul 14 13 11,
-    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ++
-    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ++
-    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
-    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ++
-    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ++
-    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ++
-    ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i)) ++
+    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ⧺
+    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ⧺
+    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ⧺
+    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ⧺
+    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ⧺
+    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ⧺
+    ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i)) ⧺
     [.ret ((List.range 5).map fun i ↦ .n (28 + i))]
 
 /-- A row of tree depth `d` and cap depth `cd`, its positions at offset `0`: the row
@@ -89,17 +90,17 @@ def lqBody (q base folds leaf d cd mu nhs hbits fin : ℕ) : List Stmt :=
   let odd := if base = 1 then q % 2 else 0
   let pw := osPowSteps 0 (osPowDigits q) 0 22
   let k := 22 + osPowLen q
-  osHeap (4 * 2 ^ cd) 6 ++
-    [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ++
-    osHeap (2 ^ cd) 8 ++
+  osHeap (4 * 2 ^ cd) 6 ⧺
+    [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))] ⧺
+    osHeap (2 ^ cd) 8 ⧺
     [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd)))),
       .call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11],
       osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
       osCst 16 (gw iters), osCst 17 (gw odd),
       .call (oqName base folds leaf (d - cd) mu nhs hbits fin)
         [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18],
-      osCp 19 10, osCp 20 11, osCp 21 18] ++
-    pw.1 ++ [osCp k pw.2, .ret [.n 19, .n 20, .n 21, .n k]]
+      osCp 19 10, osCp 20 11, osCp 21 18] ⧺
+    pw.1 ⧺ [osCp k pw.2, .ret [.n 19, .n 20, .n 21, .n k]]
 
 /-- `level_residual` over a column shape, at `positions, row_d, hs, lam_inv, batches_g, rest_g`
 (values `0 .. 5`), `n = b·B + r` queries for `b = resBatch`, `batches_g = g^B`, `rest_g = g^r`: the
@@ -110,10 +111,10 @@ def lrBody (loop1 loop2 : String) : List Stmt :=
   let pw := osPowSteps 4 (osPowDigits resBatch) 4 18
   let k := 18 + osPowLen resBatch
   [osMul 6 4 5, osCst 7 (gw 1), osMul 8 6 7, osMul 9 8 8, .atom (.hint (.allocDyn (.n 10) (.n 9))),
-    osCst 11 (word 0 0), osLd 11 10 0, osCst 12 (word 0 0), osLd 12 10 1] ++
-    osLoopCallR loop1 0 4 [0, 10, 1, 2, 3] 13 ++
-    [osMul 16 4 4, osMul 17 10 16] ++ pw.1 ++ [osMul k 0 pw.2] ++
-    osLoopCallR loop2 0 5 [17, k, 1, 2, 3] (k + 1) ++
+    osCst 11 (word 0 0), osLd 11 10 0, osCst 12 (word 0 0), osLd 12 10 1] ⧺
+    osLoopCallR loop1 0 4 [0, 10, 1, 2, 3] 13 ⧺
+    [osMul 16 4 4, osMul 17 10 16] ⧺ pw.1 ⧺ [osMul k 0 pw.2] ⧺
+    osLoopCallR loop2 0 5 [17, k, 1, 2, 3] (k + 1) ⧺
     [osMul (k + 4) 5 5, osMul (k + 5) 17 (k + 4), osLd (k + 6) (k + 5) 0, osLd (k + 7) (k + 5) 1,
       .ret [.n (k + 6), .n (k + 7)]]
 
@@ -125,9 +126,9 @@ def lrLoop1Body (cols nhs hbits : ℕ) (name : String) : List Stmt :=
   let y := 7 + batchLen
   let st := osResSteps y 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 6 (List.range resBatch)
     (y + 3) (y + 4) (y + 5)
-  (osBatchPow 7).1 ++ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0, osMul (y + 2) (y + 1) 0,
-    osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ++ st.1 ++
-    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ++
+  (osBatchPow 7).1 ⧺ [osMul y 2 (osBatchPow 7).2, osMul (y + 1) 3 0, osMul (y + 2) (y + 1) 0,
+    osLd (y + 3) (y + 2) 0, osLd (y + 4) (y + 2) 1] ⧺ st.1 ⧺
+    [osLd st.2.1 (y + 2) 2, osLd st.2.2.1 (y + 2) 3] ⧺
     osLoopTail name 7 st.2.2.2
 
 /-- `level_residual`'s rest's loop, at `x, N, rest, tail, row_d, hs, mu` (values `0 .. 6`): the
@@ -136,9 +137,9 @@ position `tail[x]`, its inline `residual_query`, `h, hh = rest[x]`, `rest[x·g] 
 def lrLoop2Body (cols nhs hbits : ℕ) (name : String) : List Stmt :=
   let q := osResQuery 10 4 0 5 0 (cols * (cols + 1) / 2) cols nhs hbits 11
   let e := q.2.2.2
-  [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0, osLd 10 9 0] ++ q.1 ++
+  [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0, osLd 10 9 0] ⧺ q.1 ⧺
     [osLd e 8 0, osAdd (e + 1) e q.2.1, osMul (e + 2) (e + 1) 6, osLd (e + 2) 8 2,
-      osLd (e + 3) 8 1, osAdd (e + 4) (e + 3) q.2.2.1, osMul (e + 5) (e + 4) 6, osLd (e + 5) 8 3] ++
+      osLd (e + 3) 8 1, osAdd (e + 4) (e + 3) q.2.2.1, osMul (e + 5) (e + 4) 6, osLd (e + 5) 8 3] ⧺
     osLoopTail name 7 (e + 6)
 
 end

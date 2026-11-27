@@ -90,7 +90,7 @@ theorem vtW23_gen : vtW23 = gen ^ 23 := by rw [vtW23_eq, gen_pow_eq_ofK]
 theorem vtW8397_gen : vtW8397 = gen ^ 8397 := by rw [vtW8397_eq, gen_pow_eq_ofK]
 theorem vtW33_gen : vtW33 = gen ^ 33 := by rw [vt_word_g33, gen_pow_eq_ofK]
 theorem vtW30_gen : vtW30 = gen ^ 30 := by rw [vtW30_eq, gen_pow_eq_ofK]
-theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := tb_gen_pow_isInK a
+theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := gen_pow_isInK a
 
 /-- An `ite`'s branches' equations. -/
 theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {c : V}

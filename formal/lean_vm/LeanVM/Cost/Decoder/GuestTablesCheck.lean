@@ -3,7 +3,7 @@ module
 public import LeanVM.Cost.Decoder.GuestTables
 public import LeanVM.Guest.Glob
 import all LeanVM.Guest.Glob
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 meta import Lean.Elab.Tactic
 import LeanVM.ToMathlib.List
 

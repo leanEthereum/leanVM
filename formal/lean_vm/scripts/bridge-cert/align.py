@@ -450,7 +450,7 @@ end
 def cell_wins(key, pack):
     """The certificate's cell lists of a function, by name, with their cells."""
     blk = data.bundle_blocks()[key][1]
-    text = blk + ''.join(open(p, encoding='utf-8').read()
+    text = blk + ''.join(data.read_text(p)
                          for p in sorted(glob.glob(os.path.join(data.ROOT, 'Pack', key, 'Cells*.lean'))))
     ds = defs(text)
     env = lambda n: parse(ds[n])

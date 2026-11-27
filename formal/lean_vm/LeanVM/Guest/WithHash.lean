@@ -13,6 +13,7 @@ module
 public import Statement.LeanVmGuest
 public import LeanVM.Protocol.WithHash
 public import Statement.LeanVmGuestCompleteness
+public import Common.DigestBytes
 
 @[expose] public section
 

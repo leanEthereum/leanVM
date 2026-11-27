@@ -69,14 +69,14 @@ theorem gl_loop_step {p o : ℕ} (hp : p < 4) (ho : o < 2) {N head qrow nqrow ta
   obtain ⟨hcap', hpost⟩ := hpost
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost hcap'
   obtain ⟨c339, m340, l340, l338, c341, m342, a343, c344, m345, _hk, hnext, -⟩ := hpost
-  rw [tb_word_two_pow (by norm_num)] at c339
-  rw [tb_word_gen] at c341 c344
+  rw [word_two_pow (by norm_num)] at c339
+  rw [word_gen] at c341 c344
   refine ⟨?_, fun hne => ?_⟩
   · have e7 : σ (.n (valf% «gkr_layer» «_loop0» "head")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 7 = σ (.n (valf% «gkr_layer» «_loop0» "rd")) := by
       rw [m6, a9, a8, a7, a6]; ring
     rw [e7, show σ (.n (valf% «gkr_layer» «_loop0» "qrow")) * σ (.n (valf% «gkr_layer» «_loop0» "y")) ^ 8 = σ (.n (valf% «gkr_layer» «_loop0» "pt")) by rw [m10, e9]]
-    refine glOut_of_run (tbCapAt_glCap (off := 0) (fun k hk => by simpa using hcap k hk))
-      (by exact l17) (by exact l18) R (tbCapAt_glCap (fun k hk => by simpa using hcap' k hk)) ?_
+    refine glOut_of_run (capAt_glCap (off := 0) (fun k hk => by simpa using hcap k hk))
+      (by exact l17) (by exact l18) R (capAt_glCap (fun k hk => by simpa using hcap' k hk)) ?_
       (by simpa using l338)
     rw [show σ (.n (valf% «gkr_layer» «_loop0» "cur")) * gen ^ (4 * 8) = σ (.n (valf% «gkr_layer» «_loop0» "s12#1")) by rw [m340, c339]]
     simpa using l340

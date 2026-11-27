@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CFinA
 public import LeanVM.Guest.B1.Whir.CFinRes
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The finish, honestly, assembled
@@ -577,7 +578,7 @@ theorem osFinishA_completeC {c : OsCfg} {st : OsSt} {tch : ℕ} {σ : Val} {G T 
         · have := readsAt_getD' hM.ich (j := 2 * y + 1) (by rw [hl]; omega); rwa [g1] at this
         · have := readsAt_getD' hM.ich (j := 2 * y) (by rw [hl]; omega); rwa [g0] at this
   have e : (osFinishA c st tch).1 = [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n k0],
-      .atom (.hint (.alloc (.n (k0 + 1)) pointCap)), .atom (.hint (.alloc (.n (k0 + 1 + 1)) pointCap))] ++
+      .atom (.hint (.alloc (.n (k0 + 1)) pointCap)), .atom (.hint (.alloc (.n (k0 + 1 + 1)) pointCap))] ⧺
       pts.1 ++ (osHeap (n * ligColsCap) P2 ++ osHeap n (P2 + 2) ++ osHeap n (P2 + 4)) ++ bs.1 ++
       (osHeap (2 * n) B ++ [osCst (B + 2) (word 0 0), osLd (B + 2) (B + 1) 0, osLd st.claim (B + 1) 1]) ++
       rs.1 ++ od.1 ++ [osLd K (B + 1) (2 * y + 1), osCp (K + 1) (k0 + 1), osCp (K + 2) (k0 + 1 + 1),

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `selector_tables`
@@ -46,7 +47,7 @@ def stV (j w i : ℕ) : ℕ := stM j w + i
 /-- Level `w ≥ 1` of nibble `j`: the coordinate and its complement, then the products. -/
 def stLevel (j w : ℕ) : List Stmt :=
   [.atom (.load (.n (stM j w - 2)) (.n (val% «selector_tables» "point")) (4 * j + 3 - w)),
-    .atom (.load (.n (stM j w - 1)) (.n (val% «selector_tables» "point1")) (4 * j + 3 - w))] ++
+    .atom (.load (.n (stM j w - 1)) (.n (val% «selector_tables» "point1")) (4 * j + 3 - w))] ⧺
   ((List.range (2 ^ w)).map fun i ↦
     [.atom (.mul (.n (stM j w + 2 * i)) (.n (stV j (w - 1) i)) (.n (stM j w - 1))),
       .atom (.mul (.n (stM j w + 2 * i + 1)) (.n (stV j (w - 1) i)) (.n (stM j w - 2)))]).flatten
@@ -58,30 +59,30 @@ def stStores (j w : ℕ) : List Stmt :=
 
 /-- Nibble `j`. -/
 def stNib (j : ℕ) : List Stmt :=
-  [.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] ++
-    stLevel j 1 ++ stLevel j 2 ++ stLevel j 3 ++ ((List.range 4).map (stStores j)).flatten
+  [.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] ⧺
+    stLevel j 1 ⧺ stLevel j 2 ⧺ stLevel j 3 ⧺ ((List.range 4).map (stStores j)).flatten
 
 /-- `selector_tables`'s statements before its `ret`. -/
 def stPre : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256))] ++ ((List.range 8).map stNib).flatten ++
+  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256))] ⧺ ((List.range 8).map stNib).flatten ⧺
     [.atom (.copy (.n (val% «selector_tables» "s2#0")) (.n (val% «selector_tables» "sel_eq")))]
 
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && stmtsEqb fn.body (stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
 
 theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
-    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]] := by
+    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]] := by
   have h := stCheck_eq
   unfold stCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem stLevel_noRet (j w : ℕ) : Stmt.noRetList (stLevel j w) = true := by
@@ -165,15 +166,15 @@ theorem holds_stNib {j : ℕ} (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
 
 /-- **The eq levels of nibble `j`**: level `w`'s entry `i` is the table's entry `i·2^(3 - w)`. -/
 theorem stLevels {j : ℕ} (hj : j < 8) {p p1 : List E} (hp : p.length = 32) (hp1 : p1.length = 32)
-    (hpt : TbReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : TbReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
+    (hpt : ReadsAt rd (σ (.n (val% «selector_tables» "point"))) p) (hpt1 : ReadsAt rd (σ (.n (val% «selector_tables» "point1"))) p1)
     (h : Stmt.HoldsList C rd σ (stNib j) True kret) :
     ∀ w < 4, ∀ i < 2 ^ (w + 1), σ (.n (stV j w i)) = selEqEntry p p1 j w (i * 2 ^ (3 - w)) := by
   obtain ⟨⟨l0, l1⟩, hL1, hL2, hL3, -⟩ := holds_stNib h
-  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → TbReadsAt rd pq q → ∀ s < 4, ∀ x,
+  have hrd : ∀ (q : List E) (pq : E), q.length = 32 → ReadsAt rd pq q → ∀ s < 4, ∀ x,
       LoadHolds rd pq (4 * j + s) x → x = q.getD (4 * j + s) 0 := fun q pq hq hr s hs x hx => by
     have := hr (4 * j + s) (by omega)
     rw [List.getD_eq_getElem _ _ (by omega)]
-    exact tb_loadHolds_unique hx this
+    exact loadHolds_unique hx this
   intro w hw
   induction w with
   | zero =>

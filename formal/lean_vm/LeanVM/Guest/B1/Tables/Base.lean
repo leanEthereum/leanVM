@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Tables.Base
 
-  The vocabulary of the B1 lemmas of the bus, the tables, the selectors and the placement: memory
-  runs, and runs of the specification's programs on the duplex sponge that the guest carries
-  between functions as its five capacity cells.
+  The vocabulary of the B1 lemmas of the bus, the tables, the selectors and the placement: runs of
+  the specification's programs on the duplex sponge that the guest carries between functions as
+  its five capacity cells.
 -/
 
 module
@@ -17,10 +17,9 @@ public import LeanVM.Protocol.WithHash
 /-!
 # B1 of the bus and the tables: vocabulary
 
-These are local to `B1/{Gkr, Tables, Selectors, Placement}` (prefixed `Tb`, `tb`), until the
-shared `B1/Common` has them.
+These are local to `B1/{Gkr, Tables, Selectors, Placement}`; memory runs are `B1/Common`'s
+`ReadsAt`.
 
-* `TbReadsAt rd p xs`: the words `xs` lie in memory from the pointer `p`, word `k` at `p·g^k`.
 * Runs of the Spec's programs on the carried sponge are `RunsTo` (`B1/Common/Sponge`),
   copied as `RunsTo` in `B1/Gkr/Fs`: from any sponge the guest carries as five capacity cells
   and waiting scalars, a program reads exactly the stream words given and returns its value,
@@ -35,10 +34,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-/-- The words `xs` lie in memory from `p`: word `k` at `p·g^k`. -/
-def TbReadsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
-  ∀ k (hk : k < xs.length), LoadHolds rd p k xs[k]
 
 /-- `Compile.run` with the deployed hash and permutation. -/
 abbrev tbRun {α : Type} (p : VerifierProgram α) (s : VerifierProgramState) : Option (α ×

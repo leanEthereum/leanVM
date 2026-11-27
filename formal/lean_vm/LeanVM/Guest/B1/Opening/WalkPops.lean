@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesComplete3
 public import LeanVM.Guest.B1.Sig.PopsKit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `walk_path`'s pops
@@ -104,7 +105,7 @@ theorem oqWinT_fallPops {s : Oq} {bp : V} {pr kN ch i k : ℕ} (hk : k < 2 ^ oqW
     (hx : σ (.n (oqWk s ch i)) = ofK (addressOfIndex k)) : FallPops rd σ (oqWinT s bp pr kN ch i) [] := by
   have h6 : 2 ^ oqWw s i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by omega) (oqWw_le s i)
   have e : oqWinT s bp pr kN ch i = [.atom (.load (.n (oqWk s ch i)) bp i),
-      .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0))] ++
+      .atom (.const (.n (oqWk s ch i + 1)) (word (2 ^ 63) 0))] ⧺
       [.match_ (.n (oqWk s ch i)) ((List.range (2 ^ oqWw s i)).map (oqArmT s pr kN ch i))] := rfl
   rw [e]
   have hm : FallPops rd σ [.match_ (.n (oqWk s ch i))

@@ -98,7 +98,7 @@ theorem sourceDirectTracedVerifierImpl_query_run_eq
         (romImpl input).run cache := by
   rcases input with n | hashInput <;> rfl
 
-theorem sourceDirectTracedVerifierImpl_run_eq
+theorem sourceDirectTracedVerifierImpl_run_eq {α : Type _}
     (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (trace : AttackerActionTrace) :
     (simulateQ sourceDirectTracedVerifierImpl computation).run (cache, trace) =

@@ -36,15 +36,6 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {rd : Reader}
 
-/-- A round of `packRunF` is `eqRound`. -/
-theorem packRunF_eqRound (r g1 g2 v : E) (rs : List E) (ms : List (E × E)) (s : Fs) :
-    packRunF (r :: rs) ((g1, g2) :: ms) v s =
-      (((packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).1.1,
-        (eqRound s g1 g2 r v).1 ::
-          (packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).1.2),
-        (packRunF rs ms (eqRound s g1 g2 r v).2.1 (eqRound s g1 g2 r v).2.2).2) :=
-  packRunF_cons r g1 g2 v rs ms s
-
 /-- `packRunF` past its last round. -/
 theorem packRunF_nil (v : E) (s : Fs) : packRunF [] [] v s = ((v, []), s) := rfl
 
@@ -63,7 +54,7 @@ theorem packRunF_append :
   | [], rest, [], restM, v, s, _ => by simp [packRunF_nil]
   | r :: A, rest, (g1, g2) :: MA, restM, v, s, h => by
     have h' : MA.length = A.length := by simpa using h
-    rw [List.cons_append, List.cons_append, packRunF_eqRound, packRunF_eqRound,
+    rw [List.cons_append, List.cons_append, packRunF_cons, packRunF_cons,
       packRunF_append A rest MA restM _ _ h']
     simp only [List.cons_append]
   | [], _, _ :: _, _, _, _, h | _ :: _, _, [], _, _, _, h => by simp at h

@@ -29,7 +29,7 @@ the root, then the smallest valid nonce's ground challenge; zero for a root with
 nonce, where the Rust search never ends. A DA claim's challenge is the root's where the outer
 verifier accepts it. -/
 def membershipChallengeOf (root : Digest) : E :=
-  (Id.run (LeanDa.membershipChallengeWith (m := Id) keccakF1600 root.toBytes)).getD 0
+  (Id.run (LeanDa.membershipChallengeWith (m := Id) keccakF1600 root)).getD 0
 
 end
 end LeanVM.Da

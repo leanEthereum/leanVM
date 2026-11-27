@@ -164,8 +164,6 @@ theorem linkM_of {img : MemoryImage κ} (hκ : κ ≤ 28) {s : St} (ha : Agree s
     rw [← hL]
     exact (ha.get _ _ hu).symm
 
-theorem ofK_oneL : ofK (1 : K) = 1 := map_one (algebraMap K E)
-
 theorem ofK_gpow_inj {a b : ℕ} (ha : a < maxCells) (hb : b < maxCells) (h : (ofK (g ^ a) : E) = ofK (g ^ b)) :
     a = b := by
   have h' : (g : K) ^ a = g ^ b := by
@@ -250,7 +248,7 @@ theorem addr_cell {s : St} {gl : List (ℕ × ℕ × ℕ)} {ws : List E} (hL : L
     ∃ a, s.mem.get (s.fp + 1) = some (ofK (g ^ a)) ∧ a + d < maxCells ∧ s.mem.written (a + d) = true := by
   obtain ⟨a, ha1, had, -⟩ := hL d b k hd
   obtain ⟨a', ha1', had', hF'⟩ := hL 0 bF 0 hF
-  simp only [↓reduceIte, pow_zero, ofK_oneL, mul_one] at hF'
+  simp only [↓reduceIte, pow_zero, ofK_one, mul_one] at hF'
   have haa : a' = a := ofK_gpow_inj (by omega) (by omega) (Option.some.inj (ha1'.symm.trans ha1))
   subst haa
   obtain ⟨y, hy, hyl, hyw⟩ := hA
@@ -286,7 +284,7 @@ theorem runW_eq {ws : List E} {b k d S j : ℕ} {u : E} (hu : u = slotW ws b * o
     u * ofK (g ^ k) * ofK (g ^ (S * j + d)) =
       (⟨[(b, 1)], k + d⟩ : CCell).valW (slotW ws) * ofK (addressOfIndex (S * j)) := by
   rw [hu]
-  simp only [CCell.valW, prodW, addressOfIndex, pow_zero, ofK_oneL, mul_one, pow_one, pow_add, ofK_mul']
+  simp only [CCell.valW, prodW, addressOfIndex, pow_zero, ofK_one, mul_one, pow_one, pow_add, ofK_mul]
   ring
 
 /-- **A mode run over a caller's cell written is its heap run's cells written**, the links in memory. -/
@@ -318,7 +316,7 @@ theorem addr_wrk {s : St} {gl : List (ℕ × ℕ × ℕ)} {ws : List E} (hL : Li
   obtain ⟨p, x, hp, hx, hu⟩ := hv
   obtain ⟨a, ha1, had, -⟩ := hL d b k hd
   obtain ⟨a', ha1', had', hF'⟩ := hL 0 bF 0 hF
-  simp only [↓reduceIte, pow_zero, ofK_oneL, mul_one] at hF'
+  simp only [↓reduceIte, pow_zero, ofK_one, mul_one] at hF'
   have hpa : p = ofK (g ^ a) := Option.some.inj (hp.symm.trans ha1)
   subst hpa
   have haa : a' = a := ofK_gpow_inj (by omega) (by omega) (Option.some.inj (ha1'.symm.trans ha1))

@@ -92,7 +92,7 @@ theorem cs_digit {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ ≤ 32) (Lm : M
     have h2 := hxg k hk
     rw [show u k hk + 16 * (b + k) = 16 * (b + k) + u k hk by omega] at h2
     simp only [xg', u', hk, ↓reduceDIte]
-    exact B1.Tables.tb_loadHolds_unique h2 h1
+    exact LeanVM.Guest.B1.loadHolds_unique h2 h1
   have hreb : σ (.n (valf% «column_selector» "offset")) = gen ^ (16 ^ b * csDig u' N) := by
     have e0 := Value.e_add_eq_zero_iff.mp hassert
     rw [← e0, hR (N - 1) (by omega), show N - 1 + 1 = N by omega,

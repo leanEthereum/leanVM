@@ -43,25 +43,18 @@ def vtKap (lm : ℕ) (τ : ℕ → ℕ) (b : ℕ) : ℕ :=
 
 /-! ## The ranks -/
 
-/-- Choices below `n` as a function. -/
-theorem vt_choose_fun {α : Type} [Inhabited α] {n : ℕ} {P : ℕ → α → Prop}
-    (h : ∀ r < n, ∃ a, P r a) : ∃ f : ℕ → α, ∀ r < n, P r (f r) := by
-  classical
-  exact ⟨fun r => if hr : r < n then Classical.choose (h r hr) else default,
-    fun r hr => by simp only [hr, ↓reduceDIte]; exact Classical.choose_spec (h r hr)⟩
-
 theorem vt_word_small_inj {a b : ℕ} (ha : a < 3) (hb : b < 3) (h : word a 0 = word b 0) :
     a = b := by
-  rw [tb_word_eOfNat, tb_word_eOfNat] at h
+  rw [word_eOfNat, word_eOfNat] at h
   exact eOfNat_inj (by omega) (by omega) h
 
 
 theorem vtW23_eq : vtW23 = ofK (Parameters.addressOfIndex 23) := by
-  rw [vtW23, show (8388608 : ℕ) = 2 ^ 23 by norm_num, tb_word_two_pow (by norm_num),
+  rw [vtW23, show (8388608 : ℕ) = 2 ^ 23 by norm_num, word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
 theorem vtW8397_eq : vtW8397 = ofK (Parameters.addressOfIndex 8397) := by
-  rw [vtW8397, tb_word_eOfNat]
+  rw [vtW8397, word_eOfNat]
   show ofK (K.ofBits 267460055567564800) = ofK (Parameters.addressOfIndex 8397)
   rw [show K.ofBits 267460055567564800 = Parameters.addressOfIndex 8397 by decide +kernel]
 
@@ -110,7 +103,7 @@ theorem vt_rank0 {σ : Val} {v0 R0 s : ℕ} {kret : List E → Prop}
   simp only [VtRankFacts, vtRv, vtGin, vtSz, vtGout, ↓reduceIte]
   refine ⟨vt_rc hμ Lm (K := 24) (by omega) (by norm_num) (by rw [c1, vtW23_eq]) rc2,
     by rw [← m6, ← c5]; exact l5, by rw [← m7]; exact l8, by rw [← m10]; exact l9,
-    by rw [← m11]; exact l12, by rw [c9, tb_word_one, one_mul], fun _ => by rw [c9, tb_word_one],
+    by rw [← m11]; exact l12, by rw [c9, word_one, one_mul], fun _ => by rw [c9, word_one],
     fun h => absurd h (by omega)⟩
 
 theorem vt_rank {σ : Val} {v0 R0 s r : ℕ} (hr : 1 ≤ r) {kret : List E → Prop}
@@ -144,7 +137,7 @@ def vtGroupSide (gi : ℕ) : ℕ := if gi < 9 then 0 else if gi < 18 then 1 else
 
 theorem vt_sideTab_getD : ∀ e < 24, sideTabList.getD e 0 = word (vtGroupSide e) 0 := by
   intro e he
-  rw [tb_word_eOfNat, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
+  rw [word_eOfNat, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
   simp only [sideTabList, List.getElem_map, List.getElem_range]
   congr 1
   revert e; decide
@@ -172,11 +165,11 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
   have hstn : ∀ j < m, base + st j < 153 := fun j hj => by
     have := (hgrp' j hj (st j) le_rfl (hrun j hj)).1; omega
   -- the ranks' groups
-  obtain ⟨e, he⟩ := vt_choose_fun (n := m) (fun r hr => (hfacts r hr).1)
+  obtain ⟨e, he⟩ := tb_exists_fun_of_forall (n := m) (fun r hr => (hfacts r hr).1)
   have hes : ∀ r < m, G0 ≤ e r ∧ e r < G0 + m := fun r hr => by
     have h3 := (hfacts r hr).2.1
-    rw [(he r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_comm] at h3
-    have := tb_loadHolds_unique h3 (hside _ (he r hr).1)
+    rw [(he r hr).2, loadHolds_mul_gen_pow, Nat.add_comm] at h3
+    have := loadHolds_unique h3 (hside _ (he r hr).1)
     exact hsideS _ (he r hr).1
       (vt_word_small_inj hs (by unfold vtGroupSide; split_ifs <;> omega) this).symm
   set o : ℕ → ℕ := fun r => e r - G0 with ho_def
@@ -187,8 +180,8 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
   have hkv : ∀ r < m, σ (.n (vtRv v0 r + 8)) * gen ^ 153 = gen ^ keyN (o r) := fun r hr => by
     obtain ⟨key, hk1, hk2⟩ := hkey (o r) (ho r hr)
     have h4 := (hfacts r hr).2.2.1
-    rw [(he r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr] at h4
-    rw [tb_loadHolds_unique h4 hk1]
+    rw [(he r hr).2, loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr] at h4
+    rw [loadHolds_unique h4 hk1]
     have hb := hstn (o r) (ho r hr)
     rw [show (153 : ℕ) = (base + st (o r)) + (153 - (base + st (o r))) by omega, pow_add,
       ← mul_assoc, hk2, ← pow_add, hkeyN]
@@ -219,14 +212,14 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
     | succ r ih =>
       have hr' : r < m := by omega
       have h5 := (hfacts r hr').2.2.2.2.1
-      rw [(he r hr').2, tb_loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr'] at h5
+      rw [(he r hr').2, loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr'] at h5
       rw [vt_gin_succ, (hfacts r hr').2.2.2.2.2.1, ih hr',
-        tb_loadHolds_unique h5 (hsz _ (ho r hr')), ← pow_add, Finset.sum_range_succ]
+        loadHolds_unique h5 (hsz _ (ho r hr')), ← pow_add, Finset.sum_range_succ]
   have hbase : ∀ r < m, σ (.n (bv (st (o r)))) =
       gen ^ (∑ r' ∈ range r, (st (o r' + 1) - st (o r')) * 2 ^ kg (o r')) := fun r hr => by
     have h4 := (hfacts r hr).2.2.2.1
-    rw [(he r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr, hgin r hr] at h4
-    exact tb_loadHolds_unique (hb0 _ (ho r hr)) h4
+    rw [(he r hr).2, loadHolds_mul_gen_pow, Nat.add_zero, ← hoe r hr, hgin r hr] at h4
+    exact loadHolds_unique (hb0 _ (ho r hr)) h4
   -- within a group
   have hwithin : ∀ k, ∀ x < n, x - st (grp x) = k →
       σ (.n (bv x)) = σ (.n (bv (st (grp x)))) * gen ^ (k * 2 ^ kg (grp x)) := by
@@ -387,13 +380,13 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
       LoadHolds Lm.read (σ (.n (val% «verify_tables» "group_size"))) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, hsz1, hsq1, hszv⟩ := vt_grps h k hk
-    rw [hkx k hk, tb_loadHolds_mul_gen_pow] at hrk1 hsq1
+    rw [hkx k hk, loadHolds_mul_gen_pow] at hrk1 hsq1
     have hκ := hκ34 k hk
     have r1 := hrk _ (by simp [rankKeysList]; exact hκ)
-    rw [tb_loadHolds_mul_gen_pow] at r1
+    rw [loadHolds_mul_gen_pow] at r1
     have s1 := hsq _ (by simp [gSquaresList]; exact hκ)
-    have e1 := tb_loadHolds_unique hrk1 (by rw [Nat.add_comm]; exact r1)
-    have e2 := tb_loadHolds_unique hsq1 (by rw [Nat.add_zero]; exact s1)
+    have e1 := loadHolds_unique hrk1 (by rw [Nat.add_comm]; exact r1)
+    have e2 := loadHolds_unique hsq1 (by rw [Nat.add_zero]; exact s1)
     simp only [rankKeysList, List.getElem_map, List.getElem_range] at e1
     simp only [gSquaresList, List.getElem_map, List.getElem_range] at e2
     refine ⟨⟨key, hk1, by rw [hke, e1]⟩, ?_⟩
@@ -416,15 +409,15 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
     rw [m0, hkv, hoff] at l1
     have l1' : LoadHolds Lm.read (σ (.n (val% «verify_tables» "g_squares")) * (σ (.n (vtKv k)) * gen ^ vtAdj k)) 0
         (σ (.n ((vtBoffData.getD k default).2.2.2 - 1))) := by
-      rw [← mul_assoc, tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact l1
-    rw [hkx k hk, tb_loadHolds_mul_gen_pow, Nat.add_zero] at l1'
+      rw [← mul_assoc, loadHolds_mul_gen_pow, Nat.add_zero]; exact l1
+    rw [hkx k hk, loadHolds_mul_gen_pow, Nat.add_zero] at l1'
     have s1 := hsq _ (by simp [gSquaresList]; exact hκ34 k hk)
-    rw [tb_loadHolds_unique l1' s1]
+    rw [loadHolds_unique l1' s1]
     simp [gSquaresList]
   have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0) :=
     fun e he => by
       have := hsd e (by simp [sideTabList]; exact he)
-      rw [tb_loadHolds_mul_gen_pow] at this
+      rw [loadHolds_mul_gen_pow] at this
       rw [← vt_sideTab_getD e he, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
       exact this
   -- one side, from its group and block layout (all checked by evaluation)

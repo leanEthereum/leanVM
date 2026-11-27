@@ -10,6 +10,7 @@ public import LeanVM.Guest.EndExecXTrace
 public import LeanVM.Guest.Bridge.JumpCellsDeployed
 public import LeanVM.Guest.B2C.B2Final
 import LeanVM.Guest.B2C.ArmsFresh
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The chained `match`es' arms, one target cell per chain
@@ -45,7 +46,7 @@ theorem walk_takes {σ : Val} {body : List Stmt} {es : List Ev} {vs : List V} {p
     {arms : List (List Stmt)} (hl : lastOkC body = true) (hw : walk σ body = .ret es vs)
     (hp : body[p]? = some (.match_ x arms)) : ∃ k < arms.length, σ x = ofK (addressOfIndex k) := by
   have hnr := lastOkC_take hl hp (fun vs h ↦ by cases h)
-  have htake : body.take (p + 1) = body.take p ++ [.match_ x arms] := by
+  have htake : body.take (p + 1) = body.take p ⧺ [.match_ x arms] := by
     rw [List.take_add_one, hp]; rfl
   rw [← List.take_append_drop (p + 1) body, walk_appendC] at hw
   rcases walk_noRetC _ hnr with ⟨es1, h1⟩ | h1 <;> rw [h1] at hw

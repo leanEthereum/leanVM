@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.Bridge.StepRule
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # What a step did at its offset
@@ -81,7 +82,7 @@ variable {P : Core.Program} {rd : Reader} {Is : List Inst}
 variable {prog : LeanIsaProgram} {κ : ℕ} {img : MemoryImage κ} {A : String → FnAl} {T : Tree}
 
 theorem calls_atoms_ret : ∀ (as : List Atom) {es : List Ev} {vs : List V} {σ : Val},
-    walk σ (as.map Stmt.atom ++ [.ret []]) = .ret es vs → calls es = []
+    walk σ (as.map Stmt.atom ⧺ [.ret []]) = .ret es vs → calls es = []
   | as, es, vs, σ, h => by
     rw [walk_atoms_ret] at h
     rw [← (Out.ret.inj h).1]

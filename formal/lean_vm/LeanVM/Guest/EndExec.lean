@@ -14,7 +14,7 @@ public import LeanVM.Guest.EndRpm
 public import LeanVM.Guest.Budget.Fits
 public import Statement.LeanVmGuestCompleteness
 public import LeanVM.Guest.CoreMode.Route
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!
@@ -293,7 +293,8 @@ theorem execute_ref (G : ExecGaps Ks Km E0 X Pro) {r : Ref} (hr : r.Ok) :
     show Data.adviceMainFrame < maxCells
     decide
   obtain ⟨tab, T, hT, hspec, hmc⟩ := G.certs.spec
-  obtain ⟨t, he, hv, -, -, -, -, hsz⟩ := execute_complete_guest (Ks := Ks) (Km := Km) (E0 := E0)
+  obtain ⟨t, he, hv, -, -, -, -, hsz⟩ := execute_complete_guest (prog := guestProgram) (Ks := Ks) (Km := Km)
+    (E0 := E0)
     (Ct := CoreMode.ctOf r.img tab) (Q := guestQ tab T r.img) (X := X r) (Pro := Pro r) hκ hn hr.valid guest_decodable hmain
     (fun C hC ↦ progOk_of G.certs hC)
     (fun C hC K hK ↦ frameSpec_guest (hspec K hK) hC rfl ((progOk_of G.certs hC).ok K hK) r.img (OnRun X r)

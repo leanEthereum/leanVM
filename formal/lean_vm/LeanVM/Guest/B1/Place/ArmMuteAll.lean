@@ -15,13 +15,14 @@ public import LeanVM.Guest.B1.Place.ArmFree3
 public import LeanVM.Guest.B1.Place.ArmFree4
 public import LeanVM.Guest.B1.Place.ArmFree5
 public import LeanVM.Guest.B1.Place.OsMean
+public import LeanVM.Guest.B1.Place.NamePre
 
 /-!
 # The arms' callees
 
 * `armMute_all`: the arm `m`'s body is mute in `armS` (`ArmOkA`, `ArmOkB`; the roots by `nwRootsOk`, `ArmFree0` to
   `ArmFree5`);
-* `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`: a named callee's, a `level_positions`' and a `level_residual`'s names are not `level_queries`' (by the kernel, over the tables).
+* `lqNameB_of_kind`, `lqNameB_of_lp`, `lqNameB_of_lr`: a named callee's, a `level_positions`' and a `level_residual`'s names are not `level_queries`' (their prefixes apart, `Place/NamePre`).
 -/
 
 namespace LeanVM.Guest.B1.Arm
@@ -49,29 +50,24 @@ theorem armMute_all {m : ℕ} (hm : m < 11) :
   · exact armMute_find nwRootsOk armOk9.2
   · exact armMute_find nwRootsOk armOk10.2
 
-theorem lq_not_named : lqTable.all (fun e ↦ (osKindOf e.1).isNone) = true := by decide +kernel
+/-- **No named callee starts as a `level_queries` specialization**, by the kernel over `osKindTable`. -/
+theorem osKindTable_notLq : ∀ e ∈ osKindTable, ¬ HasPre "level_queries__L" e.1 := by decide +kernel
 
-theorem lp_not_lq : lpTable.all (fun e ↦ !lqNameB e.1) = true := by decide +kernel
-
-theorem lr_not_lq : lrTable.all (fun e ↦ !lqNameB e.1) = true := by decide +kernel
+theorem osKindOf_notLq {f : String} {K : OsKind} (h : osKindOf f = some K) : ¬ HasPre "level_queries__L" f :=
+  osKindTable_notLq _ (os_mem_of_lookup osKindTable h)
 
 /-- **A named callee is not `level_queries`.** -/
-theorem lqNameB_of_kind {g : String} {K : OsKind} (h : osKindOf g = some K) : lqNameB g = false := by
-  cases hq : lqNameB g
-  · rfl
-  · obtain ⟨e, he, hg⟩ := List.any_eq_true.mp hq
-    have := List.all_eq_true.mp lq_not_named e he
-    rw [beq_iff_eq.mp hg, h] at this
-    exact absurd this (by simp)
+theorem lqNameB_of_kind {g : String} {K : OsKind} (h : osKindOf g = some K) : lqNameB g = false :=
+  List.any_eq_false.mpr fun e he hg ↦ osKindOf_notLq h (beq_iff_eq.mp hg ▸ lqTable_hasPre e he)
 
 /-- **`level_positions` is not `level_queries`.** -/
-theorem lqNameB_of_lp {g : String} {x : String × ℕ × ℕ} (he : (g, x) ∈ lpTable) : lqNameB g = false := by
-  simpa using List.all_eq_true.mp lp_not_lq _ he
+theorem lqNameB_of_lp {g : String} {x : String × ℕ × ℕ} (he : (g, x) ∈ lpTable) : lqNameB g = false :=
+  any_name_eq_false apart_pos_queries (lpTable_hasPre _ he) lqTable_hasPre
 
 /-- **`level_residual` is not `level_queries`.** -/
 theorem lqNameB_of_lr {g : String} {x : ℕ × ℕ × ℕ × String × String} (he : (g, x) ∈ lrTable) :
-    lqNameB g = false := by
-  simpa using List.all_eq_true.mp lr_not_lq _ he
+    lqNameB g = false :=
+  any_name_eq_false apart_res_queries (lrTable_hasPre _ he) lqTable_hasPre
 
 end
 end LeanVM.Guest.B1.Arm

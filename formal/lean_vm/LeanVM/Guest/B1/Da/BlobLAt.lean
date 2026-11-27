@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Da.PadAt
 public import LeanVM.Guest.B1.Da.CellLAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The blob loop, within its bound
@@ -41,9 +42,9 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append)
 
 /-- `da_verify_loop0`'s statements before its `ret`. -/
 def blobLP : List Stmt :=
-  blobLPre ++ [.callIf (.n (val% «da_verify_loop0» "s5#2")) name% «da_verify_loop0» (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound")))]
+  blobLPre ⧺ [.callIf (.n (val% «da_verify_loop0» "s5#2")) name% «da_verify_loop0» (.n (val% «da_verify_loop0» "s5#4") :: (List.range 3).map fun k => V.n (k + (val% «da_verify_loop0» "bound")))]
 
-theorem blobL_body_split : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = blobLP ++ [.ret []] := by
+theorem blobL_body_split : Fn.body (coreProgram.getD idx% «da_verify_loop0» default) = blobLP ⧺ [.ret []] := by
   rw [dv_loops_body.1, blobLP, List.append_assoc]
   rfl
 

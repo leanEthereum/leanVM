@@ -176,7 +176,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       (hC _ (by simp)) κ
       (L := [(chiE, D.chis), (B, D.c0.point)]) (dw := D.c0.point) (sw := D.chis)
       (m := D.τ - 4) (by omega) hord (db := B) (dj := 0) (sb := chiE) (sj := 4)
-      (by simp) (by simp) (by rw [c0_point_length h]; omega) (by omega)
+      (by simp) (by simp) (by rw [LeanVM.Guest.B1.VerifySub.VkData.c0_point h]; omega) (by omega)
       (fun j hj ↦ by rw [zero_add, c0_point_getD h hj]) (by simp) rfl).toFB
   · -- the layers
     have hy := D.layer_y h (k := s) (by omega)
@@ -195,7 +195,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
     simp only [layKid, List.dropLast_concat, List.getLast?_concat, Option.getD_some]
     exact H
   · -- the committed outputs' rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (L_ok h).2
     refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ oMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB
@@ -213,12 +213,12 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       (hC _ (by simp)) κ
       (L := [(zvE, D.op), (B, D.c0.point)]) (dw := D.op) (sw := D.c0.point) (m := D.τ - 4)
       (by omega) hord (db := zvE) (dj := 4) (sb := B) (sj := 0)
-      (by simp) (by simp) (by rw [op_length h]; omega) (by rw [c0_point_length h]; omega)
+      (by simp) (by simp) (by rw [op_length h]; omega) (by rw [LeanVM.Guest.B1.VerifySub.VkData.c0_point h]; omega)
       (fun j hj ↦ ?_) rfl (by simp)).toFB
     rw [zero_add, c0_point_getD h hj, op_eq, List.take_append_drop,
       List.getD_append _ _ _ _ (by rw [inst_length h]; omega), inst_getD h (by omega)]
   · -- the inputs' rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (O_ok h).2
     refine (plain_completeB (k0 := 1) (by norm_num) hI κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun _ ↦ ⟨D.word, by rw [iArgs, hc]; rfl⟩) (fun rd hm ↦ iMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB
@@ -238,7 +238,7 @@ theorem kids_completeB (h : D.Ok) {κ : ℕ} (hκ : 11 ≤ κ) (B curE chiE olE 
       exact inR_entry (ws := D.point) (hlin (by simp))
         (by rw [point_length h]; simp [plainCount] at hj; omega)
   · -- the inputs' opening's rounds
-    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2
+    obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (I_ok h).2
     refine (plain_completeB (k0 := 0) (by norm_num) hO κ (L := D.lin curE chiE olE zvE slE tbE)
       (fun h0 ↦ absurd h0 (by decide)) (fun rd hm ↦ sMeaning h hm) (fun j hj ↦ ?_)
       (fun j hj ↦ ?_)).toFB

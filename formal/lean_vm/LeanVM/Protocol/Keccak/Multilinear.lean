@@ -10,6 +10,7 @@ module
 import LeanVM.Protocol.Keccak.Linear
 public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 import LeanVM.ToMathlib.Finset
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # Multilinear sums
@@ -79,20 +80,6 @@ theorem sum_eqAt : ∀ pt : List E, ∑ w ∈ range (2 ^ pt.length), eqAt pt w =
 
 /-! ## `eq_kernel` -/
 
-theorem eqKernel_append (pt : List E) (r : E) :
-    eqKernel (pt ++ [r]) = (eqKernel pt).map (· * (1 + r)) ++ (eqKernel pt).map (· * r) := by
-  unfold eqKernel
-  rw [List.foldl_concat]
-
-theorem eqKernel_length : ∀ pt : List E, (eqKernel pt).length = 2 ^ pt.length := by
-  intro pt
-  induction pt using List.reverseRecOn with
-  | nil => rfl
-  | append_singleton pt r ih =>
-    rw [eqKernel_append, List.length_append, List.length_map, List.length_map, ih,
-      List.length_append, List.length_singleton, pow_succ]
-    ring
-
 theorem getD_map_mul (l : List E) (c : E) (w : ℕ) :
     (l.map (· * c)).getD w 0 = l.getD w 0 * c := by
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map]
@@ -112,7 +99,7 @@ theorem eqKernel_getD : ∀ (pt : List E) (w : ℕ),
     intro w
     have hlen := eqKernel_length pt
     have hp : 2 ^ (pt.length + 1) = 2 ^ pt.length + 2 ^ pt.length := by rw [pow_succ]; ring
-    rw [eqKernel_append, List.length_append, List.length_singleton, eqAt_append]
+    rw [eqKernel_snoc, List.length_append, List.length_singleton, eqAt_append]
     by_cases hw : w < 2 ^ pt.length
     · rw [List.getD_append _ _ _ _ (by simpa [hlen] using hw), getD_map_mul, ih,
         ite_eq_left hw, ite_eq_left (by omega), Nat.div_eq_of_lt hw]

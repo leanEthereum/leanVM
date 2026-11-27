@@ -225,7 +225,7 @@ theorem loopQ_step (hr : r.Ok) :
     have hjL := layIdx_eq hf
     obtain ⟨i', hji, hi', -, hfi, hci', -⟩ := fn_of_idx hjL
     obtain rfl : fnI = coreOf (layIdx first) := by rw [hci']; exact Option.some.inj (hfI.symm.trans hfi)
-    obtain ⟨fL, hfL', hbL, hpL⟩ := layer_found hf
+    obtain ⟨fL, hfL', hbL, hpL⟩ := layer_fn hf
     obtain rfl : coreOf (layIdx first) = fL := Option.some.inj (hfI.symm.trans hfL')
     obtain ⟨h15, h17, hloopL⟩ := layIdx_facts hf
     -- the site

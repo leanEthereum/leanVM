@@ -258,7 +258,7 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
   rw [layerT_sections] at hG
   have gP : ∀ s ∈ packSetupT (layOff first) first, GoodS rd (layerSt first) (layerW D first b) σ s :=
     fun s hs ↦ hG s (by simp [hs])
-  obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
+  obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length hcl
   rw [hcapE] at hpar
   have a7 : σ (.n (valf% «keccak_layer» "cursor@1")) = ptr bcur := hpar 7 (by norm_num)
   have a8 : σ (.n (valf% «keccak_layer» "y_g")) = gen ^ D.y := hpar 8 (by norm_num)

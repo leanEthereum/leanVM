@@ -103,7 +103,7 @@ theorem mainGoalL4RE (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w
       (fun _ _ _ hw hes => main_loop3_exactAt hw hes) 0 hpos fp'
       (fp' + (((hRawS s w).length - 0) * fs name% «main_loop3» + fs (tailKey name% «main_loop3»)))).relAtInPE⟩) hT
     (loopPre_pow hpos (by omega) _) ?_
-  simp [logG_gen (show (hRawS s w).length < 2 ^ 64 - 1 by omega)]
+  simp [logG_gen_pow (show (hRawS s w).length < 2 ^ 64 - 1 by omega)]
   rfl
 
 /-- **`MainGoalsRE.l4`**, `q` popping the raw leanSPHINCS signatures' entries. -/

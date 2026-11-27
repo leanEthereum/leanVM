@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Whir.HelperT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_residual__L_loop0»
 import LeanVM.Guest.Data.ValNames.«level_residual__L_loop1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_residual`, soundly
@@ -65,15 +66,15 @@ def lr1St (cols nhs hbits : ℕ) : List Stmt × ℕ × ℕ × ℕ :=
 
 /-- The batches' loop's body before its tail. -/
 def lr1A (cols nhs hbits : ℕ) : List Stmt :=
-  (osBatchPow 7).1 ++ [osMul (7 + batchLen) 2 (osBatchPow 7).2, osMul (7 + batchLen + 1) 3 0,
+  (osBatchPow 7).1 ⧺ [osMul (7 + batchLen) 2 (osBatchPow 7).2, osMul (7 + batchLen + 1) 3 0,
     osMul (7 + batchLen + 2) (7 + batchLen + 1) 0, osLd (7 + batchLen + 3) (7 + batchLen + 2) 0,
-    osLd (7 + batchLen + 4) (7 + batchLen + 2) 1] ++ (lr1St cols nhs hbits).1 ++
+    osLd (7 + batchLen + 4) (7 + batchLen + 2) 1] ⧺ (lr1St cols nhs hbits).1 ⧺
     [osLd (lr1St cols nhs hbits).2.1 (7 + batchLen + 2) 2,
       osLd (lr1St cols nhs hbits).2.2.1 (7 + batchLen + 2) 3]
 
 theorem lrLoop1Body_split (cols nhs hbits : ℕ) (name : String) :
     lrLoop1Body cols nhs hbits name =
-      (lr1A cols nhs hbits ++ osLoopTailA (lr1St cols nhs hbits).2.2.2) ++
+      (lr1A cols nhs hbits ++ osLoopTailA (lr1St cols nhs hbits).2.2.2) ⧺
         [.callIf (.n ((lr1St cols nhs hbits).2.2.2 + 2)) name
           (.n ((lr1St cols nhs hbits).2.2.2 + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)),
           .ret []] := by
@@ -157,13 +158,13 @@ def lr2Q (cols nhs hbits : ℕ) : List Stmt × ℕ × ℕ × ℕ :=
 def lr2A (cols nhs hbits : ℕ) : List Stmt :=
   let q := lr2Q cols nhs hbits
   let e := q.2.2.2
-  [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0, osLd 10 9 0] ++ q.1 ++
+  [osMul 7 2 0, osMul 8 7 0, osMul 9 3 0, osLd 10 9 0] ⧺ q.1 ⧺
     [osLd e 8 0, osAdd (e + 1) e q.2.1, osMul (e + 2) (e + 1) 6, osLd (e + 2) 8 2,
       osLd (e + 3) 8 1, osAdd (e + 4) (e + 3) q.2.2.1, osMul (e + 5) (e + 4) 6, osLd (e + 5) 8 3]
 
 theorem lrLoop2Body_split (cols nhs hbits : ℕ) (name : String) :
     lrLoop2Body cols nhs hbits name =
-      (lr2A cols nhs hbits ++ osLoopTailA ((lr2Q cols nhs hbits).2.2.2 + 6)) ++
+      (lr2A cols nhs hbits ++ osLoopTailA ((lr2Q cols nhs hbits).2.2.2 + 6)) ⧺
         [.callIf (.n ((lr2Q cols nhs hbits).2.2.2 + 6 + 2)) name
           (.n ((lr2Q cols nhs hbits).2.2.2 + 6 + 4) :: (List.range (7 - 1)).map fun i ↦ .n (i + 1)),
           .ret []] := by
@@ -272,17 +273,17 @@ theorem restChain {P H : E → E} {tail rest mu : E} {n : ℕ} {Pos : ℕ → E}
 /-- `level_residual`'s body but its return. -/
 def lrBodyA (l1 l2 : String) : List Stmt :=
   [osMul 6 4 5, osCst 7 (gw 1), osMul 8 6 7, osMul 9 8 8, .atom (.hint (.allocDyn (.n 10) (.n 9))),
-    osCst 11 (word 0 0), osLd 11 10 0, osCst 12 (word 0 0), osLd 12 10 1] ++
-    osLoopCallR l1 0 4 [0, 10, 1, 2, 3] 13 ++
-    [osMul 16 4 4, osMul 17 10 16] ++ (osPowSteps 4 (osPowDigits resBatch) 4 18).1 ++
-    [osMul (18 + osPowLen resBatch) 0 (osPowSteps 4 (osPowDigits resBatch) 4 18).2] ++
-    osLoopCallR l2 0 5 [17, 18 + osPowLen resBatch, 1, 2, 3] (18 + osPowLen resBatch + 1) ++
+    osCst 11 (word 0 0), osLd 11 10 0, osCst 12 (word 0 0), osLd 12 10 1] ⧺
+    osLoopCallR l1 0 4 [0, 10, 1, 2, 3] 13 ⧺
+    [osMul 16 4 4, osMul 17 10 16] ⧺ (osPowSteps 4 (osPowDigits resBatch) 4 18).1 ⧺
+    [osMul (18 + osPowLen resBatch) 0 (osPowSteps 4 (osPowDigits resBatch) 4 18).2] ⧺
+    osLoopCallR l2 0 5 [17, 18 + osPowLen resBatch, 1, 2, 3] (18 + osPowLen resBatch + 1) ⧺
     [osMul (18 + osPowLen resBatch + 4) 5 5, osMul (18 + osPowLen resBatch + 5) 17 (18 + osPowLen resBatch + 4),
       osLd (18 + osPowLen resBatch + 6) (18 + osPowLen resBatch + 5) 0,
       osLd (18 + osPowLen resBatch + 7) (18 + osPowLen resBatch + 5) 1]
 
 theorem lrBody_split (l1 l2 : String) :
-    lrBody l1 l2 = lrBodyA l1 l2 ++
+    lrBody l1 l2 = lrBodyA l1 l2 ⧺
       [.ret [.n (18 + osPowLen resBatch + 6), .n (18 + osPowLen resBatch + 7)]] := by
   simp [lrBody, lrBodyA, List.append_assoc]
 

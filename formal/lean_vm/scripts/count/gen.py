@@ -85,7 +85,7 @@ class G:
         assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
             'Data.armMax (B2C.xmssArmC) is not %s: rerun guest-cert' % self.C
         # The entry function's frame: its cells, then the jump table `__jump_tables` writes (one `SET` per slot).
-        bc = open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode.lean'), encoding='utf-8').read()
+        bc = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'Functions.lean'), encoding='utf-8').read()
         self.jt_sets = int(re.search(r'⟨"__jump_tables", 0, (\d+),', bc).group(1))
         self.jt_base = self.fsz[1]
         first = re.search(r'def f0c0 : List OffsetInstruction := \[\s*\.set (\d+) ',

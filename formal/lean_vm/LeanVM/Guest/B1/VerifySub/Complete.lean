@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.CLoads
 public import LeanVM.Guest.B1.VerifySub.H.Fits
 public import LeanVM.Guest.B1.VerifySub.H.Regions
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sub`'s obligations
@@ -50,9 +51,6 @@ theorem vs_w253 {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dig
 theorem vs_kidsAt_getD (ks : List KidD) (outs : List (List E × Main.Layout)) (j : ℕ) :
     kidAt ks [] outs j = ks.getD j noKid (outs.take j) := by
   simp [kidAt]
-
-theorem vs_regionL {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ} (h1 : q.1 ≤ i)
-    (h2 : i < q.1 + q.2.length) : Main.RegionL L i := ⟨q, hq, h1, h2⟩
 
 /-- **`verify_sub`'s lift obligations on an honest child.** -/
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
@@ -124,7 +122,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     rcases hlin fp outs ho j hj16 hjo q hq with h | h | ⟨m, hm, hmt, hmq⟩
     · exact Or.inl (Or.inl (subOf_region h h1 h2))
     · exact Or.inl (Or.inr (subOf_region h h1 h2))
-    · exact Or.inr (Or.inr ⟨m, hm, hmt, vs_regionL hmq h1 h2⟩)
+    · exact Or.inr (Or.inr ⟨m, hm, hmt, LeanVM.Guest.B1.VerifySub.ChildSegs.regionL_of hmq h1 h2⟩)
   · -- the callees' words are in memory
     intro fp outs ho rd _ hB hL hLo
     refine memL_lins_kidsAt _ _ _ fun j hj hjo q hq ↦ ?_
@@ -150,7 +148,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
         vsC_param hla (i := 2) (by norm_num), vsC_param hla (i := 3) (by norm_num),
         vsC_param hla (i := 4) (by norm_num), vsC_param hla (i := 5) (by norm_num)]
       rfl
-    · rw [show Fn.body fn% «verify_sub» = vsCPre ++ [.ret []] from vs_body.trans vsT_splitPre,
+    · rw [show Fn.body fn% «verify_sub» = vsCPre ⧺ [.ret []] from vs_body.trans vsT_splitPre,
         holdsList_append]
       exact vsCPre_complete D (by simp [Stmt.HoldsList, Stmt.Holds])
     · obtain ⟨i, hi, h⟩ := vs_loads hbl S b sqE outE hexp hout O hB D q hq

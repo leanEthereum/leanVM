@@ -4,6 +4,8 @@ defaultTargets = ["LeanXmss", "XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
 
 [leanOptions]
 warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
 
 # The statement: definitions and end statements only (`Statement/`).
 [[require]]

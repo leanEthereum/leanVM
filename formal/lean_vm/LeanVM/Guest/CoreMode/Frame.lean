@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Guest.ExecCore
+public import LeanVM.Guest.CoreMode.Bits
 public import LeanVM.Guest.Mode.Abs
 
 /-!
@@ -31,7 +32,8 @@ loads when its heap side is known written (`hq`) or its offset is in the oracle 
 whose heap cell the core heap certificate proves written), and links otherwise, learning nothing;
 through a cell known to hold `fp·g^e` (a next frame's pointer) its heap side is the frame's own cell
 `e + o`, which holds `[c]` and is written once `c` is (`nextF`).
-Hints read and write as the mode walk's `stepHints` says of its written cells. A taken jump is
+Hints read and write as the mode walk's `stepHints` says of its written cells, stepped from the
+written cells among those they may read (`readT`), stack runs at once (`wsRuns`). A taken jump is
 one of `Exec`'s kinds: a forward jump; a table jump through a cell to the offsets `tgt` lists
 (that it lands at one is a hypothesis of the soundness, the reference's choice); a call, whose
 callee frame cell `q` must have its callees' entry cells written past it (and the self frame
@@ -39,9 +41,11 @@ pointer of a loop), its return point getting the cells every callee guarantees; 
 signature's return cells written; a loop's tail call into `fp·g^e`, its entry cells, self frame
 pointer and header held there; `main`'s halting jump.
 
-Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel; a long
-function is checked in windows, at cuts (`FFun.cuts`) where one path is live and no edge
-pending, the walk going on from a given weaker state.
+Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel; the written
+and nonzero cells and the oracle are the bits of a number (`Bits`), which the kernel's `Nat`
+operations test, extend, intersect and compare at once. A long function is checked in windows, at
+cuts (`FFun.cutAt`) where one path is live and no edge pending, the walk going on from a given
+weaker state.
 -/
 
 namespace LeanVM.Guest.CoreMode
@@ -69,10 +73,10 @@ def pcLim : ℕ := 2 ^ 30
 structure FSt where
   /-- `Exec`'s state: words of frame cells, the last stores, the last instructions. -/
   st : Exec.St
-  /-- Frame offsets written. -/
-  w : Trie Unit
-  /-- Frame cells nonzero in the reference. -/
-  nz : Trie Unit
+  /-- Frame offsets written (`Bits`). -/
+  w : ℕ
+  /-- Frame cells nonzero in the reference (`Bits`). -/
+  nz : ℕ
   /-- Cells past a frame cell's word written, by `hqKey`. -/
   hq : Trie Unit
   /-- Cells past a frame cell's word holding that word, by `hqKey`. -/
@@ -86,7 +90,7 @@ structure FSt where
 def FSt.force {β : Type} (A : FSt) (k : FSt → β) : β :=
   match A with
   | ⟨st, w, nz, hq, hs, cp, one⟩ =>
-    st.seq fun st ↦ w.seq fun w ↦ nz.seq fun nz ↦ hq.seq fun hq ↦ hs.seq fun hs ↦ cp.seq fun cp ↦
+    st.seq fun st ↦ natSeq w fun w ↦ natSeq nz fun nz ↦ hq.seq fun hq ↦ hs.seq fun hs ↦ cp.seq fun cp ↦
       one.seq fun one ↦ k ⟨st, w, nz, hq, hs, cp, one⟩
 
 /-- Key `o` is in the set. -/
@@ -97,7 +101,7 @@ namespace FSt
 variable (A : FSt)
 
 /-- Frame offset `o` is written. -/
-def hasW (o : ℕ) : Bool := has A.w o
+def hasW (o : ℕ) : Bool := Bits.has A.w o
 
 /-- The cell `o` past frame cell `q`'s word is written. -/
 def hasQ (q o : ℕ) : Bool := decide (o < hqLim) && has A.hq (hqKey q o)
@@ -106,10 +110,10 @@ def hasQ (q o : ℕ) : Bool := decide (o < hqLim) && has A.hq (hqKey q o)
 def hasS (q o : ℕ) : Bool := decide (o < hqLim) && has A.hs (hqKey q o)
 
 /-- Frame offset `o` written. -/
-noncomputable def addW (o : ℕ) : FSt := { A with w := A.w.set () envDepth o }
+def addW (o : ℕ) : FSt := { A with w := Bits.add A.w o }
 
 /-- Frame cell `o` nonzero. -/
-noncomputable def addNz (o : ℕ) : FSt := { A with nz := A.nz.set () envDepth o }
+def addNz (o : ℕ) : FSt := { A with nz := Bits.add A.nz o }
 
 /-- The cell `o` past frame cell `q`'s word written. -/
 noncomputable def addQ (q o : ℕ) : FSt :=
@@ -126,7 +130,7 @@ def symNz : Option Sym → Bool
   | _ => false
 
 /-- Frame cell `o` is known nonzero. -/
-def nzOf (o : ℕ) : Bool := has A.nz o || symNz (A.st.env.get o)
+def nzOf (o : ℕ) : Bool := Bits.has A.nz o || symNz (A.st.env.get o)
 
 /-- `[b] = 0` makes `[x] = 0`: `b` is `x`, or the last instruction is `MUL [b] = [x]·[k]` with `[k]`
 nonzero. -/
@@ -144,9 +148,9 @@ def divOk (b c : ℕ) : Bool :=
 
 /-- The meet of two paths' states, `Exec`'s state restarted at the join. -/
 noncomputable def meet (B : FSt) : FSt :=
-  ⟨St.init (Trie.inter Sym.beq A.st.env B.st.env), Trie.inter (fun _ _ ↦ true) A.w B.w,
-    Trie.inter (fun _ _ ↦ true) A.nz B.nz, Trie.inter (fun _ _ ↦ true) A.hq B.hq,
-    Trie.inter (fun _ _ ↦ true) A.hs B.hs, Trie.inter Nat.beq A.cp B.cp, Trie.inter Nat.beq A.one B.one⟩
+  ⟨St.init (Trie.inter Sym.beq A.st.env B.st.env), Bits.inter A.w B.w, Bits.inter A.nz B.nz,
+    Trie.inter (fun _ _ ↦ true) A.hq B.hq, Trie.inter (fun _ _ ↦ true) A.hs B.hs, Trie.inter Nat.beq A.cp B.cp,
+    Trie.inter Nat.beq A.one B.one⟩
 
 /-- `Exec`'s state restarted at a join. -/
 def reset : FSt := { A with st := St.init A.st.env }
@@ -182,20 +186,76 @@ structure FFun where
   calls : Trie (List ℕ)
   /-- The oracle: offsets whose heap reads are written. -/
   O : Trie Unit
+  /-- The oracle's offsets the walk reads, a list (`Ob`, `OracleOk`). -/
+  Ol : List ℕ
   /-- The stores: offsets whose `DEREF` must find its frame side written. -/
   S : Trie Unit
-  /-- The live path and pending groups at cuts, by offset. -/
+  /-- The cuts' stride: they sit at multiples of it (`cutAt`). -/
+  cutW : ℕ
+  /-- The live path and pending groups at the cuts, the cut at offset `k * cutW` by `k`. -/
   cuts : Trie (Option FSt × List (ℕ × List ℕ × FSt))
+
+/-- The cut at offset `i`, if any: looked up only at a multiple of the stride, so that the pass, which
+asks at every offset, pays a division there and a trie walk only at the cuts. -/
+noncomputable def FFun.cutAt (Fn : FFun) (i : ℕ) : Option (Option FSt × List (ℕ × List ℕ × FSt)) :=
+  bif Nat.beq (Nat.mod i Fn.cutW) 0 then Fn.cuts.get (Nat.div i Fn.cutW) else none
+
+/-- The oracle's offsets the walk reads, as bits: tested at once, where the oracle's trie would be built
+from its list in every check that reads it. -/
+noncomputable def FFun.Ob (Fn : FFun) : ℕ := Bits.ofNats Fn.Ol
+
+/-- **The walk reads the oracle**: each offset of `Ol` is the oracle's. -/
+def OracleOk (Fn : FFun) : Prop := ∀ i, Bits.has Fn.Ob i = true → has Fn.O i = true
+
+/-- Each offset of `Ol` is the oracle's, decided (`oracleOk_of`). -/
+noncomputable def oracleChk (Fn : FFun) : Bool := Fn.Ol.all (has Fn.O)
 
 /-! ## One instruction -/
 
 /-- The written cells as the mode walk's state. -/
 def hintAbs (w : Trie Unit) : Mode.Abs := ⟨w, .nil, .nil, [], [], [], [], [], .nil, [], []⟩
 
-/-- **The hints** at an offset: what they read written, what they write. -/
+/-- The heap pointer cell a hint's destination reads. -/
+def destReads : LeanVM.Prover.Exec.BitsDest → List ℕ
+  | .stack _ => []
+  | .heap ptr => [ptr]
+
+/-- The frame cells a hint may read (`Mode.stepHint`'s `hasW`s). -/
+def hintReads : Hint → List ℕ
+  | .allocFrames _ _ stop _ _ => [stop]
+  | .allocDyn _ size => [size]
+  | .allocArm _ sel _ => [sel]
+  | .witnessHeap _ ptr _ _ => [ptr]
+  | .log2Ceil (.stack base) _ nbits _ => (List.range nbits).map (base + ·)
+  | .log2Ceil (.heap ptr) _ _ _ => [ptr]
+  | .bitDecompose value bits _ => value :: destReads bits
+  | .bitDecomposeExp value bits _ => value :: destReads bits
+  | .digitDecomposeExp value dst _ _ _ _ startCell => value :: startCell.toList ++ destReads dst
+  | .windowsExp value dest _ _ _ _ => value :: destReads dest
+  | .fieldLimbs value _ _ => [value]
+  | .inverse value _ => [value]
+  | _ => []
+
+/-- The written cells among those the hints may read, as a trie. -/
+noncomputable def readT (w : ℕ) (hs : List Hint) : Trie Unit :=
+  ((hs.map hintReads).flatten.filter (Bits.has w)).foldl (fun t o ↦ t.set () envDepth o) .nil
+
+/-- Hints that only write stack runs (`witnessStack`, the most frequent): the written cells after
+them, else `none`. -/
+def wsRuns (w : ℕ) : List Hint → Option ℕ
+  | [] => some w
+  | .witnessStack _ base len :: hs => wsRuns (Bits.addRun w base len) hs
+  | _ :: _ => none
+
+/-- **The hints** at an offset: what they read written, what they write. Stack runs are written at
+once; other hints are stepped by the mode walk from the cells they may read, and what it writes
+joins the written cells. -/
 noncomputable def stepHintsF (A : FSt) : List Hint → Option FSt
   | [] => some A
-  | h :: hs => (Mode.stepHints (hintAbs A.w) (h :: hs)).map fun B ↦ { A with w := B.w }
+  | h :: hs => match wsRuns A.w (h :: hs) with
+    | some w => some { A with w := w }
+    | none => (Mode.stepHints (hintAbs (readT A.w (h :: hs))) (h :: hs)).map fun B ↦
+      { A with w := A.w ||| Bits.ofTrie B.w }
 
 /-- The residuals at an offset: nonzero frame cells. -/
 noncomputable def addNzs (A : FSt) : List ℕ → FSt
@@ -208,17 +268,16 @@ noncomputable def oneOf (A : FSt) (a b c : ℕ) : Trie ℕ :=
   else if isOne (A.st.env.get b) then A.one.set a envDepth c
   else A.one
 
-/-- The written cells after `KECCAK`'s outputs. -/
-noncomputable def addOuts (A : FSt) (out : ℕ) : ℕ → FSt
-  | 0 => A
-  | n + 1 => (addOuts A out n).addW (out + n)
+/-- The cells a `KECCAK` reads (`keccakIns`), as bits. -/
+def keccakMask (m0 m1 m2 m3 tail b8 cap : ℕ) : ℕ :=
+  2 ^ m0 ||| 2 ^ m1 ||| 2 ^ m2 ||| 2 ^ m3 ||| 15 <<< tail ||| 2 ^ b8 ||| 15 <<< cap
 
 /-- A `DEREF` of mode `cell` through frame cell `a` at offset `o`, frame side `c`: a store when `c`
 is written, a load when the heap cell is known written or the oracle says so, else a link. -/
-noncomputable def cellF (O : Trie Unit) (i : ℕ) (A : FSt) (a o c : ℕ) : FSt :=
+noncomputable def cellF (O : ℕ) (i : ℕ) (A : FSt) (a o c : ℕ) : FSt :=
   if A.hasW c then (A.addNz a).addQ a o
   else if A.hasQ a o then (A.addNz a).addW c
-  else if has O i then ((A.addNz a).addW c).addQ a o
+  else if Bits.has O i then ((A.addNz a).addW c).addQ a o
   else A.addNz a
 
 /-- After a `DEREF` of mode `cell` (`B`, from `A`) through frame cell `a` known to hold `fp·g^e`
@@ -233,13 +292,13 @@ noncomputable def nextF (A B : FSt) (a o c : ℕ) : FSt :=
   | _ => B
 
 /-- A `DEREF`, its pointer cell written: its pointer nonzero, and what its mode writes. -/
-noncomputable def derefF (O : Trie Unit) (i : ℕ) (A : FSt) (a o c : ℕ) : LeanVM.Semantics.DerefMode → FSt
+noncomputable def derefF (O : ℕ) (i : ℕ) (A : FSt) (a o c : ℕ) : LeanVM.Semantics.DerefMode → FSt
   | .cell => nextF A (if c == a then (cellF O i A a o c).addS a o else cellF O i A a o c) a o c
   | _ => (A.addNz a).addQ a o
 
 /-- **One non-`JUMP` instruction's frame rule** at offset `i`: the cells it reads must be known
 written, and what it surely writes and teaches joins. -/
-noncomputable def stepF (O S : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstruction → Option FSt
+noncomputable def stepF (O : ℕ) (S : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstruction → Option FSt
   | .xor a b c =>
     if A.hasW a && A.hasW b then some { A.addW c with one := oneOf A a b c } else none
   | .mul a b c =>
@@ -252,7 +311,8 @@ noncomputable def stepF (O S : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstructio
   | .deref a o c mode =>
     if A.hasW a && (!has S i || A.hasW c) then some (derefF O i A a o c mode) else none
   | .keccak m0 m1 m2 m3 tail b8 cap out _ _ outCells =>
-    if (keccakIns m0 m1 m2 m3 tail b8 cap).all A.hasW then some (addOuts A out outCells.cellCount)
+    if Bits.sub (keccakMask m0 m1 m2 m3 tail b8 cap) A.w then
+      some { A with w := Bits.addRun A.w out outCells.cellCount }
     else none
   | .jump .. => none
 
@@ -444,7 +504,7 @@ noncomputable def offF (Fn : FFun) (i : ℕ) (hs : List Hint) (A : FSt) (ins : O
             (jumpF Fn i A (jumpExit Fn.F Fn.entry Fn.len i A.st d f) pend).map fun p ↦ (none, p)
           else (jumpF Fn i A (jumpExit Fn.F Fn.entry Fn.len i A.st d f) pend).map fun p ↦ (some A, p)
       else none
-    | ins => (stepF Fn.O Fn.S i A ins).map fun A ↦ (some (execF Fn.F (Fn.entry + i) A ins), pend)
+    | ins => (stepF Fn.Ob Fn.S i A ins).map fun A ↦ (some (execF Fn.F (Fn.entry + i) A ins), pend)
 
 /-- At offset `i`: the live path met with the edges into it. -/
 noncomputable def joinF (i : ℕ) (cur : Option FSt) (pend : FPend) : Option FSt × FPend :=
@@ -456,7 +516,7 @@ noncomputable def joinF (i : ℕ) (cur : Option FSt) (pend : FPend) : Option FSt
 
 /-- One path is in `B`'s state when every fact of `B` is one of `A`'s. -/
 def FSt.sub (B A : FSt) : Bool :=
-  B.st.env.sub Sym.beq A.st.env && B.w.sub (fun _ _ ↦ true) A.w && B.nz.sub (fun _ _ ↦ true) A.nz &&
+  B.st.env.sub Sym.beq A.st.env && Bits.sub B.w A.w && Bits.sub B.nz A.nz &&
     B.hq.sub (fun _ _ ↦ true) A.hq && B.hs.sub (fun _ _ ↦ true) A.hs && B.cp.sub Nat.beq A.cp &&
     B.one.sub Nat.beq A.one
 
@@ -479,7 +539,7 @@ noncomputable def cutSt (c : Option FSt × FPend) : Option FSt × FPend :=
 /-- At a cut, the live path and pending groups at least the cut's, which the walk goes on from. -/
 noncomputable def cutF (Fn : FFun) (i : ℕ) (cur : Option FSt) (pend : FPend) :
     Option (Option FSt × FPend) :=
-  match Fn.cuts.get i with
+  match Fn.cutAt i with
   | some c => if curSub c.1 cur && pendSub c.2 pend then some (cutSt c) else none
   | none => some (cur, pend)
 
@@ -524,14 +584,14 @@ noncomputable def frameRun (Fn : FFun) (code : List OffsetInstruction) :
     (fun _ _ cur pend ↦ some (cur, pend)) (fun ins _ run ↦ passF Fn ins run) code
 
 /-- The written cells at entry: the signature's entry cells and self frame pointer cell. -/
-noncomputable def entryW (G : Mode.Sig) : Trie Unit :=
-  (match G.self with
+def entryW (G : Mode.Sig) : ℕ :=
+  Bits.ofList (match G.self with
     | some o => o :: G.entry
-    | none => G.entry).foldl (fun t o ↦ t.set () envDepth o) .nil
+    | none => G.entry)
 
 /-- The state at entry. -/
 noncomputable def entryF (Fn : FFun) : FSt :=
-  ⟨St.init Fn.F.entryEnv, entryW Fn.sig, .nil, .nil, .nil, .nil, .nil⟩
+  ⟨St.init Fn.F.entryEnv, entryW Fn.sig, 0, .nil, .nil, .nil, .nil⟩
 
 /-- `Exec`'s entry environment is at most the self frame pointer cell's. -/
 def envOk (Fn : FFun) : Bool :=
@@ -546,14 +606,15 @@ noncomputable def armsOk (Fn : FFun) : Bool :=
 /-- **The frame walk accepts a function's code**: it goes through from the entry state, no path
 falling through its end and no edge left pending. -/
 noncomputable def frameOk (Fn : FFun) (code : List OffsetInstruction) : Bool :=
-  envOk Fn && armsOk Fn && match frameRun Fn code 0 Fn.hints (some (entryF Fn)) [] with
+  oracleChk Fn && envOk Fn && armsOk Fn && match frameRun Fn code 0 Fn.hints (some (entryF Fn)) [] with
     | some (none, []) => true
     | _ => false
 
 /-- **A window** `[a, b)` of the pass: from the cut at `a` (the entry state at `0`), it goes
-through to the cut at `b`, or through the code's end (`Fn.len`, the code's length, not recomputed). -/
+through to the cut at `b`, or through the code's end (`Fn.len`, the code's length, not recomputed).
+The function's `envOk` and `armsOk` are decided once, apart from its windows. -/
 noncomputable def frameWin (Fn : FFun) (code : List OffsetInstruction) (a b : ℕ) : Bool :=
-  envOk Fn && armsOk Fn && ((match Fn.cuts.get a with
+  (match Fn.cutAt a with
     | some c => some (cutSt c)
     | none => if a = 0 then some (some (entryF Fn), []) else none).elim false fun S ↦
   match frameRun Fn ((code.drop a).take (b - a)) a Fn.hints S.1 S.2 with
@@ -562,7 +623,7 @@ noncomputable def frameWin (Fn : FFun) (code : List OffsetInstruction) (a b : �
     else match cur, pend with
       | none, [] => true
       | _, _ => false
-  | none => false)
+  | none => false
 
 end
 

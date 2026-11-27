@@ -12,6 +12,7 @@ import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.EndToEnd.Claims
 import LeanVM.ToMathlib.Finset
 import LeanVM.ToMathlib.List
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # Tables on the cube
@@ -263,12 +264,6 @@ private theorem eqKernel_general : ∀ (p out : List E),
       simp only [Option.map_some, Option.getD_some]
       rw [CharTwo.add_self_eq_zero (1 : E), zero_add]; ring
 
-/-- The equality kernel has `2^|p|` entries. -/
-theorem length_eqKernel (p : List E) : (eqKernel p).length = 2 ^ p.length := by
-  have := (eqKernel_general p [1]).1
-  simp only [List.length_singleton, one_mul] at this
-  exact this
-
 /-- Entry `j` of the equality kernel is `eq(j, p)`. -/
 theorem getD_eqKernel (p : List E) (j : ℕ) (hj : j < 2 ^ p.length) :
     (eqKernel p).getD j 0 = eqEval (boolPoint p.length j) p := by
@@ -280,7 +275,7 @@ extension at `p`. -/
 theorem dot_eqKernel (t p : List E) (ht : t.length = 2 ^ p.length) :
     dot t (eqKernel p) =
       ∑ j ∈ range (2 ^ p.length), t.getD j 0 * eqEval (boolPoint p.length j) p := by
-  rw [dot_eq_sum _ _ (by rw [ht, length_eqKernel]), ht]
+  rw [dot_eq_sum _ _ (by rw [ht, eqKernel_length]), ht]
   exact sum_congr rfl fun j hj ↦ by rw [getD_eqKernel p j (mem_range.mp hj)]
 
 /-! ## The round polynomial -/

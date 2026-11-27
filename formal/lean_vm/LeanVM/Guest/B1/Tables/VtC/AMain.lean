@@ -121,7 +121,7 @@ theorem vt_rowsT_length {H : VtHonest} (hr : H.rows.length = 6) : H.rowsT.length
   have hf : H.busH.forms.length = 6 :=
     (vt_forms3_shape H.bc H.lm hr H.weights H.beta H.point (H.xs4.take 2) (H.xs4.getD 2 0)
       (H.xs4.getD 3 0) H.share (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeightsOf_length hr
   have ht : tables.length = 6 := rfl
   simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, hf, ht,
     LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
@@ -176,11 +176,11 @@ theorem ownW_lengths (H : VtHonest) (B : VtBases) : (H.ownW B).map List.length =
   omega
 
 /-- Honest words padded to their allocation read their own prefix. -/
-theorem tbReads_unpad {rd : Reader} {p : E} {l pad : List E} {m : ℕ} (h : TbReadsAt rd p (l.take m ++ pad))
-    (hl : l.length ≤ m) : TbReadsAt rd p l := by
+theorem tbReads_unpad {rd : Reader} {p : E} {l pad : List E} {m : ℕ} (h : ReadsAt rd p (l.take m ++ pad))
+    (hl : l.length ≤ m) : ReadsAt rd p l := by
   rw [List.take_of_length_le hl] at h; exact (tbReadsAt_append.mp h).1
 
-theorem tb_load_of {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l) {k : ℕ}
+theorem tb_load_of {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) {k : ℕ}
     (hk : k < l.length) : LoadHolds rd p k (l.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
@@ -308,7 +308,7 @@ theorem vt_alloc_var {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.le
   exact this
 
 theorem word_g34 : word 17179869184 0 = gen ^ 34 := by
-  rw [tb_word_eOfNat, gen_pow_eq_ofK]
+  rw [word_eOfNat, gen_pow_eq_ofK]
   show ofK (K.ofBits 17179869184) = ofK (Parameters.addressOfIndex 34)
   rw [show K.ofBits 17179869184 = Parameters.addressOfIndex 34 by decide +kernel]
 
@@ -347,28 +347,29 @@ theorem forall_vtPre {P : Stmt → Prop} (h1 : ∀ s ∈ (vtPre.drop 0).take (po
 
 set_option maxRecDepth 100000 in
 theorem vt_allocSz : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2) =
-    [.inl 24, .inl 24, .inl 24, .inl 24] ++
-      ((List.range 6).flatMap fun t ↦ [.inr (.n (vtShV t + 10)), .inr (.n (vtShV t + 14))]) ++
-      [.inl 34, .inr (.n (val% «verify_tables» "g_bus_mu")), .inl 153,
-      .inr (.n (val% «verify_tables» "offset_bits@1~0")), .inr (.n (val% «verify_tables» "offset_bits@2~0")), .inr (.n (val% «verify_tables» "offset_bits@3~0"))] ++ List.replicate 96 (.inl 9) ++
-      [.inl 245, .inl 35, .inl 34, .inl 35] := by decide +kernel
+    ([.inl 24, .inl 24, .inl 24, .inl 24] : List (ℕ ⊕ V)) ++
+      ((List.range 6).flatMap fun t ↦ ([.inr (.n (vtShV t + 10)), .inr (.n (vtShV t + 14))] : List (ℕ ⊕ V))) ++
+      ([.inl 34, .inr (.n (val% «verify_tables» "g_bus_mu")), .inl 153,
+      .inr (.n (val% «verify_tables» "offset_bits@1~0")), .inr (.n (val% «verify_tables» "offset_bits@2~0")), .inr (.n (val% «verify_tables» "offset_bits@3~0"))] : List (ℕ ⊕ V)) ++
+      List.replicate 96 (Sum.inl 9 : ℕ ⊕ V) ++ ([.inl 245, .inl 35, .inl 34, .inl 35] : List (ℕ ⊕ V)) := by
+  decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem vt_bits_consts : tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@1~0")) (word 17179869184 0))]
+theorem vt_bits_consts : stmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@1~0")) (word 17179869184 0))]
       ((vtPre.drop (pos% «verify_tables» "offset_bits@1~0")).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@2~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@2~0")).take 1) = true ∧
-    tbStmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@3~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@3~0")).take 1) = true := by
+    stmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@2~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@2~0")).take 1) = true ∧
+    stmtsEqb [.atom (.const (.n (val% «verify_tables» "offset_bits@3~0")) (word 17179869184 0))] ((vtPre.drop (pos% «verify_tables» "offset_bits@3~0")).take 1) = true := by
   simp only [vtPre_drop]; decide +kernel
 
 section
 variable {H : VtHonest} {B : VtBases} {w : ℕ → E} {rd : Reader}
 
 theorem vt_lin_reads (hm : MemLay rd (H.linL B ++ H.ownL B)) {q : ℕ × List E}
-    (hq : q ∈ H.linL B) : TbReadsAt rd (ofK (addressOfIndex q.1)) q.2 :=
+    (hq : q ∈ H.linL B) : ReadsAt rd (ofK (addressOfIndex q.1)) q.2 :=
   hm q (List.mem_append_left _ hq)
 
 theorem vt_own_reads (hm : MemLay rd (H.linL B ++ H.ownL B)) (hw : VtWOk H B w) {j : ℕ}
-    (hj : j < 122) : TbReadsAt rd (w (vtAllocVars.getD j 0)) ((H.ownW B).getD j []) := by
+    (hj : j < 122) : ReadsAt rd (w (vtAllocVars.getD j 0)) ((H.ownW B).getD j []) := by
   rw [hw.alloc j hj]
   have hb := ownB_length H B
   have ho := ownW_length H B
@@ -380,7 +381,7 @@ theorem vt_own_reads (hm : MemLay rd (H.linL B ++ H.ownL B)) (hw : VtWOk H B w) 
 
 theorem vt_own_reads' (hm : MemLay rd (H.linL B ++ H.ownL B)) (hw : VtWOk H B w) {j v : ℕ}
     (hj : j < 122) (hv : vtAllocVars.getD j 0 = v) {ws : List E} (he : (H.ownW B).getD j [] = ws) :
-    TbReadsAt rd (w v) ws := hv ▸ he ▸ vt_own_reads hm hw hj
+    ReadsAt rd (w v) ws := hv ▸ he ▸ vt_own_reads hm hw hj
 
 end
 
@@ -438,61 +439,61 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   have hx4 := h.hx4
   have hbcW := h.hbcW
   -- the caller's buffers
-  have mCur : TbReadsAt rd (ofK (addressOfIndex B.cur)) H.curW :=
+  have mCur : ReadsAt rd (ofK (addressOfIndex B.cur)) H.curW :=
     vt_lin_reads (q := (B.cur, H.curW)) hm (by simp [VtHonest.linL])
-  have mZeta : TbReadsAt rd (ofK (addressOfIndex B.zeta)) H.point :=
+  have mZeta : ReadsAt rd (ofK (addressOfIndex B.zeta)) H.point :=
     vt_lin_reads (q := (B.zeta, H.point)) hm (by simp [VtHonest.linL])
-  have mDims : TbReadsAt rd (ofK (addressOfIndex B.dims)) H.dimsW :=
+  have mDims : ReadsAt rd (ofK (addressOfIndex B.dims)) H.dimsW :=
     vt_lin_reads (q := (B.dims, H.dimsW)) hm (by simp [VtHonest.linL])
-  have mRows : TbReadsAt rd (ofK (addressOfIndex B.rows)) (H.rows.map eOfNat) :=
+  have mRows : ReadsAt rd (ofK (addressOfIndex B.rows)) (H.rows.map eOfNat) :=
     vt_lin_reads (q := (B.rows, H.rows.map eOfNat)) hm (by simp [VtHonest.linL])
-  have mSq : TbReadsAt rd (ofK (addressOfIndex B.sq)) expTableWordsW :=
+  have mSq : ReadsAt rd (ofK (addressOfIndex B.sq)) expTableWordsW :=
     vt_lin_reads (q := (B.sq, expTableWordsW)) hm (by simp [VtHonest.linL])
-  have mFpw : TbReadsAt rd (ofK (addressOfIndex B.fpw)) H.weights :=
+  have mFpw : ReadsAt rd (ofK (addressOfIndex B.fpw)) H.weights :=
     vt_lin_reads (q := (B.fpw, H.weights)) hm (by simp [VtHonest.linL])
-  have mPool : TbReadsAt rd (ofK (addressOfIndex B.pool)) H.poolW :=
+  have mPool : ReadsAt rd (ofK (addressOfIndex B.pool)) H.poolW :=
     vt_lin_reads (q := (B.pool, H.poolW)) hm (by simp [VtHonest.linL])
-  have mChi : TbReadsAt rd (ofK (addressOfIndex B.chi)) H.chiW :=
+  have mChi : ReadsAt rd (ofK (addressOfIndex B.chi)) H.chiW :=
     vt_lin_reads (q := (B.chi, H.chiW)) hm (by simp [VtHonest.linL])
-  have mLeaves : TbReadsAt rd (ofK (addressOfIndex B.leaves)) H.values :=
+  have mLeaves : ReadsAt rd (ofK (addressOfIndex B.leaves)) H.values :=
     vt_lin_reads (q := (B.leaves, H.values)) hm (by simp [VtHonest.linL])
-  have mBcp : TbReadsAt rd (ofK (addressOfIndex B.bcp)) H.slots :=
+  have mBcp : ReadsAt rd (ofK (addressOfIndex B.bcp)) H.slots :=
     vt_lin_reads (q := (B.bcp, H.slots)) hm (by simp [VtHonest.linL])
   -- the own buffers
   have hd := fun j (hj : j < 4) ↦ ownW_getD_head H B hj
   have hdm := fun k (hk : k < 3) ↦ ownW_getD_mid H B hk
-  have o33 : TbReadsAt rd (w 34) (vtGKeyW H.lm H.τ) := vt_own_reads' hm hw (j := 0) (by norm_num) rfl (hd 0 (by norm_num))
-  have o34 : TbReadsAt rd (w 35) (vtGSizeW H.lm H.τ) := vt_own_reads' hm hw (j := 1) (by norm_num) rfl (hd 1 (by norm_num))
-  have o35 : TbReadsAt rd (w 36) (vtGBaseW H.lm H.τ) := vt_own_reads' hm hw (j := 2) (by norm_num) rfl (hd 2 (by norm_num))
-  have o36 : TbReadsAt rd (w 37) (vtGOrdW H.lm H.τ) := vt_own_reads' hm hw (j := 3) (by norm_num) rfl (hd 3 (by norm_num))
-  have o664 : TbReadsAt rd (w 767) vtIdxcW := vt_own_reads' hm hw (j := 16 + 0) (by norm_num) rfl (hdm 0 (by norm_num))
-  have o699 : TbReadsAt rd (w 802) (H.point.map (1 + ·)) := vt_own_reads' hm hw (j := 16 + 1) (by norm_num) rfl (hdm 1 (by norm_num))
-  have oSh : ∀ t < 6, TbReadsAt rd (w (vtShV t + 11)) (vtShEqW H.point H.τ t) ∧
-      TbReadsAt rd (w (vtShV t + 15)) (vtShGW H.point H.τ t) := fun t ht ↦
+  have o33 : ReadsAt rd (w 34) (vtGKeyW H.lm H.τ) := vt_own_reads' hm hw (j := 0) (by norm_num) rfl (hd 0 (by norm_num))
+  have o34 : ReadsAt rd (w 35) (vtGSizeW H.lm H.τ) := vt_own_reads' hm hw (j := 1) (by norm_num) rfl (hd 1 (by norm_num))
+  have o35 : ReadsAt rd (w 36) (vtGBaseW H.lm H.τ) := vt_own_reads' hm hw (j := 2) (by norm_num) rfl (hd 2 (by norm_num))
+  have o36 : ReadsAt rd (w 37) (vtGOrdW H.lm H.τ) := vt_own_reads' hm hw (j := 3) (by norm_num) rfl (hd 3 (by norm_num))
+  have o664 : ReadsAt rd (w 767) vtIdxcW := vt_own_reads' hm hw (j := 16 + 0) (by norm_num) rfl (hdm 0 (by norm_num))
+  have o699 : ReadsAt rd (w 802) (H.point.map (1 + ·)) := vt_own_reads' hm hw (j := 16 + 1) (by norm_num) rfl (hdm 1 (by norm_num))
+  have oSh : ∀ t < 6, ReadsAt rd (w (vtShV t + 11)) (vtShEqW H.point H.τ t) ∧
+      ReadsAt rd (w (vtShV t + 15)) (vtShGW H.point H.τ t) := fun t ht ↦
     ⟨vt_own_reads' hm hw (j := 4 + 2 * t) (by omega) (vtAllocVars_Sh t ht).1 (ownW_getD_sh H B ht).1,
       vt_own_reads' hm hw (j := 5 + 2 * t) (by omega) (vtAllocVars_Sh t ht).2 (ownW_getD_sh H B ht).2⟩
-  have o777 : TbReadsAt rd (w 822) (vtIdxBufW H.point H.lm) := vt_own_reads' hm hw (j := 16 + 2) (by norm_num) rfl (hdm 2 (by norm_num))
-  have oF : ∀ b < 3, TbReadsAt rd (w (vtFwW b + 6)) (offBits (H.offP.getD b 0)) := fun b hb ↦
+  have o777 : ReadsAt rd (w 822) (vtIdxBufW H.point H.lm) := vt_own_reads' hm hw (j := 16 + 2) (by norm_num) rfl (hdm 2 (by norm_num))
+  have oF : ∀ b < 3, ReadsAt rd (w (vtFwW b + 6)) (offBits (H.offP.getD b 0)) := fun b hb ↦
     vt_own_reads' hm hw (j := 19 + b) (by omega) (vtAllocVars_F b hb) (ownW_getD_F H B hb)
-  have oP : ∀ i < 51, TbReadsAt rd (w (vtPushSel.getD i default).2.2.1)
+  have oP : ∀ i < 51, ReadsAt rd (w (vtPushSel.getD i default).2.2.1)
       (offDigits (H.offP.getD (3 + i) 0) (H.τ (vtPushSel.getD i default).2.2.2.1)) := fun i hi ↦
     vt_own_reads' hm hw (j := 22 + i) (by omega) (vtAllocVars_P i hi) (ownW_getD_P H B hi)
-  have oC : ∀ i < 45, TbReadsAt rd (w (vtCountSel.getD i default).2.2.1)
+  have oC : ∀ i < 45, ReadsAt rd (w (vtCountSel.getD i default).2.2.1)
       (offDigits (H.offC.getD i 0) (H.τ (vtCountSel.getD i default).2.2.2.1)) := fun i hi ↦
     vt_own_reads' hm hw (j := 73 + i) (by omega) (vtAllocVars_C i hi) (ownW_getD_C H B hi)
   have oZ := fun k (hk : k < 4) ↦ vt_own_reads hm hw (j := 118 + k) (by omega)
-  have oR : TbReadsAt rd (w 2316)
+  have oR : ReadsAt rd (w 2316)
       (zcRoundsW H.cap0 H.target (ofK (addressOfIndex B.cur) * gen ^ 13 * gen) H.xsR H.n) := by
     have := oZ 0 (by norm_num)
     rw [vtAllocVars_Z.1, ownW_getD_Z H B (by norm_num)] at this
     simp only [List.getD_cons_zero] at this
     exact tbReads_unpad this (by rw [zcRoundsW_len (cap0_length H)]; omega)
-  have oCp : TbReadsAt rd (w 2317) (zcCprodW H.cap0 H.target H.xsR H.n) := by
+  have oCp : ReadsAt rd (w 2317) (zcCprodW H.cap0 H.target H.xsR H.n) := by
     have := oZ 1 (by norm_num)
     rw [vtAllocVars_Z.2.1, ownW_getD_Z H B (by norm_num)] at this
     simp only [List.getD_cons_zero, List.getD_cons_succ] at this
     exact tbReads_unpad this (by simp [zcCprodW]; omega)
-  have oPe : TbReadsAt rd (w 2337)
+  have oPe : ReadsAt rd (w 2337)
       ((List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))) := by
     have := oZ 3 (by norm_num)
     rw [vtAllocVars_Z.2.2.2, ownW_getD_Z H B (by norm_num)] at this
@@ -566,7 +567,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   have eMem : [(vtσ rd w (H.args B)) (.n (val% «verify_tables» "x@1")), (vtσ rd w (H.args B)) (.n (val% «verify_tables» "x@2"))] = H.xs4.take 2 := by
     rw [e812, e816, take2_eq hx4]
   obtain ⟨eL0, eL1, eL2⟩ := vt_leaves_good (rd := rd) (w := w) hl hll
-    (by show TbReadsAt rd (ofK (addressOfIndex B.leaves)) H.values; exact mLeaves)
+    (by show ReadsAt rd (ofK (addressOfIndex B.leaves)) H.values; exact mLeaves)
   have hzt : zTarget (vtσ rd w (H.args B)) H.ξ = H.target := by
     unfold zTarget
     refine vt_target_eq H _ _ _ _ ?_ ?_ ?_ rfl
@@ -613,11 +614,11 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     rw [vtTauList_getD ht]
   have h1897 : (vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@4")) * gen = ofK (addressOfIndex B.cur) * gen ^ 13 * gen := by
     rw [b1897]; rfl
-  have hxs : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@4")) * gen) H.xsR := by
+  have hxs : ReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@4")) * gen) H.xsR := by
     rw [h1897, mul_assoc, ← pow_succ]
     have := mXR
     rwa [List.length_append, hx4, hbcW] at this
-  have oRk : TbReadsAt rd (w 2321) (zcRkW H.cap0 H.target H.xsR H.n) := by
+  have oRk : ReadsAt rd (w 2321) (zcRkW H.cap0 H.target H.xsR H.n) := by
     have := oZ 2 (by norm_num)
     rw [vtAllocVars_Z.2.2.1, ownW_getD_Z H B (by norm_num)] at this
     simp only [List.getD_cons_succ, List.getD_cons_zero] at this
@@ -642,7 +643,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
   -- statements `x@9 ..< nxt[0]@42`
   obtain ⟨hevT6, hevTw⟩ := vt_evsT_shape h hr
   have hev153 := vt_evsT_flat_length h hr
-  have hevC : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@5"))) H.evsT.flatten := by
+  have hevC : ReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "cursor@5"))) H.evsT.flatten := by
     rw [z2647, h1897, show ofK (addressOfIndex B.cur) * gen ^ 13 * gen * gen ^ (3 * H.n) =
       ofK (addressOfIndex B.cur) * gen ^ (13 + 1 + 3 * H.n) by ring]
     have : (H.xs4 ++ H.bcW ++ H.xsR).length = 13 + 1 + 3 * H.n := by
@@ -664,7 +665,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
         List.getD_eq_default _ _ (by omega)]
   have hpts : H.pts.length = H.n := by simp [VtHonest.pts]
   have hfinσ := (vt_spec h).2.1
-  have z1 : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "zeta1"))) (H.point.map (1 + ·)) := by
+  have z1 : ReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "zeta1"))) (H.point.map (1 + ·)) := by
     rw [s699]; exact o699
   obtain ⟨fV, -, -, fSp, -⟩ := vtF_complete (rd := rd) (w := w) hl H.bc hbc hr hkbt bP bC
     (vt_pull_good hl) z1 (vt_xi_good hl) hwl (by rw [p 13 (by norm_num)]; exact mFpw)
@@ -727,7 +728,7 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       rw [List.map_map]; rfl
     rw [hm1, vt_allocSz]
     obtain ⟨c1', c2', c3'⟩ := vt_bits_consts
-    have hb : ∀ (v n : ℕ), tbStmtsEqb [.atom (.const (.n v) (word 17179869184 0))]
+    have hb : ∀ (v n : ℕ), stmtsEqb [.atom (.const (.n v) (word 17179869184 0))]
         ((vtPre.drop n).take 1) = true → LeanVM.Guest.Memory.logG ((vtσ rd w (H.args B)) (.n v)) = 34 := by
       intro v n hc
       have g := (vt_goodL (rd := rd) (w := w) hl _ _ hc).1
@@ -811,10 +812,10 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
     have g664 : ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "idxc_tab")), 34) ∈ H.bufs B := by
       have := own' (16 + 0) (by norm_num) 767 rfl _ (hdm' 0 (by norm_num))
       rw [s664]; simpa [vtIdxcW] using this
-    have hdimsS : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "dims_g")))
+    have hdimsS : ReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "dims_g")))
         (gen ^ H.lm :: (vtTauList H.τ).map (gen ^ ·)) := by
       rw [p 10 (by norm_num)]; exact mDims
-    have hordS : TbReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "group_order"))) (vtGOrdW H.lm H.τ) := by
+    have hordS : ReadsAt rd ((vtσ rd w (H.args B)) (.n (val% «verify_tables» "group_order"))) (vtGOrdW H.lm H.τ) := by
       have e := s33 3 (by norm_num)
       rw [show 34 + 3 = 37 from rfl] at e
       rw [e]; exact o36

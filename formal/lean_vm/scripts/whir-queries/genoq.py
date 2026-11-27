@@ -29,25 +29,20 @@ open LeanVM.Protocol.Verifier
 parts = [[d for d in sp if gen.chunk_of(d['name'], 4) == k] for k in range(4)]
 for k, part in enumerate(parts):
     out = [HEAD % ('QueriesBody%d' % k,
-                   "The bodies of the `opening_queries` specializations in the core packs `P{j}`, `j %% 4 = %d`, and of\n  their loop helpers are the templates (kernel evaluation)." % k,
+                   "The bodies of the `opening_queries` specializations in the core packs `P{j}`, `j %% 4 = %d`, and of\n  their loop helpers are the templates (definitional equalities the kernel checks, `kernel_rfl`)." % k,
                    'public import LeanVM.Guest.B1.Opening.QueriesT\npublic import LeanVM.Guest.Data.NameStrings\n'
-                   + gen.pack_imports(x for d in part for x in (d['name'], d['loop'])).rstrip('\n'))]
+                   + gen.pack_imports(x for d in part for x in (d['name'], d['loop'])).rstrip('\n')
+                   + '\nimport LeanVM.Guest.KernelLit')]
     for d in part:
         sh = shape(d)
         loop = gen.stable[d['loop']]
         loopT = ('oqLoop1T %s.oq name%% «%s»' % (sh, loop)) if d['base'] == 1 else \
                 ('oqLoop0T %s.oq name%% «%s»' % (sh, loop))
-        out.append('''set_option linter.style.nameCheck false in
-set_option maxRecDepth 100000 in
-/-- `%s`. -/
-theorem oqBody_%s : (Fn.«%s».core).body = oqMainT %s.oq name%% «%s» :=
-  stmtsEqb_sound (by decide +kernel)
+        out.append('''/-- `%s`. -/
+kernel_rfl oqBody_%s : (Fn.«%s».core).body = oqMainT %s.oq name%% «%s»
 
-set_option linter.style.nameCheck false in
-set_option maxRecDepth 100000 in
 /-- `%s`. -/
-theorem oqLoopBody_%s : (Fn.«%s».core).body = %s :=
-  stmtsEqb_sound (by decide +kernel)
+kernel_rfl oqLoopBody_%s : (Fn.«%s».core).body = %s
 ''' % (d['name'], gen.key_of(d['name']), gen.key_of(d['name']), sh, loop, loop, gen.key_of(d['name']), loop,
        loopT))
     out.append('end\nend LeanVM.Guest.B1\n')

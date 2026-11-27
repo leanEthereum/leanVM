@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Fwd.PureIn
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_run`, placed
@@ -121,7 +122,7 @@ theorem rs_noLoadIte : rsPre.all noLoadIte = true := by decide +kernel
 theorem rs_loads : rsPre.filterMap Stmt.loadS =
     (List.range 64).map fun k ↦ ((.n (val% «rs_eq_run» "chain") : V), k) := by decide +kernel
 
-theorem rs_body' : Fn.body fn% «rs_eq_run» = rsPre ++ [.ret [.n (val% «rs_eq_run» "s12#0")]] := by
+theorem rs_body' : Fn.body fn% «rs_eq_run» = rsPre ⧺ [.ret [.n (val% «rs_eq_run» "s12#0")]] := by
   rw [rs_eq_run_body, rsBody_split]
 
 theorem rs_params : Fn.params fn% «rs_eq_run» =

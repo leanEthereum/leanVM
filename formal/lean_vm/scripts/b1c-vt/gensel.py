@@ -122,7 +122,7 @@ if __name__ == '__main__':
         args = f'{r}.2.2.1 {r}.1 {r}.2.2.2.1 {r}.2.2.2.2'
         body += f'''
 theorem {name}_check : ∀ i < {name}.length,
-    tbStmtsEqb (vtSelT {args})
+    stmtsEqb (vtSelT {args})
       ((vtAt {r}.2.1).take (vtSelT {args}).length) = true := by
   decide +kernel
 '''

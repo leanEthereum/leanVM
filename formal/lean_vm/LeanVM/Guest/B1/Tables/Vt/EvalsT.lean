@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Tables.Vt.ZcRun
 public import LeanVM.Guest.B1.Gkr.Layer
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table evaluations' templates
@@ -73,7 +74,7 @@ def vtEvB (k : ℕ) : ℕ := (vtEvalData.getD k (0, 0)).2
 
 /-- An evaluation's statements. -/
 def vtEvalT (b off : ℕ) : List Stmt :=
-  fsNextT (.n (val% «verify_tables» "cursor@5")) off b ++ [.atom (.copy (.n (b + 3)) (.n b))]
+  fsNextT (.n (val% «verify_tables» "cursor@5")) off b ⧺ [.atom (.copy (.n (b + 3)) (.n b))]
 
 /-- The capacity cells before permutation `j`. -/
 def vtPermCap (j : ℕ) : List V :=
@@ -86,13 +87,13 @@ def vtPermT (j : ℕ) : Stmt :=
     vtPermCap j) (lyOuts (vtPermData.getD j (0, 0)).2)
 
 theorem vtEval_check : ∀ k < 153,
-    tbStmtsEqb (vtEvalT (vtEvalData.getD k (0, 0)).2 k)
+    stmtsEqb (vtEvalT (vtEvalData.getD k (0, 0)).2 k)
       ((vtAt (vtEvalData.getD k (0, 0)).1).take (vtEvalT (vtEvalData.getD k (0, 0)).2 k).length) =
       true := by
   decide +kernel
 
 theorem vtPerm_check : ∀ j < 38,
-    tbStmtsEqb [vtPermT j] ((vtAt (vtPermData.getD j (0, 0)).1).take 1) = true := by
+    stmtsEqb [vtPermT j] ((vtAt (vtPermData.getD j (0, 0)).1).take 1) = true := by
   decide +kernel
 
 end

@@ -47,9 +47,6 @@ theorem runHeads_blockOrder (κs : List ℕ) {m : ℕ} (st kg : ℕ → ℕ) (c 
 theorem vtSizesP_length (lm : ℕ) (τ : ℕ → ℕ) : (vtSizesP lm τ).length = 54 := by
   simp [vtSizesP, vtPushPadData_length]
 
-theorem vtSizesC_length (τ : ℕ → ℕ) : (vtSizesC τ).length = 45 := by
-  simp [vtSizesC, vtCountPadData_length]
-
 theorem bgs_le {j : ℕ} (hj : j < 9) : bgs (j + 1) ≤ 54 :=
   st_le_of bgs bgs_lt (show j + 1 ≤ 9 by omega) le_rfl
 

@@ -384,6 +384,34 @@ def cut_of(clens, i):
     return f'({p}, {i})'
 
 
+LIT_TRIES = [('loc', 'ℕ'), ('stat', 'B2C.PC'), ('sites', 'B2C.Site'), ('arms', '(ℕ × ℕ)'), ('ents', 'String')]
+# the fewest windows whose contexts are stated once (`ALit`, `Lit`): with fewer, the tries rebuilt cost less than the
+# two modules
+LIT_WINS = 3
+
+
+def has_lit(f):
+    return len(f['states']) - 1 >= LIT_WINS
+
+
+def alit_mod(k):
+    """The module `emit` writes `k`'s alignment context's tries to (`ALit`), or `None`."""
+    out, _ = collect()
+    if k not in out or not has_lit(out[k]):
+        return None
+    return f'LeanVM.Guest.CoreMode.Gen.«{heap.pack_of()[k][0]}».«{k}».ALit'
+
+
+def lit_mod(base, k, mod, kind, imps, lits, ctx, eq):
+    """`k`'s module `mod`: its `kind` context with its tries `lits` (name, type, value each) stated once (`kernel_lit`,
+    `CoreMode/PairLit.lean`), the context's definition `ctx` and its equation `eq`."""
+    return (HEADER(mod=f'{base}.{mod}', what=f"`{k}`'s {kind} context with its tries stated once.")
+            + imports(['LeanVM.Guest.KernelLit'] + imps) + 'set_option Elab.async false\n\n'
+            + ns(k, '@[expose] public section\n\n' + ''.join(f'kernel_lit {n} : {t} := {v}\n' for n, t, v in lits)
+                 + f'\n/-- `{k}`: its {kind} context, the tries stated. -/\nnoncomputable def {ctx}\n\nend\n\n'
+                 f'public section\n\ntheorem {eq}\n\nend\n'))
+
+
 def render_win(pack, f):
     k = f['key']
     # the windows over slices of the code's chunks (`CoreMode/PairSlice.lean`): none walks the code before it
@@ -405,15 +433,31 @@ def render_win(pack, f):
 {offs_defs(k, f)}
 {defs}end
 '''))
+    lit = has_lit(f)
+    if lit:
+        # the contexts' tries stated once (`CoreMode/PairLit.lean`): the windows rewrite to them and build none
+        lits = [(f'lit{t.capitalize()}', f'Exec.Trie {ty}', f'{wctx}.{t}') for t, ty in LIT_TRIES]
+        files[os.path.join(GEN, pack, k, 'ALit.lean')] = lit_mod(
+            base, k, 'ALit', 'alignment', [f'LeanVM.Guest.Bridge.AlignCtx.«{k}».Ctx', 'LeanVM.Guest.CoreMode.PairLit'],
+            lits, f"alignL : Bridge.AlignCtx := {wctx}.withTries {' '.join(n for n, _, _ in lits)}",
+            f"alignL_eq : {wctx} = alignL :=\n  Bridge.AlignCtx.eq_withTries {' '.join(n + '_eq' for n, _, _ in lits)}")
+        files[os.path.join(GEN, pack, k, 'Lit.lean')] = lit_mod(
+            base, k, 'Lit', 'pairing', [f'{base}.Ctx', f'{base}.ALit'],
+            [('litReads', 'Exec.Trie (List (ℕ × ℕ × CoreMode.Wit))', 'hcert.readT'), ('litO', 'Exec.Trie Unit', 'pairO'),
+             ('litS', 'Exec.Trie Unit', 'pairS')],
+            'pairL : CoreMode.PairCtx := ⟨alignL, litReads, litO, litS⟩',
+            f'pairL_eq : CoreMode.PairCtx.ofH {wctx} hcert pairO pairS = pairL :=\n'
+            '  CoreMode.PairCtx.ofH_eq alignL_eq litReads_eq litO_eq litS_eq')
+    rw = '  rw [CoreMode.winOkHS, pairL_eq]\n' if lit else ''
     for n in range(len(ks) - 1):
         files[os.path.join(GEN, pack, k, f'W{n}.lean')] = (
             HEADER(mod=f'{base}.W{n}', what=f"`{k}`'s pairing pass from offset {ks[n][0]} to {ks[n + 1][0]}.")
-            + imports([f'{base}.Ctx']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
+            + imports([f'{base}.Lit' if lit else f'{base}.Ctx']) + 'set_option Elab.async false\n\n' + ns(k, f'''public section
 
 /-- `{k}`: the pairing from offset {ks[n][0]} to {ks[n + 1][0]}. -/
 theorem pairWin{n} : CoreMode.winOkHS {argsS(k, wctx)} {cut_of(clens, ks[n][0])} {cut_of(clens, ks[n + 1][0])} pairK{n}
     pairK{n + 1} = true := by
-  decide +kernel
+{rw}  decide +kernel
 
 end
 '''))

@@ -13,6 +13,7 @@ public import LeanVM.Guest.Memory.LiftPure
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The prefix chains, loading their regions
@@ -109,7 +110,7 @@ theorem eqc_relIn {rd : Reader} {bc ba bb n : ℕ} (hn : n ≤ 40) {seed : E} {R
       [ofK (addressOfIndex bc), seed, ofK (addressOfIndex ba), ofK (addressOfIndex bb), gen ^ n]
           [] := by
   obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_eq_prefix_chain _ _).mp h
-  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ++ [.ret []] := eq_prefix_chain_body
+  have hbody : Fn.body fn% «eq_prefix_chain» = eqcPre ⧺ [.ret []] := eq_prefix_chain_body
   rw [hbody] at hb
   rw [show Fn.params fn% «eq_prefix_chain» = [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1"), .n (val% «eq_prefix_chain» "count_g")] from rfl] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp

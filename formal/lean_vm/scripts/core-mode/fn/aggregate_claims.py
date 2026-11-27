@@ -27,7 +27,7 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     simp only [List.mem_singleton] at hq
     subst hq
     exact ⟨n, preLt_of_lt (by unfold gT; omega) h0, h1, ha⟩
-  have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
+  have hx : argExp args 0 = n := by rw [argExp, ha, logG_spec h1]
   cases op
 '''
     for lop, P, k in OPS:

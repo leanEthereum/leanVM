@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Prover.ExecuteMem
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

@@ -214,11 +214,9 @@ theorem runD_sample {β : Type} (g : E → VerifierProgram β) (sp : Sponge) (xs
     runD ((VerifierProgram.sample VerifierProgram.ret).bind g) ⟨sp, xs, os, roots⟩ =
       runD (g (sq sp).1) ⟨(sq sp).2, xs, os, roots⟩ := rfl
 
-theorem obs_ground (sp : Sponge) (x : E) : (obs sp x).ground = sp.ground := absorbI_ground _ _ _ _
-
 theorem obsAll_ground : ∀ (sp : Sponge) (xs : List E), (obsAll sp xs).ground = sp.ground
   | _, [] => rfl
-  | sp, x :: xs => (obsAll_ground (obs sp x) xs).trans (obs_ground sp x)
+  | sp, x :: xs => (obsAll_ground (obs sp x) xs).trans (obs_ground' sp x)
 
 theorem sq_ground (sp : Sponge) : (sq sp).2.ground = none := squeezeI_ground _ _
 
@@ -266,7 +264,7 @@ theorem runsTo_readN {sp : Sponge} (hg : sp.ground = none) :
     have h := (runsTo_readE hg x).bind (f := fun x ↦ do
         let xs ← VerifierProgram.readScalars xs.length
         return x :: xs)
-      ((runsTo_readN ((obs_ground sp x).trans hg) xs).bind (f := fun xs' ↦ (pure (x :: xs') : VerifierProgram
+      ((runsTo_readN ((obs_ground' sp x).trans hg) xs).bind (f := fun xs' ↦ (pure (x :: xs') : VerifierProgram
           (List E)))
         (runsTo_ret _ _))
     exact h.of_eq (by simp)
@@ -336,7 +334,7 @@ theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) {sp : Spong
         let r ← VerifierProgram.sampleChallenge
         let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf) r) rounds.length
         return (r :: rest.1, rest.2))
-      ((runsTo_readE ((obs_ground sp g1).trans hg) gInf).bind
+      ((runsTo_readE ((obs_ground' sp g1).trans hg) gInf).bind
         (f := fun gInf ↦ do
           let r ← VerifierProgram.sampleChallenge
           let rest ← sumcheckRoundsProgram (sumcheckRoundPolynomial claim (g1, gInf) r) rounds.length
@@ -348,7 +346,7 @@ theorem runsTo_roundsProg : ∀ (rounds : List (E × E)) (claim : E) {sp : Spong
           ((runsTo_roundsProg rounds _ (sq_ground _) rfl).bind
             (f := fun rest ↦ (pure (_ :: rest.1, rest.2) : VerifierProgram (List E × E)))
             (runsTo_ret _ _))))
-    rw [sq_fst ((obs_ground _ _).trans ((obs_ground _ _).trans hg))] at h
+    rw [sq_fst ((obs_ground' _ _).trans ((obs_ground' _ _).trans hg))] at h
     exact h.of_eq (by simp)
 
 /-- A check followed by acceptance. -/

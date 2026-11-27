@@ -63,7 +63,7 @@ theorem split_prodW_powB (w : ℕ → E) (k : ℕ) : ∀ bs, prodW w (powB k bs)
 
 theorem split_valW {w : ℕ → E} {bs : List (ℕ × ℕ)} {a : ℕ} (h : prodW w bs = gen ^ a) (off : ℕ) :
     (⟨bs, off⟩ : CCell).valW w = ofK (addressOfIndex (a + off)) := by
-  rw [CCell.valW, h, Value.gen_pow_eq_ofK, ← CoreMode.ofK_mul']
+  rw [CCell.valW, h, Value.gen_pow_eq_ofK, ← LeanVM.Parameters.ofK_mul]
   simp only [addressOfIndex, pow_add]
 
 theorem split_rep {w : ℕ → E} {bs : List (ℕ × ℕ)} {a : ℕ} (h : prodW w bs = gen ^ a) {off : ℕ} (hc : a + off < capE) :
@@ -127,7 +127,7 @@ theorem splitRes_sound {sp : SplitC} {σ : Val} {a b : ℕ} (hs : SplitV sp σ a
     refine ⟨0, sp.S * a + b, qo + sp.S * j, CoreMode.rep_const (by unfold capE; norm_num), ?_, by omega, hjS, ?_⟩
     · simp only [idxC, CoreMode.valW_baseC, vw, hs.hn, Value.gen_pow_eq_ofK]
       exact rep_of hcap
-    · simp only [CCell.valW, mul_assoc, ← CoreMode.ofK_mul', addressOfIndex, ← pow_add, zero_add, one_mul]
+    · simp only [CCell.valW, mul_assoc, ← LeanVM.Parameters.ofK_mul, addressOfIndex, ← pow_add, zero_add, one_mul]
   | .under cs' r, cs, hcs, h => fun hcs' ↦ by
     simp only [splitRes] at h
     exact splitRes_sound hs r (cs ++ cs') (fun c hc ↦ (List.mem_append.mp hc).elim (hcs c) (hcs' c)) h

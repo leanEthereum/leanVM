@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Terminal.KidsDepBP
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Dependent callees, returned buffers
@@ -155,7 +156,7 @@ complete within `fs f + sizes.sum + Bs.sum`** by a node of honest shape: its wal
 theorem completeAt_flatDepOut {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (rets : ℕ → List (List E × Layout) → List E) (Res : List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hni : pre.all notIteB = true)
     (sizes : List ℕ) (own : ℕ → List (List E))
@@ -223,7 +224,7 @@ are its own layout (`Returns R`). -/
 theorem completeAt_flatDepRet {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (rets : ℕ → List (List E × Layout) → List E) (R : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hni : pre.all notIteB = true)
     (sizes : List ℕ) (own : ℕ → List (List E))

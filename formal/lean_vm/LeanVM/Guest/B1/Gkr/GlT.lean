@@ -16,6 +16,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L0_L0»
 public import LeanVM.Guest.B1.Tables.Basic
 import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A radix-four layer's templates
@@ -120,12 +121,12 @@ def glHeadRounds (p : ℕ) : List Stmt :=
 
 /-- The head record's stores, at `p = 0`. -/
 def glHeadStore0 : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» "nxt[8]@1") + k)) (.n (valf% «gkr_layer» "head")) k)) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» "nxt[8]@1") + k)) (.n (valf% «gkr_layer» "head")) k)) ⧺
     [.atom (.load (.n (valf% «gkr_layer» "s4#0")) (.n (valf% «gkr_layer» "head")) 5), .atom (.load (.n (valf% «gkr_layer» "claim@2")) (.n (valf% «gkr_layer» "head")) 6)]
 
 /-- The head record's stores, at `p ≥ 1`: the cursor `8p` words on. -/
 def glHeadStoreP (p : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 78 * p + k)) (.n (valf% «gkr_layer» "head")) k)) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n (39 + 78 * p + k)) (.n (valf% «gkr_layer» "head")) k)) ⧺
     [.atom (.const (.n (58 + 78 * p)) (word (2 ^ (8 * p)) 0)),
       .atom (.mul (.n (59 + 78 * p)) (.n (valf% «gkr_layer» "s4#0")) (.n (58 + 78 * p))),
       .atom (.load (.n (59 + 78 * p)) (.n (valf% «gkr_layer» "head")) 5), .atom (.load (.n (57 + 78 * p)) (.n (valf% «gkr_layer» "head")) 6)]
@@ -156,7 +157,7 @@ def glLoopCall (p : ℕ) (nm : String) : List Stmt :=
 
 /-- The last record's loads, from `head·x_m^7` (at `w`) into `75 + glD p ..`. -/
 def glTailLoads (p w : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n (75 + glD p + k)) (.n w) k)) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n (75 + glD p + k)) (.n w) k)) ⧺
     [.atom (.load (.n (80 + glD p)) (.n w) 5), .atom (.load (.n (81 + glD p)) (.n w) 6)]
 
 /-- The tail's pointers, at `p = 0`. -/
@@ -168,7 +169,7 @@ def glTailSetup0 : List Stmt :=
     .atom (.mul (.n (val% «gkr_layer__L0_L0» "rd_last")) (.n (valf% «gkr_layer» "head")) (.n (val% «gkr_layer__L0_L0» "rd_last~3"))), .atom (.mul (.n (val% «gkr_layer__L0_L0» "m2")) (.n (valf% «gkr_layer» "x_m")) (.n (valf% «gkr_layer» "x_m"))),
     .atom (.mul (.n (val% «gkr_layer__L0_L0» "m4")) (.n (val% «gkr_layer__L0_L0» "m2")) (.n (val% «gkr_layer__L0_L0» "m2"))), .atom (.mul (.n (val% «gkr_layer__L0_L0» "m8")) (.n (val% «gkr_layer__L0_L0» "m4")) (.n (val% «gkr_layer__L0_L0» "m4"))),
     .atom (.mul (.n (val% «gkr_layer__L0_L0» "tpt")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "m8"))), .atom (.const (.n (val% «gkr_layer__L0_L0» "ntpt~0")) (word (2 ^ 42) 0)),
-    .atom (.mul (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "ntpt~0"))), .atom (.mul (.n (val% «gkr_layer__L0_L0» "ntpt")) (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (val% «gkr_layer__L0_L0» "m8")))] ++
+    .atom (.mul (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "ntpt~0"))), .atom (.mul (.n (val% «gkr_layer__L0_L0» "ntpt")) (.n (val% «gkr_layer__L0_L0» "ntpt~1")) (.n (val% «gkr_layer__L0_L0» "m8")))] ⧺
   glTailLoads 0 (val% «gkr_layer__L0_L0» "rd_last")
 
 /-- The tail's pointers, at `p ≥ 1`. -/
@@ -186,7 +187,7 @@ def glTailSetupP (p : ℕ) : List Stmt :=
     .atom (.mul (.n (77 + 78 * p)) (.n (76 + 78 * p)) (.n (74 + 78 * p))),
     .atom (.const (.n (78 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)),
     .atom (.mul (.n (79 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (78 + 78 * p))),
-    .atom (.mul (.n (80 + 78 * p)) (.n (79 + 78 * p)) (.n (74 + 78 * p)))] ++
+    .atom (.mul (.n (80 + 78 * p)) (.n (79 + 78 * p)) (.n (74 + 78 * p)))] ⧺
   glTailLoads p (71 + 78 * p)
 
 def glTailSetup (p : ℕ) : List Stmt := if p = 0 then glTailSetup0 else glTailSetupP p
@@ -214,10 +215,10 @@ def glRho (p o : ℕ) (v : V) : V :=
 /-- The children, read `off` words past the tail cursor `77`: four, a permutation, four, a
 permutation, four. -/
 def glKids (off : ℕ) : List Stmt :=
-  ((List.range 4).map (chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9"))).flatten ++
-    [.atom (.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 0 ++ glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@4")) false false)] ++
-    ((List.range 4).map fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (4 + i)).flatten ++
-    [.atom (.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 1 ++ lyCap (val% «gkr_layer__L0_L0» "nxt[0]@4")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@5")) false false)] ++
+  ((List.range 4).map (chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9"))).flatten ⧺
+    [.atom (.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 0 ++ glCap (val% «gkr_layer__L0_L0» "nxt[8]@3")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@4")) false false)] ⧺
+    ((List.range 4).map fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (4 + i)).flatten ⧺
+    [.atom (.keccak (chRate (val% «gkr_layer__L0_L0» "x@9") 1 ++ lyCap (val% «gkr_layer__L0_L0» "nxt[0]@4")) (lyOuts (val% «gkr_layer__L0_L0» "nxt[0]@5")) false false)] ⧺
     ((List.range 4).map fun i ↦ chT (.n (val% «gkr_layer__L0_L0» "tcur")) off (val% «gkr_layer__L0_L0» "x@9") (8 + i)).flatten
 
 /-- The children's check against the last claim `158` (`gkr_product_check`). -/
@@ -252,11 +253,11 @@ def glY : List Stmt :=
 /-- The next slot, `20` words on: the capacity, the cursor `cw` words on, the three values and
 the position `pos·x_m·g`. -/
 def glNext (cw : ℕ) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)) (.n (val% «gkr_layer__L0_L0» "layer")) (20 + k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((val% «gkr_layer__L0_L0» "nxt[8]@7") + k)) (.n (val% «gkr_layer__L0_L0» "layer")) (20 + k))) ⧺
     [.atom (.const (.n (val% «gkr_layer__L0_L0» "s42#0")) (word (2 ^ cw) 0)), .atom (.mul (.n (val% «gkr_layer__L0_L0» "s42#1")) (.n (val% «gkr_layer__L0_L0» "tcur")) (.n (val% «gkr_layer__L0_L0» "s42#0"))),
-      .atom (.load (.n (val% «gkr_layer__L0_L0» "s42#1")) (.n (val% «gkr_layer__L0_L0» "layer")) 25)] ++
-    chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 0 (val% «gkr_layer__L0_L0» "lo@1~0") 26 ++ chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 1 (val% «gkr_layer__L0_L0» "lo@2~0") 27 ++
-    chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 2 (val% «gkr_layer__L0_L0» "lo@3~0") 28 ++
+      .atom (.load (.n (val% «gkr_layer__L0_L0» "s42#1")) (.n (val% «gkr_layer__L0_L0» "layer")) 25)] ⧺
+    chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 0 (val% «gkr_layer__L0_L0» "lo@1~0") 26 ⧺ chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 1 (val% «gkr_layer__L0_L0» "lo@2~0") 27 ⧺
+    chValT (val% «gkr_layer__L0_L0» "x@9") (val% «gkr_layer__L0_L0» "nxt[0]@6") (val% «gkr_layer__L0_L0» "nxt[0]@7") (val% «gkr_layer__L0_L0» "layer") 2 (val% «gkr_layer__L0_L0» "lo@3~0") 28 ⧺
     [.atom (.const (.n (val% «gkr_layer__L0_L0» "s44#0")) (word 2 0)),
       .atom (.mul (.n (val% «gkr_layer__L0_L0» "s44#1")) (.n (val% «gkr_layer__L0_L0» "x_m")) (.n (val% «gkr_layer__L0_L0» "s44#0"))),
       .atom (.mul (.n (val% «gkr_layer__L0_L0» "s44#2")) (.n (val% «gkr_layer__L0_L0» "s44#1")) (.n (val% «gkr_layer__L0_L0» "s44#1"))),
@@ -268,12 +269,12 @@ def glNext (cw : ℕ) : List Stmt :=
 
 /-- The rest of the body, canonically numbered. -/
 def glTail (o : ℕ) : List Stmt :=
-  glKids (4 * (2 - o)) ++ glCheck ++ glY ++ glNext (4 * (2 - o) + 12) ++ [.ret []]
+  glKids (4 * (2 - o)) ⧺ glCheck ⧺ glY ⧺ glNext (4 * (2 - o) + 12) ⧺ [.ret []]
 
 /-- **`gkr_layer__L{p}_L{o}`'s body**, its loop `nm`. -/
 def glBody (p o : ℕ) (nm : String) : List Stmt :=
-  glPre ++ glHeadRounds p ++ glHeadStore p ++ glLoopCall p nm ++ glTailSetup p ++
-    glTailRounds p o ++ glPad p o ++ Stmt.renameList (glRho p o) (glTail o)
+  glPre ⧺ glHeadRounds p ⧺ glHeadStore p ⧺ glLoopCall p nm ⧺ glTailSetup p ⧺
+    glTailRounds p o ⧺ glPad p o ⧺ Stmt.renameList (glRho p o) (glTail o)
 
 /-! ## The loop -/
 
@@ -284,8 +285,8 @@ def glLoopPre : List Stmt :=
     .atom (.mul (.n 9) (.n 8) (.n (valf% «gkr_layer» «_loop0» "y"))),
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "rd")) (.n (valf% «gkr_layer» «_loop0» "head")) (.n 9)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "y"))),
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y2")) (.n (valf% «gkr_layer» «_loop0» "y2"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "y8")) (.n (valf% «gkr_layer» «_loop0» "y4")) (.n (valf% «gkr_layer» «_loop0» "y4"))),
-    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "qrow")) (.n (valf% «gkr_layer» «_loop0» "y8"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "npt")) (.n (valf% «gkr_layer» «_loop0» "nqrow")) (.n (valf% «gkr_layer» «_loop0» "y8")))] ++
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "sp[0]") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) k)) ++
+    .atom (.mul (.n (valf% «gkr_layer» «_loop0» "pt")) (.n (valf% «gkr_layer» «_loop0» "qrow")) (.n (valf% «gkr_layer» «_loop0» "y8"))), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "npt")) (.n (valf% «gkr_layer» «_loop0» "nqrow")) (.n (valf% «gkr_layer» «_loop0» "y8")))] ⧺
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "sp[0]") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) k)) ⧺
   [.atom (.load (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "rd")) 5), .atom (.load (.n (valf% «gkr_layer» «_loop0» "claim")) (.n (valf% «gkr_layer» «_loop0» "rd")) 6)]
 
 /-- The iteration's eight rounds. -/
@@ -293,7 +294,7 @@ def glLoopRounds : List Stmt := glRounds 23 8 (.n (valf% «gkr_layer» «_loop0�
 
 /-- The next record, the guard and the next call. -/
 def glLoopPost (nm : String) : List Stmt :=
-  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ++
+  (List.range 5).map (fun k ↦ .atom (.load (.n ((valf% «gkr_layer» «_loop0» "nxt[8]@8") + k)) (.n (valf% «gkr_layer» «_loop0» "rd")) (7 + k))) ⧺
   [.atom (.const (.n (valf% «gkr_layer» «_loop0» "s12#0")) (word (2 ^ 32) 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "cur")) (.n (valf% «gkr_layer» «_loop0» "s12#0"))),
     .atom (.load (.n (valf% «gkr_layer» «_loop0» "s12#1")) (.n (valf% «gkr_layer» «_loop0» "rd")) 12), .atom (.load (.n (valf% «gkr_layer» «_loop0» "nclaim@8")) (.n (valf% «gkr_layer» «_loop0» "rd")) 13),
     .atom (.const (.n (valf% «gkr_layer» «_loop0» "s15#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#1")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#0"))),
@@ -302,7 +303,7 @@ def glLoopPost (nm : String) : List Stmt :=
     .callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
 
 /-- **The loop's body**, its own name `nm`. -/
-def glLoopBody (nm : String) : List Stmt := glLoopPre ++ glLoopRounds ++ glLoopPost nm
+def glLoopBody (nm : String) : List Stmt := glLoopPre ⧺ glLoopRounds ⧺ glLoopPost nm
 
 /-! ## The eight functions -/
 
@@ -331,7 +332,7 @@ def glLoopName : ℕ → ℕ → String
 /-- A function of `coreProgram` with these parameters and body. -/
 noncomputable def glIs (f : String) (ps : List V) (b : List Stmt) : Bool :=
   match coreProgram.find? f with
-  | some fn => decide (fn.params = ps) && tbStmtsEqb fn.body b
+  | some fn => decide (fn.params = ps) && stmtsEqb fn.body b
   | none => false
 
 theorem glIs_sound {f : String} {ps : List V} {b : List Stmt} (h : glIs f ps b = true) :
@@ -340,7 +341,7 @@ theorem glIs_sound {f : String} {ps : List V} {b : List Stmt} (h : glIs f ps b =
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- The layer's parameters. -/
@@ -375,7 +376,7 @@ def glLoopIdx : ℕ → ℕ → ℕ
 /-- `glIs` at function `j`, found by its index (`coreProgram.find?` compares every name on the way). -/
 noncomputable def glIsAt (j : ℕ) (f : String) (ps : List V) (b : List Stmt) : Bool :=
   match coreProgram[j]? with
-  | some fn => fn.name == f && decide (fn.params = ps) && tbStmtsEqb fn.body b
+  | some fn => fn.name == f && decide (fn.params = ps) && stmtsEqb fn.body b
   | none => false
 
 theorem glIs_of_at {j : ℕ} {f : String} {ps : List V} {b : List Stmt} (h : glIsAt j f ps b = true) :

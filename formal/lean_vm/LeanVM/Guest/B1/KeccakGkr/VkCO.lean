@@ -137,7 +137,7 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
     rwa [List.take_append_drop, inst_length h] at this
   have hr0 : LoadHolds rd (σ (.n (val% «verify_keccak» "point")) * σ (.n (val% «verify_keccak» "pack_g"))) 0 (D.seg.getD 0 0) := by
     rw [h58, h17, loadHolds_mul_gen_pow, add_zero, ← c0_point_seg h]
-    exact ClaimLay.getD_load m58 (by rw [c0_point_length h]; omega)
+    exact ClaimLay.getD_load m58 (by rw [LeanVM.Guest.B1.VerifySub.VkData.c0_point h]; omega)
   have hL : ∀ lane < 25, LoadHolds rd (σ (.n (val% «verify_keccak» "lane_tree"))) (30 + lane) ((eqKernel D.rl).getD lane 0) := by
     intro lane hl
     have := lanes_first m274 lane (by simp [eqKernel_length, rl_length]; omega)

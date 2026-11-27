@@ -7,7 +7,8 @@ public import FORS.CoverPotential.StartValue
 @[expose] public section
 
 /-! FORS split-bound covers at the survival-weighted baseline `baselineW` (thresholds `betaWQ`): a
-successful cover check bounds the large-route term at every budget it covers. -/
+successful cover check bounds the large-route term at every budget it covers, and a chain of covers
+(`checkCovers`) reaches every budget below `2^127`. -/
 
 open ENNReal NNReal
 
@@ -257,5 +258,26 @@ theorem fair_of_cover (H b k a K N qstart : ℕ) (cover : CoverW)
     q' + 2 ^ 32 + (scanM - 1) * LmaxOf q' + (2 * scanM - 1) ≤ 2 ^ 128 := by
   simp only [checkCoverW, Bool.and_eq_true, List.all_eq_true] at hcov
   exact fair_of_rate H b N cover.qtop cover.tab hcov.1.1.1 hH hb q' hq
+
+/-- A chain of covers of the large budgets, ending once every budget `q'` with
+`q' + keygenCost < 2^127` is covered. -/
+def checkCovers (H b k a K N : ℕ) : ℕ → List CoverW → Bool
+  | qstart, [] => decide (2 ^ 127 ≤ qstart + K)
+  | qstart, c :: covers => checkCoverW H b k a K N qstart c && checkCovers H b k a K N (c.qtop + 1) covers
+
+/-- Every budget from `qstart` on with `q' + keygenCost < 2^127` lies in a checked cover of the
+chain. -/
+theorem checkCovers_sound (H b k a K N : ℕ) : ∀ (covers : List CoverW) (qstart : ℕ),
+    checkCovers H b k a K N qstart covers = true → ∀ q', qstart ≤ q' → q' + K < 2 ^ 127 →
+      ∃ c ∈ covers, ∃ qs, checkCoverW H b k a K N qs c = true ∧ qs ≤ q' ∧ q' ≤ c.qtop
+  | [], qstart, h, q', h0, h1 => by
+      simp only [checkCovers, decide_eq_true_eq] at h
+      omega
+  | c :: rest, qstart, h, q', h0, h1 => by
+      simp only [checkCovers, Bool.and_eq_true] at h
+      by_cases hq : q' ≤ c.qtop
+      · exact ⟨c, List.mem_cons_self .., qstart, h.1, h0, hq⟩
+      · obtain ⟨c', hc', hrest⟩ := checkCovers_sound H b k a K N rest (c.qtop + 1) h.2 q' (by omega) h1
+        exact ⟨c', List.mem_cons_of_mem _ hc', hrest⟩
 
 end FORS.Security.H0

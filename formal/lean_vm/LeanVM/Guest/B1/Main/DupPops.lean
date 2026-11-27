@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Main.MainGoalsG
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop0»
 import LeanVM.Guest.Data.ValNames.«main_loop1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The duplicate claims' loops, their pops
@@ -41,14 +42,14 @@ def mfA : List Stmt :=
     .atom (.const (.n (val% «main_loop0» «main_loop1» "s3#3")) (word 2 0)), .atom (.mul (.n (val% «main_loop0» «main_loop1» "s3#4")) (.n (val% «main_loop0» «main_loop1» "xd")) (.n (val% «main_loop0» «main_loop1» "s3#3")))]
 
 /-- The body of `main_loop0` (`f` its name) before its return. -/
-def mfPre (f : String) : List Stmt := mfA ++ [.callIf (.n (val% «main_loop0» «main_loop1» "s3#2")) f [.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]]
+def mfPre (f : String) : List Stmt := mfA ⧺ [.callIf (.n (val% «main_loop0» «main_loop1» "s3#2")) f [.n (val% «main_loop0» «main_loop1» "s3#4"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]]
 
-theorem mfL1_body : (coreProgram.getD idx% «main_loop0» default).body = mfPre name% «main_loop0» ++ [.ret []] := by
+theorem mfL1_body : (coreProgram.getD idx% «main_loop0» default).body = mfPre name% «main_loop0» ⧺ [.ret []] := by
   rw [show (coreProgram.getD idx% «main_loop0» default).body = core% «main_loop0» body from rfl,
     core_eq% «main_loop0» body]
   rfl
 
-theorem mfL2_body : (coreProgram.getD idx% «main_loop1» default).body = mfPre name% «main_loop1» ++ [.ret []] := by
+theorem mfL2_body : (coreProgram.getD idx% «main_loop1» default).body = mfPre name% «main_loop1» ⧺ [.ret []] := by
   rw [show (coreProgram.getD idx% «main_loop1» default).body = core% «main_loop1» body from rfl,
     core_eq% «main_loop1» body]
   rfl
@@ -67,7 +68,7 @@ theorem mfA_atoms : Sig.atomsOnly mfA = true := rfl
 /-- **A valid tree of a function of `main_loop0`'s body**, from the counter `g^j` below `n`, pops iterations
 `j ..< n`' entries. -/
 theorem mf_pops {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hp : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]) (hb : fn.body = mfPre f ++ [.ret []]) {n : ℕ} (hn : n < 2 ^ 34)
+    (hp : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3]) (hb : fn.body = mfPre f ⧺ [.ret []]) {n : ℕ} (hn : n < 2 ^ 34)
     (rd : Reader) (a b : E) :
     ∀ m j, j + m = n → 0 < m → ∀ (t : Tree) rets, t.name = f → t.Valid coreProgram rd [gen ^ j, gen ^ n, a, b] rets →
       t.pops coreProgram rd = (List.range' j m).map (mfPop rd a b) := by

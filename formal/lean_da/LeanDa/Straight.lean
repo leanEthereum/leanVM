@@ -44,7 +44,7 @@ namespace LeanDa
 attribute [local irreducible] logMaxRows
 
 /-- A code-binding adversary's output: a commitment with its proof, and the opened cells. -/
-abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × CellOpening)
+abbrev CbOut (r : ℕ) (Proof : Type) := (Common.DigestBytes × Proof) × List (Fin (r * 128) × Cell × ByteOpening)
 
 /-! ## The straight-line verdict -/
 
@@ -57,8 +57,8 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
       Crs Proof)
 
 /-- The first opened cell that disagrees with a matrix. -/
-def firstBad (w : Fin (r * 128) → Cell) (l : List (Fin (r * 128) × Cell × CellOpening)) :
-    Option (Fin (r * 128) × Cell × CellOpening) :=
+def firstBad (w : Fin (r * 128) → Cell) (l : List (Fin (r * 128) × Cell × ByteOpening)) :
+    Option (Fin (r * 128) × Cell × ByteOpening) :=
   l.find? fun o ↦ decide (o.2.1 ≠ w o.1)
 
 open Classical in
@@ -114,7 +114,7 @@ theorem noCoins_walkM (path : List Common.DigestBytes) :
   | nil => intro idx node; exact noCoins_pure _
   | cons s rest ih => intro idx node; exact noCoins_bind (hHc _) fun _ ↦ ih _ _
 
-theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
+theorem noCoins_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening) :
     NoCoins (verifyCellMWithHash H r com p x τ) :=
   noCoins_bind (hHc _) fun _ ↦ noCoins_bind (noCoins_walkM H hHc _ _ _) fun _ ↦ noCoins_pure _
 

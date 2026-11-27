@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Whir.RateCfg
 public import LeanVM.Guest.B1.Whir.TableMem
 public import LeanVM.Guest.B1.Whir.OqKey
 public import LeanVM.Guest.B1.Whir.TableKeys
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The arms' decided facts
@@ -70,7 +71,7 @@ def isLrCall : Stmt → Bool
 
 /-- The body before the finish: the head, the levels, the closing rounds. -/
 def osBodyPre (c : OsCfg) : List Stmt :=
-  (osHead c).1 ++ (osLevels c 0 c.levels (osHead c).2).1 ++ osTlA c
+  (osHead c).1 ⧺ (osLevels c 0 c.levels (osHead c).2).1 ⧺ osTlA c
 
 /-- **The body's decided facts**: every statement placed (a call into `level_residual` aside, which
 only the finish makes), the body before the finish placed, `fold_final_msg` named, no frame

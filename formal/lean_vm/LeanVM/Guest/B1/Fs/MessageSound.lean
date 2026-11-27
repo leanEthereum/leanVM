@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Fs.MessageT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«opening_message__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `opening_message`: groups and soundness
@@ -29,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 variable {C : CallRel} {rd : Reader} {σ : Val}
 
 theorem holdsList_atomsRet (as : List Atom) (vs : List V) (next : Prop) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (as.map Stmt.atom ++ [.ret vs]) next kret ↔
+    Stmt.HoldsList C rd σ (as.map Stmt.atom ⧺ [.ret vs]) next kret ↔
       (∀ a ∈ as, a.Holds rd σ) ∧ kret (vs.map σ) := by
   induction as with
   | nil => simp [Stmt.HoldsList, Stmt.Holds]

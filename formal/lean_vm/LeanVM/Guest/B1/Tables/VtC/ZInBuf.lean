@@ -44,7 +44,7 @@ theorem vtZ_inBuf {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.lengt
     .atom (.mul (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~0")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "zc_last~1")) (.n (val% «verify_tables» "zc_last~1"))),
     .atom (.mul (.n (val% «verify_tables» "zc_last~3")) (.n (val% «verify_tables» "zc_last~2")) (.n (val% «verify_tables» "g_zc_n"))), .atom (.mul (.n (val% «verify_tables» "zc_last")) (.n (val% «verify_tables» "zc_rounds")) (.n (val% «verify_tables» "zc_last~3")))]
     (by decide +kernel)
-  have e := tbStmtsEqb_sound zBlk_at
+  have e := stmtsEqb_sound zBlk_at
   have hlen : zBlk.length = 83 := rfl
   rw [← hlen, ← e]
   generalize vtσ rd w args = σ at *
@@ -74,7 +74,7 @@ set_option maxRecDepth 100000 in
 theorem vtZt_inBuf {rd : Reader} {w : ℕ → E} {args : List E} {bufs : List (E × ℕ)}
     (b15 : (vtσ rd w args (.n (val% «verify_tables» "claim_pool")), 159) ∈ bufs) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop (pos% «verify_tables» "nxt[0]@42")).take (span% «verify_tables» "nxt[0]@42" "ret")) := by
-  have e := tbStmtsEqb_sound zTail_at
+  have e := stmtsEqb_sound zTail_at
   have hlen : zTail.length = 31 := rfl
   rw [← hlen, ← e]
   intro d p off hm

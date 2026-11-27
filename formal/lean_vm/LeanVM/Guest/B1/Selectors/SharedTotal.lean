@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.LoopPre
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `shared_selector_tables` within its words

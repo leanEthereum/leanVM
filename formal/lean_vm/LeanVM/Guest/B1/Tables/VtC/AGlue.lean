@@ -104,7 +104,7 @@ theorem vt_xi_good (hl : args.length = 21) :
   generalize vtσ rd w args = σ at g ⊢
   simp only [GoodL, GoodS, fixNe, Good, Nat.reduceLT, and_self, ↓reduceIte, and_true] at g
   obtain ⟨g0, g1, g2, g3, g4⟩ := g
-  rw [tb_word_one] at g0
+  rw [word_one] at g0
   refine ⟨g0, ?_, ?_, ?_, ?_⟩
   · rw [g1, g0, one_mul]
   · rw [g2, g1, g0, one_mul, sq]
@@ -113,7 +113,7 @@ theorem vt_xi_good (hl : args.length = 21) :
 
 /-- **The GKR leaf values** are read from `gkr_leaves` (`args 17`). -/
 theorem vt_leaves_good (hl : args.length = 21) {leaves : List E} (hll : leaves.length = 3)
-    (h : TbReadsAt rd (args.getD 17 0) leaves) :
+    (h : ReadsAt rd (args.getD 17 0) leaves) :
     vtσ rd w args (.n (val% «verify_tables» "s53.u0.s5#0")) = leaves.getD 0 0 ∧ vtσ rd w args (.n (val% «verify_tables» "s53.u1.s5#0")) = leaves.getD 1 0 ∧
       vtσ rd w args (.n (val% «verify_tables» "s53.u2.s5#0")) = leaves.getD 2 0 := by
   have hp : vtσ rd w args (.n (val% «verify_tables» "gkr_leaves")) = args.getD 17 0 := vt_param hl (by norm_num)

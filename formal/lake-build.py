@@ -31,7 +31,7 @@ anonymous memory is its physical footprint.
 `DIR/lakefile.toml` with `buildDir = ".lake/build-dev"` and `debug.skipKernelTC` set on the package's libraries other
 than its test driver. Elaboration still runs (tactics, `simp`, `omega`, the elaborator's `decide`, warnings as
 errors), and the kernel checks only the modules `--dev-kernel` names (`kernel_modules`): by default those that
-tie a guest function's body or the core data to a template (`stmtsEqb`, or a `decide +kernel` that reads the core IR),
+tie a guest function's body or the core data to a template (`stmtsEqb` or `kernel_rfl`, or a `decide +kernel` that reads the core IR),
 so a stale template fails here as in the real build; `all`, every module the kernel decides something in, and the
 `kernel_lit` and `win_lit` values, but the guest's other certificates (budgets and tables too, slower);
 `none`, nothing, so that a false `decide +kernel` is accepted. `#print axioms` shows none of it. The option is
@@ -524,12 +524,12 @@ def fake_sysroot(real: Path, into: Path) -> None:
 
 # The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body,
 # or the core data, with a template, which a guest change makes stale and elaboration alone does not check: a
-# `stmtsEqb` tie (`tbStmtsEqb` too), a use of the `vc` tactic outside comments (whose proof only the kernel checks),
-# or a `decide +kernel` in a module that reads a body or the core program (`fn% «s»`, `core% «s» m`, `coreOf`,
-# `certOf`, …) or imports the core IR. `all`: every module the kernel decides
-# something in (budgets, tables), and every `kernel_lit` and `win_lit` value, but the other certificates `guest-cert`,
+# `stmtsEqb` tie or a `kernel_rfl` one, a use of the `vc` tactic outside comments (whose proof only
+# the kernel checks), or a `decide +kernel` in a module that reads a body or the core program (`fn% «s»`, `core% «s» m`,
+# `coreOf`, `certOf`, …) or imports the core IR. `all`: every module the kernel decides something in (budgets, tables),
+# every `kernel_rfl` tie, and every `kernel_lit` and `win_lit` value, but the other certificates `guest-cert`,
 # `guest-core` and `guest-memory` write, the generators' exact output, left to the gate.
-TIE = re.compile(r"stmtsEqb", re.I)
+TIE = re.compile(r"stmtsEqb|\bkernel_rfl\b", re.I)
 # `vc` as a token outside comments; a binder named `vc` only keeps the kernel on one more module.
 VC = re.compile(r"(?<![\w.'`«])vc(?![\w.'»])")
 COMMENT = re.compile(r"/-.*?-/|--[^\n]*", re.S)
@@ -546,7 +546,7 @@ def kernel_checked(text: str, which: str) -> bool:
     if any(h in text[:600] for h in CERT_HEADERS):
         return False
     if which == "all":
-        return "decide +kernel" in text
+        return "decide +kernel" in text or bool(TIE.search(text))
     return (bool(TIE.search(text)) or bool(VC.search(COMMENT.sub("", text)))
             or "decide +kernel" in text and bool(CORE_READ.search(text)))
 

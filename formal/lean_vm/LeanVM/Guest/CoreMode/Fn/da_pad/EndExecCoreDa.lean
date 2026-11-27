@@ -23,6 +23,7 @@ public import LeanVM.Guest.B1.Main.Loops
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_pad»
 import LeanVM.Guest.Data.ValNames.«da_verify»
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.EndExec
 
@@ -43,7 +44,7 @@ theorem dv_pad_sites : Res.sitesB (fun f args rets ↦ f != name% «da_pad» ||
     (args == [.n (val% «da_verify» "roots"), .n (val% «da_verify» "n_blob_g"), .n (val% «da_verify» "gap_g")] && rets == [])) (fn% «da_verify»).body = true := by
   decide +kernel
 
-theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ++ [.ret [.n (val% «da_verify» "s11#0"),
+theorem dv_shape : B1.stmtsEqb (fn% «da_verify»).body (B1.Da.dvP ⧺ [.ret [.n (val% «da_verify» "s11#0"),
       .n (val% «da_verify» "s11#0[1]"), .n (val% «da_verify» "s11#0[2]")]]) = true ∧
     B1.Da.dvP.all Stmt.flat = true ∧ B1.Main.hasCall B1.Da.dvP "da_padding" [.n (val% «da_verify» "n_blob_g")]
       [.n (val% «da_verify» "gap_g")] = true ∧

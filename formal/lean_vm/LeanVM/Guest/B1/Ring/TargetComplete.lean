@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `ring_switch_target`, placed
@@ -40,21 +41,21 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- `ring_switch_target`'s statements before its `ret`. -/
 def rstPre : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ++
+  [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ⧺
   ((List.range 8).map fun p ↦
-    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
+    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ⧺
   [.atom (.const (.n (val% «ring_switch_target» "s2#0")) (word 1 0)), .call name% «ring_switch_target_loop0» [.n (val% «ring_switch_target» "s2#0"), .n (val% «ring_switch_target» "map_challenges"), .n (val% «ring_switch_target» "slices"),
       .n (val% «ring_switch_target» "rs_chain")] [],
     .atom (.const (.n (val% «ring_switch_target» "sums~0")) (word 27 0)), .atom (.mul (.n (val% «ring_switch_target» "sums")) (.n (val% «ring_switch_target» "rs_chain")) (.n (val% «ring_switch_target» "sums~0"))),
     .atom (.load (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "map_challenges")) 0), .atom (.load (.n (val% «ring_switch_target» "total@1~1")) (.n (val% «ring_switch_target» "sums")) 0),
-    .atom (.mul (.n (val% «ring_switch_target» "total@1")) (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "total@1~1")))] ++
-  ((List.range 7).map fun p ↦ tbBlock (p + 1)).flatten ++
+    .atom (.mul (.n (val% «ring_switch_target» "total@1")) (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "total@1~1")))] ⧺
+  ((List.range 7).map fun p ↦ tbBlock (p + 1)).flatten ⧺
   [.atom (.const (.n (val% «ring_switch_target» "s6#1")) (word 9223372036854775808 0)), .atom (.mul (.n (val% «ring_switch_target» "s6#0")) (.n (val% «ring_switch_target» "total@8")) (.n (val% «ring_switch_target» "s6#1")))]
 
-theorem rstT_split : rstT = rstPre ++ [.ret [.n (val% «ring_switch_target» "s6#0")]] := by
+theorem rstT_split : rstT = rstPre ⧺ [.ret [.n (val% «ring_switch_target» "s6#0")]] := by
   simp only [rstT, rstPre, List.append_assoc, List.cons_append, List.nil_append]
 
-theorem rst_body' : (fn% «ring_switch_target»).body = rstPre ++ [.ret [.n (val% «ring_switch_target» "s6#0")]] := by
+theorem rst_body' : (fn% «ring_switch_target»).body = rstPre ⧺ [.ret [.n (val% «ring_switch_target» "s6#0")]] := by
   rw [rst_body, rstT_split]
 
 theorem rst_flat : rstPre.all Stmt.flat = true := by decide +kernel

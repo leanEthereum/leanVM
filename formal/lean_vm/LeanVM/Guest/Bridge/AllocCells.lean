@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Bridge.AllocDefs
 public import LeanVM.Guest.Bridge.ProgAlData
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

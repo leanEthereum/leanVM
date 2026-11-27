@@ -6,13 +6,14 @@ public import Common.Lanes
 /-!
 # The statement's LeanDA is the hash-parameter form, the hash over the permutation
 
-The statement's LeanDA hashes with Keccak-256 over the permutation it is given
-(`keccakDigestBytes`); Benedikt Wagner's framework and its proofs take the hash as a parameter of
-its own (`LeanDa.WithHash`). Each statement definition is the hash-parameter one with the hash
-Keccak-256 over the permutation (`hashOver π`, `keccakDigestBytes P`), by unfolding, and by
-induction for the recursive ones (`merkleRootWith_id`, `walkM_eq_withHash`,
-`merkleRootM_eq_withHash`); the statement's membership challenge, drawn with the leanVM verifier's
-sponge, is the proofs' duplex's (`membershipChallengeM_eq_withHash`).
+The statement's LeanDA hashes with Keccak-256 over the permutation it is given (`keccak256With`)
+to leanVM's digests; Benedikt Wagner's framework and its proofs take the hash as a parameter of its
+own (`LeanDa.WithHash`), answering `32` bytes. Each statement definition, its digests read as
+bytes (`Digest.toBytes`, injective), is the hash-parameter one with the hash Keccak-256 over the
+permutation (`hashOver π`, `keccakDigestBytes P`), by unfolding, and by induction for the
+recursive ones (`merkleRootWith_id`, `walkM_eq_withHash`, `merkleRootM_eq_withHash`); the
+statement's membership challenge, drawn with the leanVM verifier's sponge, is the proofs' duplex's
+(`membershipChallengeM_eq_withHash`).
 
 This module is part of the instantiation of Benedikt Wagner's framework for erasure code
 commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -26,6 +27,33 @@ namespace LeanDa
 
 open LeanVM.Semantics (KeccakState)
 
+/-! ## Digests and their bytes
+
+The statement's digests are four words (`Digest`), the framework's `32` bytes: `Digest.toBytes`,
+injective (`digestOfBytes_toBytes`), carries every statement definition to the framework's. -/
+
+open LeanVM.Protocol (Digest)
+open LeanVM.Protocol.KeccakHash (digestBytes keccak256With)
+open LeanVM.Protocol.Compile (climb)
+
+theorem toBytes_toList (d : Digest) : d.toBytes.toList = digestBytes d := by
+  simp [LeanVM.Protocol.Digest.toBytes, Vector.toList]
+
+theorem pairBytes_toBytes (a b : Digest) :
+    pairBytes a.toBytes b.toBytes = digestBytes a ++ digestBytes b := by
+  simp [pairBytes, toBytes_toList]
+
+theorem digestOfBytes_toBytes (d : Digest) : digestOfBytes d.toBytes = d := by
+  apply Vector.ext
+  intro i hi
+  have hd : d.toBytes.toList = LeanVM.Rpm.lanesBytes d.toList := by
+    simp [LeanVM.Protocol.Digest.toBytes, digestBytes, LeanVM.Rpm.lanesBytes, Vector.toList]
+  simp only [digestOfBytes, Vector.getElem_ofFn]
+  rw [hd, LeanVM.Rpm.leLane_lanesBytes _ _ (by simpa using hi), Vector.getElem_toList]
+
+theorem toBytes_injective : Function.Injective LeanVM.Protocol.Digest.toBytes := fun a b h ↦ by
+  rw [← digestOfBytes_toBytes a, h, digestOfBytes_toBytes]
+
 /-! ## The commitment over a pure permutation -/
 
 section Pure
@@ -35,47 +63,58 @@ variable (π : KeccakState → KeccakState)
 /-- `π` as a permutation in `Id`. -/
 abbrev pureIn (x : KeccakState) : Id KeccakState := pure (π x)
 
-theorem merkleRootWith_id : ∀ (d : ℕ) (f : ℕ → DigestBytes),
-    Id.run (merkleRootWith (pureIn π) d fun i ↦ pure (f i)) = merkleRootWithHash (hashOver π) d f
-  | 0, _ => rfl
-  | d + 1, f => merkleRootWith_id d (upWithHash (hashOver π) f)
+theorem hashOver_eq (bytes : List UInt8) :
+    hashOver π bytes = (Id.run (keccak256With (pureIn π) bytes)).toBytes := rfl
 
-theorem merklePathWith_id : ∀ (d : ℕ) (f : ℕ → DigestBytes) (index : ℕ),
-    Id.run (merklePathWith (pureIn π) d (fun i ↦ pure (f i)) index) =
-      merklePathWithHash (hashOver π) d f index
+theorem merkleRootWith_id : ∀ (d : ℕ) (f : ℕ → Digest),
+    (Id.run (merkleRootWith (pureIn π) d fun i ↦ pure (f i))).toBytes =
+      merkleRootWithHash (hashOver π) d fun i ↦ (f i).toBytes
+  | 0, _ => rfl
+  | d + 1, f => by
+    have h := merkleRootWith_id d fun i ↦
+      Id.run (keccak256With (pureIn π) (digestBytes (f (2 * i)) ++ digestBytes (f (2 * i + 1))))
+    refine h.trans ?_
+    simp only [merkleRootWithHash]
+    congr 1
+
+theorem merklePathWith_id : ∀ (d : ℕ) (f : ℕ → Digest) (index : ℕ),
+    (Id.run (merklePathWith (pureIn π) d (fun i ↦ pure (f i)) index)).map Digest.toBytes =
+      merklePathWithHash (hashOver π) d (fun i ↦ (f i).toBytes) index
   | 0, _, _ => rfl
   | d + 1, f, index => by
-    show f (sibling index) ::
-        Id.run (merklePathWith (pureIn π) d (fun i ↦ pure (upWithHash (hashOver π) f i))
-          (index / 2)) = _
-    rw [merklePathWith_id d]
-    rfl
+    have h := merklePathWith_id d (fun i ↦
+      Id.run (keccak256With (pureIn π) (digestBytes (f (2 * i)) ++ digestBytes (f (2 * i + 1)))))
+      (index / 2)
+    show (f (sibling index)).toBytes :: (Id.run (merklePathWith (pureIn π) d (fun i ↦
+      pure (Id.run (keccak256With (pureIn π) (digestBytes (f (2 * i)) ++
+        digestBytes (f (2 * i + 1)))))) (index / 2))).map Digest.toBytes = _
+    rw [h]
+    simp only [merklePathWithHash, List.cons.injEq, true_and]
+    congr 1
 
 theorem blobRoot_id {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    Id.run (blobRootWith (pureIn π) c i) = blobRootWithHash (hashOver π) c i :=
+    (Id.run (blobRootWith (pureIn π) c i)).toBytes = blobRootWithHash (hashOver π) c i :=
   merkleRootWith_id π 7 _
 
-theorem blobRootWith_pureIn {r : ℕ} (c : Fin (r * 128) → Cell) :
-    blobRootWith (pureIn π) c = fun i ↦ pure (blobRootWithHash (hashOver π) c i) :=
-  funext fun i ↦ blobRoot_id π c i
-
 theorem commitCells_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
-    commitCells π c = commitCellsWithHash (hashOver π) c := by
-  have h : merkleRootWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c) =
-      pure (merkleRootWithHash (hashOver π) logMaxRows (blobRootWithHash (hashOver π) c)) := by
-    rw [blobRootWith_pureIn]
-    exact merkleRootWith_id π _ _
-  simp only [commitCells, commitCellsWith, commitCellsWithHash]
-  rw [h, pure_bind]
+    (commitCells π c).toBytes = commitCellsWithHash (hashOver π) c := by
+  have h := merkleRootWith_id π logMaxRows fun i ↦ Id.run (blobRootWith (pureIn π) c i)
+  rw [funext (blobRoot_id π c)] at h
+  simp only [commitCellsWithHash, ← h, countBytes, pairBytes_toBytes, hashOver_eq]
   rfl
 
 theorem openCell_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    openCell π c p = openCellWithHash (hashOver π) c p := by
-  show (⟨Id.run (merklePathWith (pureIn π) 7
-      (fun j ↦ pure (cellLeavesWithHash (hashOver π) c (positionRow p) j)) (positionCell p)) ++
-    Id.run (merklePathWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c)
-      (positionRow p))⟩ : CellOpening) = _
-  rw [blobRootWith_pureIn, merklePathWith_id, merklePathWith_id]
+    (openCell π c p).toBytes = openCellWithHash (hashOver π) c p := by
+  have h1 := merklePathWith_id π 7 (fun j ↦
+    Id.run (keccak256With (pureIn π) (cellBytes (paddedCell c (positionRow p) j)))) (positionCell p)
+  have h2 := merklePathWith_id π logMaxRows (fun i ↦ Id.run (blobRootWith (pureIn π) c i))
+    (positionRow p)
+  rw [funext (blobRoot_id π c)] at h2
+  show (⟨(Id.run (merklePathWith (pureIn π) 7 (fun j ↦ pure (Id.run (keccak256With (pureIn π)
+      (cellBytes (paddedCell c (positionRow p) j))))) (positionCell p)) ++
+    Id.run (merklePathWith (pureIn π) logMaxRows (fun i ↦ pure (Id.run (blobRootWith (pureIn π) c i)))
+      (positionRow p))).map Digest.toBytes⟩ : ByteOpening) = _
+  rw [List.map_append, h1, h2]
   rfl
 
 end Pure
@@ -158,46 +197,61 @@ theorem freshSpongeInput_toBytes (iv : LeanVM.Protocol.Digest) (root : DigestByt
   rfl
 
 /-- **The statement's challenge is the proofs' duplex's.** -/
-theorem membershipChallengeM_eq_withHash [LawfulMonad m] (root : DigestBytes) :
+theorem membershipChallengeM_eq_withHash [LawfulMonad m] (root : Digest) :
     membershipChallengeWith P root =
-      membershipChallengeMWithHash (keccakDigestBytes P) P root := by
+      membershipChallengeMWithHash (keccakDigestBytes P) P root.toBytes := by
   simp only [membershipChallengeWith, membershipChallengeMWithHash, keccakDigestBytes,
     Sponge.newWith, map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
   refine bind_congr fun iv ↦ ?_
-  rw [freshSpongeInput_toBytes]
+  rw [freshSpongeInput_toBytes, digestOfBytes_toBytes]
   refine bind_congr fun state ↦ ?_
   exact grindWith_eq P state _ _
 
-theorem walkM_eq_withHash : ∀ (idx : ℕ) (node : DigestBytes) (path : List DigestBytes),
-    climbWith P idx node path = walkMWithHash (keccakDigestBytes P) idx node path
-  | _, _, [] => rfl
+theorem walkM_eq_withHash [LawfulMonad m] : ∀ (idx : ℕ) (node : Digest) (path : List Digest),
+    Digest.toBytes <$> climb P node idx path =
+      walkMWithHash (keccakDigestBytes P) idx node.toBytes (path.map Digest.toBytes)
+  | _, _, [] => by simp [climb, walkMWithHash]
   | idx, node, s :: rest => by
-    simp only [climbWith, walkMWithHash, walkM_eq_withHash]
+    have ih := fun parent ↦ walkM_eq_withHash (idx / 2) parent rest
+    by_cases h : idx % 2 = 0 <;>
+      simp [climb, walkMWithHash, h, keccakDigestBytes, pairBytes_toBytes, ih]
 
-theorem verifyCellM_eq_withHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
-    (τ : CellOpening) :
-    verifyCellWith P r com p x τ = verifyCellMWithHash (keccakDigestBytes P) r com p x τ := by
-  simp only [verifyCellWith, verifyCellMWithHash, walkM_eq_withHash]
+theorem verifyCellM_eq_withHash [LawfulMonad m] (r : ℕ) (com : Digest) (p : Fin (r * 128))
+    (x : Cell) (τ : CellOpening) :
+    verifyCellWith P r com p x τ =
+      verifyCellMWithHash (keccakDigestBytes P) r com.toBytes p x τ.toBytes := by
+  have hpath : τ.toBytes.path ++ [countBytes r] = (τ.path ++ [countDigest r]).map Digest.toBytes := by
+    simp [CellOpening.toBytes, countBytes]
+  simp only [verifyCellWith, verifyCellMWithHash, keccakDigestBytes, bind_map_left, hpath,
+    ← walkM_eq_withHash]
+  refine bind_congr fun d ↦ ?_
+  simp [CellOpening.toBytes, toBytes_injective.eq_iff]
 
-theorem merkleRootM_eq_withHash : ∀ (d : ℕ) (f : ℕ → m DigestBytes),
-    merkleRootWith P d f = merkleRootMWithHash (keccakDigestBytes P) d f
+theorem merkleRootM_eq_withHash [LawfulMonad m] : ∀ (d : ℕ) (f : ℕ → m Digest),
+    Digest.toBytes <$> merkleRootWith P d f =
+      merkleRootMWithHash (keccakDigestBytes P) d fun i ↦ Digest.toBytes <$> f i
   | 0, _ => rfl
-  | d + 1, f => by rw [merkleRootWith, merkleRootMWithHash, merkleRootM_eq_withHash d]; rfl
+  | d + 1, f => by
+    rw [merkleRootWith, merkleRootMWithHash, merkleRootM_eq_withHash d]
+    congr 1
+    funext i
+    simp [merkleLevelUpWith, upMWithHash, keccakDigestBytes, pairBytes_toBytes]
 
-theorem blobRootM_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
-    blobRootWith P c i = blobRootMWithHash (keccakDigestBytes P) c i := by
+theorem blobRootM_eq_withHash [LawfulMonad m] {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
+    Digest.toBytes <$> blobRootWith P c i = blobRootMWithHash (keccakDigestBytes P) c i := by
   rw [blobRootWith, blobRootMWithHash, merkleRootM_eq_withHash]
   rfl
 
-theorem commitCellsM_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
-    commitCellsWith P c = commitCellsMWithHash (keccakDigestBytes P) c := by
-  rw [commitCellsWith, commitCellsMWithHash, merkleRootM_eq_withHash,
-    funext (blobRootM_eq_withHash P c)]
+theorem commitCellsM_eq_withHash [LawfulMonad m] {r : ℕ} (c : Fin (r * 128) → Cell) :
+    Digest.toBytes <$> commitCellsWith P c = commitCellsMWithHash (keccakDigestBytes P) c := by
+  rw [commitCellsMWithHash, ← funext (blobRootM_eq_withHash P c), ← merkleRootM_eq_withHash,
+    commitCellsWith, map_bind, bind_map_left]
+  simp [keccakDigestBytes, countBytes, pairBytes_toBytes]
 
-theorem relationM_eq_withHash [LawfulMonad m] {r : ℕ} (root : DigestBytes) (c : Fin (r * 128) → Cell) :
-    relationWith P root c = relationMWithHash (keccakDigestBytes P) P root c := by
-  simp only
-    [relationWith, relationMWithHash, membershipChallengeM_eq_withHash, commitCellsM_eq_withHash]
+theorem relationM_eq_withHash [LawfulMonad m] {r : ℕ} (root : Digest) (c : Fin (r * 128) → Cell) :
+    relationWith P root c = relationMWithHash (keccakDigestBytes P) P root.toBytes c := by
+  simp only [relationWith, relationMWithHash, membershipChallengeM_eq_withHash,
+    ← commitCellsM_eq_withHash, bind_map_left, toBytes_injective.eq_iff]
 
 end Monadic
 

@@ -201,7 +201,7 @@ theorem packRem_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = 
     rw [List.getD_eq_getElem _ _ (by omega)]
     simp [List.take_one, List.head?_drop, List.getElem?_eq_getElem (show k < D.packMsgs.length by omega)]
   rw [hr, hm] at r1
-  simp only [cont, packRunF_eqRound, packRunF_nil] at r1
+  simp only [cont, packRunF_cons, packRunF_nil] at r1
   have hrec' : rec * gen ^ (D.y / 8) * gen ^ i = rec * gen ^ (D.y / 8 + i) := by
     rw [mul_assoc, ← pow_add]
   have hgk : ∀ p : E, p * (gen ^ (D.y / 8)) ^ 8 * gen ^ i = p * gen ^ k := fun p ↦ by
@@ -222,7 +222,7 @@ theorem packRem_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = 
     · simpa [Nat.add_assoc] using g2e
   · rw [hgk, loadHolds_mul_gen_pow, Nat.add_zero]
     have := kk_readsAt_getD hpt (k := k + 0) (by rw [chs_length hpm]; omega)
-    rw [chs_cont hpm (by omega) (show 0 < 1 by norm_num), hr, hm, packRunF_eqRound,
+    rw [chs_cont hpm (by omega) (show 0 < 1 by norm_num), hr, hm, packRunF_cons,
       packRunF_nil] at this
     exact this
   · rw [hrec']

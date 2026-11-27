@@ -242,7 +242,7 @@ noncomputable def globalHighMonitoredVerifierImpl
       ((globalHighMonitoredBaseMappedAdversaryImpl right (.inl input)).run
         state.1)
 
-theorem relTriple_keepGlobalAttackerTrace_until_bad
+theorem relTriple_keepGlobalAttackerTrace_until_bad {α : Type _}
     (left : ProgrammedGlobalChainKeygenView)
     (right : KeygenViewWithBase)
     (leftTrace rightTrace : AttackerActionTrace)
@@ -418,7 +418,7 @@ def GlobalCausalTraceRevealsCovered
     RevealProbeOracleSimulation.ObservedAction.reveal index value ∈ trace →
       index ∈ covered
 
-def GlobalCausalResultCovered
+def GlobalCausalResultCovered {α : Type _}
     (covered : Set GlobalChainValueIndex)
     (result : (α × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace
@@ -1083,7 +1083,7 @@ theorem simulate_eagerTrace_globalCausalUniformImpl_support_state_trace
   obtain ⟨output, _houtput, rfl⟩ := hresult
   exact ⟨rfl, rfl⟩
 
-theorem monitorGlobalCausalTrace_support_covered
+theorem monitorGlobalCausalTrace_support_covered {α : Type _}
     (computation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex))
@@ -1305,7 +1305,7 @@ theorem globalHighMonitoredMappedAdversaryImpl_preserves_trace_extension
   intro action haction
   exact List.mem_append_left _ (hstate action haction)
 
-theorem simulate_globalHighMonitoredMappedAdversary_support_cache_le
+theorem simulate_globalHighMonitoredMappedAdversary_support_cache_le {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : GlobalMonitoredTracedState)
@@ -1321,7 +1321,7 @@ theorem simulate_globalHighMonitoredMappedAdversary_support_cache_le
     (globalHighMonitoredMappedAdversaryImpl_preserves_cache_extension right
       state.1.causal.cache) computation state le_rfl result hresult
 
-theorem simulate_globalHighMonitoredMappedAdversary_support_trace_le
+theorem simulate_globalHighMonitoredMappedAdversary_support_trace_le {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : GlobalMonitoredTracedState)
@@ -1337,7 +1337,7 @@ theorem simulate_globalHighMonitoredMappedAdversary_support_trace_le
     (globalHighMonitoredMappedAdversaryImpl_preserves_trace_extension right
       state.2) computation state (by simp) result hresult
 
-theorem simulate_globalHighMonitoredMappedAdversary_support_covered_of_final
+theorem simulate_globalHighMonitoredMappedAdversary_support_covered_of_final {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : GlobalMonitoredTracedState)
@@ -1471,7 +1471,7 @@ theorem globalHighMonitoredVerifierImpl_preserves_attacker_trace
   obtain ⟨baseResult, _hbaseResult, rfl⟩ := hresult
   exact hstate
 
-theorem simulate_globalHighMonitoredVerifier_support_cache_le
+theorem simulate_globalHighMonitoredVerifier_support_cache_le {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp OracleWorld α)
     (state : GlobalMonitoredTracedState)
@@ -1487,7 +1487,7 @@ theorem simulate_globalHighMonitoredVerifier_support_cache_le
     (globalHighMonitoredVerifierImpl_preserves_cache_extension right
       state.1.causal.cache) computation state le_rfl result hresult
 
-theorem simulate_globalHighMonitoredVerifier_support_covered
+theorem simulate_globalHighMonitoredVerifier_support_covered {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp OracleWorld α)
     (state : GlobalMonitoredTracedState)
@@ -1506,7 +1506,7 @@ theorem simulate_globalHighMonitoredVerifier_support_covered
     (globalHighMonitoredVerifierImpl_preserves_covered right covered hforward)
       computation state hcovered result hresult
 
-theorem simulate_globalHighMonitoredVerifier_support_attacker_trace_eq
+theorem simulate_globalHighMonitoredVerifier_support_attacker_trace_eq {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp OracleWorld α)
     (state : GlobalMonitoredTracedState)

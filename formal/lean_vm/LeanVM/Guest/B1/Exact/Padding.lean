@@ -78,14 +78,14 @@ theorem pw_bits_rebuild {rd : Reader} {σ : Val} {τ : ℕ} (h2 : 2 ≤ τ) (h32
     | succ j ih =>
       obtain ⟨c, m, a⟩ := hhorn j (by omega)
       rw [pwBl, ← ih (by omega), show pwBelow τ (j + 1) = 6 * τ + 6 + 3 * j by
-        simp only [pwBelow, Nat.succ_ne_zero, ↓reduceIte]; ring, a, m, c, tb_word_gen]
+        simp only [pwBelow, Nat.succ_ne_zero, ↓reduceIte]; ring, a, m, c, word_gen]
       simp only [b]; congr 3; omega
   have hlow : pwS σ τ 2 = ∑ k ∈ Finset.range τ, b k * gen ^ k := by
-    rw [t2, t1, t0, hbl _ le_rfl, pwBl_top b h2, tb_word_two_pow (by omega),
+    rw [t2, t1, t0, hbl _ le_rfl, pwBl_top b h2, word_two_pow (by omega),
       show τ = τ - 1 + 1 by omega, Finset.sum_range_succ, show τ - 1 + 1 - 1 = τ - 1 by omega]
     simp only [b]; rw [show 3 + (τ - 1 + 1) = 4 + (τ - 1) by omega]
   refine ⟨hb, ?_⟩
-  rw [Finset.sum_range_succ, ← hlow, ← e_add_eq_zero_iff.mp a11, t11, t10, t9, tb_word_two_pow (by omega)]
+  rw [Finset.sum_range_succ, ← hlow, ← e_add_eq_zero_iff.mp a11, t11, t10, t9, word_two_pow (by omega)]
 
 /-- **Every path of `padding_weight__L{τ}` that holds is exact.** -/
 theorem pw_pathExact {τ : ℕ} (hτ : τ < 31) {fn : Fn} (hb : fn.body = pwBodyOf τ) : PathExactFn fn := by

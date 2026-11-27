@@ -17,6 +17,8 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.Data.ValNames.«log2_ceil_in_the_exponent__L»
 import LeanVM.Guest.Value.FieldBits
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `assert_small_g_power` and `log2_ceil_in_the_exponent`, placed
@@ -71,10 +73,10 @@ def lcBody (fl : ℕ) : List Stmt :=
     .ite (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) [] lcMin, .atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]]
 
 theorem log2_ceil_in_the_exponent_L0_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L0_L34» =
-    lcBody 0 := stmtsEqb_sound (by decide +kernel)
+    lcBody 0 := by kernel_rfl
 
 theorem log2_ceil_in_the_exponent_L16_L34_body : Fn.body fn% «log2_ceil_in_the_exponent__L16_L34» =
-    lcBody 16 := stmtsEqb_sound (by decide +kernel)
+    lcBody 16 := by kernel_rfl
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -140,9 +142,9 @@ theorem asg_rc_low {κ : ℕ} (hκ4 : 4 ≤ κ) {rd : Reader} (hlow : LowDef κ 
 
 /-- `assert_small_g_power`'s statements before its `ret`. -/
 def asgPre : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x")))]
+  asgHead ⧺ ((List.range 8).map asgBlk).flatten ⧺ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x")))]
 
-theorem asgBody_split : asgBody = asgPre ++ [.ret []] := by
+theorem asgBody_split : asgBody = asgPre ⧺ [.ret []] := by
   simp only [asgBody, asgPre, List.append_assoc, List.singleton_append]
 
 theorem asgPre_straight : asgPre.all Main.Stmt.straight = true := by decide +kernel
@@ -251,7 +253,7 @@ noncomputable def lcEvs (fl : ℕ) (σ : Val) : List Ev :=
 
 theorem lc_walk (fl : ℕ) (σ : Val) : walk σ (lcBody fl) = .ret (lcEvs fl σ) [.n (valf% «log2_ceil_in_the_exponent» "s7#0")] := by
   rw [lcBody_split, walk_straight_pre σ _ _ (lcHead_straight fl), walk, walk1,
-    show [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] = [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))] ++
+    show [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log"))), .ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] = [Stmt.atom (.copy (.n (valf% «log2_ceil_in_the_exponent» "s7#0")) (.n (valf% «log2_ceil_in_the_exponent» "g_log")))] ⧺
       [.ret [.n (valf% «log2_ceil_in_the_exponent» "s7#0")]] from rfl, Main.walk_straight σ _ _ rfl]
   by_cases h : σ (.n (valf% «log2_ceil_in_the_exponent» "s6#1")) = 0
   · simp [h, lcEvs, walk, Out.seq, Out.pre, Main.slEvs]

@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Opening.QueriesPlacedL
 public import LeanVM.Guest.B1.Opening.QueriesPops
 public import LeanVM.Guest.B1.Main.RelAtInP
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The level-0 loop, placed with its pops
@@ -125,7 +126,7 @@ theorem oqIter1_relAtInP (hP : coreProgram.Wf) (fs : String → ℕ) (cert : Str
     · exact hok.matchOk hA x hx
     · simp only [List.mem_singleton] at hx
       subst hx; trivial
-  have hbody : fl.body = pre ++ [.ret []] := by
+  have hbody : fl.body = pre ⧺ [.ret []] := by
     rw [hbl, hpre, oqLoop1T, oqNextT_eq, List.append_assoc]; rfl
   set es := pre.flatMap (fmEvs σ) with hes
   have hw : walk σ fl.body = .ret es [] := by rw [hbody]; exact walk_flatM σ [] pre hfm hmo

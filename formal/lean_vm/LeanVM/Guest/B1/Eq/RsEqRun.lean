@@ -13,6 +13,8 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_run»
 import LeanVM.Guest.Value.FieldBits
 import LeanVM.ToMathlib.List
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_run` (lean_ethereum.py)
@@ -106,12 +108,12 @@ def rsD : Stmt :=
     "rs_eq_rows__L4", "rs_eq_rows__L5", "rs_eq_rows__L6", "rs_eq_rows__L7"] [.n (val% «rs_eq_run» "row"), .n (val% «rs_eq_run» "last~1"), .n (val% «rs_eq_run» "last~2")] [.n (val% «rs_eq_run» "last")]
 
 /-- `rs_eq_run`'s statements after its chain's row `0`, before its `ret`. -/
-def rsT : List Stmt := rsG ++ rsT0 ++ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))]
+def rsT : List Stmt := rsG ⧺ rsT0 ⧺ [rsD, .atom (.copy (.n (val% «rs_eq_run» "s12#0")) (.n (val% «rs_eq_run» "last")))]
 
 /-- The expansion of `rs_eq_run`. -/
-def rsBody : List Stmt := rsA ++ (rsAlloc ++ (rsInits ++ (rsT ++ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
+def rsBody : List Stmt := rsA ⧺ (rsAlloc ++ (rsInits ++ (rsT ⧺ [.ret [.n (val% «rs_eq_run» "s12#0")]])))
 
-theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := stmtsEqb_sound (by decide +kernel)
+theorem rs_eq_run_body : Fn.body fn% «rs_eq_run» = rsBody := by kernel_rfl
 
 theorem find_rs_eq_run : coreProgram.find? "rs_eq_run" = some fn% «rs_eq_run» :=
   coreProgram_find?_at (j := idx% «rs_eq_run») rfl

@@ -110,7 +110,7 @@ theorem res_of_top {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A : S
     have : (2 : ℕ) ^ 28 ≤ 2 ^ 62 := Nat.pow_le_pow_right (by norm_num) (by norm_num)
     omega
   -- the instruction at `i` on the reference
-  obtain ⟨C, hC⟩ := ctx_of_complete (adv := r.adv) guest_decodable
+  obtain ⟨C, hC⟩ := ctx_of_complete (prog := guestProgram) (adv := r.adv) guest_decodable
   have hop := ((progOk_of certs hC).ok K hK).ops i hi
   rw [← hpc] at hop
   have hκ := logMemorySize_le_28 (e := r.exec) hr.size

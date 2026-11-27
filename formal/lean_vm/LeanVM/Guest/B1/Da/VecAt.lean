@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Da.OffAt
 public import LeanVM.Guest.B1.Da.FlatOut
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_vector»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_vector`, placed
@@ -106,7 +107,7 @@ theorem vec_completeAtB (hrf : Lift.RunsFit fs cert) {SK : String → ℕ}
   unfold vecCOk at hcok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcok
   obtain ⟨⟨⟨⟨⟨⟨hflat, hnd⟩, hni⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hcok
-  have hb : Fn.body fn% «da_vector» = vecP ++ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"), .n (val% «da_vector» "s10#0[3]")]] := rfl
+  have hb : Fn.body fn% «da_vector» = vecP ⧺ [.ret [.n (val% «da_vector» "s10#0"), .n (val% «da_vector» "s10#0[1]"), .n (val% «da_vector» "s10#0[2]"), .n (val% «da_vector» "s10#0[3]")]] := rfl
   -- the reads every callee needs of `zs` and `above_top`
   have hzsR : ∀ {rd : Reader} {bz : ℕ} {L : Layout}, (bz, zsCells z) ∈ L → MemL rd L →
       ∀ j < 14, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hq hm j hj => by

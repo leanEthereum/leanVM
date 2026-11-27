@@ -25,8 +25,6 @@ open LeanVM.Parameters
 
 @[expose] public section
 
-theorem ofK_sub (a b : K) : ofK (a - b) = ofK a - ofK b := map_sub (algebraMap K E) a b
-
 theorem ofK_inv (a : K) : ofK a⁻¹ = (ofK a)⁻¹ := map_inv₀ (algebraMap K E) a
 
 theorem ofK_listProd (l : List K) : ofK l.prod = (l.map ofK).prod := map_list_prod (algebraMap K E) l

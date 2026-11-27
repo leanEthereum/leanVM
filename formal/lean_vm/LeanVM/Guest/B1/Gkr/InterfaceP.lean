@@ -50,10 +50,10 @@ three values. -/
 def GkrOut (rd : Reader) : List E → List E → Prop
   | [f0, f1, f2, f3, f4, cur, gmu, zeta, _tabs, _stream], rets =>
       ∃ (depth : ℕ) (xs : List E) (r : E × List E × List E) (cap' : List E) (leaves : E),
-        gmu = gen ^ depth ∧ depth < 33 ∧ TbReadsAt rd cur xs ∧
+        gmu = gen ^ depth ∧ depth < 33 ∧ ReadsAt rd cur xs ∧
         RunsTo (gkrPhase depth) ⟨[f0, f1, f2, f3, f4], []⟩ xs r ⟨cap', []⟩ ∧
-        r.2.1.length = depth ∧ r.2.2.length = 3 ∧ TbReadsAt rd zeta r.2.1 ∧
-        TbReadsAt rd leaves r.2.2 ∧ rets = cap' ++ [cur * gen ^ xs.length, leaves]
+        r.2.1.length = depth ∧ r.2.2.length = 3 ∧ ReadsAt rd zeta r.2.1 ∧
+        ReadsAt rd leaves r.2.2 ∧ rets = cap' ++ [cur * gen ^ xs.length, leaves]
   | _, _ => False
 
 /-- **`verify_bus_gkr` is sound**: at a depth other than `0`, its relation implies `GkrOut`.

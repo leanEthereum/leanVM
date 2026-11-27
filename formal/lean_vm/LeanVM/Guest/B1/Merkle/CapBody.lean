@@ -18,6 +18,8 @@ public import LeanVM.Guest.Pack.P56.Core
 public import LeanVM.Guest.Pack.P61.Core
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
+import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1
 
@@ -64,35 +66,35 @@ def mcNode (L k b : ℕ) : List Stmt :=
 
 /-- The expansion of `verify_merkle_cap` at `L` leaves. -/
 def mcBody (L : ℕ) : List Stmt :=
-  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ++
+  ((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ⧺
   [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
     .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
     .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
-    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
-  ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
+    keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ⧺
+  ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ⧺
   [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]"))),
     .ret [.n (mcBase L L), .n (mcBase L L + 1)]]
 
-theorem verify_merkle_cap_L2_body : (Fn.«verify_merkle_cap__L2».core).body = mcBody (2 ^ 2) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L2_body : (Fn.«verify_merkle_cap__L2».core).body = mcBody (2 ^ 2)
 
-theorem verify_merkle_cap_L3_body : (Fn.«verify_merkle_cap__L3».core).body = mcBody (2 ^ 3) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L3_body : (Fn.«verify_merkle_cap__L3».core).body = mcBody (2 ^ 3)
 
-theorem verify_merkle_cap_L4_body : (Fn.«verify_merkle_cap__L4».core).body = mcBody (2 ^ 4) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L4_body : (Fn.«verify_merkle_cap__L4».core).body = mcBody (2 ^ 4)
 
-theorem verify_merkle_cap_L5_body : (Fn.«verify_merkle_cap__L5».core).body = mcBody (2 ^ 5) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L5_body : (Fn.«verify_merkle_cap__L5».core).body = mcBody (2 ^ 5)
 
-theorem verify_merkle_cap_L6_body : (Fn.«verify_merkle_cap__L6».core).body = mcBody (2 ^ 6) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L6_body : (Fn.«verify_merkle_cap__L6».core).body = mcBody (2 ^ 6)
 
-theorem verify_merkle_cap_L7_body : (Fn.«verify_merkle_cap__L7».core).body = mcBody (2 ^ 7) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L7_body : (Fn.«verify_merkle_cap__L7».core).body = mcBody (2 ^ 7)
 
-theorem verify_merkle_cap_L8_body : (Fn.«verify_merkle_cap__L8».core).body = mcBody (2 ^ 8) :=
-  stmtsEqb_sound (by decide +kernel)
+open LeanVM.Guest.KernelLit in
+kernel_rfl verify_merkle_cap_L8_body : (Fn.«verify_merkle_cap__L8».core).body = mcBody (2 ^ 8)
 
 end
 end LeanVM.Guest.B1

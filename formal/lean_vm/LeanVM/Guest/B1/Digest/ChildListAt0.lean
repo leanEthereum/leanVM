@@ -14,6 +14,8 @@ public import LeanVM.Guest.Budget.Bounded
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The walk by hinted indices, the parts
@@ -60,28 +62,22 @@ noncomputable def anyP1 : List Stmt := anyFlat.take (pos% «child_claim_list_any
 /-- The body after its dispatch. -/
 noncomputable def anyPost : List Stmt := anyFlat.drop (pos% «child_claim_list_any» "s9#0")
 
-set_option maxRecDepth 100000 in
-theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost :=
-  stmtsEqb_sound (by decide +kernel)
+theorem anyFlat_split : anyFlat = anyP1 ++ anyDispS :: anyPost := by
+  kernel_rfl
 
-set_option maxRecDepth 100000 in
 theorem anyPost_eq : anyPost = [.atom (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))), .atom (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))),
-    .atom (.copy (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))), .atom (.copy (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))] :=
-  stmtsEqb_sound (by decide +kernel)
+    .atom (.copy (.n (val% «child_claim_list_any» "s11#0")) (.n (val% «child_claim_list_any» "d0"))), .atom (.copy (.n (val% «child_claim_list_any» "s11#0[1]")) (.n (val% «child_claim_list_any» "d1")))] := by
+  kernel_rfl
 
 theorem anyPost_straight : anyPost.all Main.Stmt.straight = true := by rw [anyPost_eq]; rfl
 
-set_option maxRecDepth 100000 in
 theorem anyP1_straight : anyP1.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem anyP1_allocs : anyP1.filterMap Main.Stmt.allocSz = [(.n (val% «child_claim_list_any» "chain"), .inr (.n (val% «child_claim_list_any» "chain~7")))] := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem anyP1_addrs : anyP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem anyP1_calls : anyP1.filterMap Main.Stmt.callS =
     [(some (.n (val% «child_claim_list_any» "s3#1")), name% «child_claim_list_any_loop0», [.n (val% «child_claim_list_any» "s3#2"), .n (val% «child_claim_list_any» "bigs"), .n (val% «child_claim_list_any» "chain"), .n (val% «child_claim_list_any» "entries_ptr"), .n (val% «child_claim_list_any» "region"), .n (val% «child_claim_list_any» "base"),
         .n (val% «child_claim_list_any» "last_g")], []),
@@ -89,15 +85,12 @@ theorem anyP1_calls : anyP1.filterMap Main.Stmt.callS =
           .n (val% «child_claim_list_any» "last_g")], [])] := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem anyP1_loads : anyP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n (val% «child_claim_list_any» "chain"), c) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem anyP1_kinds : anyP1.all (fun s => isAtomS s || stmtEqb s any17S || stmtEqb s any18S) =
     true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem any_loop : coreProgram.loop "child_claim_list_any" = false := by
   rw [Program.loop_of_find? find_child_claim_list_any]; decide +kernel
 
@@ -105,7 +98,7 @@ theorem any_param (σ : Val) : (Fn.params fn% «child_claim_list_any»).map σ =
     [σ (.n (val% «child_claim_list_any» "entries_ptr")), σ (.n (val% «child_claim_list_any» "region")), σ (.n (val% «child_claim_list_any» "base")), σ (.n (val% «child_claim_list_any» "limit_g")), σ (.n (val% «child_claim_list_any» "bigs")), σ (.n (val% «child_claim_list_any» "groups")), σ (.n (val% «child_claim_list_any» "rest"))] := rfl
 
 theorem any_body : Fn.body fn% «child_claim_list_any» =
-    anyP1 ++ anyDispS :: (anyPost ++ [.ret [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")]]) := by
+    anyP1 ++ anyDispS :: (anyPost ⧺ [.ret [.n (val% «child_claim_list_any» "s11#0"), .n (val% «child_claim_list_any» "s11#0[1]")]]) := by
   rw [child_claim_list_any_shape, anyFlat_split]; simp
 
 theorem cclNames_get {r : ℕ} (hr : r < 17) : cclNames[r]! = cclNames.getD r "" := by
@@ -125,10 +118,8 @@ noncomputable def anyCOk : Bool :=
     atomEqb a (.mul (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) (.n (val% «child_claim_list_any» "last_g~0"))) || atomEqb a (.touch (.n (val% «child_claim_list_any» "s9#0")) (.n (val% «child_claim_list_any» "bigs"))) ||
     atomEqb a (.touch (.n (val% «child_claim_list_any» "s10#0")) (.n (val% «child_claim_list_any» "groups"))))
 
-set_option maxRecDepth 100000 in
 theorem anyc_ok : anyCOk = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem any_atoms : ∀ a ∈ [Atom.const (.n (val% «child_claim_list_any» "last_g~0")) (word 2 0), .mul (.n (val% «child_claim_list_any» "limit_g")) (.n (val% «child_claim_list_any» "last_g")) (.n (val% «child_claim_list_any» "last_g~0")),
     .mul (.n (val% «child_claim_list_any» "chain~0")) (.n (val% «child_claim_list_any» "bigs")) (.n (val% «child_claim_list_any» "groups")), .const (.n (val% «child_claim_list_any» "chain~1")) (word 2 0), .mul (.n (val% «child_claim_list_any» "chain~2")) (.n (val% «child_claim_list_any» "chain~0")) (.n (val% «child_claim_list_any» "chain~1")),
     .mul (.n (val% «child_claim_list_any» "chain~3")) (.n (val% «child_claim_list_any» "chain~2")) (.n (val% «child_claim_list_any» "chain~2")), .mul (.n (val% «child_claim_list_any» "chain~4")) (.n (val% «child_claim_list_any» "chain~3")) (.n (val% «child_claim_list_any» "chain~2")), .mul (.n (val% «child_claim_list_any» "chain~5")) (.n (val% «child_claim_list_any» "chain~4")) (.n (val% «child_claim_list_any» "chain~4")),
@@ -168,7 +159,6 @@ structure AnyVals (rd : Reader) (σ : Val) (args : List E) (a b : ℕ) (chain : 
 
 variable {rd : Reader}
 
-set_option maxRecDepth 20000 in
 /-- **`child_claim_list_any`'s valuation**: on a memory holding the zero state at the chain
 buffer and defined below `2^20`, where its checks of `g^a` and `g^b` read. -/
 theorem anyBody_core {entries region base limit chain : E} {a b c : ℕ} (D : Digest)

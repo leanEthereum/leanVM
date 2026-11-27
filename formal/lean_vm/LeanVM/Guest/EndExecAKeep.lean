@@ -13,7 +13,7 @@ public import LeanVM.Guest.EndExecYAl
 public import LeanVM.Guest.Memory.Bump
 public import LeanVM.Guest.Bridge.StepOff
 public import LeanVM.Guest.EndExecCUsed
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

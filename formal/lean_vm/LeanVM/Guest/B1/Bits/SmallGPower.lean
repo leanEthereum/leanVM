@@ -12,6 +12,8 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«assert_small_g_power»
 import LeanVM.Guest.B1.Common.Vc
 import LeanVM.Guest.Value.FieldBits
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `assert_small_g_power`
@@ -79,10 +81,10 @@ def asgBlk (j : ℕ) : List Stmt :=
 
 /-- The expansion of `assert_small_g_power`. -/
 def asgBody : List Stmt :=
-  asgHead ++ ((List.range 8).map asgBlk).flatten ++ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
+  asgHead ⧺ ((List.range 8).map asgBlk).flatten ⧺ [.atom (.assertEq (.n (val% «assert_small_g_power» "rebuilt@9")) (.n (val% «assert_small_g_power» "x"))), .ret []]
 
-theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody :=
-  stmtsEqb_sound (by decide +kernel)
+theorem assert_small_g_power_body : Fn.body fn% «assert_small_g_power» = asgBody := by
+  kernel_rfl
 
 theorem find_assert_small_g_power : coreProgram.find? "assert_small_g_power" = some
     fn% «assert_small_g_power» :=

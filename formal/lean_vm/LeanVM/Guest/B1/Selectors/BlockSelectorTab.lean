@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.SelPartial
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«block_selector_tab__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `block_selector_tab`
@@ -57,7 +58,7 @@ def btNibT (n k : ℕ) : List Stmt :=
   [.atom (.load (.n c) (.n (valf% «block_selector_tab» "digits")) k), .atom (.const (.n (c + 1)) (word (2 ^ (2 ^ w - 1)) 0)),
     .atom (.rangeCheck (.n c) (.n (c + 2)) (.n (c + 3)) (.n (c + 4)) (.n (c + 1))),
     .atom (.mul (.n (c + 5)) (.n (valf% «block_selector_tab» "eq_tab")) (.n c)),
-    .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ++
+    .atom (.load (.n (c + 6)) (.n (c + 5)) (32 * k + 2 ^ w - 2))] ⧺
   if k = 0 then
     [.atom (.mul (.n (c + 7)) (.n (valf% «block_selector_tab» "g_tab")) (.n c)), .atom (.load (.n (c + 8)) (.n (c + 7)) (16 * k))]
   else
@@ -68,7 +69,7 @@ def btNibT (n k : ℕ) : List Stmt :=
 /-- `block_selector_tab__L{n}`'s statements before its `ret`. -/
 def btPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 3) (word 1 0)), .atom (.const (.n 4) (word 1 0))]
-  else ((List.range (btN n)).map (btNibT n)).flatten ++
+  else ((List.range (btN n)).map (btNibT n)).flatten ⧺
     [.atom (.copy (.n (btC (btN n))) (.n (btSel (btN n - 1)))),
       .atom (.copy (.n (btC (btN n) + 1)) (.n (btRb (btN n - 1))))]
 
@@ -80,20 +81,20 @@ def btRet (n : ℕ) : List V :=
 noncomputable def btCheck (n : ℕ) : Bool :=
   match coreProgram.find? (lName "block_selector_tab" n) with
   | some fn => decide (fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")]) &&
-      tbStmtsEqb fn.body (btPre n ++ [.ret (btRet n)])
+      stmtsEqb fn.body (btPre n ⧺ [.ret (btRet n)])
   | none => false
 
 theorem btCheck_all : (List.range 34).all btCheck = true := by decide +kernel
 
 theorem btFound {n : ℕ} (hn : n < 34) : ∃ fn : Fn,
     coreProgram.find? (lName "block_selector_tab" n) = some fn ∧ fn.params = [.n (valf% «block_selector_tab» "digits"), .n (valf% «block_selector_tab» "eq_tab"), .n (valf% «block_selector_tab» "g_tab")] ∧
-      fn.body = btPre n ++ [.ret (btRet n)] := by
+      fn.body = btPre n ⧺ [.ret (btRet n)] := by
   have h := List.all_eq_true.mp btCheck_all n (List.mem_range.mpr hn)
   unfold btCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem btNibT_noRet (n k : ℕ) : Stmt.noRetList (btNibT n k) = true := by
@@ -113,7 +114,7 @@ theorem btW_pos {n k : ℕ} (hk : k < btN n) : 1 ≤ btW n k := by
 /-- `g^(2^w - 1)`, the range check of a `w`-bit digit. -/
 theorem word_digit_bound {w : ℕ} (hw : w ≤ 4) :
     word (2 ^ (2 ^ w - 1)) 0 = ofK (Parameters.addressOfIndex (2 ^ w - 1)) := by
-  rw [tb_word_two_pow (by have : 2 ^ w ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw; omega),
+  rw [word_two_pow (by have : 2 ^ w ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw; omega),
     gen_pow_eq_ofK]
 
 section Sem
@@ -145,16 +146,16 @@ theorem holds_btNib {n k : ℕ} (hk : k < btN n)
     (by have : 2 ^ btW n k ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) hw4; omega)
     (by rw [hc, word_digit_bound hw4]) r1 r2 r3
   refine ⟨u, hu, hd ▸ hld, ?_⟩
-  rw [hm, hd, tb_loadHolds_mul_gen_pow] at hl
+  rw [hm, hd, loadHolds_mul_gen_pow] at hl
   by_cases hk0 : k = 0
   · subst hk0
     simp only [↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h2
     obtain ⟨hm2, hl2⟩ := h2
-    rw [hm2, hd, tb_loadHolds_mul_gen_pow] at hl2
+    rw [hm2, hd, loadHolds_mul_gen_pow] at hl2
     refine ⟨_, _, hl, hl2, ?_, ?_⟩ <;> simp [btSel, btRb]
   · simp only [hk0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h2
     obtain ⟨hs, hm2, hl2, hr⟩ := h2
-    rw [hm2, hd, tb_loadHolds_mul_gen_pow] at hl2
+    rw [hm2, hd, loadHolds_mul_gen_pow] at hl2
     exact ⟨_, _, hl, hl2, by simp only [btSel, hk0, ↓reduceIte]; exact hs,
       by simp only [btRb, hk0, ↓reduceIte]; exact hr⟩
 
@@ -218,10 +219,10 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
   · subst h0
     simp only [btPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
     simp only [btRet, ↓reduceIte, List.map_cons, List.map_nil, BlockSelTabOut]
-    refine ⟨[], rfl, tbReadsAt_nil _ _, fun zs zs1 gs hz hz1 hg _ => ?_⟩
+    refine ⟨[], rfl, readsAt_nil _ _, fun zs zs1 gs hz hz1 hg _ => ?_⟩
     rw [List.length_eq_zero_iff] at hz hz1 hg
     subst hz hz1 hg
-    simp [hpre.1, hpre.2, tb_word_one, bitsEq, bitsPow]
+    simp [hpre.1, hpre.2, word_one, bitsEq, bitsPow]
   simp only [btPre, h0, ↓reduceIte] at hpre
   rw [tb_holdsList_append_noRet (tb_noRetList_flatten_range _ _ (btNibT_noRet n)),
     tb_holdsList_flatten_range _ _ (btNibT_noRet n)] at hpre
@@ -299,13 +300,13 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
         have := two_le_two_pow hw1
         rw [pow_succ]; omega
       have h1 := tbReadsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).1) hl
-      rw [tb_loadHolds_mul_gen_pow, eqLevels_getD (hlen.trans hlen1.symm) hw1 (by omega) hUlt] at h1
+      rw [loadHolds_mul_gen_pow, eqLevels_getD (hlen.trans hlen1.symm) hw1 (by omega) hUlt] at h1
       have h2 := hxe k hk
       have := two_le_two_pow hw1
       rw [show U k hk + (32 * k + 2 ^ btW n k - 2) = 32 * k + (2 ^ btW n k - 2 + U k hk) by omega]
         at h2
       simp only [xe', hk, ↓reduceDIte]
-      rw [tb_loadHolds_unique h2 h1]
+      rw [loadHolds_unique h2 h1]
       refine Finset.prod_congr rfl fun t ht => ?_
       have ht' := Finset.mem_range.mp ht
       rw [bitPick, nib_getD ht', nib_getD ht', hF k t (by omega), hU' k hk]
@@ -323,11 +324,11 @@ theorem block_selector_tab_sound {n : ℕ} (hn : n < 34) {μ : ℕ} (hμ : μ �
       have hl : U k hk < (gTable (nib gs k)).length := by
         rw [gTable_length hlen]; exact hUlt
       have h1 := tbReadsAt_getD ((hRT k (by simpa [hNdef, btN] using hk)).2) hl
-      rw [tb_loadHolds_mul_gen_pow, gTable_getD hlen hUlt] at h1
+      rw [loadHolds_mul_gen_pow, gTable_getD hlen hUlt] at h1
       have h2 := hxg k hk
       rw [show U k hk + 16 * k = 16 * k + U k hk by omega] at h2
       simp only [xg', hk, ↓reduceDIte]
-      rw [tb_loadHolds_unique h2 h1]
+      rw [loadHolds_unique h2 h1]
       refine Finset.prod_congr rfl fun t ht => ?_
       have ht' := Finset.mem_range.mp ht
       have hw4 := btW_le n k

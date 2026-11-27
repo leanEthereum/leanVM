@@ -5,7 +5,7 @@ import LeanVM.Guest.Interp
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Data.Source
-import Statement.Data.Bytecode
+import LeanVM.Guest.Data.Functions
 import LeanVM.Guest.Code
 import LeanVM.Guest.B1.Da.DualMath
 import LeanVM.Cli.Common

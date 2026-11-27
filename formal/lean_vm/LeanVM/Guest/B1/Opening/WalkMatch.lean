@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Memory.Straight
 import Mathlib.Data.List.GetD
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Walking `match`es of quiet arms

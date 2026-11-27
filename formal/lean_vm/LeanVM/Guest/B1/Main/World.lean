@@ -110,7 +110,7 @@ theorem a_lt (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K 
 theorem slotBelow_lt {b : E} {e M : ℕ} (hM : M < 2 ^ 34) (hb : b = gen ^ M) (h : SlotBelow b e) :
     e < M := by
   obtain ⟨L, hL, hbL, he⟩ := h
-  have := gen_pow_inj34 (by omega) (by omega) (hb.symm.trans hbL)
+  have := gen_pow_inj' (by omega) (by omega) (hb.symm.trans hbL)
   omega
 
 /-- **The raw signatures' slots**: one slot of its region per raw signature, holding its mark. -/

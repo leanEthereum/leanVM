@@ -58,7 +58,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
   have hτ2 := h.2.1
   have hchis := h.2.2.1
   have houts : D.outs.length = 25 := h.2.2.2.1
-  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := five_of_length' h.2.2.2.2.1
+  obtain ⟨f0, f1, f2, f3, f4, hf⟩ := five_of_length h.2.2.2.2.1
   have pa : ∀ i < (val% «verify_keccak» "sp[0]@1"), σ (.n i) = (D.args curE chiE olE zvE slE tbE stE).getD i 0 := hpar
   have p0 : σ (.n (val% «verify_keccak» "fs0@1")) = f0 := by rw [pa 0 (by norm_num), args, hf]; rfl
   have p1 : σ (.n (val% «verify_keccak» "fs1@1")) = f1 := by rw [pa 1 (by norm_num), args, hf]; rfl
@@ -117,7 +117,7 @@ theorem head_first (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ
   have e64' : σ (.n (val% «verify_keccak» "segment")) = ptr B * gen ^ (D.τ - 4) := by rw [e64, a58, h17]
   have l64 : LoadHolds rd (σ (.n (val% «verify_keccak» "segment"))) 0 (σ (.n (val% «verify_keccak» "nxt[0]@1"))) := by
     rw [e64', loadHolds_mul_gen_pow, add_zero, e89, ← c0_point_seg h]
-    exact ClaimLay.getD_load m58 (by rw [c0_point_length h]; omega)
+    exact ClaimLay.getD_load m58 (by rw [LeanVM.Guest.B1.VerifySub.VkData.c0_point h]; omega)
   have l90 : ∀ i < 5, LoadHolds rd (σ (.n (val% «verify_keccak» "r_lane"))) i (σ (.n (88 + 13 * i))) := by
     intro i hi
     have := ClaimLay.getD_load m90 (k := i) (by rw [rl_length]; exact hi)

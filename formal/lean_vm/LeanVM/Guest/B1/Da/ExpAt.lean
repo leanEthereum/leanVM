@@ -17,6 +17,7 @@ public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.Memory.UniformF
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_expand__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_expand`, placed
@@ -335,7 +336,7 @@ theorem exp_completeAtFB {f : String} {fn : Fn} (hf : coreProgram.find? f = some
   · exact absurd hok (by simp)
 
 theorem blockAtoms_atoms : ∀ (as : List Atom) (vs : List V),
-    Lift.blockAtoms (as.map Stmt.atom ++ [.ret vs]) = as
+    Lift.blockAtoms (as.map Stmt.atom ⧺ [.ret vs]) = as
   | [], _ => rfl
   | a :: as, vs => by
     rw [List.map_cons, List.cons_append, Lift.blockAtoms, blockAtoms_atoms as vs]

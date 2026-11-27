@@ -34,7 +34,7 @@ variable {rd : Reader} {w : ℕ → E} {σ : Val}
 
 /-- The dispatch on `g^τ` to `padding_weight__L{τ}`. -/
 theorem pad_dispatch {x r a b c τ n : ℕ} {zs : List E} (hτ : τ < 31) (hv : σ (.n x) = gen ^ τ)
-    (hrow : σ (.n r) = eOfNat n) (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ)
+    (hrow : σ (.n r) = eOfNat n) (hz : ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ)
     (hn : n ≤ 2 ^ τ) (h6 : σ (.n a) = paddingWeight zs n) (h7 : σ (.n b) = PadLead τ n)
     (h8 : σ (.n c) = PadRest τ n) :
     VSH (coreProgram.Rel rd) rd σ
@@ -50,7 +50,7 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
     (s4 : Atom.load (.n (v + 4)) (.n (val% «verify_tables» "table_rows")) t ∉ vtSL)
     (hkb : σ (.n (28 + t)) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n (val% «verify_tables» "table_rows"))) t (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31) (hlog : log2Ceil n = τ)
+    (hz : ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31) (hlog : log2Ceil n = τ)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
     (∀ st ∈ vtPadT v t, VSH (coreProgram.Rel rd) rd σ st) ∧
@@ -69,13 +69,13 @@ theorem pad_ok {v t τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd)
   have e5 : σ (.n (v + 5)) = paddingWeight zs n := by rw [g5, hw5]
   have e6 : σ (.n (v + 6)) = PadLead τ n := by rw [g6, hw6]
   have e7 : σ (.n (v + 7)) = PadRest τ n := by rw [g7, hw7]
-  have e10 : σ (.n (v + 10)) = PadRest τ n := by rw [g10, e7, g9, tb_word_zero, add_zero]
+  have e10 : σ (.n (v + 10)) = PadRest τ n := by rw [g10, e7, g9, word_zero, add_zero]
   refine ⟨?_, e5⟩
   simp only [vtPadT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
     implies_true, and_true, vsh_atom]
   refine ⟨g0, hrc, l2, pad_dispatch hτ hkb e4 hz hzl hn e5 e6 e7, g8, ?_, g9, g10, trivial, ?_⟩
   · show σ _ + σ _ = 0
-    rw [e6, g8, tb_word_one, ← pwLead, hlr1, e_add_self]
+    rw [e6, g8, word_one, ← pwLead, hlr1, e_add_self]
   · show σ _ = σ _ * σ _ ∧ σ _ = 1
     refine ⟨g12, ?_⟩
     rw [g12, g11, mul_inv_cancel₀ (by rw [e10]; exact hlr2)]
@@ -91,7 +91,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
     (s4 : Atom.load (.n (v + 4)) (.n (val% «verify_tables» "table_rows")) 5 ∉ vtSL)
     (hkb : σ (.n (val% «verify_tables» "kb[7]")) = gen ^ τ)
     (hrow : LoadHolds rd (σ (.n (val% «verify_tables» "table_rows"))) 5 (eOfNat n))
-    (hz : TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31)
+    (hz : ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs) (hzl : zs.length = τ) (hτ : τ < 31)
     (hlog : τ = max (log2Ceil n) 9)
     (hw5 : w (v + 5) = paddingWeight zs n) (hw6 : w (v + 6) = PadLead τ n)
     (hw7 : w (v + 7) = PadRest τ n) :
@@ -116,7 +116,7 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
   have e6 : σ (.n (v + 6)) = PadLead τ n := by rw [g6, hw6]
   have e7 : σ (.n (v + 7)) = PadRest τ n := by rw [g7, hw7]
   have w512 : word 512 0 = gen ^ 9 := by
-    rw [show (512 : ℕ) = 2 ^ 9 by norm_num, tb_word_two_pow (by norm_num)]
+    rw [show (512 : ℕ) = 2 ^ 9 by norm_num, word_two_pow (by norm_num)]
   have e9 : σ (.n (v + 9)) = gen ^ 9 := by rw [g9, w512]
   have e10 : σ (.n (v + 10)) = gen ^ (τ - 9) := by rw [g10, hkb, e9, gen_pow_div (by omega)]
   obtain ⟨q1, q2, q3⟩ := g11
@@ -127,16 +127,16 @@ theorem pad5_ok {v τ n : ℕ} {zs : List E} (hlow : LowDefB 14 rd) (hv : 33 ≤
     implies_true, and_true, vsh_atom, vsh_ite]
   refine ⟨g0, hrc, l2, pad_dispatch hτ hkb e4 hz hzl hn e5 e6 e7, g8, g9,
     mulDiv_holds g10 (by rw [e9]; exact gen_pow_ne_zero _), hrc10, g14, g15,
-    by rw [g15, hkb, g14, w512]; exact tb_isInK_add (isInK_gpow' _) (isInK_gpow' _), trivial,
+    by rw [g15, hkb, g14, w512]; exact isInK_add (isInK_gpow' _) (isInK_gpow' _), trivial,
     fun h0 => ?_⟩
   -- not at the floor: τ = log2Ceil n
   have h9 : τ ≠ 9 := fun h => h0 (by rw [g15, hkb, g14, w512, h, e_add_self])
   have hlog' : log2Ceil n = τ := by omega
   obtain ⟨hlr1, hlr2⟩ := (lead_rest_iff (by omega) hn).mpr hlog'
-  have e18 : σ (.n (v + 18)) = PadRest τ n := by rw [b18, e7, b17, tb_word_zero, add_zero]
+  have e18 : σ (.n (v + 18)) = PadRest τ n := by rw [b18, e7, b17, word_zero, add_zero]
   refine ⟨b16, ?_, b17, b18, trivial, ?_⟩
   · show σ _ + σ _ = 0
-    rw [e6, b16, tb_word_one, ← pwLead, hlr1, e_add_self]
+    rw [e6, b16, word_one, ← pwLead, hlr1, e_add_self]
   · show σ _ = σ _ * σ _ ∧ σ _ = 1
     refine ⟨b20, ?_⟩
     rw [b20, b19, mul_inv_cancel₀ (by rw [e18]; exact hlr2)]

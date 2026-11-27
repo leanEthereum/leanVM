@@ -127,7 +127,8 @@ def datac_of(k, po):
     """The text of `k`'s namespace in its pack's `DataC`, or ''."""
     f = os.path.join(GEN, po[k][0], 'DataC.lean')
     if f not in _DATAC:
-        _DATAC[f] = open(f, encoding='utf-8').read() if os.path.exists(f) else ''
+        # the lists `callc.py` writes `data% [...]` (`Guest/DataLit.lean`) read as the literals
+        _DATAC[f] = open(f, encoding='utf-8').read().replace('data% ', '') if os.path.exists(f) else ''
     s = _DATAC[f]
     i = s.find('namespace LeanVM.Guest.Fn.«%s»\n' % k)
     if i < 0:
@@ -145,15 +146,16 @@ def res_chunks(k, po):
     return [x.strip() for x in m.group(1).split('++')]
 
 
-def res_items(k, po):
-    """The residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), as texts, else
-    none."""
+def res_items(k, po, name=None):
+    """The residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), or of its residual
+    list `name` (`def name`, a chunk of `res`), as texts, else none."""
     s = datac_of(k, po)
-    i = s.find('\n  res := [')
+    head = f'\ndef {name} : List CoreMode.CRes :=\n  ' if name else '\n  res := '
+    i = s.find(head + '[')
     if i < 0:
         return []
     out, depth, cur = [], 0, ''
-    for ch in s[i + len('\n  res := '):]:
+    for ch in s[i + len(head):]:
         if ch in ')]⟩':
             depth -= 1
             if depth == 0:
@@ -267,21 +269,83 @@ def parse_res(t):
 
 
 def res_hint(k, t):
-    """The disjunct of `resFamG` the mirrors find to hold of the residual text `t` (`CoreMode.resFamHint`): `3` `rcPts`,
-    `4` `rcTab`, `5` the function's own family; `0`, `resFamG`'s order, for one `cheapT` or `resFam` takes (its first
-    disjunct) or none the mirrors see."""
+    """The disjunct of `resFamG` the mirrors find to hold of the residual text `t` (`CoreMode.resFamHint`): `1` `resFam`
+    over the indexed atoms (`CoreMode.resFamX`), `2` `resQ`, `3` `rcPts`, `4` `rcTab`, `5` the function's own family,
+    `6` a ghost family; `0`, `resFamG`'s order, for one `cheapT` takes or none the mirrors see."""
     import callcres
     import fnrules
     if cheap_res(k, t):
         return 0
     r = parse_res(t)
-    if not all(v < callcres.I.GB for v in callcres.vals(r)) or callcres.res_fam(k, r, {'preR': [], 'preP': []}):
-        return 0
-    if callcres.rc_pts(k, r):
-        return 3
-    if callcres.rc_tab(k, r):
-        return 4
-    return 5 if fnrules.some('fam', k, r) else 0
+    if all(v < callcres.I.GB for v in callcres.vals(r)):
+        if res_q(k, r):
+            return 2
+        fam = callcres.res_fam(k, r, {'preR': [], 'preP': []})
+        # the mirror's `resFam` takes a function's own exponent bounds (`exp_bound`), which are its own family's
+        if fam and not any(fnrules.first('exp_bound', k, v) is not None for v in callcres.vals(r)):
+            return 1
+        if callcres.rc_pts(k, r):
+            return 3
+        if callcres.rc_tab(k, r):
+            return 4
+        if fnrules.some('fam', k, r):
+            return 5
+        if fam:
+            return 1
+    return 6 if (r[0] == 'sub' and callcres.st_sub(k, r[1]) == r) or fnrules.some('ghost', k, r) else 0
+
+
+def expq_b(k, x):
+    """`CoreMode.expQB`: the mirror's `expq_bound` without a function's own bounds (`exp_bound`, its own family's), None
+    where one answers first."""
+    import callcres
+    import fnrules
+    b = callcres.expq0(k, x)
+    if b is None and fnrules.first('exp_bound', k, x) is not None:
+        return None
+    return b if b is not None else callcres.expq_bound(k, x)
+
+
+def res_q(k, r):
+    """`CoreMode.resQ`: an exponent fact's bound (`expQB`) or a dimension fact (`dimLt`), under branch conditions."""
+    import callcres
+    if r[0] == 'under':
+        return res_q(k, r[2])
+    if r[0] != 'lt':
+        return False
+    a, b = r[1], r[2]
+    one = lambda i: i[0] == 'mono' and len(i[1][0]) == 1 and i[1][0][0][1] == 1
+    if a[0] == 'val' and b[0] == 'num':
+        B = expq_b(k, a[1])
+        return b[1] < callcres.CAPE and B is not None and B <= b[1]
+    if one(a) and b[0] == 'num':
+        B = expq_b(k, a[1][0][0][0])
+        return b[1] < callcres.CAPE and B is not None and B + a[1][1] <= b[1]
+    if a[0] == 'num' and one(b):
+        B = expq_b(k, b[1][0][0][0])
+        return a[1] < b[1][1] and B is not None and B + b[1][1] < callcres.CAPE
+    if a[0] == 'val' and one(b):
+        return callcres.dim_ok(k, a[1], 0, b[1][0][0][0], b[1][1])
+    if one(a) and one(b):
+        return callcres.dim_ok(k, a[1][0][0][0], a[1][1], b[1][0][0][0], b[1][1])
+    return False
+
+
+def hints_text(hs):
+    """A list of hints (`0` past its last nonzero one) as a Lean list, or as its runs (`CoreMode.hintRuns`) when that is
+    shorter."""
+    hs = list(hs)
+    while hs and not hs[-1]:
+        hs.pop()
+    runs = []
+    for h in hs:
+        if runs and runs[-1][0] == h:
+            runs[-1][1] += 1
+        else:
+            runs.append([h, 1])
+    flat = f'[{", ".join(map(str, hs))}]'
+    rl = f'(CoreMode.hintRuns [{", ".join(f"({h}, {n})" for h, n in runs)}])'
+    return rl if len(rl) < len(flat) else flat
 
 
 def res_cuts(k, items):
@@ -319,6 +383,7 @@ def res_count(k, po):
 
 
 DK = '(by decide +kernel)'
+LEN = '(by rw [List.length_flatten]; decide +kernel)'
 K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
@@ -623,12 +688,32 @@ def long_loop(k, j, hp, frame_mod, gl):
         rimps.append(f'{base}.SW{i}')
         sws.append(f'Fn.«{k}».selw{i}')
     cws = []
+    # several code windows: each over the slice of the chunks it covers, with the alignment context's tries stated
+    # (`CLit`: `pair.py`'s `ALit`, the chunks' lengths), by `CoreMode.cw_of_slice` (`CoreMode/LoopWinS.lean`)
+    from pair import alit_mod, cut_of
+    amod = alit_mod(k) if len(cb) > 2 and ctx == 'alignCtxP' else None
+    if amod:
+        clens = AL.functions()[k]['clens']
+        files['CLit'] = (hdr('CLit', f'`{k}`\'s code windows\' data: its chunks\' lengths and its core data with the '
+                             'alignment context\'s tries stated once.') +
+                         ''.join(f'public import {m}\n' for m in sorted({
+                             amod, f'{base}.Cfun', 'LeanVM.Guest.CoreMode.LoopWinS', 'LeanVM.Guest.KernelLit'})) +
+                         ns(f'kernel_lit Fn.«{k}».clens : List ℕ := Fn.«{k}».code.chunks.map List.length\n\n'
+                            f'/-- `cfun`, its alignment context\'s tries stated (`alignL`). -/\n'
+                            f'noncomputable def Fn.«{k}».cfunL : CoreMode.CFun := {{ Fn.«{k}».cfun with X := Fn.«{k}».alignL }}\n\n'
+                            f'theorem Fn.«{k}».cfun_lit : Fn.«{k}».cfun = Fn.«{k}».cfunL := by\n'
+                            f'  rw [Fn.«{k}».cfunL, ← Fn.«{k}».alignL_eq]; rfl\n'))
     for i in range(len(cb) - 1):
         a, b = cb[i], cb[i + 1]
-        files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') + imp +
-                           ns(f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
-                              f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true := by\n'
-                              f'  decide +kernel\n'))
+        stmt = (f'theorem Fn.«{k}».cw{i} : (CoreMode.tgtGo cfun mlL {a} (CoreMode.slice code.chunks.flatten {a} {b}) && '
+                f'CoreMode.jtdGo cfun envC mlL [] (CoreMode.slice code.chunks.flatten {a} {b})) = true :=')
+        if amod:
+            prf = (f'\n  CoreMode.cw_of_slice (ca := {cut_of(clens, a)}) (cb := {cut_of(clens, b)})\n'
+                   f'    (by rw [Fn.«{k}».clens_eq]; decide +kernel) (by rw [Fn.«{k}».cfun_lit]; decide +kernel)\n')
+        else:
+            prf = ' by\n  decide +kernel\n'
+        files[f'CW{i}'] = (hdr(f'CW{i}', f'Window {i} of `{k}`\'s code: offsets {a} to {b - 1}.') +
+                           (f'public import {base}.CLit\n' if amod else imp) + ns(stmt + prf))
         cimps.append(f'{base}.CW{i}')
         cws.append(f'Fn.«{k}».cw{i}')
     pairs = lambda m: lst(f'({x}, {y})' for x, y in m)
@@ -658,7 +743,8 @@ def loop_long(k, j, frame):
              ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
              ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
              ('xentry', 'cfun.X.entry = funC.entry')]
-    out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
+    # a length of the code: of its chunks, summed, not of their concatenation
+    out = ''.join(thm(k, 'loop_' + n, st, LEN if n.endswith('len') else DK) for n, st in parts)
     out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (funC.entry + i) = '
                f'Mode.hintsAt cfun.frame.hints (funC.entry + i)',
                f'Mode.hintsEq_of_fn (K := {K}) (j := Fn.«{k}».idx) (d := Fn.«{k}».advice) {DK} {DK} {DK} rfl')
@@ -752,9 +838,7 @@ def slices(name, part, stmt, p, l, n, b, unfold=None, cuts=None, wrap=None, hint
         hs = hints and hints[2][cuts[c]:cuts[c + 1]]
         if not hs or not any(hs):
             return 'by decide +kernel'
-        while not hs[-1]:
-            hs = hs[:-1]
-        return f'CoreMode.sliceAll_of_H {hints[1]} (q := {hints[0]}) (hs := [{", ".join(map(str, hs))}]) (by decide +kernel)'
+        return f'CoreMode.sliceAll_of_H {hints[1]} (q := {hints[0]}) (hs := {hints_text(hs)}) (by decide +kernel)'
     out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := {proof(c)}\n'
                   for c in range(len(cuts) - 1))
     prf = 'CoreMode.all_drop_of_le (by decide +kernel)'
@@ -813,7 +897,7 @@ def main(check=False):
     # a long function's frame walk: its windows chained (`FrameL<k>`), not one of its windows (`FrameD<k>W<m>`)
     frames.update(index(r'^namespace LeanVM\.Guest\.Fn\.«([^»]+)»$', glob.glob(os.path.join(GUEST, 'CoreMode', 'Pack', '*', 'FrameL*.lean'))))
     codes = index(r'^kernel_rfl code(\d+) :', glob.glob(os.path.join(GUEST, 'Checked', 'Link*.lean')))
-    tabs = index(r'^kernel_rfl tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
+    tabs = index(r'^theorem tab(\d+) :', glob.glob(os.path.join(GUEST, 'Bridge', 'ProgAl', 'Tab*.lean')))
     files = {}
     S = route.sigs()
     # the long loop helpers: their core data apart, their passes in windows (`long_loop`)
@@ -869,7 +953,7 @@ def main(check=False):
             body.append(cfun_m(k, j, frame_term(frames[k])))
         base = 'LeanVM.Guest.CoreMode.Gen.«%s»' % p
         mod = f'{base}.Core'
-        data = 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
+        data = 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n\nset_option Elab.async false\n'
         pub = lambda ms: ''.join('public import %s\n' % m for m in sorted(ms))
         # past `SPLIT_W`, the core data apart (`Defs`) and the independent checks in windows beside each other
         cut = split_pack(decls_of(''.join(t for _, t in body)), core_leaf)
@@ -912,7 +996,9 @@ def main(check=False):
                 fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 for c in rch:
-                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := CoreMode.all_of_T (by decide +kernel)\n')
+                    hs = [res_hint(k, t) for t in res_items(k, po, c)]
+                    prf = f'CoreMode.all_of_TH (hs := {hints_text(hs)})' if any(hs) else 'CoreMode.all_of_T'
+                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := {prf} (by decide +kernel)\n')
                 rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
@@ -945,10 +1031,12 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
+                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list; its
+                # pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
+                walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
+                prf = {'ptr': f'CoreMode.all_ptrCellB_of_T (by {walk})', 'ret': f'by {walk}'}
                 for nm, st, doc in parts:
-                    # its pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
-                    prf = 'CoreMode.all_ptrCellB_of_T (by decide +kernel)' if nm == 'ptr' else 'by decide +kernel'
-                    hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf}\n')
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
                 rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
@@ -980,7 +1068,7 @@ def main(check=False):
             f'theorem coreFns_ok : ∀ Cf ∈ coreFns, CoreMode.CfOk Cf :=\n  {chain}\n\nend\n\nend LeanVM.Guest.ModePack.«{p}»\n')
     files[os.path.join(GEN, 'HcTab.lean')] = hctab_file(packs)
     have = (glob.glob(os.path.join(GEN, '*', 'Core.lean')) + glob.glob(os.path.join(GEN, '*', 'Route.lean')) +
-            [f for pat in ('Cfun', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
+            [f for pat in ('Cfun', 'CLit', 'LW*', 'CW*', 'RW*', 'SW*', 'Defs', 'CoreW*', 'RouteW*') for f in glob.glob(os.path.join(GEN, '*', pat + '.lean'))])
     stale = genfiles.sync(files, have, check)
     lines = sum(text.count('\n') for text in files.values())
     print('core route: %d functions, %d packs, %d files, %d lines' % (len(R), len(packs), len(files), lines) +

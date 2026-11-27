@@ -43,10 +43,10 @@ theorem gkP_addN (Cf : ℕ → List E) (ef : ℕ → E) (c : E) (s : Fs) (a q : 
 /-- **Rounds between two records**, from `gkSt`'s states. -/
 theorem glc_tb {rd : Reader} {rec cur pt : E} {Cf : ℕ → List E} {ef : ℕ → E} {c : E}
     {cap0 : List E} {a n t : ℕ} (h4 : ∀ q, (Cf q).length = 4)
-    (hc0 : TbCapAt rd rec 0 1 (gkSt Cf ef c ⟨cap0, []⟩ a).2.cap)
+    (hc0 : CapAt rd rec 0 1 (gkSt Cf ef c ⟨cap0, []⟩ a).2.cap)
     (hu0 : LoadHolds rd rec 5 (cur * gen ^ (4 * a)))
     (hl0 : LoadHolds rd rec 6 (gkSt Cf ef c ⟨cap0, []⟩ a).1)
-    (hc1 : TbCapAt rd (rec * gen ^ (7 * t)) 0 1 (gkSt Cf ef c ⟨cap0, []⟩ (a + n)).2.cap)
+    (hc1 : CapAt rd (rec * gen ^ (7 * t)) 0 1 (gkSt Cf ef c ⟨cap0, []⟩ (a + n)).2.cap)
     (hu1 : LoadHolds rd (rec * gen ^ (7 * t)) 5 (cur * gen ^ (4 * (a + n))))
     (hl1 : LoadHolds rd (rec * gen ^ (7 * t)) 6 (gkSt Cf ef c ⟨cap0, []⟩ (a + n)).1)
     (hw : ∀ q < n, ∀ i < 4, LoadHolds rd (cur * gen ^ (4 * a)) (4 * q + i) ((Cf (a + q)).getD i 0))
@@ -84,12 +84,12 @@ theorem glc_tb {rd : Reader} {rec cur pt : E} {Cf : ℕ → List E} {ef : ℕ �
     intro k hk
     simp only [List.length_map, List.length_range] at hk
     simpa using hch k hk
-  · rw [hrun2, tbCapAt_mul_gen_pow] at *
+  · rw [hrun2, capAt_mul_gen_pow] at *
     simpa using hc1
-  · rw [tb_loadHolds_mul_gen_pow] at hu1
+  · rw [loadHolds_mul_gen_pow] at hu1
     rw [show cur * gen ^ (4 * a) * gen ^ (4 * n) = cur * gen ^ (4 * (a + n)) by ring]
     exact hu1
-  · rw [hrun2]; rw [tb_loadHolds_mul_gen_pow] at hl1; exact hl1
+  · rw [hrun2]; rw [loadHolds_mul_gen_pow] at hl1; exact hl1
 
 end
 end LeanVM.Guest.B1.Tables

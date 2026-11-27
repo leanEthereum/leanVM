@@ -12,6 +12,7 @@ public import LeanVM.Guest.B2C.Frame
 public import LeanVM.Guest.B2C.KFacts
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.Sound
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The frames of the honest memory
@@ -176,7 +177,7 @@ theorem tailArgs_last {fn : Fn} {σ : Val} {es : List Ev} {vs : List V} (hw : wa
   rw [hb, Bool.cond_true] at hk
   simp only [Bool.and_eq_true] at hb
   have hloop : fn.loop = true := by unfold Fn.loop; rw [hrev]; exact hb.1
-  have hbody : fn.body = rpre.reverse ++ [.callIf cc g args, .ret []] := by
+  have hbody : fn.body = rpre.reverse ⧺ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
   rw [hbody, walk_append_sh] at hw
   refine ⟨hloop, ?_⟩

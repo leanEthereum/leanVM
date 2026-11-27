@@ -20,18 +20,9 @@ def load():
     ins_re=re.compile(r'\(\.(\w+) ([^()]*)\)')
     fns={}
     for name, (pack, blk) in BD.bundle_blocks().items():
-        chunks={}
-        for m in re.finditer(r'def (c\d+) : List OffsetInstruction := \[(.*?)\]\n', blk, re.S):
-            body=m.group(2)
-            L=[]
-            for im in ins_re.finditer(body):
-                op=im.group(1); args=im.group(2).split()
-                L.append((op,args))
-            chunks[m.group(1)]=L
+        ds=BD.defs(blk)
         nm,entry,cnt,cl=BD.code_of(blk)
-        code=[]
-        for c in cl:
-            code+=chunks[c]
+        code=[(im.group(1),im.group(2).split()) for c in cl for im in ins_re.finditer(ds[c])]
         assert len(code)==cnt,(nm,len(code),cnt)
         fns[nm]=dict(name=nm,entry=entry,count=cnt,code=code,pack=pack,ns=name)
     for b in sorted(glob.glob(ROOT+'/Pack/*/Sig.lean')):
@@ -44,7 +35,7 @@ def load():
     pows = {int(k): int(e) for k, e in re.findall(r'\.node (\d+) (\d+)', g)}
     t = open(os.path.join(STATEMENT, 'Data', 'Bytecode00.lean')).read()
     blk = t[t.index('def f0c0'):]
-    t0 = open(os.path.join(STATEMENT, 'Data', 'Bytecode.lean')).read()
+    t0 = open(os.path.join(ROOT, 'Data', 'Functions.lean')).read()
     n0 = int(re.search(r'def f0 : CompiledFunction :=\s*⟨"[^"]*", \d+, (\d+)', t0).group(1))
     f0 = [(int(a), int(b)) for a, b, _ in re.findall(r'\.set (\d+) (\d+) (\d+)', blk)][:n0]
     jt = {s: pows.get(k) for s, k in f0}

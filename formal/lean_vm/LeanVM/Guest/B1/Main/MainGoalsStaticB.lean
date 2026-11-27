@@ -86,7 +86,7 @@ theorem mainGoalL1B (hT : TotalLeOn coreProgram fs name% «main_loop0» LoopPre
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL1_rel rd _ _ hne) 20
     fun rd t hn hv hb => by
       have := hT rd t _ _ hn (loopPre_gen (Nat.pos_of_ne_zero hne) hl _) hv hb
-      simpa [logG_gen hl] using this).toDTB
+      simpa [logG_gen_pow hl] using this).toDTB
 
 theorem mainGoalL2B (hT : TotalLeOn coreProgram fs name% «main_loop1» LoopPre
       (fun a => logG (a.getD 1 0) * iterK fs SK name% «main_loop1» + fs name% «main_loop1»))
@@ -94,7 +94,7 @@ theorem mainGoalL2B (hT : TotalLeOn coreProgram fs name% «main_loop1» LoopPre
   (completeAt_of_rel_pureBat mfLoop_pure (by simp [mfLoopSet]) (fun rd _ => mfL2_rel rd _ _ hne) 20
     fun rd t hn hv hb => by
       have := hT rd t _ _ hn (loopPre_gen (Nat.pos_of_ne_zero hne) hl _) hv hb
-      simpa [logG_gen hl] using this).toDTB
+      simpa [logG_gen_pow hl] using this).toDTB
 
 /-- **`statement_digest` on the claim lists' digests and the deferred claim**, a bytecode of
 `2^23` words making the deferred claim `24` cells. -/

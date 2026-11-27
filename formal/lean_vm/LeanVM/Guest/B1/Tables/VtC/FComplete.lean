@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.FWin
 public import LeanVM.Guest.B1.Tables.VtC.FFinal
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table phase's evaluations and final check, complete
@@ -30,8 +31,8 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel termsPure)
 
 @[expose] public section
 
-theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5209 - vtFLo))
-    ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ++ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
+theorem vtF_split : stmtsEqb ((vtPre.drop vtFLo).take (5209 - vtFLo))
+    ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ⧺ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
       true := by
   simp only [vtPre_drop]; decide +kernel
 
@@ -48,13 +49,13 @@ theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 
     (hC : ∀ i < 45, vtσ rd w args (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH (vtσ rd w args))
-    (hz1 : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hz1 : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
     (hxi : vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[0]")) = 1 ∧ vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[1]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ∧
       vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[2]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 2 ∧
       vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[3]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 3 ∧
       vtσ rd w args (.n (val% «verify_tables» "zc_xi_pows[4]")) = vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3")) ^ 4)
     {weights : List E} (hwl : weights.length = 16)
-    (hW : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
+    (hW : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "fp_w"))) weights) {n : ℕ}
     (hgn : vtσ rd w args (.n (val% «verify_tables» "g_zc_n")) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n)
     (hnp : n ≤ point.length) {pts : List E} (hpl : pts.length = n)
     (hcp : ∀ j ≤ n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "zc_cprod"))) j (pts.take j).prod)
@@ -62,7 +63,7 @@ theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 
       (vtσ rd w args (.n (val% «verify_tables» "zeta1"))) n)
     (hchi : ∀ i < n, LoadHolds rd (vtσ rd w args (.n (val% «verify_tables» "chi"))) (n - 1 - i) (pts.getD i 0))
     {evs : List E} (hevl : evs.length = 153)
-    (hcur : TbReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
+    (hcur : ReadsAt rd (vtσ rd w args (.n (val% «verify_tables» "cursor@5"))) evs)
     (hfin : (termsPure ((powers (vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3"))) 5).take 2)
       ((powers (vtσ rd w args (.n (val% «verify_tables» "nxt[0]@3"))) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
@@ -89,7 +90,7 @@ theorem vtF_complete (hl : args.length = 21) (bc : List K) (hbc : bc.length = 2 
     hpe hchi
   have e6817 : vtσ rd w args (.n (val% «verify_tables» "air_acc@6")) = vtσ rd w args (.n (val% «verify_tables» "claim")) := hfinG.symm.trans hfin
   refine ⟨?_, hV, ?_, vt_evals_fsF hV, e6817⟩
-  · rw [tbStmtsEqb_sound vtF_split]
+  · rw [stmtsEqb_sound vtF_split]
     intro s hs
     rcases List.mem_append.mp hs with hs | hs
     · exact hwin s hs

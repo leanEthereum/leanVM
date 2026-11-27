@@ -136,10 +136,6 @@ theorem PowTree.find_ok {t : PowTree} (ht : t.Ok) {k e : ℕ} (h : t.find k = so
     · exact ihl ht.2.1 h
     · exact ihr ht.2.2 h
 
-theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
-
-theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
-
 theorem imm_zero : OffsetInstruction.immediateWord 0 0 = 0 := by
   rw [OffsetInstruction.immediateWord]
   exact (ofLimbs_eq_zero_iff _).mpr rfl

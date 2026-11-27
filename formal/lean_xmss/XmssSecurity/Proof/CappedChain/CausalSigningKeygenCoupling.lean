@@ -23,7 +23,7 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
-theorem simulate_sequenceFin_run_eq_pure
+theorem simulate_sequenceFin_run_eq_pure {α : Type _}
     {n : Nat} (computation : Fin n → OracleComp HashSpec α)
     (cache : QueryCache HashSpec) (values : Fin n → α)
     (hrun : ∀ index,

@@ -191,7 +191,7 @@ theorem eqChain_of_packRunF : ∀ (rs : List E) (ms : List (E × E)) (cl : E) (c
       (packRunF rs ms cl ⟨cap, []⟩).1.1 (packRunF rs ms cl ⟨cap, []⟩).2.cap
   | [], [], _, _, _ => ⟨rfl, rfl, rfl⟩
   | r :: rs, (g1, g2) :: ms, cl, cap, h => by
-    rw [packRunF_eqRound]
+    rw [packRunF_cons]
     have hs : (eqRound ⟨cap, []⟩ g1 g2 r cl).2.2 =
         ⟨(eqRound ⟨cap, []⟩ g1 g2 r cl).2.2.cap, []⟩ := rfl
     refine ⟨_, _, _, _, by rw [← hs], rfl, ?_⟩

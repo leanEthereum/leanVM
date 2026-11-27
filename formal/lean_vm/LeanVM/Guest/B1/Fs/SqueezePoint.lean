@@ -8,33 +8,10 @@ module
 
 public import LeanVM.Guest.B1.Fs.Message
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L10»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L11»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L12»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L13»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L14»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L15»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L16»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L17»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L18»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L19»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L20»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L21»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L22»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L23»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L24»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L25»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L26»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L27»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L28»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L29»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L30»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L6»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L7»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L8»
-import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L9»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `squeeze_point_from`
@@ -240,8 +217,8 @@ theorem sp_copies {b m : ℕ} {S : KeccakState}
 /-- The expansion of `squeeze_point_from__L{n + 1}`, `n ≥ 1` squeezes after the given first. -/
 def spfBody (n : ℕ) : List Stmt :=
   [.atom (.load (.n (valf% «squeeze_point_from» "first")) (.n (valf% «squeeze_point_from» "point")) 0), .atom (.copy (.n (valf% «squeeze_point_from» "sp[0]")) (.n (valf% «squeeze_point_from» "fs0"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[1]")) (.n (valf% «squeeze_point_from» "fs1"))),
-    .atom (.copy (.n (valf% «squeeze_point_from» "sp[2]")) (.n (valf% «squeeze_point_from» "fs2"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[3]")) (.n (valf% «squeeze_point_from» "fs3"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[4]")) (.n (valf% «squeeze_point_from» "fs4")))] ++
-  padRunT 12 ++ ((List.range n).map (sqBlk 13 17 7 (.n (valf% «squeeze_point_from» "point")) 1)).flatten ++
+    .atom (.copy (.n (valf% «squeeze_point_from» "sp[2]")) (.n (valf% «squeeze_point_from» "fs2"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[3]")) (.n (valf% «squeeze_point_from» "fs3"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[4]")) (.n (valf% «squeeze_point_from» "fs4")))] ⧺
+  padRunT 12 ⧺ ((List.range n).map (sqBlk 13 17 7 (.n (valf% «squeeze_point_from» "point")) 1)).flatten ⧺
   [.atom (.copy (.n (17 + 13 * n)) (.n (17 + 13 * (n - 1) + 8))),
     .atom (.copy (.n (18 + 13 * n)) (.n (17 + 13 * (n - 1) + 9))),
     .atom (.copy (.n (19 + 13 * n)) (.n (17 + 13 * (n - 1) + 10))),
@@ -416,180 +393,14 @@ theorem spf_complete {name : String} {f : Fn} (n : ℕ) (hn : 1 ≤ n)
       cB 2 (by omega), cB 3 (by omega), cB 4 (by omega)]
     rfl
 
-set_option maxRecDepth 100000 in
-theorem spf_found_6 : coreProgram.find? (spfName 6) = some fn% «squeeze_point_from__L6» ∧
-    (fn% «squeeze_point_from__L6»).params = [.n (val% «squeeze_point_from__L6» "fs0"), .n (val% «squeeze_point_from__L6» "fs1"), .n (val% «squeeze_point_from__L6» "fs2"), .n (val% «squeeze_point_from__L6» "fs3"), .n (val% «squeeze_point_from__L6» "fs4"), .n (val% «squeeze_point_from__L6» "first"), .n (val% «squeeze_point_from__L6» "point")] ∧
-      (fn% «squeeze_point_from__L6»).body = spfBody 5 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L6») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_7 : coreProgram.find? (spfName 7) = some fn% «squeeze_point_from__L7» ∧
-    (fn% «squeeze_point_from__L7»).params = [.n (val% «squeeze_point_from__L7» "fs0"), .n (val% «squeeze_point_from__L7» "fs1"), .n (val% «squeeze_point_from__L7» "fs2"), .n (val% «squeeze_point_from__L7» "fs3"), .n (val% «squeeze_point_from__L7» "fs4"), .n (val% «squeeze_point_from__L7» "first"), .n (val% «squeeze_point_from__L7» "point")] ∧
-      (fn% «squeeze_point_from__L7»).body = spfBody 6 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L7») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_8 : coreProgram.find? (spfName 8) = some fn% «squeeze_point_from__L8» ∧
-    (fn% «squeeze_point_from__L8»).params = [.n (val% «squeeze_point_from__L8» "fs0"), .n (val% «squeeze_point_from__L8» "fs1"), .n (val% «squeeze_point_from__L8» "fs2"), .n (val% «squeeze_point_from__L8» "fs3"), .n (val% «squeeze_point_from__L8» "fs4"), .n (val% «squeeze_point_from__L8» "first"), .n (val% «squeeze_point_from__L8» "point")] ∧
-      (fn% «squeeze_point_from__L8»).body = spfBody 7 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L8») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_9 : coreProgram.find? (spfName 9) = some fn% «squeeze_point_from__L9» ∧
-    (fn% «squeeze_point_from__L9»).params = [.n (val% «squeeze_point_from__L9» "fs0"), .n (val% «squeeze_point_from__L9» "fs1"), .n (val% «squeeze_point_from__L9» "fs2"), .n (val% «squeeze_point_from__L9» "fs3"), .n (val% «squeeze_point_from__L9» "fs4"), .n (val% «squeeze_point_from__L9» "first"), .n (val% «squeeze_point_from__L9» "point")] ∧
-      (fn% «squeeze_point_from__L9»).body = spfBody 8 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L9») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_10 : coreProgram.find? (spfName 10) = some fn% «squeeze_point_from__L10» ∧
-    (fn% «squeeze_point_from__L10»).params = [.n (val% «squeeze_point_from__L10» "fs0"), .n (val% «squeeze_point_from__L10» "fs1"), .n (val% «squeeze_point_from__L10» "fs2"), .n (val% «squeeze_point_from__L10» "fs3"), .n (val% «squeeze_point_from__L10» "fs4"), .n (val% «squeeze_point_from__L10» "first"), .n (val% «squeeze_point_from__L10» "point")] ∧
-      (fn% «squeeze_point_from__L10»).body = spfBody 9 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L10») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_11 : coreProgram.find? (spfName 11) = some fn% «squeeze_point_from__L11» ∧
-    (fn% «squeeze_point_from__L11»).params = [.n (val% «squeeze_point_from__L11» "fs0"), .n (val% «squeeze_point_from__L11» "fs1"), .n (val% «squeeze_point_from__L11» "fs2"), .n (val% «squeeze_point_from__L11» "fs3"), .n (val% «squeeze_point_from__L11» "fs4"), .n (val% «squeeze_point_from__L11» "first"), .n (val% «squeeze_point_from__L11» "point")] ∧
-      (fn% «squeeze_point_from__L11»).body = spfBody 10 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L11») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_12 : coreProgram.find? (spfName 12) = some fn% «squeeze_point_from__L12» ∧
-    (fn% «squeeze_point_from__L12»).params = [.n (val% «squeeze_point_from__L12» "fs0"), .n (val% «squeeze_point_from__L12» "fs1"), .n (val% «squeeze_point_from__L12» "fs2"), .n (val% «squeeze_point_from__L12» "fs3"), .n (val% «squeeze_point_from__L12» "fs4"), .n (val% «squeeze_point_from__L12» "first"), .n (val% «squeeze_point_from__L12» "point")] ∧
-      (fn% «squeeze_point_from__L12»).body = spfBody 11 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L12») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_13 : coreProgram.find? (spfName 13) = some fn% «squeeze_point_from__L13» ∧
-    (fn% «squeeze_point_from__L13»).params = [.n (val% «squeeze_point_from__L13» "fs0"), .n (val% «squeeze_point_from__L13» "fs1"), .n (val% «squeeze_point_from__L13» "fs2"), .n (val% «squeeze_point_from__L13» "fs3"), .n (val% «squeeze_point_from__L13» "fs4"), .n (val% «squeeze_point_from__L13» "first"), .n (val% «squeeze_point_from__L13» "point")] ∧
-      (fn% «squeeze_point_from__L13»).body = spfBody 12 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L13») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_14 : coreProgram.find? (spfName 14) = some fn% «squeeze_point_from__L14» ∧
-    (fn% «squeeze_point_from__L14»).params = [.n (val% «squeeze_point_from__L14» "fs0"), .n (val% «squeeze_point_from__L14» "fs1"), .n (val% «squeeze_point_from__L14» "fs2"), .n (val% «squeeze_point_from__L14» "fs3"), .n (val% «squeeze_point_from__L14» "fs4"), .n (val% «squeeze_point_from__L14» "first"), .n (val% «squeeze_point_from__L14» "point")] ∧
-      (fn% «squeeze_point_from__L14»).body = spfBody 13 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L14») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_15 : coreProgram.find? (spfName 15) = some fn% «squeeze_point_from__L15» ∧
-    (fn% «squeeze_point_from__L15»).params = [.n (val% «squeeze_point_from__L15» "fs0"), .n (val% «squeeze_point_from__L15» "fs1"), .n (val% «squeeze_point_from__L15» "fs2"), .n (val% «squeeze_point_from__L15» "fs3"), .n (val% «squeeze_point_from__L15» "fs4"), .n (val% «squeeze_point_from__L15» "first"), .n (val% «squeeze_point_from__L15» "point")] ∧
-      (fn% «squeeze_point_from__L15»).body = spfBody 14 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L15») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_16 : coreProgram.find? (spfName 16) = some fn% «squeeze_point_from__L16» ∧
-    (fn% «squeeze_point_from__L16»).params = [.n (val% «squeeze_point_from__L16» "fs0"), .n (val% «squeeze_point_from__L16» "fs1"), .n (val% «squeeze_point_from__L16» "fs2"), .n (val% «squeeze_point_from__L16» "fs3"), .n (val% «squeeze_point_from__L16» "fs4"), .n (val% «squeeze_point_from__L16» "first"), .n (val% «squeeze_point_from__L16» "point")] ∧
-      (fn% «squeeze_point_from__L16»).body = spfBody 15 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L16») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_17 : coreProgram.find? (spfName 17) = some fn% «squeeze_point_from__L17» ∧
-    (fn% «squeeze_point_from__L17»).params = [.n (val% «squeeze_point_from__L17» "fs0"), .n (val% «squeeze_point_from__L17» "fs1"), .n (val% «squeeze_point_from__L17» "fs2"), .n (val% «squeeze_point_from__L17» "fs3"), .n (val% «squeeze_point_from__L17» "fs4"), .n (val% «squeeze_point_from__L17» "first"), .n (val% «squeeze_point_from__L17» "point")] ∧
-      (fn% «squeeze_point_from__L17»).body = spfBody 16 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L17») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_18 : coreProgram.find? (spfName 18) = some fn% «squeeze_point_from__L18» ∧
-    (fn% «squeeze_point_from__L18»).params = [.n (val% «squeeze_point_from__L18» "fs0"), .n (val% «squeeze_point_from__L18» "fs1"), .n (val% «squeeze_point_from__L18» "fs2"), .n (val% «squeeze_point_from__L18» "fs3"), .n (val% «squeeze_point_from__L18» "fs4"), .n (val% «squeeze_point_from__L18» "first"), .n (val% «squeeze_point_from__L18» "point")] ∧
-      (fn% «squeeze_point_from__L18»).body = spfBody 17 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L18») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_19 : coreProgram.find? (spfName 19) = some fn% «squeeze_point_from__L19» ∧
-    (fn% «squeeze_point_from__L19»).params = [.n (val% «squeeze_point_from__L19» "fs0"), .n (val% «squeeze_point_from__L19» "fs1"), .n (val% «squeeze_point_from__L19» "fs2"), .n (val% «squeeze_point_from__L19» "fs3"), .n (val% «squeeze_point_from__L19» "fs4"), .n (val% «squeeze_point_from__L19» "first"), .n (val% «squeeze_point_from__L19» "point")] ∧
-      (fn% «squeeze_point_from__L19»).body = spfBody 18 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L19») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_20 : coreProgram.find? (spfName 20) = some fn% «squeeze_point_from__L20» ∧
-    (fn% «squeeze_point_from__L20»).params = [.n (val% «squeeze_point_from__L20» "fs0"), .n (val% «squeeze_point_from__L20» "fs1"), .n (val% «squeeze_point_from__L20» "fs2"), .n (val% «squeeze_point_from__L20» "fs3"), .n (val% «squeeze_point_from__L20» "fs4"), .n (val% «squeeze_point_from__L20» "first"), .n (val% «squeeze_point_from__L20» "point")] ∧
-      (fn% «squeeze_point_from__L20»).body = spfBody 19 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L20») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_21 : coreProgram.find? (spfName 21) = some fn% «squeeze_point_from__L21» ∧
-    (fn% «squeeze_point_from__L21»).params = [.n (val% «squeeze_point_from__L21» "fs0"), .n (val% «squeeze_point_from__L21» "fs1"), .n (val% «squeeze_point_from__L21» "fs2"), .n (val% «squeeze_point_from__L21» "fs3"), .n (val% «squeeze_point_from__L21» "fs4"), .n (val% «squeeze_point_from__L21» "first"), .n (val% «squeeze_point_from__L21» "point")] ∧
-      (fn% «squeeze_point_from__L21»).body = spfBody 20 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L21») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_22 : coreProgram.find? (spfName 22) = some fn% «squeeze_point_from__L22» ∧
-    (fn% «squeeze_point_from__L22»).params = [.n (val% «squeeze_point_from__L22» "fs0"), .n (val% «squeeze_point_from__L22» "fs1"), .n (val% «squeeze_point_from__L22» "fs2"), .n (val% «squeeze_point_from__L22» "fs3"), .n (val% «squeeze_point_from__L22» "fs4"), .n (val% «squeeze_point_from__L22» "first"), .n (val% «squeeze_point_from__L22» "point")] ∧
-      (fn% «squeeze_point_from__L22»).body = spfBody 21 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L22») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_23 : coreProgram.find? (spfName 23) = some fn% «squeeze_point_from__L23» ∧
-    (fn% «squeeze_point_from__L23»).params = [.n (val% «squeeze_point_from__L23» "fs0"), .n (val% «squeeze_point_from__L23» "fs1"), .n (val% «squeeze_point_from__L23» "fs2"), .n (val% «squeeze_point_from__L23» "fs3"), .n (val% «squeeze_point_from__L23» "fs4"), .n (val% «squeeze_point_from__L23» "first"), .n (val% «squeeze_point_from__L23» "point")] ∧
-      (fn% «squeeze_point_from__L23»).body = spfBody 22 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L23») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_24 : coreProgram.find? (spfName 24) = some fn% «squeeze_point_from__L24» ∧
-    (fn% «squeeze_point_from__L24»).params = [.n (val% «squeeze_point_from__L24» "fs0"), .n (val% «squeeze_point_from__L24» "fs1"), .n (val% «squeeze_point_from__L24» "fs2"), .n (val% «squeeze_point_from__L24» "fs3"), .n (val% «squeeze_point_from__L24» "fs4"), .n (val% «squeeze_point_from__L24» "first"), .n (val% «squeeze_point_from__L24» "point")] ∧
-      (fn% «squeeze_point_from__L24»).body = spfBody 23 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L24») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_25 : coreProgram.find? (spfName 25) = some fn% «squeeze_point_from__L25» ∧
-    (fn% «squeeze_point_from__L25»).params = [.n (val% «squeeze_point_from__L25» "fs0"), .n (val% «squeeze_point_from__L25» "fs1"), .n (val% «squeeze_point_from__L25» "fs2"), .n (val% «squeeze_point_from__L25» "fs3"), .n (val% «squeeze_point_from__L25» "fs4"), .n (val% «squeeze_point_from__L25» "first"), .n (val% «squeeze_point_from__L25» "point")] ∧
-      (fn% «squeeze_point_from__L25»).body = spfBody 24 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L25») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_26 : coreProgram.find? (spfName 26) = some fn% «squeeze_point_from__L26» ∧
-    (fn% «squeeze_point_from__L26»).params = [.n (val% «squeeze_point_from__L26» "fs0"), .n (val% «squeeze_point_from__L26» "fs1"), .n (val% «squeeze_point_from__L26» "fs2"), .n (val% «squeeze_point_from__L26» "fs3"), .n (val% «squeeze_point_from__L26» "fs4"), .n (val% «squeeze_point_from__L26» "first"), .n (val% «squeeze_point_from__L26» "point")] ∧
-      (fn% «squeeze_point_from__L26»).body = spfBody 25 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L26») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_27 : coreProgram.find? (spfName 27) = some fn% «squeeze_point_from__L27» ∧
-    (fn% «squeeze_point_from__L27»).params = [.n (val% «squeeze_point_from__L27» "fs0"), .n (val% «squeeze_point_from__L27» "fs1"), .n (val% «squeeze_point_from__L27» "fs2"), .n (val% «squeeze_point_from__L27» "fs3"), .n (val% «squeeze_point_from__L27» "fs4"), .n (val% «squeeze_point_from__L27» "first"), .n (val% «squeeze_point_from__L27» "point")] ∧
-      (fn% «squeeze_point_from__L27»).body = spfBody 26 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L27») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_28 : coreProgram.find? (spfName 28) = some fn% «squeeze_point_from__L28» ∧
-    (fn% «squeeze_point_from__L28»).params = [.n (val% «squeeze_point_from__L28» "fs0"), .n (val% «squeeze_point_from__L28» "fs1"), .n (val% «squeeze_point_from__L28» "fs2"), .n (val% «squeeze_point_from__L28» "fs3"), .n (val% «squeeze_point_from__L28» "fs4"), .n (val% «squeeze_point_from__L28» "first"), .n (val% «squeeze_point_from__L28» "point")] ∧
-      (fn% «squeeze_point_from__L28»).body = spfBody 27 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L28») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_29 : coreProgram.find? (spfName 29) = some fn% «squeeze_point_from__L29» ∧
-    (fn% «squeeze_point_from__L29»).params = [.n (val% «squeeze_point_from__L29» "fs0"), .n (val% «squeeze_point_from__L29» "fs1"), .n (val% «squeeze_point_from__L29» "fs2"), .n (val% «squeeze_point_from__L29» "fs3"), .n (val% «squeeze_point_from__L29» "fs4"), .n (val% «squeeze_point_from__L29» "first"), .n (val% «squeeze_point_from__L29» "point")] ∧
-      (fn% «squeeze_point_from__L29»).body = spfBody 28 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L29») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
-
-set_option maxRecDepth 100000 in
-theorem spf_found_30 : coreProgram.find? (spfName 30) = some fn% «squeeze_point_from__L30» ∧
-    (fn% «squeeze_point_from__L30»).params = [.n (val% «squeeze_point_from__L30» "fs0"), .n (val% «squeeze_point_from__L30» "fs1"), .n (val% «squeeze_point_from__L30» "fs2"), .n (val% «squeeze_point_from__L30» "fs3"), .n (val% «squeeze_point_from__L30» "fs4"), .n (val% «squeeze_point_from__L30» "first"), .n (val% «squeeze_point_from__L30» "point")] ∧
-      (fn% «squeeze_point_from__L30»).body = spfBody 29 :=
-  ⟨coreProgram_find?_at (j := idx% «squeeze_point_from__L30») rfl, rfl,
-    stmtsEqb_sound (by decide +kernel)⟩
+/-- The deployed `squeeze_point_from__L{n}`, `6 ≤ n ≤ 30`, are the template. -/
+private theorem spf_found :
+    coreRunB (idxs% «squeeze_point_from__L» 6 31) (fun i ↦ spfName (i + 6))
+      (shapeB [.n (valf% «squeeze_point_from» "fs0"), .n (valf% «squeeze_point_from» "fs1"),
+        .n (valf% «squeeze_point_from» "fs2"), .n (valf% «squeeze_point_from» "fs3"),
+        .n (valf% «squeeze_point_from» "fs4"), .n (valf% «squeeze_point_from» "first"),
+        .n (valf% «squeeze_point_from» "point")] fun i ↦ spfBody (i + 5)) = true := by
+  decide +kernel
 
 /-- `squeeze_point_from__L{n}`'s core IR is its meaning, for every deployed `n`. -/
 def squeeze_point_from_Spec : Prop := squeeze_point_from_SpecP coreProgram
@@ -597,39 +408,9 @@ def squeeze_point_from_Spec : Prop := squeeze_point_from_SpecP coreProgram
 /-- **`squeeze_point_from`'s core IR is its meaning**, at every deployed `n`. -/
 theorem squeeze_point_from_holds : squeeze_point_from_Spec := by
   intro n hn rd args rets
-  simp only [spfDeployed, List.mem_map, List.mem_range] at hn
-  obtain ⟨i, hi, rfl⟩ := hn
-  have go : ∀ {m c : ℕ} {fn : Fn}, 1 ≤ m → coreProgram.find? (spfName c) = some fn ∧
-      fn.params = [.n (valf% «squeeze_point_from» "fs0"), .n (valf% «squeeze_point_from» "fs1"), .n (valf% «squeeze_point_from» "fs2"), .n (valf% «squeeze_point_from» "fs3"), .n (valf% «squeeze_point_from» "fs4"), .n (valf% «squeeze_point_from» "first"), .n (valf% «squeeze_point_from» "point")] ∧ fn.body = spfBody m → c = m + 1 →
-      (coreProgram.Rel rd (spfName c) args rets ↔ MeaningSqueezePointFrom c rd args rets) := by
-    rintro m c fn hm ⟨h1, h2, h3⟩ rfl
-    exact ⟨spf_sound m hm h1 h2 h3 rd args rets, spf_complete m hm h1 h2 h3 rd args rets⟩
-  interval_cases i
-  · exact go (by decide) spf_found_6 rfl
-  · exact go (by decide) spf_found_7 rfl
-  · exact go (by decide) spf_found_8 rfl
-  · exact go (by decide) spf_found_9 rfl
-  · exact go (by decide) spf_found_10 rfl
-  · exact go (by decide) spf_found_11 rfl
-  · exact go (by decide) spf_found_12 rfl
-  · exact go (by decide) spf_found_13 rfl
-  · exact go (by decide) spf_found_14 rfl
-  · exact go (by decide) spf_found_15 rfl
-  · exact go (by decide) spf_found_16 rfl
-  · exact go (by decide) spf_found_17 rfl
-  · exact go (by decide) spf_found_18 rfl
-  · exact go (by decide) spf_found_19 rfl
-  · exact go (by decide) spf_found_20 rfl
-  · exact go (by decide) spf_found_21 rfl
-  · exact go (by decide) spf_found_22 rfl
-  · exact go (by decide) spf_found_23 rfl
-  · exact go (by decide) spf_found_24 rfl
-  · exact go (by decide) spf_found_25 rfl
-  · exact go (by decide) spf_found_26 rfl
-  · exact go (by decide) spf_found_27 rfl
-  · exact go (by decide) spf_found_28 rfl
-  · exact go (by decide) spf_found_29 rfl
-  · exact go (by decide) spf_found_30 rfl
+  obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hn
+  obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape spf_found (List.mem_range.mp hi)
+  exact ⟨spf_sound _ (by omega) hf hp hb rd args rets, spf_complete _ (by omega) hf hp hb rd args rets⟩
 
 end
 end LeanVM.Guest.B1

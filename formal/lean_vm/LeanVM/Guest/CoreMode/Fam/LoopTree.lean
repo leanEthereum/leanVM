@@ -46,7 +46,7 @@ structure ProgOk (P : Core.Program) : Prop where
 
 theorem ofK_gpow_add (a b : ℕ) :
     ofK (addressOfIndex a) * ofK (addressOfIndex b) = ofK (addressOfIndex (a + b)) := by
-  rw [← ofK_mulS, Parameters.addressOfIndex, Parameters.addressOfIndex, Parameters.addressOfIndex, pow_add]
+  rw [← ofK_mul, Parameters.addressOfIndex, Parameters.addressOfIndex, Parameters.addressOfIndex, pow_add]
 
 /-- The callees of the frames a list of calls ending with `c` sets up, split. -/
 theorem kidsValid_snoc {P : Core.Program} {rd : Reader} {σ : Val} {c : Call} :

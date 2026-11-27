@@ -67,10 +67,8 @@ theorem prodB_mergeB : ∀ a b, prodB σ (mergeB a b) = prodB σ a * prodB σ b
     rw [mergeB, prodB_insB, prodB_mergeB a b, prodB]
     ring
 
-theorem ofK_mul' (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
 theorem val_mul (a b : CCell) : (a.mul b).val σ = a.val σ * b.val σ := by
-  simp only [CCell.val, CCell.mul, prodB_mergeB, addressOfIndex, pow_add, ofK_mul']
+  simp only [CCell.val, CCell.mul, prodB_mergeB, addressOfIndex, pow_add, ofK_mul]
   ring
 
 theorem val_baseC (k : ℕ) : (baseC k).val σ = σ (V.n k) := by
@@ -84,7 +82,7 @@ theorem limb0_mul_ofK (x : E) (k : K) : (x * ofK k).limb 0 = x.limb 0 * k := by
 /-- A `DEREF` through a value of monomial `m` at offset `off` names the cell `m · g^off`. -/
 theorem cellAt_shift {p : V} {m : CCell} (h : σ p = m.val σ) (off : ℕ) :
     cellAt σ p off = (m.shift off).addr σ := by
-  simp only [cellAt, CCell.addr, CCell.val, CCell.shift, h, addressOfIndex, pow_add, ofK_mul',
+  simp only [cellAt, CCell.addr, CCell.val, CCell.shift, h, addressOfIndex, pow_add, ofK_mul,
     ← mul_assoc, limb0_mul_ofK]
 
 theorem basesBeq_eq : ∀ {a b : List (ℕ × ℕ)}, basesBeq a b = true → a = b

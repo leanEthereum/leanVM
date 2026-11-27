@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced7
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The function's start by kind
@@ -28,7 +29,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- The function's start, level 0's branch taken: the even start when `even`, the odd query
 otherwise. -/
 def oqStartFlat (s : Oq) (even : Bool) : List Stmt :=
-  if s.base = 1 then oqMainPre ++ (if even then oqEvenT else oqOddT s) ++ oqMainPost s else oqMainA s
+  if s.base = 1 then oqMainPre ⧺ (if even then oqEvenT else oqOddT s) ⧺ oqMainPost s else oqMainA s
 
 /-- The loads of the function's own body: its odd first query's, its point `positions[0]`, its
 window pointer `qptrs[0]`, the chain's first word. -/

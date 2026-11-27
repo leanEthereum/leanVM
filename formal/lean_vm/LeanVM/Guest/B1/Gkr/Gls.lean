@@ -67,7 +67,7 @@ theorem glcChain_sound {o : ℕ} {hd : List V} {x0 c0 : ℕ} : ∀ r,
         simp only [h0, ↓reduceIte, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds,
           Atom.Holds] at h2
         obtain ⟨c, m, -⟩ := h2
-        rw [m, c, tb_word_gen, ih1 (r - 1) (by omega), mul_assoc, ← pow_succ,
+        rw [m, c, word_gen, ih1 (r - 1) (by omega), mul_assoc, ← pow_succ,
           Nat.sub_add_cancel (by omega)]
     have hcall : C (glName r o) (hd.map σ ++ [σ (.n x0) * gen ^ r, σ (.n 5), σ (.n 6), σ (.n 7),
         σ (.n 8)]) [] := by
@@ -99,7 +99,7 @@ theorem gls_last {o r : ℕ} (ho : o < 2) (hr : r < 4) {layers rounds pts xm x4 
     ∀ p < r, coreProgram.Rel rd (glName p o) [layers, rounds, pts, xm, x4 * gen ^ p, start, gmu,
       tabs, stream] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := glcFnCheck_sound ((glc_layers_check o ho).2.2 r hr)
-  obtain ⟨σ, hpar, hbody⟩ := (tb_rel_iff_sem hf _ _).mp h
+  obtain ⟨σ, hpar, hbody⟩ := (rel_iff_sem hf _ _).mp h
   rw [hp] at hpar
   simp only [glcPar9, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, List.cons.injEq, and_true] at hpar
@@ -134,7 +134,7 @@ theorem glsl_step {o : ℕ} (ho : o < 2) {N layers rounds pts start gmu tabs str
   obtain ⟨-, hcalls⟩ := glcChain_sound 4 hch
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hpost
   obtain ⟨c17, m18, a19, c20, m21, -, hnext, -⟩ := hpost
-  rw [tb_word_gen] at c17 c20
+  rw [word_gen] at c17 c20
   refine ⟨fun p hp => ?_, fun hne => ?_⟩
   · have := relN_le_rel coreProgram d _ _ _ (hcalls p hp)
     simpa [m10, m9] using this
@@ -150,7 +150,7 @@ theorem gls_sound {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hn : n < 2 ^ 30)
       stream] rets) :
     ∀ j < 4 * n + r, GlLay rd o layers rounds pts start gmu tabs stream j := by
   obtain ⟨fn, hf, hp, hb⟩ := glcFnCheck_sound (glc_layers_check o ho).1
-  obtain ⟨σ, hpar, hbody⟩ := (tb_rel_iff_sem hf _ _).mp h
+  obtain ⟨σ, hpar, hbody⟩ := (rel_iff_sem hf _ _).mp h
   rw [hp] at hpar
   simp only [glcPar9, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
     List.nil_append, List.cons_append, List.cons.injEq, and_true] at hpar
@@ -158,7 +158,7 @@ theorem gls_sound {o n r : ℕ} (ho : o < 2) (hr : r < 4) (hn : n < 2 ^ 30)
   rw [hb, glcLsBody] at hbody
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hbody
   obtain ⟨c9, a10, c11, -, hloop, m12, m13, ⟨jj, hjj, hx, hlast⟩, -⟩ := hbody
-  rw [tb_word_one] at c9 c11
+  rw [word_one] at c9 c11
   -- the last `r` layers
   have hjr : jj = r := by
     simp only [List.length_cons, List.length_nil] at hjj

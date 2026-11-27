@@ -17,6 +17,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L_loop0»
 import LeanVM.Guest.B1.Tables.Basic
 import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `gkr_layer__L{p}_L{o}_loop0`, completely
@@ -69,11 +70,11 @@ def glcPost : List Stmt :=
     .atom (.mul (.n (valf% «gkr_layer» «_loop0» "s15#4")) (.n (valf% «gkr_layer» «_loop0» "y")) (.n (valf% «gkr_layer» «_loop0» "s15#3")))]
 
 /-- The iteration's atoms. -/
-def glcA : List Stmt := glcPre ++ (gkPre true 8).map glcMap ++ glcPost
+def glcA : List Stmt := glcPre ⧺ (gkPre true 8).map glcMap ⧺ glcPost
 
 /-- The loop's body, calling `nm`. -/
 def glcBody (nm : String) : List Stmt :=
-  glcA ++ [.callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
+  glcA ⧺ [.callIf (.n (valf% «gkr_layer» «_loop0» "s15#2")) nm [.n (valf% «gkr_layer» «_loop0» "s15#4"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")], .ret []]
 
 /-- The loop's parameters. -/
 def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gkr_layer» «_loop0» "bound"), .n (valf% «gkr_layer» «_loop0» "head"), .n (valf% «gkr_layer» «_loop0» "qrow"), .n (valf% «gkr_layer» «_loop0» "nqrow"), .n (valf% «gkr_layer» «_loop0» "tabs")]
@@ -82,7 +83,7 @@ def glcPar6 : List V := [.n (valf% «gkr_layer» «_loop0» "y"), .n (valf% «gk
 noncomputable def glcCheck (p o : ℕ) : Bool :=
   match coreProgram[glLoopIdx p o]? with
   | some fn => fn.name == glLoopName p o && decide (fn.params = glcPar6) &&
-      tbStmtsEqb fn.body (glcBody (glLoopName p o))
+      stmtsEqb fn.body (glcBody (glLoopName p o))
   | none => false
 
 theorem glc_check : ∀ p < 4, ∀ o < 2, glcCheck p o = true := by decide +kernel
@@ -94,7 +95,7 @@ theorem glcFound {p o : ℕ} (hp : p < 4) (ho : o < 2) : ∃ fn : Fn, coreProgra
   split at h
   · rename_i fn hj
     simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
-    exact ⟨fn, coreProgram_find?_at hj h.1.1, h.1.2, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, coreProgram_find?_at hj h.1.1, h.1.2, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-- Every statement of `gkPre true 8` is an atom over values `.n k`, `k ≤ 324`, never the window
@@ -253,7 +254,7 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
             have h11 : σ (.n 15) = σ (.n 14) * gen ^ 42 := by
               show nqrow * glcY8 x = qrow * glcY8 x * gen ^ 42
               rw [hnq]; ring
-            rw [h11, tb_loadHolds_mul_gen_pow, show 42 + (off - 42) = off by omega, hd, hp1]
+            rw [h11, loadHolds_mul_gen_pow, show 42 + (off - 42) = off by omega, hd, hp1]
             exact hb
           · simp only [Stmt.atom.injEq] at he
             subst he
@@ -267,7 +268,7 @@ theorem glc_iter {rd : Reader} (x N head qrow nqrow tabs : E) (hnq : nqrow = qro
         subst he; exact hren
     | _ => simp [gk8Ok] at hok
   · simp only [glcPost, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
-    rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, σ, glcVal, tb_word_gen]
+    rcases ha with rfl | rfl | rfl | rfl | rfl <;> simp [Atom.Holds, σ, glcVal, word_gen]
 
 /-- **`gkr_layer__L{p}_L{o}_loop0`, completely**: eight rounds from the record at `head·g^(7y)`, the
 row at `qrow·g^(8y)`, at every iteration `y < m` give the loop from `1` below `g^m`. -/
@@ -293,7 +294,7 @@ theorem glc_complete {rd : Reader} {p o : ℕ} (hp : p < 4) (ho : o < 2) {head q
     simp only [glcPost, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq,
       forall_eq_or_imp, forall_eq, Atom.Holds] at mm
     obtain ⟨c341, m342, a343, c344, m345⟩ := mm
-    rw [tb_word_gen] at c341 c344
+    rw [word_gen] at c341 c344
     refine ⟨by rw [a343, m342, c341, e0, e1], ?_⟩
     simp only [List.map_cons, List.map_nil, m345, c344, e0, e1, e2, e3, e4, e5]
   rw [← pow_zero gen]

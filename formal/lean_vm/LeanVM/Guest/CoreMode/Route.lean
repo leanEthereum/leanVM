@@ -44,7 +44,7 @@ noncomputable def faCellB (j : ℕ) : Stmt → Bool
   | _ => true
 
 /-- Where frame run cells are guaranteed (`faNeed`), the frame runs' first values at their cells (`HonB.fa`). -/
-noncomputable def faOkB (j : ℕ) (Cf : CFun) : Bool := !faNeed Cf || (Bridge.stmtsOf Cf.fn.body).all (faCellB j)
+noncomputable def faOkB (j : ℕ) (Cf : CFun) : Bool := !faNeed Cf || stmtsAll (faCellB j) Cf.fn.body
 
 /-- A `ret`'s values at their certificate cells, within the frame, not hint-only values. -/
 noncomputable def retCellB (j : ℕ) : Stmt → Bool
@@ -117,9 +117,9 @@ noncomputable def selGo (j : ℕ) (ps : List V) (B : List Stmt) : List Atom → 
 at their cells; `j` not the prologue. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
   (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyCore fn.body || loopBC fn) &&
-    (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
+    stmtsAll (ptrCellB j) fn.body && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
-    (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 0 j &&
+    stmtsAll (retCellB j) fn.body && Nat.blt 0 j &&
     (selGo j fn.params fn.body [] fn.body || loopBC fn)
 
 /-- `honB` but for its passes over the body (`bodyCore`, `ptrCellB`, `retCellB`, `selGo`), which a long body
@@ -134,7 +134,7 @@ theorem honB_of {j : ℕ} {fn : Fn} (h1 : (bodyCore fn.body || loopBC fn) = true
     (h4 : (selGo j fn.params fn.body [] fn.body || loopBC fn) = true) (h5 : honRest j fn = true) : honB j fn = true := by
   simp only [honRest, Bool.and_eq_true] at h5
   obtain ⟨⟨⟨r1, r2⟩, r3⟩, r4⟩ := h5
-  simp only [honB, Bool.and_eq_true]
+  simp only [honB, stmtsAll_eq, Bool.and_eq_true]
   exact ⟨⟨⟨⟨⟨⟨⟨r1, h1⟩, h2⟩, r2⟩, r3⟩, h3⟩, r4⟩, h4⟩
 
 /-- **Core data of the deployed guest's function `j`.** -/

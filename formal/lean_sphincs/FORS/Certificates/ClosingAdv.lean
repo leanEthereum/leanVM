@@ -1,17 +1,17 @@
 module
 
-public import FORS.Certificates.Closing
 public import FORS.Certificates.VerifyCost
 public import FORS.SmallBudget.BridgeH
-public import FORS.LargeBudget.HeavyRouteH
+public import FORS.LargeBudget.Covers
+public import FORS.LargeBudget.RouteH
 
 @[expose] public section
 
-/-! **127 bits at the adversary's own count.** The certificates of `Closing.lean`, read at the budget
+/-! **127 bits at the adversary's own count.** The certificates, read at the budget
 `q = keygenHashCost + qA + V` of an adversary making at most `qA` hash calls against a verifier making
 at most `V`: the honest signer's small route (`det_smallF`, its program bridge `smallBridgeH_holds`)
-and large routes (`forgeAdvantage_le_largeWH`, `forgeAdvantage_le_largeHH`) close as the charged ones
-do, and the forging chance is at most `(qA + keygenHashCost + V) / 2^127`. -/
+and the large route (`forgeAdvantage_le_largeWH`, over a chain of covers `H0.checkCovers`) close as
+the charged ones do, and the forging chance is at most `(qA + keygenHashCost + V) / 2^127`. -/
 
 open OracleComp OracleSpec ENNReal NNReal
 
@@ -32,7 +32,7 @@ theorem det_bitsF (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : tota
     (hrt : H0.checkRate H b N qh t = true) (ho : H0.checkOpt H b k a t o = true)
     (hon : H0.checkOptN H k a t on = true)
     (hsmall : checkSmallF H b a N qh ρ o.cthr o.B ((2 ^ b * on.En : ℚ) / 2) = true)
-    (covers heavy : List H0.CoverW) (hcov : checkCoversH H b k a K N (qh + 1) covers heavy = true)
+    (covers : List H0.CoverW) (hcov : H0.checkCovers H b k a K N (qh + 1) covers = true)
     (V : ℕ) (hV : ∀ pk message signature,
       (Concrete.verify pk message signature : OracleComp HashSpec Bool).IsQueryBoundP (fun _ => True) V)
     (adversary : Adversary) (qA : ℕ) (hqA : ∀ pk, (adversary.main pk).IsQueryBoundP AdvCount.AdvHash qA) :
@@ -100,22 +100,14 @@ theorem det_bitsF (hb0 : 0 < keptHeight topLayer) (H b k a K N : ℕ) (hH : tota
   · have hKq : keygenCost ≤ q := by omega
     have e1 : (q - keygenCost) + Prefix.keygenHashCost = q - keygenCost + keygenCost :=
       rfl
-    rcases checkCoversH_sound H b k a K N heavy covers (qh + 1) hcov (q - keygenCost)
-      (by omega) (by rw [← hkg]; omega) with ⟨cover, -, qs, hcv, hqs, hqt⟩ | ⟨cover, -, qs, hcv, hqs, hqt⟩
-    · have hcovb := H0.h0W_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
-      have hfairq := H0.fair_of_cover H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
-      have h := forgeAdvantage_le_largeWH hb0 adversary qA V hqA hV q hqdef hq127 hfairq (by
-        rw [e1] at hcovb
-        exact hcovb)
-      refine le_trans h (le_of_eq ?_)
-      rw [Nat.cast_pow, Nat.cast_ofNat]
-    · have hcovb := H0.h0H_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
-      have hfairq := H0.fair_of_coverH H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
-      have h := forgeAdvantage_le_largeHH hb0 adversary qA V hqA hV q hqdef hq127 (H0.wbarH (q - keygenCost))
-        (H0.LmaxOf (q - keygenCost)) (H0.fair_ofH (q - keygenCost) hfairq) (lam_start_leF (q - keygenCost)) (by
-        rw [e1] at hcovb
-        exact hcovb)
-      refine le_trans h (le_of_eq ?_)
-      rw [Nat.cast_pow, Nat.cast_ofNat]
+    obtain ⟨cover, -, qs, hcv, hqs, hqt⟩ := H0.checkCovers_sound H b k a K N covers (qh + 1) hcov
+      (q - keygenCost) (by omega) (by rw [← hkg]; omega)
+    have hcovb := H0.h0W_bound_of_cover H b k a K N qs cover hcv hH hb hk ha hK hN (q - keygenCost) hqs hqt
+    have hfairq := H0.fair_of_cover H b k a K N qs cover hcv hH hb (q - keygenCost) hqt
+    have h := forgeAdvantage_le_largeWH hb0 adversary qA V hqA hV q hqdef hq127 hfairq (by
+      rw [e1] at hcovb
+      exact hcovb)
+    refine le_trans h (le_of_eq ?_)
+    rw [Nat.cast_pow, Nat.cast_ofNat]
 
 end FORS.Security.ForsPotential

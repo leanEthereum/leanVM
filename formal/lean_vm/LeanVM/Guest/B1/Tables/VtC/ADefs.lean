@@ -42,7 +42,7 @@ theorem length_expTableWordsW : expTableWordsW.length = 236 + 2 ^ winTabBits := 
   simp [expTableWordsW, expTableWords, length_etWordsN]
 
 /-- **The exponent table holds what `verify_tables` reads of it.** -/
-theorem vt_expTablesAt {rd : Reader} {sq : E} (h : TbReadsAt rd sq expTableWordsW) :
+theorem vt_expTablesAt {rd : Reader} {sq : E} (h : ReadsAt rd sq expTableWordsW) :
     ExpTablesAt rd sq := by
   have hl : expTableWords.length = 236 := by simp [expTableWords, length_etWordsN]
   have hE : ExpTables rd sq := (expTables_iff_words _ _).2 fun o ho ↦ by

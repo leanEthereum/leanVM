@@ -53,7 +53,7 @@ theorem own_fit (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) :
   have e2 : (eqLevels D.rl 5).length = 62 := by rw [eqLevels_length (by rw [rl_length])]; rfl
   have e3 : (eqLevels D.I.1 4).length = 30 := by rw [eqLevels_length (by rw [I1_length h])]; rfl
   simp only [own, sizes, List.forall₂_cons, List.Forall₂.nil, and_true]
-  simp [c0_point_length h, rl_length, claims_length h, e1, e2, e3, eqKernel_length, seg_length]
+  simp [LeanVM.Guest.B1.VerifySub.VkData.c0_point h, rl_length, claims_length h, e1, e2, e3, eqKernel_length, seg_length]
 
 theorem kids_lay {fs : String → ℕ} {B curE chiE olE zvE slE tbE stE : ℕ} {s : ℕ} (hs : s < 12) :
     (D.kids fs B curE chiE olE zvE slE tbE stE)[s + 1]'(by rw [kids_length]; omega) =

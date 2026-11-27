@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.C.ValsB
 public import LeanVM.Guest.B1.Bits.GrindPlaced
+import LeanVM.Guest.B1.Common.KeyTrie
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
 
@@ -99,7 +100,13 @@ def vsSideOk : Stmt → Bool
   | .atom a => !needsSide a || vsSidePieces.any (atomEqb a)
   | _ => true
 
-theorem vs_sideCls : vsCPre.all vsSideOk = true := by decide +kernel
+theorem vs_sideCls : vsCPre.all vsSideOk = true := by
+  have e : vsSideOk = fun s ↦ (match s with | .atom a => !needsSide a | _ => true) ||
+      vsSidePieces.any (match s with | .atom a => atomEqb a | _ => fun _ ↦ false) := by
+    funext s; cases s <;> rfl
+  rw [e]
+  exact all_any_of_allMatch (kx := fun | .atom a => atomKey a | _ => 0) (ky := atomKey) (d := 12)
+    (by decide +kernel)
 
 theorem vs_side_mem {a : Atom} (hs : Stmt.atom a ∈ vsCPre) (hn : needsSide a = true) :
     a ∈ vsSidePieces := by

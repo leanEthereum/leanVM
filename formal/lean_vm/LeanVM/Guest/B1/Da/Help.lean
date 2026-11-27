@@ -30,8 +30,6 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 variable {rd : Reader}
 
-theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
-
 /-- Unpacking a checked loop's parameters. -/
 theorem loop_params {j : ℕ} {f : String} (hshape : loopShapeF (coreProgram.getD j default) f = true)
     {n : ℕ} (hlen : (coreProgram.getD j default).params.length = n) :

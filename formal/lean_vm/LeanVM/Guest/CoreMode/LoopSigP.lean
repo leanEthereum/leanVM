@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.LoopSig
 public import LeanVM.Guest.CoreMode.CorePtr
 public import LeanVM.Guest.CoreMode.LoopLink
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A loop helper's signature with pointer runs
@@ -78,7 +79,7 @@ theorem passOf_spec : ∀ {args : List V} {b o : ℕ}, o ∈ passOf args b →
       exact ⟨k + 1, by omega, by rw [show b + (k + 1) = b + 1 + k by omega]; simpa using hk⟩
 
 theorem tailPass_spec {body pre : List Stmt} {c : V} {f : String} {args : List V}
-    (hb : body = pre ++ [.callIf c f args, .ret []]) {o : ℕ} (h : o ∈ tailPass body) :
+    (hb : body = pre ⧺ [.callIf c f args, .ret []]) {o : ℕ} (h : o ∈ tailPass body) :
     ∃ k, o = 2 + k ∧ args[k]? = some (V.n k) := by
   subst hb
   simp only [tailPass, List.reverse_append, List.reverse_cons, List.reverse_nil, List.nil_append,

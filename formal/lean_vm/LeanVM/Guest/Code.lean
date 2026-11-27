@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Semantics.Lemmas
 public import Statement.LeanIsa
+public import LeanVM.Guest.Compiled
 
 /-!
 # Offset-form bytecode
@@ -222,6 +223,40 @@ theorem lookup_of_le {s e pc : ℕ} {fns : List CompiledFunction} (h : consecuti
     simp only [consecutive, Bool.and_eq_true, beq_iff_eq] at h
     have := consecutive_le h.2
     rw [instructionAtPc, ite_eq_right (by omega), ih h.2]
+
+/-- In a consecutive layout from pc `s` of well-chunked functions, pc `pc ≥ s` holds entry `pc - s`
+of their code joined, the padding past its end. -/
+theorem lookup_eq_getD {s e : ℕ} {fns : List CompiledFunction} (h : consecutive s fns e = true)
+    (hw : fns.all (fun f ↦ chunked chunkSize f.chunks f.instructionCount) = true) {pc : ℕ}
+    (hpc : s ≤ pc) : instructionAtPc fns pc = (fns.flatMap (·.code)).getD (pc - s) .padding := by
+  induction fns generalizing s with
+  | nil => simp [instructionAtPc]
+  | cons f fs ih =>
+    simp only [consecutive, Bool.and_eq_true, beq_iff_eq] at h
+    simp only [List.all_cons, Bool.and_eq_true] at hw
+    obtain ⟨rfl, hfs⟩ := h
+    have hlen : f.code.length = f.instructionCount := CompiledFunction.length_code hw.1
+    rw [List.flatMap_cons, List.getD_eq_getElem?_getD, instructionAtPc]
+    split_ifs with hlt
+    · rw [List.getElem?_append_left (by omega), CompiledFunction.getElem?_code hw.1 (by omega)]
+      rfl
+    · rw [ih hfs hw.2 (by omega), List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega),
+        hlen, Nat.sub_sub]
+
+/-- The functions' chunks joined are their codes joined. -/
+theorem flatten_flatMap_chunks : ∀ fns : List CompiledFunction,
+    (fns.flatMap (·.chunks)).flatten = fns.flatMap (·.code)
+  | [] => rfl
+  | f :: fs => by
+    rw [List.flatMap_cons, List.flatMap_cons, List.flatten_append, flatten_flatMap_chunks fs]
+    rfl
+
+/-- The chunks of functions laid out consecutively from pc `0`, well-chunked, joined: the program
+`assemble` makes of them, slot by slot. -/
+theorem getD_flatten_chunks {e : ℕ} {fns : List CompiledFunction} (h : consecutive 0 fns e = true)
+    (hw : fns.all (fun f ↦ chunked chunkSize f.chunks f.instructionCount) = true) (pc : ℕ) :
+    (fns.flatMap (·.chunks)).flatten.getD pc .padding = instructionAtPc fns pc := by
+  rw [lookup_eq_getD h hw (Nat.zero_le pc), Nat.sub_zero, flatten_flatMap_chunks]
 
 section
 

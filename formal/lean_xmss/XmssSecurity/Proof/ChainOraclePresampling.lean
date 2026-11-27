@@ -87,7 +87,7 @@ theorem keyChainWalk_query_cached_in_largerCache
         rw [hprevious]
         exact hle hcached
 
-theorem sequenceFin_component_support_in_largerCache {n : Nat}
+theorem sequenceFin_component_support_in_largerCache {α : Type _} {n : Nat}
     (computation : Fin n → OracleComp HashSpec α) (target : Fin n)
     (initialCache resultCache largerCache : QueryCache HashSpec) (values : Fin n → α)
     (hmem : (values, resultCache) ∈ support

@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop4»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The children, placed
@@ -103,7 +104,7 @@ theorem l5_kinds : l5Pre.all l5Kind = true := by decide +kernel
 
 theorem l5Pre_straight : (l5Pre ++ [l5Tail]).all Main.Stmt.straight = true := by decide
 
-theorem l5Body_split : l5Body = (l5Pre ++ [l5Tail]) ++ [.ret []] := by
+theorem l5Body_split : l5Body = (l5Pre ++ [l5Tail]) ⧺ [.ret []] := by
   simp [l5Body]
 
 theorem find_l5 : coreProgram.find? name% «main_loop4» = some (coreProgram.getD idx% «main_loop4»

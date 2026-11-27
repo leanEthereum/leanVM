@@ -59,11 +59,6 @@ theorem xs_split (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
 
 end LayerData
 
-theorem five_of_length' {l : List E} (h : l.length = 5) :
-    ∃ a b c d e, l = [a, b, c, d, e] := by
-  match l, h with
-  | [a, b, c, d, e], _ => exact ⟨a, b, c, d, e, rfl⟩
-
 theorem one_add_gen_pow_isInK (k : ℕ) : IsInK (1 + gen ^ k) :=
   isInK_add ((isInK_iff _).mpr ⟨1, ofK_one.symm⟩) ((isInK_iff _).mpr ⟨_, gen_pow_eq_ofK k⟩)
 
@@ -124,7 +119,7 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first) False
       (fun r ↦ r = D.rets first cur) := by
   intro σ'
-  obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
+  obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length hcl
   have hl : (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), claim,
       out, iota, tb, st]).length = 16 := by simp [hcl]
   have hG := layer_good (rd := rd) (w := w) hf hl

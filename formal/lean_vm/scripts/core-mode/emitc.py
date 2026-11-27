@@ -1864,8 +1864,10 @@ LIM = 16000   # characters of list text per declaration (each is elaborated with
 class Aux:
     """Auxiliary declarations: a long list split into chunks, each its own `def`."""
 
-    def __init__(self):
+    def __init__(self, data=False):
         self.defs = []
+        # each chunk built as a term (`data%`, `Guest/DataLit.lean`): the module imports `LeanVM.Guest.DataLit`
+        self.data = data
 
     def lst(self, name, typ, items, ind='    '):
         items = list(items)
@@ -1883,7 +1885,7 @@ class Aux:
         names = []
         for i, part in enumerate(parts):
             nm = f'{name}{i}'
-            self.defs.append(f'def {nm} : List {typ} :=\n  [{wrap(part, "    ")}]\n')
+            self.defs.append(f'def {nm} : List {typ} :=\n  {"data% " if self.data else ""}[{wrap(part, "    ")}]\n')
             names.append(nm)
         return '(' + ' ++ '.join(names) + ')'
 
@@ -1997,9 +1999,9 @@ def larm(ax, H, pre):
     return out
 
 
-def lcert(H, sig_only=False):
-    """The aux declarations and the certificate's fields."""
-    ax = Aux()
+def lcert(H, sig_only=False, data=False):
+    """The aux declarations and the certificate's fields (`data`: the long lists written `data% …`)."""
+    ax = Aux(data)
     out = f'  sig := {lsig(H.sig, ax)}\n'
     if sig_only:
         return ax.defs, out + '  reads := []\n  res := []\n'

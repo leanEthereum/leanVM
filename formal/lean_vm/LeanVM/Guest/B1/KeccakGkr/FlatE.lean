@@ -12,6 +12,7 @@ public import LeanVM.Guest.Budget.BoundedR
 public import LeanVM.Guest.Exact.Ok
 public import LeanVM.Guest.Exact.Kids
 public import LeanVM.Guest.B1.Tables.FlatAtT
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies, exact
@@ -111,7 +112,7 @@ valuation's path exact, its callees complete within their bounds `bd` (`kidsBoun
 theorem completeAt_flatOutFBE {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : ℕ → Layout) (args : List E)
     (rets : ℕ → List E) (Out : ℕ → List E → Layout → Prop)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List (List E))
@@ -275,7 +276,7 @@ theorem kidsFromInT_of_kidsGBT (κ : ℕ) (T : Reader → Tree → Prop) : ∀ (
 `exT`. -/
 theorem completeAt_flatGBE {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (hpx : PathExactFn fn) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))

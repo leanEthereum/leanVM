@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Place.OsProtoSpec
 public import LeanVM.Guest.B1.Place.OsKids
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Whir.Flatness
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `open_stacked`'s frames
@@ -262,7 +263,7 @@ def lvPre (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
   let rt := osRates c lvl s
   let f := osRounds true lv.foldsOff lv.folds rt.2
   let m := if lvl = c.yrLevel then osFinalMsg c lv f.2 else osCommit c lvl lv f.2
-  rt.1 ++ f.1 ++ m.1 ++ (osQGrind m.2).1
+  rt.1 ⧺ f.1 ⧺ m.1 ⧺ (osQGrind m.2).1
 
 /-- A level after its positions. -/
 def lvPost (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
@@ -271,7 +272,7 @@ def lvPost (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt :=
   let h := if lvl = c.yrLevel then osHsFinal c lv la.2 else osHsMid lvl lv la.2
   let q := osQueries c lvl lv h.2
   let g := if lvl = c.yrLevel then (([] : List Stmt), q.2) else osGlue lvl q.2
-  la.1 ++ h.1 ++ q.1 ++ g.1
+  la.1 ⧺ h.1 ⧺ q.1 ⧺ g.1
 
 theorem osLevel_split (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) :
     (osLevel c lvl lv s).1 =

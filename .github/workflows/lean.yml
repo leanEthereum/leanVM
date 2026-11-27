@@ -96,9 +96,32 @@ jobs:
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/common
+      # Restored on every run; saved only from main (below), so a pull request's runs write no cache.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/common/.lake
+            !formal/common/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
+          key: lake-common-${{ runner.os }}-${{ hashFiles('formal/common/lean-toolchain', 'formal/common/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean') }}
+          restore-keys: lake-common-${{ runner.os }}-${{ hashFiles('formal/common/lean-toolchain', 'formal/common/lake-manifest.json', 'formal/*/lakefile.*') }}-
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/common
+          use-github-cache: false
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/common/.lake
+            !formal/common/.lake/packages/mathlib/.lake
+            formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - name: Test the axiom footprint checker
         run: bash formal/tools/test-axiom-footprint.sh
       - name: Forbid deprecated API
@@ -126,6 +149,19 @@ jobs:
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/lean_xmss
+      # Restored on every run; saved only from main (below), so a pull request's runs write no cache.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_xmss/.lake
+            !formal/lean_xmss/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
+          key: lake-xmss-${{ runner.os }}-${{ hashFiles('formal/lean_xmss/lean-toolchain', 'formal/lean_xmss/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_xmss/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/fast_fields/**/*.lean') }}
+          restore-keys: lake-xmss-${{ runner.os }}-${{ hashFiles('formal/lean_xmss/lean-toolchain', 'formal/lean_xmss/lake-manifest.json', 'formal/*/lakefile.*') }}-
       # Installs the toolchain from `lean_xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default targets, which
       # elaborate the root module and with it the `#guard_msgs` check, and
@@ -134,6 +170,18 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
+          use-github-cache: false
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_xmss/.lake
+            !formal/lean_xmss/.lake/packages/mathlib/.lake
+            formal/common/.lake/build
+            formal/Statement/.lake/build
+            formal/fast_fields/.lake/build
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       # Lake replays a cached module's warnings, so a second build lists every one.
       - name: Forbid deprecated API
         working-directory: formal/lean_xmss

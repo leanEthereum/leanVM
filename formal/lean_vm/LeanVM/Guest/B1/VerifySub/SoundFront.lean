@@ -167,7 +167,7 @@ theorem vsPlaceT_size {κ : ℕ} (hκ : κ ≤ 32) (_hκ6 : 6 ≤ κ) (L : Memor
     List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨-, -, e277, m278, e279, r278, -⟩ := h
   obtain ⟨e, he, h278⟩ := rc_pow hκ L (a := 10) (by norm_num)
-    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_pow2 (by norm_num)]) r278
+    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]) r278
   have hme : m = e + 20 := by
     have := congrArg (· * gen ^ 20) (m278.symm.trans h278)
     simp only [h276, e277, mul_assoc, vsGinv20_mul, mul_one, ← pow_add] at this

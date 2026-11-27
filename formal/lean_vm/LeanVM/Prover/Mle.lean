@@ -48,7 +48,7 @@ theorem toList_eqTable (p : List E) : (eqTable p).toList = eqKernel p := by
   exact h p #[1]
 
 theorem size_eqTable (p : List E) : (eqTable p).size = 2 ^ p.length := by
-  rw [← Array.length_toList, toList_eqTable, length_eqKernel]
+  rw [← Array.length_toList, toList_eqTable, eqKernel_length]
 
 /-- Entry `j` of the equality table is `eq(j, p)`. -/
 theorem getD_eqTable (p : List E) (j : ℕ) (hj : j < 2 ^ p.length) :

@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsBytes
 public import LeanVM.Guest.WithHashBridge
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The message digest, sound
@@ -219,7 +220,7 @@ theorem word_y_inv' : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 checked into `K` after `y⁻¹`. -/
 theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
     (hK : IsInK ((x + eOfNat l + eOfNat (2 ^ 16 * N)) * word 2 1)) : cellNat x % 2 ^ 16 = l := by
-  rw [word_y_inv', eq_ofLimbs x, eOfNat_eq_ofLimbs, eOfNat_eq_ofLimbs, ofLimbs_add, ofLimbs_add,
+  rw [word_y_inv', eq_ofLimbs x, eOfNat_eq_ofLimbs, eOfNat_eq_ofLimbs, add_limbs, add_limbs,
     ofLimbs_mul_y_inv, isInK_ofLimbs_iff] at hK
   have h0 : x.limb 0 = K.ofBits l + K.ofBits (2 ^ 16 * N) := by
     rw [add_assoc] at hK
@@ -268,7 +269,7 @@ theorem lval_at {T : Nat} (hl : LValsAt σ T) {l z i : Nat} (hl3 : l < 3) (hz : 
 
 /-- The check's statements before `d0[0] = md0`: the tree's middle byte, the unused bits. -/
 def sCheckA : List Stmt :=
-  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ++
+  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ⧺
     sPadBits
 
 /-- `d0[0] = md0 + corr0` and `md1 + corr1`: the places `vals` carries taken out. -/
@@ -289,7 +290,7 @@ def sCheckC : List Stmt :=
     cst 1370 (word 2 1), mulS (.n (val% «verify_sig_lean_sphincs» "high")) (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~7"))]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
-    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
+    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ⧺
     [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)] := by
   simp [sCheck, sCheckA, sCheckCorr, sCheckB, sCheckC]
 

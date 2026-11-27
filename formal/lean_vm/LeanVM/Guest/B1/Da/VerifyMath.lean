@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Da.DualMath
 public import LeanVM.Guest.WithHashBridge
 public import LeanVM.Guest.Value.KeccakConst
 import LeanVM.ToMathlib.Finset
+import LeanDa.WithHashBridge
 
 /-!
 # The claim `da_verify` returns is opened
@@ -155,6 +156,7 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 �
   refine ⟨by rw [hlen]; exact hr1, by rw [hlen]; exact hr, hrows, ?_, ?_⟩
   · -- the commitment
     have hrL : r ≤ 2 ^ L := hL ▸ hr
+    apply LeanDa.toBytes_injective
     rw [LeanVM.Da.commitCells_keccakF1600 _ hrows (by rw [hlen]; exact hr), LeanDa.commitCodewordsWithHash,
       hlen, hL]
     have hlist : (daRows r syms).map (LeanDa.listBlobRootWithHash LeanVM.Da.keccak256Bytes) ++

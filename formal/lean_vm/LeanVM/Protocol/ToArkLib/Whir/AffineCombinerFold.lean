@@ -22,18 +22,15 @@ folded bit is `0` and `1`), a degree `1 ≤ d`, a threshold `A` with `(A - 1)² 
 `2^κ` and above carry no weight is irrelevant here, only linearity is used).
 
 * `foldW dom f g α β = g + (α + β x) f`, the affine fold (`def:affine-fold`).
-* `card_foldBad_le`: if every pair of `lst(f, g; A - 1, d)` violates the claim, then for every
-  table `u₀ v c₀ c₁` (the claimed `⟨W₀, G⟩`, `⟨W₁ − W₀, F⟩`, `⟨W₀, XF⟩`, `⟨W₁, XF⟩`), at most
-  `N + 2 L |F|` challenges `(α, β)` let some tuple of `lst(fold; A, d)` satisfy the new claim
+* `card_foldBadR_le`, relativised to a predicate `Bp` on pairs, as the agreement-set extractor's
+  invariant asks: if every pair of `lst(f, g; A - 1, d)` satisfying `Bp` violates the claim, then
+  for every table `u₀ v c₀ c₁` (the claimed `⟨W₀, G⟩`, `⟨W₁ − W₀, F⟩`, `⟨W₀, XF⟩`, `⟨W₁, XF⟩`), at
+  most `N + 2 L |F|` challenges `(α, β)` (`foldBadR`) let a tuple of `lst(fold; A, d)`, every near
+  pair of whose agreement set (`NearPair`: both halves of degree at most `d`, agreeing with
+  `(f, g)` there but at one point) satisfies `Bp`, satisfy the new claim
   `(1 - α) Λ₀ P + α Λ₁ P = u₀ + α (c - u₀) + α² v + β c₀ + α β (c₁ - c₀)`, where `N` is the
   number of exceptional pairs of the combiner for the words `g` and `f`. Divided by `|F|²`, this
   is the Annex's `ε_aff + 2L/|E|` when `N ≤ |F|² ε_aff`.
-* `card_foldBadR_le`: the same count relativised to a predicate `Bp` on pairs, as the
-  agreement-set extractor's invariant asks: if every pair of `lst(f, g; A - 1, d)` satisfying `Bp`
-  violates the claim, the same bound holds for the challenges (`foldBadR`) after which a tuple of
-  `lst(fold; A, d)`, every near pair of whose agreement set (`NearPair`: both halves of degree at
-  most `d`, agreeing with `(f, g)` there but at one point) satisfies `Bp`, satisfies the new claim.
-  `card_foldBad_le` is its case `Bp` true.
 
 Outside the exceptional pairs, a tuple `P` of the fold's list is `U + (α + β X) V` with
 `deg U ≤ d`, `deg V ≤ d - 1`, `U = g` and `V = f` off at most one agreement point, so `(V, U)` is
@@ -182,15 +179,6 @@ def ClaimHolds (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (α β c u₀ v c₀ c�
   (1 - α) * Λ₀ P + α * Λ₁ P = u₀ + α * (c - u₀) + α ^ 2 * v + β * c₀ + α * β * (c₁ - c₀)
 
 open Classical in
-/-- **The fold round's escapes**: the challenges `(α, β)` after which some tuple of
-`lst(fold; A, d)` satisfies the new claim, for the table `u₀ v c₀ c₁` and the running claim
-`c`. -/
-noncomputable def foldBad (dom : ι ↪ F) (f g : ρ → ι → F) (A d : ℕ)
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c u₀ v c₀ c₁ : F) : Finset (F × F) :=
-  univ.filter fun t ↦ ∃ P ∈ tupleList dom (foldW dom f g t.1 t.2) A d,
-    ClaimHolds Λ₀ Λ₁ t.1 t.2 c u₀ v c₀ c₁ P
-
-open Classical in
 /-- **A near pair**: `p = (F, G)` has both halves of degree at most `d`, and agrees with `(f, g)`
 on all of `S` but at most one point. -/
 def NearPair (dom : ι ↪ F) (f g : ρ → ι → F) (d : ℕ) (S : Finset ι)
@@ -288,21 +276,6 @@ theorem card_foldBadR_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
         gcongr
         exact (card_filter_le _ _).trans (card_pairList_le_jl dom f g (A - 1) d hgap)
     _ = _ := by ring
-
-/-- **`lem:fold-list`**, counting form. Let every pair of `lst(f, g; A - 1, d)` violate the claim
-`Λ₀ F + Λ₁ G = c`. For every table `u₀ v c₀ c₁`, at most
-`|excSet(g, f)| + 2 jl n (A - 1) d |F|` challenges `(α, β)` let a tuple of `lst(fold; A, d)`
-satisfy the new claim. -/
-theorem card_foldBad_le (hgap : Fintype.card ι * d < (A - 1) * (A - 1))
-    (Λ₀ Λ₁ : (ρ → F[X]) →ₗ[F] F) (c : F)
-    (hviol : ∀ p ∈ pairList dom f g (A - 1) d, Λ₀ p.1 + Λ₁ p.2 ≠ c) (u₀ v c₀ c₁ : F) :
-    (foldBad dom f g A d Λ₀ Λ₁ c u₀ v c₀ c₁).card ≤
-      (excSet dom g f d A).card + 2 * jl (Fintype.card ι) (A - 1) d * Fintype.card F := by
-  classical
-  refine le_trans (card_le_card fun t ht ↦ ?_)
-    (card_foldBadR_le dom f g hgap Λ₀ Λ₁ c (fun _ ↦ True) (fun p hp _ ↦ hviol p hp) u₀ v c₀ c₁)
-  obtain ⟨P, hP, hclaim⟩ := (mem_filter.mp ht).2
-  exact mem_filter.mpr ⟨mem_univ _, P, hP, fun _ _ ↦ trivial, hclaim⟩
 
 end
 end LeanVM.Protocol.Whir.AffineCombiner

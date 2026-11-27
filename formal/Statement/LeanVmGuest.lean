@@ -241,7 +241,7 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py`):
 `1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the commitment to the matrix they
-form, `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
+form, `LeanDa.commitCells`, over Keccak-f[1600]), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
 which the guest program builds from `z`: `da_vector`, `lean_ethereum.py`). Only where
 `z` is the root's membership challenge, as the deployed outer verifier derives it (no end statement
@@ -252,7 +252,7 @@ def _root_.LeanVM.Da.MatrixWitness.Opens (root : Digest) (z : E)
     (witness : LeanVM.Da.MatrixWitness) : Prop :=
   1 ≤ witness.rows.length ∧ witness.rows.length ≤ LeanDa.maxRows ∧
     (∀ row ∈ witness.rows, row.length = 2 ^ LeanDa.logM) ∧
-    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root.toBytes ∧
+    LeanDa.commitCells keccakF1600 (LeanDa.cellsOfRows witness.rows) = root ∧
     ∀ row ∈ witness.rows, LeanDa.innerProduct (LeanDa.dualCodewordAt z) (fun b ↦ row.getD b 0) = 0
 
 /-- **Every child is proven**: its deferred claim has the bytecode's shape, and the deferring
@@ -319,14 +319,12 @@ def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
   ∃ p ∈ pairs, p.1 ≠ p.2 ∧ keccak256 p.1 = keccak256 p.2
 
 /-- **The statement's digest binds the seed and the statement**: two statements whose deferred
-claims have the shape of one bytecode and whose digests (under two seeds) are equal are the same
-statement under the same seed, or one of the candidate pairs is a Keccak-256 collision. The shape
-fixes the length of the deferred claim's point, which the digest does not record. Proved by
-`LeanVM.Guest.Binding.digest_binds`. -/
+claims' points have the same length and whose digests (under two seeds) are equal are the same
+statement under the same seed, or one of the candidate pairs is a Keccak-256 collision. The
+digest does not record the point's length. Proved by `LeanVM.Guest.Binding.digest_binds`. -/
 def StatementDigestBinds : Prop :=
-  ∀ (bytecode : List K) (seed seed' : Digest) (statement statement' : NodeStatement),
-    statement.deferredClaim.HasBytecodeShape bytecode →
-    statement'.deferredClaim.HasBytecodeShape bytecode →
+  ∀ (seed seed' : Digest) (statement statement' : NodeStatement),
+    statement.deferredClaim.bytecodePoint.length = statement'.deferredClaim.bytecodePoint.length →
     statementDigest seed statement = statementDigest seed' statement' →
     (seed = seed' ∧ statement = statement') ∨
       HasCollision (collisionCandidates seed statement seed' statement')
@@ -339,8 +337,14 @@ end LeanVM.Node
 
 namespace LeanVM.Guest
 
-/-- **The deployed leanISA guest program**, assembled from the generated `Statement/Data/`. -/
-def guestProgram : LeanVM.Semantics.LeanIsaProgram := assemble Data.functions 19 (by decide)
+/-- The deployed guest's instructions from pc `0`, in order: the generated `Statement/Data/`'s
+blocks, joined. Irreducible, so that elaboration never unfolds the whole code. -/
+@[irreducible] def guestCode : Array OffsetInstruction := Data.blocks.flatten.toArray
+
+/-- **The deployed leanISA guest program**: `2^19` slots, the guest's instructions from pc `0`, then
+the padding `SET fp[0] = 0`. -/
+def guestProgram : LeanVM.Semantics.LeanIsaProgram :=
+  ⟨19, by decide, fun i ↦ (guestCode.getD i.val .padding).toLeanIsaInstruction⟩
 
 end LeanVM.Guest
 

@@ -150,15 +150,23 @@ end LeanVM.Guest.Bridge
             if not hp:
                 tbody.append(f'kernel_rfl plumbEq{j} : B2C.plumbOf {j} = Fn.«{k}».plumb\n')
                 pe = f'plumbEq{j}'
-            tbody.append(f'kernel_rfl tab{j} : (Bridge.extraOf {j}, Bridge.entsOf {j}, Bridge.adviceOf {j}) = '
-                         f'({cells}, {ents}, Data.adviceFn{j})\n')
+            # the callees' names and entries by their link modules' equations, not walking the program to each
+            cs = callees[j]
+            ens = ''.join(f'(Bridge.ents_cons Checked.core{c} Checked.code{c} ' for c in cs) + 'rfl' + ')' * len(cs)
+            tbody.append(f'kernel_rfl tabK{j} : (Bridge.calleesOf {j}, Bridge.extraOf {j}, Bridge.adviceOf {j}) = '
+                         f'([{", ".join(map(str, cs))}], {cells}, Data.adviceFn{j})\n'
+                         f'theorem tab{j} : (Bridge.extraOf {j}, Bridge.entsOf {j}, Bridge.adviceOf {j}) = '
+                         f'({cells}, {ents}, Data.adviceFn{j}) :=\n  Bridge.tab_of tabK{j} {ens}\n')
             body.append(f'theorem ok{j} : Bridge.FnAlOk {j} := Bridge.fnAlOk_of Checked.code{j} Checked.core{j} '
                         f'Checked.cert{j} {pe} tab{j} rfl Fn.«{k}».alignOk\n')
         files[os.path.join(OUT, f'{tmod}.lean')] = (
             HEAD(mod=f'LeanVM.Guest.Bridge.ProgAl.{tmod}',
                         what=f"The alignment tables' entries of the functions of `Checked.{mod}`.")
-            + f'public import LeanVM.Guest.Bridge.ProgAlDefs\npublic import LeanVM.Guest.Checked.{mod}\n'
-            + 'import all Statement.Data.Bytecode\nimport all Statement.Data.AdviceHints\n'
+            + 'public import LeanVM.Guest.Bridge.ProgAlDefs\n'
+            # the callees' link modules, for their `core`, `code` equations
+            + ''.join(f'public import LeanVM.Guest.Checked.{m}\n'
+                      for m in sorted({mod} | {lk[c][1] for j in js for c in callees[j]}))
+            + 'import all LeanVM.Guest.Data.Functions\nimport all Statement.Data.AdviceHints\n'
             + ''.join(f'public import LeanVM.Guest.CoreMode.GlueE.«{q}»\n' for q in glue)
             + '''meta import LeanVM.Guest.KernelLit
 

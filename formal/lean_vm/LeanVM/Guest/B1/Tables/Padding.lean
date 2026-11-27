@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«padding_weight__L»
 import LeanVM.Guest.Data.ValNames.«padding_weight__L0»
 import LeanVM.Guest.Data.ValNames.«padding_weight__L1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `padding_weight`
@@ -37,12 +38,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
-
-theorem tb_ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
-    (if c then a else b) = b := by simp [h]
-
-theorem tb_ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) :
-    (if c then a else b) = a := by simp [h]
 
 /-- A prefix of the bits of `N` reconstructs `N mod 2^j`. -/
 theorem tb_sum_bits_mod (N j : ℕ) (hj : j ≤ 64) :
@@ -111,9 +106,9 @@ def pwTail (τ : ℕ) : List Stmt :=
 
 /-- The expansion of `padding_weight` at `τ ≥ 2`. -/
 def pwBody (τ : ℕ) : List Stmt :=
-  pwHead τ ++ pwStep0 τ ++ ((List.range (τ - 1)).map fun i => pwStep τ (i + 1)).flatten ++
-    [.atom (.mul (.n (4 + τ)) (.n (4 + τ)) (.n (4 + τ)))] ++
-    ((List.range (τ - 2)).map (pwHorner τ)).flatten ++ pwTail τ
+  pwHead τ ⧺ pwStep0 τ ⧺ ((List.range (τ - 1)).map fun i => pwStep τ (i + 1)).flatten ⧺
+    [.atom (.mul (.n (4 + τ)) (.n (4 + τ)) (.n (4 + τ)))] ⧺
+    ((List.range (τ - 2)).map (pwHorner τ)).flatten ⧺ pwTail τ
 
 /-! ## Bits and words -/
 
@@ -322,7 +317,7 @@ theorem lead_rest_iff {τ n : ℕ} (hτ : τ < 64) (hn : n ≤ 2 ^ τ) :
  with `lead` and `rest` (`lead_rest_iff`). -/
 def MeaningPaddingWeight (τ : ℕ) (rd : Reader) : List E → List E → Prop
   | [rows, zeta], rets => ∃ n zs, n ≤ 2 ^ τ ∧ rows = eOfNat n ∧ zs.length = τ ∧
-      TbReadsAt rd zeta zs ∧ rets = [paddingWeight zs n, pwLead τ n, pwRest τ n]
+      ReadsAt rd zeta zs ∧ rets = [paddingWeight zs n, pwLead τ n, pwRest τ n]
   | _, _ => False
 
 
@@ -389,7 +384,7 @@ theorem pw_unfold {name : String} {f : Fn} (τ : ℕ) (hfind : coreProgram.find?
       (∀ i < τ - 1, PwStepOk rd σ τ (i + 1)) ∧
       σ (.n (4 + τ)) = σ (.n (4 + τ)) * σ (.n (4 + τ)) ∧
       (∀ j < τ - 2, PwHornOk σ τ j) ∧ PwTailOk σ τ rets := by
-  rw [tb_rel_iff_sem hfind, hbody, hparams, pwBody]
+  rw [rel_iff_sem hfind, hbody, hparams, pwBody]
   simp only [holdsList_append, tb_holdsList_range_flatten (τ - 1) (fun i => pwStep τ (i + 1))
     (fun _ => rfl), tb_holdsList_range_flatten (τ - 2) (pwHorner τ) (fun _ => rfl), holds_pwStep,
     holds_pwHorner, holds_pwTail, pwHead, pwStep0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
@@ -449,8 +444,8 @@ theorem pw_rets {τ n : ℕ} (h2 : 2 ≤ τ) (h32 : τ ≤ 32) {b z : ℕ → E}
     rw [hcomp k (by omega), Nat.testBit_xor, Nat.testBit_mod_two_pow, Nat.testBit_two_pow_sub_one]
     simp [hk']
   simp only [pwLead, pwRest, PadLead, PadRest, Nat.ne_of_gt (show 0 < τ by omega), ↓reduceIte]
-  rw [paddingWeight_eq, hlen, hpf, htopb, hcomp (τ - 1) (by omega), hbelow, tb_word_one,
-    tb_word_eOfNat, add_assoc (bitE (n.testBit τ)) (eOfNat _) _, ← eOfNat_xor, Nat.xor_assoc,
+  rw [paddingWeight_eq, hlen, hpf, htopb, hcomp (τ - 1) (by omega), hbelow, word_one,
+    word_eOfNat, add_assoc (bitE (n.testBit τ)) (eOfNat _) _, ← eOfNat_xor, Nat.xor_assoc,
     Nat.xor_self, Nat.xor_zero]
   refine List.cons_eq_cons.mpr ⟨by ring, List.cons_eq_cons.mpr ⟨?_, rfl⟩⟩
   rw [add_assoc, one_add_bitE, Bool.not_not]
@@ -500,18 +495,18 @@ theorem pw_sound {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : τ �
     | succ j ih =>
       obtain ⟨c, m, a⟩ := hhorn j (by omega)
       rw [pwBl, ← ih (by omega), show pwBelow τ (j + 1) = 6 * τ + 6 + 3 * j by
-        simp only [pwBelow, Nat.succ_ne_zero, ↓reduceIte]; ring, a, m, c, tb_word_gen]
+        simp only [pwBelow, Nat.succ_ne_zero, ↓reduceIte]; ring, a, m, c, word_gen]
       simp only [b]; congr 3; omega
   have hlow : pwS σ τ 2 = ∑ k ∈ Finset.range τ, b k * gen ^ k := by
-    rw [t2, t1, t0, hbl _ le_rfl, pwBl_top b h2, tb_word_two_pow (by omega),
+    rw [t2, t1, t0, hbl _ le_rfl, pwBl_top b h2, word_two_pow (by omega),
       show τ = τ - 1 + 1 by omega, Finset.sum_range_succ, show τ - 1 + 1 - 1 = τ - 1 by omega]
     simp only [b]; rw [show 3 + (τ - 1 + 1) = 4 + (τ - 1) by omega]
   have hrec : ∑ k ∈ Finset.range (τ + 1), b k * gen ^ k = σ (.n (valf% «padding_weight» "rows")) + eOfNat (2 ^ τ - 1) := by
     rw [Finset.sum_range_succ, ← hlow, show σ (.n (valf% «padding_weight» "rows")) + eOfNat (2 ^ τ - 1) = σ (.n 3) by
-      rw [e3, e2, tb_word_eOfNat], ← e_add_eq_zero_iff.mp a11, t11, t10, t9, tb_word_two_pow (by omega)]
+      rw [e3, e2, word_eOfNat], ← e_add_eq_zero_iff.mp a11, t11, t10, t9, word_two_pow (by omega)]
   have htop' : b τ * (∑ k ∈ Finset.range τ, b k * gen ^ k + eOfNat (2 ^ τ - 1)) = 0 := by
-    rw [← hlow, ← tb_word_eOfNat, ← t12, ← t13, ← t14]
-    rw [t15, tb_word_zero, add_zero] at a14
+    rw [← hlow, ← word_eOfNat, ← t12, ← t13, ← t14]
+    rw [t15, word_zero, add_zero] at a14
     exact a14
   obtain ⟨n, hn, hrows, hbits⟩ := pw_bits (by omega) hb hrec htop'
   rw [h0] at hrows
@@ -564,37 +559,37 @@ variable {τ : ℕ} {rows zeta : E} {b z : ℕ → E}
 
 theorem pwF_lt4 {i : ℕ} (hi : i < 4) :
     pwF τ rows zeta b z i = [rows, zeta, word (2 ^ τ - 1) 0, rows + word (2 ^ τ - 1) 0].getD i 0 := by
-  rw [pwF, tb_ite_pos' hi]
+  rw [pwF, ite_pos' hi]
 
 theorem pwF_bit {k : ℕ} (hk : k ≤ τ) : pwF τ rows zeta b z (4 + k) = b k := by
-  rw [pwF, tb_ite_neg' (by omega), tb_ite_pos' (by omega), Nat.add_sub_cancel_left]
+  rw [pwF, ite_neg' (by omega), ite_pos' (by omega), Nat.add_sub_cancel_left]
 
 theorem pwF_s0 {r : ℕ} (hr1 : 1 ≤ r) (hr : r < 5) (hτ : 2 ≤ τ) :
     pwF τ rows zeta b z (τ + 4 + r) =
       [0, z 0, b 0 * z 0, b 0 + z 0, padFold b z 1].getD r 0 := by
-  rw [pwF, tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_pos' (by omega)]
+  rw [pwF, ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
   simp only
-  rw [tb_ite_pos' (by omega), show (τ + 4 + r - (τ + 4)) % 5 = r by omega]
+  rw [ite_pos' (by omega), show (τ + 4 + r - (τ + 4)) % 5 = r by omega]
 
 theorem pwF_step {k r : ℕ} (hk1 : 1 ≤ k) (hk : k < τ) (hr : r < 5) :
     pwF τ rows zeta b z (τ + 4 + 5 * k + r) = [z k, b k * z k, b k + z k,
       (b k + z k) * padFold b z k, padFold b z (k + 1)].getD r 0 := by
-  rw [pwF, tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_pos' (by omega)]
+  rw [pwF, ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
   simp only
-  rw [tb_ite_neg' (by omega), show (τ + 4 + 5 * k + r - (τ + 4)) / 5 = k by omega,
+  rw [ite_neg' (by omega), show (τ + 4 + 5 * k + r - (τ + 4)) / 5 = k by omega,
     show (τ + 4 + 5 * k + r - (τ + 4)) % 5 = r by omega]
 
 theorem pwF_horn {j r : ℕ} (hj : j < τ - 2) (hr : r < 3) :
     pwF τ rows zeta b z (6 * τ + 4 + 3 * j + r) =
       [word 2 0, pwBl b τ j * word 2 0, pwBl b τ (j + 1)].getD r 0 := by
-  rw [pwF, tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_pos' (by omega)]
+  rw [pwF, ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
   simp only
   rw [show (6 * τ + 4 + 3 * j + r - (6 * τ + 4)) / 3 = j by omega,
     show (6 * τ + 4 + 3 * j + r - (6 * τ + 4)) % 3 = r by omega]
 
 theorem pwF_tail (hτ : 2 ≤ τ) (r : ℕ) :
     pwF τ rows zeta b z (9 * τ - 2 + r) = (pwTailVals τ b z).getD r 0 := by
-  rw [pwF, tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_neg' (by omega), tb_ite_neg' (by omega),
+  rw [pwF, ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
     Nat.add_sub_cancel_left]
 
 theorem pwF_below (hτ : 2 ≤ τ) {j : ℕ} (hj : j ≤ τ - 2) :
@@ -647,7 +642,7 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : �
   obtain ⟨hrec, htop⟩ := pw_bits_complete (show τ < 63 by omega) hn
   have hlow : pwBl b τ (τ - 2) + b (τ - 1) * word (2 ^ (τ - 1)) 0 =
       ∑ k ∈ Finset.range τ, b k * gen ^ k := by
-    rw [pwBl_top b h2, tb_word_two_pow (by omega), show τ = τ - 1 + 1 by omega,
+    rw [pwBl_top b h2, word_two_pow (by omega), show τ = τ - 1 + 1 by omega,
       Finset.sum_range_succ, show τ - 1 + 1 - 1 = τ - 1 by omega]
   have f0 : F 0 = rows := pwF_lt4 (by omega)
   have f1 : F 1 = zeta := pwF_lt4 (by omega)
@@ -710,7 +705,7 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : �
     · show F (6 * τ + 5 + 3 * j) = F (pwBelow τ j) * F (6 * τ + 4 + 3 * j)
       rw [q1, q0, show F (pwBelow τ j) = pwBl b τ j from pwF_below h2 (by omega)]
     · show F (6 * τ + 6 + 3 * j) = F (6 * τ + 5 + 3 * j) + F (τ + 1 - j)
-      rw [q2, q1, qb, pwBl, tb_word_gen]
+      rw [q2, q1, qb, pwBl, word_gen]
   · have hbl : F (pwBelow τ (τ - 2)) = pwBl b τ (τ - 2) := pwF_below h2 le_rfl
     have hb1 : F (3 + τ) = b (τ - 1) := pwF_bit' (k := τ - 1) (by omega) (by omega)
     have hbt : F (4 + τ) = b τ := pwF_bit le_rfl
@@ -724,9 +719,9 @@ theorem pw_complete {name : String} {f : Fn} (τ : ℕ) (h2 : 2 ≤ τ) (h32 : �
     simp only [PwTailOk, pwS, hbl, hb1, hbt, hp, f3]
     simp only [F, t, pwTailVals, List.getD_cons_succ, List.getD_cons_zero, true_and]
     refine ⟨?_, ?_, ?_⟩
-    · rw [hlow, tb_word_two_pow (by omega), ← Finset.sum_range_succ, hrec, hrows, tb_word_eOfNat]
+    · rw [hlow, word_two_pow (by omega), ← Finset.sum_range_succ, hrec, hrows, word_eOfNat]
       exact e_add_self _
-    · rw [hlow, tb_word_eOfNat, tb_word_zero, add_zero]; exact htop
+    · rw [hlow, word_eOfNat, word_zero, add_zero]; exact htop
     · rw [hret]
       exact pw_rets h2 h32 (fun k _ => rfl) hlen (fun k _ => rfl)
 
@@ -761,7 +756,7 @@ theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
     (hparams : f.params = [.n (val% «padding_weight__L0» "rows"), .n (val% «padding_weight__L0» "zeta")]) (hbody : f.body = pwBody0) (rd : Reader)
     (rows zeta : E) (rets : List E) :
     coreProgram.Rel rd name [rows, zeta] rets ↔ MeaningPaddingWeight 0 rd [rows, zeta] rets := by
-  rw [tb_rel_iff_sem hfind, hbody, hparams, pwBody0]
+  rw [rel_iff_sem hfind, hbody, hparams, pwBody0]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   constructor
   · rintro ⟨σ, hp, hb, a2, h3, h4, h5, a4, h6, h7, h8, h9, hret⟩
@@ -769,9 +764,9 @@ theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
     obtain ⟨h0, -⟩ := hp
     have hc := bitE_of_mul_self hb.symm
     set c := decide (σ (.n (val% «padding_weight__L0» "bits[0]")) = 1)
-    refine ⟨c.toNat, [], by cases c <;> simp, ?_, rfl, tbReadsAt_nil _ _, ?_⟩
+    refine ⟨c.toNat, [], by cases c <;> simp, ?_, rfl, readsAt_nil _ _, ?_⟩
     · rw [← h0, ← e_add_eq_zero_iff.mp a2, hc]; cases c <;> simp [bitE, eOfNat_zero, eOfNat_one]
-    · rw [← hret, h7, h6, h8, h9, hc, tb_word_one]
+    · rw [← hret, h7, h6, h8, h9, hc, word_one]
       simp only [paddingWeight, List.length_nil, List.zipIdx_nil, List.foldl_nil, mul_one,
         pwLead, pwRest, PadLead, PadRest, ↓reduceIte, Nat.shiftRight_zero]
       cases c <;> simp [bitE, eOfNat_zero, eOfNat_one]
@@ -780,7 +775,7 @@ theorem pw0_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
     subst hz hret
     refine ⟨fun v => [rows, zeta, rows, 0, 0, 0, 1, 1 + rows, 1, 1].getD v.idx 0, rfl, ?_, ?_, ?_,
       ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-    all_goals simp only [List.getD_cons_succ, List.getD_cons_zero, tb_word_zero, tb_word_one, mul_zero,
+    all_goals simp only [List.getD_cons_succ, List.getD_cons_zero, word_zero, word_one, mul_zero,
       add_zero]
     · rw [hrows]; rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hn with rfl | rfl <;>
         simp [eOfNat_zero, eOfNat_one]
@@ -793,7 +788,7 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
     (hparams : f.params = [.n (val% «padding_weight__L1» "rows"), .n (val% «padding_weight__L1» "zeta")]) (hbody : f.body = pwBody1) (rd : Reader)
     (rows zeta : E) (rets : List E) :
     coreProgram.Rel rd name [rows, zeta] rets ↔ MeaningPaddingWeight 1 rd [rows, zeta] rets := by
-  rw [tb_rel_iff_sem hfind, hbody, hparams, pwBody1]
+  rw [rel_iff_sem hfind, hbody, hparams, pwBody1]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and]
   constructor
   · rintro ⟨σ, hp, h2, h3, hb0, l6, h7, h8, h9, hb1, h10, h11, h12, h13, h14, h15, a15, h16, h17,
@@ -806,11 +801,11 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       · exact hb0.symm
       · exact hb1.symm
     have hrec : ∑ k ∈ Finset.range (1 + 1), b k * gen ^ k = σ (.n (val% «padding_weight__L1» "rows")) + eOfNat (2 ^ 1 - 1) := by
-      rw [show σ (.n (val% «padding_weight__L1» "rows")) + eOfNat (2 ^ 1 - 1) = σ (.n (val% «padding_weight__L1» "word")) by rw [h3, h2, tb_word_one]; rfl,
-        ← e_add_eq_zero_iff.mp a15, h15, h14, h13, tb_word_gen]
+      rw [show σ (.n (val% «padding_weight__L1» "rows")) + eOfNat (2 ^ 1 - 1) = σ (.n (val% «padding_weight__L1» "word")) by rw [h3, h2, word_one]; rfl,
+        ← e_add_eq_zero_iff.mp a15, h15, h14, h13, word_gen]
       simp [Finset.sum_range_succ, b, mul_comm]
     have htop : b 1 * (∑ k ∈ Finset.range 1, b k * gen ^ k + eOfNat (2 ^ 1 - 1)) = 0 := by
-      rw [h19, tb_word_zero, add_zero, h18, h17, h16, tb_word_one] at a18
+      rw [h19, word_zero, add_zero, h18, h17, h16, word_one] at a18
       simpa [b, eOfNat_one] using a18
     obtain ⟨n, hn, hrows, hbits⟩ := pw_bits (by omega) hb hrec htop
     rw [h0] at hrows
@@ -821,7 +816,7 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       rw [show σ (.n (val% «padding_weight__L1» "bits[0]")) = b 0 from rfl, hbits 0 (by omega), testBit_pwW]; simp
     have e1 : σ (.n (val% «padding_weight__L1» "bits[1]")) = bitE (n.testBit 1) := by
       rw [show σ (.n (val% «padding_weight__L1» "bits[1]")) = b 1 from rfl, hbits 1 le_rfl, testBit_pwW]; simp
-    rw [← hret, h22, h21, h20, h9, h7, h8, h23, h12, h11, h10, h24, tb_word_one, e0, e1,
+    rw [← hret, h22, h21, h20, h9, h7, h8, h23, h12, h11, h10, h24, word_one, e0, e1,
       paddingWeight_eq]
     simp only [pwLead, pwRest, PadLead, PadRest, Nat.one_ne_zero, ↓reduceIte, List.length_cons, List.length_nil,
       Nat.zero_add, padFold, List.getD_cons_zero, mul_one, Nat.sub_self, pow_zero, Nat.mod_one,
@@ -844,17 +839,17 @@ theorem pw1_iff {name : String} {f : Fn} (hfind : coreProgram.find? name = some 
       rfl, rfl, rfl, ?_, ?_, rfl, rfl, ?_, rfl, rfl, ?_, ?_, rfl, rfl, ?_, ?_, ?_, rfl, rfl, rfl,
       rfl, ?_⟩
     all_goals simp only [List.getD_cons_succ, List.getD_cons_zero]
-    · exact tb_word_one.symm
+    · exact word_one.symm
     · exact (bitE_mul_self _).symm
     · exact hz
     · exact (bitE_mul_self _).symm
-    · exact tb_word_one.symm
-    · exact tb_word_gen.symm
+    · exact word_one.symm
+    · exact word_gen.symm
     · rw [hrec']; exact e_add_self _
-    · exact tb_word_one.symm
-    · exact tb_word_zero.symm
+    · exact word_one.symm
+    · exact word_zero.symm
     · rw [htop', add_zero]
-    · exact tb_word_one.symm
+    · exact word_one.symm
     · rw [hret, paddingWeight_eq]
       have e0 : b0 = bitE (!n.testBit 0) := by simp only [b0]; rw [testBit_pwW]; simp
       have e1 : b1 = bitE (n.testBit 1) := by simp only [b1]; rw [testBit_pwW]; simp
@@ -879,7 +874,7 @@ theorem padding_weight_iff {name : String} {f : Fn} (τ : ℕ) (h32 : τ ≤ 32)
       exact pw0_iff hfind hparams hbody rd rows zeta rets
     · obtain rfl : τ = 1 := by omega
       exact pw1_iff hfind hparams hbody rd rows zeta rets
-  · rw [tb_ite_neg' (by omega), tb_ite_neg' (by omega)] at hbody
+  · rw [ite_neg' (by omega), ite_neg' (by omega)] at hbody
     exact ⟨pw_sound τ h h32 hfind hparams hbody rd rows zeta rets,
       pw_complete τ h h32 hfind hparams hbody rd rows zeta rets⟩
 
@@ -891,7 +886,7 @@ def pwBodyOf (τ : ℕ) : List Stmt := if τ = 0 then pwBody0 else if τ = 1 the
 /-- The function found by name is the expansion. -/
 noncomputable def pwCheck (τ : ℕ) : Bool :=
   match coreProgram.find? (lName "padding_weight" τ) with
-  | some fn => decide (fn.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")]) && tbStmtsEqb fn.body (pwBodyOf τ)
+  | some fn => decide (fn.params = [.n (valf% «padding_weight» "rows"), .n (valf% «padding_weight» "zeta")]) && stmtsEqb fn.body (pwBodyOf τ)
   | none => false
 
 theorem pwCheck_all : (List.range 31).all pwCheck = true := by decide +kernel
@@ -904,7 +899,7 @@ theorem pwFound {τ : ℕ} (hτ : τ < 31) : ∃ fn : Fn,
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem pw_meaning_iff {τ : ℕ} (rd : Reader) (rows zeta : E) (rets : List E) :
@@ -922,7 +917,7 @@ theorem padding_weight_holds : padding_weight_Spec := by
   intro τ hτ rd args rets h
   obtain ⟨fn, hf, hp, hb⟩ := pwFound hτ
   obtain ⟨rows, zeta, rfl⟩ : ∃ rows zeta, args = [rows, zeta] := by
-    obtain ⟨σ, hp', -⟩ := (tb_rel_iff_sem hf args rets).mp h
+    obtain ⟨σ, hp', -⟩ := (rel_iff_sem hf args rets).mp h
     rw [hp] at hp'
     exact ⟨_, _, hp'.symm⟩
   exact (pw_meaning_iff rd rows zeta rets).mp

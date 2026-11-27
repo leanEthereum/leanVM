@@ -54,7 +54,7 @@ theorem mainGoalL3R (hn : NodeRelation bytecode seed s w) (hl : GuestLimits s w)
     (rawX_loopP fs cert (rawXD fs fp hn (hRawX s w)[0]) hX' hr hlow hL 0 hpos fp'
       (fp' + (((hRawX s w).length - 0) * fs name% «main_loop2» + fs (tailKey name% «main_loop2»)))).relAtInP⟩) hT
     (loopPre_pow hpos (by omega) _) ?_
-  simp [l2ArgsAt, logG_gen (show (hRawX s w).length < 2 ^ 64 - 1 by omega)]
+  simp [l2ArgsAt, logG_gen_pow (show (hRawX s w).length < 2 ^ 64 - 1 by omega)]
   rfl
 
 end

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.RecIn
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L_loop1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The pack rounds' loops, their loads placed
@@ -38,7 +39,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 then the self-call guarded by `c` with the counter `nx`, its atoms holding on `σ`. -/
 theorem loop6_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name = some fn)
     {pre : List Stmt} {c nx : ℕ}
-    (hb : fn.body = pre ++ [.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []])
+    (hb : fn.body = pre ⧺ [.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []])
     (hpar : fn.params = loopParams) (hat : pre.all isAtom = true)
     {rd : Reader} {R : ℕ → Prop} {a2 a3 a4 a5 : E} {m k : ℕ} (hk : k < m) {σ : Val}
     (hp : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] =
@@ -61,7 +62,7 @@ theorem loop6_relIn_step {name : String} {fn : Fn} (hf : coreProgram.find? name 
   have hw : walk σ fn.body = .ret ((pre ++ [Stmt.callIf (.n c) name
       [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]).flatMap (slEvs σ)) [] := by
     rw [hb, show pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []] =
-      (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]) ++ [.ret []] by simp]
+      (pre ++ [Stmt.callIf (.n c) name [.n nx, .n 1, .n 2, .n 3, .n 4, .n 5]]) ⧺ [.ret []] by simp]
     exact walk_straight σ [] _ hst
   have hcalls : pre.filterMap Stmt.callS = [] := by
     rw [List.filterMap_eq_nil_iff]

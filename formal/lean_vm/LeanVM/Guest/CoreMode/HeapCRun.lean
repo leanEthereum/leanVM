@@ -44,8 +44,6 @@ def lift (w : ℕ → E) : Val := fun v ↦ w v.idx
 
 theorem vw_lift (w : ℕ → E) : vw (lift w) = w := funext fun _ ↦ rfl
 
-theorem ofK_pow' (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 theorem valW_mul (a b : CCell) : (a.mul b).valW w = a.valW w * b.valW w := by
   have := val_mul (lift w) a b
   rwa [val_eq, val_eq, val_eq, vw_lift] at this
@@ -56,11 +54,11 @@ theorem prodW_pow (e : ℕ) : ∀ l : List (ℕ × ℕ), prodW w (l.map fun b �
     simp only [List.map_cons, prodW, prodW_pow e l, mul_pow, pow_mul]
 
 theorem valW_pow (c : CCell) (e : ℕ) : (c.pow e).valW w = c.valW w ^ e := by
-  rw [CCell.pow, CCell.valW, CCell.valW, prodW_pow, mul_pow, ← ofK_pow', addressOfIndex, addressOfIndex,
+  rw [CCell.pow, CCell.valW, CCell.valW, prodW_pow, mul_pow, ← ofK_pow, addressOfIndex, addressOfIndex,
     ← pow_mul]
 
 theorem valW_shift (c : CCell) (o : ℕ) : (c.shift o).valW w = c.valW w * ofK (addressOfIndex o) := by
-  simp only [CCell.shift, CCell.valW, addressOfIndex, pow_add, ofK_mul', mul_assoc]
+  simp only [CCell.shift, CCell.valW, addressOfIndex, pow_add, ofK_mul, mul_assoc]
 
 theorem valW_baseC (k : ℕ) : (baseC k).valW w = w k := by
   have := val_baseC (lift w) k
@@ -130,7 +128,7 @@ theorem rep_le {x : E} {y z : ℕ} (h : rep x = some y) (hz : x = ofK (addressOf
 theorem rep_succ {x : E} {y : ℕ} (h : rep x = some y) (hy : y + 1 < capE) :
     rep (x * ofK (addressOfIndex 1)) = some (y + 1) := by
   obtain ⟨-, rfl⟩ := rep_spec h
-  rw [← ofK_mul', addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex, rep_of hy]
+  rw [← ofK_mul, addressOfIndex, addressOfIndex, ← pow_add, ← addressOfIndex, rep_of hy]
 
 theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
   pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
@@ -142,7 +140,7 @@ theorem rep_of_shift {w : ℕ → E} {c : CCell} {y : ℕ} (h : rep ((c.shift 1)
   rw [valW_shift] at hv
   have : c.valW w = ofK (addressOfIndex (y - 1)) := by
     refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hv.trans ?_)
-    rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hy]
+    rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hy]
   rw [this, rep_of (by omega)]
 
 end Rep
@@ -211,7 +209,7 @@ theorem ptIdx_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
       rw [valW_shift, rep_succ hyj (by omega), Option.some.injEq] at hyj1
       exact ⟨yl, hyl, by omega⟩
   refine hR _ ⟨ylo, yhi, yj, hylo, hyhi, hle, hab, ?_⟩
-  rw [CCell.addrW, CCell.beq_eq h1, valW_mul, valW_pow, (rep_spec hyj).2, ← ofK_pow', addressOfIndex,
+  rw [CCell.addrW, CCell.beq_eq h1, valW_mul, valW_pow, (rep_spec hyj).2, ← ofK_pow, addressOfIndex,
     addressOfIndex, ← pow_mul, mul_comm yj]
 
 /-- **A cell some indices below the upper bound**: written. -/
@@ -225,14 +223,14 @@ theorem ptBack_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   have hhv := (rep_spec hyh).2
   have hcv : c.valW w * ofK (addressOfIndex (R.stride * k)) =
       R.base.valW w * ofK (addressOfIndex (R.stride * yh)) := by
-    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex,
+    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow, addressOfIndex, addressOfIndex,
       ← pow_mul, mul_comm yh]
   have hne : ofK (addressOfIndex (R.stride * k)) ≠ 0 := fun h ↦
     pow_ne_zero _ g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
   refine hR _ ⟨R.lo.off, yh, yh - k, rep_nil hlb hlc, hyh, by omega, by omega, ?_⟩
   have hv : c.valW w = R.base.valW w * ofK (addressOfIndex (R.stride * (yh - k))) := by
     refine mul_right_cancel₀ hne ?_
-    rw [hcv, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
+    rw [hcv, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
       Nat.sub_add_cancel (by omega : k ≤ yh)]
   rw [CCell.addrW, hv]
 
@@ -251,7 +249,7 @@ theorem ptRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     obtain ⟨h1, h2⟩ := h
     obtain ⟨ylo, yhi, hylo, hyhi, hab⟩ := hasF_ok hF h2
     refine hR _ ⟨ylo, yhi, ylo, hylo, hyhi, le_rfl, hab, ?_⟩
-    rw [CCell.addrW, CCell.beq_eq h1, valW_mul, valW_pow, (rep_spec hylo).2, ← ofK_pow', addressOfIndex,
+    rw [CCell.addrW, CCell.beq_eq h1, valW_mul, valW_pow, (rep_spec hylo).2, ← ofK_pow, addressOfIndex,
       addressOfIndex, ← pow_mul, mul_comm ylo]
   · simp only [Bool.and_eq_true, Bool.or_eq_true, Nat.ble_eq, Nat.blt_eq] at h
     obtain ⟨⟨⟨⟨⟨⟨⟨hb, hoff⟩, -⟩, hmod⟩, hlo⟩, hlc⟩, hk⟩, hhi⟩ := h
@@ -267,7 +265,7 @@ theorem ptRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
       have := Nat.div_add_mod (c.off - R.base.off) R.stride
       omega
     rw [CCell.addrW, CCell.valW, CCell.valW, basesBeq_eq hb, hc, addressOfIndex, addressOfIndex, addressOfIndex,
-      pow_add, ofK_mul', mul_assoc]
+      pow_add, ofK_mul, mul_assoc]
 
 theorem eqR_ok {p : CCell × CCell} (hp : p.1.valW w = p.2.valW w) {x y : CCell} (h : eqR p x y = true) :
     x.valW w = y.valW w := by
@@ -396,7 +394,7 @@ theorem shiftR_ok {Q R R2 : PRun} (h : shiftR Q R = some R2) (hR : RunF W w R.ba
       simp only at hb' e1
       rw [hb', e1]
   rw [hR', ← hS]
-  simp only [CCell.valW, addressOfIndex, mul_assoc, ← ofK_mul', ← pow_add]
+  simp only [CCell.valW, addressOfIndex, mul_assoc, ← ofK_mul, ← pow_add]
   rw [hj, Nat.add_assoc]
 
 /-- **A run inside a run rebased** (`runRunS`). -/
@@ -431,9 +429,9 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     have hhv : R.hi.valW w = ofK (addressOfIndex (yb - 1)) := by
       rw [valW_shift] at hbv
       refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hbv.trans ?_)
-      rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
+      rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
     have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
-      rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+      rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul,
         mul_comm yj]
     rcases Nat.eq_zero_or_pos yj with h0 | hpos
     · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
@@ -444,12 +442,12 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
       · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
         rwa [hl0] at this
       · rw [hhv, rep_of (by omega)]
-      · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+      · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
           addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
   obtain ⟨yh, hyh⟩ := hasExp_ok hF hexh
   -- `hi = J·g^d`
   have hhi : R.hi.valW w = J.valW w * ofK (addressOfIndex (R.hi.off - J.off)) := by
-    rw [CCell.valW, CCell.valW, basesBeq_eq hbb, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+    rw [CCell.valW, CCell.valW, basesBeq_eq hbb, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
       addressOfIndex, ← pow_add, Nat.add_sub_cancel' hoff]
   obtain ⟨yj, hyj⟩ : ∃ yj, rep (J.valW w) = some yj := by
     rcases hexj with he | he
@@ -460,9 +458,9 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   have hyhj : yh = yj + (R.hi.off - J.off) := by
     rw [capE_eq] at hyjc hyhc hd
     refine gpow_inj_lt (by omega) (by omega) ?_
-    rw [← hhv, hhi, hjv, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+    rw [← hhv, hhi, hjv, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
-    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul,
       mul_comm yj]
   rcases Nat.eq_zero_or_pos yj with h0 | hpos
   · rw [CCell.addrW, hcv, h0, Nat.mul_zero, show addressOfIndex 0 = 1 from pow_zero _,
@@ -472,7 +470,7 @@ theorem prep_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     refine hR _ ⟨0, yh, k, ?_, hyh, Nat.zero_le _, by omega, ?_⟩
     · have := rep_nil (w := w) hlb (by rw [hl0]; norm_num [capE])
       rwa [hl0] at this
-    · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+    · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * k)]
 
 /-- **A cell of a run extended by its point after it**: in the run, or that point. -/
@@ -491,9 +489,9 @@ theorem app_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   have hhv : R.hi.valW w = ofK (addressOfIndex (yb - 1)) := by
     rw [valW_shift] at hbv
     refine mul_right_cancel₀ (ofK_gpow_ne_zero 1) (hbv.trans ?_)
-    rw [← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
+    rw [← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel (by omega)]
   have hcv : c.valW w = R.base.valW w * ofK (addressOfIndex (R.stride * yj)) := by
-    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul,
       mul_comm yj]
   rcases Nat.lt_or_ge yj (yb - 1) with hin | hge
   · refine hR _ ⟨0, yb - 1, yj, ?_, ?_, Nat.zero_le _, hin, ?_⟩
@@ -504,7 +502,7 @@ theorem app_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   · have hj : yj = yb - 1 := by omega
     rw [CCell.addrW, hcv, hj]
     have : (appQ R).valW w = R.base.valW w * ofK (addressOfIndex (R.stride * (yb - 1))) := by
-      rw [appQ, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul, mul_comm (yb - 1)]
+      rw [appQ, valW_mul, valW_pow, hhv, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul, mul_comm (yb - 1)]
     rw [← this]
     exact hq
 
@@ -520,7 +518,7 @@ theorem prep2_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   have hl1 := Nat.eq_of_beq_eq_true hl1
   obtain ⟨yh, hyh⟩ := hasExp_ok hF hexh
   have hhi : R.hi.valW w = J.valW w * ofK (addressOfIndex (R.hi.off - J.off)) := by
-    rw [CCell.valW, CCell.valW, basesBeq_eq hbb, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+    rw [CCell.valW, CCell.valW, basesBeq_eq hbb, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
       addressOfIndex, ← pow_add, Nat.add_sub_cancel' hoff]
   obtain ⟨yj, hyj⟩ : ∃ yj, rep (J.valW w) = some yj := by
     rcases hexj with he | he
@@ -531,9 +529,9 @@ theorem prep2_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   have hyhj : yh = yj + (R.hi.off - J.off) := by
     rw [capE_eq] at hyjc hyhc hd
     refine gpow_inj_lt (by omega) (by omega) ?_
-    rw [← hhv, hhi, hjv, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
+    rw [← hhv, hhi, hjv, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, pow_add]
   have hcv : c.valW w = (prepQ R).valW w * ofK (addressOfIndex (R.stride * yj)) := by
-    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul,
+    rw [CCell.beq_eq hc, valW_mul, valW_pow, hjv, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul,
       mul_comm yj]
   have hbase : R.base = (prepQ R).shift R.stride := by
     simp only [prepQ, CCell.shift]
@@ -549,7 +547,7 @@ theorem prep2_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   · refine hR _ ⟨1, yh, k + 1, ?_, hyh, by omega, by omega, ?_⟩
     · have := rep_nil (w := w) hlb (by rw [hl1]; norm_num [capE])
       rwa [hl1] at this
-    · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+    · rw [CCell.addrW, hcv, hbase, valW_shift, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_add, Nat.mul_succ, Nat.add_comm (R.stride * (k + 1))]
 
 end Runs

@@ -37,7 +37,7 @@ noncomputable def cappedMappedAdversaryImpl
   romImpl.writerTMapBase
     (forwardOracles + signingOracle Concrete.scheme secretKey)
 
-theorem cappedMappedAdversary_cache_le
+theorem cappedMappedAdversary_cache_le {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec)
@@ -52,7 +52,7 @@ theorem cappedMappedAdversary_cache_le
   rw [QueryImpl.simulateQ_writerTMapBase_run]
   exact hmem
 
-theorem cappedMappedAdversary_signingLog_consistent
+theorem cappedMappedAdversary_signingLog_consistent {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec)

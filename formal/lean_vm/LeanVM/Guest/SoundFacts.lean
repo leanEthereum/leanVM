@@ -12,7 +12,7 @@ public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.CertName
 public import LeanVM.Guest.VsAt
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
 

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Gkr.Layer
 import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A layer's children (`gkr_children`)
@@ -36,7 +37,7 @@ def chB (b0 i : ℕ) : ℕ := b0 + 4 * i + 13 * (i / 4)
 
 /-- Child `i`'s read: `fs_next` at the cursor `cur`, `o + i` words on, its word copied. -/
 def chT (cur : V) (o b0 i : ℕ) : List Stmt :=
-  fsNextT cur (o + i) (chB b0 i) ++ [.atom (.copy (.n (chB b0 i + 3)) (.n (chB b0 i)))]
+  fsNextT cur (o + i) (chB b0 i) ⧺ [.atom (.copy (.n (chB b0 i + 3)) (.n (chB b0 i)))]
 
 /-- The rate cells of children `4m .. 4m + 3`. -/
 def chRate (b0 m : ℕ) : List V :=

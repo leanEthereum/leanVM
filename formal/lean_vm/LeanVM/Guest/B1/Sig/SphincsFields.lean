@@ -475,7 +475,7 @@ theorem mdPlaces_limbs (i0 : Nat) : ∀ n, mdPlaces i0 n =
       show (0 : E) = E.ofLimbs 0 0
       rw [← word_zero, word, K.ofBits_zero]
   | n + 1 => by
-      rw [mdPlaces_succ, mdPlaces_limbs i0 n, mdPlace_limbs, ofLimbs_add]
+      rw [mdPlaces_succ, mdPlaces_limbs i0 n, mdPlace_limbs, add_limbs]
       rfl
 
 /-- **`corr0`, `corr1`** are the places of the two cells' bytes, checked limb by limb. -/

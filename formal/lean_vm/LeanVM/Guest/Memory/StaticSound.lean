@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Soundness of the static checker
@@ -73,23 +74,21 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
   · simpa using h0'
   · simpa using h1
 
-theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := logG_spec he
-
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
 
 theorem vidx_get {v : V} : ∀ {ps : List V} {k j : ℕ}, vidx v ps k = some j → k ≤ j ∧ ps[j - k]? = some v
-  | [], _, _, h => by simp [vidx] at h
+  | [], _, _, h => by cases h
   | p :: ps, k, j, h => by
-      simp only [vidx] at h
-      split_ifs at h with hq
-      · cases h
-        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
-        simp [hq.2]
+      change (bif Nat.beq v.idx p.idx && decide (v = p) then some k else vidx v ps (k + 1)) = some j at h
+      cases hq : (Nat.beq v.idx p.idx && decide (v = p)) <;> rw [hq] at h
       · obtain ⟨h1, h2⟩ := vidx_get h
         refine ⟨by omega, ?_⟩
         rw [show j - k = (j - (k + 1)) + 1 by omega, List.getElem?_cons_succ]
         exact h2
+      · cases h
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hq
+        simp [hq.2]
 
 section Cls
 
@@ -178,7 +177,7 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
     · rename_i e he
       cases h
       obtain ⟨hv, heo⟩ := cls_pow hρ.1 he
-      rw [hv, logG_ofK heo, Aff.eval_mk_nil]
+      rw [hv, logG_spec heo, Aff.eval_mk_nil]
     · rename_i k hk
       cases h
       rw [cls_param hp hk]
@@ -275,7 +274,7 @@ theorem termB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ}
       cases h
       obtain ⟨h1, h2⟩ := cls_pow hρ he
       simp only [argExp, List.getD_eq_getElem?_getD, List.getElem?_map, hv, Option.map_some,
-        Option.getD_some, h1, logG_ofK h2, Aff.eval_mk_nil]
+        Option.getD_some, h1, logG_spec h2, Aff.eval_mk_nil]
       exact ⟨le_refl _, trivial⟩
     · rename_i k hk
       cases h
@@ -522,7 +521,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                 have hRc : R.1.eval args = R.1.c := by simp [Aff.eval, hcs]
                 rw [hRc] at t1
                 have hev : (⟨0, [(k, R.1.c)]⟩ : Aff).eval args = R.1.c * eb := by
-                  simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
+                  simp only [Aff.eval, argExp, heb3, logG_spec heb2, List.map_cons, List.map_nil,
                     List.sum_cons, List.sum_nil]
                   omega
                 rw [Aff.eval_add, hev]
@@ -605,7 +604,7 @@ theorem siteBL_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω
             have hRc : R.1.eval args = R.1.c := by simp [Aff.eval, hcs]
             rw [hRc] at t1
             have hev : (⟨0, [(k', R.1.c)]⟩ : Aff).eval args = R.1.c * eb := by
-              simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
+              simp only [Aff.eval, argExp, heb3, logG_spec heb2, List.map_cons, List.map_nil,
                 List.sum_cons, List.sum_nil]
               omega
             rw [Aff.eval_add, hev]
@@ -1349,63 +1348,29 @@ theorem atom_on_path {a : Atom} : ∀ {l : List Stmt} {es : List Ev}, Stmt.noRet
         · rw [h2] at hw; simp [Out.seq, Out.pre] at hw
       · rw [h1] at hw; simp [Out.seq] at hw
 
-theorem defAtom_mem {d : V} {a : Atom} : ∀ {l : List Stmt}, defAtom d l = some a → Stmt.atom a ∈ l
-  | [], h => by simp [defAtom] at h
+theorem defAtom_spec {d : V} {a : Atom} :
+    ∀ {l : List Stmt}, defAtom d l = some a → Stmt.atom a ∈ l ∧ dstIs d a = true
+  | [], h => by cases h
   | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h
-      · cases h; exact List.mem_cons_self
-      · exact List.mem_cons_of_mem _ (defAtom_mem h)
-  | .ite .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .match_ .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .call .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .callIf .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .dispatch .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
-  | .ret .. :: l, h => List.mem_cons_of_mem _ (defAtom_mem (by simpa [defAtom] using h))
+      change (bif dstIs d b then some b else defAtom d l) = some a at h
+      cases hb : dstIs d b <;> rw [hb] at h
+      · exact (defAtom_spec (l := l) h).imp_left (List.mem_cons_of_mem _)
+      · cases h; exact ⟨List.mem_cons_self, hb⟩
+  | .ite .. :: l, h | .match_ .. :: l, h | .call .. :: l, h | .callIf .. :: l, h
+  | .dispatch .. :: l, h | .ret .. :: l, h =>
+      (defAtom_spec (l := l) h).imp_left (List.mem_cons_of_mem _)
 
-theorem defAtom_mul {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.mul x y z) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
-      · exact defAtom_mul h
-  | .ite .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_mul (by simpa [defAtom] using h)
+theorem defAtom_mem {d : V} {a : Atom} {l : List Stmt} (h : defAtom d l = some a) : Stmt.atom a ∈ l :=
+  (defAtom_spec h).1
 
-theorem defAtom_add {d x y z : V} : ∀ {l : List Stmt}, defAtom d l = some (.add x y z) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
-      · exact defAtom_add h
-  | .ite .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_add (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_add (by simpa [defAtom] using h)
+theorem defAtom_mul {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.mul x y z)) : x = d :=
+  (vBeq_iff (a := x) (b := d)).1 (defAtom_spec h).2
 
-theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = some (.const x w) → x = d
-  | [], h => by simp [defAtom] at h
-  | .atom b :: l, h => by
-      simp only [defAtom] at h
-      split_ifs at h with hb
-      · cases h; simpa [vBeq_iff] using hb
-      · exact defAtom_const h
-  | .ite .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .match_ .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .call .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .callIf .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .dispatch .. :: l, h => defAtom_const (by simpa [defAtom] using h)
-  | .ret .. :: l, h => defAtom_const (by simpa [defAtom] using h)
+theorem defAtom_add {d x y z : V} {l : List Stmt} (h : defAtom d l = some (.add x y z)) : x = d :=
+  (vBeq_iff (a := x) (b := d)).1 (defAtom_spec h).2
 
-theorem ofK_mulS (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
+theorem defAtom_const {d x : V} {w : E} {l : List Stmt} (h : defAtom d l = some (.const x w)) : x = d :=
+  (vBeq_iff (a := x) (b := d)).1 (defAtom_spec h).2
 
 theorem gpow_succ' (a : ℕ) : addressOfIndex a * addressOfIndex 1 = addressOfIndex (a + 1) := by
   simp [Parameters.addressOfIndex, pow_add]
@@ -1462,7 +1427,7 @@ theorem isEnd_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es
 /-- **A loop helper's shape.** -/
 theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = some pre) :
     ∃ c i' p0 prest, fn.params = p0 :: prest ∧
-      fn.body = pre ++ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetListS pre = true ∧
+      fn.body = pre ⧺ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetListS pre = true ∧
       isStep pre p0 i' = true ∧ ∃ x y, defAtom c pre = some (.add c x y) ∧
         ((isStep pre p0 x = true ∧ isEnd pre prest.head? endc y = true) ∨
           (isStep pre p0 y = true ∧ isEnd pre prest.head? endc x = true)) := by
@@ -1613,7 +1578,7 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                 have hargs : args = σ p0 :: prest.map σ := by rw [← hp, hps, List.map_cons]
                 have hp0 : σ p0 = ofK (addressOfIndex a0) := by rw [← h0, hargs]; rfl
                 have hi' : σ i' = ofK (addressOfIndex (a0 + 1)) := by
-                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mulS, gpow_succ']
+                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mul, gpow_succ']
                 have hM : 1 ≤ e - a0 := by omega
                 match ks2, hk2 with
                 | [tk], ⟨htn, htv, _⟩ =>
@@ -1669,8 +1634,8 @@ theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
                       apply h0c
                       rw [hcv, e_add_eq_zero_iff]
                       rcases hxy with ⟨hsx, hey⟩ | ⟨hsy, hex⟩
-                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mulS, gpow_succ', hyv hey, hae']
-                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mulS, gpow_succ', hyv hex, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mul, gpow_succ', hyv hey, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mul, gpow_succ', hyv hex, hae']
                     have hpre'' : ArgsPre pre ((i' :: prest).map σ) := by
                       intro q hq
                       rw [hget q.1 (hpc q hq)]

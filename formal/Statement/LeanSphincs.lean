@@ -810,7 +810,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
 
 end KeyGenerationAndSigning
 
-/-! ## Forgeries and transcripts -/
+/-! ## Forgeries -/
 
 /-- A claimed forgery: a message and a signature. -/
 structure Forgery where
@@ -820,17 +820,6 @@ structure Forgery where
   signature : Signature
 deriving DecidableEq
 
-/-- The signing oracle answers a message with a signature, or `none` if the signer fails. -/
-abbrev SigningOracleSpec := Message →ₒ Option Signature
-
-namespace SigningTranscript
-
-/-- A transcript is valid when it has at most `signatureLimit` requests. -/
-abbrev WithinSignatureLimit (log : QueryLog SigningOracleSpec) : Prop :=
-  log.length ≤ signatureLimit
-
-end SigningTranscript
-
 /-! ## Security in the random-permutation model -/
 
 namespace RandomPermutationModel
@@ -838,8 +827,9 @@ namespace RandomPermutationModel
 open Common Common.SufCma
 
 /-- leanSPHINCS in the generic SUF-CMA game, over `π` (`queryPermutation`): the seed `SK.seed`, key
-generation, the deterministic signer, the verifier, and the winning condition: a valid transcript
-without the forgery (`SignerReturnedForgery`). -/
+generation, the deterministic signer, the verifier, and the winning condition: a forgery the signer
+did not return (`SignerReturnedForgery`). The signature limit is the end statement's bound on the
+signing requests. -/
 noncomputable def sufCmaScheme :
     Scheme MasterSeed PublicKey SecretKey Message (Option Signature) Forgery where
   sampleSeed := sampleMasterSeed
@@ -847,8 +837,7 @@ noncomputable def sufCmaScheme :
   sign sk message := KeyGenerationAndSigning.sign queryPermutation sk message
   verify pk forgery := Verification.verify queryPermutation pk forgery.message forgery.signature
   winningCondition log forgery :=
-    decide (SigningTranscript.WithinSignatureLimit log ∧ ¬SignerReturnedForgery id log
-        forgery.message forgery.signature)
+    decide (¬SignerReturnedForgery id log forgery.message forgery.signature)
 
 end RandomPermutationModel
 

@@ -31,9 +31,9 @@ variable {κ : ℕ} {img : MemoryImage κ}
 theorem symNz_val {o : Option Exec.Sym} (h : FSt.symNz o = true) (fp : K) (hfp : fp ≠ 0) :
     ∃ v, o = some v ∧ v.val fp ≠ 0 := by
   rcases o with _ | (_ | e | e) <;> simp [FSt.symNz] at h
-  · exact ⟨_, rfl, fun h0 ↦ gpow_ne_zero e (ofK_injective (by rw [Exec.ofK_zero]; exact h0))⟩
+  · exact ⟨_, rfl, fun h0 ↦ gpow_ne_zero e (ofK_injective (by rw [LeanVM.Parameters.ofK_zero]; exact h0))⟩
   · refine ⟨_, rfl, fun h0 ↦ ?_⟩
-    have := ofK_injective (show ofK (fp * addressOfIndex e) = ofK 0 by rw [Exec.ofK_zero]; exact h0)
+    have := ofK_injective (show ofK (fp * addressOfIndex e) = ofK 0 by rw [LeanVM.Parameters.ofK_zero]; exact h0)
     exact mul_ne_zero hfp (gpow_ne_zero e) this
 
 theorem gpow_ne_zero' (n : ℕ) : (g : K) ^ n ≠ 0 := pow_ne_zero _ g_ne_zero
@@ -43,7 +43,7 @@ theorem nzOf_sound {fp : ℕ} {A : FSt} (hv : FVal img fp A) {o : ℕ} (h : A.nz
     ∃ v, Rd img fp o = some v ∧ v ≠ 0 := by
   unfold FSt.nzOf at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · exact hv.nz o (has_iff.mp h)
+  · exact hv.nz o h
   · obtain ⟨v, hv', hne⟩ := symNz_val h _ (gpow_ne_zero' fp)
     exact ⟨_, hv.st.1 o v hv', hne⟩
 
@@ -134,7 +134,7 @@ def HeapRd (s : Prover.Exec.St) : OffsetInstruction → Prop
 
 /-! ## Value facts after an instruction -/
 
-theorem stepF_deref {O S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
+theorem stepF_deref {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
     (h : stepF O S i A (.deref a o c mode) = some A') :
     A.hasW a = true ∧ (has S i = true → A.hasW c = true) ∧ A' = derefF O i A a o c mode := by
   replace h : (if (A.hasW a && (!has S i || A.hasW c)) = true then some (derefF O i A a o c mode)
@@ -223,7 +223,7 @@ theorem fval_one {fp : ℕ} {A : FSt} (hv : FVal img fp A) {a b c pc : ℕ}
     · have h1 := hv.st.1 a _ (isOne_eq' ha)
       replace h1 : Rd img fp a = some _ := h1
       rw [hA] at h1; cases h1
-      simp only [Exec.Sym.val, addressOfIndex, pow_zero, Exec.ofK_one] at hC
+      simp only [Exec.Sym.val, addressOfIndex, pow_zero, LeanVM.Parameters.ofK_one] at hC
       exact ⟨vB, hB, hC⟩
     · exact hv.one c' x hx
   by_cases hb : Exec.isOne (A.st.env.get b) = true
@@ -233,21 +233,24 @@ theorem fval_one {fp : ℕ} {A : FSt} (hv : FVal img fp A) {a b c pc : ℕ}
     · have h1 := hv.st.1 b _ (isOne_eq' hb)
       replace h1 : Rd img fp b = some _ := h1
       rw [hB] at h1; cases h1
-      simp only [Exec.Sym.val, addressOfIndex, pow_zero, Exec.ofK_one] at hC
+      simp only [Exec.Sym.val, addressOfIndex, pow_zero, LeanVM.Parameters.ofK_one] at hC
       exact ⟨vA, hA, by rw [hC, add_comm]⟩
     · exact hv.one c' x hx
   · have he : oneOf A a b c = A.one := by unfold oneOf; simp [ha, hb]
     rw [he] at hx
     exact hv.one c' x hx
 
-theorem fval_addOuts {fp : ℕ} {A : FSt} (hv : FVal img fp A) (out : ℕ) :
-    ∀ n, FVal img fp (addOuts A out n)
-  | 0 => hv
-  | n + 1 => (fval_addOuts hv out n).addW _
+theorem has_keccakMask {m0 m1 m2 m3 tail b8 cap j : ℕ} (hj : j ∈ keccakIns m0 m1 m2 m3 tail b8 cap) :
+    Bits.has (keccakMask m0 m1 m2 m3 tail b8 cap) j = true := by
+  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hj
+  have hc : c < 13 := List.mem_range.mp hc
+  have h15 : ∀ k < 4, Nat.testBit 15 k = true := by decide
+  interval_cases c <;>
+    simp [keccakInOff, keccakMask, Bits.has, Nat.testBit_or, Nat.testBit_two_pow, Nat.testBit_shiftLeft, h15]
 
 /-- **The value facts after a non-`JUMP`** the frame rule accepts, the instruction holding of the
 reference. -/
-theorem stepF_val {O S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
+theorem stepF_val {O : ℕ} {S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
     (hv : FVal img fp A) (hh : Guest.Holds img pc (g ^ fp) ins) (h : stepF O S i A ins = some A') :
     FVal img fp A' := by
   cases ins with
@@ -309,7 +312,7 @@ theorem stepF_val {O S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : Off
     simp only [stepF] at h
     split_ifs at h
     cases h
-    exact fval_addOuts hv out _
+    exact ⟨hv.st, hv.nz, hv.hs, hv.cp, hv.one⟩
   | jump => simp [stepF] at h
 
 theorem fval_addCopies {fp : ℕ} : ∀ {A : FSt} {fs : List Exec.Atom}, FVal img fp A →
@@ -357,15 +360,16 @@ theorem execF_wr {F : Exec.Facts} {pc : ℕ} {s : Prover.Exec.St} {A : FSt} {ins
 
 /-! ## Written cells after an instruction -/
 
-theorem fwr_addOuts {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out : ℕ} :
-    ∀ n, (∀ j < n, s.mem.written (s.fp + (out + j)) = true) → FWr s (addOuts A out n)
-  | 0, _ => hw
-  | n + 1, hn => (fwr_addOuts hw n fun j hj ↦ hn j (by omega)).addW (hn n (by omega))
+theorem fwr_addRun {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out n : ℕ}
+    (hn : ∀ j < n, s.mem.written (s.fp + (out + j)) = true) : FWr s { A with w := Bits.addRun A.w out n } where
+  w o ho := (Bits.has_addRun ho).elim (hw.w o) fun ⟨h1, h2, _⟩ ↦
+    Nat.add_sub_cancel' h1 ▸ hn (o - out) (by omega)
+  hq := hw.hq
 
 /-- **The written cells after a non-`JUMP`** the frame rule accepts. -/
-theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
+theorem stepF_wr {C : Prover.Exec.Ctx} {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size)
-    (hw : FWr s A) (hO : has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
+    (hw : FWr s A) (hO : Bits.has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
     (hfpg : ∀ a o c mode e p, ins = .deref a o c mode → A.st.env.get a = some (.fpg e) →
       s.mem.get (s.fp + a) = some p → p.limb 0 = g ^ (s.fp + e))
     (e : runOp C s (opOfOff ins) = .ok s') :
@@ -377,7 +381,7 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
     split_ifs at h
     cases h
     obtain ⟨hle, hf, hp, hk⟩ := Mode.keccak_writes hs e
-    refine ⟨fwr_addOuts (hw.mono hle hf) _ fun j hj ↦ ?_, hf, hp, hle⟩
+    refine ⟨fwr_addRun (hw.mono hle hf) fun j hj ↦ ?_, hf, hp, hle⟩
     rw [hf]; exact hk j hj
   | xor a b c =>
     obtain ⟨h1, h2, h3⟩ := Mode.runOp_next hs hfp hpc e (fun _ _ _ ↦ nofun) (fun _ _ _ _ _ ↦ nofun)
@@ -424,7 +428,7 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
       have hB : FWr s' (cellF O i A a o c) ∧ ((cellF O i A a o c).hasW c = true → s'.mem.written x = true) := by
         unfold cellF
         split_ifs with hc hq ho
-        · obtain ⟨v, hv⟩ := Mem.get_of_written (hw.w c (has_iff.mp hc))
+        · obtain ⟨v, hv⟩ := Mem.get_of_written (hw.w c hc)
           exact ⟨(hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hst v hv)⟩,
             fun _ ↦ written_of_get (hst v hv)⟩
         · unfold FSt.hasQ at hq
@@ -453,12 +457,12 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
       exact hB'.2 hc
 
 /-- **What a non-`JUMP` the frame rule accepts reads is written**, a back-solve's divisor nonzero. -/
-theorem stepF_reads (hκ : κ ≤ 28) {O S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
+theorem stepF_reads (hκ : κ ≤ 28) {O : ℕ} {S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : Fine (refMem img) s) (hA : FHolds img s A)
     (hh : Guest.Holds img pc (g ^ s.fp) ins)
     (hsm : ∀ a b c, ins = .mul a b c → a < 2 ^ 28 ∧ b < 2 ^ 28 ∧ c < 2 ^ 28)
     (h : stepF O S i A ins = some A') : Reads s (opOfOff ins) := by
-  have hW : ∀ o, A.hasW o = true → s.mem.written (s.fp + o) = true := fun o ho ↦ hA.2.w o (has_iff.mp ho)
+  have hW : ∀ o, A.hasW o = true → s.mem.written (s.fp + o) = true := fun o ho ↦ hA.2.w o ho
   cases ins with
   | jump => simp [stepF] at h
   | set => trivial
@@ -473,7 +477,7 @@ theorem stepF_reads (hκ : κ ≤ 28) {O S : Exec.Trie Unit} {i pc : ℕ} {s : P
     split_ifs at h with hall
     intro j hj
     have hj' : j ∈ keccakIns m0 m1 m2 m3 tail b8 cap := by simpa using hj
-    exact hW j (List.all_eq_true.mp hall j hj')
+    exact hW j (Bits.has_of_sub hall (has_keccakMask hj'))
   | mul a b c =>
     obtain ⟨sa, sb, sc⟩ := hsm a b c rfl
     obtain ⟨vA, vB, hA', hB', hC'⟩ := hh

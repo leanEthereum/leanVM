@@ -8,14 +8,16 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«plus_one_run__L»
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
-# `plus_one_run` (TRIAGE #27)
+# `plus_one_run`
 
-`plus_one_run__L{n}` (core function `116 + n`) writes `out[k] = 1 + src[k]`, `k < n` (`poBlk k`),
-and returns `0`.
+`plus_one_run__L{n}` writes `out[k] = 1 + src[k]`, `k < n` (`poBlk k`), and returns `0`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -33,7 +35,7 @@ def poBlk (k : ℕ) : List Stmt :=
 
 /-- The expansion of `plus_one_run__L{n}`. -/
 def poBody (n : ℕ) : List Stmt :=
-  ((List.range n).map poBlk).flatten ++
+  ((List.range n).map poBlk).flatten ⧺
     [.atom (.const (.n (2 + 3 * n)) (word 0 0)), .ret [.n (2 + 3 * n)]]
 
 /-- What entry `k` asks. -/
@@ -109,249 +111,17 @@ theorem po_iff (n : ℕ) {f : Fn} (hfind : coreProgram.find? (plusOneRunNames.ge
 
 /-! ## The specializations -/
 
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L0_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 0 "") args rets ↔ MeaningPlusOneRun 0 rd args rets :=
-  po_iff 0 (f := fn% «plus_one_run__L0») (coreProgram_find?_at (j := idx% «plus_one_run__L0») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L1_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 1 "") args rets ↔ MeaningPlusOneRun 1 rd args rets :=
-  po_iff 1 (f := fn% «plus_one_run__L1») (coreProgram_find?_at (j := idx% «plus_one_run__L1») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L2_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 2 "") args rets ↔ MeaningPlusOneRun 2 rd args rets :=
-  po_iff 2 (f := fn% «plus_one_run__L2») (coreProgram_find?_at (j := idx% «plus_one_run__L2») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L3_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 3 "") args rets ↔ MeaningPlusOneRun 3 rd args rets :=
-  po_iff 3 (f := fn% «plus_one_run__L3») (coreProgram_find?_at (j := idx% «plus_one_run__L3») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L4_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 4 "") args rets ↔ MeaningPlusOneRun 4 rd args rets :=
-  po_iff 4 (f := fn% «plus_one_run__L4») (coreProgram_find?_at (j := idx% «plus_one_run__L4») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L5_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 5 "") args rets ↔ MeaningPlusOneRun 5 rd args rets :=
-  po_iff 5 (f := fn% «plus_one_run__L5») (coreProgram_find?_at (j := idx% «plus_one_run__L5») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L6_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 6 "") args rets ↔ MeaningPlusOneRun 6 rd args rets :=
-  po_iff 6 (f := fn% «plus_one_run__L6») (coreProgram_find?_at (j := idx% «plus_one_run__L6») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L7_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 7 "") args rets ↔ MeaningPlusOneRun 7 rd args rets :=
-  po_iff 7 (f := fn% «plus_one_run__L7») (coreProgram_find?_at (j := idx% «plus_one_run__L7») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L8_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 8 "") args rets ↔ MeaningPlusOneRun 8 rd args rets :=
-  po_iff 8 (f := fn% «plus_one_run__L8») (coreProgram_find?_at (j := idx% «plus_one_run__L8») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L9_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 9 "") args rets ↔ MeaningPlusOneRun 9 rd args rets :=
-  po_iff 9 (f := fn% «plus_one_run__L9») (coreProgram_find?_at (j := idx% «plus_one_run__L9») rfl)
-      rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L10_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 10 "") args rets ↔ MeaningPlusOneRun 10 rd args rets :=
-  po_iff 10 (f := fn% «plus_one_run__L10») (coreProgram_find?_at (j := idx% «plus_one_run__L10»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L11_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 11 "") args rets ↔ MeaningPlusOneRun 11 rd args rets :=
-  po_iff 11 (f := fn% «plus_one_run__L11») (coreProgram_find?_at (j := idx% «plus_one_run__L11»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L12_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 12 "") args rets ↔ MeaningPlusOneRun 12 rd args rets :=
-  po_iff 12 (f := fn% «plus_one_run__L12») (coreProgram_find?_at (j := idx% «plus_one_run__L12»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L13_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 13 "") args rets ↔ MeaningPlusOneRun 13 rd args rets :=
-  po_iff 13 (f := fn% «plus_one_run__L13») (coreProgram_find?_at (j := idx% «plus_one_run__L13»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L14_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 14 "") args rets ↔ MeaningPlusOneRun 14 rd args rets :=
-  po_iff 14 (f := fn% «plus_one_run__L14») (coreProgram_find?_at (j := idx% «plus_one_run__L14»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L15_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 15 "") args rets ↔ MeaningPlusOneRun 15 rd args rets :=
-  po_iff 15 (f := fn% «plus_one_run__L15») (coreProgram_find?_at (j := idx% «plus_one_run__L15»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L16_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 16 "") args rets ↔ MeaningPlusOneRun 16 rd args rets :=
-  po_iff 16 (f := fn% «plus_one_run__L16») (coreProgram_find?_at (j := idx% «plus_one_run__L16»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L17_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 17 "") args rets ↔ MeaningPlusOneRun 17 rd args rets :=
-  po_iff 17 (f := fn% «plus_one_run__L17») (coreProgram_find?_at (j := idx% «plus_one_run__L17»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L18_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 18 "") args rets ↔ MeaningPlusOneRun 18 rd args rets :=
-  po_iff 18 (f := fn% «plus_one_run__L18») (coreProgram_find?_at (j := idx% «plus_one_run__L18»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L19_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 19 "") args rets ↔ MeaningPlusOneRun 19 rd args rets :=
-  po_iff 19 (f := fn% «plus_one_run__L19») (coreProgram_find?_at (j := idx% «plus_one_run__L19»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L20_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 20 "") args rets ↔ MeaningPlusOneRun 20 rd args rets :=
-  po_iff 20 (f := fn% «plus_one_run__L20») (coreProgram_find?_at (j := idx% «plus_one_run__L20»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L21_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 21 "") args rets ↔ MeaningPlusOneRun 21 rd args rets :=
-  po_iff 21 (f := fn% «plus_one_run__L21») (coreProgram_find?_at (j := idx% «plus_one_run__L21»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L22_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 22 "") args rets ↔ MeaningPlusOneRun 22 rd args rets :=
-  po_iff 22 (f := fn% «plus_one_run__L22») (coreProgram_find?_at (j := idx% «plus_one_run__L22»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L23_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 23 "") args rets ↔ MeaningPlusOneRun 23 rd args rets :=
-  po_iff 23 (f := fn% «plus_one_run__L23») (coreProgram_find?_at (j := idx% «plus_one_run__L23»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L24_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 24 "") args rets ↔ MeaningPlusOneRun 24 rd args rets :=
-  po_iff 24 (f := fn% «plus_one_run__L24») (coreProgram_find?_at (j := idx% «plus_one_run__L24»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L25_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 25 "") args rets ↔ MeaningPlusOneRun 25 rd args rets :=
-  po_iff 25 (f := fn% «plus_one_run__L25») (coreProgram_find?_at (j := idx% «plus_one_run__L25»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L26_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 26 "") args rets ↔ MeaningPlusOneRun 26 rd args rets :=
-  po_iff 26 (f := fn% «plus_one_run__L26») (coreProgram_find?_at (j := idx% «plus_one_run__L26»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L27_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 27 "") args rets ↔ MeaningPlusOneRun 27 rd args rets :=
-  po_iff 27 (f := fn% «plus_one_run__L27») (coreProgram_find?_at (j := idx% «plus_one_run__L27»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L28_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 28 "") args rets ↔ MeaningPlusOneRun 28 rd args rets :=
-  po_iff 28 (f := fn% «plus_one_run__L28») (coreProgram_find?_at (j := idx% «plus_one_run__L28»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L29_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 29 "") args rets ↔ MeaningPlusOneRun 29 rd args rets :=
-  po_iff 29 (f := fn% «plus_one_run__L29») (coreProgram_find?_at (j := idx% «plus_one_run__L29»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L30_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 30 "") args rets ↔ MeaningPlusOneRun 30 rd args rets :=
-  po_iff 30 (f := fn% «plus_one_run__L30») (coreProgram_find?_at (j := idx% «plus_one_run__L30»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L31_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 31 "") args rets ↔ MeaningPlusOneRun 31 rd args rets :=
-  po_iff 31 (f := fn% «plus_one_run__L31») (coreProgram_find?_at (j := idx% «plus_one_run__L31»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L32_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 32 "") args rets ↔ MeaningPlusOneRun 32 rd args rets :=
-  po_iff 32 (f := fn% «plus_one_run__L32») (coreProgram_find?_at (j := idx% «plus_one_run__L32»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem plus_one_run_L33_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd (plusOneRunNames.getD 33 "") args rets ↔ MeaningPlusOneRun 33 rd args rets :=
-  po_iff 33 (f := fn% «plus_one_run__L33») (coreProgram_find?_at (j := idx% «plus_one_run__L33»)
-      rfl) rfl
-    (stmtsEqb_sound (by decide +kernel)) rd args rets
+/-- The deployed `plus_one_run__L{n}`, `n ≤ 33`, are the template. -/
+private theorem plus_one_run_found :
+    coreRunB (idxs% «plus_one_run__L» 0 34) (plusOneRunNames.getD · "")
+      (shapeB [.n (valf% «plus_one_run» "out"), .n (valf% «plus_one_run» "src")]
+        poBody) = true := by
+  decide +kernel
 
 /-- **`plus_one_run`'s core IR is its meaning**, every specialization. -/
-theorem plus_one_run_holds : plus_one_run_Spec := by
-  intro n hn
-  interval_cases n
-  exacts [plus_one_run_L0_iff, plus_one_run_L1_iff, plus_one_run_L2_iff, plus_one_run_L3_iff, plus_one_run_L4_iff, plus_one_run_L5_iff, plus_one_run_L6_iff, plus_one_run_L7_iff, plus_one_run_L8_iff, plus_one_run_L9_iff, plus_one_run_L10_iff, plus_one_run_L11_iff, plus_one_run_L12_iff, plus_one_run_L13_iff, plus_one_run_L14_iff, plus_one_run_L15_iff, plus_one_run_L16_iff, plus_one_run_L17_iff, plus_one_run_L18_iff, plus_one_run_L19_iff, plus_one_run_L20_iff, plus_one_run_L21_iff, plus_one_run_L22_iff, plus_one_run_L23_iff, plus_one_run_L24_iff, plus_one_run_L25_iff, plus_one_run_L26_iff, plus_one_run_L27_iff, plus_one_run_L28_iff, plus_one_run_L29_iff, plus_one_run_L30_iff, plus_one_run_L31_iff, plus_one_run_L32_iff, plus_one_run_L33_iff]
+theorem plus_one_run_holds : plus_one_run_Spec := fun n hn ↦
+  have ⟨_, hf, hp, hb⟩ := coreRunB_shape plus_one_run_found (Nat.lt_succ_of_le hn)
+  po_iff n hf hp hb
 
 end
 end LeanVM.Guest.B1

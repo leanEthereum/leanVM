@@ -44,6 +44,16 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 def CapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
+theorem capAt_mul_gen_pow {rd : Reader} {rec : E} {a off stride : ℕ} {cap : List E} :
+    CapAt rd (rec * gen ^ a) off stride cap ↔ CapAt rd rec (a + off) stride cap := by
+  simp only [CapAt, loadHolds_mul_gen_pow, Nat.add_assoc]
+
+/-- A record holds one capacity at an offset and stride. -/
+theorem capAt_eq {rd : Reader} {rec : E} {off stride : ℕ} {c1 c2 : List E}
+    (h1 : CapAt rd rec off stride c1) (h2 : CapAt rd rec off stride c2) : c1 = c2 :=
+  List.ext_getElem (h1.1.trans h2.1.symm) fun j hj1 hj2 =>
+    loadHolds_unique (h1.2 j hj1) (h2.2 j hj2)
+
 /-! ## `sumcheck_round4` (TRIAGE #30) -/
 
 /-- **`sumcheck_round4(rd, msg_cursor, claim, tabs)`**: the record at `rd` carries the sponge's

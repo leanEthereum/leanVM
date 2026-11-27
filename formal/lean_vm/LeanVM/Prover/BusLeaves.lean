@@ -56,8 +56,6 @@ theorem getD_toArray_vec {α : Type} {n : ℕ} (v : Vector α n) (i : ℕ) (h : 
     v.toArray.getD i d = v.get ⟨i, h⟩ := by
   simp [Array.getD_eq_getD_getElem?, h, Vector.get]
 
-theorem ofK_one : ofK (1 : K) = 1 := map_one (algebraMap K E)
-
 /-- A list lifted to `E`, read anywhere. -/
 theorem getD_map_ofK (l : List K) (i : ℕ) : (l.map ofK).getD i 0 = ofK (l.getD i 0) := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]

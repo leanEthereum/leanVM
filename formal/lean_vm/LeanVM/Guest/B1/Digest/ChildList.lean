@@ -20,6 +20,8 @@ import LeanVM.Guest.Data.ValNames.«child_claim_list_any»
 import LeanVM.Guest.Data.ValNames.«child_claim_list_last__L»
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.ToMathlib.List
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `child_claim_list_any`
@@ -459,9 +461,9 @@ theorem childFrames_of_loop {rd : Reader} (hm : MemOk rd) {f : String} {j m o0 p
 noncomputable def anyFlat : List Stmt := (Fn.body fn% «child_claim_list_any»).dropLast
 
 set_option maxRecDepth 100000 in
-theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ++ [.ret [.n (val% «child_claim_list_any» "s11#0"),
-    .n (val% «child_claim_list_any» "s11#0[1]")]] :=
-  stmtsEqb_sound (by decide +kernel)
+theorem child_claim_list_any_shape : Fn.body fn% «child_claim_list_any» = anyFlat ⧺ [.ret [.n (val% «child_claim_list_any» "s11#0"),
+    .n (val% «child_claim_list_any» "s11#0[1]")]] := by
+  kernel_rfl
 
 /-- The body: `limit = last · g`, the zero state at `chain = .n 17`, the big frames' loop,
 `mid = chain · bigs^13`, `mid_base = base · bigs^136`, the groups' loop, `last = mid · groups^13`,

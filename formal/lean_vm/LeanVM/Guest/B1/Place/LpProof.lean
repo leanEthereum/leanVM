@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Whir.Commit
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_positions`, placed
@@ -138,16 +139,16 @@ theorem lpRow_squeeze {cap : List E} {j : ℕ} (hj : 1 ≤ j) :
 /-- The body before its `ret`. -/
 def lpPreB (d cd : ℕ) (loop : String) : List Stmt :=
   [osCst 10 (gw 1), osMul 11 9 10, osMul 12 11 11, osMul 13 12 12, osMul 14 13 11,
-    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ++
-    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ++
-    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ++
-    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ++
-    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ++
-    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ++
+    .atom (.hint (.allocDyn (.n 15) (.n 14)))] ⧺
+    ((List.range 5).map fun i ↦ osLd (1 + i) 15 (5 + i)) ⧺
+    [.call (dqwName d cd) [.n 0, .n 6, .n 7, .n 8] []] ⧺
+    osLoopCallR loop 1 9 [15, 6, 7, 8] 16 ⧺
+    [osMul 19 9 9, osMul 20 19 19, osMul 21 20 9, osMul 22 15 21] ⧺
+    ((List.range 5).map fun i ↦ osLd (23 + i) 22 i) ⧺
     ((List.range 5).map fun i ↦ osCp (28 + i) (23 + i))
 
 theorem lpBody_pre (d cd : ℕ) (loop : String) :
-    lpBody d cd loop = lpPreB d cd loop ++ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
+    lpBody d cd loop = lpPreB d cd loop ⧺ [.ret ((List.range 5).map fun i ↦ .n (28 + i))] :=
   rfl
 
 theorem lpPreB_straight (d cd : ℕ) (loop : String) :
@@ -174,14 +175,9 @@ theorem lpPreB_loads (d cd : ℕ) (loop : String) :
       ((List.range 5).map fun i ↦ ((.n 15 : V), 5 + i)) ++
         ((List.range 5).map fun i ↦ ((.n 22 : V), i)) := rfl
 
-theorem lp_limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
-  conv_lhs => rw [eq_ofLimbs p]
-  rw [ofLimbs_mul_ofK]
-  rfl
-
 theorem lp_addr (b e t : ℕ) : (ofK (addressOfIndex b) * gen ^ e).limb 0 * addressOfIndex t =
     addressOfIndex (b + e + t) := by
-  rw [gen_pow_eq_ofK, lp_limb0_mul_ofK, limb_ofK]
+  rw [gen_pow_eq_ofK, limb0_mul_ofK, limb_ofK]
   simp only [Fin.val_zero, ↓reduceIte, Parameters.addressOfIndex, ← pow_add]
 
 theorem lp_logG_gw {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gw e) = e := by

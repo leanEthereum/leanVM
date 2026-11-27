@@ -74,9 +74,6 @@ theorem exists_gpow {x : K} (hx : x ≠ 0) : ∃ n, x = addressOfIndex n := by
   obtain ⟨i, hi⟩ := (hf.bijective_of_nat_card_le hc).2 (Units.mk0 x hx)
   exact ⟨i, (congrArg Units.val hi).symm⟩
 
-theorem ofK_ne_zero' {a : K} (h : a ≠ 0) : ofK a ≠ 0 := fun h0 ↦
-  h (ofK_injective (h0.trans (map_zero (algebraMap K E)).symm))
-
 theorem limb_zero : (0 : E).limb 0 = 0 := by
   rw [show (0 : E) = ofK 0 from (map_zero (algebraMap K E)).symm, limb_ofK]
   rfl
@@ -93,10 +90,10 @@ theorem NZ.pow {x : E} (h : NZ x) : ∃ n, x = ofK (addressOfIndex n) := by
   exact ⟨n, by rw [Core.eq_ofK_limb h.1, hn]⟩
 
 theorem nz_gpow (n : ℕ) : NZ (ofK (addressOfIndex n)) :=
-  ⟨B2C.isInK_ofK _, ofK_ne_zero' (gpow_ne_zero n)⟩
+  ⟨B2C.isInK_ofK _, LeanVM.Guest.B1.Whir.ofK_ne_zero (gpow_ne_zero n)⟩
 
 theorem NZ.mul {a b : E} (ha : NZ a) (hb : NZ b) : NZ (a * b) :=
-  ⟨isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
+  ⟨LeanVM.Guest.B1.isInK_mul ha.1 hb.1, mul_ne_zero ha.2 hb.2⟩
 
 /-- A factor of an `NZ` product by a nonzero value of `K` is `NZ`. -/
 theorem NZ.of_mul {a b : E} (hd : NZ (a * b)) (ha : IsInK a) : NZ b := by
@@ -184,7 +181,7 @@ theorem kIn1_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u
       · rename_i d x y
         obtain ⟨⟨hd, hx⟩, hy⟩ := hm
         rw [← veq_eq hd, this]
-        exact isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
+        exact LeanVM.Guest.B1.isInK_mul (kIn0_sound hkv hh hx) (kIn0_sound hkv hh hy)
     | _ => simp at hm
 
 /-- **`kIn` puts its value in `K`.** -/
@@ -208,7 +205,7 @@ theorem kIn_sound {kv : List V} {sp : List Ev} (hkv : ∀ u ∈ kv, IsInK (σ u)
         · rename_i d x y
           obtain ⟨⟨hd, hx⟩, hy⟩ := hm
           rw [← veq_eq hd, this]
-          exact isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
+          exact LeanVM.Guest.B1.isInK_mul (kIn_sound hkv hh n x hx) (kIn_sound hkv hh n y hy)
       | _ => simp at hm
 
 /-- The listed words of a context's calls are `NZ`. -/
@@ -295,8 +292,8 @@ theorem tabAt_sound (hm : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Holds r
           have hst := hh _ he3
           simp only [Ev.Holds, Atom.Holds] at hst
           rw [veq_eq hT, ho] at hst
-          rw [hJe, ← Value.gen_pow_eq_ofK, B1.Tables.tb_loadHolds_mul_gen_pow] at hld
-          rw [B1.Tables.tb_loadHolds_unique hld hst]
+          rw [hJe, ← Value.gen_pow_eq_ofK, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hld
+          rw [LeanVM.Guest.B1.loadHolds_unique hld hst]
           exact hnz w hw
         | _ => simp at h3
       · simp at h2
@@ -480,8 +477,8 @@ theorem selTabAt_sound (hM : MemNz rd) {sp : List Ev} (hh : ∀ e ∈ sp, e.Hold
     have hst := hh _ he3
     simp only [Ev.Holds, Atom.Holds] at hst
     rw [veq_eq hT, ho] at hst
-    rw [hJe, ← Value.gen_pow_eq_ofK, B1.Tables.tb_loadHolds_mul_gen_pow] at hld
-    rw [B1.Tables.tb_loadHolds_unique hld hst]
+    rw [hJe, ← Value.gen_pow_eq_ofK, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hld
+    rw [LeanVM.Guest.B1.loadHolds_unique hld hst]
     exact nzOf_sound hM (by simp) hh hup _ _ hw
   | _ => simp at h3
 

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Sig.WotsGroupComplete
 public import LeanVM.Guest.B1.Sig.CwKeep
 public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.B1.Sig.Shifts
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A group, complete
@@ -122,7 +123,7 @@ theorem groupD_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
   rw [hend]
   simp only [groupD, List.cons_append, List.append_assoc]
   show Completes C rd d _ ([hintW "digits" [.n d]] ++
-    (rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ (pre ++ ([cst (b + 5) closeLane] ++
+    (rangeS (.n d) (word (2 ^ (4 ^ n - 1)) 0) (d + 1) ++ (pre ++ ([cst (b + 5) closeLane] ⧺
       [.match_ (.n d) _])))) σ _
   refine Completes.append (m := d + 1) (by omega) (by omega)
     (by rw [valsList_hint]; exact .cons ⟨d, by omega, rfl⟩ (.nil _)) (hintKeep_complete σ _ _ _ _)

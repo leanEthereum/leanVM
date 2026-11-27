@@ -79,8 +79,6 @@ theorem K.eq_sum_bits (a : K) :
 
 /-! ## `ofK` as a ring hom -/
 
-private theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 private theorem ofK_sum {ι : Type*} (s : Finset ι) (f : ι → K) :
     ofK (∑ i ∈ s, f i) = ∑ i ∈ s, ofK (f i) :=
   map_sum (algebraMap K E) f s

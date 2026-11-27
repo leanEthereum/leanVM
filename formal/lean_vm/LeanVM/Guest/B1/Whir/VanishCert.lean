@@ -16,7 +16,7 @@ public import LeanVM.Parameters.Whir
 roots from the basis `x^(i+1)`: each layer is the previous one squared and shifted by the last root
 (`subspaceRootsAux`). Evaluating it in one go costs the kernel too much memory at `26`
 coordinates, so the layers are written out (`layersLit`, computed outside) and each step checked
-on its own (`stepOk`, `step_k`): a step is `26 - k` multiplications. `Vanish.lean` assembles them.
+on its own (`stepOk`, `step_all`): a step is `26 - k` multiplications. `Vanish.lean` assembles them.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -160,169 +160,15 @@ theorem layerK_zero : layerK 0 = (List.range 26).map fun i ↦ K.ofBits (2 ^ (i 
 
 theorem rootK_length : rootK.length = 26 := by decide +kernel
 
-theorem step_0 : stepOk 0 = true := by decide +kernel
-
-theorem step_1 : stepOk 1 = true := by decide +kernel
-
-theorem step_2 : stepOk 2 = true := by decide +kernel
-
-theorem step_3 : stepOk 3 = true := by decide +kernel
-
-theorem step_4 : stepOk 4 = true := by decide +kernel
-
-theorem step_5 : stepOk 5 = true := by decide +kernel
-
-theorem step_6 : stepOk 6 = true := by decide +kernel
-
-theorem step_7 : stepOk 7 = true := by decide +kernel
-
-theorem step_8 : stepOk 8 = true := by decide +kernel
-
-theorem step_9 : stepOk 9 = true := by decide +kernel
-
-theorem step_10 : stepOk 10 = true := by decide +kernel
-
-theorem step_11 : stepOk 11 = true := by decide +kernel
-
-theorem step_12 : stepOk 12 = true := by decide +kernel
-
-theorem step_13 : stepOk 13 = true := by decide +kernel
-
-theorem step_14 : stepOk 14 = true := by decide +kernel
-
-theorem step_15 : stepOk 15 = true := by decide +kernel
-
-theorem step_16 : stepOk 16 = true := by decide +kernel
-
-theorem step_17 : stepOk 17 = true := by decide +kernel
-
-theorem step_18 : stepOk 18 = true := by decide +kernel
-
-theorem step_19 : stepOk 19 = true := by decide +kernel
-
-theorem step_20 : stepOk 20 = true := by decide +kernel
-
-theorem step_21 : stepOk 21 = true := by decide +kernel
-
-theorem step_22 : stepOk 22 = true := by decide +kernel
-
-theorem step_23 : stepOk 23 = true := by decide +kernel
-
-theorem step_24 : stepOk 24 = true := by decide +kernel
-
-theorem step_25 : stepOk 25 = true := by decide +kernel
-
-theorem inv_0 : invOk 0 = true := by decide +kernel
-
-theorem inv_1 : invOk 1 = true := by decide +kernel
-
-theorem inv_2 : invOk 2 = true := by decide +kernel
-
-theorem inv_3 : invOk 3 = true := by decide +kernel
-
-theorem inv_4 : invOk 4 = true := by decide +kernel
-
-theorem inv_5 : invOk 5 = true := by decide +kernel
-
-theorem inv_6 : invOk 6 = true := by decide +kernel
-
-theorem inv_7 : invOk 7 = true := by decide +kernel
-
-theorem inv_8 : invOk 8 = true := by decide +kernel
-
-theorem inv_9 : invOk 9 = true := by decide +kernel
-
-theorem inv_10 : invOk 10 = true := by decide +kernel
-
-theorem inv_11 : invOk 11 = true := by decide +kernel
-
-theorem inv_12 : invOk 12 = true := by decide +kernel
-
-theorem inv_13 : invOk 13 = true := by decide +kernel
-
-theorem inv_14 : invOk 14 = true := by decide +kernel
-
-theorem inv_15 : invOk 15 = true := by decide +kernel
-
-theorem inv_16 : invOk 16 = true := by decide +kernel
-
-theorem inv_17 : invOk 17 = true := by decide +kernel
-
-theorem inv_18 : invOk 18 = true := by decide +kernel
-
-theorem inv_19 : invOk 19 = true := by decide +kernel
-
-theorem inv_20 : invOk 20 = true := by decide +kernel
-
-theorem inv_21 : invOk 21 = true := by decide +kernel
-
-theorem inv_22 : invOk 22 = true := by decide +kernel
-
-theorem inv_23 : invOk 23 = true := by decide +kernel
-
-theorem inv_24 : invOk 24 = true := by decide +kernel
-
-theorem inv_25 : invOk 25 = true := by decide +kernel
-
+/-- Each inverse times its root is one (a kernel check per root). -/
 theorem inv_all : ∀ t < 26, invOk t = true := by
   intro t ht
-  interval_cases t
-  · exact inv_0
-  · exact inv_1
-  · exact inv_2
-  · exact inv_3
-  · exact inv_4
-  · exact inv_5
-  · exact inv_6
-  · exact inv_7
-  · exact inv_8
-  · exact inv_9
-  · exact inv_10
-  · exact inv_11
-  · exact inv_12
-  · exact inv_13
-  · exact inv_14
-  · exact inv_15
-  · exact inv_16
-  · exact inv_17
-  · exact inv_18
-  · exact inv_19
-  · exact inv_20
-  · exact inv_21
-  · exact inv_22
-  · exact inv_23
-  · exact inv_24
-  · exact inv_25
+  interval_cases t <;> decide +kernel
 
+/-- Each layer's step (a kernel check per layer). -/
 theorem step_all : ∀ k < 26, stepOk k = true := by
   intro k hk
-  interval_cases k
-  · exact step_0
-  · exact step_1
-  · exact step_2
-  · exact step_3
-  · exact step_4
-  · exact step_5
-  · exact step_6
-  · exact step_7
-  · exact step_8
-  · exact step_9
-  · exact step_10
-  · exact step_11
-  · exact step_12
-  · exact step_13
-  · exact step_14
-  · exact step_15
-  · exact step_16
-  · exact step_17
-  · exact step_18
-  · exact step_19
-  · exact step_20
-  · exact step_21
-  · exact step_22
-  · exact step_23
-  · exact step_24
-  · exact step_25
+  interval_cases k <;> decide +kernel
 
 end
 end LeanVM.Guest.B1.Whir

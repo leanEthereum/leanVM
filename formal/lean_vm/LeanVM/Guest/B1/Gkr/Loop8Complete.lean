@@ -13,6 +13,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_bus_gkr_loop0`, completely
@@ -32,7 +33,7 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Guest.B1
 /-- `verify_bus_gkr_loop0`'s atoms. -/
 def l8A : List Stmt := l8Body.take 9
 
-theorem l8Body_eq : l8Body = l8A ++ [.callIf (.n (val% «verify_bus_gkr_loop0» "s2#2")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr_loop0» "s2#4"), .n (val% «verify_bus_gkr_loop0» "bound"),
+theorem l8Body_eq : l8Body = l8A ⧺ [.callIf (.n (val% «verify_bus_gkr_loop0» "s2#2")) name% «verify_bus_gkr_loop0» [.n (val% «verify_bus_gkr_loop0» "s2#4"), .n (val% «verify_bus_gkr_loop0» "bound"),
     .n (val% «verify_bus_gkr_loop0» "zeta"), .n (val% «verify_bus_gkr_loop0» "final_point_row")], .ret []] :=
   rfl
 
@@ -44,7 +45,7 @@ theorem l8A_atoms : AllAtoms l8A := by
 set_option maxRecDepth 10000 in
 /-- **`verify_bus_gkr_loop0`, completely.** -/
 theorem l8_complete {rd : Reader} {zeta row : E} {m : ℕ} (hm : 0 < m) (hmb : m < 2 ^ 62)
-    {pt : List E} (hl : pt.length = m) (hr : TbReadsAt rd row pt) (hz : TbReadsAt rd zeta pt) :
+    {pt : List E} (hl : pt.length = m) (hr : ReadsAt rd row pt) (hz : ReadsAt rd zeta pt) :
     coreProgram.Rel rd name% «verify_bus_gkr_loop0» [1, gen ^ m, zeta, row] [] := by
   obtain ⟨fn, hf, hp, hb⟩ := l8Found
   rw [l8Body_eq] at hb
@@ -63,7 +64,7 @@ theorem l8_complete {rd : Reader} {zeta row : E} {m : ℕ} (hm : 0 < m) (hmb : m
     simp only [l8A, l8Body, List.take, List.mem_cons, List.not_mem_nil, or_false,
       Stmt.atom.injEq, forall_eq_or_imp, forall_eq, Atom.Holds] at g
     obtain ⟨-, -, -, -, c7, m8, a9, c10, m11⟩ := g
-    rw [tb_word_gen] at c7 c10
+    rw [word_gen] at c7 c10
     refine ⟨by rw [a9, m8, c7, h0, h1], ?_⟩
     simp only [List.map_cons, List.map_nil, m11, c10, h0, h1, h2, h3]
   rw [← pow_zero gen]
@@ -78,18 +79,18 @@ theorem l8_complete {rd : Reader} {zeta row : E} {m : ℕ} (hm : 0 < m) (hmb : m
     simp only [l8A, l8Body, List.take, List.mem_cons, List.not_mem_nil, or_false,
       Stmt.atom.injEq] at ha
     have lr : LoadHolds rd (row * gen ^ j) 0 pt[j] := by
-      rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hr j hjl
+      rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hr j hjl
     have lz : LoadHolds rd (zeta * gen ^ j) 0 pt[j] := by
-      rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact hz j hjl
+      rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hz j hjl
     rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · rfl
     · exact lr
     · rfl
     · exact lz
-    · exact tb_word_gen.symm
+    · exact word_gen.symm
     · rfl
     · rfl
-    · exact tb_word_gen.symm
+    · exact word_gen.symm
     · rfl
 
 end

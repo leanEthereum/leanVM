@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Gkr.Spec
 public import LeanVM.Guest.B1.Fs.Templates
 import LeanVM.Guest.B1.Tables.Basic
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # One GKR round (`gkr_round`)
@@ -34,10 +35,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-- Round `q` from value `B`, on the cursor, the point row `pt`, the row `npt` its challenge goes
 to (at `npt[noff + q]`), the claim and the carried capacity. -/
 def gkRoundN (B q : ℕ) (cur pt npt : V) (noff : ℕ) (claimV : V) (cap : List V) : List Stmt :=
-  fsNextT cur (4 * q) B ++ fsNextT cur (4 * q + 1) (B + 3) ++
-    fsNextT cur (4 * q + 2) (B + 6) ++ fsNextT cur (4 * q + 3) (B + 9) ++
+  fsNextT cur (4 * q) B ⧺ fsNextT cur (4 * q + 1) (B + 3) ⧺
+    fsNextT cur (4 * q + 2) (B + 6) ⧺ fsNextT cur (4 * q + 3) (B + 9) ⧺
     [keccakA ([.n (B + 1), .n (B + 2), .n (B + 4), .n (B + 5), .n (B + 7), .n (B + 8),
-        .n (B + 10), .n (B + 11)] ++ cap) ((List.range 13).map fun k ↦ .n (B + 12 + k))] ++
+        .n (B + 10), .n (B + 11)] ++ cap) ((List.range 13).map fun k ↦ .n (B + 12 + k))] ⧺
     [.atom (.load (.n (B + 25)) pt q), .atom (.add (.n (B + 26)) (.n B) (.n (B + 3))),
       .atom (.add (.n (B + 27)) (.n (B + 26)) (.n (B + 6))),
       .atom (.add (.n (B + 28)) (.n (B + 27)) (.n (B + 9))),

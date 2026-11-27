@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkChain
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `keccak_layer`'s cursor
@@ -47,15 +48,15 @@ def LayQ (J : Inst) : Prop :=
 
 /-- A layer's statements before its pack rounds' setup. -/
 def layA (first : ℕ) : List Stmt :=
-  headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++ checkT (accL first) ++
-    sqT first ++ rmfeBlockT (layOff first) ++
+  headT first ⧺ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ⧺ checkT (accL first) ⧺
+    sqT first ⧺ rmfeBlockT (layOff first) ⧺
     hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 689)
 
 /-- A layer's statements between its last record and its tail. -/
 def layB (first : ℕ) : List Stmt :=
   localRoundsT (.n (layOff first + 807)) (.n (layOff first + 809)) (.n (layOff first + 808))
-      (cap5 (layOff first + 802)) (layOff first + 810) 11 ++
-    tReadsT (layOff first) ++ eqfT (.n (layOff first + 809)) 6 5 25 (layOff first + 1171) ++
+      (cap5 (layOff first + 802)) (layOff first + 810) 11 ⧺
+    tReadsT (layOff first) ⧺ eqfT (.n (layOff first + 809)) 6 5 25 (layOff first + 1171) ⧺
     weightT first (layOff first)
 
 /-- A layer's tail. -/
@@ -103,9 +104,6 @@ theorem holdsList_mem {C : CallRel} {σ : Val} : ∀ {ss : List Stmt}, Stmt.noRe
       · exact ic f args rets hc
 
 /-! ## The loops' records -/
-
-theorem word_g36 : word 68719476736 0 = gen ^ 36 := by
-  rw [show (68719476736 : ℕ) = 2 ^ 36 from rfl]; exact word_two_pow (by decide)
 
 /-- **The eight-round loop's records**: record `j` holds the cursor `16 j` words on, `j ≤ n`. -/
 theorem pack_cur {first : ℕ} (hf : first < 2) {sg rec pp pt tb cur : E} {n : ℕ} (hn : n < 32)
@@ -206,27 +204,18 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
   have hy' : 16 * (y / krStep) + 2 * (y % krStep) = 2 * y := by simp only [krStep]; omega
   have hcur : σ (.n (layOff first + 807)) = σ (.n (valf% «keccak_layer» "cursor@1")) * gen ^ (48 + 2 * y) := by
     rw [e745, mul_assoc, mul_assoc, ← pow_add, ← pow_add, hy']
-  rw [c312, m311, c310, word_g36, hcur, mul_assoc, ← pow_add,
+  rw [c312, m311, c310, word_2p36, hcur, mul_assoc, ← pow_add,
     show 48 + 2 * y + 36 = 84 + 2 * y by ring] at hk
   exact ⟨hcur, [σ (.n (topV (weightEnd first (layOff first)) + 305)),
     σ (.n (topV (weightEnd first (layOff first)) + 306)), σ (.n (topV (weightEnd first (layOff first)) + 307)),
     σ (.n (topV (weightEnd first (layOff first)) + 308)), σ (.n (topV (weightEnd first (layOff first)) + 309))], hk⟩
-
-/-- `keccak_layer__L{first}`, found, its body the template and its parameters the first sixteen. -/
-theorem layer_found {first : ℕ} (hf : first < 2) :
-    ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
-      fn.params = [.n (valf% «keccak_layer» "fs0"), .n (valf% «keccak_layer» "fs1"), .n (valf% «keccak_layer» "fs2"), .n (valf% «keccak_layer» "fs3"), .n (valf% «keccak_layer» "fs4"), .n (valf% «keccak_layer» "p0"), .n (valf% «keccak_layer» "p1"), .n (valf% «keccak_layer» "cursor@1"), .n (valf% «keccak_layer» "y_g"), .n (valf% «keccak_layer» "step_g"), .n (valf% «keccak_layer» "rem_g"), .n (valf% «keccak_layer» "claim"), .n (valf% «keccak_layer» "out"),
-        .n (valf% «keccak_layer» "iota"), .n (valf% «keccak_layer» "tabs"), .n (valf% «keccak_layer» "stream")] := by
-  interval_cases first
-  · exact ⟨fn% «keccak_layer__L0», find_layer265, layer_body265, rfl⟩
-  · exact ⟨fn% «keccak_layer__L1», find_layer264, layer_body264, rfl⟩
 
 /-- **A layer's returned cursor**, from its relation: `84 + 2y` words past its cursor. -/
 theorem layer_ret {first : ℕ} (hf : first < 2) {args rets : List E} {y : ℕ} (hy : y < 32)
     (h : coreProgram.Rel rd (layerName first) args rets) (h9 : args.getD 9 0 = gen ^ (y / krStep))
     (h10 : args.getD 10 0 = gen ^ (y % krStep)) :
     ∃ ws, rets = ws ++ [args.getD 7 0 * gen ^ (84 + 2 * y)] := by
-  obtain ⟨fn, hfn, hb, hp⟩ := layer_found hf
+  obtain ⟨fn, hfn, hb, hp⟩ := layer_fn hf
   obtain ⟨σ, hpar, hbody⟩ := (rel_iff_sem hfn args rets).mp h
   rw [hp] at hpar
   have hg : ∀ k < 16, args.getD k 0 = σ (.n k) := fun k hk ↦ by
@@ -407,7 +396,7 @@ theorem layQ_step (hr : r.Ok) :
   obtain ⟨fn, hfn, hpar, -⟩ := hJv
   have hcf : c.f = f := by rw [← hname, hJt]; rfl
   have hc : c ∈ calls es := List.mem_of_getElem? hci
-  obtain ⟨fn', hfn', -, hp'⟩ := layer_found hf
+  obtain ⟨fn', hfn', -, hp'⟩ := layer_fn hf
   rw [hfL] at hfn
   obtain rfl : fn = fn' := Option.some.inj (hfn.symm.trans hfn')
   -- the caller is `verify_keccak`
@@ -424,7 +413,7 @@ theorem layQ_step (hr : r.Ok) :
     · exfalso
       rw [hnI] at h
       subst h
-      obtain ⟨fl, hfl, -, -⟩ := layer_found hf
+      obtain ⟨fl, hfl, -, -⟩ := layer_fn hf
       obtain rfl : fnI = fl := Option.some.inj (hfI.symm.trans hfl)
       interval_cases first
       · rw [Option.some.inj (hfl.symm.trans find_layer265), layer_not_loop.1] at hl; cases hl

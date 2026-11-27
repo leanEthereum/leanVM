@@ -8,9 +8,12 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L»
 import LeanVM.Guest.Data.ValNames.«rs_eq_rows__L0»
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `rs_eq_rows` (lean_ethereum.py)
@@ -96,13 +99,13 @@ def rrAcc (n k : ℕ) : ℕ → ℕ
 def rrCoord (n k i : ℕ) : List Stmt :=
   [.atom (.add (.n (rrS n k + 1 + rrStride k * i)) (.n (rrZ n k i)) (.n (4 + 2 * i))),
     .atom (.mul (.n (rrS n k + 2 + rrStride k * i)) (.n (rrAcc n k i))
-      (.n (rrS n k + 1 + rrStride k * i)))] ++
+      (.n (rrS n k + 1 + rrStride k * i)))] ⧺
   (if k < 63 then [.atom (.mul (.n (rrS n k + 3 + 3 * i)) (.n (rrZ n k i)) (.n (rrZ n k i)))]
     else [])
 
 /-- Row `k`: its word, the coordinates, the product stored. -/
 def rrRow (n k : ℕ) : List Stmt :=
-  [.atom (.load (.n (rrS n k)) (.n (valf% «rs_eq_rows» "row")) k)] ++ ((List.range n).map (rrCoord n k)).flatten ++
+  [.atom (.load (.n (rrS n k)) (.n (valf% «rs_eq_rows» "row")) k)] ⧺ ((List.range n).map (rrCoord n k)).flatten ⧺
     [.atom (.load (.n (rrAcc n k n)) (.n (valf% «rs_eq_rows» "row")) (64 + k))]
 
 /-- The coordinates' reads. -/
@@ -114,29 +117,13 @@ def rrT (n : ℕ) : ℕ := rrS n 63 + 1 + 2 * n
 
 /-- The expansion of `rs_eq_rows__L{n}`, `n ≥ 1`. -/
 def rrBody (n : ℕ) : List Stmt :=
-  ((List.range n).map rrHeadBlk).flatten ++ ((List.range 64).map (rrRow n)).flatten ++
+  ((List.range n).map rrHeadBlk).flatten ⧺ ((List.range 64).map (rrRow n)).flatten ⧺
     [.atom (.const (.n (rrT n)) (word 27 0)), .atom (.mul (.n (rrT n + 1)) (.n (valf% «rs_eq_rows» "row")) (.n (rrT n))),
       .atom (.copy (.n (rrT n + 2)) (.n (rrT n + 1))), .ret [.n (rrT n + 2)]]
 
 theorem rs_eq_rows_L0_body : Fn.body fn% «rs_eq_rows__L0» = [.atom (.copy (.n (val% «rs_eq_rows__L0» "s2#0")) (.n (val% «rs_eq_rows__L0» "row"))),
-    .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L1_body : Fn.body fn% «rs_eq_rows__L1» = rrBody 1 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L2_body : Fn.body fn% «rs_eq_rows__L2» = rrBody 2 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L3_body : Fn.body fn% «rs_eq_rows__L3» = rrBody 3 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L4_body : Fn.body fn% «rs_eq_rows__L4» = rrBody 4 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L5_body : Fn.body fn% «rs_eq_rows__L5» = rrBody 5 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L6_body : Fn.body fn% «rs_eq_rows__L6» = rrBody 6 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L7_body : Fn.body fn% «rs_eq_rows__L7» = rrBody 7 :=
-  stmtsEqb_sound (by decide +kernel)
-theorem rs_eq_rows_L8_body : Fn.body fn% «rs_eq_rows__L8» = rrBody 8 :=
-  stmtsEqb_sound (by decide +kernel)
+    .ret [.n (val% «rs_eq_rows__L0» "s2#0")]] := by
+  kernel_rfl
 
 /-! ## The conditions -/
 
@@ -471,28 +458,19 @@ theorem rr0_iff (rd : Reader) (args rets : List E) :
       | [_, _, _], Or.inr ⟨h, _⟩ => omega
     exact ⟨setl (Val.ofArgs [row, z, p]) 3 [row], rfl, by b1_look, by b1_look⟩
 
-set_option maxRecDepth 100000 in
+/-- The deployed `rs_eq_rows__L{n}`, `1 ≤ n ≤ 8`, are the template. -/
+private theorem rs_eq_rows_found :
+    coreRunB (idxs% «rs_eq_rows__L» 1 9) (fun i ↦ rsEqRowsNames.getD (i + 1) "")
+      (shapeB [.n (valf% «rs_eq_rows» "row"), .n (valf% «rs_eq_rows» "zs"),
+        .n (valf% «rs_eq_rows» "ps")] fun i ↦ rrBody (i + 1)) = true :=
+  coreRunB_iff.mpr fun i (_ : i < 8) ↦ by interval_cases i <;> decide +kernel
+
 /-- **`rs_eq_rows__L{n}`'s core IR is its meaning**, `n ≤ 8`. -/
 theorem rs_eq_rows_holds : rs_eq_rows_Spec := by
-  intro n hn rd args rets
-  interval_cases n
+  rintro (_ | n) hn rd args rets
   · exact rr0_iff rd args rets
-  · exact rr_iff 1 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L1») rfl) rfl
-      rs_eq_rows_L1_body rd args rets
-  · exact rr_iff 2 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L2») rfl) rfl
-      rs_eq_rows_L2_body rd args rets
-  · exact rr_iff 3 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L3») rfl) rfl
-      rs_eq_rows_L3_body rd args rets
-  · exact rr_iff 4 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L4») rfl) rfl
-      rs_eq_rows_L4_body rd args rets
-  · exact rr_iff 5 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L5») rfl) rfl
-      rs_eq_rows_L5_body rd args rets
-  · exact rr_iff 6 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L6») rfl) rfl
-      rs_eq_rows_L6_body rd args rets
-  · exact rr_iff 7 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L7») rfl) rfl
-      rs_eq_rows_L7_body rd args rets
-  · exact rr_iff 8 (by decide) (coreProgram_find?_at (j := idx% «rs_eq_rows__L8») rfl) rfl
-      rs_eq_rows_L8_body rd args rets
+  · obtain ⟨_, hf, hp, hb⟩ := coreRunB_shape rs_eq_rows_found (show n < 8 by omega)
+    exact rr_iff (n + 1) n.succ_pos hf hp hb rd args rets
 
 end
 end LeanVM.Guest.B1

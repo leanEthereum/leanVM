@@ -66,8 +66,8 @@ theorem selBitsOf_val {off τ d : ℕ} (hal : 2 ^ τ ∣ off) (hob : off < 2 ^ (
 
 /-- The selector bits the shifted pointer reads. -/
 theorem selBits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : τ + d ≤ 34)
-    (h : TbReadsAt rd p (offBits off)) :
-    TbReadsAt rd (p * gen ^ τ) ((selBitsOf off τ d).map bitE) := by
+    (h : ReadsAt rd p (offBits off)) :
+    ReadsAt rd (p * gen ^ τ) ((selBitsOf off τ d).map bitE) := by
   have e : (selBitsOf off τ d).map bitE = ((offBits off).drop τ).take d := by
     apply List.ext_getElem (by simp [selBitsOf, offBits]; omega)
     intro i h1 _
@@ -79,8 +79,8 @@ theorem selBits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : τ + d ≤ 34
 /-- **The digits the table block's selector reads**: the first `⌈d/4⌉` of `off >> τ`'s, when
 `off < 2^(τ + d)`. -/
 theorem offDigits_reads {rd : Reader} {p : E} {off τ d : ℕ} (hd : d ≤ 36)
-    (hob : off < 2 ^ (τ + d)) (h : TbReadsAt rd p (offDigits off τ)) :
-    TbReadsAt rd p (nibDigits (selBitsOf off τ d)) := by
+    (hob : off < 2 ^ (τ + d)) (h : ReadsAt rd p (offDigits off τ)) :
+    ReadsAt rd p (nibDigits (selBitsOf off τ d)) := by
   have e : nibDigits (selBitsOf off τ d) = (offDigits off τ).take ((d + 3) / 4) := by
     apply List.ext_getElem (by simp [offDigits, nibDigits, selBitsOf]; omega)
     intro j h1 _
@@ -105,7 +105,7 @@ local notation "σv" => vtσ rd wo args
 
 /-- A slice read at `vtAt` holds when its statements beyond evaluation do. -/
 theorem vt_blockAt (hl : args.length = 21) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true)
+    (heq : stmtsEqb blk ((vtAt n).take blk.length) = true)
     (h : ∀ s ∈ blk, autoB s = false → VSH (coreProgram.Rel rd) rd σv s) :
     ∀ s ∈ blk, VSH (coreProgram.Rel rd) rd σv s := by
   intro s hs
@@ -126,7 +126,7 @@ theorem vshB_dispatch {σ : Val} {x : V} {fs : List String} {args' rets : List V
 
 /-- **A table block's selector, complete.** -/
 theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtSelT w b t prev)
+    (hcheck : stmtsEqb (vtSelT w b t prev)
       ((vtAt pos).take (vtSelT w b t prev).length) = true)
     {point : List E} {d τ : ℕ} (hpl : point.length = d + τ) (hml : point.length < 33)
     (hdv : σv (.n (vtShLen t)) = gen ^ d)
@@ -134,7 +134,7 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
       (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d))
     {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ τ ∣ off)
     (hob : off < 2 ^ point.length)
-    (hdig : TbReadsAt rd (wo w) (offDigits off τ))
+    (hdig : ReadsAt rd (wo w) (offDigits off τ))
     (hw0 : wo (vtSelE w t) = Placement.eqAbove ⟨τ, off⟩ point)
     (hw1 : wo (vtSelE w t + 1) = gen ^ off)
     (hlow : ∀ i < 16, (rd (Parameters.addressOfIndex i)).isSome) :
@@ -163,7 +163,7 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
   set bs := selBitsOf off τ d with hbs
   have hbl : bs.length = d := selBitsOf_length off τ d
   have hval := selBitsOf_val hal (by rw [Nat.add_comm, ← hpl]; exact hob)
-  have hsb : TbReadsAt rd (σv (.n w)) (nibDigits bs) := by
+  have hsb : ReadsAt rd (σv (.n w)) (nibDigits bs) := by
     rw [g0]; exact offDigits_reads (by omega) (by rw [Nat.add_comm, ← hpl]; exact hob) hdig
   have hrel := block_selector_tab_complete_holds d hd33 rd (σv (.n w)) (σv (.n (vtEqV t)))
     (σv (.n (vtGV t))) bs (point.drop τ) ((point.map (1 + ·)).drop τ)
@@ -213,15 +213,15 @@ theorem vtc_selblock (hl : args.length = 21) {w b t pos : ℕ} {prev : Option �
 
 /-- **A framework block's selector, complete.** -/
 theorem vtc_fwblock (hl : args.length = 21) {w b kv pos : ℕ} {prev : Option ℕ}
-    (hcheck : tbStmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
+    (hcheck : stmtsEqb (vtFwSelT w b kv prev) ((vtAt pos).take (vtFwSelT w b kv prev).length) =
       true) (hw : 802 < w) (hkv : kv < w)
     {point : List E} (hmu : σv (.n (val% «verify_tables» "g_bus_mu")) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
-    (hidxc : TbReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList)
+    (hz1 : ReadsAt rd (σv (.n (val% «verify_tables» "zeta1"))) (point.map (1 + ·)))
+    (hidxc : ReadsAt rd (σv (.n (val% «verify_tables» "idxc_tab"))) vtIdxcList)
     {κ : ℕ} (hκ : σv (.n kv) = gen ^ κ) (hκμ : κ ≤ point.length)
     {off : ℕ} (hoff : σv (.n (vtBoffV b)) = gen ^ off) (hal : 2 ^ κ ∣ off)
     (hob : off < 2 ^ point.length)
-    (hbits : TbReadsAt rd (wo (w + 6)) (offBits off))
+    (hbits : ReadsAt rd (wo (w + 6)) (offBits off))
     (hw0 : wo (w + 10) = Placement.eqAbove ⟨κ, off⟩ point) (hw1 : wo (w + 11) = gen ^ off)
     (hlow : LowDefB 14 rd) :
     (∀ s ∈ vtFwSelT w b kv prev, VSH (coreProgram.Rel rd) rd σv s) ∧
@@ -259,11 +259,11 @@ theorem vtc_fwblock (hl : args.length = 21) {w b kv pos : ℕ} {prev : Option �
   -- the callee
   have hbl : (selBitsOf off κ d).length = d := selBitsOf_length off κ d
   have hval := selBitsOf_val hal (by rw [← hpl]; exact hob)
-  have hsb : TbReadsAt rd (σv (.n (w + 7))) ((selBitsOf off κ d).map bitE) := by
+  have hsb : ReadsAt rd (σv (.n (w + 7))) ((selBitsOf off κ d).map bitE) := by
     rw [g7, g6, hκ]; exact selBits_reads (by omega) hbits
-  have hz1' : TbReadsAt rd (σv (.n (w + 8))) ((point.map (1 + ·)).drop κ) := by
+  have hz1' : ReadsAt rd (σv (.n (w + 8))) ((point.map (1 + ·)).drop κ) := by
     rw [g8, hκ]; exact tbReadsAt_drop hz1 κ
-  have hic : TbReadsAt rd (σv (.n (w + 9))) ((vtIdxcList.drop κ).take d) := by
+  have hic : ReadsAt rd (σv (.n (w + 9))) ((vtIdxcList.drop κ).take d) := by
     rw [g9, hκ]; exact tbReadsAt_take (tbReadsAt_drop hidxc κ) d
   have hrel := block_selector_complete_holds d (by omega) rd
     [σv (.n (w + 7)), σv (.n (w + 8)), σv (.n (w + 9))]

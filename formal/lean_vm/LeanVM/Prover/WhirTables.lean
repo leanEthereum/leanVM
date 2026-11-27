@@ -88,8 +88,8 @@ theorem getD_eqTable_eqKernel (z : List E) (j : ℕ) :
 theorem eqKernel_eq_tableOf {m : ℕ} (z : List E) (hz : z.length = m) :
     eqKernel z = tableOf m (eqEval z) := by
   subst hz
-  refine list_ext_getD (by rw [length_eqKernel, length_tableOf]) fun j hj ↦ ?_
-  rw [length_eqKernel] at hj
+  refine list_ext_getD (by rw [eqKernel_length, length_tableOf]) fun j hj ↦ ?_
+  rw [eqKernel_length] at hj
   rw [getD_eqKernel z j hj, getD_tableOf _ _ _ hj, eqEval_comm]
 
 /-! ## Gluing -/

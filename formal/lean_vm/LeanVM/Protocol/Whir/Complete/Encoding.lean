@@ -181,8 +181,6 @@ theorem readRow_stackWord {μ R : ℕ} (hμ : laneBits ≤ μ) (q : Column μ) {
 
 /-! ## The verifier's induced weight -/
 
-private theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
-
 /-- A left fold that adds `f a` at every step is a sum. -/
 theorem foldl_eq_add_sum {α : Type} (F : E → α → E) (f : α → E) (hF : ∀ t a, F t a = t + f a) :
     ∀ (l : List α) (t : E), l.foldl F t = t + (l.map f).sum

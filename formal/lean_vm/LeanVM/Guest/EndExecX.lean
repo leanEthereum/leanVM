@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.EndExecXOp
 public import LeanVM.Guest.EndExecXTrace
 public import LeanVM.Guest.EndExecParts
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!

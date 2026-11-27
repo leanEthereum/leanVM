@@ -42,11 +42,11 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} {S : Li
 claim. -/
 def GlRecK (rd : Reader) (rec cur : E) (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs)
     (a : ℕ) : Prop :=
-  TbCapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
+  CapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
     LoadHolds rd rec 5 (cur * gen ^ (4 * a)) ∧
     LoadHolds rd rec 6 (gkSt Cf ef claim s a).1
 
-theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : TbCapAt rd rec 0 1 cap)
+theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : CapAt rd rec 0 1 cap)
     {k : ℕ} (hk : k < 5) : LoadHolds rd rec k (cap.getD k 0) := by
   obtain ⟨hl, h⟩ := h
   have := h k (by omega)
@@ -58,7 +58,7 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
     {head cur : E} (e21 : σ (.n (valf% «gkr_layer» "s4#0")) = cur) (e54 : σ (.n (valf% «gkr_layer» "head")) = head) {cap : List E} {claim : E}
     (hcap : (glCap (if p = 0 then 35 else 39 + 78 * p)).map σ = cap)
     (hcl : σ (.n (if p = 0 then 57 else 57 + 78 * p)) = claim)
-    (hR1 : TbCapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
+    (hR1 : CapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
     (hR3 : LoadHolds rd head 6 claim) :
     Stmt.HoldsList C rd σ (glHeadStore p) True kret := by
   have hc : ∀ k < 5, LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) k
@@ -88,7 +88,7 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
       Atom.Holds, and_true] at hc hcl ⊢
     refine ⟨hc 0 (by omega), hc 1 (by omega), hc 2 (by omega), hc 3 (by omega), hc 4 (by omega),
       c59, m60, ?_, ?_⟩
-    · rw [m60, c59, tb_word_two_pow (by omega), e54, e21]; exact hR2
+    · rw [m60, c59, word_two_pow (by omega), e54, e21]; exact hR2
     · rw [e54, hcl]; exact hR3
 
 /-- **The loop's call** on the head, `qrow = row·g^(2p)` and `qrow·g^42`, entered iff `m ≠ 0`. -/
@@ -99,7 +99,7 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       row * gen ^ (2 * p) * gen ^ 42, σ (.n (valf% «gkr_layer» "tabs"))] []) :
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (glLoopCall p nm) True kret := by
   have g : ∀ a, Stmt.atom a ∈ glLoopCall p nm → Good rd S w σ a := fun a ha ↦ hG _ ha
-  have hK : IsInK (1 + gen ^ m) := tb_isInK_add (by simpa using tb_gen_pow_isInK 0) (tb_gen_pow_isInK _)
+  have hK : IsInK (1 + gen ^ m) := isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK _)
   have hm0 : 1 + gen ^ m ≠ 0 → 0 < m := fun hne ↦ by
     rcases Nat.eq_zero_or_pos m with h0 | h0
     · rw [h0, pow_zero, e_add_self] at hne; exact absurd rfl hne
@@ -114,13 +114,13 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       (by simp [glLoopCall, glLoopCall0])
     have m63 := good_mul (g (.mul (.n (val% «gkr_layer__L0_L0» "s20#4")) (.n (valf% «gkr_layer» "point_row")) (.n (val% «gkr_layer__L0_L0» "s20#3"))) (by simp [glLoopCall, glLoopCall0]))
       (by omega) (by omega)
-    have e60 : σ (.n (val% «gkr_layer__L0_L0» "s20#1")) = 1 + gen ^ m := by rw [a60, c59, tb_word_one, e3]
+    have e60 : σ (.n (val% «gkr_layer__L0_L0» "s20#1")) = 1 + gen ^ m := by rw [a60, c59, word_one, e3]
     simp only [glLoopCall, ↓reduceIte, glLoopCall0, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil, and_true]
     refine ⟨c59, a60, c61, c62, m63, by rw [e60]; exact hK, fun hne ↦ ?_⟩
     rw [e60] at hne
     have := hloop (hm0 hne)
-    rw [m63, c62, c61, tb_word_one, tb_word_two_pow (by omega), e3, e53]
+    rw [m63, c62, c61, word_one, word_two_pow (by omega), e3, e53]
     simpa using this
   · have hp0 : p ≠ 0 := by omega
     have mem : ∀ a, Stmt.atom a ∈ glLoopCallP p nm → Stmt.atom a ∈ glLoopCall p nm := fun a ha ↦ by
@@ -139,13 +139,13 @@ theorem glc_lcall {p : ℕ} (hp : p < 4) {nm : String}
       g (.const (.n (65 + 78 * p)) (word (2 ^ (42 + 2 * p)) 0)) (mem _ (by simp [glLoopCallP]))
     have m7 := good_mul (g (.mul (.n (66 + 78 * p)) (.n (valf% «gkr_layer» "point_row")) (.n (65 + 78 * p)))
       (mem _ (by simp [glLoopCallP]))) (by omega) (by omega)
-    have e2 : σ (.n (61 + 78 * p)) = 1 + gen ^ m := by rw [a2, c1, tb_word_one, e3]
+    have e2 : σ (.n (61 + 78 * p)) = 1 + gen ^ m := by rw [a2, c1, word_one, e3]
     simp only [glLoopCall, hp0, ↓reduceIte, glLoopCallP, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
       List.map_cons, List.map_nil, and_true]
     refine ⟨c1, a2, c3, c4, m5, c6, m7, by rw [e2]; exact hK, fun hne ↦ ?_⟩
     rw [e2] at hne
     have := hloop (hm0 hne)
-    rw [m7, m5, c6, c4, c3, tb_word_one, tb_word_two_pow (by omega), tb_word_two_pow (by omega), e3,
+    rw [m7, m5, c6, c4, c3, word_one, word_two_pow (by omega), word_two_pow (by omega), e3,
       e53, show row * gen ^ (42 + 2 * p) = row * gen ^ (2 * p) * gen ^ 42 by ring]
     simpa using this
 
@@ -241,7 +241,7 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
       (by simp only [glW, ↓reduceIte]; rw [m64, e54, r3, r2, r1, r0, e3]; ring) hR
     refine ⟨?_, by simp only [glD, ↓reduceIte, Nat.add_zero]; rw [m68, e53, e67]; ring,
       by simp only [glD, ↓reduceIte, Nat.add_zero]; rw [m71, m70, c69, e67, e53,
-        tb_word_two_pow (by omega)]; ring, L2, L3, L4⟩
+        word_two_pow (by omega)]; ring, L2, L3, L4⟩
     simp only [glTailSetup, ↓reduceIte, glTailSetup0]
     rw [tb_holdsList_append_noRet (by rfl)]
     refine ⟨?_, by simpa [glW] using L1⟩
@@ -293,9 +293,9 @@ theorem glc_tsetup {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glTailSetup p, GoodS r
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       exact ⟨r0, r1, r2, r3, m1, m2, m3, m4, c5, m6, m7, c8, m9, m10⟩
     · rw [hD, show 71 + (78 * p + 6) = 77 + 78 * p by ring, m7, m6, c5, e71, e53,
-        tb_word_two_pow (by omega)]
+        word_two_pow (by omega)]
     · rw [hD, show 74 + (78 * p + 6) = 80 + 78 * p by ring, m10, m9, c8, e71, e53,
-        tb_word_two_pow (by omega), show 42 + 2 * p = 2 * p + 42 by ring, pow_add]
+        word_two_pow (by omega), show 42 + 2 * p = 2 * p + 42 by ring, pow_add]
       ring
 
 /-- **The row's zero cell** at an odd depth, `ntpt[1]`. -/
@@ -309,7 +309,7 @@ theorem glc_pad {p o : ℕ} (hG : ∀ s ∈ glPad p o, GoodS rd S w σ s)
       (by simp [h1])
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     refine ⟨c, ?_⟩
-    rw [c, tb_word_zero]; exact hz h1
+    rw [c, word_zero]; exact hz h1
   · trivial
 
 end

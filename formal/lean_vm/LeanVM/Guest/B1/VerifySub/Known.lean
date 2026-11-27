@@ -37,12 +37,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 variable {C : CallRel} {σ : Val} {next : Prop} {kret : List E → Prop}
 
-theorem kn_ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
 /-- `LIG_MIN_SHIFT_INV = g^-20`. -/
 theorem vsGinv20_mul : vsGinv20 * gen ^ 20 = 1 := by
   rw [show vsGinv20 = ofK (K.ofBits 14347465658197868555) by rw [vsGinv20, word_eOfNat]; rfl,
-    gen_pow_eq_ofK, ← kn_ofK_mul,
+    gen_pow_eq_ofK, ← ofK_mul,
     show K.ofBits 14347465658197868555 * Parameters.addressOfIndex 20 = 1 by decide +kernel]
   exact map_one (algebraMap K E)
 
@@ -122,10 +120,10 @@ theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   obtain ⟨c1, c2, e277, m278, e279, r278, hn⟩ := h
   refine ⟨?_, hn⟩
   -- the placement
-  have hsq : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares"))) Tables.gSquaresList := fun k hk ↦ by
+  have hsq : LeanVM.Guest.B1.ReadsAt L.read (σ (.n (val% «verify_sub» "g_squares"))) Tables.gSquaresList := fun k hk ↦ by
     simp only [Tables.gSquaresList, List.length_map, List.length_range] at hk
     simpa [Tables.gSquaresList] using hexp.1 k hk
-  have hrk : Tables.TbReadsAt L.read (σ (.n (val% «verify_sub» "g_squares")) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
+  have hrk : LeanVM.Guest.B1.ReadsAt L.read (σ (.n (val% «verify_sub» "g_squares")) * gen ^ 178) Tables.rankKeysList := fun k hk ↦ by
     simp only [Tables.rankKeysList, List.length_map, List.length_range] at hk
     rw [loadHolds_mul_gen_pow]
     simpa [Tables.rankKeysList] using hexp.2.2.1 k hk
@@ -140,7 +138,7 @@ theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   simp only [List.cons.injEq, and_true] at hr2
   obtain ⟨hlt34, hr2⟩ := hr2
   obtain ⟨e, he, h278⟩ := rc_pow hκ L (a := 10) (by norm_num)
-    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_pow2 (by norm_num)]) r278
+    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]) r278
   have hm30 : max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)))
       = e + 20 := by
     have := congrArg (· * gen ^ 20) (m278.symm.trans h278)

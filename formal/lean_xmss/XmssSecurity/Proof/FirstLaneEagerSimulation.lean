@@ -108,7 +108,7 @@ noncomputable def eagerTraceImpl (table : Index → Digest) :
   (eagerImpl table).withTraceAppend traceFragment
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_liftProbComp
+theorem simulate_eagerTrace_liftProbComp {α : Type _}
     (table : Index → Digest) (computation : ProbComp α) :
     (simulateQ (eagerTraceImpl table)
       (liftProbComp (Index := Index) computation)).run =
@@ -125,7 +125,7 @@ theorem simulate_eagerTrace_liftProbComp
     (Log := ActionTrace Index) (QueryImpl.id' unifSpec) computation
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_support_hazardCount_le
+theorem simulate_eagerTrace_support_hazardCount_le {α : Type _}
     (table : Index → Digest) (computation : OracleComp (World Index) α)
     (fuel : Nat)
     (hbound : computation.IsQueryBoundP IsHazardQuery fuel)
@@ -201,14 +201,14 @@ def CombinedHit
     RevealProbeOracleSimulation.runObserved table
       AdaptiveRevealMonitor.State.empty trace.chainActions = true
 
-noncomputable def eagerExperiment
+noncomputable def eagerExperiment {α : Type _}
     (computation : OracleComp (World Index) α) :
     ProbComp ((Index → Digest) × (α × ActionTrace Index)) := do
   let table ← RevealProbeOracleSimulation.eagerTableSample
   let result ← (simulateQ (eagerTraceImpl table) computation).run
   pure (table, result)
 
-def ExperimentHit
+def ExperimentHit {α : Type _}
     (result : (Index → Digest) × (α × ActionTrace Index)) : Prop :=
   CombinedHit result.1 result.2.2
 

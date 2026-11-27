@@ -55,7 +55,7 @@ theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have k := h.atomAt 2326 (.keccak [.n (val% «verify_tables» "rate[0]@3"), .n (val% «verify_tables» "rate[1]@3"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[1]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[2]"),
     .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[3]"), .n (val% «verify_tables» "s60.i0:fs_grind_squeeze.s0.t.s0.i0:fs_perm.s2.t.s0#0[4]"), .n (val% «verify_tables» "sp[0]@2"), .n (val% «verify_tables» "sp[1]@2"), .n (val% «verify_tables» "sp[2]@2"), .n (val% «verify_tables» "sp[3]@2"), .n (val% «verify_tables» "sp[4]@2")] (vtOuts 2293) false false)
     (by decide +kernel)
-  simp only [Atom.Holds, tb_word_zero] at c0 c1 c2 c3 c4 c6 d7 z3 z4 z5 z6
+  simp only [Atom.Holds, word_zero] at c0 c1 c2 c3 c4 c6 d7 z3 z4 z5 z6
   obtain ⟨hP, hC⟩ := vt_keccak k
   have hs : vtXiFs σ = ⟨(List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "bfs0@3") + k)),
       [(σ (.n (val% «verify_tables» "x@8")), dsObserve)]⟩ := by
@@ -145,7 +145,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     obtain rfl := gen_pow_inj (by omega) (by omega) hn'v
     exact hep
   refine ⟨by rw [a5216, a5214, a5212, a5213, a5215, a5211, a5210, a5209, a5208, a5207,
-    tb_word_one]; ring, ?_⟩
+    word_one]; ring, ?_⟩
   have hne : 0 < n → ∀ a b : E, a = 1 → b = a + gen ^ n → b ≠ 0 := by
     intro hn0 a b ha hb h0
     rw [hb, ha] at h0
@@ -155,8 +155,8 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
   have hB : ∀ j < n, L10B rd (σ (.n (val% «verify_tables» "zc_rounds"))) (σ (.n (val% «verify_tables» "tabs"))) (σ (.n (val% «verify_tables» "zc_rk"))) (σ (.n (val% «verify_tables» "zc_cprod"))) (gen ^ j) := by
     rcases Nat.eq_zero_or_pos n with rfl | hn0
     · intro j hj; omega
-    · have hr := hloop.2 (hne hn0 (σ (.n (val% «verify_tables» "s73#0"))) _ (by rw [a5238, tb_word_one]) (by rw [a5239, hgn]))
-      rw [a5240, tb_word_one, hgn] at hr
+    · have hr := hloop.2 (hne hn0 (σ (.n (val% «verify_tables» "s73#0"))) _ (by rw [a5238, word_one]) (by rw [a5239, hgn]))
+      rw [a5240, word_one, hgn] at hr
       exact l10_loop hn0 (by omega) hr
   have hc0 : CapAt rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 0 1
       ((List.range 5).map fun k ↦ σ (.n ((val% «verify_tables» "nxt[8]@3") + k))) := by
@@ -171,7 +171,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     · exact a5230
     · exact a5231
   have hcur0 : LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 5 (σ (.n (val% «verify_tables» "cursor@4")) * gen) := by
-    rw [Nat.mul_zero, pow_zero, mul_one, ← tb_word_gen, ← a5232, ← a5233]
+    rw [Nat.mul_zero, pow_zero, mul_one, ← word_gen, ← a5232, ← a5233]
     exact a5234
   have hcl0 : LoadHolds rd (σ (.n (val% «verify_tables» "zc_rounds")) * gen ^ (7 * 0)) 6 (σ (.n (val% «verify_tables» "bus_target@3"))) := by
     rw [Nat.mul_zero, pow_zero, mul_one]; exact a5235
@@ -190,26 +190,26 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     · exact a5249
     · exact a5250
     · exact a5251
-  obtain rfl := capAt_unique' hcN hcF
+  obtain rfl := capAt_eq hcN hcF
   rw [← e5926] at hcurN hclN
   refine ⟨xs, pts, claimN, hrun, by simpa using hxs, hxl, hpl,
-    tb_loadHolds_unique a5252 hcurN, tb_loadHolds_unique a5253 hclN, fun i hi => ?_, ?_, ?_⟩
+    loadHolds_unique a5252 hcurN, loadHolds_unique a5253 hclN, fun i hi => ?_, ?_, ?_⟩
   · obtain ⟨v, hv, hcv⟩ := hC (n - 1 - i) (by omega)
     rw [show n - 1 - (n - 1 - i) = i by omega] at hv
-    rw [tb_loadHolds_unique hv (by simpa using hchi i hi)] at hcv
+    rw [loadHolds_unique hv (by simpa using hchi i hi)] at hcv
     exact hcv
   · intro j hj
     induction j with
     | zero =>
-      rw [a5236, tb_word_one] at a5237
+      rw [a5236, word_one] at a5237
       simpa using a5237
     | succ j ih =>
       obtain ⟨-, -, -, -, rk, -, -, -, -, -, hrk, cp, hcp, hcp1⟩ := hB j (by omega)
-      rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at hrk
-      have erk : rk = pts.getD j 0 := tb_loadHolds_unique hrk (by simpa using hchi j (by omega))
-      rw [tb_loadHolds_mul_gen_pow, Nat.add_zero] at hcp
-      rw [tb_loadHolds_mul_gen_pow] at hcp1
-      rw [tb_loadHolds_unique hcp (ih (by omega)), erk] at hcp1
+      rw [loadHolds_mul_gen_pow, Nat.add_zero] at hrk
+      have erk : rk = pts.getD j 0 := loadHolds_unique hrk (by simpa using hchi j (by omega))
+      rw [loadHolds_mul_gen_pow, Nat.add_zero] at hcp
+      rw [loadHolds_mul_gen_pow] at hcp1
+      rw [loadHolds_unique hcp (ih (by omega)), erk] at hcp1
       rw [List.prod_take_succ _ _ (by omega), ← List.getD_eq_getElem _ 0 (by omega)]
       exact hcp1
   · exact hep

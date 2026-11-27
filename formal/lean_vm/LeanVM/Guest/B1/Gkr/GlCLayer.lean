@@ -141,7 +141,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     {D : GkStepD}
     (hS : GkSlot rd layers (2 * (4 * m + p) + 2 - o) s cur st
       (pts * gen ^ (40 * (4 * m + p + 1))) pos)
-    (hD : D.Ok s st 2) (hx : TbReadsAt rd cur D.xs)
+    (hD : D.Ok s st 2) (hx : ReadsAt rd cur D.xs)
     (hR : ∀ y ≤ m, RecAt rd (rounds * pos * gen ^ (7 * y)) cur D.cs st.point
       (polyEval st.values s.squeeze.1) s.squeeze.2 (2 * p + 8 * y))
     (hpad : o = 1 → LoadHolds rd (pts * gen ^ (40 * (4 * m + p + 1))) (2 * (4 * m + p) + 43) 0)
@@ -271,7 +271,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
     (fun q hq i hi ↦ by rw [e21]; exact hw q (by omega) i hi)
     (fun q hq ↦ by rw [e53]; exact he q (by omega))
     (fun q hq ↦ by
-      rw [e53, e58, hcap35, ← tb_loadHolds_mul_gen_pow]; exact hch q (by omega))
+      rw [e53, e58, hcap35, ← loadHolds_mul_gen_pow]; exact hch q (by omega))
   rw [e58, hcap35] at HR
   obtain ⟨R2, hHR⟩ := HR
   -- the head record
@@ -304,14 +304,14 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
         refine glc_tb (a := 2 * p + 8 * y) (n := 8) (t := 1) h4' r0.1 r0.2.1 r0.2.2
           (by simpa using r1.1) (by simpa using r1.2.1) (by simpa using r1.2.2)
           (fun q hq i hi ↦ ?_) (fun q hq ↦ ?_) (fun q hq ↦ ?_)
-        · rw [tb_loadHolds_mul_gen_pow, show 4 * (2 * p + 8 * y) + (4 * q + i) =
+        · rw [loadHolds_mul_gen_pow, show 4 * (2 * p + 8 * y) + (4 * q + i) =
             4 * (2 * p + 8 * y + q) + i by ring]
           exact hw _ (by omega) i hi
         · rw [show row * gen ^ (2 * p) * gen ^ (8 * y) = row * gen ^ (2 * p + 8 * y) by ring,
-            tb_loadHolds_mul_gen_pow]
+            loadHolds_mul_gen_pow]
           exact he _ (by omega)
         · rw [show row * gen ^ (2 * p) * gen ^ (8 * y) * gen ^ 42 =
-            row * gen ^ 42 * gen ^ (2 * p + 8 * y) by ring, tb_loadHolds_mul_gen_pow]
+            row * gen ^ 42 * gen ^ (2 * p + 8 * y) by ring, loadHolds_mul_gen_pow]
           exact hch _ (by omega)))
   -- the last record and the tail's rows
   obtain ⟨R5, e68, e71, ecap72, e77, e78⟩ := glc_tsetup (C := coreProgram.Rel rd)
@@ -330,14 +330,14 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
         (pt := 71 + glD p) hq
       exact ⟨fTR _ k0, fTR _ k1, fTR _ k2, fTR _ k3, fTR _ k4⟩)
     (fun q hq i hi ↦ by
-      rw [e77, tb_loadHolds_mul_gen_pow, show 4 * a + (4 * q + i) = 4 * (a + q) + i by ring]
+      rw [e77, loadHolds_mul_gen_pow, show 4 * a + (4 * q + i) = 4 * (a + q) + i by ring]
       exact hw _ (by omega) i hi)
     (fun q hq ↦ by
-      rw [e68, mul_assoc, ← pow_add, ← ha, tb_loadHolds_mul_gen_pow]
+      rw [e68, mul_assoc, ← pow_add, ← ha, loadHolds_mul_gen_pow]
       exact he _ (by omega))
     (fun q hq ↦ by
       rw [e71, e78, ecap72, hSa, hSt, ← gkP_addN, show row * gen ^ (2 * p) * gen ^ 42 * gen ^ (8 * m) =
-        row * gen ^ 42 * gen ^ a by rw [ha]; ring, tb_loadHolds_mul_gen_pow, Nat.zero_add]
+        row * gen ^ 42 * gen ^ a by rw [ha]; ring, loadHolds_mul_gen_pow, Nat.zero_add]
       exact hch _ (by omega))
   rw [e78, ecap72] at TR
   obtain ⟨R6, hTR⟩ := TR
@@ -346,7 +346,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   -- the pad
   have R7 := glc_pad (C := coreProgram.Rel rd) (kret := fun rs => rs = []) (mem mPD) (fun h1 ↦ by
     rw [e71, show row * gen ^ (2 * p) * gen ^ 42 * gen ^ (8 * m) = row * gen ^ (42 + 2 * j) by
-      rw [hj]; ring, tb_loadHolds_mul_gen_pow,
+      rw [hj]; ring, loadHolds_mul_gen_pow,
       show 42 + 2 * j + 1 = 2 * (4 * m + p) + 43 by omega]
     exact hpad h1)
   -- the tail, canonically numbered
@@ -432,7 +432,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   have y0 := hpt2.1 0 (by rw [hysl]; omega)
   have y1 := hpt2.1 1 (by rw [hysl]; omega)
   simp only [hys, List.getElem_cons_zero, List.getElem_cons_succ] at y0 y1
-  rw [hrow', tb_loadHolds_mul_gen_pow] at y0 y1
+  rw [hrow', loadHolds_mul_gen_pow] at y0 y1
   obtain ⟨RY, e262, e276, ecap⟩ := glct_y (C := coreProgram.Rel rd) (kret := fun rs => rs = [])
     (τ := τ) (rd := rd) (w := fun _ => 0) (fun s hs hn ↦ by
       obtain ⟨a', rfl⟩ := glY_atoms s hs
@@ -446,7 +446,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   -- the next slot
   have t15 : τ (.n (valf% «gkr_layer» "layer")) = layers * gen ^ (10 * L) := by rw [tlo 15 (by omega), e15]
   have ldn : ∀ k v, LoadHolds rd layers (10 * (L + 2) + k) v → LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) (20 + k) v :=
-    fun k v h ↦ by rw [t15, tb_loadHolds_mul_gen_pow, show 10 * L + (20 + k) = 10 * (L + 2) + k by ring]; exact h
+    fun k v h ↦ by rw [t15, loadHolds_mul_gen_pow, show 10 * L + (20 + k) = 10 * (L + 2) + k by ring]; exact h
   have hxl : D.xs.length = 4 * L + 12 := by
     simp [GkStepD.xs, hflen, hl0, hl1, hl2]
   have RN := glct_next (C := coreProgram.Rel rd) (kret := fun rs => rs = []) (τ := τ)
@@ -484,7 +484,7 @@ theorem glc_layer {p o m : ℕ} (hp : p < 4) (ho : o < 2) (hm : m < 2 ^ 26)
   -- the relation
   obtain ⟨nPre, nHR, nHS, nLC, nTS, nTR, nPD⟩ := glBodyA_noRet p o (glLoopName p o)
   obtain ⟨nK, nC, nY, nN⟩ := glTail_noRet o
-  refine (tb_rel_iff_sem hf _ _).mpr ⟨σ, ?_, ?_⟩
+  refine (rel_iff_sem hf _ _).mpr ⟨σ, ?_, ?_⟩
   · rw [hpar]
     simp only [glParams, List.range_succ, List.range_zero, List.nil_append, List.map_cons,
       List.map_nil, List.map_append]

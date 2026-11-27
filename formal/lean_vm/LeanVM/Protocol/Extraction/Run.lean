@@ -25,8 +25,8 @@ public import LeanVM.Semantics.Lemmas
 * **`haltingRunC_eq_haltingRun`**: when every halting run fits the cap, the capped search is
   `haltingRun`. `haltingRunC_eq_some_iff`: the capped search returns the halting run of at most
   `cap` steps.
-* `boundaryOK_iff`: the Boolean boundary is `HoldsPublicInput`. **`candidateExecution_valid`**:
-  what a stack's execution is, is a valid execution, for every stack and every layout.
+* `boundaryOK_iff`: the Boolean boundary is `HoldsPublicInput`; `candidateExecution_eq`: a
+  stack's execution is the capped halting run of its memory image, filtered by the boundary.
 * `run_injective`: a halting run never repeats a state (from the repeat it would reach the final
   state before its end, and halt there).
 
@@ -264,25 +264,6 @@ theorem candidateExecution_eq {prog : LeanIsaProgram} (input : PublicInput) (lay
     candidateExecution prog input layout q =
       (haltingRunC prog (memoryImage layout q) (stepCap layout)).filter (boundaryOK input) :=
   rfl
-
-/-- **A candidate's execution is valid**, for every candidate: the boundary bounds the memory, so
-the search's addresses and run are the specification's. -/
-theorem candidateExecution_valid {prog : LeanIsaProgram} {input : PublicInput} {layout :
-    Verifier.Layout}
-    {μ : ℕ} {q : Vector K (2 ^ μ)} {t : Execution prog}
-    (h : candidateExecution prog input layout q = some t) :
-    ValidExecution prog input t := by
-  rw [candidateExecution_eq] at h
-  obtain ⟨hr, hb⟩ := Option.filter_eq_some_iff.mp h
-  have hB := (boundaryOK_iff input t).mp hb
-  obtain ⟨ht, -⟩ := haltingRunC_eq_some hr
-  have hκ : layout.logMemory < 64 := by
-    have h2 := hB.2.1
-    rw [ht] at h2
-    unfold maxLogMem at h2
-    exact lt_of_le_of_lt h2 (by norm_num)
-  obtain ⟨n, rfl, -, hn⟩ := (haltingRunC_eq_some_iff hκ).mp hr
-  exact ⟨hB, hn⟩
 
 /-! ## 5. A halting run never repeats a state -/
 

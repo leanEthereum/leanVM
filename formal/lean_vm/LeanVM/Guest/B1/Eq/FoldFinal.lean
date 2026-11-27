@@ -9,11 +9,14 @@ module
 
 public import LeanVM.Guest.B1.Eq.Meaning
 public import LeanVM.Guest.B1.Common.Find
+import LeanVM.Guest.B1.Common.Family
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«fold_final_msg__L»
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
-# `fold_final_msg` (TRIAGE #24)
+# `fold_final_msg`
 
 `fold_final_msg(msg, point, log_len)` reads `log_len` coordinates, keeps the weights
 `1 + p_j` and `p_j`, folds the `2^log_len` message words pairwise at `p_0`, then each level at
@@ -51,7 +54,7 @@ def ff0 (S t : ℕ) : List Stmt :=
 def ffPairs (w0 w1 : V) : ℕ → List V → List Stmt × List V
   | s, a :: b :: rest =>
     ([.atom (.mul (.n s) w0 a), .atom (.mul (.n (s + 1)) w1 b),
-      .atom (.add (.n (s + 2)) (.n s) (.n (s + 1)))] ++ (ffPairs w0 w1 (s + 3) rest).1,
+      .atom (.add (.n (s + 2)) (.n s) (.n (s + 1)))] ⧺ (ffPairs w0 w1 (s + 3) rest).1,
       .n (s + 2) :: (ffPairs w0 w1 (s + 3) rest).2)
   | _, _ => ([], [])
 
@@ -70,21 +73,9 @@ def ffOut0 (S m : ℕ) : List V := (List.range m).map fun t => .n (S + 5 * t + 4
 
 /-- The expansion of `fold_final_msg` at `L + 1`, its last value `fin`. -/
 def ffBody (L fin : ℕ) : List Stmt :=
-  ((List.range (L + 1)).map ffW).flatten ++ ((List.range (2 ^ L)).map (ff0 (6 + 4 * L))).flatten ++
-    (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ++
+  ((List.range (L + 1)).map ffW).flatten ⧺ ((List.range (2 ^ L)).map (ff0 (6 + 4 * L))).flatten ⧺
+    (ffLevels L 1 (6 + 4 * L + 5 * 2 ^ L) (ffOut0 (6 + 4 * L) (2 ^ L))).1 ⧺
     [.atom (.copy (.n (fin + 1)) (.n fin)), .ret [.n (fin + 1)]]
-
-theorem fold_final_msg_L2_body : Fn.body fn% «fold_final_msg__L2» = ffBody 1 22 :=
-  stmtsEqb_sound (by decide +kernel)
-
-theorem fold_final_msg_L3_body : Fn.body fn% «fold_final_msg__L3» = ffBody 2 42 :=
-  stmtsEqb_sound (by decide +kernel)
-
-theorem fold_final_msg_L4_body : Fn.body fn% «fold_final_msg__L4» = ffBody 3 78 :=
-  stmtsEqb_sound (by decide +kernel)
-
-theorem fold_final_msg_L5_body : Fn.body fn% «fold_final_msg__L5» = ffBody 4 146 :=
-  stmtsEqb_sound (by decide +kernel)
 
 /-! ## What it asks -/
 
@@ -470,37 +461,31 @@ theorem fold_final_msg_iff {name : String} {f : Fn} (L fin : ℕ)
   ⟨fold_final_msg_sound_aux L fin hfind hparams hbody hfin rd args rets,
     fold_final_msg_complete_aux L fin hfind hparams hbody hfin hend rd args rets⟩
 
-set_option maxRecDepth 100000 in
-theorem fold_final_msg_L2_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "fold_final_msg__L2" args rets ↔ MeaningFoldFinalMsg 2 rd args rets :=
-  fold_final_msg_iff 1 22 (coreProgram_find?_at (j := idx% «fold_final_msg__L2») rfl) rfl
-    fold_final_msg_L2_body (by decide) (by decide) rd args rets
+/-- The last value `fin` of `fold_final_msg__L{i + 2}`, its body `ffBody (i + 1) fin`. -/
+private def ffFin (i : ℕ) : ℕ := [22, 42, 78, 146].getD i 0
 
-set_option maxRecDepth 100000 in
-theorem fold_final_msg_L3_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "fold_final_msg__L3" args rets ↔ MeaningFoldFinalMsg 3 rd args rets :=
-  fold_final_msg_iff 2 42 (coreProgram_find?_at (j := idx% «fold_final_msg__L3») rfl) rfl
-    fold_final_msg_L3_body (by decide) (by decide) rd args rets
+/-- The deployed `fold_final_msg__L{n}`, `2 ≤ n ≤ 5`, are the template. -/
+private theorem fold_final_msg_found :
+    coreRunB (idxs% «fold_final_msg__L» 2 6) (fun i ↦ (foldFinalMsgNames.getD i default).1)
+      (shapeB [.n (valf% «fold_final_msg» "msg"), .n (valf% «fold_final_msg» "point")]
+        fun i ↦ ffBody (i + 1) (ffFin i)) = true := by
+  decide +kernel
 
-set_option maxRecDepth 100000 in
-theorem fold_final_msg_L4_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets :=
-  fold_final_msg_iff 3 78 (coreProgram_find?_at (j := idx% «fold_final_msg__L4») rfl) rfl
-    fold_final_msg_L4_body (by decide) (by decide) rd args rets
-
-set_option maxRecDepth 100000 in
-theorem fold_final_msg_L5_iff (rd : Reader) (args rets : List E) :
-    coreProgram.Rel rd "fold_final_msg__L5" args rets ↔ MeaningFoldFinalMsg 5 rd args rets :=
-  fold_final_msg_iff 4 146 (coreProgram_find?_at (j := idx% «fold_final_msg__L5») rfl) rfl
-    fold_final_msg_L5_body (by decide) (by decide) rd args rets
+/-- Specialization `i` is `fold_final_msg__L{i + 2}`, and its last value ends its levels. -/
+private theorem fold_final_msg_levels : ∀ i < 4, (foldFinalMsgNames.getD i default).2 = i + 2 ∧
+    (ffLevels (i + 1) 1 (6 + 4 * (i + 1) + 5 * 2 ^ (i + 1))
+      (ffOut0 (6 + 4 * (i + 1)) (2 ^ (i + 1)))).2 = [.n (ffFin i)] ∧
+    ffEnd (i + 1) (6 + 4 * (i + 1) + 5 * 2 ^ (i + 1)) (2 ^ (i + 1)) ≤ ffFin i + 1 := by
+  decide +kernel
 
 /-- **`fold_final_msg`'s core IR is its meaning**, every specialization. -/
 theorem fold_final_msg_holds : fold_final_msg_Spec := by
-  intro p hp
-  simp only [foldFinalMsgNames, List.mem_cons, List.mem_nil_iff, or_false] at hp
-  rcases hp with rfl | rfl | rfl | rfl
-  exacts [fold_final_msg_L2_iff, fold_final_msg_L3_iff, fold_final_msg_L4_iff,
-    fold_final_msg_L5_iff]
+  intro p hp rd args rets
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem hp
+  obtain ⟨_, hf, hpar, hb⟩ := coreRunB_shape fold_final_msg_found hi
+  obtain ⟨h2, hfin, hend⟩ := fold_final_msg_levels i hi
+  rw [← List.getD_eq_getElem _ default hi, h2]
+  exact fold_final_msg_iff (i + 1) (ffFin i) hf hpar hb hfin hend rd args rets
 
 end
 end LeanVM.Guest.B1

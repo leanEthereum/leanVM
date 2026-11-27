@@ -11,6 +11,7 @@ public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplJust
 public import LeanVM.Guest.B2C.CplInv
 import Mathlib.Data.List.GetD
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The facts of a path
@@ -187,7 +188,7 @@ theorem atom_on_pathC {a : Core.Atom} : ∀ {l : List Stmt} {es : List Ev}, walk
       · rw [ho] at hw; simp [Out.seq] at hw
 
 theorem lastOkC_split : ∀ {ss : List Stmt}, lastOkC ss = true →
-    ∃ A vs, ss = A ++ [.ret vs] ∧ Stmt.noRetList A = true
+    ∃ A vs, ss = A ⧺ [.ret vs] ∧ Stmt.noRetList A = true
   | [], h => by simp [lastOkC] at h
   | [.ret vs], _ => ⟨[], vs, rfl, rfl⟩
   | s :: s' :: ss, h => by

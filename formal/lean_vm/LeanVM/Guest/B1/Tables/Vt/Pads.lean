@@ -65,12 +65,12 @@ def vtPad5T (v : ℕ) : List Stmt :=
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))]]
 
 theorem vtPad_check : ∀ t < 5,
-    tbStmtsEqb (vtPadT (681 + 13 * t) t)
+    stmtsEqb (vtPadT (681 + 13 * t) t)
       ((vtAt (653 + 10 * t)).take (vtPadT (681 + 13 * t) t).length) = true := by
   decide +kernel
 
 theorem vtPad5_check :
-    tbStmtsEqb (vtPad5T 746) ((vtAt 703).take (vtPad5T 746).length) = true := by
+    stmtsEqb (vtPad5T 746) ((vtAt 703).take (vtPad5T 746).length) = true := by
   decide +kernel
 
 /-- `kappa_base` in the frame: `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
@@ -80,11 +80,11 @@ theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
   have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n ((val% «verify_tables» "kb[1]") + i)) (.n (val% «verify_tables» "dims_g")) i) := by
     intro i hi
     exact h.atomAt (6 + i) _ (by revert i; decide +kernel)
-  refine ⟨by simpa [Atom.Holds, tb_word_one] using c, fun i hi => ?_⟩
+  refine ⟨by simpa [Atom.Holds, word_one] using c, fun i hi => ?_⟩
   simpa [Atom.Holds] using hl i hi
 
 theorem vtW30_eq : vtW30 = ofK (Parameters.addressOfIndex 30) := by
-  rw [vtW30, show (1073741824 : ℕ) = 2 ^ 30 by norm_num, tb_word_two_pow (by norm_num),
+  rw [vtW30, show (1073741824 : ℕ) = 2 ^ 30 by norm_num, word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
 /-- Table `t`'s padding weight's value. -/
@@ -94,7 +94,7 @@ def vtPadV (t : ℕ) : ℕ := 686 + 13 * t
 def VtPadOk (rd : Reader) (σ : Val) (t : ℕ) : Prop :=
   ∃ (τ n : ℕ) (zs : List E), τ < 31 ∧ LoadHolds rd (σ (.n (val% «verify_tables» "dims_g"))) (t + 1) (gen ^ τ) ∧
     LoadHolds rd (σ (.n (val% «verify_tables» "table_rows"))) t (eOfNat n) ∧ n ≤ 2 ^ τ ∧ zs.length = τ ∧
-    TbReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs n ∧
+    ReadsAt rd (σ (.n (val% «verify_tables» "zeta"))) zs ∧ σ (.n (vtPadV t)) = paddingWeight zs n ∧
     τ = max (log2Ceil n) (tableLogFloors.getD t 0)
 
 /-- The dispatch on `τ_g = g^τ` runs arm `τ`. -/
@@ -127,9 +127,9 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
   obtain ⟨n, zs, hn, hrows, hzl, hzs, hpad, hlead, hrest⟩ := hp
   have hlr : pwLead τ n = 1 ∧ pwRest τ n ≠ 0 := by
     refine ⟨?_, fun h0 => ?_⟩
-    · rw [pwLead, ← hlead, e_add_eq_zero_iff.mp q, c9, tb_word_one]
+    · rw [pwLead, ← hlead, e_add_eq_zero_iff.mp q, c9, word_one]
     · obtain ⟨e1, e2⟩ := n13
-      rw [a11, c10, tb_word_zero, add_zero, hrest, show PadRest τ n = 0 from h0, zero_mul] at e1
+      rw [a11, c10, word_zero, add_zero, hrest, show PadRest τ n = 0 from h0, zero_mul] at e1
       rw [e1] at e2
       exact zero_ne_one e2
   have hlog := (lead_rest_iff (by omega) hn).mp hlr
@@ -153,7 +153,7 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
   have hp := vt_pad_arm hτ hv hd
   simp only [List.map_cons, List.map_nil, PadWeightOut] at hp
   obtain ⟨n, zs, hn, hrows, hzl, hzs, hpad, hlead, hrest⟩ := hp
-  rw [show (512 : ℕ) = 2 ^ 9 by norm_num, tb_word_two_pow (by norm_num)] at c10 c15
+  rw [show (512 : ℕ) = 2 ^ 9 by norm_num, word_two_pow (by norm_num)] at c10 c15
   have hτ9 : τ = d + 9 := by
     rw [hv, hdv, c10, ← pow_add] at m11
     exact gen_pow_inj (by omega) (by omega) m11
@@ -173,9 +173,9 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
     simp only [Atom.Holds] at c17 q c18 a19 n21
     have hlr : pwLead τ n = 1 ∧ pwRest τ n ≠ 0 := by
       refine ⟨?_, fun h0 => ?_⟩
-      · rw [pwLead, ← hlead, e_add_eq_zero_iff.mp q, c17, tb_word_one]
+      · rw [pwLead, ← hlead, e_add_eq_zero_iff.mp q, c17, word_one]
       · obtain ⟨e1, e2⟩ := n21
-        rw [a19, c18, tb_word_zero, add_zero, hrest, show PadRest τ n = 0 from h0, zero_mul] at e1
+        rw [a19, c18, word_zero, add_zero, hrest, show PadRest τ n = 0 from h0, zero_mul] at e1
         rw [e1] at e2
         exact zero_ne_one e2
     have hlog := (lead_rest_iff (by omega) hn).mp hlr

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.JumpTable.Entries
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 
 namespace LeanVM.Guest.JumpTable
 

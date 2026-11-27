@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Template
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The slow residual's templates
@@ -56,11 +57,11 @@ def rqsSteps (pre vo : ℕ) : ℕ → ℕ → List Stmt
 
 /-- The body before its `ret`: every coordinate, then the product copied. -/
 def rqsPre (pre yr vo : ℕ) : List Stmt :=
-  rqsHead vo ++ rqsSteps pre vo 1 (pre + yr - 1) ++
+  rqsHead vo ⧺ rqsSteps pre vo 1 (pre + yr - 1) ⧺
     [.atom (.copy (.n (11 * (pre + yr))) (.n (11 * (pre + yr) - 4)))]
 
 /-- **`residual_query_slow__L{pre}_L{yr}_L{vo}`'s body.** -/
-def rqsBody (pre yr vo : ℕ) : List Stmt := rqsPre pre yr vo ++ [.ret [.n (11 * (pre + yr))]]
+def rqsBody (pre yr vo : ℕ) : List Stmt := rqsPre pre yr vo ⧺ [.ret [.n (11 * (pre + yr))]]
 
 /-- **The loop's body** (`xq, g^Q, acc, pw, positions, fold_cs, tail_cs, λ`), calling `rq`, the
 level's `residual_query_slow`, and itself, `self`. -/

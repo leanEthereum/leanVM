@@ -128,7 +128,7 @@ theorem entOk_spec {X : AlignCtx} {t : ℕ} {f : String} (h : X.entOk t f = true
   unfold AlignCtx.entOk at h
   split at h
   · rename_i f' hf'
-    rw [hf', beq_iff_eq.mp h]
+    rw [hf', nameEq_iff.mp h]
   · cases h
 
 theorem jumpCallOk_spec {Cf : CFun} {oc od of t : ℕ} {f : String} (h : jumpCallOk Cf (.jump oc od of) = true)
@@ -198,12 +198,12 @@ theorem monoC_bases_lt {G : Mode.Sig} {n : ℕ} {ent : Bool} {m : Mode.Mono} {c 
 /-! ## The shape -/
 
 theorem bodyC_ctrl {body : List Stmt} (h : bodyCore body = true) : ∀ s ∈ stmtsOf body, ctrlOk s = true := by
-  simp only [bodyCore, Bool.and_eq_true, List.all_eq_true] at h
+  simp only [bodyCore, stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at h
   exact h.1
 
 theorem matchLens_mem {body : List Stmt} {x : V} {arms : List (List Stmt)} (h : Stmt.match_ x arms ∈ stmtsOf body) :
-    (x.idx, arms.length) ∈ matchLens body :=
-  List.mem_filterMap.mpr ⟨_, h, rfl⟩
+    (x.idx, arms.length) ∈ matchLens body := by
+  rw [matchLens, stmtsFM_eq]; exact List.mem_filterMap.mpr ⟨_, h, rfl⟩
 
 theorem armsCover_at {X : AlignCtx} {e : ℕ} {ml : List (ℕ × ℕ)} {a : ℕ × ℕ} {ts : List ℕ}
     (h : armsCover X e ml a ts = true) {p : ℕ × ℕ} (hp : p ∈ ml) (hpa : p.1 = a.1) {j : ℕ} (hj : j < p.2) :
@@ -225,7 +225,7 @@ theorem tgtGo_at {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : Li
         Cf.frame.arms.get k = some ts ∧ armsCover Cf.X Cf.frame.entry ml a ts = true)
   | _, [], _, _, _, _, _, _, h, _ => by simp at h
   | n, ins :: code, h, i, k, oc, od, of, hi, ht => by
-    simp only [tgtGo, Bool.and_eq_true] at h
+    simp only [tgtGo, getQ_eq, Bool.and_eq_true] at h
     cases i with
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
@@ -253,7 +253,7 @@ theorem tgtGo_none {Cf : CFun} {ml : List (ℕ × ℕ)} : ∀ {n : ℕ} {code : 
       Cf.frame.tgt.get (n + i) = none → dspSite Cf.X od of = false
   | _, [], h, _, _, _, _, hi, _ => by simp at hi
   | n, ins :: code, h, i, oc, od, of, hi, ht => by
-    simp only [tgtGo, Bool.and_eq_true] at h
+    simp only [tgtGo, getQ_eq, Bool.and_eq_true] at h
     cases i with
     | zero =>
       simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
@@ -755,7 +755,7 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
     intro p y hp hy
     have hpv : p = ofK (g ^ k) := rd_get hκ hm.fine ho1 (by rw [hm.fp]; exact hsel) hp
     have h1 := hy.1
-    rw [hpv, ← ofK_mul', ← pow_add, limb_ofK] at h1
+    rw [hpv, ← ofK_mul, ← pow_add, limb_ofK] at h1
     have hlt : k + o2 < 2 ^ 63 := by have := lt_maxCells_63 (x := o2 + k) (by omega); omega
     have hyx := gpow_inj hlt (lt_maxCells_63 hy.2) h1
     rw [← hyx, show k + o2 = o2 + k by omega]
@@ -818,7 +818,7 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
     have hmem : Stmt.dispatch x fs args rets ∈ stmtsOf Cf.fn.body :=
       zok_stmts hzsok (by rw [Zip.pos_head hcur]; exact List.mem_cons_self)
     have hdl : (x, fs.length, args.map (·.idx), rets.map (·.idx)) ∈ dspLens Cf.fn.body :=
-      List.mem_filterMap.mpr ⟨_, hmem, rfl⟩
+      by rw [dspLens, stmtsFM_eq]; exact List.mem_filterMap.mpr ⟨_, hmem, rfl⟩
     have hq := List.all_eq_true.mp hd _ hdl
     simp only [hargs, hrets, beq_self_eq_true, Bool.and_self, Bool.not_true, Bool.false_or, Bool.and_eq_true,
       Nat.beq_eq] at hq
@@ -1027,7 +1027,7 @@ theorem rw_slotXExt {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} {b : ℕ} {
   -- the extended bound's exponent, `e + 1`
   have hy : yhi = xhi + 1 := by
     have e1 : (idxC (.mono ⟨[(b, 1)], 1⟩)).valW (slotW ws) = ofK (addressOfIndex (xhi + 1)) := by
-      simp only [idxC, CCell.valW, prodW, pow_one, mul_one, hwb, addressOfIndex, pow_add, ofK_mul']
+      simp only [idxC, CCell.valW, prodW, pow_one, mul_one, hwb, addressOfIndex, pow_add, ofK_mul]
     obtain ⟨hy1, hy2⟩ := rep_spec h2
     rw [e1] at hy2
     have := capE_eq
@@ -1043,7 +1043,7 @@ theorem rw_slotXExt {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} {b : ℕ} {
       cases hqc
       have hb1 : (⟨[(b, q.stride)], 0⟩ : CCell).valW (slotW ws) = ofK (addressOfIndex (q.stride * j)) := by
         show prodW (slotW ws) [(b, q.stride)] * ofK (addressOfIndex 0) = _
-        rw [prodW, prodW, hwb, mul_one, addressOfIndex, ← ofK_pow', ← pow_mul, ← ofK_mul', addressOfIndex,
+        rw [prodW, prodW, hwb, mul_one, addressOfIndex, ← ofK_pow, ← pow_mul, ← ofK_mul, addressOfIndex,
           addressOfIndex, pow_zero, mul_one, Nat.mul_comm]
       rw [valW_mul, hb1]
     unfold CCell.addrW at hpt
@@ -1374,14 +1374,13 @@ theorem faw_wrk {M : Mode.Cert} {Cf : CFun} (hok : CoreOk M Cf) {img : MemoryIma
   have hr' := hr i hi
   rw [hci] at hr'
   obtain ⟨A, hA, hH⟩ := atF_ret hok.frame.2.1 hok.frame.2.2 hi hat
-  simp only [hA, List.all_eq_true] at hr'
+  simp only [hA, stmtsAll_eq, List.all_eq_true] at hr'
   -- a frame run's cell `k` written in the walk's state, at its address
   have hcell : ∀ (p r : V) (rs : List V) (k : ℕ), Ev.atom (.frameAddr p (r :: rs)) ∈ es →
-      (A.w.get (Cf.X.locAt r.idx + k)).isSome = true → WrK s1.mem (cellAt σ p k) := by
+      A.hasW (Cf.X.locAt r.idx + k) = true → WrK s1.mem (cellAt σ p k) := by
     intro p r rs k hfa hkk
     have hp := hσ.fa hn es vs hw p r rs hfa
-    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.mp hkk
-    have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hu)
+    have hwr : s1.mem.written (s.fp + (Cf.X.locAt r.idx + k)) = true := written_mono hle (hH.2.w _ hkk)
     refine ⟨s.fp + (Cf.X.locAt r.idx + k), ?_, written_lt hfine hwr, hwr⟩
     simp only [cellAt, hp, limb_ofK, addressOfIndex, pow_add]
     simp [mul_assoc]
@@ -1418,6 +1417,7 @@ theorem nzr_hnz {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : C
     ∀ o ∈ (Cf.frame.nzr.get i).getD [], ∃ v, Rd img s.fp o = some v ∧ v ≠ 0 := by
   intro o ho
   have h := List.all_eq_true.mp hn i (List.mem_range.mpr hi)
+  rw [getQ_eq] at h
   cases hz : Cf.frame.nzr.get i with
   | none => rw [hz] at ho; cases ho
   | some os =>
@@ -1425,8 +1425,8 @@ theorem nzr_hnz {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : C
     obtain ⟨A, hA, hH⟩ := atF_ret har hacc hi hat
     simp only [hz, hA, List.all_eq_true] at h
     have ho' := h o ho
-    simp only [Bool.and_eq_true, Option.isSome_iff_exists, List.contains_iff_mem] at ho'
-    obtain ⟨⟨u, hu⟩, hr⟩ := ho'
+    simp only [Bool.and_eq_true, List.contains_iff_mem] at ho'
+    obtain ⟨hu, hr⟩ := ho'
     have hw := hH.2.w o hu
     obtain ⟨v, hv, hv0⟩ := hres s ⟨hs, Mem.le_refl _, rfl, rfl, rfl⟩ (.nz o) hr hw
     exact ⟨v, rdE_of_get hκ hs.agree hv hv0, hv0⟩

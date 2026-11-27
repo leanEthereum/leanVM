@@ -302,7 +302,7 @@ theorem inj (W : Writers rd cover S LXS LSS sl) :
   have e1 := W.wr m₁ h₁
   rw [h] at e1
   have hmk : S.wmark m₁ = S.wmark m₂ :=
-    gen_pow_inj34 (by have := W.wmark_lt h₁; omega) (by have := W.wmark_lt h₂; omega)
+    gen_pow_inj' (by have := W.wmark_lt h₁; omega) (by have := W.wmark_lt h₂; omega)
       (loadHolds_unique e1 (W.wr m₂ h₂))
   rcases Nat.lt_trichotomy m₁ m₂ with hlt | heq | hlt
   · have := W.mono m₁ m₂ hlt h₂ hmk; omega
@@ -326,7 +326,7 @@ theorem uniq_raw (W : Writers rd cover S LXS LSS sl) {s m : ℕ} (hs : s < LXS +
   have ha := S.a0_le S.NC
   obtain ⟨m', hm', rfl⟩ := W.onto s hs
   have hmk : S.wmark m' = m :=
-    gen_pow_inj34 (by have := W.wmark_lt hm'; omega) (by omega)
+    gen_pow_inj' (by have := W.wmark_lt hm'; omega) (by omega)
       (loadHolds_unique (W.wr m' hm') hl)
   obtain ⟨-, hraw, hkid⟩ := S.wmark_range (by rw [hT]; exact hm')
   by_cases hr : m' < S.RX + S.RS

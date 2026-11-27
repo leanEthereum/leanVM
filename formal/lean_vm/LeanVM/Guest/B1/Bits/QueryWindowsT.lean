@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.WalkWindows
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«decode_query_windows__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The template of `decode_query_windows` (`guests/lean_ethereum.py`)
@@ -89,8 +90,8 @@ def qwSplit (c : V) (start a w k : ℕ) : List Stmt × ℕ × V × V :=
     .atom (.const (.n (k + 2)) (qwBound a)),
     .atom (.rangeCheck (.n k) (.n (k + 3)) (.n (k + 4)) (.n (k + 5)) (.n (k + 2))),
     .atom (.const (.n (k + 6)) (qwBound (w - a))),
-    .atom (.rangeCheck (.n (k + 1)) (.n (k + 7)) (.n (k + 8)) (.n (k + 9)) (.n (k + 6)))] ++
-    sq.1 ++
+    .atom (.rangeCheck (.n (k + 1)) (.n (k + 7)) (.n (k + 8)) (.n (k + 9)) (.n (k + 6)))] ⧺
+    sq.1 ⧺
     [.atom (.mul c (.n k) sq.2),
       .atom (.mul (.n (k + 10 + a)) (.n (valf% «decode_query_windows» "tabs")) (.n k)),
       .atom (.load (.n (k + 11 + a)) (.n (k + 10 + a)) 0),
@@ -196,7 +197,7 @@ def qwRun : List V := (List.range 36).map fun i => .n (5 + i)
 def qwBody (d cd : ℕ) : List Stmt :=
   let p := qwPositions d cd 0 (128 / d) 41 none
   let r := qwRest d 0 (qwRestN d) p.2.1 p.2.2
-  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ++ p.1 ++ r.1 ++
+  [.atom (.frameAddr (.n (valf% «decode_query_windows» "s5#0")) qwRun)] ⧺ p.1 ⧺ r.1 ⧺
     [.atom (.assertEq (r.2.2.getD (.n (valf% «decode_query_windows» "squeezed_word"))) (.n (valf% «decode_query_windows» "squeezed_word"))), .ret []]
 
 /-- Program `P` holds a function of the name with the parameters `0 .. 3` and the body. -/

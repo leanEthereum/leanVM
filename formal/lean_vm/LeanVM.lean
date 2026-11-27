@@ -452,7 +452,8 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rintro ⟨t, hx, hv⟩
     obtain ⟨d, hdec, hd, hrel⟩ := h.guestKnowledgeSoundness input t hv
     refine hno ⟨t, d, hx, hdec, ?_⟩
-    rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.hasBytecodeShape (hd.trans hpub) with ⟨h1, h2⟩ | hc
+    rcases h.statementDigestBinds _ _ _ _
+        (hrel.hasBytecodeShape.trans hs.hasBytecodeShape.symm) (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
   guestProverComplete s w hrel hlim :=

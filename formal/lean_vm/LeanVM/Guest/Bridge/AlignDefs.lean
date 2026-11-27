@@ -8,6 +8,8 @@ module
 
 public import LeanVM.Guest.Bridge.Defs
 public import LeanVM.Guest.Check
+public import LeanVM.Guest.NameIx
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The alignment check
@@ -70,7 +72,7 @@ namespace Zip
 def key (z : Zip) : Cur := (z.up.map fun e ↦ (e.1, e.2.1), z.k)
 
 /-- The statements left. -/
-def pos (z : Zip) : List Stmt := z.cur ++ (z.up.map (·.2.2)).flatten
+def pos (z : Zip) : List Stmt := z.cur ⧺ (z.up.map (·.2.2)).flatten
 
 /-- Into sub-block `c` of the head statement `s`, the statements `ss` after it. -/
 def enter (z : Zip) (s : Stmt) (ss : List Stmt) (c : ℕ) : Zip := ⟨(z.k, c, ss) :: z.up, 0, subBlock s c⟩
@@ -229,9 +231,9 @@ noncomputable def siteAt (q : ℕ) (args rets : List V) : Option B2C.Site := mat
   | some s => bif s.args == args.map (·.idx) && s.rets == rets.map (·.idx) then some s else none
   | none => none
 
-/-- `f` is the callee of entry `t`. -/
+/-- `f` is the callee of entry `t`, names compared by their codes (`nameEq`). -/
 noncomputable def entOk (t : ℕ) (f : String) : Bool := match getF X.ents t with
-  | some f' => f' == f
+  | some f' => nameEq f' f
   | none => false
 
 /-- A pc of the function past offset `i`, as an offset. -/

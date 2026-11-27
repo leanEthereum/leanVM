@@ -10,8 +10,8 @@ STATEMENT_DATA = os.path.join(LEAN_VM, '..', 'Statement', 'Data')
 
 
 def _halt():
-    """The halting pc, the program's last: `2^logSize - 1` (`Statement/Data/Bytecode.lean`)."""
-    t = open(os.path.join(STATEMENT_DATA, 'Bytecode.lean'), encoding='utf-8').read()
+    """The halting pc, the program's last: `2^logSize - 1` (`LeanVM/Guest/Data/Functions.lean`)."""
+    t = open(os.path.join(LEAN_VM, 'LeanVM', 'Guest', 'Data', 'Functions.lean'), encoding='utf-8').read()
     return 2 ** int(re.search(r'def logSize : ℕ := (\d+)', t).group(1)) - 1
 
 
@@ -336,7 +336,8 @@ def defs(text):
         end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
         body = text[m.end():end]
         body = re.split(r'\n/--|\nend\b|\nnamespace |\n@\[|\nopen ', body)[0]
-        out[m.group(1)] = body
+        # `data% t` (`Guest/DataLit.lean`) is the literal `t`
+        out[m.group(1)] = re.sub(r'^\s*data% ', ' ', body)
     return out
 
 
@@ -348,7 +349,7 @@ _TEXTS = {}
 def read_text(p):
     if p not in _TEXTS:
         with open(p, encoding='utf-8') as fh:
-            _TEXTS[p] = fh.read()
+            _TEXTS[p] = fh.read().replace('data% ', '')  # the data literals' `data%` (`Guest/DataLit.lean`)
     return _TEXTS[p]
 
 
@@ -541,13 +542,16 @@ def isa_hint(e):
 
 def fn_thms(thms, ns='LeanVM.Guest'):
     """Per-function theorems in one section of namespace `ns`: each `(k, name, stmt, prf)` declared as
-    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined)."""
+    `Fn.«k».name`, so its statement and proof see function `k`'s namespace; `prf` a tactic script (lines joined),
+    or a term (`:= t`)."""
     out = []
     for t in thms:
         if isinstance(t, str):
             # a command of its own (`Bridge/ChkLit.lean`'s `alloc_chk%`, `align_chk%`)
             out.append(t); continue
         k, name, stmt, prf = t
+        if prf.startswith(':= '):
+            out.append(f'theorem Fn.«{k}».{name} : {stmt} {prf}\n'); continue
         tac = '; '.join(x.strip() for x in prf.strip().split('\n'))
         out.append(f'theorem Fn.«{k}».{name} : {stmt} := by {tac}\n')
     return (f'set_option linter.style.nameCheck false\n\nnamespace {ns}\n\npublic section\n\n' + ''.join(out) +

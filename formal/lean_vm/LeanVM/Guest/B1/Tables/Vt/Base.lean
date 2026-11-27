@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_tables`' body
@@ -59,9 +60,9 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
     rw [this]; exact vtChunk_noRet' 13 (by omega)
 
 theorem verify_tables_body :
-    (core% «verify_tables» body) = ((List.range 14).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 420 ++ [.ret vtRets] :=
-    tbStmtsEqb_sound (by decide +kernel)
+    (core% «verify_tables» body) = ((List.range 14).map vtChunk).flatten ⧺ [.ret vtRets] := by
+  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 420 ⧺ [.ret vtRets] :=
+    stmtsEqb_sound (by decide +kernel)
   conv_lhs => rw [core_eq% «verify_tables» body, h13]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
     List.map_nil, List.flatten_append, List.flatten_cons, List.flatten_nil, List.nil_append,
@@ -70,20 +71,20 @@ theorem verify_tables_body :
 noncomputable def vtCheck : Bool :=
   match coreProgram.find? name% «verify_tables» with
   | some fn => decide (fn.params = (List.range 21).map V.n) &&
-      tbStmtsEqb fn.body (core% «verify_tables» body)
+      stmtsEqb fn.body (core% «verify_tables» body)
   | none => false
 
 theorem vtCheck_eq : vtCheck = true := by decide +kernel
 
 theorem vtFound : ∃ fn : Fn, coreProgram.find? name% «verify_tables» = some fn ∧
     fn.params = (List.range 21).map V.n ∧
-    fn.body = ((List.range 14).map vtChunk).flatten ++ [.ret vtRets] := by
+    fn.body = ((List.range 14).map vtChunk).flatten ⧺ [.ret vtRets] := by
   have h := vtCheck_eq
   unfold vtCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, (tbStmtsEqb_sound h.2).trans verify_tables_body⟩
+    exact ⟨fn, hf, h.1, (stmtsEqb_sound h.2).trans verify_tables_body⟩
   · exact absurd h (by simp)
 
 /-- `verify_tables`' statements before its `ret`. -/
@@ -108,8 +109,8 @@ theorem vtPre_drop (n : ℕ) : vtPre.drop n = vtAt n := by
   rfl
 
 /-- A comparison with `vtPre` at a position, read through `vtAt`. -/
-theorem vtAt_eqb {l : List Stmt} {n m : ℕ} (h : tbStmtsEqb l ((vtPre.drop n).take m) = true) :
-    tbStmtsEqb l ((vtAt n).take m) = true :=
+theorem vtAt_eqb {l : List Stmt} {n m : ℕ} (h : stmtsEqb l ((vtPre.drop n).take m) = true) :
+    stmtsEqb l ((vtAt n).take m) = true :=
   vtPre_drop n ▸ h
 
 /-- The valuation `σ` satisfies every statement of `verify_tables` before its `ret`. -/
@@ -133,31 +134,31 @@ section Read
 variable {rd : Reader} {σ : Val}
 
 theorem VtH.atom (h : VtH rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtPre.drop n).take 1) = true) : a.Holds rd σ := by
+    (heq : stmtsEqb [.atom a] ((vtPre.drop n).take 1) = true) : a.Holds rd σ := by
   obtain ⟨k, h⟩ := h
   exact tb_holds_atom vtPre_noRet h n a heq
 
 theorem VtH.slice (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
+    (heq : stmtsEqb blk ((vtPre.drop n).take blk.length) = true) :
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret := by
   obtain ⟨k, h⟩ := h
   exact ⟨k, tb_holds_slice vtPre_noRet h n blk heq⟩
 
 theorem VtH.call (h : VtH rd σ) (n : ℕ) (f : String) (args rets : List V)
-    (heq : tbStmtsEqb [.call f args rets] ((vtPre.drop n).take 1) = true) :
+    (heq : stmtsEqb [.call f args rets] ((vtPre.drop n).take 1) = true) :
     coreProgram.Rel rd f (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
   exact tb_holds_call vtPre_noRet h n f args rets heq
 
 theorem VtH.callIf (h : VtH rd σ) (n : ℕ) (c : V) (f : String)
-    (args : List V) (heq : tbStmtsEqb [.callIf c f args] ((vtPre.drop n).take 1) = true) :
+    (args : List V) (heq : stmtsEqb [.callIf c f args] ((vtPre.drop n).take 1) = true) :
     IsInK (σ c) ∧ (σ c ≠ 0 → coreProgram.Rel rd f (args.map σ) []) := by
   obtain ⟨k, h⟩ := h
   exact tb_holds_callIf vtPre_noRet h n c f args heq
 
 theorem VtH.dispatch (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
-    (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtPre.drop n).take 1) = true) :
+    (heq : stmtsEqb [.dispatch x fs args rets] ((vtPre.drop n).take 1) = true) :
     ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) := by
   obtain ⟨k, h⟩ := h
@@ -166,27 +167,27 @@ theorem VtH.dispatch (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
 /-! The same at `vtAt`: what a kernel check of a statement at a position evaluates fast. -/
 
 theorem VtH.atomAt (h : VtH rd σ) (n : ℕ) (a : Atom)
-    (heq : tbStmtsEqb [.atom a] ((vtAt n).take 1) = true) : a.Holds rd σ :=
+    (heq : stmtsEqb [.atom a] ((vtAt n).take 1) = true) : a.Holds rd σ :=
   h.atom n a (vtPre_drop n ▸ heq)
 
 theorem VtH.sliceAt (h : VtH rd σ) (n : ℕ) (blk : List Stmt)
-    (heq : tbStmtsEqb blk ((vtAt n).take blk.length) = true) :
+    (heq : stmtsEqb blk ((vtAt n).take blk.length) = true) :
     ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ blk True kret :=
   h.slice n blk (vtPre_drop n ▸ heq)
 
 theorem VtH.callAt (h : VtH rd σ) (n : ℕ) (f : String) (args rets : List V)
-    (heq : tbStmtsEqb [.call f args rets] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.call f args rets] ((vtAt n).take 1) = true) :
     coreProgram.Rel rd f (args.map σ) (rets.map σ) :=
   h.call n f args rets (vtPre_drop n ▸ heq)
 
 theorem VtH.callIfAt (h : VtH rd σ) (n : ℕ) (c : V) (f : String) (args : List V)
-    (heq : tbStmtsEqb [.callIf c f args] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.callIf c f args] ((vtAt n).take 1) = true) :
     IsInK (σ c) ∧ (σ c ≠ 0 → coreProgram.Rel rd f (args.map σ) []) :=
   h.callIf n c f args (vtPre_drop n ▸ heq)
 
 theorem VtH.dispatchAt (h : VtH rd σ) (n : ℕ) (x : V) (fs : List String)
     (args rets : List V)
-    (heq : tbStmtsEqb [.dispatch x fs args rets] ((vtAt n).take 1) = true) :
+    (heq : stmtsEqb [.dispatch x fs args rets] ((vtAt n).take 1) = true) :
     ∃ (j : ℕ) (h : j < fs.length), σ x = ofK (Parameters.addressOfIndex j) ∧
       coreProgram.Rel rd fs[j] (args.map σ) (rets.map σ) :=
   h.dispatch n x fs args rets (vtPre_drop n ▸ heq)

@@ -2,7 +2,7 @@ module
 
 public import LeanVM.Guest.CoreMode.CertDefs
 public import LeanVM.Guest.EndExecParts
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 
 /-!
 # `ModeCerts` from each certificate's facts

@@ -1,6 +1,7 @@
 module
 
 public import Statement.RandomPermutation
+public import Common.DigestBytes
 
 @[expose] public section
 

@@ -13,6 +13,7 @@ public import LeanVM.Guest.GuestConst
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_padding»
+meta import LeanVM.Guest.KernelRfl
 
 /-!
 # `da_padding`, completely
@@ -41,8 +42,8 @@ theorem da_padding_body : Fn.body fn% «da_padding» = [
     .atom (.const (.n (val% «da_padding» "s1#0")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
     .atom (.rangeCheck (.n (val% «da_padding» "n_blob_g")) (.n (val% «da_padding» "s1#1")) (.n (val% «da_padding» "s1#2")) (.n (val% «da_padding» "s1#3")) (.n (val% «da_padding» "s1#0"))),
     .atom (.const (.n (val% «da_padding» "s2#1")) (word (2 ^ guest_const% DA_MAX_ROWS) 0)),
-    .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] :=
-  stmtsEqb_sound (by decide +kernel)
+    .atom (.mul (.n (val% «da_padding» "s2#1")) (.n (val% «da_padding» "s2#2")) (.n (val% «da_padding» "n_blob_g"))), .atom (.copy (.n (val% «da_padding» "s2#0")) (.n (val% «da_padding» "s2#2"))), .ret [.n (val% «da_padding» "s2#0")]] := by
+  kernel_rfl
 
 set_option maxRecDepth 1000 in
 /-- **`da_padding` is complete** on a memory defined below `2^16`. -/

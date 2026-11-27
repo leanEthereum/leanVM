@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreMode.LoopSig
 # A loop helper's frame facts
 
 What `frameSpec_loopC` (`CoreLoopC.lean`) uses beyond the function route's: a memory agreeing with the
-reference reads the reference (`rd_of_get`, `parAt_of`); the entry abstraction's facts (`entry_facts`);
+reference reads the reference (`rdE_of_get`, `parAt_of`); the entry abstraction's facts (`entry_facts`);
 the next frame's header (`hdr_copy`).
 -/
 
@@ -35,16 +35,6 @@ open LeanVM.Guest.Mode (Names written_of_get written_mono names_inj opOfOff RefO
 variable {κ : ℕ}
 
 /-! ## Facts about memories agreeing with the reference -/
-
-theorem rd_of_get {img : MemoryImage κ} (hκ : κ ≤ 28) {m : Mem} (ha : Agree m (refMem img)) {fp o : ℕ}
-    {u : E} (hg : m.get (fp + o) = some u) (hu : u ≠ 0) : Rd img fp o = some u := by
-  have h1 := ha.get _ _ hg
-  unfold refMem at h1
-  split_ifs at h1 with hc
-  · rw [Rd, ← pow_add, show (g : K) ^ (fp + o) = addressOfIndex (⟨fp + o, hc⟩ : Fin (2 ^ κ)) from rfl,
-      MemoryImage.read_gpow (by omega)]
-    exact congrArg some h1
-  · exact absurd h1.symm hu
 
 theorem refMem_eq_of_rd {img : MemoryImage κ} (hκ : κ ≤ 28) {a b : ℕ} (ha : a < 2 ^ 62) (hb : b < 2 ^ 62)
     (h : img.read (g ^ a) = img.read (g ^ b)) : refMem img a = refMem img b := by

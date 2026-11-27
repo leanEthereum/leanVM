@@ -81,7 +81,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     (hslot : GkSlot rd layers (2 * (4 * m + p) + 2 - o) s cur st
       (pts * gen ^ (40 * (4 * m + p + 1))) pos) :
     ∃ (xs : List E) (st' : GkrState) (s' : Fs) (pos' : E),
-      RunsTo (gkrStep 2 false st) s xs st' s' ∧ TbReadsAt rd cur xs ∧
+      RunsTo (gkrStep 2 false st) s xs st' s' ∧ ReadsAt rd cur xs ∧
       GkSlot rd layers (2 * (4 * m + p) + 2 - o + 2) s' (cur * gen ^ xs.length) st'
         (pts * gen ^ (40 * (4 * m + p + 2))) pos' := by
   obtain ⟨n, hn⟩ := hrel
@@ -122,16 +122,16 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have RL := gl_loop hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (tabs := σ (.n (valf% «gkr_layer» "tabs"))) hxm (by omega) rfl
     (fun hne => hC _ _ _ (gl_loopCall hp hLC hne)) R0
   obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, hcl1, RLr, hc2, hcur2, hcl2⟩ := glRun_of_out RL
-  obtain rfl := tbCapAt_unique hc1 hsc
-  obtain rfl := tb_loadHolds_unique hcur1 hscur
-  obtain rfl := tb_loadHolds_unique hcl1 hscl
+  obtain rfl := capAt_eq hc1 hsc
+  obtain rfl := loadHolds_unique hcur1 hscur
+  obtain rfl := loadHolds_unique hcl1 hscl
   -- the tail's setup and rounds
   obtain ⟨etp, entp, htc, htcur, htcl⟩ := gl_tailSetup hp hTS
-  rw [hxm, ← pow_mul, mul_comm m 7, tbCapAt_mul_gen_pow, Nat.add_zero] at htc
-  rw [hxm, ← pow_mul, mul_comm m 7, tb_loadHolds_mul_gen_pow] at htcur htcl
-  obtain rfl := tbCapAt_unique htc hc2
-  have ecur := tb_loadHolds_unique htcur hcur2
-  have ecl := tb_loadHolds_unique htcl hcl2
+  rw [hxm, ← pow_mul, mul_comm m 7, capAt_mul_gen_pow, Nat.add_zero] at htc
+  rw [hxm, ← pow_mul, mul_comm m 7, loadHolds_mul_gen_pow] at htcur htcl
+  obtain rfl := capAt_eq htc hc2
+  have ecur := loadHolds_unique htcur hcur2
+  have ecl := loadHolds_unique htcl hcl2
   have hcu : σ (.n (80 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
   have hpt : σ (.n (71 + D)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p + 8 * m) := by
     rw [etp, hxm, ← pow_mul]; ring
@@ -196,7 +196,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have t15 : τ (.n (valf% «gkr_layer» "layer")) = σ (.n (valf% «gkr_layer» "layers")) * gen ^ (10 * L) := by rw [tz 15 (by omega)]; exact e15
   have t53 : τ (.n (valf% «gkr_layer» "point_row")) = σ (.n (valf% «gkr_layer» "gkr_pts")) * gen ^ (40 * (j + 1)) := by rw [tz 52 (by omega)]; exact e53
   have ld : ∀ k w, LoadHolds rd (τ (.n (valf% «gkr_layer» "layer"))) k w → LoadHolds rd (σ (.n (valf% «gkr_layer» "layers"))) (10 * L + k) w :=
-    fun k w hw => by rw [t15, tb_loadHolds_mul_gen_pow] at hw; exact hw
+    fun k w hw => by rw [t15, loadHolds_mul_gen_pow] at hw; exact hw
   have hcurT : τ (.n (val% «gkr_layer__L0_L0» "tcur")) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [t77, hcu]
   refine ⟨_, _, _, τ (.n (valf% «gkr_layer» "round_pos")) * (τ (.n (valf% «gkr_layer» "x_m")) * gen) ^ 7, hstep', ?_, ?_⟩
   · rw [tbReadsAt_append, flatten_length_four h4, hlen]
@@ -231,7 +231,7 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
     refine ⟨fun k hk => ?_, ?_⟩
     · simp only [List.length_cons, List.length_nil] at hk
       rw [show 40 * (j + 2) = 40 * (j + 1) + 40 by ring, pow_add, ← mul_assoc,
-        tb_loadHolds_mul_gen_pow, ← t53]
+        loadHolds_mul_gen_pow, ← t53]
       interval_cases k
       · exact tpt0
       · exact tpt1

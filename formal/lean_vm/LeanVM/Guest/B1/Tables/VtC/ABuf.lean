@@ -63,8 +63,8 @@ theorem two_pow_succ_sub_two_le {w : ℕ} (hw : w ≤ 4) :
 
 /-- **Table `t`'s buffers give `RunTables`.** -/
 theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ} {t : ℕ}
-    (hμ : point.length < 33) (he : TbReadsAt rd pe (vtShEqW point τ t))
-    (hg : TbReadsAt rd pg (vtShGW point τ t)) :
+    (hμ : point.length < 33) (he : ReadsAt rd pe (vtShEqW point τ t))
+    (hg : ReadsAt rd pg (vtShGW point τ t)) :
     RunTables rd pe pg (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)) := by
   intro j hj
@@ -97,8 +97,8 @@ theorem vt_runTables {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → �
 
 /-- **Table `t`'s buffers give `RunPads`**: past each nibble's tables, zeros. -/
 theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ} {t : ℕ}
-    (hμ : point.length < 33) (he : TbReadsAt rd pe (vtShEqW point τ t))
-    (hg : TbReadsAt rd pg (vtShGW point τ t)) :
+    (hμ : point.length < 33) (he : ReadsAt rd pe (vtShEqW point τ t))
+    (hg : ReadsAt rd pg (vtShGW point τ t)) :
     RunPads rd pe pg (point.length - τ t) (point.drop (τ t)) := by
   intro j hj
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
@@ -110,7 +110,7 @@ theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
     simp [nib, hsql]; omega
   constructor
   · intro e he1 he2
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     have hlt : 32 * j + e < (vtShEqW point τ t).length := by rw [vtShEqW_length]; omega
     have := he (32 * j + e) hlt
     simp only [vtShEqW, List.getElem_map, List.getElem_range] at this
@@ -118,7 +118,7 @@ theorem vt_runPads {rd : Reader} {pe pg : E} {point : List E} {τ : ℕ → ℕ}
       List.getD_eq_default _ _ (by rw [eqLevels_length rfl hw1]; exact he1)]
       at this
   · intro u hu1 hu2
-    rw [tb_loadHolds_mul_gen_pow]
+    rw [loadHolds_mul_gen_pow]
     have hlt : 16 * j + u < (vtShGW point τ t).length := by rw [vtShGW_length]; omega
     have := hg (16 * j + u) hlt
     simp only [vtShGW, List.getElem_map, List.getElem_range] at this

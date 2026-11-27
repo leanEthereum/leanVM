@@ -15,7 +15,7 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.CheckSplit
 public import LeanVM.Guest.Exec
 public import LeanVM.Guest.JumpTable
-import all Statement.Data.Bytecode
+import all LeanVM.Guest.Data.Functions
 import all Statement.Data.AdviceHints
 
 /-!
@@ -44,7 +44,7 @@ theorem alignA_ent {f g : String} {t : ℕ} (h : (alignA f).X.entOk t g = true) 
     exact entry_key (calleesOf_mem hc).2
   split at h
   · rename_i g' hg
-    have hgg : g' = g := by simpa using h
+    have hgg : g' = g := nameEq_iff.mp h
     subst hgg
     have hm := trieOf_mem hb hg
     simp only [entsOf, List.map_map, List.mem_map, Function.comp_apply, Prod.mk.injEq] at hm

@@ -11,11 +11,12 @@ windows cover a loop helper's body without its tail (`loopBody`), or a function'
 its first top-level `ret`. Per function, in `GenW/<fn>/` (`callc.py`) or `GenWL/<fn>/` (`loopcc.py`):
 
 * `Cx.lean` (parts `CxD<j>`, equations `CxH<j>` if long): `sigW` (the callees' signatures as `CFun.sigOf` reads
-  them); each trie `cxOf` builds from the certificate as a literal of its shape whose entries are positions of the
-  certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation (one `decide +kernel`); the
-  context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the tries (each window's proof
-  rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at most `SPART` characters
-  (each importing the last, the first `Cx`);
+  them), which the context of a function with at least `SIGK` callees reads by the names' keys (`sigK`, `hsigK`,
+  `SigIx.lean`: no string compared); each trie `cxOf` builds from the certificate as a literal of its shape whose
+  entries are positions of the certificate's lists (`nthO`, `lrefs`: nothing restated), `hcx<field>` its equation
+  (one `decide +kernel`); the context `cxL` and `hcx : cxOf .. = cxL` (`cxOf_lit`), so that no window builds the
+  tries (each window's proof rewrites `withCx` by `withCx_cx hcx`); `S<j>.lean`: the states `st<i>`, in modules of at
+  most `SPART` characters (each importing the last, the first `Cx`);
 * `W<i>.lean`: `win<i> : winOk Fn.«{k}».pows sigW core hcert (((loopBody core).drop a).take (b - a)) st<i> st<i+1> =
   true` (`winOkF` over `core.body` for a function; one `decide +kernel`: no `ret` (a function's windows: no top-level
   one), no ghost value, the pass from one state to the next); for a `match` split by arms, `W<i>A<t>.lean` hold
@@ -38,6 +39,11 @@ import genfiles
 # the windows' sizes (`windows.py`)
 BUDGET, WIN, ATOMS, FIXW = windows.HEAP_BUDGET, windows.HEAP_WIN, windows.HEAP_ATOMS, windows.HEAP_FIXW
 CXPART, CXDEC, SPART = windows.HEAP_CXPART, windows.HEAP_CXDEC, windows.HEAP_SPART
+# the callees' signatures as `CFun.sigOf` reads them (`sigW`), and the number of callees from which a context reads
+# them by the names' keys instead (`sigK`, `SigIx.lean`'s `sigK_eq`, whose left side is `SIGW`): with fewer, the keys
+# cost the kernel more than the scan of the names
+SIGW = '(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})'
+SIGK = 100
 # The kernel's work, in thousands of heartbeats (the heartbeat limit's unit), estimated from `heapc.py`'s pass: per
 # line it executes (`Meter`), per atom (the ghost check), per character of the certificate (the context's tries), per
 # frame run cell and top-level statement (`faOk`), per trie entry or list element of a window's states (comparing the
@@ -229,9 +235,14 @@ def lnums(l):
 
 
 def ldef(name, typ, text):
-    """A `def` of a literal, on one line if it fits."""
-    one = f'noncomputable def {name} : {typ} := {text}'
-    return one + '\n' if len(one) <= 120 else f'noncomputable def {name} : {typ} :=\n  {pack(text)}\n'
+    """A `def` of a literal, on one line if it fits, built as a term (`data%`, `Guest/DataLit.lean`)."""
+    one = f'noncomputable def {name} : {typ} := data% {text}'
+    return one + '\n' if len(one) <= 120 else f'noncomputable def {name} : {typ} :=\n  data% {pack(text)}\n'
+
+
+def dlst(text):
+    """A list literal `emitc.Aux.lst` wrote inline, built as a term (`data%`); its parts' names as they are."""
+    return f'(data% {text})' if text.startswith('[') else text
 
 
 def larm(a, lc=None, lr=None):
@@ -384,15 +395,15 @@ class Lits:
     def llist(self, field, items, typ, name, defs, front):
         """A list growing at its end (`front` false: `cd`) or its front (`eqs`), as the previous state's plus what
         is new."""
-        ax = E.Aux()
+        ax = E.Aux(data=True)
         p = self.prev.get(field)
         if p is not None and len(items) >= len(p[0]) and (
                 items[:len(p[0])] == p[0] if not front else items[len(items) - len(p[0]):] == p[0]):
             new = items[len(p[0]):] if not front else items[:len(items) - len(p[0])]
-            nl = ax.lst(f'{name}_', typ, new)
+            nl = dlst(ax.lst(f'{name}_', typ, new))
             text = f'{p[1]} ++ {nl}' if not front else f'{nl} ++ {p[1]}'
         else:
-            text = ax.lst(f'{name}_', typ, items)
+            text = dlst(ax.lst(f'{name}_', typ, items))
         defs += [d.replace('def ', 'noncomputable def ', 1) for d in ax.defs]
         defs.append(f'noncomputable def {name} : List {typ} := {text}\n')
         self.prev[field] = (items, name)
@@ -412,8 +423,8 @@ class Lits:
             return base
         lc = self.lc(defs)
         out = [f'({k}, {self.sh(val(v, lcell), typ, defs, VSHARE, body=lambda v=v: val(v, lc))})' for k, v in items]
-        ax = E.Aux()
-        lst = ax.lst(f'{name}_{field}_', f'(ℕ × {typ})', out)
+        ax = E.Aux(data=True)
+        lst = dlst(ax.lst(f'{name}_{field}_', f'(ℕ × {typ})', out))
         defs += [d.replace('def ', 'noncomputable def ', 1) for d in ax.defs]
         return f'insL {lst} {base}'
 
@@ -435,6 +446,21 @@ class Lits:
 
 
 HEADER = genfiles.header('core-mode/heapwin.py')
+# the import the modules writing their literals `data% …` take (`Guest/DataLit.lean`)
+DATA = 'public meta import LeanVM.Guest.DataLit\n'
+
+
+def core_name(k):
+    """The name `core.name` holds: the compiler's name whose stable name is `k` (`coreir.load`'s `stable`)."""
+    ns = [n for n, s in I.STABLE.items() if s == k]
+    if len(ns) > 1:
+        raise SystemExit(f'heapwin: {k} is the stable name of {ns}')
+    return ns[0] if ns else k
+
+
+def str_key(name):
+    """`CoreMode.strKey`: the name's UTF-8 bytes as base-256 digits, the first the least significant, under a 1."""
+    return int.from_bytes(name.encode() + b'\x01', 'little')
 
 
 def repack(text):
@@ -556,12 +582,12 @@ def wprf(d):
 
 def emit(k, H, sts, cs, po, splits, gen):
     """The modules of one function: `[(name, text)]`. `gen`, a dict of `root` (the modules' prefix), `sub` (the
-    namespace under the function's), `data` (the certificate's modules), `sigw` (the callees' signatures, as Lean),
+    namespace under the function's), `data` (the certificate's modules), `names` (the callees),
     `final` (the name of the heap check's theorem) and `pre` (its precondition's name, default `sig_pre`); for an arm
     of a split certificate (`HCert.arms`), `ns` and `base` (its namespace, where `core` and `hcert` are the arm's, and
     its modules' prefix), `lpre` (the prefix of its lists' declarations) and `one` (the theorem `heapOkC1`'s)."""
     pack, core_mod = po[k][0], po[k][1]
-    data, sub, sigw = gen['data'], gen['sub'], gen['sigw']
+    data, sub = gen['data'], gen['sub']
     ns = gen.get('ns', f'LeanVM.Guest.Fn.«{k}»')
     base = gen.get('base', f'{gen["root"]}.«{k}»')
     mods = []
@@ -575,7 +601,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     fl = lcx(H, pre=gen.get('pre', 'sig_pre'), lpre=gen.get('lpre', ''))
     head = (f'public import LeanVM.Guest.CoreMode.HeapCWin{"" if loop else "F"}\n' +
             ''.join(f'public import {m}\n' for m in data) + imps)
-    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {sigw}\n'
+    sigd = f'/-- The callees\' signatures. -/\nnoncomputable def sigW : String → CoreMode.HSig := {SIGW}\n'
     # the equations, in groups of at most `CXDEC` characters of the certificate's lists they read (`CxH<j>`, each
     # importing the definitions) if more than one, else in `Cx`
     groups, g = [], []
@@ -587,7 +613,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     groups.append(g)
     parts, cur = [], [sigd]
     for f, lhs, typ, defs, lit in fl:
-        for d in defs + [f'/-- `cxOf`\'s trie `{f}`. -/\nnoncomputable def cx{f} : Trie {typ} :=\n  {lit}\n']:
+        for d in defs + [f'/-- `cxOf`\'s trie `{f}`. -/\nnoncomputable def cx{f} : Trie {typ} :=\n  data% {lit}\n']:
             if cur and sum(map(len, cur)) + len(d) > CXPART:
                 parts.append(cur)
                 cur = []
@@ -598,7 +624,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     prev = None
     for j, ds in enumerate(parts):
         cd = HEADER(f'{base}.CxD{j}', what=f'Part {j} of the tries of `{k}`\'s heap check context.')
-        cd += (f'public import {prev}\n' if prev else head) + '\nset_option maxRecDepth 100000\n'
+        cd += (f'public import {prev}\n' if prev else head) + DATA + '\nset_option maxRecDepth 100000\n'
         cd += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(ds) + f'\nend\nend {ns}.{sub}\n'
         mods.append((f'CxD{j}', repack(cd)))
         prev = f'{base}.CxD{j}'
@@ -615,13 +641,25 @@ def emit(k, H, sts, cs, po, splits, gen):
         cx += ''.join(f'public import {base}.CxH{j}\n' for j in range(len(groups)))
     else:
         cx += f'public import {prev}\n' if prev else head
+    sigk = len(gen['names']) >= SIGK
+    cx += ('public import LeanVM.Guest.CoreMode.SigIx\n' if sigk else '') + DATA
     cx += '\nset_option maxRecDepth 100000\nset_option linter.all false\nset_option Elab.async false\n\n' + opn
     cx += '\n' + ''.join(cur) if cur else ''
     cx += thm(groups[0]) if len(groups) == 1 else ''
-    cx += (f'\n/-- The context, its tries stated. -/\nnoncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
-           'cxRS, cxDV, cxHV, hcert.gargs, sigW, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
-    cx += (f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :=\n  cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV '
-           'hcxHV hcxEQ\n')
+    # past `SIGK` callees, their signatures read by their names' keys (`SigIx.lean`), the keys stated once
+    sig = 'sigW'
+    if sigk:
+        own, keys = str_key(core_name(k)), ', '.join(str(str_key(f)) for f in gen['names'])
+        sig = f'sigK {own} hcert.sig sigKeys csigs'
+        cx += (f'\n/-- The keys of the callees\' names (`strKey`). -/\nnoncomputable def sigKeys : List ℕ :=\n'
+               f'  data% [{keys}]\n\n/-- The callees\' signatures, read by key. -/\n'
+               f'theorem hsigK : sigW = {sig} :=\n  sigK_eq (by decide +kernel) (by decide +kernel)\n')
+    cx += (f'\n/-- The context, its tries stated. -/\n'
+           f'noncomputable def cxL : CX := ⟨Fn.«{k}».pows, cxR, cxP, cxC, cxT, '
+           f'cxRS, cxDV, cxHV, hcert.gargs, {sig}, hcert.sig, core.params, [], cxEQ, hcert.fas, hcert.ders⟩\n')
+    lit = 'cxOf_lit hcxR hcxP hcxC hcxT hcxRS hcxDV hcxHV hcxEQ'
+    prf = f' by\n  rw [hsigK]\n  exact {lit}' if sigk else f'\n  {lit}'
+    cx += f'\ntheorem hcx : cxOf Fn.«{k}».pows sigW core hcert = cxL :={prf}\n'
     # the states, in modules of at most `SPART` characters (the first in `Cx`, then `S<j>`, each importing the last),
     # each sharing the previous state's tries (`Lits`); `smod[i]` the module of `st<i>`
     lits = Lits()
@@ -629,7 +667,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     groups, cur, smod = [], [], {}
     for i, a in enumerate(cs[:nw + 1]):
         aux, text = lits.lstate(sts[a], f'st{i}')
-        t = ''.join(aux) + f'/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := {text}\n'
+        t = ''.join(aux) + f'/-- The state before statement {a}. -/\nnoncomputable def st{i} : CSt := data% {text}\n'
         if cur and sum(len(x[1]) for x in cur) + len(t) > SPART:
             groups.append(cur)
             cur = []
@@ -642,7 +680,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     for g, grp in enumerate(groups[1:], 1):
         si = HEADER(f'{base}.S{g}', what=f'The states {grp[0][0]} to {grp[-1][0]} of `{k}`\'s '
                            f'windowed heap check.')
-        si += f'public import {base}.{"S" + str(g - 1) if g > 1 else "Cx"}\n\nset_option maxRecDepth 100000\n'
+        si += f'public import {base}.{"S" + str(g - 1) if g > 1 else "Cx"}\n' + DATA + '\nset_option maxRecDepth 100000\n'
         si += 'set_option linter.all false\n\n' + opn + '\n' + ''.join(t for _, t in grp)
         si += f'\nend\nend {ns}.{sub}\n'
         mods.append((f'S{g}', repack(si)))
@@ -708,7 +746,7 @@ def emit(k, H, sts, cs, po, splits, gen):
     if one:
         thm = thm.replace('heapOkC', 'heapOkC1')
     ok += (f'/-- `{k}`: the heap check, in {n} windows. -/\ntheorem {gen["final"]} : CoreMode.heapOkC{one} Fn.«{k}».pows\n'
-           f'    {sigw}\n    core hcert = true :=\n'
+           f'    {SIGW}\n    core hcert = true :=\n'
            f'  CoreMode.{thm} (l := [{lst}]) {sub}.head_ok\n    {f"⟨{wins}trivial⟩" if n else "trivial"} rfl '
            f'{sub}.{last}\n')
     ok += f'\nend\nend {ns}\n'

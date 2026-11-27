@@ -134,8 +134,8 @@ theorem selGo_selD {j : ℕ} {ps : List V} {B : List Stmt} {σ : Val} : ∀ (see
       cases s with
       | ret _ | call _ _ _ | dispatch _ _ _ _ | atom _ | callIf _ _ _ => simp [stmtsSub] at hs
       | _ =>
-        simp only [CoreMode.topOk, Bool.and_eq_true, Bool.not_eq_true', List.any_eq_false] at h1
-        exact absurd rfl (h1.2 _ hs)
+        simp only [CoreMode.topOk, CoreMode.subAll_eq, Bool.and_eq_true, List.all_eq_true] at h1
+        simpa [CoreMode.isDsp] using h1.2 _ hs
     rcases hm with hm | hm | hm
     · -- the head
       subst hm
@@ -310,7 +310,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
       have h1 : j = 1 := by simpa [ctxOf, AlignCtx.ofData] using hz
       rw [(hstatB (statOf_ofData hso)).1, hroot h1]
       simp only [PC.word]
-      rw [(Exec.imm_of_ofBits rfl).trans Exec.ofK_one]
+      rw [(Exec.imm_of_ofBits rfl).trans LeanVM.Parameters.ofK_one]
       simp
     · cases hz
   case pcw =>
@@ -422,7 +422,7 @@ theorem ctxOf_ent {j t : ℕ} {g : String} (h : (Bridge.ctxOf j).entOk t g = tru
     exact Bridge.entry_key (Bridge.calleesOf_mem hc).2
   split at h
   · rename_i g' hg
-    have hgg : g' = g := by simpa using h
+    have hgg : g' = g := nameEq_iff.mp h
     subst hgg
     have hm := Bridge.trieOf_mem hb hg
     simp only [Bridge.entsOf, List.map_map, List.mem_map, Function.comp_apply, Prod.mk.injEq] at hm
@@ -476,7 +476,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
   -- the honest valuation
   rw [Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true] at hb0
   obtain ⟨⟨⟨hb0, hres0⟩, hgl0⟩, hfa0⟩ := hb0
-  simp only [CoreMode.honB, Bool.and_eq_true, List.all_eq_true] at hb0
+  simp only [CoreMode.honB, CoreMode.stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hb0
   obtain ⟨⟨⟨⟨⟨⟨⟨hlocs, hbody⟩, hptr⟩, hpar⟩, hcells⟩, hrc⟩, hj1⟩, hselB⟩ := hb0
   have hfpL : e.I.fp = s.fp := hfp
   -- `main`'s instance is the root, in frame `0`
@@ -646,7 +646,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [hfn, hw, Memory.Out.ret.injEq] at hw0
     obtain ⟨rfl, rfl⟩ := hw0
     have hmem := Bridge.walk_atomS (σ := e.σ) Cf.fn.body (by rw [hfn, hw]; exact hl)
-    simp only [CoreMode.faOkB, hneed, Bool.not_true, Bool.false_or, List.all_eq_true] at hfa0
+    simp only [CoreMode.faOkB, CoreMode.stmtsAll_eq, hneed, Bool.not_true, Bool.false_or, List.all_eq_true] at hfa0
     have hc := hfa0 _ hmem
     simp only [CoreMode.faCellB, Bool.and_eq_true, Option.isNone_iff_eq_none, decide_eq_true_eq] at hc
     obtain ⟨hx, hidx⟩ := hc

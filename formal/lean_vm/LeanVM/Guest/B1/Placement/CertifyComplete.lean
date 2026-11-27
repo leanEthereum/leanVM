@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `certify_placement`, completely
@@ -494,7 +495,7 @@ theorem cp_offsets (hl : hs.length = 6) :
       have := cpC0_le gi hgi; unfold cpLen at hj; omega
     have h1 := hoffs _ hc
     rw [← cpKs_eq hl] at h1
-    rw [tb_loadHolds_unique h1 (cpOffRd_load Q hc), hQg gi hgi j hj]
+    rw [loadHolds_unique h1 (cpOffRd_load Q hc), hQg gi hgi j hj]
   · rw [stackTotal, ← cpKs, cpKs_eq hl, List.map_map]
     exact htot
 
@@ -634,7 +635,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     unfold cpZ
     split_ifs with hc
     · rw [show cpQ gi + 6 - 1 = cpQ gi + 5 by omega, vQ 5 (by unfold cpZ; rw [tb_ite_pos hc]; omega)]
-      rw [cpKey, cpInvWords_zero gi hgi hc, tb_word_one, mul_one]
+      rw [cpKey, cpInvWords_zero gi hgi hc, word_one, mul_one]
       rfl
     · rw [show cpQ gi + 8 - 1 = cpQ gi + 7 by omega,
         vQ 7 (by unfold cpZ; rw [tb_ite_neg hc]; omega)]
@@ -658,7 +659,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
         rw [vG _ (by omega) (by omega), cpGrpV, tb_ite_pos (by omega), tb_ite_neg (by omega)]
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       refine ⟨v0, ?_⟩
-      rw [v1, v0, vkb, tb_word_two_pow (by omega), ← pow_add, hκe]
+      rw [v1, v0, vkb, word_two_pow (by omega), ← pow_add, hκe]
   · -- the range check and the rank key
     simp only [cpRcS, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
     have q0 := vQ 0 (by omega)
@@ -674,7 +675,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     · rw [q0, vKv, q1, w33_eq, c2]
     · rw [q1, q3]; exact c3
     · rw [q4, vKv]; rfl
-    · rw [q4, q5, tb_loadHolds_mul_gen_pow, add_comm]; exact R.rk κ (by omega)
+    · rw [q4, q5, loadHolds_mul_gen_pow, add_comm]; exact R.rk κ (by omega)
   · -- the key
     unfold cpKeyS
     split_ifs with hc
@@ -693,7 +694,7 @@ theorem cp_group_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ h
     · rw [vKey]; exact R.key gi hgi
     · rw [vZ, vKv]; rfl
     · rw [vZ, q1, vCh 0 (by omega), List.take_zero, show cpChainExp [] = 1 from rfl, pow_one,
-        tb_loadHolds_mul_gen_pow, Nat.add_zero]
+        loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.sq κ (by omega)
   · -- the chain
     rw [cpChain, tb_holdsList_flatten_range _ _ fun _ ↦ rfl]
@@ -767,12 +768,12 @@ theorem cp_rank (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
   refine ⟨R.ord _ (by omega), trivial, ⟨c1, by rw [w8_eq, c2], c3⟩, trivial, ?_, trivial,
     cpKey_step hl hlm hhs h5 (by omega), trivial, ?_, ⟨d1, by rw [wRankBound_eq, d2], d3⟩,
     trivial, ?_, trivial, ?_, ?_⟩
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact R.key _ hp
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact R.key _ hp
   · rw [pow_succ, mul_assoc, mul_comm gen wInvGen, wInvGen_mul_gen, mul_one]
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]
     have := R.base _ hp
     rwa [cpRho_pi (by omega)] at this
-  · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact R.size _ hp
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact R.size _ hp
   · rw [cpGP_succ, pow_add]
 
 /-- Group `gi`'s columns' statements hold. -/
@@ -808,7 +809,7 @@ theorem cp_cols_holds (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs
     · have vkb : σ (.n (2 + cpSrc gi)) = gen ^ cpEb lm hs (cpSrc gi) :=
         cpσ_kb lm hs ekb esq e10 e11 e136 e137 e293 rd hsrc
       rw [v0, vkb]; rfl
-    · rw [v0, v1, tb_loadHolds_mul_gen_pow]; exact R.sq _ hκ
+    · rw [v0, v1, loadHolds_mul_gen_pow]; exact R.sq _ hκ
     · rw [show σ (.n (val% «certify_placement» "group_base")) = ofK (addressOfIndex e137) from rfl,
         show cpD gi + 2 = cpD gi + 2 + 0 from rfl, vO 0 (by omega), Nat.zero_mul, Nat.add_zero]
       exact R.base gi hgi
@@ -836,7 +837,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hm : MemLay rd (cpOwn lm hs e10 e11 e136 e137 e293 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd)
-      (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]]) False
+      (cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]]) False
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
         ofK (addressOfIndex e293)]) := by
   have R := cp_reads hl hm
@@ -876,16 +877,16 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
       exact c3
     · rw [show σ (.n (val% «certify_placement» "key@1~0")) = ofK (addressOfIndex e10) * gen ^ cpPi lm hs 0 from r0 5 (by norm_num),
         show σ (.n (val% «certify_placement» "key@1")) = cpKey lm hs (cpPi lm hs 0) from r0 6 (by norm_num),
-        tb_loadHolds_mul_gen_pow, Nat.add_zero]
+        loadHolds_mul_gen_pow, Nat.add_zero]
       exact R.key _ hp0
     · have h0 := R.base _ hp0
       rw [cpRho_pi (by norm_num), cpGP_zero, pow_zero] at h0
       rw [show σ (.n (val% «certify_placement» "s10.u0.s4#1")) = ofK (addressOfIndex e137) * gen ^ cpPi lm hs 0 from r0 8 (by norm_num),
-        show σ (.n (val% «certify_placement» "s10.u0.s4#0")) = word 1 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
-        Nat.add_zero, tb_word_one]
+        show σ (.n (val% «certify_placement» "s10.u0.s4#0")) = word 1 0 from r0 7 (by norm_num), loadHolds_mul_gen_pow,
+        Nat.add_zero, word_one]
       exact h0
     · rw [show σ (.n (val% «certify_placement» "g_total@1~0")) = ofK (addressOfIndex e11) * gen ^ cpPi lm hs 0 from r0 9 (by norm_num),
-        show σ (.n (val% «certify_placement» "g_total@1")) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), tb_loadHolds_mul_gen_pow,
+        show σ (.n (val% «certify_placement» "g_total@1")) = gen ^ cpGP lm hs 1 from r0 10 (by norm_num), loadHolds_mul_gen_pow,
         Nat.add_zero, cpGP_succ, cpGP_zero, Nat.zero_add]
       exact R.size _ hp0
   · show [σ (.n (val% «certify_placement» "s13#0")), σ (.n (val% «certify_placement» "s13#0[1]"))] = _

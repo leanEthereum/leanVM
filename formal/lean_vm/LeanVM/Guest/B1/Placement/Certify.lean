@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `certify_placement`
@@ -58,18 +59,18 @@ abbrev wRankBound : E := word 267460055567564800 0
 abbrev wInvGen : E := word 9223372036854775821 0
 
 theorem word_g8 : word 256 0 = ofK (Parameters.addressOfIndex 8) := by
-  rw [tb_word_eOfNat]
+  rw [word_eOfNat]
   show ofK (K.ofBits 256) = ofK (Parameters.addressOfIndex 8)
   rw [show K.ofBits 256 = Parameters.addressOfIndex 8 by decide +kernel]
 
 theorem word_g8397 : word 267460055567564800 0 = ofK (Parameters.addressOfIndex 8397) := by
-  rw [tb_word_eOfNat]
+  rw [word_eOfNat]
   show ofK (K.ofBits 267460055567564800) = ofK (Parameters.addressOfIndex 8397)
   rw [show K.ofBits 267460055567564800 = Parameters.addressOfIndex 8397 by decide +kernel]
 
 theorem wInvGen_mul_gen : wInvGen * gen = 1 := by
   rw [show gen = ofK (K.ofBits 2) from rfl,
-    show wInvGen = ofK (K.ofBits 9223372036854775821) from tb_word_eOfNat _, ← ofK_mul,
+    show wInvGen = ofK (K.ofBits 9223372036854775821) from word_eOfNat _, ← ofK_mul,
     show K.ofBits 9223372036854775821 * K.ofBits 2 = 1 by decide +kernel]
   exact map_one (algebraMap K E)
 
@@ -96,7 +97,7 @@ theorem cpInvWords_K : ∀ gi < 9,
 
 theorem cpInvWord_mul {gi : ℕ} (h : gi < 9) :
     word (cpInvWords.getD gi 0) 0 * gen ^ cpC0 gi = 1 := by
-  rw [tb_word_eOfNat, gen_pow_eq_ofK, eOfNat, ← ofK_mul, cpInvWords_K gi h]
+  rw [word_eOfNat, gen_pow_eq_ofK, eOfNat, ← ofK_mul, cpInvWords_K gi h]
   exact map_one (algebraMap K E)
 
 /-- Group `gi`'s first value. -/
@@ -151,12 +152,12 @@ def cpKeyS (gi : ℕ) : List Stmt :=
 /-- The key's store, the size's chain and its store. -/
 def cpSizeS (gi : ℕ) : List Stmt :=
   [.atom (.load (.n (cpZ gi - 1)) (.n (val% «certify_placement» "group_key")) gi), .atom (.mul (.n (cpZ gi)) (.n (val% «certify_placement» "g_squares")) (.n (cpKv gi))),
-    .atom (.load (.n (cpZ gi + 1)) (.n (cpZ gi)) 0)] ++
-  cpChain (cpZ gi + 1) (cpCh gi) ++
+    .atom (.load (.n (cpZ gi + 1)) (.n (cpZ gi)) 0)] ⧺
+  cpChain (cpZ gi + 1) (cpCh gi) ⧺
   [.atom (.load (.n (cpZ gi + 1 + (cpCh gi).length)) (.n (val% «certify_placement» "group_size")) gi)]
 
 /-- Group `gi`: its `g^κ`, key and size. -/
-def cpGroup (gi : ℕ) : List Stmt := cpKapS gi ++ cpRcS gi ++ cpKeyS gi ++ cpSizeS gi
+def cpGroup (gi : ℕ) : List Stmt := cpKapS gi ⧺ cpRcS gi ⧺ cpKeyS gi ⧺ cpSizeS gi
 
 /-- Rank `0`, values `138 .. 148`. -/
 def cpRank0 : List Stmt :=
@@ -195,40 +196,40 @@ def cpCols (gi : ℕ) : List Stmt :=
   [.atom (.mul (.n (cpD gi)) (.n (val% «certify_placement» "g_squares")) (.n (2 + cpSrc gi))),
     .atom (.load (.n (cpD gi + 1)) (.n (cpD gi)) (cpAdj gi)),
     .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "group_base")) gi),
-    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi))] ++
+    .atom (.load (.n (cpD gi + 2)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi))] ⧺
   ((List.range (cpLen gi - 1)).map fun j ↦
     [.atom (.mul (.n (cpD gi + 3 + j)) (.n (cpD gi + 2 + j)) (.n (cpD gi + 1))),
       .atom (.load (.n (cpD gi + 3 + j)) (.n (val% «certify_placement» "col_off_g")) (cpC0 gi + 1 + j))]).flatten
 
 /-- `certify_placement`'s statements before its `ret`. -/
 def cpPre : List Stmt :=
-  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n ((val% «certify_placement» "kb[0]") + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ++
-    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ++
-    ((List.range 9).map cpGroup).flatten ++
+  ((List.range 8).map fun i ↦ [Stmt.atom (.load (.n ((val% «certify_placement» "kb[0]") + i)) (.n (val% «certify_placement» "kappa_base")) i)]).flatten ⧺
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "group_key")) 9)), .atom (.hint (.alloc (.n (val% «certify_placement» "group_size")) 9))] ⧺
+    ((List.range 9).map cpGroup).flatten ⧺
     [.atom (.hint (.alloc (.n (val% «certify_placement» "group_order")) 9)),
       .atom (.hint (.witness "col_group_order" (.heap (.n (val% «certify_placement» "group_order")) 0 9))),
-      .atom (.hint (.alloc (.n (val% «certify_placement» "group_base")) 9))] ++
-    cpRank0 ++ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ++
-    [.atom (.hint (.alloc (.n (val% «certify_placement» "col_off_g")) 94))] ++ ((List.range 9).map cpCols).flatten ++
+      .atom (.hint (.alloc (.n (val% «certify_placement» "group_base")) 9))] ⧺
+    cpRank0 ⧺ ((List.range 8).map fun r ↦ cpRank (r + 1)).flatten ⧺
+    [.atom (.hint (.alloc (.n (val% «certify_placement» "col_off_g")) 94))] ⧺ ((List.range 9).map cpCols).flatten ⧺
     [.atom (.copy (.n (val% «certify_placement» "s13#0")) (.n (val% «certify_placement» "g_total@9"))), .atom (.copy (.n (val% «certify_placement» "s13#0[1]")) (.n (val% «certify_placement» "col_off_g")))]
 
 /-- The function found by name is the template. -/
 noncomputable def cpCheck : Bool :=
   match coreProgram.find? "certify_placement" with
   | some fn => decide (fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")]) &&
-      tbStmtsEqb fn.body (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]])
+      stmtsEqb fn.body (cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]])
   | none => false
 
 theorem cpCheck_eq : cpCheck = true := by decide +kernel
 
 theorem cpFound : ∃ fn : Fn, coreProgram.find? "certify_placement" = some fn ∧
-    fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")] ∧ fn.body = cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]] := by
+    fn.params = [.n (val% «certify_placement» "kappa_base"), .n (val% «certify_placement» "g_squares")] ∧ fn.body = cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]] := by
   have h := cpCheck_eq
   unfold cpCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 /-! ## The tables' facts -/
@@ -348,14 +349,14 @@ theorem holds_cpGroup {gi : ℕ} (hgi : gi < 9)
     unfold cpKapS at hK
     unfold cpKv
     split_ifs at hK ⊢ with ha
-    · rw [ha, pow_zero, tb_word_one, mul_one]
+    · rw [ha, pow_zero, word_one, mul_one]
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hK
       rw [hK.2, hK.1]
   have hkey : σ (.n (cpZ gi - 1)) = σ (.n (cpQ gi + 5)) * word (cpInvWords.getD gi 0) 0 := by
     unfold cpKeyS at hY
     unfold cpZ
     split_ifs at hY ⊢ with hc
-    · rw [cpInvWords_zero gi hgi hc, tb_word_one, mul_one,
+    · rw [cpInvWords_zero gi hgi hc, word_one, mul_one,
         show cpQ gi + 6 - 1 = cpQ gi + 5 by omega]
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hY
       rw [show cpQ gi + 8 - 1 = cpQ gi + 7 by omega, hY.2, hY.1]
@@ -461,13 +462,13 @@ theorem cp_group_meaning {σ : Val} {gi : ℕ} (hgi : gi < 9) {eb : ℕ} (heb : 
   obtain ⟨hkv, hq, hrc, hload, hkey, hkeyL, hsqL, hch, hsz⟩ := h
   have hadj := cpAdj_le gi hgi
   have ekv : σ (.n (cpKv gi)) = gen ^ (eb + cpAdj gi) := by
-    rw [hkv, hkb, tb_word_two_pow (by omega), ← pow_add]
+    rw [hkv, hkb, word_two_pow (by omega), ← pow_add]
   obtain ⟨x, hx, ex⟩ := cp_rc34 hμ Lm hq hrc
   have hκ : eb + cpAdj gi = x := tb_gen_pow_inj' (by omega) (by omega) (ekv.symm.trans ex)
-  rw [ekv, tb_loadHolds_mul_gen_pow] at hload hsqL
-  have e5 := tb_loadHolds_unique hload (by
+  rw [ekv, loadHolds_mul_gen_pow] at hload hsqL
+  have e5 := loadHolds_unique hload (by
     rw [add_comm]; exact hrk (eb + cpAdj gi) (by omega))
-  have e1 := tb_loadHolds_unique hsqL (hsq (eb + cpAdj gi) (by omega))
+  have e1 := loadHolds_unique hsqL (hsq (eb + cpAdj gi) (by omega))
   refine ⟨by omega, ⟨_, hkeyL, ?_⟩, ?_⟩
   · rw [hkey, e5, mul_assoc, cpInvWord_mul hgi, mul_one]
   · rw [hch _ le_rfl, List.take_length, cpChainExp_eq gi hgi, e1, ← pow_mul, mul_comm] at hsz
@@ -480,7 +481,7 @@ theorem cp_src_pow {σ : Val} {gi : ℕ} (h0 : cpAdj gi = 0) (h : CpGroupOk Lm.r
   obtain ⟨hkv, hq, hrc, -⟩ := h
   obtain ⟨x, hx, ex⟩ := cp_rc34 hμ Lm hq hrc
   refine ⟨x, hx, ?_⟩
-  rw [hkv, h0, tb_word_two_pow (by omega), pow_zero, mul_one] at ex
+  rw [hkv, h0, word_two_pow (by omega), pow_zero, mul_one] at ex
   exact ex
 
 end
@@ -525,18 +526,18 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
       simpa only [List.getElem_cons_succ] using this
     have e := hds t ht
     rw [show 2 + t = t + 1 + 1 by omega] at e
-    rw [tb_loadHolds_unique hk e, show t + 1 + 1 = 2 + t by omega, hxs t ht]
+    rw [loadHolds_unique hk e, show t + 1 + 1 = 2 + t by omega, hxs t ht]
     simp [hs]
-  have hkb : TbReadsAt Lm.read kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) := by
+  have hkb : ReadsAt Lm.read kb (1 :: gen ^ logMem :: hs.map (gen ^ ·)) := by
     rw [← hdsE]; exact hkb0
   refine ⟨hs, hl', hdsE, hhs, ?_⟩
   have hl : hs.length = 6 := hl'
   -- the base `[0, log_mem, τ…]` and the tables
   set ebL : List ℕ := 0 :: logMem :: hs with hebL
   have hebLlen : ebL.length = 8 := by simp [ebL, hl]
-  have hkb' : TbReadsAt Lm.read kb (ebL.map (gen ^ ·)) := by simpa [ebL] using hkb
+  have hkb' : ReadsAt Lm.read kb (ebL.map (gen ^ ·)) := by simpa [ebL] using hkb
   have heb : ∀ i < 8, σ (.n ((val% «certify_placement» "kb[0]") + i)) = gen ^ ebL.getD i 0 ∧ ebL.getD i 0 ≤ 33 := fun i hi ↦ by
-    refine ⟨tb_loadHolds_unique (by rw [← h0]; exact hloads i hi)
+    refine ⟨loadHolds_unique (by rw [← h0]; exact hloads i hi)
       ((tbReadsAt_map_iff.mp hkb') i (by omega)), ?_⟩
     rcases i with _ | _ | i
     · simp [ebL]
@@ -567,8 +568,8 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     · unfold CpFacts
       simp only [cpRB, cpRK, cpRP, cpRT, ↓reduceIte, Nat.mul_zero, Nat.add_zero]
       refine ⟨cp_rc9 hμ Lm c139 rc138, by rw [← m143]; exact l144, by rw [← m146]; exact l145,
-        ⟨_, by rw [← m147]; exact l148, by rw [c145, tb_word_one, one_mul]⟩,
-        fun _ ↦ by rw [c145, tb_word_one], fun h ↦ absurd h (by omega),
+        ⟨_, by rw [← m147]; exact l148, by rw [c145, word_one, one_mul]⟩,
+        fun _ ↦ by rw [c145, word_one], fun h ↦ absurd h (by omega),
         fun h ↦ absurd h (by omega)⟩
     · obtain ⟨r', rfl⟩ : ∃ r', r = r' + 1 := ⟨r - 1, by omega⟩
       exact cpFacts_succ hμ Lm (hranks r' (by omega))
@@ -576,14 +577,14 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
   have hπ9 : ∀ r < 9, π r < 9 := fun r hr ↦ (hπ r hr).1
   have hkeyR : ∀ r < 9, σ (.n (cpRK r)) = Kf (π r) := fun r hr ↦ by
     have := (hf r hr).2.1
-    rw [(hπ r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero] at this
-    exact tb_loadHolds_unique this (hKf _ (hπ9 r hr)).1
+    rw [(hπ r hr).2, loadHolds_mul_gen_pow, Nat.add_zero] at this
+    exact loadHolds_unique this (hKf _ (hπ9 r hr)).1
   set P := tbGroupPrefix cpC0 κc π with hP
   have hstep : ∀ r < 9, σ (.n (cpRP r)) = gen ^ P r → σ (.n (cpRT r)) = gen ^ P (r + 1) :=
     fun r hr hb ↦ by
       obtain ⟨-, -, -, ⟨t, ht, et⟩, -⟩ := hf r hr
-      rw [(hπ r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero] at ht
-      rw [et, hb, tb_loadHolds_unique ht (hG _ (hπ9 r hr)).2.2, ← pow_add, hP,
+      rw [(hπ r hr).2, loadHolds_mul_gen_pow, Nat.add_zero] at ht
+      rw [et, hb, loadHolds_unique ht (hG _ (hπ9 r hr)).2.2, ← pow_add, hP,
         tb_groupPrefix_succ]
       rfl
   have hTP : ∀ r < 9, σ (.n (cpRP r)) = gen ^ P r := by
@@ -597,7 +598,7 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     fun r hr ↦ ⟨hTP r hr, hstep r hr (hTP r hr)⟩
   have hbase : ∀ r < 9, LoadHolds Lm.read (σ (.n (val% «certify_placement» "group_base"))) (π r) (gen ^ P r) := fun r hr ↦ by
     have := (hf r hr).2.2.1
-    rw [(hπ r hr).2, tb_loadHolds_mul_gen_pow, Nat.add_zero, (hT r hr).1] at this
+    rw [(hπ r hr).2, loadHolds_mul_gen_pow, Nat.add_zero, (hT r hr).1] at this
     exact this
   -- the keys descend
   have hadj : ∀ r, r + 1 < 9 → κc (cpC0 (π (r + 1))) ≤ κc (cpC0 (π r)) ∧
@@ -628,9 +629,9 @@ theorem certify_placement_holds {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage �
     have hg := hπ9 r hr
     obtain ⟨lstep, lbase, lcols⟩ := holds_cpCols (hcols _ hg)
     have ebs := heb _ (cpSrc_lt _ hg)
-    rw [ebs.1, tb_loadHolds_mul_gen_pow, Nat.add_zero] at lstep
-    have estep := tb_loadHolds_unique lstep (hsq' _ (hG _ hg).1)
-    have ebase := tb_loadHolds_unique lbase (hbase r hr)
+    rw [ebs.1, loadHolds_mul_gen_pow, Nat.add_zero] at lstep
+    have estep := loadHolds_unique lstep (hsq' _ (hG _ hg).1)
+    have ebase := loadHolds_unique lbase (hbase r hr)
     have := lcols i (by unfold cpLen; omega)
     rw [ebase, estep, ← pow_mul, ← pow_add, mul_comm (2 ^ _) i] at this
     exact this

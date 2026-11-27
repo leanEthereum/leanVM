@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.H.VtRun
 /-!
 # `verify_tables`' honest data
 
-`vtH_rowsT_length`, `rowsT_fst`: the table loop's six rows. On an honest child (`ChildSegs`, the
+`vt_rowsT_length`, `rowsT_fst`: the table loop's six rows. On an honest child (`ChildSegs`, the
 guest's bytecode of `2^23` words):
 
 * `H_run`: `S.H` is `Ok`, the tables' words are its words (`curW`: four, ten, `3 n`, `153`), and
@@ -37,14 +37,8 @@ theorem busH_forms_length {H : VtHonest} (hr : H.rows.length = 6) : H.busH.forms
   (vt_forms3_shape H.bc H.lm hr H.weights H.beta H.point (H.xs4.take 2) (H.xs4.getD 2 0)
     (H.xs4.getD 3 0) H.share (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
 
-theorem vtH_rowsT_length {H : VtHonest} (hr : H.rows.length = 6) : H.rowsT.length = 6 := by
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
-  simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, busH_forms_length hr,
-    LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]
-  rfl
-
 theorem rowsT_fst (H : VtHonest) (hr : H.rows.length = 6) : H.rowsT.map (·.1) = tables := by
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeightsOf_length hr
   simp only [VtHonest.rowsT, vtRows]
   refine List.map_fst_zip ?_
   simp only [List.length_zip, hh, busH_forms_length hr,
@@ -168,7 +162,7 @@ theorem H_run (hbl : bytecode.length = 2 ^ 23) :
   · show RunsTo _ _ (S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten) _ _
     rw [← h5, show S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten = S.xsT from hcur.symm]
     exact hrun
-  · rw [eE, Tables.chunks_length, Tables.VtHonest.vtH_rowsT_length hr6]; rfl
+  · rw [eE, Tables.chunks_length, Tables.vt_rowsT_length hr6]; rfl
   · intro p hp
     rw [eE] at hp
     exact (Tables.zip_chunks S.H.rowsT (Tables.VtHonest.rowsT_fst S.H hr6) evs l153).2.2 p hp

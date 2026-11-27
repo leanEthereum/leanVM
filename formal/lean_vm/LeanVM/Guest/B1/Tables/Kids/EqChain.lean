@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Families
 public import LeanVM.Guest.B1.Eq.EqPrefix
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eq_prefix_chain`, loading from a region
@@ -33,7 +34,7 @@ def epcPre : List Stmt :=
     .atom (.rangeCheck (.n (val% «eq_prefix_chain» "count_g")) (.n (val% «eq_prefix_chain» "s0#1")) (.n (val% «eq_prefix_chain» "s0#2")) (.n (val% «eq_prefix_chain» "s0#3")) (.n (val% «eq_prefix_chain» "s0#0"))),
     .dispatch (.n (val% «eq_prefix_chain» "count_g")) eqPrefixRunNames [.n (val% «eq_prefix_chain» "chain"), .n (val% «eq_prefix_chain» "seed"), .n (val% «eq_prefix_chain» "a"), .n (val% «eq_prefix_chain» "b1")] [.n (val% «eq_prefix_chain» "done")]]
 
-theorem epc_body : Fn.body fn% «eq_prefix_chain» = epcPre ++ [.ret []] := by
+theorem epc_body : Fn.body fn% «eq_prefix_chain» = epcPre ⧺ [.ret []] := by
   rw [B1.eq_prefix_chain_body]; rfl
 
 theorem epc_flat : epcPre.all Stmt.flat = true := by decide +kernel

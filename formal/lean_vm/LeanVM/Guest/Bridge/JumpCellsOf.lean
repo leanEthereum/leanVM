@@ -104,7 +104,7 @@ theorem jumpCells_of (hT : T.name = "main") (hH : HonestAt coreProgram B2C.fs B2
       simp [PC.word]
     · rename_i hso
       rw [(hstatB (statOf_ofData hso)).1, hmain hz]
-      simp only [PC.word, imm_one, addressOfIndex, pow_zero, Exec.ofK_one]
+      simp only [PC.word, imm_one, addressOfIndex, pow_zero, LeanVM.Parameters.ofK_one]
     · cases hz
   case pcw =>
     intro o t hz

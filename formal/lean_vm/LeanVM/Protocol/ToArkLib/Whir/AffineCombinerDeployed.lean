@@ -25,7 +25,7 @@ final degree `d = 2^κ - 1 + k` and threshold `A = Aend - (k - j)` (`roundN`, `r
   `crates/pcs/src/whir_config/affine_mca.rs`, `combiner_within`, exactly.
 
 `foldRoundOK_sound`: a passing round has `Admissible`, `n d < (A - 1)²`, and the fold row `q · nAff + 2 jl n (A - 1) d q² ≤ budget q²`
-(in `ℚ`), which with `card_foldBad_le_nAff_of_lemma43` bounds the round's escapes `(α, β)` by
+(in `ℚ`), which with `card_foldBadR_le_nAff'` bounds the round's escapes `(α, β)` by
 `budget · q`, a probability of `budget / q`.
 -/
 

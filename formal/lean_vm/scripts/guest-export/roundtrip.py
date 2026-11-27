@@ -3,8 +3,9 @@
 Usage: python3 -I roundtrip.py <lean_vm dir> <disasm.txt>, the dump from
 `DBG_DISASM=<disasm.txt> guest-export <lean_vm dir> --check`.
 
-Parses `Statement/Data/Bytecode*.lean` (the function table and every chunk), reassembles the
-padded program, renders it in `zkdsl_compiler::disassemble`'s format (g-powers of `K`,
+Parses `Statement/Data/Bytecode*.lean` (every block, and the statement's `blocks`) and
+`LeanVM/Guest/Data/Functions.lean` (the function table over them), checks that the statement's blocks are
+the functions' in layout order, reassembles the padded program, renders it in `zkdsl_compiler::disassemble`'s format (g-powers of `K`,
 `x^64 = x^4 + x^3 + x + 1`) and compares line by line with the `DBG_DISASM` dump the Rust
 `compile_guest` wrote, function boundaries included. Independent of the exporter's own code.
 """
@@ -25,12 +26,19 @@ for path in sorted(bc.glob("Bytecode*.lean")):
     for m in re.finditer(r'def f(\d+) : CompiledFunction :=\n  ⟨"([A-Za-z0-9_]+)", (\d+), (\d+), \[([^\]]*)\]⟩', text):
         fns.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)),
                     [c.strip() for c in m.group(5).split(",") if c.strip()]))
-table = (bc / "Bytecode.lean").read_text()
+ftext = (data / "LeanVM/Guest/Data/Functions.lean").read_text()
+for m in re.finditer(r'def f(\d+) : CompiledFunction :=\n  ⟨"([A-Za-z0-9_]+)", (\d+), (\d+), \[([^\]]*)\]⟩', ftext):
+    fns.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)),
+                [c.strip() for c in m.group(5).split(",") if c.strip()]))
+table = ftext
+blocks = re.findall(r"f\d+c\d+", re.search(r"def blocks : List \(List OffsetInstruction\) := \[(.*?)\]",
+                    (bc / "Bytecode.lean").read_text(), re.S).group(1))
 log_size = int(re.search(r"def logSize : ℕ := (\d+)", table).group(1))
 code_len = int(re.search(r"def codeLen : ℕ := (\d+)", table).group(1))
 order = re.findall(r"f(\d+)", re.search(r"def functions : List CompiledFunction := \[(.*?)\]", table, re.S).group(1))
 fns.sort()
 assert [str(i) for i, *_ in fns] == order, "function table order"
+assert blocks == [c for *_, cs in fns for c in cs], "the statement's blocks are not the functions' chunks in order"
 
 prog = []
 for i, name, entry, length, cs in fns:

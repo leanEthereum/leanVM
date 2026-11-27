@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Terminal.TermFacts
 public import LeanVM.Guest.CoreMode.Fam.RefAll
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«check_opening_terminal»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `column_selector`'s arguments
@@ -57,7 +58,7 @@ theorem dispOk_of_walk1 {σ : Val} {s : Stmt} (hs : dispSmall s = true) (h : wal
 
 /-- **A flat body whose walk returns passes each of its dispatches.** -/
 theorem walk_flat_disp {σ : Val} {vs vs' : List V} : ∀ {pre : List Stmt} {es : List Ev},
-    pre.all Stmt.flat = true → pre.all dispSmall = true → walk σ (pre ++ [.ret vs]) = .ret es vs' →
+    pre.all Stmt.flat = true → pre.all dispSmall = true → walk σ (pre ⧺ [.ret vs]) = .ret es vs' →
     ∀ s ∈ pre, DispOk σ s
   | [], _, _, _, _, s, hs => absurd hs List.not_mem_nil
   | s :: pre, es, hf, hd, hw, s', hs' => by
@@ -67,7 +68,7 @@ theorem walk_flat_disp {σ : Val} {vs vs' : List V} : ∀ {pre : List Stmt} {es 
     have hok := dispOk_of_walk1 hd.1 hns
     rw [walk1_flat σ s hf.1 hok] at hw
     simp only [Out.seq] at hw
-    cases h2 : walk σ (pre ++ [.ret vs]) with
+    cases h2 : walk σ (pre ⧺ [.ret vs]) with
     | fall _ => rw [h2] at hw; simp [Out.pre] at hw
     | ret es2 vs2 =>
       rcases List.mem_cons.mp hs' with rfl | hs'

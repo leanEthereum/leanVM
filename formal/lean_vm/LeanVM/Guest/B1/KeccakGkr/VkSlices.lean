@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.VkT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -87,7 +88,7 @@ theorem slicesT_holds {cur : V} {capb b : ℕ} {next : Prop} {kret : List E → 
     refine ⟨fun hg0 ↦ ?_, fun j hj ↦ ?_⟩
     · simp only [hg0, ↓reduceIte, keccakA, Stmt.HoldsList, Stmt.Holds] at hgg
       exact hgg.1
-    · have hr : Stmt.HoldsList C rd σ (fsNextT cur (4 * g + j) (slB b (4 * g + j)) ++
+    · have hr : Stmt.HoldsList C rd σ (fsNextT cur (4 * g + j) (slB b (4 * g + j)) ⧺
           [.atom (.load (.n (slB b (4 * g + j))) (.n (val% «verify_keccak» "slices")) (4 * g + j))]) True kret := by
         split at hgg
         · exact hgg.1 j hj

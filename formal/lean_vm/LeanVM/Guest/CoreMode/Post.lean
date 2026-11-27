@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreLemmas
 /-!
 # The heap guarantees at a return
 
-`postOk pows H post body`: the heap check's pass (`atomH`, its environment and scope) over `body` up to
+`postOk pows H post body`: no promised cell, or the heap check's pass (`atomH`, its environment and scope) over `body` up to
 its `ret`, where each promised cell `(c, w)` of `post` has its witness `w` (`witOk`: a write event in
 scope or a precondition, of that very cell). A branch or a `match` on the way has no `ret` in it; its
 blocks are passed as the heap check does (`chkL`), for the serials, and what they write is not
@@ -56,10 +56,10 @@ noncomputable def postGo (X : HX) (post : List (CCell × Wit)) : List Stmt → H
   | .ret _ :: _, st => post.all fun p ↦ witOk X.pre st.sc (substC st.env p.1) p.2
   | _, _ => false
 
-/-- **The heap guarantees' check** of a function: the heap check's pass to its `ret`, each promised cell
-witnessed there. -/
+/-- **The heap guarantees' check** of a function: no promised cell, or the heap check's pass to its `ret`, each
+promised cell witnessed there. -/
 noncomputable def postOk (pows : PowTree) (H : HCert) (post : List (CCell × Wit)) (body : List Stmt) : Bool :=
-  H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ postGo ⟨pows, R, P⟩ post body ⟨.nil, .nil, 0⟩
+  post.isEmpty || H.readT.seq fun R ↦ (trieFrom H.sig.pre 0 .nil).seq fun P ↦ postGo ⟨pows, R, P⟩ post body ⟨.nil, .nil, 0⟩
 
 section
 
@@ -240,8 +240,10 @@ theorem postOk_sound {pows : PowTree} (hpw : pows.Ok) {post : List (CCell × Wit
     (hok : postOk pows H post body = true) {es : List Ev} {vs : List V}
     (hw : walk σ body = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ) : ∀ p ∈ post, Written H σ es (p.1.addr σ) := by
   unfold postOk at hok
-  rw [Trie.seq_eq, Trie.seq_eq] at hok
   intro p hp
+  rcases Bool.or_eq_true_iff.mp hok with hok | hok
+  · exact absurd hp (List.isEmpty_iff.mp hok ▸ List.not_mem_nil)
+  rw [Trie.seq_eq, Trie.seq_eq] at hok
   rcases postGo_sound (X := ⟨pows, H.readT, trieFrom H.sig.pre 0 .nil⟩) (H := H) (rd := rd) rfl
     (fun k c h ↦ (getF_trieFrom _ _ _ h).resolve_right (by simp [getF_nil])) hpw body
     (W := fun x ↦ ∃ c ∈ H.sig.pre, c.addr σ = x) (fun c hc ↦ ⟨c, hc, rfl⟩) hok envOk_nil

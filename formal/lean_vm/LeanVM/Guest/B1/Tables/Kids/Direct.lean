@@ -58,10 +58,10 @@ theorem ptrIn_mono {R : ℕ → Prop} {p : E} {B B' : ℕ} (h : PtrIn R p B) (hl
 theorem ptrIn_mul {R : ℕ → Prop} {p : E} {j B : ℕ} (h : PtrIn R p (j + B)) :
     PtrIn R (p * gen ^ j) B := by
   have hg : Parameters.addressOfIndex j ≠ 0 := pow_ne_zero _ g_ne_zero
-  refine ⟨by rw [gen_pow_eq_ofK]; exact (tb_isInK_mul_ofK hg).mpr h.1, fun off hoff ↦ ?_⟩
+  refine ⟨by rw [gen_pow_eq_ofK]; exact (isInK_mul_ofK hg).mpr h.1, fun off hoff ↦ ?_⟩
   obtain ⟨i, hi, hr⟩ := h.2 (j + off) (by omega)
   refine ⟨i, ?_, hr⟩
-  rw [gen_pow_eq_ofK, tb_limb0_mul_ofK h.1, mul_assoc, Parameters.addressOfIndex,
+  rw [gen_pow_eq_ofK, limb0_mul_ofK _, mul_assoc, Parameters.addressOfIndex,
       Parameters.addressOfIndex,
     ← pow_add]
   exact hi

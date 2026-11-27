@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.CplCheck
+public import LeanVM.Guest.B2C.KernelList
 
 /-!
 # Values sharing a cell
@@ -33,7 +34,8 @@ and reading that window's cells (`locW`): window `k + 1` starts from a `Snap` of
 The walk also confirms, per atom, the certificate's lists of temporaries and frame runs
 (`Plumb.tmps`, `Plumb.runs`), from which the honest memory's cells are built.
 
-Everything is structural recursion over lists and tries keyed by `ℕ`, for the kernel.
+Everything is recursion over lists and tries keyed by `ℕ`, for the kernel; the steps of every
+atom (`nameAll`, `isPend`, `record`, `cellKeys`) by the recursor (`KernelList.lean`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -175,7 +177,7 @@ noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
       (loc.cell y, 0, keyCells 0 [loc.cell d, loc.cell x])]
   | .mul d x y => [(loc.cell d, 1, keyCells 1 [loc.cell x, loc.cell y])]
   | .keccak ins outs inOdd outOdd =>
-    outs.zipIdx.map fun q ↦ (loc.cell q.1, keccakOp q.2 inOdd outOdd, ins.map loc.cell)
+    mapR (fun q ↦ (loc.cell q.1, keccakOp q.2 inOdd outOdd, mapR loc.cell ins)) (zipIdxR outs 0)
   | .load d p off => [(loc.cell d, off + 56, [loc.cell p])]
   | _ => []
 
@@ -185,7 +187,10 @@ noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
 def isNamed (st : SSt) (v : ℕ) : Bool := bitN st.named v
 
 /-- Value `v` is pending. -/
-def isPend (st : SSt) (v : ℕ) : Bool := st.pend.any fun p ↦ Nat.beq p.v v
+noncomputable def isPend (st : SSt) (v : ℕ) : Bool := anyR (fun p ↦ Nat.beq p.v v) st.pend
+
+theorem isPend_def (st : SSt) (v : ℕ) : isPend st v = st.pend.any fun p ↦ Nat.beq p.v v :=
+  anyR_eq _ _
 
 /-- The constants of a shared cell, with `x` if given. -/
 noncomputable def cstAt (cst : Trie (ℕ × ℕ)) (c : ℕ) : Option (ℕ × ℕ) → Trie (ℕ × ℕ)
@@ -204,16 +209,19 @@ noncomputable def nameV (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) : 
     else ⟨setBit st.occ c, cstAt sh st.cst c (kc v.idx), st.keys, setBit st.named v.idx, st.pend⟩
 
 /-- Name values in order (a known value left as it is, `nameAll_cons`). -/
-noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) : SSt → List V → SSt
-  | st, [] => st
-  | st, v :: vs => bif isNamed st v.idx then nameAll kc st vs
-      else (nameV loc sh kc st v).seq fun st ↦ nameAll kc st vs
+noncomputable def nameAll (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (vs : List V) : SSt :=
+  List.rec (motive := fun _ ↦ SSt → SSt) (fun st ↦ st)
+    (fun v _ r st ↦ bif isNamed st v.idx then r st else (nameV loc sh kc st v).seq r) vs st
+
+theorem nameAll_nil (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) : nameAll loc sh kc st [] = st := rfl
 
 theorem nameAll_cons (kc : ℕ → Option (ℕ × ℕ)) (st : SSt) (v : V) (vs : List V) :
     nameAll loc sh kc st (v :: vs) = nameAll loc sh kc (nameV loc sh kc st v) vs := by
+  show (bif isNamed st v.idx then nameAll loc sh kc st vs
+    else (nameV loc sh kc st v).seq fun st ↦ nameAll loc sh kc st vs) = _
   cases h : isNamed st v.idx with
-  | false => simp only [nameAll, h, Bool.cond_false, SSt.seq_eq]
-  | true => simp only [nameAll, h, Bool.cond_true, nameV, Bool.true_or]
+  | false => simp only [Bool.cond_false, SSt.seq_eq]
+  | true => simp only [h, Bool.cond_true, nameV, Bool.true_or]
 
 /-- The facts an atom gives the pending values. -/
 noncomputable def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
@@ -270,11 +278,20 @@ noncomputable def recCst (a : Core.Atom) (cst : Trie (ℕ × ℕ)) : Trie (ℕ �
 /-- An atom's facts on its shared cells, once all its values are known: a constant at its
 output's cell, the keys of its outputs. -/
 noncomputable def record (a : Core.Atom) (st : SSt) : SSt :=
-  bif (Memory.atomUses a).all fun v ↦ isNamed st v.idx then
+  bif allR (fun v ↦ isNamed st v.idx) (Memory.atomUses a) then
     ⟨st.occ, recCst loc sh a st.cst,
-     (cellKeys loc a).foldl (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && k.2.2.all (Nat.ble 2) then
-        setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys, st.named, st.pend⟩
+     foldlR (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && allR (Nat.ble 2) k.2.2 then
+        setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys (cellKeys loc a),
+      st.named, st.pend⟩
   else st
+
+theorem record_def (a : Core.Atom) (st : SSt) : record loc sh a st =
+    bif (Memory.atomUses a).all fun v ↦ isNamed st v.idx then
+      ⟨st.occ, recCst loc sh a st.cst,
+       (cellKeys loc a).foldl (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && k.2.2.all (Nat.ble 2) then
+          setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) st.keys, st.named, st.pend⟩
+    else st := by
+  simp only [record, allR_eq, foldlR_eq]
 
 /-- **An atom**: its values named, their facts added, what can be shown shown, its cell facts
 recorded. -/

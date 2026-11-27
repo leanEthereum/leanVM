@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.CDisp
 public import LeanVM.Guest.B1.Whir.Witness
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A level after its positions, honestly
@@ -326,9 +327,9 @@ theorem osQueries_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ :
   have em : (osQueries c lvl lv st).2.mats = hp.2.2.mats := rfl
   have eb : (osQueries c lvl lv st).2.batched = g + 2 := rfl
   have elp : (osQueries c lvl lv st).2.lamPow = g + 3 := rfl
-  have el : (osQueries c lvl lv st).1 = li.1 ++ cf.1 ++ hp.1 ++
+  have el : (osQueries c lvl lv st).1 = li.1 ++ cf.1 ++ hp.1 ⧺
       [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName c lvl))
-        ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n) (osRun g 4)] ++
+        ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n) (osRun g 4)] ⧺
       [osLd g osRoots (2 * lvl), osLd (g + 1) osRoots (2 * lvl + 1)] := by
     rw [List.append_assoc (li.1 ++ cf.1 ++ hp.1)]; rfl
   have eq1 : (osQCallOf c lvl lv st).1 = [li.2.1, li.2.2.1, cf.2.1, hp.2.1, st.lp, st.lw].map V.n := rfl

@@ -15,6 +15,7 @@ public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables»
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `shared_selector_tables`
@@ -41,25 +42,25 @@ def lpPre : List Stmt :=
   [.atom (.mul (.n (val% «shared_selector_tables_loop0» "x4~0")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "xq"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "x4")) (.n (val% «shared_selector_tables_loop0» "x4~0")) (.n (val% «shared_selector_tables_loop0» "x4~0"))),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "x16~0")) (.n (val% «shared_selector_tables_loop0» "x4")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "x16")) (.n (val% «shared_selector_tables_loop0» "x16~0")) (.n (val% «shared_selector_tables_loop0» "x16~0"))),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#0")) (.n (val% «shared_selector_tables_loop0» "eq_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#1")) (.n (val% «shared_selector_tables_loop0» "s2#0")) (.n (val% «shared_selector_tables_loop0» "x16"))),
-    .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "zeta_hi")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "zeta1_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ++
-  nbEq 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 4 ++
+    .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "zeta_hi")) (.n (val% «shared_selector_tables_loop0» "x4"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "zeta1_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ⧺
+  nbEq 15 (.n (val% «shared_selector_tables_loop0» "s2#2")) (.n (val% «shared_selector_tables_loop0» "s2#3")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 4 ⧺
   [.atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u30.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u30.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 30),
-    .atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 31)] ++
-  [.atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#0")) (.n (val% «shared_selector_tables_loop0» "g_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "gsq_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ++
-  nbG 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "s3#0")) 4 ++
+    .atom (.const (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (word 0 0)), .atom (.load (.n (val% «shared_selector_tables_loop0» "s2.i4:sel_eq_nibble.s5.u31.s0#0")) (.n (val% «shared_selector_tables_loop0» "s2#1")) 31)] ⧺
+  [.atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#0")) (.n (val% «shared_selector_tables_loop0» "g_tab")) (.n (val% «shared_selector_tables_loop0» "x16"))), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "gsq_hi")) (.n (val% «shared_selector_tables_loop0» "x4")))] ⧺
+  nbG 55 (.n (val% «shared_selector_tables_loop0» "s3#1")) (.n (val% «shared_selector_tables_loop0» "s3#0")) 4 ⧺
   [.atom (.const (.n (val% «shared_selector_tables_loop0» "s5#0")) (word 2 0)), .atom (.mul (.n (val% «shared_selector_tables_loop0» "s5#1")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "s5#0"))),
     .atom (.add (.n (val% «shared_selector_tables_loop0» "s5#2")) (.n (val% «shared_selector_tables_loop0» "s5#1")) (.n (val% «shared_selector_tables_loop0» "bound"))), .atom (.const (.n (val% «shared_selector_tables_loop0» "s5#3")) (word 2 0)),
     .atom (.mul (.n (val% «shared_selector_tables_loop0» "s5#4")) (.n (val% «shared_selector_tables_loop0» "xq")) (.n (val% «shared_selector_tables_loop0» "s5#3")))]
 
 /-- `shared_selector_tables_loop0`'s body. -/
 def lpBody : List Stmt :=
-  lpPre ++ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"),
+  lpPre ⧺ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"),
       .n (val% «shared_selector_tables_loop0» "g_tab"), .n (val% «shared_selector_tables_loop0» "gsq_hi")], .ret []]
 
 noncomputable def lpCheck : Bool :=
   match coreProgram.find? name% «shared_selector_tables_loop0» with
   | some fn => decide (fn.params = [.n (val% «shared_selector_tables_loop0» "xq"), .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"), .n (val% «shared_selector_tables_loop0» "g_tab"), .n (val% «shared_selector_tables_loop0» "gsq_hi")]) &&
-      tbStmtsEqb fn.body lpBody
+      stmtsEqb fn.body lpBody
   | none => false
 
 theorem lpCheck_eq : lpCheck = true := by decide +kernel
@@ -105,7 +106,7 @@ def ssPre : List Stmt :=
 noncomputable def ssCheck : Bool :=
   match coreProgram.find? "shared_selector_tables" with
   | some fn => decide (fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")]) &&
-      tbStmtsEqb fn.body (ssPre ++ [.ret []])
+      stmtsEqb fn.body (ssPre ⧺ [.ret []])
   | none => false
 
 theorem ssCheck_eq : ssCheck = true := by decide +kernel
@@ -117,17 +118,17 @@ theorem lpFound : ∃ fn : Fn, coreProgram.find? name% «shared_selector_tables_
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem ssFound : ∃ fn : Fn, coreProgram.find? "shared_selector_tables" = some fn ∧
-    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ++ [.ret []] := by
+    fn.params = [.n (val% «shared_selector_tables» "eq_tab"), .n (val% «shared_selector_tables» "g_tab"), .n (val% «shared_selector_tables» "zeta_hi"), .n (val% «shared_selector_tables» "zeta1_hi"), .n (val% «shared_selector_tables» "gsq_hi"), .n (val% «shared_selector_tables» "len_g")] ∧ fn.body = ssPre ⧺ [.ret []] := by
   have h := ssCheck_eq
   unfold ssCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem lpPre_noRet : Stmt.noRetList lpPre = true := by
@@ -141,8 +142,8 @@ complements and shares read at `z·x^4`, `z1·x^4`, `gsq·x^4`, their eq levels 
 at `gt·x^16`. -/
 def LpB (rd : Reader) (eqt z z1 gt gsq x : E) : Prop :=
   ∀ zs zs1 gs : List E, zs.length = 4 → zs1.length = 4 → gs.length = 4 →
-    TbReadsAt rd (z * x ^ 4) zs → TbReadsAt rd (z1 * x ^ 4) zs1 → TbReadsAt rd (gsq * x ^ 4) gs →
-    TbReadsAt rd (eqt * x ^ 32) (eqLevels zs zs1) ∧ TbReadsAt rd (gt * x ^ 16) (gTable gs)
+    ReadsAt rd (z * x ^ 4) zs → ReadsAt rd (z1 * x ^ 4) zs1 → ReadsAt rd (gsq * x ^ 4) gs →
+    ReadsAt rd (eqt * x ^ 32) (eqLevels zs zs1) ∧ ReadsAt rd (gt * x ^ 16) (gTable gs)
 
 theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
     (h : coreProgram.relN rd (d + 1) name% «shared_selector_tables_loop0» (x :: [N, eqt, z, z1, gt,
@@ -192,14 +193,14 @@ theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
     rw [tbReadsAt_unique rz rz' (by rw [hz, hl']), tbReadsAt_unique rz1 rz1' (by rw [hz1, hl1']),
       tbReadsAt_unique rg rg' (by rw [hg, hlg'])]
     exact ⟨reqs, rgs⟩
-  · have := hcall.2 (by rw [h76, h75, h74, tb_word_gen]; exact hne)
-    rw [h78, h77, tb_word_gen] at this
+  · have := hcall.2 (by rw [h76, h75, h74, word_gen]; exact hne)
+    rw [h78, h77, word_gen] at this
     exact this
 
-theorem tbReadsAt_nib {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l) (j : ℕ) :
-    TbReadsAt rd (p * gen ^ (4 * j)) (nib l j) := by
+theorem tbReadsAt_nib {rd : Reader} {p : E} {l : List E} (h : ReadsAt rd p l) (j : ℕ) :
+    ReadsAt rd (p * gen ^ (4 * j)) (nib l j) := by
   intro k hk
-  rw [tb_loadHolds_mul_gen_pow]
+  rw [loadHolds_mul_gen_pow]
   have hk' : 4 * j + k < l.length := by simp [nib] at hk; omega
   have := h (4 * j + k) hk'
   simpa [nib, List.getElem_take, List.getElem_drop] using this
@@ -248,13 +249,13 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + j))) (n := 2) (by norm_num)
       (fun j hj => pin j (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
-    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, tb_word_one, this]
+    rw [m20, a15, a19, c12, c16, m14, m18, c13, c17, word_one, this]
   have hqg : σ (.n (val% «shared_selector_tables» "q_g@4")) = gen ^ q := by
     have := ss_prod (b := fun j ↦ σ (.n (6 + (j + 2)))) (n := 4) le_rfl
       (fun j hj => pin (j + 2) (by omega))
     simp only [Finset.prod_range_succ, Finset.prod_range_zero, one_mul, Nat.reduceAdd] at this
     rw [m39, m34, m29, a24, a28, a33, a38, c21, c25, c30, c35, m23, m27, m32, m37, c22, c26, c31,
-      c36, tb_word_one, this]
+      c36, word_one, this]
   have hq4 : σ (.n (val% «shared_selector_tables» "q4")) = gen ^ (4 * q) := by rw [m41, m40, hqg]; ring
   have hq16' : σ (.n (val% «shared_selector_tables» "q16")) = gen ^ (16 * q) := by rw [m47, m46, hq4]; ring
   refine ⟨4 * q + r, by omega, ?_, fun zs zs1 gs hz hz1 hg rz rz1 rg j hj => ?_⟩
@@ -263,14 +264,14 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
   have hfull : ∀ j < q, LpB rd (σ (.n (val% «shared_selector_tables» "eq_tab"))) (σ (.n (val% «shared_selector_tables» "zeta_hi"))) (σ (.n (val% «shared_selector_tables» "zeta1_hi"))) (σ (.n (val% «shared_selector_tables» "g_tab"))) (σ (.n (val% «shared_selector_tables» "gsq_hi"))) (gen ^ j) := by
     intro j hj'
     have hne : σ (.n (val% «shared_selector_tables» "s8#1")) ≠ 0 := by
-      rw [a44, c43, tb_word_one, hqg]
+      rw [a44, c43, word_one, hqg]
       intro h0
       have := gen_pow_inj (by omega) (by decide) ((e_add_eq_zero_iff.mp h0).symm.trans
         (pow_zero gen).symm)
       omega
     have hrun := hloop hne
     simp only [List.map_cons, List.map_nil] at hrun
-    rw [c45, tb_word_one, ← pow_zero gen] at hrun
+    rw [c45, word_one, ← pow_zero gen] at hrun
     obtain ⟨m, hm0, hN, hall⟩ := tb_loop_sound (fun d x hx => lp_step d x hx) 0 hrun
     have hmq : q ≤ m := by
       by_contra hc
@@ -309,7 +310,7 @@ theorem shared_selector_tables_holds : shared_selector_tables_Spec := by
     rw [m52, hq4] at rz1'
     rw [m53, hq4] at rg'
     rw [m49, m48, hq16', mul_assoc, ← pow_add, show 16 * q + 16 * q = 32 * q by ring] at reqs
-    rw [m50, hq16', tb_ite_neg'' (show ¬ r = 0 by omega)] at rgs
+    rw [m50, hq16', ite_neg' (show ¬ r = 0 by omega)] at rgs
     rw [tbReadsAt_unique (tbReadsAt_nib rz q) rz' (by rw [hlen zs hz, hl]),
       tbReadsAt_unique (tbReadsAt_nib rz1 q) rz1' (by rw [hlen zs1 hz1, hl1]),
       tbReadsAt_unique (tbReadsAt_nib rg q) rg' (by rw [hlen gs hg, hlg])]

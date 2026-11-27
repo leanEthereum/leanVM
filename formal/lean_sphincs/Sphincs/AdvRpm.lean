@@ -154,7 +154,7 @@ statement's game is the crate's copy's against the mapped adversary, which makes
 theorem stronglyUnforgeableAdv_of_model {c : ℕ} (h : AdvBound c) :
     StronglyUnforgeable RandomPermutationModel.sufCmaScheme signatureLimit (c + 1) 127 := by
   intro q main hq hn
-  have hgame := Transport.forgeryGame_eq crateScheme RandomPermutationModel.sufCmaScheme
+  have hgame := Transport.forgeryGame_eq crateScheme limitedScheme
     ofModelPublicKey id (Option.map ofModelSignature) toModelForgery rfl
     (fun seed ↦ (simulateQ_crateKeygen seed).symm)
     (fun seed message ↦ (simulateQ_crateSign seed message).symm)
@@ -166,7 +166,11 @@ theorem stronglyUnforgeableAdv_of_model {c : ℕ} (h : AdvBound c) :
       _ pk (hq (ofModelPublicKey pk)))
     (fun pk ↦ mapAdversary_cost ofModelPublicKey (Option.map ofModelSignature) toModelForgery main
       _ pk (hn (ofModelPublicKey pk)))
+  have hlimit := Transport.forgeryGame_winningCondition_congr RandomPermutationModel.sufCmaScheme
+    limitedScheme.winningCondition (fun log forgery hlen ↦ by
+      simp [limitedScheme, RandomPermutationModel.sufCmaScheme, hlen]) main hn
   rw [forgeryGame_overPermutation, ← hgame] at key
+  rw [← hlimit]
   exact key
 
 /-- A larger constant is a weaker bound. -/

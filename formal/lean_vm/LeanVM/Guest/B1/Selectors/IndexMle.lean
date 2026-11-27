@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.B1.Tables.Squares
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«index_mle__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `index_mle`
@@ -64,7 +65,7 @@ theorem indexMle_eq_prod (zs : List E) :
 def imFactor (t : ℕ) : ℕ := tbGSquaresBits.getD t 0 ^^^ 1
 
 theorem imFactor_eq {t : ℕ} (ht : t < 34) : word (imFactor t) 0 = 1 + gen ^ 2 ^ t := by
-  rw [tb_word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
+  rw [word_eOfNat, imFactor, eOfNat_xor, eOfNat_one, gen_pow_two_pow_eq ht, add_comm]
 
 /-- The value loaded at block `t`. -/
 def imLoad (t : ℕ) : ℕ := if t = 0 then 2 else 6 * t + 1
@@ -88,7 +89,7 @@ def imBlk (t : ℕ) : List Stmt :=
 /-- `index_mle__L{n}`'s statements before its `ret`. -/
 def imPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 1) (word 1 0))]
-  else ((List.range n).map imBlk).flatten ++ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
+  else ((List.range n).map imBlk).flatten ⧺ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
 
 /-- The value `index_mle__L{n}` returns. -/
 def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
@@ -96,18 +97,18 @@ def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 /-- The function `P` finds by name is the template. -/
 noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
   match P.find? (lName "index_mle" n) with
-  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
+  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && stmtsEqb fn.body (imPre n ⧺ [.ret [.n (imRet n)]])
   | none => false
 
 theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
     ∃ fn : Fn, P.find? (lName "index_mle" n) = some fn ∧
-    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
+    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ⧺ [.ret [.n (imRet n)]] := by
   have h := List.all_eq_true.mp hall n (List.mem_range.mpr hn)
   unfold imCheckP at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem imBlk_noRet (t : ℕ) : Stmt.noRetList (imBlk t) = true := by
@@ -141,7 +142,7 @@ theorem holds_imBlk_zero (h : Stmt.HoldsList C rd σ (imBlk 0) True kret) :
   obtain ⟨h1, h2, h3, h4, h5⟩ := h
   refine ⟨h2, ?_⟩
   simp only [imAcc, imLoad, ↓reduceIte, imFactorOf]
-  rw [h5, h1, h4, h3, tb_word_one, imFactor_eq (by decide)]
+  rw [h5, h1, h4, h3, word_one, imFactor_eq (by decide)]
 
 theorem holds_imBlk_succ {t : ℕ} (ht : t < 34) (h0 : t ≠ 0)
     (h : Stmt.HoldsList C rd σ (imBlk t) True kret) :
@@ -151,7 +152,7 @@ theorem holds_imBlk_succ {t : ℕ} (ht : t < 34) (h0 : t ≠ 0)
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
   refine ⟨by simp only [imLoad, h0, ↓reduceIte]; exact h2, ?_⟩
   simp only [imAcc, imLoad, h0, ↓reduceIte, imFactorOf]
-  rw [h6, h5, h1, h4, h3, tb_word_one, imFactor_eq ht, show 6 * (t - 1) + 5 = 6 * t - 1 by omega]
+  rw [h6, h5, h1, h4, h3, word_one, imFactor_eq ht, show 6 * (t - 1) + 5 = 6 * t - 1 by omega]
 
 end Sem
 
@@ -169,8 +170,8 @@ theorem index_mle_sound {P : Program} (hall : (List.range 34).all (imCheckP P) =
   by_cases h0 : n = 0
   · subst h0
     simp only [imPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hpre
-    refine ⟨[], rfl, tbReadsAt_nil _ _, ?_⟩
-    simp only [imRet, ↓reduceIte, hpre, tb_word_one, indexMle, indexMleFrom]
+    refine ⟨[], rfl, readsAt_nil _ _, ?_⟩
+    simp only [imRet, ↓reduceIte, hpre, word_one, indexMle, indexMleFrom]
   · simp only [imPre, h0, ↓reduceIte] at hpre
     rw [holdsList_append, holdsList_flatten _ (fun b hb => by
         obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact imBlk_noRet t)] at hpre

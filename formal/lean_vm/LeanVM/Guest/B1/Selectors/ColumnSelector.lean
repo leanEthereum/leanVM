@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `column_selector`
@@ -94,7 +95,7 @@ theorem two_le_two_pow {w : ℕ} (hw : 1 ≤ w) : 2 ≤ 2 ^ w :=
   calc 2 = 2 ^ 1 := by norm_num
     _ ≤ 2 ^ w := Nat.pow_le_pow_right (by norm_num) hw
 
-theorem tbReadsAt_getD {rd : Reader} {p : E} {xs : List E} (h : TbReadsAt rd p xs) {k : ℕ}
+theorem tbReadsAt_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ}
     (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
@@ -164,7 +165,7 @@ def csRb (κ k : ℕ) : ℕ := if k = 0 then csC κ 0 + 7 else csC κ k + 9
 abbrev w15 : E := word 32768 0
 
 theorem word_g15 : w15 = ofK (Parameters.addressOfIndex 15) := by
-  rw [w15, tb_word_eOfNat]
+  rw [w15, word_eOfNat]
   show ofK (K.ofBits 32768) = ofK (Parameters.addressOfIndex 15)
   rw [show K.ofBits 32768 = Parameters.addressOfIndex 15 by decide +kernel]
 
@@ -177,7 +178,7 @@ def csNibT (κ k : ℕ) : List Stmt :=
   let d := 3 + k
   [.atom (.const (.n c) w15), .atom (.rangeCheck (.n d) (.n (c + 1)) (.n (c + 2)) (.n (c + 3)) (.n c)),
     .atom (.mul (.n (c + 4)) (.n (valf% «column_selector» "sel_eq")) (.n d)),
-    .atom (.load (.n (c + 5)) (.n (c + 4)) (32 * j + selEqOff (w - 1)))] ++
+    .atom (.load (.n (c + 5)) (.n (c + 4)) (32 * j + selEqOff (w - 1)))] ⧺
   if k = 0 then
     [.atom (.mul (.n (c + 6)) (.n (valf% «column_selector» "sel_g")) (.n d)), .atom (.load (.n (c + 7)) (.n (c + 6)) (16 * j))]
   else
@@ -195,7 +196,7 @@ def csPre (κ : ℕ) : List Stmt :=
   csHint κ :: if κ = 32 then
     [.atom (.const (.n (valf% «column_selector» "digits[0]")) (word 1 0)), .atom (.assertEq (.n (valf% «column_selector» "digits[0]")) (.n (valf% «column_selector» "offset"))),
       .atom (.const (.n 4) (word 1 0))]
-  else ((List.range (csN κ)).map (csNibT κ)).flatten ++
+  else ((List.range (csN κ)).map (csNibT κ)).flatten ⧺
     [.atom (.assertEq (.n (csRb κ (csN κ - 1))) (.n (valf% «column_selector» "offset"))),
       .atom (.copy (.n (csC κ (csN κ))) (.n (csSel κ (csN κ - 1))))]
 
@@ -206,20 +207,20 @@ def csRet (κ : ℕ) : ℕ := if κ = 32 then 4 else csC κ (csN κ)
 noncomputable def csCheck (κ : ℕ) : Bool :=
   match coreProgram.find? (lName "column_selector" κ) with
   | some fn => decide (fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")]) &&
-      tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
+      stmtsEqb fn.body (csPre κ ⧺ [.ret [.n (csRet κ)]])
   | none => false
 
 theorem csCheck_all : (List.range 31).all csCheck = true := by decide +kernel
 
 theorem csFound {κ : ℕ} (hκ : κ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")] ∧
-      fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
+      fn.body = csPre κ ⧺ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
   unfold csCheck at h
   split at h
   · rename_i fn hf
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    exact ⟨fn, hf, h.1, tbStmtsEqb_sound h.2⟩
+    exact ⟨fn, hf, h.1, stmtsEqb_sound h.2⟩
   · exact absurd h (by simp)
 
 theorem csNibT_noRet (κ k : ℕ) : Stmt.noRetList (csNibT κ k) = true := by
@@ -259,16 +260,16 @@ theorem holds_csNib {κ k : ℕ} (h : Stmt.HoldsList C Lm.read σ (csNibT κ k) 
   obtain ⟨u, hu, hd⟩ := tb_rc_sound' hμ Lm (K := 16) (by omega) (by norm_num)
     (by rw [hc, word_g15]) r1 r2 r3
   refine ⟨u, hu, hd, ?_⟩
-  rw [hm, hd, tb_loadHolds_mul_gen_pow] at hl
+  rw [hm, hd, loadHolds_mul_gen_pow] at hl
   by_cases hk : k = 0
   · subst hk
     simp only [↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h2
     obtain ⟨hm2, hl2⟩ := h2
-    rw [hm2, hd, tb_loadHolds_mul_gen_pow] at hl2
+    rw [hm2, hd, loadHolds_mul_gen_pow] at hl2
     refine ⟨_, _, hl, hl2, ?_, ?_⟩ <;> simp [csSel, csRb]
   · simp only [hk, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h2
     obtain ⟨hs, hm2, hl2, hr⟩ := h2
-    rw [hm2, hd, tb_loadHolds_mul_gen_pow] at hl2
+    rw [hm2, hd, loadHolds_mul_gen_pow] at hl2
     exact ⟨_, _, hl, hl2, by simp only [csSel, hk, ↓reduceIte]; exact hs,
       by simp only [csRb, hk, ↓reduceIte]; exact hr⟩
 
@@ -393,8 +394,8 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ �
       true_and] at hpre
     obtain ⟨h1, h2, h3⟩ := hpre
     refine ⟨0, by norm_num, dvd_zero _, ?_, fun _ p p1 _ _ _ => ?_⟩
-    · rw [pow_zero]; rw [h1, tb_word_one] at h2; exact (e_add_eq_zero_iff.mp h2).symm
-    · simp only [csRet, ↓reduceIte, h3, tb_word_one]; rfl
+    · rw [pow_zero]; rw [h1, word_one] at h2; exact (e_add_eq_zero_iff.mp h2).symm
+    · simp only [csRet, ↓reduceIte, h3, word_one]; rfl
   have hκ' : κ < 32 := by omega
   simp only [csPre, h32, ↓reduceIte, csHint, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     true_and] at hpre
@@ -438,7 +439,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ �
     have h2 := hxg k hk
     rw [show u k hk + 16 * (b + k) = 16 * (b + k) + u k hk by omega] at h2
     simp only [xg', u', hk, ↓reduceDIte]
-    exact tb_loadHolds_unique h2 h1
+    exact loadHolds_unique h2 h1
   let o := 16 ^ b * csDig u' N
   have hob : o = 2 ^ (4 * b) * csDig u' N := by
     simp only [o, pow_mul]; norm_num
@@ -464,7 +465,7 @@ theorem column_selector_sound {κ : ℕ} (hκ : κ < 31) {μ : ℕ} (hμ : μ �
         32 * (b + k) + selEqOff (csW κ k - 1) + u' k by simp only [u', hk, ↓reduceDIte, hbdef]; omega]
         at h2
       simp only [xe', hk, ↓reduceDIte]
-      exact tb_loadHolds_unique h2 h1
+      exact loadHolds_unique h2 h1
     rw [show csRet κ = csC κ N by simp only [csRet, h32, ↓reduceIte, hNdef], hcopy,
       hS (N - 1) (by omega), show N - 1 + 1 = N by omega,
       Finset.prod_congr rfl (fun k hk => hxe' k (Finset.mem_range.mp hk))]

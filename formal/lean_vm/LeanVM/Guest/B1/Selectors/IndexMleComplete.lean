@@ -94,7 +94,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
     · by_cases h0 : n = 0
       · subst h0
         simp only [imPre, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-        simp [imVal, tb_word_one]
+        simp [imVal, word_one]
       · simp only [imPre, h0, ↓reduceIte]
         rw [holdsList_append, holdsList_flatten _ (fun b hb ↦ by
           obtain ⟨t, -, rfl⟩ := List.mem_map.mp hb; exact imBlk_noRet t)]
@@ -111,7 +111,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
               e 3 (by norm_num) (by norm_num), e 4 (by norm_num) (by norm_num),
               e 5 (by norm_num) (by norm_num), hz0]
             simp only [Nat.reduceSub, imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imFac,
-              tb_word_one]
+              word_one]
             exact ⟨trivial, hzt, trivial, trivial, trivial⟩
           · have e := fun r (hr : r < 6) ↦ imVal_blk (n := n) zeta zs (t := t) (r := r) ht0 ht hr
             have ep : imVal n zeta zs (6 * t - 1) = imAccV zs (t - 1) := by
@@ -121,7 +121,7 @@ theorem index_mle_complete_holds : index_mle_complete_Spec := by
             rw [ep, hz0, show imVal n zeta zs (6 * t) = imBlkV zs t 0 from e 0 (by norm_num),
               e 1 (by norm_num), e 2 (by norm_num), e 3 (by norm_num), e 4 (by norm_num),
               e 5 (by norm_num)]
-            rw [imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imBlkV_5, imFac, tb_word_one]
+            rw [imBlkV_0, imBlkV_1, imBlkV_2, imBlkV_3, imBlkV_4, imBlkV_5, imFac, word_one]
             refine ⟨rfl, hzt, rfl, rfl, rfl, ?_⟩
             obtain ⟨t', rfl⟩ : ∃ t', t = t' + 1 := ⟨t - 1, by omega⟩
             simp [imAccV, imFac]

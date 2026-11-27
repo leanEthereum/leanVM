@@ -105,7 +105,7 @@ theorem run_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Common.Di
 
 /-- **An opening's verification run**: the cache grows, and in every later cache the result is
 `verifyCell` of the cache's hash function, the opening's hash inputs cached. -/
-theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening)
+theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : ByteOpening)
     (c : Cache2) {z : Bool × Cache2}
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyCellMWithHash hR r com p x τ)).run c)) :
@@ -177,7 +177,7 @@ theorem duplexP_walkM (idx : ℕ) (node : Common.DigestBytes) (path : List Commo
   | cons s rest ih => exact duplexP_hR_bind _ _ hist fun d ↦ ih _ _
 
 theorem duplexP_verifyCellM (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ :
-    CellOpening)
+    ByteOpening)
     (hist : List KState) : DuplexP (fun _ _ ↦ True) (verifyCellMWithHash hR r com p x τ) hist :=
   duplexP_hR_bind _ _ hist fun _ ↦ duplexP_bind (duplexP_walkM _ _ _ hist) fun _ _ _ ↦
     duplexP_pure trivial

@@ -312,8 +312,6 @@ theorem MonoVal.own {s : St} (d : ℕ) : MonoVal s (.own d) (ofK (g ^ (s.fp + d)
 
 theorem MonoVal.one' {s : St} : MonoVal s .one 1 := ⟨1, rfl, by simp [Mono.one]⟩
 
-theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 theorem limb_mul_ofK (x : E) (a : K) (l : Fin 2) : (x * ofK a).limb l = x.limb l * a := by
   rw [← ofLimbs_limb x, ofK_eq_ofLimbs, mul_limbs]
   fin_cases l <;> simp [ofLimbs_limb]

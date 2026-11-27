@@ -372,7 +372,7 @@ theorem f3_step (hQ : Q ≤ 2 ^ 127) (input : (OracleWorld + SigningSpec).Domain
       rw [(counts_sign secretKey hr).1, (counts_sign secretKey hr).2.1]
 
 /-- **The mass bound.** -/
-theorem landing_mul_hvSum_le (parameter : PublicParameter) (cache : QueryCache HashSpec)
+theorem landing_mul_hvSum_le {k : ℕ} (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (trace : SigningCacheTrace) :
     landing * hvSum parameter cache trace ≤
       landing ^ 2 * F3 pReal Q (nCount parameter cache trace) (vCount parameter cache trace) k := by

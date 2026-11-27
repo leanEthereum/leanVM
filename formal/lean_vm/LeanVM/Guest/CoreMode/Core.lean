@@ -18,6 +18,7 @@ public import LeanVM.Guest.Mode.InvDefs
 public import LeanVM.Guest.Bridge.JumpCellsSound
 public import LeanVM.Guest.Bridge.AlignJump
 public import LeanVM.Guest.Mode.HintsCtx
+public import LeanVM.Guest.CoreMode.StmtWalk
 
 /-!
 # The core route's frame interface
@@ -166,10 +167,10 @@ theorem GwR.ok {img : MemoryImage κ} {G : HSig} {σ : Val} (h : GwR img G σ) :
   fun c j hc w hw ↦ by rw [h c j hc, hw]; rfl
 
 /-- No `frameAddr` atom in the body (so no frame run's cell is guaranteed at return, `FAW`). -/
-def noFA (body : List Stmt) : Bool :=
-  (stmtsOf body).all fun s ↦ match s with
+noncomputable def noFA (body : List Stmt) : Bool :=
+  stmtsAll (fun s ↦ match s with
     | .atom (.frameAddr ..) => false
-    | _ => true
+    | _ => true) body
 
 /-- No guarantee at return: no cell, run, pointer fact or pointer run. -/
 def noPost (h : HSig) : Bool :=
@@ -178,7 +179,7 @@ def noPost (h : HSig) : Bool :=
 
 /-- **Frame run cells guaranteed**: a `frameAddr` atom, a guarantee, and frame run cells in the heap certificate
 (`HCert.fas`); then the walk's facts at the returns write them (`faRetOk`). -/
-def faNeed (Cf : CFun) : Bool := !(noFA Cf.fn.body || noPost Cf.H.sig || Cf.H.fas.isEmpty)
+noncomputable def faNeed (Cf : CFun) : Bool := !(noFA Cf.fn.body || noPost Cf.H.sig || Cf.H.fas.isEmpty)
 
 /-- **An honest valuation's path, cells and jumps** of `Cf.fn` in frame `fp` of the reference image (`HonF` but its
 residuals and linked cells: what does not depend on its ghost words). -/
@@ -1044,11 +1045,10 @@ def retN (body : List Stmt) : ℕ :=
     | .ret vs => some vs.length
     | _ => none).getD 0
 
-/-- Every `ret` of the body returns `n` values. -/
-def retsN (n : ℕ) (body : List Stmt) : Bool :=
-  body.all fun s ↦ match s with
-    | .ret vs => vs.length == n
-    | _ => true
+/-- A `ret` returns `n` values. -/
+def retIs (n : ℕ) : Stmt → Bool
+  | .ret vs => vs.length == n
+  | _ => true
 
 /-- A call of `g` on `args`: not of `f`, a heap contract's callee's heap signature naming no ghost, and no returned word's
 monomial, word at return or equation unless its contract is its heap signature's (`hcs`: its guarantees then
@@ -1080,12 +1080,12 @@ theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk C
 /-- **Each call of the body** (`call`, `callIf`, each callee of a `dispatch`) checked by `callChk`; a
 dispatch's callees those `dsp` lists at each of its sites. -/
 noncomputable def callsB (Cf : CFun) : Bool :=
-  (stmtsOf Cf.fn.body).all fun s ↦ match s with
+  stmtsAll (fun s ↦ match s with
     | .call g args _ => callChkM Cf g args
     | .callIf _ g args => callChkM Cf g args
     | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
         Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
-    | _ => true
+    | _ => true) Cf.fn.body
 
 /-- **A dispatch checked as `callsB` does**: its callees by `callChkM`, the ones `dsp` lists at its sites. -/
 noncomputable def dspB (Cf : CFun) : Stmt → Bool
@@ -1093,9 +1093,11 @@ noncomputable def dspB (Cf : CFun) : Stmt → Bool
       Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
   | _ => true
 
-theorem dspB_of_callsB {Cf : CFun} (h : callsB Cf = true) : (stmtsOf Cf.fn.body).all (dspB Cf) = true :=
-  List.all_eq_true.mpr fun s hs ↦ by
+theorem dspB_of_callsB {Cf : CFun} (h : callsB Cf = true) : (stmtsOf Cf.fn.body).all (dspB Cf) = true := by
+  rw [callsB, stmtsAll_eq] at h
+  exact List.all_eq_true.mpr fun s hs ↦ by
     have := List.all_eq_true.mp h s hs
+    clear h
     cases s <;> simp_all [dspB]
 
 /-- A returned value at the frame cell `o` whose word is the cell `c`'s. -/
@@ -1149,28 +1151,28 @@ def isDsp : Stmt → Bool
 
 /-- A top-level statement: a return, a call, or one with no `ret` and no dispatch in it (calls and
 conditional calls may sit in its branches). -/
-def topOk : Stmt → Bool
+noncomputable def topOk : Stmt → Bool
   | .ret _ => true
   | .call .. => true
   | .dispatch .. => true
-  | s => Core.Stmt.noRet s && !(Bridge.stmtsSub s).any isDsp
+  | s => Core.Stmt.noRet s && subAll (fun x ↦ !isDsp x) s
 
 /-- **A body the core route takes**: its statements, nested ones included, atoms, branches, `match`es
 and returns, no branch or arm returning. -/
-def bodyCore (body : List Stmt) : Bool :=
-  (stmtsOf body).all ctrlOk && body.all topOk
+noncomputable def bodyCore (body : List Stmt) : Bool :=
+  stmtsAll ctrlOk body && body.all topOk
 
 /-- The `match`es of a body, nested ones included: selector number, number of arms. -/
-def matchLens (body : List Stmt) : List (ℕ × ℕ) :=
-  (stmtsOf body).filterMap fun s ↦ match s with
+noncomputable def matchLens (body : List Stmt) : List (ℕ × ℕ) :=
+  stmtsFM (fun s ↦ match s with
     | .match_ x arms => some (x.idx, arms.length)
-    | _ => none
+    | _ => none) body
 
 /-- The body's `dispatch`es: selector, callee count, arguments' and returned values' indices. -/
-def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × List ℕ) :=
-  (stmtsOf body).filterMap fun s ↦ match s with
+noncomputable def dspLens (body : List Stmt) : List (V × ℕ × List ℕ × List ℕ) :=
+  stmtsFM (fun s ↦ match s with
     | .dispatch x fs args rets => some (x, fs.length, args.map (·.idx), rets.map (·.idx))
-    | _ => none
+    | _ => none) body
 
 /-- The slots of table `a` that every `match` of the selector it reads has, at offsets of `ts` past
 the entry `e`. -/
@@ -1206,12 +1208,35 @@ noncomputable def dspJ (Cf : CFun) (k od of : ℕ) : Bool :=
         fs.all fun f ↦ pcs.any fun t ↦ Cf.X.entOk t f
     | _, _, _ => false
 
+/-- `t.get n`, the key read by `Nat.rec` and `Nat.beq`, which the kernel unfolds in fewer steps than
+`Trie.get`'s `==`: a check reading a trie at every offset of a function's code reads it so. -/
+noncomputable def getQ {α : Type} (t : Exec.Trie α) : ℕ → Option α :=
+  Exec.Trie.rec (motive := fun _ ↦ ℕ → Option α) (fun _ ↦ none)
+    (fun v _ _ gl gr n ↦ Nat.rec (motive := fun _ ↦ Option α) v
+      (fun m _ ↦ bif Nat.beq (m % 2) 0 then gl (m / 2) else gr (m / 2)) n) t
+
+theorem getQ_eq {α : Type} (t : Exec.Trie α) (n : ℕ) : getQ t n = t.get n := by
+  induction t generalizing n with
+  | nil => rfl
+  | node v l r ihl ihr =>
+    rw [Exec.Trie.get_node]
+    cases n with
+    | zero => rfl
+    | succ m =>
+      change (bif Nat.beq (m % 2) 0 then getQ l (m / 2) else getQ r (m / 2)) = _
+      rw [ihl, ihr]
+      rcases Nat.mod_two_eq_zero_or_one m with h | h
+      · rw [h, show (m + 1) % 2 = 1 by omega, show (m + 1) / 2 = m / 2 by omega]
+        rfl
+      · rw [h, show (m + 1) % 2 = 0 by omega, show (m + 1) / 2 - 1 = m / 2 by omega]
+        rfl
+
 /-- From offset `i`: each `JUMP` the frame walk reads a table for (`tgt`) is a table jump through a
 target cell the alignment's context gives a table (`arms`), no pc and not `0`, the walk's table the
 offsets of the slots of every `match` on its selector, no callee's. -/
 noncomputable def tgtGo (Cf : CFun) (ml : List (ℕ × ℕ)) : ℕ → List OffsetInstruction → Bool
   | _, [] => true
-  | i, ins :: code => (match Cf.frame.tgt.get i with
+  | i, ins :: code => (match getQ Cf.frame.tgt i with
       | none => match ins with
         | .jump _ od of => !dspSite Cf.X od of
         | _ => true
@@ -1310,19 +1335,19 @@ def mainOk (Cf : CFun) : Bool :=
   !Cf.X.main || decide (Cf.frame.entry + Cf.frame.len ≤ Cf.X.halt)
 
 /-- **The shape the core route takes**: a body of atoms, branches, `match`es, calls at its top level
-and returns, one return count (`bodyCore`, `retsN`), `main`'s code before its halting pc (`mainOk`), its frame
+and returns, one return count (`bodyCore`, `retIs`), `main`'s code before its halting pc (`mainOk`), its frame
 walk's `main` its own (`fpOne`), no frame cell `1` its frame pointer's,
 no pc at cell `0`, the walk's tables the `match`es' arms, no callee inside the function,
 small entry cells. -/
 noncomputable def shapeOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
-  bodyCore Cf.fn.body && mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
+  bodyCore Cf.fn.body && mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && stmtsAll (retIs (retN Cf.fn.body)) Cf.fn.body &&
     tgtOk Cf code && sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
     Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
 
 /-- `shapeOk` but for its two longest passes (`bodyCore`, `tgtOk`), which a long body checks apart. -/
 noncomputable def shapeRest (Cf : CFun) : Bool :=
-  mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && retsN (retN Cf.fn.body) (stmtsOf Cf.fn.body) &&
+  mainOk Cf && !Cf.X.selfAt 1 && (Cf.X.pcAt 0).isNone && stmtsAll (retIs (retN Cf.fn.body)) Cf.fn.body &&
     sigsOut Cf.frame.sigs Cf.frame.entry Cf.frame.len &&
     Cf.frame.F.fpOne == Cf.X.main && Cf.frame.sig.entry.all (fun o ↦ decide (o + 1 < 2 ^ Exec.envDepth)) &&
     decide (Cf.frame.entry + Cf.frame.len ≤ 2 ^ 30) && Mode.pcsIncr Cf.frame.hints
@@ -1337,10 +1362,10 @@ theorem shapeOk_of {Cf : CFun} {code : List OffsetInstruction} (hb : bodyCore Cf
 /-- **The frame walk's residual divisors** (`FFun.nzr`): at each offset, each a frame cell the walk's state there
 has written and the mode certificate's residuals there (`res`) say nonzero. -/
 noncomputable def nzrOk (Cf : CFun) (res : Exec.Trie (List Mode.Res)) (code : List OffsetInstruction) : Bool :=
-  (List.range code.length).all fun i ↦ match Cf.frame.nzr.get i with
+  (List.range code.length).all fun i ↦ match getQ Cf.frame.nzr i with
     | none => true
     | some os => match retSt Cf.frame code i with
-      | some A => os.all fun o ↦ (A.w.get o).isSome && ((res.get i).getD []).contains (.nz o)
+      | some A => os.all fun o ↦ A.hasW o && ((res.get i).getD []).contains (.nz o)
       | none => false
 
 /-- A value an atom of the body defines. -/
@@ -1356,8 +1381,8 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (
   | .atom (.frameAddr p (r :: rs)) => ((List.range (rs.length + 1)).all fun k ↦
       !(match (r :: rs)[k]? with
         | some v => dstIn body v
-        | none => false) || (A.w.get (X.locAt r.idx + k)).isSome) &&
-      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || (A.w.get (X.locAt r.idx + q.2)).isSome
+        | none => false) || A.hasW (X.locAt r.idx + k)) &&
+      fas.all fun q ↦ !(decide (p = V.n q.1) && Nat.ble (rs.length + 1) q.2) || A.hasW (X.locAt r.idx + q.2)
   | _ => true
 
 /-- **The frame run cells written at every return** (`faNeed`): at each return offset, the walk's state there
@@ -1365,7 +1390,7 @@ noncomputable def faRetAt (X : Bridge.AlignCtx) (body : List Stmt) (fas : List (
 noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   !faNeed Cf || (List.range code.length).all fun i ↦ match code[i]? with
     | some (.jump _ 0 1) => match retSt Cf.frame code i with
-      | some A => (stmtsOf Cf.fn.body).all (faRetAt Cf.X Cf.fn.body Cf.H.fas A)
+      | some A => stmtsAll (faRetAt Cf.X Cf.fn.body Cf.H.fas A) Cf.fn.body
       | none => false
     | _ => true
 
@@ -1375,7 +1400,7 @@ signatures `Cf.sigOf`, no termination fact, no callee's returned word's monomial
 the honest valuations, `HonF.res`). -/
 inductive HeapK (Cf : CFun) : Prop
   | m1 : heapOk Cf.pows (fun _ ↦ .empty) Cf.fn Cf.H = true → postOk Cf.pows Cf.H Cf.post Cf.fn.body = true →
-      ((stmtsOf Cf.fn.body).all (fun s ↦ !isCall s) && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty &&
+      (stmtsAll (fun s ↦ !isCall s) Cf.fn.body && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty &&
         Cf.H.sig.postQ.isEmpty && Cf.H.sig.postN.isEmpty && Cf.H.sig.postRN.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
   | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →

@@ -15,6 +15,8 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_target»
 import LeanVM.Guest.Data.ValNames.«ring_switch_target_loop0»
+meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `ring_switch_target`
@@ -53,7 +55,7 @@ def psStage (b k : ℕ) : List Stmt :=
 def psRowAt (b r : ℕ) : List Stmt :=
   [.atom (.load (.n b) (.n (val% «ring_switch_target_loop0» "rows")) r), .atom (.mul (.n (b + 1)) (.n (val% «ring_switch_target_loop0» "g[0]")) (.n b)),
     .atom (.mul (.n (b + 2)) (.n b) (.n b)), .atom (.mul (.n (b + 3)) (.n (val% «ring_switch_target_loop0» "g[1]")) (.n (b + 2))),
-    .atom (.add (.n (b + 4)) (.n (b + 1)) (.n (b + 3)))] ++
+    .atom (.add (.n (b + 4)) (.n (b + 1)) (.n (b + 3)))] ⧺
   ((List.range 6).map (psStage b)).flatten
 
 /-- Row `r`. -/
@@ -118,7 +120,7 @@ def hzStep (a p r : ℕ) : List Stmt :=
 
 /-- Chain `p` over one chunk, its values from `a`: its row's entry `p` in, entry `8 + p` out. -/
 def hzRowAt (a p : ℕ) : List Stmt :=
-  [.atom (.load (.n a) (.n (val% «ring_switch_target_loop0» "row")) p)] ++ ((List.range 8).map (hzStep a p)).flatten ++
+  [.atom (.load (.n a) (.n (val% «ring_switch_target_loop0» "row")) p)] ⧺ ((List.range 8).map (hzStep a p)).flatten ⧺
     [.atom (.load (.n (a + 24)) (.n (val% «ring_switch_target_loop0» "row")) (8 + p))]
 
 /-- Chain `p`. -/
@@ -177,20 +179,20 @@ theorem holds_hzRowAt {a p : ℕ} (hp : p < 8) {kret : List E → Prop}
 
 /-- `ring_switch_target_loop0`'s body. -/
 def loop13T : List Stmt :=
-  ((List.range 8).map fun b ↦ [.atom (.load (.n ((val% «ring_switch_target_loop0» "g[0]") + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten ++
+  ((List.range 8).map fun b ↦ [.atom (.load (.n ((val% «ring_switch_target_loop0» "g[0]") + b)) (.n (val% «ring_switch_target_loop0» "map_challenges")) (8 + b))]).flatten ⧺
   [.atom (.mul (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "x_round"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~0")) (.n (val% «ring_switch_target_loop0» "rows~0"))),
-    .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~2")) (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~1"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows")) (.n (val% «ring_switch_target_loop0» "slices")) (.n (val% «ring_switch_target_loop0» "rows~2")))] ++
-  ((List.range 8).map psRow).flatten ++
+    .atom (.mul (.n (val% «ring_switch_target_loop0» "rows~2")) (.n (val% «ring_switch_target_loop0» "rows~1")) (.n (val% «ring_switch_target_loop0» "rows~1"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "rows")) (.n (val% «ring_switch_target_loop0» "slices")) (.n (val% «ring_switch_target_loop0» "rows~2")))] ⧺
+  ((List.range 8).map psRow).flatten ⧺
   [.atom (.mul (.n (val% «ring_switch_target_loop0» "row~0")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "x_round"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "row~1")) (.n (val% «ring_switch_target_loop0» "row~0")) (.n (val% «ring_switch_target_loop0» "row~0"))),
-    .atom (.mul (.n (val% «ring_switch_target_loop0» "row~2")) (.n (val% «ring_switch_target_loop0» "row~1")) (.n (val% «ring_switch_target_loop0» "row~1"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "row")) (.n (val% «ring_switch_target_loop0» "rs_chain")) (.n (val% «ring_switch_target_loop0» "row~2")))] ++
-  ((List.range 8).map hzRow).flatten ++
+    .atom (.mul (.n (val% «ring_switch_target_loop0» "row~2")) (.n (val% «ring_switch_target_loop0» "row~1")) (.n (val% «ring_switch_target_loop0» "row~1"))), .atom (.mul (.n (val% «ring_switch_target_loop0» "row")) (.n (val% «ring_switch_target_loop0» "rs_chain")) (.n (val% «ring_switch_target_loop0» "row~2")))] ⧺
+  ((List.range 8).map hzRow).flatten ⧺
   [.atom (.const (.n (val% «ring_switch_target_loop0» "s8#0")) (word 2 0)), .atom (.mul (.n (val% «ring_switch_target_loop0» "s8#1")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "s8#0"))),
     .atom (.const (.n (val% «ring_switch_target_loop0» "s8#2")) (word 256 0)), .atom (.add (.n (val% «ring_switch_target_loop0» "s8#3")) (.n (val% «ring_switch_target_loop0» "s8#1")) (.n (val% «ring_switch_target_loop0» "s8#2"))),
     .atom (.const (.n (val% «ring_switch_target_loop0» "s8#4")) (word 2 0)), .atom (.mul (.n (val% «ring_switch_target_loop0» "s8#5")) (.n (val% «ring_switch_target_loop0» "x_round")) (.n (val% «ring_switch_target_loop0» "s8#4"))),
     .callIf (.n (val% «ring_switch_target_loop0» "s8#3")) name% «ring_switch_target_loop0» [.n (val% «ring_switch_target_loop0» "s8#5"), .n (val% «ring_switch_target_loop0» "map_challenges"), .n (val% «ring_switch_target_loop0» "slices"), .n (val% «ring_switch_target_loop0» "rs_chain")], .ret []]
 
-theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T :=
-  stmtsEqb_sound (by decide +kernel)
+theorem loop13_body : (fn% «ring_switch_target_loop0»).body = loop13T := by
+  kernel_rfl
 
 theorem find_loop13 : coreProgram.find? name% «ring_switch_target_loop0» = some
     fn% «ring_switch_target_loop0» :=
@@ -289,7 +291,7 @@ def tbPrev (p : ℕ) : ℕ := if p = 1 then 16 else tbBase (p - 1) + 8 * (p - 1)
 
 /-- Tail block `p ≥ 1`: `sums[p]^(2^(8p))·f_p` added to the running sum. -/
 def tbBlock (p : ℕ) : List Stmt :=
-  [.atom (.load (.n (tbBase p)) (.n (val% «ring_switch_target» "sums")) p)] ++ sqRunT (tbBase p) (8 * p) ++
+  [.atom (.load (.n (tbBase p)) (.n (val% «ring_switch_target» "sums")) p)] ⧺ sqRunT (tbBase p) (8 * p) ⧺
   [.atom (.load (.n (tbBase p + 8 * p + 1)) (.n (val% «ring_switch_target» "map_challenges")) p),
     .atom (.mul (.n (tbBase p + 8 * p + 2)) (.n (tbBase p + 8 * p + 1)) (.n (tbBase p + 8 * p))),
     .atom (.add (.n (tbBase p + 8 * p + 3)) (.n (tbPrev p)) (.n (tbBase p + 8 * p + 2)))]
@@ -314,19 +316,19 @@ theorem holds_tbBlock {p : ℕ} {kret : List E → Prop}
 
 /-- `ring_switch_target`'s body. -/
 def rstT : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ++
+  [.atom (.hint (.alloc (.n (val% «ring_switch_target» "rs_chain")) 72))] ⧺
   ((List.range 8).map fun p ↦
-    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ++
+    [Stmt.atom (.const (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (word 0 0)), .atom (.load (.n ((val% «ring_switch_target» "s1.u0.s0#0") + p)) (.n (val% «ring_switch_target» "rs_chain")) p)]).flatten ⧺
   [.atom (.const (.n (val% «ring_switch_target» "s2#0")) (word 1 0)), .call name% «ring_switch_target_loop0» [.n (val% «ring_switch_target» "s2#0"), .n (val% «ring_switch_target» "map_challenges"), .n (val% «ring_switch_target» "slices"),
       .n (val% «ring_switch_target» "rs_chain")] [],
     .atom (.const (.n (val% «ring_switch_target» "sums~0")) (word 27 0)), .atom (.mul (.n (val% «ring_switch_target» "sums")) (.n (val% «ring_switch_target» "rs_chain")) (.n (val% «ring_switch_target» "sums~0"))),
     .atom (.load (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "map_challenges")) 0), .atom (.load (.n (val% «ring_switch_target» "total@1~1")) (.n (val% «ring_switch_target» "sums")) 0),
-    .atom (.mul (.n (val% «ring_switch_target» "total@1")) (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "total@1~1")))] ++
-  ((List.range 7).map fun p ↦ tbBlock (p + 1)).flatten ++
+    .atom (.mul (.n (val% «ring_switch_target» "total@1")) (.n (val% «ring_switch_target» "total@1~0")) (.n (val% «ring_switch_target» "total@1~1")))] ⧺
+  ((List.range 7).map fun p ↦ tbBlock (p + 1)).flatten ⧺
   [.atom (.const (.n (val% «ring_switch_target» "s6#1")) (word 9223372036854775808 0)), .atom (.mul (.n (val% «ring_switch_target» "s6#0")) (.n (val% «ring_switch_target» "total@8")) (.n (val% «ring_switch_target» "s6#1"))),
     .ret [.n (val% «ring_switch_target» "s6#0")]]
 
-theorem rst_body : (fn% «ring_switch_target»).body = rstT := stmtsEqb_sound (by decide +kernel)
+theorem rst_body : (fn% «ring_switch_target»).body = rstT := by kernel_rfl
 
 theorem find_rst : coreProgram.find? "ring_switch_target" = some fn% «ring_switch_target» :=
   coreProgram_find?_at (j := idx% «ring_switch_target») rfl

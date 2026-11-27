@@ -57,12 +57,6 @@ theorem k_add_self (a : K) : a + a = 0 := CharTwo.add_self_eq_zero a
 
 /-! ## `ofK` and the limb view -/
 
-theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
-
-theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
-
-theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 @[simp] theorem ofLimbs_limb0 (a b : K) : (E.ofLimbs a b).limb 0 = a := by simp
 
 @[simp] theorem ofLimbs_limb1 (a b : K) : (E.ofLimbs a b).limb 1 = b := by simp
@@ -86,10 +80,6 @@ theorem isInK_ofLimbs_iff (a b : K) : IsInK (E.ofLimbs a b) ↔ b = 0 := by
   simp
 
 theorem ofK_isInK (a : K) : IsInK (ofK a) := (isInK_iff _).mpr ⟨a, rfl⟩
-
-theorem ofLimbs_add (a0 a1 b0 b1 : K) :
-    E.ofLimbs a0 a1 + E.ofLimbs b0 b1 = E.ofLimbs (a0 + b0) (a1 + b1) :=
-  add_limbs a0 a1 b0 b1
 
 /-! ## `y` and `y⁻¹` -/
 
@@ -122,7 +112,7 @@ theorem pack64x2_eq {a b : E} (ha : IsInK a) (hb : IsInK b) :
     a + y * b = E.ofLimbs (a.limb 0) (b.limb 0) := by
   obtain ⟨a0, rfl⟩ := (isInK_iff a).mp ha
   obtain ⟨b0, rfl⟩ := (isInK_iff b).mp hb
-  rw [ofK_eq_ofLimbs, ofK_eq_ofLimbs, mul_comm, ofLimbs_mul_y, ofLimbs_add, ofLimbs_inj]
+  rw [ofK_eq_ofLimbs, ofK_eq_ofLimbs, mul_comm, ofLimbs_mul_y, add_limbs, ofLimbs_inj]
   simp
 
 /-- `a + y·b` for `a`, `b` in `K`: the cell of the two limbs. -/
@@ -135,7 +125,7 @@ theorem ofK_add_y_mul_ofK (a b : K) : ofK a + y * ofK b = E.ofLimbs a b := by
 /-- The derived limb `(x + c)·y⁻¹`, in limbs. -/
 theorem add_ofK_mul_y_inv (x : E) (c : K) :
     (x + ofK c) * y⁻¹ = E.ofLimbs ((x.limb 0 + c) * g + x.limb 1) (x.limb 0 + c) := by
-  rw [eq_ofLimbs x, ofK_eq_ofLimbs, ofLimbs_add, ofLimbs_mul_y_inv]
+  rw [eq_ofLimbs x, ofK_eq_ofLimbs, add_limbs, ofLimbs_mul_y_inv]
   simp
 
 /-- **The split of a word** (`split_limbs`; the same constraints in `grind_check`): the hinted
@@ -198,7 +188,7 @@ theorem eOfNat_add_eq_zero_iff {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
   exact ⟨eOfNat_inj ha hb, fun h ↦ h ▸ rfl⟩
 
 theorem eOfNat128_xor (a b : ℕ) : eOfNat128 (a ^^^ b) = eOfNat128 a + eOfNat128 b := by
-  simp only [eOfNat128, Nat.xor_div_two_pow, K.ofBits_xor, ofLimbs_add]
+  simp only [eOfNat128, Nat.xor_div_two_pow, K.ofBits_xor, add_limbs]
 
 theorem eOfNat128_of_lt {n : ℕ} (h : n < 2 ^ 64) : eOfNat128 n = eOfNat n := by
   rw [eOfNat128, eOfNat_eq_ofLimbs, Nat.div_eq_of_lt h]

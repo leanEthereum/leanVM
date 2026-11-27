@@ -24,14 +24,14 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-theorem vt_readsAt_append {rd : Reader} {p : E} {a b : List E} (ha : TbReadsAt rd p a)
-    (hb : TbReadsAt rd (p * gen ^ a.length) b) : TbReadsAt rd p (a ++ b) := by
+theorem vt_readsAt_append {rd : Reader} {p : E} {a b : List E} (ha : ReadsAt rd p a)
+    (hb : ReadsAt rd (p * gen ^ a.length) b) : ReadsAt rd p (a ++ b) := by
   intro k hk
   rcases Nat.lt_or_ge k a.length with h1 | h1
   · rw [List.getElem_append_left h1]; exact ha k h1
   · rw [List.getElem_append_right h1]
     have := hb (k - a.length) (by simp at hk; omega)
-    rw [tb_loadHolds_mul_gen_pow] at this
+    rw [loadHolds_mul_gen_pow] at this
     rwa [show a.length + (k - a.length) = k by omega] at this
 
 theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
@@ -39,13 +39,9 @@ theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
   match l, h with
   | [_, _, _, _, _, _], _ => rfl
 
-theorem vt_tableHeights_length {rows : List ℕ} (hr : rows.length = 6) :
-    (tableHeightsOf rows).length = 6 := by
-  simp [tableHeightsOf, hr, tableLogFloors]
-
 theorem vt_tableHeights_eq {rows : List ℕ} (hr : rows.length = 6) :
     tableHeightsOf rows = vtTauList (vtHt rows) := by
-  rw [vt_six _ (vt_tableHeights_length hr) 0]
+  rw [vt_six _ (vt_tableHeightsOf_length hr) 0]
   rfl
 
 theorem vt_foldl_max {rows : List ℕ} (hr : rows.length = 6) {n : ℕ}

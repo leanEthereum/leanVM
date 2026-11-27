@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 # Layouts
 
 A layout is a list of runs `(e, ws)`: word `j` of `ws` at the address `g^(e + j)`. `MemLay rd L`:
-the memory holds every run (`TbReadsAt` at `ofK (g^e)`). `layRd L`: a reader answering every
+the memory holds every run (`ReadsAt` at `ofK (g^e)`). `layRd L`: a reader answering every
 address of a run with one of its words (by choice); on a memory holding `L` it answers as the
 memory does (`layRd_agree`). An honest body is evaluated on `layRd` of its inputs (`Fwd.ev`), and
 its loads of them hold on every memory holding them.
@@ -31,7 +31,7 @@ open LeanVM.Guest.B1.Fwd
 abbrev TLay : Type := List (ℕ × List E)
 
 /-- The memory holds the layout. -/
-def MemLay (rd : Reader) (L : TLay) : Prop := ∀ q ∈ L, TbReadsAt rd (ofK (addressOfIndex q.1)) q.2
+def MemLay (rd : Reader) (L : TLay) : Prop := ∀ q ∈ L, ReadsAt rd (ofK (addressOfIndex q.1)) q.2
 
 theorem memLay_append {rd : Reader} {L L' : TLay} :
     MemLay rd (L ++ L') ↔ MemLay rd L ∧ MemLay rd L' := by

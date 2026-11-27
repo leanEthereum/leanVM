@@ -15,9 +15,10 @@ public import LeanVM.Guest.B1.Common.Basic
 
 `FnIsP P name ps body`: the program `P` holds the function `name` with the parameters `ps` and
 the body `body`; `OsDataP P m`: it holds `open_stacked__L{m}` as the template at size `m`.
-`Whir/Data{m}.lean` and `Whir/HelperData*.lean` prove them by kernel evaluation of the functions'
-own modules (`Guest/Fn/<key>/Core.lean`), for every `P` that finds them (`Finds`);
-`Whir/DataSpec.lean` states them for the guest. `scripts/whir-data` writes the data.
+`Whir/Data{m}.lean` (a definitional equality the kernel checks) and `Whir/HelperData*.lean` (by
+kernel evaluation) prove them from the functions' own modules (`Guest/Fn/<key>/Core.lean`), for
+every `P` that finds them (`Finds`); `Whir/DataSpec.lean` states them for the guest.
+`scripts/whir-data` writes the data.
 -/
 
 namespace LeanVM.Guest.B1.Whir
@@ -42,14 +43,6 @@ theorem fnIsP_of (P : Program) (name : String) (fn : Fn) [Finds P name fn] {n : 
     {ps : List V} {body : List Stmt} (hp : fn.params = ps) (hb : fn.body = body)
     (hn : name = n := by rfl) : FnIsP P n ps body :=
   hn ▸ ⟨fn, Finds.find, hp, hb⟩
-
-/-- Two lists agree from `o` on if they agree on the run of `n` from `o` (by `stmtsEqb`) and from
-`o + n` on: the data's bodies are checked a run at a time, each run its own kernel evaluation. -/
-theorem run_step {a b : List Stmt} (n o : Nat)
-    (h : stmtsEqb ((a.drop o).take n) ((b.drop o).take n) = true)
-    (h' : a.drop (o + n) = b.drop (o + n)) : a.drop o = b.drop o := by
-  rw [← List.take_append_drop n (a.drop o), ← List.take_append_drop n (b.drop o),
-    stmtsEqb_sound h, List.drop_drop, List.drop_drop, h']
 
 end
 end LeanVM.Guest.B1.Whir

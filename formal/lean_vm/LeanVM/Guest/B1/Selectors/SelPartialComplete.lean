@@ -220,7 +220,7 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
     set P : List E := [eqo, go, z, z1, gs]
     set F := spVal w P zs zs1 gl with hF
     have hw3 : w ≤ 3 := by omega
-    refine (tb_rel_iff_sem hf _ _).mpr ⟨fun x ↦ F x.idx, ?_, ?_⟩
+    refine (rel_iff_sem hf _ _).mpr ⟨fun x ↦ F x.idx, ?_, ?_⟩
     · rw [hp]; simp only [List.map_cons, List.map_nil]
       simp [hF, spVal_param, P]
     have l0 : spVal w P zs zs1 gl 0 = eqo := by simp [spVal_param, P]
@@ -235,7 +235,7 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       simp only [spBody, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
         List.map_nil]
       have : F 5 = 0 := hlast
-      exact ⟨by rw [this, tb_word_zero], by rw [this, hr]⟩
+      exact ⟨by rw [this, word_zero], by rw [this, hr]⟩
     simp only [spBody, hw0, ↓reduceIte]
     rw [holdsList_append, holdsList_noRet _ (spPre_noRet w)]
     refine ⟨holds_spPre_iff.mpr ?_, ?_⟩
@@ -315,13 +315,13 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
     · -- the eq levels' padding
       intro k hk
       show F (spP w + k) = word 0 0 ∧ LoadHolds rd (F 0) (2 ^ (w + 1) - 2 + k) (F (spP w + k))
-      rw [hF, spVal_zero P zs zs1 gl (Or.inl ⟨by omega, by simp only [spC]; omega⟩), l0, tb_word_zero]
+      rw [hF, spVal_zero P zs zs1 gl (Or.inl ⟨by omega, by simp only [spC]; omega⟩), l0, word_zero]
       exact ⟨rfl, hpe'.1 _ (by omega) (by omega)⟩
     · -- the one
       show F (spC w) = word 1 0
       have := spVal_G (by omega) hw3 P zs zs1 gl (u := 0) (by positivity)
       simp only [spG, ↓reduceIte] at this
-      rw [hF, this, tb_word_one, spGV]
+      rw [hF, this, word_one, spGV]
       exact prod_eq_one fun s _ ↦ by simp [bitPick]
     · -- the first share
       show LoadHolds rd (F 4) 0 (F (spC w + 1))
@@ -359,11 +359,11 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       intro k hk
       show F (spC w + 2 ^ w + w - 1 + k) = word 0 0 ∧
         LoadHolds rd (F 1) (2 ^ w + k) (F (spC w + 2 ^ w + w - 1 + k))
-      rw [hF, spVal_zero P zs zs1 gl (Or.inr (by omega)), l1, tb_word_zero]
+      rw [hF, spVal_zero P zs zs1 gl (Or.inr (by omega)), l1, word_zero]
       exact ⟨rfl, hpe'.2 _ (by omega) (by omega)⟩
     · -- the return
       show F (spR w) = word 0 0
-      rw [hF, hlast, tb_word_zero]
+      rw [hF, hlast, word_zero]
   | [], _, h, _ => simp [SelPartialOut] at h
   | [_], _, h, _ => simp [SelPartialOut] at h
   | [_, _], _, h, _ => simp [SelPartialOut] at h

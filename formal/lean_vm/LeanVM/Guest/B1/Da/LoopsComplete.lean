@@ -15,6 +15,7 @@ public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.B1.Digest.LoopComplete
 public import LeanVM.Guest.Value.KeccakConst
 public import LeanVM.Guest.Data.NameStrings
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The loops, completely
@@ -38,7 +39,7 @@ variable {rd : Reader}
 
 theorem splitLoopF_append {c : V} {f : String} {args : List V} :
     ∀ pre : List Stmt, pre.all Stmt.flat = true →
-      splitLoopF (pre ++ [.callIf c f args, .ret []]) = some (pre, c, f, args)
+      splitLoopF (pre ⧺ [.callIf c f args, .ret []]) = some (pre, c, f, args)
   | [], _ => rfl
   | [s], h => by
     simp only [List.all_cons, List.all_nil, Bool.and_true] at h
@@ -56,7 +57,7 @@ theorem splitLoopF_append {c : V} {f : String} {args : List V} :
     rfl
 
 theorem loopPre_of_body {fn : Fn} {pre : List Stmt} {c : V} {f : String} {args : List V}
-    (h : fn.body = pre ++ [.callIf c f args, .ret []]) (hf : pre.all Stmt.flat = true) :
+    (h : fn.body = pre ⧺ [.callIf c f args, .ret []]) (hf : pre.all Stmt.flat = true) :
     loopPre fn = pre := by
   simp [loopPre, h, splitLoopF_append pre hf]
 

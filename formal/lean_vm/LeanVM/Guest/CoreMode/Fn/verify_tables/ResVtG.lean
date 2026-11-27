@@ -59,14 +59,14 @@ theorem vtG_side {rd : Reader} {σ : Core.Val} {v0 s G0 m : ℕ} (KN : ℕ → �
     intro r hr
     obtain ⟨e, he, hσe⟩ := (hfacts r hr).1
     have h3 := (hfacts r hr).2.1
-    rw [hσe, tb_loadHolds_mul_gen_pow, Nat.add_comm] at h3
-    have hw := tb_loadHolds_unique h3 (hside e he)
+    rw [hσe, LeanVM.Guest.B1.loadHolds_mul_gen_pow, Nat.add_comm] at h3
+    have hw := LeanVM.Guest.B1.loadHolds_unique h3 (hside e he)
     have hse := hsideS e he
       (vt_word_small_inj hs (by unfold vtGroupSide; split_ifs <;> omega) hw).symm
     obtain ⟨-, key, hk1, hk2⟩ := hkey e hse.1 hse.2
     have h4 := (hfacts r hr).2.2.1
-    rw [hσe, tb_loadHolds_mul_gen_pow, Nat.add_zero] at h4
-    rw [tb_loadHolds_unique h4 hk1]
+    rw [hσe, LeanVM.Guest.B1.loadHolds_mul_gen_pow, Nat.add_zero] at h4
+    rw [LeanVM.Guest.B1.loadHolds_unique h4 hk1]
     exact ⟨e, hse.1, hse.2, hσe, hk2⟩
   refine ⟨hrank, ?_⟩
   obtain ⟨o, ho⟩ := tb_exists_fun_of_forall (α := ℕ) (n := m)
@@ -122,7 +122,7 @@ include hμ
 /-- **`verify_tables`' groups**: each side's ranks name every group of the side, and rank `1`'s
 keys are nonzero. -/
 theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 32) {ds : List E}
-    (hds : TbReadsAt Lm.read (σ (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: ds)) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) :
+    (hds : LeanVM.Guest.B1.ReadsAt Lm.read (σ (.n (val% «verify_tables» "dims_g"))) (gen ^ lm :: ds)) (hE : ExpTablesAt Lm.read (σ (.n (val% «verify_tables» "g_squares")))) :
     (∀ g < 9, ∃ r < 9, σ (.n (vtRv 112 r)) = gen ^ g) ∧
       (∀ g < 6, ∃ r < 6, σ (.n (vtRv 409 r)) = gen ^ (18 + g)) ∧ σ (.n (val% «verify_tables» "key@2")) ≠ 0 ∧ σ (.n (val% «verify_tables» "key@11")) ≠ 0 ∧
       (∀ r < 9, ∃ e < 9, σ (.n (vtRv 112 r)) = gen ^ e) ∧
@@ -135,13 +135,13 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
       refine ⟨τ, h1, ?_⟩
       have := kl (t + 1) (by omega)
       rw [show 27 + (t + 1) = 28 + t by omega] at this
-      exact tb_loadHolds_unique this h2)
+      exact LeanVM.Guest.B1.loadHolds_unique this h2)
   have hkb : ∀ i < 8, σ (.n ((val% «verify_tables» "kb[0]") + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0 := by
     intro i hi
     match i, hi with
     | 0, _ => simpa using k0
     | 1, _ =>
-      have := tb_loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
+      have := LeanVM.Guest.B1.loadHolds_unique (kl 0 (by omega)) (hds 0 (by simp))
       simpa using this
     | t + 2, hi =>
       have ht : t < 6 := by omega
@@ -163,16 +163,16 @@ theorem vt_groups {σ : Core.Val} (h : VtH Lm.read σ) {lm : ℕ} (hlm : lm ≤ 
       key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, -⟩ := vt_grps h k hk
-    rw [hkx k hk, tb_loadHolds_mul_gen_pow] at hrk1
+    rw [hkx k hk, LeanVM.Guest.B1.loadHolds_mul_gen_pow] at hrk1
     have r1 := hrk _ (by simp [rankKeysList]; exact hκ34 k hk)
-    rw [tb_loadHolds_mul_gen_pow] at r1
-    have e1 := tb_loadHolds_unique hrk1 (by rw [Nat.add_comm]; exact r1)
+    rw [LeanVM.Guest.B1.loadHolds_mul_gen_pow] at r1
+    have e1 := LeanVM.Guest.B1.loadHolds_unique hrk1 (by rw [Nat.add_comm]; exact r1)
     simp only [rankKeysList, List.getElem_map, List.getElem_range] at e1
     exact ⟨key, hk1, by rw [hke, e1]⟩
   have hsideT : ∀ e < 24, LoadHolds Lm.read (σ (.n (val% «verify_tables» "g_squares"))) (212 + e) (word (vtGroupSide e) 0) :=
     fun e he ↦ by
       have := hsd e (by simp [sideTabList]; exact he)
-      rw [tb_loadHolds_mul_gen_pow] at this
+      rw [LeanVM.Guest.B1.loadHolds_mul_gen_pow] at this
       rw [← vt_sideTab_getD e he, List.getD_eq_getElem _ _ (by simp [sideTabList]; exact he)]
       exact this
   -- a group's key, past `g^153`

@@ -247,15 +247,6 @@ def Coef.evK : Coef → K
 /-- `GEN` is the generator of `K`, lifted. -/
 theorem gen_eq_ofK : Verifier.gen = ofK g := rfl
 
-/-- The lift of zero. -/
-theorem ofK_zero' : ofK 0 = 0 := _root_.map_zero (algebraMap K E)
-
-/-- The lift of one. -/
-theorem ofK_one' : ofK 1 = 1 := _root_.map_one (algebraMap K E)
-
-/-- The lift of a power. -/
-theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 /-- Every coefficient lies in `K`: its value is the lift of its value in `K`. -/
 theorem Coef.ev_eq : ∀ c : Coef, c.ev = ofK c.evK
   | .zero => by simp [Coef.ev, Coef.evK]
@@ -741,7 +732,7 @@ theorem refConstraints_eval (t : Fin 6) (row : Fin (width (opIdx t)) → K) :
     simp only [jumpConstraints, h5, h12, h13, g5, g12, g13, List.map_cons, List.map_nil,
       termsEval_cons, termsEval_nil, List.prod_cons, List.prod_nil, r5, r12, r13, ofK_add,
       ofK_mul, List.cons.injEq, and_true]
-    simp only [mul_one, one_mul, ofK_one', ofK_zero', add_zero]
+    simp only [mul_one, one_mul, ofK_one, ofK_zero, add_zero]
     constructor <;> ring
   · rw [constraints_opIdx_ne_jump t ht]
     fin_cases t
