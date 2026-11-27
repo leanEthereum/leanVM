@@ -235,7 +235,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 5 | 221 | `<alloc::raw_vec::RawVec<(verifier::field::K, alloc::vec::Vec<u16>)>...` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneKVecU16 | env |
 | 5 | 222 | `<alloc::raw_vec::RawVec<u16>>::grow_one @verifier` | 15 | A | yes | Proof/Runtime/GrowOneT, GrowOnesT | AllocT.growOneU16 | env |
 | 6 | 23 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 67 | D | no | - | - | - |
-| 6 | 27 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 79 | D | no | - | - | - |
+| 6 | 27 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::it...` | 79 | D | yes | Proof/Field/ESumLaneT (safety; the zip's index `0`, its pairs fit the chunks; `dot` through `DotOwnT` at slices of any lengths (`dotAny`); loop by `Total.loop`) | SumT6f.eSumLane | clmul table |
 | 6 | 38 | `<alloc::vec::Vec<verifier::field::E>>::reserve @verifier` | 10 | C | yes | Proof/Runtime/ReserveT | AllocT.reserveE | env |
 | 6 | 53 | `verifier::field::powers` | 87 | C | yes | Proof/Field/PowersT | FieldT2.powers | env; clmul table |
 | 6 | 75 | `verifier::whir::derive_config` | 150 | C | yes | Proof/Whir/DeriveConfigT (safety; the ladder's loop by `Total.loop`; both vectors `VecT` of the queries' length, the queries `whir_queries`') | WhirT5b.deriveConfig | env; WHIR query tables (InData) |

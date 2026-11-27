@@ -3,13 +3,13 @@
 
   The total contracts of wave 6f's `E::sum` closures at the image (`liftProg Gen.fns`): each function's total theorem
   at its index, with the generated link, the stack `Gen.Needs` gives (bounds over the callees' by `decide`), and the
-  callees' total theorems (`FieldT.baseMul`, `FieldT.eMul`, `SumT.eSumU16`, `RuntimeT.panicBoundsCheck`, raised by
-  `HoldsT.mono_need` where the caller has no frame). Open: `clmul_low`'s table (`FieldT.ClmulTable`) and
+  callees' total theorems (`FieldT.baseMul`, `FieldT.eMul`, `SumT.eSumU16`, `DotT2.dotOwn`,
+  `RuntimeT.panicBoundsCheck`, raised by `HoldsT.mono_need` where the caller has no frame). Open: `clmul_low`'s table (`FieldT.ClmulTable`) and
   `RMFE_PROJECT` (`ESumProjectT.Tab`), environment facts.
 
   ## Main results
 
-  * `eSumNovel`, `eSumProject`, `eSumForm`, `eSumBlock`
+  * `eSumNovel`, `eSumProject`, `eSumForm`, `eSumBlock`, `eSumLane`
 -/
 
 import Rv64mc.Table.FieldT
@@ -19,6 +19,8 @@ import Rv64mc.Proof.Field.ESumProjectT
 import Rv64mc.Proof.Field.ESumFormT
 import Rv64mc.Proof.Field.ESumBlockT
 import Rv64mc.Table.SumT
+import Rv64mc.Table.DotT2
+import Rv64mc.Proof.Field.ESumLaneT
 import Rv64mc.Gen.Link.Verifier.Field.E
 
 namespace Rv64mc.Table.SumT6f
@@ -58,6 +60,14 @@ theorem eSumBlock (hd : FieldT.ClmulTable env) :
     Verifier.Field.E.SumMapIterTKVecU16EEvaluH09540813.wf (by decide) (by decide) (SumT.eSumU16 env)
     (FieldT.baseMul env hd)
 
+/-- `verify_layer`'s bit-position sum (27). -/
+theorem eSumLane (hd : FieldT.ClmulTable env) :
+    ESumLaneT.SumSafeT env (liftProg fns) Idx.Verifier.Field.E.SumMapZipChunksEIterEVerifyLayerClosure3
+      Needs.Verifier.Field.E.SumMapZipChunksEIterEVerifyLayerClosure3 :=
+  ESumLaneT.total env _ _ _ Verifier.Field.E.SumMapZipChunksEIterEVerifyLayerClosure3.tmpl_eq
+    Verifier.Field.E.SumMapZipChunksEIterEVerifyLayerClosure3.wf (by decide) (by decide) (DotT2.dotOwn env hd)
+    (FieldT.eMul env hd)
+
 end Rv64mc.Table.SumT6f
 
 /-- info: 'Rv64mc.Table.SumT6f.eSumNovel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -75,3 +85,7 @@ end Rv64mc.Table.SumT6f
 /-- info: 'Rv64mc.Table.SumT6f.eSumBlock' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.SumT6f.eSumBlock
+
+/-- info: 'Rv64mc.Table.SumT6f.eSumLane' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.SumT6f.eSumLane
