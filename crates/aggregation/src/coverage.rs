@@ -3,7 +3,6 @@
 use super::AggregateClaims;
 use super::error::AggregateError;
 use super::statement::{Claim, claim_lists};
-use std::collections::BTreeSet;
 
 /// The coverage slot each write in the guest's coverage walk targets, in walk
 /// order: the raw signatures first, then each child's claim lists. Its regions, leanXMSS then leanSPHINCS.
@@ -63,11 +62,10 @@ impl Region {
         }
         let mut signers: Vec<Claim> = sorted_firsts(&all).into_iter().map(|i| all[i]).collect();
         if let Some(declare) = declare {
-            // Inserted one by one: collecting would sort them first.
-            let mut wanted: BTreeSet<&Claim> = BTreeSet::new();
-            wanted.extend(declare);
-            signers.retain(|claim| wanted.remove(claim));
-            if !wanted.is_empty() {
+            let wanted: Vec<Claim> = sorted_firsts(declare).into_iter().map(|i| declare[i]).collect();
+            signers.retain(|claim| wanted.binary_search(claim).is_ok());
+            // Both lists are sorted without repeats, so the ones kept are all the wanted ones exactly when as many.
+            if signers.len() != wanted.len() {
                 return Err(AggregateError::InvalidInput(
                     "a requested claim is not covered by the inputs",
                 ));
