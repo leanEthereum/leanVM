@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 TOOL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pr-report.py")
-EM, EN, RLO = "—", "–", "‮"
+EM, EN, RLO = "\u2014", "\u2013", "\u202e"
 ENV = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", GIT_AUTHOR_NAME="t",
            GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 ENV.pop("GITHUB_STEP_SUMMARY", None)
