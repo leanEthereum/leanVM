@@ -31,7 +31,10 @@ impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
-        Self::recompute(vec![F128::ZERO; bytecode_vars()])
+        Self {
+            bytecode_point: vec![F128::ZERO; bytecode_vars()],
+            bytecode_value: F128::new(unified_guest().stacked_bytecode()[0], 0),
+        }
     }
 
     /// The claim at `bytecode_point`, its value read off the point's [`bytecode_sums`].
