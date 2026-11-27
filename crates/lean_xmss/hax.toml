@@ -3,6 +3,9 @@
 [scenario.lean-xmss]
 backend = "lean"
 opaque = [
+  # `verify` and everything it calls are extracted with their bodies, down to `keccak256::Hasher`
+  # (patch 01). What is left is signing, key generation, serialization and the caches.
+
   # The bottom-tree cache behind a `Mutex` (scheme.rs:229): std's interior mutability.
   "crate::scheme::_::bottom_tree",
 
@@ -19,7 +22,6 @@ opaque = [
   "crate::scheme::_::cache_to_bytes",  # Lean: unknown identifier `alloc.collections.vec_deque.iter.iter`
   "crate::scheme::take",  # Lean: unknown identifier `core.slice.slice.split_first_chunk`
   "crate::scheme::use_cached",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.iter`
-  "crate::scheme::verify",  # Lean: type mismatch
   "crate::scheme::{impl core::cmp::PartialOrd for crate::scheme::LeanXmssPublicKey}::partial_cmp",  # Lean: `min` is not a field of structure `core.cmp.ord`
   "crate::tree::_::from_bytes",  # Lean: unknown identifier `core.slice.slice.as_chunks`
   "crate::tree::_::path",  # Lean: unknown constant `alloc.vec.vec.insts.coreitertraitscollectextend.exte
@@ -29,7 +31,6 @@ opaque = [
   "crate::wots::wots_sign",  # Lean: unknown identifier `alloc.slice.slice.concat`
   "crate::wots::wots_public_leaves",  # Aeneas: internal error, please file an issue
   "crate::hash::th_many",  # Lean: unknown identifier `keccak256.lanes.hash_many`
-  "crate::wots::chain_ends",  # Aeneas: unreachable
   "crate::scheme::_::evict",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.drain`
   "crate::scheme::_::get",  # Lean: unknown constant `alloc.collections.vec_deque.vecdeque.iter`
   "crate::scheme::_::set_bottom_tree_cache_size",  # Lean: unknown constant `std.sync.poison.mutex.mutex.lock`

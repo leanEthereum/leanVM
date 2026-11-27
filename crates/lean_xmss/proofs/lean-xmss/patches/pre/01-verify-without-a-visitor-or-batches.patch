@@ -1,0 +1,60 @@
+diff --git a/crates/lean_xmss/src/scheme.rs b/crates/lean_xmss/src/scheme.rs
+index 947052a4f..bd8f4c05d 100644
+--- a/crates/lean_xmss/src/scheme.rs
++++ b/crates/lean_xmss/src/scheme.rs
+@@ -332,11 +332,29 @@ impl LeanXmssExpandedSecretKey {
+ pub fn verify(pk: &LeanXmssPublicKey, message: &Message, signature: &LeanXmssSignature) -> bool {
+     let pp = &pk.public_param;
+     let leaf_index = signature.leaf_index;
+-    layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
+-        .and_then(|(_, bottom_root)| {
+-            layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
+-        })
+-        .is_some_and(|(_, root)| root == pk.merkle_root)
++    let Some((_, bottom_root)) = layer_root_unwatched(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom)
++    else {
++        return false;
++    };
++    let Some((_, root)) = layer_root_unwatched(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top) else {
++        return false;
++    };
++    root == pk.merkle_root
++}
++
++/// [`layer_root`] with nothing watching.
++fn layer_root_unwatched(
++    pp: &PublicParam,
++    layer: usize,
++    e: u32,
++    message: &[u8],
++    signature: &LayerSignature,
++) -> Option<([u8; V], Digest)> {
++    let (codeword, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
++    let root = keccak256::path_root(leaf, e as usize, &signature.path, |level, j, children| {
++        node(pp, layer, level, j as u32, children)
++    });
++    Some((codeword, root))
+ }
+ 
+ /// The codeword of a layer's signature by key `e` and the root it reaches, or `None`
+diff --git a/crates/lean_xmss/src/wots.rs b/crates/lean_xmss/src/wots.rs
+index f72a58d5c..30aae8883 100644
+--- a/crates/lean_xmss/src/wots.rs
++++ b/crates/lean_xmss/src/wots.rs
+@@ -150,7 +150,6 @@ pub fn wots_leaf(
+ }
+ 
+ /// Each chain's end, from the value at its digit's position.
+-#[cfg(not(feature = "std"))]
+ fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+     core::array::from_fn(|i| {
+         let start = x[i] as usize;
+@@ -160,7 +159,7 @@ fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Dig
+ 
+ /// Each chain's end, from the value at its digit's position: as [`chain`] computes it, each step one batch over the
+ /// chains still running.
+-#[cfg(feature = "std")]
++#[cfg(any())]
+ fn chain_ends(pp: &PublicParam, layer: usize, e: u32, x: &[u8; V], values: &[Digest; V]) -> [Digest; V] {
+     let mut ends = *values;
+     for from in 0..CHAIN_LEN - 1 {
