@@ -37,7 +37,7 @@ variable {L : Layout}
 
 /-- An offset of `[y, v)` is in a tile's range, the tile inside `[y, v)`. -/
 theorem tiles_cover {v : ℕ} : ∀ {y : ℕ} {cs : List ℕ}, tiles L v y cs = true → ∀ x, y ≤ x → x < v →
-    ∃ c, c < L.nb ∧ L.InRange c x ∧ y ≤ (L.blk c).cs ∧ (L.blk c).ce ≤ v
+    ∃ c ∈ cs, c < L.nb ∧ L.InRange c x ∧ y ≤ (L.blk c).cs ∧ (L.blk c).ce ≤ v
   | y, [], h, x, h1, h2 => by
     simp only [tiles, Nat.beq_eq] at h; omega
   | y, c :: cs, h, x, h1, h2 => by
@@ -46,9 +46,9 @@ theorem tiles_cover {v : ℕ} : ∀ {y : ℕ} {cs : List ℕ}, tiles L v y cs = 
     have hle : (L.blk c).ce ≤ v := by
       have := tiles_le hr; omega
     by_cases hx : x < (L.blk c).ce
-    · exact ⟨c, hc, ⟨by omega, hx⟩, by omega, hle⟩
-    · obtain ⟨c', h1', h2', h3', h4'⟩ := tiles_cover hr x (by omega) h2
-      exact ⟨c', h1', h2', by omega, h4'⟩
+    · exact ⟨c, List.mem_cons_self, hc, ⟨by omega, hx⟩, by omega, hle⟩
+    · obtain ⟨c', hm', h1', h2', h3', h4'⟩ := tiles_cover hr x (by omega) h2
+      exact ⟨c', List.mem_cons_of_mem _ hm', h1', h2', by omega, h4'⟩
 where
   tiles_le : ∀ {y : ℕ} {cs : List ℕ}, tiles L v y cs = true → y ≤ v
     | y, [], h => by simp only [tiles, Nat.beq_eq] at h; omega
@@ -61,7 +61,7 @@ theorem hopOk_hop (hL : L.ok = true) {u v : ℕ} {cs : List ℕ} (h : hopOk L u 
   simp only [hopOk, Bool.and_eq_true, Nat.blt_eq] at h
   unfold Hop
   refine ⟨h.1, fun y r h1 h2 hr ↦ ?_⟩
-  obtain ⟨c, hc, hy, hcs, hce⟩ := tiles_cover h.2 y (by omega) h2
+  obtain ⟨c, -, hc, hy, hcs, hce⟩ := tiles_cover h.2 y (by omega) h2
   obtain ⟨hs1, hs2⟩ := run_sub hL hr hy hc
   constructor
   · rintro ⟨hu1, -⟩; omega
