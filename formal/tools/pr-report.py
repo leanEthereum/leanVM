@@ -10,10 +10,12 @@ prints a Markdown report. `--github` also prints a `::warning` annotation per fi
 What it reports, from the lines the diff adds (or removes, where said):
 
 * The statement: files changed under `formal/Statement/`, by kind (`Data/`; `Prover/`; `Fast/` and `Lemmas/`,
-  proofs only; other `.lean` files, trusted; other files, build configuration); the declarations added, removed or
-  changed in the trusted files and `Prover/` (a changed declaration is one whose lines, docstring included, the diff
-  touches); the fields added to or removed from `structure Theorems`; whether `formal/statement.tex` changed with
-  them. Any change outside `Fast/` and `Lemmas/` changes what is proved.
+  proofs for speed and laws, not what a reviewer reads; other `.lean` files, trusted; other files, build
+  configuration); in the trusted files and `Prover/`, the declarations added, removed or changed (a changed
+  declaration is one whose lines, docstring included, the diff touches) and the code lines outside every declaration
+  (`import`, `open`, `variable`, `notation`, ...) added or removed; the fields added to or removed from
+  `structure Theorems`; whether `formal/statement.tex` changed with them, or alone. A renamed or moved file counts as
+  removed at its old path and added at its new one.
 * Budgets and suppressions in `.lean` files: `set_option` of `maxHeartbeats`, `maxRecDepth`, `synthInstance.*` or
   `linter.*`, and `@[nolint`, added and removed.
 * Leftovers in `.lean` files: `#eval`, `#print`, `#check`, `#reduce` (except under `#guard_msgs`, in `tests/`,
@@ -29,10 +31,11 @@ What it reports, from the lines the diff adds (or removes, where said):
 * Unsafe Unicode: bidirectional and invisible format characters (U+200B to U+200F, U+202A to U+202E, U+2066 to
   U+2069, U+FEFF) in any file.
 
-What it does not check: whether a statement change is right (a person reads it); proofs, axioms or the build (the
-Lean gates do); hard-wrapped Markdown; anything in a line the diff does not add, except the removals counted
-above; Lean syntax beyond a line scan, so a declaration header split oddly, a comment marker inside a string, or
-prose that looks like a declaration can be missed or reported wrongly.
+What it does not check (each section also says): whether a statement change is right (a person reads it); proofs,
+axioms or the build (the Lean gates do); hard-wrapped Markdown; anything in a line the diff does not add, except the
+removals counted above; namespaces, so declarations of one kind and name in two namespaces are one entry; Lean
+syntax beyond a line scan, so a declaration header split oddly, a comment marker inside a string, or prose that
+looks like a declaration can be missed or reported wrongly.
 """
 import os
 import re
@@ -43,7 +46,7 @@ BIDI = re.compile("[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 DASH = re.compile("[\u2013\u2014]")
 HISTORY = re.compile(r"(?i:(?<!\bis )(?<!\bare )(?<!\bbe )(?<!\bwas )(?<!\bwere )\bused to\b|\bno longer\b"
                      r"|\bpreviously\b|\bnow proved\b|\bmilestones?\b|\bwaves?\b)|\bPhase[ -][A-Z0-9]{1,2}\b|\bWIP\b")
-MODS = r"(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|public|noncomputable|partial|nonrec|meta|unsafe)\s+)*"
+MODS = r"(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|public|scoped|local|noncomputable|partial|nonrec|meta|unsafe)\s+)*"
 KINDS = r"theorem|lemma|def|abbrev|structure|class|inductive|instance|axiom|opaque|example"
 DECL = re.compile(r"^" + MODS + r"(" + KINDS + r")\b\s*([^\s:({\[⦃]*)")
 COMMENTED_DECL = re.compile(r"^\s*" + MODS + r"(?:" + KINDS + r")\s+[^\s(]+\s*(?:[({\[⦃:]|$)")
@@ -56,7 +59,7 @@ FILE_LINES, DECL_LINES = 1500, 100
 
 
 def git(*args, ok=False):
-    r = subprocess.run(["git", "-c", "core.quotePath=false", *args], capture_output=True, text=True,
+    r = subprocess.run(["git", *args], capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
     if r.returncode and not ok:
         print(f"pr-report: git {' '.join(args)}: {r.stderr.strip()}", file=sys.stderr)
@@ -65,32 +68,24 @@ def git(*args, ok=False):
 
 
 def changes(base):
-    """Per changed file: (status, added [(line, text)], removed [(line, text)]), paths as git prints them."""
-    files, fields = {}, git("diff", "--name-status", "-z", "-M", base, "HEAD").split("\0")
-    while len(fields) > 1:
-        status = fields.pop(0)[0]
-        path = fields.pop(0)
-        if status in "RC":
-            path = fields.pop(0)
-        files[re.sub(r"[\x00-\x1f]", "?", path)] = (status, [], [])
-    path, old, new, left = None, 0, 0, 0
-    for line in git("diff", "-U0", "--no-color", "--no-ext-diff", "-M", base, "HEAD").split("\n"):
-        if left:
-            sign, text = line[:1], line[1:]
-            if sign == "+":
-                files[path][1].append((new, text))
+    """Per changed file: (status, added [(line, text)], removed [(line, text)]). A rename is a removal and an
+    addition. One diff per file, so no header is parsed and no path is quoted."""
+    files, fields = {}, git("diff", "--name-status", "-z", "--no-renames", base, "HEAD").split("\0")
+    for status, path in zip(fields[0::2], fields[1::2]):
+        added, removed, old, new, left = [], [], 0, 0, 0
+        for line in git("diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames", base, "HEAD", "--",
+                        ":(literal)" + path).split("\n"):
+            if left and line[:1] == "+":
+                added.append((new, line[1:]))
                 new, left = new + 1, left - 1
-            elif sign == "-":
-                files[path][2].append((old, text))
+            elif left and line[:1] == "-":
+                removed.append((old, line[1:]))
                 old, left = old + 1, left - 1
-        elif line.startswith("+++ ") or line.startswith("--- "):
-            name = line[4:]
-            if name != "/dev/null":
-                path = name[2:] if name[2:] in files else None
-        elif line.startswith("@@") and path in files:
-            m = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))?", line)
-            old, new = int(m.group(1)), int(m.group(3))
-            left = int(m.group(2) or 1) + int(m.group(4) or 1)
+            elif not left and line.startswith("@@"):
+                m = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))?", line)
+                old, new = int(m.group(1)), int(m.group(3))
+                left = int(m.group(2) or 1) + int(m.group(4) or 1)
+        files[path] = (status[:1], added, removed)
     return files
 
 
@@ -149,7 +144,8 @@ def decls(text):
             j += 1
         while j > i + 1 and not lines[j - 1].strip():
             j -= 1
-        out.append((m.group(1), m.group(2) or "(anonymous)", k + 1, j))
+        name = m.group(2) or "(anonymous) " + line[m.end():].split(":=")[0].strip()[:60]
+        out.append((m.group(1), name.strip(), k + 1, j))
     return out
 
 
@@ -164,7 +160,12 @@ def show(rev, path):
 SECTIONS, NOTES = [], []
 
 
+def shown(path):
+    return re.sub(r"[\x00-\x1f`]", "?", path)
+
+
 def finding(path, line, msg):
+    path = shown(path)
     NOTES.append((path, line, msg))
     return f"- `{path}:{line}`: {msg}"
 
@@ -179,9 +180,16 @@ def is_root(path):
     return len(parts) == 3 and parts[0] == "formal" and parts[1] != "Statement" and parts[2].endswith(".lean")
 
 
+def outside(path, ds, comment_kinds, lines, verb):
+    """The code lines of `lines` outside every declaration of `ds`."""
+    return [finding(path, ln, f"line outside any declaration {verb}: `{clip(t)}`") for ln, t in lines
+            if t.strip() and not t.lstrip().startswith(("--", "/-")) and not comment_kinds[ln - 1]
+            and not any(a <= ln <= b for _, _, a, b in ds)]
+
+
 def statement(files, base):
     kinds = {"trusted": [], "Data": [], "Prover": [], "Fast, Lemmas": [], "build configuration": []}
-    out, loud = [], False
+    out = []
     for path, (status, added, removed) in sorted(files.items()):
         if not path.startswith("formal/Statement/"):
             continue
@@ -189,8 +197,7 @@ def statement(files, base):
         top = sub.split("/")[0]
         kind = ("Fast, Lemmas" if top in ("Fast", "Lemmas") else top if top in ("Data", "Prover")
                 else "trusted" if sub.endswith(".lean") else "build configuration")
-        loud |= kind != "Fast, Lemmas"
-        kinds[kind].append(f"`{path}` ({status})")
+        kinds[kind].append(f"`{shown(path)}` ({status})")
         if not path.endswith(".lean") or kind not in ("trusted", "Prover"):
             continue
         new_text, old_text = show("HEAD", path), show(base, path)
@@ -200,22 +207,30 @@ def statement(files, base):
         for key in sorted(set(new) | set(old)):
             verb = "added" if key not in allold else "removed" if key not in allnew else "changed"
             line = new[key][0] if key in new else old[key][0]
-            out.append(finding(path, line, f"{key[0]} `{key[1]}` {verb}"))
+            out.append(finding(path, line, f"{key[0]} `{clip(key[1])}` {verb}"))
+        out += outside(path, d_new, scan(new_text)[0], added, "added")
+        out += outside(path, d_old, scan(old_text)[0], removed, "removed")
         if path == "formal/Statement/Theorems.lean":
             f_new, f_old = theorem_fields(new_text), theorem_fields(old_text)
             for fields, verb in ((f_new - f_old, "added"), (f_old - f_new, "removed")):
                 out += [finding(path, 1, f"field `Theorems.{f}` {verb}") for f in sorted(fields)]
     changed = [f"- {k}: {', '.join(v)}" for k, v in kinds.items() if v]
+    tex = "formal/statement.tex" in files
+    not_checked = "whether the change is right; namespaces (one entry per kind and name)."
     if not changed:
-        return SECTIONS.append(("The statement", ["No file under `formal/Statement/` changed."]))
+        head = ["No file under `formal/Statement/` changed."]
+        if tex:
+            head.append(finding("formal/statement.tex", 1, "changed alone: check it still describes the statement"))
+        return SECTIONS.append(("The statement", head, not_checked))
+    loud = any(v for k, v in kinds.items() if k != "Fast, Lemmas")
     head = ["**This PR changes what is proved.** Check the statement before and after, and its relation "
             "to the old one, in the description." if loud else
-            "Only proofs under `Statement/Fast/` or `Statement/Lemmas/` changed: what is proved is the same."]
-    tex = "formal/statement.tex" in files
+            "Only `Statement/Fast/` or `Statement/Lemmas/` changed: proofs for speed and laws, not what a "
+            "reviewer reads."]
     head.append(f"`formal/statement.tex` {'changed' if tex else 'did not change'} with it.")
-    if loud and not tex:
+    if not tex and any(kinds[k] for k in ("trusted", "Data", "Prover")):
         NOTES.append(("formal/statement.tex", 1, "the statement changed and statement.tex did not"))
-    SECTIONS.append(("The statement", head + changed + out))
+    SECTIONS.append(("The statement", head + changed + out, not_checked))
 
 
 def theorem_fields(text):
@@ -240,7 +255,7 @@ def budgets(files):
                 plus += 1
                 out.append(finding(path, ln, f"budget or suppression: `{clip(t)}`"))
     SECTIONS.append(("Budgets and suppressions", [f"+{plus} / -{minus} lines."] + out if plus or minus else
-                     ["None added or removed."]))
+                     ["None added or removed."], "other options, and budgets set in a lakefile."))
 
 
 def leftovers(files, heads):
@@ -253,7 +268,7 @@ def leftovers(files, heads):
         exempt = is_root(path) or {"tests", "scripts", "tools"} & set(path.split("/")[:-1])
         for ln, t in added:
             prev = lines[ln - 2] if ln >= 2 else ""
-            if DEBUG.match(t) and not exempt and not prev.lstrip().startswith("#guard_msgs"):
+            if DEBUG.match(t) and not exempt and not kinds[ln - 1] and not prev.lstrip().startswith("#guard_msgs"):
                 out.append(finding(path, ln, f"debug command: `{clip(t)}`"))
             s = t.lstrip()
             opener = s.startswith("--") or s.startswith("/-") and s[2:3] not in "-!"
@@ -262,7 +277,7 @@ def leftovers(files, heads):
                 out.append(finding(path, ln, f"commented-out declaration: `{clip(t)}`"))
             if LEFTOVER.search(t):
                 out.append(finding(path, ln, f"leftover marker: `{clip(t)}`"))
-    SECTIONS.append(("Debug and leftovers", out or ["None added."]))
+    SECTIONS.append(("Debug and leftovers", out or ["None added."], "files other than `.lean`."))
 
 
 def generated(path, text):
@@ -280,10 +295,11 @@ def size(files, heads):
             out.append(finding(path, 1, f"{n} lines (over {FILE_LINES})"))
         for (kind, name), (a, b) in touched(decls(heads[path]), [ln for ln, _ in added]).items():
             if b - a + 1 > DECL_LINES:
-                out.append(finding(path, a, f"{kind} `{name}` is {b - a + 1} lines (over {DECL_LINES})"))
+                out.append(finding(path, a, f"{kind} `{clip(name)}` is {b - a + 1} lines (over {DECL_LINES})"))
     SECTIONS.append(("Size", ["A reading aid, not a rule: a long file or declaration may be fine; "
                               "a long proof should sketch its argument or be split."] + out if out else
-                     ["No touched file or declaration over the thresholds."]))
+                     ["No touched file or declaration over the thresholds."],
+                     "files ignored by git or marked generated; declarations the diff does not touch."))
 
 
 def prose(files, heads):
@@ -306,7 +322,7 @@ def prose(files, heads):
                 m = HISTORY.search(c)
                 if m:
                     out.append(finding(path, ln, f"history or planning word `{m.group(0)}`: `{clip(c)}`"))
-    SECTIONS.append(("Prose", out or ["Nothing found."]))
+    SECTIONS.append(("Prose", out or ["Nothing found."], "hard-wrapped Markdown; wording beyond the listed words."))
 
 
 def unicode(files):
@@ -316,7 +332,7 @@ def unicode(files):
             chars = sorted({f"U+{ord(c):04X}" for c in BIDI.findall(t)})
             if chars:
                 out.append(finding(path, ln, f"bidirectional or invisible character {', '.join(chars)}"))
-    SECTIONS.append(("Unsafe Unicode", out or ["None added."]))
+    SECTIONS.append(("Unsafe Unicode", out or ["None added."], "homoglyphs and other confusable characters."))
 
 
 def escape(s, prop=False):
@@ -350,8 +366,8 @@ def main(argv):
     unicode(files)
     text = [f"# formal/ report\n\nAgainst `{base_ref}` (merge base `{base[:10]}`), {len(files)} files changed. "
             "This report never fails the check; a person judges each item.\n"]
-    for title, lines in SECTIONS:
-        text.append(f"## {title}\n\n" + "\n".join(lines) + "\n")
+    for title, lines, not_checked in SECTIONS:
+        text.append(f"## {title}\n\n" + "\n".join(lines) + f"\n\nNot checked: {not_checked}\n")
     report = "\n".join(text)
     print(report)
     if github:
