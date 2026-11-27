@@ -1,6 +1,6 @@
 # Rust to Lean extraction
 
-The Rust crates that declare a scenario are translated to Lean by [hax](https://hax.cryspen.com/)'s Lean backend (Charon, then Aeneas), so that Lean can state and prove things about the code that runs, not about a transcription of it. This directory is the infrastructure: one command extracts and typechecks, and nothing it generates is committed. Nothing is proved here yet. What the extractions leave out, and why, is in [LIMITATIONS.md](LIMITATIONS.md).
+The Rust crates that declare a scenario are translated to Lean by [hax](https://hax.cryspen.com/)'s Lean backend (Charon, then Aeneas), so that Lean can state and prove things about the code that runs, not about a transcription of it. This directory is the infrastructure: one command extracts and typechecks, and nothing it generates is committed. What is proved about the extractions is in [Proofs](#proofs). What the extractions leave out, and why, is in [LIMITATIONS.md](LIMITATIONS.md).
 
 Extracted today: every crate but the experimental ones (`experimental_*`), `allocator` and `lean_vrf`; `formal/extraction/report.sh` lists them. Adding a crate is a `hax.toml` beside its `Cargo.toml` ([Adding a crate](#adding-a-crate)).
 
@@ -34,7 +34,7 @@ formal/extraction/
   wire.py                                 wires every package into this workspace (run by hax.sh)
   report.sh                               what each extraction takes on trust, as a table
   CoreModelsExt/                          models of standard-library items the hax Lean library lacks
-  proofs/<crate>/                         proofs about an extraction, a Lake package of their own (proofs/lean_sphincs/README.md)
+  proofs/<crate>/                         proofs about an extraction, a Lake package of their own (each has a README.md)
   lakefile.toml, Extraction/              generated and gitignored: the workspace, written by wire.py
 ```
 
@@ -112,7 +112,7 @@ Then `formal/extraction/repair.py extract crates/<crate>`, which fills the two l
 
 ## Proofs
 
-`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), with no hypothesis: down to Keccak-f[1600], which it also checks against FIPS 202's through [hash-specs](https://github.com/Verified-zkEVM/hash-specs). Its README says what the theorem rests on and what proving it found. `hax.sh check` builds it, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares the theorem's axioms with the committed list.
+`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), and `proofs/lean_xmss` that leanXMSS's is `LeanXmss.verifyWithKeccak` (`formal/Statement/LeanXmss.lean`), each with no hypothesis: down to Keccak-f[1600]. What the two share is `proofs/keccak256`: that `keccak256::Hasher` computes the statement's Keccak-256, which it also checks against FIPS 202's through [hash-specs](https://github.com/Verified-zkEVM/hash-specs), and the Rust library models both step through. Each README says what its theorem rests on and what proving it found. `hax.sh check` builds every package under `proofs/`, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares its theorems' axioms with the committed list (`Axioms.lean`, `axioms`).
 
 ## Versions
 

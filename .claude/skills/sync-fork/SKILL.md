@@ -68,7 +68,7 @@ formal/extraction/hax.sh check
 
 What fails now is new Rust that Aeneas or Lean cannot take. `formal/extraction/repair.py extract <crate dir>...` moves it onto the scenario's `opaque` or `exclude` list and says what it moved; keep its output for the report. Two cautions:
 
-- **Do not let it make opaque anything a proof needs a body for.** Before running it on a crate that a proof package covers, list the extracted functions the proofs unfold (`grep -rhoE '\b(keccak256|lean_sphincs)\.[A-Za-z0-9_.]+' formal/extraction/proofs/*/` is a start). If one of them stops translating, that is a patch to write or extend (step 4 of `update-extraction`), not an opaque entry.
+- **Do not let it make opaque anything a proof needs a body for.** Before running it on a crate that a proof package covers, list the extracted functions the proofs unfold (`grep -rhoE '\b(keccak256|lean_sphincs|lean_xmss)\.[A-Za-z0-9_.]+' formal/extraction/proofs/*/` is a start). If one of them stops translating, that is a patch to write or extend (step 4 of `update-extraction`), not an opaque entry.
 - An entry for an item the proofs do not reach may stay opaque with its reason. Then try to win it back as `update-extraction` describes, cheapest fix first.
 
 ## 4. Repair the proofs
