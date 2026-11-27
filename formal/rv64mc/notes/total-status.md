@@ -108,6 +108,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 * `instance_weights` (140, `InstanceWeightsT.PostT`) gives the result `VecT` of `16` elements and its buffer fresh, not its values; its functional contract (`Spec.Keccak.InstanceWeights.Post`, `Model.instanceWeightsRust`) is owed: the powers' loop would carry `s^k` (`E::mul`'s partial postcondition, which its total contract keeps), the weights' loop the sums, whose functional contract `ESumEmbedBitsT.SumSafeT` does not state.
 * `Scaled::new` (96, `ScaledNewT.PostT`) gives the result `VecT` of `1408` elements and its buffer fresh, not the tables' values; its functional contract (`Spec.Field.Scaled.NewPost`, `Model.scaledNew`) is owed: the blocks' invariants would carry the xor tables.
 * `Subspace::new` (76, `SubspaceNewT.PostT`) gives both vectors `VecT` of `log_n + 1` elements and their buffers fresh, not their values; its functional contract (`Spec.Whir.Subspace.NewPost`, `Model.SubspaceRust.new`, with `log_n < 64`) is owed, over `subspace_roots`'s (owed above) and `K::inv`'s (kept by `KInvT.specT`).
+* `Input::digest` (5, `InputDigestT.InputDigestSpecT`) gives the reader `ReaderT` (`Input::word`'s total precondition) and the memory frame `DigestOut`, not the bytes stored nor the reader advanced by four words: its functional contract (`Spec.Runtime.InputDigestSpec`, `DigestPost`) is owed, by the 32 byte stores' `extractByte`s over `Input::word`'s `WordPost` (which `InputWordT` keeps).
 
 ## By function
 
@@ -148,7 +149,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 1 | 228 | `memmove` | 2 | A | yes | Proof/Runtime/MemWrappersT | MemT6a.memmoveWrapT (RuntimeT.memmove over MemT6a.memmoveT) | none |
 | 1 | 229 | `memset` | 2 | A | yes | Proof/Runtime/MemsetT, MemsetBytesT | RuntimeT.memset, VecT.memset | none |
 | 2 | 3 | `<alloc::raw_vec::RawVecInner>::try_allocate_in @verifier_rv64` | 47 | C | yes | Proof/Runtime/TryAllocateInT | AllocT.tryAllocateInRv64 | env |
-| 2 | 5 | `<verifier_rv64::Input>::digest` | 92 | C | no | - | - | - |
+| 2 | 5 | `<verifier_rv64::Input>::digest` | 92 | C | yes | Proof/Runtime/InputDigestT (safety; writes at most `DigestOut`, the reader kept `ReaderT`; cut after the calls and after the stores) | RuntimeT6f.inputDigest | none |
 | 2 | 13 | `core::panicking::panic_fmt` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicFmt | none |
 | 2 | 17 | `core::panicking::panic_nounwind_fmt` | 2 | A | yes | Proof/Runtime/PanicsT | RuntimeT.panicNounwindFmt | none |
 | 2 | 19 | `verifier::field::base_mul` | 8 | A | yes | Proof/Field/BaseMulT | FieldT.baseMul | clmul table |
