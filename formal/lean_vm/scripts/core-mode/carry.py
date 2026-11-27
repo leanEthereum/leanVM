@@ -397,16 +397,17 @@ def render():
         mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
         t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
         one = keys[a] if m == 1 and keys[a] in F and len(F[keys[a]]['body']) > NZ_MIN else None
-        t.append('public import LeanVM.Guest.CoreMode.Fam.%s\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
+        # the nonzero facts by the indexed check (`Fam/CarryIdx.lean`), equal to `carryNzG`
+        t.append('public import LeanVM.Guest.CoreMode.Fam.CarryIdx\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
                  'public section\n\ntheorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\n' % ('CarrySplit' if one else 'CarryDefs', a, a, m))
+                 '  unfold RangeOk; decide +kernel\n\n' % (a, a, m))
         if one:
             # its pass over its body in slices
             f, n = 'Fn.«%s».core' % one, len(F[one]['body'])
             cuts = sorted({n * c // NZ_N for c in range(NZ_N + 1)})
             for c in range(len(cuts) - 1):
-                t.append('theorem carryNz_%d_s%d : allBSlice (nzStmt (kvNz %s)) %s.body (spineE %s.body) %d %d = true := by\n'
-                         '  decide +kernel\n\n' % (a, c, f, f, f, cuts[c], cuts[c + 1]))
+                t.append('theorem carryNz_%d_s%d : allBSlice (nzStmt (kvNz %s)) %s.body (spineE %s.body) %d %d = true :=\n'
+                         '  allBSlice_nzStmtI (by decide +kernel)\n\n' % (a, c, f, f, f, cuts[c], cuts[c + 1]))
             prf = 'allB_drop_of_le (by decide +kernel)'
             for c in reversed(range(len(cuts) - 1)):
                 prf = 'allB_drop_of_slice (by decide) carryNz_%d_s%d\n      (%s)' % (a, c, prf)
@@ -414,8 +415,8 @@ def render():
                      '  rangeOk_one (f := %s) rfl <| carryNzG_of\n    (allB_of_drop_zero\n      (%s))\n'
                      '    (by decide +kernel) (by decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, f, prf))
         else:
-            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d := by\n'
-                     '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
+            t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
+                     '  rangeOk_carryNz (by unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]
