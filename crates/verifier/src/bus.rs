@@ -3,7 +3,7 @@
 use crate::field::{E, ONE, ZERO};
 use crate::layout::{
     BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, KECCAK_MIN_STEPS_LOG, Layout, MEMORY_0, MEMORY_1,
-    MEMORY_FINAL_COUNTERS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
+    MEMORY_FINAL_COUNTERS, PUSH_BLOCKS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Sizes, Table, constant, gpow,
 };
 use crate::multilinear::{
     Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
@@ -75,12 +75,15 @@ fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Resul
 }
 
 /// [`verify_bus_balance`]'s transcript alone, for a replay: where the bytecode sumcheck leaves the stacked bytecode.
-pub fn replay_bus(layout: &Layout, transcript: &mut Transcript) -> Result<Vec<E>, VerifierError> {
-    let depth = bus_layout(
-        &framework_log_rows(layout.log_memory, layout.log_bytecode),
-        &layout.push,
-    )
-    .depth;
+pub fn replay_bus(sizes: &Sizes, transcript: &mut Transcript) -> Result<Vec<E>, VerifierError> {
+    // The push side's blocks: the framework's, then each table's at its height.
+    let framework = framework_log_rows(sizes.log_memory, sizes.log_bytecode);
+    let tables = PUSH_BLOCKS
+        .iter()
+        .zip(&sizes.table_log_heights)
+        .flat_map(|(&n, &height)| [height].repeat(n));
+    let blocks: Vec<usize> = framework.into_iter().chain(tables).collect();
+    let depth = stack_offsets(&blocks).1;
     require(depth < 64, VerifierError::AnnouncedTableSizes)?;
     transcript.grind_check(bus_grinding_bits(depth))?;
     transcript.samples((1 << BUS_BITS) + 1); // the weights, then beta
@@ -102,7 +105,7 @@ pub fn replay_bus(layout: &Layout, transcript: &mut Transcript) -> Result<Vec<E>
     transcript.next_scalars(5)?;
     let slot_point = replay_sumcheck(transcript, 3, BUS_BITS, false)?;
     transcript.next_scalar()?;
-    Ok([&point[..layout.log_bytecode], &slot_point].concat())
+    Ok([&point[..sizes.log_bytecode], &slot_point].concat())
 }
 
 /// Where a side's blocks sit in the stacked leaf cube. Split by kind because framework coordinates are

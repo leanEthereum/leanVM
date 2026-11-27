@@ -49,7 +49,7 @@ use hash::{ROUNDS, STATE_LANES};
 use keccak::{KeccakShape, replay_keccak, verify_keccak};
 use layout::{
     BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, N_TABLES,
-    OP_KECCAK, QKECCAK, build_layout,
+    OP_KECCAK, QKECCAK, TABLE_WIDTHS, build_layout,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
@@ -281,7 +281,7 @@ fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result
         (MIN_LOG_INV_RATE as u64..=MAX_LOG_INV_RATE as u64).contains(&log_inverse_rate),
         VerifierError::PcsInverseRate,
     )?;
-    let layout = build_layout(bytecode, log_memory, &table_rows)?;
+    let layout = layout::sizes(bytecode.len(), log_memory, &table_rows)?;
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
         VerifierError::CommittedSize,
@@ -295,13 +295,12 @@ fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result
     let bytecode_point = replay_bus(&layout, &mut transcript)?;
 
     // The table sumcheck: xi, the rounds, each table's columns.
-    let n_constraints: usize = layout.tables.iter().map(|table| table.n_constraints()).sum();
-    transcript.grind_check(grinding_bits((n_constraints + N_TREES) as u128 - 1))?;
+    transcript.grind_check(grinding_bits((layout::N_CONSTRAINTS + N_TREES) as u128 - 1))?;
     transcript.sample();
     let n_rounds = layout.table_log_heights.iter().copied().max().unwrap_or(0);
     transcript::replay_sumcheck(&mut transcript, 4, n_rounds, false)?;
-    for table in &layout.tables {
-        transcript.next_scalars(table.width())?;
+    for width in TABLE_WIDTHS {
+        transcript.next_scalars(width)?;
     }
     transcript.sample(); // the public input's challenge
 
@@ -317,8 +316,8 @@ fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result
     let bus_claims = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS];
     let table_claims = GLOBAL_COLUMN_BASES
         .into_iter()
-        .zip(&layout.tables)
-        .flat_map(|(base, table)| base..base + table.width());
+        .zip(TABLE_WIDTHS)
+        .flat_map(|(base, width)| base..base + width);
     let public_claims = [MEMORY_0, MEMORY_1];
     let output_claim = (layout.keccak.segments() > 1).then_some(QKECCAK);
     let on_stack = bus_claims
