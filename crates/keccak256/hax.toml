@@ -1,5 +1,7 @@
 # The Lean extraction of this crate (formal/extraction/README.md), regenerated with
 # `formal/extraction/hax.sh extract` into proofs/keccak256/lean.
+# Proved: `Hasher`, as extracted, computes the statement's Keccak-256, in formal/extraction/proofs/keccak256
+# (see its README.md). A change here or to the patches can break that proof: `hax.sh check` builds it.
 [scenario.keccak256]
 backend = "lean"
 exclude = [

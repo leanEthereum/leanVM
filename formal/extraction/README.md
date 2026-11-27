@@ -1,6 +1,20 @@
-# Rust to Lean extraction
+# Rust to Lean extraction, and what is proved from it
 
-The Rust crates that declare a scenario are translated to Lean by [hax](https://hax.cryspen.com/)'s Lean backend (Charon, then Aeneas), so that Lean can state and prove things about the code that runs, not about a transcription of it. This directory is the infrastructure: one command extracts and typechecks, and nothing it generates is committed. What is proved about the extractions is in [Proofs](#proofs). What the extractions leave out, and why, is in [LIMITATIONS.md](LIMITATIONS.md).
+The Rust crates that declare a scenario are translated to Lean by [hax](https://hax.cryspen.com/)'s Lean backend (Charon, then Aeneas), so that Lean can state and prove things about the code that runs, not about a transcription of it. This directory holds what is proved that way, and the infrastructure under it: one command extracts and typechecks, and nothing it generates is committed. What the extractions leave out, and why, is in [LIMITATIONS.md](LIMITATIONS.md).
+
+## What is proved
+
+Both signature verifiers, as extracted, compute what the statement says, on every input and with no hypothesis:
+
+| crate | theorem | package |
+| --- | --- | --- |
+| `lean_xmss` | `lean_xmss.scheme.verify pk m sig = ok (LeanXmss.verifyWithKeccak ..)` (`formal/Statement/LeanXmss.lean`) | [`proofs/lean_xmss`](proofs/lean_xmss/README.md) |
+| `lean_sphincs` | `lean_sphincs.scheme.verify pk m sig = ok (Sphincs.verifyWithKeccak ..)` (`formal/Statement/LeanSphincs.lean`) | [`proofs/lean_sphincs`](proofs/lean_sphincs/README.md) |
+| `keccak256` | `keccak256::Hasher` computes the statement's Keccak-256, down to Keccak-f[1600]; and that Keccak-256 is FIPS 202's, through [hash-specs](https://github.com/Verified-zkEVM/hash-specs) | [`proofs/keccak256`](proofs/keccak256/README.md) |
+
+Each theorem depends on `propext`, `Classical.choice` and `Quot.sound` and nothing else. Each is about the Rust as patched for extraction (`crates/<crate>/proofs/<scenario>/patches`), and each package's README says what its theorem rests on, what it does not cover, and what proving it found. `hax.sh check` builds every package under `proofs/`, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares its theorems' axioms with the committed list (`Axioms.lean`, `axioms`).
+
+Two directories are called `proofs`. `crates/<crate>/proofs/` is hax's name for a crate's scenarios: the patches and the generated Lean. `formal/extraction/proofs/` is the theorems about that Lean.
 
 Extracted today: every crate but the experimental ones (`experimental_*`), `allocator` and `lean_vrf`; `formal/extraction/report.sh` lists them. Adding a crate is a `hax.toml` beside its `Cargo.toml` ([Adding a crate](#adding-a-crate)).
 
@@ -109,10 +123,6 @@ Then `formal/extraction/repair.py extract crates/<crate>`, which fills the two l
 - **The assumptions.** Opaque items are axioms with no body; the models in `CoreModelsExt` are as good as their definitions, and its `opaque`s are assumptions too.
 - **The patches.** The Lean describes the patched Rust; the tests are the evidence that it computes what the committed Rust does.
 - **The portable paths.** The SIMD and other hardware-specific code the crates run on x86-64 and aarch64 is not extracted.
-
-## Proofs
-
-`proofs/lean_sphincs` proves that leanSPHINCS's extracted `verify` is the statement's `Sphincs.verifyWithKeccak` (`formal/Statement/LeanSphincs.lean`), and `proofs/lean_xmss` that leanXMSS's is `LeanXmss.verifyWithKeccak` (`formal/Statement/LeanXmss.lean`), each with no hypothesis: down to Keccak-f[1600]. What the two share is `proofs/keccak256`: that `keccak256::Hasher` computes the statement's Keccak-256, which it also checks against FIPS 202's through [hash-specs](https://github.com/Verified-zkEVM/hash-specs), and the Rust library models both step through. Each README says what its theorem rests on and what proving it found. `hax.sh check` builds every package under `proofs/`, scans it for escapes (`sorry`, `native_decide`, `bv_decide`, `axiom`, set options) and compares its theorems' axioms with the committed list (`Axioms.lean`, `axioms`).
 
 ## Versions
 

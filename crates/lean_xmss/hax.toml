@@ -1,5 +1,7 @@
 # The Lean extraction of this crate (formal/extraction/README.md), regenerated with
 # `formal/extraction/hax.sh extract` into proofs/lean-xmss/lean.
+# Proved: `verify`, as extracted, is the statement's, in formal/extraction/proofs/lean_xmss
+# (see its README.md). A change here or to the patches can break that proof: `hax.sh check` builds it.
 [scenario.lean-xmss]
 backend = "lean"
 opaque = [

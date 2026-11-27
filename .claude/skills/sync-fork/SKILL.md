@@ -73,7 +73,7 @@ What fails now is new Rust that Aeneas or Lean cannot take. `formal/extraction/r
 
 ## 4. Repair the proofs
 
-`hax.sh check` builds every package under `formal/extraction/proofs/` and stops at the first error. For a faster loop, in the package:
+`hax.sh check` builds every package under `formal/extraction/proofs/` and stops at the first error. There are three: `keccak256` (the hasher down to Keccak-f[1600], and the lemmas about the Rust library models that the others share), and `lean_sphincs` and `lean_xmss` (each scheme's `verify`), which require it by path. Repair `keccak256` first: an error there shows up in all three. For a faster loop, in the package:
 
 ```bash
 cd formal/extraction/proofs/<package>
@@ -96,6 +96,7 @@ Rules that do not bend:
 - **The top-level theorems keep their statements and stay hypothesis-free.** Do not add a hypothesis, weaken a conclusion, or restrict the inputs to make a proof go through. If a statement has to change, say so in the report, with the reason.
 - No `sorry`, `admit`, `axiom`, `native_decide`, `bv_decide`, `unsafe`, `implemented_by` or `set_option` in a proof package: `hax.sh check` rejects them. For bitvector goals use the kernel-checked `bv_bits` macro in `Common.lean`.
 - The axioms of each theorem named in a package's `Axioms.lean` must stay those in its `axioms` file (`propext`, `Classical.choice`, `Quot.sound`). Regenerate that file only when a theorem was added or renamed, never to accept a new axiom.
+- Do not run `lake update` in a proof package: it can move the pins the extraction workspace shares. The packages' `lake-manifest.json` files are edited by hand to match `formal/extraction/CoreModelsExt/lake-manifest.json`.
 - Never edit generated Lean (anything under a crate's `proofs/<scenario>/lean/`).
 - No new warnings from the package's own files. Fix them with the fix the linter prints; never silence one.
 
