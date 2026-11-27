@@ -38,9 +38,9 @@ frame run (`addr`) its consecutive cells.
 
 A `match` of many straight-line arms (`__loop2_main`'s dispatches on a codeword, `256` inlined arms)
 naming more values than one kernel evaluation should hold (`groupVals`) is a window of its own:
-its three checks are split into groups of `armGroup` arms, sized by the values they name
-(`splitOf`; `Check.checkWinS`, `B2C.shareWinS`,
-`B2C.cplWinS`), the window's check from its groups' in a module (`Checked/F*`, `B2C/Shared/T*`,
+its three checks are split into groups of `armGroup` arms, sized by the values they name, the
+completeness check's smaller (`splitOf`, `cplVals`;
+`Check.checkWinS`, `B2C.shareWinS`, `B2C.cplWinS`), the window's check from its groups' in a module (`Checked/F*`, `B2C/Shared/T*`,
 `B2C/Cplw/E*`) that checks the groups too when they fit it (`groupsPerFile`), else imports them
 from modules of their own (`Checked/G*`, `B2C/Shared/H*`, `B2C/Cplw/D*`), what the groups share
 computed once (`Checked/X*`, `B2C.winPre`), chained `match`es (`__loop2_main`'s, whose arms jump to
@@ -1218,15 +1218,19 @@ def maxGroup : ℕ := 32
 values). -/
 def bigArms : ℕ := 64
 
+/-- The values the arms of a group of the completeness check (`B2C.cplWinS`) name at most
+(`armGroup`): its kernel time grows faster than its values, so its groups are smaller than the
+soundness check's, whose time grows with its values and whose fixed part is the larger. -/
+def cplVals : ℕ := 1024
+
 /-- The arms per group of a split `match` whose arms name `vals` values of their own, `n` arms:
-the largest power of two, at most `maxGroup`, whose arms name at most `groupVals` values on
-average. -/
-def armGroup (vals n : ℕ) : ℕ :=
+the largest power of two, at most `maxG`, whose arms name at most `gv` values on average. -/
+def armGroup (maxG gv vals n : ℕ) : ℕ :=
   let per := max 1 (vals / max 1 n)
   let rec grow (g : ℕ) : ℕ → ℕ
     | 0 => g
-    | fuel + 1 => if 2 * g ≤ maxGroup && 2 * g * per ≤ groupVals then grow (2 * g) fuel else g
-  grow 1 maxGroup
+    | fuel + 1 => if 2 * g ≤ maxG && 2 * g * per ≤ gv then grow (2 * g) fuel else g
+  grow 1 maxG
 
 /-- The instructions a window runs over at most, when a function is cut for its size; `coarse`,
 the larger windows for a function whose sharing check needs them. -/
@@ -3061,14 +3065,16 @@ def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 /-- The groups of a window that is one `match` of more than `bigArms` straight-line arms naming
 more than `groupVals` values of the window: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
 ranges of the window's cells they name (offsets in the window), each value the group names in a
-range or below the window (`ins`). `[]` for any other window. -/
-def splitOf (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) : List (ℕ × ℕ × List (ℕ × ℕ)) :=
+range or below the window (`ins`), the arms of a group naming at most `gv` values on average
+(`armGroup`). `[]` for any other window. -/
+def splitOf (maxG : ℕ) (cf : Core.Fn) (start stop lo : ℕ) (ins : List ℕ) (gv : ℕ := groupVals) :
+    List (ℕ × ℕ × List (ℕ × ℕ)) :=
   let isAtom : Core.Stmt → Bool := fun | .atom _ => true | _ => false
   match (cf.body.drop start).take (stop - start) with
   | [.match_ _ (a0 :: as)] =>
     let own (a : List Core.Stmt) : List ℕ := ((Check.stmtsVals a).map (·.idx)).filter (lo ≤ ·)
     let vals := (as.map fun a => (own a).length).foldl (· + ·) 0
-    let armGroup := armGroup vals as.length
+    let armGroup := armGroup maxG gv vals as.length
     if as.length ≤ bigArms || vals ≤ groupVals || !(a0 :: as).all (·.all isAtom) then []
     else
       let span (vs : List ℕ) : Option (ℕ × ℕ) := match vs with
@@ -4251,6 +4257,8 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
   let mut cplFns : Array CplK.FnParts := #[]
   let mut armRows : Array (Array (ℕ × List (List ℕ))) := #[#[]]
   let mut splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
+  -- the completeness check's groups of the same windows, smaller (`cplVals`)
+  let mut cplSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut shareSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut bigStatics : Std.HashMap ℕ (Array ℕ × List ℕ) := {}
   let mut chainedFns : Array (ℕ × String × ℕ) := #[]
@@ -4269,9 +4277,11 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       let sp := (List.range nw).filterMap fun w =>
         let a := starts[w]!
         let b := if w + 1 < nw then starts[w + 1]! else cf.body.length
-        match splitOf cf a b los[w]! ((insW[w]!).map (·.1)) with
+        match splitOf maxGroup cf a b los[w]! ((insW[w]!).map (·.1)) with
         | [] => none
-        | gs => some (w, gs)
+        | gs => some (w, gs, match splitOf maxGroup cf a b los[w]! ((insW[w]!).map (·.1)) cplVals with
+          | [] => gs
+          | cs => cs)
       -- the sharing windows of one `match` split by arms, chained or not (`B2C.shareWinS` reads no
       -- code): those whose statements are such a soundness window's, neither the first nor the last
       let ssp := (wpos.zipIdx).filterMap fun ((a, w), k) =>
@@ -4279,7 +4289,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
           | some (b, _) => b
           | none => cf.body.length
         if k == 0 || k + 1 ≥ wpos.length || starts[w]! != a || b != a + 1 then none
-        else match splitOf cf a b los[w]! ((insW[w]!).map (·.1)) with
+        else match splitOf maxGroup cf a b los[w]! ((insW[w]!).map (·.1)) with
           | [] => none
           | gs => some (k, gs)
       -- the bit sets of the values' cells, window by window
@@ -4303,7 +4313,9 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       t.get
     certs := certs.push c
     if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
-    for (w, gs) in sp do splits := splits.insert (i + 1, w) gs
+    for (w, gs, cs) in sp do
+      splits := splits.insert (i + 1, w) gs
+      cplSplits := cplSplits.insert (i + 1, w) cs
     for (k, gs) in ssp do shareSplits := shareSplits.insert (i + 1, k) gs
     armRows := armRows.push acs
     if let some fp := parts then cplFns := cplFns.push fp
@@ -4433,7 +4445,7 @@ noncomputable def certs : List Check.Cert :=
     (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked ++
     sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue
       (fun j => infos[j]!.key) ++
-    CplK.cplFiles (cplFns.toList.filter (special ·.j)) splits P.length cplGlue (fun j => infos[j]!.key) ++
+    CplK.cplFiles (cplFns.toList.filter (special ·.j)) cplSplits P.length cplGlue (fun j => infos[j]!.key) ++
     [(dataDir / "CplArms.lean", armsText)] ++ CplK.chainedFiles chainedFns.toList (fun j => infos[j]!.key) ++ packed
 
 /-- `text` with the linters off after its imports, unless it turns them off itself: they find nothing
