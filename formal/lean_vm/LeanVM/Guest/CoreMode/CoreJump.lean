@@ -128,7 +128,7 @@ theorem entOk_spec {X : AlignCtx} {t : ℕ} {f : String} (h : X.entOk t f = true
   unfold AlignCtx.entOk at h
   split at h
   · rename_i f' hf'
-    rw [hf', beq_iff_eq.mp h]
+    rw [hf', nameEq_iff.mp h]
   · cases h
 
 theorem jumpCallOk_spec {Cf : CFun} {oc od of t : ℕ} {f : String} (h : jumpCallOk Cf (.jump oc od of) = true)

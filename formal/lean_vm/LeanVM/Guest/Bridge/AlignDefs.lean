@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Bridge.Defs
 public import LeanVM.Guest.Check
+public import LeanVM.Guest.NameIx
 import LeanVM.Guest.StmtsAppend
 
 /-!
@@ -230,9 +231,9 @@ noncomputable def siteAt (q : ℕ) (args rets : List V) : Option B2C.Site := mat
   | some s => bif s.args == args.map (·.idx) && s.rets == rets.map (·.idx) then some s else none
   | none => none
 
-/-- `f` is the callee of entry `t`. -/
+/-- `f` is the callee of entry `t`, names compared by their codes (`nameEq`). -/
 noncomputable def entOk (t : ℕ) (f : String) : Bool := match getF X.ents t with
-  | some f' => f' == f
+  | some f' => nameEq f' f
   | none => false
 
 /-- A pc of the function past offset `i`, as an offset. -/
