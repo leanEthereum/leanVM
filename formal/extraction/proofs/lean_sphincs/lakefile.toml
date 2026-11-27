@@ -1,0 +1,39 @@
+# The proofs about the extraction of `crates/lean_sphincs`: that the Rust `verify`, as extracted,
+# computes the statement's `Sphincs.verifyWithKeccak` (formal/Statement/LeanSphincs.lean).
+# The extraction itself is generated (`formal/extraction/hax.sh extract`) before this builds.
+name = "LeanSphincsProofs"
+defaultTargets = ["LeanSphincsProofs"]
+packagesDir = "../../.lake/packages"
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "LeanSphincsProofs"
+
+# Stated first so that the extraction's own requirement of the pinned build resolves to it
+# (formal/extraction/CoreModelsExt/lakefile.toml).
+[[require]]
+name = "aeneas"
+git = "https://github.com/dhsorens/aeneas"
+rev = "9a84788c8722241fa36a6bd64ded315e8b7ac832"
+subDir = "backends/lean"
+
+# What the scheme crates' proofs share: the hasher down to Keccak-f[1600], the library models.
+[[require]]
+name = "Keccak256Proofs"
+path = "../keccak256"
+
+[[require]]
+name = "LeanSphincs"
+path = "../../../../crates/lean_sphincs/proofs/lean-sphincs/lean"
+
+[[require]]
+name = "statement"
+path = "../../../Statement"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.36.0"
