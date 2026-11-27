@@ -26,7 +26,7 @@ use tree::*;
 use wots::*;
 
 #[cfg(feature = "std")]
-pub use scheme::{LeanXmssExpandedSecretKey, MAX_CACHED_BOTTOM_TREES, key_gen, sign};
+pub use scheme::{DEFAULT_BOTTOM_TREE_CACHE_SIZE, LeanXmssExpandedSecretKey, key_gen, sign};
 pub use scheme::{LeanXmssPublicKey, LeanXmssSignature, verify};
 
 /// How many bytes in a [`SecretKey`].
@@ -65,11 +65,11 @@ pub(crate) const LAYER_SIG_SIZE: usize = RANDOMIZER_LEN + V * N + LAYER_HEIGHT *
 /// The leaf index, then the bottom layer's signature, then the top one's.
 pub const SIG_SIZE: usize = LEAF_INDEX_SIZE + 2 * LAYER_SIG_SIZE;
 
-/// The scheme's parameters and building blocks, for the aggregation guest and the test vectors. Not
-/// the API: that is the crate root.
+/// The scheme's parameters, building blocks and cache layout, for the aggregation guest and the tests.
+/// Not the API: that is the crate root.
 pub mod internals {
     pub use crate::hash::*;
-    pub use crate::scheme::{LayerSignature, layer_root};
+    pub use crate::scheme::{CACHED_BOTTOM_SIZE, CACHED_TREE_SIZE, LayerSignature, layer_root};
     pub use crate::wots::*;
     use crate::{LeanXmssPublicKey, LeanXmssSignature};
 

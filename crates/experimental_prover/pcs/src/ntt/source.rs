@@ -48,7 +48,8 @@ impl<'a> Source<'a> {
     pub(super) fn transpose_into(self, win: &mut Window, log_rows: usize) -> Self {
         let Source::Lanes(lanes) = self else { return self };
         let num_ntts = win.num_ntts();
-        let out = &mut win.words_mut()[..num_ntts << log_rows];
+        // SAFETY: the transpose writes message words only.
+        let out = &mut unsafe { win.uninit_mut() }[..num_ntts << log_rows];
         transpose_lane_major(out, lanes.words, lanes.n_lanes, num_ntts, log_rows);
         Source::InPlace
     }
@@ -94,8 +95,8 @@ fn replicate(win: &mut Window, msg: Option<&[F64]>, msg_len: usize) {
         // - Only this task writes this range.
         // - The range skips replica 0, so it never overlaps a message stored there.
         unsafe {
-            let src = std::slice::from_raw_parts(msg.add(start), len);
-            dst.slice(replica * msg_len + start, len).copy_from_slice(src);
-        }
+            dst.add(replica * msg_len + start)
+                .copy_from_nonoverlapping(msg.add(start), len)
+        };
     });
 }

@@ -13,8 +13,8 @@ fn parallel_eq_table_matches_serial() {
         let serial = eq_table_serial(&point);
         assert_eq!(eq_table(&point), serial, "mismatch at n={n}");
         let g = rng.ext();
-        let mut seeded = vec![F128::ZERO; 1 << n];
-        fill_eq_table(&point, g, &mut seeded);
+        // SAFETY: `fill_eq_table` writes every element.
+        let seeded = unsafe { primitives::filled_vec(1 << n, |out| fill_eq_table(&point, g, out)) };
         let scaled: Vec<F128> = serial.iter().map(|&e| g * e).collect();
         assert_eq!(seeded, scaled, "seeded mismatch at n={n}");
     }

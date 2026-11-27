@@ -5,6 +5,7 @@ from typing import final
 
 __all__ = [
     "__version__",
+    "PROTOCOL_VERSION",
     "LeanPqError",
     "XmssSecretKey",
     "SphincsSecretKey",
@@ -18,6 +19,8 @@ __all__ = [
 ]
 
 __version__: str
+# Proofs and signatures are compatible only between builds with the same protocol version.
+PROTOCOL_VERSION: int
 
 class LeanPqError(Exception): ...
 
@@ -36,6 +39,7 @@ class XmssSecretKey:
     @property
     def public_key(self) -> bytes: ...
     def prepare(self, leaf_index: int) -> None: ...
+    def set_bottom_tree_cache_size(self, size: int) -> None: ...
     def sign(self, message: bytes, leaf_index: int) -> bytes: ...
 
 @final

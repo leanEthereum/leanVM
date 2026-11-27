@@ -13,6 +13,7 @@ use std::fmt;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::OnceLock;
 
+pub use lean_vm::PROTOCOL_VERSION;
 use lean_vm::{AggregateClaims, AggregateProof, OutputClaims, MAX_RECURSIONS};
 
 use crate::{sphincs, xmss, Error, Message};

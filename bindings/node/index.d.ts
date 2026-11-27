@@ -27,6 +27,7 @@ export declare class XmssSecretKey {
   cacheToBytes(): Buffer
   get publicKey(): Buffer
   prepare(leafIndex: number): Promise<void>
+  setBottomTreeCacheSize(size: number): void
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
 }
 
@@ -43,6 +44,9 @@ export interface Claim {
 export declare function generateSphincsSecretKey(): Promise<SphincsSecretKey>
 
 export declare function generateXmssSecretKey(): Promise<XmssSecretKey>
+
+/** Proofs and signatures are compatible only between builds with the same protocol version. */
+export const PROTOCOL_VERSION: number
 
 export declare function setup(threads?: number | undefined | null): Promise<void>
 

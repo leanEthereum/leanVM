@@ -12,7 +12,7 @@ pub mod vrf;
 pub mod xmss;
 
 #[cfg(feature = "aggregation")]
-pub use aggregate::{aggregate, aggregate_only, setup, Aggregate, MAX_CHILDREN};
+pub use aggregate::{aggregate, aggregate_only, setup, Aggregate, MAX_CHILDREN, PROTOCOL_VERSION};
 pub use error::{Encoding, Error};
 
 /// Byte length of a message, the 256-bit digest both schemes sign.

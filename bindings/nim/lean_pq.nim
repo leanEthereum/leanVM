@@ -261,6 +261,13 @@ proc prepare*(key: XmssSecretKey, leafIndex: uint32): Result[void, string] =
   let handle = ? key.nativeHandle()
   check(lpqXmssSecretKeyPrepare(handle, leafIndex))
 
+proc setBottomTreeCacheSize*(key: XmssSecretKey, size: int): Result[void, string] =
+  ## Sets how many recently used bottom trees the key caches, 8 by default.
+  if size < 0:
+    return err("size must not be negative")
+  let handle = ? key.nativeHandle()
+  check(lpqXmssSecretKeySetBottomTreeCacheSize(handle, csize_t(size)))
+
 proc sign*(
     key: XmssSecretKey, message: LeanPqMessage, leafIndex: uint32
 ): Result[XmssSignature, string] =
@@ -410,6 +417,10 @@ proc vrfVerify*(root: VrfRoot, slot: uint64, proof: VrfProof): bool =
 ##############################################################
 # Aggregation
 ##############################################################
+
+proc leanPqProtocolVersion*(): uint32 =
+  ## Proofs and signatures are compatible only between builds with the same protocol version.
+  lpqProtocolVersion()
 
 proc leanPqSetup*(threads: int): Result[void, string] =
   ## Starts the prover on `threads` threads (0: one per physical core). Fails if the prover already runs

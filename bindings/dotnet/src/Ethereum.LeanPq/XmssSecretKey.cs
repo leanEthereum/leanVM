@@ -67,6 +67,14 @@ public sealed unsafe class XmssSecretKey : IDisposable
     /// <summary>Precomputes the signing state for <paramref name="leafIndex"/> so a later <see cref="Sign"/> is fast.</summary>
     public void Prepare(uint leafIndex) => Native.Check(Native.XmssPrepare(_handle, leafIndex));
 
+    /// <summary>Sets how many recently used bottom trees the key caches, 8 by default.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is negative.</exception>
+    public void SetBottomTreeCacheSize(int size)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(size);
+        Native.Check(Native.XmssSetBottomTreeCacheSize(_handle, (nuint)size));
+    }
+
     /// <summary>Signs a 32-byte message at a leaf index, returning a 2404-byte signature.</summary>
     /// <exception cref="ArgumentException">The message is not 32 bytes.</exception>
     public byte[] Sign(ReadOnlySpan<byte> message, uint leafIndex)

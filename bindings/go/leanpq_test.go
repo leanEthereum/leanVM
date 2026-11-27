@@ -64,6 +64,9 @@ func TestXmssKeyLoadsFromItsTreeCache(t *testing.T) {
 	seed := bytes32(8)
 
 	key := mustXmssKey(t, seed)
+	if err := key.SetBottomTreeCacheSize(2); err != nil {
+		t.Fatal(err)
+	}
 	if err := key.Prepare(3); err != nil {
 		t.Fatal(err)
 	}
@@ -405,6 +408,12 @@ func TestRejectsEmptyAggregation(t *testing.T) {
 	if aggregate, err := AggregateSignatures(nil, nil, nil); err == nil {
 		aggregate.Close()
 		t.Fatal("an aggregation of nothing must fail")
+	}
+}
+
+func TestProtocolVersion(t *testing.T) {
+	if ProtocolVersion() < 1 {
+		t.Fatal("the protocol version starts at 1")
 	}
 }
 

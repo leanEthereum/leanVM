@@ -1,5 +1,7 @@
 //! The buffer under transform: the DRAM intermediate of an encode, or half of it.
 
+use std::mem::MaybeUninit;
+
 use primitives::field::F64;
 
 /// Buffers of at least this many words get streaming stores for data a pass does not read back.
@@ -17,15 +19,23 @@ pub(super) const STREAM_MIN_WORDS: usize = 1 << 23;
 /// - It owns `first_row`, which shifts every row and block index to its place in the whole domain.
 /// - It owns `stream`: a buffer this large is evicted before the next pass reads it back.
 /// - Tasks write disjoint pieces through [`Window::base`], so they never hold the `&mut`.
+/// - Its words may not be written yet: the first pass writes every one.
 pub(super) struct Window<'a> {
-    words: &'a mut [F64],
+    words: &'a mut [MaybeUninit<F64>],
     num_ntts: usize,
     first_row: usize,
     stream: bool,
 }
 
 impl<'a> Window<'a> {
+    /// A window over words already written.
     pub(super) fn new(words: &'a mut [F64], num_ntts: usize, first_row: usize) -> Self {
+        // SAFETY: a window writes nothing but words.
+        Self::uninit(unsafe { primitives::as_uninit_mut(words) }, num_ntts, first_row)
+    }
+
+    /// A window over words not yet written.
+    pub(super) fn uninit(words: &'a mut [MaybeUninit<F64>], num_ntts: usize, first_row: usize) -> Self {
         assert!(num_ntts > 0);
         assert_eq!(words.len() % num_ntts, 0);
         let stream = words.len() >= STREAM_MIN_WORDS;
@@ -60,13 +70,28 @@ impl<'a> Window<'a> {
         self.words.len()
     }
 
-    pub(super) fn words_mut(&mut self) -> &mut [F64] {
+    /// The words, for a writer of the first pass.
+    ///
+    /// # Safety
+    ///
+    /// The window may be over words already written ([`Window::new`]): the caller writes only initialized words.
+    pub(super) unsafe fn uninit_mut(&mut self) -> &mut [MaybeUninit<F64>] {
         self.words
+    }
+
+    /// The words, once written.
+    ///
+    /// # Safety
+    ///
+    /// Every word is written.
+    pub(super) unsafe fn words_mut(&mut self) -> &mut [F64] {
+        // SAFETY: by the caller's contract.
+        unsafe { self.words.assume_init_mut() }
     }
 
     /// The first word, for tasks that write disjoint pieces of the buffer.
     pub(super) fn base(&mut self) -> parallel::SendPtr<F64> {
-        parallel::SendPtr(self.words.as_mut_ptr())
+        parallel::SendPtr(self.words.as_mut_ptr().cast())
     }
 
     /// The first word of row `r` of layer block `block`, in a buffer of blocks of `block_rows` rows.

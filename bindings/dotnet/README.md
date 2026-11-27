@@ -8,7 +8,7 @@ NuGet, `Ethereum.LeanPq`, .NET 10. The namespace is `Ethereum.PostQuantum`.
 
 <!-- x-release-please-start-version -->
 ```sh
-dotnet add package Ethereum.LeanPq --version 0.18.0
+dotnet add package Ethereum.LeanPq --version 0.19.0
 ```
 <!-- x-release-please-end -->
 
@@ -32,7 +32,7 @@ bool sphincsValid = LeanPq.SphincsVerify(sphincs.GetPublicKey(), message32, sphi
 
 - Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes. Byte inputs are `ReadOnlySpan<byte>`, so arrays, slices and stack buffers all work.
 - `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate` are `IDisposable`: use `using`. A call on a disposed one throws `ObjectDisposedException`.
-- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `Prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `Prepare(leafIndex)` builds a leaf's signing state ahead of time, and `SetBottomTreeCacheSize(size)` sets how many recently used bottom trees the key keeps, 8 by default.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `ToBytes()` is the key's 32-byte seed, which is secret; `FromBytes` restores the key.
 - `CacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.FromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.

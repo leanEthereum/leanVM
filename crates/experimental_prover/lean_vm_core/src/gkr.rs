@@ -9,6 +9,7 @@
 //! With VPCLMULQDQ the large rounds run eight pairs of rows at a time in transposed form
 //! (`vertical`), and skip the runs of rows known to be the identity.
 
+use std::mem::MaybeUninit;
 use std::ops::Range;
 
 use crate::PAR_THRESHOLD;
@@ -38,9 +39,10 @@ fn sum_tasks(tasks: usize, parallel: bool, f: impl Fn(usize) -> [F128; 4] + Sync
     }
 }
 
-/// `out[i] = ∏ current[4i..4i+4]`, for `out.len() == current.len() / 4`.
-pub(crate) fn products_into(current: &[F128], out: &mut [F128]) {
-    debug_assert_eq!(out.len(), current.len() / 4);
+/// `out[i] = ∏ current[4i..4i+4]`, for `out.len() == current.len() / 4`. Returns `out`, written.
+pub(crate) fn products_into<'o>(current: &[F128], out: &'o mut [MaybeUninit<F128>]) -> &'o mut [F128] {
+    // The kernels below write `out` by its own length, which `assume_init_mut` then trusts.
+    assert_eq!(out.len(), current.len() / 4, "a product per four-tuple");
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     let done = vertical::products_into(current, out);
     #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
@@ -50,19 +52,16 @@ pub(crate) fn products_into(current: &[F128], out: &mut [F128]) {
             [current[4 * row], current[4 * row + 2]],
             [current[4 * row + 1], current[4 * row + 3]],
         );
-        *slot = left * right;
+        slot.write(left * right);
     }
+    // SAFETY: the vertical kernel wrote the first `done` slots, and the loop every one after them.
+    unsafe { out.assume_init_mut() }
 }
 
-/// A level of `n` values, with room for the identity tuple tail the layer state pads it to,
-/// so that padding never reallocates and copies the level.
-///
-/// # Safety
-///
-/// The caller writes every value of `0..n` before anything reads it.
-pub(crate) unsafe fn level(n: usize) -> Vec<F128> {
-    // SAFETY: forwarded to the caller.
-    let mut values = unsafe { primitives::uninit_vec(n.next_multiple_of(4)) };
+/// A level of `n` values, not yet written, with room for the identity tuple tail the layer
+/// state pads it to, so that padding never reallocates and copies the level.
+pub(crate) fn level(n: usize) -> Vec<MaybeUninit<F128>> {
+    let mut values = primitives::uninit_vec(n.next_multiple_of(4));
     values.truncate(n);
     values
 }
@@ -73,15 +72,14 @@ fn next_level(current: &[F128]) -> Vec<F128> {
     /// Rows per task, staged before they are published.
     const ROWS: usize = 1 << 9;
     let full_rows = current.len() / 4;
-    // SAFETY: the products below write `next[..full_rows]`, and the tail its last slot.
-    let mut next = unsafe { level(current.len().div_ceil(4)) };
+    let mut next = level(current.len().div_ceil(4));
     if full_rows >= PAR_THRESHOLD {
         // The next level and the GKR read the output long after this pass evicts it.
         parallel::chunks_mut(&mut next[..full_rows], ROWS, |task, destination| {
-            let mut stage = [F128::ZERO; ROWS];
+            let mut stage = [MaybeUninit::uninit(); ROWS];
             let stage = &mut stage[..destination.len()];
             let start = 4 * ROWS * task;
-            products_into(&current[start..start + 4 * stage.len()], stage);
+            let stage = products_into(&current[start..start + 4 * stage.len()], stage);
             Stream::new().copy(destination, stage);
         });
     } else {
@@ -91,9 +89,10 @@ fn next_level(current: &[F128]) -> Vec<F128> {
     if !tail.is_empty() {
         let child = |index| tail.get(index).copied().unwrap_or(F128::ONE);
         let [left, right] = mul2([child(0), child(2)], [child(1), child(3)]);
-        next[full_rows] = left * right;
+        next[full_rows].write(left * right);
     }
-    next
+    // SAFETY: the products wrote `next[..full_rows]`, and the tail its last slot, if any.
+    unsafe { primitives::assume_init_vec(next) }
 }
 
 /// A tree's leaves, with the two levels above them, which the leaf builder forms while
@@ -272,9 +271,9 @@ struct QuaternaryLayerState {
     logical_rows: usize,
     /// Once folded by the vertical kernels, the rows live here instead of in `values`.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    groups: Vec<vertical::Group>,
+    groups: Vec<MaybeUninit<vertical::Group>>,
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    spare: Vec<vertical::Group>,
+    spare: Vec<MaybeUninit<vertical::Group>>,
     /// Runs of rows known to be the identity, sorted: the kernels skip them, and
     /// the vertical ones leave their groups unwritten.
     ones: Vec<Range<usize>>,
@@ -315,7 +314,7 @@ impl QuaternaryLayerState {
 
     /// The vertical kernels' view of the rows, and the buffer the fold writes.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
-    fn split(&mut self) -> (vertical::Input<'_>, &mut Vec<vertical::Group>) {
+    fn split(&mut self) -> (vertical::Input<'_>, &mut Vec<MaybeUninit<vertical::Group>>) {
         let data = if self.groups.is_empty() {
             vertical::Data::Rows(&self.values)
         } else {
@@ -372,9 +371,7 @@ impl QuaternaryLayerState {
         let stored_rows = self.values.len() / 4;
         let full_rows = stored_rows / 2;
         let rows = stored_rows.div_ceil(2);
-        // SAFETY: the windows below write every slot of `next[..4 * full_rows]` and the
-        // tail block the odd row, before anything reads it.
-        let mut next: Vec<F128> = unsafe { primitives::uninit_vec(4 * rows) };
+        let mut next = primitives::uninit_vec::<F128>(4 * rows);
         let values = &self.values;
         let identity = coarsen(&self.ones, 1);
         let fold_row = |row: usize, one: bool| -> [F128; 4] {
@@ -397,7 +394,7 @@ impl QuaternaryLayerState {
         // Where it does not, the stage buys nothing and costs a real call, the
         // `slot.len()` being one the compiler cannot fold away.
         #[cfg(target_arch = "x86_64")]
-        let window = |base: usize, destination: &mut [F128]| {
+        let window = |base: usize, destination: &mut [MaybeUninit<F128>]| {
             let stream = Stream::new();
             let mut rows = folded(base, destination.len() / 4);
             for slot in destination.chunks_mut(8) {
@@ -409,10 +406,10 @@ impl QuaternaryLayerState {
             }
         };
         #[cfg(not(target_arch = "x86_64"))]
-        let window = |base: usize, destination: &mut [F128]| {
+        let window = |base: usize, destination: &mut [MaybeUninit<F128>]| {
             let rows = folded(base, destination.len() / 4);
             for (slot, row) in destination.chunks_mut(4).zip(rows) {
-                slot.copy_from_slice(&row);
+                slot.write_copy_of_slice(&row);
             }
         };
         if full_rows >= PAR_THRESHOLD {
@@ -430,10 +427,11 @@ impl QuaternaryLayerState {
                 [challenge; 4],
             );
             for child in 0..4 {
-                next[4 * full_rows + child] = self.values[lo + child] + folds[child];
+                next[4 * full_rows + child].write(self.values[lo + child] + folds[child]);
             }
         }
-        self.values = next;
+        // SAFETY: the windows wrote every slot of `next[..4 * full_rows]`, and the tail block the odd row.
+        self.values = unsafe { primitives::assume_init_vec(next) };
         self.logical_rows /= 2;
         self.ones = identity;
     }
@@ -441,8 +439,7 @@ impl QuaternaryLayerState {
     fn fold_and_message_scalar(&mut self, challenge: F128, eq: &SplitEq) -> [F128; 4] {
         let stored_rows = self.values.len() / 4;
         let rows = stored_rows.div_ceil(2);
-        // SAFETY: the tasks below write every slot of `next[..4 * rows]` before anything reads it.
-        let mut next: Vec<F128> = unsafe { primitives::uninit_vec(4 * rows) };
+        let mut next = primitives::uninit_vec::<F128>(4 * rows);
         let values = &self.values;
         // Rows of the folded layer, and pairs of them, known to be the identity.
         let identity = coarsen(&self.ones, 1);
@@ -486,12 +483,13 @@ impl QuaternaryLayerState {
             // The next round reads the destination; this round reads only the local stage.
             let stream = Stream::new();
             let len = 4 * (end_row - 2 * first);
-            // SAFETY: tasks own disjoint initialized prefixes of the output, covering every row.
+            // SAFETY: tasks own disjoint ranges of the output.
             unsafe { stream.copy(dst.slice(8 * first, len), &stage[..len]) };
             message
         };
         let message = sum_tasks(pairs.div_ceil(PAIRS), rows >= PAR_THRESHOLD, task);
-        self.values = next;
+        // SAFETY: the tasks' rows `2 * first..end_row` cover every row of `next`, each written in full.
+        self.values = unsafe { primitives::assume_init_vec(next) };
         self.logical_rows /= 2;
         self.ones = identity;
         message
@@ -551,6 +549,7 @@ mod vertical {
         }
     }
     use primitives::stream::Stream;
+    use std::mem::MaybeUninit;
     use std::ops::Range;
 
     /// Whether `ones` covers `rows`.
@@ -680,7 +679,8 @@ mod vertical {
 
     pub(super) enum Data<'a> {
         Rows(&'a [F128]),
-        Groups(&'a [Group]),
+        /// What [`fold`] wrote: every group but those `ones` covers.
+        Groups(&'a [MaybeUninit<Group>]),
     }
 
     /// A layer's rows as a fold reads them, with the runs known to be the identity.
@@ -706,7 +706,12 @@ mod vertical {
             }
             match self.data {
                 Data::Rows(values) => load(values, g),
-                Data::Groups(groups) => groups.get(g).copied().unwrap_or(ones),
+                // SAFETY: `fold` wrote every group whose rows `ones` does not cover, and those of `g` are not.
+                Data::Groups(groups) => groups
+                    .get(g)
+                    .copied()
+                    .map(|group| unsafe { group.assume_init() })
+                    .unwrap_or(ones),
             }
         }
     }
@@ -717,20 +722,19 @@ mod vertical {
         inputs: [Input; N_BUS_TREES],
         challenge: F128,
         eq: &SplitEq,
-        outs: [&mut Vec<Group>; N_BUS_TREES],
+        outs: [&mut Vec<MaybeUninit<Group>>; N_BUS_TREES],
     ) -> [[F128; 4]; N_BUS_TREES] {
         /// Groups below which a dispatch costs more than it saves.
         const PARALLEL: usize = 8 * TASK;
         let n_out = inputs.each_ref().map(|input| input.len().div_ceil(2));
         let mut outs = outs;
-        let dst: [parallel::SendPtr<Group>; N_BUS_TREES] = std::array::from_fn(|t| {
+        let dst: [parallel::SendPtr<MaybeUninit<Group>>; N_BUS_TREES] = std::array::from_fn(|t| {
             let out = &mut *outs[t];
             if out.capacity() < n_out[t] {
                 *out = Vec::new();
-                // SAFETY: the tasks below write every group before anything reads it.
-                *out = unsafe { primitives::uninit_vec(n_out[t]) };
+                *out = primitives::uninit_vec(n_out[t]);
             } else {
-                // SAFETY: as above; `Group` is plain data.
+                // SAFETY: the capacity holds `n_out[t]` groups, and a `MaybeUninit` needs no initialization.
                 unsafe { out.set_len(n_out[t]) };
             }
             parallel::SendPtr(out.as_mut_ptr())
@@ -768,13 +772,16 @@ mod vertical {
         }
     }
 
-    pub(super) fn to_rows(groups: &[Group], ones: &[Range<usize>]) -> Vec<F128> {
+    /// The rows of what [`fold`] wrote, `ones` the runs it skipped.
+    pub(super) fn to_rows(groups: &[MaybeUninit<Group>], ones: &[Range<usize>]) -> Vec<F128> {
         let mut values = vec![F128::ZERO; 64 * groups.len()];
         for (g, group) in groups.iter().enumerate() {
             if covered(ones, 16 * g..16 * g + 16) {
                 values[64 * g..64 * g + 64].fill(F128::ONE);
                 continue;
             }
+            // SAFETY: `fold` wrote every group whose rows `ones` does not cover.
+            let group = unsafe { group.assume_init_ref() };
             for (j, lanes) in group.iter().enumerate() {
                 for (p, e) in lanes.to_array().into_iter().enumerate() {
                     values[64 * g + 8 * p + j] = e;
@@ -785,7 +792,7 @@ mod vertical {
     }
 
     /// `out[i] = ∏ current[4i..4i+4]` for the leading multiple of sixteen rows; returns how many.
-    pub(super) fn products_into(current: &[F128], out: &mut [F128]) -> usize {
+    pub(super) fn products_into(current: &[F128], out: &mut [MaybeUninit<F128>]) -> usize {
         let product = |a: F128x8, b: F128x8, c: F128x8, d: F128x8| (a * b) * (c * d);
         let (chunks, _) = out.as_chunks_mut::<16>();
         for (slot, run) in chunks.iter_mut().zip(current.as_chunks::<64>().0) {

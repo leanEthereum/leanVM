@@ -219,8 +219,13 @@ fn lane_major_msg_encode_matches_per_lane_reference() {
         let msg: Vec<F64> = (0..rows * n_lanes).map(|_| F64(rng.next_u64())).collect();
 
         let row_words = n_lanes.next_multiple_of(8);
-        let mut got = vec![F64::ZERO; (row_words << log_rows) << log_inv_rate];
-        transpose_lane_major(&mut got[..row_words << log_rows], &msg, n_lanes, row_words, log_rows);
+        // SAFETY: the transpose writes every word.
+        let mut got = unsafe {
+            primitives::filled_vec(row_words << log_rows, |out| {
+                transpose_lane_major(out, &msg, n_lanes, row_words, log_rows)
+            })
+        };
+        got.resize((row_words << log_rows) << log_inv_rate, F64::ZERO);
         ntt.encode_interleaved_in_place(&mut got, row_words, log_inv_rate);
 
         let block_len = 1usize << log_d;
@@ -262,8 +267,13 @@ fn lane_major_encode_matches_transpose_then_in_place() {
         let ntt = AdditiveNttF64::standard(log_d);
         let msg: Vec<F64> = (0..n_lanes << log_rows).map(|_| F64(rng.next_u64())).collect();
         let row_words = n_lanes.next_multiple_of(8);
-        let mut want = vec![F64::ZERO; (row_words << log_rows) << log_inv_rate];
-        transpose_lane_major(&mut want[..row_words << log_rows], &msg, n_lanes, row_words, log_rows);
+        // SAFETY: the transpose writes every word.
+        let mut want = unsafe {
+            primitives::filled_vec(row_words << log_rows, |out| {
+                transpose_lane_major(out, &msg, n_lanes, row_words, log_rows)
+            })
+        };
+        want.resize((row_words << log_rows) << log_inv_rate, F64::ZERO);
         ntt.encode_interleaved_in_place(&mut want, row_words, log_inv_rate);
 
         for keep in [Keep::Whole, Keep::BeforeDeep, Keep::Nothing] {

@@ -119,6 +119,10 @@ impl PyXmssSecretKey {
         py.detach(|| self.inner.prepare(leaf_index));
     }
 
+    fn set_bottom_tree_cache_size(&self, size: usize) {
+        self.inner.set_bottom_tree_cache_size(size);
+    }
+
     fn sign<'py>(
         &self,
         py: Python<'py>,
@@ -428,6 +432,7 @@ fn aggregate(
 #[pymodule]
 fn py_lean_pq(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    module.add("PROTOCOL_VERSION", lean_pq::PROTOCOL_VERSION)?;
     module.add("LeanPqError", py.get_type::<LeanPqError>())?;
     module.add_class::<PyXmssSecretKey>()?;
     module.add_class::<PySphincsSecretKey>()?;

@@ -146,6 +146,11 @@ pub extern "C" fn lpq_setup(threads: usize) -> c_int {
 }
 
 #[no_mangle]
+pub extern "C" fn lpq_protocol_version() -> u32 {
+    lean_pq::PROTOCOL_VERSION
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lpq_last_error(out: *mut LpqBuffer) -> c_int {
     ffi(|| {
         let bytes = LAST_ERROR.with(|error| error.borrow().as_bytes().to_vec());
@@ -240,6 +245,19 @@ pub unsafe extern "C" fn lpq_xmss_secret_key_prepare(
 ) -> c_int {
     ffi(|| {
         handle(key, "secret-key")?.0.prepare(leaf_index);
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lpq_xmss_secret_key_set_bottom_tree_cache_size(
+    key: *mut XmssSecretKeyHandle,
+    size: usize,
+) -> c_int {
+    ffi(|| {
+        handle(key, "secret-key")?
+            .0
+            .set_bottom_tree_cache_size(size);
         Ok(())
     })
 }

@@ -41,6 +41,7 @@ test('round trips secret keys through bytes', async () => {
 test('loads a leanXMSS key from its tree cache', async () => {
   const message = Buffer.alloc(32, 7)
   const key = await lpq.XmssSecretKey.fromSeed(seed(7))
+  key.setBottomTreeCacheSize(2)
   await key.prepare(3)
   const cache = key.cacheToBytes()
 
@@ -58,6 +59,10 @@ test('loads a leanXMSS key from its tree cache', async () => {
   for (const [publicKey, bytes] of [[key.publicKey, cache.subarray(1)], [key.publicKey, tampered], [other, cache]]) {
     await assert.rejects(lpq.XmssSecretKey.fromCacheBytes(seed(7), publicKey, bytes), /not this leanXMSS key's tree cache/)
   }
+})
+
+test('exports the protocol version', () => {
+  assert.ok(Number.isInteger(lpq.PROTOCOL_VERSION) && lpq.PROTOCOL_VERSION >= 1)
 })
 
 test('setup keeps its first thread count', async () => {

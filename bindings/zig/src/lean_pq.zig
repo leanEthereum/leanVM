@@ -76,6 +76,11 @@ pub fn setup(threads: usize) Error!void {
     try checkStatus(c.lpq_setup(threads));
 }
 
+/// Proofs and signatures are compatible only between builds with the same protocol version.
+pub fn protocolVersion() u32 {
+    return c.lpq_protocol_version();
+}
+
 /// Copies the calling thread's last native error message.
 pub fn lastError(allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u8 {
     var output: c.lpq_buffer = .{ .data = null, .len = 0 };
@@ -140,6 +145,11 @@ pub const XmssSecretKey = struct {
     /// Builds the bottom tree `leaf_index` falls in ahead of signing there.
     pub fn prepare(self: *const XmssSecretKey, leaf_index: u32) Error!void {
         try checkStatus(c.lpq_xmss_secret_key_prepare(self.handle, leaf_index));
+    }
+
+    /// Sets how many recently used bottom trees the key caches, 8 by default.
+    pub fn setBottomTreeCacheSize(self: *const XmssSecretKey, size: usize) Error!void {
+        try checkStatus(c.lpq_xmss_secret_key_set_bottom_tree_cache_size(self.handle, size));
     }
 
     /// Never sign two different messages at the same `leaf_index`.

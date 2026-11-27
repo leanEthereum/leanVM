@@ -8,6 +8,7 @@ test "leanXMSS signs and verifies" {
     var key = try lpq.XmssSecretKey.fromSeed([_]u8{1} ** 32);
     defer key.deinit();
     const public_key = try key.publicKey();
+    try key.setBottomTreeCacheSize(2);
     try key.prepare(7);
     const signature = try key.sign(message, 7);
 
@@ -207,6 +208,10 @@ test "aggregates recursively and round trips through bytes" {
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(encoded[0 .. encoded.len - 1], &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.fromBytes(&.{}, &.{ xmss_claim, extra_claim }, &.{sphincs_claim}));
     try std.testing.expectError(error.NativeFailure, lpq.Aggregate.create(&.{}, &.{}, &.{}));
+}
+
+test "exports the protocol version" {
+    try std.testing.expect(lpq.protocolVersion() >= 1);
 }
 
 test "setup keeps its thread count" {

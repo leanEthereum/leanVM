@@ -10,6 +10,7 @@ OTHER_MESSAGE = b"\x43" * 32
 
 def test_xmss_signs_and_verifies():
     key = lpq.XmssSecretKey.from_seed(b"\x01" * 32)
+    key.set_bottom_tree_cache_size(2)
     key.prepare(3)
     signature = key.sign(MESSAGE, 3)
 
@@ -133,6 +134,10 @@ def test_aggregates_both_schemes_recursively():
 def test_aggregating_nothing_fails():
     with pytest.raises(lpq.LeanPqError, match="aggregation failed"):
         lpq.aggregate()
+
+
+def test_exports_the_protocol_version():
+    assert isinstance(lpq.PROTOCOL_VERSION, int) and lpq.PROTOCOL_VERSION >= 1
 
 
 def test_setup_keeps_its_first_thread_count():

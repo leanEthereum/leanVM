@@ -3,6 +3,7 @@
 //! and the halves of the eight-lane `f128x8` types.
 
 use core::arch::x86_64::*;
+use core::mem::MaybeUninit;
 use core::ops::{Add, BitXor, BitXorAssign, Mul};
 
 use super::gf2_64::F64;
@@ -134,6 +135,14 @@ impl F128x4 {
         // SAFETY: both are 32 bytes.
         let [c0, c1] = self.0.map(|v| unsafe { std::mem::transmute::<__m256i, [u64; 4]>(v) });
         *dst = std::array::from_fn(|i| F128::new(c0[i], c1[i]));
+    }
+
+    /// [`store`](Self::store) into memory not yet written.
+    #[inline(always)]
+    pub fn write(self, dst: &mut [MaybeUninit<F128>; 4]) {
+        // SAFETY: both are 32 bytes.
+        let [c0, c1] = self.0.map(|v| unsafe { std::mem::transmute::<__m256i, [u64; 4]>(v) });
+        *dst = std::array::from_fn(|i| MaybeUninit::new(F128::new(c0[i], c1[i])));
     }
 
     pub fn to_array(self) -> [F128; 4] {

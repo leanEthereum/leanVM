@@ -27,8 +27,9 @@ use std::fmt;
 use lean_xmss::{
     key_gen, sign as xmss_sign, verify as xmss_verify, LeafIndex as UpstreamLeafIndex,
     LeanXmssExpandedSecretKey, LeanXmssPublicKey, LeanXmssSignature,
-    SecretKey as UpstreamSecretKey, LOG_LIFETIME as UPSTREAM_LOG_LIFETIME, MAX_CACHED_BOTTOM_TREES,
-    PUB_KEY_SIZE, SECRET_KEY_LEN as UPSTREAM_SECRET_KEY_LEN, SIG_SIZE,
+    SecretKey as UpstreamSecretKey, DEFAULT_BOTTOM_TREE_CACHE_SIZE,
+    LOG_LIFETIME as UPSTREAM_LOG_LIFETIME, PUB_KEY_SIZE, SECRET_KEY_LEN as UPSTREAM_SECRET_KEY_LEN,
+    SIG_SIZE,
 };
 
 use crate::{Encoding, Error, Message, PUBLIC_KEY_LEN};
@@ -76,8 +77,8 @@ const _: () = assert!(SIGNATURE_LEN == SIG_SIZE);
 const _: () = assert!(PUBLIC_KEY_LEN == PUB_KEY_SIZE);
 const _: () = assert!(LOG_LIFETIME == UPSTREAM_LOG_LIFETIME);
 const _: () = assert!(LOG_LIFETIME == LeafIndex::BITS as usize);
-// The `SecretKey` docs promise this many cached bottom trees.
-const _: () = assert!(MAX_CACHED_BOTTOM_TREES == 4);
+// `set_bottom_tree_cache_size`'s docs promise this default.
+const _: () = assert!(DEFAULT_BOTTOM_TREE_CACHE_SIZE == 8);
 const _: fn(UpstreamLeafIndex) -> LeafIndex = |index| index;
 const _: fn(UpstreamSecretKey) -> Seed = |seed| seed;
 
@@ -130,7 +131,7 @@ impl PublicKey {
 
 /// A leanXMSS secret key.
 ///
-/// - It keeps the top tree and the 4 bottom trees it used last.
+/// - It keeps the top tree and the bottom trees it used last ([`Self::set_bottom_tree_cache_size`]).
 /// - Signing in any other bottom tree first builds that tree.
 /// - The key holds no record of used leaf indices: the caller must keep one.
 ///
@@ -198,7 +199,7 @@ impl SecretKey {
     /// building no tree.
     ///
     /// The cache is checked against the public key, cheaply: a loaded key signs exactly as a
-    /// built one, whatever the bytes' source.
+    /// built one, whatever the bytes' source. It keeps every loaded bottom tree, even beyond 8.
     ///
     /// # Errors
     ///
@@ -224,6 +225,12 @@ impl SecretKey {
     /// Signing builds it on demand, so this only moves the cost earlier.
     pub fn prepare(&self, leaf_index: LeafIndex) {
         self.expanded.prepare(leaf_index);
+    }
+
+    /// Sets how many recently used bottom trees the key caches, 8 by default. Each takes about 5 KiB.
+    /// At 0 it caches none, so [`Self::prepare`] saves nothing.
+    pub fn set_bottom_tree_cache_size(&self, size: usize) {
+        self.expanded.set_bottom_tree_cache_size(size);
     }
 
     /// Signs a message at a leaf index.

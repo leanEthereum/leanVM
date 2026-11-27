@@ -42,9 +42,10 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let _span = tracing::info_span!("Keccak GKR prove", n).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        // SAFETY: the witness generator writes every word.
-        let mut committed = unsafe { primitives::uninit_vec::<F64>(1 << mu) };
+        let mut committed = primitives::uninit_vec::<F64>(1 << mu);
         let witness = tracing::info_span!("Witness").in_scope(|| Witness::generate(shape, &inputs, &mut committed));
+        // SAFETY: the witness generator writes every word.
+        let committed = unsafe { primitives::assume_init_vec(committed) };
         let witness_s = t.elapsed().as_secs_f64();
 
         let mut ps = batch_transcript(LABEL, shape, log_inv_rate);

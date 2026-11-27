@@ -13,6 +13,7 @@ use primitives::field::{F128, F128Unreduced};
 use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::transcript::ProverState;
+use std::mem::MaybeUninit;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul};
@@ -414,7 +415,7 @@ impl Layer<'_> {
         challenges: &[F128],
         point: &[F128],
         layout: Rows,
-        table: &mut [u64],
+        table: &mut [MaybeUninit<u64>],
         pads: &mut [u64],
     ) -> ((F128, F128), Option<Quad>) {
         let field = round.field;
@@ -423,7 +424,7 @@ impl Layer<'_> {
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
         let row_maps = crate::table_maps::RowMaps::new(field, &fold);
         // Rows of segments that do not exist are zero, and so is their product.
-        table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(0);
+        table[self.rounds.len() * layout.live * ROW..layout.len() * ROW].fill(MaybeUninit::new(0));
         pads[self.rounds.len() * ROW..].fill(0);
         // The byte-map rows need no wide scratch.
         let maps = cfg!(all(target_arch = "x86_64", target_feature = "avx2"));
@@ -564,7 +565,7 @@ impl<'a> Round<'a> {
     fn pass<S: Send>(
         &self,
         to: Rows,
-        dst: &mut [u64],
+        dst: &mut [MaybeUninit<u64>],
         pads: &[u64],
         point: &[F128],
         scratch: impl Fn() -> S + Sync,
@@ -619,9 +620,9 @@ impl<'a> Round<'a> {
     /// written is the two or four it folds from, weighted by `eq` of the challenges.
     fn fold(
         &self,
-        src: &[u64],
+        src: &[MaybeUninit<u64>],
         from: Rows,
-        dst: &mut [u64],
+        dst: &mut [MaybeUninit<u64>],
         pads: &[u64],
         challenges: &[F128],
         point: &[F128],
@@ -632,7 +633,9 @@ impl<'a> Round<'a> {
             for (v, out) in (to.m * segment + r..).zip(rows.as_chunks_mut::<ROW>().0) {
                 let row = |b: usize| {
                     let u = eq.len() * v + b;
-                    from.row(src, pads, u / from.m, u % from.m)
+                    // SAFETY: `src` is the table the pass before laid out as `from`, and the rows `to` folds from
+                    // are among its segments.
+                    unsafe { from.row(src, pads, u / from.m, u % from.m) }
                 };
                 let other = |b: usize| (row(b + 1), &eq[b + 1]);
                 match eq.len() {
@@ -677,9 +680,16 @@ impl Rows {
         }
     }
 
-    fn row<'t>(&self, table: &'t [u64], pads: &'t [u64], segment: usize, r: usize) -> &'t [u64] {
+    /// Row `r` of `segment`.
+    ///
+    /// # Safety
+    ///
+    /// `segment` is one of the layout's, and `table` was written by a pass laid out as `self`.
+    unsafe fn row<'t>(&self, table: &'t [MaybeUninit<u64>], pads: &'t [u64], segment: usize, r: usize) -> &'t [u64] {
         if r < self.live {
-            &table[(self.live * segment + r) * ROW..][..ROW]
+            let row = &table[(self.live * segment + r) * ROW..][..ROW];
+            // SAFETY: such a pass writes the first `live` rows of every segment, by the caller's contract.
+            unsafe { row.assume_init_ref() }
         } else {
             &pads[segment * ROW..][..ROW]
         }
@@ -710,7 +720,7 @@ fn local_round(tables: &[[F128; 4]], kappa: F128) -> [F128; 4] {
 /// The table the rounds after the bit-level ones fold, and the half they fold it into: reused
 /// from layer to layer.
 pub struct Scratch {
-    table: Vec<u64>,
+    table: Vec<MaybeUninit<u64>>,
     /// Each segment's padding row.
     pads: Vec<u64>,
 }
@@ -718,8 +728,8 @@ pub struct Scratch {
 impl Scratch {
     pub fn new(shape: Shape) -> Self {
         let rows = 1usize << (shape.y_vars() - SKIP);
-        // SAFETY: every pass writes the rows it reads.
-        let table = unsafe { primitives::uninit_vec(rows * ROW + rows * ROW / 2) };
+        // Every pass writes the rows the next one reads.
+        let table = primitives::uninit_vec(rows * ROW + rows * ROW / 2);
         let pads = vec![0u64; ROW << shape.seg_log()];
         Self { table, pads }
     }
@@ -814,7 +824,8 @@ pub fn prove_layer(
         layout = bound.drain(..).fold(layout, |layout, _| layout.next());
         (src, dst) = (dst, src);
     }
-    let table = &src[..ROW];
+    // SAFETY: the last pass, or the table itself, wrote at least its first row.
+    let table = unsafe { src[..ROW].assume_init_ref() };
     drop(tail);
 
     // The bit positions, in the standard basis. The cube's entries past the positions are zero,
@@ -919,7 +930,7 @@ mod gfni_tests {
             let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
             let shape = Shape::new(n, depth);
             let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-            let witness = Witness::generate(shape, &inputs, &mut committed);
+            let witness = Witness::generate_over(shape, &inputs, &mut committed);
             assert!(witness.written() < shape.n_blocks(), "a padding block");
             for (step, mode) in [(0, "dense"), (depth - 1, "sparse"), (depth / 2, "lanes"), (1, "zero")] {
                 let layer = Layer {

@@ -81,7 +81,7 @@ pub fn g_powers(n: usize) -> Vec<F64> {
             parallel::chunks_mut(v, CHUNK, |ci, chunk| {
                 let mut acc = g_pow(ci * CHUNK);
                 for slot in chunk.iter_mut() {
-                    *slot = acc;
+                    slot.write(acc);
                     acc = mul_by_g(acc);
                 }
             });

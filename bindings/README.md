@@ -20,20 +20,20 @@ x86_64 needs AVX2 and PCLMULQDQ.
 
 <!-- x-release-please-start-version -->
 ```sh
-pip install py-lean-pq==0.18.0
-npm install @kevaundray/lean-pq@0.18.0
-dotnet add package Ethereum.LeanPq --version 0.18.0
-go get leanvm.org/go@v0.18.0
-version=0.18.0
+pip install py-lean-pq==0.19.0
+npm install @kevaundray/lean-pq@0.19.0
+dotnet add package Ethereum.LeanPq --version 0.19.0
+go get leanvm.org/go@v0.19.0
+version=0.19.0
 zig fetch --save=lean_pq "https://github.com/leanEthereum/leanVM/releases/download/bindings-v$version/lean-pq-zig-$version.tar.gz"
 ```
 
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.18.0") // Java, Gradle
+implementation("io.github.crate-crypto:lean-pq:0.19.0") // Java, Gradle
 ```
 
 ```nim
-requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.18.0" # Nim, .nimble
+requires "https://github.com/leanEthereum/leanVM?subdir=bindings/nim#bindings-v0.19.0" # Nim, .nimble
 ```
 <!-- x-release-please-end -->
 
@@ -64,6 +64,8 @@ Needs Rust.
 | [`lean-pq`](rust/README.md), the Rust core all of them wrap | `cd bindings && cargo test --release -p lean-pq` |
 
 ## Releases
+
+The package version follows the API. `PROTOCOL_VERSION` (`protocolVersion()` or `ProtocolVersion` in some languages) is separate: proofs and signatures interoperate only between packages with the same one. Changing it bumps at least the minor version.
 
 Merging the release pull request that release-please keeps open tags `bindings-vX.Y.Z` and publishes every package: see [CHANGELOG.md](CHANGELOG.md) and [RELEASING.md](RELEASING.md).
 

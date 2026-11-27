@@ -16,6 +16,7 @@ fn public_api_end_to_end() {
     // The first signature in a bottom tree builds it, so a signer prepares the tree ahead of time. Leaves 7 to 9
     // share one tree.
     for (secret_key, _) in &keys {
+        secret_key.set_bottom_tree_cache_size(4);
         secret_key.prepare(7);
     }
     let mut lean_xmss_input = Vec::new();
@@ -79,6 +80,7 @@ fn public_api_end_to_end() {
 
     // 4. Onto the wire, which carries only the proof: the receiver rebuilds the claims it expects, and
     //    verifying says exactly these pubkeys signed exactly these messages.
+    const { assert!(PROTOCOL_VERSION >= 1) };
     let received = AggregateProof::from_bytes(&proof.to_bytes()).unwrap();
     assert!(received.verify(&claims));
     let on = |message| claims.lean_xmss.iter().filter(|(_, m)| *m == message).count();

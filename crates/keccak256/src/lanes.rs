@@ -7,6 +7,7 @@
 //! architecture's baseline still uses every backend; without it, the build's target features decide.
 
 use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
+use core::mem::MaybeUninit;
 use core::ops::Range;
 
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
@@ -51,14 +52,14 @@ pub(crate) trait Lane: Copy {
 
     /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
     #[inline(always)]
-    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+    fn digests(st: &[Self; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
         let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
         for (words, &lane) in words.iter_mut().zip(st) {
             *words = scatter(lane);
         }
         for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
             for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                *bytes = words[w][l].to_le_bytes();
+                bytes.write_copy_of_slice(&words[w][l].to_le_bytes());
             }
         }
     }
@@ -448,26 +449,33 @@ pub fn hash_many(data: &[u8], len: usize, out: &mut [u8]) {
 /// [`hash_many`] continued from one sponge state shared by every input, which has absorbed whole blocks (see
 /// [`zero_prefix_state`](crate::zero_prefix_state)). Byte-identical to hashing each full image.
 pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+    // SAFETY: the hash writes only whole digests, so the bytes stay initialized.
+    let out = unsafe { &mut *(out as *mut [u8] as *mut [MaybeUninit<u8>]) };
+    hash_many_from_state_uninit(data, len, state, out);
+}
+
+/// [`hash_many_from_state`] into bytes not yet written, every one of which it writes.
+pub fn hash_many_from_state_uninit(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
     let n = out.len() / OUT_LEN;
     assert_eq!((data.len(), out.len()), (n * len, n * OUT_LEN));
-    dispatch!(hash_many_with(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]))
+    dispatch!(hash_many_with(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]))
 }
 
 /// [`hash_many_from_state`] on backend `S`, [`Lane::WIDTH`] inputs at a time and the remainder one at a time.
 #[inline(always)]
-fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
     let n = out.len() / OUT_LEN;
     for (g, digests) in out.chunks_exact_mut(S::WIDTH * OUT_LEN).enumerate() {
         hash_group::<S>(&data[g * S::WIDTH * len..][..S::WIDTH * len], len, state, digests);
     }
     for i in n / S::WIDTH * S::WIDTH..n {
-        out[i * OUT_LEN..][..OUT_LEN].copy_from_slice(&hash_from_state(&data[i * len..][..len], state));
+        out[i * OUT_LEN..][..OUT_LEN].write_copy_of_slice(&hash_from_state(&data[i * len..][..len], state));
     }
 }
 
 /// The digests of [`Lane::WIDTH`] inputs of `len` bytes, input `l` at `inputs[l * len..]`.
 #[inline(always)]
-fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [MaybeUninit<u8>]) {
     let mut st = splat_all::<S>(state);
     let (blocks, tail) = (len / RATE, len % RATE);
     for b in 0..blocks {
@@ -655,7 +663,7 @@ mod x86 {
 
         /// `digests` on eight inputs: the four digest lanes transposed into rows, two inputs' rows per store.
         #[inline(always)]
-        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+        fn digests(st: &[Self; STATE_LANES], out: &mut [core::mem::MaybeUninit<u8>]) {
             // SAFETY: avx512f is on (see the module).
             let zero = unsafe { _mm512_setzero_si512() };
             let rows = transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
@@ -797,7 +805,7 @@ mod arm {
         /// `digests` on two inputs: `ZIP1` of two digest lanes is two words of the first input, `ZIP2` of
         /// the second.
         #[inline(always)]
-        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+        fn digests(st: &[Self; STATE_LANES], out: &mut [core::mem::MaybeUninit<u8>]) {
             // SAFETY: NEON is in the aarch64 baseline.
             let halves = unsafe {
                 [
@@ -844,9 +852,12 @@ mod tests {
         for len in [0usize, 8, 64, 135, 136, 137, 408] {
             let n = 2 * w as usize + 1;
             let data: Vec<u8> = (0..n * len).map(|i| (i * 31 + len) as u8).collect();
-            let (mut got, mut want) = (vec![0; n * OUT_LEN], vec![0; n * OUT_LEN]);
+            let mut got = vec![MaybeUninit::uninit(); n * OUT_LEN];
+            let mut want = vec![MaybeUninit::uninit(); n * OUT_LEN];
             hash_many_with::<S>(&data, len, &template, &mut got);
             hash_many_with::<u64>(&data, len, &template, &mut want);
+            // SAFETY: the hash writes every byte of its output.
+            let (got, want) = unsafe { (got.assume_init_ref(), want.assume_init_ref()) };
             assert_eq!(got, want, "{name} hash_many {len}");
         }
 

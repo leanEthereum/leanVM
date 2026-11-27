@@ -158,6 +158,13 @@ impl XmssSecretKey {
         })
     }
 
+    #[napi]
+    pub fn set_bottom_tree_cache_size(&self, size: f64) -> Result<()> {
+        self.inner
+            .set_bottom_tree_cache_size(uint32(size, "size")? as usize);
+        Ok(())
+    }
+
     #[napi(ts_return_type = "Promise<Buffer>")]
     pub fn sign(&self, message: Buffer, leaf_index: f64) -> AsyncTask<XmssSignTask> {
         AsyncTask::new(XmssSignTask {
@@ -547,6 +554,10 @@ impl Task for AggregateTask {
         })
     }
 }
+
+/// Proofs and signatures are compatible only between builds with the same protocol version.
+#[napi]
+pub const PROTOCOL_VERSION: u32 = lean_pq::PROTOCOL_VERSION;
 
 #[napi(ts_return_type = "Promise<void>")]
 pub fn setup(env: &Env, threads: Option<f64>) -> Result<Object<'_>> {

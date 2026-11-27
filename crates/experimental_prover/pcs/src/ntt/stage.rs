@@ -1,5 +1,7 @@
 //! The lane-major message: its transpose, and the stage a gathered first pass fills from it.
 
+use std::mem::MaybeUninit;
+
 use primitives::field::F64;
 use primitives::stream::Stream;
 
@@ -32,7 +34,13 @@ use super::window::STREAM_MIN_WORDS;
 /// - Each lane adds a contiguous burst of words to an L1-resident tile.
 /// - The finished tile goes out as one contiguous run.
 /// - That keeps an n-way gather at a `2^log_rows` stride near memory bandwidth.
-pub(super) fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, row_words: usize, log_rows: usize) {
+pub(super) fn transpose_lane_major(
+    out: &mut [MaybeUninit<F64>],
+    msg: &[F64],
+    n_lanes: usize,
+    row_words: usize,
+    log_rows: usize,
+) {
     let rows = 1usize << log_rows;
     assert!(n_lanes > 0, "a commitment needs at least one lane");
     assert!(n_lanes <= row_words, "a row holds its lanes");
@@ -73,7 +81,7 @@ pub(super) fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize,
             if stream {
                 Stream::new().copy(out_tile, tile);
             } else {
-                out_tile.copy_from_slice(tile);
+                out_tile.write_copy_of_slice(tile);
             }
         });
     });

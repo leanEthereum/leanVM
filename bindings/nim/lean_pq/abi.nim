@@ -14,7 +14,7 @@
 from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
-  leanPqVersion = "0.18.0" # x-release-please-version
+  leanPqVersion = "0.19.0" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
   leanPqNativeUrl {.strdefine, used.} =
     "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion
@@ -86,6 +86,7 @@ const
     ## The bridge caught a Rust panic.
 
 proc lpqSetup*(threads: csize_t): int32 {.importc: "lpq_setup", header: lpqHeader.}
+proc lpqProtocolVersion*(): uint32 {.importc: "lpq_protocol_version", header: lpqHeader.}
 proc lpqLastError*(output: ptr LpqBuffer): int32 {.importc: "lpq_last_error", header: lpqHeader.}
 proc lpqBufferFree*(data: ptr byte, len: csize_t) {.importc: "lpq_buffer_free", header: lpqHeader.}
 
@@ -106,6 +107,8 @@ proc lpqXmssSecretKeyPublicKey*(key: ptr LpqXmssSecretKey, output: ptr LpqBuffer
   importc: "lpq_xmss_secret_key_public_key", header: lpqHeader.}
 proc lpqXmssSecretKeyPrepare*(key: ptr LpqXmssSecretKey, leafIndex: uint32): int32 {.
   importc: "lpq_xmss_secret_key_prepare", header: lpqHeader.}
+proc lpqXmssSecretKeySetBottomTreeCacheSize*(key: ptr LpqXmssSecretKey, size: csize_t): int32 {.
+  importc: "lpq_xmss_secret_key_set_bottom_tree_cache_size", header: lpqHeader.}
 proc lpqXmssSecretKeySign*(
   key: ptr LpqXmssSecretKey, message: ptr byte, messageLen: csize_t, leafIndex: uint32,
   output: ptr LpqBuffer): int32 {.

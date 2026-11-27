@@ -94,6 +94,11 @@ func Setup(threads int) error {
 	return call(func() C.int32_t { return C.lpq_setup(C.size_t(threads)) })
 }
 
+// ProtocolVersion returns the protocol version: builds are compatible only if it matches.
+func ProtocolVersion() uint32 {
+	return uint32(C.lpq_protocol_version())
+}
+
 // GenerateXmssSecretKey creates a random leanXMSS key.
 func GenerateXmssSecretKey() (*XmssSecretKey, error) {
 	var handle *C.lpq_xmss_secret_key
@@ -183,6 +188,21 @@ func (key *XmssSecretKey) Prepare(leafIndex uint32) error {
 	}
 	return call(func() C.int32_t {
 		return C.lpq_xmss_secret_key_prepare(key.handle, C.uint32_t(leafIndex))
+	})
+}
+
+// SetBottomTreeCacheSize sets how many recently used bottom trees the key caches, 8 by default.
+func (key *XmssSecretKey) SetBottomTreeCacheSize(size int) error {
+	if size < 0 {
+		return errors.New("leanpq: size must not be negative")
+	}
+	key.mu.Lock()
+	defer key.mu.Unlock()
+	if key.handle == nil {
+		return errClosed("leanXMSS secret key")
+	}
+	return call(func() C.int32_t {
+		return C.lpq_xmss_secret_key_set_bottom_tree_cache_size(key.handle, C.size_t(size))
 	})
 }
 

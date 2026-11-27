@@ -10,6 +10,7 @@
 use crate::ntt::{AdditiveNttF64, transpose_butterfly_lanes};
 use crate::whir_ntt_ext::words_mut;
 use primitives::field::{F64, F128, Weights8, dot_base};
+use std::mem::MaybeUninit;
 
 // ===================================================================
 // LCH novel-basis evaluations over K (mirror of whir's extension-field block)
@@ -107,7 +108,7 @@ pub(crate) fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usiz
                     None => F128::ZERO,
                 };
                 for (g, slot) in row.iter_mut().enumerate() {
-                    *slot = Weights8::new(&std::array::from_fn(|t| scaled(8 * g + t)));
+                    slot.write(Weights8::new(&std::array::from_fn(|t| scaled(8 * g + t))));
                 }
             });
         })
@@ -115,9 +116,9 @@ pub(crate) fn induce_basis(log_msg_cols: usize, sks_vks: &[F64], queries: &[usiz
     // SAFETY: the fill writes every element before it reads any.
     unsafe {
         primitives::filled_vec(1 << log_msg_cols, |basis| {
-            parallel::chunks_mut(basis, 1 << lo, |j, out: &mut [F128]| {
+            parallel::chunks_mut(basis, 1 << lo, |j, out: &mut [MaybeUninit<F128>]| {
                 for (out, low) in out.iter_mut().zip(low.chunks_exact(padded)) {
-                    *out = dot_base(&packed[j * groups..][..groups], low).reduce();
+                    out.write(dot_base(&packed[j * groups..][..groups], low).reduce());
                 }
             });
         })
@@ -195,8 +196,8 @@ fn transpose_forward_ntt_sparse_ext(
     }
 
     // Window `r` of replica `j`, strip `c` is at `j * n_keep + (c * rows + r) * strip`: a strip's rows are contiguous.
-    // SAFETY: pass 1 writes every element of an occupied window, and pass 2 reads only those.
-    let mut stage = unsafe { primitives::uninit_vec::<F128>(1 << log_d) };
+    // Pass 1 writes every element of an occupied window, and pass 2 reads only those.
+    let mut stage = primitives::uninit_vec::<F128>(1 << log_d);
     let stage_ptr = parallel::SendPtr(stage.as_mut_ptr());
     parallel::for_each_chunk(occupied.len(), |first, end| {
         let mut data = vec![F128::ZERO; window];
@@ -208,7 +209,7 @@ fn transpose_forward_ntt_sparse_ext(
             let (replica, row) = (w / rows, w % rows);
             for (c, src) in data.chunks_exact(strip).enumerate() {
                 // SAFETY: each (window, strip) pair owns its `strip` elements.
-                unsafe { stage_ptr.slice(replica * n_keep + (c * rows + row) * strip, strip) }.copy_from_slice(src);
+                unsafe { stage_ptr.slice(replica * n_keep + (c * rows + row) * strip, strip) }.write_copy_of_slice(src);
             }
         }
     });
@@ -233,9 +234,8 @@ fn transpose_forward_ntt_sparse_ext(
 
     let layers = |replica: usize| (replica * k..(replica + 1) * k).map(|i| &plan[ends[i]..ends[i + 1]]);
 
-    // SAFETY: pass 2 writes every element.
-    let mut kept = unsafe { primitives::uninit_vec::<F128>(n_keep) };
-    let kept_ptr = parallel::SendPtr(kept.as_mut_ptr());
+    let mut kept = primitives::uninit_vec::<F128>(n_keep);
+    let kept_ptr = parallel::SendPtr(kept.as_mut_ptr().cast::<F128>());
     parallel::for_each_chunk(window / strip, |first, end| {
         let (mut sum, mut tile) = (vec![F128::ZERO; rows * strip], vec![F128::ZERO; rows * strip]);
         let stream = primitives::stream::Stream::new();
@@ -243,7 +243,9 @@ fn transpose_forward_ntt_sparse_ext(
             let run_replica = |tile: &mut [F128], replica: usize| {
                 for (r, row) in tile.chunks_exact_mut(strip).enumerate() {
                     if occupied[replica * rows + r] {
-                        row.copy_from_slice(&stage[replica * n_keep + (c * rows + r) * strip..][..strip]);
+                        let src = &stage[replica * n_keep + (c * rows + r) * strip..][..strip];
+                        // SAFETY: pass 1 wrote this strip of the occupied window `replica * rows + r`.
+                        row.copy_from_slice(unsafe { src.assume_init_ref() });
                     } else {
                         row.fill(F128::ZERO);
                     }
@@ -261,7 +263,8 @@ fn transpose_forward_ntt_sparse_ext(
             }
         }
     });
-    kept
+    // SAFETY: the strips `c` and rows `r` of pass 2 cover `rows * window = n_keep` elements, each written once.
+    unsafe { primitives::assume_init_vec(kept) }
 }
 
 /// The steps of [`transpose_forward_ntt_sparse_ext`] that act within one window `data` of the

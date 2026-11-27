@@ -8,7 +8,7 @@ Maven Central, `io.github.crate-crypto:lean-pq`, JDK 25. Gradle (Kotlin DSL):
 
 <!-- x-release-please-start-version -->
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.18.0")
+implementation("io.github.crate-crypto:lean-pq:0.19.0")
 ```
 <!-- x-release-please-end -->
 
@@ -19,7 +19,7 @@ Maven:
 <dependency>
   <groupId>io.github.crate-crypto</groupId>
   <artifactId>lean-pq</artifactId>
-  <version>0.18.0</version>
+  <version>0.19.0</version>
 </dependency>
 ```
 <!-- x-release-please-end -->
@@ -45,7 +45,7 @@ try (XmssSecretKey xmss = XmssSecretKey.fromSeed(seed32);
 
 - Public keys and messages are 32 bytes; signatures are 2404 (leanXMSS) or 7740 (leanSPHINCS) bytes.
 - `XmssSecretKey`, `SphincsSecretKey`, `VrfKey` and `Aggregate` are `AutoCloseable`: use try-with-resources.
-- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time.
+- leanXMSS is stateful: a key has `2^32` leaf indices, and must never sign two messages at the same one. Persist a high-water leaf index next to the key and advance it before publishing a signature. `prepare(leafIndex)` builds a leaf's signing state ahead of time, and `setBottomTreeCacheSize(size)` sets how many recently used bottom trees the key keeps, 8 by default.
 - leanSPHINCS is stateless and deterministic; a key signs at most `2^30` messages.
 - `toBytes()` is the key's 32-byte seed, which is secret; `fromBytes` restores the key.
 - `cacheToBytes()` returns the key's trees, which are not secret; `XmssSecretKey.fromCacheBytes(seed, publicKey, cache)` loads the key from them instead of rebuilding them, checking them against the public key.

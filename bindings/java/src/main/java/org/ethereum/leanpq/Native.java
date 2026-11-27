@@ -48,6 +48,7 @@ final class Native {
     private static final FunctionDescriptor VERIFY = FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE);
 
     private static final MethodHandle SETUP = downcall("lpq_setup", FunctionDescriptor.of(ValueLayout.JAVA_INT, SIZE));
+    private static final MethodHandle PROTOCOL_VERSION = downcall("lpq_protocol_version", FunctionDescriptor.of(ValueLayout.JAVA_INT));
     private static final MethodHandle LAST_ERROR = downcall("lpq_last_error", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle BUFFER_FREE = downcall("lpq_buffer_free", FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, SIZE));
 
@@ -58,6 +59,7 @@ final class Native {
     private static final MethodHandle XMSS_FROM_CACHE_BYTES = downcall("lpq_xmss_secret_key_from_cache_bytes", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS, SIZE, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_PUBLIC_KEY = downcall("lpq_xmss_secret_key_public_key", HANDLE_TO_BUFFER);
     private static final MethodHandle XMSS_PREPARE = downcall("lpq_xmss_secret_key_prepare", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+    private static final MethodHandle XMSS_SET_BOTTOM_TREE_CACHE_SIZE = downcall("lpq_xmss_secret_key_set_bottom_tree_cache_size", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, SIZE));
     private static final MethodHandle XMSS_SIGN = downcall("lpq_xmss_secret_key_sign", FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS, SIZE, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
     private static final MethodHandle XMSS_DESTROY = downcall("lpq_xmss_secret_key_destroy", DESTROY);
     private static final MethodHandle XMSS_VERIFY = downcall("lpq_xmss_verify", VERIFY);
@@ -91,6 +93,10 @@ final class Native {
 
     static void setup(int threads) {
         check(status(SETUP, (long) threads));
+    }
+
+    static int protocolVersion() {
+        return (int) invoke(PROTOCOL_VERSION);
     }
 
     /** Returns {@code bytes} after checking it is non-null and exactly {@code length} bytes long. */
@@ -135,6 +141,10 @@ final class Native {
 
     static void xmssPrepare(MemorySegment key, long leafIndex) {
         check(status(XMSS_PREPARE, key, u32(leafIndex, "leafIndex")));
+    }
+
+    static void xmssSetBottomTreeCacheSize(MemorySegment key, int size) {
+        check(status(XMSS_SET_BOTTOM_TREE_CACHE_SIZE, key, (long) size));
     }
 
     static byte[] xmssSign(MemorySegment key, byte[] message, long leafIndex) {

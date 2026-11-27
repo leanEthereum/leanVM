@@ -17,6 +17,7 @@ fn native_abi_signs_verifies_and_aggregates() {
         .stack_size(32 * 1024 * 1024)
         .spawn(|| unsafe {
             assert_eq!(lpq_setup(0), OK);
+            assert_eq!(lpq_protocol_version(), lean_pq::PROTOCOL_VERSION);
             let message = [42u8; 32];
             let other = [43u8; 32];
 
@@ -33,6 +34,10 @@ fn native_abi_signs_verifies_and_aggregates() {
             assert_eq!(lpq_xmss_secret_key_public_key(xmss_key, &mut buffer), OK);
             let xmss_pk = take(buffer);
             assert_eq!(xmss_pk.len(), 32);
+            assert_eq!(
+                lpq_xmss_secret_key_set_bottom_tree_cache_size(xmss_key, 2),
+                OK
+            );
             assert_eq!(lpq_xmss_secret_key_prepare(xmss_key, 5), OK);
             let mut buffer = LpqBuffer::default();
             assert_eq!(

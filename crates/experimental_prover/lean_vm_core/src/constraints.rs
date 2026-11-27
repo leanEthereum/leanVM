@@ -41,6 +41,7 @@ use crate::leaf::BusForm;
 use crate::transcript::ProverState;
 use primitives::field::{F64, F64x8, F128, F128x8, Prod8};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval, shrink_eq_high};
+use std::mem::MaybeUninit;
 
 /// One table's involved columns' evaluations at its table-sumcheck point.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -200,19 +201,20 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
             .fold(Prod8::ZERO, |acc, &(c, w)| acc ^ w.mul_base_unreduced(vals[c]))
             .reduce_lanes()
     };
-    let entries = |vals: &[F64x8], out: &mut [F128x8]| {
-        out[0] = dot(&lin, vals);
+    // Writes all `form.width()` entries of `out`.
+    let entries = |vals: &[F64x8], out: &mut [MaybeUninit<F128x8>]| {
+        out[0].write(dot(&lin, vals));
         for (g, ((left, _), right)) in form.groups.iter().zip(&rights).enumerate() {
-            out[1 + 2 * g] = F128x8::from(vals[*left]);
-            out[2 + 2 * g] = dot(right, vals);
+            out[1 + 2 * g].write(F128x8::from(vals[*left]));
+            out[2 + 2 * g].write(dot(right, vals));
         }
     };
     let width = form.width();
     if half < 8 {
         let pad = |col: &[F64]| F64x8::from_array(&std::array::from_fn(|i| col.get(i).copied().unwrap_or(F64::ZERO)));
         let vals: Vec<F64x8> = cols.iter().map(|&col| pad(col)).collect();
-        let mut state = vec![F128x8::splat(F128::ZERO); width];
-        entries(&vals, &mut state);
+        // SAFETY: `entries` writes all `width` entries.
+        let state = unsafe { primitives::filled_vec(width, |state| entries(&vals, state)) };
         let [p0, quadratic] = message_small(form, &state, eqr, half, false);
         let p1 = message_small(form, &state, eqr, half, true)[0];
         return (state, [p0, p1, quadratic]);
@@ -220,7 +222,8 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
     let (blocks, n) = (half / 8, cols.len());
     let zero = F64x8::from_array(&[F64::ZERO; 8]);
     let mut acc = [Prod8::ZERO; 3];
-    // SAFETY: every task writes all `width` entries of each of its blocks in both halves.
+    // SAFETY: every task writes all `width` entries of each of its blocks in both halves, and reads a block's
+    // entries once it has written them.
     let state = unsafe {
         primitives::filled_vec(2 * blocks * width, |state| {
             let (lows, highs) = state.split_at_mut(blocks * width);
@@ -241,6 +244,8 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
                         let (lo_k, hi_k) = v.split_at(n);
                         entries(lo_k, lo);
                         entries(hi_k, hi);
+                        // SAFETY: `entries` wrote every slot of both rows.
+                        let (lo, hi) = (lo.assume_init_mut(), hi.assume_init_mut());
                         let (mut p0, mut p1, mut slope) = (Prod8::ZERO, Prod8::ZERO, Prod8::ZERO);
                         for (g, (left, _)) in form.groups.iter().enumerate() {
                             p0 ^= lo[2 + 2 * g].mul_base_unreduced(lo_k[*left]);

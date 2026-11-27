@@ -11,6 +11,9 @@ export interface SignedMessage {
   signature: Buffer
 }
 
+/** Proofs and signatures are compatible only between builds with the same protocol version. */
+export declare const PROTOCOL_VERSION: number
+
 /**
  * Starts the prover with `threads` threads (0, the default: one per physical core). Rejects when it
  * already runs with another count.
@@ -38,6 +41,8 @@ export declare class XmssSecretKey {
   get publicKey(): Buffer
   /** Builds the bottom tree `leafIndex` falls in ahead of signing there. */
   prepare(leafIndex: number): Promise<void>
+  /** Sets how many recently used bottom trees the key caches, 8 by default. */
+  setBottomTreeCacheSize(size: number): void
   /** Resolves to a 2404-byte signature. */
   sign(message: Buffer, leafIndex: number): Promise<Buffer>
 }

@@ -3,6 +3,7 @@
 //! sizes and public input. Plus the prover-side witness build.
 
 use super::*;
+use std::mem::MaybeUninit;
 
 // ---- column schema -----------------------------------------------------------
 
@@ -381,19 +382,17 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     // time for no gain: nothing folds the K-columns
     // in place, so the stack can be their only home.
     //
-    // SAFETY: the allocation is uninitialized. `split_stack` zeroes the pad tail
-    // and hands out windows tiling the rest; `fill_table` checks that each table
-    // wrote every window it was given, and the shared columns below write theirs.
-    let mut q = unsafe { witness::alloc_stack(l.shape) };
+    // `split_stack` zeroes the pad tail and hands out windows tiling the rest;
+    // `fill_table` checks that each table wrote every window it was given, and the
+    // shared columns below write theirs.
+    let mut q = witness::alloc_stack(l.shape);
     // An output lane is neither in the stack nor in `q_keccak`, so its values need
     // storage of their own: it carries data for the bus. Every other column `q_keccak`
     // carries ([`Witness::columns`]) is filled through the slot window handed out below.
     let steps = 1 << l.taus[verifier::layout::OP_KECCAK];
-    let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
+    let mut virt: Vec<(usize, Vec<MaybeUninit<F64>>)> = (0..sch.n)
         .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
-        // SAFETY: `FillCtx::runs` writes every row of every window it is given, and
-        // `fill_table` asserts each table wrote all of its windows.
-        .map(|i| (i, unsafe { primitives::uninit_vec::<F64>(steps) }))
+        .map(|i| (i, primitives::uninit_vec::<F64>(steps)))
         .collect();
     let mut windows = witness::split_stack(&mut q, &l.placements);
     for (i, buf) in virt.iter_mut() {
@@ -428,7 +427,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
         let page_log = Memory::page_log();
         let image = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS].map(|c| {
             assert_eq!(windows[c].len(), cells, "a memory column spans the image");
-            parallel::SendPtr(windows[c].as_mut_ptr())
+            parallel::SendPtr(windows[c].as_mut_ptr().cast::<F64>())
         });
         // Cell `i`'s two limbs and its count, which ended at g^{A[i]}.
         let values = |page: Option<&[Cell]>, i: usize| {
@@ -469,7 +468,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
             });
         }
         parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
-            gpow[tr.bytecode_count[i] as usize]
+            MaybeUninit::new(gpow[tr.bytecode_count[i] as usize])
         }); // … at g^{A[pc]}
     });
     // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
@@ -481,6 +480,16 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     // (`execute` already asserts the run halts at the sentinel (pc, fp) =
     // (g^{B-1}, 0), exactly the boundary the public layout derives.)
     drop(windows); // release the borrow of `q` and of the output lanes' buffers
+    // SAFETY: the windows tile `q` past the zeroed tail, and the output lanes' buffers are windows too: each table's
+    // fill wrote every window it was given (`fill_table` checks), the shared columns and `q_keccak` theirs above.
+    let (q, virt) = unsafe {
+        (
+            primitives::assume_init_vec(q),
+            virt.into_iter()
+                .map(|(i, v)| (i, primitives::assume_init_vec(v)))
+                .collect(),
+        )
+    };
     Witness {
         q,
         virt,
