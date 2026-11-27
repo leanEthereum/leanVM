@@ -1,7 +1,7 @@
-//! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode is one `Table` impl that declares,
-//! in one place, its committed columns, how to fill them from the trace, its bus
+//! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode's section declares, in one
+//! place, its committed columns, how to fill them from the trace, its bus
 //! interactions (flushes), the read-count columns that feed the count channel,
-//! and its degree-2 constraint. Column indices here are *local* (`0..n_committed_columns`);
+//! and its degree-2 constraint; [`Table`] names them. Column indices here are *local* (`0..n_committed_columns`);
 //! `cpu` offsets them by the verifier's `GLOBAL_COLUMN_BASES` to global witness columns.
 //!
 //! Columns are `K`-valued (`F64`). The pc/fp, operands, counts, opcodes and
@@ -250,52 +250,100 @@ impl<'a> FillCtx<'a> {
     }
 }
 
-// ---- the trait ---------------------------------------------------------------
-
-/// One instruction table. Indices in [`flushes`](Table::flushes) and
-/// [`count_columns`](Table::count_columns) are local to this table.
-pub(crate) trait Table: Sync {
-    /// Number of committed columns (local indices `0..n_committed_columns`).
-    fn n_committed_columns(&self) -> usize;
-    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` of each accessed cell
-    /// (and the pc), each of which gets its own single-column count bus block.
-    fn count_columns(&self) -> Range<usize>;
-    /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
-    /// table's constraint. All zeros by default.
-    fn padding(&self) -> Vec<F64> {
-        vec![F64::ZERO; self.n_committed_columns()]
-    }
-    /// How many identities [`constraint`](Table::constraint) folds, the length of this table's range of `xi`-powers
-    /// (§sec:air). None but for `JUMP`: a value that rides the bus as a coordinate needs no identity (§sec:m3).
-    fn n_constraints(&self) -> usize {
-        0
-    }
-    /// The table's identities as one degree-2 form over its local columns, identity `i` weighted by `pows[i]`, this
-    /// table's [`n_constraints`](Table::n_constraints) `xi`-powers. It vanishes on every valid row (§sec:air).
-    fn constraint(&self, pows: &[F128]) -> Form {
-        assert!(pows.is_empty(), "a table with constraints must state them");
-        Form::new(self.n_committed_columns())
-    }
-    /// Declare the table's bus interactions.
-    fn flushes(&self, f: &mut FlushBuilder);
-    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s window, at its padded length, written
-    /// in full by `FillCtx::fill_cols`.
-    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]);
-}
+// ---- the tables --------------------------------------------------------------
 
 /// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
 pub use verifier::layout::N_TABLES;
 
-pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
+/// One instruction table. Indices in [`flushes`](Table::flushes) and
+/// [`count_columns`](Table::count_columns) are local to this table.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Table {
+    Xor,
+    Mul,
+    Set,
+    Deref,
+    Jump,
+    Keccak,
+}
+
+pub(crate) fn tables() -> [Table; N_TABLES] {
     [
-        &Arith { is_xor: true },
-        &Arith { is_xor: false },
-        &SetTable,
-        &DerefTable,
-        &JumpTable,
-        &KeccakTable,
+        Table::Xor,
+        Table::Mul,
+        Table::Set,
+        Table::Deref,
+        Table::Jump,
+        Table::Keccak,
     ]
+}
+
+impl Table {
+    /// Number of committed columns (local indices `0..n_committed_columns`).
+    pub(crate) fn n_committed_columns(self) -> usize {
+        TABLE_WIDTHS[self as usize]
+    }
+
+    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` of each accessed cell
+    /// (and the pc), each of which gets its own single-column count bus block.
+    pub(crate) fn count_columns(self) -> Range<usize> {
+        match self {
+            Table::Xor | Table::Mul => arith::RA..arith::RBC + 1,
+            Table::Set => set::R..set::RBC + 1,
+            Table::Deref => deref::R1..deref::RBC + 1,
+            Table::Jump => jump::RC..jump::RBC + 1,
+            Table::Keccak => keccakt::R0..keccakt::RBC + 1,
+        }
+    }
+
+    /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
+    /// table's constraint. All zeros but for `KECCAK` ([`KeccakTable::padding`]).
+    pub(crate) fn padding(self) -> Vec<F64> {
+        match self {
+            Table::Keccak => KeccakTable.padding(),
+            _ => vec![F64::ZERO; self.n_committed_columns()],
+        }
+    }
+
+    /// How many identities [`constraint`](Table::constraint) folds, the length of this table's range of `xi`-powers
+    /// (§sec:air). None but for `JUMP`'s two: a value that rides the bus as a coordinate needs no identity (§sec:m3).
+    pub(crate) fn n_constraints(self) -> usize {
+        if self == Table::Jump { 2 } else { 0 }
+    }
+
+    /// The table's identities as one degree-2 form over its local columns, identity `i` weighted by `pows[i]`, this
+    /// table's [`n_constraints`](Table::n_constraints) `xi`-powers. It vanishes on every valid row (§sec:air).
+    pub(crate) fn constraint(self, pows: &[F128]) -> Form {
+        assert_eq!(pows.len(), self.n_constraints(), "one power per identity");
+        match self {
+            Table::Jump => JumpTable.constraint(pows),
+            _ => Form::new(self.n_committed_columns()),
+        }
+    }
+
+    /// Declare the table's bus interactions.
+    pub(crate) fn flushes(self, f: &mut FlushBuilder) {
+        match self {
+            Table::Xor | Table::Mul => Arith::of(self).flushes(f),
+            Table::Set => SetTable.flushes(f),
+            Table::Deref => DerefTable.flushes(f),
+            Table::Jump => JumpTable.flushes(f),
+            Table::Keccak => KeccakTable.flushes(f),
+        }
+    }
+
+    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s window, at its padded length, written
+    /// in full by `FillCtx::fill_cols`.
+    pub(crate) fn fill(self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
+        match self {
+            Table::Xor | Table::Mul => Arith::of(self).fill(ctx, out),
+            Table::Set => SetTable.fill(ctx, out),
+            Table::Deref => DerefTable.fill(ctx, out),
+            Table::Jump => JumpTable.fill(ctx, out),
+            Table::Keccak => KeccakTable.fill(ctx, out),
+        }
+    }
 }
 
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
@@ -430,12 +478,11 @@ fn arith_result(is_xor: bool) -> [Coord; 2] {
     [lane(0), lane(1)]
 }
 
-impl Table for Arith {
-    fn n_committed_columns(&self) -> usize {
-        arith::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        arith::RA..arith::RBC + 1
+impl Arith {
+    fn of(table: Table) -> Self {
+        Self {
+            is_xor: table == Table::Xor,
+        }
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use arith::*;
@@ -493,13 +540,7 @@ mod set {
     pub const N: usize = 7;
 }
 
-impl Table for SetTable {
-    fn n_committed_columns(&self) -> usize {
-        set::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        set::R..set::RBC + 1
-    }
+impl SetTable {
     fn flushes(&self, f: &mut FlushBuilder) {
         use set::*;
         f.state_step(PC, FP);
@@ -572,13 +613,7 @@ fn deref_store() -> [Coord; 2] {
     [Coord::Sum(lo), Coord::Sum(gated(V3_HI))]
 }
 
-impl Table for DerefTable {
-    fn n_committed_columns(&self) -> usize {
-        deref::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        deref::R1..deref::RBC + 1
-    }
+impl DerefTable {
     fn flushes(&self, f: &mut FlushBuilder) {
         use deref::*;
         f.state_step(PC, FP);
@@ -659,16 +694,7 @@ mod jump {
     pub const N: usize = 14;
 }
 
-impl Table for JumpTable {
-    fn n_committed_columns(&self) -> usize {
-        jump::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        jump::RC..jump::RBC + 1
-    }
-    fn n_constraints(&self) -> usize {
-        2 // the two indicator identities; the selections ride the state push
-    }
+impl JumpTable {
     /// `b = cond·w` and `cond·(b+1) = 0` (§sec:tab-jump), weighted `pows[0]` and `pows[1]`.
     ///
     /// The two relations together force `b = [cond ≠ 0]`: when `cond ≠ 0` the second
@@ -841,13 +867,7 @@ fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usi
     )
 }
 
-impl Table for KeccakTable {
-    fn n_committed_columns(&self) -> usize {
-        keccakt::N
-    }
-    fn count_columns(&self) -> Range<usize> {
-        keccakt::R0..keccakt::RBC + 1
-    }
+impl KeccakTable {
     /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
     /// steps, permutes zeros, in the even layout.
     fn padding(&self) -> Vec<F64> {
@@ -939,6 +959,9 @@ const _: () = {
     assert!(set::N == TABLE_WIDTHS[OP_SET] && deref::N == TABLE_WIDTHS[OP_DEREF] && jump::N == TABLE_WIDTHS[OP_JUMP]);
     assert!(keccakt::N == TABLE_WIDTHS[verifier::layout::OP_KECCAK]);
     assert!(keccakt::V_IN == KECCAK_IN && keccakt::V_OUT == KECCAK_OUT && keccakt::R0 == KECCAK_CNT);
+    assert!(Table::Xor as usize == OP_XOR && Table::Mul as usize == OP_MUL && Table::Set as usize == OP_SET);
+    assert!(Table::Deref as usize == OP_DEREF && Table::Jump as usize == OP_JUMP);
+    assert!(Table::Keccak as usize == verifier::layout::OP_KECCAK);
 };
 
 #[cfg(test)]
