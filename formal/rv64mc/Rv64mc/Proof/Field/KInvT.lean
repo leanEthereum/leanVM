@@ -13,7 +13,7 @@
 
   ## Main definitions
 
-  * `specT`, `Mem`, `Keep`, `Inv`
+  * `specT`, `Mem`, `Keep`, `Inv`, `Cut`
 
   ## Main results
 
@@ -71,11 +71,13 @@ theorem call_back {env : Env} {ret top : Word} {regs : Reg → Word} {m M X : Ma
     (hf : env.Frame (top + 18446744073709551584#64) (fun _ => False) M X)
     (hk : ∀ a : Word, top + 18446744073709551584#64 ≤ a → X.getMem a = M.getMem a) (hc : X.code = M.code)
     (hs : env.Static X) (hlim : env.stackLimit.toNat + 32 ≤ top.toNat) (hM : Mem env ret top regs m M) :
-    Mem env ret top regs m X := by
-  have e : (top + 18446744073709551584#64).toNat = top.toNat - 32 := by
-    rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega
-  exact hM.call slots (by omega) (by omega) hf hc hs (fun _ h => h.elim) fun a h1 _ =>
-    hk a (Tactic.le_of_toNat (by omega))
+    Mem env ret top regs m X :=
+  (hM.call_below slots le_rfl hlim (by rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega) hf hk hc hs).1
+
+/-- A cut at instruction `pc`: the run from it is total wherever `Inv` holds. -/
+abbrev Cut (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (Q : State rvIsa → Prop) (ret top : Word)
+    (rest : List Frame) (regs : Reg → Word) (m : MachineState) (pc : Nat) : Prop :=
+  ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, pc, ret, top⟩ :: rest, R, M⟩
 
 set_option hygiene false in
 /-- One part, from its cut to the cut `b` (where `hb` goes on), across `n` calls: `Inv` again from `Mem` carried
@@ -105,79 +107,57 @@ set_option linter.unusedSectionVars false
 
 set_option rv_sym.heap true in
 /-- Calls `s0` to `s11`, from instruction 10. -/
-theorem part1 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 68, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 10, ret, top⟩ :: rest, R, M⟩ := by
+theorem part1 (hb : Cut env p i Q ret top rest regs m 68) : Cut env p i Q ret top rest regs m 10 := by
   part_tac 68 12
 
 set_option rv_sym.heap true in
 /-- Calls `s12` to `s23`, from instruction 68. -/
-theorem part2 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 118, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 68, ret, top⟩ :: rest, R, M⟩ := by
+theorem part2 (hb : Cut env p i Q ret top rest regs m 118) : Cut env p i Q ret top rest regs m 68 := by
   part_tac 118 12
 
 set_option rv_sym.heap true in
 /-- Calls `s24` to `s35`, from instruction 118. -/
-theorem part3 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 170, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 118, ret, top⟩ :: rest, R, M⟩ := by
+theorem part3 (hb : Cut env p i Q ret top rest regs m 170) : Cut env p i Q ret top rest regs m 118 := by
   part_tac 170 12
 
 set_option rv_sym.heap true in
 /-- Calls `s36` to `s47`, from instruction 170. -/
-theorem part4 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 218, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 170, ret, top⟩ :: rest, R, M⟩ := by
+theorem part4 (hb : Cut env p i Q ret top rest regs m 218) : Cut env p i Q ret top rest regs m 170 := by
   part_tac 218 12
 
 set_option rv_sym.heap true in
 /-- Calls `s48` to `s59`, from instruction 218. -/
-theorem part5 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 270, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 218, ret, top⟩ :: rest, R, M⟩ := by
+theorem part5 (hb : Cut env p i Q ret top rest regs m 270) : Cut env p i Q ret top rest regs m 218 := by
   part_tac 270 12
 
 set_option rv_sym.heap true in
 /-- Calls `s60` to `s71`, from instruction 270. -/
-theorem part6 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 318, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 270, ret, top⟩ :: rest, R, M⟩ := by
+theorem part6 (hb : Cut env p i Q ret top rest regs m 318) : Cut env p i Q ret top rest regs m 270 := by
   part_tac 318 12
 
 set_option rv_sym.heap true in
 /-- Calls `s72` to `s83`, from instruction 318. -/
-theorem part7 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 366, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 318, ret, top⟩ :: rest, R, M⟩ := by
+theorem part7 (hb : Cut env p i Q ret top rest regs m 366) : Cut env p i Q ret top rest regs m 318 := by
   part_tac 366 12
 
 set_option rv_sym.heap true in
 /-- Calls `s84` to `s95`, from instruction 366. -/
-theorem part8 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 414, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 366, ret, top⟩ :: rest, R, M⟩ := by
+theorem part8 (hb : Cut env p i Q ret top rest regs m 414) : Cut env p i Q ret top rest regs m 366 := by
   part_tac 414 12
 
 set_option rv_sym.heap true in
 /-- Calls `s96` to `s107`, from instruction 414. -/
-theorem part9 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 464, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 414, ret, top⟩ :: rest, R, M⟩ := by
+theorem part9 (hb : Cut env p i Q ret top rest regs m 464) : Cut env p i Q ret top rest regs m 414 := by
   part_tac 464 12
 
 set_option rv_sym.heap true in
 /-- Calls `s108` to `s119`, from instruction 464. -/
-theorem part10 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 512, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 464, ret, top⟩ :: rest, R, M⟩ := by
+theorem part10 (hb : Cut env p i Q ret top rest regs m 512) : Cut env p i Q ret top rest regs m 464 := by
   part_tac 512 12
 
 set_option rv_sym.heap true in
 /-- Calls `s120` to `s131`, from instruction 512. -/
-theorem part11 (hb : ∀ R M, Inv env ret top regs m R M →
-      rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 564, ret, top⟩ :: rest, R, M⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 512, ret, top⟩ :: rest, R, M⟩ := by
+theorem part11 (hb : Cut env p i Q ret top rest regs m 564) : Cut env p i Q ret top rest regs m 512 := by
   part_tac 564 12
 
 set_option rv_sym.heap true in
@@ -186,7 +166,7 @@ set_option rv_sym.heap true in
 theorem part12
     (hk : ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) (fun _ _ _ => False) ret top regs m r' m' →
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨rest, r', m'⟩) :
-    ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 564, ret, top⟩ :: rest, R, M⟩ := by
+    Cut env p i Q ret top rest regs m 564 := by
   intro R M hI
   obtain ⟨-, -, hM⟩ := id hI
   have hlim : env.stackLimit.toNat + 32 ≤ top.toNat := by omega

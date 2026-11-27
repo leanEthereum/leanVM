@@ -424,11 +424,8 @@ theorem hdr (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551488#64) = top + 18446744073709551496#64 ∧
       vecCap M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551488#64) ∧
       vecPtr M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551496#64) ∧
-      vecLen M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551504#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551504#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- **Across `from_elem`** (`m1`, from the stack pointer `top - 176`, writing the header at `top - 128`): `Mem`
     kept, every other word of the frame read as before. -/
@@ -440,16 +437,10 @@ theorem call_mem {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : Ma
     (hc : m1.code = M.code) (hs : env.Static m1) :
     Mem env ret top regs m m1 ∧ (env.next m).toNat ≤ (env.next M).toNat ∧ ∀ a : Word, top.toNat - 176 ≤ a.toNat →
       ¬ InRange (top + 18446744073709551488#64) 24 a → m1.getMem a = M.getMem a := by
-  have hlay := env.layout
-  have e1 : (top + 18446744073709551440#64).toNat = top.toNat - 176 := by tn
   have e2 : (top + 18446744073709551488#64).toNat = top.toNat - 128 := by tn
-  have rd : ∀ a : Word, top.toNat - 176 ≤ a.toNat → ¬ InRange (top + 18446744073709551488#64) 24 a →
-      m1.getMem a = M.getMem a := fun a h1 h2 => hk a (Tactic.le_of_toNat (by omega)) fun h => h2 (hout a h)
-  refine ⟨hM.call slots (by omega) (by omega) hf hc hs (fun a ha => Tactic.mw_stack ?_) fun a h1 h2 =>
-    rd a (by omega) fun h => by unfold InRange at h; omega, hM.next_le, rd⟩
-  have := hout a ha
-  unfold InRange at this
-  omega
+  obtain ⟨h1, rd⟩ := hM.call_at slots (by omega) hlim (by tn) hf
+    (fun a ha => by have := hout a ha; unfold InRange at this; omega) hk hc hs
+  exact ⟨h1, hM.next_le, fun a h1 h2 => rd a h1 fun h => h2 (hout a h)⟩
 
 /-- The slot's address's word (`top - 168`) lies in the frame, apart from the header `from_elem` writes. -/
 theorem slot_off {top : Word} (h : 176 ≤ top.toNat) :

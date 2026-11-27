@@ -123,9 +123,7 @@ theorem call_ok {env : Env} {ret top q : Word} {regs : Reg → Word} {m M m1 : M
     (hk : ∀ a : Word, top + 18446744073709551488#64 ≤ a → m1.getMem a = M.getMem a) (hc : m1.code = M.code)
     (hs : env.Static m1) :
     Mem env ret top regs m m1 ∧ Img env m n q m1 ∧ (env.next M).toNat ≤ (env.next m1).toNat := by
-  have e488 : (top + 18446744073709551488#64).toNat = top.toNat - 128 := by tn
-  exact ⟨hM.call slots (by omega) (by omega) hf hc hs (fun _ h => h.elim) fun a h1 _ =>
-    hk a (Tactic.le_of_toNat (by omega)), hI.mono hf.1, hf.1⟩
+  exact ⟨(hM.call_below slots (by omega) hlim (by tn) hf hk hc hs).1, hI.mono hf.1, hf.1⟩
 
 /-- **A store into what the function allocated**: `Mem`, `Img` kept, `NEXT` kept. -/
 theorem heap_ok {env : Env} {ret top a q : Word} {regs : Reg → Word} {m M : MachineState} {n : Nat}
@@ -142,11 +140,8 @@ theorem hdr (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551496#64) = top + 18446744073709551504#64 ∧
       vecCap M (top + 18446744073709551496#64) = M.getMem (top + 18446744073709551496#64) ∧
       vecPtr M (top + 18446744073709551496#64) = M.getMem (top + 18446744073709551504#64) ∧
-      vecLen M (top + 18446744073709551496#64) = M.getMem (top + 18446744073709551512#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551496#64) = M.getMem (top + 18446744073709551512#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- The images' header `(c, q, 0)` stored at `top - 120` to `top - 104`, read back, `NEXT` kept. -/
 theorem hdr_stores {env : Env} {top c q : Word} {X : MachineState} (hlim : env.stackLimit.toNat + 128 ≤ top.toNat) :

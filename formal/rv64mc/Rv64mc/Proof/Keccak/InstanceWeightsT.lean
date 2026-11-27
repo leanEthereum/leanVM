@@ -130,10 +130,8 @@ theorem call_ok {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : Mac
     (hs : env.Static m1) :
     Mem env ret top regs m m1 ∧ (env.next M).toNat ≤ (env.next m1).toNat ∧
       ∀ a : Word, top.toNat - 528 ≤ a.toNat → m1.getMem a = M.getMem a := by
-  have e : (top + 18446744073709551088#64).toNat = top.toNat - 528 := by tn
-  have rd : ∀ a : Word, top.toNat - 528 ≤ a.toNat → m1.getMem a = M.getMem a := fun a h =>
-    hk a (Tactic.le_of_toNat (by omega))
-  exact ⟨hM.call slots (by omega) (by omega) hf hc hs (fun _ h => h.elim) fun a h1 _ => rd a (by omega), hf.1, rd⟩
+  obtain ⟨h1, rd⟩ := hM.call_below slots (by omega) hlim (by tn) hf hk hc hs
+  exact ⟨h1, hf.1, rd⟩
 
 /-- **A store into the frame below the slots**: `Mem` kept, `NEXT` kept. -/
 theorem slot_ok {env : Env} {ret top a : Word} {regs : Reg → Word} {m M : MachineState}
@@ -148,11 +146,8 @@ theorem hdr (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551480#64) = top + 18446744073709551488#64 ∧
       vecCap M (top + 18446744073709551480#64) = M.getMem (top + 18446744073709551480#64) ∧
       vecPtr M (top + 18446744073709551480#64) = M.getMem (top + 18446744073709551488#64) ∧
-      vecLen M (top + 18446744073709551480#64) = M.getMem (top + 18446744073709551496#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551480#64) = M.getMem (top + 18446744073709551496#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- The weights' header `(16, q, 0)` stored at `top - 136` to `top - 120`, read back, `NEXT` kept. -/
 theorem hdr_stores {env : Env} {top q : Word} {X : MachineState} (hlim : env.stackLimit.toNat + 528 ≤ top.toNat) :
@@ -203,10 +198,8 @@ theorem res_ok {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : Mach
   obtain ⟨-, -, bC', bP', bL'⟩ := hdr top M
   rw [bL, bL'] at hlen
   rw [bC', bL', bC, bP, bP'] at hroom
-  refine ⟨hM.call slots (by omega) (by omega) hf hc hs
-    (fun a ha => Tactic.mw_stack (by rcases ho a ha with h | h <;> omega)) fun a h1 h2 =>
-      hk a (Tactic.le_of_toNat (by omega)) fun h => by rcases ho a h with h | h <;> omega, hf.1, (hroom hr).1,
-    (hroom hr).2, hlen⟩
+  exact ⟨(hM.call_at slots (by omega) hlim e528 hf (fun a ha => by rcases ho a ha with h | h <;> omega) hk hc
+    hs).1, hf.1, (hroom hr).1, (hroom hr).2, hlen⟩
 
 /-- **An entry of the embedding's table**: the `k`-th `u32` (`k < 16`) of `RMFE_EMBED` at `D` in a window and 4-byte
     aligned, from the table's eight words in the static data. -/

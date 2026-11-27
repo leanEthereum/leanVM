@@ -155,11 +155,8 @@ theorem call_ok {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : Mac
     (hs : env.Static m1) :
     Mem env ret top regs m m1 ∧ RT env m top n m1 ∧ (env.next M).toNat ≤ (env.next m1).toNat ∧
       ∀ a : Word, top.toNat - 112 ≤ a.toNat → m1.getMem a = M.getMem a := by
-  have e : (top + 18446744073709551504#64).toNat = top.toNat - 112 := by tn
-  have rd : ∀ a : Word, top.toNat - 112 ≤ a.toNat → m1.getMem a = M.getMem a := fun a h =>
-    hk a (Tactic.le_of_toNat (by omega))
-  exact ⟨hM.call slots (by omega) (by omega) hf hc hs (fun _ h => h.elim) fun a h1 _ => rd a (by omega),
-    hR.keep hf.1 (by omega) fun a h1 _ => rd a (by omega), hf.1, rd⟩
+  obtain ⟨h1, rd⟩ := hM.call_below slots (by omega) hlim (by tn) hf hk hc hs
+  exact ⟨h1, hR.keep hf.1 (by omega) fun a h1 _ => rd a (by omega), hf.1, rd⟩
 
 /-- **Across `subspace_roots`** (`m1`, from the stack pointer `top - 112`, writing at most the roots' header): `Mem`
     kept, every saved slot read as before. -/
@@ -169,11 +166,7 @@ theorem roots_ok {env : Env} {ret top : Word} {regs : Reg → Word} {m M m1 : Ma
     (hout : ∀ a, out a → top.toNat - 104 ≤ a.toNat ∧ a.toNat < top.toNat - 80)
     (hk : ∀ a : Word, top + 18446744073709551504#64 ≤ a → ¬ out a → m1.getMem a = M.getMem a)
     (hc : m1.code = M.code) (hs : env.Static m1) : Mem env ret top regs m m1 := by
-  have hlay := env.layout
-  have e : (top + 18446744073709551504#64).toNat = top.toNat - 112 := by tn
-  exact hM.call slots (by omega) (by omega) hf hc hs
-    (fun a ha => Tactic.mw_stack (by have := hout a ha; omega)) fun a h1 h2 =>
-      hk a (Tactic.le_of_toNat (by omega)) fun h => by have := hout a h; omega
+  exact (hM.call_at slots (by omega) hlim (by tn) hf (fun a ha => by have := hout a ha; omega) hk hc hs).1
 
 /-- The roots' header words (at `top - 104`) as `vecCap`, `vecPtr`, `vecLen` name them. -/
 theorem hdrR (top : Word) (M : MachineState) :
@@ -181,11 +174,8 @@ theorem hdrR (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551512#64) = top + 18446744073709551520#64 ∧
       vecCap M (top + 18446744073709551512#64) = M.getMem (top + 18446744073709551512#64) ∧
       vecPtr M (top + 18446744073709551512#64) = M.getMem (top + 18446744073709551520#64) ∧
-      vecLen M (top + 18446744073709551512#64) = M.getMem (top + 18446744073709551528#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551512#64) = M.getMem (top + 18446744073709551528#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- The inverses' header words (at `top - 80`) as `rvCapAt`, `rvPtrAt`, `vecCap`, `vecPtr`, `vecLen` name them. -/
 theorem hdrI (top : Word) (M : MachineState) :
@@ -193,11 +183,8 @@ theorem hdrI (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551536#64) = top + 18446744073709551544#64 ∧
       vecCap M (top + 18446744073709551536#64) = M.getMem (top + 18446744073709551536#64) ∧
       vecPtr M (top + 18446744073709551536#64) = M.getMem (top + 18446744073709551544#64) ∧
-      vecLen M (top + 18446744073709551536#64) = M.getMem (top + 18446744073709551552#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551536#64) = M.getMem (top + 18446744073709551552#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- The inverses' header `(c, q, 0)` stored at `top - 80` to `top - 64`: `Mem`, `RT` kept, the words read back,
     `NEXT` kept. -/

@@ -179,11 +179,8 @@ theorem call_ok {env : Env} {ret top q : Word} {regs : Reg → Word} {m M m1 : M
     (hs : env.Static m1) :
     Mem env ret top regs m m1 ∧ CV env m top m1 ∧ PW env m n q m1 ∧
       ∀ c : Word, top.toNat - 144 ≤ (top + c).toNat → m1.getMem (top + c) = M.getMem (top + c) := by
-  have e472 : (top + 18446744073709551472#64).toNat = top.toNat - 144 := by tn
-  have rd : ∀ a : Word, top.toNat - 144 ≤ a.toNat → m1.getMem a = M.getMem a := fun a h =>
-    hk a (Tactic.le_of_toNat (by omega))
-  exact ⟨hM.call slots (by omega) (by omega) hf hc hs (fun _ h => h.elim) fun a h1 _ => rd a (by omega),
-    hB.keep hf.1 (by omega) fun a h1 _ => rd a (by omega), hP.mono hf.1, fun c h => rd _ h⟩
+  obtain ⟨h1, rd⟩ := hM.call_below slots (by omega) hlim (by tn) hf hk hc hs
+  exact ⟨h1, hB.keep hf.1 (by omega) fun a h1 _ => rd a (by omega), hP.mono hf.1, fun c h => rd _ h⟩
 
 /-- **A store into what the function allocated**: `Mem`, `CV`, `PW` kept, `NEXT` kept, every word of the stack read
     as before. -/
@@ -208,11 +205,8 @@ theorem hdr (top : Word) (M : MachineState) :
       rvPtrAt (top + 18446744073709551488#64) = top + 18446744073709551496#64 ∧
       vecCap M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551488#64) ∧
       vecPtr M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551496#64) ∧
-      vecLen M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551504#64) := by
-  refine ⟨Runtime.GrowOne.rvCapAt_eq _, ?_, Runtime.VecHdrT.vecCap_eq _ _, ?_, ?_⟩
-  · unfold rvPtrAt; rw [BitVec.add_assoc]; rfl
-  · unfold vecPtr; rw [BitVec.add_assoc]; rfl
-  · unfold vecLen; rw [BitVec.add_assoc]; rfl
+      vecLen M (top + 18446744073709551488#64) = M.getMem (top + 18446744073709551504#64) :=
+  Runtime.SavedT.hdr_at top _ M
 
 /-- The coefficients' header `(c, q, 0)` and the slot's address `s` stored at `top - 128` to `top - 112` and at
     `top - 136`, read back, `NEXT` kept. -/
@@ -275,9 +269,8 @@ theorem res_ok {env : Env} {ret top q : Word} {regs : Reg → Word} {m M m1 : Ma
   have rd : ∀ a : Word, top.toNat - 144 ≤ a.toNat → a.toNat ≠ top.toNat - 128 → a.toNat ≠ top.toNat - 120 →
       m1.getMem a = M.getMem a := fun a h1 h2 h3 =>
     hk a (Tactic.le_of_toNat (by omega)) fun h => by rcases ho a h with h | h <;> omega
-  have hM1 : Mem env ret top regs m m1 := hM.call slots (by omega) (by omega) hf hc hs
-    (fun a ha => Tactic.mw_stack (by rcases ho a ha with h | h <;> omega)) fun a h1 h2 =>
-      rd a (by omega) (by omega) (by omega)
+  have hM1 : Mem env ret top regs m m1 := (hM.call_at slots (by omega) hlim e472 hf
+    (fun a ha => by rcases ho a ha with h | h <;> omega) hk hc hs).1
   obtain ⟨bc, bp, bC, bP, bL⟩ := hdr top m1
   obtain ⟨-, -, bC', bP', bL'⟩ := hdr top M
   rw [bL, bL'] at hlen
