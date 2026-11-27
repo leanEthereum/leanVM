@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Tests `pr-report.py` on a throwaway repository with `diff.noprefix` set: a change that plants violations in
-every section, which the report must list, a clean change, which it must not, and two one-file changes to the
+"""Tests `pr-report.py` on a throwaway repository with `diff.noprefix` and `diff.interHunkContext` set: a change
+that plants violations in every section, and `*.lean -diff` in `.gitattributes`, which the report must list, a clean change, which it must not, and two one-file changes to the
 statement's edges.
 
   python3 -I formal/tools/test_pr_report.py
@@ -58,6 +58,7 @@ PLANTED = {
     ".claude/skills/x/SKILL.md": "Skill " + EM + " text.\n",
     "README.md": "# readme\n\nRoot " + EM + " prose.\n",
     "crates/x.rs": "let s = \"" + RLO + "\";\n",
+    ".gitattributes": "*.lean -diff\n",
 }
 CLEAN = ["No file under `formal/Statement/` changed.", "None added or removed.", "None added.",
          "No touched file or declaration over the thresholds.", "Nothing found."]
@@ -114,6 +115,7 @@ def main():
     with tempfile.TemporaryDirectory() as repo:
         run(repo, "git", "init", "-q")
         run(repo, "git", "config", "diff.noprefix", "true")
+        run(repo, "git", "config", "diff.interHunkContext", "10")
         base = commit(repo, BASE, "base")
         summary = os.path.join(repo, ".git", "summary.md")
         for name, files, expected, not_expected in SCENARIOS:

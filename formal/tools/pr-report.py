@@ -69,12 +69,13 @@ def git(*args, ok=False):
 
 def changes(base):
     """Per changed file: (status, added [(line, text)], removed [(line, text)]). A rename is a removal and an
-    addition. One diff per file, so no header is parsed and no path is quoted."""
+    addition. One diff per file, so no header is parsed and no path is quoted; `--text` and `--no-textconv`, so
+    `.gitattributes` cannot hide a change."""
     files, fields = {}, git("diff", "--name-status", "-z", "--no-renames", base, "HEAD").split("\0")
     for status, path in zip(fields[0::2], fields[1::2]):
         added, removed, old, new, left = [], [], 0, 0, 0
-        for line in git("diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames", base, "HEAD", "--",
-                        ":(literal)" + path).split("\n"):
+        for line in git("diff", "-U0", "--inter-hunk-context=0", "--text", "--no-textconv", "--no-color",
+                        "--no-ext-diff", "--no-renames", base, "HEAD", "--", ":(literal)" + path).split("\n"):
             if left and line[:1] == "+":
                 added.append((new, line[1:]))
                 new, left = new + 1, left - 1
