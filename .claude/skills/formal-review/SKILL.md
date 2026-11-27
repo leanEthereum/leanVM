@@ -76,4 +76,4 @@ Not checked: <claims or files you could not check, and why>.
 
 ## In CI
 
-`.github/workflows/formal-review.yml` runs this skill when a maintainer comments `/formal-review` on a pull request, optionally followed by what to focus on. It checks out the default branch, so this file is the trusted version, reads the pull request only through `gh` and `git`, and has read-only tools. It posts the summary above as one comment and an inline comment for each important finding. It never approves or requests changes: people decide.
+`.github/workflows/formal-review.yml` runs this skill when a maintainer comments `/formal-review` on a pull request, optionally followed by what to focus on. It checks out the default branch, so this file is the trusted version; the pull request's diff comes from `gh pr diff` and its files from a copy extracted under `.formal-review/head/`, read, never run. Claude has read-only tools and posts an inline comment for each important finding; the job posts the summary above as one comment. It never approves or requests changes: people decide.
