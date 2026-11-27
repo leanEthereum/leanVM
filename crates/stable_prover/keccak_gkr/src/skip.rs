@@ -132,17 +132,16 @@ fn block_sums(block: &[u64], words: &[Vec<u64>; 2], extended: &mut [[Run; SLOTS]
 /// A run's packs at the mixed points of each group, by slot: along a variable, the value at infinity is the sum of
 /// the two others.
 fn extend(packs: &[Run; PACKS], out: &mut [Run; SLOTS]) {
-    // Both groups at once, group `half` in bits `32 * half ..` of each value.
     let mut values = [[0u64; 8]; TERNARY];
-    for q in 0..GROUP {
-        values[ternary(q)] = std::array::from_fn(|i| packs[q][i] | packs[GROUP + q][i] << 32);
-    }
-    for &[t, zero, one] in &MIXED_POINTS {
-        values[t] = xor(values[zero], values[one]);
-    }
     for half in 0..2 {
+        for q in 0..GROUP {
+            values[ternary(q)] = packs[GROUP * half + q];
+        }
+        for &[t, zero, one] in &MIXED_POINTS {
+            values[t] = xor(values[zero], values[one]);
+        }
         for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
-            out[MIXED * half + i] = values[t].map(|v| v >> (32 * half) & 0xffff_ffff);
+            out[MIXED * half + i] = values[t];
         }
     }
 }
