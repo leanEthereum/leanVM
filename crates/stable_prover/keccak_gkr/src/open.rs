@@ -76,9 +76,9 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
             BitFold::new(&weights)
         })
         .collect();
-    let slots: Vec<Vec<F128>> = parallel::map_collect(1 << shape.slot_log(), |slot| {
+    let mut slices = parallel::filled((16 * 64) << shape.slot_log(), F128::ZERO);
+    parallel::chunks_mut(&mut slices, 16 * 64, |slot, out| {
         let words = &committed[slot * n..][..n];
-        let mut out = vec![F128::ZERO; 16 * 64];
         for (i, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
             for chunk in 0..chunks {
                 let mut rows: [u64; 64] =
@@ -89,43 +89,37 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
                 }
             }
         }
-        out
     });
-    slots.concat()
+    slices
 }
 
 /// The weight a word-level claim puts on each slot of the committed segment outputs, every
 /// segment's but the last: what [`slot_weights`] gives its bit 0.
-fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
+pub fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
     slot_weights(shape, claim, 1, shape.segments() - 1)
         .into_iter()
         .step_by(64)
         .collect()
 }
 
-/// Every slot of the committed block as a word, at an instance point, and the part of the
-/// word-level `claim` on the committed segment outputs among them. An opening is of the whole
-/// block, so the slots the claim puts no weight on are evaluated too: the spare ones past
-/// [`Shape::slots`] carry other columns (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
-pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], claim: &Claim) -> (Vec<F128>, F128) {
+/// Every slot of the committed block as a word, at an instance point, and the part of a word-level claim on the
+/// committed segment outputs among them, `weights` being its [`word_weights`]. An opening is of the whole block, so
+/// the slots the claim puts no weight on are evaluated too: the spare ones past [`Shape::slots`] carry other columns
+/// (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
+pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], weights: &[F128]) -> (Vec<F128>, F128) {
     let n = shape.n();
     let words = parallel::map_collect(1 << shape.slot_log(), |slot| {
         mle_eval(&committed[slot * n..][..n], instance)
     });
-    let value = dot(&words, &word_weights(shape, claim));
+    let value = dot(&words, weights);
     (words, value)
 }
 
 /// Open the part of the first claim on the committed segment outputs, whose instance weights are `eq(instance, .)`
-/// and whose position weights are those of a word, from `words`, every slot at `instance`. Returns the opening's point.
-pub fn open_outputs(
-    ps: &mut ProverState,
-    shape: Shape,
-    instance: &[F128],
-    claim: &Claim,
-    words: Vec<F128>,
-) -> Vec<F128> {
-    let (word, _, slot) = product_sumcheck(ps, words, word_weights(shape, claim), 1, F128::ONE);
+/// and whose position weights are those of a word, its [`word_weights`] `weights`, from `words`, every slot at
+/// `instance`. Returns the opening's point.
+pub fn open_outputs(ps: &mut ProverState, instance: &[F128], words: Vec<F128>, weights: Vec<F128>) -> Vec<F128> {
+    let (word, _, slot) = product_sumcheck(ps, words, weights, 1, F128::ONE);
     ps.add_scalar(word[0]);
     [instance, &slot].concat()
 }
