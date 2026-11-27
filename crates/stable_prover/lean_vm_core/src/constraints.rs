@@ -166,8 +166,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
             .iter()
             .map(|t| {
                 let chi = &chi[..t.tau];
-                let columns: Vec<_> = t.cols.iter().map(|&c| (c, None)).collect();
-                let evals = crate::eq::eq_sums(chi, &columns);
+                let evals = crate::eq::eq_sums(chi, t.cols);
                 ps.add_scalars(&evals);
                 Claims {
                     chi: chi.to_vec(),

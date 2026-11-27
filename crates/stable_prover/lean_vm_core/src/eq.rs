@@ -1,7 +1,7 @@
 //! Sums against `eq(point, ·)`, with the table split in two so that none of the hypercube's size is built.
 
 use crate::{load_e, load_k};
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
+use primitives::field::{Acc8, F64, F128, F128x8};
 use primitives::multilinear::eq_table;
 
 /// `eq(point, z) = lo[z mod 2^lo_bits]·hi[z >> lo_bits]`: a table over the low variables, up to [`Self::LO_BITS`]
@@ -39,35 +39,37 @@ impl SplitEq {
     }
 }
 
-/// `Σ_z eq(point, z)·a(z)·b(z)` for every term `(a, b)`, `b` the constant one where absent, in one pass over the
-/// rows. A column shorter than `2^point.len()` is zero past its end.
+/// `Σ_z eq(point, z)·c(z)` for every column `c`, in one pass over the rows. A column shorter than `2^point.len()` is
+/// zero past its end.
 ///
-/// A task is a row of the high table: its terms are summed against the low one and scaled once.
-pub(crate) fn eq_sums(point: &[F128], terms: &[(&[F64], Option<&[F64]>)]) -> Vec<F128> {
+/// A task is a run of rows of the high table, one row unless the sum is small: each row's sums are taken against the
+/// low table and scaled once.
+pub(crate) fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
     let SplitEq { lo, hi, lo_bits } = SplitEq::new(point);
-    let load = |column: &[F64], z: usize| load_k(column, z, column.len().saturating_sub(z));
-    /// `Σ_i lo[i]·value(z0 + i)`.
-    fn sum(lo: &[F128], z0: usize, value: impl Fn(usize) -> F64x8) -> F128 {
-        (0..lo.len().div_ceil(8))
-            .fold(Acc8::ZERO, |acc, v| {
-                let i = 8 * v;
-                acc + load_e(lo, i, lo.len() - i).mul_base_unreduced(value(z0 + i))
-            })
-            .sum()
-    }
-    let row = |h: usize| -> Vec<F128> {
-        let z0 = h << lo_bits;
-        let sums = terms.iter().map(|&(a, b)| match b {
-            None => sum(&lo, z0, |z| load(a, z)),
-            Some(b) => sum(&lo, z0, |z| load(a, z) * load(b, z)),
-        });
-        sums.map(|s| hi[h] * s).collect()
+    let rows = if hi.len() * lo.len() < 8 * crate::SERIAL_BELOW {
+        hi.len()
+    } else {
+        1
+    };
+    let zero = || vec![F128::ZERO; columns.len()];
+    let task = |task: usize| {
+        let mut sums = zero();
+        for h in task * rows..hi.len().min((task + 1) * rows) {
+            let z0 = h << lo_bits;
+            for (sum, column) in sums.iter_mut().zip(columns) {
+                let row = (0..lo.len().div_ceil(8)).fold(Acc8::ZERO, |acc, v| {
+                    let (i, z) = (8 * v, z0 + 8 * v);
+                    acc + load_e(&lo, i, lo.len() - i).mul_base_unreduced(load_k(
+                        column,
+                        z,
+                        column.len().saturating_sub(z),
+                    ))
+                });
+                *sum += hi[h] * row.sum();
+            }
+        }
+        sums
     };
     let add = |a: Vec<F128>, b: Vec<F128>| a.iter().zip(b).map(|(&a, b)| a + b).collect();
-    let zero = || vec![F128::ZERO; terms.len()];
-    if hi.len() * lo.len() < 8 * crate::SERIAL_BELOW {
-        (0..hi.len()).map(row).fold(zero(), add)
-    } else {
-        parallel::map_reduce(hi.len(), zero, row, add)
-    }
+    parallel::map_reduce(hi.len().div_ceil(rows), zero, task, add)
 }

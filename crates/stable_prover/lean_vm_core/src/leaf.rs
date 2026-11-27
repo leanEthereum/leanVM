@@ -201,7 +201,7 @@ struct Formula<'a> {
     size: usize,
     rows: usize,
     constant: F128,
-    terms: Vec<(Term<'a>, F128x8)>,
+    terms: Vec<(Term<'a>, F128)>,
 }
 
 impl<'a> Formula<'a> {
@@ -216,7 +216,7 @@ impl<'a> Formula<'a> {
             size: 1 << block.kappa,
             rows: block.rows,
             constant,
-            terms: terms.into_iter().map(|(t, w)| (t, F128x8::splat(w))).collect(),
+            terms,
         }
     }
 
@@ -253,7 +253,7 @@ impl<'a> Formula<'a> {
         let n = self.rows - z;
         let load = |values: &[F64]| crate::load_k(values, z, n);
         let sum = self.terms.iter().fold(Acc8::ZERO, |acc, (term, w)| {
-            acc + w.mul_base_unreduced(match *term {
+            acc + F128x8::splat(*w).mul_base_unreduced(match *term {
                 Term::Col(i) => load(cols[i]),
                 Term::Prod(i, j) => load(cols[i]) * load(cols[j]),
                 Term::Index => F64x8::splat(F64(isa::g_pow(z as u32))) * F64x8::from_array(&G_POWERS),
@@ -306,11 +306,14 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
     leaves
 }
 
-/// A tree's blocks, by index, in the order of their offsets.
+/// A tree's blocks, by index, in the order of their offsets: [`verifier::stack_offsets`] places each size from the
+/// largest down, its blocks in index order.
 fn by_offset(tree: &Tree) -> Vec<usize> {
-    let mut order: Vec<usize> = (0..tree.blocks.len()).collect();
-    isa::sort::sort_by_key(&mut order, |&b| tree.layout.offsets[b]);
-    order
+    let largest = tree.blocks.iter().map(|b| b.kappa).max().unwrap_or(0);
+    (0..=largest)
+        .rev()
+        .flat_map(|kappa| (0..tree.blocks.len()).filter(move |&b| tree.blocks[b].kappa == kappa))
+        .collect()
 }
 
 /// The leaves of a tree's padding rows, which hold the identity, as sorted runs.
@@ -369,8 +372,8 @@ fn decompose(
                 fresh.push(*i);
             }
         }
-        let terms: Vec<(&[F64], Option<&[F64]>)> = fresh.iter().map(|&i| (cols[i], None)).collect();
-        for (&col, value) in fresh.iter().zip(crate::eq::eq_sums(zeta_lo, &terms)) {
+        let columns: Vec<&[F64]> = fresh.iter().map(|&i| cols[i]).collect();
+        for (&col, value) in fresh.iter().zip(crate::eq::eq_sums(zeta_lo, &columns)) {
             ps.add_scalar(value);
             let point = zeta_lo.to_vec();
             claims.push(ColumnClaim { col, point, value });
@@ -401,7 +404,7 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
         .find(|block| public_columns(block, public).next().is_some())
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
-    let columns: Vec<(&[F64], Option<&[F64]>)> = public_columns(block, public).map(|c| (c, None)).collect();
+    let columns: Vec<&[F64]> = public_columns(block, public).collect();
     let mut evals = crate::eq::eq_sums(zeta_lo, &columns).into_iter();
     let slots: Vec<F128> = (0..1 << BUS_BITS)
         .map(|x| match block.coords.get(x) {
