@@ -205,7 +205,12 @@ struct Table<'a> {
 impl Table<'_> {
     /// Join in the round binding variable `m`: the state of every row, from the `K` columns.
     fn join(&mut self, m: usize) {
-        self.state = Some(expand(&self.form, self.cols, 2 << m));
+        let (rows, state) = (2 << m, expand(&self.form, self.cols, 2 << m));
+        self.state = Some(if rows <= 8 {
+            unpack(&state, self.form.width(), rows)
+        } else {
+            state
+        });
     }
 
     /// `[Σ_i eqr[i]·P(end_i), Σ_i eqr[i]·Q(lo_i + hi_i)]` for the round binding variable `m` (of weight `half`): `P`
@@ -226,7 +231,11 @@ impl Table<'_> {
 
     /// Bind variable `m` to `r`.
     fn bind(&mut self, r: F128, m: usize) {
-        fold_state(self.state.as_mut().expect("a table joins before it binds"), r, 1 << m);
+        let state = self.state.as_mut().expect("a table joins before it binds");
+        fold_state(state, r);
+        if m == 3 {
+            *state = unpack(state, self.form.width(), 8);
+        }
     }
 }
 
@@ -281,7 +290,8 @@ impl Grouped {
 }
 
 /// A joined table's state: per vector of eight rows, its [`Grouped::width`] columns side by side,
-/// `state[b·width + c]`. Below eight rows one vector per column holds them all, zero past them.
+/// `state[b·width + c]`. From eight rows down a vector holds one row, in lane 0 ([`unpack`]), so that a round's two
+/// halves are always whole vectors.
 type State = Vec<F128x8>;
 
 /// `Σ_terms w·v(c)`, unreduced.
@@ -316,42 +326,48 @@ fn sum_vectors<const N: usize>(vectors: usize, f: impl Fn(usize, &mut [Acc8; N])
 /// [`Table::message`] from the state, less the constant: `[Σ_i eqr[i]·P(lo_i), Σ_i eqr[i]·P(hi_i),
 /// Σ_i eqr[i]·Q(lo_i + hi_i)]`, each endpoint's only if `ends` asks for it.
 fn message_joined(form: &Grouped, state: &State, eqr: &[F128], half: usize, ends: [bool; 2]) -> [F128; 3] {
-    let width = form.width();
-    if half < 8 {
-        let lo: Vec<F128x8> = state.iter().map(|&v| shifted(v, 0, half)).collect();
-        let hi: Vec<F128x8> = state.iter().map(|&v| shifted(v, half, half)).collect();
-        let mut acc = [Acc8::ZERO; 3];
-        add_state_message(&lo, &hi, load_e(eqr, 0, half), ends, &mut acc);
-        return acc.map(Acc8::sum);
-    }
-    let (lows, highs) = state.split_at(half / 8 * width);
-    sum_vectors(half / 8, |b, acc| {
+    let (width, per) = (form.width(), if half < 8 { 1 } else { 8 });
+    let (lows, highs) = state.split_at(half / per * width);
+    sum_vectors(half / per, |b, acc| {
         let rows = b * width..(b + 1) * width;
-        add_state_message(&lows[rows.clone()], &highs[rows], load_e(eqr, 8 * b, 8), ends, acc);
+        add_state_message(&lows[rows.clone()], &highs[rows], load_e(eqr, per * b, per), ends, acc);
     })
 }
 
 /// One vector of rows' terms of a joined table's message, its lower and upper rows `lo` and `hi`.
 #[inline]
 fn add_state_message(lo: &[F128x8], hi: &[F128x8], eq: F128x8, ends: [bool; 2], acc: &mut [Acc8; 3]) {
-    let mut sums = [Acc8::ZERO; 3];
-    for g in (1..lo.len()).step_by(2) {
-        for (e, rows) in [lo, hi].into_iter().enumerate() {
-            if ends[e] {
-                sums[e] += rows[g].mul_unreduced(rows[g + 1]);
+    // Sum `e` reads row `i` of the lower rows, of the upper ones, or of their sum.
+    let row = |e: usize, i: usize| match e {
+        0 => lo[i],
+        1 => hi[i],
+        _ => lo[i] + hi[i],
+    };
+    for (e, acc) in acc.iter_mut().enumerate() {
+        let mut sum = Acc8::ZERO;
+        if e == 2 || ends[e] {
+            for g in (1..lo.len()).step_by(2) {
+                sum += row(e, g).mul_unreduced(row(e, g + 1));
             }
         }
-        sums[2] += (lo[g] + hi[g]).mul_unreduced(lo[g + 1] + hi[g + 1]);
+        let linear = if e == 2 { F128x8::ZERO } else { row(e, 0) };
+        *acc += (sum.reduce() + linear).mul_unreduced(eq);
     }
-    acc[0] += (sums[0].reduce() + lo[0]).mul_unreduced(eq);
-    acc[1] += (sums[1].reduce() + hi[0]).mul_unreduced(eq);
-    acc[2] += sums[2].reduce().mul_unreduced(eq);
 }
 
-/// Lanes `shift..shift + n` of `v` moved down to `0..n`, zero past them.
-fn shifted(v: F128x8, shift: usize, n: usize) -> F128x8 {
-    let v = v.to_array();
-    F128x8::from_array(&std::array::from_fn(|p| if p < n { v[p + shift] } else { F128::ZERO }))
+/// A state of `rows` rows, at most eight, in one vector per column, as one vector per row: row `i` of column `c` in
+/// lane 0 of `state[i·width + c]`.
+fn unpack(state: &State, width: usize, rows: usize) -> State {
+    (0..rows * width)
+        .map(|v| shifted(state[v % width], v / width))
+        .collect()
+}
+
+/// Lane `lane` of `v` in lane 0, zero elsewhere.
+fn shifted(v: F128x8, lane: usize) -> F128x8 {
+    let mut lanes = [F128::ZERO; 8];
+    lanes[0] = v.to_array()[lane];
+    F128x8::from_array(&lanes)
 }
 
 /// The state of the first `rows` rows of a table, from its `K` columns: per vector of rows, `lin`, then each group's
@@ -383,18 +399,7 @@ fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
 
 /// The state folded by `r`: row `i` becomes `lo + r·(lo + hi)` of rows `i` and `i + half` in every column, the upper
 /// half dropped.
-fn fold_state(state: &mut State, r: F128, half: usize) {
-    if half < 8 {
-        for v in state.iter_mut() {
-            let mut rows = v.to_array();
-            for i in 0..half {
-                rows[i] += r * (rows[i] + rows[i + half]);
-            }
-            rows[half..].fill(F128::ZERO);
-            *v = F128x8::from_array(&rows);
-        }
-        return;
-    }
+fn fold_state(state: &mut State, r: F128) {
     let r = F128x8::splat(r);
     let n = state.len() / 2;
     let (lows, highs) = state.split_at_mut(n);
