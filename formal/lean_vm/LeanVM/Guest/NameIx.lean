@@ -39,11 +39,10 @@ public section
 
 theorem encL_inj : ∀ {a b : List UInt8}, encL a = encL b → a = b
   | [], [], _ => rfl
-  | [], _ :: _, h | _ :: _, [], h => by simp only [encL, show (2 : Nat) ^ 9 = 512 from rfl] at h; omega
+  | [], _ :: _, h | _ :: _, [], h => by simp only [encL, Nat.reducePow] at h; omega
   | c :: cs, d :: ds, h => by
-    simp only [encL, show (2 : Nat) ^ 9 = 512 from rfl] at h
-    have hc : c.toNat < 256 := c.toNat_lt
-    have hd : d.toNat < 256 := d.toNat_lt
+    simp only [encL, Nat.reducePow] at h
+    have := c.toNat_lt; have := d.toNat_lt
     rw [UInt8.toNat_inj.mp (by omega : c.toNat = d.toNat), encL_inj (by omega : encL cs = encL ds)]
 
 theorem encS_inj {a b : String} (h : encS a = encS b) : a = b := by
@@ -53,7 +52,7 @@ theorem encS_inj {a b : String} (h : encS a = encS b) : a = b := by
   rfl
 
 theorem nameEq_iff {a b : String} : nameEq a b = true ↔ a = b :=
-  ⟨fun h ↦ encS_inj (Nat.eq_of_beq_eq_true h), fun h ↦ by subst h; exact Nat.beq_refl _⟩
+  ⟨fun h ↦ encS_inj (Nat.eq_of_beq_eq_true h), fun h ↦ h ▸ Nat.beq_refl _⟩
 
 end
 
