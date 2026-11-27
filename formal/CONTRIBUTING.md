@@ -1,6 +1,6 @@
 # Contributing to formal/
 
-The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Paths are relative to `formal/`.
+The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Paths are relative to `formal/`, except those under `.github/`.
 
 ## What formal/ is for
 
@@ -43,7 +43,7 @@ Headline theorems are read by people who do not read Lean every day. Each field 
 - A recurring argument (an induction, an extensionality step, a cast, a normalization) is one lemma, in the module that owns the definition it is about. Do not copy a proof for the next function or instance: prove it once and instantiate it, or generate it, or decide it by reflection.
 - Use a layer through its contract: its spec lemmas and normal forms (as `lean_vm/LeanVM/Protocol/Verifier/Phases.lean` gives the verifier's phases), not by unfolding its definitions. A proof that unfolds breaks when the definition changes shape.
 - Automation is terminal, or follows an explicit shaping step. A terminal `simp` stays unsqueezed unless it is slow; a non-terminal one is `simp only [...]`, or `have h : P := by simp`, or `suffices P by simpa`. Avoid a large terminal `simpa` that hides the argument. An `erw`, or an `rfl` after `simp` or `rw`, means a lemma is missing. A heavy closer that needs hand-fed terms marks structure worth writing out.
-- Nothing positional. A guest function, value, constant or statement is named by a stable name, never by an index, a position or a copied literal. The current mechanisms are `fn%`, `val%`, `pos%`, `guest_const%` and `lit%` (`formal/AGENTS.md`, "Changing the spec"); a parameter is its named definition.
+- Nothing positional. A guest function, value, constant or statement is named by a stable name, never by an index, a position or a copied literal. The current mechanisms are `fn%`, `val%`, `pos%`, `guest_const%` and `lit%` (`AGENTS.md`, "Changing the spec"); a parameter is its named definition.
 - Load-bearing lemmas (cited by other files or needed to believe a result) are public, with a docstring. Proof helpers are `private` or outside the module's public section. Do not wrap one or two existing lemmas in a single-use helper.
 - Golf only where readability is kept, and leave a working proof alone without a reason. A golf that hides the argument is a regression.
 - One editing agent per file at a time.
@@ -51,7 +51,7 @@ Headline theorems are read by people who do not read Lean every day. Each field 
 ## Budgets and build cost
 
 - A proof that needs more than the default `maxHeartbeats` is slow for a reason. Profile it (`python3 -I tools/profile.py FILE`) and fix the cause.
-- An override is scoped to one declaration (`set_option maxHeartbeats N in`) with a one-line comment saying why, never set on a file. `formal/AGENTS.md` says when not to raise one at all, and how to keep the elaborator off a heavy term.
+- An override is scoped to one declaration (`set_option maxHeartbeats N in`) with a one-line comment saying why, never set on a file. `AGENTS.md` says when not to raise one at all, and how to keep the elaborator off a heavy term.
 - A kernel check of large data goes in a module of its own, importing only what it evaluates. `python3 -I tools/deps.py cone FILE` says what an edit of `FILE` rebuilds.
 - A hand-written file stays under about 1500 lines. The report below lists longer ones; it is a reading aid, not a gate.
 
@@ -67,7 +67,7 @@ The gates stay as they are, and are run by `check-all.sh` and `.github/workflows
 Beyond the gates:
 
 - Trust a result by the kernel (`#print axioms`, the footprint), never by a grep alone: the escape scan complements the kernel, it does not replace it.
-- Generated files are regenerated, never edited (`formal/AGENTS.md` lists them and their generators).
+- Generated files are regenerated, never edited (`AGENTS.md` lists them and their generators).
 - A checker or certificate names the checker, the data it checks, and what stays trusted.
 - The differential tests against the Rust (`fuzz-verifier.py`, `wire-diff.py`, `prover-diff.py`, `scheme-vectors`, `guest-diff`) are evidence that a transcription matches, not proof.
 - Never regenerate an expected value from the code under test and call it a check: that is a change detector.

@@ -15,12 +15,13 @@ Review the diff, not the repository: look elsewhere only to check a specific cla
 
 Locally: `git diff $(git merge-base origin/main HEAD)` and `python3 -I formal/tools/pr-report.py`, whose report lists statement changes, budgets, leftovers, long declarations, prose and unsafe Unicode to start from.
 
-On a GitHub pull request `N`, without running its code:
+On a GitHub pull request `N` into `BASE`, without running its code (`gh pr diff` refuses a pull request of more than 300 files):
 
 ```sh
-gh pr view N --json title,body,baseRefName,headRefOid,files
-gh pr diff N
-git fetch origin pull/N/head:pr-N && git show pr-N:path/to/File.lean
+gh pr view N --json title,body,baseRefName
+git fetch origin BASE pull/N/head:pr-N
+git diff --name-status origin/BASE...pr-N && git diff origin/BASE...pr-N
+git show pr-N:path/to/File.lean
 ```
 
 ## Pass A: the statement
@@ -76,4 +77,4 @@ Not checked: <claims or files you could not check, and why>.
 
 ## In CI
 
-`.github/workflows/formal-review.yml` runs this skill when a maintainer comments `/formal-review` on a pull request, optionally followed by what to focus on. Before Claude starts, the job writes under `.formal-review/` this file and the rules from the default branch, the pull request's diff, title, description and file list, and its files at the base and the head, extracted, never run. Claude has no shell, only read tools and the action's inline-comment tool: it posts an inline comment for each important finding, and the job posts the summary above as one comment. It never approves or requests changes: people decide.
+`.github/workflows/formal-review.yml` runs this skill when a maintainer comments `/formal-review` on a pull request, optionally followed by what to focus on. Before Claude starts, the job writes under `.formal-review/` the `formal-*` skills and the rules from the default branch; the pull request's diff, file list, title and description; and its files at the head and at the merge base with its base branch, extracted, never run. Claude has no shell, only read tools and the action's inline-comment tool: it posts an inline comment for each important finding, and the job posts the summary above as one comment. It never approves or requests changes: people decide.
