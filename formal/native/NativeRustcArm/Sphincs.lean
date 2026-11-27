@@ -71,14 +71,14 @@ abbrev roundConstsBytes : List UInt8 := rcBytes
 /-- Address of the Keccak round constants table in `.rodata`. -/
 abbrev roundConstsAddr [Labels] : BitVec 64 := rcAddr
 
+/-- Address of the `LAYER_HEIGHTS` table in `.rodata`. -/
+abbrev layerHeightsAddr [Labels] : BitVec 64 := (label NativeRustcArm.layerHeightsLabel).toBitVec
+
 /-- Lowest address of the `stackSize`-byte stack frame below entry SP. -/
 abbrev stackBottomAddr (m : MachineData) (stackSize : Nat) : BitVec 64 := stackBelow m stackSize
 
 /-- Caller's 64-bit return PC from entry link register `X30`. -/
 abbrev returnAddrOf (m : MachineData) : Int64 := retOf m
-
-/-- Keccak round constants sit at `roundConstsAddr`, do not wrap, and are disjoint from the stack. -/
-abbrev RoundConstsOk [Labels] (m : MachineData) (stackSize : Nat) : Prop := RcAt m stackSize
 
 /-- AAPCS64 callee-saved registers (`X19`..`X29`) and `SP` are unchanged and mapped memory is preserved. -/
 abbrev CalleeSavedAndMemKept (m m' : MachineData) : Prop := Saved m m'
@@ -88,6 +88,12 @@ abbrev Disjoint (a : BitVec 64) (n : Nat) (a' : BitVec 64) (n' : Nat) : Prop := 
 
 /-- Address `addr` lies in at least one `(base, byteLen)` region of `areas`. -/
 abbrev InRegions (areas : List (BitVec 64 × Nat)) (addr : BitVec 64) : Prop := ReadRegions areas addr
+
+/-- Non-wrapping read-only byte buffer at `addr`, disjoint from the entry stack span. -/
+def ReadOnlyBuf (dmem : DataMem) (addr : BitVec 64) (bytes : List UInt8)
+    (initState : MachineData) (stackSpan : Nat) : Prop :=
+  BytesAt dmem addr bytes ∧ NoWrap addr bytes.length ∧
+    Disjoint addr bytes.length (stackBottomAddr initState sphincsStackSize) stackSpan
 
 end
 
@@ -100,14 +106,15 @@ theorem roundConstsSize_eq : roundConstsSize = 192 := by
   rfl
 theorem layerHeightsBytes_length : layerHeightsBytes.length = layerHeightsSize := by decide
 
--- Loaded program: an abstract Kraken host whose instruction stream is the ingested
--- `sphincs_verify` bundle (`sphincs_verify`, `memcpy`, `memset`, `keccak_f`, `Hasher::update`,
--- `Hasher::finalize`, and rodata).
-variable [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code)
-include hHostProg
+private theorem ReadOnlyBuf.restrict {d : DataMem} {addr : BitVec 64} {bytes : List UInt8}
+    {initState : MachineData} {stackSpan : Nat}
+    (h : ReadOnlyBuf d addr bytes initState stackSpan)
+    {areas : List (BitVec 64 × Nat)} (ha : (addr, bytes.length) ∈ areas) :
+    ReadOnlyBuf (restrictMemory d areas) addr bytes { initState with dmem := restrictMemory d areas } stackSpan :=
+  ⟨h.1.restrict ha, h.2.1, h.2.2⟩
 
 /-- **The callees' contracts** in `sphincs_verify`'s program. -/
-theorem callees : Callees :=
+theorem callees [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code) : Callees :=
   have hmemcpy := Mem.Memcpy.memcpy_spec (placed_memcpy hHostProg)
   have hkf := keccakF_spec (placed_keccakF hHostProg)
   ⟨hmemcpy, Mem.Memset.memset_spec (placed_memset hHostProg),
@@ -116,37 +123,28 @@ theorem callees : Callees :=
 
 /-- **The rustc-compiled leanSPHINCS verifier is correct** (AArch64). -/
 theorem verify_correct
-    -- 1. Logical byte inputs and their fixed canonical lengths.
-    (pkBytes msgBytes sigBytes : List UInt8)
-    (hPkLen : pkBytes.length = pkSize)
-    (hMsgLen : msgBytes.length = msgSize)
-    (hSigLen : sigBytes.length = sigSize)
-    -- 2. Initial CPU state and ABI stack (16-byte aligned SP with `sphincsStackSize` bytes below SP;
-    --    return address is in X30).
+    -- 1. Loaded program: an abstract Kraken host whose instruction stream is `Sphincs.code`.
+    [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code)
+    -- 2. Canonical byte inputs (32 B pk, 32 B msg, 7740 B sig).
+    (pkBytes : Vector UInt8 pkSize)
+    (msgBytes : Vector UInt8 msgSize)
+    (sigBytes : Vector UInt8 sigSize)
+    -- 3. Initial CPU state and ABI stack (16-byte aligned SP with `sphincsStackSize` bytes below SP;
+    --    return address is in link register X30).
     (initState : MachineData)
     (hStackOk : StackOk initState sphincsStackSize)
-    -- 3. Read-only program data (.rodata): Keccak round constants and LAYER_HEIGHTS table,
-    --    in memory, non-wrapping, and disjoint from the stack region.
-    (hRoundConsts : RoundConstsOk initState sphincsStackSize)
-    (hLayerHeightsBytes : BytesAt initState.dmem
-      (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsBytes)
-    (hLayerHeightsNoWrap : NoWrap (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsSize)
-    (hLayerHeightsDisjointStack : Disjoint (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    -- 4. Caller input buffers in memory, pointed to by AAPCS64 registers (X0, X1, X2),
-    --    each non-wrapping and disjoint from the stack region.
-    (hPkInMem : BytesAt initState.dmem initState.regs.X0.toBitVec pkBytes)
-    (hPkNoWrap : NoWrap initState.regs.X0.toBitVec pkSize)
-    (hPkDisjointStack : Disjoint initState.regs.X0.toBitVec pkSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    (hMsgInMem : BytesAt initState.dmem initState.regs.X1.toBitVec msgBytes)
-    (hMsgNoWrap : NoWrap initState.regs.X1.toBitVec msgSize)
-    (hMsgDisjointStack : Disjoint initState.regs.X1.toBitVec msgSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    (hSigInMem : BytesAt initState.dmem initState.regs.X2.toBitVec sigBytes)
-    (hSigNoWrap : NoWrap initState.regs.X2.toBitVec sigSize)
-    (hSigDisjointStack : Disjoint initState.regs.X2.toBitVec sigSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize) :
+    -- 4. Read-only program data (.rodata) and caller input buffers (X0, X1, X2),
+    --    each present in memory, non-wrapping, and disjoint from the entry stack span.
+    (hRoundConsts : ReadOnlyBuf initState.dmem roundConstsAddr roundConstsBytes
+      initState sphincsStackSize)
+    (hLayerHeights : ReadOnlyBuf initState.dmem layerHeightsAddr layerHeightsBytes
+      initState sphincsStackSize)
+    (hPkBuf : ReadOnlyBuf initState.dmem initState.regs.X0.toBitVec pkBytes.toList
+      initState sphincsStackSize)
+    (hMsgBuf : ReadOnlyBuf initState.dmem initState.regs.X1.toBitVec msgBytes.toList
+      initState sphincsStackSize)
+    (hSigBuf : ReadOnlyBuf initState.dmem initState.regs.X2.toBitVec sigBytes.toList
+      initState sphincsStackSize) :
     -- Statement: starting at `sphincs_verify`'s entry in `initState`, every execution under
     -- `Host.exe` terminates in finitely many steps (`Eventually (step1 Host.exe)`) at a
     -- `finalState` satisfying:
@@ -158,9 +156,9 @@ theorem verify_correct
         -- B. Functional correctness (return value in X0):
         --    X0 is 1 iff the mathematical leanSPHINCS verifier accepts the decoded raw bytes.
         finalState.data.regs.X0 = (if _root_.Sphincs.verifyWithKeccak
-          (Native.SphincsVerifier.decodePk pkBytes)
-          (Native.SphincsVerifier.decodeMsg msgBytes)
-          (Native.SphincsVerifier.decodeSig sigBytes) then 1 else 0) ∧
+          (Native.SphincsVerifier.decodePk pkBytes.toList)
+          (Native.SphincsVerifier.decodeMsg msgBytes.toList)
+          (Native.SphincsVerifier.decodeSig sigBytes.toList) then 1 else 0) ∧
         -- C. Memory framing (write confinement):
         --    Every byte outside the `sphincsStackSize` bytes below entry SP is unchanged
         --    (including input buffers and .rodata).
@@ -172,17 +170,30 @@ theorem verify_correct
         CalleeSavedAndMemKept initState finalState.data)
       -- Entry machine state: registers and data memory `initState`, PC at `sphincs_verify`.
       ⟨initState, label NativeRustcArm.Sphincs.SphincsVerify.entryLabel⟩ := by
-  rw [← NativeRustc.Sphincs.verify_decode_bytes pkBytes msgBytes sigBytes hPkLen hMsgLen hSigLen]
+  have hPkLen : pkBytes.toList.length = pkSize := pkBytes.length_toList
+  have hMsgLen : msgBytes.toList.length = msgSize := msgBytes.length_toList
+  have hSigLen : sigBytes.toList.length = sigSize := sigBytes.length_toList
+  rw [← NativeRustc.Sphincs.verify_decode_bytes pkBytes.toList msgBytes.toList sigBytes.toList
+    hPkLen hMsgLen hSigLen]
   have hp := placed hHostProg
   have hl := hp.label NativeRustcArm.Sphincs.SphincsVerify.entry_at
   rw [hl, NativeRustcArm.Sphincs.SphincsVerify.entryOffset, Nat.add_zero]
+  have hrc : RcAt initState sphincsStack := by
+    obtain ⟨hb, hw, ha⟩ := hRoundConsts
+    exact ⟨hb, by simpa [roundConstsSize_eq] using hw, by simpa [roundConstsSize_eq] using ha⟩
+  obtain ⟨hlhb, hlhw, hlha⟩ := hLayerHeights
+  obtain ⟨hpkb, hpkw, hpka⟩ := hPkBuf
+  obtain ⟨hmsgb, hmsgw, hmsga⟩ := hMsgBuf
+  obtain ⟨hsigb, hsigw, hsiga⟩ := hSigBuf
+  rw [layerHeightsBytes_length] at hlhw hlha
+  rw [hPkLen] at hpkw hpka
+  rw [hMsgLen] at hmsgw hmsga
+  rw [hSigLen] at hsigw hsiga
   exact run_correct
-    ⟨initState, pkBytes, msgBytes, sigBytes, hPkLen, hMsgLen, hSigLen,
+    ⟨initState, pkBytes.toList, msgBytes.toList, sigBytes.toList, hPkLen, hMsgLen, hSigLen,
       NativeRustcArm.Sphincs.SphincsVerify.programOffset⟩
     hp (callees hHostProg)
-    ⟨hStackOk, hRoundConsts, hLayerHeightsBytes, hLayerHeightsNoWrap, hLayerHeightsDisjointStack,
-      hPkInMem, hPkNoWrap, hPkDisjointStack, hMsgInMem, hMsgNoWrap, hMsgDisjointStack,
-      hSigInMem, hSigNoWrap, hSigDisjointStack⟩
+    ⟨hStackOk, hrc, hlhb, hlhw, hlha, hpkb, hpkw, hpka, hmsgb, hmsgw, hmsga, hsigb, hsigw, hsiga⟩
     (parseSpec_of Parse.parseHead_spec ParseTail.parseTail_spec) digest_spec fors_spec forsKey_spec
     encode_spec Chains.chainsSpec Tree.tree_spec
 
@@ -190,37 +201,28 @@ theorem verify_correct
 /-- Correctness with every byte outside the contract, ABI and loader regions unmapped.
 Kraken gives `nonmem_load` the proposition `False`. -/
 theorem verify_confined
-    -- 1. Logical byte inputs and their fixed canonical lengths.
-    (pkBytes msgBytes sigBytes : List UInt8)
-    (hPkLen : pkBytes.length = pkSize)
-    (hMsgLen : msgBytes.length = msgSize)
-    (hSigLen : sigBytes.length = sigSize)
-    -- 2. Initial CPU state and ABI stack (16-byte aligned SP with `sphincsStackSize` bytes below SP;
-    --    return address is in X30).
+    -- 1. Loaded program: an abstract Kraken host whose instruction stream is `Sphincs.code`.
+    [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code)
+    -- 2. Canonical byte inputs (32 B pk, 32 B msg, 7740 B sig).
+    (pkBytes : Vector UInt8 pkSize)
+    (msgBytes : Vector UInt8 msgSize)
+    (sigBytes : Vector UInt8 sigSize)
+    -- 3. Initial CPU state and ABI stack (16-byte aligned SP with `sphincsStackSize` bytes below SP;
+    --    return address is in link register X30).
     (initState : MachineData)
     (hStackOk : StackOk initState sphincsStackSize)
-    -- 3. Read-only program data (.rodata): Keccak round constants and LAYER_HEIGHTS table,
-    --    in memory, non-wrapping, and disjoint from the stack region.
-    (hRoundConsts : RoundConstsOk initState sphincsStackSize)
-    (hLayerHeightsBytes : BytesAt initState.dmem
-      (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsBytes)
-    (hLayerHeightsNoWrap : NoWrap (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsSize)
-    (hLayerHeightsDisjointStack : Disjoint (label NativeRustcArm.layerHeightsLabel).toBitVec layerHeightsSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    -- 4. Caller input buffers in memory, pointed to by AAPCS64 registers (X0, X1, X2),
-    --    each non-wrapping and disjoint from the stack region.
-    (hPkInMem : BytesAt initState.dmem initState.regs.X0.toBitVec pkBytes)
-    (hPkNoWrap : NoWrap initState.regs.X0.toBitVec pkSize)
-    (hPkDisjointStack : Disjoint initState.regs.X0.toBitVec pkSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    (hMsgInMem : BytesAt initState.dmem initState.regs.X1.toBitVec msgBytes)
-    (hMsgNoWrap : NoWrap initState.regs.X1.toBitVec msgSize)
-    (hMsgDisjointStack : Disjoint initState.regs.X1.toBitVec msgSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize)
-    (hSigInMem : BytesAt initState.dmem initState.regs.X2.toBitVec sigBytes)
-    (hSigNoWrap : NoWrap initState.regs.X2.toBitVec sigSize)
-    (hSigDisjointStack : Disjoint initState.regs.X2.toBitVec sigSize
-      (stackBottomAddr initState sphincsStackSize) sphincsStackSize) :
+    -- 4. Read-only program data (.rodata) and caller input buffers (X0, X1, X2),
+    --    each present in memory, non-wrapping, and disjoint from the entry stack span.
+    (hRoundConsts : ReadOnlyBuf initState.dmem roundConstsAddr roundConstsBytes
+      initState sphincsStackSize)
+    (hLayerHeights : ReadOnlyBuf initState.dmem layerHeightsAddr layerHeightsBytes
+      initState sphincsStackSize)
+    (hPkBuf : ReadOnlyBuf initState.dmem initState.regs.X0.toBitVec pkBytes.toList
+      initState sphincsStackSize)
+    (hMsgBuf : ReadOnlyBuf initState.dmem initState.regs.X1.toBitVec msgBytes.toList
+      initState sphincsStackSize)
+    (hSigBuf : ReadOnlyBuf initState.dmem initState.regs.X2.toBitVec sigBytes.toList
+      initState sphincsStackSize) :
     -- Allowed data-memory footprint of `sphincs_verify` (everything else will be unmapped):
     let allowedRegions := [
       -- Stack frame below entry SP (return address lives in X30, not on the stack).
@@ -230,7 +232,7 @@ theorem verify_confined
       (initState.regs.X2.toBitVec, sigSize),
       -- Read-only program tables (.rodata: Keccak round constants and LAYER_HEIGHTS).
       (roundConstsAddr, roundConstsSize),
-      ((label NativeRustcArm.layerHeightsLabel).toBitVec, layerHeightsBytes.length)]
+      (layerHeightsAddr, layerHeightsSize)]
     -- Restricted entry state: identical registers, data memory masked down to `allowedRegions`.
     let confinedState := { initState with dmem := restrictMemory initState.dmem allowedRegions }
     -- Statement:
@@ -245,9 +247,9 @@ theorem verify_confined
         finalState.pc = returnAddrOf confinedState ∧
         -- B. Functional correctness (return value in X0).
         finalState.data.regs.X0 = (if _root_.Sphincs.verifyWithKeccak
-          (Native.SphincsVerifier.decodePk pkBytes)
-          (Native.SphincsVerifier.decodeMsg msgBytes)
-          (Native.SphincsVerifier.decodeSig sigBytes) then 1 else 0) ∧
+          (Native.SphincsVerifier.decodePk pkBytes.toList)
+          (Native.SphincsVerifier.decodeMsg msgBytes.toList)
+          (Native.SphincsVerifier.decodeSig sigBytes.toList) then 1 else 0) ∧
         -- C. Memory framing (no writes outside the `sphincsStackSize` bytes below entry SP).
         SameOutside confinedState.dmem finalState.data.dmem
           (InRange (stackBottomAddr confinedState sphincsStackSize) sphincsStackSize) ∧
@@ -260,19 +262,17 @@ theorem verify_confined
       (initState.regs.X0.toBitVec, pkSize), (initState.regs.X1.toBitVec, msgSize),
       (initState.regs.X2.toBitVec, sigSize),
       (roundConstsAddr, roundConstsSize),
-      ((label NativeRustcArm.layerHeightsLabel).toBitVec, layerHeightsBytes.length)]
+      (layerHeightsAddr, layerHeightsSize)]
   let confinedState : MachineData := { initState with dmem := restrictMemory initState.dmem allowedRegions }
   have hs : StackOk confinedState sphincsStackSize :=
     ⟨hStackOk.1, hStackOk.2.1, hStackOk.2.2.restrict (by simp [allowedRegions, stackBelow])⟩
-  have hr : RoundConstsOk confinedState sphincsStackSize :=
-    ⟨hRoundConsts.1.restrict (by simp [allowedRegions]), hRoundConsts.2⟩
   refine ⟨fun addr hOut => restrictMemory_outside initState.dmem hOut, ?_⟩
-  exact verify_correct hHostProg pkBytes msgBytes sigBytes hPkLen hMsgLen hSigLen
-    confinedState hs hr
-    (hLayerHeightsBytes.restrict (by simp [allowedRegions])) hLayerHeightsNoWrap hLayerHeightsDisjointStack
-    (hPkInMem.restrict (by simp [allowedRegions, hPkLen])) hPkNoWrap hPkDisjointStack
-    (hMsgInMem.restrict (by simp [allowedRegions, hMsgLen])) hMsgNoWrap hMsgDisjointStack
-    (hSigInMem.restrict (by simp [allowedRegions, hSigLen])) hSigNoWrap hSigDisjointStack
+  exact verify_correct hHostProg pkBytes msgBytes sigBytes confinedState hs
+    (hRoundConsts.restrict (by simp [allowedRegions]))
+    (hLayerHeights.restrict (by simp [allowedRegions, layerHeightsBytes_length]))
+    (hPkBuf.restrict (by simp [allowedRegions, pkBytes.length_toList]))
+    (hMsgBuf.restrict (by simp [allowedRegions, msgBytes.length_toList]))
+    (hSigBuf.restrict (by simp [allowedRegions, sigBytes.length_toList]))
 
 end
 
