@@ -148,8 +148,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   all_goals
     refine loop_ok (e := m.getMem (regs .x10 + 16#64)) hp hL hd hpanic hk hstop hpre_4 hpre_5 hpre_3 hpre_13 hpre_14
       hpre_12 ((m.getMem (regs .x10 + 16#64)).toNat - (m.getMem (regs .x10 + 8#64)).toNat - 1) _ _
-      ⟨rfl, rfl, rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, hc_1, rfl, ?_, ?_,
-        rfl, rfl⟩
+      ⟨rfl, rfl, rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl, rfl, rfl, hc_1, rfl,
+        ?_, ?_, rfl, rfl⟩
   -- the start past the table: the bound is the start
   · exact Nat.le_refl _
   · exact .inr rfl

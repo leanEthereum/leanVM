@@ -200,7 +200,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 4 | 180 | `verifier::layout::keccak_shape` | 7 | A | yes | Proof/Layout/KeccakShapeT | LayoutT.keccakShape | none |
 | 4 | 183 | `<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<...` | 78 | D | yes | Proof/Layout/PlacementNextT | LayoutT2.placementNext | none |
 | 4 | 216 | `verifier::bytecode::is_valid_encoding_of_a_leanisa_program` | 287 | A | no | - | - | - |
-| 5 | 24 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 60 | D | no | - | - | - |
+| 5 | 24 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::sl...` | 60 | D | yes | Proof/Field/ESumBlockT (safety; elements whole `32`-byte, each `Vec<u16>` a slice (`U16sW`); the inner sum through `ESumU16T`; loop by `Total.loop`) | SumT6f.eSumBlock | clmul table |
 | 5 | 28 | `verifier::multilinear::dot` | 44 | A | yes | Proof/Multilinear/DotT (`Pre` unsatisfiable at four call sites, see Obligations); DotOwnT (second contract, slices `Owned`, gives `DotT`'s) | MultilinearT.dot, DotT2.dotOwn | clmul table |
 | 5 | 32 | `<verifier::field::E>::sum::<core::iter::adapters::map::Map<core::op...` | 69 | D | no | - | - | - |
 | 5 | 39 | `<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<...` | 11 | A | yes | Proof/Runtime/DoReserveT | AllocT.doReserve | env |
