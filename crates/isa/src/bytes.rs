@@ -1,63 +1,65 @@
-//! A compiled program as bytes, for a prover that does not compile its program: little-endian integers, a tag byte
-//! per variant, a length before each list and string.
+//! A compiled program as bytes, for a prover that does not compile its program: what proving it needs, without the
+//! compiler's function ranges and source lines. Little-endian `u32` words: `main_frame`, the instruction count and the
+//! hint count, then each instruction as [`OP_WORDS`] words, then each hint as [`HINT_WORDS`] words and its list or
+//! name. A record is a tag and its fields in declaration order, zero past them: a `u64` two words, low first, a flag
+//! `0` or `1`, a [`BitsDest`] its variant's index then its offset, an `Option` a flag then its value or zero, a list or
+//! name its length, its items or bytes following the record.
 
 use crate::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, Program, RHint};
 use std::collections::BTreeMap;
 use verifier::{E, K, MAX_LOG_BYTECODE};
 
+/// An instruction's words: its tag, then at most a `KECCAK`'s eleven fields.
+const OP_WORDS: usize = 12;
+/// A hint's words: its pc, its tag, then at most a `DigitDecomposeExp`'s nine fields.
+const HINT_WORDS: usize = 11;
+
 impl Program {
     /// The compiled program, which [`Self::from_bytes`] reads back.
     pub fn to_bytes(&self) -> Vec<u8> {
+        let n_hints = self.hints.values().map(Vec::len).sum();
         let mut w = Vec::new();
-        u32s(&mut w, &[self.main_frame, len(self.prog.len())]);
+        u32s(&mut w, &[self.main_frame, len(self.prog.len()), len(n_hints)]);
         for op in &self.prog {
-            write_op(&mut w, op);
+            record(&mut w, OP_WORDS, &op_words(op));
         }
-        u32s(&mut w, &[len(self.hints.len())]);
         for (&pc, hints) in &self.hints {
-            u32s(&mut w, &[pc, len(hints.len())]);
             for hint in hints {
-                write_hint(&mut w, hint);
+                let (words, tail) = hint_words(hint);
+                record(&mut w, HINT_WORDS, &[&[pc][..], &words].concat());
+                w.extend(tail);
             }
         }
-        u32s(&mut w, &[len(self.fn_ranges.len())]);
-        for (name, entry, size) in &self.fn_ranges {
-            string(&mut w, name);
-            u32s(&mut w, &[*entry, *size]);
-        }
-        u32s(&mut w, &[len(self.src_lines.len())]);
-        u32s(&mut w, &self.src_lines);
         w
     }
 
-    /// The program `bytes` encode, `None` unless they are exactly one encoding of a program a power of two long, at
-    /// most `2^MAX_LOG_BYTECODE`, its hints at increasing pcs inside it.
+    /// The program `bytes` encode, `None` unless they encode a program a power of two long, at most
+    /// `2^MAX_LOG_BYTECODE`, its hints at pcs inside it, in order.
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let mut r = Reader(bytes);
-        let main_frame = r.u32()?;
-        let prog: Vec<Op> = (0..r.u32()?).map(|_| r.op()).collect::<Option<_>>()?;
-        let hints: Vec<(u32, Vec<RHint>)> = (0..r.u32()?)
-            .map(|_| Some((r.u32()?, (0..r.u32()?).map(|_| r.hint()).collect::<Option<_>>()?)))
-            .collect::<Option<_>>()?;
-        let fn_ranges = (0..r.u32()?)
-            .map(|_| Some((r.string()?, r.u32()?, r.u32()?)))
-            .collect::<Option<_>>()?;
-        let src_lines = (0..r.u32()?).map(|_| r.u32()).collect::<Option<_>>()?;
-        let n = prog.len();
-        let pcs_in_order =
-            hints.is_sorted_by(|(a, _), (b, _)| a < b) && hints.last().is_none_or(|(pc, _)| (*pc as usize) < n);
-        (r.0.is_empty() && pcs_in_order && n.is_power_of_two() && n <= 1 << MAX_LOG_BYTECODE).then(|| {
-            // Inserted one by one: collecting would sort them first.
-            let mut by_pc = BTreeMap::new();
-            for (pc, h) in hints {
-                by_pc.insert(pc, h);
+        let [main_frame, n, n_hints] = r.words()?;
+        let mut prog = Vec::new();
+        for _ in 0..n {
+            prog.push(op(r.words()?)?);
+        }
+        let mut hints: BTreeMap<u32, Vec<RHint>> = BTreeMap::new();
+        let mut last = 0;
+        for _ in 0..n_hints {
+            let words: [u32; HINT_WORDS] = r.words()?;
+            if words[0] < last || words[0] >= n {
+                return None;
             }
+            last = words[0];
+            let hint = r.hint(words)?;
+            hints.entry(last).or_default().push(hint);
+        }
+        (r.0.is_empty() && n.is_power_of_two() && n <= 1 << MAX_LOG_BYTECODE).then(|| {
             Self::from(CompiledProgram {
                 prog,
-                hints: by_pc,
+                hints,
                 main_frame,
-                fn_ranges,
-                src_lines,
+                fn_ranges: Vec::new(),
+                src_lines: Vec::new(),
             })
         })
     }
@@ -73,44 +75,31 @@ fn u32s(w: &mut Vec<u8>, xs: &[u32]) {
     }
 }
 
-fn string(w: &mut Vec<u8>, s: &str) {
-    u32s(w, &[len(s.len())]);
-    w.extend(s.as_bytes());
+/// `words`, zero to `size` words.
+fn record(w: &mut Vec<u8>, size: usize, words: &[u32]) {
+    assert!(words.len() <= size);
+    u32s(w, words);
+    u32s(w, &vec![0; size - words.len()]);
 }
 
-fn dest(w: &mut Vec<u8>, d: BitsDest) {
-    let (tag, o) = match d {
-        BitsDest::Stack(o) => (0, o),
-        BitsDest::Heap(o) => (1, o),
-    };
-    w.push(tag);
-    u32s(w, &[o]);
+fn u64_words(x: u64) -> [u32; 2] {
+    [x as u32, (x >> 32) as u32]
 }
 
-fn write_op(w: &mut Vec<u8>, op: &Op) {
+fn dest_words(d: BitsDest) -> [u32; 2] {
+    match d {
+        BitsDest::Stack(o) => [0, o],
+        BitsDest::Heap(o) => [1, o],
+    }
+}
+
+fn op_words(op: &Op) -> Vec<u32> {
     match *op {
-        Op::Xor { a, b, c } => {
-            w.push(0);
-            u32s(w, &[a, b, c]);
-        }
-        Op::Mul { a, b, c } => {
-            w.push(1);
-            u32s(w, &[a, b, c]);
-        }
-        Op::Set { o, k } => {
-            w.push(2);
-            u32s(w, &[o]);
-            w.extend(k.c0.to_le_bytes().into_iter().chain(k.c1.to_le_bytes()));
-        }
-        Op::Deref { o1, o2, o3, mode } => {
-            w.push(3);
-            u32s(w, &[o1, o2, o3]);
-            w.push(mode as u8);
-        }
-        Op::Jump { oc, od, of } => {
-            w.push(4);
-            u32s(w, &[oc, od, of]);
-        }
+        Op::Xor { a, b, c } => vec![0, a, b, c],
+        Op::Mul { a, b, c } => vec![1, a, b, c],
+        Op::Set { o, k } => [&[2, o][..], &u64_words(k.c0), &u64_words(k.c1)].concat(),
+        Op::Deref { o1, o2, o3, mode } => vec![3, o1, o2, o3, mode as u32],
+        Op::Jump { oc, od, of } => vec![4, oc, od, of],
         Op::Keccak {
             m,
             tail,
@@ -120,81 +109,53 @@ fn write_op(w: &mut Vec<u8>, op: &Op) {
             in_odd,
             out_odd,
             out_cells,
-        } => {
-            w.push(5);
-            u32s(w, &m);
-            u32s(w, &[tail, b8, cap, out]);
-            w.extend([u8::from(in_odd), u8::from(out_odd), out_cells as u8]);
-        }
+        } => [
+            &[5][..],
+            &m,
+            &[tail, b8, cap, out, in_odd.into(), out_odd.into(), out_cells as u32],
+        ]
+        .concat(),
     }
 }
 
-fn write_hint(w: &mut Vec<u8>, hint: &RHint) {
+/// A hint's tag and fields, and the list or name bytes after its record.
+fn hint_words(hint: &RHint) -> (Vec<u32>, Vec<u8>) {
+    let none = Vec::new();
     match hint {
-        RHint::FrameAddress { offset } => {
-            w.push(0);
-            u32s(w, &[*offset]);
-        }
+        RHint::FrameAddress { offset } => (vec![0, *offset], none),
         RHint::AllocFrames {
             ptr,
             size,
             end,
             start_inverse,
             tail,
-        } => {
-            w.push(1);
-            u32s(w, &[*ptr, *size, *end]);
-            w.extend(start_inverse.0.to_le_bytes());
-            u32s(w, &[*tail]);
-        }
-        RHint::Alloc { ptr, size } => {
-            w.push(2);
-            u32s(w, &[*ptr, *size]);
-        }
-        RHint::AllocDyn { ptr, size } => {
-            w.push(3);
-            u32s(w, &[*ptr, *size]);
-        }
+        } => (
+            [&[1, *ptr, *size, *end][..], &u64_words(start_inverse.0), &[*tail]].concat(),
+            none,
+        ),
+        RHint::Alloc { ptr, size } => (vec![2, *ptr, *size], none),
+        RHint::AllocDyn { ptr, size } => (vec![3, *ptr, *size], none),
         RHint::AllocArm { ptr, sel, sizes } => {
-            w.push(4);
-            u32s(w, &[*ptr, *sel, len(sizes.len())]);
-            u32s(w, sizes);
+            let mut tail = Vec::new();
+            u32s(&mut tail, sizes);
+            (vec![4, *ptr, *sel, len(sizes.len())], tail)
         }
-        RHint::CellAddress { ptr, cell } => {
-            w.push(5);
-            u32s(w, &[*ptr, *cell]);
-        }
-        RHint::WitnessStack { name, base, len } => {
-            w.push(6);
-            string(w, name);
-            u32s(w, &[*base, *len]);
-        }
-        RHint::WitnessHeap { name, ptr, lo, len } => {
-            w.push(7);
-            string(w, name);
-            u32s(w, &[*ptr, *lo, *len]);
+        RHint::CellAddress { ptr, cell } => (vec![5, *ptr, *cell], none),
+        RHint::WitnessStack { name, base, len: n } => (vec![6, *base, *n, len(name.len())], name.clone().into_bytes()),
+        RHint::WitnessHeap { name, ptr, lo, len: n } => {
+            (vec![7, *ptr, *lo, *n, len(name.len())], name.clone().into_bytes())
         }
         RHint::Log2Ceil {
             bits,
             dst,
             nbits,
             floor,
-        } => {
-            w.push(8);
-            dest(w, *bits);
-            u32s(w, &[*dst, *nbits, *floor]);
-        }
+        } => ([&[8][..], &dest_words(*bits), &[*dst, *nbits, *floor]].concat(), none),
         RHint::BitDecompose { value, bits, nbits } => {
-            w.push(9);
-            u32s(w, &[*value]);
-            dest(w, *bits);
-            u32s(w, &[*nbits]);
+            ([&[9, *value][..], &dest_words(*bits), &[*nbits]].concat(), none)
         }
         RHint::BitDecomposeExp { value, bits, nbits } => {
-            w.push(10);
-            u32s(w, &[*value]);
-            dest(w, *bits);
-            u32s(w, &[*nbits]);
+            ([&[10, *value][..], &dest_words(*bits), &[*nbits]].concat(), none)
         }
         RHint::DigitDecomposeExp {
             value,
@@ -205,224 +166,186 @@ fn write_hint(w: &mut Vec<u8>, hint: &RHint) {
             start,
             start_cell,
         } => {
-            w.push(11);
-            u32s(w, &[*value]);
-            dest(w, *dst);
-            u32s(w, &[*nbits, *ndigits, *digit_bits, *start]);
-            w.push(u8::from(start_cell.is_some()));
-            u32s(w, &[start_cell.unwrap_or(0)]);
+            let cell = [u32::from(start_cell.is_some()), start_cell.unwrap_or(0)];
+            let fields = [*nbits, *ndigits, *digit_bits, *start];
+            ([&[11, *value][..], &dest_words(*dst), &fields, &cell].concat(), none)
         }
         RHint::WindowsExp {
             value,
-            dest: d,
+            dest,
             at,
             start,
             width,
             count,
-        } => {
-            w.push(12);
-            u32s(w, &[*value]);
-            dest(w, *d);
-            u32s(w, &[*at, *start, *width, *count]);
-        }
-        RHint::FieldLimbs { value, base, len } => {
-            w.push(13);
-            u32s(w, &[*value, *base, *len]);
-        }
-        RHint::Inverse { value, dst } => {
-            w.push(14);
-            u32s(w, &[*value, *dst]);
-        }
-        RHint::Print { label, cell } => {
-            w.push(15);
-            string(w, label);
-            u32s(w, &[*cell]);
-        }
+        } => (
+            [&[12, *value][..], &dest_words(*dest), &[*at, *start, *width, *count]].concat(),
+            none,
+        ),
+        RHint::FieldLimbs { value, base, len } => (vec![13, *value, *base, *len], none),
+        RHint::Inverse { value, dst } => (vec![14, *value, *dst], none),
+        RHint::Print { label, cell } => (vec![15, *cell, len(label.len())], label.clone().into_bytes()),
     }
+}
+
+fn flag(x: u32) -> Option<bool> {
+    (x < 2).then_some(x == 1)
+}
+
+fn dest(tag: u32, offset: u32) -> Option<BitsDest> {
+    match tag {
+        0 => Some(BitsDest::Stack(offset)),
+        1 => Some(BitsDest::Heap(offset)),
+        _ => None,
+    }
+}
+
+fn u64_at(w: &[u32], i: usize) -> u64 {
+    u64::from(w[i]) | u64::from(w[i + 1]) << 32
+}
+
+fn op(w: [u32; OP_WORDS]) -> Option<Op> {
+    Some(match w[0] {
+        0 => Op::Xor {
+            a: w[1],
+            b: w[2],
+            c: w[3],
+        },
+        1 => Op::Mul {
+            a: w[1],
+            b: w[2],
+            c: w[3],
+        },
+        2 => Op::Set {
+            o: w[1],
+            k: E::new(u64_at(&w, 2), u64_at(&w, 4)),
+        },
+        3 => Op::Deref {
+            o1: w[1],
+            o2: w[2],
+            o3: w[3],
+            mode: *[DerefMode::Cell, DerefMode::Pc, DerefMode::Fp].get(w[4] as usize)?,
+        },
+        4 => Op::Jump {
+            oc: w[1],
+            od: w[2],
+            of: w[3],
+        },
+        5 => Op::Keccak {
+            m: [w[1], w[2], w[3], w[4]],
+            tail: w[5],
+            b8: w[6],
+            cap: w[7],
+            out: w[8],
+            in_odd: flag(w[9])?,
+            out_odd: flag(w[10])?,
+            out_cells: *[OutCells::One, OutCells::Two, OutCells::All].get(w[11] as usize)?,
+        },
+        _ => return None,
+    })
 }
 
 struct Reader<'a>(&'a [u8]);
 
 impl Reader<'_> {
-    fn take<const N: usize>(&mut self) -> Option<[u8; N]> {
-        let (head, rest) = self.0.split_first_chunk::<N>()?;
+    fn bytes(&mut self, n: u32) -> Option<&[u8]> {
+        let (head, rest) = self.0.split_at_checked(n as usize)?;
         self.0 = rest;
-        Some(*head)
+        Some(head)
     }
 
-    fn u8(&mut self) -> Option<u8> {
-        Some(self.take::<1>()?[0])
-    }
-
-    fn bool(&mut self) -> Option<bool> {
-        match self.u8()? {
-            0 => Some(false),
-            1 => Some(true),
-            _ => None,
+    fn words<const N: usize>(&mut self) -> Option<[u32; N]> {
+        let mut words = [0; N];
+        for word in &mut words {
+            let (head, rest) = self.0.split_first_chunk()?;
+            self.0 = rest;
+            *word = u32::from_le_bytes(*head);
         }
+        Some(words)
     }
 
-    fn u32(&mut self) -> Option<u32> {
-        self.take().map(u32::from_le_bytes)
+    fn string(&mut self, n: u32) -> Option<String> {
+        String::from_utf8(self.bytes(n)?.to_vec()).ok()
     }
 
-    fn u64(&mut self) -> Option<u64> {
-        self.take().map(u64::from_le_bytes)
-    }
-
-    fn string(&mut self) -> Option<String> {
-        let n = usize::try_from(self.u32()?).ok()?;
-        let (head, rest) = self.0.split_at_checked(n)?;
-        self.0 = rest;
-        String::from_utf8(head.to_vec()).ok()
-    }
-
-    fn dest(&mut self) -> Option<BitsDest> {
-        match self.u8()? {
-            0 => Some(BitsDest::Stack(self.u32()?)),
-            1 => Some(BitsDest::Heap(self.u32()?)),
-            _ => None,
-        }
-    }
-
-    fn op(&mut self) -> Option<Op> {
-        Some(match self.u8()? {
-            0 => Op::Xor {
-                a: self.u32()?,
-                b: self.u32()?,
-                c: self.u32()?,
-            },
-            1 => Op::Mul {
-                a: self.u32()?,
-                b: self.u32()?,
-                c: self.u32()?,
-            },
-            2 => Op::Set {
-                o: self.u32()?,
-                k: E::new(self.u64()?, self.u64()?),
-            },
-            3 => Op::Deref {
-                o1: self.u32()?,
-                o2: self.u32()?,
-                o3: self.u32()?,
-                mode: match self.u8()? {
-                    0 => DerefMode::Cell,
-                    1 => DerefMode::Pc,
-                    2 => DerefMode::Fp,
-                    _ => return None,
-                },
-            },
-            4 => Op::Jump {
-                oc: self.u32()?,
-                od: self.u32()?,
-                of: self.u32()?,
-            },
-            5 => Op::Keccak {
-                m: [self.u32()?, self.u32()?, self.u32()?, self.u32()?],
-                tail: self.u32()?,
-                b8: self.u32()?,
-                cap: self.u32()?,
-                out: self.u32()?,
-                in_odd: self.bool()?,
-                out_odd: self.bool()?,
-                out_cells: match self.u8()? {
-                    0 => OutCells::One,
-                    1 => OutCells::Two,
-                    2 => OutCells::All,
-                    _ => return None,
-                },
-            },
-            _ => return None,
-        })
-    }
-
-    fn hint(&mut self) -> Option<RHint> {
-        Some(match self.u8()? {
-            0 => RHint::FrameAddress { offset: self.u32()? },
+    /// The hint of the record `w`, its pc first, and its list or name.
+    fn hint(&mut self, w: [u32; HINT_WORDS]) -> Option<RHint> {
+        let w = &w[1..];
+        Some(match w[0] {
+            0 => RHint::FrameAddress { offset: w[1] },
             1 => RHint::AllocFrames {
-                ptr: self.u32()?,
-                size: self.u32()?,
-                end: self.u32()?,
-                start_inverse: K(self.u64()?),
-                tail: self.u32()?,
+                ptr: w[1],
+                size: w[2],
+                end: w[3],
+                start_inverse: K(u64_at(w, 4)),
+                tail: w[6],
             },
-            2 => RHint::Alloc {
-                ptr: self.u32()?,
-                size: self.u32()?,
-            },
-            3 => RHint::AllocDyn {
-                ptr: self.u32()?,
-                size: self.u32()?,
-            },
+            2 => RHint::Alloc { ptr: w[1], size: w[2] },
+            3 => RHint::AllocDyn { ptr: w[1], size: w[2] },
             4 => RHint::AllocArm {
-                ptr: self.u32()?,
-                sel: self.u32()?,
-                sizes: (0..self.u32()?).map(|_| self.u32()).collect::<Option<_>>()?,
+                ptr: w[1],
+                sel: w[2],
+                sizes: {
+                    let mut sizes = Vec::new();
+                    for _ in 0..w[3] {
+                        sizes.push(self.words::<1>()?[0]);
+                    }
+                    sizes
+                },
             },
-            5 => RHint::CellAddress {
-                ptr: self.u32()?,
-                cell: self.u32()?,
-            },
+            5 => RHint::CellAddress { ptr: w[1], cell: w[2] },
             6 => RHint::WitnessStack {
-                name: self.string()?,
-                base: self.u32()?,
-                len: self.u32()?,
+                base: w[1],
+                len: w[2],
+                name: self.string(w[3])?,
             },
             7 => RHint::WitnessHeap {
-                name: self.string()?,
-                ptr: self.u32()?,
-                lo: self.u32()?,
-                len: self.u32()?,
+                ptr: w[1],
+                lo: w[2],
+                len: w[3],
+                name: self.string(w[4])?,
             },
             8 => RHint::Log2Ceil {
-                bits: self.dest()?,
-                dst: self.u32()?,
-                nbits: self.u32()?,
-                floor: self.u32()?,
+                bits: dest(w[1], w[2])?,
+                dst: w[3],
+                nbits: w[4],
+                floor: w[5],
             },
             9 => RHint::BitDecompose {
-                value: self.u32()?,
-                bits: self.dest()?,
-                nbits: self.u32()?,
+                value: w[1],
+                bits: dest(w[2], w[3])?,
+                nbits: w[4],
             },
             10 => RHint::BitDecomposeExp {
-                value: self.u32()?,
-                bits: self.dest()?,
-                nbits: self.u32()?,
+                value: w[1],
+                bits: dest(w[2], w[3])?,
+                nbits: w[4],
             },
             11 => RHint::DigitDecomposeExp {
-                value: self.u32()?,
-                dst: self.dest()?,
-                nbits: self.u32()?,
-                ndigits: self.u32()?,
-                digit_bits: self.u32()?,
-                start: self.u32()?,
-                start_cell: match (self.bool()?, self.u32()?) {
-                    (true, cell) => Some(cell),
-                    (false, 0) => None,
-                    (false, _) => return None,
-                },
+                value: w[1],
+                dst: dest(w[2], w[3])?,
+                nbits: w[4],
+                ndigits: w[5],
+                digit_bits: w[6],
+                start: w[7],
+                start_cell: flag(w[8])?.then_some(w[9]),
             },
             12 => RHint::WindowsExp {
-                value: self.u32()?,
-                dest: self.dest()?,
-                at: self.u32()?,
-                start: self.u32()?,
-                width: self.u32()?,
-                count: self.u32()?,
+                value: w[1],
+                dest: dest(w[2], w[3])?,
+                at: w[4],
+                start: w[5],
+                width: w[6],
+                count: w[7],
             },
             13 => RHint::FieldLimbs {
-                value: self.u32()?,
-                base: self.u32()?,
-                len: self.u32()?,
+                value: w[1],
+                base: w[2],
+                len: w[3],
             },
-            14 => RHint::Inverse {
-                value: self.u32()?,
-                dst: self.u32()?,
-            },
+            14 => RHint::Inverse { value: w[1], dst: w[2] },
             15 => RHint::Print {
-                label: self.string()?,
-                cell: self.u32()?,
+                cell: w[1],
+                label: self.string(w[2])?,
             },
             _ => return None,
         })
@@ -431,3 +354,155 @@ impl Reader<'_> {
 
 // The variants' tags are their discriminants.
 const _: () = assert!(DerefMode::Fp as u8 == 2 && OutCells::All as u8 == 2);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every instruction and hint survives the bytes, and a cut or longer encoding is refused.
+    #[test]
+    fn a_program_round_trips() {
+        let name = || String::from("stream");
+        let prog = vec![
+            Op::Xor {
+                a: 1,
+                b: 2,
+                c: u32::MAX,
+            },
+            Op::Mul { a: 4, b: 5, c: 6 },
+            Op::Set {
+                o: 7,
+                k: E::new(u64::MAX - 1, 1 << 40),
+            },
+            Op::Deref {
+                o1: 8,
+                o2: 9,
+                o3: 10,
+                mode: DerefMode::Fp,
+            },
+            Op::Jump { oc: 11, od: 12, of: 13 },
+            Op::Keccak {
+                m: [14, 15, 16, 17],
+                tail: 18,
+                b8: 19,
+                cap: 20,
+                out: 21,
+                in_odd: true,
+                out_odd: false,
+                out_cells: OutCells::Two,
+            },
+            Op::Deref {
+                o1: 0,
+                o2: 0,
+                o3: 0,
+                mode: DerefMode::Pc,
+            },
+            Op::Xor { a: 0, b: 0, c: 0 },
+        ];
+        let hints = vec![
+            (
+                0,
+                vec![RHint::FrameAddress { offset: 1 }, RHint::Alloc { ptr: 2, size: 3 }],
+            ),
+            (
+                2,
+                vec![
+                    RHint::AllocFrames {
+                        ptr: 1,
+                        size: 2,
+                        end: 3,
+                        start_inverse: K(u64::MAX),
+                        tail: 4,
+                    },
+                    RHint::AllocDyn { ptr: 5, size: 6 },
+                    RHint::AllocArm {
+                        ptr: 7,
+                        sel: 8,
+                        sizes: vec![9, 10, 11],
+                    },
+                    RHint::CellAddress { ptr: 12, cell: 13 },
+                    RHint::WitnessStack {
+                        name: name(),
+                        base: 14,
+                        len: 15,
+                    },
+                    RHint::WitnessHeap {
+                        name: name(),
+                        ptr: 16,
+                        lo: 17,
+                        len: 18,
+                    },
+                ],
+            ),
+            (
+                7,
+                vec![
+                    RHint::Log2Ceil {
+                        bits: BitsDest::Heap(19),
+                        dst: 20,
+                        nbits: 21,
+                        floor: 22,
+                    },
+                    RHint::BitDecompose {
+                        value: 23,
+                        bits: BitsDest::Stack(24),
+                        nbits: 25,
+                    },
+                    RHint::BitDecomposeExp {
+                        value: 26,
+                        bits: BitsDest::Heap(27),
+                        nbits: 28,
+                    },
+                    RHint::DigitDecomposeExp {
+                        value: 29,
+                        dst: BitsDest::Stack(30),
+                        nbits: 31,
+                        ndigits: 32,
+                        digit_bits: 33,
+                        start: 34,
+                        start_cell: Some(35),
+                    },
+                    RHint::DigitDecomposeExp {
+                        value: 0,
+                        dst: BitsDest::Heap(0),
+                        nbits: 0,
+                        ndigits: 0,
+                        digit_bits: 0,
+                        start: 0,
+                        start_cell: None,
+                    },
+                    RHint::WindowsExp {
+                        value: 36,
+                        dest: BitsDest::Heap(37),
+                        at: 38,
+                        start: 39,
+                        width: 40,
+                        count: 41,
+                    },
+                    RHint::FieldLimbs {
+                        value: 42,
+                        base: 43,
+                        len: 44,
+                    },
+                    RHint::Inverse { value: 45, dst: 46 },
+                    RHint::Print {
+                        label: String::from("label"),
+                        cell: 47,
+                    },
+                ],
+            ),
+        ];
+        let program = Program::from(CompiledProgram {
+            prog,
+            hints: hints.into_iter().collect(),
+            main_frame: 48,
+            fn_ranges: Vec::new(),
+            src_lines: Vec::new(),
+        });
+        let bytes = program.to_bytes();
+        let decoded = Program::from_bytes(&bytes).expect("the bytes decode");
+        assert_eq!(format!("{:?}", *decoded), format!("{:?}", *program));
+        assert!(Program::from_bytes(&bytes[..bytes.len() - 1]).is_none());
+        assert!(Program::from_bytes(&[&bytes[..], &[0]].concat()).is_none());
+    }
+}
