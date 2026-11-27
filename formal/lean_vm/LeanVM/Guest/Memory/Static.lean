@@ -155,10 +155,22 @@ theorem lookupV_mem {α : Type} {v : V} {a : α} : ∀ {l : List (V × α)}, loo
         rw [hq] at h
         exact List.mem_cons_of_mem _ (lookupV_mem h)
 
-/-- A value's position among the parameters from `k`, its index compared first. -/
-def vidx (v : V) : List V → ℕ → Option ℕ
+/-- `vidx`, compiled. -/
+def vidxC (v : V) : List V → ℕ → Option ℕ
   | [], _ => none
-  | p :: ps, k => if v.idx == p.idx && decide (v = p) then some k else vidx v ps (k + 1)
+  | p :: ps, k => bif Nat.beq v.idx p.idx && decide (v = p) then some k else vidxC v ps (k + 1)
+
+/-- A value's position among the parameters from `k`, its index compared first; on the recursor, as
+`lookupV` (`vidxC` where compiled). -/
+noncomputable def vidx (v : V) (ps : List V) (k : ℕ) : Option ℕ :=
+  List.rec (motive := fun _ ↦ ℕ → Option ℕ) (fun _ ↦ none)
+    (fun p _ r k ↦ bif Nat.beq v.idx p.idx && decide (v = p) then some k else r (k + 1)) ps k
+
+@[csimp] theorem vidx_eq_vidxC : @vidx = @vidxC := by
+  funext v ps k
+  induction ps generalizing k with
+  | nil => rfl
+  | cons p ps ih => exact congrArg (cond _ _) (ih (k + 1))
 
 /-- What a value is to the checker. -/
 inductive VCls where
@@ -486,17 +498,31 @@ theorem vBeq_iff {a b : V} : vBeq a b = true ↔ a = b := by
   simp only [vBeq, Bool.and_eq_true, Nat.beq_eq, decide_eq_true_eq, V.mk.injEq]
   tauto
 
-/-- The top-level atom of a block defining `d`. -/
-def defAtom (d : V) : List Stmt → Option Atom
+/-- Atom `a` defines `d`: a constant, a sum or a product into `d`. -/
+def dstIs (d : V) : Atom → Bool
+  | .const x _ => vBeq x d
+  | .add x _ _ => vBeq x d
+  | .mul x _ _ => vBeq x d
+  | _ => false
+
+/-- `defAtom`, compiled. -/
+def defAtomC (d : V) : List Stmt → Option Atom
   | [] => none
-  | .atom a :: ss =>
-      let dst? : Option V := match a with
-        | .const x _ => some x
-        | .add x _ _ => some x
-        | .mul x _ _ => some x
-        | _ => none
-      if dst?.any (vBeq · d) then some a else defAtom d ss
-  | _ :: ss => defAtom d ss
+  | .atom a :: ss => bif dstIs d a then some a else defAtomC d ss
+  | _ :: ss => defAtomC d ss
+
+/-- The top-level atom of a block defining `d`, on the recursor (`defAtomC` where compiled). -/
+noncomputable def defAtom (d : V) (l : List Stmt) : Option Atom :=
+  List.rec (motive := fun _ ↦ Option Atom) none
+    (fun s _ r ↦ match s with
+      | .atom a => bif dstIs d a then some a else r
+      | _ => r) l
+
+@[csimp] theorem defAtom_eq_defAtomC : @defAtom = @defAtomC := by
+  funext d l
+  induction l with
+  | nil => rfl
+  | cons s l ih => cases s <;> simp only [defAtom, defAtomC] at ih ⊢ <;> rw [ih]
 
 /-- `d = p · g` by a top-level `mul` with a constant `g`. -/
 def isStep (pre : List Stmt) (p d : V) : Bool :=
