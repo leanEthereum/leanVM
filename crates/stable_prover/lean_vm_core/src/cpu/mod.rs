@@ -210,7 +210,7 @@ pub fn prove(
     // The public input's binding (§sec:e2e-pi) sends nothing: its claims are lines in `r_pi` the verifier evaluates
     // itself, numerator one, so no grind.
     let r_pi = ps.sample();
-    let mut slots = finish_claims(&w.layout, bus.claims, &table_claims, r_pi);
+    let mut slots = finish_claims(&w.layout, &bus.claims, &table_claims, r_pi);
 
     // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
     // point claim.
@@ -234,25 +234,25 @@ pub fn prove(
 /// sent with the claims, or are the verifier's own.
 fn finish_claims(
     l: &Layout,
-    bus_claims: Vec<ColumnClaim>,
+    bus_claims: &[ColumnClaim],
     table_claims: &[constraints::Claims],
     r_pi: F128,
 ) -> Vec<pcs::StackClaim> {
     let mut claims = Vec::new();
     for c in bus_claims {
-        claims.push(slot_claim(l, c.col, c.point));
+        push_claim(&mut claims, l, c.col, &c.point);
     }
     for t in 0..tables::N_TABLES {
         for col in GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t] {
             // the Keccak reduction's claim on the output (`keccak_output_claim`)
             if !matches!(keccak_value(col), Some(KeccakLane::Output(_))) {
-                claims.push(slot_claim(l, col, table_claims[t].chi.clone()));
+                push_claim(&mut claims, l, col, &table_claims[t].chi);
             }
         }
     }
     let pi = pi_point(r_pi, l);
     for col in [MEMORY_0, MEMORY_1] {
-        claims.push(slot_claim(l, col, pi.clone()));
+        push_claim(&mut claims, l, col, &pi);
     }
     claims
 }
@@ -297,22 +297,22 @@ pub fn verify(
     verifier::verify_execution(program.bytecode(), &public_input_bytes(public_input), proof)
 }
 
-/// Locate a claim on column `col` at `point`: it lives in the slot at `placements[col].offset`,
+/// Push the claim on column `col` at `point`, located: it lives in the slot at `placements[col].offset`,
 /// with the claim's point as the low point.
 ///
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
 /// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
 /// `q_keccak`, which folds into the one opening like every other point claim.
 #[inline(never)]
-fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::StackClaim {
+fn push_claim(claims: &mut Vec<pcs::StackClaim>, l: &Layout, col: usize, point: &[F128]) {
     let offset = match keccak_value(col) {
         Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),
         _ => l.placements[col].offset,
     };
-    pcs::StackClaim {
+    claims.push(pcs::StackClaim {
         offset,
-        low_point: point,
-    }
+        low_point: point.to_vec(),
+    });
 }
 
 #[cfg(test)]
