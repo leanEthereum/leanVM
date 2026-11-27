@@ -2,6 +2,7 @@
 
 - `nat_hex(n)`: the Lean literal `nat_hex% "…"` of `n` (`Packed/NatLit.lean`), read in time quasi-linear in its length.
 - `pack(values, w)`: the vector whose lane `i` of `w` bits is `values[i]` (`Packed.pack`).
+- `chunks(values, w, c)`: the Lean list of the chunks of `c` lanes of a long vector (`Packed.Chunks`).
 """
 
 
@@ -25,3 +26,9 @@ def pack(values, w):
         return go(lo, mid) | go(mid, hi) << (w * (mid - lo))
 
     return go(0, len(values))
+
+
+def chunks(values, w, c):
+    """The Lean list of the chunks of `values`, `c` lanes of `w` bits each."""
+    values = list(values)
+    return '[' + ', '.join(nat_hex(pack(values[i:i + c], w)) for i in range(0, len(values), c)) + ']'
