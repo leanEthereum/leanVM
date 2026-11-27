@@ -176,10 +176,6 @@ struct Layer {
     ones: [Ones; N_BUS_TREES],
     /// Each tree's buffer the next fold writes, reused round after round.
     spare: [Vec<F128>; N_BUS_TREES],
-    /// The first round's challenge, which the rows are not yet folded by: the second round's fold applies both, so
-    /// a layer is read three times and written once, at a quarter of its size, the second round's messages read
-    /// through the pending fold.
-    pending: Option<F128>,
 }
 
 /// Rows per group: the unit of every pass, eight pairs of rows, which the lanes take one pair each.
@@ -192,7 +188,6 @@ impl Layer {
             rows: [a.0, b.0, c.0],
             ones: [a.1, b.1, c.1],
             spare: Default::default(),
-            pending: None,
         }
     }
 
@@ -219,27 +214,14 @@ impl Layer {
             let r = ps.sample();
             chi.push(r);
             let next = (j + 1 < rounds).then(|| SplitEq::new(&point[j + 2..]));
-            messages = match (j, &next) {
-                (0, Some(eq)) => {
-                    self.pending = Some(r);
-                    self.messages(eq)
-                }
-                _ => self.fold(r, next.as_ref()),
-            };
+            messages = self.fold(r, next.as_ref());
         }
         (chi, self.rows)
     }
 
-    /// The challenges the rows are folded by when read, as lanes: the pending one, then `r` if given.
-    fn folds(&self, r: Option<F128>) -> Vec<F128x8> {
-        self.pending.into_iter().chain(r).map(F128x8::splat).collect()
-    }
-
-    /// Each tree's round polynomial, the pairs of its rows (as folded by `pending`) weighted by `eq`.
+    /// Each tree's round polynomial, the pairs of its rows weighted by `eq`.
     fn messages(&self, eq: &SplitEq) -> Messages {
-        let folds = self.folds(None);
-        let span = GROUP << folds.len();
-        let groups = self.rows.each_ref().map(|rows| rows.len().div_ceil(4 * span));
+        let groups = self.rows.each_ref().map(|rows| rows.len().div_ceil(4 * GROUP));
         // The trees' groups end to end, tree `t`'s from `first[t]`, a task a chunk of them.
         let first: [usize; N_BUS_TREES] = std::array::from_fn(|t| groups[..t].iter().sum());
         let total = groups.iter().sum();
@@ -253,10 +235,8 @@ impl Layer {
                     let start = (task * chunk).max(first[t]) - first[t];
                     let end = ((task + 1) * chunk).min(first[t] + groups[t]).saturating_sub(first[t]);
                     for k in start..end {
-                        if !known(&self.ones[t], span * k, span) {
-                            let mut group = [F128::ONE; 4 * GROUP];
-                            fold_group(&self.rows[t], k, &folds, &mut group);
-                            add_message(&group, eq.lanes(k), &mut acc);
+                        if !known(&self.ones[t], GROUP * k, GROUP) {
+                            add_message(&padded(&self.rows[t], 4 * GROUP * k), eq.lanes(k), &mut acc);
                         }
                     }
                     acc.map(Acc8::sum)
@@ -266,13 +246,10 @@ impl Layer {
         )
     }
 
-    /// Bind the lowest row variable to `r`, after the pending challenge if any, writing the folded rows over the
-    /// spare buffers, which then hold the rows they replace. With `next`, also the next round's messages, from the
-    /// folded rows while they are at hand.
+    /// Bind the lowest row variable to `r`, writing the folded rows over the spare buffers, which then hold the rows
+    /// they replace. With `next`, also the next round's messages, from the folded rows while they are at hand.
     fn fold(&mut self, r: F128, next: Option<&SplitEq>) -> Messages {
-        let folds = self.folds(Some(r));
-        self.pending = None;
-        let span = GROUP << folds.len();
+        let (r, span) = (F128x8::splat(r), 2 * GROUP);
         for (rows, spare) in self.rows.iter().zip(&mut self.spare) {
             let len = 4 * GROUP * rows.len().div_ceil(4 * span);
             if spare.len() < len {
@@ -295,7 +272,7 @@ impl Layer {
                             *group = [F128::ONE; 4 * GROUP];
                             continue;
                         }
-                        fold_group(&rows[t], k, &folds, group);
+                        fold_rows(&rows[t], 4 * span * k, r, group);
                         if let Some(eq) = next {
                             add_message(group, eq.lanes(k), &mut acc);
                         }
@@ -309,25 +286,9 @@ impl Layer {
         );
         std::mem::swap(&mut self.rows, &mut self.spare);
         for ones in &mut self.ones {
-            *ones = coarsen(ones, 1 << folds.len());
+            *ones = coarsen(ones, 2);
         }
         messages
-    }
-}
-
-/// Group `k` of `rows` folded by each of `folds` in turn, written over `out`: the [`GROUP`] rows folded from the
-/// `GROUP << folds.len()` rows from `(GROUP << folds.len())·k`, the identity past the end of `rows`.
-#[inline]
-fn fold_group(rows: &[F128], k: usize, folds: &[F128x8], out: &mut [F128; 4 * GROUP]) {
-    match *folds {
-        [] => *out = padded(rows, 4 * GROUP * k),
-        [r] => fold_rows(rows, 8 * GROUP * k, r, out),
-        [r0, r1] => {
-            let mut half = [F128::ONE; 8 * GROUP];
-            fold_rows(rows, 16 * GROUP * k, r0, &mut half);
-            fold_rows(&half, 0, r1, out);
-        }
-        _ => unreachable!("a fold applies at most two challenges"),
     }
 }
 
