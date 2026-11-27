@@ -156,7 +156,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 3 | 70 | `core::ptr::drop_glue::<verifier::layout::Layout> @verifier` | 23 | A | no | - | - | - |
 | 3 | 108 | `verifier::multilinear::poly_eval` | 39 | A | yes | Proof/Multilinear/PolyEvalT | MultilinearT.polyEval | clmul table |
 | 3 | 122 | `verifier::hash::keccak_hash` | 136 | C | yes | Proof/Hash/KeccakHashT | HashT.keccakHashT | keccak tables (InData) |
-| 3 | 127 | `<verifier::field::K>::inv` | 291 | A | no | - | - | - |
+| 3 | 127 | `<verifier::field::K>::inv` | 291 | A | yes | Proof/Field/KInvT (safety in twelve parts over the callees' contracts, their postconditions dropped; `of_holds_post` with the partial `KInv.ok`) | FieldT6d.kInv | clmul table |
 | 3 | 135 | `verifier::ring_switch::ring_psi` | 46 | A | yes | Proof/Whir/RingPsiT | MultilinearT.ringPsi | clmul table |
 | 3 | 154 | `<alloc::vec::Vec<verifier::bus::ColumnClaim> as core::convert::From...` | 28 | D | yes | Proof/Bus/ClaimsFromT | VecT.claimsFrom | env |
 | 3 | 156 | `verifier::multilinear::index_mle` | 52 | A | yes | Proof/Multilinear/IndexMleT | MultilinearT.indexMle | clmul table |
