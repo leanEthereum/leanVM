@@ -26,52 +26,9 @@ namespace LeanVM.Guest.Res
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Bridge (spine blockAll ptrOk allocOf loadPtr loadPtr0 heapPtr0)
-
-@[expose] public section
-
-/-- Every entry of a search tree passes `p` of its key and value. -/
-def NTree.allK {α : Type} (p : ℕ → α → Bool) : NTree α → Bool
-  | .leaf => true
-  | .node k v l r => p k v && NTree.allK p l && NTree.allK p r
-
-/-- **A table of a list**: each entry's payload under its name's code, and each payload under a code an entry's
-of a name of that code. -/
-def tabOk {α β : Type} [BEq α] (L : List (String × β)) (t : NTab α) (φ : β → α) : Bool :=
-  L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) &&
-    NTree.allK (fun k is ↦ is.all fun i ↦ L.any fun c ↦ Nat.beq (encS c.1) k && φ c.2 == i) t
-
-end
+open LeanVM.Guest.Exec (natSeq_eq)
 
 public section
-
-theorem NTree.find_allK {α : Type} {p : ℕ → α → Bool} : ∀ {t : NTree α} {k : ℕ} {v : α}, NTree.allK p t = true →
-    t.find k = some v → p k v = true
-  | .leaf, _, _, _, h => by simp [NTree.find] at h
-  | .node k' v' l r, k, v, ha, h => by
-    simp only [NTree.allK, Bool.and_eq_true] at ha
-    simp only [NTree.find] at h
-    split_ifs at h with h1 h2
-    · cases h; rw [Nat.eq_of_beq_eq_true h1]; exact ha.1.1
-    · exact NTree.find_allK ha.1.2 h
-    · exact NTree.find_allK ha.2 h
-
-theorem tabOk.all {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
-    (h : tabOk L t φ = true) : L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) = true :=
-  (Bool.and_eq_true _ _ ▸ h).1
-
-/-- A payload under a name's code is an entry's of that name. -/
-theorem tabOk.mem {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
-    (h : tabOk L t φ = true) {g : String} {i : α} (hi : i ∈ t.at (encS g)) : ∃ c ∈ L, c.1 = g ∧ φ c.2 = i := by
-  have h2 := (Bool.and_eq_true _ _ ▸ h).2
-  unfold NTab.at at hi
-  cases hf : t.find (encS g) with
-  | none => rw [hf] at hi; simp at hi
-  | some is =>
-    rw [hf, Option.getD_some] at hi
-    have := List.all_eq_true.mp (NTree.find_allK h2 hf) i hi
-    obtain ⟨c, hc, he⟩ := List.any_eq_true.mp this
-    simp only [Bool.and_eq_true, beq_iff_eq] at he
-    exact ⟨c, hc, encS_inj (Nat.eq_of_beq_eq_true he.1), he.2⟩
 
 /-! ## The searches, monotone -/
 

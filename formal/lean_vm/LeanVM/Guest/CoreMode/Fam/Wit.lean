@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.NameIx
 public import LeanVM.Guest.Memory.Family
+public import LeanVM.Guest.ExecCore
 
 /-!
 # Witnessed checks
@@ -27,7 +28,8 @@ witnessed forms take from the generator:
   (`mem_pickB`, and each search's `_mono`);
 * **name tables**: a list of entries keyed by name as a search tree by the name's code (`encS`, `NTab`), each
   entry's payload under its name's code (`tab_all`: a check of the payloads under a callee's code is the check of
-  the list's entries of that callee, the table holding each entry, which one `decide` checks per list).
+  the list's entries of that callee). The table is written by the generator and checked against its list once
+  (`tabOk`), or built by the kernel from the list (`NTab.ofNamed`, which holds each entry, `ofNamed_all`).
 
 `allB_ctx`, `sitesB_imp`, `blockAll_imp`, `RangeOk.imp`: the walkers are monotone in their predicates, `allB` with
 every context it passes extending its first.
@@ -36,6 +38,7 @@ every context it passes extending its first.
 namespace LeanVM.Guest.Res
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.Exec (natSeq natSeq_eq)
 open LeanVM.Guest.Bridge (blockAll armsAll)
 
 @[expose] public section
@@ -48,8 +51,35 @@ def pickB {α : Type} (b : ℕ) (l : List α) : List α :=
 /-- **A name table**: under a name's code (`encS`), the payloads of the entries of that name. -/
 abbrev NTab (α : Type) := NTree (List α)
 
-/-- The payloads under a code. -/
-def NTab.at {α : Type} (t : NTab α) (k : ℕ) : List α := (t.find k).getD []
+/-- The payloads under a code, the code evaluated first. -/
+def NTab.at {α : Type} (t : NTab α) (k : ℕ) : List α := natSeq k fun k ↦ (t.find k).getD []
+
+/-- `a` added under key `k`. -/
+def NTab.ins {α : Type} (k : ℕ) (a : α) : NTab α → NTab α
+  | .leaf => .node k [a] .leaf .leaf
+  | .node k' v l r => if Nat.beq k k' then .node k' (a :: v) l r
+      else if Nat.blt k k' then .node k' v (NTab.ins k a l) r else .node k' v l (NTab.ins k a r)
+
+/-- **The table of a list of keyed payloads**, built by the kernel. -/
+def NTab.ofList {α : Type} (l : List (ℕ × α)) : NTab α := l.foldr (fun p t ↦ NTab.ins p.1 p.2 t) .leaf
+
+/-- **The table of a list of named entries**: each entry's payload `φ` under its name's code. -/
+def NTab.ofNamed {α β : Type} (φ : β → α) (L : List (String × β)) : NTab α :=
+  NTab.ofList (L.map fun c ↦ (encS c.1, φ c.2))
+
+/-- A function's witness by its index, `0` when it has none, the index evaluated first. -/
+def witAt (t : NTree ℕ) (j : ℕ) : ℕ := natSeq j fun j ↦ (t.find j).getD 0
+
+/-- Every entry of a search tree passes `p` of its key and value. -/
+def NTree.allK {α : Type} (p : ℕ → α → Bool) : NTree α → Bool
+  | .leaf => true
+  | .node k v l r => p k v && NTree.allK p l && NTree.allK p r
+
+/-- **A table of a list**: each entry's payload under its name's code, and each payload under a code an entry's
+of a name of that code. -/
+def tabOk {α β : Type} [BEq α] (L : List (String × β)) (t : NTab α) (φ : β → α) : Bool :=
+  L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) &&
+    NTree.allK (fun k is ↦ is.all fun i ↦ L.any fun c ↦ Nat.beq (encS c.1) k && φ c.2 == i) t
 
 end
 
@@ -79,6 +109,98 @@ theorem tab_all {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)}
     rw [hg, List.contains_iff_mem] at hm
     rw [hPQ c.2 (List.all_eq_true.mp h _ hm), Bool.or_true]
   · simp [hg]
+
+theorem NTree.find_allK {α : Type} {p : ℕ → α → Bool} : ∀ {t : NTree α} {k : ℕ} {v : α}, NTree.allK p t = true →
+    t.find k = some v → p k v = true
+  | .leaf, _, _, _, h => by simp [NTree.find] at h
+  | .node k' v' l r, k, v, ha, h => by
+    simp only [NTree.allK, Bool.and_eq_true] at ha
+    simp only [NTree.find] at h
+    split_ifs at h with h1 h2
+    · cases h; rw [Nat.eq_of_beq_eq_true h1]; exact ha.1.1
+    · exact NTree.find_allK ha.1.2 h
+    · exact NTree.find_allK ha.2 h
+
+theorem tabOk.all {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
+    (h : tabOk L t φ = true) : L.all (fun c ↦ (t.at (encS c.1)).contains (φ c.2)) = true :=
+  (Bool.and_eq_true _ _ ▸ h).1
+
+/-- A payload under a name's code is an entry's of that name. -/
+theorem tabOk.mem {α β : Type} [BEq α] [LawfulBEq α] {L : List (String × β)} {t : NTab α} {φ : β → α}
+    (h : tabOk L t φ = true) {g : String} {i : α} (hi : i ∈ t.at (encS g)) : ∃ c ∈ L, c.1 = g ∧ φ c.2 = i := by
+  have h2 := (Bool.and_eq_true _ _ ▸ h).2
+  unfold NTab.at at hi
+  rw [natSeq_eq] at hi
+  cases hf : t.find (encS g) with
+  | none => rw [hf] at hi; simp at hi
+  | some is =>
+    rw [hf, Option.getD_some] at hi
+    have := List.all_eq_true.mp (NTree.find_allK h2 hf) i hi
+    obtain ⟨c, hc, he⟩ := List.any_eq_true.mp this
+    simp only [Bool.and_eq_true, beq_iff_eq] at he
+    exact ⟨c, hc, encS_inj (Nat.eq_of_beq_eq_true he.1), he.2⟩
+
+private theorem find_ins_self {α : Type} (k : ℕ) (a : α) : ∀ (t : NTab α),
+    ((NTab.ins k a t).find k).getD [] = a :: (t.find k).getD []
+  | .leaf => by simp [NTab.ins, NTree.find]
+  | .node k0 v l r => by
+    unfold NTab.ins
+    by_cases h1 : Nat.beq k k0 = true
+    · simp only [h1, ↓reduceIte]; simp [NTree.find, h1]
+    · simp only [h1, Bool.false_eq_true, ↓reduceIte]
+      by_cases h2 : Nat.blt k k0 = true
+      · simp only [h2, ↓reduceIte]; simp [NTree.find, h1, h2, find_ins_self k a l]
+      · simp only [h2, Bool.false_eq_true, ↓reduceIte]; simp [NTree.find, h1, h2, find_ins_self k a r]
+
+private theorem find_ins_ne {α : Type} (k k' : ℕ) (a : α) (hk : k' ≠ k) : ∀ (t : NTab α),
+    ((NTab.ins k a t).find k').getD [] = (t.find k').getD []
+  | .leaf => by simp [NTab.ins, NTree.find, hk]
+  | .node k0 v l r => by
+    unfold NTab.ins
+    by_cases h1 : Nat.beq k k0 = true
+    · simp only [h1, ↓reduceIte]
+      have e := Nat.eq_of_beq_eq_true h1
+      subst e
+      simp [NTree.find, hk]
+    · simp only [h1, Bool.false_eq_true, ↓reduceIte]
+      by_cases h2 : Nat.blt k k0 = true
+      · simp only [h2, ↓reduceIte, NTree.find]
+        split_ifs
+        · rfl
+        · exact find_ins_ne k k' a hk l
+        · rfl
+      · simp only [h2, Bool.false_eq_true, ↓reduceIte, NTree.find]
+        split_ifs
+        · rfl
+        · rfl
+        · exact find_ins_ne k k' a hk r
+
+private theorem getD_find_ins {α : Type} (k k' : ℕ) (a : α) (t : NTab α) :
+    ((NTab.ins k a t).find k').getD [] = if k' = k then a :: (t.find k').getD [] else (t.find k').getD [] := by
+  split_ifs with h
+  · subst h; exact find_ins_self k' a t
+  · exact find_ins_ne k k' a h t
+
+theorem mem_at_ofList {α : Type} {k : ℕ} {a : α} : ∀ {l : List (ℕ × α)}, (k, a) ∈ l → a ∈ (NTab.ofList l).at k
+  | p :: l, h => by
+    unfold NTab.at
+    rw [natSeq_eq]
+    change a ∈ ((NTab.ins p.1 p.2 (NTab.ofList l)).find k).getD []
+    rw [getD_find_ins]
+    rcases List.mem_cons.mp h with rfl | h
+    · simp
+    · have ih := mem_at_ofList h
+      unfold NTab.at at ih
+      rw [natSeq_eq] at ih
+      split_ifs <;> simp [ih]
+
+/-- **A named list's own table holds each entry.** -/
+theorem ofNamed_all {α β : Type} [BEq α] [LawfulBEq α] (φ : β → α) (L : List (String × β)) :
+    L.all (fun c ↦ ((NTab.ofNamed φ L).at (encS c.1)).contains (φ c.2)) = true := by
+  rw [List.all_eq_true]
+  intro c hc
+  rw [List.contains_iff_mem]
+  exact mem_at_ofList (List.mem_map.mpr ⟨c, hc, rfl⟩)
 
 /-- `List.any` over a sublist, by a weaker predicate. -/
 theorem any_imp {α : Type} {l l' : List α} {p p' : α → Bool} (hl : ∀ x ∈ l, x ∈ l')

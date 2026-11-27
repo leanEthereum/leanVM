@@ -493,11 +493,11 @@ def render():
         t.append('public section\n\n'
                  'theorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d :=\n'
                  '  RangeOk.imp (fun _ _ h ↦ carryG_of_wit carriedT_ok h)\n'
-                 '    (show RangeOk (fun j fn ↦ carryGW carriedT fn ((gW%d.find j).getD 0)) %d %d by\n'
+                 '    (show RangeOk (fun j fn ↦ carryGW carriedT fn (witAt gW%d j)) %d %d by\n'
                  '      unfold RangeOk; decide +kernel)\n\n' % (a, a, m, a, a, m))
         t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
                  '  RangeOk.imp (fun _ _ h ↦ carryNzG_of_wit carriedNzT_ok nzUpT_ok ownNzT_ok h)\n'
-                 '    (show RangeOk (fun j fn ↦ carryNzW carriedNzT nzUpT ownNzT fn ((nzW%d.find j).getD 0)) %d %d by\n'
+                 '    (show RangeOk (fun j fn ↦ carryNzW carriedNzT nzUpT ownNzT fn (witAt nzW%d j)) %d %d by\n'
                  '      unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'

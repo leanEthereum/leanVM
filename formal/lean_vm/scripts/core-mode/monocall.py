@@ -25,9 +25,12 @@ def render():
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.MonoCallers%d' % k
         t = [header(mod, 'The callers\' check of `monoCallers`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem monoCallers_%d : RangeOk (fun _ fn => callersG monoCallers fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
+        t.append('public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.MonoDefs\n'
+                 'public import LeanVM.Guest.CoreMode.Fam.CallersWit\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
+                 'public section\n\ntheorem monoCallers_%d : RangeOk (fun _ fn => callersG monoCallers fn) %d %d :=\n'
+                 '  RangeOk.imp (fun _ _ h ↦ callersG_of_wit h)\n'
+                 '    (show RangeOk (fun _ fn ↦ callersGW monoCallers fn) %d %d by unfold RangeOk; decide +kernel)\n\n'
+                 'end\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.MonoWalkOk'
     t = [header(mod, 'The gap walk\'s checks.')]

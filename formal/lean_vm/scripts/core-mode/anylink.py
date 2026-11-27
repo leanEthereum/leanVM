@@ -88,9 +88,12 @@ def render():
     for k, (a, m) in enumerate(ranges):
         mod = 'LeanVM.Guest.CoreMode.Gen.AnyCallers%d' % k
         t = [header(mod, 'The callers\' check of `anyLink`, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Gen.AnyLink\n\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                 'public section\n\ntheorem anyCallers_%d : RangeOk (fun _ fn => callersB anyLink fn) %d %d := by\n'
-                 '  unfold RangeOk; decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m))
+        t.append('public import LeanVM.Guest.CoreMode.Gen.AnyLink\npublic import LeanVM.Guest.CoreMode.Fam.CallersWit\n\n'
+                 'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
+                 'public section\n\ntheorem anyCallers_%d : RangeOk (fun _ fn => callersB anyLink fn) %d %d :=\n'
+                 '  RangeOk.imp (fun _ _ h ↦ callersB_of_wit h)\n'
+                 '    (show RangeOk (fun _ fn ↦ callersBW anyLink fn) %d %d by unfold RangeOk; decide +kernel)\n\n'
+                 'end\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, m))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.AnyLinkOk'
     t = [header(mod, '`anyLink`\'s checks.')]
