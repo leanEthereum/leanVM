@@ -5,18 +5,20 @@
   first ones: over slices none or owned by the caller (`OwnSliceT.OwnSlice`), with the generated link, the stack
   `Gen.Needs` gives and their callees' total theorems (`FieldT`, `RuntimeT`); and `Placement::eq_above` over
   `eqEvalOwn` and `MultilinearT2.selectorPoint`. Left as hypotheses: `clmul_low`'s constant in the image's static data
-  (`FieldT.ClmulTable`), and for `eq_above` the allocator's two facts about the image (`NEXT`'s data reference,
-  the heap's end), environment facts.
+  (`FieldT.ClmulTable`), and for `eq_above` and `stack_point` (over `VecT6c.concatSliceE`) the allocator's two
+  facts about the image (`NEXT`'s data reference, the heap's end), environment facts.
 
   ## Main results
 
-  * `eqEvalOwn`, `polyEvalOwn`, `indexMleOwn`, `paddingWeightOwn`, `ringPsiOwn`, `eqAbove`
+  * `eqEvalOwn`, `polyEvalOwn`, `indexMleOwn`, `paddingWeightOwn`, `ringPsiOwn`, `eqAbove`, `stackPoint`
 -/
 
 import Rv64mc.Table.FieldT
 import Rv64mc.Table.RuntimeT
 import Rv64mc.Table.MultilinearT2
 import Rv64mc.Proof.Multilinear.EqAboveT
+import Rv64mc.Table.VecT6c
+import Rv64mc.Proof.Multilinear.StackPointT
 import Rv64mc.Proof.Multilinear.EqEvalOwnT
 import Rv64mc.Proof.Multilinear.PolyEvalOwnT
 import Rv64mc.Proof.Multilinear.IndexMleOwnT
@@ -72,6 +74,15 @@ theorem eqAbove (hd : FieldT.ClmulTable env) (hnext : VerifierRv64.Bump.AsGlobal
     (by decide) (by decide) (by decide) (MultilinearT2.selectorPoint env hnext hend) (eqEvalOwn env hd)
     (RuntimeT.sliceIndexFail env)
 
+/-- **`Placement::stack_point` at the image** (function 131), its safety contract. -/
+theorem stackPoint (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    StackPointT.SpecT env (liftProg fns) Idx.Verifier.Multilinear.Placement.StackPoint
+      Needs.Verifier.Multilinear.Placement.StackPoint :=
+  StackPointT.total env _ _ _ Verifier.Multilinear.Placement.StackPoint.tmpl_eq
+    Verifier.Multilinear.Placement.StackPoint.wf (by decide) (by decide)
+    (MultilinearT2.selectorPoint env hnext hend) (VecT6c.concatSliceE env hnext hend)
+
 end Rv64mc.Table.MultilinearT6e
 
 /-- info: 'Rv64mc.Table.MultilinearT6e.eqEvalOwn' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -97,3 +108,7 @@ end Rv64mc.Table.MultilinearT6e
 /-- info: 'Rv64mc.Table.MultilinearT6e.eqAbove' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.MultilinearT6e.eqAbove
+
+/-- info: 'Rv64mc.Table.MultilinearT6e.stackPoint' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.MultilinearT6e.stackPoint
