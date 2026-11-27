@@ -121,7 +121,7 @@ fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<F128> {
     let committed: Vec<usize> = (0..sources.len()).filter(|&c| sources[c].is_some()).collect();
     let groups = col_groups(&sources.iter().flatten().copied().collect::<Vec<_>>());
     let mut stacked: Vec<usize> = (0..committed.len()).collect();
-    stacked.sort_by_key(|&compact| column_offsets[committed[compact]]);
+    isa::sort::sort_by_key(&mut stacked, |&compact| column_offsets[committed[compact]]);
     let order = group_runs(
         stacked
             .into_iter()
@@ -144,7 +144,7 @@ fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
     for (blocks, start) in sides.iter().zip(&side_starts) {
         let offsets = leaf::layout(blocks).offsets;
         let mut order: Vec<usize> = (0..blocks.len()).collect();
-        order.sort_by_key(|&i| offsets[i]);
+        isa::sort::sort_by_key(&mut order, |&i| offsets[i]);
         stacked.extend(order.into_iter().map(|i| start + i));
     }
     // A group never crosses a side, so runs never merge across one.

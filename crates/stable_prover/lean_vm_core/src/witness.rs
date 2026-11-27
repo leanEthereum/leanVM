@@ -79,7 +79,7 @@ pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackS
 /// storage of their own.
 pub(crate) fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
     let mut order: Vec<usize> = (0..placements.len()).filter(|&i| !placements[i].is_virtual()).collect();
-    order.sort_unstable_by_key(|&i| placements[i].offset);
+    isa::sort::sort_by_key(&mut order, |&i| placements[i].offset);
 
     let mut windows: Vec<&mut [F64]> = Vec::with_capacity(placements.len());
     windows.resize_with(placements.len(), || &mut []);

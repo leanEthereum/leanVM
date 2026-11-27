@@ -251,7 +251,7 @@ impl Grouped {
             .collect();
         let mut pairs: Vec<(usize, usize, F128)> =
             form.prods.iter().map(|&(a, b, q)| (a.min(b), a.max(b), q)).collect();
-        pairs.sort_unstable_by_key(|&(a, b, _)| (a, b));
+        isa::sort::sort_by_key(&mut pairs, |&(a, b, _)| (a, b));
         let mut groups: Vec<(usize, Lin)> = Vec::new();
         for (a, b, q) in pairs {
             match groups.last_mut() {

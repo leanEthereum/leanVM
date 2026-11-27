@@ -58,10 +58,12 @@ impl<K: Ord + Clone> Region<K> {
         for child in children.clone() {
             signers.extend_from_slice(child);
         }
-        signers.sort();
+        isa::sort::sort(&mut signers);
         signers.dedup();
         if let Some(declare) = declare {
-            let mut wanted: BTreeSet<&K> = declare.iter().collect();
+            // Inserted one by one: collecting would sort them first.
+            let mut wanted: BTreeSet<&K> = BTreeSet::new();
+            wanted.extend(declare);
             signers.retain(|claim| wanted.remove(claim));
             if !wanted.is_empty() {
                 return Err(AggregateError::InvalidInput(

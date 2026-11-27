@@ -2,6 +2,7 @@
 //! per variant, a length before each list and string.
 
 use crate::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, Program, RHint};
+use std::collections::BTreeMap;
 use verifier::{E, K, MAX_LOG_BYTECODE};
 
 impl Program {
@@ -46,9 +47,14 @@ impl Program {
         let pcs_in_order =
             hints.is_sorted_by(|(a, _), (b, _)| a < b) && hints.last().is_none_or(|(pc, _)| (*pc as usize) < n);
         (r.0.is_empty() && pcs_in_order && n.is_power_of_two() && n <= 1 << MAX_LOG_BYTECODE).then(|| {
+            // Inserted one by one: collecting would sort them first.
+            let mut by_pc = BTreeMap::new();
+            for (pc, h) in hints {
+                by_pc.insert(pc, h);
+            }
             Self::from(CompiledProgram {
                 prog,
-                hints: hints.into_iter().collect(),
+                hints: by_pc,
                 main_frame,
                 fn_ranges,
                 src_lines,

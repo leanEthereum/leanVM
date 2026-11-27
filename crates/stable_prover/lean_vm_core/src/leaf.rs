@@ -283,7 +283,7 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
     let mut formulas: Vec<Formula> = (tree.blocks.iter().zip(&tree.layout.offsets))
         .map(|(block, &offset)| Formula::new(block, offset, tree.alpha, tree.beta, public))
         .collect();
-    formulas.sort_unstable_by_key(|f| f.offset);
+    isa::sort::sort_by_key(&mut formulas, |f| f.offset);
     if formulas.is_empty() {
         return vec![F128::ONE];
     }
@@ -313,7 +313,7 @@ fn padding_runs(tree: &Tree) -> Ones {
         .filter(|(block, _)| block.rows < 1 << block.kappa)
         .map(|(block, &offset)| offset + block.rows..offset + (1 << block.kappa))
         .collect();
-    runs.sort_unstable_by_key(|run| run.start);
+    isa::sort::sort_by_key(&mut runs, |run| run.start);
     runs
 }
 

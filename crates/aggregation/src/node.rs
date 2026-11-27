@@ -287,7 +287,7 @@ pub fn aggregate<P: Prover>(
 /// Sort raw signatures on their claims and drop repeats: on the whole (pubkey, message) pair, so a signer may appear
 /// once per message, and one claim needs one signature, whatever leaf index a leanXMSS one carries. Returns the claims.
 fn sorted_claims<K: Ord + Copy, S>(raw: &mut Vec<(K, [u8; 32], S)>) -> Vec<(K, [u8; 32])> {
-    raw.sort_by_key(|(pk, message, _)| (*pk, *message));
+    isa::sort::sort_by_key(raw, |(pk, message, _)| (*pk, *message));
     raw.dedup_by_key(|(pk, message, _)| (*pk, *message));
     raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
 }
