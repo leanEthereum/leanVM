@@ -6,7 +6,7 @@
 -/
 
 import LeanVM.Protocol.Stack
-import LeanVM.Protocol.Spine.Toy
+import LeanVMTests.Protocol.Toy
 import LeanVMTests.Protocol.Stacking
 
 /-!
