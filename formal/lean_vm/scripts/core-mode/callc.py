@@ -1089,6 +1089,7 @@ GEN = os.path.join(GUEST, 'CoreMode', 'Gen')
 head = genfiles.header('core-mode/callc.py --emit')
 HEADER = """public import LeanVM.Guest.CoreMode.Defs
 public import LeanVM.Guest.CoreMode.WitOf
+meta import LeanVM.Guest.DataLit
 
 set_option maxRecDepth 100000
 set_option linter.all false
@@ -1190,11 +1191,18 @@ namespace LeanVM.Guest.CoreMode.HcSig
 """
 
 
-def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
+def data_lit(t):
+    """`t` with each declaration's or structure field's value that is a list literal built as a term (`data%`,
+    `Guest/DataLit.lean`), but the residuals' (`res := [`, which `core.py` reads as written)."""
+    return re.sub(r'(:=\n  |\n  (?!res )[a-z][A-Za-z0-9]* := )\[', r'\1data% [', t)
+
+
+def ldata(k, r, shared=frozenset(), sigs=None, refs={}, data=False):
     """A function's certificate and its callees' signatures as Lean, its auxiliary declarations first. `shared`,
-    `refs`: `sig_shared`'s; `sigs` (if given) collects the functions whose signature module the text names."""
+    `refs`: `sig_shared`'s; `sigs` (if given) collects the functions whose signature module the text names; `data`: its
+    lists written `data% …` (`data_lit`; the module imports `LeanVM.Guest.DataLit`)."""
     EM = _em()
-    aux, body = EM.lcert(r['cert'])
+    aux, body = EM.lcert(r['cert'], data=data)
     used = set()
     if in_sigs(k, r, shared):
         # its own signature the one its callers name (`Gen/<pack>/Sig.lean`)
@@ -1226,12 +1234,13 @@ def ldata(k, r, shared=frozenset(), sigs=None, refs={}):
     auxt += ''.join(f'{d}\n' for d in cdefs)
     if sigs is not None:
         sigs |= used
-    return (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
+    text = (f'{auxt}def hcert : CoreMode.HCert where\n{body}\n'
             f'def csigs : List (String × CoreMode.HSig) :={" " if len(cs) < 60 and "\n" not in cs else "\n  "}[{cs}]\n' + (
                 'def dsp : List (ℕ × List String) :=\n  [%s]\n' % (', '.join(
                     '(%d, [%s])' % (q, ', '.join('"%s"' % f for f in fs)) for q, fs in r['dsp'])) if r.get('dsp') else '') +
             f'def hcFlag : Bool := {"true" if r.get("hc") else "false"}\n'
             f'def hcCallees : List (String × ℕ × ℕ) := [{", ".join(f'("{f}", {a}, {b})' for f, a, b in r.get("hcs", []))}]\n')
+    return data_lit(text) if data else text
 
 
 GENW = os.path.join(GUEST, 'CoreMode', 'GenW')
@@ -1263,7 +1272,7 @@ def windows(R, po, shared=frozenset()):
                                lpre='a%d_' % r, one=True,
                                pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                                data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0], base + '.Def'],
-                               sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+                               names=sorted(R[k]['cs']))
                     d = os.path.join(GENW, k, 'A%d' % r)
                     arm = {os.path.join(d, 'Def.lean'): arm_def(k, r, H.sel, po, base, ns)}
                     arm.update((os.path.join(d, name + '.lean'), text) for name, text in heapwin.one(k, Hr, sigOf, epo, gen))
@@ -1277,7 +1286,7 @@ def windows(R, po, shared=frozenset()):
         gen = dict(root='LeanVM.Guest.CoreMode.GenW', sub='HeapWG', final='heap_okW',
                    pre=f'{hcsig_ref(k)[:-len("sig")]}sig_pre' if in_sigs(k, R[k], shared) else 'sig_pre',
                    data=['LeanVM.Guest.CoreMode.Gen.«%s».DataC' % po[k][0]],
-                   sigw='(fun f ↦ bif f == core.name then hcert.sig else (csigs.lookup f).getD {})')
+                   names=sorted(R[k]['cs']))
         for name, text in heapwin.one(k, H, sigOf, epo, gen):
             files[os.path.join(GENW, k, name + '.lean')] = text
     return files
@@ -1310,7 +1319,7 @@ def emit(R, check):
                     f"{len(ks) - 1} more (bodies with calls), their callees' heap signatures.") + HEADER]
         used = set()
         for k in ks:
-            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs)}'
+            out.append(f'\nnamespace LeanVM.Guest.Fn.«{k}»\n@[expose] public section\n{ldata(k, R[k], shared, used, refs, data=True)}'
                        f'\nend\nend LeanVM.Guest.Fn.«{k}»\n')
         imps = sorted({po[c][0] for c in used})
         out[0] = out[0].replace('public import LeanVM.Guest.CoreMode.Defs\n', 'public import LeanVM.Guest.CoreMode.Defs\n' +
