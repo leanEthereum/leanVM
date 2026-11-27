@@ -36,6 +36,45 @@ theorem get_set_unit {t : Exec.Trie Unit} {d n m : ℕ} (h : (t.set () d n).get 
   · exact Or.inl rfl
   · exact Or.inr h
 
+/-- A store keeps what the trie held, and stores its key within the trie's depth. -/
+theorem get_set_unit_of {t : Exec.Trie Unit} :
+    ∀ {d n m : ℕ}, t.get m = some () ∨ (m = n ∧ n < 2 ^ d - 1) → (t.set () d n).get m = some ()
+  | 0, _, _, h => h.elim id fun h ↦ absurd h.2 (by simp)
+  | d + 1, n, m, h => by
+    have hp : 2 ^ (d + 1) = 2 * 2 ^ d := by rw [Nat.pow_succ, Nat.mul_comm]
+    rw [Exec.Trie.set_succ]
+    rw [Exec.Trie.get_eq_node t m, Exec.Trie.get_node] at h
+    by_cases hn : n = 0
+    · simp only [hn, ite_true, Exec.Trie.get_node]
+      by_cases hm : m = 0
+      · simp [hm]
+      · simp only [hm, ite_false] at h ⊢
+        rcases h with h | h
+        · exact h
+        · exact absurd (h.1.trans hn) hm
+    · simp only [hn, ite_false]
+      by_cases h1 : n % 2 = 1
+      · simp only [h1, ite_true, Exec.Trie.get_node]
+        by_cases hm : m = 0
+        · simp only [hm, ite_true] at h ⊢
+          exact h.resolve_right fun h' ↦ hn h'.1.symm
+        · simp only [hm, ite_false] at h ⊢
+          by_cases h2 : m % 2 = 1
+          · simp only [h2, ite_true] at h ⊢
+            exact get_set_unit_of (h.imp_right fun h ↦ ⟨by rw [h.1], by omega⟩)
+          · simp only [h2, ite_false] at h ⊢
+            exact h.resolve_right fun h' ↦ h2 (h'.1 ▸ h1)
+      · simp only [h1, ite_false, Exec.Trie.get_node]
+        by_cases hm : m = 0
+        · simp only [hm, ite_true] at h ⊢
+          exact h.resolve_right fun h' ↦ hn h'.1.symm
+        · simp only [hm, ite_false] at h ⊢
+          by_cases h2 : m % 2 = 1
+          · simp only [h2, ite_true] at h ⊢
+            exact h.resolve_right fun h' ↦ h1 (h'.1 ▸ h2)
+          · simp only [h2, ite_false] at h ⊢
+            exact get_set_unit_of (h.imp_right fun h ↦ ⟨by rw [h.1], by omega⟩)
+
 theorem get_inter_unit {a b : Exec.Trie Unit} {n : ℕ}
     (h : (Exec.Trie.inter (fun _ _ ↦ true) a b).get n = some ()) : a.get n = some () ∧ b.get n = some () :=
   Exec.Trie.get_inter (fun _ _ _ ↦ rfl) h

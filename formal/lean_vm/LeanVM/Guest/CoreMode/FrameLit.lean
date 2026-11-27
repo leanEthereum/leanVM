@@ -20,7 +20,7 @@ public meta import Lean.Elab.Command
   `{ env := env, fpOne := fpOne, pows := fpows, scaled := scaled }`, entry, length `n`, signature,
   the callees' signatures `sigs` (the callees' by default, `.nil` for none), the halting pc, the
   hints `advice.2.2`, `nzr`, `tidx`, `arms`, `calls`, the pairing's oracle `pairO` (and its keys,
-  which the walk reads as bits) and stores `pairS`, no cut;
+  which the walk reads as bits) and stores `pairS`, no cut (stride `1`, no entries);
 * `theorem Fn.«k».frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true`, by the kernel.
 
 The clauses, each when it is not the default: `sigs [«m₀», …]`, `env e`, `fpOne`, `scaled l`,
@@ -64,7 +64,7 @@ macro_rules
         ⟨{ env := $e, fpOne := $fpT, pows := fpows, scaled := $sc }, $(fnDot k `entry), $n, $(fnDot k `csig),
           $sigsT, CoreMode.haltPc, advice.2.2, $(nz.getD nil), $(ti.getD nil), $(ar.getD nil), $(ca.getD nil),
           $(fnDot k `pairO), (CoreMode.Bits.keys $(fnDot k `pairO)), $(fnDot k `pairS),
-          .nil⟩
+          1, .nil⟩
       theorem $(fnDot k `frameOk) : CoreMode.frameOk frameFun code.chunks.flatten = true := by
         decide +kernel)
 

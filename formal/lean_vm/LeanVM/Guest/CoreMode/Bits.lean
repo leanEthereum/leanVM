@@ -70,12 +70,12 @@ theorem has_add {s o m : ℕ} (h : has (add s o) m = true) : m = o ∨ has s m =
   · exact Or.inr h
 
 theorem has_addRun {s base n j : ℕ} (h : has (addRun s base n) j = true) :
-    has s j = true ∨ (base ≤ j ∧ j < base + n) := by
+    has s j = true ∨ (base ≤ j ∧ j < base + n ∧ j < lim) := by
   simp only [has, addRun, Nat.testBit_or, Nat.testBit_shiftLeft, Nat.testBit_two_pow_sub_one,
     Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq] at h
   rcases h with h | ⟨h1, h2⟩
   · exact Or.inl h
-  · exact Or.inr ⟨h1, by omega⟩
+  · exact Or.inr ⟨h1, by omega, by omega⟩
 
 theorem has_inter {a b n : ℕ} (h : has (inter a b) n = true) : has a n = true ∧ has b n = true := by
   simpa [has, inter] using h
