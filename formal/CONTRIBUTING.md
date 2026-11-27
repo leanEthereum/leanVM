@@ -1,6 +1,6 @@
 # Contributing to formal/
 
-The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Paths are relative to `formal/`, except those under `.github/`.
+The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Paths are relative to `formal/`, except `doc/leanvm` and those under `.github/`.
 
 ## What formal/ is for
 

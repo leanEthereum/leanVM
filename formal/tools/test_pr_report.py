@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Tests `pr-report.py` on a throwaway repository with `diff.noprefix` and `diff.interHunkContext` set: a change
-that plants violations in every section, and `*.lean -diff` in `.gitattributes`, which the report must list, a clean change, which it must not, and two one-file changes to the
+"""Tests `pr-report.py` on a throwaway repository with `diff.noprefix` and `diff.interHunkContext` set. Four
+changes: one that plants violations in every section and hides `.lean` diffs with `*.lean -diff` in
+`.gitattributes`, which the report must list; a clean one, which it must not; two one-file changes to the
 statement's edges.
 
   python3 -I formal/tools/test_pr_report.py

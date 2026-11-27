@@ -55,8 +55,9 @@ jobs:
           persist-credentials: false
       # Files to read: no build, no script, no Claude configuration, no symbolic link. Each side goes
       # through a temporary index without its `.gitattributes`, into a directory that has none, so no
-      # attribute rewrites a file (`git archive` would apply export attributes); the diff takes
-      # `--text --no-textconv`. The pull request's `.gitattributes` changes are in `pr.diff`.
+      # attribute rewrites a file (`git archive` would apply export attributes). The diff reads attributes
+      # from the default branch's checkout, not the pull request's; a binary file shows as one line, so
+      # `pr.diff` stays searchable. The pull request's `.gitattributes` changes are in `pr.diff`.
       - name: The pull request, as data
         if: env.HAS_KEY == 'true'
         env:
@@ -81,8 +82,8 @@ jobs:
           done
           find "$d/base" "$d/head" \( -name CLAUDE.md -o -name CLAUDE.local.md -o -name .claude -o -name .mcp.json \) -prune -exec rm -rf {} +
           find "$d/base" "$d/head" -type l -delete
-          git diff --text --no-textconv --no-ext-diff --no-renames --no-color "$mb" refs/formal-review/head > "$d/pr.diff"
-          git diff --name-status --no-renames "$mb" refs/formal-review/head > "$d/files.txt"
+          git -c core.quotePath=false diff --no-textconv --no-ext-diff --no-renames --no-color "$mb" refs/formal-review/head > "$d/pr.diff"
+          git -c core.quotePath=false diff --name-status --no-renames "$mb" refs/formal-review/head > "$d/files.txt"
           gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json title,body > "$d/pr.json"
           printf '%s\n' "${COMMENT#/formal-review}" > "$d/request.txt"
       - name: Review
