@@ -52,50 +52,28 @@ theorem cl_body : Fn.body fn% «claim_list_digest» =
     clHead ++ .ite (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else :: (clTail ⧺ [.ret [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")]]) := by
   rw [claim_list_digest_shape]; rfl
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_straight : cl23Zero.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem cl23Else_straight : cl23Else.all Main.Stmt.straight = true := by decide +kernel
 
 theorem clHead_straight : clHead.all Main.Stmt.straight = true := rfl
 theorem clTail_straight : clTail.all Main.Stmt.straight = true := rfl
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_parts : cl23Zero.filterMap Main.Stmt.allocSz = [] ∧
     cl23Zero.filterMap Main.Stmt.addrS = [] ∧ cl23Zero.filterMap Main.Stmt.callS = [] ∧
     cl23Zero.filterMap B1.Stmt.loadS = [] := by decide +kernel
 
-theorem cl_loop : coreProgram.loop "claim_list_digest" = false := by
-  rw [Program.loop_of_find? find_claim_list_digest]; decide +kernel
-
-/-! ## `claim_list_chain`'s path -/
-
-/-- `claim_list_chain`'s body before its call of `claim_list_tail`. -/
-noncomputable def chP1 : List Stmt := chainFlat.take (pos% «claim_list_chain» "d0")
-
-/-- `claim_list_chain`'s body after its call of `claim_list_tail`: the checks of the split, the copies. -/
-noncomputable def chPost : List Stmt := chainFlat.drop (pos% «claim_list_chain» "d0" + 1)
-
-/-- The checks after the call of `claim_list_tail`: `bigs`, `groups`, `rest`, `list_split`'s identity and `n_g`. -/
-noncomputable def chChk : List Stmt := chPost.dropLast.dropLast
-
-set_option maxRecDepth 100000 in
 theorem chainFlat_split : chainFlat = chP1 ++ clDispS :: chPost := by
   kernel_rfl
 
-set_option maxRecDepth 100000 in
 theorem chPost_eq :
     chPost = chChk ⧺ [.atom (.copy (.n (val% «claim_list_chain» "s13#0")) (.n (val% «claim_list_chain» "d0"))), .atom (.copy (.n (val% «claim_list_chain» "s13#0[1]")) (.n (val% «claim_list_chain» "d1")))] := by
   kernel_rfl
 
-set_option maxRecDepth 100000 in
 theorem chChk_atoms : chChk.all isAtomS = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chPost_straight : chPost.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chPost_parts : chPost.filterMap Main.Stmt.allocSz = [] ∧ chPost.filterMap Main.Stmt.addrS = [] ∧
     chPost.filterMap Main.Stmt.callS = [] ∧ chPost.filterMap B1.Stmt.loadS = [] := by
   decide +kernel
@@ -104,26 +82,20 @@ theorem chain_body : Fn.body fn% «claim_list_chain» =
     chP1 ++ clDispS :: (chPost ⧺ [.ret [.n (val% «claim_list_chain» "s13#0"), .n (val% «claim_list_chain» "s13#0[1]")]]) := by
   rw [claim_list_chain_shape, chainFlat_split]; simp
 
-set_option maxRecDepth 100000 in
 theorem chP1_straight : chP1.all Main.Stmt.straight = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_allocs : chP1.filterMap Main.Stmt.allocSz = [(.n (val% «claim_list_chain» "chain"), .inr (.n (val% «claim_list_chain» "chain~7")))] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_addrs : chP1.filterMap Main.Stmt.addrS = [] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_calls : chP1.filterMap Main.Stmt.callS =
     [(some (.n (val% «claim_list_chain» "s2#1")), name% «claim_list_chain_loop0», [.n (val% «claim_list_chain» "s2#2"), .n (val% «claim_list_chain» "bigs"), .n (val% «claim_list_chain» "chain"), .n (val% «claim_list_chain» "entries_ptr")], []),
       (some (.n (val% «claim_list_chain» "s5#1")), name% «claim_list_chain_loop1», [.n (val% «claim_list_chain» "s5#2"), .n (val% «claim_list_chain» "groups"), .n (val% «claim_list_chain» "mid"), .n (val% «claim_list_chain» "mid_entries")],
           [])] := by decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_loads : chP1.filterMap B1.Stmt.loadS = (List.range 13).map fun c => (.n (val% «claim_list_chain» "chain"), c) := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
 theorem chP1_kinds : chP1.all (fun s => isAtomS s || stmtEqb s clBigS || stmtEqb s clGrpS) = true := by
   decide +kernel
 
@@ -141,7 +113,6 @@ noncomputable def clzσ (rd : Reader) (entries : E) : Val :=
 
 variable {rd : Reader}
 
-set_option maxRecDepth 20000 in
 /-- **The empty list's valuation**: its atoms hold on a memory defined below `2^20`, where its check of `n_g = 1`
 reads; it returns the empty string's digest. -/
 theorem clz_core (entries : E) (hlow : LowDef 20 rd) :
@@ -234,19 +205,16 @@ structure ChVals (rd : Reader) (σ : Val) (entries : E) (n : ℕ) (chain : E) (D
   v87 : σ (.n (val% «claim_list_chain» "s13#0")) = (digestHalves D).1
   v88 : σ (.n (val% «claim_list_chain» "s13#0[1]")) = (digestHalves D).2
 
-set_option maxRecDepth 100000 in
 theorem ch_size_atoms : ∀ a ∈ [Atom.mul (.n (val% «claim_list_chain» "chain~0")) (.n (val% «claim_list_chain» "bigs")) (.n (val% «claim_list_chain» "groups")), .const (.n (val% «claim_list_chain» "chain~1")) (word 2 0),
     .mul (.n (val% «claim_list_chain» "chain~2")) (.n (val% «claim_list_chain» "chain~0")) (.n (val% «claim_list_chain» "chain~1")), .mul (.n (val% «claim_list_chain» "chain~3")) (.n (val% «claim_list_chain» "chain~2")) (.n (val% «claim_list_chain» "chain~2")), .mul (.n (val% «claim_list_chain» "chain~4")) (.n (val% «claim_list_chain» "chain~3")) (.n (val% «claim_list_chain» "chain~2")),
     .mul (.n (val% «claim_list_chain» "chain~5")) (.n (val% «claim_list_chain» "chain~4")) (.n (val% «claim_list_chain» "chain~4")), .mul (.n (val% «claim_list_chain» "chain~6")) (.n (val% «claim_list_chain» "chain~5")) (.n (val% «claim_list_chain» "chain~5")), .mul (.n (val% «claim_list_chain» "chain~7")) (.n (val% «claim_list_chain» "chain~6")) (.n (val% «claim_list_chain» "chain~2"))],
     a ∈ atomsIn chainFlat := by
   decide +kernel
 
-set_option maxRecDepth 20000 in
 /-- `claim_list_chain`'s check of `list_split`'s identity, over its products: `n_g = rest · bigs^136 · groups^17`. -/
 theorem ch_id_ok : mono2Is ((atomsIn chainFlat).filter pureB) (.n (val% «claim_list_chain» "s11#14")) (.n (val% «claim_list_chain» "rest")) (.n (val% «claim_list_chain» "bigs")) 136 (.n (val% «claim_list_chain» "groups")) 17 = true := by
   decide +kernel
 
-set_option maxRecDepth 20000 in
 /-- **`claim_list_chain`'s valuation**: on a memory holding the zero state at the chain buffer and defined below
 `2^23`, where its checks of `g^a`, `g^b`, `g^c` and `g^n`, `n < 2^23`, read. -/
 theorem chain_core {entries chain : E} {n : ℕ} (D : Digest) (hz0 : StateAt rd chain 0 zeroState)
@@ -421,18 +389,15 @@ theorem clNames_get {r : ℕ} (hr : r < 17) : clNames[r]! = clNames.getD r "" :=
   have h : r < clNames.length := by simp [clNames]; omega
   rw [getElem!_pos clNames r h, List.getD_eq_getElem _ _ h]
 
-set_option maxRecDepth 100000 in
 theorem big_pure : coreProgram.PureIn [name% «claim_list_chain_loop0»] :=
   pure_one (find_of_idx big_idx) (by decide +kernel)
 
-set_option maxRecDepth 100000 in
 theorem grp_pure : coreProgram.PureIn [name% «claim_list_chain_loop1»] :=
   pure_one (find_of_idx grp_idx) (by decide +kernel)
 
 theorem one_add_gen_ne {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
 
-set_option maxRecDepth 100000 in
 theorem cl23Zero_atoms : cl23Zero.all isAtomS = true := by decide +kernel
 
 theorem slOk_atomS {rd : Reader} {σ : Val} {s : Stmt} (hs : isAtomS s = true)
@@ -487,19 +452,207 @@ def clBufs (_ : ℕ) (_ : Val) : List ℕ := []
 /-- `claim_list_digest`'s callees: `list_split` unconstrained, `claim_list_chain` of honest shape. -/
 def clTs (n : ℕ) : List (Tree → Prop) := [fun _ => True, chHonest n]
 
-/-! ## `claim_list_digest`, placed -/
+/-- **`claim_list_digest` is complete, placed, by a tree of honest shape**: `n < 136 · 2^20` claims' cells at `g^eP`
+among the caller's words; it returns their digest's cells. -/
+theorem claim_list_digest_completeAtT (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
+    {eP n : ℕ} {cells : List E} (hn : n < 2 ^ 23) (hl : cells.length = 4 * n)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells) :
+    CompleteAtDT fs cert 23 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
+      (Returns (digestCells (keccak256 (cellsBytes cells))))
+      (NodeHonest coreProgram "claim_list_digest" (clQ n) (clCalls n) (clBufs n) (clTs n)) := by
+  intro fp
+  have mH : ∀ s ∈ clHead, isAtomS s = true := by decide
+  have mTl : ∀ s ∈ clTail, isAtomS s = true := by decide
+  rcases Nat.eq_zero_or_pos n with rfl | hn0
+  · -- the empty list
+    have hcl : cells = [] := List.eq_nil_of_length_eq_zero (by simpa using hl)
+    subst hcl
+    refine ⟨fs "claim_list_digest", [], _, [], ⟨rfl, rfl⟩, fun q hq => by simp at hq, B1.disj_nil,
+      fun rd hlow hm => ?_⟩
+    obtain ⟨hat, e0, e1, h30, h3, hret⟩ := clz_core (rd := rd) (gen ^ eP) (hlow.mono (by norm_num))
+    set σ := clzσ rd (gen ^ eP) with hσ
+    have hb : (if σ (.n (val% «claim_list_digest» "s1#1")) = 0 then walk σ cl23Zero else walk σ cl23Else) =
+        .fall (cl23Zero.flatMap (Main.slEvs σ)) := by
+      simp only [h30, ↓reduceIte]; exact walk_straight_fall σ _ cl23Zero_straight
+    have hw := walk_ite σ clTail clTail_straight (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")] _ hb
+      clHead clHead_straight
+    rw [← cl_body] at hw
+    set es := clHead.flatMap (Main.slEvs σ) ++ .inK (.n (val% «claim_list_digest» "s1#1")) ::
+      (cl23Zero.flatMap (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ)) with hes
+    have hmZ : ∀ s ∈ clHead ++ cl23Zero ++ clTail, ∀ a, s = .atom a → a.Holds rd σ := by
+      intro s hs a rfl
+      refine hat a (cl_mem_atoms ?_)
+      unfold clZEval
+      simp only [List.mem_append] at hs ⊢
+      rcases hs with (hs | hs) | hs
+      · exact Or.inl (Or.inl (Or.inl hs))
+      · exact Or.inl (Or.inl (Or.inr hs))
+      · exact Or.inr hs
+    have hev : ∀ e ∈ es, e.Holds rd σ := by
+      intro e he
+      rcases List.mem_append.mp he with he | he
+      · exact slEvs_holds (fun s hs => slOk_atomS (mH s hs) (hmZ s (by simp [hs]))) e he
+      rcases List.mem_cons.mp he with rfl | he
+      · show IsInK (σ (.n (val% «claim_list_digest» "s1#1"))); rw [h3]; exact gen_pow_add_isInK 0 0
+      rcases List.mem_append.mp he with he | he
+      · exact slEvs_holds (fun s hs => slOk_atomS (List.all_eq_true.mp cl23Zero_atoms s hs)
+          (hmZ s (by simp [hs]))) e he
+      · exact slEvs_holds (fun s hs => slOk_atomS (mTl s hs) (hmZ s (by simp [hs]))) e he
+    obtain ⟨hhd, hha, hhad, hhc⟩ := Main.straight_parts σ _ clHead_straight
+    obtain ⟨hzd, hza, hzad, hzc⟩ := Main.straight_parts σ _ cl23Zero_straight
+    obtain ⟨htd, hta, htad, htc⟩ := Main.straight_parts σ _ clTail_straight
+    obtain ⟨z1, z2, z3, z4⟩ := cl23Zero_parts
+    have hal : allocs σ es = [] := by
+      rw [hes, allocs_append, show allocs σ (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap (Main.slEvs σ) ++
+        clTail.flatMap (Main.slEvs σ))) = allocs σ (cl23Zero.flatMap (Main.slEvs σ) ++
+        clTail.flatMap (Main.slEvs σ)) from rfl, allocs_append, hha, hza, hta, z1]
+      rfl
+    have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+      (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp)
+      (args := [gen ^ eP, gen ^ 0]) (rets := digestCells (keccak256 (cellsBytes [])))
+      coreProgram_wf find_claim_list_digest (Or.inl cl_loop) (by rw [cl_param, e0, e1]) hw hret hev
+      (by
+        rw [hal, hes, allocDsts_append, show allocDsts (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap
+          (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ))) = allocDsts (cl23Zero.flatMap
+          (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ)) from rfl, allocDsts_append, hhd, hzd, htd, z1]
+        rfl)
+      (fun q hq => by
+        rw [hes, addrs_append, show addrs (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap (Main.slEvs σ) ++
+          clTail.flatMap (Main.slEvs σ))) = addrs (cl23Zero.flatMap (Main.slEvs σ) ++
+          clTail.flatMap (Main.slEvs σ)) from rfl, addrs_append, hhad, hzad, htad, z2] at hq
+        simp [clHead, clTail, Main.Stmt.addrS] at hq)
+      (clTs 0)
+      (by
+        rw [hes, calls_append, show calls (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap (Main.slEvs σ) ++
+          clTail.flatMap (Main.slEvs σ))) = calls (cl23Zero.flatMap (Main.slEvs σ) ++
+          clTail.flatMap (Main.slEvs σ)) from rfl, calls_append, hhc, hzc, htc, z3]
+        exact ⟨rfl, fun _ h => h⟩)
+      (fun A hA => by
+        rw [hes, loadAddrs_append, show loadAddrs σ (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap
+          (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ))) = loadAddrs σ (cl23Zero.flatMap
+          (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ)) from rfl, loadAddrs_append,
+          B1.loadAddrs_straight σ _ clHead_straight, B1.loadAddrs_straight σ _ cl23Zero_straight,
+          B1.loadAddrs_straight σ _ clTail_straight, z4] at hA
+        simp [clHead, clTail, B1.Stmt.loadS] at hA)
+      (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
+    have hce : calls es = [] := by
+      rw [hes, calls_append, show calls (.inK (.n (val% «claim_list_digest» "s1#1")) :: (cl23Zero.flatMap (Main.slEvs σ) ++
+        clTail.flatMap (Main.slEvs σ))) = calls (cl23Zero.flatMap (Main.slEvs σ) ++
+        clTail.flatMap (Main.slEvs σ)) from rfl, calls_append, hhc, hzc, htc, z3]
+      rfl
+    have h' := relAtInT_nodeHonest (Q := clQ 0) (cs := clCalls 0) (bs := clBufs 0) h
+      find_claim_list_digest hw ⟨e1, fun h0 => absurd rfl h0⟩ (by rw [hce]; rfl) (by rw [hal]; rfl)
+      (by simp [clCalls, clTs])
+    rw [hal] at h'
+    simpa using h'
+  · -- a nonempty list
+    set D := keccak256 (cellsBytes cells) with hD
+    let ks : List Kid :=
+      [⟨"list_split", true, [gen ^ n], [], Returns [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]⟩,
+        ⟨"claim_list_chain", true, [gen ^ eP, gen ^ n, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)],
+          Lin, Returns (digestCells D)⟩]
+    have hsplit : CompleteAtD fs cert 20 "list_split" [] [gen ^ n]
+        (Returns [gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17)]) := by
+      have := list_split_completeAt fs cert (a := n / 136) (b := n % 136 / 17) (c := n % 17)
+        (by simp [bigFramesCap]; omega) (by simp [bigGroups]; omega) (by simp [claimGroup]; omega)
+      rwa [show claimBig * (n / 136) + claimGroup * (n % 136 / 17) + n % 17 = n by
+        simp [claimBig, claimGroup]; omega] at this
+    have hokT : KidsDT fs cert 23 ks (clTs n) :=
+      ⟨fun _ => (hsplit.lowMono (by norm_num)).toT,
+        fun _ => claim_list_chain_completeAtT fs cert hn hl hLe, trivial⟩
+    obtain ⟨Nk, Lk, outs, hoo, hW, hDj, -, hKids⟩ :=
+      kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 23 ks (clTs n) hokT (fp + fs "claim_list_digest")
+    have hl0 : outs.length = 2 := hoo.length
+    obtain ⟨o1, t1, rfl, hl1⟩ := exists_of_length_succ hl0
+    obtain ⟨o2, t2, rfl, hl2⟩ := exists_of_length_succ hl1
+    obtain rfl := List.eq_nil_of_length_eq_zero hl2
+    obtain ⟨h1, h2, -⟩ := hoo
+    refine ⟨fs "claim_list_digest" + Nk, Lk, _, [], ⟨rfl, rfl⟩, ?_, by rw [List.nil_append]; exact hDj,
+      fun rd hlow hm => ?_⟩
+    · rw [List.nil_append]; exact hW.mono (by omega) (by omega)
+    simp only [List.nil_append] at hm
+    obtain ⟨hLk, hLin'⟩ := memL_append.mp hm
+    set σ := clEσ rd eP n D with hσ
+    have hgn : gen ^ n ≠ 1 := fun h => (Nat.pos_iff_ne_zero.mp hn0) ((gen_pow_eq_one_iff (by omega)).mp h)
+    have h3ne : σ (.n (val% «claim_list_digest» "s1#1")) ≠ 0 := by
+      show gen ^ n + word 1 0 ≠ 0
+      rw [word_one, Ne, e_add_eq_zero_iff]; exact hgn
+    have hb : (if σ (.n (val% «claim_list_digest» "s1#1")) = 0 then walk σ cl23Zero else walk σ cl23Else) =
+        .fall (cl23Else.flatMap (Main.slEvs σ)) := by
+      simp only [h3ne, ↓reduceIte]; exact walk_straight_fall σ _ cl23Else_straight
+    have hw := walk_ite σ clTail clTail_straight (.n (val% «claim_list_digest» "s1#1")) cl23Zero cl23Else [.n (val% «claim_list_digest» "s3#0"), .n (val% «claim_list_digest» "s3#0[1]")] _ hb
+      clHead clHead_straight
+    rw [← cl_body] at hw
+    set es := clHead.flatMap (Main.slEvs σ) ++ .inK (.n (val% «claim_list_digest» "s1#1")) ::
+      (cl23Else.flatMap (Main.slEvs σ) ++ clTail.flatMap (Main.slEvs σ)) with hes
+    have hev : ∀ e ∈ es, e.Holds rd σ := by
+      intro e he
+      simp only [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, List.flatMap_cons, List.flatMap_nil,
+        Main.slEvs, List.cons_append, List.nil_append, List.append_nil, List.mem_cons,
+        List.not_mem_nil, or_false] at he
+      rcases he with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      · show σ (.n (val% «claim_list_digest» "s1#0")) = word 1 0; rfl
+      · show σ (.n (val% «claim_list_digest» "s1#1")) = σ (.n (val% «claim_list_digest» "n_g")) + σ (.n (val% «claim_list_digest» "s1#0")); rfl
+      · show IsInK (gen ^ n + word 1 0)
+        rw [word_one, ← pow_zero gen]; exact gen_pow_add_isInK _ _
+      · trivial
+      · trivial
+      · show σ (.n (val% «claim_list_digest» "digest[0]")) = σ (.n (val% «claim_list_digest» "d0")); rfl
+      · show σ (.n (val% «claim_list_digest» "digest[1]")) = σ (.n (val% «claim_list_digest» "d1")); rfl
+      · obtain ⟨t, ht⟩ := Sig.load_gpow hlow hn
+        rw [← gen_pow_eq_ofK] at ht
+        show LoadHolds rd (gen ^ n) 0 (rdAt rd (gen ^ n) 0)
+        exact load_of_rdAt rfl ht.1 (by rw [ht.2]; rfl)
+      · show σ (.n (val% «claim_list_digest» "s3#0")) = σ (.n (val% «claim_list_digest» "digest[0]")); rfl
+      · show σ (.n (val% «claim_list_digest» "s3#0[1]")) = σ (.n (val% «claim_list_digest» "digest[1]")); rfl
+    have hal : allocs σ es = [] := by simp [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, allocs, Main.slEvs, Ev.alloc?]
+    have hcalls : calls es = clCalls n σ := by
+      simp only [clCalls, Nat.pos_iff_ne_zero.mp hn0, ↓reduceIte]
+      simp only [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, List.flatMap_cons, List.flatMap_nil,
+        Main.slEvs, List.cons_append, List.nil_append, List.append_nil]
+      rfl
+    have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+      (R := RegionL Lin) (D := RegionL []) (fp := fp) (N := Nk)
+      (args := [gen ^ eP, gen ^ n]) (rets := digestCells D)
+      (Dk := fun i => (fun _ => False) i ∨ outRegion ks [o1, o2] i)
+      coreProgram_wf find_claim_list_digest (Or.inl cl_loop) rfl hw rfl hev
+      (by
+        rw [hal]
+        simp only [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, List.flatMap_cons, List.flatMap_nil,
+          Main.slEvs, List.cons_append, List.nil_append, List.append_nil]
+        rfl)
+      (fun q hq => by simp [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, addrs, Main.slEvs, Ev.addr?] at hq)
+      (clTs n) ?_ ?_ (fun i hi => by obtain ⟨q, hq, -⟩ := hi; simp at hq)
+    · have h' := relAtInT_nodeHonest (Q := clQ n) (cs := clCalls n) (bs := clBufs n) h
+        find_claim_list_digest hw ⟨rfl, fun _ => ⟨rfl, rfl, rfl⟩⟩ hcalls (by rw [hal]; rfl)
+        (by simp [clCalls, clTs, Nat.pos_iff_ne_zero.mp hn0])
+      rw [hal] at h'
+      simpa using h'
+    · rw [hcalls, hal]
+      simp only [clCalls, Nat.pos_iff_ne_zero.mp hn0, ↓reduceIte, List.sum_nil, Nat.add_zero]
+      refine hKids rd σ _ _ _ ?_ hlow hLk ?_ (regionsOk_of fun k hk _ i hi => ?_)
+      · refine ⟨rfl, rfl, fun _ => ⟨rfl, ?_⟩, rfl, rfl, fun _ => ⟨rfl, ?_⟩, trivial⟩
+        · rw [(h1 rfl).1]; rfl
+        · rw [(h2 rfl).1]; rfl
+      · intro q hq
+        simp only [Kid.lins, ks, List.flatMap_cons, List.flatMap_nil, List.append_nil,
+          List.nil_append] at hq
+        exact hLin' q hq
+      · simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
+        rcases hk with rfl | rfl
+        · obtain ⟨q, hq, -⟩ := hi; simp at hq
+        · exact Or.inl (Or.inl hi)
+    · intro A hA
+      simp [hes, cl23Else_eq, clHead, clTail, clSplitS, clChainS, loadAddrs, Main.slEvs, Ev.loadAddr?] at hA
 
-/-- The nonempty list's valuation, written out (`n = 136a + 17b + c`, the digest `D`, the touch of `g^n`). -/
-noncomputable def clEσ (rd : Reader) (eP n : ℕ) (D : Digest) : Val :=
-  B1.Val.ofArgs [gen ^ eP, gen ^ n, word 1 0, gen ^ n + word 1 0, 0, 0, 0, 0, 0, 0,
-    (digestHalves D).1, (digestHalves D).2, gen ^ (n / 136), gen ^ (n % 136 / 17), gen ^ (n % 17),
-    (digestHalves D).1, (digestHalves D).2, rdAt rd (gen ^ n) 0, (digestHalves D).1, (digestHalves D).2]
-
-theorem cl23Else_eq : cl23Else = [clSplitS, clChainS, .atom (.copy (.n (val% «claim_list_digest» "digest[0]")) (.n (val% «claim_list_digest» "d0"))),
-    .atom (.copy (.n (val% «claim_list_digest» "digest[1]")) (.n (val% «claim_list_digest» "d1")))] := by
-  have hb1 := clbr_ok
-  simp only [clBrOk, Bool.and_eq_true] at hb1
-  exact stmtsEqb_sound hb1.1.1.1.1
+/-- **`claim_list_digest` is complete, placed**: `n < 136 · 2^20` claims' cells at `g^eP` among the caller's words;
+it returns their digest's cells. -/
+theorem claim_list_digest_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {Lin : Main.Layout}
+    {eP n : ℕ} {cells : List E} (hn : n < 2 ^ 23) (hl : cells.length = 4 * n)
+    (hLe : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ eP) cells) :
+    CompleteAtD fs cert 23 "claim_list_digest" Lin [gen ^ eP, gen ^ n]
+      (Returns (digestCells (keccak256 (cellsBytes cells)))) :=
+  (claim_list_digest_completeAtT fs cert hn hl hLe).toD
 
 end
 end LeanVM.Guest.B1.Digest
