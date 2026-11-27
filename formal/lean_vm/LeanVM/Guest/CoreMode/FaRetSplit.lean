@@ -64,7 +64,7 @@ theorem faRetAt_of_chunks {X : Bridge.AlignCtx} {body : List Stmt} {fas : List (
 noncomputable def faRetC (Cf : CFun) (code : List OffsetInstruction) (B c : ℕ) : Bool :=
   !faNeed Cf || (List.range code.length).all fun i ↦ match code[i]? with
     | some (.jump _ 0 1) => match retSt Cf.frame code i with
-      | some A => (stmtsOf Cf.fn.body).all (faRetAtC Cf.X Cf.fn.body Cf.H.fas A B c)
+      | some A => stmtsAll (faRetAtC Cf.X Cf.fn.body Cf.H.fas A B c) Cf.fn.body
       | none => false
     | _ => true
 
@@ -79,7 +79,7 @@ theorem faRetOk_of_kchunks {Cf : CFun} {code : List OffsetInstruction} (B m : �
   intro i hi
   have hc : ∀ c < m, (match code[i]? with
       | some (.jump _ 0 1) => match retSt Cf.frame code i with
-        | some A => (stmtsOf Cf.fn.body).all (faRetAtC Cf.X Cf.fn.body Cf.H.fas A B c)
+        | some A => stmtsAll (faRetAtC Cf.X Cf.fn.body Cf.H.fas A B c) Cf.fn.body
         | none => false
       | _ => true) = true := fun c hc ↦ by
     have := h c hc
@@ -88,15 +88,13 @@ theorem faRetOk_of_kchunks {Cf : CFun} {code : List OffsetInstruction} (B m : �
   split
   · split
     · rename_i A _
-      rw [List.all_eq_true]
-      intro s hs
-      refine faRetAt_of_chunks (B := B) h0 ?_ fun c hcm ↦ ?_
+      refine stmtsAll_of fun s hs ↦ faRetAt_of_chunks (B := B) h0 ?_ fun c hcm ↦ ?_
       · simp only [runsLe, List.all_eq_true] at hn ⊢
         intro x hx
         rw [List.mem_singleton.1 hx]
         exact hn s hs
       · have := hc c hcm
-        simp only [*] at this
+        simp only [*, stmtsAll_eq] at this
         exact List.all_eq_true.1 this s hs
     · have := hc 0 h0
       rename_i hr
@@ -220,7 +218,7 @@ theorem faRetAt_of_F {X : Bridge.AlignCtx} {body : List Stmt} {fas : List (ℕ �
 /-- **`faRetOk` in one pass**: at each return (`retOffs`), the walk's state has the frame run cells (`faRetAtF`). -/
 noncomputable def faRetOkF (Cf : CFun) (code : List OffsetInstruction) : Bool :=
   !faNeed Cf || (retOffs 0 code).all fun i ↦ match retSt Cf.frame code i with
-    | some A => (stmtsOf Cf.fn.body).all (faRetAtF Cf.X Cf.fn.body (dstT Cf.fn.body) Cf.H.fas A)
+    | some A => stmtsAll (faRetAtF Cf.X Cf.fn.body (dstT Cf.fn.body) Cf.H.fas A) Cf.fn.body
     | none => false
 
 theorem faRetOk_of_F {Cf : CFun} {code : List OffsetInstruction} (h : faRetOkF Cf code = true) :
@@ -237,7 +235,8 @@ theorem faRetOk_of_F {Cf : CFun} {code : List OffsetInstruction} (h : faRetOkF C
     split at this
     · rename_i A hA
       rw [hA]
-      exact List.all_eq_true.2 fun s hs ↦ faRetAt_of_F (List.all_eq_true.1 this s hs)
+      rw [stmtsAll_eq] at this
+      exact stmtsAll_of fun s hs ↦ faRetAt_of_F (List.all_eq_true.1 this s hs)
     · exact absurd this Bool.false_ne_true
   · rfl
 

@@ -319,6 +319,7 @@ def res_count(k, po):
 
 
 DK = '(by decide +kernel)'
+LEN = '(by rw [List.length_flatten]; decide +kernel)'
 K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
@@ -658,7 +659,8 @@ def loop_long(k, j, frame):
              ('env', 'CoreMode.envOk cfun.frame = true'), ('arms', 'CoreMode.armsOk cfun.frame = true'),
              ('flen', f'cfun.frame.len = {code}.length'), ('xlen', f'cfun.X.len = {code}.length'),
              ('xentry', 'cfun.X.entry = funC.entry')]
-    out = ''.join(thm(k, 'loop_' + n, st) for n, st in parts)
+    # a length of the code: of its chunks, summed, not of their concatenation
+    out = ''.join(thm(k, 'loop_' + n, st, LEN if n.endswith('len') else DK) for n, st in parts)
     out += thm(k, 'loop_hints', f'∀ i < {code}.length, Mode.hintsAt Data.adviceHints (funC.entry + i) = '
                f'Mode.hintsAt cfun.frame.hints (funC.entry + i)',
                f'Mode.hintsEq_of_fn (K := {K}) (j := Fn.«{k}».idx) (d := Fn.«{k}».advice) {DK} {DK} {DK} rfl')
@@ -945,10 +947,12 @@ def main(check=False):
                          ('ret', f'(Bridge.stmtsOf {fn}.body).all (CoreMode.retCellB {x})', 'its returned values\' cells'),
                          ('sel', f'(CoreMode.selGo {x} {fn}.params {fn}.body [] {fn}.body || CoreMode.loopBC {fn})', 'its `match`es\' selectors'),
                          ('rest', f'CoreMode.honRest {x} {fn}', 'the rest of its frame')]
+                # a pass over the body's statements by the recursor (`StmtWalk.lean`), not over their list; its
+                # pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
+                walk = 'rw [← CoreMode.stmtsAll_eq]; decide +kernel'
+                prf = {'ptr': f'CoreMode.all_ptrCellB_of_T (by {walk})', 'ret': f'by {walk}'}
                 for nm, st, doc in parts:
-                    # its pointers' cells looked up in a trie of its values' cells (`CoreMode.locT`)
-                    prf = 'CoreMode.all_ptrCellB_of_T (by decide +kernel)' if nm == 'ptr' else 'by decide +kernel'
-                    hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf}\n')
+                    hons.append(f'theorem hon{i}_{nm} : {st} = true := {prf.get(nm, "by decide +kernel")}\n')
                 rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hb = (f'(by rw [CoreMode.honB_of hon{i}_body hon{i}_ptr hon{i}_ret hon{i}_sel hon{i}_rest{"".join(", " + x for x in rw)}]; '
                       f'decide +kernel)')
