@@ -67,11 +67,14 @@ pub(crate) fn polynomial(layer: &Layer, claim: &Claim) -> ([F128; PRODUCT_BITS],
 /// A block's sums: entry `8 PRODUCT_BYTES q + c` of `out` is the sum over positions `j` of `maps`' weights times
 /// coefficient `c` of `chi(q, j)`. `bits` holds each run's product bits.
 fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], out: &mut [u128; SUMS]) {
+    let mut e = [[[0; 8]; PACKS]; 5];
     for r in 0..5 {
         for z in (0..64).step_by(8) {
             // A row of five runs, which `chi` mixes.
             let js = row_positions(r, z);
-            let e = js.map(|j| embed_run(block, j));
+            for (e, &j) in e.iter_mut().zip(&js) {
+                embed_run(block, j, e);
+            }
             for x in 0..5 {
                 let bits = bits[js[x] / 8].as_chunks_mut::<PRODUCT_BYTES>().0;
                 for (q, bits) in bits.iter_mut().enumerate() {
@@ -84,7 +87,7 @@ fn block_sums(maps: &[FieldMap], block: &[u64], bits: &mut [[u64; RUN_WORDS]], o
         }
     }
     for (v, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-        *out = map_sums(maps, |run| bits[run][8 * v..][..8].try_into().expect("eight words"));
+        *out = map_sums(maps, &bits.as_flattened()[8 * v..], RUN_WORDS);
     }
 }
 

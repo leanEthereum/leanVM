@@ -47,10 +47,10 @@ pub fn instance_weights(s: F128) -> [F128; PACK] {
 pub fn next_weights(local: &[F128], beta: F128) -> Vec<F128> {
     let eq = eq_table(local);
     let mut w = vec![F128::ZERO; BITS];
-    for j in 0..BITS {
-        w[j] += eq[j];
-        w[along(j, 1)] += beta * eq[j];
-        w[along(j, 2)] += beta.square() * eq[j];
+    for (k, b) in [F128::ONE, beta, beta * beta].into_iter().enumerate() {
+        for j in 0..BITS {
+            w[along(j, k)] += b * eq[j];
+        }
     }
     linear_transpose(&w)
 }

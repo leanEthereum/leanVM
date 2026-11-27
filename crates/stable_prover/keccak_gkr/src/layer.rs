@@ -153,43 +153,47 @@ impl Sumcheck {
 /// position, `T` being `folded`, the state at the bound pack and segment. Returns its point and `T`, `T[j + 1]` and
 /// `T[j + 2]` there.
 fn prove_positions(ps: &mut ProverState, weights: &[F128], folded: Vec<F128>, kappa: F128) -> (Vec<F128>, [F128; 3]) {
-    let cube = 1 << LOCAL_BITS;
-    let shift = |k: usize| -> Vec<F128> {
-        (0..cube)
-            .map(|j| if j < BITS { folded[along(j, k)] } else { F128::ZERO })
+    // `w`, then `T`, `T[j + 1]` and `T[j + 2]`, zero past the positions.
+    let mut t: [Vec<F128>; 4] = std::array::from_fn(|k| {
+        (0..1 << LOCAL_BITS)
+            .map(|j| match k {
+                _ if j >= BITS => F128::ZERO,
+                0 => weights[j],
+                _ => folded[along(j, k - 1)],
+            })
             .collect()
-    };
-    let mut t: [Vec<F128>; 3] = [0, 1, 2].map(shift);
-    let mut w = weights.to_vec();
-    w.resize(cube, F128::ZERO);
+    });
     let mut point = Vec::with_capacity(LOCAL_BITS);
     for _ in 0..LOCAL_BITS {
-        ps.add_round_poly(&position_round(&w, &t, kappa), false);
+        ps.add_round_poly(&position_round(&t, kappa), false);
         let challenge = ps.sample();
         point.push(challenge);
-        w = fold(&w, 1, challenge);
         t = t.map(|v| fold(&v, 1, challenge));
     }
-    (point, t.map(|v| v[0]))
+    (point, [t[1][0], t[2][0], t[3][0]])
 }
 
-/// The coefficients of a round of step 4 in the variable it binds, the lowest.
-fn position_round(w: &[F128], t: &[Vec<F128>; 3], kappa: F128) -> [F128; 4] {
+/// The coefficients of a round of step 4 in the variable it binds, the lowest, from `w` and the three shifts of `T`.
+fn position_round(t: &[Vec<F128>; 4], kappa: F128) -> [F128; 4] {
     let mut h = [F128::ZERO; 4];
-    for i in 0..w.len() / 2 {
+    for i in 0..t[0].len() / 2 {
         // Each factor as `a + b X`.
-        let line = |v: &[F128]| (v[2 * i], v[2 * i] + v[2 * i + 1]);
-        let (w, t0, t1, t2) = (line(w), line(&t[0]), line(&t[1]), line(&t[2]));
-        let u = (kappa + t1.0, t1.1);
-        let a = [
-            kappa * t0.0 + u.0 * t2.0,
-            kappa * t0.1 + u.0 * t2.1 + u.1 * t2.0,
-            u.1 * t2.1,
-        ];
-        h[0] += w.0 * a[0];
-        h[1] += w.0 * a[1] + w.1 * a[0];
-        h[2] += w.0 * a[2] + w.1 * a[1];
-        h[3] += w.1 * a[2];
+        let line = |v: &[F128]| [v[2 * i], v[2 * i] + v[2 * i + 1]];
+        let t1 = line(&t[2]);
+        // `kappa T[j] + (kappa + T[j + 1]) T[j + 2]`, then times the weight.
+        let mut a = [F128::ZERO; 3];
+        mul_add(&mut a, &[kappa], &line(&t[1]));
+        mul_add(&mut a, &[kappa + t1[0], t1[1]], &line(&t[3]));
+        mul_add(&mut h, &line(&t[0]), &a);
     }
     h
+}
+
+/// `acc += a * b`, polynomials with their constant coefficients first.
+fn mul_add(acc: &mut [F128], a: &[F128], b: &[F128]) {
+    for (i, &a) in a.iter().enumerate() {
+        for (acc, &b) in acc[i..].iter_mut().zip(b) {
+            *acc += a * b;
+        }
+    }
 }

@@ -30,37 +30,36 @@ impl Tables {
 
 /// What the rounds over the half, block and segment sum over positions: `weights[j] * (kappa T[j] + (kappa +
 /// T[j + 1]) T[j + 2])`. Moving each `kappa T[j]` two columns along, the sum is that of `B[j] * T[j + 2]` with
-/// `B[j] = weights[j] (kappa + T[j + 1]) + constant[j]` and `constant[j] = kappa * weights[j + 2]`.
+/// `B[j] = weights[j] T[j + 1] + constant[j]` and `constant[j] = kappa (weights[j] + weights[j + 2])`.
 pub(crate) struct Summand {
     weights: Vec<F128>,
     constant: Vec<F128>,
-    kappa: F128,
 }
 
 impl Summand {
     pub fn new(claim: &Claim, kappa: F128) -> Self {
+        let w = &claim.weights;
         Self {
-            weights: claim.weights.clone(),
-            constant: (0..BITS).map(|j| kappa * claim.weights[along(j, 2)]).collect(),
-            kappa,
+            weights: w.clone(),
+            constant: (0..BITS).map(|j| kappa * (w[j] + w[along(j, 2)])).collect(),
         }
     }
 
     /// The round's values at `0` and infinity over one pair of rows, the variable being bound `0` on `low` and `1`
     /// on `high`.
     fn pair(&self, low: &[F128], high: &[F128]) -> (F128, F128) {
-        let kappa = F128x8::splat(self.kappa);
         let (mut zero, mut infinity) = (Acc8::ZERO, Acc8::ZERO);
         for lane in 0..BITS / 64 {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             for z in (0..64).step_by(8) {
                 let at = |v: &[F128], j: usize| F128x8::load(&v[j + z..][..8]);
                 let (w, lb, lc) = (at(&self.weights, a), at(low, b), at(low, c));
-                zero += (w * (kappa + lb) + at(&self.constant, a)).mul_unreduced(lc);
+                zero += (w * lb + at(&self.constant, a)).mul_unreduced(lc);
                 infinity += (w * (lb + at(high, b))).mul_unreduced(lc + at(high, c));
             }
         }
-        (zero.sum(), infinity.sum())
+        let [zero, infinity] = [zero, infinity].map(Acc8::sum);
+        (zero, infinity)
     }
 }
 
@@ -91,7 +90,7 @@ impl PackFold {
                 }
             }
             for half in 0..2 {
-                let values = map_sums(&self.0, |t| bytes[32 * half + t]);
+                let values = map_sums(&self.0, bytes[32 * half..].as_flattened(), 8);
                 for (out, v) in out[BITS * half + j..][..64].iter_mut().zip(values) {
                     *out = F128::from(v);
                 }
@@ -114,41 +113,22 @@ pub(crate) fn fill(
     let fold = PackFold::new(mu, challenges);
     let eq = eq_table(&claim.point[SKIP + 1..]);
     let (n_blocks, written) = (layer.n_blocks(), layer.written());
-    let rows = |block: &[u64], out: &mut [F128]| {
-        fold.rows(block, out);
-        summand.pair(&out[..BITS], &out[BITS..])
-    };
     let padding = |segment: usize| {
         let mut out = vec![F128::ZERO; 2 * BITS];
-        let values = rows(layer.state(segment, written), &mut out);
+        fold.rows(layer.state(segment, written), &mut out);
+        let values = summand.pair(&out[..BITS], &out[BITS..]);
         (out, values)
     };
-    let padding: Vec<(Vec<F128>, (F128, F128))> = match written < n_blocks {
+    let padding = match written < n_blocks {
         true => (0..layer.segments()).map(padding).collect(),
         false => Vec::new(),
     };
-    let values = parallel::map_reduce_chunks_mut(
-        [&mut tables.0[0][..]],
-        [2 * BITS],
-        || (F128Unreduced::ZERO, F128Unreduced::ZERO),
-        |acc, p, [out]| {
-            let (segment, g) = (p / n_blocks, p % n_blocks);
-            if segment >= layer.segments() {
-                out.fill(F128::ZERO);
-                return;
-            }
-            let (zero, infinity) = if g < written {
-                rows(layer.state(segment, g), out)
-            } else {
-                out.copy_from_slice(&padding[segment].0);
-                padding[segment].1
-            };
-            acc.0 ^= zero.mul_unreduced(eq[p]);
-            acc.1 ^= infinity.mul_unreduced(eq[p]);
-        },
-        |a, b| (a.0 ^ b.0, a.1 ^ b.1),
-    );
-    (values.0.reduce(), values.1.reduce())
+    let source = Source::Witness {
+        layer,
+        fold: &fold,
+        padding,
+    };
+    write_pairs(summand, &source, &mut tables.0[0], &eq)
 }
 
 /// Send the rounds after the skip, the first one's values being `values`, and return the table's last row: `T`, the
@@ -173,37 +153,96 @@ pub(crate) fn prove_rounds(
     src.to_vec()
 }
 
+/// What a table's rows are written from.
+enum Source<'a> {
+    /// The witness, folded at the skip's challenges, and per segment the padding block's rows and their values.
+    Witness {
+        layer: &'a Layer<'a>,
+        fold: &'a PackFold,
+        padding: Vec<(Vec<F128>, (F128, F128))>,
+    },
+    /// The previous table, its leading variable bound at `challenge`.
+    Table { table: &'a [F128], challenge: F128x8 },
+}
+
+impl Source<'_> {
+    /// Write pair of rows `p` into `rows`. Returns the pair's values where they are known without the rows.
+    fn write(&self, p: usize, rows: &mut [F128]) -> Option<(F128, F128)> {
+        match self {
+            Self::Witness { layer, fold, padding } => {
+                let (segment, g) = (p / layer.n_blocks(), p % layer.n_blocks());
+                if segment >= layer.segments() {
+                    rows.fill(F128::ZERO);
+                    Some((F128::ZERO, F128::ZERO))
+                } else if g < layer.written() {
+                    fold.rows(layer.state(segment, g), rows);
+                    None
+                } else {
+                    rows.copy_from_slice(&padding[segment].0);
+                    Some(padding[segment].1)
+                }
+            }
+            Self::Table { table, challenge } => {
+                // From four rows of `table`.
+                let src = &table[4 * BITS * p..][..2 * rows.len()];
+                for (row, src) in rows
+                    .as_chunks_mut::<BITS>()
+                    .0
+                    .iter_mut()
+                    .zip(src.as_chunks::<{ 2 * BITS }>().0)
+                {
+                    let (low, high) = src.split_at(BITS);
+                    for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                        let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
+                        (l + *challenge * (l + h)).store(out);
+                    }
+                }
+                // A single row is left: the rounds are over.
+                (rows.len() < 2 * BITS).then_some((F128::ZERO, F128::ZERO))
+            }
+        }
+    }
+}
+
 /// Bind the leading variable of `table`, rows of positions, at `challenge` into `out`, and sum the next round's
 /// values over the rows written while they are at hand, each pair of rows `p` weighted by `eq[p]`: zero once a
 /// single row is left.
 fn fold_rows(summand: &Summand, table: &[F128], out: &mut [F128], challenge: F128, eq: &[F128]) -> (F128, F128) {
-    let challenge = F128x8::splat(challenge);
+    let source = Source::Table {
+        table,
+        challenge: F128x8::splat(challenge),
+    };
+    write_pairs(summand, &source, out, eq)
+}
+
+/// Write each pair of rows `p` of `out` from `source`, and sum the next round's values over the pairs while they are
+/// at hand, each weighted by `eq[p]`.
+fn write_pairs(summand: &Summand, source: &Source, out: &mut [F128], eq: &[F128]) -> (F128, F128) {
     let values = parallel::map_reduce_chunks_mut(
         [out],
         [2 * BITS],
         || (F128Unreduced::ZERO, F128Unreduced::ZERO),
         |acc, p, [rows]| {
-            // Pair `p` of the rows written, from four rows of `table`.
-            let src = &table[4 * BITS * p..][..2 * rows.len()];
-            for (row, src) in rows
-                .as_chunks_mut::<BITS>()
-                .0
-                .iter_mut()
-                .zip(src.as_chunks::<{ 2 * BITS }>().0)
-            {
-                let (low, high) = src.split_at(BITS);
-                for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                    let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
-                    (l + challenge * (l + h)).store(out);
-                }
-            }
-            if rows.len() == 2 * BITS {
-                let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
-                acc.0 ^= zero.mul_unreduced(eq[p]);
-                acc.1 ^= infinity.mul_unreduced(eq[p]);
-            }
+            let (zero, infinity) = pair_values(summand, source, p, rows, eq[p]);
+            acc.0 ^= zero;
+            acc.1 ^= infinity;
         },
         |a, b| (a.0 ^ b.0, a.1 ^ b.1),
     );
     (values.0.reduce(), values.1.reduce())
+}
+
+/// Write pair `p` and return its values times `eq`. Out of line, apart from the pool's machinery.
+#[inline(never)]
+fn pair_values(
+    summand: &Summand,
+    source: &Source,
+    p: usize,
+    rows: &mut [F128],
+    eq: F128,
+) -> (F128Unreduced, F128Unreduced) {
+    let (zero, infinity) = source
+        .write(p, rows)
+        .unwrap_or_else(|| summand.pair(&rows[..BITS], &rows[BITS..]));
+    (zero.mul_unreduced(eq), infinity.mul_unreduced(eq))
 }

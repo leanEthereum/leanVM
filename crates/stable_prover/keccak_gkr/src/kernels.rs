@@ -32,15 +32,14 @@ pub fn xor(a: Run, b: Run) -> Run {
 }
 
 /// The embeddings of the 32 packs of the eight positions from `j`: pack `q` of position `j + i` is lane `i` of
-/// `out[q]`.
-pub fn embed_run(block: &[u64], j: usize) -> [Run; PACKS] {
+/// `out[q]`. Out of line: one copy for every pass.
+#[inline(never)]
+pub fn embed_run(block: &[u64], j: usize, out: &mut [Run; PACKS]) {
     let positions = block[j * BLOCK_WORDS..][..8 * BLOCK_WORDS].as_chunks::<BLOCK_WORDS>().0;
     let words = transpose_words(positions.try_into().expect("eight positions"));
-    let mut out = [[0; 8]; PACKS];
     for (out, word) in out.as_chunks_mut::<4>().0.iter_mut().zip(&words) {
         *out = map_fields(&EMBEDDING, *word);
     }
-    out
 }
 
 /// A GF(2)-linear map from a byte to a field element, as one byte map per byte of the element.
@@ -52,14 +51,16 @@ pub fn field_map(images: &[F128; 8]) -> FieldMap {
     std::array::from_fn(|o| ByteMap::new(std::array::from_fn(|c| bytes[c][o])))
 }
 
-/// `sum over i of maps[i](byte n of bytes(i))` for each `n` of 64: a linear map of many bytes, 64 at a time.
-pub fn map_sums(maps: &[FieldMap], bytes: impl Fn(usize) -> Run) -> [u128; 64] {
+/// `sum over i of maps[i](byte n of run i)` for each `n` of 64, run `i` being the eight words of `words` from
+/// `stride * i`: a linear map of many bytes, 64 at a time. Out of line: one copy for every pass.
+#[inline(never)]
+pub fn map_sums(maps: &[FieldMap], words: &[u64], stride: usize) -> [u128; 64] {
     // Four bytes of the sums at a time, which keeps the accumulators in registers.
     const HELD: usize = 4;
     let mut sums = [[0u64; 8]; 16];
     for (o, sums) in sums.as_chunks_mut::<HELD>().0.iter_mut().enumerate() {
         for (i, maps) in maps.iter().enumerate() {
-            let x = bytes(i);
+            let x: Run = words[stride * i..][..8].try_into().expect("eight words");
             for (sum, map) in sums.iter_mut().zip(&maps[HELD * o..]) {
                 *sum = xor(*sum, map_bytes(map, x));
             }

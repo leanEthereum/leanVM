@@ -20,9 +20,9 @@ use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low, powers};
 use primitives::hash::positions::row_positions;
-use primitives::multilinear::{eq_table, poly_eval};
+use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::transcript::ProverState;
-use verifier::keccak::PRODUCT_BITS;
+use verifier::keccak::{BITS, PRODUCT_BITS};
 
 use crate::kernels::{PACKS, Run, embed_run, xor};
 use crate::layer::{Layer, Sumcheck};
@@ -68,8 +68,10 @@ const MIXED_POINTS: [[usize; 3]; MIXED] = {
 pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRODUCT_BITS]]) -> Vec<F128> {
     let at = AtS::new(s);
     // Word `k` of each position's weight as a polynomial in `s`, at `words[k][j]`.
-    let polys: Vec<[u64; 2]> = claim.weights.iter().map(|&w| at.poly(w).to_limbs()).collect();
-    let words = [0, 1].map(|k| polys.iter().map(|p| p[k]).collect::<Vec<u64>>());
+    let mut words = [vec![0; BITS], vec![0; BITS]];
+    for (j, &w) in claim.weights.iter().enumerate() {
+        [words[0][j], words[1][j]] = at.poly(w).to_limbs();
+    }
     // Each task's weight, for each half: the groups of a block alternate.
     let eq = eq_table(&claim.point[SKIP..]);
     let groups = [0, 1].map(|half| layer.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
@@ -95,9 +97,9 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRO
         },
     );
     let mut sums: Vec<F128> = mixed.iter().map(|s| s.reduce()).collect();
-    let half = claim.point[SKIP];
+    let at_s: Vec<F128> = per_pack.iter().map(|p| poly_eval(p, s)).collect();
     for q in 0..GROUP {
-        sums[ternary(q)] = (F128::ONE + half) * poly_eval(&per_pack[q], s) + half * poly_eval(&per_pack[GROUP + q], s);
+        sums[ternary(q)] = interp(at_s[q], at_s[GROUP + q], claim.point[SKIP]);
     }
     sums
 }
@@ -108,11 +110,13 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRO
 /// mixes, has eight consecutive positions' weights per run.
 fn block_sums(block: &[u64], words: &[Vec<u64>; 2], extended: &mut [[Run; SLOTS]], out: &mut [[Wide8; 2]]) {
     out.fill([Wide8::ZERO; 2]);
+    let mut packs = [[0; 8]; PACKS];
     for r in 0..5 {
         for z in (0..64).step_by(8) {
             let js = row_positions(r, z);
             for (extended, &j) in extended.iter_mut().zip(&js) {
-                extend(&embed_run(block, j), extended);
+                embed_run(block, j, &mut packs);
+                extend(&packs, extended);
             }
             let w: [[Run; 2]; 5] = js.map(|j| words.each_ref().map(|w| w[j..][..8].try_into().expect("a run")));
             for (p, out) in out.iter_mut().enumerate() {
@@ -151,20 +155,21 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
     for i in 0..SKIP {
         // The round's values at `0`, `1` and infinity, summed over the later variables' binary points.
         let later = eq_table(&claim.point[i + 1..SKIP]);
-        let at = |d: usize| -> F128 {
+        let [zero, one, infinity]: [F128; 3] = std::array::from_fn(|d| {
             later
                 .iter()
                 .enumerate()
                 .map(|(b, &eq)| eq * sums[d + 3 * ternary(b)])
                 .sum()
-        };
-        let c = sumcheck.round(ps, at(0), Some(at(1)), at(2), claim.point[i]);
+        });
+        let c = sumcheck.round(ps, zero, Some(one), infinity, claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
+        let c2 = c * (c + F128::ONE);
         sums = sums
             .as_chunks::<3>()
             .0
             .iter()
-            .map(|v| v[0] + c * (v[0] + v[1]) + (c.square() + c) * v[2])
+            .map(|v| v[0] + c * (v[0] + v[1]) + c2 * v[2])
             .collect();
     }
 }
@@ -199,10 +204,8 @@ impl AtS {
             }
         }
         let unit: Vec<F128> = rows.iter().map(|row| F128::from(row.1)).collect();
-        Self {
-            unit: BitFold::new(&unit),
-            powers: BitFold::new(&powers),
-        }
+        let [unit, powers] = [&unit[..], &powers[..]].map(BitFold::new);
+        Self { unit, powers }
     }
 
     /// The polynomial of degree below 128 whose value at `s` is `w`, its two words as an element's limbs.
