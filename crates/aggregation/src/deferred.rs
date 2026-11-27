@@ -103,21 +103,22 @@ const BLOCK: usize = 1 << BLOCK_VARS;
 pub(super) fn bytecode_sums<P: Prover>(points: &[Vec<F128>]) -> Vec<Vec<F128>> {
     let _span = tracing::info_span!("Bytecode sums").entered();
     let (table, live) = (unified_guest().stacked_bytecode(), bytecode_rows());
-    points
-        .iter()
-        .map(|point| {
-            // A leaf's claim weighs the first row alone.
-            if point.iter().all(|&x| x == F128::ZERO) {
-                return table[..BLOCK].iter().map(|&w| F128::new(w, 0)).collect();
-            }
+    let mut out = Vec::with_capacity(points.len());
+    for point in points {
+        // A leaf's claim weighs the first row alone.
+        let sums = if point.iter().all(|&x| x == F128::ZERO) {
+            table[..BLOCK].iter().map(|&w| F128::new(w, 0)).collect()
+        } else {
             let eq: Vec<_> = eq_table(&point[BLOCK_VARS..])[live.clone()]
                 .iter()
                 .map(to_scalar)
                 .collect();
             let sums = P::combine_rows(&table[live.start * BLOCK..live.end * BLOCK], &eq);
             sums.into_iter().map(from_scalar).collect()
-        })
-        .collect()
+        };
+        out.push(sums);
+    }
+    out
 }
 
 /// The stacked bytecode at `point`, from its [`bytecode_sums`].
@@ -146,11 +147,14 @@ fn fold_lsb(table: &mut Vec<F128>, challenge: F128) {
 /// Compressed product-sumcheck round message of `u·m`: (g1, g∞) with g0 recovered from the
 /// running claim.
 fn round_msg(u: &[F128], m: &[F128]) -> (F128, F128) {
-    (0..u.len() / 2).fold((F128::ZERO, F128::ZERO), |acc, i| {
+    let (mut g1, mut gi) = (F128::ZERO, F128::ZERO);
+    for i in 0..u.len() / 2 {
         let (u0, u1) = (u[2 * i], u[2 * i + 1]);
         let (m0, m1) = (m[2 * i], m[2 * i + 1]);
-        (acc.0 + u1 * m1, acc.1 + (u0 + u1) * (m0 + m1))
-    })
+        g1 += u1 * m1;
+        gi += (u0 + u1) * (m0 + m1);
+    }
+    (g1, gi)
 }
 
 /// The grind before the batching challenge, whose powers weigh at most `2 MAX_RECURSIONS` claims.
@@ -197,23 +201,21 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     // The count and each child's words are padded with zeros to whole rates, so the
     // guest's loop over the children finds every child starting the same way.
     let mut transcript = FiatShamirState::from_label(RECURSION_AGG_LABEL);
-    let pad = |transcript: &mut FiatShamirState<F128>, n: usize| {
-        for _ in 0..n.next_multiple_of(RATE_SCALARS) - n {
+    let absorb = |transcript: &mut FiatShamirState<F128>, words: &[F128]| {
+        for &word in words {
+            transcript.observe(word);
+        }
+        for _ in words.len()..words.len().next_multiple_of(RATE_SCALARS) {
             transcript.observe(F128::ZERO);
         }
     };
-    transcript.observe(count(public_inputs.len()));
-    pad(&mut transcript, 1);
+    absorb(&mut transcript, &[count(public_inputs.len())]);
     for (public_input, pair) in public_inputs.iter().zip(claims.chunks(2)) {
-        let words: Vec<F128> = public_input
-            .iter()
-            .copied()
-            .chain(pair.iter().flat_map(|claim| claim.cells()))
-            .collect();
-        for &value in &words {
-            transcript.observe(value);
+        let mut words = public_input.to_vec();
+        for claim in pair {
+            words.extend(claim.cells());
         }
-        pad(&mut transcript, words.len());
+        absorb(&mut transcript, &words);
     }
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
@@ -221,32 +223,28 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     // are short, so they search on the calling thread, under either prover.
     let nonce = transcript.grind::<Sequential>(BATCH_LAM_GRIND_BITS);
     let lam = transcript.sample();
-    let powers: Vec<F128> = std::iter::successors(Some(F128::ONE), |&power| Some(power * lam))
-        .take(claims.len())
-        .collect();
-    // The running claim: the claims' values weighed by their powers.
-    let mut claim: F128 = powers.iter().zip(claims).map(|(&g, c)| g * c.bytecode_value).sum();
+    // The running claim, the claims' values weighed by their powers. The low rounds run on each claim's sums against
+    // its `eq` on the low rows, scaled by its power.
+    let mut claim = F128::ZERO;
+    let mut low_weights = Vec::with_capacity(claims.len());
+    let mut power = F128::ONE;
+    for c in claims {
+        claim += power * c.bytecode_value;
+        let mut weights = eq_table(&c.bytecode_point[..BLOCK_VARS]);
+        for weight in &mut weights {
+            *weight *= power;
+        }
+        low_weights.push(weights);
+        power *= lam;
+    }
     let mut messages: Vec<F128> = nonce.map(|nonce| F128::new(nonce, 0)).into_iter().collect();
     let mut challenges = Vec::new();
-    // The low rounds, on each claim's sums against its `eq` on the low rows, scaled by its power of `lam`.
-    let mut low_weights: Vec<Vec<F128>> = claims
-        .iter()
-        .zip(&powers)
-        .map(|(c, &power)| {
-            eq_table(&c.bytecode_point[..BLOCK_VARS])
-                .into_iter()
-                .map(|eq| power * eq)
-                .collect()
-        })
-        .collect();
     for _ in 0..BLOCK_VARS {
-        let msg = sums
-            .iter()
-            .zip(&low_weights)
-            .fold((F128::ZERO, F128::ZERO), |acc, (sums, weights)| {
-                let (g1, gi) = round_msg(sums, weights);
-                (acc.0 + g1, acc.1 + gi)
-            });
+        let mut msg = (F128::ZERO, F128::ZERO);
+        for (sums, weights) in sums.iter().zip(&low_weights) {
+            let (g1, gi) = round_msg(sums, weights);
+            msg = (msg.0 + g1, msg.1 + gi);
+        }
         let r = absorb_round(&mut transcript, &mut messages, &mut challenges, &mut claim, msg);
         for table in sums.iter_mut().chain(&mut low_weights) {
             fold_lsb(table, r);

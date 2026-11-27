@@ -21,7 +21,10 @@ pub struct AggregateProof {
 
 pub(super) fn encode(point: &[F128], proof: &[u8]) -> Vec<u8> {
     let mut out = (point.len() as u64).to_le_bytes().to_vec();
-    out.extend(point.iter().flat_map(|x| x.to_limbs()).flat_map(u64::to_le_bytes));
+    // Both limbs, little-endian, are the element's `u128` little-endian.
+    for &x in point {
+        out.extend(u128::from(x).to_le_bytes());
+    }
     out.extend(proof);
     out
 }
@@ -31,9 +34,12 @@ pub(super) fn decode(bytes: &[u8]) -> Option<(Vec<F128>, &[u8])> {
     let (count, rest) = bytes.split_first_chunk::<8>()?;
     let count = usize::try_from(u64::from_le_bytes(*count)).ok()?;
     let (limbs, proof) = rest.split_at_checked(count.checked_mul(16)?)?;
-    let limb = |bytes: &[u8; 8]| u64::from_le_bytes(*bytes);
-    let pairs = limbs.as_chunks::<8>().0.as_chunks::<2>().0;
-    let point = pairs.iter().map(|[c0, c1]| F128::new(limb(c0), limb(c1))).collect();
+    let point = limbs
+        .as_chunks()
+        .0
+        .iter()
+        .map(|&x| F128::from(u128::from_le_bytes(x)))
+        .collect();
     Some((point, proof))
 }
 

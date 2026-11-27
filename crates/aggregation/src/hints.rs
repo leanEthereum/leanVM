@@ -100,13 +100,16 @@ impl Hints {
 /// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
 /// time, then the rest, each group's index little endian in base `CHAIN_LEN`, in the
 /// exponent.
-fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> + '_ {
-    codeword.chunks(size).map(|group| {
-        let index = group.iter().rev().fold(0, |index, &digit| {
-            index * lean_xmss::internals::CHAIN_LEN + digit as usize
-        });
-        vec![count(index)]
-    })
+fn digit_hints(codeword: &[u8], size: usize) -> Vec<F128> {
+    let mut out = Vec::new();
+    for group in codeword.chunks(size) {
+        let mut index = 0;
+        for &digit in group.iter().rev() {
+            index = index * lean_xmss::internals::CHAIN_LEN + digit as usize;
+        }
+        out.push(count(index));
+    }
+    out
 }
 
 /// One leanXMSS signature's witness: its leaf index shifted by each multiple of
@@ -121,14 +124,12 @@ pub(super) fn lean_xmss_hints(
     use lean_xmss::internals::{codeword, layer_index, layer_root, message_digest, sig_bottom, sig_top};
     let pp = lean_xmss::internals::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
-    let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
-    let mut hints: SubHints = vec![
-        ("lx_index", windows.clone().map(|x| F128::new(x, 0)).collect()),
-        (
-            "lx_windows",
-            windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),
-        ),
-    ];
+    let (mut shifted, mut windows) = (Vec::new(), Vec::new());
+    for shift in (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW) {
+        shifted.push(F128::new(index >> shift, 0));
+        windows.push(count(((index >> shift) % (1 << LX_WINDOW)) as usize));
+    }
+    let mut hints: SubHints = vec![("lx_index", shifted), ("lx_windows", windows)];
     let (bottom, top) = (sig_bottom(sig), sig_top(sig));
     let e = |layer| layer_index(sig.leaf_index(), layer);
     let (bottom_codeword, root) =
@@ -141,7 +142,7 @@ pub(super) fn lean_xmss_hints(
             hints.push(("lx_path", vec![pack_16_bytes(sibling)]));
         }
         hints.push(("randomizer", vec![pack_16_bytes(layer_sig.randomizer())]));
-        hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP).flatten().collect()));
+        hints.push(("lx_digits", digit_hints(&codeword, LX_DIGIT_GROUP)));
         for value in layer_sig.chain_values() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
@@ -196,7 +197,9 @@ pub(super) fn lean_sphincs_hints(
             lean_sphincs::internals::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
                 .ok_or(AggregateError::InvalidSignature)?;
         hints.push(("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes())));
-        hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
+        for digits in digit_hints(&codeword, DIGIT_GROUP) {
+            hints.push(("digits", vec![digits]));
+        }
         for value in layer_sig.wots() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
