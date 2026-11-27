@@ -45,7 +45,7 @@ of the cells it reads. -/
 theorem keccak_cap {ins outs : List V} (hk : (Atom.keccak ins outs false false).Holds rd σ)
     (ho13 : outs.length = 13 := by first | rfl | simp) :
     (outs.drop 8).map σ = capOf (permOf (ins.map σ)) := by
-  obtain ⟨-, ho, hout⟩ := keccakA_perm hk ho13
+  obtain ⟨-, ho, hout⟩ := keccak_outs hk ho13
   apply List.ext_getElem (by simp [ho, capOf])
   intro k h1 h2
   simp only [List.length_map, List.length_drop, ho] at h1
