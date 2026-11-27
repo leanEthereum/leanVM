@@ -80,17 +80,26 @@ abbrev Cut (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (Q : State rvIsa → P
   ∀ R M, Inv env ret top regs m R M → rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, pc, ret, top⟩ :: rest, R, M⟩
 
 set_option hygiene false in
-/-- One part, from its cut to the cut `b` (where `hb` goes on), across `n` calls: `Inv` again from `Mem` carried
-    across each call by `call_back`, the callee's facts found by `assumption`. -/
-local macro "part_tac" b:num n:num : tactic => `(tactic| (
+/-- One part, from its cut to the cut `b` (where `hb` goes on), across `n` calls of the callees `cs`: `Inv` again
+    from `Mem` carried across each call by `call_back`, the callee's facts found by `assumption`. -/
+local macro "part_core" b:num n:num " [" cs:term,* "]" : tactic => `(tactic| (
   intro R M hI
   obtain ⟨-, -, hM⟩ := id hI
   have hlim : env.stackLimit.toNat + 32 ≤ top.toNat := by omega
   rv_introT hI
-  rv_symT hp stop [$b] with [hL, hlim] using [dropPost hsp, dropPost hrd, dropPost hbm]
+  rv_symT hp stop [$b] with [hL, hlim] using [$cs,*]
   refine hb _ _ ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, ?_⟩
   iterate $n (refine call_back (by assumption) (by assumption) (by assumption) (by assumption) hlim ?_)
   exact hM))
+
+set_option hygiene false in
+/-- A part over all three callees. -/
+local macro "part_tac" b:num n:num : tactic =>
+  `(tactic| part_core $b $n [dropPost hsp, dropPost hrd, dropPost hbm])
+
+set_option hygiene false in
+/-- A part with no `base_mul` call, without its contract (the part omits `hnM`, `hbm`). -/
+local macro "part_tac'" b:num n:num : tactic => `(tactic| part_core $b $n [dropPost hsp, dropPost hrd])
 
 section
 
@@ -101,9 +110,6 @@ variable (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? =
   {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
   (hstk : env.stackLimit.toNat + need ≤ top.toNat) (hal : top.toNat % 16 = 0) (hW : Windows env top m)
 include hp hL hnS hnR hnM hsp hrd hbm hstk hal hW
--- Every part takes every callee's contract, so that `safe` chains them uniformly; a part without a `base_mul`
--- call does not use `hbm`.
-set_option linter.unusedSectionVars false
 
 set_option rv_sym.heap true in
 /-- Calls `s0` to `s11`, from instruction 10. -/
@@ -120,46 +126,52 @@ set_option rv_sym.heap true in
 theorem part3 (hb : Cut env p i Q ret top rest regs m 170) : Cut env p i Q ret top rest regs m 118 := by
   part_tac 170 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Calls `s36` to `s47`, from instruction 170. -/
 theorem part4 (hb : Cut env p i Q ret top rest regs m 218) : Cut env p i Q ret top rest regs m 170 := by
-  part_tac 218 12
+  part_tac' 218 12
 
 set_option rv_sym.heap true in
 /-- Calls `s48` to `s59`, from instruction 218. -/
 theorem part5 (hb : Cut env p i Q ret top rest regs m 270) : Cut env p i Q ret top rest regs m 218 := by
   part_tac 270 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Calls `s60` to `s71`, from instruction 270. -/
 theorem part6 (hb : Cut env p i Q ret top rest regs m 318) : Cut env p i Q ret top rest regs m 270 := by
-  part_tac 318 12
+  part_tac' 318 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Calls `s72` to `s83`, from instruction 318. -/
 theorem part7 (hb : Cut env p i Q ret top rest regs m 366) : Cut env p i Q ret top rest regs m 318 := by
-  part_tac 366 12
+  part_tac' 366 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Calls `s84` to `s95`, from instruction 366. -/
 theorem part8 (hb : Cut env p i Q ret top rest regs m 414) : Cut env p i Q ret top rest regs m 366 := by
-  part_tac 414 12
+  part_tac' 414 12
 
 set_option rv_sym.heap true in
 /-- Calls `s96` to `s107`, from instruction 414. -/
 theorem part9 (hb : Cut env p i Q ret top rest regs m 464) : Cut env p i Q ret top rest regs m 414 := by
   part_tac 464 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Calls `s108` to `s119`, from instruction 464. -/
 theorem part10 (hb : Cut env p i Q ret top rest regs m 512) : Cut env p i Q ret top rest regs m 464 := by
-  part_tac 512 12
+  part_tac' 512 12
 
 set_option rv_sym.heap true in
 /-- Calls `s120` to `s131`, from instruction 512. -/
 theorem part11 (hb : Cut env p i Q ret top rest regs m 564) : Cut env p i Q ret top rest regs m 512 := by
   part_tac 564 12
 
+omit hnM hbm in
 set_option rv_sym.heap true in
 /-- Call `s132`, the epilogue and the tail call `s133`, from instruction 564: the saved registers restored from their
     slots, the frame across both calls. -/
@@ -171,7 +183,7 @@ theorem part12
   obtain ⟨-, -, hM⟩ := id hI
   have hlim : env.stackLimit.toNat + 32 ≤ top.toNat := by omega
   rv_introT hI
-  rv_symT hp with [hL, hlim] using [dropPost hsp, dropPost hrd, dropPost hbm]
+  rv_symT hp with [hL, hlim] using [dropPost hsp, dropPost hrd]
   have hM1 := call_back hret1_14 keep1_1 hret1_16 hret1_15 hlim hM
   refine ⟨?_, Tactic.frame_trans hM1.1 hret2_14 (Nat.le_refl _) (fun _ h => h.elim), hret2_15, trivial⟩
   simp only [AbiRegs, Tactic.rf, hI_15, hI_16, hI_17, and_self]
@@ -183,6 +195,11 @@ set_option hygiene false in
 local macro "chain" t:ident h:ident h':ident : tactic => `(tactic|
   have $h' := $t env p i L hp hL hnS hnR hnM hsp hrd hbm hpre_3 hpre_6 hpre_7 $h)
 
+set_option hygiene false in
+/-- `chain` for a part with no `base_mul` call (it omits `hnM`, `hbm`). -/
+local macro "chain'" t:ident h:ident h':ident : tactic => `(tactic|
+  have $h' := $t env p i L hp hL hnS hnR hsp hrd hpre_3 hpre_6 hpre_7 $h)
+
 set_option rv_sym.heap true in
 /-- **`K::inv` is safe and terminates**: the prologue, then the twelve parts. -/
 theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
@@ -191,15 +208,15 @@ theorem safe (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i
     (hbm : BaseMulT.specT env p L.baseMul.idx needM) :
     HoldsT env p i need (fun _ _ => True) (fun _ _ _ _ => True) := by
   rv_autoT hp stop [10] with [hL]
-  chain part12 hk h12
+  chain' part12 hk h12
   chain part11 h12 h11
-  chain part10 h11 h10
+  chain' part10 h11 h10
   chain part9 h10 h9
-  chain part8 h9 h8
-  chain part7 h8 h7
-  chain part6 h7 h6
+  chain' part8 h9 h8
+  chain' part7 h8 h7
+  chain' part6 h7 h6
   chain part5 h6 h5
-  chain part4 h5 h4
+  chain' part4 h5 h4
   chain part3 h4 h3
   chain part2 h3 h2
   chain part1 h2 h1

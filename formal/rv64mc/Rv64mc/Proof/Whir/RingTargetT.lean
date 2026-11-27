@@ -200,7 +200,8 @@ set_option rv_sym.heap true in
     its `frobenius_8` and the product with `f[p]` (`E::mul`); then back to the head (one pass fewer) or the return. -/
 theorem fpass (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]? = some (tmpl L)) (hL : L.WF p)
     {need needF needP needU : Nat} (hnF : 128 + needF ≤ need) (hnP : 128 + needP ≤ need) (hnU : 128 + needU ≤ need)
-    (hfr : Frobenius8T.specT env p L.frobenius8.idx needF) (hpe : Multilinear.PolyEvalT.specT env p L.polyEval.idx needP)
+    (hfr : Frobenius8T.specT env p L.frobenius8.idx needF)
+    (hpe : Multilinear.PolyEvalT.specT env p L.polyEval.idx needP)
     (hmul : Field.EMulT.specT env p L.mul.idx needU)
     {Q : State rvIsa → Prop} {ret top : Word} {rest : List Frame} {regs : Reg → Word} {m : MachineState}
     (hk : ∀ r' m', HoldsT.post env (fun _ _ _ _ => True) (fun _ _ _ => False) ret top regs m r' m' →

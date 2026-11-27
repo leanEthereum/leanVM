@@ -1,10 +1,10 @@
 /-
   Rv64mc.Proof.Field.ScaledNewT
 
-  The parts of a total proof of `Scaled::new(r) -> Scaled` (`specT`, not yet proved: the entry part `total` is
-  missing). `specT` is a safety contract: from a result's slot of `24` bytes owned, in a window, 8-byte aligned, it
-  returns with the slot a vector of `1408` `E`s (`VecT`), its buffer allocated since the entry, writing at most the
-  slot besides its stack and what it allocates (the partial contract's `NewOut`), or the run ends with `a0 = 2`.
+  A total proof of `Scaled::new(r) -> Scaled` (`total`, of `specT`). `specT` is a safety contract: from a result's
+  slot of `24` bytes owned, in a window, 8-byte aligned, it returns with the slot a vector of `1408` `E`s (`VecT`),
+  its buffer allocated since the entry, writing at most the slot besides its stack and what it allocates (the partial
+  contract's `NewOut`), or the run ends with `a0 = 2`.
 
   The code allocates the tables zeroed (`from_elem`, `1408` entries at `p`, header at `top - 128`), then for each
   chunk of `704` entries (`chunks_exact_mut`, two: the end `p + 22528` at `top - 160`, from the image's division
@@ -22,7 +22,7 @@
   ## Main results
 
   * `slots`, `or256`, `or512`, `heap_ok`, `Frm.store`, `inner1`, `inner2`, `middle`, `chunk_stores`, `chunk`,
-    `fin_ok`, `hdr`, `call_mem`, `slot_off`
+    `fin_ok`, `hdr`, `call_mem`, `slot_off`, `total`
 -/
 
 import Rv64mc.Proof.Runtime.FromElemT
@@ -181,7 +181,7 @@ local macro "frm_chain " n:num : tactic => `(tactic| (
   all_goals first | omega | (rw [toNat_add_ofNat (by omega)]; omega)))
 
 -- The executor's run over the block's xor values and the two `Frm` chains together pass the default budget.
-set_option maxHeartbeats 400000 in
+set_option maxHeartbeats 300000 in
 set_option rv_sym.heap true in
 /-- **The first inner loop**, from its head: entry `x6` of the block's second sixteen written; back to the head, or
     on to the second inner loop; one entry fewer left. -/
@@ -225,7 +225,7 @@ theorem inner1 (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p
     · omega
 
 -- As `inner1`, with four exits, each rebuilding `Frm` through the two stores.
-set_option maxHeartbeats 1000000 in
+set_option maxHeartbeats 800000 in
 set_option rv_sym.heap true in
 /-- **The second inner loop**, from its head: entry `x31` of the block's last thirty-two written; back to the head,
     or after the block on to the next block (`k - 1` left), the next chunk (`c - 1` left) or the exit; one entry
@@ -286,7 +286,7 @@ theorem inner2 (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p
   · exact hfin _ _ ⟨rfl, (R .x11).toNat + 8, by frm_chain 2⟩
 
 -- `Frm` is rebuilt through the block's thirty stores, each address's bounds by `omega`.
-set_option maxHeartbeats 1000000 in
+set_option maxHeartbeats 800000 in
 set_option rv_sym.heap true in
 /-- **The blocks' loop**, from its head: the block's first sixteen entries written, then the first inner loop; one
     block fewer left after each. -/
@@ -486,8 +486,9 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · have hDv : m1.getMem (L.d_c8_a4f5b9af.hi + L.d_c8_a4f5b9af.lo) = 0x2e8ba2e8ba2e8ba3#64 := by
       simpa [d_c8_a4f5b9af_words] using (hd.words (List.mem_singleton_self _)).get0 hret1_15 Nat.zero_lt_one
     have hend : (BinOp.mulhu.eval 1408#64 0x2e8ba2e8ba2e8ba3#64 >>> 7 * 11264#64 : Word) = 22528#64 := by decide
-    have hM0 := (call_mem (m := m) (regs := regs) (ret := ret) hlim (by refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;>
-        rv_closeT) hret1_14 (fun a ha => by
+    have hM0 := (call_mem (m := m) (regs := regs) (ret := ret) hlim
+        (by refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩ <;> rv_closeT)
+        hret1_14 (fun a ha => by
           simp only [SretVecOut, Lprog.updReg_apply, Tactic.rf, reduceCtorEq, ↓reduceIte] at ha
           exact ha) keep1_1 hret1_24 hret1_15)
     obtain ⟨hM1, hn0, rd1⟩ := hM0

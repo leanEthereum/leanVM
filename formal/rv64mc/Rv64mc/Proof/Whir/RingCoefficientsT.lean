@@ -592,8 +592,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     have hge := hpre_14.next_ge
   -- `g` empty: `powers` dangling
   · have h0 : (regs .x13).toNat = 0 := by have := congrArg BitVec.toNat hc; simpa using this
-    refine hout 8#64 8 _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, .inl h0, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine hout 8#64 8 _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, .inl h0,
+      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
     all_goals try rv_closeT
     obtain ⟨r488, r496, rn⟩ := hdr_stores (c := 64#64) (q := r1 .x10) (s := regs .x10) (X := m1) hlim
     rw [r488, r496, rn]
@@ -635,8 +635,8 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
         simp only [CopyOut, DwordsOf, InRange, Lprog.updReg_apply, Tactic.rf, reduceCtorEq, ↓reduceIte] at ho
         rw [toNat_alignToDword, hs4] at ho
         omega
-    refine hout (r3 .x10) 8 _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, .inr ⟨?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_,
-      ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine hout (r3 .x10) 8 _ _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, .inr ⟨?_, ?_, ?_, ?_⟩,
+      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial⟩, ?_, ?_, ?_, ?_, ?_, ?_⟩
     all_goals try simp (disch := (rw [BitVec.toNat_add, BitVec.toNat_ofNat]; omega)) only [rd5]
     all_goals try rv_closeT
     all_goals simp only [Tactic.rf]
