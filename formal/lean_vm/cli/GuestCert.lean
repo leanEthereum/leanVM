@@ -9,6 +9,7 @@ import LeanVM.Guest.Interp
 import LeanVM.Guest.WalkTags
 import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.PackHash
+import LeanVM.Guest.Local.Layout
 
 /-!
 # `guest-cert`: the certificates of the guest's compiled functions
@@ -26,7 +27,9 @@ names; the completeness data (`Data/Plumb`, `CplParts`, `CplArms`), the sharing 
 (`Data/Snaps`), lists of references to the packs' (each function's `plumb`, `fs`, `parts`, `arms`,
 `snaps` in its `Bundle.lean`), the frame sizes; and the modules the kernel decides the checks in
 (the packs' `Cplw*`, `Shared*` over each function's data and view (`B2CPack`), and `Checked/`,
-`B2C/Shared/`, `B2C/Cplw/`, which link them or check what is not in the packs). `lake exe guest-cert --check` writes nothing
+`B2C/Shared/`, `B2C/Cplw/`, which link them or check what is not in the packs); each function's
+layout along its core blocks (`Local.Layout`) in its hash pack's `Layout.lean`, and the kernel's
+check of it in `LayoutOk.lean`. `lake exe guest-cert --check` writes nothing
 and fails when the files differ. Run it from `lean_vm`.
 
 Nothing here is trusted: the checker (`Check.chkL`) validates every certificate, so a wrong
@@ -808,6 +811,345 @@ def inferLocs (segs : Array GSeg) (f : CompiledFunction) (cf : Core.Fn) (main : 
   return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks, st.spine, st.uses, st.entered)
 
 end GuestCert
+
+/-! ## The layout (`Local/Layout.lean`)
+
+The core body's blocks laid out on the code: the walk below follows the executor's segments as
+`Check.chkL` does (branches, table jumps, calls, returns, the joins `meet` finds), numbering the
+blocks in pre-order with their positions (`Local.Pos`), and gives each offset it passes to the
+block walking it. A block's code range spans its own offsets and its sub-blocks' (an empty arm's is
+empty, where it starts); the offsets in order make the runs. `okC` is `Local.Layout.ok` on the
+arrays: a layout it rejects fails here, before the kernel. -/
+
+namespace GuestCert.LayoutGen
+
+open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Exec
+
+structure Blk where
+  par : ℕ
+  kind : ℕ
+  start : ℕ
+  sa : ℕ
+  se : ℕ
+  br : ℕ
+  arm : ℕ
+  hi : ℕ := 0
+  deriving Inhabited
+
+structure WS where
+  blocks : Array Blk := #[]
+  owner : Std.HashMap ℕ ℕ := {}
+
+structure WC where
+  segs : Std.HashMap ℕ GSeg
+  entry : ℕ
+
+abbrev LM := ReaderT WC (StateT WS (Except String))
+
+instance : Inhabited GItem := ⟨.fact (.nz 0)⟩
+
+def isFact : GItem → Bool
+  | .fact _ => true
+  | _ => false
+
+def isBranch : GItem → Bool
+  | .branch .. => true
+  | _ => false
+
+/-- The offsets of a segment's items (a fact at its instruction's), and the offset past them. -/
+def offs (s : GSeg) : Array ℕ × ℕ := Id.run do
+  let mut o := s.start
+  let mut r : Array ℕ := #[]
+  for it in s.items do
+    if isFact it then r := r.push (o - 1) else r := r.push o; o := o + 1
+  return (r, o)
+
+def seg (t : ℕ) : LM GSeg := do
+  match (← read).segs.get? t with
+  | some s => return s
+  | none => throw s!"no segment at {t}"
+
+def posOff (p : Pos) : LM ℕ := do
+  let (r, e) := offs (← seg p.1)
+  return r[p.2]?.getD e
+
+def own (b : ℕ) (s : GSeg) (i j : ℕ) : LM Unit := do
+  let (r, _) := offs s
+  for k in [i:j] do
+    if let some it := s.items[k]? then
+      unless isFact it do
+        let o := r[k]!
+        let st ← get
+        match st.owner.get? o with
+        | none => set { st with owner := st.owner.insert o b }
+        | some b' => if b' != b then throw s!"offset {o} in blocks {b'} and {b}"
+
+def newBlk (par kind : ℕ) (p : Pos) (sa se br arm : ℕ) : LM ℕ := do
+  let o ← posOff p
+  let st ← get
+  set { st with blocks := st.blocks.push { par, kind, start := o, sa, se, br, arm } }
+  return st.blocks.size
+
+def finish (b : ℕ) : LM Unit :=
+  modify fun st => { st with blocks := st.blocks.modify b fun x => { x with hi := st.blocks.size } }
+
+def toEndOwn (b : ℕ) (p : Pos) : LM GExit := do
+  let s ← seg p.1
+  if (s.items.toList.drop p.2).any isBranch then throw s!"a branch before the end of segment {p.1}"
+  own b s p.2 s.items.size
+  return s.exit
+
+def branchOwn (b : ℕ) (p : Pos) : LM (Pos × GExit) := do
+  let s ← seg p.1
+  let mut q := p.2
+  while q < s.items.size && !isBranch s.items[q]! do q := q + 1
+  match s.items[q]? with
+  | some (.branch _ _ _ x) => own b s p.2 (q + 1); return ((p.1, q), x)
+  | _ => throw s!"no branch in segment {p.1} from {p.2}"
+
+/-- The joins a block's end may lead to (`GuestCert.chain`). -/
+partial def cands (p : Pos) (n : ℕ := 6) : LM (List ℕ) := do
+  if n == 0 then return []
+  let s ← seg p.1
+  let here := if p.2 == 0 then [p.1] else []
+  if (s.items.toList.drop p.2).any isBranch then return here
+  match s.exit.kind with
+  | .next t => if (← read).segs.contains t then return here ++ (← cands (t, 0) (n - 1)) else return here
+  | _ => return here
+
+partial def ownTo (b : ℕ) (p : Pos) (J : ℕ) (n : ℕ := 8) : LM Unit := do
+  if p.1 == J && p.2 == 0 then return
+  if n == 0 then throw s!"no way to the join {J}"
+  let s ← seg p.1
+  own b s p.2 s.items.size
+  match s.exit.kind with
+  | .next t => ownTo b (t, 0) J (n - 1)
+  | _ => throw s!"an arm leaves by a non-local exit before the join {J}"
+
+def meetOwn (rs : List (ℕ × Option Pos)) : LM ℕ := do
+  let mut cs : List (ℕ × Pos × List ℕ) := []
+  for (b, r) in rs do
+    match r with
+    | some p => cs := cs ++ [(b, p, ← cands p)]
+    | none => throw "an arm returns"
+  match cs with
+  | [] => throw "no arms"
+  | (_, _, c) :: rest =>
+    match c.find? fun J => rest.all (·.2.2.contains J) with
+    | some J =>
+      for (b, p, _) in cs do ownTo b p J
+      return J
+    | none => throw s!"no join for {cs.map (·.2.2)}"
+
+/-- Walk block `b`, its statements `ss` from position `q0`, from `p0`; where it ends (`none`
+after a return). -/
+partial def walk (b : ℕ) (ss : List Core.Stmt) (p0 : Pos) (q0 : ℕ) : LM (Option Pos) := do
+  let mut p := p0
+  let mut q := q0
+  let mut chainIn : Option (List ℕ) := none
+  for s in ss do
+    if chainIn.isSome then
+      match s with
+      | .match_ .. => pure ()
+      | _ => throw "a statement after a chained match's table jump is no match"
+    match s with
+    | .atom _ => pure ()
+    | .ite _ z n =>
+      let (r, x) ← branchOwn b p
+      let .next t := x.kind | throw "ite: the branch is not local"
+      let za := q + 1
+      let na := za + Local.sizeL z
+      let bz ← newBlk b Local.kindZero (r.1, r.2 + 1) za na q 0
+      let rz ← walk bz z (r.1, r.2 + 1) za
+      finish bz
+      let bn ← newBlk b Local.kindNonzero (t, 0) na (na + Local.sizeL n) q 1
+      let rn ← walk bn n (t, 0) na
+      finish bn
+      p := (← meetOwn [(bz, rz), (bn, rn)], 0)
+    | .match_ _ arms =>
+      let succ ← match chainIn with
+        | some succ => pure succ
+        | none => do pure (← toEndOwn b p).succ
+      chainIn := none
+      unless succ.length == arms.length do throw s!"match: {arms.length} arms, {succ.length} targets"
+      let mut rs : List (ℕ × Option Pos) := []
+      let mut a := q + 1
+      for ((arm, t), k) in (arms.zip succ).zipIdx do
+        let bk ← newBlk b Local.kindArm (t, 0) a (a + Local.sizeL arm) q k
+        let r ← walk bk arm (t, 0) a
+        finish bk
+        rs := rs ++ [(bk, r)]
+        a := a + Local.sizeL arm
+      -- arms each ending in one table jump: the next match is chained
+      let mut nexts : List (Option (List ℕ)) := []
+      for (_, r) in rs do
+        match r with
+        | some e =>
+          let s ← seg e.1
+          if (s.items.toList.drop e.2).any isBranch then nexts := nexts ++ [none] else
+          match s.exit with
+          | ⟨.jump (.cell _) _, _, t0 :: ts⟩ => nexts := nexts ++ [some (t0 :: ts)]
+          | _ => nexts := nexts ++ [none]
+        | none => nexts := nexts ++ [none]
+      let mut chained := false
+      match nexts with
+      | some nx :: rest =>
+        if rest.all (· == some nx) then
+          for (bk, r) in rs do
+            if let some e := r then let _ ← toEndOwn bk e
+          chainIn := some nx
+          p := (nx.headD 0, 0)
+          chained := true
+      | _ => pure ()
+      unless chained do p := (← meetOwn rs, 0)
+    | .call .. | .dispatch .. =>
+      let x ← toEndOwn b p
+      let .call _ _ r := x.kind | throw "call: no call exit"
+      p := (r - (← read).entry, 0)
+    | .callIf .. =>
+      let (r, x) ← branchOwn b p
+      let s ← seg r.1
+      own b s (r.2 + 1) s.items.size
+      match x.kind with
+      | .call _ _ rp => p := (rp - (← read).entry, 0)
+      | .jump _ (.fpg _) => p := (r.1, s.items.size)
+      | _ => throw "callIf kind"
+    | .ret _ =>
+      let _ ← toEndOwn b p
+      return none
+    q := q + Local.size s
+  if chainIn.isSome then throw "a block ends in a chained match's table jump"
+  return some p
+
+/-- A layout's records: the blocks `(par, hi, cs, ce, sa, se, br, kind, arm)`, the runs
+`(x, b, pv)`. -/
+structure Lay where
+  n : ℕ
+  blocks : Array (ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ)
+  runs : Array (ℕ × ℕ × ℕ)
+
+/-- `Local.Layout.ok` on the records. -/
+def okC (L : Lay) : Bool := Id.run do
+  let nb := L.blocks.size
+  let nr := L.runs.size
+  if nb == 0 || nr == 0 then return false
+  let B (b : ℕ) := L.blocks.getD b (0, 0, 0, 0, 0, 0, 0, 0, 0)
+  let par (b : ℕ) := (B b).1
+  let hi (b : ℕ) := (B b).2.1
+  let cs (b : ℕ) := (B b).2.2.1
+  let ce (b : ℕ) := (B b).2.2.2.1
+  for c in [0:nb] do
+    if c == 0 then
+      unless par 0 == 0 && hi 0 == nb && cs 0 == 0 && ce 0 == L.n do return false
+    else
+      let p := par c
+      unless p < c && c < hi c && hi c ≤ hi p && cs p ≤ cs c && cs c ≤ ce c && ce c ≤ ce p do return false
+      if hi c < hi p then unless par (hi c) == p && ce c ≤ cs (hi c) do return false
+    if c + 1 < hi c then unless par (c + 1) == c do return false
+  for r in [0:nr] do
+    let (x, b, pv) := L.runs[r]!
+    let e := if r + 1 < nr then L.runs[r + 1]!.1 else L.n
+    if r == 0 && x != 0 then return false
+    unless x < e && b < nb && cs b ≤ x && e ≤ ce b do return false
+    if pv == b then
+      if b + 1 < hi b then unless e ≤ cs (b + 1) do return false
+    else
+      unless pv < nb && par pv == b && ce pv ≤ x do return false
+      if hi pv < hi b then unless e ≤ cs (hi pv) do return false
+  return true
+
+/-- The layout of function `f`, of core function `cf`, over the executor's segments `segs`. -/
+def layoutOf (f : CompiledFunction) (cf : Core.Fn) (segs : Array GSeg) : Except String Lay := do
+  let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
+  let n := f.instructionCount
+  let b0 : Blk := { par := 0, kind := Local.kindBody, start := 0, sa := 0, se := Local.sizeL cf.body, br := 0, arm := 0 }
+  let st0 : WS := { blocks := #[b0] }
+  let (_, st) ← ((walk 0 cf.body (0, 0) 0).run ⟨segMap, f.entryPc⟩).run st0
+  let blocks := st.blocks.modify 0 fun b => { b with hi := st.blocks.size }
+  let nb := blocks.size
+  for o in [0:n] do
+    unless st.owner.contains o do throw s!"offset {o} on no block's path"
+  -- the ranges: each block's own offsets and its sub-blocks', or empty where it starts
+  let mut lo : Array ℕ := blocks.map (·.start)
+  let mut hi : Array ℕ := blocks.map (·.start)
+  let mut has : Array Bool := Array.replicate nb false
+  for (o, b) in st.owner.toList do
+    let mut c := b
+    let mut fuel := nb
+    repeat
+      if has[c]! then
+        lo := lo.set! c (min lo[c]! o)
+        hi := hi.set! c (max hi[c]! (o + 1))
+      else
+        lo := lo.set! c o
+        hi := hi.set! c (o + 1)
+        has := has.set! c true
+      if c == 0 || fuel == 0 then break
+      c := blocks[c]!.par
+      fuel := fuel - 1
+  lo := lo.set! 0 0
+  hi := hi.set! 0 n
+  let recs := (List.range nb).toArray.map fun b =>
+    let x := blocks[b]!
+    (x.par, x.hi, lo[b]!, hi[b]!, x.sa, x.se, x.br, x.kind, x.arm)
+  -- each block's children in order
+  let mut kids : Array (Array ℕ) := Array.replicate nb #[]
+  for b in [1:nb] do kids := kids.modify blocks[b]!.par (·.push b)
+  -- the runs
+  let mut runs : Array (ℕ × ℕ × ℕ) := #[]
+  for o in [0:n] do
+    let b := st.owner.getD o 0
+    if o == 0 || st.owner.getD (o - 1) 0 != b then
+      let pv := (kids[b]!.toList.filter fun d => hi[d]! ≤ o && has[d]!).getLast?.getD
+        ((kids[b]!.toList.filter fun d => hi[d]! ≤ o).getLast?.getD b)
+      runs := runs.push (o, b, pv)
+  let L : Lay := ⟨n, recs, runs⟩
+  unless okC L do throw s!"{f.name}: its layout fails `Layout.ok`"
+  return L
+
+/-! ### As Lean text -/
+
+def hexOf (n : ℕ) : String := String.ofList (Nat.toDigits 16 n)
+
+/-- The vector of lanes `vs` of `w` bits (`Packed.pack`). -/
+def packV (vs : List ℕ) (w : ℕ) : ℕ := vs.foldr (fun v acc => v + (acc <<< w)) 0
+
+/-- The packed map of `es` (`Packed.PMap`, salt `0`). -/
+def pmapV (es : List (ℕ × ℕ)) (w : ℕ) : ℕ :=
+  let m : Std.HashMap ℕ ℕ := es.foldl (fun m (k, v) => m.insert k v) {}
+  let n := es.foldl (fun a (k, _) => max a (k + 1)) 0
+  packV ((List.range n).map fun k => match m.get? k with | some v => v + 1 | none => 0) w <<< 64
+
+/-- The `PTree` of depth `d` of `es`, as a term (`scripts/packed.py`'s `ptree`). -/
+partial def ptreeText (es : List (ℕ × ℕ)) (w d : ℕ) : String :=
+  let rec go (r level : ℕ) : String :=
+    if level == d then
+      let m := pmapV ((es.filter fun (k, _) => k % 2 ^ d == r).map fun (k, v) => (k >>> d, v)) w
+      if m == 0 then "(.leaf 0)" else s!"(.leaf nat_hex% \"{hexOf m}\")"
+    else s!"(.node {go r (level + 1)} {go (r ||| (1 <<< level)) (level + 1)})"
+  go 0 0
+
+/-- The depth giving leaves of about `per` entries. -/
+def depthFor (count per : ℕ) : ℕ := Id.run do
+  let mut d := 0
+  while count > per * 2 ^ d do d := d + 1
+  return d
+
+def blockNat (r : ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) : ℕ :=
+  let (par, hi, cs, ce, sa, se, br, kind, arm) := r
+  par ||| hi <<< 16 ||| cs <<< 32 ||| ce <<< 52 ||| sa <<< 72 ||| se <<< 92 ||| br <<< 112 |||
+    kind <<< 132 ||| arm <<< 136
+
+def runNat (r : ℕ × ℕ × ℕ) : ℕ := r.1 ||| r.2.1 <<< 20 ||| r.2.2 <<< 36
+
+/-- `Local.Layout` literal of `L`. -/
+def layoutText (L : Lay) : String :=
+  let bs := L.blocks.toList.zipIdx.map fun (r, b) => (b, blockNat r)
+  let rs := L.runs.toList.zipIdx.map fun (r, k) => (k, runNat r)
+  s!"⟨{L.n}, {L.blocks.size}, {L.runs.size},\n  {ptreeText bs 150 (depthFor bs.length 16)},\n  " ++
+    s!"{ptreeText rs 53 (depthFor rs.length 48)}⟩"
+
+end GuestCert.LayoutGen
 
 namespace GuestCert
 
@@ -4262,6 +4604,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
   let mut shareSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut bigStatics : Std.HashMap ℕ (Array ℕ × List ℕ) := {}
   let mut chainedFns : Array (ℕ × String × ℕ) := #[]
+  let mut layouts : Array String := #[]
   -- each function's certificate and data, which depend on no other function's, in a task of its own
   let job (cf : Core.Fn) (i : ℕ) : Except String _ := do
     -- the smaller windows, or the larger ones where the sharing check cannot cut the smaller, and
@@ -4309,9 +4652,10 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
   -- Sequential: tasks gained little here and exhaust the gate's address-space cap (`ulimit -v`).
   let tasks := P.zipIdx.map fun (cf, i) => Task.pure (job cf i)
   for ((cf, i), t) in P.zipIdx.zip tasks do
-    let ((c, sizes, fsz, locs, _, starts, _, pt, _, _, acs, sts, costs, sp, ssp, chain, counts, _, ent), parts) ←
+    let ((c, sizes, fsz, locs, segs, starts, _, pt, _, _, acs, sts, costs, sp, ssp, chain, counts, _, ent), parts) ←
       t.get
     certs := certs.push c
+    layouts := layouts.push (LayoutGen.layoutText (← LayoutGen.layoutOf fns[i + 1]! cf segs))
     if !ent.isEmpty then chainedFns := chainedFns.push (i + 1, cf.name, starts.size)
     for (w, gs, cs) in sp do
       splits := splits.insert (i + 1, w) gs
@@ -4429,12 +4773,33 @@ noncomputable def cert0 : Check.Cert where
 noncomputable def certs : List Check.Cert :=
 " ++ "\n".intercalate rows ++ " []
 " ++ tail
+  -- the layouts, by hash pack: the data (`Layout`), the kernel's checks (`LayoutOk`)
+  let lnames (js : List ℕ) : String := match js with
+    | [j] => s!"`{fns[j]!.name}`"
+    | j :: js => s!"`{fns[j]!.name}` and {js.length} more"
+    | [] => ""
+  let layFiles := ((List.range packCount).filterMap fun k =>
+    let js := ((List.range (n + 1)).drop 1).filter fun j => packOf packCount (keys.getD j "") == k
+    if js.isEmpty then none else
+    let dir := s!"P{k}"
+    some [(packPath dir "Layout", packHeader dir "Layout" s!"The layouts of compiled functions {lnames js} (`Local.Layout`)." ++
+        "public import LeanVM.Guest.Local.Layout\nmeta import LeanVM.Guest.Packed.NatLit\n\n" ++ dataOptions ++
+        String.join (js.map fun j =>
+          s!"namespace {fnNs (keys.getD j "")}\n\n@[expose] public section\n\n" ++
+          s!"/-- `{fns[j]!.name}`: its layout. -/\nnoncomputable def layout : Local.Layout :=\n  " ++
+          layouts[j - 1]! ++ s!"\n\nend\nend {fnNs (keys.getD j "")}\n\n")),
+      (packPath dir "LayoutOk", packHeader dir "LayoutOk" s!"The kernel's checks of the layouts of compiled functions {lnames js}." ++
+        s!"public import {packMod dir "Layout"}\n\n" ++ asyncOff ++
+        String.join (js.map fun j =>
+          s!"namespace {fnNs (keys.getD j "")}\n\n@[expose] public section\n\n" ++
+          s!"/-- `{fns[j]!.name}`: its layout passes. -/\ntheorem layout_ok : layout.ok = true := by decide +kernel\n\n" ++
+          s!"end\nend {fnNs (keys.getD j "")}\n\n"))]).flatten
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
   let checked := checkedFiles infos packs (oblFnsOf semMap P) wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits
     (fun j => !kOnly && !special j)
   let kFiles := (([("Pows", powsFile T), ("GTab", gtabFile),
       ("FrameSizes", framesFile frames.toList fns[0]!.instructionCount)] ++
-      [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked
+      [("Cert", index)]).map fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ fnFiles.toList ++ checked ++ layFiles
   if kOnly then return kFiles
   let armsText ← CplK.armsFile P armRows.toList
   let (packed, cplGlue, shareGlue) := B2CPack.files infos packs special cplFns.toList shareStatics shareWins
@@ -4446,7 +4811,7 @@ noncomputable def certs : List Check.Cert :=
     sharedFiles (shareStatics.filter (special ·.1)) (shareWins.filter (special ·.1)) P.length shareSplits bigStatics shareGlue
       (fun j => infos[j]!.key) ++
     CplK.cplFiles (cplFns.toList.filter (special ·.j)) cplSplits P.length cplGlue (fun j => infos[j]!.key) ++
-    [(dataDir / "CplArms.lean", armsText)] ++ CplK.chainedFiles chainedFns.toList (fun j => infos[j]!.key) ++ packed
+    [(dataDir / "CplArms.lean", armsText)] ++ CplK.chainedFiles chainedFns.toList (fun j => infos[j]!.key) ++ packed ++ layFiles
 
 /-- `text` with the linters off after its imports, unless it turns them off itself: they find nothing
 in a generated module, and each runs in the interpreter on every declaration. -/
@@ -4479,7 +4844,8 @@ def existing : IO (List System.FilePath) := do
       for d in ← root.readDir do
         if ← d.path.isDir then
           for e in ← d.path.readDir do
-            if ["Bundle.lean", "Cert.lean", "Code.lean", "Sig.lean", "CplwOk.lean", "SharedOk.lean"].contains e.fileName ||
+            if ["Bundle.lean", "Cert.lean", "Code.lean", "Sig.lean", "CplwOk.lean", "SharedOk.lean",
+                "Layout.lean", "LayoutOk.lean"].contains e.fileName ||
                 gen "Cells" e.fileName || gen "Checked" e.fileName || gen "Cplw" e.fileName || gen "Shared" e.fileName then
               fs := fs.push e.path
   return fs.toList ++ (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName ||
