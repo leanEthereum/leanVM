@@ -245,6 +245,13 @@ impl ByteMap {
     }
 }
 
+/// `a ^ b`, word by word, a register at a time.
+#[inline]
+pub fn xor8(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    let (a, b) = (regs(a), regs(b));
+    words(std::array::from_fn(|i| v::xor(a[i], b[i])))
+}
+
 /// Every byte of `x` through `m`: one affine byte map per register.
 #[cfg(target_feature = "gfni")]
 #[inline]

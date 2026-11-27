@@ -45,6 +45,17 @@ cfg_select! {
     }
 }
 pub(crate) use backend::mul;
+
+/// `a ^ b`, word by word: in vector registers where the backend has them.
+#[inline]
+pub fn xor8(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    cfg_select! {
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq") => {
+            backend::xor8(a, b)
+        }
+        _ => std::array::from_fn(|i| a[i] ^ b[i]),
+    }
+}
 pub use backend::{
     Acc8, ByteMap, F64x8, F128x8, Wide8, clmul8_low, map_bytes, map_fields, transpose_bits, transpose_bytes,
     transpose_words,

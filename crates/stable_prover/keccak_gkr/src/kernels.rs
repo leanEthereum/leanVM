@@ -28,7 +28,7 @@ pub const ONES: u64 = {
 };
 
 pub fn xor(a: Run, b: Run) -> Run {
-    std::array::from_fn(|i| a[i] ^ b[i])
+    primitives::field::lanes::xor8(a, b)
 }
 
 /// The embeddings of the 32 packs of the eight positions from `j`: pack `q` of position `j + i` is lane `i` of
