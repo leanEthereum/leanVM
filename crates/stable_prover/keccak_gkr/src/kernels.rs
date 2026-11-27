@@ -42,10 +42,18 @@ pub fn embed_run(block: &[u64], j: usize, out: &mut [Run; PACKS]) {
     }
 }
 
+/// `primitives::multilinear::eq_table` out of line: one copy for every table.
+#[inline(never)]
+pub fn eq_table(r: &[F128]) -> Vec<F128> {
+    primitives::multilinear::eq_table(r)
+}
+
 /// A GF(2)-linear map from a byte to a field element, as one byte map per byte of the element.
 pub type FieldMap = [ByteMap; 16];
 
-/// The map sending bit `c` of a byte to `images[c]`: a byte to the sum of the images of its set bits.
+/// The map sending bit `c` of a byte to `images[c]`: a byte to the sum of the images of its set bits. Out of line:
+/// one copy for every pass.
+#[inline(never)]
 pub fn field_map(images: &[F128; 8]) -> FieldMap {
     let bytes = images.map(|w| u128::from(w).to_le_bytes());
     std::array::from_fn(|o| ByteMap::new(std::array::from_fn(|c| bytes[c][o])))

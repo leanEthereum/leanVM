@@ -7,11 +7,10 @@
 
 use primitives::field::lanes::transpose_bytes;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
-use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PACK, along};
 
-use crate::kernels::{FieldMap, field_map, map_sums};
+use crate::kernels::{FieldMap, eq_table, field_map, map_sums};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 use crate::skip::SKIP;
@@ -48,18 +47,22 @@ impl Summand {
     /// The round's values at `0` and infinity over one pair of rows, the variable being bound `0` on `low` and `1`
     /// on `high`.
     fn pair(&self, low: &[F128], high: &[F128]) -> (F128, F128) {
-        let (mut zero, mut infinity) = (Acc8::ZERO, Acc8::ZERO);
+        // At `0` the rows `low` with the constant, at infinity `low + high` without: one product site for both.
+        let mut acc = [Acc8::ZERO; 2];
         for lane in 0..BITS / 64 {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             for z in (0..64).step_by(8) {
                 let at = |v: &[F128], j: usize| F128x8::load(&v[j + z..][..8]);
                 let (w, lb, lc) = (at(&self.weights, a), at(low, b), at(low, c));
-                zero += (w * lb + at(&self.constant, a)).mul_unreduced(lc);
-                infinity += (w * (lb + at(high, b))).mul_unreduced(lc + at(high, c));
+                let x = [lb, lb + at(high, b)];
+                let y = [lc, lc + at(high, c)];
+                let constant = [at(&self.constant, a), F128x8::splat(F128::ZERO)];
+                for k in 0..2 {
+                    acc[k] += (w * x[k] + constant[k]).mul_unreduced(y[k]);
+                }
             }
         }
-        let [zero, infinity] = [zero, infinity].map(Acc8::sum);
-        (zero, infinity)
+        (acc[0].sum(), acc[1].sum())
     }
 }
 

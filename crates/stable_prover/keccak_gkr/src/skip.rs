@@ -20,11 +20,11 @@ use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low};
 use primitives::hash::positions::row_positions;
-use primitives::multilinear::{eq_table, interp, poly_eval};
+use primitives::multilinear::{interp, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 
-use crate::kernels::{PACKS, Run, embed_run, xor};
+use crate::kernels::{PACKS, Run, embed_run, eq_table, xor};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 

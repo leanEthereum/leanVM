@@ -9,11 +9,11 @@
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
 use primitives::field::{F128, powers};
-use primitives::multilinear::{eq_table, fold, poly_eval};
+use primitives::multilinear::{fold, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS, along};
 
-use crate::kernels::PACKS_LOG;
+use crate::kernels::{PACKS_LOG, eq_table};
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::skip::SKIP;
 use crate::table::{Summand, Tables};
@@ -106,7 +106,9 @@ impl<'a> Layer<'a> {
         self.segments() * self.witness.held()
     }
 
-    /// Block `g` of segment `segment`'s state, sliced: the padding block for every `g` past the written ones.
+    /// Block `g` of segment `segment`'s state, sliced: the padding block for every `g` past the written ones. Out of
+    /// line: one copy for every pass.
+    #[inline(never)]
     pub fn state(&self, segment: usize, g: usize) -> &'a [u64] {
         self.witness.layer(self.rounds[segment], g)
     }
@@ -162,43 +164,40 @@ impl Sumcheck {
 /// position, `T` being `folded`, the state at the bound pack and segment. Returns its point and `T`, `T[j + 1]` and
 /// `T[j + 2]` there.
 fn prove_positions(ps: &mut ProverState, weights: &[F128], folded: Vec<F128>, kappa: F128) -> (Vec<F128>, [F128; 3]) {
-    // `w`, then `T`, `T[j + 1]` and `T[j + 2]`, zero past the positions.
-    let mut t: [Vec<F128>; 4] = std::array::from_fn(|k| {
-        (0..1 << LOCAL_BITS)
-            .map(|j| match k {
-                _ if j >= BITS => F128::ZERO,
-                0 => weights[j],
-                _ => folded[along(j, k - 1)],
-            })
-            .collect()
-    });
+    // Per position `j`, four in a row: `w`, then `T`, `T[j + 1]` and `T[j + 2]`, zero past the positions.
+    let mut t = vec![F128::ZERO; 4 << LOCAL_BITS];
+    for (j, t) in t.as_chunks_mut::<4>().0[..BITS].iter_mut().enumerate() {
+        *t = [weights[j], folded[j], folded[along(j, 1)], folded[along(j, 2)]];
+    }
     let mut point = Vec::with_capacity(LOCAL_BITS);
     for _ in 0..LOCAL_BITS {
         ps.add_round_poly(&position_round(&t, kappa), false);
         let challenge = ps.sample();
         point.push(challenge);
-        t = t.map(|v| fold(&v, 1, challenge));
+        t = fold(&t, 4, challenge);
     }
-    (point, [t[1][0], t[2][0], t[3][0]])
+    (point, [t[1], t[2], t[3]])
 }
 
-/// The coefficients of a round of step 4 in the variable it binds, the lowest, from `w` and the three shifts of `T`.
-fn position_round(t: &[Vec<F128>; 4], kappa: F128) -> [F128; 4] {
+/// The coefficients of a round of step 4 in the variable it binds, the lowest, from rows of `w` and the three shifts
+/// of `T`.
+fn position_round(t: &[F128], kappa: F128) -> [F128; 4] {
     let mut h = [F128::ZERO; 4];
-    for i in 0..t[0].len() / 2 {
+    for pair in t.as_chunks::<8>().0 {
         // Each factor as `a + b X`.
-        let line = |v: &[F128]| [v[2 * i], v[2 * i] + v[2 * i + 1]];
-        let t1 = line(&t[2]);
+        let line = |k: usize| [pair[k], pair[k] + pair[4 + k]];
+        let t1 = line(2);
         // `kappa T[j] + (kappa + T[j + 1]) T[j + 2]`, then times the weight.
         let mut a = [F128::ZERO; 3];
-        mul_add(&mut a, &[kappa], &line(&t[1]));
-        mul_add(&mut a, &[kappa + t1[0], t1[1]], &line(&t[3]));
-        mul_add(&mut h, &line(&t[0]), &a);
+        mul_add(&mut a, &[kappa], &line(1));
+        mul_add(&mut a, &[kappa + t1[0], t1[1]], &line(3));
+        mul_add(&mut h, &line(0), &a);
     }
     h
 }
 
-/// `acc += a * b`, polynomials with their constant coefficients first.
+/// `acc += a * b`, polynomials with their constant coefficients first. Out of line: one copy for every product.
+#[inline(never)]
 fn mul_add(acc: &mut [F128], a: &[F128], b: &[F128]) {
     for (i, &a) in a.iter().enumerate() {
         for (acc, &b) in acc[i..].iter_mut().zip(b) {
