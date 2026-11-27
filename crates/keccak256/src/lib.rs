@@ -101,7 +101,8 @@ pub use lanes::{
 mod single_avx512;
 
 /// The Keccak-f\[1600\] permutation, in place: 24 rounds of θ, ρ, π, χ and ι. On AVX-512, one state in five vectors.
-#[inline]
+/// One copy for every caller: a call is nothing beside a permutation.
+#[inline(never)]
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     cfg_select! {
         all(target_arch = "x86_64", target_feature = "avx512f") => single_avx512::permute(a),
