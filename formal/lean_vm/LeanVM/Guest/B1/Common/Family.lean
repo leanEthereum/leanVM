@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Basic
 public import LeanVM.Guest.B1.Common.Find
 public import LeanVM.Guest.CoreRef
-meta import LeanVM.Guest.KernelRfl
+public import LeanVM.Guest.KernelLit
 
 /-!
 # Families of core functions
@@ -37,6 +37,13 @@ specialization's place in `js`. -/
 noncomputable def coreRunB (js : List ℕ) (name : ℕ → String) (ok : ℕ → Fn → Bool) : Bool :=
   (List.range js.length).all fun i ↦
     (coreProgram[js.getD i 0]?).any fun f ↦ f.name == name i && ok i f
+
+/-- `coreRunB` position by position: a check over large specializations can be one kernel
+evaluation each (`interval_cases i <;> decide +kernel`), so that the kernel's cache holds one. -/
+theorem coreRunB_iff {js : List ℕ} {name : ℕ → String} {ok : ℕ → Fn → Bool} :
+    coreRunB js name ok = true ↔ ∀ i < js.length,
+      (coreProgram[js.getD i 0]?).any (fun f ↦ f.name == name i && ok i f) = true := by
+  simp only [coreRunB, List.all_eq_true, List.mem_range]
 
 /-- **Each function a passing `coreRunB` checks is found by its name.** -/
 theorem coreRunB_find {js : List ℕ} {name : ℕ → String} {ok : ℕ → Fn → Bool}
