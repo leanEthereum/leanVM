@@ -160,7 +160,7 @@ theorem {name}{t} {hyp} :
 {body}
   simp (config := {{ decide := true }}) only [vtPadTable, {DATA_NAME[name]}, List.filter_cons,
     List.filter_nil, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte,
-    {'' if beta1 == '1' else 'tb_word_one, '}mul_one, add_zero]
+    {'' if beta1 == '1' else 'word_one, '}mul_one, add_zero]
 ''' + wrap([e + ',' for e in eqs[:-1]] + [eqs[-1] + ']'], '  simp only [', '    ') + ('\n' if beta1 == '1' and sum(1 for x in data if x[1] == t) <= 2 else '\n  ring\n')
         out.append(s)
     return out
