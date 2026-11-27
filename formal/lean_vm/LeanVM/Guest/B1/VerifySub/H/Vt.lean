@@ -162,7 +162,7 @@ theorem H_run (hbl : bytecode.length = 2 ^ 23) :
   · show RunsTo _ _ (S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten) _ _
     rw [← h5, show S.H.xs4 ++ S.H.bcW ++ S.H.xsR ++ S.H.evsT.flatten = S.xsT from hcur.symm]
     exact hrun
-  · rw [eE, Tables.chunks_length, vt_rowsT_length hr6]; rfl
+  · rw [eE, Tables.chunks_length, Tables.vt_rowsT_length hr6]; rfl
   · intro p hp
     rw [eE] at hp
     exact (Tables.zip_chunks S.H.rowsT (Tables.VtHonest.rowsT_fst S.H hr6) evs l153).2.2 p hp
