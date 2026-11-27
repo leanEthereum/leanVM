@@ -133,12 +133,7 @@ theorem keepF {env : Env} {top b : Word} {out : Word → Prop} {m M : MachineSta
 /-- A frame's `out` widened. -/
 theorem frame_mono {env : Env} {top : Word} {out out' : Word → Prop} {m M : MachineState}
     (h : env.Frame top out m M) (ho : ∀ b, out b → out' b) : env.Frame top out' m M :=
-  ⟨h.1, h.2.1, fun a ha => h.2.2 a fun hw => ha (by
-    rcases hw with hw | hw | hw | hw
-    · exact .inl hw
-    · exact .inr (.inl hw)
-    · exact .inr (.inr (.inl hw))
-    · exact .inr (.inr (.inr (ho a hw))))⟩
+  ⟨h.1, h.2.1, fun a ha => h.2.2 a fun hw => ha (hw.imp_right (Or.imp_right (Or.imp_right (ho a))))⟩
 
 /-- **A store into the frame below the slots** (`top - 160` to `top - 104`): `MemOk`, `NEXT` and every other word
     kept. -/
@@ -216,9 +211,7 @@ theorem DoneT.keep {env : Env} {M M' : MachineState} {P : Word} {l j lo H : Nat}
   have el : vecLen M' (P + BitVec.ofNat 64 (24 * (l + i))) = vecLen M (P + BitVec.ofNat 64 (24 * (l + i))) := by
     rw [vecLen_eq, vecLen_eq]; exact hk1 _ (by rw [e16]; omega) (by rw [e16]; omega)
   refine ⟨hF.keep hn hk1 fun b h1 h2 => hk b (.inr ?_), by rw [ep, el]; exact hfoot⟩
-  rcases hfoot with h0 | ⟨h3, h4⟩
-  · omega
-  · omega
+  omega
 
 /-- `DoneT`'s bound only grows. -/
 theorem DoneT.mono {env : Env} {M : MachineState} {P : Word} {l j lo H H' : Nat} (h : DoneT env M P l j lo H)
@@ -277,9 +270,7 @@ theorem FormT.store_top {env : Env} {M : MachineState} {a s v top : Word} (h : F
   have ne : ∀ b : Word, b.toNat < (env.next M).toNat → (M.setMem s v).getMem b = M.getMem b := fun b hb =>
     MachineState.getMem_setMem_ne fun e => by rw [e] at hb; omega
   refine h.keep (by rw [Tactic.next_setMem hn]) (fun b _ h2 => ne b (by omega)) fun b _ h2 => ne b ?_
-  rcases h.foot with h0 | ⟨-, h3, -⟩
-  · omega
-  · omega
+  have := h.foot; omega
 
 /-- The registers the return reads: the stack pointer and the header. -/
 def XRegs (top : Word) (regs R : Reg → Word) : Prop :=
@@ -348,9 +339,7 @@ theorem exit_post {env : Env} {m M : MachineState} {top ret : Word} {regs : Reg 
     refine hFk.keep (by rw [hN]; omega) (fun b h1 h2 => hkM b ?_ ?_) fun b h1 h2 => hkM b ?_ ?_
     · rw [e] at h2; omega
     · rw [e] at h2; unfold spareLo; omega
-    · rcases hFk.foot with h0 | ⟨-, h3, -⟩
-      · omega
-      · omega
+    · have := hFk.foot; omega
     · rcases hTA k hk with h0 | h3 | h3
       · omega
       · unfold spareLo at h3 ⊢; omega
@@ -402,9 +391,7 @@ theorem exit_post {env : Env} {m M : MachineState} {top ret : Word} {regs : Reg 
         · omega
         · exact .inr (.inr (by omega))
   · rw [eidx]
-    rcases (hnew k hk).2 with h0 | ⟨h3, h4⟩
-    · exact .inl h0
-    · exact .inr ⟨h3, by rw [hN]; exact h4⟩
+    exact (hnew k hk).2.imp_right fun ⟨h3, h4⟩ => ⟨h3, by rw [hN]; exact h4⟩
 
 set_option rv_sym.heap true in
 /-- **The return**, from instruction 206: the new length stored at `a0 + 16`, the saved registers. -/

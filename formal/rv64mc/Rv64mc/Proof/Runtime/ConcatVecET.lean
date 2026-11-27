@@ -292,9 +292,7 @@ theorem tail2 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
       have hp8 : vecPtr M (top + 18446744073709551536#64) = M.getMem (top + 18446744073709551544#64) := by
         rw [vecPtr_eq, BitVec.add_assoc]; rfl
       rw [vecCap_eq, hp8] at hcap
-      rcases hcap with h | h
-      · exact .inl h
-      · exact .inr (.inl (by omega))
+      exact hcap.imp_right fun h => .inl (by omega)
   · have e8' : (top + 18446744073709551536#64).toNat + 24 ≤ top.toNat - 56 := by rw [e80]; omega
     have hcap' : (vecCap M (top + 18446744073709551536#64)).toNat = 0 ∨
         (env.next m).toNat ≤ (vecPtr M (top + 18446744073709551536#64)).toNat := hcap
@@ -439,9 +437,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
       ((hdr M top (R .x20) (R .x10)).getMem (rvCapAt (top + 18446744073709551536#64)))
       ((hdr M top (R .x20) (R .x10)).getMem (rvPtrAt (top + 18446744073709551536#64))) 16
     rw [r0, r8]
-    rcases hBn with h | ⟨h1, h3, h4⟩
-    · exact .inl h
-    · exact .inr ⟨h1, by unfold Env.Live; rw [hnx]; omega, h4⟩
+    exact hBn.imp_right fun ⟨h1, h3, h4⟩ => ⟨h1, by unfold Env.Live; rw [hnx]; omega, h4⟩
   · show ((hdr M top (R .x20) (R .x10)).getMem (rvCapAt (top + 18446744073709551536#64))).toNat * 16 < 2 ^ 63
     rw [r0]; exact hn16
   · rw [q0']
@@ -449,9 +445,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
     · exact .inl (by omega)
     · refine .inr ⟨by rw [inWindow_iff]; omega, by unfold OffStack; rw [CloneT.toNat_add_neg (k := 80) rfl (by omega)]; omega,
         .inl (by omega), ?_⟩
-      rcases hB with h | ⟨⟨h5, -⟩, -⟩
-      · exact .inl h
-      · exact .inr (.inl (by omega))
+      exact hB.imp_right fun ⟨⟨h5, _⟩, _⟩ => .inl (by omega)
   · have e80 : (top + 18446744073709551536#64).toNat = top.toNat - 80 := CloneT.toNat_add_neg (k := 80) rfl (by omega)
     rw [rvCapAt_eq] at r0
     rw [rvPtrAt_eq] at r8
@@ -461,10 +455,8 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
       Tactic.frame_slot (Tactic.frame_slot (Tactic.frame_slot hF (by omega) (by omega)) (by omega) (by omega))
         (by omega) (by omega)
     have hbufc : (R .x20).toNat = 0 ∨ ((env.next m).toNat ≤ (R .x10).toNat ∧
-        (R .x10).toNat + (R .x20).toNat * 16 ≤ (env.next M).toNat) := by
-      rcases hB with h | ⟨⟨h5, h6⟩, -⟩
-      · exact .inl h
-      · exact .inr ⟨h5, by omega⟩
+        (R .x10).toNat + (R .x20).toNat * 16 ≤ (env.next M).toNat) :=
+      hB.imp_right fun ⟨⟨h5, h6⟩, _⟩ => ⟨h5, by omega⟩
     have hmay : ∀ r' : Reg → Word, r' .x10 = top + 18446744073709551536#64 → ∀ b : Word,
         SpecExtendT.OutT r' (hdr M top (R .x20) (R .x10)) b → env.MayWrite top Tactic.F m m1 b := fun r' hr b ho => by
       unfold SpecExtendT.OutT at ho
@@ -516,9 +508,7 @@ theorem tail {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
         (env.next m).toNat ≤ (vecPtr m1 (top + 18446744073709551536#64)).toNat := by
       rcases hret1_23 with ⟨hc1, hp1⟩ | ⟨h7, -⟩
       · rw [hc1, hp1, vecPtr_eq, vecCap_eq, r0, r8]
-        rcases hbufc with h6 | h6
-        · exact .inl h6
-        · exact .inr h6.1
+        exact hbufc.imp_right And.left
       · exact .inr (by rw [hnx] at h7; omega)
     exact ht2 _ _ ⟨rfl, rfl, rfl, rfl, hV1, hlen1, hcap1, ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, hsl1, hF1, hret1_15,
       hret1_24.trans (by simp only [MachineState.code_setMem]; exact hc)⟩

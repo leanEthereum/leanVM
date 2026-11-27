@@ -299,9 +299,7 @@ theorem after_call {env : Env} {m M m1 : MachineState} {top ret : Word} {regs r'
         · rw [h6] at ho; omega
         · exact .inr ⟨by omega, by omega, by omega⟩
   have hF1 : env.Frame top Tactic.F m m1 := hF.trans h14 (by rw [e80]; omega) fun b ho => by
-    rcases hout b ho with ⟨h1, h3⟩ | ⟨-, h1, h3⟩
-    · exact .inl ⟨by omega, by omega⟩
-    · exact .inr (.inl ⟨h1, by omega⟩)
+    exact (hout b ho).imp (fun ⟨h1, h3⟩ => ⟨by omega, by omega⟩) fun ⟨_, h1, h3⟩ => .inl ⟨h1, by omega⟩
   refine ⟨hF1, ?_, ?_⟩
   · obtain ⟨t1, t2, t3, t4, t5, t6⟩ := hsl
     have g : ∀ c : Word, ∀ k, c.toNat + k = 2 ^ 64 → 0 < k → k ≤ 48 →
@@ -386,11 +384,7 @@ theorem loop2 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
       rcases hbM with h0 | ⟨-, h5, -⟩
       · exact .inl h0
       · unfold Env.Live at h5
-        rcases hcap with h6 | h6
-        · exact .inl h6
-        · rcases h4 with h4 | h4
-          · exact .inr (.inl (by omega))
-          · exact .inr (.inr (by omega))
+        exact hcap.imp_right fun h6 => h4.imp (fun h => by omega) fun h => by omega
   · obtain ⟨hF1, hsl1, hcap1⟩ := after_call hlim hF hsl hV hcap hret1_14 keep1_1 hret1_23 rfl
     have hV1 : VecT env m1 (top + 18446744073709551544#64) 16 :=
       ⟨hret1_16, ⟨hret1_17, hret1_18, hret1_19, hret1_20⟩, hret1_21⟩
@@ -467,14 +461,10 @@ theorem hdr_ok {env : Env} {m M : MachineState} {top ret c B : Word} {regs : Reg
   refine ⟨⟨hw, ⟨.inr ⟨by omega, by simp only [Layouts.RawVecInner.byteSize]; omega⟩, by omega, ?_, ?_⟩, ?_⟩,
     by rw [hlen]; rfl, ?_, ?_, ?_, ?_⟩
   · rw [rvCapAt_eq, rvPtrAt_eq, ← vecCap_eq, ← vecPtr_eq, hcap, hptr]
-    rcases hB with h0 | ⟨⟨h1, h2⟩, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨by omega, by unfold Env.Live; rw [hN]; omega, h3⟩
+    exact hB.imp_right fun ⟨⟨h1, h2⟩, h3⟩ => ⟨by omega, by unfold Env.Live; rw [hN]; omega, h3⟩
   · rw [rvCapAt_eq, ← vecCap_eq, hcap]; omega
   · rw [hlen, hcap]; simp
-  · rw [hcap, hptr]; rcases hB with h0 | ⟨⟨h1, -⟩, -⟩
-    · exact .inl h0
-    · exact .inr h1
+  · rw [hcap, hptr]; exact hB.imp_right fun ⟨⟨h1, _⟩, _⟩ => h1
   · obtain ⟨t1, t2, t3, t4, t5, t6⟩ := hsl
     have q : ∀ d : Word, ∀ k, d.toNat + k = 2 ^ 64 → 0 < k → k ≤ 48 →
         (hdr M top c B).getMem (top + d) = M.getMem (top + d) := fun d k hc hk0 hk => by

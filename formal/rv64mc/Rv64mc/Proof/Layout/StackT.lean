@@ -190,9 +190,7 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
       hlim rfl hown hwin hsl hF hS hc
     refine ⟨f, t, n, Runtime.VecHdrT.post_ok (Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by omega)) hal r0
       r8 r16 ?_ hn16⟩
-    rcases hP with h0 | ⟨h1, h3, h4, h5⟩
-    · exact .inl h0
-    · exact .inr ⟨h1, h3, by rw [n]; omega, h5⟩
+    exact hP.imp_right fun ⟨h1, h3, h4, h5⟩ => ⟨h1, h3, by rw [n]; omega, h5⟩
   have hR := And.intro hR2 (And.intro hR8 (And.intro hR9 (And.intro hR10 hsv)))
   have hnm := hF.1
   have hnM := hF.2.1
@@ -580,10 +578,8 @@ theorem hdr_ok {env : Env} {m M : MachineState} {top ret c P : Word} {regs : Reg
   have hlen : vecLen (hdr M top c P) (top + 18446744073709551512#64) = 0#64 := by rw [vecLen_eq, p16, r16]
   have hrc : (hdr M top c P).getMem (rvCapAt (top + 18446744073709551512#64)) = c := by rw [rvCapAt_eq, r0]
   have hrp : (hdr M top c P).getMem (rvPtrAt (top + 18446744073709551512#64)) = P := by rw [rvPtrAt_eq, p8, r8]
-  have hbuf : BufT env (hdr M top c P) c P 8 := by
-    rcases hP with h0 | ⟨h1, h2, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨by omega, by unfold Env.Live; rw [hN]; omega, h2⟩
+  have hbuf : BufT env (hdr M top c P) c P 8 :=
+    hP.imp_right fun ⟨h1, h2, h3⟩ => ⟨by omega, by unfold Env.Live; rw [hN]; omega, h2⟩
   refine ⟨⟨.inr ⟨by omega, by simp only [Layouts.Vec.byteSize]; omega⟩,
     ⟨.inr ⟨by omega, by simp only [Layouts.RawVecInner.byteSize]; omega⟩, by omega, by rw [hrc, hrp]; exact hbuf,
       by rw [hrc]; exact hc8⟩, by rw [hlen, hcap]; simp⟩, by rw [hrc, hrp]; exact hbuf.live, hcap, hptr, hlen,
@@ -815,9 +811,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
     refine h86 _ _ ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, hn8, rfl, ?_, hsl2, hF2, hret2_15,
       hret2_19.trans hc1⟩
     simp only [Tactic.rf]
-    rcases hB with h0 | ⟨h1, h2, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨h1, h2, by omega, by omega, hret2_17, by omega⟩
+    exact hB.imp_right fun ⟨h1, h2, h3⟩ => ⟨h1, h2, by omega, by omega, hret2_17, by omega⟩
 
 end Rv64mc.Proof.Layout.StackT
 

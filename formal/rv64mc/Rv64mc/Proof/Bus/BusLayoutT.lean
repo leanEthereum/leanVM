@@ -229,10 +229,8 @@ theorem hdr_ok {env : Env} {m M : MachineState} {top ret c P : Word} {regs : Reg
   have hlen : vecLen (hdr M top c P) (top + 18446744073709551504#64) = 0#64 := by rw [vecLen_eq, p16, r16]
   have hrc : (hdr M top c P).getMem (rvCapAt (top + 18446744073709551504#64)) = c := by rw [rvCapAt_eq, r0]
   have hrp : (hdr M top c P).getMem (rvPtrAt (top + 18446744073709551504#64)) = P := by rw [rvPtrAt_eq, p8, r8]
-  have hbuf : BufT env (hdr M top c P) c P 8 := by
-    rcases hP with h0 | ⟨h1, h2, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨h1, by unfold Env.Live; rw [hN]; omega, h2⟩
+  have hbuf : BufT env (hdr M top c P) c P 8 :=
+    hP.imp_right fun ⟨h1, h2, h3⟩ => ⟨h1, by unfold Env.Live; rw [hN]; omega, h2⟩
   refine ⟨⟨.inr ⟨by omega, by simp only [Layouts.Vec.byteSize]; omega⟩,
     ⟨.inr ⟨by omega, by simp only [Layouts.RawVecInner.byteSize]; omega⟩, by omega, by rw [hrc, hrp]; exact hbuf,
       by rw [hrc]; exact hc8⟩, by rw [hlen, hcap]; simp⟩, by rw [hrc, hrp]; exact hbuf.live, hcap, hptr, hlen,
@@ -282,10 +280,8 @@ theorem at54 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   have e96 := g 18446744073709551520#64 96 rfl (by omega)
   rw [hR18] at hn hn30 hP
   have hP0 : (regs .x14 + regs .x12).toNat = 0 ∨ (0x10000000 ≤ (R .x10).toNat ∧ (R .x10).toNat % 8 = 0 ∧
-      (R .x10).toNat + 8 * (regs .x14 + regs .x12).toNat ≤ (env.next M).toNat) := by
-    rcases hP with h0 | ⟨h1, -, h2, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨h1, h2, h3⟩
+      (R .x10).toNat + 8 * (regs .x14 + regs .x12).toNat ≤ (env.next M).toNat) :=
+    hP.imp_right fun ⟨h1, _, h2, h3⟩ => ⟨h1, h2, h3⟩
   obtain ⟨hV3, hlv3, hcap3, hptr3, hlen3, hM3, hN3⟩ :=
     hdr_ok (ret := ret) (regs := regs) hlim h16 hW hM (by omega) hP0
   simp only [hdr] at hV3 hlv3 hcap3 hptr3 hlen3 hM3 hN3
@@ -370,9 +366,7 @@ theorem at74 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   · rw [hs]
     refine .inr ⟨.inl ⟨by omega, by omega⟩, .inl (by omega), by rw [inWindow_iff]; omega, ?_⟩
     unfold OffStack
-    rcases hs2 with h | h
-    · exact .inl h
-    · exact .inr (by rw [e112]; omega)
+    exact hs2.imp_right fun h => by rw [e112]; omega
   · have hM1 := memOk_call hlim hM hret1_14 hret1_15 hret1_19 fun b hb => .inl (by
       have := Runtime.VecHdrT.copyOut_in (P := R .x19) (by exact rfl) (by exact hs) hP3 hb
       have := hret1_14.1
@@ -753,9 +747,7 @@ theorem at190 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
     refine h214 _ _ ⟨rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, hsub, hsub, ?_, h21, hn30, ?_, ?_, hret1_17, hM1⟩ <;>
       simp only [Tactic.rf]
     · rw [hsub, hs4]
-    · rcases hQ with h0 | ⟨h1, h2, h3, h4⟩
-      · exact .inl h0
-      · exact .inr ⟨h1, h2, h3, by omega⟩
+    · exact hQ.imp_right fun ⟨h1, h2, h3, h4⟩ => ⟨h1, h2, h3, by omega⟩
     · rcases Nat.eq_zero_or_pos (regs .x14).toNat with h0 | h0
       · exact .inl h0
       · obtain ⟨h1, h2, h3, h4⟩ := hQ.resolve_left (by omega)
@@ -827,9 +819,7 @@ theorem at214 {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[
       · omega)
     have hn1 := hret1_14.1
     refine h226 _ _ ⟨rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, rfl, rfl, h21, hn30, ?_, ?_, hM1⟩ <;> simp only [Tactic.rf]
-    · rcases hQ with h0 | ⟨h1, h2, h3, h4⟩
-      · exact .inl h0
-      · exact .inr ⟨h1, h2, h3, by omega⟩
+    · exact hQ.imp_right fun ⟨h1, h2, h3, h4⟩ => ⟨h1, h2, h3, by omega⟩
     · rcases hT with h0 | ⟨-, h2, h3, h4⟩
       · exact .inl h0
       · exact .inr ⟨by omega, h2, h3, by omega⟩
@@ -846,9 +836,7 @@ theorem vecT_of {env : Env} {X : MachineState} {a c P l : Word} (hwin : InWin en
     hal, ?_, by rw [hc, h0]; exact hn⟩, by rw [vecLen_eq, vecCap_eq, h0, h16]; exact hl⟩, by rw [vecLen_eq, h16],
     by rw [vecPtr_eq, h8]⟩
   rw [hc, hp, h0, h8]
-  rcases hP with h | ⟨h1, h3, h4⟩
-  · exact .inl h
-  · exact .inr ⟨h1, by unfold Env.Live; omega, h4⟩
+  exact hP.imp_right fun ⟨h1, h3, h4⟩ => ⟨h1, by unfold Env.Live; omega, h4⟩
 
 /-- The result's seven stores at `h`, in the code's order. -/
 abbrev res (M : MachineState) (h v32 v40 v48 v0 v8 v16 v24 : Word) : MachineState :=
@@ -954,10 +942,7 @@ theorem fin {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i]
         · exact .inr ⟨h1, by rw [n]; omega, h3⟩)
     obtain ⟨v2, l2, q2⟩ := vecT_of (env := env) (c := regs .x14) (P := R .x18) (l := regs .x14)
       (Runtime.MemsetT.InWin.sub hwin (by omega) (by omega)) (by omega) r24 (by rw [p32, r32]) (by rw [p40, r40])
-      (Nat.le_refl _) (by omega) (by
-        rcases hT with h0 | ⟨h1, -, h3, h4⟩
-        · exact .inl h0
-        · exact .inr ⟨h1, by rw [n]; omega, h3⟩)
+      (Nat.le_refl _) (by omega) (hT.imp_right fun ⟨h1, _, h3, h4⟩ => ⟨h1, by rw [n]; omega, h3⟩)
     refine ⟨f, t, v1.2.1.2.2.1, v1.2.1.2.2.2, ?_, v2.2.1.2.2.1, v2.2.1.2.2.2, ?_⟩
     · rcases Nat.eq_zero_or_pos (regs .x12).toNat with h0 | h0
       · exact .inl h0

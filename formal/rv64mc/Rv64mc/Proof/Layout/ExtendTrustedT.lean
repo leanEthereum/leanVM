@@ -137,9 +137,14 @@ theorem VecFormT.foot_lt {env : Env} {m : MachineState} {a b : Word} (h : VecFor
   · rcases (vecT_buf h.1).1 with h0 | ⟨-, h3, -⟩
     · omega
     · unfold Env.Live at h3; omega
-  · rcases (h.2 i hi).foot with h0 | ⟨-, h3, -⟩
-    · omega
-    · omega
+  · have := (h.2 i hi).foot; omega
+
+/-- A `Vec<Form>`'s `Form` headers lie in its footprint, and do not wrap. -/
+theorem VecFormT.buf_lt {env : Env} {m : MachineState} {a : Word} (h : VecFormT env m a) :
+    (vecPtr m a).toNat + 24 * (vecLen m a).toNat < 2 ^ 64 := by
+  rcases (vecT_buf h.1).1 with h0 | ⟨-, h3, -⟩
+  · rw [h0]; have := (vecPtr m a).isLt; omega
+  · unfold Env.Live at h3; have := (env.next m).isLt; omega
 
 /-- **A `Vec<Form>` is kept** by a memory agreeing on its header and its footprint, `NEXT` no lower. -/
 theorem VecFormT.keep {env : Env} {m M : MachineState} {a : Word} (h : VecFormT env m a)
@@ -153,15 +158,11 @@ theorem VecFormT.keep {env : Env} {m M : MachineState} {a : Word} (h : VecFormT 
   have el : vecLen M a = vecLen m a := by
     rw [vecLen_eq, vecLen_eq]; exact hh _ (by rw [toNat_add_ofNat (by omega)]; omega)
       (by rw [toNat_add_ofNat (by omega)]; omega)
-  have hbuf := (vecT_buf h.1).1
   refine ⟨vecT_keep h.1 hn hh, ?_⟩
   rw [ep, el]
   intro i hi
   have hF := h.2 i hi
-  have hl2 : (vecPtr m a).toNat + 24 * (vecLen m a).toNat < 2 ^ 64 := by
-    rcases hbuf with h0 | ⟨-, h3, -⟩
-    · omega
-    · unfold Env.Live at h3; have := env.heapEnd.isLt; have := hn; have := (env.next m).isLt; omega
+  have hl2 := VecFormT.buf_lt h
   have e : (vecPtr m a + BitVec.ofNat 64 (24 * i)).toNat = (vecPtr m a).toNat + 24 * i := toNat_add_ofNat (by omega)
   exact hF.keep hn (fun b h1 h2 => hf b (.inl ⟨by omega, by omega⟩)) fun b h1 h2 => hf b (.inr ⟨i, hi, h1, h2⟩)
 
@@ -175,15 +176,11 @@ theorem VecFormT.move {env : Env} {m M : MachineState} {a b : Word} (h : VecForm
     VecFormT env M b ∧ vecPtr M b = vecPtr m a ∧ vecLen M b = vecLen m a := by
   have ep : vecPtr M b = vecPtr m a := by rw [vecPtr_eq, vecPtr_eq, h8]
   have el : vecLen M b = vecLen m a := by rw [vecLen_eq, vecLen_eq, h16]
-  have hbuf := (vecT_buf h.1).1
   refine ⟨⟨vecT_copy h.1 hw hal hn h0 h8 h16, ?_⟩, ep, el⟩
   rw [ep, el]
   intro i hi
   have hF := h.2 i hi
-  have hl2 : (vecPtr m a).toNat + 24 * (vecLen m a).toNat < 2 ^ 64 := by
-    rcases hbuf with h0 | ⟨-, h3, -⟩
-    · omega
-    · unfold Env.Live at h3; have := env.heapEnd.isLt; have := hn; have := (env.next m).isLt; omega
+  have hl2 := VecFormT.buf_lt h
   have e : (vecPtr m a + BitVec.ofNat 64 (24 * i)).toNat = (vecPtr m a).toNat + 24 * i := toNat_add_ofNat (by omega)
   exact hF.keep hn (fun x h1 h2 => hf x (.inl ⟨by omega, by omega⟩)) fun x h1 h2 => hf x (.inr ⟨i, hi, h1, h2⟩)
 
@@ -214,13 +211,6 @@ theorem InFoot.of_eq {m M : MachineState} {a b x : Word} (hp : vecPtr M b = vecP
     rw [p8] at h1 h2
     rw [p16] at h2
     exact .inr ⟨i, hi, h1, h2⟩
-
-/-- A `Vec<Form>`'s `Form` headers lie in its footprint, and do not wrap. -/
-theorem VecFormT.buf_lt {env : Env} {m : MachineState} {a : Word} (h : VecFormT env m a) :
-    (vecPtr m a).toNat + 24 * (vecLen m a).toNat < 2 ^ 64 := by
-  rcases (vecT_buf h.1).1 with h0 | ⟨-, h3, -⟩
-  · rw [h0]; have := (vecPtr m a).isLt; omega
-  · unfold Env.Live at h3; have := (env.next m).isLt; omega
 
 /-- **A `Vec<Form>` whose header's words were copied** from `a` to `b`, its footprint kept: the same footprint, and
     whatever avoids or contains it still does. -/
@@ -494,9 +484,7 @@ theorem exit_post {env : Env} {m M : MachineState} {top ret P1 C1 v : Word} {reg
       unfold InRange; simp only [Layouts.Vec.byteSize]; rw [e16]; omega)) hn16,
     Tactic.static_store hS (.inr (by rw [e16]; omega)), hBlk, by unfold bufHi; rw [eptr, ecap]⟩
   · rw [rvCapAt_eq, rvPtrAt_eq, r0, r8]
-    rcases hb1 with h0 | ⟨h1, h2, h3⟩
-    · exact .inl h0
-    · exact .inr ⟨h1, by unfold Env.Live; rw [hN]; omega, h3⟩
+    exact hb1.imp_right fun ⟨h1, h2, h3⟩ => ⟨h1, by unfold Env.Live; rw [hN]; omega, h3⟩
   · rw [rvCapAt_eq, r0]; exact hb48
   · unfold KeptOrFresh
     rw [eptr, ecap]
@@ -903,9 +891,7 @@ theorem loop {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
       · omega
       · omega
     · rw [hret1_22] at hi'
-      rcases hret1_25 i' hi' with h0 | ⟨h3, h4⟩
-      · omega
-      · omega
+      have := hret1_25 i' hi'; omega
   exact hbd _ _ ⟨rfl, rfl, rfl, rfl, rfl, hR18, hR19, rfl, rfl⟩ hjk h22 h23 hM1 hv hfoot
 
 /-- **A doubleword moved by a grow**: the new block at `P1` holds the old block's bytes at `P`. -/
