@@ -60,6 +60,7 @@ impl Folded {
         Self { coefs, len, stride }
     }
 
+    #[inline(never)]
     pub(crate) fn count(&self) -> usize {
         self.coefs.len() / self.stride
     }
@@ -86,6 +87,7 @@ pub(crate) enum Lanes {
 }
 
 impl Lanes {
+    #[inline(never)]
     fn count(&self) -> usize {
         match self {
             Lanes::Stack { words, len } => words.len() / len,

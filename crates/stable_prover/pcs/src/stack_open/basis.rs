@@ -62,6 +62,7 @@ fn table(factors: &[Factor]) -> Vec<F128> {
 
 /// The factors on the low `bits` bits of the stack index of a claim at `point`, placed at `offset`: `eq(p, bit)` on
 /// the point's coordinates, then the offset's bits.
+#[inline(never)]
 fn point_factors(point: &[F128], offset: usize, bits: usize) -> Vec<Factor> {
     (0..bits)
         .map(|b| match point.get(b) {
