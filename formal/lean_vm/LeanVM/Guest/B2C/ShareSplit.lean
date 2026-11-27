@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.B2C.ShareSound
 public import LeanVM.Guest.CheckSplit
-import LeanVM.Guest.StmtsAppend
 
 /-!
 # Sharing windows split by arms
@@ -565,7 +564,7 @@ theorem mem_tmpsArms {x : V} : ∀ {as : List (List Stmt)}, x ∈ Memory.Stmt.tm
 
 /-- The values a window of one `match` names: the selector's, or arm `e`'s. -/
 theorem mem_vals_match {x : V} {a0 : List Stmt} {as : List (List Stmt)} {v : V} :
-    v ∈ Memory.Stmt.usesList [.match_ x (a0 :: as)] ⧺ Memory.Stmt.tmpsList [.match_ x (a0 :: as)] ↔
+    v ∈ Memory.Stmt.usesList [.match_ x (a0 :: as)] ++ Memory.Stmt.tmpsList [.match_ x (a0 :: as)] ↔
       v = x ∨ ∃ e, ∃ he : e < (a0 :: as).length,
         v ∈ Memory.Stmt.usesList (a0 :: as)[e] ++ Memory.Stmt.tmpsList (a0 :: as)[e] := by
   simp only [Memory.Stmt.usesList, Memory.Stmt.tmpsList, Memory.Stmt.uses, Memory.Stmt.tmps,
