@@ -2,16 +2,39 @@
 # `formal/extraction/hax.sh extract` into proofs/keccak256/lean.
 [scenario.keccak256]
 backend = "lean"
+exclude = [
+  # The multi-way permutation: the vector lane types, one module per instruction set, and what
+  # only they are for, the batching generic over a lane type. The permutation itself is extracted,
+  # for the one lane type every host has, `u64`.
+  "crate::lanes::arm",
+  "crate::lanes::x86",
+  "crate::lanes::Batch",
+  "{impl crate::lanes::Batch for _}",
+  "crate::lanes::absorb_by_lane",
+  "crate::lanes::digests_by_lane",
+  "crate::lanes::gather",
+  "crate::lanes::splat_all",
+  "crate::lanes::scatter",
+  "crate::lanes::lanes_with",
+  "crate::lanes::keccak_f_many_with",
+  "crate::lanes::first_nonce_with",
+  "crate::lanes::hash_many_with",
+  "crate::lanes::hash_group",
+  "crate::lanes::digest_halves_with",
+  "crate::lanes::permute_first_row",
+]
 opaque = [
-  # The multi-way permutation: one body over a `Lanes` type per instruction set, chosen under
-  # `cfg(target_arch)`, so it differs between hosts (formal/extraction/LIMITATIONS.md). Excluding
-  # the per-architecture modules alone crashes Aeneas (`Not_found` in its function analysis).
-  "crate::lanes",
+  # The batched entry points: each picks a lane type under `cfg(target_arch)` and the CPU's
+  # features, so its body differs between hosts (formal/extraction/LIMITATIONS.md).
+  "crate::lanes::lanes",
+  "crate::lanes::keccak_f_many",
+  "crate::lanes::first_nonce",
+  "crate::lanes::hash_many",
+  "crate::lanes::hash_many_from_state",
+  "crate::lanes::digest_halves_from",
 
   # Not yet triaged: left here by repair.py with what Aeneas or Lean reported. Each is to be
   # patched, modelled, or reduced to a reportable case.
-  "crate::absorb",  # Aeneas: unimplemented
-  "crate::digest_of",  # Aeneas: unimplemented
   "crate::final_state",  # Aeneas: unimplemented
   "crate::hash_from_state",  # Lean: unknown identifier `core.slice.slice.as_chunks`
 ]

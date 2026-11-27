@@ -1,0 +1,208 @@
+diff --git a/crates/keccak256/src/lanes.rs b/crates/keccak256/src/lanes.rs
+--- a/crates/keccak256/src/lanes.rs
++++ b/crates/keccak256/src/lanes.rs
+@@ -37,30 +37,39 @@
+     fn theta_d(c_prev: Self, c_next: Self) -> Self {
+         c_prev.xor(c_next.rotl::<1>())
+     }
++}
+ 
++/// What hashing several inputs at once asks of a [`Lane`]: their words in, and their digests out.
++pub(crate) trait Batch: Lane {
+     /// XOR the `words` little-endian words of every input from byte `at` on into `st[..words]`, input `l` at
+     /// `inputs[l * len..]`.
+-    #[inline(always)]
+-    fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+-        for (w, lane) in st[..words].iter_mut().enumerate() {
+-            *lane = lane.xor(gather(|l| {
+-                u64::from_le_bytes(*inputs[l * len + at + 8 * w..].first_chunk().unwrap())
+-            }));
+-        }
+-    }
++    fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize);
+ 
+     /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
+-    #[inline(always)]
+-    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
+-        let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
+-        for (words, &lane) in words.iter_mut().zip(st) {
+-            *words = scatter(lane);
++    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]);
++}
++
++/// [`Lane::absorb`] for a lane type with no instructions of its own for it.
++#[inline(always)]
++fn absorb_by_lane<S: Lane>(st: &mut [S; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
++    for (w, lane) in st[..words].iter_mut().enumerate() {
++        *lane = lane.xor(gather(|l| {
++            u64::from_le_bytes(*inputs[l * len + at + 8 * w..].first_chunk().unwrap())
++        }));
++    }
++}
++
++/// [`Lane::digests`] for a lane type with no instructions of its own for it.
++#[inline(always)]
++fn digests_by_lane<S: Lane>(st: &[S; STATE_LANES], out: &mut [u8]) {
++    let mut words = [[0; MAX_WIDTH]; OUT_LEN / 8];
++    for (words, &lane) in words.iter_mut().zip(st) {
++        *words = scatter(lane);
++    }
++    for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
++        for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
++            *bytes = words[w][l].to_le_bytes();
+         }
+-        for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
+-            for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+-                *bytes = words[w][l].to_le_bytes();
+-            }
+-        }
+     }
+ }
+ 
+@@ -115,8 +124,8 @@
+ #[inline(always)]
+ fn theta<S: Lane>(c: &[S; 5]) -> [S; 5] {
+     let mut d = *c;
+-    for (x, d) in d.iter_mut().enumerate() {
+-        *d = S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]);
++    for x in 0..5 {
++        d[x] = S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]);
+     }
+     d
+ }
+@@ -201,7 +210,7 @@
+ /// from where π takes them, then χ, then the row is stored and folded into the next round's column parities. A row
+ /// at a time keeps about sixteen values live, which fits AVX2's sixteen registers, where forming all twenty-five lanes
+ /// before χ spills.
+-#[cfg(target_arch = "x86_64")]
++#[cfg(any())]
+ #[inline(always)]
+ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+     let mut c = parities(a);
+@@ -214,7 +223,7 @@
+ 
+ /// [`permute`] where only the first row of the result is read, as a digest, a grind's lane or a challenge reads it:
+ /// lanes `0..5` come out permuted, the others are left stale. The last round computes that row alone.
+-#[cfg(target_arch = "x86_64")]
++#[cfg(any())]
+ #[inline(always)]
+ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+     let mut c = parities(a);
+@@ -229,7 +238,7 @@
+ 
+ /// One round from `a` into the first `ROWS` rows of `out`, `c` holding the column parities of `a` on entry and, for a
+ /// whole round, of `out` on exit.
+-#[cfg(target_arch = "x86_64")]
++#[cfg(any())]
+ #[inline(always)]
+ fn round<S: Lane, const ROWS: usize>(a: &[S; STATE_LANES], out: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
+     let d = theta(c);
+@@ -254,11 +263,11 @@
+ /// ρ and π are written by output row, χ takes the rows in turn, and the next round's column parities accumulate from
+ /// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it. With 32
+ /// vector registers (NEON) nothing spills, and the x86 form's second state only adds loads and stores.
+-#[cfg(not(target_arch = "x86_64"))]
+ #[inline(always)]
+ pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
+     let mut c = parities(a);
+-    for &rc in &RC {
++    for round in 0..RC.len() {
++        let rc = RC[round];
+         let d = theta(&c);
+         let rows = [
+             pi_row(a, &d, 0),
+@@ -274,7 +283,6 @@
+ }
+ 
+ /// The whole [`permute`]: every lane comes out permuted, which covers the first row the callers read.
+-#[cfg(not(target_arch = "x86_64"))]
+ #[inline(always)]
+ pub(crate) fn permute_first_row<S: Lane>(a: &mut [S; STATE_LANES]) {
+     permute(a);
+@@ -307,7 +315,18 @@
+     #[inline(always)]
+     fn chi(a: Self, b: Self, c: Self) -> Self {
+         a ^ (!b & c)
++    }
++}
++
++impl Batch for u64 {
++    #[inline(always)]
++    fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
++        absorb_by_lane(st, inputs, len, at, words)
+     }
++    #[inline(always)]
++    fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
++        digests_by_lane(st, out)
++    }
+ }
+ 
+ /// Whether the CPU runs target feature `$f`: the OS's answer with `std`, else whether the build enables it.
+@@ -455,7 +474,7 @@
+ 
+ /// [`hash_many_from_state`] on backend `S`, [`Lane::WIDTH`] inputs at a time and the remainder one at a time.
+ #[inline(always)]
+-fn hash_many_with<S: Lane>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
++fn hash_many_with<S: Batch>(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+     let n = out.len() / OUT_LEN;
+     for (g, digests) in out.chunks_exact_mut(S::WIDTH * OUT_LEN).enumerate() {
+         hash_group::<S>(&data[g * S::WIDTH * len..][..S::WIDTH * len], len, state, digests);
+@@ -467,7 +486,7 @@
+ 
+ /// The digests of [`Lane::WIDTH`] inputs of `len` bytes, input `l` at `inputs[l * len..]`.
+ #[inline(always)]
+-fn hash_group<S: Lane>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
++fn hash_group<S: Batch>(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
+     let mut st = splat_all::<S>(state);
+     let (blocks, tail) = (len / RATE, len % RATE);
+     for b in 0..blocks {
+@@ -582,6 +601,18 @@
+         fn chi(a: Self, b: Self, c: Self) -> Self {
+             // SAFETY: avx2 is on (see the module).
+             Self(unsafe { _mm256_xor_si256(a.0, _mm256_andnot_si256(b.0, c.0)) })
++        }
++    }
++
++    impl super::Batch for Avx2 {
++        #[inline(always)]
++        fn absorb(st: &mut [Self; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
++            super::absorb_by_lane(st, inputs, len, at, words)
++        }
++
++        #[inline(always)]
++        fn digests(st: &[Self; STATE_LANES], out: &mut [u8]) {
++            super::digests_by_lane(st, out)
+         }
+     }
+ 
+@@ -632,7 +663,9 @@
+                 let t = _mm512_ternarylogic_epi64::<0x96>(a.0, b.0, c.0);
+                 Self(_mm512_ternarylogic_epi64::<0x96>(t, d.0, e.0))
+             }
+-        }
++        }    }
++
++    impl super::Batch for Avx512 {
+         /// `absorb` on eight inputs: each input's words in rows of eight, transposed into one register per
+         /// word.
+         #[inline(always)]
+@@ -772,7 +805,9 @@
+                 return Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) });
+             }
+             c_prev.xor(c_next.rotl::<1>())
+-        }
++        }    }
++
++    impl<const SHA3: bool> super::Batch for Neon<SHA3> {
+         /// `absorb` on two inputs: two words of each per load, `ZIP1` and `ZIP2` turning the two rows into
+         /// two lanes.
+         #[inline(always)]
+@@ -820,7 +855,7 @@
+     use super::*;
+ 
+     /// Every batched entry point on backend `S` against one state at a time: whole groups and a remainder.
+-    fn matches_the_scalar_backend<S: Lane>() {
++    fn matches_the_scalar_backend<S: Batch>() {
+         let name = core::any::type_name::<S>();
+         let w = MAX_WIDTH as u64;
+         let template: [u64; STATE_LANES] = core::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));

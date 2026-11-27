@@ -1,0 +1,26 @@
+diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
+index 4a61c3e05..dfa7f8339 100644
+--- a/crates/keccak256/src/lib.rs
++++ b/crates/keccak256/src/lib.rs
+@@ -110,8 +110,8 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+ /// One sponge step: XOR the rate block `block` into `state` and permute.
+ #[inline]
+ fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
+-    for (s, b) in state.iter_mut().zip(block) {
+-        *s ^= b;
++    for i in 0..RATE_LANES {
++        state[i] ^= block[i];
+     }
+     keccak_f(state);
+ }
+@@ -137,8 +137,8 @@ fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
+ #[inline]
+ pub fn digest_of(state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
+     let mut out = [0u8; OUT_LEN];
+-    for (chunk, lane) in out.as_chunks_mut::<8>().0.iter_mut().zip(state) {
+-        *chunk = lane.to_le_bytes();
++    for i in 0..OUT_LEN / 8 {
++        out[8 * i..8 * i + 8].copy_from_slice(&state[i].to_le_bytes());
+     }
+     out
+ }
