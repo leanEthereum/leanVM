@@ -16,128 +16,11 @@ open HashSig HashSig.OverPermutation Sphincs
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol.KeccakHash (digestBytes keccak256With)
 open lean_sphincs
+open Keccak256Proofs
 
 namespace LeanSphincsProofs
 
 namespace Wots
-
-/-! ## Loops over a range, folds and `from_fn`, as equations -/
-
-/-- A loop over `s..e` whose body, below the end, steps to the next index keeping `inv`, and at
-the end returns its state: it returns a state satisfying `inv e`. -/
-theorem range_loop {β : Type}
-    (body : core.ops.range.Range Std.Usize × β →
-      RustM (ControlFlow (core.ops.range.Range Std.Usize × β) β))
-    (e : Std.Usize) (inv : Nat → β → Prop)
-    (hdone : ∀ (i : Std.Usize) acc, e.val ≤ i.val →
-      body ({ start := i, «end» := e }, acc) = ok (.done acc))
-    (hstep : ∀ (i : Std.Usize) acc, i.val < e.val → inv i.val acc →
-      ∃ (i' : Std.Usize) (acc' : β), i'.val = i.val + 1 ∧
-        body ({ start := i, «end» := e }, acc) = ok (.cont ({ start := i', «end» := e }, acc')) ∧
-        inv i'.val acc')
-    (s : Std.Usize) (init : β) (hs : s.val ≤ e.val) (hinit : inv s.val init) :
-    ∃ r, loop body ({ start := s, «end» := e }, init) = ok r ∧ inv e.val r := by
-  suffices gen : ∀ (n : Nat) (i : Std.Usize) acc, e.val - i.val = n → i.val ≤ e.val →
-      inv i.val acc → ∃ r, loop body ({ start := i, «end» := e }, acc) = ok r ∧ inv e.val r from
-    gen _ s init rfl hs hinit
-  intro n
-  induction n with
-  | zero =>
-    intro i acc hn hle hinv
-    have hie : i.val = e.val := by omega
-    refine ⟨acc, ?_, hie ▸ hinv⟩
-    rw [loop.eq_def, hdone i acc (by omega), Aeneas.Std.bind_ok]
-  | succ n ih =>
-    intro i acc hn hle hinv
-    obtain ⟨i', acc', hi', hbody, hinv'⟩ := hstep i acc (by omega) hinv
-    rw [loop.eq_def, hbody, Aeneas.Std.bind_ok]
-    exact ih i' acc' (by omega) (by omega) hinv'
-
-/-- A fold over `s..e` whose closure keeps `inv` and itself: it returns a value satisfying
-`inv e`. -/
-theorem range_fold {B F : Type} (inst : core.ops.function.FnMut F (B × Std.Usize) B) (f : F)
-    (e : Std.Usize) (inv : Nat → B → Prop)
-    (hstep : ∀ (i : Std.Usize) acc, i.val < e.val → inv i.val acc →
-      ∃ acc', inst.call_mut f (acc, i) = ok (acc', f) ∧ inv (i.val + 1) acc')
-    (s : Std.Usize) (init : B) (hs : s.val ≤ e.val) (hinit : inv s.val init) :
-    ∃ r, core.iter.traits.iterator.Iterator.fold.default
-        (core.ops.range.Range.Insts.CoreIterTraitsIteratorIterator core.Usize.Insts.CoreIterRangeStep)
-        inst { start := s, «end» := e } init f = ok r ∧ inv e.val r := by
-  unfold core.iter.traits.iterator.Iterator.fold.default core.iter.traits.iterator.iter_fold
-    core.iter.traits.iterator.iter_fold_loop
-  generalize hbody : (fun x : core.ops.range.Range Std.Usize × F × B => match x with
-    | (iter2, f1, accum1) => core.iter.traits.iterator.iter_fold_loop.body
-        (core.ops.range.Range.Insts.CoreIterTraitsIteratorIterator
-          core.Usize.Insts.CoreIterRangeStep) inst iter2 f1 accum1) = body
-  have hdone : ∀ (i : Std.Usize) acc, e.val ≤ i.val →
-      body ({ start := i, «end» := e }, f, acc) = ok (.done acc) := by
-    intro i acc hi
-    subst hbody
-    simp only [core.iter.traits.iterator.iter_fold_loop.body,
-      core.ops.range.Range.Insts.CoreIterTraitsIteratorIterator, range_next_ge i e hi,
-      Aeneas.Std.bind_ok]
-    rfl
-  have hcont : ∀ (i : Std.Usize) acc, i.val < e.val → inv i.val acc →
-      ∃ (i' : Std.Usize) (acc' : B), i'.val = i.val + 1 ∧
-        body ({ start := i, «end» := e }, f, acc) =
-          ok (.cont ({ start := i', «end» := e }, f, acc')) ∧ inv i'.val acc' := by
-    intro i acc hi hinv
-    obtain ⟨i', hi', hnext⟩ := range_next_lt i e hi
-    obtain ⟨acc', hcall, hinv'⟩ := hstep i acc hi hinv
-    refine ⟨i', acc', hi', ?_, hi' ▸ hinv'⟩
-    subst hbody
-    simp only [core.iter.traits.iterator.iter_fold_loop.body,
-      core.ops.range.Range.Insts.CoreIterTraitsIteratorIterator, hnext, Aeneas.Std.bind_ok]
-    show (do let (accum1, f1) ← inst.call_mut f (acc, i); ok (ControlFlow.cont (_, f1, accum1))) = _
-    rw [hcall]
-    simp
-  suffices gen : ∀ (n : Nat) (i : Std.Usize) acc, e.val - i.val = n → i.val ≤ e.val →
-      inv i.val acc → ∃ r, loop body ({ start := i, «end» := e }, f, acc) = ok r ∧ inv e.val r from
-    gen _ s init rfl hs hinit
-  intro n
-  induction n with
-  | zero =>
-    intro i acc hn hle hinv
-    have hie : i.val = e.val := by omega
-    refine ⟨acc, ?_, hie ▸ hinv⟩
-    rw [loop.eq_def, hdone i acc (by omega), Aeneas.Std.bind_ok]
-  | succ n ih =>
-    intro i acc hn hle hinv
-    obtain ⟨i', acc', hi', hb, hinv'⟩ := hcont i acc (by omega) hinv
-    rw [loop.eq_def, hb, Aeneas.Std.bind_ok]
-    exact ih i' acc' (by omega) (by omega) hinv'
-
-/-- The primitive under `from_fn`, for a closure that returns `g i` at `i` and keeps itself. -/
-theorem array_from_fn_eq {T F : Type} (N : Std.Usize) (inst : core.ops.function.FnMut F Std.Usize T)
-    (c : F) (g : Nat → T)
-    (h : ∀ i : Std.Usize, i.val < N.val → inst.call_mut c i = ok (g i.val, c)) :
-    ∃ a, rust_primitives.slice.array_from_fn N inst c = ok a ∧
-      a.val = (List.range N.val).map g := by
-  have go : ∀ n, n ≤ N.val →
-      rust_primitives.slice.array_from_fn_go inst c n = ok ((List.range n).map g, c) := by
-    intro n
-    induction n with
-    | zero => intro _; rfl
-    | succ n ih =>
-      intro hn
-      have hv : (⟨BitVec.ofNat UScalarTy.Usize.numBits n⟩ : Std.Usize).val = n := by
-        have := N.hBounds
-        simp only [UScalar.val, BitVec.toNat_ofNat]
-        exact Nat.mod_eq_of_lt (by scalar_tac)
-      rw [rust_primitives.slice.array_from_fn_go, ih (by omega)]
-      simp only [Aeneas.Std.bind_ok]
-      rw [h _ (by rw [hv]; omega), hv]
-      simp [List.range_succ]
-  unfold rust_primitives.slice.array_from_fn
-  rw [go N.val (Nat.le_refl _)]
-  simp
-
-/-- `from_fn` of a closure that returns `g i` at `i` and keeps itself: the array of the `g i`. -/
-theorem from_fn_eq {T F : Type} (N : Std.Usize) (inst : core.ops.function.FnMut F Std.Usize T)
-    (c : F) (g : Nat → T)
-    (h : ∀ i : Std.Usize, i.val < N.val → inst.call_mut c i = ok (g i.val, c)) :
-    ∃ a, core.array.from_fn N inst c = ok a ∧ a.val = (List.range N.val).map g :=
-  array_from_fn_eq N inst c g h
 
 /-! ## `OtsKey::of_index` -/
 
@@ -227,28 +110,6 @@ theorem ofIndex_spec : OfIndexSpec := by
 
 namespace Wots
 
-/-! ## Bytes and the numbers they spell -/
-
-theorem leNat_cons (b : UInt8) (l : List UInt8) : leNat (b :: l) = b.toNat + 256 * leNat l := rfl
-
-/-- The low 128 bits of the number a byte string spells are spelled by its first 16 bytes. -/
-theorem truncateHash_leNat (l : List UInt8) :
-    truncateHash (BitVec.ofNat 256 (leNat l)) = BitVec.ofNat 128 (leNat (l.take 16)) := by
-  apply BitVec.eq_of_toNat_eq
-  have happ := leNat_append (l.take 16) (l.drop 16)
-  rw [List.take_append_drop] at happ
-  have hlt := leNat_lt (l.take 16)
-  have hlen : (l.take 16).length ≤ 16 := by simp
-  simp only [truncateHash, digestBits, BitVec.extractLsb'_toNat, BitVec.toNat_ofNat,
-    Nat.shiftRight_zero]
-  rcases Nat.lt_or_ge l.length 16 with hs | hs
-  · rw [List.drop_eq_nil_of_le (by omega)] at happ
-    rw [happ]; simp [leNat]
-  · have h16 : (l.take 16).length = 16 := by simp; omega
-    rw [h16] at happ hlt
-    rw [happ]
-    omega
-
 /-! ## The tweakable hash at an address -/
 
 /-- `CHAIN_LEN` is 4. -/
@@ -317,43 +178,6 @@ namespace Wots
 
 /-! ## The hasher -/
 
-/-- `truncate`: the first 16 bytes of a hash output. -/
-theorem truncate_eq (d : Array Std.U8 32#usize) :
-    ∃ a : Array Std.U8 16#usize, keccak256.truncate 16#usize d = ok a ∧ a.val = d.val.take 16 := by
-  have hlen : d.val.length = 32 := by simp
-  have hb : (List.take 16 d.val).length ≤ Usize.max := by simp; scalar_tac
-  have hs : (Slice.from (List.take 16 d.val) hb).len = 16#usize := by
-    have : (Slice.from (List.take 16 d.val) hb).len.val = 16 := by
-      rw [Slice.len_val, Slice.length, slice_from_val]; simp [hlen]
-    scalar_tac
-  obtain ⟨a, ha, hav⟩ := array_from_fn_eq 16#usize
-    (core.convert.TryFromArrayShared0SliceTryFromSliceError.try_from.closure.Insts.CoreOpsFunctionFnMutTupleUsizeT
-      16#usize core.U8.Insts.CoreMarkerCopy)
-    (Slice.from (List.take 16 d.val) hb) (fun i => (List.take 16 d.val)[i]!) (by
-      intro i hi
-      have hidx : (Slice.from (List.take 16 d.val) hb).index_usize i
-          ⦃ x => x = (List.take 16 d.val)[i.val]! ⦄ := by
-        step*
-        have h16 : i.val < 16 := by simpa using hi
-        simp [x_post1, h16]
-      obtain ⟨x, hx, rfl⟩ := WP.spec_imp_exists hidx
-      simp [core.convert.TryFromArrayShared0SliceTryFromSliceError.try_from.closure.Insts.CoreOpsFunctionFnMutTupleUsizeT.call_mut,
-        rust_primitives.slice.slice_index, hx])
-  refine ⟨a, ?_, ?_⟩
-  · unfold keccak256.truncate
-    simp [core.Array.Insts.CoreOpsIndexIndex.index, core.array.Array.as_slice,
-      rust_primitives.slice.array_as_slice, core.Slice.Insts.CoreOpsIndexIndex.index,
-      core.ops.range.RangeToUsize.Insts.CoreSliceIndexSliceIndexSliceSlice.get,
-      rust_primitives.slice.slice_length, rust_primitives.slice.slice_slice, Slice.subslice,
-      core.Array.Insts.CoreConvertTryFromShared0SliceTryFromSliceError.try_from,
-      core.result.Result.unwrap, hs, ha]
-  · rw [hav]
-    apply List.ext_getElem
-    · simp [hlen]
-    · intro n h1 h2
-      simp at h1
-      simp [h1]
-
 /-- `u32::to_be_bytes` gives the statement's big-endian bytes. -/
 theorem bytes_to_be_bytes_u32 (x : Std.U32) :
     bytes (Aeneas.Std.core.num.U32.to_be_bytes x).val = bigEndianBytes 4 x.bv := by
@@ -362,15 +186,6 @@ theorem bytes_to_be_bytes_u32 (x : Std.U32) :
   simp [Aeneas.Std.core.num.U32.to_be_bytes, bytes, b8, bigEndianBytes, BitVec.toBEBytes,
     BitVec.toLEBytes, List.ofFn, Fin.foldr_succ]
   refine ⟨?_, ?_, ?_, ?_⟩ <;> bv_bits
-
-/-- The truncation of a Keccak-256 digest, as the statement's truncated hash. -/
-theorem toDigest_truncate {π : KeccakState → KeccakState} (l : List UInt8)
-    (d : Array Std.U8 32#usize) (a : Array Std.U8 16#usize) (hd : bytes d.val = hashBytes π l)
-    (ha : a.val = d.val.take 16) :
-    toDigest a = truncateHash (Id.run (keccakHash (inId π) l)) := by
-  rw [keccakHash_inId, truncateHash_leNat, ← hd, toDigest, ha]
-  simp only [bytes, List.map_take]
-  rfl
 
 /-- `hasher`: a hasher that has absorbed `PK.seed ‖ ADRS`. -/
 theorem hasher_absorbed {π : KeccakState → KeccakState} (H : HasherSpec π)
@@ -397,23 +212,6 @@ theorem encoder_absorbed {π : KeccakState → KeccakState} (H : HasherSpec π) 
     hu2, hb2]
 
 /-! ## The codeword -/
-
-/-- The number little-endian bytes spell, as Aeneas reads it. -/
-theorem fromLEBytes_toNat (l : List Byte) :
-    (BitVec.fromLEBytes l).toNat = l.foldr (fun b acc ↦ b.toNat + 256 * acc) 0 := by
-  induction l with
-  | nil => simp [BitVec.fromLEBytes]
-  | cons b l ih =>
-    have hb := b.isLt
-    have hl := (BitVec.fromLEBytes l).isLt
-    have hw : 2 ^ (8 * (l.length + 1)) = 256 * 2 ^ (8 * l.length) := by
-      rw [Nat.mul_add, Nat.pow_add]; ring
-    simp only [BitVec.fromLEBytes, List.length_cons, BitVec.toNat_or, BitVec.toNat_setWidth,
-      BitVec.toNat_shiftLeft, List.foldr_cons, ← ih]
-    rw [Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (a := (BitVec.fromLEBytes l).toNat) (by omega),
-      Nat.mod_eq_of_lt (by rw [Nat.shiftLeft_eq]; omega), Nat.or_comm,
-      ← Nat.shiftLeft_add_eq_or_of_lt (by omega), Nat.shiftLeft_eq]
-    omega
 
 /-- `u128::from_be_bytes` of a digest: the number its bytes spell, most significant first. -/
 theorem from_be_bytes_val (a : Array Std.U8 16#usize) :
@@ -515,14 +313,6 @@ theorem codeword_loop_eq (x : Array Std.U8 64#usize) (hx : ∀ n < 64, (x.val[n]
     0#usize 0#usize (by scalar_tac) (by simp)
   exact ⟨r, hr, by rw [hsum, h64]⟩
 
-/-- A Rust digest as a number: the one its bytes spell, least significant first. -/
-theorem toDigest_toNat (a : Array Std.U8 16#usize) : (toDigest a).toNat = leNat (bytes a.val) := by
-  have h := leNat_lt (bytes a.val)
-  have hl : (bytes a.val).length = 16 := by simp [bytes]
-  rw [hl] at h
-  show leNat (bytes a.val) % 2 ^ 128 = leNat (bytes a.val)
-  exact Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le h (by norm_num))
-
 /-- The digit `codeword` reads is the statement's `base_2b` digit. -/
 theorem digitU8_base2b (a : Array Std.U8 16#usize) (i : ChainIndex) :
     (digitU8 (Aeneas.Std.core.num.U128.from_be_bytes a) i.val).val =
@@ -608,33 +398,6 @@ theorem encode_eq {π : KeccakState → KeccakState} (H : HasherSpec π)
 
 /-! ## The one-time leaf -/
 
-/-- `from_fn` of a closure that keeps itself and returns, at `i`, something satisfying `P i`. -/
-theorem from_fn_pred {T F : Type} [Inhabited T] (N : Std.Usize)
-    (inst : core.ops.function.FnMut F Std.Usize T) (c : F) (P : Nat → T → Prop)
-    (h : ∀ i : Std.Usize, i.val < N.val → ∃ r, inst.call_mut c i = ok (r, c) ∧ P i.val r) :
-    ∃ a, core.array.from_fn N inst c = ok a ∧ ∀ n < N.val, P n a.val[n]! := by
-  have hex : ∀ n : Nat, ∃ r : T, n < N.val →
-      (∀ i : Std.Usize, i.val = n → inst.call_mut c i = ok (r, c)) ∧ P n r := by
-    intro n
-    by_cases hn : n < N.val
-    · have hv : (⟨BitVec.ofNat UScalarTy.Usize.numBits n⟩ : Std.Usize).val = n := by
-        have := N.hBounds
-        simp only [UScalar.val, BitVec.toNat_ofNat]
-        exact Nat.mod_eq_of_lt (by scalar_tac)
-      obtain ⟨r, hr, hp⟩ := h _ (by rw [hv]; exact hn)
-      rw [hv] at hp
-      refine ⟨r, fun _ => ⟨fun i hi => ?_, hp⟩⟩
-      have : i = ⟨BitVec.ofNat UScalarTy.Usize.numBits n⟩ :=
-        (UScalar.eq_equiv _ _).2 (by rw [hi, hv])
-      rw [this]
-      exact hr
-    · exact ⟨default, fun h => absurd h hn⟩
-  choose g hg using hex
-  obtain ⟨a, ha, hav⟩ := from_fn_eq N inst c g (fun i hi => (hg i.val hi).1 i rfl)
-  refine ⟨a, ha, fun n hn => ?_⟩
-  rw [hav]
-  simpa [hn] using (hg n hn).2
-
 /-- The statement's `otsLeaf` where the counter encodes the message: the leaf hash of the chains'
 ends. -/
 theorem otsLeaf_some {π : KeccakState → KeccakState} (s : PublicParameter) (l : Layer)
@@ -655,15 +418,6 @@ theorem otsLeaf_none {π : KeccakState → KeccakState} (s : PublicParameter) (l
     Id.run (Verification.otsLeaf (inId π) s l t f m c v) = none := by
   have h' : Verification.encode (inId π) s l t f m c = (pure none : Id _) := h
   simp only [Verification.otsLeaf, h', pure_bind, Id.run_pure]
-
-/-- An element of an array, by an index within it. -/
-theorem array_index_eq {α : Type} [Inhabited α] {N : Std.Usize} (a : Array α N) (i : Std.Usize)
-    (h : i.val < N.val) : Array.index_usize a i = ok (a.val[i.val]!) := by
-  have hs : Array.index_usize a i ⦃ x => x = a.val[i.val]! ⦄ := by
-    step*
-    rw [x_post1, getElem!_pos a.val i.val x_post]
-  obtain ⟨x, hx, rfl⟩ := WP.spec_imp_exists hs
-  exact hx
 
 end Wots
 

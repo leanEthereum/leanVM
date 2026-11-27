@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Hasher
+import Keccak256Proofs.Hasher
 import Hash.Keccak.Fast
 
 /-!
@@ -23,7 +23,7 @@ open LeanVM.Semantics (KeccakState)
 open LeanVM.Semantics.Keccak (lane)
 open LeanVM.Protocol.KeccakHash
 
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 
 /-- A Rust state's lanes, as hash-specs' fast Keccak takes them. -/
 def lanesOf (a : Array Std.U64 25#usize) : _root_.Array UInt64 := (a.val.map lane64).toArray
@@ -81,7 +81,6 @@ theorem rotl_zero (a : UInt64) : Hash.UInt64.rotl a 0 = a := by
   apply UInt64.toBitVec_inj.mp
   simp [Hash.UInt64.rotl]
 
-
 @[step] theorem xor_spec (a b : Std.U64) :
     U64.Insts.Keccak256LanesLane.xor a b ⦃ r => r = a ^^^ b ⦄ := (WP.spec_ok _).2 rfl
 @[step] theorem chi_spec (a b c : Std.U64) :
@@ -107,8 +106,6 @@ theorem range_stop (i e : Std.Usize) (h : e.val ≤ i.val) :
       core.Usize.Insts.CoreIterRangeStep { start := i, «end» := e } =
         ok (none, { start := i, «end» := e }) := range_next_ge i e h
 
-
-
 /-! ## θ -/
 
 @[step] theorem t_spec (a : Array Std.U64 25#usize) (d : Array Std.U64 5#usize) (i : Std.Usize) (h : i.val < 25) :
@@ -132,7 +129,6 @@ theorem theta_body (c d : Array Std.U64 5#usize) (x s : Std.Usize) (hx : x.val <
     simp_all [getElem!_pos]
   obtain ⟨y, hy, rfl⟩ := exists_of_spec this
   exact hy
-
 
 theorem list5 {α : Type} : ∀ l : List α, l.length = 5 → ∃ x0 x1 x2 x3 x4, l = [x0, x1, x2, x3, x4]
   | [x0, x1, x2, x3, x4], _ => ⟨x0, x1, x2, x3, x4, rfl⟩
@@ -184,7 +180,6 @@ def thetaD (c : List Std.U64) : List Std.U64 :=
   rw [WP.spec_ok]
   obtain ⟨c0, c1, c2, c3, c4, rfl⟩ := arr5 c
   simp [thetaD]
-
 
 /-! ## ρ and π: a row before χ -/
 
@@ -299,7 +294,6 @@ theorem chi_body (y : Std.Usize) (r : Array Std.U64 5#usize) (x s : Std.Usize)
       simp_all [chiStep, getElem!_pos]
   obtain ⟨q, hq, o', c', rfl, h⟩ := exists_of_spec this
   exact ⟨o', c', hq, h⟩
-
 
 theorem chi_done (y : Std.Usize) (r : Array Std.U64 5#usize) (out : Array Std.U64 25#usize)
     (c : Array Std.U64 5#usize) :
@@ -475,7 +469,6 @@ theorem round_body (i e s : Std.Usize) (a : Array Std.U64 25#usize) (c : Array S
   obtain ⟨q, hq, a', c', rfl, h⟩ := exists_of_spec this
   exact ⟨a', c', hq, h⟩
 
-
 /-! ## The round, against the reference -/
 
 /-- The parities a round leaves are those of the state it leaves, whatever they were before. -/
@@ -590,4 +583,4 @@ theorem keccak_f_spec (a : Array Std.U64 25#usize) :
     rust_primitives.slice.slice_length, Aeneas.Std.bind_ok]
   exact rounds _ (by simp) a c hpar
 
-end LeanSphincsProofs
+end Keccak256Proofs

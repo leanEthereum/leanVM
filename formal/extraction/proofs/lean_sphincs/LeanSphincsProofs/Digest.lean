@@ -14,6 +14,7 @@ open HashSig HashSig.OverPermutation Sphincs
 open LeanVM.Semantics (KeccakState)
 open LeanVM.Protocol.KeccakHash (digestBytes keccak256With)
 open lean_sphincs
+open Keccak256Proofs
 
 namespace LeanSphincsProofs
 

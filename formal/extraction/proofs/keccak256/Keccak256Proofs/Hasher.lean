@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Common
+import Keccak256Proofs.Common
 
 /-!
 # `keccak256::Hasher` computes Keccak-256
@@ -16,7 +16,7 @@ open LeanVM.Semantics (KeccakState)
 open LeanVM.Semantics.Keccak (lane)
 open LeanVM.Protocol.KeccakHash
 
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 
 /-- A Rust lane as the statement's. -/
 def lane64 (x : Std.U64) : UInt64 := UInt64.ofBitVec x.bv
@@ -701,4 +701,4 @@ def hasherSpec_of_sponge {π : KeccakState → KeccakState} (S : SpongeSpec π) 
       fun _ ↦ rfl⟩
   finalize := finalize_absorbed S
 
-end LeanSphincsProofs
+end Keccak256Proofs

@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Keccak
+import Keccak256Proofs.Keccak
 import LeanSphincsProofs.Hash
 import LeanSphincsProofs.Digest
 import LeanSphincsProofs.Wots
@@ -20,6 +20,7 @@ open Aeneas.Std hiding namespace core alloc
 open RustM Std.Do
 open Sphincs
 open LeanVM.Semantics (KeccakState)
+open Keccak256Proofs
 
 namespace LeanSphincsProofs
 

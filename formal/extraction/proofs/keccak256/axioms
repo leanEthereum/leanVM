@@ -1,0 +1,3 @@
+'Keccak256Proofs.spongeSpec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Keccak256Proofs.hasherSpec_of_sponge' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Keccak256Proofs.keccak256_eq_reference' depends on axioms: [propext, Classical.choice, Quot.sound]

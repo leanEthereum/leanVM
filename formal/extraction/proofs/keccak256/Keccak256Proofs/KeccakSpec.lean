@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Common
+import Keccak256Proofs.Common
 import Hash.Keccak.Equiv
 import Hash.Keccak.API
 
@@ -15,12 +15,12 @@ is proved equal to the FIPS 202 reference:
 * `keccak256_eq_reference`: hence it is the reference sponge `Hash.Keccak.Reference.keccak256` on
   the message's bits.
 
-The helper lemmas are in `LeanSphincsProofs.KeccakSpec`.
+The helper lemmas are in `Keccak256Proofs.KeccakSpec`.
 -/
 
 open LeanVM.Semantics LeanVM.Parameters Hash.Keccak Hash
 
-namespace LeanSphincsProofs.KeccakSpec
+namespace Keccak256Proofs.KeccakSpec
 
 theorem rot_eq (x : UInt64) (n : ℕ) (hn : n < 64) :
     Keccak.rot x n = UInt64.rotl x n.toUInt64 := by
@@ -125,19 +125,18 @@ theorem keccakRC_eq :
     keccakRC = (List.range 24).map fun ir ↦ Fast.roundConstantWords.getD ir 0 := by
   decide
 
+end Keccak256Proofs.KeccakSpec
 
-end LeanSphincsProofs.KeccakSpec
-
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 
 /-- (A) leanVM's Keccak-f[1600] is hash-specs' lane-level Keccak-f[1600]. -/
 theorem keccakF1600_eq_fast (s : LeanVM.Semantics.KeccakState) :
     (LeanVM.Semantics.keccakF1600 s).toArray = Hash.Keccak.Fast.keccakF s.toArray := by
   rw [keccakF1600, KeccakSpec.keccakRC_eq, KeccakSpec.foldl_round, Fast.keccakF]
 
-end LeanSphincsProofs
+end Keccak256Proofs
 
-namespace LeanSphincsProofs.KeccakSpec
+namespace Keccak256Proofs.KeccakSpec
 
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
@@ -221,9 +220,9 @@ theorem digest_eq (s : KeccakState) :
   simp [digestBytes, wordBytes, Fast.squeeze, Fast.rateBytes, List.range, List.range.loop,
     ByteArray.pushUInt64LE, lane_eq]
 
-end LeanSphincsProofs.KeccakSpec
+end Keccak256Proofs.KeccakSpec
 
-namespace LeanSphincsProofs.KeccakSpec
+namespace Keccak256Proofs.KeccakSpec
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 theorem absorbBlock_eq (a : Array UInt64) (l : List UInt8) (off : ℕ) :
@@ -300,9 +299,9 @@ theorem sponge_eq (d : List UInt8) :
   simp only [key, pad_size]
   rfl
 
-end LeanSphincsProofs.KeccakSpec
+end Keccak256Proofs.KeccakSpec
 
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 open KeccakSpec
 
 /-- (B) leanVM's Keccak-256 is hash-specs' Keccak-256 (Ethereum's), on every byte string. -/
@@ -322,4 +321,4 @@ theorem keccak256_eq_reference (data : List UInt8) :
   rw [keccak256_eq_hashSpecs]
   exact Hash.Keccak.keccak256_eq ⟨data.toArray⟩
 
-end LeanSphincsProofs
+end Keccak256Proofs

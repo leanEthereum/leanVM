@@ -1,6 +1,6 @@
-import LeanSphincsProofs.Sponge
-import LeanSphincsProofs.Permutation
-import LeanSphincsProofs.KeccakSpec
+import Keccak256Proofs.Sponge
+import Keccak256Proofs.Permutation
+import Keccak256Proofs.KeccakSpec
 
 /-!
 # `keccak256` computes Keccak
@@ -16,7 +16,7 @@ open Aeneas.Std hiding namespace core alloc
 open RustM Std.Do
 open LeanVM.Semantics (KeccakState keccakF1600)
 
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 
 /-- A Rust state's lanes are the lanes of the statement's state it stands for. -/
 theorem toState_toArray (a : Array Std.U64 25#usize) : (toState a).toArray = lanesOf a := by
@@ -37,4 +37,4 @@ theorem keccak_f_eq (a : Array Std.U64 25#usize) :
 /-- **The sponge step and the digest of `keccak256`** are Keccak's, over Keccak-f[1600]. -/
 theorem spongeSpec : SpongeSpec keccakF1600 := spongeSpec_of_keccak_f keccak_f_eq
 
-end LeanSphincsProofs
+end Keccak256Proofs

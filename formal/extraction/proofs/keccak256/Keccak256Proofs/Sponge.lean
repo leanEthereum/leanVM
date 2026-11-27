@@ -1,4 +1,4 @@
-import LeanSphincsProofs.Hasher
+import Keccak256Proofs.Hasher
 
 /-!
 # The sponge step and the digest
@@ -15,7 +15,7 @@ open LeanVM.Semantics (KeccakState)
 open LeanVM.Semantics.Keccak (lane)
 open LeanVM.Protocol.KeccakHash
 
-namespace LeanSphincsProofs
+namespace Keccak256Proofs
 
 namespace Sponge
 
@@ -264,4 +264,4 @@ theorem spongeSpec_of_keccak_f {π : KeccakState → KeccakState}
     rw [hb]
     simp [digestBytes, laneBytes, lane_toState, List.range_succ]
 
-end LeanSphincsProofs
+end Keccak256Proofs

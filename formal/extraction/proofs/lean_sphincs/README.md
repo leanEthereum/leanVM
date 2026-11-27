@@ -11,7 +11,7 @@ theorem verify_eq_verifyWithKeccak (pk : lean_sphincs.scheme.LeanSphincsPublicKe
 
 It says two things: `verify` returns on every input (no panic, no overflow, no index out of range), and what it returns is the statement's verdict on the values its arguments stand for. It has no hypothesis: every function on the path is extracted with its body, down to the Keccak-f[1600] permutation.
 
-Along the way the statement's own Keccak is checked against another specification: `keccak256_eq_reference` (`KeccakSpec.lean`) shows its Keccak-256 is the FIPS 202 sponge KECCAK[512] with Keccak's original padding, as [hash-specs](https://github.com/Verified-zkEVM/hash-specs) defines it on bits.
+Along the way the statement's own Keccak is checked against another specification: `keccak256_eq_reference` (`../keccak256`, `KeccakSpec.lean`) shows its Keccak-256 is the FIPS 202 sponge KECCAK[512] with Keccak's original padding, as [hash-specs](https://github.com/Verified-zkEVM/hash-specs) defines it on bits.
 
 ```sh
 formal/extraction/hax.sh extract                       # the extraction is generated, not committed
@@ -24,19 +24,16 @@ formal/extraction/hax.sh extract                       # the extraction is gener
 
 | file | what it proves |
 | --- | --- |
-| `Defs.lean` | how a Rust value stands for a statement value, and each function's theorem as a `Prop` |
-| `Common.lean` | the library models the extraction calls, as equations; bytes read as numbers |
-| `Permutation.lean` | `keccak_f`, the 24 rounds on `u64` lanes, is hash-specs' Keccak-f[1600] on lanes |
-| `KeccakSpec.lean` | the statement's Keccak-f[1600] and Keccak-256 are hash-specs', and so FIPS 202's |
-| `Sponge.lean` | `absorb` and `digest_of`, given what `keccak_f` computes |
-| `Keccak.lean` | the three composed: `keccak_f` is the statement's Keccak-f[1600] |
-| `Hasher.lean` | `keccak256::Hasher` computes Keccak-256, given `absorb` and `digest_of` (`SpongeSpec`) |
+| `Defs.lean` | how a Rust key and signature stand for the statement's, and each function's theorem as a `Prop` |
+| `Common.lean` | `to_be_bytes` as the statement's big-endian bytes; `th` at an address |
 | `Hash.lean` | `th`, the addresses and their words |
 | `Digest.lean` | `h_msg`, `digest_fields`, `message_digest` |
 | `Wots.lean` | `OtsKey::of_index`, `chain`, `codeword`, `encode`, `wots_leaf` |
-| `Trees.lean` | `path_root`, `tree_root`, `fors_root` |
+| `Trees.lean` | `tree_root`, `fors_root` |
 | `Verify.lean` | `path_range`, the loop over the layers, `verify` given the theorems above |
 | `Theorem.lean` | the composition |
+
+What is not about leanSPHINCS is in `../keccak256` (`Keccak256Proofs`), which this package and `../lean_xmss` require: how Rust's bytes stand for the statement's (`toDigest`, `toMessage`), `HasherSpec` and its proof down to the permutation (`Hasher.lean`, `Sponge.lean`, `Permutation.lean`, `KeccakSpec.lean`, `Keccak.lean`), the Merkle fold `path_root` (`Path.lean`), and the Rust library models as equations (`Common.lean`, `Library.lean`, `Bytes.lean`).
 
 ## What it rests on
 
@@ -45,7 +42,7 @@ formal/extraction/hax.sh extract                       # the extraction is gener
 - **The patches.** The theorem is about the patched Rust (`crates/{lean_sphincs,keccak256}/proofs/*/patches/pre`), not the committed Rust. `hax.sh test` runs the crates' tests on the patched source; nothing in Lean relates the two.
 - **Which permutation.** `keccak256` has one `permute` for x86-64 and one for every other architecture, and on a CPU with AVX-512 a third, in AVX-512 intrinsics, for a single state. The extraction is of the second, on every host. The x86-64 body and the AVX-512 one are not covered.
 - **The toolchain and its models.** Charon, Aeneas (here a fork, pinned in `lakefile.toml`, for Lean v4.36.0), the hax Lean library's models of `core`, and `CoreModelsExt`.
-- **How Rust values are read.** `toPublicKey`, `toMessage` and `toSignature` (`Defs.lean`) are definitions to be read, not proved. They are total and `toDigest` is injective, so distinct Rust inputs are distinct statement inputs. The byte encodings (`from_bytes`, `to_bytes`) are not covered.
+- **How Rust values are read.** `toPublicKey`, `toSignature` (`Defs.lean`) and `toMessage` (`Keccak256Proofs.Defs`) are definitions to be read, not proved. They are total and `toDigest` is injective, so distinct Rust inputs are distinct statement inputs. The byte encodings (`from_bytes`, `to_bytes`) are not covered.
 - **hash-specs**, as a pivot only: the Rust permutation and the statement's are each proved equal to its Keccak-f on lanes, so its definitions do not enter what the theorem says.
 
 ## To do: EthLib's specification

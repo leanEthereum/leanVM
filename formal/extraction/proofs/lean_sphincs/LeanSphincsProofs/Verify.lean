@@ -13,6 +13,7 @@ open RustM Std.Do
 open HashSig HashSig.OverPermutation Sphincs
 open LeanVM.Semantics (KeccakState)
 open lean_sphincs
+open Keccak256Proofs
 
 namespace LeanSphincsProofs
 
@@ -163,131 +164,6 @@ theorem enumerate_next_nil {T : Type} (s : Slice T) (c : Std.Usize) (hs : s.val 
     rust_primitives.sequence.seq_len, h0]
   rfl
 
-/-! ## Equality of digests -/
-
-/-- One step of `==` on `[u8; N]`: on to the next index, or `false` at a difference. -/
-theorem array_eq_body {N : Std.Usize} (a b : Array Std.U8 N) (i : Std.Usize) (h : i.val < N.val) :
-    ⦃ ⌜ True ⌝ ⦄
-    core.Array.Insts.CoreCmpPartialEqArray.eq_loop.body core.U8.Insts.CoreCmpPartialEqU8 a b i
-    ⦃ ⇓ r => ⌜ match r with
-      | .cont i1 => a.val[i.val]! = b.val[i.val]! ∧ i1.val = i.val + 1
-      | .done v => v = false ∧ a.val[i.val]! ≠ b.val[i.val]! ⌝ ⦄ := by
-  have ha : a.to_slice.length = N.val := by simp
-  have hb : b.to_slice.length = N.val := by simp
-  hax_mvcgen [core.Array.Insts.CoreCmpPartialEqArray.eq_loop.body, core.U8.Insts.CoreCmpPartialEqU8,
-    rust_primitives.slice.array_index]
-  case vc1.hQ =>
-    rename_i x hx y hy heq r hr
-    obtain ⟨hxa, rfl⟩ := hx
-    obtain ⟨hyb, rfl⟩ := hy
-    have hla : i.val < a.val.length := by simpa using h
-    have hlb : i.val < b.val.length := by simpa using h
-    refine ⟨?_, by scalar_tac⟩
-    rw [getElem!_pos a.val i.val hla, getElem!_pos b.val i.val hlb]
-    simpa using heq
-  case vc2.h_fail => scalar_tac
-  case vc3.hQ =>
-    rename_i x hx y hy hne
-    obtain ⟨hxa, rfl⟩ := hx
-    obtain ⟨hyb, rfl⟩ := hy
-    have hla : i.val < a.val.length := by simpa using h
-    have hlb : i.val < b.val.length := by simpa using h
-    refine ⟨trivial, ?_⟩
-    rw [getElem!_pos a.val i.val hla, getElem!_pos b.val i.val hlb]
-    simpa using hne
-  case vc4.h_fail => rename_i hge; omega
-  case vc5.h_fail => rename_i hge; omega
-
-/-- `==` on `[u8; N]`, from index `i` on: whether the arrays agree from there. -/
-theorem array_eq_loop {N : Std.Usize} (a b : Array Std.U8 N) (n : ℕ) :
-    ∀ i : Std.Usize, N.val - i.val = n → i.val ≤ N.val →
-      core.Array.Insts.CoreCmpPartialEqArray.eq_loop core.U8.Insts.CoreCmpPartialEqU8 a b i =
-        ok (decide (a.val.drop i.val = b.val.drop i.val)) := by
-  have hla : a.val.length = N.val := by simp
-  have hlb : b.val.length = N.val := by simp
-  induction n with
-  | zero =>
-    intro i hn hi
-    have hlt : ¬ (i < N) := by scalar_tac
-    unfold core.Array.Insts.CoreCmpPartialEqArray.eq_loop
-    rw [loop.eq_def]
-    simp [core.Array.Insts.CoreCmpPartialEqArray.eq_loop.body, hlt]
-    rw [List.drop_of_length_le (by omega), List.drop_of_length_le (by omega)]
-  | succ n ih =>
-    intro i hn hi
-    obtain ⟨r, hr, hp⟩ := ok_of_triple (array_eq_body a b i (by omega))
-    have hda : a.val.drop i.val = a.val[i.val]! :: a.val.drop (i.val + 1) := by
-      rw [List.drop_eq_getElem_cons (by omega), getElem!_pos a.val i.val (by omega)]
-    have hdb : b.val.drop i.val = b.val[i.val]! :: b.val.drop (i.val + 1) := by
-      rw [List.drop_eq_getElem_cons (by omega), getElem!_pos b.val i.val (by omega)]
-    unfold core.Array.Insts.CoreCmpPartialEqArray.eq_loop
-    rw [loop.eq_def, hr, Aeneas.Std.bind_ok]
-    match r, hp with
-    | .cont i1, hp =>
-      obtain ⟨he, h1⟩ := hp
-      have := ih i1 (by omega) (by omega)
-      unfold core.Array.Insts.CoreCmpPartialEqArray.eq_loop at this
-      simp only [this, hda, hdb, he, h1, List.cons.injEq, true_and]
-    | .done v, hp =>
-      obtain ⟨rfl, hne⟩ := hp
-      simp only [hda, hdb, List.cons.injEq, hne, false_and, decide_false]
-
-/-- `==` on `[u8; N]` is equality. -/
-theorem array_eq {N : Std.Usize} (a b : Array Std.U8 N) :
-    core.Array.Insts.CoreCmpPartialEqArray.eq core.U8.Insts.CoreCmpPartialEqU8 a b =
-      ok (decide (a = b)) := by
-  have h := array_eq_loop a b N.val 0#usize (by simp) (by simp)
-  simp only [core.Array.Insts.CoreCmpPartialEqArray.eq, h]
-  congr 1
-  have : (0#usize).val = 0 := rfl
-  rw [this, List.drop_zero, List.drop_zero]
-  congr 1
-  apply propext
-  constructor
-  · exact (Array.eq_iff a b).mpr
-  · rintro rfl; rfl
-
-theorem leNat_inj : ∀ (l l' : List UInt8), l.length = l'.length → leNat l = leNat l' → l = l'
-  | [], [], _, _ => rfl
-  | [], _ :: _, h, _ => by simp at h
-  | _ :: _, [], h, _ => by simp at h
-  | b :: bs, b' :: bs', h, he => by
-    have hb := b.toNat_lt
-    have hb' := b'.toNat_lt
-    simp only [leNat, List.foldr_cons] at he
-    have h1 : b.toNat = b'.toNat := by omega
-    have h2 : leNat bs = leNat bs' := by simp only [leNat]; omega
-    rw [leNat_inj bs bs' (by simpa using h) h2, UInt8.toNat_inj.mp h1]
-
-theorem b8_inj {x y : Std.U8} (h : b8 x = b8 y) : x = y := by
-  have hb : x.bv = y.bv := by simpa [b8] using h
-  cases x; cases y; simp_all
-
-theorem bytes_inj : ∀ {l l' : List Std.U8}, bytes l = bytes l' → l = l'
-  | [], [], _ => rfl
-  | [], _ :: _, h => by simp [bytes] at h
-  | _ :: _, [], h => by simp [bytes] at h
-  | x :: xs, y :: ys, h => by
-    simp only [bytes, List.map_cons, List.cons.injEq] at h
-    rw [b8_inj h.1, bytes_inj (l := xs) (l' := ys) h.2]
-
-/-- Distinct Rust digests are distinct statement digests. -/
-theorem toDigest_inj {a b : Array Std.U8 16#usize} (h : toDigest a = toDigest b) : a = b := by
-  have ha : (bytes a.val).length = 16 := by simp [bytes]
-  have hb : (bytes b.val).length = 16 := by simp [bytes]
-  have e : (256 : ℕ) ^ 16 = 2 ^ 128 := by norm_num
-  have la := leNat_lt (bytes a.val)
-  have lb := leNat_lt (bytes b.val)
-  rw [ha, e] at la
-  rw [hb, e] at lb
-  have hn : leNat (bytes a.val) = leNat (bytes b.val) := by
-    have h' : BitVec.ofNat 128 (leNat (bytes a.val)) = BitVec.ofNat 128 (leNat (bytes b.val)) := h
-    have := congrArg BitVec.toNat h'
-    simp only [BitVec.toNat_ofNat] at this
-    rwa [Nat.mod_eq_of_lt la, Nat.mod_eq_of_lt lb] at this
-  exact (Array.eq_iff a b).mpr (bytes_inj (leNat_inj _ _ (by rw [ha, hb]) hn))
-
-/-- A path fold reads its path only below the height it folds to. -/
 theorem foldPath_congr {m : Type → Type} [Monad m] (node : ℕ → ℕ → HashInput → m Digest)
     (leaf : ℕ) (p q : ℕ → Digest) :
     ∀ (n : ℕ) (v : Digest), (∀ z < n, p z = q z) →
