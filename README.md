@@ -188,6 +188,10 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
 - [Hashcaster 2](https://github.com/levs57/hashcaster2) proving Keccak via GKR and RMFE
 - [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
 
+## contributing
+
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md), and [`formal/CONTRIBUTING.md`](formal/CONTRIBUTING.md) for the Lean proofs. Agents also read [`AGENTS.md`](AGENTS.md).
+
 ## FV Credits:
 
 - [leanerVM](https://github.com/Verified-zkEVM/leanerVM) by [Nicolas Schleicher](https://github.com/scaraven) and others
