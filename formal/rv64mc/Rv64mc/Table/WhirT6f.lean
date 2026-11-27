@@ -4,13 +4,14 @@
   Wave 6f's WHIR functions' total contracts at the image (`liftProg Gen.fns`): each function's total theorem at its
   index, with the generated link, the stack `Gen.Needs` gives (bounds over the callees' by `decide`), and the callees'
   total theorems (`WhirT6b.novelBasis`, `WhirT6b.extRow`, `SumT6f.eSumNovel`, `TranscriptT3.grindCheck`,
-  `TranscriptT3.samples`, `WhirT6d.ringCoefficients`, `WhirT6d.ringTarget`). Open: `clmul_low`'s table
+  `TranscriptT3.samples`, `WhirT6d.ringCoefficients`, `WhirT6d.ringTarget`, `WhirT6d.subspaceNew`,
+  `WhirT6b.subspaceAt`, `FieldT.baseMul`, `FieldT.eMul`). Open: `clmul_low`'s table
   (`FieldT.ClmulTable`), the keccak tables (`HashT.KeccakTables`), `NEXT`'s data reference and the heap's end
   (`env`): environment facts.
 
   ## Main results
 
-  * `novelEval`, `ringSwitch`, `lanesOf`
+  * `novelEval`, `ringSwitch`, `lanesOf`, `inducedWeight`
 -/
 
 import Rv64mc.Table.WhirT6b
@@ -20,6 +21,7 @@ import Rv64mc.Table.SumT6f
 import Rv64mc.Proof.Whir.NovelEvalT
 import Rv64mc.Proof.Whir.RingSwitchT
 import Rv64mc.Proof.Whir.LanesOfT
+import Rv64mc.Proof.Whir.InducedWeightT
 import Rv64mc.Gen.Link.Verifier.Whir
 import Rv64mc.Gen.Link.Verifier.RingSwitch
 
@@ -61,6 +63,17 @@ theorem lanesOf (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr 
     (by decide) (by decide) (by decide) (by decide) (WhirT6b.extRow env hnext hend) (AllocT.reserveE env hnext hend)
     (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
 
+/-- `induced_weight` (97). -/
+theorem inducedWeight (hd : FieldT.ClmulTable env)
+    (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    InducedWeightT.specT env (liftProg fns) Idx.Verifier.Whir.InducedWeight Needs.Verifier.Whir.InducedWeight :=
+  InducedWeightT.total env _ _ _ Verifier.Whir.InducedWeight.tmpl_eq Verifier.Whir.InducedWeight.wf
+    (needN := Needs.Verifier.Whir.Subspace.New) (needA := Needs.Verifier.Whir.Subspace.At)
+    (needB := Needs.Verifier.Field.BaseMul) (needU := Needs.Verifier.Field.E.AsMul.Mul)
+    (by decide) (by decide) (by decide) (by decide) (WhirT6d.subspaceNew env hd hnext hend)
+    (WhirT6b.subspaceAt env hd hnext hend) (FieldT.baseMul env hd) (FieldT.eMul env hd)
+
 end Rv64mc.Table.WhirT6f
 
 /-- info: 'Rv64mc.Table.WhirT6f.novelEval' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -74,3 +87,7 @@ end Rv64mc.Table.WhirT6f
 /-- info: 'Rv64mc.Table.WhirT6f.lanesOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.WhirT6f.lanesOf
+
+/-- info: 'Rv64mc.Table.WhirT6f.inducedWeight' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.WhirT6f.inducedWeight
