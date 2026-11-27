@@ -1,9 +1,9 @@
-"""Writes `Guest/CoreMode/Gen/TermCallers{k}.lean` and `TermCallers.lean`: the callers' check of
-`check_opening_terminal` and the `column_selector` specializations over the whole program by ranges
-(`Res.termCallers`, `Res.callersG`), the ranges `resgen.RANGES`; and `GlCallers{k}.lean`, `GlCallers.lean`, of
-`verify_bus_gkr`'s layers (`Res.glCallers`, `Res.callersM`); and `ExpCarry{k}.lean`, `ExpCarry.lean`, the call sites
-carrying the listed parameters' exponent bounds (`CoreMode.FnReg.expCarry`, `CoreMode.carryExpB`), decided by the
-witnessed check (`CoreMode.carryExpW`, `Fam/ExpCWit.lean`) over the table `ExpCarryTab.lean`.
+"""Writes `Guest/CoreMode/Gen/TermCallers.lean`: the callers' check of `check_opening_terminal` and the
+`column_selector` specializations over the whole program (`Res.termCallers`, `Res.callersG`); `GlCallers.lean`, of
+`verify_bus_gkr`'s layers (`Res.glCallers`, `Res.callersM`); and `ExpCarry.lean`, the call sites carrying the listed
+parameters' exponent bounds (`CoreMode.FnReg.expCarry`, `CoreMode.carryExpB`), with its table `ExpCarryTab.lean`
+and its witnesses (`exp_witness`, `CoreMode.carryExpW`, `Fam/ExpCWit.lean`). Each from the ranges `down.py` checks
+(`Gen/Down{k}.lean`, every family carried down in one walk).
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/core-mode/termcall.py [--check]"""
 import sys, os, glob
@@ -21,14 +21,9 @@ OUT = resgen.OUT
 header = genfiles.header('core-mode/termcall.py')
 
 
-# the checks: file stem, the theorems' name, the check of one function, its imports, its ranges
-_TERM = 'LeanVM.Guest.CoreMode.Fam.CallersWit\npublic import LeanVM.Guest.CoreMode.Fam.TermDefs'
-# a callers' check, its witnessed form (`Fam/CallersWit.lean`) and the theorem from it
-WIT = {'callersG': ('callersGW', 'callersG_of_wit'), 'callersM': ('callersMW', 'callersM_of_wit')}
-FAMS = [('TermCallers', 'termCallers', 'callersG termCallers', _TERM, resgen.RANGES),
-        ('GlCallers', 'glCallers', 'callersM glCallers', _TERM, resgen.RANGES),
-        ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry',
-         'LeanVM.Guest.CoreMode.Gen.ExpCarryTab', resgen.RANGES)]
+# the aggregates: file stem, the theorems' name, the check of one function
+FAMS = [('TermCallers', 'termCallers', 'callersG termCallers'), ('GlCallers', 'glCallers', 'callersM glCallers'),
+        ('ExpCarry', 'expCarry', 'CoreMode.carryExpB CoreMode.FnReg.expCarry')]
 
 
 def exp_witness(L):
@@ -60,8 +55,7 @@ def exp_witness(L):
 
 def render():
     files = {}
-    n = resgen.coreCount()
-    wit, by = exp_witness(carry_list())
+    _, by = exp_witness(carry_list())
     mod = 'LeanVM.Guest.CoreMode.Gen.ExpCarryTab'
     t = [header(mod, 'The table of `CoreMode.FnReg.expCarry` (`Res.tabOk`).')]
     t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\npublic import LeanVM.Guest.CoreMode.Fam.ExpCWit\n'
@@ -71,35 +65,11 @@ def render():
              '  decide +kernel\n\nend\n\nend LeanVM.Guest.Res\n'
              % carrywit.tab([(f, c) for f, cs in by.items() for c in cs], lambda c: '(%d, %d, %d)' % c))
     files[mod] = ''.join(t)
-    for stem, lst, chk, imps, rs in FAMS:
-        ranges = [(a, (n - a) if m is None else m) for a, m in rs]
-        mods = []
-        for k, (a, m) in enumerate(ranges):
-            mod = 'LeanVM.Guest.CoreMode.Gen.%s%d' % (stem, k)
-            t = [header(mod, 'The callers\' check of `%s`, functions %d to %d.' % (lst, a, a + m - 1))]
-            if stem == 'ExpCarry':
-                items = [(j, wit[j]) for j in range(a, a + m) if wit.get(j)]
-                t.append('public import %s\nmeta import LeanVM.Guest.Packed.NatLit\n\n'
-                         'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                         '/-- The sub-spines of `CoreMode.carryExpW`, by function index. -/\n'
-                         'noncomputable def expW%d : NTree ℕ :=\n  %s\n\npublic section\n\n'
-                         'theorem %s_%d : RangeOk (fun _ fn => %s fn) %d %d :=\n'
-                         '  RangeOk.imp (fun _ _ h ↦ CoreMode.carryExpB_of_wit expCarryT_ok h)\n'
-                         '    (show RangeOk (fun j fn ↦ CoreMode.carryExpW expCarryT fn (witAt expW%d j)) %d %d by\n'
-                         '      unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n'
-                         % (imps, a, carrywit.ntree(items, carrywit.hexbits), lst, a, chk, a, m, a, a, m))
-            else:
-                fw, of = WIT[chk.split()[0]]
-                t.append('public import %s\n\n'
-                         'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n'
-                         'public section\n\ntheorem %s_%d : RangeOk (fun _ fn => %s fn) %d %d :=\n'
-                         '  RangeOk.imp (fun _ _ h ↦ %s h)\n'
-                         '    (show RangeOk (fun _ fn ↦ %s %s fn) %d %d by unfold RangeOk; decide +kernel)\n\n'
-                         'end\n\nend LeanVM.Guest.Res\n' % (imps, lst, a, chk, a, m, of, fw, chk.split()[1], a, m))
-            files[mod] = ''.join(t); mods.append(mod)
+    ranges = resgen.down_ranges()
+    for stem, lst, chk in FAMS:
         mod = 'LeanVM.Guest.CoreMode.Gen.%s' % stem
         t = [header(mod, 'The callers\' check of `%s`, every function.' % lst)]
-        t.append(''.join('public import %s\n' % m for m in mods))
+        t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
         t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n\nnamespace LeanVM.Guest.Res\n\n'
                  'open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory\n\npublic section\n\n')
         app = '%s_0' % lst

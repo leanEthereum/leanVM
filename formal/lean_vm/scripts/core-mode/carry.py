@@ -1,8 +1,8 @@
-"""Writes `Guest/CoreMode/Gen/CarryNzList.lean`, `CarryCallers{k}.lean` and `CarryOk.lean`: the carried facts' check
+"""Writes `Guest/CoreMode/Gen/CarryNzList.lean`, `CarryTab.lean` and `CarryOk.lean`: the carried facts' check
 (`Res.carryG`: every call site passes the listed callees' carried facts, every heap witness pointer its spine does not
 pin is in `K` by the carried values) and the nonzero facts' check (`Res.carryNzG`: every call site passes its callees'
 nonzero parameters, every dynamic allocation's size is nonzero in `K`, every listed callee word is) over the whole
-program by ranges, and their conjunctions. The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
+program, from the ranges `down.py` checks (`Gen/Down{k}.lean`, with the other families carried down). The carried parameters of `carryG` are `Res.carried` (`CoreMode/Fam/CarryDefs.lean`);
 those of `carryNzG` (`Res.carriedNz`), its callee words (`Res.nzUp`) and the values each body pins itself (`Res.ownNz`)
 are derived here, by mirroring the check over the core IR (`Pack/*/Core*.lean`) to a fixed point, and written to
 `CarryNzList.lean`. The kernel decides the witnessed checks (`Res.carryGW`, `Res.carryNzW`, `Fam/CarryWit.lean`): each
@@ -23,8 +23,6 @@ import coredata  # noqa: E402
 from compiled import BD  # noqa: E402
 
 OUT = resgen.OUT
-# by ranges of functions, each a kernel check; `main` (function 0) alone
-RANGES = [(0, 1), (1, 10), (11, 1), (12, 1), (13, 7), (20, 10), (30, 10), (40, 60), (100, 270), (370, 3), (373, 3), (376, 3), (379, 2), (381, 19), (400, 200), (600, 200), (800, 200), (1000, 200), (1200, None)]
 # `Res.nzDepth`, `Res.kDepth`
 NZ_DEPTH, K_DEPTH = 12, 8
 
@@ -441,13 +439,21 @@ def witnesses(F, carried, up, own, kc):
 header = genfiles.header('core-mode/carry.py')
 
 
-def render():
-    files = {}
+def lists():
+    """The core functions (`functions`), the nonzero facts' lists (`nz_lists`) and `Res.carried` by name."""
     F = functions()
     carried, up, own, bad = nz_lists(F)
     if bad:
         sys.exit('carry: the nonzero facts\' check fails:\n  ' + '\n  '.join(map(str, bad)))
     assert 'main' not in carried
+    names = carrywit.name_strings(os.path.join(resgen.ROOT, 'Data', 'NameStrings.lean'))
+    kc = [(names[f], p, k) for f, p, k in carrywit.lean_carried(os.path.join(resgen.ROOT, 'CoreMode', 'Fam', 'CarryDefs.lean'))]
+    return F, carried, up, own, kc
+
+
+def render():
+    files = {}
+    F, carried, up, own, kc = lists()
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryNzList'
     t = [header(mod, 'The nonzero facts\' carried parameters, callee words and own values (`Res.carryNzG`).')]
     t.append('namespace LeanVM.Guest.Res\n\n@[expose] public section\n\n')
@@ -460,13 +466,7 @@ def render():
              'def ownNz : List (String × Nat) := [\n%s]\n\nend\n\nend LeanVM.Guest.Res\n' % ',\n'.join(
                  '  ("%s", %d)' % c for c in own))
     files[mod] = ''.join(t)
-    n = resgen.coreCount()
-    ranges = [(a, (n - a) if m is None else m) for a, m in RANGES]
-    assert sum(m for _, m in ranges) == n and all(m > 0 for _, m in ranges), ranges
-    keys = coredata.keys(os.path.join(resgen.ROOT, 'Data'))
-    names = carrywit.name_strings(os.path.join(resgen.ROOT, 'Data', 'NameStrings.lean'))
-    kc = [(names[f], p, k) for f, p, k in carrywit.lean_carried(os.path.join(resgen.ROOT, 'CoreMode', 'Fam', 'CarryDefs.lean'))]
-    gbits, nzbits = witnesses(F, carried, up, own, kc)
+    ranges = resgen.down_ranges()
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryTab'
     t = [header(mod, 'The tables of the carried and nonzero facts\' lists of names (`Res.tabOk`).')]
     t.append('public import LeanVM.Guest.CoreMode.Fam.CarryWit\n\nnamespace LeanVM.Guest.Res\n\n@[expose] public section\n\n')
@@ -480,29 +480,9 @@ def render():
         t.append('theorem %s_ok : tabOk %s %s id = true := by decide +kernel\n\n' % (d, l, d))
     t.append('end\n\nend LeanVM.Guest.Res\n')
     files[mod] = ''.join(t)
-    mods = []
-    for k, (a, m) in enumerate(ranges):
-        mod = 'LeanVM.Guest.CoreMode.Gen.CarryCallers%d' % k
-        t = [header(mod, 'The carried and nonzero facts\' checks, functions %d to %d.' % (a, a + m - 1))]
-        t.append('public import LeanVM.Guest.CoreMode.Gen.CarryTab\nmeta import LeanVM.Guest.Packed.NatLit\n\n'
-                 'namespace LeanVM.Guest.Res\n\nopen LeanVM.Guest.Memory\n\n')
-        for w, bits, what in (('gW', gbits, '`carryGW`'), ('nzW', nzbits, '`carryNzW`')):
-            items = [(j, bits[names[keys[j]]]) for j in range(a, a + m) if bits.get(names[keys[j]])]
-            t.append('/-- The sub-spines of %s, by function index. -/\nnoncomputable def %s%d : NTree ℕ :=\n  %s\n\n'
-                     % (what, w, a, carrywit.ntree(items, carrywit.hexbits)))
-        t.append('public section\n\n'
-                 'theorem carry_%d : RangeOk (fun _ fn => carryG fn) %d %d :=\n'
-                 '  RangeOk.imp (fun _ _ h ↦ carryG_of_wit carriedT_ok h)\n'
-                 '    (show RangeOk (fun j fn ↦ carryGW carriedT fn (witAt gW%d j)) %d %d by\n'
-                 '      unfold RangeOk; decide +kernel)\n\n' % (a, a, m, a, a, m))
-        t.append('theorem carryNz_%d : RangeOk (fun _ fn => carryNzG fn) %d %d :=\n'
-                 '  RangeOk.imp (fun _ _ h ↦ carryNzG_of_wit carriedNzT_ok nzUpT_ok ownNzT_ok h)\n'
-                 '    (show RangeOk (fun j fn ↦ carryNzW carriedNzT nzUpT ownNzT fn (witAt nzW%d j)) %d %d by\n'
-                 '      unfold RangeOk; decide +kernel)\n\nend\n\nend LeanVM.Guest.Res\n' % (a, a, m, a, a, m))
-        files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.CoreMode.Gen.CarryOk'
     t = [header(mod, 'The carried and nonzero facts\' checks, every function.')]
-    t.append(''.join('public import %s\n' % m for m in mods))
+    t.append(''.join('public import %s\n' % m for m in resgen.down_mods()))
     t.append('public import LeanVM.Guest.CoreMode.Fam.LinkDefs\n')
     t.append('\nnamespace LeanVM.Guest.Res\n\nopen LeanVM.Guest LeanVM.Guest.Memory\n\npublic section\n\n')
     for name, chk, what in (('carry', 'carryG', 'carried'), ('carryNz', 'carryNzG', 'nonzero')):

@@ -25,7 +25,7 @@ STEPS = [
     ["scripts/core-mode/heap.py", "--emit", "LeanVM/Guest/CoreMode/Gen"],
     ["scripts/core-mode/pair.py", "--emit"], ["scripts/core-mode/frame_gen.py"], ["scripts/core-mode/core.py"],
     ["scripts/core-mode/certs.py"], ["scripts/core-mode/monocall.py"], ["scripts/core-mode/carry.py"],
-    ["scripts/core-mode/termcall.py"], ["scripts/core-mode/loopcheck.py"],
+    ["scripts/core-mode/termcall.py"], ["scripts/core-mode/down.py"], ["scripts/core-mode/loopcheck.py"],
 ]
 
 

@@ -203,6 +203,8 @@ part_res() {
   python3 -I scripts/core-mode/carry.py ${check[@]+"${check[@]}"}
   step "res: check_opening_terminal's callers (scripts/core-mode/termcall.py)"
   python3 -I scripts/core-mode/termcall.py ${check[@]+"${check[@]}"}
+  step "res: every family carried down to callees, in one walk (scripts/core-mode/down.py)"
+  python3 -I scripts/core-mode/down.py ${check[@]+"${check[@]}"}
 }
 
 part_whir_data() {
