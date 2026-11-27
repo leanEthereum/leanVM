@@ -8,10 +8,10 @@ Open hypotheses of a `Table` theorem: `none`; `env`, the environment's two facts
 
 | | functions | instructions |
 | --- | --- | --- |
-| total, with a `Table` instance | 183 | 10858 (52.0%) |
+| total, with a `Table` instance | 186 | 11121 (53.3%) |
 | of which no open hypothesis | 52 | 1947 |
-| of which only environment facts open | 183 | 10858 |
-| no total contract | 46 | 10020 |
+| of which only environment facts open | 186 | 11121 |
+| no total contract | 43 | 9757 |
 | reachable from `main` | 229 | 20878 |
 
 Every total function has its `Table` instance, and every `Table` theorem's axioms are pinned by `#guard_msgs` to `[propext, Classical.choice, Quot.sound]`. The counts are the table's below, recounted by `awk -F'|' '$7 ~ /yes/ {n++; s+=$5} END {print n, s}' notes/total-status.md` (all total functions; add `&& $10 ~ /none/` for those with no open hypothesis, or match `$2 ~ /^ [0-9]+ $/` for every row).
