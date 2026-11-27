@@ -46,7 +46,7 @@ open Rv64mc.Proof.Runtime.VecReprT (VecT RawVecT BufT)
 open Rv64mc.Proof.Transcript
 open Rv64mc.Proof.Transcript.SpongeReprT Rv64mc.Proof.Transcript.TranscriptReprT
 open Rv64mc.Proof.Transcript.NextScalarsT (Ctx sret_spongeT tr_words)
-open Rv64mc.Proof.Whir.VecWordT (vecT_stores shl3)
+open Rv64mc.Proof.Whir.VecWordT (vecT_stores shl3 ovf)
 open Rv64mc.Gen.Verifier.Whir.SampleQueries (Link tmpl)
 
 /-- The total precondition: `next_scalar`'s (`NextScalarT.PreT`): the transcript `TranscriptAtT` and owned with its
@@ -223,22 +223,6 @@ theorem baseM_sample {env : Env} {ret top top' : Word} {regs r : Reg → Word} {
     hSv.keep fun c hc0 hc1 => sample_keep hf (by omega) (by tn) hT (by tn), hTT.1, hTT.2.1, hTT.2.2.trans hP⟩
   simp only [Sample.Out, hT] at h
   exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl h))))
-
-/-- The capacity's overflow check passed: `count` words fit in `2^63` bytes. -/
-theorem ovf {x : Word}
-    (h : BinOp.ult.eval 0#64 (x >>> 61) ||| BinOp.ult.eval 9223372036854775800#64 (x <<< 3) = 0#64) :
-    x.toNat * 8 < 2 ^ 63 := by
-  simp only [BinOp.eval] at h
-  refine Nat.lt_of_not_le fun hx => ?_
-  rcases Nat.lt_or_ge x.toNat (2 ^ 61) with h1 | h1
-  · have e : (9223372036854775800#64).ult (x <<< 3) = true := by
-      simp only [BitVec.ult, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, decide_eq_true_eq]
-      rw [Nat.mod_eq_of_lt (by omega)]; simp; omega
-    simp [e] at h
-  · have e : (0#64).ult (x >>> 61) = true := by
-      simp only [BitVec.ult, BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow, decide_eq_true_eq]
-      simp; omega
-    simp [e] at h
 
 /-- Two words stored into the slot, at `0` and `8`, apart from the transcript, keep its sponge `SpongeT`. -/
 theorem spongeT_err {env : Env} {M : MachineState} {a T v w : Word} (hw : InWin env a 24)

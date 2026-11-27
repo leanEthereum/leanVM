@@ -2,12 +2,12 @@
   Rv64mc.Proof.Whir.VecWordT
 
   What the WHIR functions' total contracts that build a vector of words (`Vec<u64>`, `Vec<K>`) share: a header stored
-  into a slot is `VecReprT.VecT` with the length stored (`vecT_stores`), and the offset `8 x` the code computes by a
-  shift (`shl3`).
+  into a slot is `VecReprT.VecT` with the length stored (`vecT_stores`), the offset `8 x` the code computes by a
+  shift (`shl3`), and the capacity's overflow check for words (`ovf`).
 
   ## Main results
 
-  * `vecT_stores`, `shl3`
+  * `vecT_stores`, `shl3`, `ovf`
 -/
 
 import Rv64mc.Proof.Runtime.VecReprT
@@ -53,5 +53,21 @@ theorem vecT_stores {env : Env} {M : MachineState} {a c q l : Word} {s : Nat} (h
 /-- `8 x` as the code computes it. -/
 theorem shl3 {x : Word} (h : 8 * x.toNat < 2 ^ 64) : (x <<< 3).toNat = 8 * x.toNat := by
   rw [BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]; omega
+
+/-- The capacity's overflow check passed: `count` words fit in `2^63` bytes. -/
+theorem ovf {x : Word}
+    (h : BinOp.ult.eval 0#64 (x >>> 61) ||| BinOp.ult.eval 9223372036854775800#64 (x <<< 3) = 0#64) :
+    x.toNat * 8 < 2 ^ 63 := by
+  simp only [BinOp.eval] at h
+  refine Nat.lt_of_not_le fun hx => ?_
+  rcases Nat.lt_or_ge x.toNat (2 ^ 61) with h1 | h1
+  · have e : (9223372036854775800#64).ult (x <<< 3) = true := by
+      simp only [BitVec.ult, BitVec.toNat_shiftLeft, Nat.shiftLeft_eq, decide_eq_true_eq]
+      rw [Nat.mod_eq_of_lt (by omega)]; simp; omega
+    simp [e] at h
+  · have e : (0#64).ult (x >>> 61) = true := by
+      simp only [BitVec.ult, BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow, decide_eq_true_eq]
+      simp; omega
+    simp [e] at h
 
 end Rv64mc.Proof.Whir.VecWordT

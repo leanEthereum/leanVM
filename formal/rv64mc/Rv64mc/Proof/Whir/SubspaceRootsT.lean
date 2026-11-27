@@ -43,7 +43,6 @@ import Rv64mc.Proof.Field.SpreadT
 import Rv64mc.Core.AbortStop
 import Rv64mc.Proof.Transcript.Common
 import Rv64mc.Proof.Whir.VecWordT
-import Rv64mc.Proof.Whir.SampleQueriesT
 import Rv64mc.Spec.Whir.Subspace
 import Rv64mc.Gen.Tmpl.Verifier.Whir.SubspaceRoots
 
@@ -55,7 +54,7 @@ open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (VecT RawVecT BufT)
 open Rv64mc.Proof.Runtime.GrowOneT (GrowOneSpecT)
 open Rv64mc.Proof.Runtime.MemmoveT (MemmoveSpecT)
-open Rv64mc.Proof.Whir.VecWordT (vecT_stores shl3)
+open Rv64mc.Proof.Whir.VecWordT (vecT_stores shl3 ovf)
 open Rv64mc.Proof.Transcript (getMem_setMem_off)
 open Rv64mc.Gen.Verifier.Whir.SubspaceRoots (Link tmpl)
 
@@ -945,7 +944,7 @@ theorem total (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   rv_symT hp stop [108] with [hL, (by omega : env.stackLimit.toNat + 192 ≤ top.toNat)] using [hac, hhe, hpn]
   all_goals
     have hlim : env.stackLimit.toNat + 192 ≤ top.toNat := by omega
-    have hov := SampleQueriesT.ovf hc_2
+    have hov := ovf hc_2
     have e8 := shl3 (x := regs .x11) (by omega)
     have hn1 := hret1_14.1
     have hn1' := hret1_14.2.1

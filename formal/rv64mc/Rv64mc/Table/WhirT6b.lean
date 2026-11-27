@@ -9,12 +9,11 @@
   `RuntimeT.alloc`, `RuntimeT.handleError`, `FieldT.baseMul`, `CopyUseT.memcpy`, `RuntimeT.panicNounwindFmt`,
   `RuntimeT.panicFmt`; `subspace_roots`: `AllocT.reserveK`, `RuntimeT.alloc`, `RuntimeT.handleError`,
   `FieldT.baseMul`, `FieldT.spread`, `FieldT.reduce`, `RuntimeT.memmove`, `AllocT.growOneK`,
-  `RuntimeT.panicNounwindFmt`). Left
-  as hypotheses: `log2_strict`'s two constant tables in the image's static data (`DataRef.InData`, as
-  `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through `Sponge::sample`), `clmul_low`'s
-  (`FieldT.ClmulTable`, through `base_mul`), and the allocator's two facts (`NEXT`'s data reference and the heap's
-  end), environment facts, and for `subspace_roots` `compiler_builtins`' `memmove` contract (`MemmoveSpecT`, 225,
-  stated, not yet proved), which `RuntimeT.memmove` takes.
+  `RuntimeT.panicNounwindFmt`). Left as hypotheses: `log2_strict`'s two constant tables in the image's static data
+  (`DataRef.InData`, as `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through
+  `Sponge::sample`), `clmul_low`'s (`FieldT.ClmulTable`, through `base_mul`), and the allocator's two facts (`NEXT`'s
+  data reference and the heap's end), environment facts, and for `subspace_roots` `compiler_builtins`' `memmove`
+  contract (`MemmoveSpecT`, 225, stated, not yet proved), which `RuntimeT.memmove` takes.
 
   ## Main results
 
