@@ -1,7 +1,5 @@
 //! The proof's one encoding, [`Proof::to_bytes`], and its decoding, which unprunes each Merkle phase.
 
-use std::collections::BTreeMap;
-
 use crate::field::{E, K};
 use crate::merkle::{MerklePath, hash_leaf, hash_pair};
 use crate::transcript::Proof;
@@ -64,9 +62,13 @@ fn write_phase(out: &mut Vec<u8>, paths: &[MerklePath]) {
     assert!(!paths.is_empty(), "a Merkle phase opens at least one path");
     let (height, leaf_words) = (paths[0].siblings.len(), paths[0].leaf.len());
     assert!(paths.len() <= MAX_QUERIES && leaf_words <= MAX_LEAF_WORDS && height <= MAX_HEIGHT);
-    let mut distinct: Vec<&MerklePath> = paths.iter().collect();
-    distinct.sort_by_key(|path| path.leaf_index);
-    distinct.dedup_by_key(|path| path.leaf_index);
+    // The first path at each position, in order of position.
+    let mut distinct: Vec<&MerklePath> = Vec::new();
+    for path in paths {
+        if let Err(at) = distinct.binary_search_by_key(&path.leaf_index, |p| p.leaf_index) {
+            distinct.insert(at, path);
+        }
+    }
     let zeros = distinct
         .iter()
         .map(|path| path.leaf.iter().take_while(|word| word.0 == 0).count())
@@ -103,9 +105,12 @@ fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
     let count = input.u32().filter(|&count| count as usize <= MAX_QUERIES)?;
     let queries: Vec<u64> = (0..count).map(|_| input.u32().map(u64::from)).collect::<Option<_>>()?;
     let (height, leaf_words, row_words) = (input.u32()? as usize, input.u32()? as usize, input.u32()? as usize);
-    let mut positions = queries.clone();
-    positions.sort_unstable();
-    positions.dedup();
+    let mut positions: Vec<u64> = Vec::new();
+    for &query in &queries {
+        if let Err(at) = positions.binary_search(&query) {
+            positions.insert(at, query);
+        }
+    }
     if !(height <= MAX_HEIGHT
         && leaf_words <= MAX_LEAF_WORDS
         && row_words <= leaf_words
@@ -128,25 +133,34 @@ fn read_phase(input: &mut Reader) -> Option<Vec<MerklePath>> {
         return None;
     }
 
-    // Level by level, the nodes the paths climb through.
-    let mut nodes: BTreeMap<u64, [u8; 32]> = distinct
+    // Level by level, the nodes the paths climb through, in order of position.
+    let mut nodes: Vec<(u64, [u8; 32])> = distinct
         .iter()
         .map(|path| (path.leaf_index, hash_leaf(&path.leaf).0))
         .collect();
+    let at = |nodes: &[(u64, [u8; 32])], p: u64| nodes.binary_search_by_key(&p, |&(q, _)| q);
     for level in 0..height {
-        let mut siblings = BTreeMap::new();
-        let mut parents = BTreeMap::new();
-        for (&p, node) in &nodes {
-            let sibling = match nodes.get(&(p ^ 1)) {
-                Some(&sibling) => sibling,
-                None => input.hash()?,
+        let mut siblings = Vec::with_capacity(nodes.len());
+        let mut parents: Vec<(u64, [u8; 32])> = Vec::with_capacity(nodes.len());
+        for &(p, node) in &nodes {
+            let sibling = match at(&nodes, p ^ 1) {
+                Ok(i) => nodes[i].1,
+                Err(_) => input.hash()?,
             };
-            siblings.insert(p, sibling);
-            let (left, right) = if p & 1 == 0 { (node, &sibling) } else { (&sibling, node) };
-            parents.entry(p >> 1).or_insert_with(|| hash_pair(left, right).0);
+            siblings.push(sibling);
+            // A pair's two nodes are consecutive, so its parent is the last one pushed.
+            if parents.last().is_none_or(|&(q, _)| q != p >> 1) {
+                let (left, right) = if p & 1 == 0 {
+                    (&node, &sibling)
+                } else {
+                    (&sibling, &node)
+                };
+                parents.push((p >> 1, hash_pair(left, right).0));
+            }
         }
         for path in &mut distinct {
-            path.siblings.push(siblings[&(path.leaf_index >> level)]);
+            let i = at(&nodes, path.leaf_index >> level).expect("a path climbs through a node");
+            path.siblings.push(siblings[i]);
         }
         nodes = parents;
     }

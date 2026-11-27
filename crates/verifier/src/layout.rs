@@ -559,10 +559,12 @@ fn stack(kappas: &[usize]) -> (BTreeMap<usize, u64>, usize) {
     let blocks = stacked_blocks(kappas.len());
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
-    (
-        blocks.into_iter().zip(block_offsets).collect(),
-        MIN_STACKED_LOG.max(total_log),
-    )
+    // Inserted one by one: collecting would sort them first.
+    let mut offsets = BTreeMap::new();
+    for (column, offset) in blocks.into_iter().zip(block_offsets) {
+        offsets.insert(column, offset);
+    }
+    (offsets, MIN_STACKED_LOG.max(total_log))
 }
 
 /// The stack of the smallest execution of a bytecode of `2^log_bytecode` instructions: the least memory, every table at

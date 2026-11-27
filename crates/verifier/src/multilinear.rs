@@ -133,13 +133,14 @@ impl Placement {
 
 /// Blocks of `2^size` laid end to end, largest first, ties by index: their offsets, and the total's `log2`, rounded up.
 pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
-    let mut order: Vec<usize> = (0..sizes.len()).collect();
-    order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));
     let mut offsets = vec![0; sizes.len()];
     let mut total = 0;
-    for index in order {
-        offsets[index] = total;
-        total += 1 << sizes[index];
+    // Each size from the largest down, its blocks in index order: no sort.
+    for size in (0..=sizes.iter().copied().max().unwrap_or(0)).rev() {
+        for (index, _) in sizes.iter().enumerate().filter(|&(_, &s)| s == size) {
+            offsets[index] = total;
+            total += 1 << size;
+        }
     }
     (offsets, log2_ceil(total))
 }
