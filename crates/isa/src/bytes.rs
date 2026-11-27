@@ -5,17 +5,15 @@ use crate::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, Program, RHint};
 use verifier::{E, K, MAX_LOG_BYTECODE};
 
 impl Program {
-    /// The compiled program, which [`Self::from_bytes`] reads back. The hints go in order of their pc.
+    /// The compiled program, which [`Self::from_bytes`] reads back.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut w = Vec::new();
         u32s(&mut w, &[self.main_frame, len(self.prog.len())]);
         for op in &self.prog {
             write_op(&mut w, op);
         }
-        let mut pcs: Vec<_> = self.hints.iter().collect();
-        pcs.sort_by_key(|(pc, _)| **pc);
-        u32s(&mut w, &[len(pcs.len())]);
-        for (&pc, hints) in pcs {
+        u32s(&mut w, &[len(self.hints.len())]);
+        for (&pc, hints) in &self.hints {
             u32s(&mut w, &[pc, len(hints.len())]);
             for hint in hints {
                 write_hint(&mut w, hint);

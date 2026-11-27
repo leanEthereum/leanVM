@@ -25,7 +25,7 @@
 //! loop** lowers to a recursive helper that tests `i == g^hi` and, while not done,
 //! runs the body and recurses on `i·g`.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 use std::sync::Arc;
 
@@ -164,7 +164,7 @@ fn assemble(mut lowered: Vec<Lowered>, tables: JumpTables) -> CompiledProgram {
     let mut prog: Vec<Op> = Vec::new();
     // Source line per pc, so a run-time failure can name a line instead of a pc.
     let mut src_lines: Vec<u32> = Vec::new();
-    let mut hints: HashMap<u32, Vec<RHint>> = HashMap::new();
+    let mut hints: BTreeMap<u32, Vec<RHint>> = BTreeMap::new();
     for l in &mut lowered {
         let pc0 = entry[&l.name];
         for ins in &mut l.code {

@@ -1,7 +1,7 @@
 //! A hand-assembled loop whose iterations take their `DEREF` pointers, write pointers and values from witness streams,
 //! run serially and as segments.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::super::execute::{Execution, Lanes, execute_as};
 use super::super::{DerefMode, ExecError, Op, Program, to_scalar};
@@ -108,7 +108,7 @@ fn program(frame0: usize, iterations: &[Iteration], heap: bool, prefix: [Op; 2])
     };
     let marker = [stack("loop", 1, 3)].into_iter().chain(heap.then(|| alloc(20)));
     let marker = marker.chain([stack("ptrs", 8, 4), stack("wptrs", 16, 3)]).collect();
-    let mut hints = HashMap::from([
+    let mut hints = BTreeMap::from([
         (MARKER, marker),
         (12, vec![write(0)]),
         (14, vec![write(1)]),

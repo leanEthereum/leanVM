@@ -13,7 +13,7 @@ mod prover;
 pub use pretty::{pretty_f64, pretty_integer};
 pub use program::{Program, g_pow};
 pub use prover::{Prover, Stats};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use verifier::{E, K};
 
 /// Cells a sponge state occupies.
@@ -29,7 +29,7 @@ pub type Off = u32;
 pub struct CompiledProgram {
     pub prog: Vec<Op>,
     /// Allocation and advice hints, keyed by global pc: the nondeterminism an execution needs.
-    pub hints: HashMap<u32, Vec<RHint>>,
+    pub hints: BTreeMap<u32, Vec<RHint>>,
     /// The size of `main`'s frame.
     pub main_frame: u32,
     /// Function pc-ranges `(name, entry, len)`, for profiles and failure reports.
