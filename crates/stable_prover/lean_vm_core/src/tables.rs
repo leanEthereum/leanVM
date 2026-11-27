@@ -1,7 +1,7 @@
 //! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode's section declares, in one
 //! place, its committed columns, how to fill them from the trace, its bus
 //! interactions (flushes), the read-count columns that feed the count channel,
-//! and its degree-2 constraint; [`Table`] names them. Column indices here are *local* (`0..n_committed_columns`);
+//! and its degree-2 constraint; `Table` names them. Column indices here are *local* (`0..n_committed_columns`);
 //! `cpu` offsets them by the verifier's `GLOBAL_COLUMN_BASES` to global witness columns.
 //!
 //! Columns are `K`-valued (`F64`). The pc/fp, operands, counts, opcodes and
