@@ -19,10 +19,11 @@ open RiscvZkvm.Rv64 Lprog Lprog.RiscV Rv64mc.Spec.Runtime
 open Rv64mc.Proof.Runtime.MemsetT (InWin)
 open Rv64mc.Proof.Runtime.VecReprT (VecT BufT)
 
-/-- **A `Vec` header stored into a slot** in a window, 8-byte aligned, from a buffer `BufT` of words. -/
-theorem vecT_stores {env : Env} {M : MachineState} {a c q l : Word} (hw : InWin env a 24) (ha : a.toNat % 8 = 0)
-    (hb : BufT env M c q 8) (hc : c.toNat * 8 < 2 ^ 63) (hl : l.toNat ≤ c.toNat) :
-    VecT env (((M.setMem a c).setMem (a + 8#64) q).setMem (a + 16#64) l) a 8 ∧
+/-- **A `Vec` header stored into a slot** in a window, 8-byte aligned, from a buffer `BufT` of `s`-byte
+    elements. -/
+theorem vecT_stores {env : Env} {M : MachineState} {a c q l : Word} {s : Nat} (hw : InWin env a 24)
+    (ha : a.toNat % 8 = 0) (hb : BufT env M c q s) (hc : c.toNat * s < 2 ^ 63) (hl : l.toNat ≤ c.toNat) :
+    VecT env (((M.setMem a c).setMem (a + 8#64) q).setMem (a + 16#64) l) a s ∧
       vecLen (((M.setMem a c).setMem (a + 8#64) q).setMem (a + 16#64) l) a = l := by
   have hlt := hw.lt
   have e8 : (a + 8#64).toNat = a.toNat + 8 := toNat_add_ofNat (by omega)

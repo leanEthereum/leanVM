@@ -4,7 +4,8 @@
   The WHIR functions' total contracts of wave 6b at the image (`liftProg Gen.fns`): each function's total theorem at
   its index, with the generated link, the stack `Gen.Needs` gives (its bound over each callee's by `decide`), and its
   callees' total theorems (`sample_queries`: `TranscriptT3.sample`, `RuntimeT.alloc`, `RuntimeT.handleError`;
-  `Subspace::at`: `FieldT.baseMul`, `FieldT.spread`, `FieldT.reduce`, `RuntimeT.alloc`, `RuntimeT.handleError`). Left
+  `Subspace::at`: `FieldT.baseMul`, `FieldT.spread`, `FieldT.reduce`, `RuntimeT.alloc`, `RuntimeT.handleError`;
+  `ext_row`: `AllocT.reserveE`, `RuntimeT.alloc`, `RuntimeT.handleError`). Left
   as hypotheses: `log2_strict`'s two constant tables in the image's static data (`DataRef.InData`, as
   `TranscriptT5b.merkle` takes its own), `keccak_f`'s (`HashT.KeccakTables`, through `Sponge::sample`), `clmul_low`'s
   (`FieldT.ClmulTable`, through `base_mul`), and the allocator's two facts (`NEXT`'s data reference and the heap's
@@ -12,7 +13,7 @@
 
   ## Main results
 
-  * `sampleQueries`, `subspaceAt`
+  * `sampleQueries`, `subspaceAt`, `extRow`
 -/
 
 import Rv64mc.Table.TranscriptT3
@@ -20,6 +21,8 @@ import Rv64mc.Table.RuntimeT
 import Rv64mc.Table.FieldT
 import Rv64mc.Proof.Whir.SampleQueriesT
 import Rv64mc.Proof.Whir.SubspaceAtT
+import Rv64mc.Proof.Whir.ExtRowT
+import Rv64mc.Table.AllocT
 import Rv64mc.Gen.Link.Verifier.Whir
 
 namespace Rv64mc.Table.WhirT6b
@@ -51,6 +54,15 @@ theorem subspaceAt (hd : FieldT.ClmulTable env)
     (FieldT.baseMul env hd) (FieldT.spread env) (FieldT.reduce env) (RuntimeT.alloc env hnext hend)
     (RuntimeT.handleError env)
 
+/-- `ext_row`. -/
+theorem extRow (hnext : VerifierRv64.Bump.AsGlobalAlloc.Alloc.link.d_NEXT.addr = env.nextAddr)
+    (hend : env.heapEnd = 0x78000000#64) :
+    ExtRowT.specT env (liftProg fns) Idx.Verifier.Whir.ExtRow Needs.Verifier.Whir.ExtRow :=
+  ExtRowT.total env _ _ _ Verifier.Whir.ExtRow.tmpl_eq Verifier.Whir.ExtRow.wf
+    (needR := Needs.Alloc.Vec.VecE.Reserve) (needA := Needs.VerifierRv64.Bump.AsGlobalAlloc.Alloc)
+    (needH := Needs.Alloc.RawVec.HandleError) (by decide) (by decide) (by decide)
+    (AllocT.reserveE env hnext hend) (RuntimeT.alloc env hnext hend) (RuntimeT.handleError env)
+
 end Rv64mc.Table.WhirT6b
 
 /-- info: 'Rv64mc.Table.WhirT6b.sampleQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -60,3 +72,7 @@ end Rv64mc.Table.WhirT6b
 /-- info: 'Rv64mc.Table.WhirT6b.subspaceAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.WhirT6b.subspaceAt
+
+/-- info: 'Rv64mc.Table.WhirT6b.extRow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.WhirT6b.extRow
