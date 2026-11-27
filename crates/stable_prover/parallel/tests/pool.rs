@@ -76,7 +76,7 @@ fn map_reduce_matches_the_sequential_fold() {
 #[test]
 fn fold_reduce_matches_the_sequential_fold() {
     for n in SIZES {
-        // A buffer accumulator, allocated once per worker and kept across its claims.
+        // A buffer accumulator, allocated once per block.
         let got = parallel::fold_reduce(
             n,
             || vec![0usize; 3],

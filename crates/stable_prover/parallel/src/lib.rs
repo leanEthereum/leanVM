@@ -14,8 +14,10 @@ static NUM_THREADS: OnceLock<usize> = OnceLock::new();
 
 /// Worker count including the dispatcher: [`set_num_threads`]'s, else one per physical core (the logical CPUs, halved
 /// where Linux says SMT is active: a second hardware thread per core slows a proof).
+///
+/// Out of line, as [`for_each_chunk`]'s dispatch is: the pool's machinery stays in functions of its own.
 #[must_use]
-#[inline]
+#[inline(never)]
 pub fn num_threads() -> usize {
     *NUM_THREADS.get_or_init(|| {
         let logical = std::thread::available_parallelism().map_or(1, |n| n.get());
@@ -40,7 +42,6 @@ const CLAIM_DIVISOR: usize = 4;
 const MAX_CLAIM_BATCH: usize = 1 << 12;
 
 thread_local! {
-    static WORKER_ID: Cell<usize> = const { Cell::new(0) };
     static IN_TASK: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -114,15 +115,14 @@ fn pool() -> &'static Pool {
         for id in 1..num_threads() {
             std::thread::Builder::new()
                 .name(format!("parallel-{id}"))
-                .spawn(move || worker_main(pool, id))
+                .spawn(move || worker_main(pool))
                 .expect("failed to spawn a pool worker");
         }
         pool
     })
 }
 
-fn worker_main(pool: &'static Pool, id: usize) {
-    WORKER_ID.set(id);
+fn worker_main(pool: &'static Pool) {
     IN_TASK.set(true); // a worker only ever runs tasks
     let mut seen = 0;
     loop {
@@ -212,6 +212,13 @@ impl Drop for InTask {
 /// it panics rather than silently serializing. Fan out over the outermost
 /// independent unit and keep the levels below it sequential.
 pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
+    dispatch(n_tasks, &f);
+}
+
+/// [`for_each_chunk`] with the closure erased: every dispatch goes through this one function, out of line, so the
+/// pool's machinery stays apart from the tasks it runs.
+#[inline(never)]
+fn dispatch(n_tasks: usize, f: &(dyn Fn(usize, usize) + Sync)) {
     assert!(!IN_TASK.get(), "nested parallel dispatch from inside a pool task");
     // The caller runs tasks too, inline or as worker 0, so nesting panics on every path.
     let _task = InTask::enter();
@@ -228,10 +235,9 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
 
     // SAFETY: erase the borrow to `'static` so it fits in `Job`; the dispatcher waits for every worker
     // before returning, so `f` outlives every dereference. `transmute` rather than a `*const dyn` cast,
-    // which would force `F: 'static`.
-    let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
+    // which would force the closure to be `'static`.
     let job = Job {
-        f: unsafe { std::mem::transmute::<NonNull<_>, NonNull<_>>(NonNull::from(f_ref)) },
+        f: unsafe { std::mem::transmute::<NonNull<_>, NonNull<_>>(NonNull::from(f)) },
         n_tasks,
     };
 
@@ -419,44 +425,41 @@ pub fn map_collect<T: Send, F: Fn(usize) -> T + Sync>(n_tasks: usize, f: F) -> V
     out
 }
 
-/// The smallest `i` in `0..n_tasks` with `pred(i)`, or `None`. Deterministic
-/// regardless of how the claims fall, because the answer is the global minimum
-/// rather than whichever hit landed first.
+/// The largest block one task of a [`find_first`] tests in a row.
+const FIND_BLOCK: usize = 1 << 12;
+
+/// Blocks per worker in a [`find_first`] wave and a [`fold_reduce`]: more than one, so that faster cores take more.
+const BLOCKS_PER_WORKER: usize = 4;
+
+/// The smallest `i` in `0..n_tasks` with `pred(i)`, or `None`.
 ///
-/// Workers publish hits into a shared minimum and stop a claim at any index past
-/// it, so the search stops early without giving up determinism.
+/// It searches in waves of `BLOCKS_PER_WORKER` blocks per worker, the blocks doubling from one index to `FIND_BLOCK`,
+/// so a search that ends early tests about as many indices as it needs. Each block writes its own first hit, so no two
+/// tasks share state, and the first block of the first wave with a hit holds the answer.
 pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Option<usize> {
-    let best = AtomicUsize::new(usize::MAX);
-    for_each_chunk(n_tasks, |start, end| {
-        for i in start..end {
-            if i >= best.load(Ordering::Relaxed) {
-                return; // a smaller hit already exists
-            }
-            if pred(i) {
-                best.fetch_min(i, Ordering::Relaxed);
-                return; // later hits in this claim are larger
-            }
+    let (mut start, mut block) = (0, 1);
+    while start < n_tasks {
+        let end = n_tasks.min(start.saturating_add(BLOCKS_PER_WORKER * num_threads() * block));
+        let hits = map_collect((end - start).div_ceil(block), |b| {
+            let lo = start + b * block;
+            (lo..end.min(lo + block)).find(|&i| pred(i))
+        });
+        if let Some(hit) = hits.into_iter().flatten().next() {
+            return Some(hit);
         }
-    });
-    let index = best.load(Ordering::Relaxed);
-    (index != usize::MAX).then_some(index)
+        (start, block) = (end, (2 * block).min(FIND_BLOCK));
+    }
+    None
 }
 
-/// One slot per cache line: a worker writes through its accumulator on the
-/// per-item path, so a dense array would false-share the boundary lines. 128
-/// rather than 64 because that is the line on Apple silicon.
-#[repr(align(128))]
-struct Slot<S>(Mutex<Option<S>>);
-
-/// Parallel fold-then-reduce: each worker builds one accumulator with `init`,
-/// folds every index it claims into it, and the accumulators `combine` on the
-/// dispatcher. Which indices a worker claims varies, so `combine` must be
-/// associative and commutative, with `init()` neutral.
+/// Parallel fold-then-reduce: `0..n_tasks` is cut into `BLOCKS_PER_WORKER` blocks per worker, each block folds its
+/// indices in order into an accumulator of its own, built with `init`, and the accumulators `combine` on the dispatcher
+/// in block order. The blocks depend on the worker count, so `combine` must be associative and commutative, with
+/// `init()` neutral.
 ///
-/// This is the shape for a reduction whose accumulator is itself a buffer (a
-/// 64-slot bit-fold, say): the buffer is allocated once per worker rather than
-/// once per item, and no two workers share a cache line. Scratch a worker reuses
-/// across items rides in the accumulator too, `combine` keeping either side's.
+/// This is the shape for a reduction whose accumulator is itself a buffer (a 64-slot bit-fold, say): the buffer is
+/// allocated once per block rather than once per item. Scratch a block reuses across items rides in the accumulator
+/// too, `combine` keeping either side's.
 pub fn fold_reduce<A, I, F, C>(n_tasks: usize, init: I, fold: F, combine: C) -> A
 where
     A: Send,
@@ -464,24 +467,20 @@ where
     F: Fn(&mut A, usize) + Sync,
     C: Fn(A, A) -> A,
 {
-    // Each worker's accumulator persists across its claims. A worker's id is unique among the live workers, so its
-    // lock is never contended.
-    let slots: Vec<Slot<A>> = (0..num_threads()).map(|_| Slot(Mutex::new(None))).collect();
-    for_each_chunk(n_tasks, |start, end| {
-        let mut slot = slots[WORKER_ID.get()].0.lock().unwrap();
-        let acc = slot.get_or_insert_with(&init);
-        for i in start..end {
-            fold(acc, i);
+    let blocks = n_tasks.min(BLOCKS_PER_WORKER * num_threads());
+    let accs = map_collect(blocks, |b| {
+        let mut acc = init();
+        for i in b * n_tasks / blocks..(b + 1) * n_tasks / blocks {
+            fold(&mut acc, i);
         }
+        acc
     });
-    // A task panic was re-raised above, so no lock is poisoned here.
-    let accs = slots.into_iter().filter_map(|slot| slot.0.into_inner().unwrap());
-    accs.fold(init(), combine)
+    accs.into_iter().fold(init(), combine)
 }
 
 /// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
-/// reduce)`. Each worker folds its claimed indices into one local partial; the
-/// partials combine on the dispatcher. Which indices a worker claims varies, so
+/// reduce)`. Each block of [`fold_reduce`] folds its indices into one partial; the
+/// partials combine on the dispatcher. The blocks depend on the worker count, so
 /// `reduce` must be associative and commutative, with `identity()` neutral.
 pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
 where
