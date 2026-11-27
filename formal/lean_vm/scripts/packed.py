@@ -4,6 +4,7 @@
 - `pack(values, w)`: the vector whose lane `i` of `w` bits is `values[i]` (`Packed.pack`).
 - `chunks(values, w, c)`: the Lean list of the chunks of `c` lanes of a long vector (`Packed.Chunks`).
 - `pmap(entries, w)`: the packed map of a dict `key -> value`, slots of `w` bits, salt `0` (`Packed.PMap`).
+- `ptree(entries, w, d)`: the Lean term of the `Packed.PTree` of depth `d` of a dict, its leaves `pmap`s.
 """
 
 
@@ -39,3 +40,14 @@ def pmap(entries, w):
     """The packed map of `entries`: key `k`'s slot is lane `k` above the 64-bit salt, `v + 1` for the value `v`."""
     n = max(entries, default=-1) + 1
     return pack([entries[k] + 1 if k in entries else 0 for k in range(n)], w) << 64
+
+
+def ptree(entries, w, d):
+    """The `PTree` of depth `d` of `entries`, as a Lean term: key `k` in leaf `k % 2^d` (its low bits, even to the
+    left first), at `k >> d`."""
+    def go(r, level):
+        if level == d:
+            m = pmap({k >> d: v for k, v in entries.items() if k % (1 << d) == r}, w)
+            return f'(.leaf {nat_hex(m) if m else 0})'
+        return f'(.node {go(r, level + 1)} {go(r | 1 << level, level + 1)})'
+    return go(0, 0)
