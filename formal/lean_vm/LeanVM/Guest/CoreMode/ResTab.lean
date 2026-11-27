@@ -4,12 +4,15 @@
   Tries the route's checks read instead of scanning lists, each built once per kernel evaluation: a body's range checks
   and constants by value number, so that a residual a range check bounds (`Res.rcBound`) is two lookups, not two scans
   of the body; and a function's values' cells (`B2C.cellJ`), so that a pointer's cell is a lookup, not a walk of the
-  certificate's cells.
+  certificate's cells. A residual's hint names the family that holds (`resFamHint`), `resFam` over the atoms indexed
+  by value (`ResIx.lean`).
 -/
 
 module
 
 public import LeanVM.Guest.CoreMode.Route
+public import LeanVM.Guest.CoreMode.ResIx
+public import LeanVM.Guest.CoreMode.ResSplit
 public import LeanVM.Guest.TrieFacts
 
 namespace LeanVM.Guest.CoreMode
@@ -268,25 +271,30 @@ theorem all_of_T {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {l : List 
     (h : l.all (resFamT (rcT fn.body) (constT fn.body) fn xc gw) = true) : l.all (resFamG fn xc gw) = true :=
   List.all_eq_true.2 fun r hr ↦ resFamG_of_T (List.all_eq_true.1 h r hr)
 
-/-- **The disjunct of `resFamG` a hint names**, ghost-free: `1` `resFam`, `2` `resQ`, `3` `rcPts`, `4` `rcTab`, `5`
-`ownFam`; none for any other hint. A generator's hint skips the disjuncts before the one that holds. -/
-noncomputable def resFamHint (fn : Fn) (xc : List ℕ) : ℕ → CRes → Bool
-  | 1, r => resFam fn xc r && r.vals.all (Nat.blt · GB)
+/-- **The disjunct of `resFamG` a hint names**: `1` `resFam` over the indexed atoms (`resFamX`, `ResIx.lean`) or `resQ`,
+`2` `resQ`, `3` `rcPts`, `4` `rcTab`, `5` `ownFam`, each with its values below `GB`; `6` the ghost families (`mlSub`,
+`stSub`, `cmSub`, `gwFam`); none for any other hint. A generator's hint skips the disjuncts before the one that holds. -/
+noncomputable def resFamHint (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) : ℕ → CRes → Bool
+  | 1, r => (resFamX (AtomIx.of (Res.topAtoms fn.body)) fn xc r || resQ fn r) && r.vals.all (Nat.blt · GB)
   | 2, r => resQ fn r && r.vals.all (Nat.blt · GB)
   | 3, r => rcPts fn r && r.vals.all (Nat.blt · GB)
   | 4, r => rcTab fn r && r.vals.all (Nat.blt · GB)
   | 5, r => ownFam fn r && r.vals.all (Nat.blt · GB)
+  | 6, r => mlSub fn r || stSub fn r || cmSub fn r || gwFam fn gw r
   | _, _ => false
 
 /-- `resFamT`, the disjunct its hint `h` names tried before `resFamG`. -/
 noncomputable def resFamTH (R : Trie V) (C : Trie E) (fn : Fn) (xc : List ℕ) (gw : List (CCell × ℕ)) (h : ℕ)
     (r : CRes) : Bool :=
-  cheapT R C fn r || resFamHint fn xc h r || resFamG fn xc gw r
+  cheapT R C fn r || resFamHint fn xc gw h r || resFamG fn xc gw r
 
 theorem resFamG_of_hint {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {h : ℕ} {r : CRes}
-    (hr : resFamHint fn xc h r = true) : resFamG fn xc gw r = true := by
+    (hr : resFamHint fn xc gw h r = true) : resFamG fn xc gw r = true := by
   unfold resFamHint at hr
-  split at hr <;> simp_all [resFamG]
+  unfold resFamG
+  split at hr <;> first
+    | (simp_all; done)
+    | (simp only [resFamX_of, Bool.or_eq_true, Bool.and_eq_true] at hr ⊢; tauto)
 
 theorem resFamTH_sound {R : Trie V} {C : Trie E} {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} :
     ∀ h r, resFamTH R C fn xc gw h r = true → resFamT R C fn xc gw r = true := by
@@ -297,6 +305,14 @@ theorem resFamTH_sound {R : Trie V} {C : Trie E} {fn : Fn} {xc : List ℕ} {gw :
   · exact Or.inl hr
   · exact Or.inr (resFamG_of_hint hr)
   · exact Or.inr hr
+
+/-- The hints of the runs `rs`: each `(h, n)` is `n` residuals of hint `h`. -/
+def hintRuns (rs : List (ℕ × ℕ)) : List ℕ := rs.flatMap fun r ↦ List.replicate r.2 r.1
+
+/-- `resOk`'s residuals by `resFamTH` at the body's tries, each at its hint from `hs` (`0` past them). -/
+theorem all_of_TH {fn : Fn} {xc : List ℕ} {gw : List (CCell × ℕ)} {l : List CRes} {hs : List ℕ}
+    (h : allH (resFamTH (rcT fn.body) (constT fn.body) fn xc gw) hs l = true) : l.all (resFamG fn xc gw) = true :=
+  all_of_T (all_of_allH (q := resFamTH (rcT fn.body) (constT fn.body) fn xc gw) resFamTH_sound hs l h)
 
 /-! ## The values' cells -/
 
