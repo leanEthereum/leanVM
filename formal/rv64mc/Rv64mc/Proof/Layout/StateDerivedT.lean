@@ -20,7 +20,7 @@
 
   ## Main results
 
-  * `FormIn.terms`, `FormT.move`, `off_of_ge`, `held3`, `FlushesFormT.keep`, `total`
+  * `FormIn.terms`, `FormT.move`, `off_of_ge`, `held3`, `FlushesFormT.keep`, `self_kept`, `total`
 -/
 
 import Rv64mc.Proof.Layout.PairFormT
