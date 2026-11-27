@@ -15,6 +15,9 @@ pub trait Prover: 'static {
     /// Fixes the thread pool's size before it starts; `0` keeps the default. Panics if it is already another.
     fn set_num_threads(n: usize);
 
+    /// Why [`Self::prove`] made no proof, formatted only when shown.
+    type Error: core::fmt::Display + core::fmt::Debug;
+
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
     /// `witness` names the streams of its `hint_witness` calls, each with one entry per call, in the order they are
     /// popped, and no two with one name.
@@ -23,7 +26,7 @@ pub trait Prover: 'static {
         witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,
-    ) -> Result<(verifier::Proof, Stats), String>;
+    ) -> Result<(verifier::Proof, Stats), Self::Error>;
 
     /// `f(i)` for every `i < n`, on the thread pool. `f` must not dispatch to the pool itself.
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T>;

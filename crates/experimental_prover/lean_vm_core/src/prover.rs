@@ -13,6 +13,7 @@ const GROUP: usize = 8;
 
 impl isa::Prover for ExperimentalProver {
     const NAME: &'static str = "experimental";
+    type Error = String;
 
     fn init() {
         parallel::init();

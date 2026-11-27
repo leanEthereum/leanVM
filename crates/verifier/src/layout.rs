@@ -435,9 +435,22 @@ pub fn qkeccak_slot(column: usize) -> Option<usize> {
     (KECCAK_IN..KECCAK_OUT).contains(&local).then(|| local - KECCAK_IN)
 }
 
+/// `"{prefix}_{index}"` for an index below 100, written without `format!`, which the replay of a proof would otherwise
+/// carry into a prover.
+fn indexed(prefix: &str, index: usize) -> String {
+    assert!(index < 100, "a column index has two digits");
+    let mut name = String::from(prefix);
+    name.push('_');
+    if index >= 10 {
+        name.push(char::from(b'0' + (index / 10) as u8));
+    }
+    name.push(char::from(b'0' + (index % 10) as u8));
+    name
+}
+
 fn keccak_columns() -> Vec<String> {
-    let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
-    let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
+    let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| indexed(prefix, lane));
+    let counts = (0..2 * KECCAK_CELLS).map(|cell| indexed("cnt", cell));
     let head = KECCAK_HEAD.iter().map(|name| name.to_string());
     head.chain(lanes("in"))
         .chain(lanes("out"))

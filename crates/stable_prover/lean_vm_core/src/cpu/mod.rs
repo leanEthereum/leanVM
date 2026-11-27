@@ -18,7 +18,7 @@ mod execute;
 mod hints;
 pub mod layout;
 mod trace;
-pub use execute::{ExecError, Execution, Fault, Memory, execute};
+pub use execute::{ExecError, Execution, Fault, Memory, WitnessFault, execute};
 use isa::Program;
 pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;

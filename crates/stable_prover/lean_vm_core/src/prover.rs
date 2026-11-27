@@ -9,6 +9,7 @@ pub struct StableProver;
 
 impl isa::Prover for StableProver {
     const NAME: &'static str = "stable";
+    type Error = cpu::ProveError;
 
     fn init() {
         parallel::init();
@@ -23,7 +24,7 @@ impl isa::Prover for StableProver {
         witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,
-    ) -> Result<(verifier::Proof, isa::Stats), String> {
+    ) -> Result<(verifier::Proof, isa::Stats), cpu::ProveError> {
         let witness: Vec<(String, Vec<Vec<F128>>)> = witness
             .iter()
             .map(|(name, entries)| {
@@ -33,7 +34,7 @@ impl isa::Prover for StableProver {
                 (name.clone(), entries.collect())
             })
             .collect();
-        cpu::prove(program, &witness, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
+        cpu::prove(program, &witness, public_input.map(from_scalar), log_inv_rate)
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {

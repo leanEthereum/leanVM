@@ -58,8 +58,8 @@ impl CompiledProgram {
         }
     }
 
-    /// The compiled function containing `pc`.
-    fn fn_at(&self, pc: u32) -> &str {
+    /// The compiled function containing `pc`, `"<unknown fn>"` past every one.
+    pub fn fn_at(&self, pc: u32) -> &str {
         self.fn_ranges
             .iter()
             .find(|(_, entry, len)| pc >= *entry && pc < *entry + *len)

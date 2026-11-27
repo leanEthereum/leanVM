@@ -1124,7 +1124,7 @@ fn a_failed_assert_names_its_source_line() {
     let err = execute(&program, &[], [F128::ZERO; 2])
         .err()
         .expect("the assert cannot hold");
-    assert!(err.site.contains("line 5"), "{err}");
+    assert!(err.site().contains("line 5"), "{err}");
 }
 
 /// An `@inline` body lowers through the CALLER's `FnLower`, so its statements
@@ -1140,7 +1140,7 @@ fn an_inline_call_does_not_steal_the_call_site_line() {
         .err()
         .expect("the assert cannot hold");
     assert!(
-        err.site.contains("line 12"),
+        err.site().contains("line 12"),
         "the call site, not the callee's line 5: {err}"
     );
 }

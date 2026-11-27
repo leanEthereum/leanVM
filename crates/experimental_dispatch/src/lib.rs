@@ -159,6 +159,7 @@ pub fn __with_tier<R>(tier: Tier, f: impl FnOnce() -> R) -> R {
 
 impl Prover for ExperimentalProver {
     const NAME: &'static str = "experimental";
+    type Error = String;
 
     fn init() {
         base::ExperimentalProver::init();

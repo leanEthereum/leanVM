@@ -76,7 +76,9 @@ fn prove<P: Prover>(
     log_inv_rate: usize,
 ) -> Result<verifier::Proof, String> {
     P::init();
-    P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
+    P::prove(program, witness, public_input, log_inv_rate)
+        .map(|(proof, _)| proof)
+        .map_err(|error| error.to_string())
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,

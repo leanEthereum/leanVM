@@ -94,8 +94,10 @@ impl Memory {
 pub struct ExecError {
     /// The instruction the run failed at, or whose hints it failed in.
     pub pc: u32,
-    /// Its function and source line ([`isa::CompiledProgram::site_at`]).
-    pub site: String,
+    /// Its function ([`isa::CompiledProgram::fn_at`]) and its source line, `0` for none: [`Self::site`], formatted
+    /// only when shown.
+    pub function: String,
+    pub line: u32,
     pub fault: Fault,
 }
 
@@ -122,13 +124,56 @@ pub enum Fault {
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing, given
     /// twice or exhausted, or an entry has the wrong length.
-    Witness(String),
+    Witness(WitnessFault),
     /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
     /// The halt `pc` reached in a frame other than `main`'s.
     HaltOutsideMain { fp: u32 },
     /// Too many instructions: runaway recursion, or a loop that never ends.
     StepLimit,
+}
+
+/// How the advice fails to fit the program.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum WitnessFault {
+    Missing {
+        name: String,
+    },
+    Exhausted {
+        name: String,
+        needs: usize,
+        has: usize,
+    },
+    EntryLength {
+        name: String,
+        entry: usize,
+        holds: usize,
+        wants: u32,
+    },
+    GivenTwice {
+        name: String,
+    },
+}
+
+impl std::fmt::Display for WitnessFault {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Missing { name } => write!(f, "no witness stream `{name}`"),
+            Self::Exhausted { name, needs, has } => {
+                write!(f, "witness stream `{name}` exhausted (needs entry {needs}, has {has})")
+            }
+            Self::EntryLength {
+                name,
+                entry,
+                holds,
+                wants,
+            } => write!(
+                f,
+                "witness `{name}` entry {entry} holds {holds} values, the destination {wants}"
+            ),
+            Self::GivenTwice { name } => write!(f, "witness stream `{name}` given twice"),
+        }
+    }
 }
 
 /// The longest run the interpreter executes, the longest a stack can commit: every step is a row
@@ -142,15 +187,24 @@ impl ExecError {
     fn new(program: &Program, pc: u32, fault: Fault) -> Self {
         Self {
             pc,
-            site: program.site_at(pc),
+            function: String::from(program.fn_at(pc)),
+            line: program.src_lines.get(pc as usize).copied().unwrap_or(0),
             fault,
+        }
+    }
+
+    /// Where it failed, as [`isa::CompiledProgram::site_at`] says it: `"verify_sub (line 2204)"`, or the function alone.
+    pub fn site(&self) -> String {
+        match self.line {
+            0 => self.function.clone(),
+            line => format!("{} (line {line})", self.function),
         }
     }
 }
 
 impl std::fmt::Display for ExecError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} at pc {} (in {})", self.fault, self.pc, self.site)
+        write!(f, "{} at pc {} (in {})", self.fault, self.pc, self.site())
     }
 }
 
@@ -185,7 +239,7 @@ impl std::fmt::Display for Fault {
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
-            Self::Witness(problem) => write!(f, "{problem}"),
+            Self::Witness(problem) => problem.fmt(f),
             Self::OutOfMemory => write!(
                 f,
                 "the program reaches past 2^{} cells, more memory than a stack can hold",
@@ -227,20 +281,21 @@ impl<'a> Stream<'a> {
         let name = self.name;
         let entries = self
             .entries
-            .ok_or_else(|| Fault::Witness(format!("no witness stream `{name}`")))?;
+            .ok_or_else(|| Fault::Witness(WitnessFault::Missing { name: name.into() }))?;
         let entry = entries.get(self.next).ok_or_else(|| {
-            Fault::Witness(format!(
-                "witness stream `{name}` exhausted (needs entry {}, has {})",
-                self.next + 1,
-                entries.len()
-            ))
+            Fault::Witness(WitnessFault::Exhausted {
+                name: name.into(),
+                needs: self.next + 1,
+                has: entries.len(),
+            })
         })?;
         if entry.len() != len as usize {
-            return Err(Fault::Witness(format!(
-                "witness `{name}` entry {} holds {} values, the destination {len}",
-                self.next,
-                entry.len()
-            )));
+            return Err(Fault::Witness(WitnessFault::EntryLength {
+                name: name.into(),
+                entry: self.next,
+                holds: entry.len(),
+                wants: len,
+            }));
         }
         self.next += 1;
         Ok(entry)
@@ -461,7 +516,9 @@ pub fn execute(
         return Err(ExecError::new(program, 0, Fault::OutOfMemory));
     }
     if let Some(i) = (1..witness.len()).find(|&i| witness[..i].iter().any(|(name, _)| *name == witness[i].0)) {
-        let fault = Fault::Witness(format!("witness stream `{}` given twice", witness[i].0));
+        let fault = Fault::Witness(WitnessFault::GivenTwice {
+            name: witness[i].0.clone(),
+        });
         return Err(ExecError::new(program, 0, fault));
     }
     // `g^j` for the pcs, the return targets and the main frame, grown as the run reaches further.
