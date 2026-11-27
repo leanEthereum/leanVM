@@ -8,7 +8,7 @@ Maven Central, `io.github.crate-crypto:lean-pq`, JDK 25. Gradle (Kotlin DSL):
 
 <!-- x-release-please-start-version -->
 ```kotlin
-implementation("io.github.crate-crypto:lean-pq:0.19.0")
+implementation("io.github.crate-crypto:lean-pq:0.19.1")
 ```
 <!-- x-release-please-end -->
 
@@ -19,7 +19,7 @@ Maven:
 <dependency>
   <groupId>io.github.crate-crypto</groupId>
   <artifactId>lean-pq</artifactId>
-  <version>0.19.0</version>
+  <version>0.19.1</version>
 </dependency>
 ```
 <!-- x-release-please-end -->

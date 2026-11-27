@@ -14,7 +14,7 @@
 from std/os import parentDir, `/`, quoteShell, fileExists
 
 const
-  leanPqVersion = "0.19.0" # x-release-please-version
+  leanPqVersion = "0.19.1" # x-release-please-version
   leanPqNativeDir {.strdefine.} = ""
   leanPqNativeUrl {.strdefine, used.} =
     "https://github.com/leanEthereum/leanVM/releases/download/bindings-v" & leanPqVersion

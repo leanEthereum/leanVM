@@ -725,7 +725,7 @@ version = "0.1.0"
 
 [[package]]
 name = "lean-pq"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "aggregation",
  "getrandom 0.3.4",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "lean-pq-native"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "allocator",
  "lean-pq",
@@ -747,7 +747,7 @@ dependencies = [
 
 [[package]]
 name = "lean-pq-node"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "allocator",
  "lean-pq",
@@ -944,7 +944,7 @@ dependencies = [
 
 [[package]]
 name = "py-lean-pq"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "allocator",
  "lean-pq",

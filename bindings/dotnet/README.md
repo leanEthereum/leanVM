@@ -8,7 +8,7 @@ NuGet, `Ethereum.LeanPq`, .NET 10. The namespace is `Ethereum.PostQuantum`.
 
 <!-- x-release-please-start-version -->
 ```sh
-dotnet add package Ethereum.LeanPq --version 0.19.0
+dotnet add package Ethereum.LeanPq --version 0.19.1
 ```
 <!-- x-release-please-end -->
 
