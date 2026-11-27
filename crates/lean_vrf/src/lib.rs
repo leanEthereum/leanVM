@@ -30,6 +30,8 @@ pub type VrfProof = [Hash; VRF_TREE_DEPTH + 1];
 const VRF_SECRET_DOMAIN: &[u8] = b"VRF_SECRET";
 const VRF_LEAF_DOMAIN: &[u8] = b"VRF_LEAF";
 const VRF_SURROGATE_DOMAIN: &[u8] = b"VRF_SURROGATE";
+const SECRET_INPUT_LEN: usize = VRF_SECRET_DOMAIN.len() + 32 + 8;
+const LEAF_INPUT_LEN: usize = VRF_LEAF_DOMAIN.len() + 32 + 8;
 
 /// A seed, its range of slots, and one cached layer of its tree.
 #[derive(Clone)]
@@ -130,24 +132,22 @@ impl VrfKey {
 
     fn node(&self, level: usize, index: u64) -> Hash {
         let (start, end) = (u64::from(self.slots.start), u64::from(self.slots.end));
-        if (index + 1) << level <= start || index << level >= end {
+        let below = index << level..(index + 1) << level;
+        if below.end <= start || below.start >= end {
             return self.surrogate(level, index);
         }
         if level == self.level {
             return self.cache[(index - (start >> level)) as usize];
         }
-        if level == 0 {
-            return leaf(&self.secret(index), index);
+        // Below the cached layer, a subtree with every slot in the range holds no surrogate.
+        if level < self.level && start <= below.start && below.end <= end {
+            return subtree_root(&self.seed, below);
         }
         hash_pair(&self.node(level - 1, 2 * index), &self.node(level - 1, 2 * index + 1))
     }
 
     fn secret(&self, index: u64) -> Hash {
-        keccak256::Hasher::new()
-            .update(VRF_SECRET_DOMAIN)
-            .update(&self.seed)
-            .update(&index.to_le_bytes())
-            .finalize()
+        keccak256::hash(&secret_input(&self.seed, index))
     }
 
     fn surrogate(&self, level: usize, index: u64) -> Hash {
@@ -158,6 +158,42 @@ impl VrfKey {
             .update(&[level as u8])
             .finalize()
     }
+}
+
+/// The root of the subtree over `slots`, hashed a level at a time.
+fn subtree_root(seed: &[u8; 32], slots: Range<u64>) -> Hash {
+    let secrets = hash_each(&slots.clone().map(|i| secret_input(seed, i)).collect::<Vec<_>>());
+    let leaves: Vec<_> = slots.zip(&secrets).map(|(i, secret)| leaf_input(secret, i)).collect();
+    let mut nodes = hash_each(&leaves);
+    while nodes.len() > 1 {
+        nodes = hash_each(nodes.as_flattened().as_chunks::<64>().0);
+    }
+    nodes[0]
+}
+
+/// The hash of each input, batched.
+fn hash_each<const N: usize>(inputs: &[[u8; N]]) -> Vec<Hash> {
+    let mut hashes = vec![Hash::default(); inputs.len()];
+    keccak256::hash_many(inputs.as_flattened(), N, hashes.as_flattened_mut());
+    hashes
+}
+
+fn secret_input(seed: &[u8; 32], index: u64) -> [u8; SECRET_INPUT_LEN] {
+    concat([VRF_SECRET_DOMAIN, seed, &index.to_le_bytes()])
+}
+
+fn leaf_input(secret: &Hash, index: u64) -> [u8; LEAF_INPUT_LEN] {
+    concat([VRF_LEAF_DOMAIN, secret, &index.to_le_bytes()])
+}
+
+fn concat<const N: usize>(parts: [&[u8]; 3]) -> [u8; N] {
+    let mut out = [0; N];
+    let mut at = 0;
+    for part in parts {
+        out[at..at + part.len()].copy_from_slice(part);
+        at += part.len();
+    }
+    out
 }
 
 /// The cached layer's height and its first and last node index. `None` if the range is empty or
@@ -174,11 +210,7 @@ fn layer(slots: &Range<u32>) -> Option<(usize, u32, u32)> {
 
 /// The leaf of `index`, which commits to `secret`: the specifications' `compute_vrf_leaf`.
 fn leaf(secret: &Hash, index: u64) -> Hash {
-    keccak256::Hasher::new()
-        .update(VRF_LEAF_DOMAIN)
-        .update(secret)
-        .update(&index.to_le_bytes())
-        .finalize()
+    keccak256::hash(&leaf_input(secret, index))
 }
 
 /// Whether `proof` reveals the secret of `slot` under `root`, as the specifications'

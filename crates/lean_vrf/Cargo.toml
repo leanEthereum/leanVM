@@ -8,4 +8,4 @@ publish = false
 workspace = true
 
 [dependencies]
-keccak256.workspace = true
+keccak256 = { workspace = true, features = ["std"] }
