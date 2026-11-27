@@ -16,7 +16,7 @@
   ## Main results
 
   * `OwnSlice.of_live`, `OwnSlice.of_bufT`, `OwnSlice.of_frame`, `OwnSlice.frame`, `OwnSlice.drop`,
-    `OwnSlice.take`, `OwnSlice.load`, `OwnSlice.end_lt`
+    `OwnSlice.take`, `OwnSlice.load`, `OwnSlice.keep`, `OwnSlice.end_lt`, `EListAt.drop`
 -/
 
 import Rv64mc.Proof.Multilinear.DotOwnT
@@ -103,6 +103,34 @@ theorem load {M : MachineState} {es : List (Word × Word)} {j : Nat} (h : OwnSli
   · omega
   · exact DotOwnT.EListAt.load_owned hf hnx hlim he ho hj
 
+/-- **The slice's elements, kept by a frame that writes nothing outside its stack.** -/
+theorem keep {M : MachineState} {es : List (Word × Word)} (h : OwnSlice env m top a es.length)
+    (hf : env.Frame top Tactic.F m M) (hnx : (env.next m).toNat ≤ env.heapEnd.toNat)
+    (hlim : env.stackLimit.toNat ≤ top.toNat) (he : EListAt m a es) : EListAt M a es := by
+  rcases h with h | ⟨ho, -⟩
+  · exact ⟨he.1, fun k hk => by omega⟩
+  · rcases ho.1 with hl | ha
+    · exact he.keep (Env.Frame.keeps_live hf hnx hl fun _ _ h => h)
+    · exact he.keep (Env.Frame.keeps_above hf hlim ha fun _ _ h => h)
+
 end OwnSlice
+
+/-- The last elements of a slice, from the `k`th. -/
+theorem EListAt.drop {m : MachineState} {a : Word} {es : List (Word × Word)} (h : EListAt m a es) (k : Nat) :
+    EListAt m (a + BitVec.ofNat 64 (16 * k)) (es.drop k) := by
+  by_cases hk : es.length ≤ k
+  · rw [List.drop_eq_nil_of_le hk]
+    exact ⟨by have := h.1; simp only [List.length_nil, Nat.mul_zero, Nat.add_zero]; exact BitVec.isLt _, nofun⟩
+  have h1 := h.1
+  simp only [Layouts.E.byteSize] at h1
+  have ha : (a + BitVec.ofNat 64 (16 * k)).toNat = a.toNat + 16 * k := toNat_add_ofNat (by omega)
+  refine ⟨by simp only [Layouts.E.byteSize, List.length_drop]; rw [ha]; omega, fun j hj => ?_⟩
+  simp only [List.length_drop] at hj
+  have e := h.2 (k + j) (by omega)
+  rw [List.getElem_drop]
+  have : a + BitVec.ofNat 64 (16 * k) + BitVec.ofNat 64 (Layouts.E.byteSize * j) =
+      a + BitVec.ofNat 64 (Layouts.E.byteSize * (k + j)) := by
+    rw [BitVec.add_assoc, ← BitVec.ofNat_add]; congr 2; simp only [Layouts.E.byteSize]; omega
+  rw [this]; exact e
 
 end Rv64mc.Proof.Multilinear.OwnSliceT
