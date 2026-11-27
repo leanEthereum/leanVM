@@ -14,11 +14,12 @@ fn every_program_survives_its_bytes() {
         if path.extension().is_none_or(|x| x != "py") {
             continue;
         }
+        let name = path.display();
         let program = compile(&parse(&fs::read_to_string(&path).expect("read")).expect("parse"));
         let bytes = program.to_bytes();
         let decoded = Program::from_bytes(&bytes).expect("decodes");
-        assert!(decoded.to_bytes() == bytes, "{}", path.display());
-        assert!(decoded.stacked_bytecode() == program.stacked_bytecode(), "{}", path.display());
-        assert!(Program::from_bytes(&bytes[..bytes.len() - 1]).is_none(), "{}", path.display());
+        assert!(decoded.to_bytes() == bytes, "{name}");
+        assert!(decoded.stacked_bytecode() == program.stacked_bytecode(), "{name}");
+        assert!(Program::from_bytes(&bytes[..bytes.len() - 1]).is_none(), "{name}");
     }
 }
