@@ -24,7 +24,7 @@ From `formal/lean_vm`: `scripts/regen-guest.sh --jobs N` writes everything deriv
 ## 3. List every failure in one run
 
 ```sh
-python3 -I ../lake-build.py . LeanVM LeanVMTests --dev --keep-going > build.log 2>&1; echo "exit $?"
+python3 -I ../lake-build.py . LeanVM LeanVMTests --dev --keep-going > "${TMPDIR:-/tmp}/build.log" 2>&1; echo "exit $?"
 ```
 
 `--dev` skips the kernel on `LeanVM` for speed and `--keep-going` lists every failure; never use it for a claim (`formal/AGENTS.md`, "lean_vm"). Run other projects' builds the same way from their directories. Do not pipe a build into `tail`: the pipe hides its exit status.
@@ -53,7 +53,7 @@ Write each repaired proof to the `formal-proofs` rules, so the next change costs
 ## 6. Finish with the real gate
 
 ```sh
-cd formal && ./check-all.sh lean vectors > gate.log 2>&1; echo "exit $?"
+cd formal && ./check-all.sh lean vectors > "${TMPDIR:-/tmp}/gate.log" 2>&1; echo "exit $?"
 cd lean_vm && python3 -I scripts/check-fresh
 ```
 

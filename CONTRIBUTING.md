@@ -1,6 +1,6 @@
 # Contributing to leanVM
 
-leanVM is a minimal VM and recursive SNARK, with Lean 4 proofs of its soundness and of the schemes it aggregates. Most of its code, Rust and Lean, is written with AI agents. These rules are for every contributor, human or agent. The repository's working rules (layout, commands, what must change together) are in [`AGENTS.md`](AGENTS.md); the Lean proofs have their own rules in [`formal/CONTRIBUTING.md`](formal/CONTRIBUTING.md).
+leanVM is a minimal VM and recursive SNARK, with Lean 4 proofs of its soundness and of the schemes it aggregates. Much of `formal/` is written with AI agents. These rules are for every contributor, human or agent. The repository's working rules (layout, commands, what must change together) are in [`AGENTS.md`](AGENTS.md); the Lean proofs have their own rules in [`formal/CONTRIBUTING.md`](formal/CONTRIBUTING.md).
 
 ## The bar
 
@@ -39,7 +39,7 @@ A question costs minutes; a plausible guess that gets merged costs far more.
   - **Checks**: one line per check, the command and its result.
 - A change to a theorem or definition of `formal/Statement/` shows the statement before and after in a `text` block, and says how the new one relates to the old (equivalent, stronger, weaker).
 - Claim only what a check or a source shows. Leave out what the diff already shows.
-- No measurement (a time, a size, a speedup) in code, comments or docs. It goes in the commit message or the description.
+- No measurement (a time, a size, a speedup) in code or comments. It goes in the commit message or the description.
 
 ## Defects found upstream
 

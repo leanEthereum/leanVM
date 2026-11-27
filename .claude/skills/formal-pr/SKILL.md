@@ -1,6 +1,6 @@
 ---
 name: formal-pr
-description: Make a leanVM branch that touches formal/ ready for review: run the report tool and the right gates, check the axioms of every theorem the description names, sweep stale references, write the description and title, and review your own diff. Use when finishing formal/ work, before opening or marking ready a pull request, or when asked to write or check a formal/ PR description.
+description: Make a leanVM branch that touches formal/ ready for review. Runs the report tool and the right gates, checks the axioms of every theorem the description names, sweeps stale references, writes the description and title, and reviews the diff. Use when finishing formal/ work, before opening or marking ready a pull request, or when asked to write or check a formal/ PR description.
 ---
 
 # Make a formal/ branch ready for review

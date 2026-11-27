@@ -14,7 +14,7 @@ Proofs in `formal/` break whenever the Rust, the guest or a dependency changes, 
 ## Procedure
 
 1. **Read the contract.** Before proving anything about a definition, find the lemmas its module exports (spec lemmas, normal forms, `@[simp]` sets). Use them; do not unfold the definition. If the lemma you need is missing, add it to the module that owns the definition.
-2. **Sketch top-down.** Write the proof as named steps (`have h : stmt := by sorry`, or lemmas stated with `sorry`) on a branch, check the skeleton compiles, then fill the steps bottom-up. `sorry` never lands (the escape scan fails it).
+2. **Sketch top-down.** Write the proof as named steps (`have h : stmt := by sorry`, or lemmas stated with `sorry`) on a branch, check that the skeleton's only errors are its `sorry` warnings (every warning is an error here), then fill the steps bottom-up. `sorry` never lands (the escape scan fails it).
 3. **Extract along the ladder** when a step grows or repeats:
    1. an inline `have` with its statement written out;
    2. a lemma in the same file, `private` if no other file needs it;

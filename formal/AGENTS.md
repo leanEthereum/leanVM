@@ -106,7 +106,7 @@ lake exe signature-kat ../../crates ../../crates/lean_sphincs/tests/lean_sphincs
 
 ## Skills
 
-The repository's skills, in `../.claude/skills/`, are Markdown any agent can read; proof mechanics are the `lean4` plugin's. They start from `python3 -I tools/pr-report.py [--base REF]`, which reports what a change does to the statement, budgets, leftovers, sizes and prose and never fails on a finding (`.github/workflows/formal-report.yml` runs it on pull requests; `tools/test_pr_report.py` tests it).
+The repository's skills, in `../.claude/skills/`, are Markdown any agent can read; proof mechanics are the `lean4` plugin's. `formal-pr` and `formal-review` start from `python3 -I tools/pr-report.py [--base REF]`, which reports what a change does to the statement, budgets, leftovers, sizes and prose and never fails on a finding (`.github/workflows/formal-report.yml` runs it on pull requests; `tools/test_pr_report.py` tests it).
 
 | task | skill |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Contributing to formal/
 
-The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+The quality bar for the Lean proofs, for people and agents alike. These are rules; the procedures that apply them are the skills in [`../.claude/skills/`](../.claude/skills/) (table at the end). Commands, the build and the recipes for a change to the Rust are in [`AGENTS.md`](AGENTS.md); the rules for the whole repository are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Paths are relative to `formal/`.
 
 ## What formal/ is for
 
@@ -41,7 +41,7 @@ Headline theorems are read by people who do not read Lean every day. Each field 
 
 - Design top-down, prove bottom-up: state the steps as named lemmas or `have h : stmt`, then fill them. A proof over about 50 lines sketches its argument in comments or is split.
 - A recurring argument (an induction, an extensionality step, a cast, a normalization) is one lemma, in the module that owns the definition it is about. Do not copy a proof for the next function or instance: prove it once and instantiate it, or generate it, or decide it by reflection.
-- Use a layer through its contract: its spec lemmas and normal forms (as `LeanVM/Protocol/Verifier/Phases.lean` gives the verifier's phases), not by unfolding its definitions. A proof that unfolds breaks when the definition changes shape.
+- Use a layer through its contract: its spec lemmas and normal forms (as `lean_vm/LeanVM/Protocol/Verifier/Phases.lean` gives the verifier's phases), not by unfolding its definitions. A proof that unfolds breaks when the definition changes shape.
 - Automation is terminal, or follows an explicit shaping step. A terminal `simp` stays unsqueezed unless it is slow; a non-terminal one is `simp only [...]`, or `have h : P := by simp`, or `suffices P by simpa`. Avoid a large terminal `simpa` that hides the argument. An `erw`, or an `rfl` after `simp` or `rw`, means a lemma is missing. A heavy closer that needs hand-fed terms marks structure worth writing out.
 - Nothing positional. A guest function, value, constant or statement is named by a stable name, never by an index, a position or a copied literal. The current mechanisms are `fn%`, `val%`, `pos%`, `guest_const%` and `lit%` (`formal/AGENTS.md`, "Changing the spec"); a parameter is its named definition.
 - Load-bearing lemmas (cited by other files or needed to believe a result) are public, with a docstring. Proof helpers are `private` or outside the module's public section. Do not wrap one or two existing lemmas in a single-use helper.
@@ -90,7 +90,7 @@ Beyond the gates:
 
 ## Reviews and CI
 
-- `.github/workflows/formal-report.yml` runs `tools/pr-report.py` on every pull request that touches `formal/`, the skills or the contributor docs, and shows what changed in the statement, budgets and suppressions, leftovers, long files and declarations, prose and unsafe Unicode, as a job summary and warnings. It never fails on a finding. Run it before you push: `python3 -I formal/tools/pr-report.py`.
+- `.github/workflows/formal-report.yml` runs `tools/pr-report.py` on every pull request that touches `formal/`, the skills or the contributor docs, and shows what changed in the statement, budgets and suppressions, leftovers, long files and declarations, prose and unsafe Unicode, as a job summary and warnings. It never fails on a finding. Run it before you push: `python3 -I tools/pr-report.py`.
 - `.github/workflows/formal-review.yml` is an AI review on demand: a maintainer comments `/formal-review` (optionally followed by what to look at) on a pull request, and it posts its findings as a comment. It never approves or requests changes.
 - People approve.
 
