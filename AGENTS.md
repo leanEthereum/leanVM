@@ -9,7 +9,7 @@ A minimal VM and recursive SNARK, not zero knowledge. It aggregates leanXMSS and
 
 Two prover trees share no prover crate and give the same proof bytes (`bench/tests/identical_proofs.rs`):
 
-- `crates/stable_prover/` (`stable_*`): the reference, written to be read. Plain safe code. `core::arch` and `cfg(target_feature)` only in `primitives::field::lanes`. No uninitialized buffers, non-temporal stores or per-machine tuning. An optimization enters only where leaving it out costs a measurable share of a proof and its simple form stays short.
+- `crates/stable_prover/` (`stable_*`): the reference, written to be read. Plain safe code. `core::arch` and `cfg(target_feature)` only in `primitives::field::lanes`. No uninitialized buffers, non-temporal stores or per-machine tuning. No tracing spans, profiling or printing: the x86 proofs (`fv_entry`) cover its binary. An optimization enters only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (`experimental_*`): the optimized prover. Performance work lands here.
 - `crates/experimental_tiers/`, written with `crates/experimental_dispatch`'s manifest and `tiers.rs` by its `generate.sh`: experimental's crates, with `keccak256` and `fiat_shamir_prover`, again per CPU tier, over the same sources and outside the workspace. `scripts/tier-rustc` (`RUSTC_WRAPPER`) compiles each with its tier's target features at opt-level 2 or 3, and each copy's build script rebuilds it when the wrapper or its features change. `experimental_dispatch::ExperimentalProver` runs the fastest tier the CPU supports, among those adding a feature to the build's own and compiled by the wrapper; `lean_vm` and the bench prove through it. The tiers are its `cpu_tiers` feature, on in the bench and the bindings; `scripts/check-tiers` checks a release artifact has them.
 
@@ -29,6 +29,7 @@ Everything else exists once, leaves first:
 | `lean_da` | Reed-Solomon blob encoding, commitments, membership vectors |
 | `claims` | `AggregateClaims`, `OutputClaims` and their byte form |
 | `aggregation` | recursive aggregation, generic over the prover |
+| `fv_entry` | the stable prover's aggregation as one function from bytes to bytes, the x86 proofs' subject: `formal/x86/build.sh` builds it, `formal/x86/reach.py` lists what it reaches |
 | `lean_vm` | the public API, the only crate a user imports |
 
 - `guests/lean_ethereum.py`: the guest, in zkDSL.
@@ -83,7 +84,7 @@ cargo machete --with-metadata     # unused dependencies
 - The CPU tiers: `RUSTFLAGS="-C target-cpu=haswell" RUSTC_WRAPPER=$PWD/scripts/tier-rustc cargo test --release -p leanvm-bench --test identical_proofs` checks each tier this machine runs against stable (`target-cpu=generic` on aarch64).
 - Slow checks are `#[ignore]`d, run with `-- --ignored --nocapture`: `print_whir_query_counts`, `print_whir_query_table`, `encoding_grinding_bits`.
 - Heavy benches: `cargo bench -p <package> --bench <name>`, with `hash_batch` (`*_keccak_gkr`), `throughput` (`*_pcs`), `hash_throughput` (`keccak256`).
-- Timing is the `tracing` span tree only: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches. A new stage gets an `info_span!` (`stage!` in `lean_vm_core`), never an `Instant` behind an env var.
+- Timing is the `tracing` span tree only: `--tracing` on the CLI, `BENCH_TRACING=1` on the benches. A new stage gets an `info_span!` (`stage!` in experimental's `lean_vm_core`; stable has none), never an `Instant` behind an env var.
 - Every pull request takes a conventional-commit title (`pr-title.yml`). A breaking change takes `!` (`feat!:`, `fix!:`): a change to a public API or a stored format (keys). A protocol break takes `feat(protocol):` instead ("Versions" below).
 - An x86-only `cfg` arm never compiles on an Apple machine. Type-check it before pushing (`rustup target add x86_64-unknown-linux-gnu`):
 
@@ -180,4 +181,4 @@ The guest:
 | `KECCAK_N_LOG`, `KECCAK_DEPTH` | keccak_gkr batch size, rounds between committed states |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_POINT_CLAIMS`, `PCS_RING_CLAIMS` | PCS throughput bench: size, rate, claims |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE` | `print_whir_query_counts`'s shape |
-| `DBG_PROF{,_DUMP}`, `DBG_LOOPS`, `DBG_DISASM`, `DBG_LOWER`, `DBG_PLACEHOLDERS` | compiler and guest-cycle attribution |
+| `DBG_PROF{,_DUMP}`, `DBG_LOOPS`, `DBG_DISASM`, `DBG_LOWER`, `DBG_PLACEHOLDERS` | compiler and guest-cycle attribution (`DBG_PROF*` and the guest's `print` in the experimental prover) |

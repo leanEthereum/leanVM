@@ -1,0 +1,27 @@
+[package]
+name = "fv_entry"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "The stable prover's aggregation as one function from bytes to bytes, for the proofs about its x86 binary"
+
+[dependencies]
+aggregation.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
+tracing = { workspace = true, optional = true }
+
+[features]
+# Every span compiled out, for the binary the proofs are about (`formal/x86/build.sh`).
+no-tracing = ["dep:tracing", "tracing/max_level_off"]
+
+[dev-dependencies]
+aggregation = { workspace = true, features = ["signers-cache"] }
+
+[lints]
+workspace = true
+
+# Named only for its feature.
+[package.metadata.cargo-machete]
+ignored = ["tracing"]

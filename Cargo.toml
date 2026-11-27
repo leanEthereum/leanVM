@@ -13,6 +13,7 @@ members = [
     "crates/lean_da",
     "crates/claims",
     "crates/aggregation",
+    "crates/fv_entry",
     "crates/lean_vm",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
