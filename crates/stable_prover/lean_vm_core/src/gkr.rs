@@ -38,26 +38,23 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
 }
 
 /// Prove the bus's grand products as one batched radix-four GKR: push, pull, then count. Push and pull have one
-/// product by construction, so one root is sent for both, then the count's. `ones` are each tree's runs of leaves
-/// known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's value there.
+/// product by construction, so one root is sent for both, then the count's. Each tree comes as its leaves and its
+/// runs of leaves known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's value there.
 ///
 /// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`, or
 /// `u_0` in a binary layer.
 pub(crate) fn prove_products(
-    leaves: [Vec<F128>; N_BUS_TREES],
-    ones: [Ones; N_BUS_TREES],
+    trees: [(Vec<F128>, Ones); N_BUS_TREES],
     ps: &mut ProverState,
 ) -> (Vec<F128>, [F128; N_BUS_TREES]) {
-    let mu = crate::log2_ceil_usize(leaves[0].len());
+    let mu = crate::log2_ceil_usize(trees[0].0.len());
     assert!(
-        leaves.iter().all(|tree| !tree.is_empty() && tree.len() <= 1 << mu),
+        trees.iter().all(|(tree, _)| !tree.is_empty() && tree.len() <= 1 << mu),
         "batched trees must be nonempty prefixes of the first tree's logical tree"
     );
     // Levels `0, 2, 4, …` of each tree, read as rows of four, up to the top, which has one node, or two when `μ` is
     // odd. A level's rows known to be the identity are the nodes two levels up made of identity leaves only.
-    let mut trees = leaves.into_iter().zip(ones);
-    let mut levels: [Vec<(Vec<F128>, Ones)>; N_BUS_TREES] = std::array::from_fn(|_| {
-        let (leaves, ones) = trees.next().unwrap();
+    let mut levels: [Vec<(Vec<F128>, Ones)>; N_BUS_TREES] = trees.map(|(leaves, ones)| {
         let row_ones = |level: usize| coarsen(&ones, 4 << (2 * level));
         let mut levels = vec![(leaves, row_ones(0))];
         while levels.len() <= mu / 2 {
@@ -383,7 +380,7 @@ mod tests {
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let (point, values) = prove_products(leaves.clone(), Default::default(), &mut ps);
+            let (point, values) = prove_products(leaves.clone().map(|l| (l, Ones::new())), &mut ps);
             let stream = ps.into_proof().stream;
             assert_eq!(
                 stream[..2],
@@ -411,7 +408,7 @@ mod tests {
                 padded
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let proved = prove_products(leaves, Default::default(), &mut sparse_ps);
+            let proved = prove_products(leaves.map(|l| (l, Ones::new())), &mut sparse_ps);
             let (point, values) = &proved;
             for lane in 0..3 {
                 assert_eq!(values[lane], mle_eval_e(&dense[lane], point));
@@ -422,7 +419,7 @@ mod tests {
                 [product(&dense[0]), product(&dense[2])].map(|x| to_scalar(&x))
             );
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            assert_eq!(prove_products(dense, Default::default(), &mut dense_ps), proved);
+            assert_eq!(prove_products(dense.map(|l| (l, Ones::new())), &mut dense_ps), proved);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);
         }
     }
@@ -442,14 +439,14 @@ mod tests {
                     .collect()
             });
             balance(&mut leaves);
-            let prove = |ones: [Ones; 3]| {
+            let prove = |ones: Ones| {
                 let mut ps = ProverState::from_label(b"known-identity-runs");
-                (prove_products(leaves.clone(), ones, &mut ps), ps.into_proof().stream)
+                (
+                    prove_products(leaves.clone().map(|l| (l, ones.clone())), &mut ps),
+                    ps.into_proof().stream,
+                )
             };
-            assert!(
-                prove(Default::default()) == prove([0, 1, 2].map(|_| runs.to_vec())),
-                "mu {mu}"
-            );
+            assert!(prove(Ones::new()) == prove(runs.to_vec()), "mu {mu}");
         }
     }
 }

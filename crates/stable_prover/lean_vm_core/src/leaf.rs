@@ -14,7 +14,6 @@ use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
 use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, mul_by_g};
-use primitives::multilinear::eq_eval;
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
@@ -70,14 +69,17 @@ impl Block {
 
 /// A table coordinate's value on a row whose local columns are `row`.
 pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
-    match c {
-        Coord::Const(v) => *v,
-        Coord::Col(i) => row[*i],
-        Coord::GCol(i, k) => g_pow(*k as usize) * row[*i],
-        Coord::Prod(i, j, k) => g_pow(*k as usize) * row[*i] * row[*j],
-        Coord::Sum(cs) => cs.iter().map(|c| coord_at(c, row)).sum(),
-        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
-    }
+    // A public column would be read past the row.
+    let (mut terms, mut constant) = (Vec::new(), F128::ZERO);
+    Formula::add(c, F128::ONE, row.len(), &mut terms, &mut constant);
+    let value = terms.into_iter().fold(constant, |acc, (term, w)| {
+        acc + w.mul_base(match term {
+            Term::Col(i) => row[i],
+            Term::Prod(i, j) => row[i] * row[j],
+            Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
+        })
+    });
+    value.as_base().expect("a table coordinate lies in K")
 }
 
 /// Placement of each block in the stacked leaf vector (input order).
@@ -160,19 +162,22 @@ pub(crate) fn prove_balance(
     count_alpha[0] = F128::ONE;
     let fingerprints = [(&alpha, beta), (&alpha, beta), (&count_alpha, F128::ZERO)];
     layouts[2].mu = mu;
+    let mut layouts = layouts.into_iter();
     let trees: [Tree; N_BUS_TREES] = std::array::from_fn(|s| Tree {
         blocks: blocks[s],
-        layout: layouts[s].clone(),
+        layout: layouts.next().unwrap(),
         alpha: fingerprints[s].0,
         beta: fingerprints[s].1,
     });
 
-    let leaves = trees.each_ref().map(|tree| build_leaves(tree, cols, &public));
-    let ones = trees.each_ref().map(padding_runs);
-    let (zeta, _) = gkr::prove_products(leaves, ones, ps);
+    // The committed columns, then the public ones.
+    let columns: Vec<&[F64]> = cols.iter().chain(&public).copied().collect();
+    let leaves = trees.each_ref().map(|tree| build_leaves(tree, &columns, cols.len()));
+    let (zeta, _) = gkr::prove_products(leaves, ps);
 
     let mut claims = Vec::new();
-    let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
+    let mut forms: [Vec<Form>; N_BUS_TREES] =
+        std::array::from_fn(|_| TABLE_WIDTHS.iter().map(|&width| Form::new(width)).collect());
     {
         for (tree, forms) in trees.iter().zip(&mut forms) {
             decompose(tree, cols, &zeta, forms, &mut claims, ps);
@@ -187,25 +192,25 @@ pub(crate) fn prove_balance(
 }
 
 /// A non-constant coordinate's term of a leaf, which is its coefficient times this. `GCol` folds its `g^k` into the
-/// coefficient.
-enum Term<'a> {
+/// coefficient; a [`Coord::Public`] column is a `Col` past the committed ones.
+enum Term {
     Col(usize),
     Prod(usize, usize),
     Index,
-    Public(&'a [F64]),
 }
 
 /// One block's leaves, `constant + Σ_terms w·term(z)` on its first `rows` rows and the identity past them.
-struct Formula<'a> {
+struct Formula {
     offset: usize,
     size: usize,
     rows: usize,
     constant: F128,
-    terms: Vec<(Term<'a>, F128)>,
+    terms: Vec<(Term, F128)>,
 }
 
-impl<'a> Formula<'a> {
-    fn new(block: &'a Block, offset: usize, alpha: &[F128], beta: F128, public: &[&'a [F64]]) -> Self {
+impl Formula {
+    /// The block's formula, its public columns from column `public`.
+    fn new(block: &Block, offset: usize, alpha: &[F128], beta: F128, public: usize) -> Self {
         let mut constant = beta;
         let mut terms = Vec::with_capacity(block.coords.len());
         for (c, &w) in block.coords.iter().zip(alpha) {
@@ -222,7 +227,7 @@ impl<'a> Formula<'a> {
 
     /// Add coordinate `c` at weight `w`. A [`Coord::Sum`]'s terms share its weight, and the products of one pair in
     /// a sum (a gated count's) one term.
-    fn add(c: &'a Coord, w: F128, public: &[&'a [F64]], terms: &mut Vec<(Term<'a>, F128)>, constant: &mut F128) {
+    fn add(c: &Coord, w: F128, public: usize, terms: &mut Vec<(Term, F128)>, constant: &mut F128) {
         match c {
             Coord::Const(v) => *constant += w.mul_base(*v),
             Coord::Col(i) => terms.push((Term::Col(*i), w)),
@@ -235,7 +240,7 @@ impl<'a> Formula<'a> {
                 }
             }
             Coord::Index => terms.push((Term::Index, w)),
-            Coord::Public(s) => terms.push((Term::Public(public[*s]), w)),
+            Coord::Public(s) => terms.push((Term::Col(public + s), w)),
             Coord::Sum(cs) => {
                 for c in cs {
                     Self::add(c, w, public, terms, constant);
@@ -257,7 +262,6 @@ impl<'a> Formula<'a> {
                 Term::Col(i) => load(cols[i]),
                 Term::Prod(i, j) => load(cols[i]) * load(cols[j]),
                 Term::Index => F64x8::splat(F64(isa::g_pow(z as u32))) * F64x8::from_array(&G_POWERS),
-                Term::Public(vals) => load(vals),
             })
         });
         let mut leaves = (sum.reduce() + F128x8::splat(self.constant)).to_array();
@@ -278,15 +282,27 @@ const G_POWERS: [F64; 8] = {
 };
 
 /// A tree's leaves, every block's rows at its offset, up to the last block: the identity past them is left out.
-/// Each leaf is written once, eight at a time.
-fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
-    let formulas: Vec<Formula> = (by_offset(tree).into_iter())
-        .map(|b| Formula::new(&tree.blocks[b], tree.layout.offsets[b], tree.alpha, tree.beta, public))
+/// Each leaf is written once, eight at a time. With them, the runs of padding rows, whose leaves are the identity.
+/// `cols` are the committed columns, then the public ones from `public`.
+fn build_leaves(tree: &Tree, cols: &[&[F64]], public: usize) -> (Vec<F128>, Ones) {
+    // [`verifier::stack_offsets`] places each size from the largest down, its blocks in index order.
+    let largest = tree.blocks.iter().map(|b| b.kappa).max().unwrap_or(0);
+    let mut formulas = Vec::with_capacity(tree.blocks.len());
+    for kappa in (0..=largest).rev() {
+        for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
+            if block.kappa == kappa {
+                formulas.push(Formula::new(block, offset, tree.alpha, tree.beta, public));
+            }
+        }
+    }
+    let ones = (formulas.iter())
+        .filter(|f| f.rows < f.size)
+        .map(|f| f.offset + f.rows..f.offset + f.size)
         .collect();
     if formulas.is_empty() {
-        return vec![F128::ONE];
+        return (vec![F128::ONE], ones);
     }
-    // The blocks tile the leaves from zero, largest first ([`verifier::stack_offsets`]).
+    // The blocks tile the leaves from zero, largest first.
     let len = formulas.iter().map(|f| f.size).sum::<usize>();
     let at = |i: usize| &formulas[formulas.partition_point(|f| f.offset <= i) - 1];
     let mut leaves = parallel::map_collect(len.div_ceil(8), |k| {
@@ -303,31 +319,7 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
     })
     .into_flattened();
     leaves.truncate(len);
-    leaves
-}
-
-/// A tree's blocks, by index, in the order of their offsets: [`verifier::stack_offsets`] places each size from the
-/// largest down, its blocks in index order.
-fn by_offset(tree: &Tree) -> Vec<usize> {
-    let largest = tree.blocks.iter().map(|b| b.kappa).max().unwrap_or(0);
-    let mut order = Vec::with_capacity(tree.blocks.len());
-    for kappa in (0..=largest).rev() {
-        for (b, block) in tree.blocks.iter().enumerate() {
-            if block.kappa == kappa {
-                order.push(b);
-            }
-        }
-    }
-    order
-}
-
-/// The leaves of a tree's padding rows, which hold the identity, as sorted runs.
-fn padding_runs(tree: &Tree) -> Ones {
-    (by_offset(tree).into_iter())
-        .map(|b| (&tree.blocks[b], tree.layout.offsets[b]))
-        .filter(|(block, _)| block.rows < 1 << block.kappa)
-        .map(|(block, offset)| offset + block.rows..offset + (1 << block.kappa))
-        .collect()
+    (leaves, ones)
 }
 
 /// Split a tree's leaf claim by block (eq:gkr_leaves). A table's blocks accumulate into its form, `forms[t]`; a
@@ -346,22 +338,22 @@ fn decompose(
     for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
         let (zeta_lo, zeta_hi) = zeta.split_at(block.kappa);
         if let Some(t) = block.owner {
+            // `eq(ζ_hi, ·)` at the block's index among the blocks of its height.
             let sel = offset >> block.kappa;
-            let sel_bits: Vec<F128> = (0..zeta_hi.len())
-                .map(|k| F128::new(((sel >> k) & 1) as u64, 0))
-                .collect();
-            let eq_sel = eq_eval(&sel_bits, zeta_hi);
+            let eq_sel: F128 = (zeta_hi.iter().enumerate())
+                .map(|(k, &z)| if (sel >> k) & 1 == 1 { z } else { F128::ONE + z })
+                .product();
             let (form, base) = (&mut forms[t], GLOBAL_COLUMN_BASES[t]);
             form.constant += eq_sel * beta;
             let mut terms = Vec::new();
             for (c, &w) in block.coords.iter().zip(alpha) {
-                Formula::add(c, eq_sel * w, &[], &mut terms, &mut form.constant);
+                Formula::add(c, eq_sel * w, 0, &mut terms, &mut form.constant);
             }
             for (term, w) in terms {
                 match term {
                     Term::Col(i) => form.coeffs[i - base] += w,
                     Term::Prod(i, j) => form.prods.push((i - base, j - base, w)),
-                    Term::Index | Term::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
+                    Term::Index => unreachable!("a table's bus block carries no virtual coordinate"),
                 }
             }
             continue;
@@ -504,7 +496,11 @@ mod tests {
                 alpha: &alpha,
                 beta,
             };
-            assert_eq!(build_leaves(&tree, &cols, &public), naive_leaves(&tree, &cols, &public));
+            let columns: Vec<&[F64]> = cols.iter().chain(&public).copied().collect();
+            assert_eq!(
+                build_leaves(&tree, &columns, cols.len()).0,
+                naive_leaves(&tree, &cols, &public)
+            );
         }
     }
 }
