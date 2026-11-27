@@ -134,12 +134,7 @@ impl Terms {
 
     /// The projections of `n` items onto the terms, each item `s` sequences of `2^lane_vars` words: `blocks(i, h, out)`
     /// writes block `h` of each of item `i`'s sequences. A row of [`Self::n_terms`] per sequence, item by item.
-    pub(crate) fn project(
-        &self,
-        n: usize,
-        s: usize,
-        blocks: &Blocks<'_>,
-    ) -> Vec<F128> {
+    pub(crate) fn project(&self, n: usize, s: usize, blocks: &Blocks<'_>) -> Vec<F128> {
         let (row, n_blocks) = (s * self.n_terms(), self.n_blocks());
         // Each item's blocks in ranges, enough tasks to balance the pool.
         let per = n_blocks.div_ceil((8 * parallel::num_threads()).div_ceil(n.max(1)));

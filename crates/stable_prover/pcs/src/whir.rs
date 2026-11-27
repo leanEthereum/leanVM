@@ -319,11 +319,10 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
 mod tests {
     use super::*;
     use crate::stack_open::{RingSwitchOpen, StackClaim, commit, open};
-    use crate::whir_induce::novel_basis_at;
     use crate::whir_induce::tests::novel_sum_at;
+    use crate::xmul::novel_basis_at;
     use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
-    use verifier::Subspace;
 
     /// Committing only the lanes that carry data is indistinguishable from committing the whole `2^log_n` witness
     /// with an explicit zero tail: same proof, root included.
@@ -451,7 +450,7 @@ mod tests {
                     let pairs = vals.as_chunks::<2>().0.iter();
                     vals = pairs.map(|&[f, g]| g + (ch.alpha + ch.beta.mul_base(x)) * f).collect();
                 }
-                let want = novel_sum_at(&p, &novel_basis_at(&Subspace::new(mu + 1), q));
+                let want = novel_sum_at(&p, &novel_basis_at(mu + 1, q));
                 assert_eq!(vals, [want], "k {k}, mu {mu}, position {q}");
             }
         }

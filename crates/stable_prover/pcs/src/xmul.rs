@@ -31,17 +31,36 @@ impl Coef for F128 {
     }
 }
 
-/// `A_t` for every `t < 64`.
-fn constants() -> &'static [F64; 64] {
-    static A: OnceLock<[F64; 64]> = OnceLock::new();
-    A.get_or_init(|| {
-        let roots: Vec<F64> = verifier::subspace_roots(63).into_iter().map(|k| F64(k.0)).collect();
+/// `W_i(beta_i)` and its inverse for every `i < 64`, then `A_t` for every `t < 64`.
+fn constants() -> &'static ([[F64; 2]; 64], [F64; 64]) {
+    static C: OnceLock<([[F64; 2]; 64], [F64; 64])> = OnceLock::new();
+    C.get_or_init(|| {
+        let roots: [[F64; 2]; 64] = verifier::subspace_roots(63)
+            .into_iter()
+            .map(|k| [F64(k.0), F64(k.0).inv()])
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("64 roots");
         let mut a = [F64::ONE; 64];
         for t in 1..64 {
-            a[t] = a[t - 1] * roots[t] * roots[t - 1].square().inv();
+            a[t] = a[t - 1] * roots[t][0] * roots[t - 1][1].square();
         }
-        a
+        (roots, a)
     })
+}
+
+/// `What_i(x)` for `i <= mu` at the domain point `x`, the integer's `K` element: `What_i = W_i / W_i(beta_i)`, by
+/// `W_(i+1) = W_i^2 + W_i(beta_i) W_i`.
+pub(crate) fn novel_basis_at(mu: usize, x: usize) -> Vec<F64> {
+    let mut w = F64(x as u64);
+    constants().0[..=mu]
+        .iter()
+        .map(|&[root, inverse]| {
+            let what = w * inverse;
+            w = w.square() + root * w;
+            what
+        })
+        .collect()
 }
 
 /// `(X h)[c]`, coefficient `i` of `h` being `h(i)`, zero past its end.
@@ -50,7 +69,7 @@ pub(crate) fn x_coef<T: Coef>(h: impl Fn(usize) -> T, c: usize) -> T {
     match c {
         0 => T::default(),
         _ if c & 1 == 1 => h(c - 1) + h(c),
-        _ => (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(constants()[c.trailing_zeros() as usize]),
+        _ => (h(c - 1) + h(c + (1 << c.trailing_zeros()) - 1)).scale(constants().1[c.trailing_zeros() as usize]),
     }
 }
 
@@ -76,6 +95,19 @@ mod tests {
         }
         ntt.inverse_transform(&mut data, 1);
         data
+    }
+
+    /// The normalized subspace polynomials are the verifier's.
+    #[test]
+    fn novel_basis_matches_the_verifier() {
+        for (mu, x) in [(0usize, 1usize), (5, 37), (20, 0x12_3456), (62, usize::MAX >> 1)] {
+            let want: Vec<F64> = verifier::Subspace::new(mu)
+                .at(verifier::K(x as u64))
+                .iter()
+                .map(|k| F64(k.0))
+                .collect();
+            assert_eq!(novel_basis_at(mu, x), want, "mu {mu}, x {x}");
+        }
     }
 
     /// On `K` and `E` coefficients, with a high part.
