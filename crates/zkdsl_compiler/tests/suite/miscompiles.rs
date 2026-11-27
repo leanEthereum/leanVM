@@ -126,6 +126,12 @@ fn programs_compile_as_written() {
         "def stop():\n    s = hint_witness(\"stop\")\n    assert log(s) < 8\n    return s\n\ndef main():\n    for i in mul_range(1, stop()):\n        x = i\n    return\n",
         &[("stop", g_pow(3).into())],
     );
+    // A `HeapBuf` after an `if` with an empty fall-through arm was allocated on that arm's jump to the join, which a
+    // run taking the branch skips: its pointer stayed unwritten.
+    runs(
+        "def main():\n    x = hint_witness(\"x\")\n    if x != GEN:\n        y = x * x\n    b = HeapBuf(2)\n    b[1] = 5\n    return\n",
+        &[("x", g_pow(2).into())],
+    );
     // A builtin call as a store's value was looked up as a function.
     compile(
         &parse("def main():\n    bits = StackBuf(4)\n    out = StackBuf(1)\n    out[0] = hint_log2_ceil(bits, 4, 0)\n    return\n")

@@ -865,6 +865,9 @@ impl FnLower<'_> {
         if b_block.is_empty() {
             self.patch_local(bset, self.code.len());
         } else {
+            // The jump over B to the join runs on A's path alone, so it is A's: with A empty it would otherwise be the
+            // last jump before the first arm, where `hoist_past_first_branch` puts the allocations B's path needs.
+            self.path.push((branch, 0));
             let edest = self.fresh();
             let eset = self.code.len();
             self.set(edest, KVal::Local(0)); // patched: the join
@@ -873,6 +876,7 @@ impl FnLower<'_> {
                 od: edest,
                 of: sfp,
             });
+            self.path.pop();
             self.patch_local(bset, self.code.len());
             self.branch((branch, 1), b_block);
             self.patch_local(eset, self.code.len());
