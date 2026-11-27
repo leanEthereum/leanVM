@@ -1,0 +1,5 @@
+/.lake/
+# Written by wire.py on every extraction (hax.sh extract).
+/lakefile.toml
+/lake-manifest.json
+/Extraction/

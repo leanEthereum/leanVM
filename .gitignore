@@ -5,3 +5,7 @@ __pycache__/
 # Never committed: papers and previews kept beside the repo, LaTeX scratch.
 /*.pdf
 *.tex.tex
+
+# The Lean packages hax extracts beside the crates (formal/extraction/hax.sh extract).
+/crates/*/proofs/*/lean/
+/crates/*/*/proofs/*/lean/

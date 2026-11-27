@@ -37,6 +37,7 @@ Everything else exists once, leaves first:
 - `doc/leanvm/`: the LaTeX spec. `cd doc/leanvm && latexmk -pdf main.tex` builds into the gitignored `.build/` (delete it if latexmk fails oddly). Sections `body/01` to `10`, annexes `a` (ring switching), `b` (PCS), `c` (Keccak GKR), `d` (NTT). Run `make-drafts.sh` after adding, renaming or renumbering a section.
 - `doc/lean_xmss/`, `doc/lean_sphincs/`: the schemes' specs.
 - `formal/`: Lean 4 proofs in the random-permutation model, vendored from [Verified-zkEVM/leanerVM](https://github.com/Verified-zkEVM/leanerVM). `formal/Statement/` holds what is proved, `formal/statement.tex` what it does not compose to, `formal/AGENTS.md` the build and the gate (`formal/check-all.sh`).
+- `formal/extraction/`: the hax extraction of the Rust to Lean (Charon, then Aeneas), separate from the proofs above. A crate takes part by a `hax.toml` beside its `Cargo.toml`; today `keccak256`, `lean_xmss` and `lean_sphincs`. See "The Lean extraction" below.
 
 Rules:
 
@@ -93,6 +94,22 @@ RUSTFLAGS="-C target-cpu=znver4" \
 ```
 
 Use `RUSTFLAGS`, not `CARGO_TARGET_*_RUSTFLAGS`, which would merge with `target-cpu=native`. A `compile_error!` in the arm confirms it is reached.
+
+## The Lean extraction
+
+```bash
+formal/extraction/hax.sh setup      # once: cargo-hax, charon, aeneas
+formal/extraction/hax.sh check      # extract every scenario, build it in Lean, print the report
+formal/extraction/repair.py extract # after the Rust changed: leave opaque what no longer translates
+formal/extraction/hax.sh test       # clippy and tests on the patched source
+```
+
+- It gates no Rust change. The `Extraction` workflow runs weekly and on pull requests that touch the extraction. A Rust change needs no extraction work; when the weekly run fails, follow `.claude/skills/update-extraction/SKILL.md`, which is written for an agent with no knowledge of the toolchain.
+- Nothing generated is committed: each crate's `proofs/<scenario>/lean/` and the workspace's `lakefile.toml`, `lake-manifest.json` and `Extraction/` are gitignored and rewritten by `hax.sh extract`. Committed are the scenarios (`crates/<crate>/hax.toml`), the patches (`proofs/<scenario>/patches/`), the scripts, and `CoreModelsExt` (models of standard-library items the hax Lean library lacks).
+- A scenario's `opaque` list is what is extracted as a signature only, `exclude` what is left out, each entry under the reason. Shrinking those lists is the work: a model in `CoreModelsExt` first, a patch last.
+- Never edit generated Lean, and never edit a crate's source for the extraction's sake: a `patches/pre/` patch rewrites Rust the toolchain cannot translate, applied only while extracting, and `hax.sh test` holds the patched source to the crate's tests.
+- The extraction is of the portable code paths: `hax.sh` switches off the target features the crates dispatch on.
+- `formal/extraction/README.md` is the guide, `LIMITATIONS.md` what is left out and why.
 
 ## Benchmarking
 
