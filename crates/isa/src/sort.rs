@@ -3,9 +3,8 @@
 
 use std::cmp::Ordering;
 
-/// `v` sorted by `cmp`, stably: equal elements keep their order.
-pub fn sort_by<T>(v: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering) {
-    let n = v.len();
+/// The indices `0..n` sorted by `cmp`, stably: equal ones keep their order.
+pub fn order_by(n: usize, mut cmp: impl FnMut(usize, usize) -> Ordering) -> Vec<usize> {
     let mut order: Vec<usize> = (0..n).collect();
     let mut merged = vec![0; n];
     let mut width = 1;
@@ -15,7 +14,7 @@ pub fn sort_by<T>(v: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering) {
             let (mut i, mut j) = (lo, mid);
             for slot in &mut merged[lo..hi] {
                 // The left run takes ties, which keeps the sort stable.
-                if j == hi || i < mid && cmp(&v[order[i]], &v[order[j]]) != Ordering::Greater {
+                if j == hi || i < mid && cmp(order[i], order[j]) != Ordering::Greater {
                     *slot = order[i];
                     i += 1;
                 } else {
@@ -27,6 +26,18 @@ pub fn sort_by<T>(v: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering) {
         std::mem::swap(&mut order, &mut merged);
         width *= 2;
     }
+    order
+}
+
+/// The indices `0..n` sorted by `key`, stably.
+pub fn order_by_key<K: Ord>(n: usize, mut key: impl FnMut(usize) -> K) -> Vec<usize> {
+    order_by(n, |a, b| key(a).cmp(&key(b)))
+}
+
+/// `v` sorted by `cmp`, stably: equal elements keep their order.
+pub fn sort_by<T>(v: &mut [T], mut cmp: impl FnMut(&T, &T) -> Ordering) {
+    let n = v.len();
+    let order = order_by(n, |i, j| cmp(&v[i], &v[j]));
     // Position `k` takes the element at `order[k]`: each cycle of the permutation once, by swaps.
     let mut placed = vec![false; n];
     for start in 0..n {
