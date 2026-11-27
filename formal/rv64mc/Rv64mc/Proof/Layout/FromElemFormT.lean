@@ -6,7 +6,8 @@
   builds the vector's header in its frame and calls `Vec::reserve` for `3` (which keeps it: the capacity is `3`),
   checks the element's length against `isize::MAX / 40` (a word of the static data), clones the element twice
   (no terms: each clone is the empty `Form`, `(0, 8, 0)`), moves the element into the third slot and copies the
-  header to `sret`. Its result is a vector of three `Form`s (`FormReprT.FormsT`), its buffer fresh; the run ends with
+  header to `sret`. Its result is a vector of three `Form`s (`FormReprT.FormsT`), its buffer fresh, the first two
+  of capacity `0` and the third of the element's (so all three empty at the one call site); the run ends with
   the guest's abort (`AbortStop`) where `alloc` or `handle_error` does. A safety-only contract (the function is
   class D: no spec).
 
@@ -51,10 +52,13 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
   SretPre env regs m ∧ InWin env (regs .x10) 24 ∧ (regs .x10).toNat % 8 = 0 ∧
     env.Owned m (regs .x2) (regs .x11) 24 ∧ VecT env m (regs .x11) 40 ∧ vecLen m (regs .x11) = 0#64
 
-/-- The total postcondition: the result a vector of three `Form`s, its buffer fresh. -/
+/-- The total postcondition: the result a vector of three `Form`s, its buffer fresh, the first two of capacity `0`
+    and the third of the element's. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   VecT env m' (regs .x10) 24 ∧ vecLen m' (regs .x10) = 3#64 ∧
-    env.Fresh m m' (vecPtr m' (regs .x10)) 72 ∧ FormsT env m' (vecPtr m' (regs .x10)) 3
+    env.Fresh m m' (vecPtr m' (regs .x10)) 72 ∧ FormsT env m' (vecPtr m' (regs .x10)) 3 ∧
+    vecCap m' (vecPtr m' (regs .x10)) = 0#64 ∧ vecCap m' (vecPtr m' (regs .x10) + 24#64) = 0#64 ∧
+    vecCap m' (vecPtr m' (regs .x10) + 48#64) = vecCap m (regs .x11)
 
 /-- **The total contract of `<Form as SpecFromElem>::from_elem`** for `vec![form; 3]`. -/
 def SpecT (env : Env) (p : Lprog (Op Reg) Reg) (i need : Nat) : Prop :=
@@ -197,7 +201,7 @@ theorem fin_mem {env : Env} {m M : MachineState} {top ret q c P e0 e1 e2 : Word}
     have : (48#64 + 16#64 : Word) = 64#64 := rfl
     rw [this, h64, he2, ← vecLen_eq, hlen] at ht
     exact absurd ht (Nat.not_lt_zero _)
-  refine ⟨?_, by rw [vecLen_eq, r16], ⟨?_, ?_⟩, ?_⟩
+  refine ⟨?_, by rw [vecLen_eq, r16], ⟨?_, ?_⟩, ?_, ?_⟩
   · refine ⟨hwin, ⟨Runtime.MemsetT.InWin.sub hwin (Nat.le_refl _) (by simp only [Layouts.RawVecInner.byteSize]; omega),
       hal, ?_, ?_⟩, ?_⟩
     · rw [rvCapAt_eq, rvPtrAt_eq, r0, r8]
@@ -215,6 +219,8 @@ theorem fin_mem {env : Env} {m M : MachineState} {top ret q c P e0 e1 e2 : Word}
     · exact F1
     · exact F2
     · omega
+  · rw [vecPtr_eq, r8, vecCap_eq, vecCap_eq, vecCap_eq, vecCap_eq]
+    exact ⟨r0', h6 24 _ (by omega) (by omega) w24, (h6 48 _ (by omega) (by omega) w48).trans he0⟩
 
 /-- The registers at the join (instruction 286). -/
 def XRegs (top q : Word) (regs R : Reg → Word) : Prop :=
