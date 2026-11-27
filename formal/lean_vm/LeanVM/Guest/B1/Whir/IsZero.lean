@@ -34,10 +34,6 @@ private theorem ofK_eq_zero_iff (a : K) : ofK a = 0 ↔ a = 0 := by
 private theorem e_eq_zero_iff (w : E) : w = 0 ↔ w.limb 0 = 0 ∧ w.limb 1 = 0 := by
   conv_lhs => rw [eq_ofLimbs w, zero_eq_ofLimbs, ofLimbs_inj]
 
-private theorem ofK_add2 (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
-
-private theorem ofK_mul2 (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
 /-- **The norm of `a + b·y`**, `a² + x·a·b + b²`, is zero only at `a = b = 0`. -/
 theorem norm_eq_zero_iff (a b : K) : a * a + g * a * b + b * b = 0 ↔ a = 0 ∧ b = 0 := by
   constructor
@@ -57,7 +53,7 @@ theorem norm_eq_zero_iff (a b : K) : a * a + g * a * b + b * b = 0 ↔ a = 0 ∧
 /-- The norm, as the body computes it in `E`. -/
 private theorem norm_ofK (a b : K) :
     ofK a * ofK a + ofK a * gen * ofK b + ofK b * ofK b = ofK (a * a + g * a * b + b * b) := by
-  rw [gen_eq_ofK, ofK_add2, ofK_add2, ofK_mul2, ofK_mul2, ofK_mul2, ofK_mul2]
+  rw [gen_eq_ofK, ofK_add, ofK_add, ofK_mul, ofK_mul, ofK_mul, ofK_mul]
   ring
 
 /-- **`is_zero`'s core IR is its meaning.** -/

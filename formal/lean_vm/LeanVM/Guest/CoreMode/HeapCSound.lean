@@ -692,13 +692,13 @@ theorem tailC_ok (hX : XOk sigOf H rd f σ X) (hself : sigOf f.name = H.sig) (hr
             have hcell : (b.mul (m0.pow r.stride)).addr σ =
                 (r.base.valW (slotW (f.params.map σ)) * ofK (addressOfIndex (r.stride * ylo))).limb 0 := by
               rw [addr_eq, CCell.addrW, valW_mul, valW_pow, hb', hm0'', hslot 0 hm0, (rep_spec hylo).2,
-                ← ofK_pow']
+                ← ofK_pow]
               simp only [addressOfIndex, ← pow_mul, mul_comm]
             exact hcell.symm
           · by_cases h0 : σ c = 0
             · exfalso
               have hx := hexit h0
-              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul', addressOfIndex,
+              rw [show σ (V.n 0) = vw σ 0 from rfl, (rep_spec hylo).2, ← ofK_mul, addressOfIndex,
                 addressOfIndex, ← pow_add, ← addressOfIndex] at hx
               rw [← hx, rep_of (by omega), Option.some.injEq] at hyhi
               omega

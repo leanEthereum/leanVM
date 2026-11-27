@@ -340,7 +340,7 @@ theorem baseFacts_ok {w : ℕ → E} {m : CCell} {j : ℕ} (hm : m.valW w = ofK 
       rw [valW_baseC]
       have : w b * ofK (addressOfIndex t) = (⟨[(b, 1)], t⟩ : CCell).valW w := by
         simp [CCell.valW, prodW]
-      rw [this, hm, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hle]
+      rw [this, hm, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, Nat.sub_add_cancel hle]
   · intro p hp; simp at hp
 
 /-- **A path's facts hold** where its conditions do. -/
@@ -548,7 +548,7 @@ theorem back_ok {st : CSt} (hs : StOk rd W σ st) {F : List (CCell × CCell)} (h
   have hhv := (rep_spec hyh).2
   have hcv : c.valW (vw σ) * ofK (addressOfIndex (R.stride * k)) =
       R.base.valW (vw σ) * ofK (addressOfIndex (R.stride * yh)) := by
-    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex,
+    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow, addressOfIndex, addressOfIndex,
       ← pow_mul, mul_comm yh]
   have hne := ofK_gpow_ne_zero (R.stride * k)
   rcases Nat.lt_or_ge yh (R.lo.off + k) with hlt | hge
@@ -558,7 +558,7 @@ theorem back_ok {st : CSt} (hs : StOk rd W σ st) {F : List (CCell × CCell)} (h
         (⟨R.base.bases, R.base.off + R.stride * yh - R.stride * k⟩ : CCell).valW (vw σ) := by
       refine mul_right_cancel₀ hne ?_
       rw [hcv]
-      simp only [CCell.valW, mul_assoc, ← ofK_mul', addressOfIndex, ← pow_add]
+      simp only [CCell.valW, mul_assoc, ← ofK_mul, addressOfIndex, ← pow_add]
       rw [Nat.sub_add_cancel hle]
     rw [addr_eq, CCell.addrW, hv, ← CCell.addrW, ← addr_eq]
     exact hW
@@ -566,7 +566,7 @@ theorem back_ok {st : CSt} (hs : StOk rd W σ st) {F : List (CCell × CCell)} (h
     refine hR _ ⟨R.lo.off, yh, yh - k, rep_nil hlb hlc, hyh, by omega, by omega, ?_⟩
     have hv : c.valW (vw σ) = R.base.valW (vw σ) * ofK (addressOfIndex (R.stride * (yh - k))) := by
       refine mul_right_cancel₀ hne ?_
-      rw [hcv, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
+      rw [hcv, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
         Nat.sub_add_cancel (by omega : k ≤ yh)]
     rw [CCell.addrW, hv]
 
@@ -1022,7 +1022,7 @@ theorem mrg_le {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.i
   refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
     have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
   simp only [mrgPart]
-  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+  rw [valW_shift, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
     Nat.mul_assoc, ← Nat.mul_add, hi]
 
 theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.isEmpty = true) (hlc : Q.lo.off < capE)
@@ -1034,7 +1034,7 @@ theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.i
   rw [rep_nil hlb hlc, Option.some.injEq] at h1
   subst h1
   have hhi : Q.hi.valW (vw σ) = ofK (addressOfIndex (yr * S)) := by
-    rw [hroot, (rep_spec hyr).2, ← ofK_pow', addressOfIndex, addressOfIndex, ← pow_mul]
+    rw [hroot, (rep_spec hyr).2, ← ofK_pow, addressOfIndex, addressOfIndex, ← pow_mul]
   have hle := rep_le h2 hhi
   have hi : i % S + S * (i / S) = i := Nat.mod_add_div i S
   have hj : i / S < yr := (Nat.div_lt_iff_lt_mul hS).mpr (by omega)
@@ -1042,7 +1042,7 @@ theorem mrg_ok {Q : PRun} {S : ℕ} {R : CCell} (hS : 0 < S) (hlb : Q.lo.bases.i
   refine hparts (i % S) (Nat.mod_lt _ hS) _ ⟨Q.lo.off / S, yr, i / S, rep_const (by
     have := Nat.div_le_self Q.lo.off S; omega), hyr, hj0, hj, ?_⟩
   simp only [mrgPart]
-  rw [valW_shift, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
+  rw [valW_shift, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add,
     Nat.mul_assoc, ← Nat.mul_add, hi]
 
 /-- **A run's witnesses, one level**: the run written. -/
@@ -1117,7 +1117,7 @@ theorem runOk0_ok (hX : XOk sigOf H rd f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c
               subst ha
               obtain ⟨-, hrv⟩ := rep_spec hyr
               have h2 : ((R.pow S).shift 1).valW (vw σ) = ofK (addressOfIndex (yr * S + 1)) := by
-                rw [valW_shift, valW_pow, hrv, ← ofK_pow', ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex,
+                rw [valW_shift, valW_pow, hrv, ← ofK_pow, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex,
                   ← pow_mul, ← pow_add]
               have := rep_le hb2 h2
               omega
@@ -1135,7 +1135,7 @@ theorem catM_ok {w : ℕ → E} {Q : PRun} {k h : CCell} (hkh : (k.mul h).valW w
   have hk := (rep_spec hyk)
   have hh := (rep_spec hyh)
   have hhi : Q.hi.valW w = ofK (addressOfIndex (yk + yh)) := by
-    rw [← hkh, valW_mul, hk.2, hh.2, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
+    rw [← hkh, valW_mul, hk.2, hh.2, ← ofK_mul, addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add]
   have hle : yhi = yk + yh := by
     have h2' := h2
     rw [hhi] at h2'
@@ -1148,7 +1148,7 @@ theorem catM_ok {w : ℕ → E} {Q : PRun} {k h : CCell} (hkh : (k.mul h).valW w
   · refine R2 _ ⟨0, yh, j - yk, rep_const (by rw [capE_eq]; norm_num), hyh, Nat.zero_le _, by omega, ?_⟩
     have e : (Q.base.mul (k.pow Q.stride)).valW w * ofK (addressOfIndex (Q.stride * (j - yk))) =
         Q.base.valW w * ofK (addressOfIndex (Q.stride * j)) := by
-      rw [valW_mul, valW_pow, hk.2, ← ofK_pow', mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex,
+      rw [valW_mul, valW_pow, hk.2, ← ofK_pow, mul_assoc, ← ofK_mul, addressOfIndex, addressOfIndex,
         addressOfIndex, ← pow_mul, ← pow_add, show yk * Q.stride + Q.stride * (j - yk) = Q.stride * j by
           rw [Nat.mul_comm yk, ← Nat.mul_add, Nat.add_sub_cancel' (by omega)]]
     rw [e]

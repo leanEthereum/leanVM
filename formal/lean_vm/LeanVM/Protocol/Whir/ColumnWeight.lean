@@ -183,9 +183,6 @@ def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights : List E
 /-- The root `W_i(e_i)`, in `E`. -/
 private abbrev root (i : ℕ) : E := ofK (vanishingAt i (basisVec i))
 
-/-- `ofK` preserves powers. -/
-private theorem ofK_pow (a : K) (m : ℕ) : ofK (a ^ m) = ofK a ^ m := map_pow (algebraMap K E) a m
-
 /-- `ofK` preserves inverses. -/
 private theorem ofK_inv (a : K) : ofK a⁻¹ = (ofK a)⁻¹ := map_inv₀ (algebraMap K E) a
 

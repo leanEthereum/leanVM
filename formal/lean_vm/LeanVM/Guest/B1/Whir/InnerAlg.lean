@@ -74,12 +74,6 @@ theorem inducedWeight_sum (mu : ℕ) (qs : List ℕ) (lam : E) (x : List E) :
   rw [foldl_zip_mul (fun (a : E) (b : K) ↦ 1 + a * ofK (1 + b)) x _ _ 0 0, length_subspaceAt,
     getD_powersFrom _ _ _ _ (Finset.mem_range.mp hk), one_mul]
 
-theorem ofK_add' (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
-
-theorem ofK_mul' (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
-theorem ofK_one' : ofK 1 = 1 := map_one (algebraMap K E)
-
 /-- **`1 + Ŵ_t(x)` is `1 + W_t(x)·inv_t`**, the guest's chain over the roots times the
 vanishing inverse. -/
 theorem what_factor {mu t : ℕ} (ht : t ≤ mu) (x : K) (vals : List E)
@@ -89,7 +83,7 @@ theorem what_factor {mu t : ℕ} (ht : t ≤ mu) (x : K) (vals : List E)
   rw [residualChain_vanishing x vals hv t ht, hinv, subspaceRoots_getD ht,
     LeanVM.Protocol.Whir.subspaceAt_eq,
     List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range (by omega), Option.map_some,
-    Option.getD_some, LeanVM.Protocol.Whir.normVanishingAt, ofK_add', ofK_mul', ofK_one']
+    Option.getD_some, LeanVM.Protocol.Whir.normVanishingAt, ofK_add, ofK_mul, ofK_one]
 
 theorem getD_map_eOfNat (qs : List ℕ) (k : ℕ) (hk : k < qs.length) :
     (qs.map eOfNat).getD k 0 = ofK (K.ofBits (qs.getD k 0)) := by

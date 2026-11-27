@@ -157,7 +157,7 @@ theorem idxVal_repL {gl : List (ℕ × ℕ × ℕ)} {s : St} {ws : List E} {i : 
       obtain ⟨hy1, hy2⟩ := rep_spec hy'
       rw [capE_eq] at hy1
       have hyx : y = e + c := gpow_inj_lt (by omega) (by omega) (by
-        rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul'])
+        rw [← hy2, addressOfIndex, addressOfIndex, pow_add, ofK_mul])
       rw [← hyx]
       exact hy
     | hp q d =>

@@ -90,7 +90,7 @@ theorem termsEval_liftTerms_canon (r : ℕ → E) (l : Terms K) :
       · rw [liftTerms_cons, liftTerms_cons, termsEval_cons, termsEval_cons, ih]
       · rename_i h
         have h0 : t.2 = 0 := by simpa using h
-        rw [ih, liftTerms_cons, termsEval_cons, h0, ofK_zero', zero_mul, zero_add]
+        rw [ih, liftTerms_cons, termsEval_cons, h0, ofK_zero, zero_mul, zero_add]
   have hfold : ∀ m : Terms K,
       termsEval r (liftTerms (m.foldr insertTerm [])) = termsEval r (liftTerms m) := by
     intro m
@@ -146,7 +146,7 @@ theorem termsEval_liftTerms_exprTerms {n : ℕ} (e : Fin n → E) (x : Expressio
   | var v =>
     simp only [exprTerms, liftTerms_cons, liftTerms_nil, termsEval_cons, List.map_cons,
       List.map_nil, List.prod_cons, List.prod_nil, mul_one, termsEval_nil, add_zero,
-      Expression.toCMvPolynomial, rowE, ofK_one', one_mul]
+      Expression.toCMvPolynomial, rowE, ofK_one, one_mul]
     split_ifs with h
     · simp [CMvPolynomial.eval₂_X]
     · exact (eval₂_zero' _ e).symm
@@ -171,7 +171,7 @@ theorem flushPolys_slot_eval₂ {n : ℕ} (e : Fin n → E) (i : AbstractInterac
     | none =>
       simp only [Option.map_none, Option.getD_none, exprTerms, liftTerms_cons, liftTerms_nil,
         termsEval_cons, termsEval_nil, List.map_nil, List.prod_nil, mul_one, add_zero]
-      rw [ofK_zero']
+      rw [ofK_zero]
       exact eval₂_zero' _ e
     | some x => simp [termsEval_liftTerms_exprTerms]
 
@@ -248,7 +248,7 @@ theorem jumpConstraints_evalE (e : Fin (width (opIdx 4)) → E) (ev : List E)
     simp only [Function.comp_apply, termsEval_liftTerms_canon, termsEval_liftTerms_exprTerms]
   rw [hl, jump_constraints_canon, jumpConstraints_getD, hev, hev, hev]
   simp only [List.map_cons, List.map_nil, liftTerms_cons, liftTerms_nil, termsEval_cons,
-    termsEval_nil, List.prod_cons, List.prod_nil, ofK_one', one_mul, mul_one, add_zero]
+    termsEval_nil, List.prod_cons, List.prod_nil, ofK_one, one_mul, mul_one, add_zero]
   simp only [List.cons.injEq, and_true]
   constructor <;> ring
 

@@ -149,6 +149,18 @@ theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K
 /-- `ofK` preserves products: it is `algebraMap K E`. -/
 theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
 
+/-- `ofK` preserves zero. -/
+theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
+
+/-- `ofK` preserves one. -/
+theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
+
+/-- `ofK` preserves powers. -/
+theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
+
+/-- `ofK` preserves differences. -/
+theorem ofK_sub (a b : K) : ofK (a - b) = ofK a - ofK b := map_sub (algebraMap K E) a b
+
 /-- `ofK a` is the word with limbs `(a, 0)`. -/
 theorem ofK_eq_ofLimbs (a : K) : ofK a = E.ofLimbs a 0 :=
   E.ext fun i ↦ by fin_cases i <;> simp

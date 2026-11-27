@@ -192,7 +192,7 @@ theorem vsExp_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts core
       refine (CoreMode.runSet_const (q := ⟨⟨[(val% «verify_sub» "stream", 1)], 0⟩, 1, .num 0, .num 8192⟩) rfl rfl (by norm_num)
         (by norm_num)).mpr ⟨gX + k, Nat.zero_le _, by omega, ?_⟩
       simp only [CoreMode.CCell.addrW, CoreMode.CCell.valW, CoreMode.prodW, vw, pow_one, mul_one, hσ,
-        Value.gen_pow_eq_ofK, addressOfIndex, pow_zero, one_mul, pow_add, CoreMode.ofK_mul',
+        Value.gen_pow_eq_ofK, addressOfIndex, pow_zero, one_mul, pow_add, LeanVM.Parameters.ofK_mul,
         show ofK (1 : Parameters.K) = 1 from map_one (algebraMap Parameters.K Parameters.E), mul_one, mul_assoc]
     · cases hcx
   | .nz _, h | .subR _ _, h | .subP _ _, h => by simp [CoreMode.vsExp] at h

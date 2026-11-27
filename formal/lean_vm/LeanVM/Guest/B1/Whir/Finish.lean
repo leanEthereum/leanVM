@@ -216,7 +216,7 @@ theorem lvl_terms {c : OsCfg} {lv lv' : OsLv} (hF : LvFin c lv lv') {r : OsRec} 
       intro c' hc
       rw [hhl] at hc
       rw [hsvOf, List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map, List.getElem_range,
-        word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul', mul_assoc]
+        word_eOfNat, eOfNat, hF.hsm c' hc, ofK_mul, mul_assoc]
     have h := level_high (hli hl0) r.qs hF.mu64 hF.bn r.high (hsvOf lv r) (by rw [hhl]; exact hF.hn)
       (by simp [hsvOf, hhl]) (osVals_ofK hF.val) hhs
     have hp : ∏ t ∈ Finset.range lv.logCols, (ptFrom G T r.F).getD t 0 = (G.drop r.F).prod * T.prod := by

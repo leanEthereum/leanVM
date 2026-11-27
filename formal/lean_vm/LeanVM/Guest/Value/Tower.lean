@@ -57,12 +57,6 @@ theorem k_add_self (a : K) : a + a = 0 := CharTwo.add_self_eq_zero a
 
 /-! ## `ofK` and the limb view -/
 
-theorem ofK_zero : ofK 0 = 0 := map_zero (algebraMap K E)
-
-theorem ofK_one : ofK 1 = 1 := map_one (algebraMap K E)
-
-theorem ofK_pow (a : K) (n : ℕ) : ofK (a ^ n) = ofK a ^ n := map_pow (algebraMap K E) a n
-
 @[simp] theorem ofLimbs_limb0 (a b : K) : (E.ofLimbs a b).limb 0 = a := by simp
 
 @[simp] theorem ofLimbs_limb1 (a b : K) : (E.ofLimbs a b).limb 1 = b := by simp

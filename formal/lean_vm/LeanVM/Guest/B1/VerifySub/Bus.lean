@@ -33,7 +33,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {next : Prop} {kret : List E →
 
 theorem vsGinvBus_mul : vsGinvBus * gen ^ 20 = 1 := by
   rw [show vsGinvBus = ofK (K.ofBits 14347465658197868555) by rw [vsGinvBus, word_eOfNat]; rfl,
-    gen_pow_eq_ofK, ← kn_ofK_mul,
+    gen_pow_eq_ofK, ← ofK_mul,
     show K.ofBits 14347465658197868555 * Parameters.addressOfIndex 20 = 1 by decide +kernel]
   exact map_one (algebraMap K E)
 

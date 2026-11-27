@@ -310,7 +310,7 @@ theorem jumpF_of {κ : ℕ} {L : MemoryImage κ} {j fp : ℕ} {σ : Val} {es : L
       have h1 : j = 1 := by simpa [ctxOf, AlignCtx.ofData] using hz
       rw [(hstatB (statOf_ofData hso)).1, hroot h1]
       simp only [PC.word]
-      rw [(Exec.imm_of_ofBits rfl).trans Exec.ofK_one]
+      rw [(Exec.imm_of_ofBits rfl).trans LeanVM.Parameters.ofK_one]
       simp
     · cases hz
   case pcw =>

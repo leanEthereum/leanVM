@@ -164,7 +164,7 @@ theorem rngT_cases {G : Mode.Sig} {np : ℕ} {r : Mode.Rng} {q : CRun} (h : rngT
 theorem run_val {w : ℕ → E} (c : CCell) (S j d : ℕ) :
     (c.valW w * ofK (g ^ (S * j + d))) = ((⟨c.bases, c.off + d⟩ : CCell).valW w * ofK (addressOfIndex (S * j))) := by
   rw [valW_shiftc]
-  simp only [addressOfIndex, pow_add, ofK_mul']
+  simp only [addressOfIndex, pow_add, ofK_mul]
   ring
 
 /-- **A mode run written is its heap run's cells written**, over a frame holding the parameters. -/

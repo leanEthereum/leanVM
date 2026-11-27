@@ -31,9 +31,9 @@ variable {κ : ℕ} {img : MemoryImage κ}
 theorem symNz_val {o : Option Exec.Sym} (h : FSt.symNz o = true) (fp : K) (hfp : fp ≠ 0) :
     ∃ v, o = some v ∧ v.val fp ≠ 0 := by
   rcases o with _ | (_ | e | e) <;> simp [FSt.symNz] at h
-  · exact ⟨_, rfl, fun h0 ↦ gpow_ne_zero e (ofK_injective (by rw [Exec.ofK_zero]; exact h0))⟩
+  · exact ⟨_, rfl, fun h0 ↦ gpow_ne_zero e (ofK_injective (by rw [LeanVM.Parameters.ofK_zero]; exact h0))⟩
   · refine ⟨_, rfl, fun h0 ↦ ?_⟩
-    have := ofK_injective (show ofK (fp * addressOfIndex e) = ofK 0 by rw [Exec.ofK_zero]; exact h0)
+    have := ofK_injective (show ofK (fp * addressOfIndex e) = ofK 0 by rw [LeanVM.Parameters.ofK_zero]; exact h0)
     exact mul_ne_zero hfp (gpow_ne_zero e) this
 
 theorem gpow_ne_zero' (n : ℕ) : (g : K) ^ n ≠ 0 := pow_ne_zero _ g_ne_zero
@@ -223,7 +223,7 @@ theorem fval_one {fp : ℕ} {A : FSt} (hv : FVal img fp A) {a b c pc : ℕ}
     · have h1 := hv.st.1 a _ (isOne_eq' ha)
       replace h1 : Rd img fp a = some _ := h1
       rw [hA] at h1; cases h1
-      simp only [Exec.Sym.val, addressOfIndex, pow_zero, Exec.ofK_one] at hC
+      simp only [Exec.Sym.val, addressOfIndex, pow_zero, LeanVM.Parameters.ofK_one] at hC
       exact ⟨vB, hB, hC⟩
     · exact hv.one c' x hx
   by_cases hb : Exec.isOne (A.st.env.get b) = true
@@ -233,7 +233,7 @@ theorem fval_one {fp : ℕ} {A : FSt} (hv : FVal img fp A) {a b c pc : ℕ}
     · have h1 := hv.st.1 b _ (isOne_eq' hb)
       replace h1 : Rd img fp b = some _ := h1
       rw [hB] at h1; cases h1
-      simp only [Exec.Sym.val, addressOfIndex, pow_zero, Exec.ofK_one] at hC
+      simp only [Exec.Sym.val, addressOfIndex, pow_zero, LeanVM.Parameters.ofK_one] at hC
       exact ⟨vA, hA, by rw [hC, add_comm]⟩
     · exact hv.one c' x hx
   · have he : oneOf A a b c = A.one := by unfold oneOf; simp [ha, hb]

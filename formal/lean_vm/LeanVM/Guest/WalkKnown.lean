@@ -319,7 +319,7 @@ theorem main_cutsKnown {j : ℕ} {s : Oq} {loop : String} (hb : (coreOf j).body 
       exact ⟨e, lt_of_lt_of_le he hle, rfl⟩
     · obtain ⟨⟨⟨ht1, hlen⟩, ht2⟩, ht0, hst⟩ := hsm t ht
       rw [ht1, semRel_impK (by have := oqTag_lt (kind := 1) (odd := 0) (by decide) (by decide) hpd; omega)
-        (by decide), (Exec.imm_of_ofBits rfl).trans Exec.ofK_one, semRel0_oq (by decide) (by decide) hpd,
+        (by decide), (Exec.imm_of_ofBits rfl).trans LeanVM.Parameters.ofK_one, semRel0_oq (by decide) (by decide) hpd,
         walkSem_oq1]
       intro hx
       rw [getD_map_lt (by omega)] at hx
@@ -338,7 +338,7 @@ theorem main_cutsKnown {j : ℕ} {s : Oq} {loop : String} (hb : (coreOf j).body 
     refine ⟨by rw [hkn]; intro _ h; simp at h, by rw [hkiE]; intro _ h; simp at h, fun t ht ↦ ?_⟩
     obtain ⟨⟨⟨ht1, hlen⟩, ht2⟩, ht0⟩ := hsm t ht
     rw [ht1, semRel_impK (by have := oqTag_lt (kind := 0) (odd := 0) (by decide) (by decide) hpd; omega)
-      (by decide), (Exec.imm_of_ofBits rfl).trans Exec.ofK_one, semRel0_oq (by decide) (by decide) hpd,
+      (by decide), (Exec.imm_of_ofBits rfl).trans LeanVM.Parameters.ofK_one, semRel0_oq (by decide) (by decide) hpd,
       walkSem_oq0]
     intro hx
     rw [getD_map_lt (by omega)] at hx

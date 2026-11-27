@@ -755,7 +755,7 @@ theorem core_jtd {img : MemoryImage κ} (hκ : κ ≤ 28) {K : Mode.Cert} {Cf : 
     intro p y hp hy
     have hpv : p = ofK (g ^ k) := rd_get hκ hm.fine ho1 (by rw [hm.fp]; exact hsel) hp
     have h1 := hy.1
-    rw [hpv, ← ofK_mul', ← pow_add, limb_ofK] at h1
+    rw [hpv, ← ofK_mul, ← pow_add, limb_ofK] at h1
     have hlt : k + o2 < 2 ^ 63 := by have := lt_maxCells_63 (x := o2 + k) (by omega); omega
     have hyx := gpow_inj hlt (lt_maxCells_63 hy.2) h1
     rw [← hyx, show k + o2 = o2 + k by omega]
@@ -1027,7 +1027,7 @@ theorem rw_slotXExt {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} {b : ℕ} {
   -- the extended bound's exponent, `e + 1`
   have hy : yhi = xhi + 1 := by
     have e1 : (idxC (.mono ⟨[(b, 1)], 1⟩)).valW (slotW ws) = ofK (addressOfIndex (xhi + 1)) := by
-      simp only [idxC, CCell.valW, prodW, pow_one, mul_one, hwb, addressOfIndex, pow_add, ofK_mul']
+      simp only [idxC, CCell.valW, prodW, pow_one, mul_one, hwb, addressOfIndex, pow_add, ofK_mul]
     obtain ⟨hy1, hy2⟩ := rep_spec h2
     rw [e1] at hy2
     have := capE_eq
@@ -1043,7 +1043,7 @@ theorem rw_slotXExt {s : St} {ws : List E} {r : Mode.Rng} {q : CRun} {b : ℕ} {
       cases hqc
       have hb1 : (⟨[(b, q.stride)], 0⟩ : CCell).valW (slotW ws) = ofK (addressOfIndex (q.stride * j)) := by
         show prodW (slotW ws) [(b, q.stride)] * ofK (addressOfIndex 0) = _
-        rw [prodW, prodW, hwb, mul_one, addressOfIndex, ← ofK_pow', ← pow_mul, ← ofK_mul', addressOfIndex,
+        rw [prodW, prodW, hwb, mul_one, addressOfIndex, ← ofK_pow, ← pow_mul, ← ofK_mul, addressOfIndex,
           addressOfIndex, pow_zero, mul_one, Nat.mul_comm]
       rw [valW_mul, hb1]
     unfold CCell.addrW at hpt
