@@ -311,7 +311,8 @@ impl Lane for u64 {
     }
 }
 
-/// Whether the CPU runs target feature `$f`: the OS's answer with `std`, else whether the build enables it.
+/// Whether the CPU runs target feature `$f`: the OS's answer with `std` (unless `static-dispatch`), else whether the
+/// build enables it.
 #[cfg(any(
     all(target_arch = "x86_64", target_feature = "sse2"),
     all(target_arch = "aarch64", target_endian = "little", target_feature = "neon")
@@ -319,8 +320,12 @@ impl Lane for u64 {
 macro_rules! cpu_has {
     ($f:tt) => {
         cfg_select! {
-            all(feature = "std", target_arch = "x86_64") => std::arch::is_x86_feature_detected!($f),
-            all(feature = "std", target_arch = "aarch64") => std::arch::is_aarch64_feature_detected!($f),
+            all(feature = "std", not(feature = "static-dispatch"), target_arch = "x86_64") => {
+                std::arch::is_x86_feature_detected!($f)
+            }
+            all(feature = "std", not(feature = "static-dispatch"), target_arch = "aarch64") => {
+                std::arch::is_aarch64_feature_detected!($f)
+            }
             _ => cfg!(target_feature = $f),
         }
     };

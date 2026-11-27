@@ -19,7 +19,7 @@ for crate in verifier aggregation isa claims lean_xmss lean_sphincs lean_da fv_e
   cold+=(--config "profile.release.package.$crate.opt-level=\"s\"")
 done
 RUSTFLAGS="${flags[*]}" CARGO_PROFILE_RELEASE_LTO=fat \
-  cargo +nightly build --release -p fv_entry --bin fv_entry --features no-tracing "${cold[@]}" \
+  cargo +nightly build --release -p fv_entry --bin fv_entry --features fv "${cold[@]}" \
   --target x86_64-unknown-linux-gnu -Z build-std=std,panic_abort --target-dir target/fv-build
 mkdir -p target/fv
 cp target/fv-build/x86_64-unknown-linux-gnu/release/fv_entry target/fv/fv_entry

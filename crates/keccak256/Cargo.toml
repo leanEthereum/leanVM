@@ -7,6 +7,8 @@ publish = false
 [features]
 # Pick the batched hashes' backend from the CPU, not only the target.
 std = []
+# Pick it from the target alone, even with `std`: one binary per CPU target, with no feature detection (`fv_entry`).
+static-dispatch = []
 
 [lints]
 workspace = true

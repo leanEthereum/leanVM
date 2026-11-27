@@ -13,10 +13,11 @@ lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
 tracing = { workspace = true, optional = true }
+keccak256 = { workspace = true, optional = true }
 
 [features]
-# Every span compiled out, for the binary the proofs are about (`formal/x86/build.sh`).
-no-tracing = ["dep:tracing", "tracing/max_level_off"]
+# The binary the proofs are about (`formal/x86/build.sh`): every span compiled out, Keccak's backend fixed by the target.
+fv = ["dep:tracing", "tracing/max_level_off", "dep:keccak256", "keccak256/static-dispatch"]
 
 [dev-dependencies]
 aggregation = { workspace = true, features = ["signers-cache"] }
@@ -24,6 +25,6 @@ aggregation = { workspace = true, features = ["signers-cache"] }
 [lints]
 workspace = true
 
-# Named only for its feature.
+# Named only for their features.
 [package.metadata.cargo-machete]
-ignored = ["tracing"]
+ignored = ["tracing", "keccak256"]

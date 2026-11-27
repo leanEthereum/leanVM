@@ -101,7 +101,7 @@ echo "$tiers" | while read -r tier arch features; do
             done
             # Features the sources gate code on, never enabled in a copy.
             case "$name" in
-            keccak256) printf '\n[features]\nstd = []\n' ;;
+            keccak256) printf '\n[features]\nstd = []\nstatic-dispatch = []\n' ;;
             experimental_primitives) printf '\n[features]\ntest-util = []\n' ;;
             experimental_keccak_gkr) printf '\n[features]\nbench = []\n' ;;
             esac
