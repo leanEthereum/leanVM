@@ -5,11 +5,11 @@
   `n` in `a2`) is total: for `n = 0` it drops the element and returns the empty vector; otherwise it allocates the
   result's block (`alloc(24 n)`), stores `n - 1` clones of the element (`<Vec<Form> as Clone>::clone`, through
   `CloneFormsFreshT`'s contract) and moves the element into the last slot. Its result is a vector of `n` `Vec<Form>`s
-  (`VecFormT`: each a vector of `Form`s, `FormReprT.FormsT`), its buffer fresh unless empty; the elements' buffers
-  apart from it and from each other, and each element's `Form`s of capacity `0` if the element's are (`ElemsT`), what
-  a caller writing into one element's `Form`s (`verify_bus_balance` through `add_scaled`) needs to keep the others;
-  the run ends with the guest's abort (`AbortStop`) where `alloc`, `clone` or `handle_error` does. A safety-only
-  contract (class D).
+  (`VecFormT`: each a vector of `Form`s, `FormReprT.FormsT`), its buffer fresh unless empty; the elements' buffers,
+  each unless empty, apart from it and from each other, and each element's `Form`s of capacity `0` if the element's
+  are (`ElemsT`), what a caller writing into one element's `Form`s (`verify_bus_balance` through `add_scaled`) needs
+  to keep the others; the run ends with the guest's abort (`AbortStop`) where `alloc`, `clone` or `handle_error`
+  does. A safety-only contract (class D).
 
   The precondition: the result's slot in the caller's frame (at or above the stack pointer, so apart from every heap
   block the result's elements use), in a window and 8-byte aligned; the element a `Vec<Form>` its caller owns; `24 n`
@@ -85,8 +85,9 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
     (regs .x10).toNat % 8 = 0 ∧ env.Owned m (regs .x2) (regs .x11) 24 ∧ VecFormT env m (regs .x11) ∧
     (regs .x12).toNat * 24 < 2 ^ 63
 
-/-- The total postcondition: the result a vector of `n` `Vec<Form>`s, its buffer fresh unless empty; their buffers
-    apart from it and from each other, and each holding only empty `Form`s if the element does (`ElemsT`). -/
+/-- The total postcondition: the result a vector of `n` `Vec<Form>`s, its buffer fresh unless empty; their buffers,
+    each unless empty, apart from it and from each other, and each holding only empty `Form`s if the element does
+    (`ElemsT`). -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   VecT env m' (regs .x10) 24 ∧ vecLen m' (regs .x10) = regs .x12 ∧
     ((regs .x12).toNat = 0 ∨ env.Fresh m m' (vecPtr m' (regs .x10)) ((regs .x12).toNat * 24)) ∧
