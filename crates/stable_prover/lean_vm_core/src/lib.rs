@@ -56,7 +56,7 @@ pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {
     if n >= 8 {
         F64x8::load(&values[i..i + 8])
     } else {
-        F64x8::from_array(&std::array::from_fn(|p| if p < n { values[i + p] } else { F64::ZERO }))
+        F64x8::from_array(&partial(values, i, n, F64::ZERO))
     }
 }
 
@@ -66,6 +66,12 @@ pub(crate) fn load_e(values: &[F128], i: usize, n: usize) -> F128x8 {
     if n >= 8 {
         F128x8::load(&values[i..i + 8])
     } else {
-        F128x8::from_array(&std::array::from_fn(|p| if p < n { values[i + p] } else { F128::ZERO }))
+        F128x8::from_array(&partial(values, i, n, F128::ZERO))
     }
+}
+
+/// The `n < 8` values from `values[i]`, then `zero`: out of line, as only the last vector of a pass takes it.
+#[inline(never)]
+fn partial<T: Copy>(values: &[T], i: usize, n: usize, zero: T) -> [T; 8] {
+    std::array::from_fn(|p| if p < n { values[i + p] } else { zero })
 }

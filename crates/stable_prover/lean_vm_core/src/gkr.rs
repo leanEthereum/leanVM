@@ -110,6 +110,7 @@ pub(crate) fn prove_products(
 }
 
 /// The rows of a level `by` times coarser all of whose rows are in `ones`.
+#[inline(never)]
 fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
     ones.iter()
         .map(|r| r.start.div_ceil(by)..r.end / by)

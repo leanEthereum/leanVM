@@ -280,10 +280,9 @@ const G_POWERS: [F64; 8] = {
 /// A tree's leaves, every block's rows at its offset, up to the last block: the identity past them is left out.
 /// Each leaf is written once, eight at a time.
 fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
-    let mut formulas: Vec<Formula> = (tree.blocks.iter().zip(&tree.layout.offsets))
-        .map(|(block, &offset)| Formula::new(block, offset, tree.alpha, tree.beta, public))
+    let formulas: Vec<Formula> = (by_offset(tree).into_iter())
+        .map(|b| Formula::new(&tree.blocks[b], tree.layout.offsets[b], tree.alpha, tree.beta, public))
         .collect();
-    isa::sort::sort_by_key(&mut formulas, |f| f.offset);
     if formulas.is_empty() {
         return vec![F128::ONE];
     }
@@ -307,14 +306,20 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
     leaves
 }
 
+/// A tree's blocks, by index, in the order of their offsets.
+fn by_offset(tree: &Tree) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..tree.blocks.len()).collect();
+    isa::sort::sort_by_key(&mut order, |&b| tree.layout.offsets[b]);
+    order
+}
+
 /// The leaves of a tree's padding rows, which hold the identity, as sorted runs.
 fn padding_runs(tree: &Tree) -> Ones {
-    let mut runs: Ones = (tree.blocks.iter().zip(&tree.layout.offsets))
+    (by_offset(tree).into_iter())
+        .map(|b| (&tree.blocks[b], tree.layout.offsets[b]))
         .filter(|(block, _)| block.rows < 1 << block.kappa)
-        .map(|(block, &offset)| offset + block.rows..offset + (1 << block.kappa))
-        .collect();
-    isa::sort::sort_by_key(&mut runs, |run| run.start);
-    runs
+        .map(|(block, offset)| offset + block.rows..offset + (1 << block.kappa))
+        .collect()
 }
 
 /// Split a tree's leaf claim by block (eq:gkr_leaves). A table's blocks accumulate into its form, `forms[t]`; a
@@ -340,8 +345,16 @@ fn decompose(
             let eq_sel = eq_eval(&sel_bits, zeta_hi);
             let (form, base) = (&mut forms[t], GLOBAL_COLUMN_BASES[t]);
             form.constant += eq_sel * beta;
+            let mut terms = Vec::new();
             for (c, &w) in block.coords.iter().zip(alpha) {
-                add_to_form(c, eq_sel * w, base, form);
+                Formula::add(c, eq_sel * w, &[], &mut terms, &mut form.constant);
+            }
+            for (term, w) in terms {
+                match term {
+                    Term::Col(i) => form.coeffs[i - base] += w,
+                    Term::Prod(i, j) => form.prods.push((i - base, j - base, w)),
+                    Term::Index | Term::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
+                }
             }
             continue;
         }
@@ -362,23 +375,6 @@ fn decompose(
             let point = zeta_lo.to_vec();
             claims.push(ColumnClaim { col, point, value });
         }
-    }
-}
-
-/// Add coordinate `c` of a table's block to that table's form at weight `w`, global column `i` its local `i - base`.
-/// A [`Coord::Sum`]'s terms share its weight.
-fn add_to_form(c: &Coord, w: F128, base: usize, form: &mut Form) {
-    match c {
-        Coord::Const(v) => form.constant += w.mul_base(*v),
-        Coord::Col(i) => form.coeffs[*i - base] += w,
-        Coord::GCol(i, k) => form.coeffs[*i - base] += w.mul_base(g_pow(*k as usize)),
-        Coord::Prod(i, j, k) => form.prods.push((*i - base, *j - base, w.mul_base(g_pow(*k as usize)))),
-        Coord::Sum(cs) => {
-            for c in cs {
-                add_to_form(c, w, base, form);
-            }
-        }
-        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
     }
 }
 

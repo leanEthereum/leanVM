@@ -255,17 +255,17 @@ impl Grouped {
             .enumerate()
             .filter(|(_, c)| !c.is_zero())
             .collect();
-        let mut pairs: Vec<(usize, usize, F128)> =
-            form.prods.iter().map(|&(a, b, q)| (a.min(b), a.max(b), q)).collect();
-        isa::sort::sort_by_key(&mut pairs, |&(a, b, _)| (a, b));
         let mut groups: Vec<(usize, Lin)> = Vec::new();
-        for (a, b, q) in pairs {
-            match groups.last_mut() {
-                Some((left, right)) if *left == a => match right.last_mut() {
-                    Some(last) if last.0 == b => last.1 += q,
-                    _ => right.push((b, q)),
-                },
-                _ => groups.push((a, vec![(b, q)])),
+        for &(a, b, q) in &form.prods {
+            let (a, b) = (a.min(b), a.max(b));
+            let g = groups.iter().position(|g| g.0 == a).unwrap_or_else(|| {
+                groups.push((a, Vec::new()));
+                groups.len() - 1
+            });
+            let right = &mut groups[g].1;
+            match right.iter_mut().find(|t| t.0 == b) {
+                Some(t) => t.1 += q,
+                None => right.push((b, q)),
             }
         }
         Self {
@@ -383,8 +383,12 @@ fn expand(form: &Grouped, cols: &[&[F64]], rows: usize) -> State {
 fn fold_state(state: &mut State, r: F128, half: usize) {
     if half < 8 {
         for v in state.iter_mut() {
-            let (lo, hi) = (shifted(*v, 0, half), shifted(*v, half, half));
-            *v = lo + F128x8::splat(r) * (lo + hi);
+            let mut rows = v.to_array();
+            for i in 0..half {
+                rows[i] += r * (rows[i] + rows[i + half]);
+            }
+            rows[half..].fill(F128::ZERO);
+            *v = F128x8::from_array(&rows);
         }
         return;
     }
