@@ -15,7 +15,7 @@ as a number (`encS`, its bytes as digits in base `2^9`), and the codes are compa
 The kernel converts a string literal to its bytes once per check whichever way it is compared, but
 compares two strings byte by byte at every comparison, and the guest's names share long prefixes
 (`column_selector__L0`, …). `encS` is injective (`encS_inj`), so `nameEq` is string equality
-(`nameEq_iff`), and `lookupN` is `List.lookup` (`lookupN_eq`).
+(`nameEq_iff`).
 -/
 
 namespace LeanVM.Guest
@@ -32,11 +32,6 @@ def encS (s : String) : Nat := encL s.toByteArray.data.toList
 
 /-- **Two names are equal**, by their codes. -/
 def nameEq (a b : String) : Bool := Nat.beq (encS a) (encS b)
-
-/-- `List.lookup` of a name, names compared by their codes. -/
-def lookupN {β : Type} (a : String) : List (String × β) → Option β
-  | [] => none
-  | (k, b) :: l => bif nameEq a k then some b else lookupN a l
 
 end
 
@@ -57,19 +52,8 @@ theorem encS_inj {a b : String} (h : encS a = encS b) : a = b := by
   cases (encL_inj h : la = lb)
   rfl
 
-@[simp] theorem nameEq_iff {a b : String} : nameEq a b = true ↔ a = b :=
+theorem nameEq_iff {a b : String} : nameEq a b = true ↔ a = b :=
   ⟨fun h ↦ encS_inj (Nat.eq_of_beq_eq_true h), fun h ↦ by subst h; exact Nat.beq_refl _⟩
-
-theorem nameEq_eq_beq (a b : String) : nameEq a b = (a == b) := by
-  cases h : a == b
-  · exact Bool.eq_false_iff.mpr fun h' ↦ by simp_all
-  · exact nameEq_iff.mpr (beq_iff_eq.mp h)
-
-theorem lookupN_eq {β : Type} (a : String) : ∀ l : List (String × β), lookupN a l = l.lookup a
-  | [] => rfl
-  | (k, b) :: l => by
-    simp only [lookupN, List.lookup, nameEq_eq_beq, lookupN_eq a l]
-    cases a == k <;> rfl
 
 end
 
