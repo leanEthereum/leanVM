@@ -1,0 +1,3 @@
+import LeanXmssProofs
+
+#print axioms LeanXmssProofs.verify_eq_verifyWithKeccak
