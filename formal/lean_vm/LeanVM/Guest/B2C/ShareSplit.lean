@@ -206,13 +206,14 @@ theorem cellKeys_congr {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUses a, A w.id
     rw [cell_congr hA ha.1, cell_congr hA ha.2]
   case keccak ins outs inOdd outOdd =>
     simp only [Memory.atomUses, List.mem_append] at ha
+    simp only [mapR_eq, zipIdxR_eq]
     rw [List.map_congr_left fun x hx ↦ cell_congr hA (ha x (Or.inl hx))]
     exact List.map_congr_left fun q hq ↦ by
       rw [cell_congr hA (ha q.1 (Or.inr (List.fst_mem_of_mem_zipIdx hq)))]
 
 theorem record_congr (sh : ℕ) {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUses a, A w.idx) (st : SSt) :
     record L sh a st = record L' sh a st := by
-  unfold record
+  simp only [record_def]
   rw [recCst_congr hA sh ha, cellKeys_congr hA ha]
 
 theorem stepAtom_congr (sh : ℕ) {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUses a, A w.idx) (st : SSt)
@@ -231,7 +232,7 @@ theorem stepAtom_congr (sh : ℕ) {a : Core.Atom} (ha : ∀ w ∈ Memory.atomUse
 end Congr2
 
 theorem record_pend {L : Loc} {sh : ℕ} {a : Core.Atom} {st : SSt} : (record L sh a st).pend = st.pend := by
-  unfold record
+  rw [record_def]
   cases (Memory.atomUses a).all fun v ↦ isNamed st v.idx <;> rfl
 
 theorem stepAtom_pendIn {A : ℕ → Prop} {L : Loc} {sh : ℕ} {a : Core.Atom} {st : SSt}
