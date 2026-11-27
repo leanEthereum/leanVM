@@ -121,10 +121,6 @@ theorem stmtsFM_eq {β : Type} (f : Stmt → Option β) (l : List Stmt) : stmtsF
 theorem stmtsAll_of {p : Stmt → Bool} {l : List Stmt} (h : ∀ s ∈ stmtsOf l, p s = true) : stmtsAll p l = true :=
   (stmtsAll_eq p l).trans (List.all_eq_true.mpr h)
 
-/-- A check of every statement of a body, by the recursor. -/
-theorem all_of_stmtsAll {p : Stmt → Bool} {l : List Stmt} (h : stmtsAll p l = true) : (stmtsOf l).all p = true :=
-  stmtsAll_eq p l ▸ h
-
 end
 
 end LeanVM.Guest.CoreMode

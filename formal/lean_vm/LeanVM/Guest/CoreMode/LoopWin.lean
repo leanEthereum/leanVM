@@ -323,7 +323,7 @@ theorem nzr_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} {cs : L
   have hr := h.rest
   rw [loopShapeRest, Bool.and_eq_true, Bool.and_eq_true] at hr
   unfold nzrOk
-  exact List.all_eq_true.mpr fun i _ ↦ by rw [trieNil_get hr.1.2]
+  exact List.all_eq_true.mpr fun i _ ↦ by rw [getQ_eq, trieNil_get hr.1.2]
 
 end
 
