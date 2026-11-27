@@ -362,11 +362,8 @@ theorem execF_wr {F : Exec.Facts} {pc : ℕ} {s : Prover.Exec.St} {A : FSt} {ins
 
 theorem fwr_addRun {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out n : ℕ}
     (hn : ∀ j < n, s.mem.written (s.fp + (out + j)) = true) : FWr s { A with w := Bits.addRun A.w out n } where
-  w o ho := by
-    rcases Bits.has_addRun ho with ho | ⟨h1, h2, -⟩
-    · exact hw.w o ho
-    · have := hn (o - out) (by omega)
-      rwa [Nat.add_sub_cancel' h1] at this
+  w o ho := (Bits.has_addRun ho).elim (hw.w o) fun ⟨h1, h2, _⟩ ↦
+    Nat.add_sub_cancel' h1 ▸ hn (o - out) (by omega)
   hq := hw.hq
 
 /-- **The written cells after a non-`JUMP`** the frame rule accepts. -/

@@ -526,8 +526,7 @@ theorem preF_succ {Fn : FFun} {code : List OffsetInstruction} {i : ℕ} (hi : i 
 
 theorem preF_isSome {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc Fn code) (i : ℕ) :
     ∃ S, preF Fn code i = some S := by
-  have hw := hw.pass
-  unfold FramePassOk at hw
+  have hw : _ = _ := hw.pass
   rw [← List.take_append_drop i code, frameRunH_append] at hw
   obtain ⟨S, hS, -⟩ := Option.bind_eq_some_iff.mp hw
   exact ⟨S, hS⟩
@@ -535,8 +534,7 @@ theorem preF_isSome {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc F
 theorem preF_end {Fn : FFun} {code : List OffsetInstruction} (hw : FrameAcc Fn code)
     {i : ℕ} (hi : code.length ≤ i) {cur : Option FSt} {pend : FPend}
     (h : preF Fn code i = some (cur, pend)) : cur = none ∧ pend = [] := by
-  have hw := hw.pass
-  unfold FramePassOk at hw
+  have hw : _ = _ := hw.pass
   unfold preF at h
   rw [List.take_of_length_le hi] at h
   rw [h] at hw

@@ -166,10 +166,8 @@ theorem offF_cases {Fn : FFun} {i : ℕ} {hs : List Hint} {A : FSt} {ins : Offse
 
 /-! ## The hints -/
 
-theorem readT_has {w : ℕ} {hs : List Hint} {o : ℕ} (h : (readT w hs).get o = some ()) : Bits.has w o = true := by
-  rcases get_foldl_set_unit _ .nil h with hm | hm
-  · exact (List.mem_filter.mp hm).2
-  · simp at hm
+theorem readT_has {w : ℕ} {hs : List Hint} {o : ℕ} (h : (readT w hs).get o = some ()) : Bits.has w o = true :=
+  (get_foldl_set_unit _ .nil h).elim (fun hm ↦ (List.mem_filter.mp hm).2) (by simp)
 
 theorem hintAbs_holds {s : St} {A : FSt} (h : FWr s A) (hs : List Hint) :
     Mode.Holds s (hintAbs (readT A.w hs)) where
@@ -220,7 +218,7 @@ theorem writeRun_w {A : Mode.Abs} {base len o : ℕ}
     rcases h with h | ⟨h1, h2, h3⟩
     · exact get_set_unit_of (Or.inl (ih (Or.inl h)))
     · by_cases he : o = base + 0 + n
-      · exact get_set_unit_of (Or.inr ⟨he, by unfold Bits.lim at h3; omega⟩)
+      · exact get_set_unit_of (Or.inr ⟨he, he ▸ h3⟩)
       · exact get_set_unit_of (Or.inl (ih (Or.inr ⟨h1, by omega, h3⟩)))
 
 /-- **Stack runs at once** (`wsRuns`): the mode walk steps the same hints, and every cell the runs add
@@ -228,9 +226,7 @@ it writes. -/
 theorem wsRuns_spec {wa : ℕ} : ∀ (hs : List Hint) (w w' : ℕ) (A : Mode.Abs), wsRuns w hs = some w' →
     (∀ o, Bits.has w o = true → Bits.has wa o = true ∨ A.w.get o = some ()) →
     ∃ B, Mode.stepHints A hs = some B ∧ ∀ o, Bits.has w' o = true → Bits.has wa o = true ∨ B.w.get o = some ()
-  | [], w, w', A, h, hw => by
-    cases h
-    exact ⟨A, rfl, hw⟩
+  | [], _, _, A, h, hw => by cases h; exact ⟨A, rfl, hw⟩
   | x :: hs, w, w', A, h, hw => by
     cases x with
     | witnessStack _ base len =>
@@ -258,22 +254,16 @@ theorem stepOk_hintsF {C : Ctx} {M : ℕ → E} {Inv : St → Prop} {op : Prover
     -- the state after the hints, and what of it the mode walk's state `B` holds
     obtain ⟨B, hB, w', rfl, hw⟩ : ∃ B, Mode.stepHints (hintAbs (readT A.w (x :: xs))) (x :: xs) = some B ∧
         ∃ w', A1 = { A with w := w' } ∧ ∀ o, Bits.has w' o = true → Bits.has A.w o = true ∨ B.w.get o = some () := by
-      rcases e : wsRuns A.w (x :: xs) with _ | w'
-      · rw [e] at h
-        obtain ⟨B, hB, rfl⟩ := Option.map_eq_some_iff.mp h
+      rcases e : wsRuns A.w (x :: xs) with _ | w' <;> rw [e] at h
+      · obtain ⟨B, hB, rfl⟩ := Option.map_eq_some_iff.mp h
         refine ⟨B, hB, _, rfl, fun o ho ↦ ?_⟩
         simp only [Bits.has, Nat.testBit_or, Bool.or_eq_true] at ho
         exact ho.imp id Bits.get_of_has_ofTrie
-      · rw [e] at h
-        cases h
-        obtain ⟨B, hB, hB'⟩ := wsRuns_spec (x :: xs) A.w w' _ e fun o ho ↦ Or.inl ho
-        exact ⟨B, hB, w', rfl, hB'⟩
-    refine stepOk_hintsAt (x :: xs) s _ B hf (hintAbs_holds hA.2 (x :: xs)) hB hh fun s1 e1 hm hB1 ↦
+      · cases h
+        exact (wsRuns_spec _ _ _ _ e fun _ ↦ .inl).imp fun B h ↦ ⟨h.1, _, rfl, h.2⟩
+    exact stepOk_hintsAt (x :: xs) s _ B hf (hintAbs_holds hA.2 (x :: xs)) hB hh fun s1 e1 hm hB1 ↦
       hk s1 e1 hm ⟨by rw [hm.fp]; exact ⟨hA.1.st, hA.1.nz, hA.1.hs, hA.1.cp, hA.1.one⟩,
-        ⟨fun o ho ↦ ?_, (hA.2.mono hm.le hm.fp).hq⟩⟩
-    rcases hw o ho with ho | ho
-    · exact (hA.2.mono hm.le hm.fp).w o ho
-    · exact hB1.w o ho
+        ⟨fun o ho ↦ (hw o ho).elim ((hA.2.mono hm.le hm.fp).w o) (hB1.w o), (hA.2.mono hm.le hm.fp).hq⟩⟩
 
 theorem addNzs_holds {s : St} : ∀ {A : FSt} {os : List ℕ}, FHolds img s A →
     (∀ o ∈ os, ∃ v, Rd img s.fp o = some v ∧ v ≠ 0) → FHolds img s (addNzs A os)
