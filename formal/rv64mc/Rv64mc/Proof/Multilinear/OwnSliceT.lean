@@ -7,7 +7,7 @@
   first total contracts keep their partial `Pre`'s `Env.Live`, which says nothing usable of an empty vector's
   dangling pointer or of a slice in a caller's frame; `OwnSlice` admits both, and follows from what those contracts
   ask (`OwnSlice.of_live`), from a vector's buffer (`OwnSlice.of_bufT`) and from a slice in the caller's frame
-  (`OwnSlice.of_frame`).
+  (`OwnSlice.of_frame`). `OwnSlice.take` and `OwnSlice.of_frame` have no user yet: they are for later callers.
 
   ## Main definitions
 

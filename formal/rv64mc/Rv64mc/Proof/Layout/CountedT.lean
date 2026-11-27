@@ -15,9 +15,9 @@
   (`ConcatFormT.PostT.foot`, `NewV`), so above both of `self`'s buffers, which lie below `NEXT` at the entry: both
   pushed vectors are held (`PairFormT.HeldT`, `held_of`).
 
-  The body is cut after each call: after the first `concat` (instruction 68), after `col` (78), after the second
-  `concat` (98). `concat`'s precondition and postcondition (`CPre`, `CPost`) are sealed, and so is this function's
-  own precondition (`PreS`), so that the executor's arithmetic does not unfold them.
+  The body is cut at two points, after the first `concat` (instruction 68) and after the second (98), into three
+  parts (`total`, `mid`, `fin`). `concat`'s precondition and postcondition (`CPre`, `CPost`) are sealed, and so is
+  this function's own precondition (`PreS`), so that the executor's arithmetic does not unfold them.
 
   ## Main definitions
 

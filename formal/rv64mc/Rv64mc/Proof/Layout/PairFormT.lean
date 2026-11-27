@@ -1,7 +1,7 @@
 /-
   Rv64mc.Proof.Layout.PairFormT
 
-  A `Flushes` of `Form`s (`FlushesFormT`): its `push` and `pull` vectors of 24-byte `Vec<Form>` headers vectors'
+  A `Flushes` of `Form`s (`FlushesFormT`): its `push` and `pull` vectors of 24-byte `Vec<Form>` headers
   (`VecT`) with their buffers apart (`PairT.BufsApart`), and each element held (`HeldT`): a `Vec<Form>`
   (`FromElemVecFormT.VecFormT`) whose footprint (`ExtendTrustedT.InFoot`: its `Form`s' headers and their terms'
   blocks) avoids both of the `Flushes`' buffers. `PairT.FlushesT` carries the vectors but not their elements, which

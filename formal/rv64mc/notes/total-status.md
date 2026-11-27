@@ -299,7 +299,7 @@ Gaps a total contract here leaves, for a later proof that needs more than it giv
 | 9 | 107 | `<verifier::transcript::Transcript>::sumcheck_round_poly` | 159 | C | no | - | - | - |
 | 9 | 131 | `<verifier::multilinear::Placement>::stack_point` | 32 | C | yes | Proof/Multilinear/StackPointT (safety: `VecT` of the point's length plus `stack_log - variables`, fresh unless empty; the point `OwnSlice`; cut after `concat`) | MultilinearT6e.stackPoint | env |
 | 9 | 171 | `<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<...` | 62 | D | no | - | - | - |
-| 9 | 198 | `<verifier::layout::Flushes>::counted` | 65 | D | yes | Proof/Layout/CountedT (safety: `StateDerivedT.PostT`; `self` `FlushesT` and a `Flushes` of `Form`s, `a` and `b` `SliceFT`, `form` a `FormT` frame object; both `concat`s' results fresh `Vec<Form>`s (`NewV`), so held; cut after each call, `concat`'s and `pair`'s pre and post sealed) | FlushesT6e.counted | env; clmul table; Vec<Form> spec_extend bound (InData), [&[Form]] concat bound (InData) |
+| 9 | 198 | `<verifier::layout::Flushes>::counted` | 65 | D | yes | Proof/Layout/CountedT (safety: `StateDerivedT.PostT`; `self` `FlushesT` and a `Flushes` of `Form`s, `a` and `b` `SliceFT`, `form` a `FormT` frame object; both `concat`s' results fresh `Vec<Form>`s (`NewV`), so held; cut after each `concat`, `concat`'s and `pair`'s pre and post sealed) | FlushesT6e.counted | env; clmul table; Vec<Form> spec_extend bound (InData), [&[Form]] concat bound (InData) |
 | 9 | 209 | `verifier::layout::layout_limb` | 117 | D | no | - | - | - |
 | 10 | 59 | `verifier::multilinear::multilinear_eval::<verifier::field::K> @veri...` | 110 | C | no | - | - | - |
 | 10 | 85 | `verifier::transcript::sumcheck` | 116 | C | no | - | - | - |
