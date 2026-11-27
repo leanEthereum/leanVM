@@ -98,6 +98,30 @@ A patch in `pre/` rewrites Rust the toolchain cannot translate into Rust it can,
 
 Before them, `hax.sh` applies a patch it generates, with `mechanical.py`, from the source as it stands. Tracing spans go (`#[tracing::instrument]`, span guards, `in_scope` wrappers), and each anonymous `const _: () = assert!(..)`, whose Aeneas name `__N` Lean rejects, is named `_ASSERT_<hash>` after a hash of its item. A scenario names such an assertion by that name, which `python3 formal/extraction/mechanical.py` prints.
 
+A patch file opens with a heading, above its diff: the record of why the patch exists and of what holds it to the source. `git apply` skips everything before the first `diff --git` line, and `hax.sh refresh` and `repair.py patches` keep it when they rewrite a patch.
+
+- `Gap:`, the first line: the Rust construct, and what the toolchain does with it. It completes "this patch fixes ...".
+- Prose: what the rewrite is and why it computes the same thing, with the tool's issue where one is filed.
+- `Tests:` the test that calls the rewritten item directly, `(no branches)` where the item has none, and the mutation check: a deliberate break of the rewrite and whether that test caught it (`mutation: <the break> -> it fails`). A mutation the tests miss is written down too (`-> NOT caught`): it is a gap, not something to leave out.
+
+A passing suite is not evidence that a rewrite agrees with what it replaced: the suite was written before the rewrite, so nothing in it was chosen to tell the two apart. A patch on a path something is proved about (the three signature crates') therefore ships, in the patch, a `#[cfg(test)]` test that compares the rewritten item with the original code, copied into the test, over inputs that reach every branch; and a mutation is recorded only once it has been run. A test that passes on a broken rewrite is evidence of nothing, and is strengthened until it fails. For example, `crates/keccak256/proofs/keccak256/patches/pre/02-path-root-without-a-visitor.patch` begins:
+
+```
+Gap: the visitors of `path_fold` that do nothing (leanXMSS's and leanSPHINCS's `verify`) - Aeneas gives an `FnMut` closure returning `()` a mistyped `call_mut`, and a visitor passed on as `&mut visit` is not translated
+Adds `path_root`: `path_fold` without the `visit` parameter and without its one call. The two
+`verify` patches call it (lean_xmss 01, lean_sphincs 02); `path_fold` stays for the callers that
+watch. Not a mechanical rewrite. The claim is that the fold with a visitor that does nothing
+computes what the fold with no visitor does: `visit` takes the pair by shared reference and
+returns `()`, so nothing the fold computes depends on it, and a visitor that does nothing has no
+effect to lose.
+Tool bugs: https://github.com/AeneasVerif/aeneas/issues/960 (the closure's `call_mut`),
+https://github.com/pereq-dev/hax/issues/2405 (`&mut visit`).
+Tests: path_root_matches_path_fold, against `path_fold` with a counting visitor: the same root, and
+the visitor called once a level, at heights 0 to 11, at indices with both values of every bit the
+path reads, under a `node` that tells apart the height, the index and the order of the children.
+mutation: children swapped (`== 0` -> `!= 0`) -> it fails; node height `z` for `z + 1` -> it fails.
+```
+
 `hax.sh test` holds every patched crate to two checks: clippy is clean on the patched source, and the crate's tests pass on it (`cargo test -p <crate>`, or each line of its `patches/pre/tests`, such as the verifier's checks against real proofs). `hax.sh patched <command>` runs any command on the patched source, which is also how to inspect it.
 
 When the source changes a little under a patch, `hax.sh refresh` rebases the patches onto it with git, keeping hunks `repair.py patches` would drop: it replays each patch as a commit on the last commit they all applied to, rebases those onto `HEAD` in a scratch worktree (`target/hax-refresh`), and writes them back. A conflict stops it; resolve it there, `git add`, then `hax.sh refresh --continue` (`--skip` drops a patch the source no longer needs, `--abort` drops the refresh).

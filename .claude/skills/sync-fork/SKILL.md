@@ -57,6 +57,7 @@ formal/extraction/hax.sh refresh           # if not: rebase them onto the new so
 - When upstream moved the patched code into a new function, the rewrite follows it there.
 - A changed signature (a new parameter type, say) has to be carried into everything the patch added: delegating impls, helper functions, test helpers.
 - `git add` the files, then `hax.sh refresh --continue`. A patch whose rewrite is no longer needed: `--skip`.
+- A patch carries its heading (`Gap:`, why the rewrite computes the same thing, `Tests:` with the direct test and the mutation run against it), which `refresh` keeps as it is. When a resolution changes what a patch rewrites, bring the heading and the patch's own test up to date, and run the mutation again before recording it.
 
 `repair.py patches` is the blunt alternative (it drops every hunk whose context changed). Prefer `refresh`: a dropped hunk is a function that goes opaque, and a proof that loses the body it was about.
 

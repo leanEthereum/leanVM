@@ -47,14 +47,14 @@ They are total, and injective (`toDigest_inj`, `toMessage_inj`, `toPublicKey_inj
 
 `#print axioms verify_eq_verifyWithKeccak` gives `propext`, `Classical.choice` and `Quot.sound`. No `sorry`, no `native_decide`, no `bv_decide`, no option set, and no hypothesis.
 
-- **The patches.** The theorem is about the patched Rust (`crates/{lean_xmss,keccak256}/proofs/*/patches/pre`), not the committed Rust. `hax.sh test` runs the crates' tests on the patched source; nothing in Lean relates the two. leanXMSS has one patch, and this work did not change it.
+- **The patches.** The theorem is about the patched Rust (`crates/{lean_xmss,keccak256}/proofs/*/patches/pre`), not the committed Rust. Nothing in Lean relates the two. What does is tests, which `hax.sh test` runs on the patched source: the patch ships a test of each item it rewrites or adds against the code it replaced (`layer_root_unwatched` against `layer_root` with a counting visitor and `verify` against the source's `verify`, on real signatures and tampered ones; `chain_ends` against the batched form), and its heading records the deliberate break of the rewrite each was seen to fail on. That is agreement on the inputs tried, not a proof. leanXMSS has one patch, and the proof needed no change to what it extracts.
 - **Which permutation.** As for leanSPHINCS: the extraction is of `keccak256`'s portable `permute`, on every host. The x86-64 body and the AVX-512 one are not covered.
 - **The toolchain and its models.** Charon, Aeneas (here a fork, pinned in `lakefile.toml`, for Lean v4.36.0), the hax Lean library's models of `core`, and `CoreModelsExt`.
 - **hash-specs**, as a pivot only, inside `Keccak256Proofs`.
 
 ## What is not covered
 
-- **The `verify` a `std` build runs.** With the `std` feature, `chain_ends` walks the chains in batches through `th_digests_many` and `keccak256::hash_many`, whose body is per-host SIMD. The patch gives every build the `no_std` form, a `from_fn` of `chain` per chain. That the two agree is the claim of the crate's tests (`hax.sh test` runs `cargo test -p lean_xmss` on the patched source), not a theorem.
+- **The `verify` a `std` build runs.** With the `std` feature, `chain_ends` walks the chains in batches through `th_digests_many` and `keccak256::hash_many`, whose body is per-host SIMD. The patch gives every build the `no_std` form, a `from_fn` of `chain` per chain. That the two agree is the claim of a test, not a theorem: the patch keeps the batched form for tests only, as `chain_ends_batched`, and `chain_ends_matches_the_batched_one` compares the two on both layers, with every digit value on every chain and on a real signature's codeword (`hax.sh test` runs `cargo test -p lean_xmss` on the patched source).
 - **The visitor.** `verify` calls `layer_root` with a visitor that does nothing; the patch calls `layer_root_unwatched`, the same fold through `keccak256::path_root`, which has no visitor parameter. `layer_root` itself, which the aggregation crate's hints (`crates/aggregation/src/hints.rs`) and `from_cache_bytes` call, is not what is proved.
 - **Everything but verification**: key generation, signing (`wots_sign`, the randomizer grinding of `least_trial`), the trees and their cache, and the byte encodings (`to_bytes`, `from_bytes`, serde). A signature is the Rust struct, not its 2404 bytes.
 
