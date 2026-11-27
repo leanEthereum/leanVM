@@ -95,6 +95,8 @@ def main():
     edges = collections.defaultdict(set)
     plt = collections.defaultdict(set)
     indirect = collections.Counter()
+    loops = collections.Counter()  # backward jumps within the function: each a loop to give an invariant
+    mnemonics = collections.defaultdict(set)
     refs = collections.defaultdict(set)
     current = None
     for line in run("objdump", "-d", "--no-show-raw-insn", "-M", "intel", args.binary).splitlines():
@@ -109,6 +111,11 @@ def main():
             continue
         op, operands = m.group(2), m.group(3)
         insns[current] += 1
+        mnemonics[current].add(op)
+        if op.startswith("j"):
+            back = re.match(r"^([0-9a-f]+) <", operands)
+            if back and current <= int(back.group(1), 16) < int(m.group(1), 16):
+                loops[current] += 1
         if op.startswith(("call", "j")):
             t = re.match(r"^([0-9a-f]+) <([^>]*)>", operands)
             lib = re.search(r"<([\w.]+)@(?:plt|GLIBC[\w.]*)>", operands)  # through the PLT or the GOT
@@ -180,6 +187,10 @@ def main():
     total = sum(per_crate.values())
     assumed_reached = ", ".join(sorted(by_name(f) for f in seen & assumed)) or "none"
     print(f"entry {args.entry}: {len(proved)} functions, {total} instructions to prove; assumed: {assumed_reached}")
+    print(
+        f"loops {sum(loops[f] for f in proved)}, indirect calls {sum(indirect[f] for f in proved)}, "
+        f"distinct mnemonics {len(set().union(*(mnemonics[f] for f in proved)))}"
+    )
     print("\n## instructions by crate")
     for c, n in per_crate.most_common():
         print(f"{n:8} {c}")
