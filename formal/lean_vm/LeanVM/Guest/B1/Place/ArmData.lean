@@ -180,11 +180,25 @@ theorem bodyOk_rate (m ri : ℕ) : BodyOk (osCfgR m ri) ↔ BodyOk (osCfg m) := 
   rw [osBodyA_rate, osBodyPre_rate, hl]
   exact Iff.rfl
 
+theorem armBody_0 : BodyOk (osCfg 0) := by decide +kernel
+theorem armBody_1 : BodyOk (osCfg 1) := by decide +kernel
+theorem armBody_2 : BodyOk (osCfg 2) := by decide +kernel
+theorem armBody_3 : BodyOk (osCfg 3) := by decide +kernel
+theorem armBody_4 : BodyOk (osCfg 4) := by decide +kernel
+theorem armBody_5 : BodyOk (osCfg 5) := by decide +kernel
+theorem armBody_6 : BodyOk (osCfg 6) := by decide +kernel
+theorem armBody_7 : BodyOk (osCfg 7) := by decide +kernel
+theorem armBody_8 : BodyOk (osCfg 8) := by decide +kernel
+theorem armBody_9 : BodyOk (osCfg 9) := by decide +kernel
+theorem armBody_10 : BodyOk (osCfg 10) := by decide +kernel
+
 /-- **Every arm's body has its decided facts at every rate** (a kernel check per arm: all at once
 hold too much memory). -/
 theorem armBody_ok {m : ℕ} (ri : ℕ) (hm : m < 11) : BodyOk (osCfgR m ri) := by
   rw [bodyOk_rate]
-  interval_cases m <;> decide +kernel
+  interval_cases m
+  exacts [armBody_0, armBody_1, armBody_2, armBody_3, armBody_4, armBody_5, armBody_6, armBody_7,
+    armBody_8, armBody_9, armBody_10]
 
 set_option maxRecDepth 100000 in
 theorem armLv_all : ∀ m < 11, ∀ ri < 4, ∀ l < (osCfgR m ri).levels.length, LvFacts (osCfgR m ri) l := by
