@@ -547,9 +547,12 @@ def gen():
 
         def thm(j, k):
             pre = [] if win else body_thm(j, k) + fr_thm(j, k)
+            # the kernel runs the code's check over its jumps listed once (`Bridge.allocRest_of_fast`)
+            fast = 'rw [alignCtxEq]\napply Bridge.allocRest_of_fast\ndecide +kernel' if win else \
+                ':= Bridge.allocRest_of_fast (by decide +kernel)'
             return (shape(k) if not win else []) + pre + [
                 (k, 'allocOk', f'Bridge.allocRest alignCtx fs core.loop plumb core.body code.code Fn.«{k}».advice = true',
-                 prf)]
+                 fast)]
         def thm1(j, k):
             # the common case in one command (`Bridge/ChkLit.lean`)
             if win or prf != 'decide +kernel': return thm(j, k)
@@ -557,7 +560,7 @@ def gen():
         body = data.fn_thms([t for j, k in jks for t in thm1(j, k)])
         files[os.path.join(OUT, mod.split('AllocChk.')[1].strip('«»') + '.lean')] = (
             HEAD(mod=mod, what="The kernel's checks that compiled functions' allocation hints pass the check.")
-            + 'public import LeanVM.Guest.Bridge.AllocDefs\nimport all Statement.Data.AdviceHints\n'
+            + 'public import LeanVM.Guest.Bridge.AllocFast\nimport all Statement.Data.AdviceHints\n'
             + ('' if win else 'public import LeanVM.Guest.Bridge.AllocFrDefs\npublic import LeanVM.Guest.Bridge.ChkLit\n')
             + f'public import {cm}\n'
             + ''.join(f'public import {m}\n' for m in imps)
