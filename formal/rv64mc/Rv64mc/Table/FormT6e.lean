@@ -1,21 +1,22 @@
 /-
   Rv64mc.Table.FormT6e
 
-  `Form::term`'s, `constant`'s and `col`'s second total contracts at the image (`liftProg Gen.fns`), next to
+  `Form::term`'s, `constant`'s, `col`'s and `prod`'s second total contracts at the image (`liftProg Gen.fns`), next to
   `LayoutT.lean`'s first ones: their postconditions with the result's buffers 8-byte aligned (`TermAlT.FormAl`); and
   `<Form as Add>::add`'s total contract (`FormAddT`, over `FormT6a.addScaled`); `<[&[Form]] as Concat<Form>>::concat`'s
   (`ConcatFormT`, over `FormT6c.specExtendForm`). Left as hypotheses, environment facts: `alloc`'s two
-  (`RuntimeT.alloc`); for `col` and `add`, `clmul_low`'s constant (`FieldT.ClmulTable`); for `concat`, its bound's
+  (`RuntimeT.alloc`); for `col`, `prod` and `add`, `clmul_low`'s constant (`FieldT.ClmulTable`); for `concat`, its bound's
   word and `spec_extend`'s in the static data (`DataRef.InData`).
 
   ## Main results
 
-  * `termAl`, `constantAl`, `colAl`, `formAdd`, `concatForm`
+  * `termAl`, `constantAl`, `colAl`, `prodAl`, `formAdd`, `concatForm`
 -/
 
 import Rv64mc.Table.LayoutT
 import Rv64mc.Proof.Layout.ConstantAlT
 import Rv64mc.Proof.Layout.ColAlT
+import Rv64mc.Proof.Layout.ProdAlT
 import Rv64mc.Table.FormT6a
 import Rv64mc.Proof.Layout.FormAddT
 import Rv64mc.Table.FormT6c
@@ -42,6 +43,12 @@ theorem constantAl : ConstantAlT.specT env (liftProg fns) Idx.Verifier.Layout.Co
 theorem colAl (hd : FieldT.ClmulTable env) :
     ColAlT.colSpecT env (liftProg fns) Idx.Verifier.Layout.Col Needs.Verifier.Layout.Col :=
   ColAlT.total env _ _ _ _ _ Verifier.Layout.Col.tmpl_eq Verifier.Layout.Col.wf (RuntimeT.alloc env hnext hend)
+    (LayoutT.gpow env hd) (termAl env hnext hend) (RuntimeT.panicNounwindFmt env) (by decide) (by decide)
+
+/-- **`prod` at the image** (function 192), its result's buffers aligned. -/
+theorem prodAl (hd : FieldT.ClmulTable env) :
+    ProdAlT.prodSpecT env (liftProg fns) Idx.Verifier.Layout.Prod Needs.Verifier.Layout.Prod :=
+  ProdAlT.total env _ _ _ _ _ Verifier.Layout.Prod.tmpl_eq Verifier.Layout.Prod.wf (RuntimeT.alloc env hnext hend)
     (LayoutT.gpow env hd) (termAl env hnext hend) (RuntimeT.panicNounwindFmt env) (by decide) (by decide)
 
 /-- **`<Form as Add>::add` at the image** (function 193). -/
@@ -82,6 +89,10 @@ end Rv64mc.Table.FormT6e
 /-- info: 'Rv64mc.Table.FormT6e.formAdd' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms Rv64mc.Table.FormT6e.formAdd
+
+/-- info: 'Rv64mc.Table.FormT6e.prodAl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms Rv64mc.Table.FormT6e.prodAl
 
 /-- info: 'Rv64mc.Table.FormT6e.concatForm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
