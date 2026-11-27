@@ -33,7 +33,7 @@ theorem statAtB_sound {f : String} {pre : List (ℕ × ℕ)} {b : Aff} {ks : Lis
   obtain ⟨⟨⟨hord, hpre⟩, hcs⟩, hle⟩ := h
   have hexp : ∀ k e, alook k asg = some e → argExp args k = e := fun k e he => by
     have hm := alook_mem he
-    rw [argExp, ha _ hm, logG_ofK (hord _ hm)]
+    rw [argExp, ha _ hm, logG_spec (hord _ hm)]
   have hP : ArgsPre pre args := by
     intro q hq
     have hq' := hpre q hq
