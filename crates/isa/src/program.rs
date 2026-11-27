@@ -78,19 +78,16 @@ impl Program {
 /// `SET` immediate as its two limbs and the flags as 0 or 1. Unused slots are zero.
 fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
     let flag = u64::from;
-    let mut tuple = [0; 1 + BYTECODE_OPERANDS];
-    let mut put = |opcode: usize, offsets: &[u32], words: &[u64]| {
-        let operands = std::iter::once(opcode as u32).chain(offsets.iter().copied()).map(g_pow);
-        for (slot, word) in tuple.iter_mut().zip(operands.chain(words.iter().copied())) {
-            *slot = word;
+    // The opcode and the first `n` offsets as exponents, then four words.
+    let (exponents, n, words) = match *op {
+        Op::Xor { a, b, c } => ([OP_XOR as u32, a, b, c, 0, 0, 0, 0, 0], 4, [0; 4]),
+        Op::Mul { a, b, c } => ([OP_MUL as u32, a, b, c, 0, 0, 0, 0, 0], 4, [0; 4]),
+        Op::Set { o, k } => ([OP_SET as u32, o, 0, 0, 0, 0, 0, 0, 0], 2, [k.c0, k.c1, 0, 0]),
+        Op::Deref { o1, o2, o3, mode } => {
+            let words = [flag(mode.f_pc()), flag(mode.f_fp()), 0, 0];
+            ([OP_DEREF as u32, o1, o2, o3, 0, 0, 0, 0, 0], 4, words)
         }
-    };
-    match *op {
-        Op::Xor { a, b, c } => put(OP_XOR, &[a, b, c], &[]),
-        Op::Mul { a, b, c } => put(OP_MUL, &[a, b, c], &[]),
-        Op::Set { o, k } => put(OP_SET, &[o], &[k.c0, k.c1]),
-        Op::Deref { o1, o2, o3, mode } => put(OP_DEREF, &[o1, o2, o3], &[flag(mode.f_pc()), flag(mode.f_fp())]),
-        Op::Jump { oc, od, of } => put(OP_JUMP, &[oc, od, of], &[]),
+        Op::Jump { oc, od, of } => ([OP_JUMP as u32, oc, od, of, 0, 0, 0, 0, 0], 4, [0; 4]),
         Op::Keccak {
             m: [m0, m1, m2, m3],
             tail,
@@ -102,13 +99,15 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
             out_cells,
         } => {
             let (out_two, out_all) = out_cells.flags();
-            put(
-                OP_KECCAK,
-                &[m0, m1, m2, m3, tail, b8, cap, out],
-                &[in_odd, out_odd, out_two, out_all].map(flag),
-            )
+            let words = [flag(in_odd), flag(out_odd), flag(out_two), flag(out_all)];
+            ([OP_KECCAK as u32, m0, m1, m2, m3, tail, b8, cap, out], 9, words)
         }
+    };
+    let mut tuple = [0; 1 + BYTECODE_OPERANDS];
+    for (slot, &e) in tuple.iter_mut().zip(&exponents[..n]) {
+        *slot = g_pow(e);
     }
+    tuple[n..n + 4].copy_from_slice(&words);
     tuple
 }
 
