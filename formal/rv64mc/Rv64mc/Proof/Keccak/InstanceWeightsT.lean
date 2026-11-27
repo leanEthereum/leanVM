@@ -228,7 +228,8 @@ theorem tbl_win {env : Env} {top : Word} {m : MachineState} (hW : Windows env to
 /-- The `u32` store at `e`'s address `top - 108` as the store of its doubleword at `top - 112`. -/
 theorem w32 {top : Word} (hal : top.toNat % 16 = 0) (M : MachineState) (v : BitVec 32) :
     M.setWord32 (top + 18446744073709551508#64) v = M.setMem (top + 18446744073709551504#64)
-      (replaceWord32 (M.getMem (top + 18446744073709551504#64)) (byteOffset (top + 18446744073709551508#64) / 4) v) := by
+      (replaceWord32 (M.getMem (top + 18446744073709551504#64)) (byteOffset (top + 18446744073709551508#64) / 4)
+        v) := by
   have e : alignToDword (top + 18446744073709551508#64) = top + 18446744073709551504#64 := by
     apply BitVec.eq_of_toNat_eq
     rw [toNat_alignToDword, BitVec.toNat_add, BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofNat]
@@ -240,7 +241,8 @@ theorem w32 {top : Word} (hal : top.toNat % 16 = 0) (M : MachineState) (v : BitV
     `Mem` kept, `NEXT` kept, the static data kept, the header's two words read as before. -/
 theorem iter_ok {env : Env} {ret top : Word} {regs : Reg → Word} {m M : MachineState}
     (hlim : env.stackLimit.toNat + 528 ≤ top.toNat) (hM : Mem env ret top regs m M) (w a b c d : Word) :
-    Mem env ret top regs m (((((M.setMem (top + 18446744073709551504#64) w).setMem (top + 18446744073709551512#64) a).setMem
+    Mem env ret top regs m (((((M.setMem (top + 18446744073709551504#64) w).setMem (top + 18446744073709551512#64)
+      a).setMem
       (top + 18446744073709551520#64) b).setMem (top + 18446744073709551528#64) c).setMem
       (top + 18446744073709551536#64) d) ∧
     env.next (((((M.setMem (top + 18446744073709551504#64) w).setMem (top + 18446744073709551512#64) a).setMem
@@ -304,7 +306,8 @@ theorem loopA (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   -- back to the head
   · have e16 : (R .x19 + 16#64).toNat = (R .x19).toNat + 16 := toNat_add_ofNat (by omega)
     have hj2 : 2 ≤ j := Nat.le_of_not_lt fun h => hc (BitVec.eq_of_toNat_eq (by rw [e16]; tn))
-    exact ih (j - 1) _ _ (by omega) ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, by simp only [Tactic.rf]; omega, rfl, by omega, by omega, hM3⟩
+    exact ih (j - 1) _ _ (by omega) ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, by simp only [Tactic.rf]; omega, rfl, by omega,
+      by omega, hM3⟩
   -- the powers done
   · exact hmid _ _ ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, hM3⟩
 
@@ -365,8 +368,8 @@ theorem mid (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[i]
     rw [(hdr_stores hlim).2.2.2] at hn3
     rw [g496, g488]
     have hz : 0#64 <<< 4 + r1 .x10 = r1 .x10 := by rw [BitVec.zero_shiftLeft, BitVec.zero_add]
-    refine hb (r1 .x10) _ _ ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, rfl, rfl, by simp only [Tactic.rf], ?_, ?_, rfl, rfl, by omega,
-      Nat.le_refl _, g480, g488, ⟨by omega, by omega, by omega, hret1_17⟩, hM3⟩
+    refine hb (r1 .x10) _ _ ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, rfl, rfl, by simp only [Tactic.rf], ?_, ?_, rfl, rfl,
+      by omega, Nat.le_refl _, g480, g488, ⟨by omega, by omega, by omega, hret1_17⟩, hM3⟩
     all_goals simp only [Tactic.rf, hz]
     · rw [toNat_add_ofNat (by omega)]
     · rw [toNat_add_ofNat (by omega)]
@@ -428,8 +431,8 @@ theorem loopB (env : Env) (p : Lprog (Op Reg) Reg) (i : Nat) (L : Link) (hp : p[
   · have hw := inWindow_iff.1 ht.1
     have hj2 : 2 ≤ j := Nat.le_of_not_lt fun h => hc (BitVec.eq_of_toNat_eq (by
       rw [toNat_add_ofNat (by omega)]; omega))
-    refine ih (j - 1) _ _ (by omega) ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, rfl, rfl, ?_, ?_, ?_, rfl, rfl, by omega, by omega, g480, g488, hB3,
-      hM3⟩
+    refine ih (j - 1) _ _ (by omega) ⟨rfl, rfl, ⟨rfl, rfl, rfl, rfl⟩, rfl, rfl, ?_, ?_, ?_, rfl, rfl, by omega,
+      by omega, g480, g488, hB3, hM3⟩
     all_goals simp only [Tactic.rf]
     · rw [toNat_add_ofNat (by omega)]; omega
     · rw [toNat_add_ofNat (by omega)]; omega
