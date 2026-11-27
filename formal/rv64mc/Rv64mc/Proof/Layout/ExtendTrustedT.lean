@@ -19,7 +19,9 @@
   the tables were built.
 
   The postcondition: the vector `VecT` again, its length grown by `n`, its buffer the entry's or allocated since the
-  entry (`PairT.KeptOrFresh`), all its `BusBlock`s' coordinates `Vec<Form>`s whose footprints avoid it. What it
+  entry (`PairT.KeptOrFresh`), all its `BusBlock`s' coordinates `Vec<Form>`s whose footprints avoid it, the new
+  ones' footprints in `[NEXT at entry, NEXT at exit)` (a caller keeps another vector's blocks across the call by
+  it: they lie below `NEXT` at entry, so apart from the new ones and from a buffer the call allocates). What it
   writes besides its stack and fresh blocks is the header and the buffer at entry (`OutT`). When `reserve` grows the
   buffer, the old `BusBlock`s' headers move with its bytes (`Grown`, `word_of_grown`) and their footprints, below
   `NEXT` at entry, stay below the new block.
@@ -111,13 +113,15 @@ def PreT (env : Env) (regs : Reg → Word) (m : MachineState) : Prop :=
     InWin env (m.getMem (regs .x11 + 32#64) + 0x48#64) 8 ∧ (m.getMem (regs .x11 + 32#64) + 0x48#64).toNat % 8 = 0
 
 /-- The total postcondition: the vector `n` longer, its buffer the entry's or fresh, its `BusBlock`s' coordinates
-    `Vec<Form>`s whose footprints avoid it. -/
+    `Vec<Form>`s whose footprints avoid it, the new ones' footprints allocated by the call. -/
 def PostT (env : Env) (regs : Reg → Word) (m : MachineState) (_r' : Reg → Word) (m' : MachineState) : Prop :=
   VecT env m' (regs .x10) 48 ∧
     (vecLen m' (regs .x10)).toNat = (vecLen m (regs .x10)).toNat + cnt regs m ∧
     KeptOrFresh env m m' (regs .x10) ∧
     BlocksT env m' (vecPtr m' (regs .x10)) (vecLen m' (regs .x10)).toNat (vecPtr m' (regs .x10)).toNat
-      (bufHi m' (regs .x10))
+      (bufHi m' (regs .x10)) ∧
+    ∀ i, (vecLen m (regs .x10)).toNat ≤ i → i < (vecLen m' (regs .x10)).toNat →
+      FootIn m' (vecPtr m' (regs .x10) + BitVec.ofNat 64 (48 * i)) (env.next m).toNat (env.next m').toNat
 
 /-- What `extend_trusted` writes besides its stack and what it allocates: the header and the buffer at entry. -/
 def OutT (regs : Reg → Word) (m : MachineState) (b : Word) : Prop :=
@@ -439,7 +443,10 @@ theorem exit_post {env : Env} {m M : MachineState} {top ret P1 C1 v : Word} {reg
       env.Frame top (OutT regs m) m (M.setMem (regs .x10 + 16#64) v) ∧
       env.Static (M.setMem (regs .x10 + 16#64) v) ∧
       BlocksT env (M.setMem (regs .x10 + 16#64) v) P1 ((vecLen m (regs .x10)).toNat + cnt regs m) P1.toNat
-        (P1.toNat + 48 * C1.toNat) ∧ bufHi (M.setMem (regs .x10 + 16#64) v) (regs .x10) = P1.toNat + 48 * C1.toNat := by
+        (P1.toNat + 48 * C1.toNat) ∧ bufHi (M.setMem (regs .x10 + 16#64) v) (regs .x10) = P1.toNat + 48 * C1.toNat ∧
+      ∀ i, (m.getMem (regs .x10 + 16#64)).toNat ≤ i → i < v.toNat →
+        FootIn (M.setMem (regs .x10 + 16#64) v) (P1 + BitVec.ofNat 64 (48 * i)) (env.next m).toNat
+          (env.next M).toNat := by
   have hlay := env.layout
   obtain ⟨hstk, hW, -, -, hV, -⟩ := id hA
   obtain ⟨hhd1, hhd2⟩ := hA.hdr
@@ -479,10 +486,23 @@ theorem exit_post {env : Env} {m M : MachineState} {top ret P1 C1 v : Word} {reg
       obtain ⟨hv2, hft⟩ := VecFormT.keep' hv' (by rw [hN])
         (fun b h1 h2 => ne16 b (by omega)) fun x hx => ne16 x (VecFormT.foot_lt hv' hx)
       exact ⟨hv2, fun x hx => by have := hin x (hft x hx); omega⟩
-  refine ⟨⟨⟨hV.1, ⟨hV.2.1.1, hV.2.1.2.1, ?_, ?_⟩, by rw [elen, ecap, hv]; exact hroom⟩, by rw [elen, hv], ?_, ?_⟩,
+  have hFr : ∀ i, (vecLen m (regs .x10)).toNat ≤ i → i < (vecLen m (regs .x10)).toNat + cnt regs m →
+      FootIn (M.setMem (regs .x10 + 16#64) v) (P1 + BitVec.ofNat 64 (48 * i)) (env.next m).toNat
+        (env.next (M.setMem (regs .x10 + 16#64) v)).toNat := by
+    intro i hi1 hi2
+    obtain ⟨hP1, hP2, -⟩ := hb1.resolve_left (by omega)
+    obtain ⟨hv', hin⟩ := hnew (i - (vecLen m (regs .x10)).toNat) (by omega)
+    rw [Nat.add_sub_cancel' hi1] at hv' hin
+    have e : (P1 + BitVec.ofNat 64 (48 * i)).toNat = P1.toNat + 48 * i := toNat_add_ofNat (by omega)
+    obtain ⟨-, hft⟩ := VecFormT.keep' hv' (by rw [hN])
+      (fun b h1 h2 => ne16 b (by omega)) fun x hx => ne16 x (VecFormT.foot_lt hv' hx)
+    exact fun x hx => by have := hin x (hft x hx); rw [hN]; omega
+  refine ⟨⟨⟨hV.1, ⟨hV.2.1.1, hV.2.1.2.1, ?_, ?_⟩, by rw [elen, ecap, hv]; exact hroom⟩, by rw [elen, hv], ?_, ?_,
+      by rw [eptr, elen, hv]; exact hFr⟩,
     Tactic.frame_out (SpecExtendFormT.frame_mono hF fun b h => h) (.inl (by
       unfold InRange; simp only [Layouts.Vec.byteSize]; rw [e16]; omega)) hn16,
-    Tactic.static_store hS (.inr (by rw [e16]; omega)), hBlk, by unfold bufHi; rw [eptr, ecap]⟩
+    Tactic.static_store hS (.inr (by rw [e16]; omega)), hBlk, by unfold bufHi; rw [eptr, ecap],
+    fun i h1 h2 => by have := hFr i (by rw [vecLen_eq]; exact h1) (by omega); rwa [hN] at this⟩
   · rw [rvCapAt_eq, rvPtrAt_eq, r0, r8]
     exact hb1.imp_right fun ⟨h1, h2, h3⟩ => ⟨h1, by unfold Env.Live; rw [hN]; omega, h3⟩
   · rw [rvCapAt_eq, r0]; exact hb48
@@ -513,7 +533,7 @@ theorem exit {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
       rvIsa.Total p stmtCtx (WinOk p) Q ⟨⟨i, 118, ret, top⟩ :: rest, R, M⟩ := by
   intro R M hR h19 hM
   have hlay := env.layout
-  obtain ⟨hPost, hF', hS', hBlk, hHi⟩ := exit_post (r := fun _ => 0#64) hA hB h19 hM
+  obtain ⟨hPost, hF', hS', hBlk, hHi, hFr⟩ := exit_post (r := fun _ => 0#64) hA hB h19 hM
   obtain ⟨-, hroom, -, -, hkf⟩ := id hB
   obtain ⟨hstk, hW, h16, -⟩ := id hA
   obtain ⟨hhd1, hhd2⟩ := hA.hdr
@@ -527,6 +547,7 @@ theorem exit {env : Env} {p : Lprog (Op Reg) Reg} {i : Nat} {L : Link} (hp : p[i
   all_goals first
     | (rw [c8, c0]; rw [vecCap_eq] at hkf; exact hkf)
     | (rw [c8, hHi, h19]; exact hBlk)
+    | (rw [c8]; exact hFr)
 
 /-! ## The loop -/
 

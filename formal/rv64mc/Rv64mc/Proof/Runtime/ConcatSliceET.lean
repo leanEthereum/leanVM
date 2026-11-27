@@ -12,8 +12,9 @@
   The precondition: the result's slot a caller's (`SretPre`), in a window and 8-byte aligned; at least one slice (both
   loops test at their end); the slices' array a caller's (`Owned`), in a window, 8-byte aligned; each slice, unless
   empty, in a window, apart from the stack below the stack pointer, below `NEXT` or from the heap's end (`SliceT`).
-  At its six call sites (`verify_keccak` twice, `verify_bus_balance`, `Placement::stack_point`, the WHIR stacked
-  opening's closure twice) the array is in the caller's frame with two or three slices.
+  At its seven call sites (`verify_keccak` three times, `verify_bus_balance`, `Placement::stack_point`, the WHIR
+  stacked opening's closure twice) the array is in the caller's frame with two or three slices; `sret` is a frame
+  slot, except at `verify_keccak`'s step 557, where it is `verify_keccak`'s own `a0`.
 
   The body is cut at the loops' heads (24, `L1`; 90, `L2`), at the sum (32, `Inv32`), at the join after `alloc` (82,
   `Inv82`), after each `spec_extend` (108, `Mid`, `after_call` composing the callee's frame) and at the copy to `sret`
