@@ -292,7 +292,7 @@ theorem avoids_finishRest (parameter : PublicParameter) (data : PublicData) (mes
     refine avoids_bind _ (avoids_sequenceFin _ _ fun _ => avoids_treeCostSource _ _ _ _ _) fun _ => ?_
     exact avoids_pure _ _
 
-theorem post_bind {spec : OracleSpec ι} {α β : Type} (P : β → Prop) (first : OracleComp spec α)
+theorem post_bind {ι : Type _} {spec : OracleSpec ι} {α β : Type} (P : β → Prop) (first : OracleComp spec α)
     {next : α → OracleComp spec β} (h : ∀ a, ∀ v ∈ support (next a), P v) :
     ∀ v ∈ support (first >>= next), P v := by
   intro v hv

@@ -586,7 +586,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_postSigningQueriesRepresen
         rw [hfinal] at hentryFresh
         cases hentryFresh
 
-theorem cappedEncodingTracedMappedAdversaryImpl_signLeafIndices_sublist
+theorem cappedEncodingTracedMappedAdversaryImpl_signLeafIndices_sublist {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : (QueryCache HashSpec × SigningCacheTrace) × EncodingActionTrace)
@@ -609,7 +609,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_signLeafIndices_sublist
         publicKey secretKey input state queryResult hstate hquery)
     computation initialState hsublist result hmem
 
-theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
+theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (baseCache : QueryCache HashSpec)
     (hbaseEncodingFree : ∀ leafIndex input,
@@ -646,7 +646,7 @@ theorem cappedEncodingTracedMappedAdversaryImpl_validEncodingCollisionInvariants
             hstate.1 hstate.2 hquery)
     computation initialState ⟨hunsigned, hcollisions⟩ result hmem
 
-theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants
+theorem cappedEncodingTracedMappedAdversaryImpl_postSigningInvariants {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : (QueryCache HashSpec × SigningCacheTrace) × EncodingActionTrace)

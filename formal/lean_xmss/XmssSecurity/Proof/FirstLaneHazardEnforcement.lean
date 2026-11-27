@@ -22,7 +22,7 @@ open OracleComp OracleSpec
 
 namespace QueryImpl
 
-theorem simulateQ_stateHandler_trace
+theorem simulateQ_stateHandler_trace {α : Type _}
     {ι : Type} {spec : OracleSpec ι}
     {Log State : Type}
     [EmptyCollection Log] [Append Log] [LawfulAppend Log]
@@ -103,13 +103,13 @@ noncomputable def hazardEnforcementImpl :
         let value ← revealQuery index
         pure (value, fuel)
 
-noncomputable def enforceHazardBound
+noncomputable def enforceHazardBound {α : Type _}
     (fuel : Nat) (computation : OracleComp (World Index) α) :
     OracleComp (World Index) α :=
   Prod.fst <$> (simulateQ hazardEnforcementImpl computation).run fuel
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem liftProbComp_isHazardQueryBoundP (computation : ProbComp α) :
+theorem liftProbComp_isHazardQueryBoundP {α : Type _} (computation : ProbComp α) :
     (liftProbComp (Index := Index) computation).IsQueryBoundP
       IsHazardQuery 0 := by
   unfold liftProbComp
@@ -126,7 +126,7 @@ theorem liftProbComp_isHazardQueryBoundP (computation : ProbComp α) :
     simp [IsHazardQuery]
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_hazardEnforcementImpl_run_isHazardQueryBoundP
+theorem simulate_hazardEnforcementImpl_run_isHazardQueryBoundP {α : Type _}
     (computation : OracleComp (World Index) α) (fuel : Nat) :
     (simulateQ hazardEnforcementImpl computation).run fuel |>.IsQueryBoundP
       IsHazardQuery fuel := by
@@ -199,7 +199,7 @@ theorem simulate_hazardEnforcementImpl_run_isHazardQueryBoundP
             simpa [IsHazardQuery] using ih value fuel
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem enforceHazardBound_isHazardQueryBoundP
+theorem enforceHazardBound_isHazardQueryBoundP {α : Type _}
     (fuel : Nat) (computation : OracleComp (World Index) α) :
     (enforceHazardBound fuel computation).IsQueryBoundP IsHazardQuery fuel := by
   unfold enforceHazardBound
@@ -380,7 +380,7 @@ theorem simulate_eagerTrace_hazardEnforcementImpl_query
         hazardCount, enforceHazardTrace]
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_hazardEnforcementImpl_run
+theorem simulate_eagerTrace_hazardEnforcementImpl_run {α : Type _}
     (table : Index → Digest)
     (computation : OracleComp (World Index) α) (fuel : Nat) :
     (simulateQ (eagerTraceImpl table)
@@ -401,7 +401,7 @@ theorem simulate_eagerTrace_hazardEnforcementImpl_run
   · exact enforceHazardTrace_append
   · exact simulate_eagerTrace_hazardEnforcementImpl_query table
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_enforceHazardBound
+theorem simulate_eagerTrace_enforceHazardBound {α : Type _}
     (table : Index → Digest)
     (computation : OracleComp (World Index) α) (fuel : Nat) :
     (simulateQ (eagerTraceImpl table)
@@ -413,13 +413,13 @@ theorem simulate_eagerTrace_enforceHazardBound
     simulate_eagerTrace_hazardEnforcementImpl_run]
   simp [Functor.map_map, Prod.map]
 
-def enforceEagerResult
+def enforceEagerResult {α : Type _}
     (fuel : Nat)
     (result : (Index → Digest) × (α × ActionTrace Index)) :
     (Index → Digest) × (α × ActionTrace Index) :=
   (result.1, (result.2.1, enforceHazardTrace fuel result.2.2))
 
-theorem eagerExperiment_enforceHazardBound_eq_map
+theorem eagerExperiment_enforceHazardBound_eq_map {α : Type _}
     (computation : OracleComp (World Index) α) (fuel : Nat) :
     eagerExperiment (enforceHazardBound fuel computation) =
       enforceEagerResult fuel <$> eagerExperiment computation := by

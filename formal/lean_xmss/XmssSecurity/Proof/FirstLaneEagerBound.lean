@@ -34,7 +34,7 @@ omit [Fintype Index] [DecidableEq Index] in
   simp [eagerTraceImpl]
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem eagerTrace_query_bind_run
+theorem eagerTrace_query_bind_run {α : Type _}
     (table : Index → Digest) (input : (World Index).Domain)
     (next : (World Index).Range input → OracleComp (World Index) α) :
     (simulateQ (eagerTraceImpl table)
@@ -79,7 +79,7 @@ noncomputable def applyEncodingRequest
       | some (nextState, hit) =>
           if hit then pure true else resume output (some nextState)
 
-theorem evalDist_sample_applyEncodingRequest
+theorem evalDist_sample_applyEncodingRequest {β : Type _}
     (sample : ProbComp β)
     (request : EncodingRequest)
     (resume : β → HashOutput → Option EncodingMonitor.State → ProbComp Bool)
@@ -496,7 +496,7 @@ theorem runObserved_empty_eq_combinedHit
   simp only [Bool.or_eq_true]
   rfl
 
-noncomputable def runStructural
+noncomputable def runStructural {α : Type _}
     (table : Index → Digest)
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -510,7 +510,7 @@ noncomputable def runStructural
       runEagerQuery table encodingState chainState fuel input recursivelyRun)
     computation encodingState chainState fuel
 
-theorem runStructural_query_bind
+theorem runStructural_query_bind {α : Type _}
     (table : Index → Digest)
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -525,7 +525,7 @@ theorem runStructural_query_bind
   rw [runStructural, OracleComp.construct_query_bind]
   rfl
 
-theorem evalDist_runObserved_eagerTrace_eq_runStructural
+theorem evalDist_runObserved_eagerTrace_eq_runStructural {α : Type _}
     (table : Index → Digest)
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
@@ -645,7 +645,7 @@ theorem evalDist_runObserved_eagerTrace_eq_runStructural
                     (chainState.install index (table index)) fuel
                     (by simpa [IsHazardQuery] using hbound.2 (table index))
 
-noncomputable def structuralExperiment
+noncomputable def structuralExperiment {α : Type _}
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
     (fuel : Nat) (computation : OracleComp (World Index) α) : ProbComp Bool := do
@@ -653,7 +653,7 @@ noncomputable def structuralExperiment
   runStructural (RevealProbeOracleSimulation.extendTable chainState base)
     encodingState chainState fuel computation
 
-theorem structuralExperiment_query_bind
+theorem structuralExperiment_query_bind {α : Type _}
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
     (fuel : Nat) (input : (World Index).Domain)
@@ -691,7 +691,7 @@ theorem eagerFinalize_true_probability_le
   gcongr
   omega
 
-theorem structuralExperiment_true_probability_le
+theorem structuralExperiment_true_probability_le {α : Type _}
     (encodingState : Option EncodingMonitor.State)
     (chainState : AdaptiveRevealMonitor.State Index)
     (hvalid : RevealProbeOracleSimulation.StateValid chainState)
@@ -865,7 +865,7 @@ theorem structuralExperiment_true_probability_le
                       (chainState.install index value)
                       (hvalid.install index value) fuel
 
-theorem combinedHit_probability_eq_structuralExperiment
+theorem combinedHit_probability_eq_structuralExperiment {α : Type _}
     (fuel : Nat) (computation : OracleComp (World Index) α)
     (hbound : computation.IsQueryBoundP IsHazardQuery fuel) :
     Pr{let result ← eagerExperiment computation}[CombinedHit result.1 result.2.2] =
@@ -896,7 +896,7 @@ theorem combinedHit_probability_eq_structuralExperiment
         (some EncodingMonitor.State.empty)
         AdaptiveRevealMonitor.State.empty fuel computation hbound).prEvent_eq (· = true)
 
-theorem structuralExperiment_empty_true_probability_le
+theorem structuralExperiment_empty_true_probability_le {α : Type _}
     (fuel : Nat) (computation : OracleComp (World Index) α) :
     Pr{let hit ← (structuralExperiment (some EncodingMonitor.State.empty)
         AdaptiveRevealMonitor.State.empty fuel computation)}[hit = true] ≤

@@ -41,7 +41,7 @@ def globalFirstLaneRevealProbeImpl :
   | .probe index target => FirstLaneOracleSimulation.probeQuery index target
   | .reveal index => FirstLaneOracleSimulation.revealQuery index
 
-def globalFirstLaneLiftRevealProbe
+def globalFirstLaneLiftRevealProbe {α : Type _}
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) :
     OracleComp GlobalFirstLaneWorld α :=
@@ -282,7 +282,7 @@ theorem globalFirstLaneRevealQuery_hazardBound
     OracleComp.isQueryBoundP_query_iff]
   simp [FirstLaneOracleSimulation.IsHazardQuery]
 
-theorem globalFirstLaneLiftProbComp_hazardBound
+theorem globalFirstLaneLiftProbComp_hazardBound {α : Type _}
     (computation : ProbComp α) :
     (FirstLaneOracleSimulation.liftProbComp
       (Index := GlobalChainValueIndex) computation).IsQueryBoundP
@@ -297,7 +297,7 @@ theorem globalFirstLaneLiftProbComp_hazardBound
   · intro input _
     exact globalFirstLaneUniformQuery_hazardBound input
 
-theorem globalFirstLaneLiftRevealProbe_hazardBound
+theorem globalFirstLaneLiftRevealProbe_hazardBound {α : Type _}
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
     (fuel : Nat)
@@ -509,18 +509,21 @@ noncomputable def globalFirstLaneEraseImpl :
   | .probe index target => RevealProbeOracleSimulation.probeQuery index target
   | .reveal index => RevealProbeOracleSimulation.revealQuery index
 
-noncomputable def globalFirstLaneErase
+noncomputable def globalFirstLaneErase {α : Type _}
     (computation : OracleComp GlobalFirstLaneWorld α) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) α :=
   simulateQ globalFirstLaneEraseImpl computation
 
-abbrev GlobalFirstLaneErases
+abbrev GlobalFirstLaneErases {α : Type _}
     (source : OracleComp GlobalFirstLaneWorld α)
     (target : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) : Prop :=
   globalFirstLaneErase source = target
 
-theorem GlobalFirstLaneErases.bind
+theorem GlobalFirstLaneErases.bind {α β : Type} {source : OracleComp GlobalFirstLaneWorld α}
+    {target : OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) α}
+    {nextSource : α → OracleComp GlobalFirstLaneWorld β}
+    {nextTarget : α → OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex) β}
     (hsource : GlobalFirstLaneErases source target)
     (hnext : ∀ result, GlobalFirstLaneErases (nextSource result)
       (nextTarget result)) :
@@ -532,12 +535,12 @@ theorem GlobalFirstLaneErases.bind
   apply bind_congr
   exact hnext
 
-theorem GlobalFirstLaneErases.pure (result : α) :
+theorem GlobalFirstLaneErases.pure {α : Type _} (result : α) :
     GlobalFirstLaneErases (pure result) (pure result) := by
   unfold GlobalFirstLaneErases
   simp [globalFirstLaneErase]
 
-theorem globalFirstLaneErases_simulateQ_run
+theorem globalFirstLaneErases_simulateQ_run {ι : Type _} {spec : OracleSpec ι} {stateType α : Type}
     (sourceImpl : QueryImpl spec
       (StateT stateType (OracleComp GlobalFirstLaneWorld)))
     (targetImpl : QueryImpl spec
@@ -559,7 +562,7 @@ theorem globalFirstLaneErases_simulateQ_run
       intro result
       exact ih result.1 result.2
 
-theorem globalFirstLaneErase_liftProbComp (computation : ProbComp α) :
+theorem globalFirstLaneErase_liftProbComp {α : Type _} (computation : ProbComp α) :
     globalFirstLaneErase
       (FirstLaneOracleSimulation.liftProbComp
         (Index := GlobalChainValueIndex) computation) =
@@ -569,7 +572,7 @@ theorem globalFirstLaneErase_liftProbComp (computation : ProbComp α) :
   rw [← QueryImpl.simulateQ_compose]
   congr 1
 
-theorem globalFirstLaneErases_liftProbComp (computation : ProbComp α) :
+theorem globalFirstLaneErases_liftProbComp {α : Type _} (computation : ProbComp α) :
     GlobalFirstLaneErases
       (FirstLaneOracleSimulation.liftProbComp
         (Index := GlobalChainValueIndex) computation)
@@ -587,7 +590,7 @@ theorem globalFirstLaneErases_uniformQuery (n : Nat) :
     FirstLaneOracleSimulation.uniformQuery,
     RevealProbeOracleSimulation.uniformQuery]
 
-theorem globalFirstLaneErase_liftRevealProbe
+theorem globalFirstLaneErase_liftRevealProbe {α : Type _}
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) :
     globalFirstLaneErase (globalFirstLaneLiftRevealProbe computation) =
@@ -609,14 +612,14 @@ theorem globalFirstLaneErase_liftRevealProbe
   rw [himpl]
   simp
 
-theorem globalFirstLaneErases_liftRevealProbe
+theorem globalFirstLaneErases_liftRevealProbe {α : Type _}
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) :
     GlobalFirstLaneErases (globalFirstLaneLiftRevealProbe computation)
       computation :=
   globalFirstLaneErase_liftRevealProbe computation
 
-theorem GlobalFirstLaneErases.of_eq_liftRevealProbe
+theorem GlobalFirstLaneErases.of_eq_liftRevealProbe {α : Type _}
     (source : OracleComp GlobalFirstLaneWorld α)
     (target : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
@@ -899,7 +902,7 @@ theorem globalFirstLaneErasedEncodingDigestQuery_eq_original
     RevealProbeOracleSimulation.liftProbComp,
     map_eq_bind_pure_comp, GlobalCausalHashState.setCache]
 
-theorem globalFirstLaneOriginalEncodingDigestQuery_bind
+theorem globalFirstLaneOriginalEncodingDigestQuery_bind {α : Type _}
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (state : GlobalCausalHashState)
     (next : Digest × GlobalCausalHashState →
@@ -1143,7 +1146,7 @@ noncomputable def cappedBothTracedMappedAdversaryImpl
     (cappedEncodingTracedMappedAdversaryImpl publicKey secretKey)
       appendAttackerActionTrace
 
-theorem cappedBothTracedMappedAdversaryImpl_projection
+theorem cappedBothTracedMappedAdversaryImpl_projection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : (QueryCache HashSpec × SigningCacheTrace) ×
@@ -1167,7 +1170,7 @@ theorem cappedUnloggedMappedAdversaryImpl_eq_sourceDirectMappedAdversaryImpl
   | inl worldInput => rfl
   | inr request => rfl
 
-theorem cappedEncodingTracedMappedAdversaryImpl_actionProjection
+theorem cappedEncodingTracedMappedAdversaryImpl_actionProjection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : (QueryCache HashSpec × SigningCacheTrace) ×
@@ -1246,7 +1249,7 @@ theorem cappedBothTracedMappedAdversaryImpl_query_logs_eq
     signingLogUpdate, AttackerActionTrace.toSigningLog_append,
     attackerActionFragment_toSigningLog, hlogs]
 
-theorem cappedBothTracedMappedAdversaryImpl_logs_eq
+theorem cappedBothTracedMappedAdversaryImpl_logs_eq {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : ((QueryCache HashSpec × SigningCacheTrace) ×
@@ -1268,7 +1271,7 @@ theorem cappedBothTracedMappedAdversaryImpl_logs_eq
         publicKey secretKey input state result hstate hresult)
     computation initialState hlogs result hmem
 
-theorem cappedBothTracedMappedAdversaryImpl_actionProjection
+theorem cappedBothTracedMappedAdversaryImpl_actionProjection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : (QueryCache HashSpec × SigningCacheTrace) ×
@@ -1480,7 +1483,7 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
       cappedDetailedGameWithEncodingTrace adversary :=
   cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection adversary
 
-theorem simulate_globalFirstLaneEagerTrace_chainProjection
+theorem simulate_globalFirstLaneEagerTrace_chainProjection {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp GlobalFirstLaneWorld α) :
     (fun result => (result.1, result.2.chainActions)) <$>

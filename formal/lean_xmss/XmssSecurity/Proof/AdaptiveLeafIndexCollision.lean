@@ -565,7 +565,7 @@ theorem runObserved_empty_eq_true_of_sign_before_query_of_nodup
   exact runObserved_empty_eq_true_of_sign_before_query leafIndex signedOutput
     queriedOutput before middle after haround.1 hnoMiddle hcollision hvalid
 
-theorem pair_sublist_iff (first second : α) (actions : List α) :
+theorem pair_sublist_iff {α : Type _} (first second : α) (actions : List α) :
     List.Sublist [first, second] actions ↔
       ∃ before middle after,
         actions = before ++ (first :: (middle ++ (second :: after))) := by

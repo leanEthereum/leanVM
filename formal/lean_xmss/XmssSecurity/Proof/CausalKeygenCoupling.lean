@@ -40,7 +40,7 @@ theorem simulate_chainHash_run_of_fresh
   rw [randomOracle_run_none_eq_uniformHashOutput _ _ habsent]
   simp [Functor.map_map]
 
-noncomputable def programmedChainExtension
+noncomputable def programmedChainExtension {n : ℕ}
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
@@ -51,7 +51,7 @@ noncomputable def programmedChainExtension
       (Concrete.CacheView.keyChainInput parameter key chain step values.back)
       sampled.2)
 
-theorem evalDist_chainExtension_eq_programmed
+theorem evalDist_chainExtension_eq_programmed {n : ℕ}
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec)

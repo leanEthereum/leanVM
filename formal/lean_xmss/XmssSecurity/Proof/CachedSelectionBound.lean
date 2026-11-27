@@ -29,7 +29,7 @@ def SigningCacheTrace.SelectedValid (secretKey : SecretKey) (trace : SigningCach
       (entry.request.message, signature.randomness)) = some o →
     TargetSum.ValidDigest (truncateHash o)
 
-theorem cappedCacheTracedMappedAdversaryImpl_selectedValid
+theorem cappedCacheTracedMappedAdversaryImpl_selectedValid {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)

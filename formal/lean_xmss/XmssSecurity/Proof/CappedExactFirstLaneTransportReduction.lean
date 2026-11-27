@@ -55,7 +55,7 @@ end GlobalHighDirectTracedState
 /-- `h` at a set and element that are definitionally `t` and `b`. The kernel checks `HEq s t` on the
 arguments of `support`; matching `a ∈ s` with `b ∈ t` directly, it unfolds the `Set.Mem`
 projection and with it the computation under `support`. -/
-theorem mem_of_heq_set {α β : Type u} {s : Set α} {t : Set β} {a : α} {b : β} (h : a ∈ s)
+theorem mem_of_heq_set.{u} {α β : Type u} {s : Set α} {t : Set β} {a : α} {b : β} (h : a ∈ s)
     (hType : α = β) (hs : HEq s t) (hab : HEq a b) : b ∈ t := by
   subst hType
   cases hs
@@ -394,7 +394,7 @@ theorem globalFirstLaneEncodingHashQuery_cacheGrowth
         (message, randomness) output hcache (by simp),
         QueryCache.cacheQuery_self _ _ _⟩
 
-theorem globalFirstLaneLiftRevealProbe_encodingProjection
+theorem globalFirstLaneLiftRevealProbe_encodingProjection {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α) :
@@ -428,7 +428,7 @@ theorem globalFirstLaneLiftRevealProbe_encodingProjection
         RevealProbeOracleSimulation.eagerImpl,
         WriterT.run_tell]
 
-theorem globalFirstLaneLiftRevealProbe_encodingActions_eq_nil
+theorem globalFirstLaneLiftRevealProbe_encodingActions_eq_nil {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
@@ -1146,7 +1146,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist
       exact globalFirstLaneExactTracedSigningImpl_trace_sublist table keyView
         request state initialTrace result hresult
 
-theorem globalFirstLaneLiftRevealProbe_mem_eagerTrace_support
+theorem globalFirstLaneLiftRevealProbe_mem_eagerTrace_support {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp
       (RevealProbeOracleSimulation.World GlobalChainValueIndex) α)
@@ -1219,7 +1219,7 @@ theorem globalFirstLaneVerifierHashExecution_cache_le
     (mem_of_heq_set hresult rfl (by unfold globalFirstLaneVerifierHashExecution; exact HEq.rfl)
       HEq.rfl)
 
-theorem simulateQ_eagerTrace_state_cache_le
+theorem simulateQ_eagerTrace_state_cache_le {ι : Type _} {α : Type _}
     {spec : OracleSpec ι} {State : Type}
     (table : GlobalChainValueIndex → Digest)
     (implRun : ∀ input : spec.Domain, State →
@@ -1250,7 +1250,7 @@ theorem simulateQ_eagerTrace_state_cache_le
   · exact hstep
   · exact hresult
 
-theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le
+theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -1333,7 +1333,7 @@ theorem concreteEncodingHash_eq_query
   unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash
   rfl
 
-theorem simulateQ_eagerTrace_query_pure_support_decompose
+theorem simulateQ_eagerTrace_query_pure_support_decompose {ι : Type _}
     {spec : OracleSpec ι} {State β : Type}
     (table : GlobalChainValueIndex → Digest)
     (implRun : ∀ input : spec.Domain, State →
@@ -1400,7 +1400,7 @@ theorem globalFirstLaneEncodingHash_support_decompose
   exact ⟨queryHead, mem_of_heq_set hquery rfl HEq.rfl HEq.rfl, hresultEq⟩
 
 /-- A run of `first >>= next` splits into a run of `first` and one of `next`. -/
-theorem simulateQ_eagerTrace_bind_support_decompose
+theorem simulateQ_eagerTrace_bind_support_decompose {ι : Type _}
     {spec : OracleSpec ι} {State α β : Type}
     (table : GlobalChainValueIndex → Digest)
     (implRun : ∀ input : spec.Domain, State →
@@ -1596,7 +1596,7 @@ theorem globalFirstLaneExactTracedVerifierImpl_run_eq_map
   unfold globalFirstLaneExactTracedVerifierImpl
   rfl
 
-theorem globalFirstLaneExactTracedVerifier_simulateQ_run_eq_map
+theorem globalFirstLaneExactTracedVerifier_simulateQ_run_eq_map {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
@@ -1612,7 +1612,7 @@ theorem globalFirstLaneExactTracedVerifier_simulateQ_run_eq_map
     (globalFirstLaneExactTracedVerifierImpl_run_eq_map keyView edgeHigh)
     computation state
 
-theorem globalFirstLaneExactTracedVerifier_eager_support_decompose
+theorem globalFirstLaneExactTracedVerifier_eager_support_decompose {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2026,7 +2026,7 @@ theorem globalFirstLaneExactTracedMappedAdversaryImpl_signing_validSignLeafIndic
   exact globalFirstLaneSigningQuery_validSignLeafIndices_sublist_singleton table
     keyView request initialState.causalState baseResult hbase
 
-theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist_of_hashRun
+theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist_of_hashRun {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2096,7 +2096,7 @@ theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist_o
             table keyView edgeHigh request state stepResult hstep
   · exact hresult
 
-theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist
+theorem globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2135,7 +2135,7 @@ theorem globalFirstLaneVerifierImpl_hash_eq_run
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey input) := by
   rfl
 
-theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun
+theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2184,7 +2184,7 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil_of_hashRun
         exact hhashNil input state stepResult hstep
   · exact hresult
 
-theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
+theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2207,7 +2207,7 @@ theorem globalFirstLaneVerifier_validSignLeafIndices_eq_nil
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey)
       computation state result hresult
 
-theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil
+theorem globalFirstLaneExactTracedVerifier_validSignLeafIndices_eq_nil {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2336,7 +2336,7 @@ theorem map_globalHighMonitored_adversary_exact_query
   map_globalHighMonitored_adversary_full_query keyView base edgeHigh
     input state.1 state.2
 
-theorem map_simulate_globalHighMonitored_exact_of_query
+theorem map_simulate_globalHighMonitored_exact_of_query {ι : Type _} {α : Type _}
     {spec : OracleSpec ι}
     (table : GlobalChainValueIndex → Digest)
     (left : QueryImpl spec
@@ -2397,7 +2397,7 @@ theorem map_simulate_globalHighMonitored_exact_of_query
       intro head
       simp [tail, Functor.map_map, List.append_assoc]
 
-theorem map_simulate_globalHighMonitored_adversary_exact
+theorem map_simulate_globalHighMonitored_adversary_exact {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -2419,7 +2419,7 @@ theorem map_simulate_globalHighMonitored_adversary_exact
   apply map_simulate_globalHighMonitored_exact_of_query
   exact map_globalHighMonitored_adversary_exact_query keyView base edgeHigh
 
-theorem map_simulate_globalHighMonitored_verifier_exact
+theorem map_simulate_globalHighMonitored_verifier_exact {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)

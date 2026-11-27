@@ -56,7 +56,7 @@ def revealQuery (index : Index) : OracleComp (World Index) Digest :=
 def uniformForwardImpl : QueryImpl unifSpec (OracleComp (World Index)) :=
   fun n => uniformQuery n
 
-def liftProbComp (computation : ProbComp α) : OracleComp (World Index) α :=
+def liftProbComp {α : Type _} (computation : ProbComp α) : OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
 
 def IsHazardQuery : (World Index).Domain → Prop

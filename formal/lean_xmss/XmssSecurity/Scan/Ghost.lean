@@ -107,7 +107,7 @@ theorem mem_support_sign {request : SignRequest} {cache : QueryCache HashSpec}
   exact ⟨r0, hr0, by simp [tick, IsAdvHash, signingCacheTraceUpdate]⟩
 
 /-- Forgetting the count gives the source game's adversary run. -/
-theorem impl_run_proj (computation : OracleComp (OracleWorld + SigningSpec) α)
+theorem impl_run_proj {α : Type _} (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) :
     (fun r => (r.1, r.2.1.1)) <$> (simulateQ (impl publicKey secretKey) computation).run ((cache, []), 0) =
       (simulateQ romImpl (simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
@@ -118,7 +118,7 @@ theorem impl_run_proj (computation : OracleComp (OracleWorld + SigningSpec) α)
       (fun input _ _ _ k => tick input k) computation (cache, []) 0, Functor.map_map]
   rfl
 
-theorem simulateQ_source_query_bind (input : (OracleWorld + SigningSpec).Domain)
+theorem simulateQ_source_query_bind {α : Type _} (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α) :
     simulateQ (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey)
         (liftM ((OracleWorld + SigningSpec).query input) >>= next) =

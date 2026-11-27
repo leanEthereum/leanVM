@@ -1138,7 +1138,7 @@ theorem evalDist_sampledHashOutputWithDigest_fst_eq_uniform :
       simp [Functor.map_map]
     _ =ᵈ ($ᵗ Digest) := Rom.evalDist_truncate_uniformHashOutput
 
-theorem evalDist_programmedChainExtension_fst
+theorem evalDist_programmedChainExtension_fst {n : ℕ}
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :

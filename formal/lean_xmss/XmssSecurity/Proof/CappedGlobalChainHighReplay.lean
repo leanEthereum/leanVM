@@ -737,7 +737,7 @@ def GlobalMonitoredCausalState.bad
     (state : GlobalMonitoredCausalState) : Prop :=
   state.observed table = none
 
-def globalMonitoredCausalResult
+def globalMonitoredCausalResult {α : Type _}
     (initial : GlobalMonitoredCausalState)
     (result : (α × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :
@@ -757,14 +757,14 @@ theorem GlobalMonitoredCausalState.bad_implies_runObserved
     table AdaptiveRevealMonitor.State.empty state.trace).1
   exact hbad
 
-noncomputable def monitorGlobalCausalTrace
+noncomputable def monitorGlobalCausalTrace {α : Type _}
     (computation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)) :
     StateT GlobalMonitoredCausalState ProbComp α := fun state =>
   globalMonitoredCausalResult state <$> computation state.causal
 
-theorem monitorGlobalCausalTrace_run
+theorem monitorGlobalCausalTrace_run {α : Type _}
     (computation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex))
@@ -823,7 +823,7 @@ theorem globalFilteredCausalRevealResultState_transition
     simp [globalFilteredCausalRevealResultState,
       Function.update_of_ne hne]
 
-theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit
+theorem relTriple_monitorGlobalCausalTrace_of_filtered_until_hit {α : Type _}
     (left : ProgrammedGlobalChainKeygenView)
     (right : KeygenViewWithBase)
     (leftComputation : ProbComp (α × QueryCache HashSpec))

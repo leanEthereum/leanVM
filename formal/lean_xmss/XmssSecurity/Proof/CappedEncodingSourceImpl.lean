@@ -46,7 +46,7 @@ theorem cappedUnloggedMappedAdversaryImpl_eq_source_compose
         cappedSourceUnloggedMappedAdversaryImpl]
   | inr request => rfl
 
-theorem cappedUnloggedMappedAdversary_simulateQ_run_eq_source
+theorem cappedUnloggedMappedAdversary_simulateQ_run_eq_source {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) :

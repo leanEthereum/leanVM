@@ -141,7 +141,7 @@ theorem sourceSigningTracedVerifierImpl_query_run_eq
   rw [StateT.run_mk, sourceDirectTracedVerifierImpl_query_run_eq]
   simp [Functor.map_map, sourceSigningTracedStateProjection]
 
-theorem sourceSigningTracedVerifierImpl_run_eq
+theorem sourceSigningTracedVerifierImpl_run_eq {α : Type _}
     (computation : OracleComp OracleWorld α)
     (initialState : SourceSigningTracedState) :
     (simulateQ sourceSigningTracedVerifierImpl computation).run initialState =
@@ -234,7 +234,7 @@ theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :
       Concrete.evalDist_materialized_keygen_eq_precomputedKeygen
     _ = _ := by rfl
 
-theorem probEvent_eq_of_evalDist_eq
+theorem probEvent_eq_of_evalDist_eq {α : Type _}
     {computation₁ computation₂ : ProbComp α}
     (event : α → Prop)
     (heval : computation₁ =ᵈ computation₂) :

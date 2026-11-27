@@ -134,7 +134,7 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_eq_direct :
     independentGlobalChainValueTable
   simp only [bind_assoc, pure_bind]
 
-theorem map_monitorGlobalCausalTrace_projection
+theorem map_monitorGlobalCausalTrace_projection {α : Type _}
     (computation : GlobalCausalHashState → ProbComp
       ((α × GlobalCausalHashState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex))
@@ -151,7 +151,7 @@ theorem map_monitorGlobalCausalTrace_projection
   intro result
   simp [globalMonitoredCausalResult]
 
-theorem map_simulate_globalMonitoredTraced_projection_of_query
+theorem map_simulate_globalMonitoredTraced_projection_of_query {ι : Type _} {α : Type _}
     {spec : OracleSpec ι}
     (table : GlobalChainValueIndex → Digest)
     (left : QueryImpl spec (StateT GlobalMonitoredTracedState ProbComp))
@@ -205,7 +205,7 @@ theorem map_simulate_globalMonitoredTraced_projection_of_query
       intro head
       simp [tail, Functor.map_map, List.append_assoc]
 
-theorem map_actionTracedStateImpl_globalMonitor_erased_step
+theorem map_actionTracedStateImpl_globalMonitor_erased_step {ι : Type _}
     {spec : OracleSpec ι}
     (impl : QueryImpl spec (StateT GlobalMonitoredCausalState ProbComp))
     (fragment : (input : spec.Domain) → spec.Range input →
@@ -238,7 +238,7 @@ theorem map_globalHighMonitored_erased_base
       (fun result : (OracleWorld + SigningSpec).Range input × GlobalMonitoredCausalState =>
         ((result.1, result.2.causal), result.2.trace)) <$> candidate) herase
 
-theorem map_simulate_globalHighMonitored_verifier_erased_projection
+theorem map_simulate_globalHighMonitored_verifier_erased_projection {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -319,7 +319,7 @@ theorem observedProbeCount_globalHighDirectForgeryPrimaryProbeTrace
   unfold globalHighDirectForgeryPrimaryProbeTrace
   exact observedProbeCount_globalForgeryPrimaryProbeTrace _
 
-theorem traceAgrees_of_all_probes
+theorem traceAgrees_of_all_probes {Index : Type _}
     (table : Index → Digest)
     (trace : RevealProbeOracleSimulation.ActionTrace Index)
     (hprobes : ∀ action ∈ trace, ∃ index target,
@@ -495,7 +495,7 @@ theorem map_globalHighMonitored_adversary_full_query
     StateT.run_mk, Functor.map_map, Function.comp_def, simulateQ_bind,
     bind_map_left, List.append_assoc] using hlifted
 
-theorem globalHighDirectTracedVerifierImpl_run_eq
+theorem globalHighDirectTracedVerifierImpl_run_eq {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
     (computation : OracleComp OracleWorld α)
@@ -515,7 +515,7 @@ noncomputable def globalHighMonitoredVerifierBaseImpl
     QueryImpl OracleWorld (StateT GlobalMonitoredCausalState ProbComp) :=
   fun input => globalHighMonitoredBaseMappedAdversaryImpl right (.inl input)
 
-theorem globalHighMonitoredVerifierImpl_run_eq
+theorem globalHighMonitoredVerifierImpl_run_eq {α : Type _}
     (right : KeygenViewWithBaseHigh)
     (computation : OracleComp OracleWorld α)
     (initialState : GlobalMonitoredTracedState) :
@@ -529,7 +529,7 @@ theorem globalHighMonitoredVerifierImpl_run_eq
   intro input state
   rfl
 
-theorem map_simulate_globalHighMonitored_verifier_full_projection
+theorem map_simulate_globalHighMonitored_verifier_full_projection {α : Type _}
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (edgeHigh : GlobalChainEdgeIndex → Digest)

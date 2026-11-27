@@ -94,7 +94,7 @@ noncomputable def signedCost : (OracleWorld + SigningSpec).Domain → State → 
 
 include hc0 in
 /-- **Before signing.** -/
-theorem preBad_le (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (OracleWorld + SigningSpec) α)
+theorem preBad_le {α : Type _} (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (hover : expectedSimulatedCost (impl publicKey secretKey) (overBudget Q) computation ((cache0, []), 0) = 0) :
     N * N * Pr{let r ← (simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0)}[PreBad secretKey r.2.1.2] ≤
       ENNReal.ofReal (momentA pReal Q) *
@@ -143,7 +143,7 @@ theorem preBad_le (Q : ℕ) (hQ : Q ≤ 2 ^ 127) (computation : OracleComp (Orac
 
 /-- **After signing.** The final computation's encoding queries each repeat a selected digest with
 probability `2^-128`. -/
-theorem postPot_final_le (trace : SigningCacheTrace) (computation : OracleComp OracleWorld β)
+theorem postPot_final_le {β : Type _} (trace : SigningCacheTrace) (computation : OracleComp OracleWorld β)
     (cache : QueryCache HashSpec) :
     ∑' y, Pr{let x ← (simulateQ romImpl computation).run cache}[x = y] * (N * N * postPot secretKey.parameter trace y.2) ≤
       N * N * postPot secretKey.parameter trace cache +
@@ -203,7 +203,7 @@ theorem openCost_add_signedCost_le (input : (OracleWorld + SigningSpec).Domain) 
 
 include hc0 in
 /-- **One key**, against the adversary's own encoding queries and the final computation's. -/
-theorem collision_le_core (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp (OracleWorld + SigningSpec) α)
+theorem collision_le_core {α : Type _} {β : Type _} (Q : ℕ) (hQ : Q < 2 ^ 127) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cont : α → OracleComp OracleWorld β)
     (hover : expectedSimulatedCost (impl publicKey secretKey) (overBudget Q) computation ((cache0, []), 0) = 0) :
     N * N * Pr{let y ← ((simulateQ (impl publicKey secretKey) computation).run ((cache0, []), 0) >>= fun r =>

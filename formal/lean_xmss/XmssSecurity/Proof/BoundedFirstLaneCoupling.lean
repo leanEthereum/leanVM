@@ -26,7 +26,7 @@ open OracleComp.ProgramLogic.Relational
 namespace XmssSecurity
 
 
-theorem relTriple_enforcedHit_append
+theorem relTriple_enforcedHit_append {Index : Type _} {α : Type _} {β : Type _}
     [Fintype Index] [DecidableEq Index]
     (table : Index → Digest) (limit : Nat)
     (history fragment : FirstLaneOracleSimulation.ActionTrace Index)
@@ -56,7 +56,7 @@ theorem relTriple_enforcedHit_append
         table limit (history ++ fragment) result.2 hhit
   simpa only [id_map] using hmapped
 
-theorem relTriple_simulateQ_bind_bounded_firstLane
+theorem relTriple_simulateQ_bind_bounded_firstLane {ι : Type _} {Index : Type _} {σ₁ : Type _} {σ₂ : Type _} {α : Type _} {β : Type _}
     {spec : OracleSpec ι}
     [Fintype Index] [DecidableEq Index]
     (table : Index → Digest)

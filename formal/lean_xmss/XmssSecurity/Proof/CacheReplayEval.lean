@@ -75,7 +75,7 @@ theorem eval_recoverChain (cache : QueryCache HashSpec)
   simp [Concrete.recoverChain, Wots.recoverChain]
 
 @[simp]
-theorem eval_sequenceFin (cache : QueryCache HashSpec) {n : Nat}
+theorem eval_sequenceFin {α : Type _} (cache : QueryCache HashSpec) {n : Nat}
     (computation : Fin n → OracleComp HashSpec α) :
     evalWithAnswerFn (answerFn cache) (Concrete.sequenceFin computation) =
       fun index => evalWithAnswerFn (answerFn cache) (computation index) := by

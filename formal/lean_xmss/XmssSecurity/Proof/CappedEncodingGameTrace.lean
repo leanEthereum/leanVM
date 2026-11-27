@@ -30,7 +30,7 @@ noncomputable def cappedEncodingTracedMappedAdversaryImpl
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
     (encodingActionTraceUpdate secretKey)
 
-theorem cappedEncodingTracedMappedAdversaryImpl_projection
+theorem cappedEncodingTracedMappedAdversaryImpl_projection {α : Type _}
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialState : QueryCache HashSpec × SigningCacheTrace)

@@ -4,6 +4,8 @@ defaultTargets = ["Sphincs", "FORS"]
 
 [leanOptions]
 warningAsError = true
+autoImplicit = false
+relaxedAutoImplicit = false
 # Every module of `FORS` carries the `[Params]` instance (the height, the layers, the FORS shape),
 # which some of its declarations do not use.
 weak.linter.unusedSectionVars = false

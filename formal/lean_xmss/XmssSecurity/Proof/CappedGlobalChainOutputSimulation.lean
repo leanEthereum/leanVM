@@ -27,7 +27,7 @@ private theorem mem_support_iff_of_evalDistEq {α : Type} {mx my : ProbComp α}
     (h : mx =ᵈ my) (x : α) : x ∈ support mx ↔ x ∈ support my := by
   rw [OracleComp.support_eq_of_evalDistEq h]
 
-noncomputable def outputChainExtension
+noncomputable def outputChainExtension {n : ℕ}
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
@@ -38,7 +38,7 @@ noncomputable def outputChainExtension
       (Concrete.CacheView.keyChainInput parameter key chain step values.back)
       output)
 
-theorem evalDist_programmedChainExtension_eq_output
+theorem evalDist_programmedChainExtension_eq_output {n : ℕ}
     (parameter : PublicParameter) (key : ChainKey) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
@@ -333,7 +333,7 @@ theorem outputGlobalChainTrajectoryMaterial_edgesMatch
 
 abbrev OutputTrace (α : Type) := α × List HashOutput
 
-theorem outputTrace_bind_fst
+theorem outputTrace_bind_fst {α : Type _} {β : Type _} {γ : Type _}
     (first : ProbComp (OutputTrace α))
     (rest : α → List HashOutput → ProbComp (OutputTrace β))
     (erasedFirst : ProbComp α) (erasedRest : α → ProbComp β)
@@ -364,7 +364,7 @@ theorem outputTrace_bind_fst
       simp [map_eq_bind_pure_comp, bind_assoc]
     _ = _ := by rw [hfirst]
 
-theorem evalDist_outputTrace_bind_snd
+theorem evalDist_outputTrace_bind_snd {α : Type _} {β : Type _} {γ : Type _}
     (first : ProbComp (OutputTrace α))
     (rest : α → List HashOutput → ProbComp (OutputTrace β))
     (combine : α → β → γ) (outputs : List HashOutput)

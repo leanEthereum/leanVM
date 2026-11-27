@@ -22,7 +22,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace QueryImpl
 
-@[simp] theorem run_simulateQ_withTraceAppend_const_empty
+@[simp] theorem run_simulateQ_withTraceAppend_const_empty {ι : Type _} {α : Type _}
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m] {Log : Type}
     [EmptyCollection Log] [Append Log] [LawfulAppend Log]
     (impl : QueryImpl spec m) (computation : OracleComp spec α) :
@@ -30,7 +30,7 @@ namespace QueryImpl
       (fun result => (result, ∅)) <$> simulateQ impl computation := by
   induction computation using OracleComp.inductionOn <;> simp [*]
 
-theorem mapLog_run_simulateQ_of_query
+theorem mapLog_run_simulateQ_of_query {ι : Type _} {spec : OracleSpec ι} {α : Type _}
     {SourceLog TargetLog : Type}
     [EmptyCollection SourceLog] [Append SourceLog] [LawfulAppend SourceLog]
     [EmptyCollection TargetLog] [Append TargetLog] [LawfulAppend TargetLog]
@@ -88,7 +88,7 @@ def uniformQuery (n : Nat) : OracleComp (World Index) (Fin (n + 1)) :=
 def uniformForwardImpl : QueryImpl unifSpec (OracleComp (World Index)) :=
   fun n => uniformQuery n
 
-def liftProbComp (computation : ProbComp α) :
+def liftProbComp {α : Type _} (computation : ProbComp α) :
     OracleComp (World Index) α :=
   simulateQ uniformForwardImpl computation
 
@@ -104,7 +104,7 @@ noncomputable instance : DecidablePred (IsProbeQuery (Index := Index)) :=
   | .reveal _ => isFalse (by simp [IsProbeQuery])
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem liftProbComp_isProbeQueryBoundP
+theorem liftProbComp_isProbeQueryBoundP {α : Type _}
     (computation : ProbComp α) (probes : Nat) :
     (liftProbComp (Index := Index) computation).IsQueryBoundP
       IsProbeQuery probes := by
@@ -286,7 +286,7 @@ def runObserved
           if value ∈ state.pending index then true
           else runObserved table (state.install index value) rest
 
-def ObservedHit
+def ObservedHit {α : Type _}
     (result : (Index → Digest) × (α × ActionTrace Index)) : Prop :=
   runObserved result.1 AdaptiveRevealMonitor.State.empty result.2.2 = true
 
@@ -399,7 +399,7 @@ theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
       rw [Finset.sum_const, nsmul_eq_mul]
 
-theorem evalDist_uniformTable_eq_bind_update
+theorem evalDist_uniformTable_eq_bind_update {α : Type _}
     (index : Index) (continuation : (Index → Digest) → ProbComp α) :
     (($ᵗ (Index → Digest)) >>= continuation) =ᵈ (do
         let value ← $ᵗ Digest
@@ -435,7 +435,7 @@ def TraceAgrees (table : Index → Digest) : ActionTrace Index → Prop
   | .reveal index value :: rest => table index = value ∧ TraceAgrees table rest
 
 omit [Fintype Index] [DecidableEq Index] in
-theorem simulate_eagerTrace_liftProbComp
+theorem simulate_eagerTrace_liftProbComp {α : Type _}
     (table : Index → Digest) (computation : ProbComp α) :
     (simulateQ (eagerTraceImpl table)
       (liftProbComp (Index := Index) computation)).run =

@@ -334,7 +334,7 @@ theorem relTriple_sourceExact_firstLane_action
   · apply Or.inr
     exact ⟨hprojectionFacts.combinedHit_of_bad right.1.2 hbad, htotalCount⟩
 
-def sourceExactVerifierResult
+def sourceExactVerifierResult {input : OracleWorld.Domain}
     (initialState : SourceExactTracedState)
     (result : OracleWorld.Range input × SourceSigningTracedState) :
     OracleWorld.Range input × SourceExactTracedState :=
@@ -355,7 +355,7 @@ theorem sourceExactTracedVerifierImpl_cache_projection (input : OracleWorld.Doma
     sourceExactVerifierResult, sourceExactSigningProjection]
   exact id_map _
 
-theorem sourceExactTracedVerifierImpl_run_eq
+theorem sourceExactTracedVerifierImpl_run_eq {α : Type _}
     (computation : OracleComp OracleWorld α)
     (initialState : SourceExactTracedState) :
     (simulateQ sourceExactTracedVerifierImpl computation).run initialState =
@@ -604,7 +604,7 @@ theorem relTriple_sourceExact_firstLane_verifier_action
   · apply Or.inr
     exact ⟨hprojectionFacts.combinedHit_of_bad right.1.2 hbad, htotalCount⟩
 
-theorem relTriple_sourceExact_firstLane_verifier_boundedHit
+theorem relTriple_sourceExact_firstLane_verifier_boundedHit {α : Type _}
     (countLimit hitLimit used fuel : Nat)
     (left : ProgrammedGlobalChainKeygenView)
     (right : KeygenViewWithBaseHigh)
@@ -822,7 +822,7 @@ theorem globalFirstLaneExactCoupledProgram_projection_eq_parameterFirst
   simp [globalFirstLaneExactCoupledProjection,
     globalFirstLaneExactCoupledContinuation, bind_assoc]
 
-theorem firstLane_eagerTrace_liftProbComp_then_bind
+theorem firstLane_eagerTrace_liftProbComp_then_bind {κ : Type _} {α : Type _}
     (base : GlobalChainValueIndex → Digest)
     (keygen : ProbComp κ)
     (body : κ → OracleComp GlobalFirstLaneWorld α) :
@@ -1002,7 +1002,7 @@ noncomputable def appendGlobalFirstLaneExactPublicTrace
   (result.1, (result.2.1, result.2.2 ++ liftGlobalChainTrace
     (globalHighDirectExactForgeryPrimaryProbeTrace result.2.1)))
 
-theorem simulate_eagerTrace_bind_lift_emitObservedTrace_keep
+theorem simulate_eagerTrace_bind_lift_emitObservedTrace_keep {α : Type _}
     (table : GlobalChainValueIndex → Digest)
     (computation : OracleComp GlobalFirstLaneWorld α)
     (suffix : α →

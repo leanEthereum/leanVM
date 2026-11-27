@@ -163,7 +163,7 @@ theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
 
 
 /-- A programmed low digest and its independent high half may be replaced by one ordinary random-oracle output inside any continuation. -/
-theorem evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind
+theorem evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind {α : Type _}
     (continuation : Digest × HashOutput → ProbComp α) :
     (sampledHashOutputWithDigest >>= continuation) =ᵈ
       ($ᵗ HashOutput >>= fun output =>
