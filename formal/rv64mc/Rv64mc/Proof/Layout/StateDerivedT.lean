@@ -889,7 +889,8 @@ theorem blk1_of {m m1 m3 : MachineState} {top ret b : Word} {regs R3 : Reg → W
   have G0 : FormT env C b := FormReprT.FormT.keep hF0 (by rw [hnC]) (fun x l1 l2 => kb x (.inl ⟨l1, l2⟩))
     fun x l1 l2 => kb x (.inr (by rcases fb with h | h <;> omega))
   have p0 : vecPtr C b = vecPtr m3 b := by rw [vecPtr_eq, vecPtr_eq]; exact kb _ (.inl (by rw [eb 8 (by omega)]; omega))
-  have l0 : vecLen C b = vecLen m3 b := by rw [vecLen_eq, vecLen_eq]; exact kb _ (.inl (by rw [eb 16 (by omega)]; omega))
+  have l0 : vecLen C b = vecLen m3 b := by
+    rw [vecLen_eq, vecLen_eq]; exact kb _ (.inl (by rw [eb 16 (by omega)]; omega))
   have hNf := hN.foot
   have hPf := hP.foot
   have e24 : (b + 24#64).toNat = b.toNat + 24 := toNat_add_ofNat (by omega)
