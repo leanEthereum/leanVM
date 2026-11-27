@@ -145,15 +145,16 @@ def res_chunks(k, po):
     return [x.strip() for x in m.group(1).split('++')]
 
 
-def res_items(k, po):
-    """The residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), as texts, else
-    none."""
+def res_items(k, po, name=None):
+    """The residuals of `k`'s heap certificate when they are one list literal (`hcert.res := [...]`), or of its residual
+    list `name` (`def name`, a chunk of `res`), as texts, else none."""
     s = datac_of(k, po)
-    i = s.find('\n  res := [')
+    head = f'\ndef {name} : List CoreMode.CRes :=\n  ' if name else '\n  res := '
+    i = s.find(head + '[')
     if i < 0:
         return []
     out, depth, cur = [], 0, ''
-    for ch in s[i + len('\n  res := '):]:
+    for ch in s[i + len(head):]:
         if ch in ')]⟩':
             depth -= 1
             if depth == 0:
@@ -267,21 +268,83 @@ def parse_res(t):
 
 
 def res_hint(k, t):
-    """The disjunct of `resFamG` the mirrors find to hold of the residual text `t` (`CoreMode.resFamHint`): `3` `rcPts`,
-    `4` `rcTab`, `5` the function's own family; `0`, `resFamG`'s order, for one `cheapT` or `resFam` takes (its first
-    disjunct) or none the mirrors see."""
+    """The disjunct of `resFamG` the mirrors find to hold of the residual text `t` (`CoreMode.resFamHint`): `1` `resFam`
+    over the indexed atoms (`CoreMode.resFamX`), `2` `resQ`, `3` `rcPts`, `4` `rcTab`, `5` the function's own family,
+    `6` a ghost family; `0`, `resFamG`'s order, for one `cheapT` takes or none the mirrors see."""
     import callcres
     import fnrules
     if cheap_res(k, t):
         return 0
     r = parse_res(t)
-    if not all(v < callcres.I.GB for v in callcres.vals(r)) or callcres.res_fam(k, r, {'preR': [], 'preP': []}):
-        return 0
-    if callcres.rc_pts(k, r):
-        return 3
-    if callcres.rc_tab(k, r):
-        return 4
-    return 5 if fnrules.some('fam', k, r) else 0
+    if all(v < callcres.I.GB for v in callcres.vals(r)):
+        if res_q(k, r):
+            return 2
+        fam = callcres.res_fam(k, r, {'preR': [], 'preP': []})
+        # the mirror's `resFam` takes a function's own exponent bounds (`exp_bound`), which are its own family's
+        if fam and not any(fnrules.first('exp_bound', k, v) is not None for v in callcres.vals(r)):
+            return 1
+        if callcres.rc_pts(k, r):
+            return 3
+        if callcres.rc_tab(k, r):
+            return 4
+        if fnrules.some('fam', k, r):
+            return 5
+        if fam:
+            return 1
+    return 6 if (r[0] == 'sub' and callcres.st_sub(k, r[1]) == r) or fnrules.some('ghost', k, r) else 0
+
+
+def expq_b(k, x):
+    """`CoreMode.expQB`: the mirror's `expq_bound` without a function's own bounds (`exp_bound`, its own family's), None
+    where one answers first."""
+    import callcres
+    import fnrules
+    b = callcres.expq0(k, x)
+    if b is None and fnrules.first('exp_bound', k, x) is not None:
+        return None
+    return b if b is not None else callcres.expq_bound(k, x)
+
+
+def res_q(k, r):
+    """`CoreMode.resQ`: an exponent fact's bound (`expQB`) or a dimension fact (`dimLt`), under branch conditions."""
+    import callcres
+    if r[0] == 'under':
+        return res_q(k, r[2])
+    if r[0] != 'lt':
+        return False
+    a, b = r[1], r[2]
+    one = lambda i: i[0] == 'mono' and len(i[1][0]) == 1 and i[1][0][0][1] == 1
+    if a[0] == 'val' and b[0] == 'num':
+        B = expq_b(k, a[1])
+        return b[1] < callcres.CAPE and B is not None and B <= b[1]
+    if one(a) and b[0] == 'num':
+        B = expq_b(k, a[1][0][0][0])
+        return b[1] < callcres.CAPE and B is not None and B + a[1][1] <= b[1]
+    if a[0] == 'num' and one(b):
+        B = expq_b(k, b[1][0][0][0])
+        return a[1] < b[1][1] and B is not None and B + b[1][1] < callcres.CAPE
+    if a[0] == 'val' and one(b):
+        return callcres.dim_ok(k, a[1], 0, b[1][0][0][0], b[1][1])
+    if one(a) and one(b):
+        return callcres.dim_ok(k, a[1][0][0][0], a[1][1], b[1][0][0][0], b[1][1])
+    return False
+
+
+def hints_text(hs):
+    """A list of hints (`0` past its last nonzero one) as a Lean list, or as its runs (`CoreMode.hintRuns`) when that is
+    shorter."""
+    hs = list(hs)
+    while hs and not hs[-1]:
+        hs.pop()
+    runs = []
+    for h in hs:
+        if runs and runs[-1][0] == h:
+            runs[-1][1] += 1
+        else:
+            runs.append([h, 1])
+    flat = f'[{", ".join(map(str, hs))}]'
+    rl = f'(CoreMode.hintRuns [{", ".join(f"({h}, {n})" for h, n in runs)}])'
+    return rl if len(rl) < len(flat) else flat
 
 
 def res_cuts(k, items):
@@ -754,9 +817,7 @@ def slices(name, part, stmt, p, l, n, b, unfold=None, cuts=None, wrap=None, hint
         hs = hints and hints[2][cuts[c]:cuts[c + 1]]
         if not hs or not any(hs):
             return 'by decide +kernel'
-        while not hs[-1]:
-            hs = hs[:-1]
-        return f'CoreMode.sliceAll_of_H {hints[1]} (q := {hints[0]}) (hs := [{", ".join(map(str, hs))}]) (by decide +kernel)'
+        return f'CoreMode.sliceAll_of_H {hints[1]} (q := {hints[0]}) (hs := {hints_text(hs)}) (by decide +kernel)'
     out = ''.join(f'theorem {part}{c} : CoreMode.sliceAll {p} {l} {cuts[c]} {cuts[c + 1]} = true := {proof(c)}\n'
                   for c in range(len(cuts) - 1))
     prf = 'CoreMode.all_drop_of_le (by decide +kernel)'
@@ -914,7 +975,9 @@ def main(check=False):
                 fk = f'Fn.«{k}»'
                 fam = f'(CoreMode.resFamG {fk}.cfun.fn {fk}.cfun.xc {fk}.cfun.H.sig.gw)'
                 for c in rch:
-                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := CoreMode.all_of_T (by decide +kernel)\n')
+                    hs = [res_hint(k, t) for t in res_items(k, po, c)]
+                    prf = f'CoreMode.all_of_TH (hs := {hints_text(hs)})' if any(hs) else 'CoreMode.all_of_T'
+                    hons.append(f'theorem res{i}_{c} : {fk}.{c}.all {fam} = true := {prf} (by decide +kernel)\n')
                 rsplit.add('LeanVM.Guest.CoreMode.ResTab')
                 hons.append(f'theorem res{i}_ok : CoreMode.resOk {fk}.cfun = true := by\n'
                             f'  rw [CoreMode.resOk, show {fk}.cfun.H.res = ({" ++ ".join(fk + "." + c for c in rch)}) from rfl]\n'
