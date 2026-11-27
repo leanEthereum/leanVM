@@ -15,6 +15,7 @@ public import ArkLib.Data.CodingTheory.ReedSolomon
 public import Mathlib.Tactic
 import LeanVM.ToMathlib.Finset
 import LeanVM.ToMathlib.List
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # Lanes and folds
@@ -100,14 +101,6 @@ theorem eqB_append (s : List E) (r : E) (j : ℕ) :
     simp only [List.cons_append, eqB, ih, List.length_cons, ← Nat.testBit_div_two]
     ring
 
-/-- `eq_kernel(s)` has `2^|s|` entries. -/
-theorem length_eqKernel (s : List E) : (eqKernel s).length = 2 ^ s.length := by
-  induction s using List.reverseRecOn with
-  | nil => simp [eqKernel]
-  | append_singleton s r ih =>
-    rw [eqKernel, List.foldl_append] at *
-    simp [ih, pow_succ, mul_two]
-
 theorem getD_map_mul (K : List E) (c : E) (j : ℕ) :
     (K.map (· * c)).getD j 0 = K.getD j 0 * c := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_map]
@@ -126,7 +119,7 @@ theorem getD_eqKernel (s : List E) {j : ℕ} (hj : j < 2 ^ s.length) :
   induction s using List.reverseRecOn generalizing j with
   | nil => simp [eqKernel, eqB] at hj ⊢; subst hj; rfl
   | append_singleton s r ih =>
-    have hlen := length_eqKernel s
+    have hlen := eqKernel_length s
     have hk : eqKernel (s ++ [r]) = (eqKernel s).map (· * (1 + r)) ++ (eqKernel s).map (· * r) := by
       simp [eqKernel, List.foldl_append]
     rw [hk, eqB_append]
@@ -168,7 +161,7 @@ theorem dot_eq_sum (a b : List E) (h : a.length = b.length) :
 /-- **The lane fold of an opened row**: `dot(row, eq_kernel(s))` is the row folded by `s`. -/
 theorem dot_eqKernel (row s : List E) (h : row.length = 2 ^ s.length) :
     dot row (eqKernel s) = foldsN s (fun j (_ : Unit) ↦ row.getD j 0) 0 () := by
-  rw [dot_eq_sum _ _ (by rw [h, length_eqKernel]), foldsN_eq_sum, h]
+  rw [dot_eq_sum _ _ (by rw [h, eqKernel_length]), foldsN_eq_sum, h]
   refine Finset.sum_congr rfl fun j hj ↦ ?_
   rw [getD_eqKernel s (Finset.mem_range.mp hj), zero_mul, zero_add, mul_comm]
 

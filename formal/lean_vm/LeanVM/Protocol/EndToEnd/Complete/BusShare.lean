@@ -40,7 +40,7 @@ open LeanVM.Prover (Script)
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.LeanIsa LeanVM.Protocol.Whir.Complete LeanVM.Protocol.EndToEnd.Front Finset
-open LeanVM.Protocol.KeccakGkr (multilinearEval_eq eqKernel_length)
+open LeanVM.Protocol.KeccakGkr (multilinearEval_eq)
 
 @[expose] public section
 

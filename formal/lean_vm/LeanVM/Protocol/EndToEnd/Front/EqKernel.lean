@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Whir.Complete.Tables
 import LeanVM.Protocol.ToCompPoly.Fingerprint
 public import Mathlib.Algebra.MvPolynomial.CommRing
+public import LeanVM.Protocol.Verifier.EqKernel
 
 /-!
 # The equality kernel
@@ -31,11 +32,6 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier CompPoly CMlPolynomialEval
 
 @[expose] public section
 
-/-- One more coordinate doubles the kernel: the old weights times `1 + r`, then times `r`. -/
-theorem eqKernel_snoc (l : List E) (r : E) :
-    eqKernel (l ++ [r]) = (eqKernel l).map (· * (1 + r)) ++ (eqKernel l).map (· * r) := by
-  simp only [eqKernel, List.foldl_append, List.foldl_cons, List.foldl_nil]
-
 /-- **The kernel's weight at `x`**: `Π_j (r_j if bit j of x else 1 + r_j)`, the first coordinate
 the lowest bit. -/
 theorem eqKernel_getElem_prod (l : List E) (x : ℕ) (hx : x < (eqKernel l).length) :
@@ -47,7 +43,7 @@ theorem eqKernel_getElem_prod (l : List E) (x : ℕ) (hx : x < (eqKernel l).leng
     subst this
     rfl
   | append_singleton l r ih =>
-    have hlen := Whir.Complete.length_eqKernel l
+    have hlen := eqKernel_length l
     have hgetD : ∀ j < l.length, (l ++ [r]).getD j 0 = l.getD j 0 := fun j hj ↦ by
       simp [List.getD_eq_getElem?_getD, List.getElem?_append_left hj]
     have hlast : (l ++ [r]).getD l.length 0 = r := by simp [List.getD_eq_getElem?_getD]
@@ -78,7 +74,7 @@ theorem eqKernel_getElem_prod (l : List E) (x : ℕ) (hx : x < (eqKernel l).leng
 in characteristic two. -/
 theorem lagrangeBasis_ofFn_getD {n : ℕ} {l : List E} (hl : l.length = n) (x : Fin (2 ^ n)) :
     (lagrangeBasis (Vector.ofFn fun i : Fin n ↦ l.getD i 0))[x] =
-      (eqKernel l)[x.val]'(by rw [Whir.Complete.length_eqKernel, hl]; exact x.isLt) := by
+      (eqKernel l)[x.val]'(by rw [eqKernel_length, hl]; exact x.isLt) := by
   rw [lagrangeBasis_getElem, eqKernel_getElem_prod, hl,
     ← Fin.prod_univ_eq_prod_range (fun j ↦ if x.val.testBit j then l.getD j 0 else 1 + l.getD j 0)]
   refine Finset.prod_congr rfl fun j _ ↦ ?_
