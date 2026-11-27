@@ -18,6 +18,7 @@ public import LeanVM.Guest.B1.Digest.ClaimListCLast
 public import LeanVM.Guest.B1.Da.AtBase
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop4»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A child's block, completely
@@ -49,7 +50,7 @@ def l5W (ex es : ℕ) (cx0 cx1 cs0 cs1 p0 p1 : E) (j : ℕ) : E :=
   else 0
 
 /-- `main_loop4`'s body. -/
-def l5Body : List Stmt := l5Pre ++ [l5Tail, .ret []]
+def l5Body : List Stmt := l5Pre ⧺ [l5Tail, .ret []]
 
 /-- `main_loop4`'s honest valuation. -/
 noncomputable def l5σ (rd : Reader) (args : List E) (w : ℕ → E) : Val :=

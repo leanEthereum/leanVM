@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.Memory.SelArm
 public import LeanVM.Guest.B1.Opening.WalkMatch
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Bodies at an arm, a valuation per memory
@@ -315,7 +316,7 @@ theorem selL_dispOk {σ : Val} {x r n : ℕ} {ss : List Stmt} (h : ss.all (SelOk
 theorem walk_selRet {σ : Val} {C : CallRel} {rd : Reader} {x r n : ℕ} (hx : σ (V.n x) = ofK (addressOfIndex r))
     (hrn : r < n) (hn : n < 2 ^ 64 - 1) {body : List Stmt} {vs : List V} (h : body.all (SelOk x r n) = true)
     (hdo : ∀ s ∈ selL x r body, DispOk σ s) {next : Prop} {kret : List E → Prop}
-    (hsat : (walk σ (body ++ [.ret vs])).Sat C rd σ next kret) :
+    (hsat : (walk σ (body ⧺ [.ret vs])).Sat C rd σ next kret) :
     walk σ (body ++ [.ret vs]) = .ret ((selL x r body).flatMap (flEvs σ)) vs := by
   have hu : ∀ i < n, σ (V.n x) = ofK (addressOfIndex i) → i = r := fun i hi hxi ↦ by
     have he := congrArg logG (hxi.symm.trans hx)
@@ -335,7 +336,7 @@ allocating the buffers, its loads in the caller's words or the buffers, its call
 theorem os_completeAt_placeR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args : List E)
     (Out : List E → Layout → Prop) (Bd : Option ℕ) {body : List Stmt} {vs : List V}
-    (hb : fn.body = body ++ [.ret vs]) (x r n : ℕ) (hrn : r < n) (hn : n < 2 ^ 64 - 1)
+    (hb : fn.body = body ⧺ [.ret vs]) (x r n : ℕ) (hrn : r < n) (hn : n < 2 ^ 64 - 1)
     (hsel : body.all (SelOk x r n) = true) (haddrs : body.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (js : List ℕ) (hjs : js.Nodup) (hjl : ∀ j ∈ js, j < sizes.length)
     {C : CallRel} (Q : Val → Prop) (Ts : Val → Reader → List (Tree → Prop))

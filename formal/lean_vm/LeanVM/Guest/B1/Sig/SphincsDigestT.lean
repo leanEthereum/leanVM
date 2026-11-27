@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Sig.SpWotsT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The message digest as a template
@@ -70,7 +71,7 @@ def pw (s : Nat) : E := if s < 64 then word (2 ^ s) 0 else word 0 (2 ^ (s - 64))
 
 /-- One byte from base `b`: its range check below `256`, the table's address and value at `b + 5`. -/
 def sByte (mark : V) (b : Nat) : List Stmt :=
-  rangeS mark g255W b ++ [mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark, loadS (.n (b + 5)) (.n (b + 4)) 0]
+  rangeS mark g255W b ⧺ [mulS (.n (b + 4)) (.n (val% «verify_sig_lean_sphincs» "byte_bits")) mark, loadS (.n (b + 5)) (.n (b + 4)) 0]
 
 /-- The bytes after the top one, folding `val`. -/
 def sFromBytesRest : List V → Nat → V → List Stmt × Nat × V
@@ -118,7 +119,7 @@ padding run after its inputs, its counter cell the `0x01` byte at bit `32`; the 
 with its counter `SP_COUNTER_ONE = 2^24` (byte `3`) added to it. -/
 def sDigests : List Stmt :=
   [hintW "sp_rand" [sRand], copyS (.n (val% «verify_sig_lean_sphincs» "s7#0")) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0),
-    cst 10 (word 0 0), cst 11 (word (2 ^ 63) 0)] ++ padRun sPad ++
+    cst 10 (word 0 0), cst 11 (word (2 ^ 63) 0)] ⧺ padRun sPad ⧺
   [kecS (sHIns 7) (runV 17 2) false false,
     cst 19 (word (2 ^ 24) 0), cst 20 (word (2 ^ 32) 0), addS (.n (val% «verify_sig_lean_sphincs» "s8#2")) (.n (val% «verify_sig_lean_sphincs» "s8#0")) (.n (val% «verify_sig_lean_sphincs» "s8#1")),
     copyS (.n (val% «verify_sig_lean_sphincs» "s8#3")) sM1, copyS (.n (val% «verify_sig_lean_sphincs» "s8#3[1]")) (.n (val% «verify_sig_lean_sphincs» "s8#2")), cst 24 (word 0 0), cst 25 (word 0 0),
@@ -136,7 +137,7 @@ def sBitsHint : List Stmt :=
 /-- The bits pinned Boolean: `bits0[b]`, `bits1[b]` in turn, then `bits2`. -/
 def sBooleans : List Stmt :=
   ((List.range 128).flatMap fun b => [mulS (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits0[0]") + b)),
-    mulS (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b))]) ++ booleans 284 16
+    mulS (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b)) (.n ((val% «verify_sig_lean_sphincs» "bits1[0]") + b))]) ⧺ booleans 284 16
 
 /-- **Bit `p` of the digest read most significant first** (`sp_md_bit`): bit `7 - p % 8` of byte
 `p / 8`, in the bit run of the first call's cells. -/
@@ -168,7 +169,7 @@ def sFVal (c z : Nat) : V := .n (300 + 29 * c + 3 * (9 - z))
 def sForsField (c : Nat) : List Stmt :=
   (if c = 0 then [copyS (.n (val% «verify_sig_lean_sphincs» "vals[9]")) (sMdBit 0)]
     else [cst (299 + 29 * c) (word (2 * c) 0),
-      addS (.n (300 + 29 * c)) (sMdBit (10 * c)) (.n (299 + 29 * c))]) ++
+      addS (.n (300 + 29 * c)) (sMdBit (10 * c)) (.n (299 + 29 * c))]) ⧺
   (shiftsG (fun r => sMdBit (10 * c + r)) 10 (300 + 29 * c)).tail
 
 /-- `sp_fors_field` of every tree. -/
@@ -242,7 +243,7 @@ def sMd1 : List Stmt × Nat × V :=
   (x.1 ++ r.1, r.2.1, r.2.2)
 
 /-- The digest's first 30 bytes. -/
-def sMdBytes : List Stmt := (sMdByte 0 1067).1 ++ sMd0.1 ++ sMd1.1
+def sMdBytes : List Stmt := (sMdByte 0 1067).1 ⧺ sMd0.1 ⧺ sMd1.1
 
 /-! ## The check -/
 
@@ -268,13 +269,13 @@ def corr1W : E := word 5558655801016247104 401131962368
 corr0`, `d0[1] = md1 + corr1 + (lvals[24] + pad · g^2) · 2^112 + tree_mid · 2^120`, the unused
 bytes, and `(d1[0] + lvals[8] + lvals[0] · g^8 + unused · g^16) · y⁻¹` in `K`. -/
 def sCheck : List Stmt :=
-  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ++
-    sPadBits ++
+  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ⧺
+    sPadBits ⧺
   [cst 1295 corr0W, addS sHm0 sMd0.2.2 (.n (val% «verify_sig_lean_sphincs» "s33#0")), cst 1296 corr1W,
     addS (.n (val% «verify_sig_lean_sphincs» "s34#1")) sMd1.2.2 (.n (val% «verify_sig_lean_sphincs» "s34#0")), cst 1298 (word 4 0), mulS (.n (val% «verify_sig_lean_sphincs» "s34#3")) (.n (val% «verify_sig_lean_sphincs» "pad@5")) (.n (val% «verify_sig_lean_sphincs» "s34#2")),
     addS (.n (val% «verify_sig_lean_sphincs» "s34#4")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "s34#3")), cst 1301 (pw 112), mulS (.n (val% «verify_sig_lean_sphincs» "s34#6")) (.n (val% «verify_sig_lean_sphincs» "s34#4")) (.n (val% «verify_sig_lean_sphincs» "s34#5")),
     addS (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#1")) (.n (val% «verify_sig_lean_sphincs» "s34#6")), cst 1304 (pw 120), mulS (.n (val% «verify_sig_lean_sphincs» "s34#9")) sTreeMid (.n (val% «verify_sig_lean_sphincs» "s34#8")),
-    addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++
+    addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ⧺ sUnused.1 ⧺
   [addS (.n (val% «verify_sig_lean_sphincs» "high~0")) sHm1 (sLVal 8), cst 1364 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "high~2")) (sLVal 0) (.n (val% «verify_sig_lean_sphincs» "high~1")),
     addS (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~0")) (.n (val% «verify_sig_lean_sphincs» "high~2")), cst 1367 (word 65536 0),
     mulS (.n (val% «verify_sig_lean_sphincs» "high~5")) sUnused.2.2 (.n (val% «verify_sig_lean_sphincs» "high~4")), addS (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~3")) (.n (val% «verify_sig_lean_sphincs» "high~5")),
@@ -284,7 +285,7 @@ def sCheck : List Stmt :=
 /-- **The message digest's block**: `verify_sig_lean_sphincs`'s statements up to the digest's
 check; the next value is `n1372`. -/
 def sDigestBlock : List Stmt :=
-  sMsg ++ sDigests ++ sBitsHint ++ sBooleans ++ sForsFields ++ sLeafShifts ++ sMdBytes ++ sCheck
+  sMsg ⧺ sDigests ⧺ sBitsHint ⧺ sBooleans ⧺ sForsFields ⧺ sLeafShifts ⧺ sMdBytes ⧺ sCheck
 
 end
 end LeanVM.Guest.B1.Sig

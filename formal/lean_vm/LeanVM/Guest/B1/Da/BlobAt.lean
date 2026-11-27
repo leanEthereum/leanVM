@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Da.CellLAt
 public import LeanVM.Guest.B1.Da.PadAt
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_blob»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A blob, placed
@@ -38,7 +39,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 /-- `da_verify_blob`'s body before its `ret`. -/
 def blobPre : List Stmt := blobBody.dropLast
 
-theorem blob_body : (fn% «da_verify_blob»).body = blobPre ++ [.ret [.n (val% «da_verify_blob» "s5#0"), .n (val% «da_verify_blob» "s5#0[1]")]] := by
+theorem blob_body : (fn% «da_verify_blob»).body = blobPre ⧺ [.ret [.n (val% «da_verify_blob» "s5#0"), .n (val% «da_verify_blob» "s5#0[1]")]] := by
   have hok := blob_ok
   unfold blobOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok

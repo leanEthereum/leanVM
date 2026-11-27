@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat bodies, placed
@@ -257,7 +258,7 @@ theorem callsMatch_length {σ : Val} : ∀ {cs : List Call} {ks : List Kid}
 
 /-- **Every walk of a flat function sets up `flatCalls`.** -/
 theorem calls_of_walk_flat {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {pre : List Stmt}
-    {vs : List V} (hb : fn.body = pre ++ [.ret vs]) (hst : pre.all Stmt.flat = true) {σ : Val}
+    {vs : List V} (hb : fn.body = pre ⧺ [.ret vs]) (hst : pre.all Stmt.flat = true) {σ : Val}
     (hdo : ∀ s ∈ pre, DispOk σ s) : ∀ fn' es' vs', coreProgram.find? f = some fn' →
       walk σ fn'.body = .ret es' vs' → calls es' = flatCalls pre σ := by
   intro fn' es' vs' hf' hw'
@@ -284,7 +285,7 @@ theorem kidsFromIn_mono {rd : Reader} {σ : Val} {R R' : ℕ → Prop} (hR : ∀
 loads in `R`, its buffers or `Dk`, its claim `D` within its buffers and `Dk`. -/
 theorem relAtIn_flat {rd : Reader} {R D Dk : ℕ → Prop} {fp N : ℕ} {f : String} {fn : Fn}
     (hf : coreProgram.find? f = some fn) (hl : coreProgram.loop f = false) {args rets : List E}
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs]) (hst : pre.all Stmt.flat = true)
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs]) (hst : pre.all Stmt.flat = true)
     (haddrs : pre.filterMap Main.Stmt.addrS = []) {sizes : List ℕ} {own : List (List E)}
     (hown : List.Forall₂ (fun c s => c.length ≤ s) own sizes) {C : CallRel} {σ : Val}
     (hp : fn.params.map σ = args) (hdo : ∀ s ∈ pre, DispOk σ s)

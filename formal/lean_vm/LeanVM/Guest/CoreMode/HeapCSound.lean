@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.HeapCStmt
 public import LeanVM.Guest.CoreMode.Fam.LoopTree
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Memory.Tree
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The heap check with calls and loops is sound
@@ -886,7 +887,7 @@ theorem initC_ok {X : CX} {σ : Val} {rd : Reader} {st0 : CSt} (h : initC X = so
 /-- A loop helper's path, its tail's events named: its body's, the tail's guard, then its tail call. -/
 theorem walk_tail {σ : Val} {pre : List Stmt} {c i' : V} {g : String} {ps : List V} {es1 : List Ev}
     (h : walk σ pre = .fall es1) :
-    walk σ (pre ++ [.callIf c g (i' :: ps), .ret []]) =
+    walk σ (pre ⧺ [.callIf c g (i' :: ps), .ret []]) =
       .ret (es1 ++ [.inK c, if σ c = 0 then .skip g (i' :: ps) else .call g (i' :: ps) []]) [] := by
   rw [walk_append, h]
   simp [walk, walk1, Out.seq, Out.pre]

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Eq.EqTree
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_keccak` as a template
@@ -131,9 +132,9 @@ def iotaSegT (s b c w0 w1 : ℕ) : List Stmt :=
   let v0 := (iotaIdx s 0).map (flipOf s b)
   let v1 := (iotaIdx s 1).map (flipOf s b)
   let c1 := c + v0.length
-  addChainT v0 c ++
-    [.atom (.mul (.n (c + v0.length - 1)) (.n w0) (.n (addChainV v0 c)))] ++
-    addChainT v1 c1 ++
+  addChainT v0 c ⧺
+    [.atom (.mul (.n (c + v0.length - 1)) (.n w0) (.n (addChainV v0 c)))] ⧺
+    addChainT v1 c1 ⧺
     [.atom (.mul (.n (c1 + v1.length - 1)) (.n w1) (.n (addChainV v1 c1))),
       .atom (.add (.n (c1 + v1.length)) (.n (c + v0.length - 1)) (.n (c1 + v1.length - 1)))]
 
@@ -169,8 +170,8 @@ one coordinate, `1 + r` at `b + 4`, `r` at `b + 5`), the flips, the `ι` term, t
 def stepT (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) : List Stmt :=
   let f0 := b + 6
   let c := f0 + flipSz s * (iotaUsed s).length
-  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
-  eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s f0 ++ iotaSegT s f0 c (b + 4) (b + 5) ++
+  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ⧺
+  eqfLevel0T (.n (b + 1)) 0 (b + 2) ⧺ flipsT s f0 ⧺ iotaSegT s f0 c (b + 4) (b + 5) ⧺
   stepTailT s (iotaSegEnd s c) cap cur cb pn (iotaSegEnd s c - 1)
 
 /-- The value after step `s`. -/
@@ -236,26 +237,26 @@ def vkPointT : List Stmt :=
 
 /-- The segment and the five lane coordinates squeezed. -/
 def vkSqueezesT : List Stmt :=
-  sqZeroT 13 74 ++ [.atom (.load (.n (val% «verify_keccak» "nxt[0]@1")) (.n (val% «verify_keccak» "segment")) 0), .atom (.hint (.alloc (.n (val% «verify_keccak» "r_lane")) 5))] ++
+  sqZeroT 13 74 ⧺ [.atom (.load (.n (val% «verify_keccak» "nxt[0]@1")) (.n (val% «verify_keccak» "segment")) 0), .atom (.hint (.alloc (.n (val% «verify_keccak» "r_lane")) 5))] ⧺
     ((List.range 5).map fun i ↦
-      sqZeroT (if i = 0 then 82 else 83 + 13 * i) (88 + 13 * i) ++
+      sqZeroT (if i = 0 then 82 else 83 + 13 * i) (88 + 13 * i) ⧺
         [.atom (.load (.n (88 + 13 * i)) (.n (val% «verify_keccak» "r_lane")) i)]).flatten
 
 /-- **The head.** -/
 def vkHeadT : List Stmt :=
-  (List.range 5).map (fun i ↦ .atom (.copy (.n ((val% «verify_keccak» "sp[0]@1") + i)) (.n i))) ++ vkBitsT ++
-    copyWordsT (.n (val% «verify_keccak» "chi")) (.n (val% «verify_keccak» "z_vals")) 0 0 56 4 ++ vkPointT ++ vkSqueezesT ++ fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 (val% «verify_keccak» "x@1")
+  (List.range 5).map (fun i ↦ .atom (.copy (.n ((val% «verify_keccak» "sp[0]@1") + i)) (.n i))) ⧺ vkBitsT ⧺
+    copyWordsT (.n (val% «verify_keccak» "chi")) (.n (val% «verify_keccak» "z_vals")) 0 0 56 4 ⧺ vkPointT ⧺ vkSqueezesT ⧺ fsNextT (.n (val% «verify_keccak» "cursor@1")) 0 (val% «verify_keccak» "x@1")
 
 /-- **The first claim's record.** -/
 def vkFirstT : List Stmt :=
   [.atom (.hint (.alloc (.n (val% «verify_keccak» "claims")) 286)), .atom (.const (.n (val% «verify_keccak» "s32#0")) (word 1 0)),
     .atom (.load (.n (val% «verify_keccak» "s32#0")) (.n (val% «verify_keccak» "claims")) 1), .atom (.load (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "claims")) 2),
-    .atom (.hint (.alloc (.n (val% «verify_keccak» "mu_tree")) 30))] ++
-  eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4 ++ copyWordsT (.n (val% «verify_keccak» "mu_tree")) (.n (val% «verify_keccak» "claims")) 14 6 213 16 ++
-  [.atom (.hint (.alloc (.n (val% «verify_keccak» "lane_tree")) 62))] ++ eqtreeT (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5 ++
+    .atom (.hint (.alloc (.n (val% «verify_keccak» "mu_tree")) 30))] ⧺
+  eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "mu_tree")) 0 159 4 ⧺ copyWordsT (.n (val% «verify_keccak» "mu_tree")) (.n (val% «verify_keccak» "claims")) 14 6 213 16 ⧺
+  [.atom (.hint (.alloc (.n (val% «verify_keccak» "lane_tree")) 62))] ⧺ eqtreeT (.n (val% «verify_keccak» "r_lane")) (.n (val% «verify_keccak» "lane_tree")) 0 230 5 ⧺
   [.atom (.const (.n (val% «verify_keccak» "s40#0")) (word 1073741824 0)), .atom (.mul (.n (val% «verify_keccak» "s40#1")) (.n (val% «verify_keccak» "lane_tree")) (.n (val% «verify_keccak» "s40#0"))),
-    .atom (.load (.n (val% «verify_keccak» "s40#1")) (.n (val% «verify_keccak» "claims")) 3), .atom (.hint (.alloc (.n (val% «verify_keccak» "segment_tree")) 2))] ++
-  eqtreeT (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1 ++ pairsDotT (.n (val% «verify_keccak» "lane_tree")) (.n (val% «verify_keccak» "output_lanes")) (consecOffs 30 0 25) 341 ++
+    .atom (.load (.n (val% «verify_keccak» "s40#1")) (.n (val% «verify_keccak» "claims")) 3), .atom (.hint (.alloc (.n (val% «verify_keccak» "segment_tree")) 2))] ⧺
+  eqtreeT (.n (val% «verify_keccak» "segment")) (.n (val% «verify_keccak» "segment_tree")) 0 338 1 ⧺ pairsDotT (.n (val% «verify_keccak» "lane_tree")) (.n (val% «verify_keccak» "output_lanes")) (consecOffs 30 0 25) 341 ⧺
   [.atom (.load (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "segment_tree")) 1), .atom (.mul (.n (val% «verify_keccak» "s45#1")) (.n (val% «verify_keccak» "s45#0")) (.n (val% «verify_keccak» "output@25"))),
     .atom (.add (.n (val% «verify_keccak» "s45#2")) (.n (val% «verify_keccak» "x@1")) (.n (val% «verify_keccak» "s45#1"))), .atom (.load (.n (val% «verify_keccak» "s45#2")) (.n (val% «verify_keccak» "claims")) 0)]
 
@@ -265,7 +266,7 @@ def vkFirstT : List Stmt :=
 slot's equality weights (`eqfT`, the first 50), the segment's, and per lane the segments'
 `first .. first + count` weighted (`keccak_slot_lanes`). -/
 def slotLanesT (slot segp b first count : ℕ) : List Stmt :=
-  eqfT (.n slot) 0 6 50 b ++ eqfLevel0T (.n segp) 0 (b + 129) ++
+  eqfT (.n slot) 0 6 50 b ⧺ eqfLevel0T (.n segp) 0 (b + 129) ⧺
   ((List.range 25).map fun lane ↦
     if count = 1 then
       [.atom (.mul (.n (b + 133 + 2 * lane)) (.n (b + 131))
@@ -303,8 +304,8 @@ def slicesT (cur : V) (capb b : ℕ) : List Stmt :=
       [keccakA (slCells b (g - 1) ++ cap5 (slCap capb b (g - 1)))
         ((List.range 13).map fun k ↦ .n (slP b g + k))]) ++
     ((List.range 4).map fun j ↦
-      fsNextT cur (4 * g + j) (slB b (4 * g + j)) ++
-        [.atom (.load (.n (slB b (4 * g + j))) (.n (val% «verify_keccak» "slices")) (4 * g + j))]).flatten).flatten ++
+      fsNextT cur (4 * g + j) (slB b (4 * g + j)) ⧺
+        [.atom (.load (.n (slB b (4 * g + j))) (.n (val% «verify_keccak» "slices")) (4 * g + j))]).flatten).flatten ⧺
   [keccakA (slCells b 15 ++ cap5 (slCap capb b 15)) ((List.range 13).map fun k ↦ .n (slP b 16 + k))]
 
 /-! ## The shifts of the slices -/
@@ -326,7 +327,7 @@ def foldLevelT (src : ℕ → ℕ) (b : ℕ) (a : V) (t : ℕ) : List Stmt :=
   let n := 2 ^ (6 - t)
   let B := b + 195 * t
   [.atom (.load (.n B) a t), .atom (.const (.n (B + 1)) (word 1 0)),
-    .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ++
+    .atom (.add (.n (B + 2)) (.n (B + 1)) (.n B))] ⧺
   ((List.range (2 ^ (t + 1))).filter (fun q' ↦
       t + 1 < 6 || shiftUsed.contains (q' / 2 + 2 ^ t * (q' % 2)))).zipIdx.flatMap fun (q', c) ↦
     let p := q' / 2
@@ -346,17 +347,17 @@ def foldT (src : ℕ → ℕ) (b : ℕ) (a : V) : List Stmt :=
 
 /-- The twelve steps. -/
 def vkStepsT : List Stmt :=
-  stepT 0 443 [148, 149, 150, 151, 152] 0 156 0 ++
-  stepT 1 484 [478, 479, 480, 481, 482] 483 156 477 ++
-  stepT 2 519 [513, 514, 515, 516, 517] 518 477 512 ++
-  stepT 3 553 [547, 548, 549, 550, 551] 552 512 546 ++
-  stepT 4 596 [590, 591, 592, 593, 594] 595 546 589 ++
-  stepT 5 637 [631, 632, 633, 634, 635] 636 589 630 ++
-  stepT 6 680 [674, 675, 676, 677, 678] 679 630 673 ++
-  stepT 7 713 [707, 708, 709, 710, 711] 712 673 706 ++
-  stepT 8 754 [748, 749, 750, 751, 752] 753 706 747 ++
-  stepT 9 792 [786, 787, 788, 789, 790] 791 747 785 ++
-  stepT 10 835 [829, 830, 831, 832, 833] 834 785 828 ++
+  stepT 0 443 [148, 149, 150, 151, 152] 0 156 0 ⧺
+  stepT 1 484 [478, 479, 480, 481, 482] 483 156 477 ⧺
+  stepT 2 519 [513, 514, 515, 516, 517] 518 477 512 ⧺
+  stepT 3 553 [547, 548, 549, 550, 551] 552 512 546 ⧺
+  stepT 4 596 [590, 591, 592, 593, 594] 595 546 589 ⧺
+  stepT 5 637 [631, 632, 633, 634, 635] 636 589 630 ⧺
+  stepT 6 680 [674, 675, 676, 677, 678] 679 630 673 ⧺
+  stepT 7 713 [707, 708, 709, 710, 711] 712 673 706 ⧺
+  stepT 8 754 [748, 749, 750, 751, 752] 753 706 747 ⧺
+  stepT 9 792 [786, 787, 788, 789, 790] 791 747 785 ⧺
+  stepT 10 835 [829, 830, 831, 832, 833] 834 785 828 ⧺
   stepT 11 876 [870, 871, 872, 873, 874] 875 828 869
 
 /-- The committed outputs' opening. -/
@@ -364,9 +365,9 @@ def vkOutT : List Stmt :=
   [.atom (.mul (.n (val% «verify_keccak» "out_slot")) (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "tau_g"))), .atom (.const (.n (val% «verify_keccak» "fs0@14~7")) (word 0 0)),
     .atom (.const (.n (val% «verify_keccak» "fs0@14~8")) (word 0 0)),
     .call "keccak_plain_rounds__L6_L0" [.n (val% «verify_keccak» "fs0@13"), .n (val% «verify_keccak» "fs1@13"), .n (val% «verify_keccak» "fs2@13"), .n (val% «verify_keccak» "fs3@13"), .n (val% «verify_keccak» "fs4@13"), .n (val% «verify_keccak» "fs0@14~7"),
-      .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@14") + j))] ++
-  fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 (val% «verify_keccak» "x@2") ++ [.atom (.mul (.n (val% «verify_keccak» "s52#0")) (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "pack_g")))] ++
-  slotLanesT 916 929 930 1 1 ++ dotLoadsT ((List.range 25).map (slotLaneV 930 1)) (.n (val% «verify_keccak» "lane_tree")) 30 1113 ++
+      .n (val% «verify_keccak» "fs0@14~8"), .n (val% «verify_keccak» "cursor@13"), .n (val% «verify_keccak» "x@1"), .n (val% «verify_keccak» "out_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@14") + j))] ⧺
+  fsNextT (.n (val% «verify_keccak» "cursor@14")) 0 (val% «verify_keccak» "x@2") ⧺ [.atom (.mul (.n (val% «verify_keccak» "s52#0")) (.n (val% «verify_keccak» "point")) (.n (val% «verify_keccak» "pack_g")))] ⧺
+  slotLanesT 916 929 930 1 1 ⧺ dotLoadsT ((List.range 25).map (slotLaneV 930 1)) (.n (val% «verify_keccak» "lane_tree")) 30 1113 ⧺
   [.atom (.mul (.n (val% «verify_keccak» "s55#0")) (.n (val% «verify_keccak» "lanes_sum@25")) (.n (val% «verify_keccak» "x@2"))), .atom (.assertEq (.n (val% «verify_keccak» "s55#0")) (.n (val% «verify_keccak» "out_value"))),
     .atom (.const (.n (val% «verify_keccak» "s57#0")) (word 1 0)), .atom (.add (.n (val% «verify_keccak» "s57#1")) (.n (val% «verify_keccak» "s57#0")) (.n (val% «verify_keccak» "pack_g"))),
     .atom (.const (.n (val% «verify_keccak» "s57#2")) (word 1 0)), .atom (.const (.n (val% «verify_keccak» "s57#3")) (word 16 0)),
@@ -380,14 +381,14 @@ def vkInT : List Stmt :=
     .atom (.mul (.n (val% «verify_keccak» "fs0@15~11")) (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "fs0@15~10"))),
     .call "keccak_plain_rounds__L4_L1" [.n (val% «verify_keccak» "fs0@14"), .n (val% «verify_keccak» "fs1@14"), .n (val% «verify_keccak» "fs2@14"), .n (val% «verify_keccak» "fs3@14"), .n (val% «verify_keccak» "fs4@14"), .n (val% «verify_keccak» "word_rate[0]"),
       .n (val% «verify_keccak» "word_rate[1]"), .n (val% «verify_keccak» "fs0@15~8"), .n (val% «verify_keccak» "fs0@15~9"), .n (val% «verify_keccak» "fs0@15~11"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@15") + j)),
-    .atom (.hint (.alloc (.n (val% «verify_keccak» "low_tree")) 30))] ++
-  eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "low_tree")) 39 1206 4 ++ pairsDotT (.n (val% «verify_keccak» "low_tree")) (.n (val% «verify_keccak» "claims")) (consecOffs 14 270 16) 1260 ++
+    .atom (.hint (.alloc (.n (val% «verify_keccak» "low_tree")) 30))] ⧺
+  eqtreeT (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "low_tree")) 39 1206 4 ⧺ pairsDotT (.n (val% «verify_keccak» "low_tree")) (.n (val% «verify_keccak» "claims")) (consecOffs 14 270 16) 1260 ⧺
   [.atom (.const (.n (val% «verify_keccak» "in_slot~0")) (word 549755813888 0)), .atom (.mul (.n (val% «verify_keccak» "in_slot~1")) (.n (val% «verify_keccak» "z_vals")) (.n (val% «verify_keccak» "in_slot~0"))),
     .atom (.mul (.n (val% «verify_keccak» "in_slot")) (.n (val% «verify_keccak» "in_slot~1")) (.n (val% «verify_keccak» "tau_g"))), .atom (.const (.n (val% «verify_keccak» "fs0@16~7")) (word 0 0)),
     .atom (.const (.n (val% «verify_keccak» "fs0@16~8")) (word 0 0)),
     .call "keccak_plain_rounds__L6_L0" [.n (val% «verify_keccak» "fs0@15"), .n (val% «verify_keccak» "fs1@15"), .n (val% «verify_keccak» "fs2@15"), .n (val% «verify_keccak» "fs3@15"), .n (val% «verify_keccak» "fs4@15"), .n (val% «verify_keccak» "fs0@16~7"),
-      .n (val% «verify_keccak» "fs0@16~8"), .n (val% «verify_keccak» "cursor@15"), .n (val% «verify_keccak» "low_value"), .n (val% «verify_keccak» "in_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@16") + j))] ++
-  (List.range 5).map (fun j ↦ .atom (.copy (.n ((val% «verify_keccak» "sp[0]@2") + j)) (.n ((val% «verify_keccak» "fs0@16") + j)))) ++
+      .n (val% «verify_keccak» "fs0@16~8"), .n (val% «verify_keccak» "cursor@15"), .n (val% «verify_keccak» "low_value"), .n (val% «verify_keccak» "in_slot"), .n (val% «verify_keccak» "tabs")] ((List.range 7).map fun j ↦ .n ((val% «verify_keccak» "fs0@16") + j))] ⧺
+  (List.range 5).map (fun j ↦ .atom (.copy (.n ((val% «verify_keccak» "sp[0]@2") + j)) (.n ((val% «verify_keccak» "fs0@16") + j)))) ⧺
   slicesT (.n (val% «verify_keccak» "cursor@16")) 1335 1340
 
 /-- The shifts of the slices' values. -/
@@ -395,23 +396,23 @@ def vkSh (r : ℕ) : ℕ := foldVal (fun j ↦ 1976 + j) 2040 6 r
 
 /-- The inputs' check, the copy of their pack coordinates, the return. -/
 def vkFinT : List Stmt :=
-  [.atom (.load (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "claims")) 266), .atom (.mul (.n (val% «verify_keccak» "s72#0")) (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "pack_g")))] ++
-  slotLanesT 1325 1741 1742 0 2 ++ [.atom (.load (.n (val% «verify_keccak» "last_local")) (.n (val% «verify_keccak» "claims")) 268)] ++
-  (List.range 64).map (fun z ↦ .atom (.load (.n ((val% «verify_keccak» "level[0]") + z)) (.n (val% «verify_keccak» "slices")) z)) ++
-  foldT (fun j ↦ 1976 + j) 2040 (.n (val% «verify_keccak» "last_local")) ++ [.atom (.load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267)] ++
-  (formAll (.n (val% «verify_keccak» "last_lanes")) vkSh (slotLaneV 1742 2) 3139).1 ++
+  [.atom (.load (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "claims")) 266), .atom (.mul (.n (val% «verify_keccak» "s72#0")) (.n (val% «verify_keccak» "last_point")) (.n (val% «verify_keccak» "pack_g")))] ⧺
+  slotLanesT 1325 1741 1742 0 2 ⧺ [.atom (.load (.n (val% «verify_keccak» "last_local")) (.n (val% «verify_keccak» "claims")) 268)] ⧺
+  (List.range 64).map (fun z ↦ .atom (.load (.n ((val% «verify_keccak» "level[0]") + z)) (.n (val% «verify_keccak» "slices")) z)) ⧺
+  foldT (fun j ↦ 1976 + j) 2040 (.n (val% «verify_keccak» "last_local")) ⧺ [.atom (.load (.n (val% «verify_keccak» "last_lanes")) (.n (val% «verify_keccak» "claims")) 267)] ⧺
+  (formAll (.n (val% «verify_keccak» "last_lanes")) vkSh (slotLaneV 1742 2) 3139).1 ⧺
   [.atom (.mul (.n (val% «verify_keccak» "s79#1")) (.n (val% «verify_keccak» "mu_at_low@16")) (.n (formAll (.n (val% «verify_keccak» "last_lanes")) vkSh (slotLaneV 1742 2) 3139).2.2)),
     .atom (.assertEq (.n (val% «verify_keccak» "s79#1")) (.n (val% «verify_keccak» "in_value"))), .atom (.const (.n (val% «verify_keccak» "s81#0")) (word 1 0)),
     .atom (.add (.n (val% «verify_keccak» "s81#1")) (.n (val% «verify_keccak» "s81#0")) (.n (val% «verify_keccak» "pack_g"))), .atom (.const (.n (val% «verify_keccak» "s81#2")) (word 1 0)),
     .atom (.const (.n (val% «verify_keccak» "s81#3")) (word 16 0)), .atom (.mul (.n (val% «verify_keccak» "s81#4")) (.n (val% «verify_keccak» "fs0@15~11")) (.n (val% «verify_keccak» "s81#3"))),
-    .callIf (.n (val% «verify_keccak» "s81#1")) name% «verify_keccak_loop2» [.n (val% «verify_keccak» "s81#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s81#4"), .n (val% «verify_keccak» "last_point")]] ++
-  (List.range 5).map (fun j ↦ .atom (.copy (.n ((val% «verify_keccak» "s82#0") + j)) (.n ((val% «verify_keccak» "nxt[8]@22") + j)))) ++
+    .callIf (.n (val% «verify_keccak» "s81#1")) name% «verify_keccak_loop2» [.n (val% «verify_keccak» "s81#2"), .n (val% «verify_keccak» "pack_g"), .n (val% «verify_keccak» "s81#4"), .n (val% «verify_keccak» "last_point")]] ⧺
+  (List.range 5).map (fun j ↦ .atom (.copy (.n ((val% «verify_keccak» "s82#0") + j)) (.n ((val% «verify_keccak» "nxt[8]@22") + j)))) ⧺
   [.atom (.const (.n (val% «verify_keccak» "s82#1")) (word 27 0)), .atom (.mul (.n (val% «verify_keccak» "s82#2")) (.n (val% «verify_keccak» "cursor@16")) (.n (val% «verify_keccak» "s82#1"))),
     .atom (.copy (.n (val% «verify_keccak» "s82#0[5]")) (.n (val% «verify_keccak» "s82#2"))), .atom (.copy (.n (val% «verify_keccak» "s82#0[6]")) (.n (val% «verify_keccak» "x@2"))),
     .ret [.n (val% «verify_keccak» "s82#0"), .n (val% «verify_keccak» "s82#0[1]"), .n (val% «verify_keccak» "s82#0[2]"), .n (val% «verify_keccak» "s82#0[3]"), .n (val% «verify_keccak» "s82#0[4]"), .n (val% «verify_keccak» "s82#0[5]"), .n (val% «verify_keccak» "s82#0[6]")]]
 
 /-- **`verify_keccak`'s body.** -/
-def vkT : List Stmt := vkHeadT ++ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinT
+def vkT : List Stmt := vkHeadT ⧺ vkFirstT ⧺ vkStepsT ⧺ vkOutT ⧺ vkInT ⧺ vkFinT
 
 end
 end LeanVM.Guest.B1.VerifySub

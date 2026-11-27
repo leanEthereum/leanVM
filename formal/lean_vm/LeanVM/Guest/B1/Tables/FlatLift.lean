@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.VtC.Agree
 public import LeanVM.Guest.B1.Fwd.FlatIte
 public import LeanVM.Guest.Memory.LiftPure
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Flat functions, placed
@@ -62,7 +63,7 @@ structure FlatFn where
   hf : coreProgram.find? name = some fn
   hloop : coreProgram.loop name = false
   hp : fn.params = (List.range k).map V.n
-  hb : fn.body = pre ++ [.ret rets]
+  hb : fn.body = pre ⧺ [.ret rets]
   hevL : evL = (flatIte pre).map fixNe
   hchk : ∃ c, chk k evL = some c
   hdead : evL.all (deadS aux) = true

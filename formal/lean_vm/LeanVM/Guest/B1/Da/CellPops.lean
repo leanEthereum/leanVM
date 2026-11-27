@@ -15,6 +15,7 @@ public import LeanVM.Guest.Hints
 public import LeanVM.Guest.Memory.Uniform
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«da_verify_cell»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A cell check's pops
@@ -69,7 +70,7 @@ theorem cell_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List Memory
     (Memory.Tree.node "da_verify_cell" σ bufs kids).pops coreProgram rd = [cellPop σ] := by
   have h := cell_shape_ok
   simp only [cellShapeOk, Bool.and_eq_true] at h
-  have hb : Fn.body fn% «da_verify_cell» = [.atom symHint] ++ (Fn.body fn% «da_verify_cell»).drop (pos% «da_verify_cell» "s@1~0") := by
+  have hb : Fn.body fn% «da_verify_cell» = [.atom symHint] ⧺ (Fn.body fn% «da_verify_cell»).drop (pos% «da_verify_cell» "s@1~0") := by
     rw [← stmtsEqb_sound h.1, List.take_append_drop]
   have ha : symHint.pops rd σ = [cellPop σ] := by simp [symHint, Atom.pops, Hint.pops, Dest.words, cellPop]
   have hx := FallPops.atom (rd := rd) (σ := σ) symHint

@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.CoreMode.Route
 public import LeanVM.Guest.CoreMode.LoopWin
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A long body's core data checks in windows
@@ -138,7 +139,7 @@ theorem honB_long {j : ℕ} {fn : Fn} {cs ss : List ℕ} (hc : BWins (cellsB j) 
   rw [slice_all] at hcb
   simp only [cellsB, stmtsAll_eq, Bool.and_eq_true, List.all_eq_true] at hcb
   obtain ⟨-, -, hsel⟩ := swins_spec hs
-  have hb : fn.body = slice fn.body 0 (fn.body.length - 1) ++ [.ret []] := by
+  have hb : fn.body = slice fn.body 0 (fn.body.length - 1) ⧺ [.ret []] := by
     rw [← lastRet_spec hl, slice, List.drop_zero, Nat.sub_zero, List.take_append_drop]
   rw [List.take_zero] at hsel
   refine ⟨?_, List.all_eq_true.mpr fun s hs ↦ (hcb.1 s hs).1, List.all_eq_true.mpr fun s hs ↦ (hcb.1 s hs).2, ?_⟩

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.FlatG
 public import LeanVM.Guest.Budget.Bounded
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Callees reading earlier callees' buffers, within a bound
@@ -127,7 +128,7 @@ theorem kidsFromIn_of_kidsGB (κ : ℕ) : ∀ (pre : List ℕ) (ks : List KidG) 
 words (`kidsGBound`) at most `NB` at every frame pointer. -/
 theorem completeAt_flatGB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hnl : pre.all noLoadIte = true)
     (sizes : List ℕ) (own : ℕ → List ℕ → List (List E))

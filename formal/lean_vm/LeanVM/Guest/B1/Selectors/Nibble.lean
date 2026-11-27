@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Selectors.SelectorTables
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `sel_eq_nibble`, `sel_g_nibble`
@@ -44,7 +45,7 @@ def nbLv (B t i : ℕ) : ℕ :=
 
 /-- Level `t ≥ 1`: the coordinate and its complement, then the products. -/
 def nbLevel (B : ℕ) (pz pz1 : V) (t : ℕ) : List Stmt :=
-  [.atom (.load (.n (nbM B t - 2)) pz t), .atom (.load (.n (nbM B t - 1)) pz1 t)] ++
+  [.atom (.load (.n (nbM B t - 2)) pz t), .atom (.load (.n (nbM B t - 1)) pz1 t)] ⧺
   ((List.range (2 ^ t)).map fun i ↦
     [.atom (.mul (.n (nbM B t + 2 * i)) (.n (nbLv B (t - 1) i)) (.n (nbM B t - 1))),
       .atom (.mul (.n (nbM B t + 2 * i + 1)) (.n (nbLv B (t - 1) i)) (.n (nbM B t - 2)))]).flatten
@@ -56,8 +57,8 @@ def nbEqV (B e : ℕ) : ℕ :=
 
 /-- `sel_eq_nibble(out, z, z1, w)` from value `B`, `1 ≤ w ≤ 4`. -/
 def nbEq (B : ℕ) (pz pz1 peq : V) (w : ℕ) : List Stmt :=
-  [.atom (.load (.n B) pz1 0), .atom (.load (.n (B + 1)) pz 0)] ++
-    ((List.range (w - 1)).map fun t ↦ nbLevel B pz pz1 (t + 1)).flatten ++
+  [.atom (.load (.n B) pz1 0), .atom (.load (.n (B + 1)) pz 0)] ⧺
+    ((List.range (w - 1)).map fun t ↦ nbLevel B pz pz1 (t + 1)).flatten ⧺
     (List.range (2 ^ (w + 1) - 2)).map (fun e ↦ .atom (.load (.n (nbEqV B e)) peq e))
 
 /-! ## The `g` table -/
@@ -73,8 +74,8 @@ def nbGStep (c : ℕ) (pgs : V) (t : ℕ) : List Stmt :=
 
 /-- `sel_g_nibble(out, gs, w)` from value `c`, `1 ≤ w`. -/
 def nbG (c : ℕ) (pgs pgo : V) (w : ℕ) : List Stmt :=
-  [.atom (.const (.n c) (word 1 0)), .atom (.load (.n (c + 1)) pgs 0)] ++
-    ((List.range (w - 1)).map fun t ↦ nbGStep c pgs (t + 1)).flatten ++
+  [.atom (.const (.n c) (word 1 0)), .atom (.load (.n (c + 1)) pgs 0)] ⧺
+    ((List.range (w - 1)).map fun t ↦ nbGStep c pgs (t + 1)).flatten ⧺
     (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (nbGV c u)) pgo u))
 
 theorem nbLevel_noRet (B : ℕ) (pz pz1 : V) (t : ℕ) : Stmt.noRetList (nbLevel B pz pz1 t) = true := by

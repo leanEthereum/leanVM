@@ -11,6 +11,7 @@ public import LeanVM.Guest.CoreMode.LoopBC
 public import LeanVM.Guest.CoreMode.PairLoopC
 public import LeanVM.Guest.CoreMode.LoopPtr
 public import LeanVM.Guest.Mode.InvCert
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The core route for a loop helper
@@ -509,7 +510,7 @@ theorem loopCodeC_jump {Cf : CFun} {code pre : List OffsetInstruction} {oc od of
 /-! ## The body and its path -/
 
 theorem loopStmtB_of {nm : String} {pre : List Stmt} (hpre : ∀ s ∈ stmtsOf pre, isBS nm s = true) {c : V} {f : String}
-    {args : List V} : ∀ s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
+    {args : List V} : ∀ s ∈ stmtsOf (pre ⧺ [.callIf c f args, .ret []]), loopStmtC s = true := fun s hs ↦ by
   rcases stmts_loopB hs with hs | rfl | rfl
   · have := hpre s hs
     cases s <;> simp_all [isBS, loopStmtC]

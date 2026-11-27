@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Regions
 public import LeanVM.Guest.Value.Bits
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Straight-line bodies
@@ -270,7 +271,7 @@ theorem walk_dispatch (σ : Val) (pre post : List Stmt) (hpre : pre.all Stmt.str
     (hpost : post.all Stmt.straight = true) (x : V) (fs : List String) (args rets vs : List V)
     {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK
         (addressOfIndex i)) :
-    walk σ (pre ++ .dispatch x fs args rets :: (post ++ [.ret vs])) =
+    walk σ (pre ++ .dispatch x fs args rets :: (post ⧺ [.ret vs])) =
       .ret (pre.flatMap (slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (slEvs σ)) vs := by
   induction pre with
   | nil =>

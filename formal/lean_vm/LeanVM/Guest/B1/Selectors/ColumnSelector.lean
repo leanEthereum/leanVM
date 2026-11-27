@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«column_selector__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `column_selector`
@@ -177,7 +178,7 @@ def csNibT (κ k : ℕ) : List Stmt :=
   let d := 3 + k
   [.atom (.const (.n c) w15), .atom (.rangeCheck (.n d) (.n (c + 1)) (.n (c + 2)) (.n (c + 3)) (.n c)),
     .atom (.mul (.n (c + 4)) (.n (valf% «column_selector» "sel_eq")) (.n d)),
-    .atom (.load (.n (c + 5)) (.n (c + 4)) (32 * j + selEqOff (w - 1)))] ++
+    .atom (.load (.n (c + 5)) (.n (c + 4)) (32 * j + selEqOff (w - 1)))] ⧺
   if k = 0 then
     [.atom (.mul (.n (c + 6)) (.n (valf% «column_selector» "sel_g")) (.n d)), .atom (.load (.n (c + 7)) (.n (c + 6)) (16 * j))]
   else
@@ -195,7 +196,7 @@ def csPre (κ : ℕ) : List Stmt :=
   csHint κ :: if κ = 32 then
     [.atom (.const (.n (valf% «column_selector» "digits[0]")) (word 1 0)), .atom (.assertEq (.n (valf% «column_selector» "digits[0]")) (.n (valf% «column_selector» "offset"))),
       .atom (.const (.n 4) (word 1 0))]
-  else ((List.range (csN κ)).map (csNibT κ)).flatten ++
+  else ((List.range (csN κ)).map (csNibT κ)).flatten ⧺
     [.atom (.assertEq (.n (csRb κ (csN κ - 1))) (.n (valf% «column_selector» "offset"))),
       .atom (.copy (.n (csC κ (csN κ))) (.n (csSel κ (csN κ - 1))))]
 
@@ -206,14 +207,14 @@ def csRet (κ : ℕ) : ℕ := if κ = 32 then 4 else csC κ (csN κ)
 noncomputable def csCheck (κ : ℕ) : Bool :=
   match coreProgram.find? (lName "column_selector" κ) with
   | some fn => decide (fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")]) &&
-      tbStmtsEqb fn.body (csPre κ ++ [.ret [.n (csRet κ)]])
+      tbStmtsEqb fn.body (csPre κ ⧺ [.ret [.n (csRet κ)]])
   | none => false
 
 theorem csCheck_all : (List.range 31).all csCheck = true := by decide +kernel
 
 theorem csFound {κ : ℕ} (hκ : κ < 31) : ∃ fn : Fn,
     coreProgram.find? (lName "column_selector" κ) = some fn ∧ fn.params = [.n (valf% «column_selector» "offset"), .n (valf% «column_selector» "sel_eq"), .n (valf% «column_selector» "sel_g")] ∧
-      fn.body = csPre κ ++ [.ret [.n (csRet κ)]] := by
+      fn.body = csPre κ ⧺ [.ret [.n (csRet κ)]] := by
   have h := List.all_eq_true.mp csCheck_all κ (List.mem_range.mpr hκ)
   unfold csCheck at h
   split at h

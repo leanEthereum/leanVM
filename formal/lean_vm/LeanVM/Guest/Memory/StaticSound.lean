@@ -12,6 +12,7 @@ public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.Value.FieldBits
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Soundness of the static checker
@@ -1462,7 +1463,7 @@ theorem isEnd_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es
 /-- **A loop helper's shape.** -/
 theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = some pre) :
     ∃ c i' p0 prest, fn.params = p0 :: prest ∧
-      fn.body = pre ++ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetListS pre = true ∧
+      fn.body = pre ⧺ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetListS pre = true ∧
       isStep pre p0 i' = true ∧ ∃ x y, defAtom c pre = some (.add c x y) ∧
         ((isStep pre p0 x = true ∧ isEnd pre prest.head? endc y = true) ∨
           (isStep pre p0 y = true ∧ isEnd pre prest.head? endc x = true)) := by

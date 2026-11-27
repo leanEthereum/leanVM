@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.KeccakGkr.FlatG
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«ring_switch_weight»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `ring_switch_weight`, placed
@@ -42,13 +43,13 @@ theorem rsw_stores : storesOf 4 rswT = [] := by decide +kernel
 
 /-- `ring_switch_weight`'s statements before its `ret`. -/
 def rswPre : List Stmt :=
-  [.call "rs_eq_run" [.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ++
-  ((List.range 64).map rswTerm).flatten ++ [.atom (.copy (.n (val% «ring_switch_weight» "s3#0")) (.n (val% «ring_switch_weight» "rs_weight@64")))]
+  [.call "rs_eq_run" [.n (val% «ring_switch_weight» "z_vals"), .n (val% «ring_switch_weight» "point1"), .n (val% «ring_switch_weight» "qkeccakv_g")] [.n (val% «ring_switch_weight» "prod_final")]] ⧺
+  ((List.range 64).map rswTerm).flatten ⧺ [.atom (.copy (.n (val% «ring_switch_weight» "s3#0")) (.n (val% «ring_switch_weight» "rs_weight@64")))]
 
-theorem rswT_split : rswT = rswPre ++ [.ret [.n (val% «ring_switch_weight» "s3#0")]] := by
+theorem rswT_split : rswT = rswPre ⧺ [.ret [.n (val% «ring_switch_weight» "s3#0")]] := by
   simp only [rswT, rswPre, List.append_assoc, List.cons_append, List.nil_append]
 
-theorem rsw_body' : Fn.body fn% «ring_switch_weight» = rswPre ++ [.ret [.n (val% «ring_switch_weight» "s3#0")]] := by
+theorem rsw_body' : Fn.body fn% «ring_switch_weight» = rswPre ⧺ [.ret [.n (val% «ring_switch_weight» "s3#0")]] := by
   rw [show Fn.body fn% «ring_switch_weight» = rswT from rsw_body, rswT_split]
 
 theorem rsw_flat : rswPre.all Stmt.flat = true := by decide +kernel

@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.EndExecACur
 public import LeanVM.Guest.Bridge.AllocIdx
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The allocation hints ready
@@ -316,7 +317,7 @@ theorem loop_calls_ne {fn : Fn} {p : B2C.Plumb} (h : loopChk fn p = true) {σ : 
   rename_i cc g args rpre hrev
   simp only [Bool.and_eq_true] at h
   obtain ⟨hnr, -⟩ := h
-  have hbody : fn.body = rpre.reverse ++ [.callIf cc g args, .ret []] := by
+  have hbody : fn.body = rpre.reverse ⧺ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
   rw [hbody, Bridge.walk_append] at hw
   rcases walk_noRet (σ := σ) _ (noRetB_spec _ hnr) with ⟨es1, he1⟩ | he1

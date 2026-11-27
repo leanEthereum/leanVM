@@ -13,6 +13,7 @@ public import LeanVM.Guest.Memory.UniformF
 public import LeanVM.Guest.Exact.Free
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A layer's placement facts
@@ -34,7 +35,7 @@ open LeanVM.Guest.Memory
 
 /-- The body but its return. -/
 def layerPre (first : ℕ) : List Stmt :=
-  secA1 first ++ (secA2 first ++ (rmfeBlockT (layOff first) ++ (hornerS first ++
+  secA1 first ⧺ (secA2 first ++ (rmfeBlockT (layOff first) ++ (hornerS first ++
     (packSetupT (layOff first) first ++ (lastT (layOff first) ++ (localS (layOff first) ++
       (tReadsT (layOff first) ++ (eqfS (layOff first) ++ (weightT first (layOff first) ++
         tailPre (layOff first) (tW first) (tV first))))))))))
@@ -57,7 +58,7 @@ theorem gcInline_mem_layerT {first : ℕ} (hf : first < 2) :
   unfold layerT
   simp only [List.mem_append, h', true_or, or_true]
 
-theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layerVs first)] := by
+theorem layerT_pre (first : ℕ) : layerT first = layerPre first ⧺ [.ret (layerVs first)] := by
   rw [layerT_sections, tailT_split]
   simp only [layerPre, layerVs, List.append_assoc]
 

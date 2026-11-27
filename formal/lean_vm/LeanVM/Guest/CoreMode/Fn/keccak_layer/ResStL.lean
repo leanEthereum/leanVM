@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkChain
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `keccak_layer`'s cursor
@@ -47,15 +48,15 @@ def LayQ (J : Inst) : Prop :=
 
 /-- A layer's statements before its pack rounds' setup. -/
 def layA (first : ℕ) : List Stmt :=
-  headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ++ checkT (accL first) ++
-    sqT first ++ rmfeBlockT (layOff first) ++
+  headT first ⧺ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first) ⧺ checkT (accL first) ⧺
+    sqT first ⧺ rmfeBlockT (layOff first) ⧺
     hornerT (fun k ↦ ((prodTab first).getD k default).a) (layOff first + 531) (layOff first + 689)
 
 /-- A layer's statements between its last record and its tail. -/
 def layB (first : ℕ) : List Stmt :=
   localRoundsT (.n (layOff first + 807)) (.n (layOff first + 809)) (.n (layOff first + 808))
-      (cap5 (layOff first + 802)) (layOff first + 810) 11 ++
-    tReadsT (layOff first) ++ eqfT (.n (layOff first + 809)) 6 5 25 (layOff first + 1171) ++
+      (cap5 (layOff first + 802)) (layOff first + 810) 11 ⧺
+    tReadsT (layOff first) ⧺ eqfT (.n (layOff first + 809)) 6 5 25 (layOff first + 1171) ⧺
     weightT first (layOff first)
 
 /-- A layer's tail. -/

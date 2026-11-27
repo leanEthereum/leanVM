@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.CoreMode.Fn.child_claim_list_mono.ResM
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono_last__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The gap walk's reads
@@ -149,7 +150,7 @@ variable {A : String → Bridge.FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : B
 /-- The parts of `mlOk` the reads use. -/
 theorem mlOk_parts {k : ℕ} (hk0 : k ≠ 0) {F : Fn} (h : mlOk k F = true) :
     F.params = [.n (valf% «child_claim_list_mono_last» "rec"), .n (valf% «child_claim_list_mono_last» "region"), .n (valf% «child_claim_list_mono_last» "mark"), .n (valf% «child_claim_list_mono_last» "limit_g")] ∧ ∃ (atoms : List Atom) (r0 r1 : V),
-      F.body = atoms.map Stmt.atom ++ [.ret [r0, r1]] ∧
+      F.body = atoms.map Stmt.atom ⧺ [.ret [r0, r1]] ∧
       atoms.any (isLoadAt (.n 4) (.n (valf% «child_claim_list_mono_last» "rec")) 13) = true ∧ atoms.any (isLoadAt (.n 5) (.n (valf% «child_claim_list_mono_last» "rec")) 14) = true ∧
       monoRecs atoms 2 6 4 5 (.n (valf% «child_claim_list_mono_last» "mark")) k 0 k = true ∧
       (∃ c, mulOf atoms (.n (mlEnd k)) = some (.n (mCov 6 4 k), c) ∧ atoms.any (isConstAt c (2 ^ k) 0) = true) ∧

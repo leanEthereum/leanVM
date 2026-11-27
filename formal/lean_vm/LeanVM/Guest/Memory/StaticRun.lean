@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Memory.StaticVec
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Cutting a checker's walk
@@ -302,7 +303,7 @@ theorem loopTail_eq {fn : Fn} {endc : Option ℕ} {pre : List Stmt} (h : loopTai
     simp only at h
     split_ifs at h
     cases h
-    have hb : fn.body = rpre.reverse ++ [.callIf c g (i' :: rest), .ret []] := by
+    have hb : fn.body = rpre.reverse ⧺ [.callIf c g (i' :: rest), .ret []] := by
       have := congrArg List.reverse hrev
       rw [List.reverse_reverse] at this
       rw [this]; simp

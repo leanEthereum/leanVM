@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Main.MainAt
 public import LeanVM.Guest.B1.Sig.PopsKit
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main`'s own entries
@@ -87,7 +88,7 @@ theorem splice_inK_mid (c : V) : ∀ (xs ys : List Ev) (ks : List (List Pop)),
 
 /-- `main`'s straight blocks on its path under `σ`. -/
 noncomputable def mPath (σ : Val) : List Stmt :=
-  mPre ++ (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ) ++ mMid ++ (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg) ++ mPost
+  mPre ⧺ (if σ (.n (val% «main» "s50#1")) = 0 then mDa else mDaZ) ⧺ mMid ⧺ (if σ (.n (val% «main» "s63#1")) = 0 then mLeaf else mAgg) ⧺ mPost
 
 theorem splice_blocks (f : Stmt → List Ev) (c c' : V) (A B C D F : List Stmt) (ks : List (List Pop)) :
     splice rd σ (A.flatMap f ++ (.inK c :: B.flatMap f ++ (C.flatMap f ++ (.inK c' :: D.flatMap f ++

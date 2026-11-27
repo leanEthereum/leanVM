@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.CoreLoopC
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A long loop helper's checks in windows
@@ -229,7 +230,7 @@ theorem loopFields_of_wins {K : Mode.Cert} {Cf : CFun} {ml : List (ℕ × ℕ)} 
   rw [← hml] at hw
   obtain ⟨c, args, hd, hl, hnz⟩ := tailL_spec ht
   set pre := slice Cf.fn.body 0 (Cf.fn.body.length - 2) with hpre
-  have hbody : Cf.fn.body = pre ++ [.callIf c Cf.fn.name args, .ret []] := by
+  have hbody : Cf.fn.body = pre ⧺ [.callIf c Cf.fn.name args, .ret []] := by
     rw [hpre, slice, List.drop_zero, Nat.sub_zero, ← hd, List.take_append_drop]
   simp only [winL, stmtsAll_eq, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at hw
   obtain ⟨⟨hst, htop⟩, hmlE⟩ := hw

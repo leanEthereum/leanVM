@@ -14,6 +14,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«claim_list_digest»
 import LeanVM.Guest.Data.ValNames.«claim_list_chain»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `claim_list_digest`, evaluated
@@ -92,7 +93,7 @@ def clTail : List Stmt := [.atom (.touch (.n (val% «claim_list_digest» "s2#0")
 
 /-- The empty list's run, evaluated. -/
 noncomputable def clZEval : List Stmt :=
-  clHead ++ cl23Zero ++ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) (val% «claim_list_digest» "s2#0") ++ clTail
+  clHead ⧺ cl23Zero ⧺ fillH ((chk 2 (clHead ++ cl23Zero)).getD 0) (val% «claim_list_digest» "s2#0") ⧺ clTail
 
 /-- `list_split`'s call in `claim_list_digest`. -/
 def clSplitS : Stmt := .call "list_split" [.n (val% «claim_list_digest» "n_g")] [.n (val% «claim_list_digest» "bigs"), .n (val% «claim_list_digest» "groups"), .n (val% «claim_list_digest» "rest")]

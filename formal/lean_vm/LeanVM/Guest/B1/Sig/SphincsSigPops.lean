@@ -13,6 +13,7 @@ public import LeanVM.Guest.Hints
 import LeanVM.Protocol.Verifier.Load
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A leanSPHINCS signature's pops are its hints
@@ -583,7 +584,7 @@ theorem verify_sig_lean_sphincs_complete_vals (C : CallRel) (rd : Reader) (p bb 
     · exact Or.inl ⟨k, hk, by rw [e, f0]⟩
     · obtain ⟨v, hv256, ev⟩ := hptrs q hq
       exact Or.inr ⟨v, hv256, by rw [e, ev, limb_mul_ofK (hbb 0 (by norm_num)).1]⟩
-  · have hb : (Fn.«verify_sig_lean_sphincs».core).body = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
+  · have hb : (Fn.«verify_sig_lean_sphincs».core).body = sPre ⧺ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
       rw [sBody_eq, sBody_splitC]
     have hx : SplicePops rd σf sPre (spKids pk m sig) (spSegPops pk m sig) :=
       hsp (spKid pk m sig ⟨0, by decide⟩ (forsKeyCell pk m sig))

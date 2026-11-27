@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.Basic
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_tables`' body
@@ -59,8 +60,8 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
     rw [this]; exact vtChunk_noRet' 13 (by omega)
 
 theorem verify_tables_body :
-    (core% «verify_tables» body) = ((List.range 14).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 420 ++ [.ret vtRets] :=
+    (core% «verify_tables» body) = ((List.range 14).map vtChunk).flatten ⧺ [.ret vtRets] := by
+  have h13 : (core% «verify_tables» c13) = (core% «verify_tables» c13).take 420 ⧺ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
   conv_lhs => rw [core_eq% «verify_tables» body, h13]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
@@ -77,7 +78,7 @@ theorem vtCheck_eq : vtCheck = true := by decide +kernel
 
 theorem vtFound : ∃ fn : Fn, coreProgram.find? name% «verify_tables» = some fn ∧
     fn.params = (List.range 21).map V.n ∧
-    fn.body = ((List.range 14).map vtChunk).flatten ++ [.ret vtRets] := by
+    fn.body = ((List.range 14).map vtChunk).flatten ⧺ [.ret vtRets] := by
   have h := vtCheck_eq
   unfold vtCheck at h
   split at h

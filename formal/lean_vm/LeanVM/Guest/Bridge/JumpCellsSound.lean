@@ -10,6 +10,7 @@ public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.Bridge.AlignRun
 public import LeanVM.Guest.Memory.StaticSound
 public import LeanVM.Guest.Bridge.Track
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The jump cells' checks
@@ -333,7 +334,7 @@ theorem loop_last_call {fn : Fn} {cc : V} {g : String} {args : List V} {rpre : L
     (hrev : fn.body.reverse = .ret [] :: .callIf cc g args :: rpre) (hnr : noRetB rpre.reverse = true) {σ : Val}
     {es : List Ev} {vs : List V} (hw : walk σ fn.body = .ret es vs) {i : ℕ} {c : Call}
     (hc : (calls es)[i]? = some c) (hi : i + 1 = (calls es).length) : c = ⟨g, args, [], !decide (σ cc = 0)⟩ := by
-  have hbody : fn.body = rpre.reverse ++ [.callIf cc g args, .ret []] := by
+  have hbody : fn.body = rpre.reverse ⧺ [.callIf cc g args, .ret []] := by
     rw [← List.reverse_reverse fn.body, hrev]; simp
   rw [hbody, walk_append] at hw
   rcases walk_noRet (σ := σ) _ (noRetB_spec _ hnr) with ⟨es1, he1⟩ | he1

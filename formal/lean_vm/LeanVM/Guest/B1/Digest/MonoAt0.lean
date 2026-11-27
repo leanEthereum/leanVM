@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Digest.MonoCLasts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_mono»
 meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The gap walk, the parts
@@ -85,7 +86,7 @@ theorem mono_param (σ : Val) : (Fn.params fn% «child_claim_list_mono»).map σ
     [σ (.n (val% «child_claim_list_mono» "entries_ptr")), σ (.n (val% «child_claim_list_mono» "region")), σ (.n (val% «child_claim_list_mono» "base")), σ (.n (val% «child_claim_list_mono» "limit_g")), σ (.n (val% «child_claim_list_mono» "bigs")), σ (.n (val% «child_claim_list_mono» "groups")), σ (.n (val% «child_claim_list_mono» "rest"))] := rfl
 
 theorem mono_body : Fn.body fn% «child_claim_list_mono» =
-    monoP1 ++ monoDispS :: (monoPost ++ [.ret [.n (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]]) := by
+    monoP1 ++ monoDispS :: (monoPost ⧺ [.ret [.n (val% «child_claim_list_mono» "s11#0"), .n (val% «child_claim_list_mono» "s11#0[1]")]]) := by
   rw [child_claim_list_mono_shape, monoFlat_split]; simp
 
 theorem mlNames_get {r : ℕ} (hr : r < 17) : mlNames[r]! = mlNames.getD r "" := by

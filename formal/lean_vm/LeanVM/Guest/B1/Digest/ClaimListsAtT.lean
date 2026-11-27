@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Digest.ChildListAt
 public import LeanVM.Guest.B1.Digest.ChildDigest
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«child_claim_list_digest»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A child's claim list, placed
@@ -67,10 +68,10 @@ def ccAnyArm : List Stmt :=
     .atom (.copy (.n (val% «child_claim_list_digest» "digest[0]")) (.n (val% «child_claim_list_digest» "d0@2"))), .atom (.copy (.n (val% «child_claim_list_digest» "digest[1]")) (.n (val% «child_claim_list_digest» "d1@2")))]
 
 /-- The nonempty arm. -/
-def ccElse : List Stmt := ccE4 ++ [.ite (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ccMonoArm ccAnyArm]
+def ccElse : List Stmt := ccE4 ⧺ [.ite (.n (val% «child_claim_list_digest» "s1.e.s2#1")) ccMonoArm ccAnyArm]
 
 theorem ccd_body : Fn.body fn% «child_claim_list_digest» =
-    ccdHead ++ .ite (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse :: (ccdTail ++ [.ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]]) := by
+    ccdHead ++ .ite (.n (val% «child_claim_list_digest» "s1#1")) cc25Zero ccElse :: (ccdTail ⧺ [.ret [.n (val% «child_claim_list_digest» "s2#0"), .n (val% «child_claim_list_digest» "s2#0[1]")]]) := by
   rw [child_claim_list_digest_shape]; rfl
 
 set_option maxRecDepth 100000 in
@@ -92,7 +93,7 @@ theorem ccd_param (σ : Val) : (Fn.params fn% «child_claim_list_digest»).map �
 theorem walk_pre_ite (σ : Val) (z n : List Stmt) (hz : z.all Main.Stmt.straight = true)
     (hn : n.all Main.Stmt.straight = true) (c : V) : ∀ pre : List Stmt,
     pre.all Main.Stmt.straight = true →
-    walk σ (pre ++ [.ite c z n]) =
+    walk σ (pre ⧺ [.ite c z n]) =
       .fall (pre.flatMap (Main.slEvs σ) ++ .inK c :: (if σ c = 0 then z else n).flatMap (Main.slEvs σ))
   | [], _ => by
     rw [List.nil_append, walk, walk1, walk]
@@ -109,7 +110,7 @@ theorem walk_pre_ite (σ : Val) (z n : List Stmt) (hz : z.all Main.Stmt.straight
 /-! ## The empty list -/
 
 /-- The empty list's run, evaluated. -/
-noncomputable def ccZEval : List Stmt := ccdHead ++ cc25Zero ++ fillH 15 25 ++ ccdTail
+noncomputable def ccZEval : List Stmt := ccdHead ⧺ cc25Zero ⧺ fillH 15 25 ⧺ ccdTail
 
 /-- **The empty list's run, evaluated**: in order, no store, no side condition. -/
 noncomputable def cczOk : Bool :=

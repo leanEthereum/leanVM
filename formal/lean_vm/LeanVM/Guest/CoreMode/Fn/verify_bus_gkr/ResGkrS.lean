@@ -21,6 +21,7 @@ import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
 import LeanVM.Guest.Data.ValNames.«verify_bus_gkr»
 import LeanVM.Guest.Data.ValNames.«gkr_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The radix-four layers' code
@@ -118,7 +119,7 @@ theorem find_vbg : coreProgram.find? name% «verify_bus_gkr» = some fn% «verif
 theorem vbg_params : (fn% «verify_bus_gkr»).params = [.n (val% «verify_bus_gkr» "fs0"), .n (val% «verify_bus_gkr» "fs1"), .n (val% «verify_bus_gkr» "fs2"), .n (val% «verify_bus_gkr» "fs3"), .n (val% «verify_bus_gkr» "fs4"), .n (val% «verify_bus_gkr» "cursor@1"), .n (val% «verify_bus_gkr» "g_bus_mu"), .n (val% «verify_bus_gkr» "zeta"), .n (val% «verify_bus_gkr» "tabs"), .n (val% «verify_bus_gkr» "stream")] :=
   rfl
 
-theorem vbg_body : (fn% «verify_bus_gkr»).body = vbgPre ++ [.ret vbgRets] := by
+theorem vbg_body : (fn% «verify_bus_gkr»).body = vbgPre ⧺ [.ret vbgRets] := by
   obtain ⟨fn, hf, -, hb⟩ := vbgFound
   rw [Option.some.inj (find_vbg.symm.trans hf)]; exact hb
 

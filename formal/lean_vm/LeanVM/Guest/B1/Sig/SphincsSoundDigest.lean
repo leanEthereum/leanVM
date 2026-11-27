@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsBytes
 public import LeanVM.Guest.WithHashBridge
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The message digest, sound
@@ -268,7 +269,7 @@ theorem lval_at {T : Nat} (hl : LValsAt σ T) {l z i : Nat} (hl3 : l < 3) (hz : 
 
 /-- The check's statements before `d0[0] = md0`: the tree's middle byte, the unused bits. -/
 def sCheckA : List Stmt :=
-  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ++
+  [cst 1277 (word 256 0), mulS (.n (val% «verify_sig_lean_sphincs» "tree_mid~1")) (sLVal 24) (.n (val% «verify_sig_lean_sphincs» "tree_mid~0")), addS sTreeMid (sLVal 16) (.n (val% «verify_sig_lean_sphincs» "tree_mid~1"))] ⧺
     sPadBits
 
 /-- `d0[0] = md0 + corr0` and `md1 + corr1`: the places `vals` carries taken out. -/
@@ -289,7 +290,7 @@ def sCheckC : List Stmt :=
     cst 1370 (word 2 1), mulS (.n (val% «verify_sig_lean_sphincs» "high")) (.n (val% «verify_sig_lean_sphincs» "high~6")) (.n (val% «verify_sig_lean_sphincs» "high~7"))]
 
 theorem sCheck_split : sCheck = sCheckA ++ sCheckCorr ++ sCheckB ++
-    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ++
+    [addS sHm0b (.n (val% «verify_sig_lean_sphincs» "s34#7")) (.n (val% «verify_sig_lean_sphincs» "s34#9")), hintW "sp_unused" (runV 1306 6)] ++ sUnused.1 ++ sCheckC ⧺
     [.atom (.assertInK (.n (val% «verify_sig_lean_sphincs» "high")) sUnused.2.2)] := by
   simp [sCheck, sCheckA, sCheckCorr, sCheckB, sCheckC]
 

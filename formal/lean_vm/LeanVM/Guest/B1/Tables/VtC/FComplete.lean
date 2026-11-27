@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.FWin
 public import LeanVM.Guest.B1.Tables.VtC.FFinal
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table phase's evaluations and final check, complete
@@ -31,7 +32,7 @@ open LeanVM.Protocol.EndToEnd.Complete (blockSel termsPure)
 @[expose] public section
 
 theorem vtF_split : tbStmtsEqb ((vtPre.drop vtFLo).take (5209 - vtFLo))
-    ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ++ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
+    ((vtPre.drop vtFLo).take (vtFHi - vtFLo) ⧺ [.atom (.assertEq (.n (val% «verify_tables» "air_acc@6")) (.n (val% «verify_tables» "claim")))]) =
       true := by
   simp only [vtPre_drop]; decide +kernel
 

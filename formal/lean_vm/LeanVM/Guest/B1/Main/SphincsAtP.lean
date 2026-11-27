@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Sig.SphincsExact
 public import LeanVM.Guest.Exact.FreeSpWots
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs`, placed with its pops
@@ -30,9 +31,9 @@ open LeanVM.Guest.B1 (LowDef CompleteAtDP Returns)
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`'s statements before its return. -/
-def sPreR : List Stmt := Sig.sPre ++ [.atom (.assertEq Sig.sLayerT.2.2 Sig.sRoot)]
+def sPreR : List Stmt := Sig.sPre ⧺ [.atom (.assertEq Sig.sLayerT.2.2 Sig.sRoot)]
 
-theorem sBody_straight : (fn% «verify_sig_lean_sphincs»).body = sPreR ++ [.ret []] := by
+theorem sBody_straight : (fn% «verify_sig_lean_sphincs»).body = sPreR ⧺ [.ret []] := by
   rw [Sig.sBody_eq, Sig.sBody_splitC, sPreR, List.append_assoc]
   rfl
 

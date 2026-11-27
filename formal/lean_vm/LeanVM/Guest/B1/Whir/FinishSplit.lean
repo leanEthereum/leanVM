@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.Template
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The finish, split
@@ -37,7 +38,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   ([.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
-    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
+    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ⧺
     pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
     osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
     rs.1 ++ od.1 ++
@@ -46,7 +47,7 @@ def osFinishA (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt × List V :=
    [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)])
 
 theorem osFinish_eq (c : OsCfg) (st : OsSt) (tch : ℕ) :
-    osFinish c st tch = (osFinishA c st tch).1 ++ [.ret (osFinishA c st tch).2] := by
+    osFinish c st tch = (osFinishA c st tch).1 ⧺ [.ret (osFinishA c st tch).2] := by
   simp only [osFinish, osFinishA, List.append_assoc, List.cons_append, List.nil_append]
 
 /-- The body of `open_stacked` before its return. -/
@@ -54,14 +55,14 @@ def osBodyA (c : OsCfg) : List Stmt :=
   let h := osHead c
   let lv := osLevels c 0 c.levels h.2
   let tl := osTail c lv.2
-  h.1 ++ lv.1 ++ tl.1 ++ (osFinishA c tl.2.1 tl.2.2).1
+  h.1 ⧺ lv.1 ⧺ tl.1 ⧺ (osFinishA c tl.2.1 tl.2.2).1
 
 /-- The values `open_stacked` returns. -/
 def osBodyRet (c : OsCfg) : List V :=
   (osFinishA c (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.1
     (osTail c (osLevels c 0 c.levels (osHead c).2).2).2.2).2
 
-theorem osBody_eq (c : OsCfg) : osBody c = osBodyA c ++ [.ret (osBodyRet c)] := by
+theorem osBody_eq (c : OsCfg) : osBody c = osBodyA c ⧺ [.ret (osBodyRet c)] := by
   simp only [osBody, osBodyA, osBodyRet, osFinish_eq, List.append_assoc]
 
 end

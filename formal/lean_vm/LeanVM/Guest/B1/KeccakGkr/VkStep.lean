@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.KFormMath
 public import LeanVM.Guest.B1.KeccakGkr.LayerHolds
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 namespace LeanVM.Guest.B1.VerifySub
 
@@ -208,7 +209,7 @@ theorem stepSeg_holds {b off : ℕ} {pp : E} {pt : List E} {τ : ℕ} (hτ : 4 �
     (hptL : pt.length = τ - 3) (hpt : ReadsAt rd pp pt) (h17 : σ (.n (val% «verify_keccak» "pack_g")) = gen ^ (τ - 4))
     (hpp : LoadHolds rd (σ (.n (val% «verify_keccak» "claims"))) off pp) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ ([.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) off),
-      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
+      .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ⧺ eqfLevel0T (.n (b + 1)) 0 (b + 2)) next kret) :
     (σ (.n (b + 4)) = (eqKernel [pt.getD (τ - 4) 0]).getD 0 0 ∧
       σ (.n (b + 5)) = (eqKernel [pt.getD (τ - 4) 0]).getD 1 0) ∧ next := by
   rw [holdsList_append] at h

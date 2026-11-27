@@ -12,6 +12,7 @@ import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
 import LeanVM.Guest.Data.ValNames.«eq_prefix_run_rev__L»
 import LeanVM.Guest.B1.Common.Vc
 meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eq_prefix_run_rev`, `eq_prefix_chain_rev`
@@ -111,8 +112,8 @@ def rvBlk (n : ℕ) : ℕ → List Stmt
 
 /-- The expansion of `eq_prefix_run_rev__L{n}`. -/
 def rvBody (n : ℕ) : List Stmt :=
-  [.atom (.const (.n (valf% «eq_prefix_run_rev» "s0#0")) (word 1 0)), .atom (.load (.n (valf% «eq_prefix_run_rev» "s0#0")) (.n (valf% «eq_prefix_run_rev» "chain")) 0)] ++
-    ((List.range n).map (rvBlk n)).flatten ++ [.atom (.const (.n (rvA n)) (word 0 0)), .ret [.n (rvA n)]]
+  [.atom (.const (.n (valf% «eq_prefix_run_rev» "s0#0")) (word 1 0)), .atom (.load (.n (valf% «eq_prefix_run_rev» "s0#0")) (.n (valf% «eq_prefix_run_rev» "chain")) 0)] ⧺
+    ((List.range n).map (rvBlk n)).flatten ⧺ [.atom (.const (.n (rvA n)) (word 0 0)), .ret [.n (rvA n)]]
 
 /-- The sum `a + b1[k]` at coordinate `k` (coordinate `0`'s is its product). -/
 def rvS : ℕ → ℕ

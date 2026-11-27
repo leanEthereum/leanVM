@@ -16,6 +16,7 @@ import LeanVM.Guest.Data.ValNames.«main»
 import LeanVM.Guest.Data.ValNames.«main_loop0»
 import LeanVM.Guest.Data.ValNames.«main_loop1»
 import LeanVM.Guest.Data.ValNames.«main_loop4»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main`'s heap hints
@@ -120,12 +121,12 @@ def dupPre (f : String) : List Stmt := [
 
 theorem loop0_found : coreProgram.find? (name% «main_loop0») = some fn% «main_loop0» ∧
     (fn% «main_loop0»).params = [.n (val% «main_loop0» "xd"), .n (val% «main_loop0» "bound"), .n (val% «main_loop0» "lx_table"), .n (val% «main_loop0» "n_lx_g")] ∧
-    (fn% «main_loop0»).body = dupPre (name% «main_loop0») ++ [.ret []] :=
+    (fn% «main_loop0»).body = dupPre (name% «main_loop0») ⧺ [.ret []] :=
   ⟨coreProgram_find?_at (j := idx% «main_loop0») rfl, rfl, rfl⟩
 
 theorem loop1_found : coreProgram.find? (name% «main_loop1») = some fn% «main_loop1» ∧
     (fn% «main_loop1»).params = [.n (val% «main_loop1» "xd"), .n (val% «main_loop1» "bound"), .n (val% «main_loop1» "lean_sphincs_table"), .n (val% «main_loop1» "n_lean_sphincs_g")] ∧
-    (fn% «main_loop1»).body = dupPre (name% «main_loop1») ++ [.ret []] :=
+    (fn% «main_loop1»).body = dupPre (name% «main_loop1») ⧺ [.ret []] :=
   ⟨coreProgram_find?_at (j := idx% «main_loop1») rfl, rfl, rfl⟩
 
 theorem hintAddrs_ite_call {σ : Val} {p : Prop} [Decidable p] {f : String} {a r : List V} :
@@ -143,7 +144,7 @@ theorem gen_succ_add_ne {x b : ℕ} (h : gen ^ x * gen + gen ^ b ≠ 0) : x + 1 
 /-- **An iteration of the duplicate slots' loop**: its slot's words lie in the table's
 `4·(a + b)` words, and its tail call is the next slot's, below `b`. -/
 theorem dupStep {rd : Reader} {f : String} {σ : Val} {es : List Ev} {vs : List V}
-    (hw : walk σ (dupPre f ++ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hw : walk σ (dupPre f ⧺ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     {x b β a : ℕ} (h0 : σ (.n (val% «main_loop0» «main_loop1» "xd")) = gen ^ x) (h1 : σ (.n (val% «main_loop0» «main_loop1» "bound")) = gen ^ b) (h2 : σ (.n 2) = gen ^ β)
     (h3 : σ (.n 3) = gen ^ a) (hxb : x < b) :
     (∀ A ∈ heapHintAddrs σ es, ∃ i, A = addressOfIndex i ∧ β ≤ i ∧ i < β + 4 * (a + b)) ∧
@@ -234,13 +235,13 @@ def l5HPre : List Stmt := [
 
 theorem loop4_found : coreProgram.find? (name% «main_loop4») = some fn% «main_loop4» ∧
     (fn% «main_loop4»).params = (List.range 16).map V.n ∧
-    (fn% «main_loop4»).body = l5HPre ++ [.ret []] :=
+    (fn% «main_loop4»).body = l5HPre ⧺ [.ret []] :=
   ⟨coreProgram_find?_at (j := idx% «main_loop4») rfl, rfl, rfl⟩
 
 /-- **An iteration of the children's loop**: its carried claim's words lie in the table's `24·c`
 words, its DA digest's it loads, and its tail call is the next child's, below `c`. -/
 theorem l5Step {rd : Reader} {σ : Val} {es : List Ev} {vs : List V}
-    (hw : walk σ (l5HPre ++ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
+    (hw : walk σ (l5HPre ⧺ [.ret []]) = .ret es vs) (hh : ∀ e ∈ es, e.Holds rd σ)
     {x c β : ℕ} (h0 : σ (.n (val% «main_loop4» "xc")) = gen ^ x) (h1 : σ (.n (val% «main_loop4» "bound")) = gen ^ c) (h9 : σ (.n (val% «main_loop4» "child_carried")) = gen ^ β)
     (hxc : x < c) :
     (∀ A ∈ heapHintAddrs σ es, A ∈ loadAddrs σ es ∨
@@ -308,7 +309,7 @@ def DupInv (Q : ℕ → Prop) (args : List E) : Prop :=
     ∀ i, β ≤ i → i < β + 4 * (a + b) → Q i
 
 theorem dupLoopStep {rd : Reader} {Q : ℕ → Prop} {f : String} {fn : Fn}
-    (hfn : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3] ∧ fn.body = dupPre f ++ [.ret []]) :
+    (hfn : fn.params = [.n (val% «main_loop0» «main_loop1» "xd"), .n (val% «main_loop0» «main_loop1» "bound"), .n 2, .n 3] ∧ fn.body = dupPre f ⧺ [.ret []]) :
     LoopStep rd Q f fn (DupInv Q) := by
   intro σ es vs hw hh hI
   rw [hfn.2] at hw

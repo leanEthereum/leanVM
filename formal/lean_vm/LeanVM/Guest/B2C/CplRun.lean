@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.CplSpec
 public import LeanVM.Guest.B2C.CplWalk
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A function's run
@@ -159,7 +160,7 @@ theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i))
 /-! ## A loop helper's last call -/
 
 theorem loop_split {fn : Core.Fn} (h : fn.loop = true) :
-    ∃ A c args, fn.body = A ++ [.callIf c fn.name args, .ret []] := by
+    ∃ A c args, fn.body = A ⧺ [.callIf c fn.name args, .ret []] := by
   unfold Core.Fn.loop at h
   split at h
   · rename_i c g args rest hr
@@ -175,7 +176,7 @@ theorem lastCall_of {fn : Core.Fn} {σ : Val} {es : List Ev} {vs : List V}
   obtain ⟨A, c, args, hb⟩ := loop_split hl
   obtain ⟨A', vs', hb', hA'⟩ := lastOkC_split hok
   rw [hb, show A ++ [Stmt.callIf c fn.name args, .ret []] =
-    (A ++ [.callIf c fn.name args]) ++ [.ret []] by simp] at hb'
+    (A ⧺ [.callIf c fn.name args]) ⧺ [.ret []] by simp] at hb'
   obtain ⟨rfl, -⟩ := List.append_inj' hb' rfl
   rw [noRetList_append] at hA'
   rw [hb, walk_appendC] at hw

@@ -15,6 +15,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.B1.Common.Vc
 import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Data.ValNames.«verify_tables_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The table sumcheck's rounds (`verify_tables_loop0`)
@@ -59,7 +60,7 @@ def l10Atoms : List Stmt :=
 
 /-- `verify_tables_loop0`'s body: its atoms, the next iteration, the return. -/
 def l10Body : List Stmt :=
-  l10Atoms ++ [.callIf (.n 59) name% «verify_tables_loop0» [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
+  l10Atoms ⧺ [.callIf (.n 59) name% «verify_tables_loop0» [.n 61, .n 1, .n 2, .n 3, .n 4, .n 5], .ret []]
 
 theorem l10_atomsB : l10Atoms.all (fun s ↦ match s with | .atom _ => true | _ => false) = true := by
   decide +kernel

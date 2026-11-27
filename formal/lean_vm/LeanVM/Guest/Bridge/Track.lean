@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.Pops
 public import LeanVM.Guest.Memory
 public import LeanVM.Guest.Memory.PopsNil
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The tree track
@@ -238,7 +239,7 @@ inductive Move (Is : List Inst) : List Pop × List Ent → List Pop × List Ent 
   | tail {done : List Pop} {e : Ent} {st : List Ent} {c : V} {f : String} {args : List V}
       {ps : List Stmt} {J : Inst} {fn : Fn} :
       e.pos = .callIf c f args :: ps → e.σ c ≠ 0 →
-      (∃ as : List Atom, (∀ a ∈ as, ∀ rd σ, a.pops rd σ = []) ∧ ps = as.map Stmt.atom ++ [.ret []]) → J ∈ Is →
+      (∃ as : List Atom, (∀ a ∈ as, ∀ rd σ, a.pops rd σ = []) ∧ ps = as.map Stmt.atom ⧺ [.ret []]) → J ∈ Is →
       e.I.t.kids[e.nc]? = some J.t → e.I.kidFps[e.nc]? = some J.fp → P.find? J.t.name = some fn →
       Move Is (done, e :: st) (done, Ent.enter P J fn :: st)
   | dispatch {done : List Pop} {e : Ent} {st : List Ent} {x : V} {fs : List String}
@@ -450,9 +451,9 @@ theorem TrackOk.move {T : Tree} {s s' : List Pop × List Ent} (h : TrackOk P rd 
     obtain ⟨as, has, rfl⟩ := hnil
     have hok2 := hok
     rw [show [Ev.inK c, Ev.call f args []].length = 2 from rfl] at hok2
-    have : (e.adv (as.map Stmt.atom ++ [.ret []]) 2).rem P rd = [] := by
+    have : (e.adv (as.map Stmt.atom ⧺ [.ret []]) 2).rem P rd = [] := by
       obtain ⟨vs, -, hw⟩ := hok2.path
-      change walk e.σ (as.map Stmt.atom ++ [.ret []]) = .ret (e.es.drop 2) vs at hw
+      change walk e.σ (as.map Stmt.atom ⧺ [.ret []]) = .ret (e.es.drop 2) vs at hw
       rw [walk_atoms_ret] at hw
       change splice rd e.σ (e.es.drop 2) _ = []
       rw [← (Out.ret.inj hw).1]

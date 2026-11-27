@@ -17,6 +17,7 @@ import LeanVM.Guest.B1.Common.Find
 import LeanVM.Guest.Data.ValNames.«gkr_last_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L»
 import LeanVM.Guest.Data.ValNames.«gkr_layers__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The radix-four layers' dispatch, completely
@@ -67,7 +68,7 @@ def glcXj (x0 c0 p : ℕ) : ℕ := if p = 0 then x0 else c0 + 2 * p - 1
 /-- Call `p`: `x_j` as `g` times the previous one, then `gkr_layer__L{p}_L{o}`. -/
 def glcStep (o : ℕ) (hd : List V) (x0 c0 p : ℕ) : List Stmt :=
   (if p = 0 then [] else [.atom (.const (.n (c0 + 2 * p - 2)) (word 2 0)),
-      .atom (.mul (.n (c0 + 2 * p - 1)) (.n (glcXj x0 c0 (p - 1))) (.n (c0 + 2 * p - 2)))]) ++
+      .atom (.mul (.n (c0 + 2 * p - 1)) (.n (glcXj x0 c0 (p - 1))) (.n (c0 + 2 * p - 2)))]) ⧺
   [.call (glName p o) (hd ++ [.n (glcXj x0 c0 p), .n 5, .n 6, .n 7, .n 8]) []]
 
 /-- Calls `0 .. r - 1`. -/
@@ -76,8 +77,8 @@ def glcChain (o : ℕ) (hd : List V) (x0 c0 r : ℕ) : List Stmt :=
 
 /-- `gkr_layers__L{o}`'s loop's body. -/
 def glcLsLBody (o : ℕ) : List Stmt :=
-  [.atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "x_m"))), .atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4")) (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x4~0")))] ++
-  glcChain o [.n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "x_m")] 10 11 4 ++
+  [.atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "x_m"))), .atom (.mul (.n (valf% «gkr_layers» «_loop0» "x4")) (.n (valf% «gkr_layers» «_loop0» "x4~0")) (.n (valf% «gkr_layers» «_loop0» "x4~0")))] ⧺
+  glcChain o [.n (valf% «gkr_layers» «_loop0» "layers"), .n (valf% «gkr_layers» «_loop0» "rounds"), .n (valf% «gkr_layers» «_loop0» "gkr_pts"), .n (valf% «gkr_layers» «_loop0» "x_m")] 10 11 4 ⧺
   [.atom (.const (.n (valf% «gkr_layers» «_loop0» "s6#0")) (word 2 0)), .atom (.mul (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#0"))),
     .atom (.add (.n (valf% «gkr_layers» «_loop0» "s6#2")) (.n (valf% «gkr_layers» «_loop0» "s6#1")) (.n (valf% «gkr_layers» «_loop0» "bound"))), .atom (.const (.n (valf% «gkr_layers» «_loop0» "s6#3")) (word 2 0)),
     .atom (.mul (.n (valf% «gkr_layers» «_loop0» "s6#4")) (.n (valf% «gkr_layers» «_loop0» "x_m")) (.n (valf% «gkr_layers» «_loop0» "s6#3"))),
@@ -86,7 +87,7 @@ def glcLsLBody (o : ℕ) : List Stmt :=
 
 /-- `gkr_last_layers__L{r}_L{o}`'s body. -/
 def glcLastBody (r o : ℕ) : List Stmt :=
-  glcChain o [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four")] 4 9 r ++
+  glcChain o [.n (valf% «gkr_last_layers» "layers"), .n (valf% «gkr_last_layers» "rounds"), .n (valf% «gkr_last_layers» "gkr_pts"), .n (valf% «gkr_last_layers» "n_four")] 4 9 r ⧺
   [.atom (.const (.n (9 + 2 * (r - 1))) (word 0 0)), .ret [.n (9 + 2 * (r - 1))]]
 
 /-- `gkr_layers__L{o}`'s body. -/

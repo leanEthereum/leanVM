@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Merkle.CapBody
 public import LeanVM.Guest.B1.Whir.HelperT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_merkle_cap__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A level's cap pops
@@ -48,12 +49,12 @@ theorem fallPops_flatten_map_nil {α : Type} {f : α → List Stmt} :
 theorem mc_node_pops {P : Core.Program} {name : String} {fn : Fn} (hf : P.find? name = some fn) {L : ℕ}
     (hb : fn.body = mcBody L) (τ : Val) (bufs : List ℕ) (kids : List Tree) :
     (Memory.Tree.node name τ bufs kids).pops P rd = [] := by
-  have hx : FallPops rd τ (((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ++
+  have hx : FallPops rd τ (((List.range (4 * L - 2)).map fun i ↦ [.atom (.load (.n (i + 2)) (.n (valf% «verify_merkle_cap» "cap")) (i + 2))]).flatten ⧺
       [.atom (.const (.n (mcP L)) (word 1 0)), .atom (.const (.n (mcP L + 1)) (word 0 0)),
         .atom (.const (.n (mcP L + 2)) (word 0 0)), .atom (.const (.n (mcP L + 3)) (word 0 0)),
         .atom (.const (.n (mcP L + 4)) (word 0 0)), .atom (.const (.n (mcP L + 5)) w63),
-        keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ++
-      ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ++
+        keccakA (mcIns L 1 (mcP L + 5)) (mcOuts 1)] ⧺
+      ((List.range (L - 2)).map fun j ↦ mcNode L (j + 2) (mcBase L (j + 2))).flatten ⧺
       [.atom (.copy (.n (mcBase L L)) (.n (valf% «verify_merkle_cap» "runs[0]"))), .atom (.copy (.n (mcBase L L + 1)) (.n (valf% «verify_merkle_cap» "runs[1]")))]) [] :=
     fallPops_eq ((((fallPops_noWit τ (noWit_flatten_map fun _ _ => rfl)).append (fallPops_noWit τ rfl)).append
       (fallPops_flatten_map_nil fun _ _ => mcNode_fallPops _ _ _)).append (fallPops_noWit τ rfl)) rfl

@@ -14,6 +14,7 @@ import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L0»
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L1»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The product and `s`, completely
@@ -39,10 +40,10 @@ open LeanVM.Guest.B1.Fwd
 variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 /-- The head and the product. -/
-def secA1 (first : ℕ) : List Stmt := headT first ++ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first)
+def secA1 (first : ℕ) : List Stmt := headT first ⧺ prodT (.n (valf% «keccak_layer» "cursor@1")) (muB first) (prodTab first)
 
 /-- The check and the grind's squeeze. -/
-def secA2 (first : ℕ) : List Stmt := checkT (accL first) ++ sqT first
+def secA2 (first : ℕ) : List Stmt := checkT (accL first) ⧺ sqT first
 
 /-- The residual atoms of the head and the product: the claim's weights, the stream words. -/
 def residA1 (first : ℕ) : List Atom :=

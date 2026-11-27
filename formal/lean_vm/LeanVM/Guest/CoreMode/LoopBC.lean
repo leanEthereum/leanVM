@@ -10,6 +10,7 @@ public import LeanVM.Guest.Bridge.JumpCellsDefs
 public import LeanVM.Guest.Bridge.Track
 public import LeanVM.Guest.Bridge.Prefix
 public import LeanVM.Guest.CoreMode.WalkS
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # A loop helper's body with calls
@@ -39,7 +40,7 @@ def loopBC (fn : Fn) : Bool :=
   | _ => false
 
 theorem loopBC_spec {fn : Fn} (h : loopBC fn = true) : ∃ (pre : List Stmt) (c : V) (args : List V),
-    fn.body = pre ++ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧ ∀ s ∈ pre, isAC s = true := by
+    fn.body = pre ⧺ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧ ∀ s ∈ pre, isAC s = true := by
   unfold loopBC at h
   split at h
   · rename_i c g args pre hrev
@@ -51,7 +52,7 @@ theorem loopBC_spec {fn : Fn} (h : loopBC fn = true) : ∃ (pre : List Stmt) (c 
   · cases h
 
 theorem stmts_loopC {pre : List Stmt} (hpre : ∀ s ∈ pre, isAC s = true) {c : V} {f : String} {args : List V}
-    {s : Stmt} (h : s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :
+    {s : Stmt} (h : s ∈ stmtsOf (pre ⧺ [.callIf c f args, .ret []])) :
     s ∈ pre ∨ s = .callIf c f args ∨ s = .ret [] := by
   induction pre with
   | nil =>
@@ -116,7 +117,7 @@ theorem stmtsOf_append : ∀ (a b : List Stmt), stmtsOf (a ++ b) = stmtsOf a ++ 
   | s :: a, b => by simp [stmtsOf, stmtsOf_append a b]
 
 theorem loopBB_spec {fn : Fn} (h : loopBB fn = true) : ∃ (pre : List Stmt) (c : V) (args : List V),
-    fn.body = pre ++ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧
+    fn.body = pre ⧺ [.callIf c fn.name args, .ret []] ∧ args.length = fn.params.length ∧
       ∀ s ∈ stmtsOf pre, isBS fn.name s = true := by
   unfold loopBB at h
   split at h
@@ -131,7 +132,7 @@ theorem loopBB_spec {fn : Fn} (h : loopBB fn = true) : ∃ (pre : List Stmt) (c 
 /-- **The statements of a loop helper's body with branches**: its statements before the tail call, the
 tail call, the return. -/
 theorem stmts_loopB {pre : List Stmt} {c : V} {f : String} {args : List V} {s : Stmt}
-    (h : s ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :
+    (h : s ∈ stmtsOf (pre ⧺ [.callIf c f args, .ret []])) :
     s ∈ stmtsOf pre ∨ s = .callIf c f args ∨ s = .ret [] := by
   rw [stmtsOf_append] at h
   rcases List.mem_append.mp h with h | h
@@ -157,7 +158,7 @@ theorem walk_loopB (σ : Val) {nm : String} {pre : List Stmt} (hpre : ∀ s ∈ 
 
 /-- **The tail call is the body's one conditional call of the function itself.** -/
 theorem loopB_callIf {pre : List Stmt} {f : String} (hpre : ∀ s ∈ stmtsOf pre, isBS f s = true) {c c' : V}
-    {args args' : List V} (h : Stmt.callIf c' f args' ∈ stmtsOf (pre ++ [.callIf c f args, .ret []])) :
+    {args args' : List V} (h : Stmt.callIf c' f args' ∈ stmtsOf (pre ⧺ [.callIf c f args, .ret []])) :
     c' = c ∧ args' = args := by
   rcases stmts_loopB h with h | h | h
   · simpa [isBS] using hpre _ h

@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.CwComplete
 public import LeanVM.Guest.B1.Sig.KMsgComplete
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The message and `H_msg`, complete
@@ -106,7 +107,7 @@ theorem word_ctr_one : word (2 ^ 24) 0 + word (2 ^ 32) 0 = word (1 * 2 ^ 24 + 2 
 /-- The statements before `H_msg`'s first `KECCAK`: its tail run, the `0x80`, the padding run. -/
 def hPre0 : List Stmt :=
   [copyS (.n (val% «verify_sig_lean_sphincs» "s7#0")) sM1, cst 8 (word (2 ^ 32) 0), cst 9 (word 0 0), cst 10 (word 0 0),
-    cst 11 (word (2 ^ 63) 0)] ++ padRun sPad
+    cst 11 (word (2 ^ 63) 0)] ⧺ padRun sPad
 
 /-- Between the two calls: the second's counter cell with the `0x01`, its tail run, the `0x80`. -/
 def hPre1 : List Stmt :=

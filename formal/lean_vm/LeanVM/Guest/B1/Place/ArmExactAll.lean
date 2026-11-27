@@ -19,6 +19,7 @@ public import LeanVM.Guest.B1.Place.OsPlace
 public import LeanVM.Guest.B1.Whir.Sound
 public import LeanVM.Guest.B1.Whir.WinEx
 public import LeanVM.Guest.B2C.Table
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The arms, exact at every node
@@ -141,7 +142,7 @@ theorem winHint_exact_of_winEx {σ : Val} {pre : List Stmt} {body : List Stmt} {
   intro a ha hwin
   have hm : a ∈ B2C.blockAtoms body := B2C.walk_blockAtoms body (by rw [hw]; exact ha)
   have hpre : a ∈ B2C.blockAtoms pre := by
-    have e : ∀ ss : List Stmt, a ∈ B2C.blockAtoms (ss ++ [.ret vs]) → a ∈ B2C.blockAtoms ss := by
+    have e : ∀ ss : List Stmt, a ∈ B2C.blockAtoms (ss ⧺ [.ret vs]) → a ∈ B2C.blockAtoms ss := by
       intro ss
       induction ss with
       | nil => simp [B2C.blockAtoms, B2C.stmtAtoms]
