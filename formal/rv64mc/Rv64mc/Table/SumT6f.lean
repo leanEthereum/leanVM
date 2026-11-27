@@ -4,8 +4,8 @@
   The total contracts of wave 6f's `E::sum` closures at the image (`liftProg Gen.fns`): each function's total theorem
   at its index, with the generated link, the stack `Gen.Needs` gives (bounds over the callees' by `decide`), and the
   callees' total theorems (`FieldT.baseMul`, `FieldT.eMul`, `SumT.eSumU16`, `DotT2.dotOwn`,
-  `RuntimeT.panicBoundsCheck`, raised by `HoldsT.mono_need` where the caller has no frame). Open: `clmul_low`'s table (`FieldT.ClmulTable`) and
-  `RMFE_PROJECT` (`ESumProjectT.Tab`), environment facts.
+  `RuntimeT.panicBoundsCheck`, raised by `HoldsT.mono_need` where the caller has no frame). Open: `clmul_low`'s
+  table (`FieldT.ClmulTable`) and `RMFE_PROJECT` (`ESumProjectT.Tab`), environment facts.
 
   ## Main results
 
