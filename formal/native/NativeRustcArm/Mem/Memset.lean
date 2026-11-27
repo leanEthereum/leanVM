@@ -77,11 +77,13 @@ theorem byteOf_word (x : BitVec 64) {j : Nat} (hj : j < 8) :
   rw [word_eq, byteOf_mod, mulK_toNat _ (by rw [and255_toNat]; exact hlt), and255_toNat,
     word_bytes _ hlt j hj, u8_mod]
 
-variable [Host] {k : Nat} (m : MachineData)
+section
+
+variable [ElfHost] {sec k : Nat} (m : MachineData)
 
 /-- `memset` done, at `.LMemset_7`. -/
-structure Done (k : Nat) (st : MachineState) : Prop where
-  pc : st.pc = Host.addrOf (k + NativeRustcArm.Common.Memset.b8Offset)
+structure Done (sec k : Nat) (st : MachineState) : Prop where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Memset.b8Offset)
   x0 : st.data.regs.X0 = m.regs.X0
   x30 : st.data.regs.X30 = m.regs.X30
   saved : Saved m st.data
@@ -89,8 +91,8 @@ structure Done (k : Nat) (st : MachineState) : Prop where
   same : SameOutside m.dmem st.data.dmem (InRange m.regs.X0.toBitVec m.regs.X2.toNat)
 
 /-- The word loop's head after `i` bytes. -/
-structure WInv (k i : Nat) (st : MachineState) : Prop where
-  pc : st.pc = Host.addrOf (k + NativeRustcArm.Common.Memset.b7Offset)
+structure WInv (sec k i : Nat) (st : MachineState) : Prop where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Memset.b7Offset)
   i8 : i % 8 = 0
   lt : i < m.regs.X2.toNat
   x0 : st.data.regs.X0 = m.regs.X0
@@ -103,8 +105,8 @@ structure WInv (k i : Nat) (st : MachineState) : Prop where
   same : SameOutside m.dmem st.data.dmem (InRange m.regs.X0.toBitVec i)
 
 /-- The byte loop's head after `i` bytes. -/
-structure BInv (k i : Nat) (st : MachineState) : Prop where
-  pc : st.pc = Host.addrOf (k + NativeRustcArm.Common.Memset.b3Offset)
+structure BInv (sec k i : Nat) (st : MachineState) : Prop where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Memset.b3Offset)
   lt : i < m.regs.X2.toNat
   x0 : st.data.regs.X0 = m.regs.X0
   x1 : st.data.regs.X1 = m.regs.X1
@@ -121,13 +123,13 @@ abbrev Post (st : MachineState) : Prop := st.pc = retOf m ∧ MemsetPost m st.da
 variable {m}
 
 theorem infix_of {b : List Directive} {j : Nat} (hb : b.IsInfixAt code j) (hne : b ≠ [])
-    (hp : Placed code k) : b.IsInfixAt Host.prog (k + j) :=
+    (hp : PlacedIn code sec k) : b.IsInfixAt (ElfHost.sectionProg sec) (k + j) :=
   hb.trans hp.1 hne
 
 /-- From `.LMemset_7`: `ret`. -/
-theorem finish {st : MachineState} (hp : Placed code k) (hd : Done m k st) :
-    Eventually (step1 Host.exe) (Post m) st := by
-  refine exec_at (infix_of b8_in_code (by simp [b8]) hp) e8 (Env.wf_nil _) hd.pc (match_nil _)
+theorem finish {st : MachineState} (hp : PlacedIn code sec k) (hd : Done m sec k st) :
+    Eventually (elfStep1 ElfHost.exe) (Post m) st := by
+  refine exec_at_elf (infix_of b8_in_code (by simp [b8]) hp) e8 (Env.wf_nil _) hd.pc (match_nil _)
     fun st' hm' hpc' => .done _ ⟨?_, ?_⟩
   · have h30 : st'.data.regs.X30 = st.data.regs.X30 :=
       Match.reg_eq (r := .X30) (match_nil _) hm' rfl rfl
@@ -149,9 +151,9 @@ abbrev wordEnv (m d : MachineData) (i : Nat) : Env :=
 
 /-- **One word**: from the word loop's head after `i` bytes, the next word filled, back at the head
 or done. -/
-theorem word_step (hp : Placed code k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNat % 8 = 0)
-    {i : Nat} {st : MachineState} (hI : WInv m k i st) :
-    Eventually (step1 Host.exe) (fun st' => Post m st' ∨ WInv m k (i + 8) st') st := by
+theorem word_step (hp : PlacedIn code sec k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNat % 8 = 0)
+    {i : Nat} {st : MachineState} (hI : WInv m sec k i st) :
+    Eventually (elfStep1 ElfHost.exe) (fun st' => Post m st' ∨ WInv m sec k (i + 8) st') st := by
   obtain ⟨hmd, hnd⟩ := hpre
   have hle : i + 8 ≤ m.regs.X2.toNat := by have := hI.i8; have := hI.lt; omega
   have hn64 := m.regs.X2.toNat_lt
@@ -173,7 +175,7 @@ theorem word_step (hp : Placed code k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNa
     ⟨show (idx .X0 .X9).eval env = env.base 0 + BitVec.ofInt 64 0 by
       rw [eval_idx, Env.base_ofMachine _ _ _ rfl]
       simp [env, Reg64s.getXReg, hI.x0, hx9i], trivial⟩
-  refine exec_at (infix_of b7_in_code (by simp [b7]) hp) e7 hwf hI.pc hm fun st' hm' hpc' => ?_
+  refine exec_at_elf (infix_of b7_in_code (by simp [b7]) hp) e7 hwf hI.pc hm fun st' hm' hpc' => ?_
   have hx0 : st'.data.regs.X0 = m.regs.X0 := (Match.reg_eq (r := .X0) hm hm' rfl rfl).trans hI.x0
   have hx2 : st'.data.regs.X2 = m.regs.X2 := (Match.reg_eq (r := .X2) hm hm' rfl rfl).trans hI.x2
   have hx8 : st'.data.regs.X8 = st.data.regs.X8 := Match.reg_eq (r := .X8) hm hm' rfl rfl
@@ -230,7 +232,7 @@ theorem word_step (hp : Placed code k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNa
         Bool.not_eq_true, decide_eq_false_iff_not] at hc
       omega
     rw [hn] at hc' hs'
-    exact Eventually.mono (finish hp ⟨hpc', hx0, hx30, hsaved, hc', hs'⟩) fun _ h => Or.inl h
+    exact Eventually.mono_elf (finish hp ⟨hpc', hx0, hx30, hsaved, hc', hs'⟩) fun _ h => Or.inl h
 
 /-- The byte loop's environment after `i` bytes: the next destination byte. -/
 abbrev byteEnv (m d : MachineData) (i : Nat) : Env :=
@@ -238,9 +240,9 @@ abbrev byteEnv (m d : MachineData) (i : Nat) : Env :=
 
 /-- **One byte**: from the byte loop's head after `i` bytes, the next byte filled, back at the head
 or done. -/
-theorem byte_step (hp : Placed code k) (hpre : MemsetPre m) {i : Nat} {st : MachineState}
-    (hI : BInv m k i st) :
-    Eventually (step1 Host.exe) (fun st' => Post m st' ∨ BInv m k (i + 1) st') st := by
+theorem byte_step (hp : PlacedIn code sec k) (hpre : MemsetPre m) {i : Nat} {st : MachineState}
+    (hI : BInv m sec k i st) :
+    Eventually (elfStep1 ElfHost.exe) (fun st' => Post m st' ∨ BInv m sec k (i + 1) st') st := by
   obtain ⟨hmd, hnd⟩ := hpre
   have hle : i + 1 ≤ m.regs.X2.toNat := hI.lt
   unfold NoWrap at hnd
@@ -257,7 +259,7 @@ theorem byte_step (hp : Placed code k) (hpre : MemsetPre m) {i : Nat} {st : Mach
       simp [Sym.eval, env]
       exact hI.x8, trivial⟩
     trivial trivial trivial
-  refine exec_at (infix_of b3_in_code (by simp [b3]) hp) e3 hwf hI.pc hm fun st' hm' hpc' => ?_
+  refine exec_at_elf (infix_of b3_in_code (by simp [b3]) hp) e3 hwf hI.pc hm fun st' hm' hpc' => ?_
   have hx0 : st'.data.regs.X0 = m.regs.X0 := (Match.reg_eq (r := .X0) hm hm' rfl rfl).trans hI.x0
   have hx1 : st'.data.regs.X1 = m.regs.X1 := (Match.reg_eq (r := .X1) hm hm' rfl rfl).trans hI.x1
   have hx30 : st'.data.regs.X30 = m.regs.X30 :=
@@ -329,10 +331,10 @@ theorem byte_step (hp : Placed code k) (hpre : MemsetPre m) {i : Nat} {st : Mach
       have := hI.lt
       omega
     rw [hn] at hc' hs'
-    refine exec_at (infix_of b4_in_code (by simp [b4]) hp) e4 (Env.wf_nil _) hpc' (match_nil _)
+    refine exec_at_elf (infix_of b4_in_code (by simp [b4]) hp) e4 (Env.wf_nil _) hpc' (match_nil _)
       fun st'' hm'' hpc'' => ?_
     have hd : st''.data.dmem = st'.data.dmem := hm''.dmem_eq (Env.wf_nil _) rfl
-    refine Eventually.mono (finish hp ⟨?_, ?_, ?_, ?_, ?_, ?_⟩) fun _ h => Or.inl h
+    refine Eventually.mono_elf (finish hp ⟨?_, ?_, ?_, ?_, ?_, ?_⟩) fun _ h => Or.inl h
     · simp only [PcOk] at hpc''
       rw [hpc'']
       exact hp.label NativeRustcArm.Common.Memset.label_7_at
@@ -346,26 +348,27 @@ theorem byte_step (hp : Placed code k) (hpre : MemsetPre m) {i : Nat} {st : Mach
       exact hs' p hp'
 
 /-- The word loop, from its head after `i` bytes. -/
-theorem word_loop (hp : Placed code k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNat % 8 = 0)
-    {i : Nat} {st : MachineState} (hI : WInv m k i st) : Eventually (step1 Host.exe) (Post m) st :=
-  Sym.loop (fun μ st => ∃ i, μ = m.regs.X2.toNat - i ∧ WInv m k i st)
-    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono (word_step hp hpre h8 hI) fun st' h =>
+theorem word_loop (hp : PlacedIn code sec k) (hpre : MemsetPre m) (h8 : m.regs.X2.toNat % 8 = 0)
+    {i : Nat} {st : MachineState} (hI : WInv m sec k i st) : Eventually (elfStep1 ElfHost.exe) (Post m) st :=
+  Sym.loop (fun μ st => ∃ i, μ = m.regs.X2.toNat - i ∧ WInv m sec k i st)
+    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono_elf (word_step hp hpre h8 hI) fun st' h =>
       h.imp_right fun h' => ⟨m.regs.X2.toNat - (i + 8), by have := hI.lt; omega, i + 8, rfl, h'⟩)
     ⟨i, rfl, hI⟩
 
 /-- The byte loop, from its head after `i` bytes. -/
-theorem byte_loop (hp : Placed code k) (hpre : MemsetPre m) {i : Nat} {st : MachineState}
-    (hI : BInv m k i st) : Eventually (step1 Host.exe) (Post m) st :=
-  Sym.loop (fun μ st => ∃ i, μ = m.regs.X2.toNat - i ∧ BInv m k i st)
-    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono (byte_step hp hpre hI) fun st' h =>
+theorem byte_loop (hp : PlacedIn code sec k) (hpre : MemsetPre m) {i : Nat} {st : MachineState}
+    (hI : BInv m sec k i st) : Eventually (elfStep1 ElfHost.exe) (Post m) st :=
+  Sym.loop (fun μ st => ∃ i, μ = m.regs.X2.toNat - i ∧ BInv m sec k i st)
+    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono_elf (byte_step hp hpre hI) fun st' h =>
       h.imp_right fun h' => ⟨m.regs.X2.toNat - (i + 1), by have := hI.lt; omega, i + 1, rfl, h'⟩)
     ⟨i, rfl, hI⟩
 
-/-- **`memset` meets its contract.** -/
-theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Memset.entryLabel) MemsetPre MemsetPost := by
+/-- **`memset` meets its contract** under a multi-section `ElfHost`. -/
+theorem memset_spec_elf (hp : PlacedIn code sec k) :
+    ElfSpec (label NativeRustcArm.Common.Memset.entryLabel) MemsetPre MemsetPost := by
   intro m hpre
   rw [hp.label NativeRustcArm.Common.Memset.entry_at]
-  refine exec_then (infix_of b0_in_code (by simp [b0]) hp) e0 (Env.wf_nil m) (match_nil m)
+  refine exec_then_elf (infix_of b0_in_code (by simp [b0]) hp) e0 (Env.wf_nil m) (match_nil m)
     fun st0 hm0 hpc0 => ?_
   have hd0 : st0.data.dmem = m.dmem := hm0.dmem_eq (Env.wf_nil _) rfl
   have hx0 : st0.data.regs.X0 = m.regs.X0 := Match.reg_eq (r := .X0) (match_nil m) hm0 rfl rfl
@@ -378,7 +381,7 @@ theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Mem
   · -- aligned: the word loop
     rename_i hal
     have h8 : m.regs.X2.toNat % 8 = 0 := align_or2 hal
-    refine exec_at (infix_of b5_in_code (by simp [b5]) hp) e5 (Env.wf_nil _)
+    refine exec_at_elf (infix_of b5_in_code (by simp [b5]) hp) e5 (Env.wf_nil _)
       (hpc0.trans (hp.label NativeRustcArm.Common.Memset.label_4_at)) (match_nil _) fun st5 hm5 hpc5 => ?_
     have hd5 : st5.data.dmem = m.dmem := (hm5.dmem_eq (Env.wf_nil _) rfl).trans hd0
     have hy0 : st5.data.regs.X0 = m.regs.X0 :=
@@ -410,7 +413,7 @@ theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Mem
         apply hz
         rw [hx2]
         exact BitVec.eq_of_toNat_eq (by simp [h])
-      refine exec_at (infix_of b6_in_code (by simp [b6]) hp) e6 (Env.wf_nil _) hpc5 (match_nil _)
+      refine exec_at_elf (infix_of b6_in_code (by simp [b6]) hp) e6 (Env.wf_nil _) hpc5 (match_nil _)
         fun st6 hm6 hpc6 => ?_
       have hd6 : st6.data.dmem = m.dmem := (hm6.dmem_eq (Env.wf_nil _) rfl).trans hd5
       refine word_loop (i := 0) hp hpre h8 ⟨hpc6, rfl, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -435,7 +438,7 @@ theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Mem
       · exact bytesAt_nil _ _
       · exact sameOutside_of_eq hd6 _
   · -- the byte loop
-    refine exec_at (infix_of b1_in_code (by simp [b1]) hp) e1 (Env.wf_nil _) hpc0 (match_nil _)
+    refine exec_at_elf (infix_of b1_in_code (by simp [b1]) hp) e1 (Env.wf_nil _) hpc0 (match_nil _)
       fun st1 hm1 hpc1 => ?_
     have hd1 : st1.data.dmem = m.dmem := (hm1.dmem_eq (Env.wf_nil _) rfl).trans hd0
     have hy0 : st1.data.regs.X0 = m.regs.X0 :=
@@ -467,7 +470,7 @@ theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Mem
         apply hz
         rw [hx2]
         exact BitVec.eq_of_toNat_eq (by simp [h])
-      refine exec_at (infix_of b2_in_code (by simp [b2]) hp) e2 (Env.wf_nil _) hpc1 (match_nil _)
+      refine exec_at_elf (infix_of b2_in_code (by simp [b2]) hp) e2 (Env.wf_nil _) hpc1 (match_nil _)
         fun st2 hm2 hpc2 => ?_
       have hd2 : st2.data.dmem = m.dmem := (hm2.dmem_eq (Env.wf_nil _) rfl).trans hd1
       refine byte_loop (i := 0) hp hpre ⟨hpc2, by omega, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -481,6 +484,15 @@ theorem memset_spec (hp : Placed code k) : Spec (label NativeRustcArm.Common.Mem
       · exact hs1.trans (Match.saved (match_nil _) hm2 (Env.wf_nil _) rfl rfl)
       · exact bytesAt_nil _ _
       · exact sameOutside_of_eq hd2 _
+
+end
+
+/-- **`memset` meets its contract.** -/
+theorem memset_spec [h : NativeRustcArm.Host] {k : Nat} (hp : Placed code k) :
+    Spec (label NativeRustcArm.Common.Memset.entryLabel) MemsetPre MemsetPost :=
+  ElfSpec.toSpec (entry := fun [_] => label NativeRustcArm.Common.Memset.entryLabel)
+    (P := fun [_] => MemsetPre) (Q := fun [_] => MemsetPost)
+    (@memset_spec_elf (Host.toElfHost h) 0 k hp.toPlacedIn)
 
 end
 

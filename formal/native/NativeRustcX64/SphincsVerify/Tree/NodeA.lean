@@ -105,7 +105,7 @@ end
 /-- The sibling's index of `b152`. -/
 @[expose] def idxS : Sym := .bin .shl .W64 (.reg .rcx) (.lit 4)
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 theorem eval_idx {m : MachineData} {vars : Nat → BitVec 64} {ret : BitVec 64} {z : Nat}
     (h : Run.RegIs m .rcx (BitVec.ofNat 64 z)) (hz : z < 10) :
@@ -117,7 +117,7 @@ theorem eval_idx {m : MachineData} {vars : Nat → BitVec 64} {ret : BitVec 64} 
     BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega), Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by omega)]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 theorem two_pow_and_eq_zero (n z : Nat) : (2 ^ z &&& n = 0) ↔ n.testBit z = false := by
   constructor
   · intro h
@@ -131,12 +131,12 @@ theorem two_pow_and_eq_zero (n z : Nat) : (2 ^ z &&& n = 0) ↔ n.testBit z = fa
     · subst hi; simp [h]
     · simp [hi]
 
-omit [Host] in
+omit [ElfHost] in
 theorem shr_and_one (n z : Nat) : (n >>> z &&& 1 = 0) ↔ n.testBit z = false := by
   rw [Nat.testBit, Nat.and_comm]
   cases h : 1 &&& n >>> z == 0 <;> simp_all
 
-omit [Host] in
+omit [ElfHost] in
 /-- The 32-bit test of bit `z` of a `u32`. -/
 theorem bit32 (x : UInt32) {z : Nat} (hz : z < 32) :
     (low .W32 (ext .W32 (low .W32 (ext .W64 (low .W64 (BitVec.ofNat 64 1) <<< z)) &&&
@@ -286,7 +286,7 @@ theorem nodeA_children {l z p : Nat} {e : List (List UInt8)} {m m' : MachineData
       (by simp only [Sym.eval, SBool.eval, hcf, Bool.not_false, ite_true]; exact cHi)
 
 /-- **`b152` and `memset`**, from the symbolic run's facts. -/
-theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeA_gen (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtNode r l e z m) {p : Nat}
     (hpp : pathStart l = p) {S' : SState}
     (hrun : exec b152 (nodeS p) = some (S', .call NativeRustcX64.Common.Memset.entryLabel))
@@ -313,16 +313,16 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     (wC3 : ∀ i < 8, findWrite 0 (11384 + 8 + i) S'.mem = some (.ite (.not bitC) (.load 0 8304 8)
       (.loadx 0 (17012 + 16 * p) idxS 8), i))
     (h14 : S'.reg .r14 = some (.label "memcpy") := by rfl) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b153Offset ∧ AtN2 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b153Offset ∧ AtN2 r l e z st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset⟩ := by
   obtain ⟨hB, hz, hrcx, hr12, h72, h96, hV, hbx⟩ := h
   have hl := hB.1
   have hh := heightOf_le hl
-  have ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec
-  have hwf := frame_wf' hpre hB (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec
-  have hld72 : (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec).load 0 72 8 =
+  have ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec
+  have hwf := frame_wf' hpre hB (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec
+  have hld72 : (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec).load 0 72 8 =
       r.off (17004 + 16 * p) := by rw [load_word h72, ← hpp]; rfl
-  have hm0 : Match (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec)
+  have hm0 : Match (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec)
       (nodeS p) m := r.match_frame hpre hB.2.1
     (show AllOf _ [(Reg64.r14, Sym.label "memcpy"), (.r12, .ptr 0 4072),
       (.rbp, .ptr 0 560), (.rcx, .reg .rcx), (.rbx, .label "memset")] from
@@ -330,19 +330,19 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
         hB.2.2.2.1.trans (eval_ptr 560).symm, rfl, hbx, trivial⟩) trivial
     ⟨by show (idxS.eval _).toNat < 145; rw [eval_idx hrcx (by omega)]; omega, trivial⟩
     ⟨by show (Sym.load 0 72 8).eval _ = _; rw [Sym.eval, hld72, ← eval_ptr]; rfl, trivial⟩
-  refine exec_then (hb161 hp) hrun hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb161 hp) hrun hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
   have hc1 := hB.atCall hpre hm hwf hsp hfw
   have h0 : Run.RegIs st.data .rdi (r.off 4072) := (hm.regs .rdi _ hx0).trans (eval_ptr 4072)
   have h1 : reg st.data .rsi = 0 := hm.regs .rsi _ hx1
   have h2 : (reg st.data .rdx).toNat = 344 := regIs_toNat (hm.regs .rdx _ hx2) (by decide)
   obtain ⟨-, h88, -, -, -, h216, -⟩ := hB.2.2.1
   have hld216 := load_word (vars := fun _ ↦ 0)
-    (ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) h216
+    (ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) h216
   have hld96 := load_word (vars := fun _ ↦ 0)
-    (ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) h96
+    (ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) h96
   have hrc : m.regs.get64 .rcx = BitVec.ofNat 64 z := hrcx
   have hz1 : (Sym.bin .add .W64 (.reg .rcx) (.lit 1)).eval
-      (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) =
+      (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b152Offset + b152.length)).toBitVec) =
       BitVec.ofNat 64 (z + 1) := by
     simp only [Sym.eval, BinOp.apply, low_W64, ext_W64, Env.ofMachine_regs, hrc]
     rw [BitVec.ofNat_add]
@@ -361,7 +361,7 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
         decide_eq_true_eq] at this ⊢; omega)
   have h12' : Run.RegIs st.data .r12 (r.off 4072) := (hm.regs .r12 _ h12).trans (eval_ptr 4072)
   -- the call
-  refine call_then hpc hc.2.1 (r.memset_pre hpre hc1 h0 h2 (by decide))
+  refine call_then_elf hpc hc.2.1 (r.memset_pre hpre hc1 h0 h2 (by decide))
     fun st' hpc' hsp' hpost ↦ ?_
   obtain ⟨hz0, hout, hS⟩ := r.memset_out h0 h2 hpost
   have kc := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
@@ -382,9 +382,9 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   exact hz0
 
 /-- **`b152` and `memset`**: from the loop head to `b153`. -/
-theorem nodeA (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeA (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtNode r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b153Offset ∧ AtN2 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b153Offset ∧ AtN2 r l e z st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset⟩ := by
   rcases pathStart_cases h.1.1 with hpp | hpp | hpp
   · exact nodeA_gen hp hc hpre h hpp run_b161_0 rfl (by decide) (by decide) rfl rfl rfl rfl rfl

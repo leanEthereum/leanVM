@@ -76,12 +76,12 @@ theorem Facts.snoc2 {r : Run} {d : DataMem} {L : List (Nat × Nat × List UInt8)
 
 theorem mem_A1 (r : Run) : (4072, 4224, opens r) ∈ L3 r := by simp [L3, L2p, L2, L1, L0c, L0]
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- **`b29 .. b33`**: the parsed signature assembled. -/
-theorem assemble_spec (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem assemble_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : LS3 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b34Offset ∧ r.Frame st.data ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b34Offset ∧ r.Frame st.data ∧
       Facts r st.data.dmem (A5 r) ∧ Run.RegIs st.data .r13 (r.off 17420) ∧
       Run.RegIs st.data .rbp (Labels.label "memcpy").toBitVec) ⟨m, r.pc b29Offset⟩ := by
   obtain ⟨hF, hL, hbx, h14, h12, h15, hbp⟩ := h

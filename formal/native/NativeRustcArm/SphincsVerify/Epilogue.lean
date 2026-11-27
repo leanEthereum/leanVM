@@ -78,21 +78,21 @@ sym_block b179_exec := Sym.exec Sphincs.SphincsVerify.b179 (Sym.init [(21616, tr
 sym_block b178_exec := Sym.exec Sphincs.SphincsVerify.b178
   (Sym.init [(21616, true)] (.ptr 0 0) [(.X29, .ptr 0 21520)])
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **The epilogue**: from a state of the frame at `b179`, the machine returns to the caller with
 X0 as it was, no byte changed outside the stack area, and the entry's callee-saved registers, SP
 and mapped bytes. -/
-theorem epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem epilogue (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = retOf r.m0 ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = retOf r.m0 ∧
       st.data.regs.X0 = m.regs.X0 ∧ SameOutside r.m0.dmem st.data.dmem r.StackArea ∧
       Saved r.m0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b179Offset⟩ := by
   have hk := Sphincs.SphincsVerify.b179_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := r.frame_wf hpre hF (fun _ ↦ 0)
   have hm := r.match_frame hpre hF (vars := fun _ ↦ 0) (known := []) (labels := []) (bounds := [])
     (aliases := []) trivial trivial trivial trivial
-  refine Sym.exec_then hk b179_exec hwf hm fun st hm' hpc ↦ .done _ ?_
+  refine Sym.exec_then_elf hk b179_exec hwf hm fun st hm' hpc ↦ .done _ ?_
   have ls := fun j o ho hj x hx ↦ r.load_saved hF (fun _ ↦ 0) j o ho hj x hx
   have hreg : ∀ x : XReg, calleeSaved x = true ∨ x = .X30 →
       st.data.regs.getXReg x = r.m0.regs.getXReg x := by
@@ -125,21 +125,21 @@ theorem epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
   · exact fun p h ↦ hm'.kept hwf p (hF.2.2.2.2 p h)
 
 /-- **Returning `v`**: from a state of the frame at `b179` with X0 the boolean `v`, `Done v`. -/
-theorem done_of_epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem done_of_epilogue (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) {v : Bool} (hx : m.regs.X0 = if v then 1 else 0) :
-    Eventually (step1 NativeRustcArm.Host.exe) (r.Done v) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b179Offset⟩ :=
-  NativeRustcArm.Eventually.mono (epilogue r hp hpre m hF) fun _ ⟨h1, h2, h3, h4⟩ ↦
+    Eventually (elfStep1 ElfHost.exe) (r.Done v) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b179Offset⟩ :=
+  NativeRustcArm.Eventually.mono_elf (epilogue r hp hpre m hF) fun _ ⟨h1, h2, h3, h4⟩ ↦
     ⟨h1, h2.trans hx, h3, h4⟩
 
 /-- **Returning `0`** from `b178`, where a layer has no codeword. -/
-theorem fail_return (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem fail_return (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (r.Done false) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b178Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (r.Done false) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b178Offset⟩ := by
   have hk := Sphincs.SphincsVerify.b178_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := r.frame_wf hpre hF (fun _ ↦ 0)
   have hm := r.match_frame hpre hF (vars := fun _ ↦ 0) (known := [(.X29, .ptr 0 21520)])
     (labels := []) (bounds := []) (aliases := []) ⟨hF.2.1, trivial⟩ trivial trivial trivial
-  refine Sym.exec_then hk b178_exec hwf hm fun st hm' hpc ↦ ?_
+  refine Sym.exec_then_elf hk b178_exec hwf hm fun st hm' hpc ↦ ?_
   obtain ⟨m', pc⟩ := st
   simp only [Sym.PcOk] at hpc
   subst hpc

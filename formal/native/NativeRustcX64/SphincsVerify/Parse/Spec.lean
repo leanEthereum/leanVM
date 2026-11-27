@@ -54,25 +54,25 @@ theorem atHMsg_of (r : Run) [Labels] {m : MachineData} (hF : r.Frame m) (hL : Fa
     g (o := 184) (n := 8) (by simp [A5, A4, A3, A2]), hbp⟩
 
 /-- **The parse** (`b0 .. b33`): from the entry, `AtHMsg` at `b34`. -/
-theorem parse_spec [Host] : ParseSpec := by
+theorem parse_spec [ElfHost] : ParseSpec := by
   intro r hp hc hpre m hm
   subst hm
-  refine Eventually.bind (prologue_spec r hp hpre) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+  refine Eventually.bind_elf (prologue_spec r hp hpre) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
   simp only at hpc
   subst hpc
-  refine Eventually.bind (open_loop r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+  refine Eventually.bind_elf (open_loop r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
   simp only at hpc
   subst hpc
-  refine Eventually.bind (layer0_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+  refine Eventually.bind_elf (layer0_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
   simp only at hpc
   subst hpc
-  refine Eventually.bind (layer1_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+  refine Eventually.bind_elf (layer1_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
   simp only at hpc
   subst hpc
-  refine Eventually.bind (layer2_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+  refine Eventually.bind_elf (layer2_spec r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
   simp only at hpc
   subst hpc
-  exact Eventually.mono (assemble_spec r hp hpre hc h) fun st ⟨hpc, hF, hL, h13, hbp⟩ ↦
+  exact Eventually.mono_elf (assemble_spec r hp hpre hc h) fun st ⟨hpc, hF, hL, h13, hbp⟩ ↦
     ⟨hpc, atHMsg_of r hF hL h13 hbp⟩
 
 end

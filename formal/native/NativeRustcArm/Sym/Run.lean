@@ -76,6 +76,40 @@ theorem call_then {l : Label} {next : Int64} {st : MachineState} {P : MachineDat
 
 end
 
+section
+variable [ElfHost] {env : Env}
+
+/-- A block run from `m` at its address in section `sec`, then `cont` from where it ends. -/
+theorem exec_then_elf {sec : Nat} {ds : List Directive} {k : Nat} {S S' : SState} {x : Exit}
+    {m : MachineData} {R : MachineState → Prop} (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    (hx : exec ds S = some (S', x)) (hwf : env.WF) (hm : Match env S m)
+    (cont : ∀ st, Match env S' st.data → PcOk env x (ElfHost.addrOf sec (k + ds.length)) st →
+      Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, ElfHost.addrOf sec k⟩ :=
+  eventually_trans _ _ _ _ (exec_sound_elf hk hx hwf hm) fun st h => cont st h.1 h.2
+
+/-- `exec_then_elf` from a machine state at the block's address in section `sec`. -/
+theorem exec_at_elf {sec : Nat} {ds : List Directive} {k : Nat} {S S' : SState} {x : Exit}
+    {st : MachineState} {R : MachineState → Prop} (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    (hx : exec ds S = some (S', x)) (hwf : env.WF) (hpc : st.pc = ElfHost.addrOf sec k)
+    (hm : Match env S st.data)
+    (cont : ∀ st', Match env S' st'.data → PcOk env x (ElfHost.addrOf sec (k + ds.length)) st' →
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st := by
+  obtain ⟨m, pc⟩ := st
+  cases hpc
+  exact exec_then_elf hk hx hwf hm cont
+
+/-- A call under AArch64 `ElfHost`: applies an `ElfSpec` and continues from the return address. -/
+theorem call_then_elf {l : Label} {next : Int64} {st : MachineState} {P : MachineData → Prop}
+    {Q : MachineData → MachineData → Prop} {R : MachineState → Prop}
+    (hpc : PcOk env (.call l) next st) (hspec : ElfSpec (Labels.label l) P Q) (hP : P st.data)
+    (cont : ∀ st', st'.pc = next → Q st.data st'.data → Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  Eventually.bind_elf (ElfSpec.apply hspec hpc.1 hP) fun st' h => cont st' (h.1.trans hpc.2) h.2
+
+end
+
 /-! ## A fresh environment -/
 
 theorem XReg.eq_of_beq {a b : XReg} (h : (a == b) = true) : a = b := by

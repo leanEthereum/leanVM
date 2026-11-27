@@ -94,12 +94,12 @@ theorem bytesAt_lit4 [Labels] {r : Run} {m m₁ : MachineData} {S : SState}
   have := hm.bytesAt_write (r := 0) (o := o) (n := 4) (b := r.base) (sz := 21616) rfl ho hw
   rwa [show Sym.eval (r.env m) (.lit v) = BitVec.ofNat 64 v from rfl, hb] at this
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **`h_msg`'s first call** (`b41 .. b43`). -/
-theorem hash0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem hash0_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : Absorbed r m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b44Offset ∧ Hashed0 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b44Offset ∧ Hashed0 r st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b41Offset⟩ := by
   obtain ⟨hK, h19, hB⟩ := hA
   obtain ⟨hb, hbB, hbh⟩ := hB
@@ -130,9 +130,9 @@ theorem hash0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
   · exact (gB.keepB hkb₅ (by decide) rfl).keepC hkc₆ (by decide) (by decide)
 
 /-- **`h_msg`'s second call** (`b44 .. b46`). -/
-theorem hash1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem hash1_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hH : Hashed0 r m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b47Offset ∧ Hashed1 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b47Offset ∧ Hashed1 r st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b44Offset⟩ := by
   obtain ⟨hK, h19, hB, hD⟩ := hH
   obtain ⟨hb, hbB, hbh⟩ := hB
@@ -166,9 +166,9 @@ theorem hash1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
       (hkb₅ 16960 _ (by rw [length_hCall]; omega) (by rw [length_hCall]; rfl) gD)
 
 /-- **`h_msg` in place, the loop's first turn** (`b47`). -/
-theorem hMsg_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem hMsg_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {m : MachineData} (hH : Hashed1 r m) :
-    Eventually (step1 NativeRustcArm.Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b48Offset ∧ LoopInv r (hMsgBytes r) 0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b47Offset⟩ := by
   obtain ⟨hK, h19, hD0, hD1⟩ := hH
   refine Run.frameFall r hp hpre Sphincs.SphincsVerify.b47_in_code rfl (List.cons_ne_nil _ _)

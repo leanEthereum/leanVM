@@ -75,16 +75,16 @@ theorem stack_frame {s : BitVec 64} {i : Nat} :
   have := s.isLt
   omega
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **The prologue and the copies to the frame.** -/
-theorem stage2_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost) {m0 : MachineData}
+theorem stage2_spec (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost) {m0 : MachineData}
     (hpre : FinalizePre m0) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcArm.Common.Finalize.b4Offset) ∧ ∃ m1, Pro m0 m1 ∧ Stage2 m0 m1 st.data)
-      ⟨m0, Host.addrOf (k + NativeRustcArm.Common.Finalize.b0Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Finalize.b4Offset) ∧ ∃ m1, Pro m0 m1 ∧ Stage2 m0 m1 st.data)
+      ⟨m0, ElfHost.addrOf sec (k + NativeRustcArm.Common.Finalize.b0Offset)⟩ := by
   have g := geo_of hpre
   have hs := g.s
   have hf := frAt_toNat g
@@ -106,7 +106,7 @@ theorem stage2_spec (hp : Placed code k)
         show spAt m0 = spAt m0 - 384#64 + 384#64
         exact (BitVec.sub_add_cancel _ _).symm)
       trivial trivial trivial trivial
-  refine exec_then (hb0 hp) run_b0 hwf0 hm0 fun st1 hm1 hpc1 => ?_
+  refine exec_then_elf (hb0 hp) run_b0 hwf0 hm0 fun st1 hm1 hpc1 => ?_
   have hl0 := b0_mem
   rw [after_eq run_b0] at hl0
   have hsl0 := b0_slots
@@ -137,7 +137,7 @@ theorem stage2_spec (hp : Placed code k)
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hr
       rcases hr with rfl | rfl | rfl | rfl | rfl | rfl <;> exact Match.reg_atom hm1 rfl
   -- The first `memcpy`: the state.
-  refine call_then hpc1 hmemcpy ?pre1 fun st2 hpc2 hpost2 => ?_
+  refine call_then_elf hpc1 hmemcpy ?pre1 fun st2 hpc2 hpost2 => ?_
   case pre1 =>
     refine ⟨fun i hi => ?_, fun i hi => ?_, ?_, ?_, ?_⟩
     · rw [hX0]; rw [hX2] at hi; exact hk1 _ (hmapF i (by omega))
@@ -170,7 +170,7 @@ theorem stage2_spec (hp : Placed code k)
     rw [hsaved2.1 .X21 rfl, hm1.regs .X21 _ rfl]; rfl
   -- `b1`, `b2`, `b3`.
   obtain ⟨d2, pc2⟩ := st2
-  have hpc2' : pc2 = Host.addrOf (k + NativeRustcArm.Common.Finalize.b1Offset) := by rw [show pc2 = _ from hpc2]; rfl
+  have hpc2' : pc2 = ElfHost.addrOf sec (k + NativeRustcArm.Common.Finalize.b1Offset) := by rw [show pc2 = _ from hpc2]; rfl
   subst hpc2'
   have hwf2 : (Env.ofMachine d2 [(frAt m0, 384), (hAt m0, 344)]).WF :=
     Env.wf_of ⟨⟨fun i hi => hfr2.kept _ (hmapF i hi), hFnw⟩,
@@ -201,11 +201,11 @@ theorem stage2_spec (hp : Placed code k)
     exact bytesOf_congr hH2
   have hLv : (BitVec.ofInt 64 (Int.ofBytes ((hbytes m0).drop 336))).toNat = lenOf m0 :=
     bufLen_ofBytes (length_hbytes m0)
-  refine exec_then (hb1 hp) run_b1 hwf2 hm2 fun st3 hm3 hpc3 => ?_
+  refine exec_then_elf (hb1 hp) run_b1 hwf2 hm2 fun st3 hm3 hpc3 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, low_W64, hload,
     Nat.add_assoc, NativeRustcArm.Common.Finalize.b1_next] at hpc3
   rw [ite_neg' (by simp [BitVec.ult, hLv]; omega)] at hpc3
-  refine exec_at (hb2 hp) (exec_after run_b1 run_b2) hwf2 hpc3 hm3 fun st4 hm4 hpc4 => ?_
+  refine exec_at_elf (hb2 hp) (exec_after run_b1 run_b2) hwf2 hpc3 hm3 fun st4 hm4 hpc4 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, low_W64, hload,
     Nat.add_assoc, NativeRustcArm.Common.Finalize.b2_next] at hpc4
   rw [ite_neg' (by
@@ -217,7 +217,7 @@ theorem stage2_spec (hp : Placed code k)
     omega)] at hpc4
   have hr3 := run_b3
   rw [after_eq run_b1] at hr3
-  refine exec_at (hb3 hp) (exec_after (exec_after run_b1 run_b2) hr3) hwf2 hpc4 hm4
+  refine exec_at_elf (hb3 hp) (exec_after (exec_after run_b1 run_b2) hr3) hwf2 hpc4 hm4
     fun st5 hm5 hpc5 => ?_
   have hl3 := b3_mem
   rw [after_eq run_b1, after_eq (exec_after run_b1 run_b2),
@@ -254,7 +254,7 @@ theorem stage2_spec (hp : Placed code k)
   have hto200 : ∀ (a : BitVec 64) (j : Nat), a.toNat + 200 + j < 2 ^ 64 →
       (a + BitVec.ofNat 64 200).toNat = a.toNat + 200 := fun a j h =>
     toNat_add_ofNat' (by omega)
-  refine call_then hpc5 hmemcpy ?pre2 fun st6 hpc6 hpost6 => ?_
+  refine call_then_elf hpc5 hmemcpy ?pre2 fun st6 hpc6 hpost6 => ?_
   case pre2 =>
     refine ⟨fun i hi => ?_, fun i hi => ?_, ?_, ?_, ?_⟩
     · rw [hX0', add_ofNat_add]; rw [hX2'] at hi; exact hfr5.kept _ (hmapF _ (by omega))

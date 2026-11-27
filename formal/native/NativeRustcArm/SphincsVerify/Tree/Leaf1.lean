@@ -24,8 +24,8 @@ section
 variable {r : Run}
 
 /-- The pc after a block, from generated adjacency evidence. -/
-theorem pc_after [Host] {k j j' : Nat} {ds : List Directive} (h : j + ds.length = j') :
-    Host.addrOf (k + j + ds.length) = Host.addrOf (k + j') := by
+theorem pc_after [ElfHost] {sec k j j' : Nat} {ds : List Directive} (h : j + ds.length = j') :
+    ElfHost.addrOf sec (k + j + ds.length) = ElfHost.addrOf sec (k + j') := by
   rw [Nat.add_assoc, h]
 
 /-- **A write's bytes** in the frame. -/
@@ -57,7 +57,7 @@ end
 
 theorem length_adrs (key : OtsKey) (t : UInt32) : (key.adrs t).length = 32 := rfl
 
-variable [Host] (r : Run)
+variable [ElfHost] (r : Run)
 
 /-! ## The states -/
 
@@ -75,14 +75,14 @@ variable [Host] (r : Run)
 variable {r}
 
 /-- **`b134` and `memset`.** -/
-theorem stage1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem stage1 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {m : MachineData} (h : r.AtWotsPk l e m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b135Offset ∧ AtL1 r l e st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b135Offset ∧ AtL1 r l e st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b134Offset⟩ := by
   obtain ⟨hl, hF, hIn, hSp, h19, h21, h25, h27, hE, hElen⟩ := h
   have hB : Base r l m := ⟨hl, hF, ⟨hIn, TreeSpills.of_layerSpills hSp⟩, h19, h21, h25, h27⟩
   have hwf := r.frame_wf hpre hF (fun _ ↦ 0)
-  refine exec_then (hb134 hp) run_b134 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb134 hp) run_b134 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
   have hB1 := Base.of_match hpre hB hm hwf rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := (hm.regs .X0 _ rfl).trans (eval_ptr 8640)
   have h1 : st.data.regs.X1 = 0 := UInt64.toBitVec_inj.mp (hm.regs .X1 _ rfl)
@@ -105,7 +105,7 @@ theorem stage1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
       (by decide) (bytes_load h424 rfl (by decide))) ?_
     exact write_bytes hm (o := 16984) (n := 8) (v := .lit 0) (by decide) (by decide)
       (by simp only [Sym.eval]; decide)
-  refine call_then hpc hc.2.1 (r.memset_pre hpre hB1.2.1 h0 h2 (by decide)) fun st' hpc' hpost ↦ ?_
+  refine call_then_elf hpc hc.2.1 (r.memset_pre hpre hB1.2.1 h0 h2 (by decide)) fun st' hpc' hpost ↦ ?_
   obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost
   refine .done _ ⟨hpc'.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b134_next), hB1.of_call hpre hS (by decide) (by decide)
     (by decide) hout, ?_, hElen, ?_, ?_⟩
@@ -117,13 +117,13 @@ theorem stage1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     exact hz
 
 /-- **`b135`**: `update` of hasher A with `PK.seed`. -/
-theorem stage2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem stage2 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {m : MachineData} (h : AtL1 r l e m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b136Offset ∧ AtL2 r l e st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b136Offset ∧ AtL2 r l e st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b135Offset⟩ := by
   obtain ⟨hB, hE, hElen, hA, hH⟩ := h
   have hwf := r.frame_wf hpre hB.2.1 (fun _ ↦ 0)
-  refine exec_then (hb135 hp) run_b135 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb135 hp) run_b135 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
   have hB1 := Base.of_match hpre hB hm hwf rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := (hm.regs .X0 _ rfl).trans (eval_ptr 8640)
   have h1 : Run.RegIs st.data .X1 (r.off 448) := (hm.regs .X1 _ rfl).trans (eval_ptr 448)
@@ -138,7 +138,7 @@ theorem stage2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     rw [hl] at this
     rw [this]
     exact holds_new
-  refine call_then hpc hc.2.2.1 (r.update_pre hpre hB1.2.1 h0 h1 h2 (a := 8640) (b := 448)
+  refine call_then_elf hpc hc.2.2.1 (r.update_pre hpre hB1.2.1 h0 h1 h2 (a := 8640) (b := 448)
     (by decide) (by decide) (by decide) ⟨_, hH1⟩) fun st' hpc' hpost ↦ ?_
   obtain ⟨hh, hout, hS⟩ := r.update_out h0 h1 h2 hpost
   have hseed := seed_bytes hB1.2.2.1.1

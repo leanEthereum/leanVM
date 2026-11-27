@@ -123,25 +123,25 @@ theorem sum_value {m : MachineData} (vars : Nat → BitVec 64) {V : Nat}
 end Run
 
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
-theorem label_83 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_83 = NativeRustcArm.Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b178Offset) :=
+theorem label_83 {sec k : Nat} (hp : PlacedIn Sphincs.SphincsVerify.code sec k) :
+    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_83 = ElfHost.addrOf sec (k + NativeRustcArm.Sphincs.SphincsVerify.b178Offset) :=
   hp.label NativeRustcArm.Sphincs.SphincsVerify.label_83_at
 
-theorem label_37 {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_37 = NativeRustcArm.Host.addrOf (k + NativeRustcArm.Sphincs.SphincsVerify.b105Offset) :=
+theorem label_37 {sec k : Nat} (hp : PlacedIn Sphincs.SphincsVerify.code sec k) :
+    Labels.label NativeRustcArm.Sphincs.SphincsVerify.label_37 = ElfHost.addrOf sec (k + NativeRustcArm.Sphincs.SphincsVerify.b105Offset) :=
   hp.label NativeRustcArm.Sphincs.SphincsVerify.label_37_at
 
 /-- **The sum and the codeword's copy**: from `b102` with the 64 digits of `V` at `19008`, the
 machine returns 0 if they do not sum to 128, else reaches the chains (`b105`) with the codeword
 at `15936`. -/
-theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem sum_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {l : Nat} {V : Nat} {m : MachineData} (hl : l < 3) (hF : r.Frame m) (hI : r.Inputs m)
     (hL : r.LayerSpills l m) (h19 : Run.RegIs m .X19 136) (h21 : Run.RegIs m .X21 (r.off 19208))
     (h25 : Run.RegIs m .X25 (r.off 8840)) (h27 : Run.RegIs m .X27 (r.off 19008))
     (hd : ∀ t < 64, m.dmem.get? (r.off (19008 + t)) = some (digitByte V t)) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       (((digits V).map UInt8.toNat).sum ≠ 128 ∧ r.Done false st) ∨
       (((digits V).map UInt8.toNat).sum = 128 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b105Offset ∧
         r.AtChains l (digits V) st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b102Offset⟩ := by
@@ -165,7 +165,7 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
     simp only [Bool.and_eq_true, beq_iff_eq, and_assoc] at hok
     obtain ⟨rfl, hsum, hsp, h29, hfw, h103⟩ := hok
     obtain ⟨os, he, hs⟩ := Option.map_eq_some_iff.mp hsum
-    refine Sym.exec_then hk hx hwf hm fun st hm1 hpc1 ↦ ?_
+    refine Sym.exec_then_elf hk hx hwf hm fun st hm1 hpc1 ↦ ?_
     have hval := r.sum_value (fun _ ↦ 0) hd he hs
     have hF1 := Run.Frame.of_match r hpre hF hm1 hwf hsp h29 hfw
     simp only [Sym.PcOk, SBool.eval, CmpOp.apply, low_W64, Sym.eval] at hpc1
@@ -186,7 +186,7 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
       rw [hx2] at h103
       simp only [Bool.and_eq_true, beq_iff_eq, and_assoc] at h103
       obtain ⟨rfl, hX1, hX19, hX21, hX25, hX27, hsp2, h292, hfw2, k8, k392, k424, k448, hw⟩ := h103
-      refine Sym.exec_at hk2 hx2 hwf hpc1 hm1 fun st2 hm2 hpc2 ↦ .done _ (.inr ⟨h128, ?_, ?_⟩)
+      refine Sym.exec_at_elf hk2 hx2 hwf hpc1 hm1 fun st2 hm2 hpc2 ↦ .done _ (.inr ⟨h128, ?_, ?_⟩)
       · simp only [Sym.PcOk] at hpc2
         rw [hpc2, label_37 hp]
         rfl
@@ -243,7 +243,7 @@ theorem sum_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
         rfl
       rw [hc] at hpc1
       simp only [Bool.not_false, ↓reduceIte] at hpc1
-      refine Eventually.mono (goto (hpc1.trans (label_83 hp)) (fail_return r hp hpre st.data hF1))
+      refine Eventually.mono_elf (goto (hpc1.trans (label_83 hp)) (fail_return r hp hpre st.data hF1))
         fun st' h' ↦ .inl ⟨h128, h'⟩
   · exact absurd hok Bool.false_ne_true
 

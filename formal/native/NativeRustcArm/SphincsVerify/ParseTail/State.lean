@@ -69,7 +69,7 @@ theorem pathRaw_env [Labels] (hpre : r.Pre) {m : MachineData} (hF : r.Frame m)
   Parse.bytesAt_sig_sub r hpre hF.2.2.2.1 (sigLayerOff_le hl)
 
 /-- **Layer `l`'s raw path copied** by a block from region 1 to the frame's `o`. -/
-theorem path_copy [NativeRustcArm.Host] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
+theorem path_copy [ElfHost] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
     {S : SState} (hS : Match (envSig r m) S m') {l o : Nat} (hl : l < 3)
     (ho : o + 16 * layerHeights.getD l 0 ≤ 21616)
     (hc : Parse.copies S.mem 0 o 1 (sigLayerOff l + 1028) (16 * layerHeights.getD l 0) = true) :
@@ -78,7 +78,7 @@ theorem path_copy [NativeRustcArm.Host] (hpre : r.Pre) {m m' : MachineData} (hF 
     (pathRaw_env r hpre hF hl _)
 
 /-- Layer `l`'s raw path copied by a block from region 1 to the frame's `o`, as a fact. -/
-theorem pathL [NativeRustcArm.Host] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
+theorem pathL [ElfHost] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
     {S : SState} (hS : Match (envSig r m) S m') {l o n : Nat} (hl : l < 3)
     (hn : 16 * layerHeights.getD l 0 = n) (ho : o + n ≤ 21616)
     (hc : Parse.copies S.mem 0 o 1 (sigLayerOff l + 1028) n = true) :
@@ -87,7 +87,7 @@ theorem pathL [NativeRustcArm.Host] (hpre : r.Pre) {m m' : MachineData} (hF : r.
   exact ⟨⟨length_pathRaw r hl, path_copy r hpre hF hS hl ho hc⟩, trivial⟩
 
 /-- Known bytes copied by a block to the frame's `o`, as a fact. -/
-theorem copyL [NativeRustcArm.Host] {m m' : MachineData} {L : List (Nat × Nat × List UInt8)}
+theorem copyL [ElfHost] {m m' : MachineData} {L : List (Nat × Nat × List UInt8)}
     {K : List (XReg × BitVec 64)} (h : Facts r m L K) {o' n : Nat} {bs : List UInt8}
     (hm : (o', n, bs) ∈ L) {S : SState} (hS : Match (envSig r m) S m') {o : Nat}
     (ho : o + n ≤ 21616) (hc : Parse.copies S.mem 0 o 0 o' n = true) :
@@ -96,7 +96,7 @@ theorem copyL [NativeRustcArm.Host] {m m' : MachineData} {L : List (Nat × Nat �
     (h.2.1.mem hm).1 (h.2.1.mem hm).2⟩, trivial⟩
 
 /-- A block's 8-byte store of the frame's address `a` at `o`, as a fact. -/
-theorem storeL [NativeRustcArm.Host] {m m' : MachineData} {S : SState} (hS : Match (envSig r m) S m')
+theorem storeL [ElfHost] {m m' : MachineData} {S : SState} (hS : Match (envSig r m) S m')
     {o a : Nat} (ho : o + 8 ≤ 21616)
     (hw : ∀ i < 8, findWrite 0 (o + i) S.mem = some (.ptr 0 a, i)) :
     BytesL r m'.dmem [(o, 8, wordBytes (r.addr a))] := by
@@ -106,7 +106,7 @@ theorem storeL [NativeRustcArm.Host] {m m' : MachineData} {S : SState} (hS : Mat
 
 /-- A block's 4-byte store of a register holding `rev` of `v` at `o`, as a fact: `v`'s low word
 big-endian. -/
-theorem store4L [NativeRustcArm.Host] {m m' : MachineData} {S : SState} (hS : Match (envSig r m) S m')
+theorem store4L [ElfHost] {m m' : MachineData} {S : SState} (hS : Match (envSig r m) S m')
     {x : XReg} {v : BitVec 64} (hx : (m.regs.getXReg x).toBitVec = UnOp.apply .rev .W32 v)
     {o : Nat} (ho : o + 4 ≤ 21616) (hw : ∀ i < 4, findWrite 0 (o + i) S.mem = some (.reg x, i)) :
     BytesL r m'.dmem [(o, 4, be32 (UInt32.ofNat v.toNat))] := by
@@ -120,7 +120,7 @@ theorem bytesAt_cat {d : DataMem} {o n : Nat} {xs ys : List UInt8} (hx : BytesAt
     (hl : xs.length = n) (hy : BytesAt d (r.off (o + n)) ys) : BytesAt d (r.off o) (xs ++ ys) :=
   bytesAt_append hx (by rw [hl, Parse.off_add]; exact hy)
 
-variable [NativeRustcArm.Host] {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
+variable [ElfHost] {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
 
 theorem reg_ptr (hm : Match (envSig r m vars) S m') {x : XReg} {a : Nat}
     (h : S.reg x = some (.ptr 0 (a : Int))) : (m'.regs.getXReg x).toBitVec = r.off a :=

@@ -76,12 +76,12 @@ theorem holds_zero {d : DataMem} {a : BitVec 64} (h : BytesAt d a (List.replicat
   rw [bytesOf_of_bytesAt' h (List.length_replicate ..)]
   exact holds_new
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The leaf's `th`** (`b52 .. b57`): from `T1`, the first node's head. -/
-theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
+theorem tree_s2 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
     (h : T1 r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AtNode r c 0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b52Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AtNode r c 0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b52Offset⟩ := by
   obtain ⟨hrs, h19, h21, h25, h20, h440, hA, had⟩ := h
   have hT : TH r c m := ⟨hrs, h19, h21, h25, h20, h440⟩
   have hc24 := hrs.hc
@@ -89,14 +89,14 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   -- `b52`: `update(A, PK.seed, 16)`
   have hwf := r.frame_wf hpre hrs.base.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s0 m := match_frameS hpre hrs.base trivial trivial
-  refine exec_then (hb52 hp) run_b52 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb52 hp) run_b52 hwf hm fun st1 hm1 hpc1 ↦ ?_
   have hT1 := hT.of_block hpre hm1 hwf rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have hd1 : st1.data.dmem = m.dmem := hm1.dmem_eq hwf rfl
   have h0 : Run.RegIs st1.data .X0 (r.off 8640) := (hm1.regs .X0 _ rfl).trans (eval_ptr 8640)
   have h1 : Run.RegIs st1.data .X1 (r.off 448) := (hm1.regs .X1 _ rfl).trans (eval_ptr 448)
   have h2 : st1.data.regs.X2.toNat = 16 := regIs_toNat (hm1.regs .X2 _ rfl) (by decide)
   have hH1 : HasherHolds (bytesOf st1.data.dmem (r.off 8640) 344) [] := holds_zero (hd1 ▸ hA)
-  refine call_then hpc1 hc.2.2.1 (r.update_pre hpre hT1.rs.base.frame h0 h1 h2 (a := 8640)
+  refine call_then_elf hpc1 hc.2.2.1 (r.update_pre hpre hT1.rs.base.frame h0 h1 h2 (a := 8640)
     (b := 448) (by decide) (by decide) (by decide) ⟨_, hH1⟩) fun st2 hpc2 hpost ↦ ?_
   obtain ⟨hh2, hout2, hS2⟩ := r.update_out h0 h1 h2 hpost
   have hT2 := hT1.of_call hpre hS2 (a := 8640) (n := 344) (Or.inl (by decide)) (by decide) hout2
@@ -111,14 +111,14 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   refine ev_at (hpc2.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b52_next)) ?_
   have hwf2 := r.frame_wf hpre hT2.rs.base.frame (fun _ ↦ 0)
   have hm2 : Match (r.env st2.data) s0 st2.data := match_frameS hpre hT2.rs.base trivial trivial
-  refine exec_then (hb53 hp) run_b53 hwf2 hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb53 hp) run_b53 hwf2 hm2 fun st3 hm3 hpc3 ↦ ?_
   have hT3 := hT2.of_block hpre hm3 hwf2 rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have hd3 : st3.data.dmem = st2.data.dmem := hm3.dmem_eq hwf2 rfl
   have h0 : Run.RegIs st3.data .X0 (r.off 8640) := (hm3.regs .X0 _ rfl).trans (eval_ptr 8640)
   have h1 : Run.RegIs st3.data .X1 (r.off 16960) := (hm3.regs .X1 _ rfl).trans (eval_ptr 16960)
   have h2 : st3.data.regs.X2.toNat = 32 := regIs_toNat (hm3.regs .X2 _ rfl) (by decide)
   have hH3 : HasherHolds (bytesOf st3.data.dmem (r.off 8640) 344) r.seed := hd3 ▸ hH2
-  refine call_then hpc3 hc.2.2.1 (r.update_pre hpre hT3.rs.base.frame h0 h1 h2 (a := 8640)
+  refine call_then_elf hpc3 hc.2.2.1 (r.update_pre hpre hT3.rs.base.frame h0 h1 h2 (a := 8640)
     (b := 16960) (by decide) (by decide) (by decide) ⟨_, hH3⟩) fun st4 hpc4 hpost ↦ ?_
   obtain ⟨hh4, hout4, hS4⟩ := r.update_out h0 h1 h2 hpost
   have hT4 := hT3.of_call hpre hS4 (a := 8640) (n := 344) (Or.inl (by decide)) (by decide) hout4
@@ -128,13 +128,13 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   refine ev_at (hpc4.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b53_next)) ?_
   have hwf4 := r.frame_wf hpre hT4.rs.base.frame (fun _ ↦ 0)
   have hm4 : Match (r.env st4.data) s0 st4.data := match_frameS hpre hT4.rs.base trivial trivial
-  refine exec_then (hb54 hp) run_b54 hwf4 hm4 fun st5 hm5 hpc5 ↦ ?_
+  refine exec_then_elf (hb54 hp) run_b54 hwf4 hm4 fun st5 hm5 hpc5 ↦ ?_
   have hT5 := hT4.of_block hpre hm5 hwf4 rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have hd5 : st5.data.dmem = st4.data.dmem := hm5.dmem_eq hwf4 rfl
   have h0 : Run.RegIs st5.data .X0 (r.off 19008) := (hm5.regs .X0 _ rfl).trans (eval_ptr 19008)
   have h1 : Run.RegIs st5.data .X1 (r.off 8640) := (hm5.regs .X1 _ rfl).trans (eval_ptr 8640)
   have h2 : st5.data.regs.X2.toNat = 344 := regIs_toNat (hm5.regs .X2 _ rfl) (by decide)
-  refine call_then hpc5 hc.1 (r.memcpy_pre hpre hT5.rs.base.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc5 hc.1 (r.memcpy_pre hpre hT5.rs.base.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st6 hpc6 hpost ↦ ?_
   obtain ⟨hcp6, hout6, hS6⟩ := r.memcpy_out h0 h1 h2 hpost
   have hT6 := hT5.of_call hpre hS6 (a := 19008) (n := 344) (Or.inr (by decide)) (by decide) hout6
@@ -145,7 +145,7 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   refine ev_at (hpc6.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b54_next)) ?_
   have hwf6 := r.frame_wf hpre hT6.rs.base.frame (fun _ ↦ 0)
   have hm6 : Match (r.env st6.data) s0 st6.data := match_frameS hpre hT6.rs.base trivial trivial
-  refine exec_then (hb55 hp) run_b55 hwf6 hm6 fun st7 hm7 hpc7 ↦ ?_
+  refine exec_then_elf (hb55 hp) run_b55 hwf6 hm6 fun st7 hm7 hpc7 ↦ ?_
   have hT7 := hT6.of_block hpre hm7 hwf6 rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st7.data .X0 (r.off 19008) := (hm7.regs .X0 _ rfl).trans (eval_ptr 19008)
   have h1 : Run.RegIs st7.data .X1 (r.off (484 + 176 * c + 160)) := by
@@ -164,7 +164,7 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
     have := bytesAt_slice hT7.rs.base.inputs.2.1 (176 * c + 160) 16
     rw [r.sigMem_secret hc24, show 484 + (176 * c + 160) = 484 + 176 * c + 160 by omega] at this
     exact bytesOf_of_bytesAt' this (r.length_forsSecret hc24)
-  refine call_then hpc7 hc.2.2.1 (r.update_pre hpre hT7.rs.base.frame h0 h1 h2 (a := 19008)
+  refine call_then_elf hpc7 hc.2.2.1 (r.update_pre hpre hT7.rs.base.frame h0 h1 h2 (a := 19008)
     (b := 484 + 176 * c + 160) (by decide) (by omega) (by omega) ⟨_, hH7⟩) fun st8 hpc8 hpost ↦ ?_
   obtain ⟨hh8, hout8, hS8⟩ := r.update_out h0 h1 h2 hpost
   have hT8 := hT7.of_call hpre hS8 (a := 19008) (n := 344) (Or.inr (by decide)) (by decide) hout8
@@ -177,7 +177,7 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   refine ev_at (hpc8.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b55_next)) ?_
   have hwf8 := r.frame_wf hpre hT8.rs.base.frame (fun _ ↦ 0)
   have hm8 : Match (r.env st8.data) s0 st8.data := match_frameS hpre hT8.rs.base trivial trivial
-  refine exec_then (hb56 hp) run_b56 hwf8 hm8 fun st9 hm9 hpc9 ↦ ?_
+  refine exec_then_elf (hb56 hp) run_b56 hwf8 hm8 fun st9 hm9 hpc9 ↦ ?_
   have hT9 := hT8.of_block hpre hm9 hwf8 rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st9.data .X0 (r.off 12864) := (hm9.regs .X0 _ rfl).trans (eval_ptr 12864)
   have h1 : Run.RegIs st9.data .X1 (r.off 19008) := (hm9.regs .X1 _ rfl).trans (eval_ptr 19008)
@@ -186,7 +186,7 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
     rw [bytesOf_blk hpre hT8.rs.base.frame hm9 hwf8 (by decide) rfl]
     exact hH8
   have hw4b := keep_blk hpre hm9 hwf8 (length_wordBytes _) (by decide) rfl hw4a
-  refine call_then hpc9 hc.2.2.2.1 (r.finalize_pre hpre hT9.rs.base.frame h0 h1 (by decide)
+  refine call_then_elf hpc9 hc.2.2.2.1 (r.finalize_pre hpre hT9.rs.base.frame h0 h1 (by decide)
     (by decide) (by decide) ⟨_, hH9⟩) fun st10 hpc10 hpost ↦ ?_
   obtain ⟨hfin, hout10, hS10⟩ := r.finalize_out h0 h1 hpost
   have hT10 := hT9.of_call hpre hS10 (a := 12864) (n := 32) (Or.inl (by decide)) (by decide) hout10
@@ -202,7 +202,7 @@ theorem tree_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
   refine ev_at (hpc10.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b56_next)) ?_
   have hwf10 := r.frame_wf hpre hT10.rs.base.frame (fun _ ↦ 0)
   have hm10 : Match (r.env st10.data) s0 st10.data := match_frameS hpre hT10.rs.base trivial trivial
-  refine exec_then (hb57 hp) run_b57 hwf10 hm10 fun st11 hm11 hpc11 ↦ ?_
+  refine exec_then_elf (hb57 hp) run_b57 hwf10 hm10 fun st11 hm11 hpc11 ↦ ?_
   obtain ⟨hB11, -⟩ := hT10.rs.base.of_matchLow hpre hm11 hwf10 rfl rfl rfl rfl rfl rfl
   have hd11 : st11.data.dmem = st10.data.dmem := hm11.dmem_eq hwf10 rfl
   have hw4d : r.WordAt st11.data 432 (r.addr (484 + 176 * c)) := by

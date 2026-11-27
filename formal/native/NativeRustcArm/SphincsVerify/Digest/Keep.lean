@@ -209,23 +209,23 @@ end
 
 /-! ## Steps -/
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **A block ending in a call**: the block run by the executor from `m` at directive `j`, the
 callee's contract from where it calls, then the machine at the block's end `j'`. -/
-theorem Run.callStep (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds : List Directive}
+theorem Run.callStep (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) {ds : List Directive}
     {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {env : Env} (hwf : env.WF) {S S' : SState} {l : Label} (hx : exec ds S = some (S', .call l))
     {m : MachineData} (hm : Match env S m) {P : MachineData → Prop}
-    {Q : MachineData → MachineData → Prop} (hspec : Spec (Labels.label l) P Q)
+    {Q : MachineData → MachineData → Prop} (hspec : ElfSpec (Labels.label l) P Q)
     {R : MachineState → Prop}
     (h : ∀ m₁, Match env S' m₁ → P m₁ ∧
-      ∀ m₂, Q m₁ m₂ → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m₂, r.pc j'⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+      ∀ m₂, Q m₁ m₂ → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hk := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then hk hx hwf hm fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk hx hwf hm fun st hm' hpc ↦ ?_
   obtain ⟨hP, hc⟩ := h st.data hm'
-  refine call_then hpc hspec hP fun st' hpc' hq ↦ ?_
+  refine call_then_elf hpc hspec hP fun st' hpc' hq ↦ ?_
   obtain ⟨m₂, pc⟩ := st'
   simp only at hpc'
   subst hpc'
@@ -233,14 +233,14 @@ theorem Run.callStep (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds 
   exact hc m₂ hq
 
 /-- **A block falling through** to directive `j'`. -/
-theorem Run.fallStep (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds : List Directive}
+theorem Run.fallStep (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) {ds : List Directive}
     {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     (hne : ds ≠ []) {env : Env} (hwf : env.WF) {S S' : SState} (hx : exec ds S = some (S', .fall))
     {m : MachineData} (hm : Match env S m) {R : MachineState → Prop}
-    (h : ∀ m₁, Match env S' m₁ → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m₁, r.pc j'⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    (h : ∀ m₁, Match env S' m₁ → Eventually (elfStep1 ElfHost.exe) R ⟨m₁, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hk := hb.trans hp.1 hne
-  refine exec_then hk hx hwf hm fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk hx hwf hm fun st hm' hpc ↦ ?_
   obtain ⟨m₁, pc⟩ := st
   simp only [PcOk] at hpc
   subst hpc
@@ -248,7 +248,7 @@ theorem Run.fallStep (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds 
   exact h m₁ hm'
 
 /-- **A label of the function** is the address of the block it starts. -/
-theorem Run.label_of_block (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {b : List Directive}
+theorem Run.label_of_block (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) {b : List Directive}
     {j : Nat} (hb : b.IsInfixAt Sphincs.SphincsVerify.code j) {l : Label} {b' : List Directive}
     (h : b = .label l :: b') : Labels.label l = r.pc j := by
   subst h

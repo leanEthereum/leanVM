@@ -78,15 +78,15 @@ theorem b4b_byte {env : Env} {S : SState} {m : MachineData} (hm : Match env S m)
 
 end
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **The final block absorbed.** -/
-theorem stage4_spec (hp : Placed code k)
-    (hkf : Spec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem stage4_spec (hp : PlacedIn code sec k)
+    (hkf : ElfSpec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m1 m : MachineData} (hpre : FinalizePre m0) (hpro : Pro m0 m1) (hs3 : Stage3 m0 m1 m) :
-    Eventually (step1 Host.exe) (fun st => st.pc = Host.addrOf (k + NativeRustcArm.Common.Finalize.b5Offset) ∧ Stage4 m0 m1 st.data)
-      ⟨m, Host.addrOf (k + (NativeRustcArm.Common.Finalize.b4Offset + b4a.length))⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Finalize.b5Offset) ∧ Stage4 m0 m1 st.data)
+      ⟨m, ElfHost.addrOf sec (k + (NativeRustcArm.Common.Finalize.b4Offset + b4a.length))⟩ := by
   have g := geo_of hpre
   have gr := geoRc_of hpre
   have hf := frAt_toNat g
@@ -119,7 +119,7 @@ theorem stage4_spec (hp : Placed code k)
       ⟨by
         show (m.regs.getXReg .X29).toBitVec = _
         rw [hfr.x29]; simp only [Sym.eval, hbF]; rfl, trivial⟩ trivial trivial trivial
-  refine exec_then (hb4b hp) run_b4b hwf hmx fun st5 hm5 hpc5 => ?_
+  refine exec_then_elf (hb4b hp) run_b4b hwf hmx fun st5 hm5 hpc5 => ?_
   have hl := b4b_mem
   rw [after_eq run_b4b] at hl
   have hTl := length_tailOf hL
@@ -171,7 +171,7 @@ theorem stage4_spec (hp : Placed code k)
     (Match.sp_eq hmx hm5 rfl)
     (fun p hp => hnw5 p fun h => hp (Or.inl ((inRange_iff (by omega)).mpr h)))
     (hm5.kept hwf)
-  refine call_then hpc5 hkf ?pre fun st6 hpc6 hpost6 => ?_
+  refine call_then_elf hpc5 hkf ?pre fun st6 hpc6 hpost6 => ?_
   case pre =>
     simp only [KeccakFPre, keccakFStack]
     refine ⟨⟨by rw [hspN]; have := g.al; omega, by rw [hspN]; omega, fun i hi => ?_⟩,

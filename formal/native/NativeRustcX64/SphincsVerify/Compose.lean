@@ -69,22 +69,23 @@ theorem sphincsVerifyBytes_eq : sphincsVerifyBytes r.pkB r.msgB r.sigB = r.resul
 
 end Run
 
-variable [Host]
+variable [ElfHost]
 
 /-- A region's conclusion at a state with its pc. -/
 theorem at_pc {r : Run} {j : Nat} {P : MachineData → Prop} {Q : MachineState → Prop}
-    (h : ∀ m, P m → Eventually (step1 Host.exe) Q ⟨m, r.pc j⟩) :
-    ∀ st : MachineState, st.pc = r.pc j ∧ P st.data → Eventually (step1 Host.exe) Q st := by
+    (h : ∀ m, P m → Eventually (elfStep1 ElfHost.exe) Q ⟨m, r.pc j⟩) :
+    ∀ st : MachineState, st.pc = r.pc j ∧ P st.data → Eventually (elfStep1 ElfHost.exe) Q st := by
   rintro ⟨m, pc⟩ ⟨hpc, hm⟩
   cases hpc
   exact h m hm
 
 /-- **The layers' loop**: from layer `l`'s state with message `s`, the machine inevitably returns
 what verification gives from layer `l` on. -/
-theorem layers_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem layers_correct (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) (he : EncodeSpec) (hch : ChainsSpec) (ht : TreeSpec) :
     ∀ n l s m, l + n = 3 → r.AtLayer l s m →
-      Eventually (step1 Host.exe) (r.Done (r.resultFrom l s)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) (r.Done (r.resultFrom l s))
+        ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset⟩ := by
   intro n
   induction n with
   | zero =>
@@ -93,35 +94,35 @@ theorem layers_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
   | succ n ih =>
     intro l s m hn h
     have hl : l < 3 := h.1
-    refine Eventually.bind (he l s r hp hc hpre m h) fun st hst ↦ ?_
+    refine Eventually.bind_elf (he l s r hp hc hpre m h) fun st hst ↦ ?_
     rcases hst with ⟨hnone, hdone⟩ | ⟨x, hx, hpc, hch'⟩
     · rw [r.resultFrom_none hl hnone]
       exact .done _ hdone
     rw [r.resultFrom_some hl hx]
-    have hev := Eventually.bind (at_pc (hch l x r hp hc hpre) st ⟨hpc, hch'⟩) fun st' hst' ↦
+    have hev := Eventually.bind_elf (at_pc (hch l x r hp hc hpre) st ⟨hpc, hch'⟩) fun st' hst' ↦
       at_pc (ht l (r.chainEnds l x) r hp hc hpre) st' hst'
     by_cases h2 : l = 2
     · subst h2
-      refine Eventually.mono hev fun st'' h ↦ ?_
+      refine Eventually.mono_elf hev fun st'' h ↦ ?_
       simp only [↓reduceIte] at h
       rwa [r.resultFrom_three]
-    · refine Eventually.bind hev fun st'' h ↦ ?_
+    · refine Eventually.bind_elf hev fun st'' h ↦ ?_
       simp only [h2, ↓reduceIte] at h
       exact at_pc (fun m hm ↦ ih (l + 1) _ m (by omega) hm) st'' h
 
 /-- **`sphincs_verify` from its regions**: from the entry the machine inevitably returns
 `sphincsVerifyBytes` of the input buffers. -/
-theorem run_correct (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem run_correct (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) (h1 : ParseSpec) (h2 : DigestSpec) (h3 : ForsSpec) (h4 : ForsKeySpec)
     (he : EncodeSpec) (hch : ChainsSpec) (ht : TreeSpec) :
-    Eventually (step1 Host.exe) (r.Done (sphincsVerifyBytes r.pkB r.msgB r.sigB))
-      ⟨r.m0, Host.addrOf r.k⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (r.Done (sphincsVerifyBytes r.pkB r.msgB r.sigB))
+      ⟨r.m0, ElfHost.addrOf r.sec r.k⟩ := by
   have e1 := h1 r hp hc hpre r.m0 rfl
   rw [Sphincs.SphincsVerify.b0Offset, Nat.add_zero] at e1
-  refine Eventually.bind e1 (at_pc fun m hm ↦ ?_)
-  refine Eventually.bind (h2 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
-  refine Eventually.bind (h3 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
-  refine Eventually.bind (h4 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
+  refine Eventually.bind_elf e1 (at_pc fun m hm ↦ ?_)
+  refine Eventually.bind_elf (h2 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
+  refine Eventually.bind_elf (h3 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
+  refine Eventually.bind_elf (h4 r hp hc hpre m hm) (at_pc fun m hm ↦ ?_)
   rw [r.sphincsVerifyBytes_eq]
   exact layers_correct r hp hc hpre he hch ht 3 0 _ m rfl hm
 

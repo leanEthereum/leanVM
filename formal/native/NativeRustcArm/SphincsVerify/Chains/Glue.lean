@@ -18,23 +18,23 @@ open NativeRustc NativeRustc.Sphincs NativeRustcArm.Sym
 public section
 
 section
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **A block of the function** run from directive `j`, then `cont` from where it ends. -/
-theorem blk (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {ds : List Directive}
+theorem blk (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) {ds : List Directive}
     {j : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hne : ds ≠ []) {env : Env}
     {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF) {m : MachineData}
     (hm : Match env S m) {R : MachineState → Prop}
     (cont : ∀ st, Match env S' st.data → PcOk env x (r.pc (j + ds.length)) st →
-      Eventually (step1 NativeRustcArm.Host.exe) R st) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ :=
-  exec_then (hb.trans hp.1 hne) hx hwf hm fun st h1 h2 ↦
+      Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ :=
+  exec_then_elf (hb.trans hp.1 hne) hx hwf hm fun st h1 h2 ↦
     cont st h1 (by rw [Run.pc, ← Nat.add_assoc]; exact h2)
 
 /-- A state at a known pc. -/
 theorem pc_at {R : MachineState → Prop} {st : MachineState} {a : Int64} (h : st.pc = a)
-    (k : Eventually (step1 NativeRustcArm.Host.exe) R ⟨st.data, a⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R st := by
+    (k : Eventually (elfStep1 ElfHost.exe) R ⟨st.data, a⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st := by
   obtain ⟨d, pc⟩ := st
   subst h
   exact k

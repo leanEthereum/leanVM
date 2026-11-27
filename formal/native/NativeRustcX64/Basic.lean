@@ -1,6 +1,7 @@
 module
 
 public import Kraken.X64.WP
+public import NativeRustcX64.ElfHost
 
 /-!
 # Contracts of rustc's x86-64 functions
@@ -99,6 +100,18 @@ instance (F : List Directive) (k : Nat) : Decidable (Placed F k) :=
     ∀ j (h : j < F.length), labelFirst k j F[j]))
 
 end
+
+/-- **A function's contract** under a multi-section `ElfHost`. -/
+def ElfSpec [ElfHost] (entry : Int64) (P : MachineData → Prop)
+    (Q : MachineData → MachineData → Prop) : Prop :=
+  ∀ m, P m → Eventually (elfStep1 ElfHost.exe)
+    (fun st ↦ st.pc = retOf m ∧ rspOf st.data = rspOf m + 8#64 ∧ Q m st.data) ⟨m, entry⟩
+
+/-- A function's code `F` sits in section `sec` of `ElfHost` from directive `k`, and every label
+in `F` resolves in `Labels` to its section-computed address `ElfHost.addrOf sec (k + j)`. -/
+def PlacedIn [ElfHost] (F : List Directive) (sec k : Nat) : Prop :=
+  F.IsInfixAt (ElfHost.sectionProg sec) k ∧
+  ∀ j (h : j < F.length), ∀ l, F[j] = .label l → label l = ElfHost.addrOf sec (k + j)
 
 end
 
@@ -204,6 +217,61 @@ theorem Placed.label {F : List Directive} {k : Nat} (h : Placed F k) {j : Nat} {
   have := h.2 j hjl
   rw [hF] at this
   exact label_eq_addrOf this
+
+omit [Host] in
+/-- A label of a section-placed function is at its directive's address. -/
+theorem PlacedIn.label [ElfHost] {F : List Directive} {sec k : Nat} (h : PlacedIn F sec k)
+    {j : Nat} {l : Label} (hj : F[j]? = some (.label l)) : label l = ElfHost.addrOf sec (k + j) := by
+  obtain ⟨hjl, hF⟩ := List.getElem?_eq_some_iff.mp hj
+  exact h.2 j hjl l hF
+
+omit [Host] in
+/-- Applying an `ElfSpec` at a call site. -/
+theorem ElfSpec.apply [ElfHost] {entry : Int64} {P : MachineData → Prop}
+    {Q : MachineData → MachineData → Prop} (h : ElfSpec entry P Q) {s : MachineState}
+    (hpc : s.pc = entry) (hP : P s.data) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = retOf s.data ∧
+      rspOf st.data = rspOf s.data + 8#64 ∧ Q s.data st.data) s := by
+  obtain ⟨m, pc⟩ := s
+  subst hpc
+  exact h m hP
+
+omit [Host] in
+theorem Eventually.bind_elf [ElfHost] {p q : MachineState → Prop} {s : MachineState}
+    (h : Eventually (elfStep1 ElfHost.exe) p s)
+    (k : ∀ s', p s' → Eventually (elfStep1 ElfHost.exe) q s') :
+    Eventually (elfStep1 ElfHost.exe) q s :=
+  eventually_trans _ p q s h k
+
+omit [Host] in
+theorem Eventually.mono_elf [ElfHost] {p q : MachineState → Prop} {s : MachineState}
+    (h : Eventually (elfStep1 ElfHost.exe) p s) (k : ∀ s', p s' → q s') :
+    Eventually (elfStep1 ElfHost.exe) q s :=
+  eventually_weaken _ p q s k h
+
+omit [Host] in
+/-- Single-section `Placed` embeds into section 0 of `Host.toElfHost`. -/
+theorem Placed.toPlacedIn [h : Host] {F : List Directive} {k : Nat} (hp : Placed F k) :
+    @PlacedIn (Host.toElfHost h) F 0 k := by
+  refine ⟨hp.1, fun j hj l hF => ?_⟩
+  have hlab := hp.label (by rw [List.getElem?_eq_getElem hj, hF])
+  change (@instLabelsElfHost (Host.toElfHost h)).label l = @ElfHost.addrOf (Host.toElfHost h) 0 (k + j)
+  rw [toElfHost_labels h, toElfHost_addrOf h (k + j)]
+  exact hlab
+
+omit [Host] in
+/-- An `ElfSpec` over `Host.toElfHost` yields a legacy `Spec` over `Host`. -/
+theorem ElfSpec.toSpec [h : Host]
+    {entry : [Labels] → Int64} {P : [Labels] → MachineData → Prop}
+    {Q : [Labels] → MachineData → MachineData → Prop}
+    (hs : @ElfSpec (Host.toElfHost h) (@entry (@instLabelsElfHost (Host.toElfHost h)))
+      (@P (@instLabelsElfHost (Host.toElfHost h))) (@Q (@instLabelsElfHost (Host.toElfHost h)))) :
+    Spec (@entry _) (@P _) (@Q _) := by
+  intro m hP
+  have hL : @instLabelsElfHost (Host.toElfHost h) = (inferInstance : Labels) := toElfHost_labels h
+  have h1 := hs m (by rwa [hL])
+  rw [elfStep1_toElfHost h] at h1
+  rwa [hL] at h1
 
 end
 

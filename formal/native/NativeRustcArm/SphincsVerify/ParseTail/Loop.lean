@@ -48,10 +48,10 @@ theorem take_snoc_16 (W : List UInt8) (t : Nat) :
     W.take (16 * t) ++ (W.drop (16 * t)).take 16 = W.take (16 * (t + 1)) := by
   rw [show 16 * (t + 1) = 16 * t + 16 by omega, List.take_add]
 
-variable (r : Run) [NativeRustcArm.Host]
+variable (r : Run) [ElfHost]
 
 /-- **A turn of a copy loop** from `r.sigPtr + src` to `r.off 484`. -/
-theorem copy_turn (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem copy_turn (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hne : ds ≠ [])
     {lbl : Label} (hlbl : Sphincs.SphincsVerify.code[j]? = some (.label lbl))
     {D : XReg} {S' : SState} (hx : exec ds (loopS D) = some (S', .cond loopCond lbl))
@@ -63,7 +63,7 @@ theorem copy_turn (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     (h : Facts r m ((484, 16 * t, (slice r.sigBytes src 1024).take (16 * t)) :: L)
       ((.X8, BitVec.ofNat 64 (16 * t)) :: (.X9, r.sigPtr + BitVec.ofNat 64 src) ::
         (D, r.off 484) :: K)) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       st.pc = (if t + 1 < 64 then r.pc j else r.pc (j + ds.length)) ∧
       Facts r st.data ((484, 16 * (t + 1), (slice r.sigBytes src 1024).take (16 * (t + 1))) :: L)
         ((.X8, BitVec.ofNat 64 (16 * (t + 1))) :: (.X9, r.sigPtr + BitVec.ofNat 64 src) ::
@@ -72,7 +72,7 @@ theorem copy_turn (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
   obtain ⟨hF, ⟨⟨hTl, hTb⟩, hLL⟩, h8, h9, hD, hKK⟩ := h
   simp only at hTl hTb h8 h9 hD
   have hW : (slice r.sigBytes src 1024).length = 1024 := by simp [slice, r.hsig]; omega
-  have hk' : ds.IsInfixAt NativeRustcArm.Host.prog (r.k + j) := hk.trans hp.1 hne
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + j) := hk.trans hp.1 hne
   have hwf := Parse.wf_frame_sig r hpre hF.2.2.2.1 hF.2.2.2.2 (a := 484 + 16 * t) (n := 16)
     (s := src + 16 * t) (k := 16) (by omega) (by omega) (by decide) (fun _ ↦ 0)
   have hm : Match (Env.ofMachine m [(r.off (484 + 16 * t), 16),
@@ -86,7 +86,7 @@ theorem copy_turn (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
         r.sigPtr + BitVec.ofNat 64 (src + 16 * t) + BitVec.ofInt 64 0
       simp only [Sym.eval, BinOp.apply, low_W64, ext_W64, Env.ofMachine_regs, h9, h8,
         addr_add, BitVec.ofInt_ofNat, BitVec.add_zero]
-  refine exec_then hk' hx hwf hm fun st hm' hpc ↦ .done _ ?_
+  refine exec_then_elf hk' hx hwf hm fun st hm' hpc ↦ .done _ ?_
   simp only [turnOk, Bool.and_eq_true, beq_iff_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨hw, hcp⟩, hsp'⟩, h8'⟩, h29'⟩, h9'⟩, hD'⟩ := hok
   have hout := Parse.sameOutside_hull hm' hwf (B := r.off (484 + 16 * t)) (sz := 16) (lo := 0)
@@ -140,7 +140,7 @@ theorem copy_turn (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     exact hD
 
 /-- **A copy loop**: from none of the 1024 bytes copied to all of them, at the loop's exit. -/
-theorem copy_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem copy_loop (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hne : ds ≠ [])
     {lbl : Label} (hlbl : Sphincs.SphincsVerify.code[j]? = some (.label lbl))
     {D : XReg} {S' : SState} (hx : exec ds (loopS D) = some (S', .cond loopCond lbl))
@@ -150,7 +150,7 @@ theorem copy_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     {K : List (XReg × BitVec 64)} (hK : keptK (loopS D) S' K = true) {m : MachineData}
     (h : Facts r m ((484, 0, []) :: L)
       ((.X8, BitVec.ofNat 64 0) :: (.X9, r.sigPtr + BitVec.ofNat 64 src) :: (D, r.off 484) :: K)) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data ((484, 1024, slice r.sigBytes src 1024) :: L)
         ((.X9, r.sigPtr + BitVec.ofNat 64 src) :: (D, r.off 484) :: K)) ⟨m, r.pc j⟩ := by
   have hW : (slice r.sigBytes src 1024).length = 1024 := by simp [slice, r.hsig]; omega
@@ -158,7 +158,7 @@ theorem copy_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
       (slice r.sigBytes src 1024).take (16 * t)) :: L)
       ((.X8, BitVec.ofNat 64 (16 * t)) :: (.X9, r.sigPtr + BitVec.ofNat 64 src) ::
         (D, r.off 484) :: K) →
-      Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
+      Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
         Facts r st.data ((484, 1024, slice r.sigBytes src 1024) :: L)
           ((.X9, r.sigPtr + BitVec.ofNat 64 src) :: (D, r.off 484) :: K)) ⟨m, r.pc j⟩ from
     key 63 0 rfl m h
@@ -166,7 +166,7 @@ theorem copy_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
   induction n with
   | zero =>
     intro t ht m hm
-    refine Eventually.mono (copy_turn r hp hpre hk hne hlbl hx hok hsrc hL hK (t := t)
+    refine Eventually.mono_elf (copy_turn r hp hpre hk hne hlbl hx hok hsrc hL hK (t := t)
       (by omega) hm) fun st ⟨hpc, hF, hb, hr⟩ ↦ ⟨?_, hF, ?_, hr.2⟩
     · rw [hpc, ite_eq_right_iff.mpr (fun h ↦ absurd h (by omega))]
     · obtain ⟨⟨h2l, h2⟩, h3⟩ := hb
@@ -174,7 +174,7 @@ theorem copy_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
       rwa [show 16 * (t + 1) = 1024 by omega, List.take_of_length_le (by omega)] at h2
   | succ n ih =>
     intro t ht m hm
-    refine Eventually.bind (copy_turn r hp hpre hk hne hlbl hx hok hsrc hL hK (t := t)
+    refine Eventually.bind_elf (copy_turn r hp hpre hk hne hlbl hx hok hsrc hL hK (t := t)
       (by omega) hm) fun st ⟨hpc, hst⟩ ↦ ?_
     rw [ite_eq_left_iff.mpr (fun h ↦ absurd (by omega) h)] at hpc
     obtain ⟨m', pc⟩ := st

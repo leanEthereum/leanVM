@@ -64,14 +64,14 @@ theorem load_ret {env : Env} {m0 m : MachineData} (g : Geo m0) (hm0 : Mapped m0.
 theorem toBitVec_eq_ofNat (x : BitVec 64) : x = BitVec.ofNat 64 x.toNat := by
   simp
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
-/-- **`Hasher::update` meets its contract.** -/
-theorem update_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
-    Spec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePre
+/-- **`Hasher::update` meets its contract** under `ElfHost`. -/
+theorem update_spec_elf (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    ElfSpec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePre
       UpdatePost := by
   intro m0 hpre
   have g := geo_of hpre
@@ -118,7 +118,7 @@ theorem update_spec (hp : Placed code k)
     apply hm.withKnownBytes (r := 2) (off := 0) (n := 8) (v := .label "memcpy")
     intro i hi
     simpa [Env.base, Sym.eval] using (got_of hpre).byte (l := "memcpy") (by simp) hi
-  refine exec_then (hb0 hp) run_b0 hwf0 nofun hm0 fun m1s hm1 hpc1 => ?_
+  refine exec_then_elf (hb0 hp) run_b0 hwf0 nofun hm0 fun m1s hm1 hpc1 => ?_
   obtain ⟨m1, pc1⟩ := m1s
   simp only [PcOk, lbl_1 hp] at hpc1
   subst hpc1
@@ -170,7 +170,7 @@ theorem update_spec (hp : Placed code k)
       rw [List.take_zero, List.append_nil, hH1]
       exact ha
   -- The loop.
-  refine NativeRustcX64.Eventually.bind (loop_spec hp hmemcpy hkf hpre hinv)
+  refine NativeRustcX64.Eventually.bind_elf (loop_spec hp hmemcpy hkf hpre hinv)
     fun st ⟨hpc, hfin⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
@@ -193,7 +193,7 @@ theorem update_spec (hp : Placed code k)
   have t88 : env9.load 0 88 8 = reg m0 .r14 := load_of_wordAt (r := 0) s3
   have t96 : env9.load 0 96 8 = reg m0 .r15 := load_of_wordAt (r := 0) s4
   have t104 : env9.load 0 104 8 = reg m0 .rbp := load_of_wordAt (r := 0) s5
-  refine exec_then (hb9 hp) run_b9 hwf9 nofun hm9 fun st hm' hpc' => ?_
+  refine exec_then_elf (hb9 hp) run_b9 hwf9 nofun hm9 fun st hm' hpc' => ?_
   have hmem' : ∀ p, st.data.dmem.get? p = d.dmem.get? p := fun p =>
     hm'.get?_mem0 hwf9 fun ⟨_, hw, _⟩ => by simp at hw
   refine Eventually.done _ ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -233,6 +233,35 @@ theorem update_spec (hp : Placed code k)
       · exact (hm'.regs .r15 _ rfl).trans t96
     · rw [hmem' p]
       exact hfr.kept p hp
+
+end
+
+private theorem spec_to_elfSpec [h : Host]
+    {entry : [Labels] → Int64} {P : [Labels] → MachineData → Prop}
+    {Q : [Labels] → MachineData → MachineData → Prop}
+    (hs : Spec (@entry _) (@P _) (@Q _)) :
+    @ElfSpec (Host.toElfHost h) (@entry (@instLabelsElfHost (Host.toElfHost h)))
+      (@P (@instLabelsElfHost (Host.toElfHost h))) (@Q (@instLabelsElfHost (Host.toElfHost h))) := by
+  intro m hP
+  have hL : @instLabelsElfHost (Host.toElfHost h) = (inferInstance : Labels) := toElfHost_labels h
+  rw [elfStep1_toElfHost h]
+  rw [hL] at hP ⊢
+  exact hs m hP
+
+public section
+
+/-- **`Hasher::update` meets its contract.** -/
+theorem update_spec [Host] {k : Nat} (hp : Placed code k)
+    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    Spec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePre UpdatePost :=
+  ElfSpec.toSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Update.entryLabel)
+    (P := fun [Labels] => UpdatePre) (Q := fun [Labels] => UpdatePost)
+    (@update_spec_elf (Host.toElfHost _) 0 k hp.toPlacedIn
+      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Memcpy.entryLabel)
+        (P := fun [Labels] => MemcpyPre) (Q := fun [Labels] => MemcpyPost) hmemcpy)
+      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.KeccakF.entryLabel)
+        (P := fun [Labels] => KeccakFPre) (Q := fun [Labels] => KeccakFPost) hkf))
 
 end
 

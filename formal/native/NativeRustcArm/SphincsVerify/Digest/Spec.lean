@@ -17,7 +17,7 @@ open Digest
 public section
 
 /-- **Region 2, the digest.** -/
-theorem digest_spec [NativeRustcArm.Host] : DigestSpec := by
+theorem digest_spec [ElfHost] : DigestSpec := by
   intro r hp hc hpre m hA
   exact Run.stage r (absorb_spec r hp hc hpre hA) fun m₁ h₁ ↦
     Run.stage r (hash0_spec r hp hc hpre h₁) fun m₂ h₂ ↦

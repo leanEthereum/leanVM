@@ -434,8 +434,8 @@ macro "bv_lin" : tactic => `(tactic| (
   try simp only [show Width.W64.bits = 64 from rfl]
   omega))
 
-theorem pc_next (r : Run) [Host] {st : MachineState} {a b : Nat} {ds : List Directive}
-    (h : st.pc = Host.addrOf (r.k + a + ds.length)) (hb : a + ds.length = b) : st.pc = r.pc b := by
+theorem pc_next (r : Run) [ElfHost] {st : MachineState} {a b : Nat} {ds : List Directive}
+    (h : st.pc = ElfHost.addrOf r.sec (r.k + a + ds.length)) (hb : a + ds.length = b) : st.pc = r.pc b := by
   rw [h, Nat.add_assoc, hb]
   rfl
 

@@ -200,12 +200,12 @@ theorem key0_tree (idx : UInt64) : (OtsKey.ofIndex 0 idx).tree = idx >>> 8 := by
   simp only [OtsKey.ofIndex, layerHeights, List.take_zero, List.sum_nil, List.getD_cons_zero]
   rfl
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The index, the leaves copied, the FORS loop's registers**: `b47`, `b48` to `b49`. -/
-theorem index_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem index_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : AfterLoop r (hMsgBytes r) m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset ∧ r.AtFors st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset ∧ r.AtFors st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset⟩ := by
   obtain ⟨hK, hH, hL⟩ := hA
   have hl := length_hMsgBytes r

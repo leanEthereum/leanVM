@@ -30,7 +30,7 @@ end
 
 public section
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- The loop's registers through a call. -/
 theorem os_regs {c : Nat} {m₁ m₂ : MachineData} (hS : Saved m₁ m₂)
@@ -46,13 +46,13 @@ theorem os_regs {c : Nat} {m₁ m₂ : MachineData} (hS : Saved m₁ m₂)
     (hS.1 .r12 rfl).trans h12, (hS.1 .rbp rfl).trans hbp⟩
 
 /-- **`b1` and its `memcpy`**. -/
-theorem open_b1 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
+theorem open_b1 (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
     {m : MachineData} (h : OS r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b2Offset ∧ OS1 r c st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b2Offset ∧ OS1 r c st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset⟩ := by
   obtain ⟨hF, hfa, hop, hbx, h15, h14, h13, h12, hbp⟩ := h
   have hwf := wfOpen r hpre hF.2.2.2 hF.2.2.1 hc24 (fun _ ↦ 0) (r.pc b2Offset).toBitVec
-  have hk' : b1.IsInfixAt Host.prog (r.k + b1Offset) := b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  have hk' : b1.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b1Offset) := b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hm : Match (Env.ofMachine m (regsOpen r c) (fun _ ↦ 0) (r.pc b2Offset).toBitVec) openS m := by
     apply Match.withKnownBytes
     · apply Match.withKnownBytes
@@ -81,18 +81,18 @@ theorem open_b1 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (
     · intro i hi
       simpa [Sym.eval, Env.base, regsOpen, Run.frameRegs] using
         r.got_byte hpre hF.2.2.1 (by simp : "memset" ∈ _) hi
-  refine exec_then hk' run_b1 hwf (fun _ _ ↦ by rw [← b1_next, Nat.add_assoc]; rfl) hm fun st hm₁ hpc ↦ ?_
+  refine exec_then_elf hk' run_b1 hwf (fun _ _ ↦ by rw [← b1_next, Nat.add_assoc]; rfl) hm fun st hm₁ hpc ↦ ?_
   have hc₁ := atCall_of_block r hpre hF rfl rfl hm₁ hwf rfl (by decide)
   have h0 : Run.RegIs st.data .rdi (r.off 12780) := regIs_ptr0 r rfl hm₁ rfl
   have h1 : Run.RegIs st.data .rsi (r.off 560) := regIs_ptr0 r rfl hm₁ rfl
   have h2 : (reg st.data .rdx).toNat = 160 := rdx_lit hm₁ rfl (by decide)
-  refine call_then hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by decide) (by decide) (by decide))
+  refine call_then_elf hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by decide) (by decide) (by decide))
     fun st₂ hpc₂ hsp₂ hQ ↦ ?_
   obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 hQ
   obtain ⟨m₂, pc⟩ := st₂
   simp only at hpc₂
   subst hpc₂
-  have hpc_eq : Host.addrOf (r.k + b1Offset + b1.length) = r.pc b2Offset := by
+  have hpc_eq : ElfHost.addrOf r.sec (r.k + b1Offset + b1.length) = r.pc b2Offset := by
     rw [Run.pc, Nat.add_assoc, b1_next]
   rw [hpc_eq]
   have hF₂ := r.frame_of_call hpre hc₁ hS hsp₂ (by decide) (Nat.zero_le _) hout
@@ -129,9 +129,9 @@ theorem open_b1 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (
   exact hsec₂
 
 /-- **`b2` and its `memcpy`**: opening `c` from `12780` to `560`. -/
-theorem open_b2 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
+theorem open_b2 (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
     {m : MachineData} (h : OS1 r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b3Offset ∧ OS2 r c st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b3Offset ∧ OS2 r c st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b2Offset⟩ := by
   obtain ⟨⟨hF, hfa, hop, hbx, h15, h14, h13, h12, hbp⟩, hob⟩ := h
   refine memcpy_block r hp hpre hc b2_in_code (jn := b3Offset) rfl run_b2 (by decide) rfl hF
@@ -155,9 +155,9 @@ theorem open_b2 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (
     (hm₁.regs .rbp _ rfl) hF₂ hfa₂ hop₂, hB'⟩
 
 /-- **`b3` and its `memcpy`, then `b4`**: opening `c` to `4072 + 176 c`, the count. -/
-theorem open_b3 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
+theorem open_b3 (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (hc24 : c < 24)
     {m : MachineData} (h : OS2 r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ (st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b5Offset ∧ OS r 24 st.data) ∨
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b5Offset ∧ OS r 24 st.data) ∨
       (c + 1 < 24 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset ∧ OS r (c + 1) st.data))
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b3Offset⟩ := by
   obtain ⟨⟨hF, hfa, hop, hbx, h15, h14, h13, h12, hbp⟩, hob⟩ := h
@@ -199,8 +199,8 @@ theorem open_b3 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (
     ((hm₁.regs .r15 _ rfl).trans h15) ((hm₁.regs .r14 _ rfl).trans h14)
     (regIs_ptr0 r rfl hm₁ rfl) ((hm₁.regs .r12 _ rfl).trans h12)
     (hm₁.regs .rbp _ rfl) hF₂ hfa₂ hop₂
-  have hk : b4.IsInfixAt Host.prog (r.k + b4Offset) := b4_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  refine exec_then hk run_b4 (Env.wf_nil m₂) (fun _ h ↦ nomatch h) (match_nil m₂)
+  have hk : b4.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b4Offset) := b4_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  refine exec_then_elf hk run_b4 (Env.wf_nil m₂) (fun _ h ↦ nomatch h) (match_nil m₂)
     fun st hm' hpc ↦ ?_
   have hd : st.data.dmem = m₂.dmem := hm'.dmem_eq (Env.wf_nil _) rfl
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r15, .r14, .r13, .rbp]) (match_nil m₂) hm' (by decide)
@@ -227,19 +227,19 @@ theorem open_b3 (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {c : Nat} (
     exact .done _ (Or.inl ⟨pc_next r (heq rfl) rfl, hOS⟩)
 
 /-- **The openings' loop**: from `OS 0` at `b1` to `OS 24` at `b5`. -/
-theorem open_loop (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem open_loop (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : OS r 0 m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b5Offset ∧ OS r 24 st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b5Offset ∧ OS r 24 st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset⟩ :=
   count_loop (σ := MachineState) (P := fun c st ↦ st.pc = r.pc b1Offset ∧ OS r c st.data) 24
     (fun c st hc24 ⟨hpc, h⟩ ↦ by
       obtain ⟨m, pc⟩ := st
       simp only at hpc
       subst hpc
-      refine Eventually.bind (open_b1 r hp hpre hc hc24 h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+      refine Eventually.bind_elf (open_b1 r hp hpre hc hc24 h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
       simp only at hpc
       subst hpc
-      refine Eventually.bind (open_b2 r hp hpre hc hc24 h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
+      refine Eventually.bind_elf (open_b2 r hp hpre hc hc24 h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ ?_
       simp only at hpc
       subst hpc
       exact open_b3 r hp hpre hc hc24 h) (j := 0) (s := ⟨m, r.pc b1Offset⟩) (by decide) ⟨rfl, h⟩

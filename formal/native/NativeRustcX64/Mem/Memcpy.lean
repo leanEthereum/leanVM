@@ -21,7 +21,7 @@ open NativeRustcX64.Sym NativeRustcX64.Mem NativeRustcX64.Common.Memcpy
 
 public section
 
-variable [Host] {k : Nat} (m : MachineData)
+variable [ElfHost] {sec k : Nat} (m : MachineData)
 
 /-- The destination. -/
 abbrev dst : BitVec 64 := m.regs.get64 .rdi
@@ -31,8 +31,8 @@ abbrev src : BitVec 64 := m.regs.get64 .rsi
 abbrev len : Nat := (m.regs.get64 .rdx).toNat
 
 /-- `memcpy` done, at `.LMemcpy_7`. -/
-structure Done (k : Nat) (st : MachineState) : Prop where
-  pc : st.pc = Host.addrOf (k + NativeRustcX64.Common.Memcpy.b8Offset)
+structure Done (sec k : Nat) (st : MachineState) : Prop where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Memcpy.b8Offset)
   rax : st.data.regs.get64 .rax = dst m
   rsp : st.data.regs.get64 .rsp = rspOf m
   saved : Saved m st.data
@@ -52,13 +52,13 @@ structure Loop (k i : Nat) (st : MachineState) : Prop where
   same : SameOutside m.dmem st.data.dmem (InRange (dst m) i)
 
 /-- The word loop's head after `i` bytes. -/
-structure WInv (k i : Nat) (st : MachineState) : Prop extends Loop m k i st where
-  pc : st.pc = Host.addrOf (k + NativeRustcX64.Common.Memcpy.b7Offset)
+structure WInv (sec k i : Nat) (st : MachineState) : Prop extends Loop m k i st where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Memcpy.b7Offset)
   i8 : i % 8 = 0
 
 /-- The byte loop's head after `i` bytes. -/
-structure BInv (k i : Nat) (st : MachineState) : Prop extends Loop m k i st where
-  pc : st.pc = Host.addrOf (k + NativeRustcX64.Common.Memcpy.b3Offset)
+structure BInv (sec k i : Nat) (st : MachineState) : Prop extends Loop m k i st where
+  pc : st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Memcpy.b3Offset)
 
 /-- `memcpy`'s postcondition, reached. -/
 abbrev Post (st : MachineState) : Prop :=
@@ -66,19 +66,20 @@ abbrev Post (st : MachineState) : Prop :=
 
 variable {m}
 
-omit [Host] in
+omit [ElfHost] in
 /-- `memcpy`'s precondition's parts, in the names of this file. -/
 theorem pre_parts (h : MemcpyPre m) : StackOk m 0 ∧ Mapped m.dmem (dst m) (len m) ∧
     Mapped m.dmem (src m) (len m) ∧ NoWrap (dst m) (len m) ∧ NoWrap (src m) (len m) ∧
     Apart (dst m) (len m) (src m) (len m) ∧ Apart (dst m) (len m) (rspOf m) 8 := h
 
 theorem infix_of {b : List Directive} {j : Nat} (hb : b.IsInfixAt code j) (hne : b ≠ [])
-    (hp : Placed code k) : b.IsInfixAt Host.prog (k + j) :=
+    (hp : PlacedIn code sec k) : b.IsInfixAt (ElfHost.sectionProg sec) (k + j) :=
   hb.trans hp.1 hne
 
 /-- From `.LMemcpy_7`: `retq`. -/
-theorem finish {st : MachineState} (hp : Placed code k) (hpre : MemcpyPre m) (hd : Done m k st) :
-    Eventually (step1 Host.exe) (Post m) st := by
+theorem finish {st : MachineState} (hp : PlacedIn code sec k) (hpre : MemcpyPre m)
+    (hd : Done m sec k st) :
+    Eventually (elfStep1 ElfHost.exe) (Post m) st := by
   obtain ⟨hstk, -, -, hnd, -, -, hsp⟩ := pre_parts hpre
   have hslot : ∀ i < 8, st.data.dmem.get? (rspOf m + BitVec.ofNat 64 i) =
       m.dmem.get? (rspOf m + BitVec.ofNat 64 i) := by
@@ -88,7 +89,7 @@ theorem finish {st : MachineState} (hp : Placed code k) (hpre : MemcpyPre m) (hd
     unfold Apart at hsp
     rw [inRange_iff hnd, toNat_add_ofNat _ _ (by have := hstk.2.1; omega)]
     omega
-  refine Eventually.mono (ret_then (infix_of b8_in_code (by simp [b8]) hp) e8 rfl rfl rfl
+  refine Eventually.mono_elf (ret_then_elf (infix_of b8_in_code (by simp [b8]) hp) e8 rfl rfl rfl
     (by decide) hd.pc hstk hd.rsp hslot) fun st' ⟨h1, h2, h3, h4, h5⟩ =>
     ⟨h1, h2, h4.trans hd.rax, ?_, ?_, hd.saved.trans h5⟩
   · rw [h3]
@@ -97,7 +98,7 @@ theorem finish {st : MachineState} (hp : Placed code k) (hpre : MemcpyPre m) (hd
     rw [h3]
     exact hd.same p hp'
 
-omit [Host] in
+omit [ElfHost] in
 /-- A source byte, unchanged while the destination's first `i` bytes are written. -/
 theorem src_same (hpre : MemcpyPre m) {d : DataMem} {i j : Nat} (hi : i ≤ len m)
     (hj : j < len m) (hs : SameOutside m.dmem d (InRange (dst m) i)) :
@@ -109,12 +110,12 @@ theorem src_same (hpre : MemcpyPre m) {d : DataMem} {i j : Nat} (hi : i ≤ len 
   rw [inRange_iff (by omega), toNat_add_ofNat _ _ (by omega)]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 theorem ofNat_of_toNat {x : BitVec 64} {i : Nat} (h : x.toNat = i) : x = BitVec.ofNat 64 i := by
   subst h
   exact (BitVec.ofNat_toNat _ _).trans (BitVec.setWidth_eq _) |>.symm
 
-omit [Host] in
+omit [ElfHost] in
 /-- The loops' environment after `i` bytes, its `w` destination and source bytes as regions, is
 well formed. -/
 theorem loopEnv_wf (hpre : MemcpyPre m) {d : MachineData} (hk : Kept m.dmem d.dmem) {i w : Nat}
@@ -159,13 +160,13 @@ theorem keep {env : Env} {S₀ S : SState} {m₀ m₁ : MachineData} (hm₀ : Ma
     (h : S.reg r = some (.reg r)) : m₁.regs.get64 r = m₀.regs.get64 r :=
   Match.reg_eq hm₀ hm h₀ h
 
-omit [Host] in
+omit [ElfHost] in
 theorem toNat_add_lit {x : BitVec 64} {i c : Nat} (hx : x.toNat = i) (h : i + c < 2 ^ 64) :
     (BitVec.ofNat 64 c + x).toNat = i + c := by
   rw [BitVec.toNat_add, BitVec.toNat_ofNat, hx]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 theorem toNat_add_lit' {x : BitVec 64} {i c : Nat} (hx : x.toNat = i) (h : i + c < 2 ^ 64) :
     (x + BitVec.ofNat 64 c).toNat = i + c := by
   rw [BitVec.toNat_add, BitVec.toNat_ofNat, hx]
@@ -173,9 +174,9 @@ theorem toNat_add_lit' {x : BitVec 64} {i c : Nat} (hx : x.toNat = i) (h : i + c
 
 /-- **One word**: from the word loop's head after `i` bytes, the next word copied, back at the head
 or done. -/
-theorem word_step (hp : Placed code k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0) {i : Nat}
-    {st : MachineState} (hI : WInv m k i st) :
-    Eventually (step1 Host.exe) (fun st' => Post m st' ∨ WInv m k (i + 8) st') st := by
+theorem word_step (hp : PlacedIn code sec k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0) {i : Nat}
+    {st : MachineState} (hI : WInv m sec k i st) :
+    Eventually (elfStep1 ElfHost.exe) (fun st' => Post m st' ∨ WInv m sec k (i + 8) st') st := by
   have hle : i + 8 ≤ len m := by have := hI.i8; have := hI.lt; omega
   obtain ⟨-, -, -, hnd, hns, -, -⟩ := pre_parts hpre
   unfold NoWrap at hnd hns
@@ -186,7 +187,7 @@ theorem word_step (hp : Placed code k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0)
   have hwf : env.WF := loopEnv_wf hpre hI.saved.2 (by decide) hle
   have hm : Match env sWord st.data := match_ofMachine ⟨rfl, rfl, trivial⟩ trivial trivial
     trivial (loopAliases hI.toLoop rfl)
-  refine exec_at (infix_of b7_in_code (by simp [b7]) hp) e7 hwf (fun _ h => nomatch h) hI.pc hm
+  refine exec_at_elf (infix_of b7_in_code (by simp [b7]) hp) e7 hwf (fun _ h => nomatch h) hI.pc hm
     fun st' hm' hpc' => ?_
   have hrax := (keep hm hm' .rax rfl rfl).trans hI.rax
   have hrsi := (keep hm hm' .rsi rfl rfl).trans hI.rsi
@@ -244,9 +245,9 @@ theorem word_step (hp : Placed code k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0)
       simp at hc
       omega
     rw [hn] at hc' hs'
-    exact Eventually.mono (finish hp hpre ⟨hpc', hrax, hrsp, hsaved, hc', hs'⟩) fun _ h => Or.inl h
+    exact Eventually.mono_elf (finish hp hpre ⟨hpc', hrax, hrsp, hsaved, hc', hs'⟩) fun _ h => Or.inl h
 
-omit [Host] in
+omit [ElfHost] in
 /-- The byte `movzbl` then `movb` copy. -/
 theorem byteOf_movzb (x : BitVec 64) :
     byteOf (UnOp.apply .trunc .W8 (UnOp.apply (.zext .W8) .W32 x)) 0 = byteOf x 0 := by
@@ -257,9 +258,9 @@ theorem byteOf_movzb (x : BitVec 64) :
 
 /-- **One byte**: from the byte loop's head after `i` bytes, the next byte copied, back at the head
 or done. -/
-theorem byte_step (hp : Placed code k) (hpre : MemcpyPre m) {i : Nat} {st : MachineState}
-    (hI : BInv m k i st) :
-    Eventually (step1 Host.exe) (fun st' => Post m st' ∨ BInv m k (i + 1) st') st := by
+theorem byte_step (hp : PlacedIn code sec k) (hpre : MemcpyPre m) {i : Nat} {st : MachineState}
+    (hI : BInv m sec k i st) :
+    Eventually (elfStep1 ElfHost.exe) (fun st' => Post m st' ∨ BInv m sec k (i + 1) st') st := by
   have hle : i + 1 ≤ len m := hI.lt
   obtain ⟨-, -, -, hnd, hns, -, -⟩ := pre_parts hpre
   unfold NoWrap at hnd hns
@@ -270,7 +271,7 @@ theorem byte_step (hp : Placed code k) (hpre : MemcpyPre m) {i : Nat} {st : Mach
   have hwf : env.WF := loopEnv_wf hpre hI.saved.2 (by decide) hle
   have hm : Match env sByte st.data := match_ofMachine ⟨rfl, rfl, trivial⟩ trivial trivial
     trivial (loopAliases hI.toLoop rfl)
-  refine exec_at (infix_of b3_in_code (by simp [b3]) hp) e3 hwf (fun _ h => nomatch h) hI.pc hm
+  refine exec_at_elf (infix_of b3_in_code (by simp [b3]) hp) e3 hwf (fun _ h => nomatch h) hI.pc hm
     fun st' hm' hpc' => ?_
   have hrax := (keep hm hm' .rax rfl rfl).trans hI.rax
   have hrsi := (keep hm hm' .rsi rfl rfl).trans hI.rsi
@@ -340,10 +341,10 @@ theorem byte_step (hp : Placed code k) (hpre : MemcpyPre m) {i : Nat} {st : Mach
       simp at hc
       omega
     rw [hn] at hc' hs'
-    refine exec_at (infix_of b4_in_code (by simp [b4]) hp) e4 (Env.wf_nil _) (fun _ h => nomatch h)
-      hpc' (match_nil _) fun st'' hm'' hpc'' => ?_
+    refine exec_at_elf (infix_of b4_in_code (by simp [b4]) hp) e4 (Env.wf_nil _)
+      (fun _ h => nomatch h) hpc' (match_nil _) fun st'' hm'' hpc'' => ?_
     have hd : st''.data.dmem = st'.data.dmem := hm''.dmem_eq (Env.wf_nil _) rfl
-    refine Eventually.mono (finish hp hpre ⟨?_, ?_, ?_, ?_, ?_, ?_⟩) fun _ h => Or.inl h
+    refine Eventually.mono_elf (finish hp hpre ⟨?_, ?_, ?_, ?_, ?_, ?_⟩) fun _ h => Or.inl h
     · simp only [PcOk] at hpc''
       rw [hpc'']
       exact hp.label NativeRustcX64.Common.Memcpy.label_7_at
@@ -357,26 +358,28 @@ theorem byte_step (hp : Placed code k) (hpre : MemcpyPre m) {i : Nat} {st : Mach
       exact hs' p hp'
 
 /-- The word loop, from its head after `i` bytes. -/
-theorem word_loop (hp : Placed code k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0)
-    {i : Nat} {st : MachineState} (hI : WInv m k i st) : Eventually (step1 Host.exe) (Post m) st :=
-  Sym.loop (fun μ st => ∃ i, μ = len m - i ∧ WInv m k i st)
-    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono (word_step hp hpre h8 hI) fun st' h =>
+theorem word_loop (hp : PlacedIn code sec k) (hpre : MemcpyPre m) (h8 : len m % 8 = 0)
+    {i : Nat} {st : MachineState} (hI : WInv m sec k i st) :
+    Eventually (elfStep1 ElfHost.exe) (Post m) st :=
+  Sym.loop (fun μ st => ∃ i, μ = len m - i ∧ WInv m sec k i st)
+    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono_elf (word_step hp hpre h8 hI) fun st' h =>
       h.imp_right fun h' => ⟨len m - (i + 8), by have := hI.lt; omega, i + 8, rfl, h'⟩)
     ⟨i, rfl, hI⟩
 
 /-- The byte loop, from its head after `i` bytes. -/
-theorem byte_loop (hp : Placed code k) (hpre : MemcpyPre m) {i : Nat} {st : MachineState}
-    (hI : BInv m k i st) : Eventually (step1 Host.exe) (Post m) st :=
-  Sym.loop (fun μ st => ∃ i, μ = len m - i ∧ BInv m k i st)
-    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono (byte_step hp hpre hI) fun st' h =>
+theorem byte_loop (hp : PlacedIn code sec k) (hpre : MemcpyPre m) {i : Nat} {st : MachineState}
+    (hI : BInv m sec k i st) : Eventually (elfStep1 ElfHost.exe) (Post m) st :=
+  Sym.loop (fun μ st => ∃ i, μ = len m - i ∧ BInv m sec k i st)
+    (fun _ _ ⟨i, hμ, hI⟩ => Eventually.mono_elf (byte_step hp hpre hI) fun st' h =>
       h.imp_right fun h' => ⟨len m - (i + 1), by have := hI.lt; omega, i + 1, rfl, h'⟩)
     ⟨i, rfl, hI⟩
 
-/-- **`memcpy` meets its contract.** -/
-theorem memcpy_spec (hp : Placed code k) : Spec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost := by
+/-- **`memcpy` meets its contract** under `ElfHost`. -/
+theorem memcpy_spec_elf (hp : PlacedIn code sec k) :
+    ElfSpec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost := by
   intro m hpre
   rw [hp.label NativeRustcX64.Common.Memcpy.entry_at]
-  refine exec_then (infix_of b0_in_code (by simp [b0]) hp) e0 (Env.wf_nil m)
+  refine exec_then_elf (infix_of b0_in_code (by simp [b0]) hp) e0 (Env.wf_nil m)
     (fun _ h => nomatch h) (match_nil m) fun st0 hm0 hpc0 => ?_
   have hd0 : st0.data.dmem = m.dmem := hm0.dmem_eq (Env.wf_nil _) rfl
   have hx1 := keep (match_nil m) hm0 .rsi rfl rfl
@@ -389,21 +392,22 @@ theorem memcpy_spec (hp : Placed code k) : Spec (label NativeRustcX64.Common.Mem
   /- From a state `st` after `b0`, its registers and memory as there: a block `ds` from `sNone`
   keeping RAX, RSI, RDX, RSP and the callee-saved registers. -/
   have step {ds : List Directive} {j : Nat} {S' : SState} {x : Exit} {st : MachineState}
-      {R : MachineState → Prop} (hj : ds.IsInfixAt Host.prog (k + j))
+      {R : MachineState → Prop} (hj : ds.IsInfixAt (ElfHost.sectionProg sec) (k + j))
       (hx : exec ds sNone = some (S', x)) (hxc : ∀ l, x ≠ .call l)
       (hrax : S'.reg .rax = some (.reg .rax)) (hrsi : S'.reg .rsi = some (.reg .rsi))
       (hrdx : S'.reg .rdx = some (.reg .rdx)) (hrsp : S'.reg .rsp = some (.reg .rsp))
-      (hmem : S'.mem = []) (hkeeps : keeps sNone S' = true) (hpc : st.pc = Host.addrOf (k + j))
+      (hmem : S'.mem = []) (hkeeps : keeps sNone S' = true)
+      (hpc : st.pc = ElfHost.addrOf sec (k + j))
       (hst : st.data.regs.get64 .rax = dst m ∧ st.data.regs.get64 .rsi = src m ∧
         st.data.regs.get64 .rdx = m.regs.get64 .rdx ∧ st.data.regs.get64 .rsp = rspOf m ∧
         Saved m st.data ∧ st.data.dmem = m.dmem)
       (cont : ∀ st', Match (Env.ofMachine st.data []) S' st'.data →
-        PcOk (Env.ofMachine st.data []) x (Host.addrOf (k + j + ds.length)) st' →
+        PcOk (Env.ofMachine st.data []) x (ElfHost.addrOf sec (k + j + ds.length)) st' →
         st'.data.regs.get64 .rax = dst m ∧ st'.data.regs.get64 .rsi = src m ∧
         st'.data.regs.get64 .rdx = m.regs.get64 .rdx ∧ st'.data.regs.get64 .rsp = rspOf m ∧
-        Saved m st'.data ∧ st'.data.dmem = m.dmem → Eventually (step1 Host.exe) R st') :
-      Eventually (step1 Host.exe) R st := by
-    refine exec_at hj hx (Env.wf_nil _) (fun l h => absurd h (hxc l)) hpc (match_nil _)
+        Saved m st'.data ∧ st'.data.dmem = m.dmem → Eventually (elfStep1 ElfHost.exe) R st') :
+      Eventually (elfStep1 ElfHost.exe) R st := by
+    refine exec_at_elf hj hx (Env.wf_nil _) (fun l h => absurd h (hxc l)) hpc (match_nil _)
       fun st' hm' hpc' => cont st' hm' hpc' ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact (keep (match_nil _) hm' .rax rfl hrax).trans hst.1
     · exact (keep (match_nil _) hm' .rsi rfl hrsi).trans hst.2.1
@@ -415,11 +419,12 @@ theorem memcpy_spec (hp : Placed code k) : Spec (label NativeRustcX64.Common.Mem
       st0.data.regs.get64 .rdx = m.regs.get64 .rdx ∧ st0.data.regs.get64 .rsp = rspOf m ∧
       Saved m st0.data ∧ st0.data.dmem = m.dmem := ⟨hax, hx1, hx2, hsp, hs0, hd0⟩
   /- The length zero: done. -/
-  have zero {st : MachineState} (hpc : st.pc = Host.addrOf (k + NativeRustcX64.Common.Memcpy.b8Offset)) (hn : len m = 0)
+  have zero {st : MachineState}
+      (hpc : st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Memcpy.b8Offset)) (hn : len m = 0)
       (hst : st.data.regs.get64 .rax = dst m ∧ st.data.regs.get64 .rsi = src m ∧
         st.data.regs.get64 .rdx = m.regs.get64 .rdx ∧ st.data.regs.get64 .rsp = rspOf m ∧
         Saved m st.data ∧ st.data.dmem = m.dmem) :
-      Eventually (step1 Host.exe) (Post m) st := by
+      Eventually (elfStep1 ElfHost.exe) (Post m) st := by
     obtain ⟨h1, -, -, h4, h5, h6⟩ := hst
     refine finish hp hpre ⟨hpc, h1, h4, h5, ?_, sameOutside_of_eq h6 _⟩
     rw [hn]
@@ -480,6 +485,17 @@ theorem memcpy_spec (hp : Placed code k) : Spec (label NativeRustcX64.Common.Mem
         rfl
       · exact bytesAt_nil _ _
       · exact sameOutside_of_eq h6 _
+
+end
+
+public section
+
+/-- **`memcpy` meets its contract.** -/
+theorem memcpy_spec [Host] {k : Nat} (hp : Placed code k) :
+    Spec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost :=
+  ElfSpec.toSpec (entry := fun [Labels] => label NativeRustcX64.Common.Memcpy.entryLabel)
+    (P := fun [Labels] => MemcpyPre) (Q := fun [Labels] => MemcpyPost)
+    (@memcpy_spec_elf (Host.toElfHost _) 0 k hp.toPlacedIn)
 
 end
 

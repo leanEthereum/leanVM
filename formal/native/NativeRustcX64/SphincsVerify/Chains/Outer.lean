@@ -62,18 +62,18 @@ theorem load0_word [Labels] {r : Run} {m : MachineData} {rest : List (BitVec 64 
     exact h
   rw [Env.load_of_bytesAt (NativeRustc.length_wordBytes _) h', ofInt_ofBytes_wordBytes]
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b141`**: back to `b107`. -/
-theorem seg_b141 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b141 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat} {e : List UInt8}
     (he : e.length = 16) {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E i m)
     (h12 : Run.RegIs m .r12 (r.off 4072)) (hcell : BytesAt m.dmem (r.off 1592) e)
     (hf : Funcs m)
     (cont : ∀ m', Keep r l x E i m' → Run.RegIs m' .r12 (r.off 4072) →
       BytesAt m'.dmem (r.off 1592) e → Funcs m' →
-      Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b107Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b107Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) 0
   have hm := match_frameS hpre hK.1 hK.2.1 (ret := 0) (k := []) trivial
   refine blk r hp b141_in_code (List.cons_ne_nil _ _) run_b141 hwf (fun _ h ↦ nomatch h) hm
@@ -84,7 +84,7 @@ theorem seg_b141 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
       ⟨regIs_reg hm1 rfl hf.1, regIs_reg hm1 rfl hf.2⟩)
 
 /-- **`b109`**: the chain's word `BE32(i)` at `72`; then the steps at `b110`. -/
-theorem seg_b109 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b109 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat} (hi : i < 64)
     {d : Nat} {v : List UInt8} (hv : v.length = 16) {R : MachineState → Prop} {m : MachineData}
     (hF : r.Frame m) (hK : KeepRest r l x E m) (h80 : r.WordAt m 80 i.toUInt64)
@@ -92,8 +92,8 @@ theorem seg_b109 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
     (h12 : Run.RegIs m .r12 (r.off 4072)) (hcell : BytesAt m.dmem (r.off 1592) v)
     (hf : Funcs m)
     (cont : ∀ m', Keep r l x E i m' → Regs r m' d → BytesAt m'.dmem (r.off 1592) v →
-      Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b109Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b109Offset⟩ := by
   have hwf := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) 0
   have hm := match_frameS hpre hF hK (ret := 0) (k := []) trivial
   refine blk r hp b109_in_code (List.cons_ne_nil _ _) run_b109 hwf (fun _ h ↦ nomatch h) hm

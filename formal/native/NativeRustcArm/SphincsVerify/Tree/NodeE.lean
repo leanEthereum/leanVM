@@ -21,7 +21,7 @@ open NativeRustcArm.Sphincs.SphincsVerify
 
 public section
 
-variable [Host] (r : Run)
+variable [ElfHost] (r : Run)
 
 /-- **At `b169`**: hasher A's state the node's padded input absorbed. -/
 @[expose] def AtN8 (l : Nat) (e : List (List UInt8)) (z : Nat) (m : MachineData) : Prop :=
@@ -36,9 +36,9 @@ variable [Host] (r : Run)
 variable {r}
 
 /-- **`b168` and `keccak_f`**: the final absorb. -/
-theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeG (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN7 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b169Offset ∧ AtN8 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b169Offset ∧ AtN8 r l e z st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b168Offset⟩ := by
   obtain ⟨hB, hz, hN, h23, hZ, hK⟩ := h
   have hl := hB.1
@@ -46,7 +46,7 @@ theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have hwf := r.frame_wf hpre hB.2.1 (fun _ ↦ 0)
   have hm0 : Match (r.env m) s7 m := r.match_frame hpre hB.2.1
     (allOf_append (allOf_keptRegs hB _) ⟨h23, trivial⟩) trivial trivial trivial
-  refine exec_then (hb168 hp) run_b168 hwf hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb168 hp) run_b168 hwf hm0 fun st hm hpc ↦ ?_
   have hB1 := Base.of_match hpre hB hm hwf rfl rfl (by decide) (by decide) (by decide) rfl rfl rfl rfl
   have hN1 := hN.of_match hpre hm hwf rfl rfl (by decide)
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := (hm.regs .X0 _ rfl).trans (eval_ptr 8640)
@@ -58,7 +58,7 @@ theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
       have := bytesOf_of_bytesAt hZ
       rwa [List.length_replicate] at this
     rwa [show r.base + BitVec.ofNat 64 8640 = r.off 8640 from rfl, hz200] at this
-  refine call_then hpc hc.2.2.2.2 (r.keccakF_pre hpre hB1.2.1 h0 (by decide))
+  refine call_then_elf hpc hc.2.2.2.2 (r.keccakF_pre hpre hB1.2.1 h0 (by decide))
     fun st' hpc' hpost ↦ ?_
   obtain ⟨hk, hout, hS⟩ := r.keccakF_out h0 hpost
   have hlX : (xorBlock (List.replicate 200 0) (finalBlock (nodeIn r l e z))).length = 200 :=
@@ -71,10 +71,10 @@ theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   rw [← this]
   exact hk
 
-omit [Host] in
+omit [ElfHost] in
 theorem length_keccakF'' (b : List UInt8) : (keccakF b).length = 200 := length_stateBytes _
 
-omit [Host] in
+omit [ElfHost] in
 /-- The node's value is the fold's next step. -/
 theorem node_value {l z : Nat} {e : List (List UInt8)} (hl : l < 3) (hz : z < heightOf l) :
     (keccakF (xorBlock (List.replicate 200 0) (finalBlock (nodeIn r l e z)))).take 16 =
@@ -85,16 +85,16 @@ theorem node_value {l z : Nat} {e : List (List UInt8)} (hl : l < 3) (hz : z < he
     rw [length_nodeIn hl hz]; decide
 
 /-- **`b169`**: the node's value to `12864`; the loop's test. -/
-theorem nodeH (hp : Placed code r.k) (hpre : r.Pre) {l : Nat}
+theorem nodeH (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN8 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ (z + 1 < heightOf l ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b144Offset ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (z + 1 < heightOf l ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b144Offset ∧
       AtNode r l e (z + 1) st.data) ∨ (z + 1 = heightOf l ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b170Offset ∧ AtFold r l e st.data))
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b169Offset⟩ := by
   obtain ⟨hB, hz, hN, hV⟩ := h
   have hl := hB.1
   have hh := heightOf_le hl
   have hwf := r.frame_wf hpre hB.2.1 (fun _ ↦ 0)
-  refine exec_then (hb169 hp) run_b169 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb169 hp) run_b169 hwf (match_base hpre hB) fun st hm hpc ↦ ?_
   have hB1 := Base.of_match hpre hB hm hwf rfl rfl (by decide) (by decide) (by decide) rfl rfl rfl rfl
   have hN1 := hN.of_match hpre hm hwf rfl rfl (by decide)
   have hVal : BytesAt st.data.dmem (r.off 12864) (r.foldUpTo l e (z + 1)) := by

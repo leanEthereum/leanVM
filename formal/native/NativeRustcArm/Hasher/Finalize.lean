@@ -22,14 +22,16 @@ open NativeRustc NativeRustc.Keccak NativeRustcArm.Sym NativeRustcArm.Common.Fin
 
 public section
 
-variable [Host] {k : Nat}
+section
+
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
-/-- **`Hasher::finalize` meets its contract.** -/
-theorem finalize_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hkf : Spec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
-    Spec (Labels.label NativeRustcArm.Common.Finalize.entryLabel) FinalizePre
+/-- **`Hasher::finalize` meets its contract** under a multi-section `ElfHost`. -/
+theorem finalize_spec_elf (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : ElfSpec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    ElfSpec (Labels.label NativeRustcArm.Common.Finalize.entryLabel) FinalizePre
       FinalizePost := by
   intro m0 hpre
   have g := geo_of hpre
@@ -37,15 +39,15 @@ theorem finalize_spec (hp : Placed code k)
   have hs := g.s
   have hFnw : (frAt m0).toNat + 384 ≤ 2 ^ 64 := by rw [hf]; have := (spAt m0).isLt; omega
   rw [lbl_entry hp]
-  refine NativeRustcArm.Eventually.bind (stage2_spec hp hmemcpy hpre) fun st ⟨hpc, m1, hpro, hs2⟩ => ?_
+  refine NativeRustcArm.Eventually.bind_elf (stage2_spec hp hmemcpy hpre) fun st ⟨hpc, m1, hpro, hs2⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine NativeRustcArm.Eventually.bind (stage3_spec hp hpre hs2) fun st ⟨hpc, hs3⟩ => ?_
+  refine NativeRustcArm.Eventually.bind_elf (stage3_spec hp hpre hs2) fun st ⟨hpc, hs3⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine NativeRustcArm.Eventually.bind (stage4_spec hp hkf hpre hpro hs3) fun st ⟨hpc, hs4⟩ => ?_
+  refine NativeRustcArm.Eventually.bind_elf (stage4_spec hp hkf hpre hpro hs3) fun st ⟨hpc, hs4⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
@@ -89,7 +91,7 @@ theorem finalize_spec (hp : Placed code k)
     simp only [List.length_map, List.length_range] at hi
     rw [hbF, add_ofNat_add, Env.ofMachine_mem0, hslotM _ (by omega) (by omega), ← add_ofNat_add,
       hpro.slots p hpm i (by simp [hi])]
-  refine exec_then (hb5 hp) run_b5 hwf hm fun st hm' hpc' => ?_
+  refine exec_then_elf (hb5 hp) run_b5 hwf hm fun st hm' hpc' => ?_
   have hl := b5_mem
   rw [after_eq run_b5] at hl
   have hlo := b5_out
@@ -165,6 +167,32 @@ theorem finalize_spec (hp : Placed code k)
       · exact hm'.kept hwf p (hfr.kept p hp)
       · rw [hmem' p hpo]
         exact hfr.kept p hp
+
+end
+
+private theorem spec_toElfSpec [h : NativeRustcArm.Host]
+    {entry : Labels → Int64} {P : Labels → MachineData → Prop}
+    {Q : Labels → MachineData → MachineData → Prop}
+    (hs : Spec (entry inferInstance) (P inferInstance) (Q inferInstance)) :
+    @ElfSpec (Host.toElfHost h) (entry (@instLabelsElfHost (Host.toElfHost h)))
+      (P (@instLabelsElfHost (Host.toElfHost h))) (Q (@instLabelsElfHost (Host.toElfHost h))) := by
+  intro m hP
+  have hL : @instLabelsElfHost (Host.toElfHost h) = (inferInstance : Labels) := toElfHost_labels h
+  rw [elfStep1_toElfHost h, hL]
+  exact hs m (by rwa [← hL])
+
+/-- **`Hasher::finalize` meets its contract.** -/
+theorem finalize_spec [h : NativeRustcArm.Host] {k : Nat} (hp : Placed code k)
+    (hmemcpy : Spec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : Spec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    Spec (Labels.label NativeRustcArm.Common.Finalize.entryLabel) FinalizePre FinalizePost :=
+  ElfSpec.toSpec (entry := fun [_] => Labels.label NativeRustcArm.Common.Finalize.entryLabel)
+    (P := fun [_] => FinalizePre) (Q := fun [_] => FinalizePost)
+    (@finalize_spec_elf (Host.toElfHost h) 0 k hp.toPlacedIn
+      (spec_toElfSpec (entry := fun l => @Labels.label l NativeRustcArm.Common.Memcpy.entryLabel)
+        (P := fun _ => MemcpyPre) (Q := fun _ => MemcpyPost) hmemcpy)
+      (spec_toElfSpec (entry := fun l => @Labels.label l NativeRustcArm.Common.KeccakF.entryLabel)
+        (P := fun l => @KeccakFPre l) (Q := fun _ => KeccakFPost) hkf))
 
 end
 

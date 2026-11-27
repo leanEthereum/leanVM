@@ -18,9 +18,9 @@ open NativeRustcX64.Sphincs.SphincsVerify
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
-omit [Host] in
+omit [ElfHost] in
 /-- The root slot's alias: RSP plus `16 c` is the slot less 12396. -/
 theorem rootAlias [Labels] {m : MachineData} {c : Nat} (hpre : r.Pre)
     (h13 : r.WordAt m 88 c.toUInt64) :
@@ -37,9 +37,9 @@ theorem rootAlias [Labels] {m : MachineData} {c : Nat} (hpre : r.Pre)
   bv_omega
 
 /-- **A tree's end**: from `AtRoot r c` at `b87`, the next tree's head or `b88`. -/
-theorem tree_end (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {c : Nat}
+theorem tree_end (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {c : Nat}
     {m : MachineData} (h : AtRoot r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ (c + 1 < 24 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (c + 1 < 24 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset ∧
       AtTree r (c + 1) st.data) ∨ (c + 1 = 24 ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b88Offset ∧ r.AtForsKey st.data))
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b87Offset⟩ := by
   obtain ⟨⟨hF, hB⟩, h13, h12, h15, hbp, hroot, hbx⟩ := h

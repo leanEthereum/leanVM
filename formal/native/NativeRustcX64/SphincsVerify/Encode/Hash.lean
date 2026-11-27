@@ -101,62 +101,62 @@ theorem seed_bytes {m : MachineData} (hI : r.Inputs m) : bytesOf m.dmem (r.off 1
 end Run
 
 
-variable [Host]
+variable [ElfHost]
 
 theorem goto {R : MachineState → Prop} {st : MachineState} {p : Int64} (hpc : st.pc = p)
-    (h : Eventually (step1 Host.exe) R ⟨st.data, p⟩) : Eventually (step1 Host.exe) R st := by
+    (h : Eventually (elfStep1 ElfHost.exe) R ⟨st.data, p⟩) : Eventually (elfStep1 ElfHost.exe) R st := by
   obtain ⟨m, pc⟩ := st
   simp only at hpc
   subst hpc
   exact h
 
 theorem pc_step (r : Run) {j n j' : Nat} {b : List Directive} (hn : b.length = n)
-    (hj : j + n = j') : Host.addrOf (r.k + j + b.length) = r.pc j' := by
+    (hj : j + n = j') : ElfHost.addrOf r.sec (r.k + j + b.length) = r.pc j' := by
   rw [hn, Nat.add_assoc, hj]
   rfl
 
 /-- **A block of the hashing**: run from a state of the invariant, it keeps the data. -/
-theorem enc_block (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem enc_block (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {b : List Directive} {j : Nat} (hb : b.IsInfixAt Sphincs.SphincsVerify.code j) (hne : b ≠ [])
     {S : SState} {x : Exit} (hx : exec b sCall = some (S, x)) (hS : encKeeps S = true)
     {l : Nat} {s : List UInt8} {c : UInt32} {m : MachineData} (h : r.EncBase l s c m)
     {R : MachineState → Prop}
-    (cont : ∀ st, (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec).WF →
-      Match (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec) S
-      st.data → PcOk (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec) x
-        (Host.addrOf (r.k + j + b.length)) st →
-      r.EncData l s c st.data → Eventually (step1 Host.exe) R st) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by
+    (cont : ∀ st, (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec).WF →
+      Match (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec) S
+      st.data → PcOk (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec) x
+        (ElfHost.addrOf r.sec (r.k + j + b.length)) st →
+      r.EncData l s c st.data → Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hk := hb.trans hp.1 hne
-  have hwf := r.frame_wf hpre h.2.2.1.2.2.2 (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec
+  have hwf := r.frame_wf hpre h.2.2.1.2.2.2 (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec
   have hm := r.match_frame hpre h.2.2.1 (vars := fun _ ↦ 0)
-    (ret := (Host.addrOf (r.k + j + b.length)).toBitVec)
+    (ret := (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec)
     (known := [(.r14, .label "memcpy")]) (labels := [])
     (bounds := []) (aliases := []) ⟨Run.EncData.memcpy r h.2.2.2, trivial⟩ trivial trivial trivial
-  exact Sym.exec_then hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦
+  exact Sym.exec_then_elf hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦
     cont st hwf hm' hpc (r.encData_of_block hpre h.2.2.2 h.2.1 hm' hwf hS)
 
 /-- **A block of the hashing that swaps the counter**: it keeps the data, EBX's counter
 changed. -/
-theorem enc_block' (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem enc_block' (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {b : List Directive} {j : Nat} (hb : b.IsInfixAt Sphincs.SphincsVerify.code j) (hne : b ≠ [])
     {S : SState} {x : Exit} (hx : exec b sCall = some (S, x)) (hS : encKeepsNoBx S = true)
     {l : Nat} {s : List UInt8} {c : UInt32} {m : MachineData} (h : r.EncBase l s c m)
     {R : MachineState → Prop}
-    (cont : ∀ st, (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec).WF →
-      Match (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec) S
-      st.data → PcOk (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec) x
-        (Host.addrOf (r.k + j + b.length)) st →
+    (cont : ∀ st, (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec).WF →
+      Match (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec) S
+      st.data → PcOk (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec) x
+        (ElfHost.addrOf r.sec (r.k + j + b.length)) st →
       r.EncData l s (UInt32.ofNat (reg st.data .rbx).toNat) st.data →
-      Eventually (step1 Host.exe) R st) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hk := hb.trans hp.1 hne
-  have hwf := r.frame_wf hpre h.2.2.1.2.2.2 (fun _ ↦ 0) (Host.addrOf (r.k + j + b.length)).toBitVec
+  have hwf := r.frame_wf hpre h.2.2.1.2.2.2 (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec
   have hm := r.match_frame hpre h.2.2.1 (vars := fun _ ↦ 0)
-    (ret := (Host.addrOf (r.k + j + b.length)).toBitVec)
+    (ret := (ElfHost.addrOf r.sec (r.k + j + b.length)).toBitVec)
     (known := [(.r14, .label "memcpy")]) (labels := [])
     (bounds := []) (aliases := []) ⟨Run.EncData.memcpy r h.2.2.2, trivial⟩ trivial trivial trivial
-  exact Sym.exec_then hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦
+  exact Sym.exec_then_elf hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦
     cont st hwf hm' hpc (r.encData_of_block' hpre h.2.2.2 h.2.1 hm' hwf hS)
 
 /-- **`Hasher::update(a, b, n)`** on hasher A or B, at a call with the data. -/
@@ -172,9 +172,9 @@ theorem call_update (r : Run) (hc : Callees) (hpre : r.Pre) {st : MachineState} 
     (cont : ∀ st', st'.pc = next → r.EncBase l s c st'.data →
       HasherHolds (bytesOf st'.data.dmem (r.off a) 344) (x ++ bytesOf st.data.dmem (r.off b) n) →
       SameOutside st.data.dmem st'.data.dmem (r.CallOut st.data a 344 updateStack) →
-      Eventually (step1 Host.exe) R st') :
-    Eventually (step1 Host.exe) R st :=
-  Eventually.bind (Spec.apply hc.2.2.1 hpc.1
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  Eventually.bind_elf (ElfSpec.apply hc.2.2.1 hpc.1
     (r.update_pre hpre hcall h0 h1 h2 (by omega) hb hd ⟨x, hh⟩)) fun st' h' ↦ by
     obtain ⟨hH, hout, hS⟩ := r.update_out h0 h1 h2 h'.2.2
     exact cont st' (h'.1.trans hpc.2)
@@ -193,9 +193,9 @@ theorem call_memcpy (r : Run) (hc : Callees) (hpre : r.Pre) {st : MachineState} 
     (cont : ∀ st', st'.pc = next → r.EncBase l s c st'.data →
       bytesOf st'.data.dmem (r.off a) 344 = bytesOf st.data.dmem (r.off b) 344 →
       SameOutside st.data.dmem st'.data.dmem (r.CallOut st.data a 344 0) →
-      Eventually (step1 Host.exe) R st') :
-    Eventually (step1 Host.exe) R st :=
-  Eventually.bind (Spec.apply hc.1 hpc.1
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  Eventually.bind_elf (ElfSpec.apply hc.1 hpc.1
     (r.memcpy_pre hpre hcall h0 h1 h2 (by omega) hb hd)) fun st' h' ↦ by
     obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 h'.2.2
     exact cont st' (h'.1.trans hpc.2)
@@ -213,9 +213,9 @@ theorem call_finalize (r : Run) (hc : Callees) (hpre : r.Pre) {st : MachineState
     {R : MachineState → Prop}
     (cont : ∀ st', st'.pc = next → r.EncBase l s c st'.data →
       BytesAt st'.data.dmem (r.off 560) (hashBytes x) →
-      Eventually (step1 Host.exe) R st') :
-    Eventually (step1 Host.exe) R st :=
-  Eventually.bind (Spec.apply hc.2.2.2.1 hpc.1
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  Eventually.bind_elf (ElfSpec.apply hc.2.2.2.1 hpc.1
     (r.finalize_pre hpre hcall h0 h1 (by omega) (by omega) (.inl (by omega)) ⟨x, hh⟩))
     fun st' h' ↦ by
     obtain ⟨hD, hout, hS⟩ := r.finalize_out h0 h1 h'.2.2
@@ -226,11 +226,11 @@ theorem call_finalize (r : Run) (hc : Callees) (hpre : r.Pre) {st : MachineState
 
 /-- **The encoder's digest**: from `b96`, hasher A new and the address at `2024`, the machine
 reaches the codeword's loop with `rax · 2⁶⁴ + rdx` the big-endian number of `encode`'s digest. -/
-theorem hash_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem hash_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {l : Nat} {s : List UInt8} {c : UInt32} {m : MachineData}
     (h : r.EncBase l s c m) (hA : r.EncAdrs l m)
     (hh : HasherHolds (bytesOf m.dmem (r.off 4072) 344) []) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b104Offset ∧ (∃ c', r.EncBase l s c' st.data) ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b104Offset ∧ (∃ c', r.EncBase l s c' st.data) ∧
       digest128 st.data = beNat (encodeDigest r.seed (r.key l) s c) ∧
       Run.RegIs st.data .rdi 0 ∧ Run.RegIs st.data .rsi (r.off 561)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b96Offset⟩ := by
   have hl := h.1

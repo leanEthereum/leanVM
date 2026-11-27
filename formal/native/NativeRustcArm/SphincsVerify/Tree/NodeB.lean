@@ -19,7 +19,7 @@ open NativeRustcArm.Sphincs.SphincsVerify
 
 public section
 
-variable [Host] (r : Run)
+variable [ElfHost] (r : Run)
 
 /-- **At `b153`**: hasher A's state zero, its buffer `PK.seed | ADRS` then zeros, `buf_len` 16
 (not yet counted the address); X22, X23 the turn's bytes taken and left. -/
@@ -43,16 +43,16 @@ variable [Host] (r : Run)
 
 variable {r}
 
-omit [Host] in
+omit [ElfHost] in
 theorem seed_at {m : MachineData} (h : r.Inputs m) : BytesAt m.dmem (r.off 448) r.seed := by
   have h1 := h.1
   rw [← List.take_append_drop 16 r.pkBytes] at h1
   exact bytesAt_append_left h1
 
 /-- **`b145` .. `b152` and `memcpy`**: `PK.seed` and the address into hasher A. -/
-theorem nodeB (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeB (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN2 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b153Offset ∧ AtN3 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b153Offset ∧ AtN3 r l e z st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b145Offset⟩ := by
   obtain ⟨hB, hz, h24, hw432, h28, hA0, hAd, hC⟩ := h
   have hN : NRegs r l z m := ⟨h24, hw432, h28⟩
@@ -61,18 +61,18 @@ theorem nodeB (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have hld : (r.env m).load 0 8976 8 = 0 := load_sub (i := 336) (v := 0) hA0 (by decide)
   have hseed := seed_at hB.2.2.1.1
   have hsl := length_seed (r := r)
-  refine exec_then (hb145 hp) run_b145 hwf (match_base hpre hB) fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb145 hp) run_b145 hwf (match_base hpre hB) fun st1 hm1 hpc1 ↦ ?_
   have hpc1' := pc_cond (b := true) hpc1 (by sym_simp; rw [hld]; decide)
   rw [Sym.ite_pos (rfl : true = true), lbl_61 hp] at hpc1'
-  refine exec_at (hb148 hp) (exec_after run_b145 run_b148) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
-  have hpc2' : st2.pc = Host.addrOf (r.k + NativeRustcArm.Sphincs.SphincsVerify.b150Offset) := hpc2.trans (lbl_63 hp)
-  refine exec_at (hb150 hp) (exec_after run_b148 run_b150) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_at_elf (hb148 hp) (exec_after run_b145 run_b148) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
+  have hpc2' : st2.pc = ElfHost.addrOf r.sec (r.k + NativeRustcArm.Sphincs.SphincsVerify.b150Offset) := hpc2.trans (lbl_63 hp)
+  refine exec_at_elf (hb150 hp) (exec_after run_b148 run_b150) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
   have hpc3' := pc_cond (b := false) hpc3 (by sym_simp; rw [hld]; decide)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcArm.Sphincs.SphincsVerify.b150_next] at hpc3'
-  refine exec_at (hb151 hp) (exec_after run_b150 run_b151) hwf hpc3' hm3 fun st4 hm4 hpc4 ↦ ?_
+  refine exec_at_elf (hb151 hp) (exec_after run_b150 run_b151) hwf hpc3' hm3 fun st4 hm4 hpc4 ↦ ?_
   have hpc4' := pc_cond (b := false) hpc4 (by sym_simp; rw [hld]; decide)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcArm.Sphincs.SphincsVerify.b151_next] at hpc4'
-  refine exec_at (hb152 hp) (exec_after run_b151 run_b152) hwf hpc4' hm4 fun st5 hm5 hpc5 ↦ ?_
+  refine exec_at_elf (hb152 hp) (exec_after run_b151 run_b152) hwf hpc4' hm4 fun st5 hm5 hpc5 ↦ ?_
   have hB5 := Base.of_match hpre hB hm5 hwf rfl rfl (by decide) (by decide) (by decide) rfl rfl rfl rfl
   have hN5 := hN.of_match hpre hm5 hwf rfl rfl (by decide)
   have h0 : Run.RegIs st5.data .X0 (r.off 8856) := by
@@ -115,7 +115,7 @@ theorem nodeB (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     write_eval hm5 (o := 8976) (n := 8) (v := .bin .add .W64 (.load 0 8976 8) (.lit 16))
       (w := 16#64) (by decide) (by decide) (by sym_simp; rw [hld]; decide) (by decide)
   -- the call
-  refine call_then hpc5 hc.1 (r.memcpy_pre hpre hB5.2.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc5 hc.1 (r.memcpy_pre hpre hB5.2.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st' hpc' hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have kc : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 21616 →

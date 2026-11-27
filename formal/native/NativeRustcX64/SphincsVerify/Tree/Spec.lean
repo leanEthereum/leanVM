@@ -80,7 +80,7 @@ theorem merge_ite (c : Bool) :
 
 /-! ## The node's last block -/
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- The value's two words, written from hasher A's first 16 bytes. -/
 theorem value_at {l z : Nat} {e : List (List UInt8)} {m m' : MachineData}
@@ -105,9 +105,9 @@ theorem value_at {l z : Nat} {e : List (List UInt8)} {m m' : MachineData}
     (by rw [List.drop_take, show 16 - 8 = 8 from rfl]; exact hi)
 
 /-- **`b178`, back to the loop head** with `z + 1 < heightOf l`. -/
-theorem nodeI_loop (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
+theorem nodeI_loop (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
     {z : Nat} {m : MachineData} (h : AtN8 r l e z m) (hlt : z + 1 < heightOf l) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧ AtNode r l e (z + 1) st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧ AtNode r l e (z + 1) st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b178Offset⟩ := by
   obtain ⟨hB, hz, hN, h12, h13, hV, hbx⟩ := h
   have hl := hB.1
@@ -122,7 +122,7 @@ theorem nodeI_loop (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (Li
       (.r13, .ptr 0 2024), (.rbx, .label "memset")] from
       ⟨h12.trans (eval_ptr 4072).symm, hB.2.2.2.1.trans (eval_ptr 560).symm,
         h13.trans (eval_ptr 2024).symm, hbx, trivial⟩)
-  refine exec_then (hb187 hp) run_b178 hwf (fun _ h ↦ nomatch h) hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb187 hp) run_b178 hwf (fun _ h ↦ nomatch h) hm0 fun st hm hpc ↦ ?_
   have hpc' := pc_cond (b := true) hpc (by
     simp only [SBool.eval, Sym.eval, CmpOp.apply, low_W64, hld64, hld160, toBitVec_toUInt64]
     rw [Bool.not_eq_true', beq_eq_false_iff_ne]
@@ -140,7 +140,7 @@ theorem nodeI_loop (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (Li
   · have := hN.of_match hpre hm hwf (by decide); exact this.2.1
   · have := hN.of_match hpre hm hwf (by decide); exact this.2.2
 
-omit [Host] in
+omit [ElfHost] in
 theorem pkRoot_at [Labels] {m : MachineData} (h : r.Inputs m) : BytesAt m.dmem (r.off 128) r.pk.root := by
   have h1 := h.1
   rw [← List.take_append_drop 16 r.pkB] at h1
@@ -149,9 +149,9 @@ theorem pkRoot_at [Labels] {m : MachineData} (h : r.Inputs m) : BytesAt m.dmem (
 
 /-- **`b178` after the last node, `b179`, `b181`**: the root to `144`, on to the next layer, or
 `b182`'s comparison with `PK.root` and the epilogue. -/
-theorem fold_exit (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
+theorem fold_exit (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
     {z : Nat} {m : MachineData} (h : AtN8 r l e z m) (heq : z + 1 = heightOf l) :
-    Eventually (step1 Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       if l = 2 then r.Done (r.layerRoot l e == r.pk.root) st
       else st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset ∧ r.AtLayer (l + 1) (r.layerRoot l e) st.data) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b178Offset⟩ := by
   obtain ⟨hB, hz, hN, h12, h13, hV, hbx⟩ := h
@@ -171,15 +171,15 @@ theorem fold_exit (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (Lis
       (.r13, .ptr 0 2024), (.rbx, .label "memset")] from
       ⟨h12.trans (eval_ptr 4072).symm, hB.2.2.2.1.trans (eval_ptr 560).symm,
         h13.trans (eval_ptr 2024).symm, hbx, trivial⟩)
-  refine exec_then (hb187 hp) run_b178 hwf (fun _ h ↦ nomatch h) hm0 fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb187 hp) run_b178 hwf (fun _ h ↦ nomatch h) hm0 fun st1 hm1 hpc1 ↦ ?_
   have hpc1' := pc_cond (b := false) hpc1 (by
     simp only [SBool.eval, Sym.eval, CmpOp.apply, low_W64, hld64, hld160, heq]
     simp)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b178_next] at hpc1'
-  refine exec_at (hb188 hp) (exec_after run_b178 run_b179) hwf (fun _ h ↦ nomatch h) hpc1' hm1
+  refine exec_at_elf (hb188 hp) (exec_after run_b178 run_b179) hwf (fun _ h ↦ nomatch h) hpc1' hm1
     fun st2 hm2 hpc2 ↦ ?_
-  have hpc2' : st2.pc = Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b181Offset) := hpc2.trans (lbl_82 hp)
-  refine exec_at (hb190 hp) (exec_after run_b179 run_b181) hwf (fun _ h ↦ nomatch h) hpc2' hm2
+  have hpc2' : st2.pc = ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b181Offset) := hpc2.trans (lbl_82 hp)
+  refine exec_at_elf (hb190 hp) (exec_after run_b179 run_b181) hwf (fun _ h ↦ nomatch h) hpc2' hm2
     fun st3 hm3 hpc3 ↦ ?_
   have hroot := layerRoot_eq r hl e
   rw [← heq] at hroot
@@ -193,7 +193,7 @@ theorem fold_exit (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (Lis
     simp only [↓reduceIte]
     have hpc3' := pc_cond (b := false) hpc3 (by sym_simp; rw [hld208]; decide)
     rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b181_next] at hpc3'
-    refine exec_at (hb191 hp) (exec_after run_b181 run_b182) hwf (fun _ h ↦ nomatch h) hpc3' hm3
+    refine exec_at_elf (hb191 hp) (exec_after run_b181 run_b182) hwf (fun _ h ↦ nomatch h) hpc3' hm3
       fun st4 hm4 hpc4 ↦ ?_
     have hF4 : r.Frame st4.data := Run.Frame.of_match r hpre hB.2.1 hm4 hwf rfl (by decide)
     have hpc4' : st4.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b187Offset := hpc4.trans (lbl_85 hp)
@@ -246,31 +246,31 @@ theorem fold_exit (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (Lis
 
 /-- **A node of the fold**: from the loop head with `z` steps done to the loop head with `z + 1`
 or, after the last, the region's end. -/
-theorem node (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem node (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtNode r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ (z + 1 < heightOf l ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (z + 1 < heightOf l ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧
       AtNode r l e (z + 1) st.data) ∨ (if l = 2 then r.Done (r.layerRoot l e == r.pk.root) st
       else st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset ∧ r.AtLayer (l + 1) (r.layerRoot l e) st.data)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset⟩ :=
-  Eventually.bind (nodeA hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeB hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeC hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeD hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeE hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeF hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeG hp hc hpre h) <| at_pc fun _ h ↦
-  Eventually.bind (nodeH hp hc hpre h) <| at_pc fun m h ↦ by
+  Eventually.bind_elf (nodeA hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeB hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeC hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeD hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeE hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeF hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeG hp hc hpre h) <| at_pc fun _ h ↦
+  Eventually.bind_elf (nodeH hp hc hpre h) <| at_pc fun m h ↦ by
     by_cases hlt : z + 1 < heightOf l
-    · exact Eventually.mono (nodeI_loop hp hpre h hlt) fun st h' ↦ Or.inl ⟨hlt, h'⟩
-    · exact Eventually.mono (fold_exit hp hpre h (by have := h.2.1; omega)) fun st h' ↦ Or.inr h'
+    · exact Eventually.mono_elf (nodeI_loop hp hpre h hlt) fun st h' ↦ Or.inl ⟨hlt, h'⟩
+    · exact Eventually.mono_elf (fold_exit hp hpre h (by have := h.2.1; omega)) fun st h' ↦ Or.inr h'
 
 /-- **The fold's loop**: from the loop head with no step done to the region's end. -/
-theorem fold (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem fold (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {m : MachineData} (h : AtNode r l e 0 m) :
-    Eventually (step1 Host.exe) (fun st ↦ if l = 2 then r.Done (r.layerRoot l e == r.pk.root) st
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ if l = 2 then r.Done (r.layerRoot l e == r.pk.root) st
       else st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset ∧ r.AtLayer (l + 1) (r.layerRoot l e) st.data) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset⟩ := by
   refine Sym.loop (fun n st ↦ ∃ z, z + n = heightOf l ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧ AtNode r l e z st.data)
     (fun n st ⟨z, hn, hpc, hz⟩ ↦ ?_) (n := heightOf l) ⟨0, by omega, rfl, h⟩
-  refine Eventually.mono (at_pc (fun m h ↦ node hp hc hpre h) st ⟨hpc, hz⟩) fun st' h' ↦ ?_
+  refine Eventually.mono_elf (at_pc (fun m h ↦ node hp hc hpre h) st ⟨hpc, hz⟩) fun st' h' ↦ ?_
   rcases h' with ⟨hlt, hpc', h'⟩ | h'
   · exact Or.inr ⟨n - 1, by omega, z + 1, by omega, hpc', h'⟩
   · exact Or.inl h'
@@ -282,30 +282,30 @@ theorem tree_spec : TreeSpec := by
   intro l e r hp hc hpre m h
   have hl := h.1
   have hEl := h.2.1
-  refine Eventually.bind (stage1 hp hc hpre h) (at_pc (P := fun d ↦ LeafC r l e d ∧
+  refine Eventually.bind_elf (stage1 hp hc hpre h) (at_pc (P := fun d ↦ LeafC r l e d ∧
     BytesAt d.dmem (r.off 2024) ((r.key l).adrs 1) ∧ BytesAt d.dmem (r.off 4072) Keccak.new)
     fun m hm ↦ ?_)
-  refine Eventually.bind (stage2 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
+  refine Eventually.bind_elf (stage2 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
     LeafC r l e d ∧ BytesAt d.dmem (r.off 2024) ((r.key l).adrs 1) ∧
     HasherHolds (bytesOf d.dmem (r.off 4072) 344) r.seed) fun m hm ↦ ?_)
-  refine Eventually.bind (stage3 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
+  refine Eventually.bind_elf (stage3 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
     LeafC r l e d ∧ HasherHolds (bytesOf d.dmem (r.off 4072) 344) (r.seed ++ (r.key l).adrs 1))
     fun m hm ↦ ?_)
-  refine Eventually.bind (stage4 hp hc hpre hm.1 hm.2) (at_pc (P := fun d ↦
+  refine Eventually.bind_elf (stage4 hp hc hpre hm.1 hm.2) (at_pc (P := fun d ↦
     LeafC r l e d ∧ Run.RegIs d .rbp (r.off 560) ∧
     HasherHolds (bytesOf d.dmem (r.off 560) 344) (r.seed ++ (r.key l).adrs 1))
     fun m hm ↦ ?_)
-  refine Eventually.bind (stage5 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
+  refine Eventually.bind_elf (stage5 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
     LeafC r l e d ∧ Run.RegIs d .rbp (r.off 560) ∧
     HasherHolds (bytesOf d.dmem (r.off 560) 344)
       (r.seed ++ (r.key l).adrs 1 ++ e.flatten)) fun m hm ↦ ?_)
-  refine Eventually.bind (stage6 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
+  refine Eventually.bind_elf (stage6 hp hc hpre hm.1 hm.2.1 hm.2.2) (at_pc (P := fun d ↦
     LeafC r l e d ∧ Run.RegIs d .rbp (r.off 560) ∧
     BytesAt d.dmem (r.off 11368) (hashBytes (r.seed ++ (r.key l).adrs 1 ++
       e.flatten))) fun m hm ↦ ?_)
   have hv : BytesAt m.dmem (r.off 11368) (wotsLeafHash r.seed (r.key l) e) := by
     simpa [wotsLeafHash, th, List.drop_zero] using bytesAt_sub hm.2.2 0 16
-  exact Eventually.bind (entry hp hpre hm.1 hm.2.1 hv) (at_pc fun m h ↦ fold hp hc hpre h)
+  exact Eventually.bind_elf (entry hp hpre hm.1 hm.2.1 hv) (at_pc fun m h ↦ fold hp hc hpre h)
 
 end
 

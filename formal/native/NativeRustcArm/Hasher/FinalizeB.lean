@@ -48,14 +48,14 @@ theorem byteOf_ofNat_lt (c : Nat) (hc : c < 256) : byteOf (BitVec.ofNat 64 c) 0 
   congr 1
   omega
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **`PAD_FIRST`.** -/
-theorem stage3_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : FinalizePre m0)
+theorem stage3_spec (hp : PlacedIn code sec k) {m0 m1 m : MachineData} (hpre : FinalizePre m0)
     (hs2 : Stage2 m0 m1 m) :
-    Eventually (step1 Host.exe) (fun st => st.pc = Host.addrOf (k + (NativeRustcArm.Common.Finalize.b4Offset + b4a.length)) ∧ Stage3 m0 m1 st.data)
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Finalize.b4Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st => st.pc = ElfHost.addrOf sec (k + (NativeRustcArm.Common.Finalize.b4Offset + b4a.length)) ∧ Stage3 m0 m1 st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Finalize.b4Offset)⟩ := by
   have g := geo_of hpre
   have hf := frAt_toNat g
   have hs := g.s
@@ -81,7 +81,7 @@ theorem stage3_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : Finaliz
       apply BitVec.eq_of_toNat_eq
       simp only [BitVec.toNat_add, BitVec.toNat_ofNat, BitVec.toNat_ofInt, MemWidth.bits]
       omega, trivial⟩
-  refine exec_then (hb4a hp) run_b4a hwf hma fun st hm' hpc => ?_
+  refine exec_then_elf (hb4a hp) run_b4a hwf hma fun st hm' hpc => ?_
   have hl := b4a_mem
   rw [after_eq run_b4a] at hl
   have hmem : ∀ p, ¬p = frAt m0 + BitVec.ofNat 64 (200 + lenOf m0) →

@@ -29,16 +29,16 @@ the layer's word at `96`, the value at `8296`. -/
     r.WordAt m 96 (l * 16777216).toUInt64 ∧ BytesAt m.dmem (r.off 8296) (r.foldUpTo l e z) ∧
     Run.RegIs m .rbx (Labels.label "memset").toBitVec
 
-variable {r} [Host]
+variable {r} [ElfHost]
 
-omit [Host] in
+omit [ElfHost] in
 theorem l_cases {l : Nat} (hl : l < 3) : l = 0 ∨ l = 1 ∨ l = 2 := by omega
 
 /-- **`b148` .. `b151`**: from the leaf to the loop head. -/
-theorem entry (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
+theorem entry (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
     {m : MachineData} (h : LeafC r l e m) (hb : Run.RegIs m .rbp (r.off 560))
     (hV : BytesAt m.dmem (r.off 11368) (wotsLeafHash r.seed (r.key l) e)) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧ AtNode r l e 0 st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b152Offset ∧ AtNode r l e 0 st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b148Offset⟩ := by
   have hl := h.lt
   have hB : Base r l m := ⟨h.lt, h.frame, h.keep, hb, h.r14⟩
@@ -46,22 +46,22 @@ theorem entry (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UI
   have hld96 : (r.env m (fun _ ↦ 0) 0).load 0 96 8 = l.toUInt64.toBitVec := load_word h.spills.2.2
   have hld160 : (r.env m (fun _ ↦ 0) 0).load 0 168 8 = (heightOf l).toUInt64.toBitVec :=
     load_word h.keep.2.2.1
-  refine exec_then (hb157 hp) run_b148 hwf (fun _ h ↦ nomatch h) (match_leaf_ready hpre h hb _)
+  refine exec_then_elf (hb157 hp) run_b148 hwf (fun _ h ↦ nomatch h) (match_leaf_ready hpre h hb _)
     fun st1 hm1 hpc1 ↦ ?_
   have hpc1' := pc_cond (b := false) hpc1 (by
     sym_simp; rw [hld96, hld160]; rcases l_cases hl with rfl | rfl | rfl <;> decide)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b148_next] at hpc1'
-  refine exec_at (hb158 hp) (exec_after run_b148 run_b149) hwf (fun _ h ↦ nomatch h) hpc1' hm1
+  refine exec_at_elf (hb158 hp) (exec_after run_b148 run_b149) hwf (fun _ h ↦ nomatch h) hpc1' hm1
     fun st2 hm2 hpc2 ↦ ?_
   have hpc2' := pc_cond (b := false) hpc2 (by
     sym_simp; rw [hld96, hld160]; rcases l_cases hl with rfl | rfl | rfl <;> decide)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b149_next] at hpc2'
-  refine exec_at (hb159 hp) (exec_after run_b149 run_b150) hwf (fun _ h ↦ nomatch h) hpc2' hm2
+  refine exec_at_elf (hb159 hp) (exec_after run_b149 run_b150) hwf (fun _ h ↦ nomatch h) hpc2' hm2
     fun st3 hm3 hpc3 ↦ ?_
   have hpc3' := pc_cond (b := false) hpc3 (by
     sym_simp; rw [hld160]; rcases l_cases hl with rfl | rfl | rfl <;> decide)
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b150_next] at hpc3'
-  refine exec_at (hb160 hp) (exec_after run_b150 run_b151) hwf (fun _ h ↦ nomatch h) hpc3' hm3
+  refine exec_at_elf (hb160 hp) (exec_after run_b150 run_b151) hwf (fun _ h ↦ nomatch h) hpc3' hm3
     fun st4 hm4 hpc4 ↦ ?_
   have hB4 := Base.of_match hpre hB hm4 hwf rfl (by decide) (by decide) rfl
   have hlen : (wotsLeafHash r.seed (r.key l) e).length = 16 := length_th _ _ _

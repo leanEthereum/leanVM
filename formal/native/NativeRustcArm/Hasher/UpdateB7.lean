@@ -16,15 +16,15 @@ open NativeRustcArm.Common.Update NativeRustcArm
 
 public section
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Emptying the buffer.** -/
-theorem b7_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem b7_spec (hp : PlacedIn code sec k) {m0 m1 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
     {Hc : List UInt8} (hab : Absorbed m0 m1 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b1Offset) ∧ Mid m0 m1 c (takeN m0 c Hc) st.data)
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Update.b7Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b1Offset) ∧ Mid m0 m1 c (takeN m0 c Hc) st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b7Offset)⟩ := by
   have g := geo_of hpre
   have hwf := wf_head hpre hab.frame
   have hm := match_headS hab.frame
@@ -34,7 +34,7 @@ theorem b7_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : UpdatePre m
   have hstep : (updateStep Hc ((input m0).drop c)).1 = writeAt A 336 (wordBytes 0) := by
     rw [updateStep_eq, ite_pos' hab.full, hAdef]
   have hlenA : A.length = 344 := by rw [← hA]; exact length_bytesOf ..
-  refine exec_then (hb7 hp) run_b7 hwf hm fun st7 hm7 hpc7 => ?_
+  refine exec_then_elf (hb7 hp) run_b7 hwf hm fun st7 hm7 hpc7 => ?_
   simp only [PcOk, lbl_1 hp] at hpc7
   have hmem7 : ∀ j < 344, st7.data.dmem.get? (hAt m0 + BitVec.ofNat 64 j) =
       if 336 ≤ j then some 0 else m.dmem.get? (hAt m0 + BitVec.ofNat 64 j) := by

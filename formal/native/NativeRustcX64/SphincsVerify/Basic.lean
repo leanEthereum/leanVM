@@ -121,7 +121,7 @@ def lhBytes : List UInt8 := wordsBytes [8, 8, 10]
 /-! ## A run -/
 
 /-- A run of `sphincs_verify`: the machine at its entry, the raw key, message and signature bytes,
-and the function's placement. -/
+and the function's section and offset placement. -/
 structure Run where
   m0 : MachineData
   pkB : List UInt8
@@ -130,6 +130,7 @@ structure Run where
   hpk : pkB.length = 32
   hmsg : msgB.length = 32
   hsig : sigB.length = 7740
+  sec : Nat
   k : Nat
 
 namespace Run
@@ -306,24 +307,26 @@ end Run
 /-! ## The callees and the regions -/
 
 section
-variable [Host]
+variable [ElfHost]
 
 
 /-- **The callees' contracts.** -/
 def Callees : Prop :=
-  Spec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost ∧ Spec (label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost ∧
-    Spec (label NativeRustcX64.Common.Update.entryLabel) UpdatePre UpdatePost ∧
-    Spec (label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre FinalizePost ∧
-    Spec (label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost
+  ElfSpec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost ∧
+    ElfSpec (label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost ∧
+    ElfSpec (label NativeRustcX64.Common.Update.entryLabel) UpdatePre UpdatePost ∧
+    ElfSpec (label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre FinalizePost ∧
+    ElfSpec (label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost
 
-/-- **A region**: placed at `r.k`, given the callees' contracts and the run's precondition, from
-directive `j` of the function in a state `P r` the machine inevitably reaches `Q r`. -/
+/-- **A region**: placed in section `r.sec` at `r.k`, given the callees' contracts and the run's
+precondition, from directive `j` of the function in a state `P r` the machine inevitably reaches
+`Q r`. -/
 def RegionSpec (P : Run → MachineData → Prop) (j : Nat) (Q : Run → MachineState → Prop) : Prop :=
-  ∀ r : Run, Placed Sphincs.SphincsVerify.code r.k → Callees → r.Pre → ∀ m, P r m →
-    Eventually (step1 Host.exe) (Q r) ⟨m, Host.addrOf (r.k + j)⟩
+  ∀ r : Run, PlacedIn Sphincs.SphincsVerify.code r.sec r.k → Callees → r.Pre → ∀ m, P r m →
+    Eventually (elfStep1 ElfHost.exe) (Q r) ⟨m, ElfHost.addrOf r.sec (r.k + j)⟩
 
 /-- The pc of the function's directive `j`. -/
-def Run.pc (r : Run) (j : Nat) : Int64 := Host.addrOf (r.k + j)
+def Run.pc (r : Run) (j : Nat) : Int64 := ElfHost.addrOf r.sec (r.k + j)
 
 /-- Region 1, the parse: from the entry to `b34`. -/
 def ParseSpec : Prop :=

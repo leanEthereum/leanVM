@@ -40,12 +40,12 @@ macro "facts_dec2" : tactic => `(tactic| (
   simp only [L2, L1p, L1, L0c, L0, base3, List.cons_append, List.nil_append, List.singleton_append]
   facts_dec))
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- **`b14 .. b16`**: layer 1's counter in R12D, its chain values at `560`. -/
-theorem layer1_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer1_a (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : LS1 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b17Offset ∧ r.Frame st.data ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b17Offset ∧ r.Frame st.data ∧
       Facts r st.data.dmem (L1 r) ∧
       BytesAt st.data.dmem (r.off 560) (slice r.sigB 5400 1024) ∧
       Run.RegIs st.data .rbx r.sigPtr ∧ Run.RegIs st.data .r14 (r.off 1720) ∧
@@ -54,10 +54,10 @@ theorem layer1_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
       Run.RegIs st.data .r15 (Labels.label "memcpy").toBitVec) ⟨m, r.pc b14Offset⟩ := by
   obtain ⟨hF, hL, hbx, h14⟩ := h
   -- `b14`: load layer 1 counter into R12D, zero RAX
-  have hk : b14.IsInfixAt Host.prog (r.k + b14Offset) := b14_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  have hk : b14.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b14Offset) := b14_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfSig r hpre hF.2.2.2 hF.2.2.1 (fun _ ↦ 0) 0
   have hm₀ := match_sig r hpre hF hbx (k := []) (vars := fun _ ↦ 0) (ret := 0) trivial
-  refine exec_then hk run_b14 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk run_b14 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
   have hd : st.data.dmem = m.dmem := hm'.dmem_eq hwf rfl
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r14]) hm₀ hm' (by decide)
   have hF₁ : r.Frame st.data := frame_of_block r hpre hF rfl rfl hm' hwf rfl (by decide)
@@ -70,7 +70,7 @@ theorem layer1_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
   subst hpc'
   simp only at hF₁ hd hreg h12 hax
   -- `b15`: copy 1024 chain bytes from `sigPtr + 5400` to `12780(%rsp)`
-  refine Eventually.bind (sig_loop r hp hpre b15_in_code (jn := b16Offset) rfl (hp.label label_5_at)
+  refine Eventually.bind_elf (sig_loop r hp hpre b15_in_code (jn := b16Offset) rfl (hp.label label_5_at)
     .rax 5400 (by decide) run_b15 rfl (by decide) (by decide)
     (rs := [.rsp, .rbx, .r14, .r12]) (by decide) (by simp) (by simp) (L := L1 r) (by facts_dec2)
     (P := fun m ↦ Run.RegIs m .r14 (r.off 1720) ∧ Low4 (reg m .r12) (slice r.sigB 5396 4))
@@ -92,14 +92,14 @@ theorem layer1_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
         regIs_saved hS rfl (hm₃.regs .r15 _ rfl)⟩⟩
 
 /-- **`b17 .. b21`**: layer 1's path at `1720`, its chain values at `8296`. -/
-theorem layer1_b (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer1_b (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : r.Frame m ∧ Facts r m.dmem (L1 r) ∧
       BytesAt m.dmem (r.off 560) (slice r.sigB 5400 1024) ∧
       Run.RegIs m .rbx r.sigPtr ∧ Run.RegIs m .r14 (r.off 1720) ∧
       Run.RegIs m .r13 (r.off 560) ∧
       Low4 (reg m .r12) (slice r.sigB 5396 4) ∧
       Run.RegIs m .r15 (Labels.label "memcpy").toBitVec) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b22Offset ∧ LS2 r st.data) ⟨m, r.pc b17Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b22Offset ∧ LS2 r st.data) ⟨m, r.pc b17Offset⟩ := by
   obtain ⟨hF, hL, hcv, hbx, h14, h13, h12, h15⟩ := h
   have hl : (slice r.sigB 5400 1024).length = 1024 := length_slice (by rw [r.hsig]; decide)
   -- `b17`: path to `1720`, chain values to `2024`
@@ -169,10 +169,10 @@ theorem layer1_b (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
   exact ⟨hL₁₀, ⟨hl, hB₁₀⟩, trivial⟩
 
 /-- **The second layer**: from `LS1` at `b14` to `LS2` at `b22`. -/
-theorem layer1_spec (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer1_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : LS1 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b22Offset ∧ LS2 r st.data) ⟨m, r.pc b14Offset⟩ :=
-  Eventually.bind (layer1_a r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b22Offset ∧ LS2 r st.data) ⟨m, r.pc b14Offset⟩ :=
+  Eventually.bind_elf (layer1_a r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ by
     simp only at hpc
     subst hpc
     exact layer1_b r hp hpre hc h

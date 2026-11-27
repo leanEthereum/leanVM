@@ -120,12 +120,12 @@ theorem frame_load_byte [Labels] {r : Run} {m : MachineData} {o : Nat} {H : List
     rw [Run.off_add] at this
     simpa [Run.off, List.getD_eq_getElem?_getD, hk] using this
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **The index, the leaves copied**: `b49` to `b50`. -/
-theorem index_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem index_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : AfterLoop r (hMsgBytes r) m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b50Offset ∧ r.AtFors st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b50Offset ∧ r.AtFors st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b49Offset⟩ := by
   obtain ⟨hK, hH, hL⟩ := hA
   have hl := length_hMsgBytes r

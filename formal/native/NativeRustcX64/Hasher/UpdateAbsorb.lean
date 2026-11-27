@@ -51,21 +51,21 @@ theorem frm_sub {m0 : MachineData} (g : Geo m0) :
   show (spAt m0).toNat - 112 - 288 = (spAt m0).toNat - 400
   omega
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Absorbing a full buffer.** -/
-theorem absorb_spec (hp : Placed code k)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem absorb_spec (hp : PlacedIn code sec k)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} {Hc : List UInt8}
     (hfu : Full m0 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b8Offset) ∧ Absorbed m0 c Hc st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b7Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b8Offset) ∧ Absorbed m0 c Hc st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b7Offset)⟩ := by
   have g := geo_of hpre
   have gr := geoRc_of hpre
   let env := Env.ofMachine m [(hAt m0, 344), (frm m0, 120), (gotAddr "memcpy", 8)] (fun _ => 0)
-    (Host.addrOf (k + NativeRustcX64.Common.Update.b8Offset)).toBitVec
+    (ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b8Offset)).toBitVec
   have hwf : env.WF := wf_head hpre hfu.frame
   have hm : Match env headS m := match_headS hpre hfu.frame
   have hb0 : env.base 0 = hAt m0 := rfl
@@ -73,7 +73,7 @@ theorem absorb_spec (hp : Placed code k)
   have hH : hasher m0 m = counted m0 c Hc := hfu.bytes
   generalize hc2 : counted m0 c Hc = H2 at hH
   have hlen2 : H2.length = 344 := by rw [← hH]; exact length_bytesOf ..
-  refine exec_then (hb7 hp) run_b7 hwf (fun _ _ => rfl) hm fun st7 hm7 hpc7 => ?_
+  refine exec_then_elf (hb7 hp) run_b7 hwf (fun _ _ => rfl) hm fun st7 hm7 hpc7 => ?_
   have hfw := findWrite_b7
   rw [after_eq run_b7] at hfw
   have hl := b7_mem
@@ -139,7 +139,7 @@ theorem absorb_spec (hp : Placed code k)
       omega
     rw [hnw7 _ hnot, rc_same g gr hfu.frame hi]
     exact hpre.2.1.1 i (by rw [rcBytes_length]; exact hi)
-  refine call_then hpc7 hkf ?pre fun st' hpc' hrsp' hpost => ?_
+  refine call_then_elf hpc7 hkf ?pre fun st' hpc' hrsp' hpost => ?_
   case pre =>
     refine ⟨⟨?_, ?_, fun i hi => ?_⟩, ⟨hrc7, gr.nw, ?_⟩, fun i hi => ?_, ?_, ?_, ?_⟩
     · show 288 ≤ (rspOf st7.data).toNat

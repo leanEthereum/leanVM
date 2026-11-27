@@ -61,12 +61,12 @@ theorem Keep.root {r : Run} {m : MachineData} (hK : Keep r m) :
   have := bytesAt_drop_take hK.2.1.1 16 16 (by rw [r.hpk])
   rwa [Run.off_add, List.take_of_length_le (by rw [List.length_drop, r.hpk])] at this
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **`h_msg`'s hasher absorbs `R | PK.seed | PK.root | M`.** -/
-theorem absorb_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem absorb_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : r.AtHMsg m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b41Offset ∧ Absorbed r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b41Offset ∧ Absorbed r st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b36Offset⟩ := by
   obtain ⟨hF, hI, h20, h25, h26, h19, h21, h408⟩ := hA
   have hK : Keep r m := ⟨hF, hI, h408⟩

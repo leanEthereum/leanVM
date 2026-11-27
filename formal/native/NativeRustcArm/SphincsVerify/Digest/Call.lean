@@ -102,32 +102,32 @@ theorem Run.frame_match (r : Run) (hpre : r.Pre) {m : MachineData} (hK : Keep r 
 
 end
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **A block of the frame, then its callee.** -/
-theorem Run.frameCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.frameCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     (hj : j + ds.length = j') {k : List (XReg × Sym)} {S' : SState} {l : Label}
     (hx : exec ds (frameS k) = some (S', .call l)) (hok : keepOK S' = true)
     {m : MachineData} (hK : Keep r m) (hk : KnownOK r m k)
     {P : MachineData → Prop} {Q : MachineData → MachineData → Prop}
-    (hspec : Spec (Labels.label l) P Q) {R : MachineState → Prop}
+    (hspec : ElfSpec (Labels.label l) P Q) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ → P m₁ ∧
-      ∀ m₂, Q m₁ m₂ → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m₂, r.pc j'⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+      ∀ m₂, Q m₁ m₂ → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   exact Run.callStep r hp hb hj hwf hx (Run.frame_match r hpre hK hk) hspec fun m₁ hm₁ ↦
     h m₁ hm₁ (hK.of_block hpre hm₁ hwf hok) fun _ _ ho hn hb ↦ r.bytesAt_kept hpre hm₁ hwf ho hb hn
 
 /-- **A block of the frame falling through.** -/
-theorem Run.frameFall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.frameFall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     (hj : j + ds.length = j') (hne : ds ≠ []) {k : List (XReg × Sym)} {S' : SState}
     (hx : exec ds (frameS k) = some (S', .fall)) (hok : keepOK S' = true)
     {m : MachineData} (hK : Keep r m) (hk : KnownOK r m k) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
-      Eventually (step1 NativeRustcArm.Host.exe) R ⟨m₁, r.pc j'⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m₁, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   exact Run.fallStep r hp hb hj hne hwf hx (Run.frame_match r hpre hK hk) fun m₁ hm₁ ↦
     h m₁ hm₁ (hK.of_block hpre hm₁ hwf hok) fun _ _ ho hn hb ↦ r.bytesAt_kept hpre hm₁ hwf ho hb hn
@@ -137,16 +137,16 @@ frame's bytes apart from `a .. a + n`. -/
 abbrev After (r : Run) (m₁ : MachineData) (a n : Nat) (j' : Nat) (Res : MachineData → Prop)
     (R : MachineState → Prop) : Prop :=
   ∀ m₂, Keep r m₂ → Saved m₁ m₂ → KC r m₁ m₂ a n → Res m₂ →
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m₂, r.pc j'⟩
+    Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc j'⟩
 
-omit [NativeRustcArm.Host] in
+omit [ElfHost] in
 theorem kc_of_call {r : Run} [Labels] (hpre : r.Pre) {m₁ m₂ : MachineData} (hF : r.Frame m₁) {a n N : Nat}
     (ha : a + n ≤ 21616) (hN : N ≤ finalizeStack)
     (hout : SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n N)) : KC r m₁ m₂ a n :=
   fun _ _ ho hd h ↦ r.bytesAt_of_call hpre hF ha hN hout ho hd h
 
 /-- **`memset(a, 0, n)`** after a block. -/
-theorem Run.memsetCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.memsetCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
     (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {k : List (XReg × Sym)} {S' : SState} (hx : exec ds (frameS k) = some (S', .call NativeRustcArm.Common.Memset.entryLabel))
@@ -155,7 +155,7 @@ theorem Run.memsetCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (h2 : S'.reg .X2 = some (.lit n)) (ha : Scratch a n) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
       After r m₁ a n j' (fun m₂ ↦ BytesAt m₂.dmem (r.off a) (List.replicate n 0)) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   unfold Scratch at ha
   refine Run.frameCall r hp hpre hb hj hx hok hK hk hc.2.1 fun m₁ hm₁ hK₁ hkb ↦ ?_
   have r0 := regIs_ptr hm₁ h0
@@ -172,7 +172,7 @@ theorem Run.memsetCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (kc_of_call hpre hK₁.1 (by omega) (by decide) hout) hB
 
 /-- **`memcpy(a, b, n)`** after a block, the bytes `bs` at `b`. -/
-theorem Run.memcpyCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.memcpyCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
     (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {k : List (XReg × Sym)} {S' : SState} (hx : exec ds (frameS k) = some (S', .call NativeRustcArm.Common.Memcpy.entryLabel))
@@ -183,7 +183,7 @@ theorem Run.memcpyCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
       BytesAt m₁.dmem (r.off b) bs ∧
         After r m₁ a n j' (fun m₂ ↦ BytesAt m₂.dmem (r.off a) bs) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   unfold Scratch at ha
   refine Run.frameCall r hp hpre hb hj hx hok hK hk hc.1 fun m₁ hm₁ hK₁ hkb ↦ ?_
   have r0 := regIs_ptr hm₁ h0
@@ -198,7 +198,7 @@ theorem Run.memcpyCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
 
 /-- **`Hasher::update(a, b, n)`** after a block, the hasher at `a` having absorbed `x`, the bytes
 `bs` at `b`. -/
-theorem Run.updateCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.updateCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
     (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {k : List (XReg × Sym)} {S' : SState} (hx : exec ds (frameS k) = some (S', .call NativeRustcArm.Common.Update.entryLabel))
@@ -210,7 +210,7 @@ theorem Run.updateCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
       HasherAt r m₁ a x ∧ BytesAt m₁.dmem (r.off b) bs ∧
         After r m₁ a 344 j' (fun m₂ ↦ HasherAt r m₂ a (x ++ bs)) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   unfold Scratch at ha
   refine Run.frameCall r hp hpre hb hj hx hok hK hk hc.2.2.1 fun m₁ hm₁ hK₁ hkb ↦ ?_
   have r0 := regIs_ptr hm₁ h0
@@ -228,7 +228,7 @@ theorem Run.updateCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (h
 
 /-- **`Hasher::update(a, msgPtr, 32)`** after a block where `X1` comes from register `y` holding
 `r.msgPtr`. -/
-theorem Run.updateCallMsg (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.updateCallMsg (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
     (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {k : List (XReg × Sym)} {S' : SState} (hx : exec ds (frameS k) = some (S', .call NativeRustcArm.Common.Update.entryLabel))
@@ -238,7 +238,7 @@ theorem Run.updateCallMsg (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k)
     {x : List UInt8} {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
       HasherAt r m₁ a x ∧ After r m₁ a 344 j' (fun m₂ ↦ HasherAt r m₂ a (x ++ r.msg)) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   unfold Scratch at ha
   refine Run.frameCall r hp hpre hb hj hx hok hK hk hc.2.2.1 fun m₁ hm₁ hK₁ hkb ↦ ?_
   have r0 := regIs_ptr hm₁ h0
@@ -256,7 +256,7 @@ theorem Run.updateCallMsg (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k)
     ⟨_, bytesAt_bytesOf (r.frame_mapped hpre hF₂ (by omega)).1, hA'⟩
 
 /-- **`Hasher::finalize(o, a)`** after a block, the hasher at `a` having absorbed `x`. -/
-theorem Run.finalizeCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.finalizeCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (hc : Callees) {ds : List Directive} {j j' : Nat}
     (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hj : j + ds.length = j')
     {k : List (XReg × Sym)} {S' : SState}
@@ -268,7 +268,7 @@ theorem Run.finalizeCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) 
     (h : ∀ m₁, Match (r.env m) S' m₁ → Keep r m₁ → KB r S' m m₁ →
       HasherAt r m₁ a x ∧
         After r m₁ o 32 j' (fun m₂ ↦ BytesAt m₂.dmem (r.off o) (Keccak.hashBytes x)) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   unfold Scratch at ho
   refine Run.frameCall r hp hpre hb hj hx hok hK hk hc.2.2.2.1 fun m₁ hm₁ hK₁ hkb ↦ ?_
   have r0 := regIs_ptr hm₁ h0
@@ -283,10 +283,10 @@ theorem Run.finalizeCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) 
 /-- From one block's start in a state `P` to another's in `Q`, then on. -/
 theorem Run.stage (r : Run) {j : Nat} {P : MachineData → Prop} {s : MachineState}
     {R : MachineState → Prop}
-    (h : Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc j ∧ P st.data) s)
-    (k : ∀ m, P m → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R s :=
-  Eventually.bind h fun ⟨m, pc⟩ ⟨hpc, hP⟩ ↦ by
+    (h : Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc j ∧ P st.data) s)
+    (k : ∀ m, P m → Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩) :
+    Eventually (elfStep1 ElfHost.exe) R s :=
+  Eventually.bind_elf h fun ⟨m, pc⟩ ⟨hpc, hP⟩ ↦ by
     simp only at hpc
     subst hpc
     exact k m hP

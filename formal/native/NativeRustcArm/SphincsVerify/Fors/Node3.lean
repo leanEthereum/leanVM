@@ -73,23 +73,23 @@ theorem length_nodeIn {r : Run} {c z : Nat} (hc : c < 24) (hz : z < 10) : (r.nod
   rw [Run.nodeIn, List.length_append, List.length_append, length_seed, length_nodeAdrsOf,
     length_childrenOf hc hz]
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The children** (`b71 .. b75` and `memcpy`): from `N3`, `N4` at `b76`. -/
-theorem node_s4 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s4 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N3 r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b76Offset ∧ N4 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b71Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b76Offset ∧ N4 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b71Offset⟩ := by
   obtain ⟨hT, hz, h27, h19, h21, hst, hbuf, hlen, hch⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s71 m := match_frameS_lit (k := []) hpre hB trivial hlen
-  refine exec_then (hb71 hp) run_b71 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb71 hp) run_b71 hwf hm fun st1 hm1 hpc1 ↦ ?_
   refine ev_at ((show st1.pc = _ from hpc1).trans (lbl_24 hp)) ?_
-  refine exec_then (hb73 hp) (exec_after run_b71 run_b73) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb73 hp) (exec_after run_b71 run_b73) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
   refine ev_at ((pc_false hpc2).trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b73_next)) ?_
-  refine exec_then (hb74 hp) (exec_after run_b73 run_b74) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb74 hp) (exec_after run_b73 run_b74) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
   refine ev_at ((pc_false hpc3).trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b74_next)) ?_
-  refine exec_then (hb75 hp) (exec_after run_b74 run_b75) hwf hm3 fun st4 hm4 hpc4 ↦ ?_
+  refine exec_then_elf (hb75 hp) (exec_after run_b74 run_b75) hwf hm3 fun st4 hm4 hpc4 ↦ ?_
   obtain ⟨hB4, hk4⟩ := hB.of_match hpre hm4 hwf rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st4.data .X0 (r.off 19256) := (hm4.regs .X0 _ rfl).trans (eval_ptr 19256)
   have h1 : Run.RegIs st4.data .X1 (r.off 14912) := (hm4.regs .X1 _ rfl).trans (eval_ptr 14912)
@@ -98,7 +98,7 @@ theorem node_s4 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
   have hbl : (r.seed ++ r.nodeAdrsOf c z).length = 48 := by
     rw [List.length_append, length_seed, length_nodeAdrsOf]
   have hch4 := keep_blk hpre hm4 hwf hcl (by decide) rfl hch
-  refine call_then hpc4 hc.1 (r.memcpy_pre hpre hB4.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc4 hc.1 (r.memcpy_pre hpre hB4.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st5 hpc5 hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   obtain ⟨hB5, hk5⟩ := hB4.of_call hpre hS (a := 19256) (n := 32) (N := 0) (by decide) (by decide)
@@ -125,27 +125,27 @@ theorem node_s4 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
       (write_val hm4 (o := 19344) (n := 8) rfl (by decide) (by decide) (lit_word 48))
 
 /-- **The state copied back** (`b76`, `b72`, `b79` and `memcpy`): from `N4`, `N5` at `b80`. -/
-theorem node_s5 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s5 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N4 r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b80Offset ∧ N5 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b76Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b80Offset ∧ N5 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b76Offset⟩ := by
   obtain ⟨hT, hz, h27, h19, h21, h23, h24, h20, hst, hbuf, hlen⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s76 m :=
     match_frameS_lit (k := [(.X23, .ptr 0 14912), (.X24, .lit 32), (.X20, .lit 32)]) hpre hB
       ⟨known_ptr h23, h24, h20, trivial⟩ hlen
-  refine exec_then (hb76 hp) run_b76 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb76 hp) run_b76 hwf hm fun st1 hm1 hpc1 ↦ ?_
   refine ev_at ((pc_true hpc1).trans (lbl_23 hp)) ?_
-  refine exec_then (hb72 hp) (exec_after run_b76 run_b72) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb72 hp) (exec_after run_b76 run_b72) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
   refine ev_at ((pc_true hpc2).trans (lbl_28 hp)) ?_
-  refine exec_then (hb79 hp) (exec_after run_b72 run_b79) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb79 hp) (exec_after run_b72 run_b79) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
   obtain ⟨hB3, hk3⟩ := hB.of_match hpre hm3 hwf rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st3.data .X0 (r.off 8640) := (hm3.regs .X0 _ rfl).trans (eval_ptr 8640)
   have h1 : Run.RegIs st3.data .X1 (r.off 19008) := (hm3.regs .X1 _ rfl).trans (eval_ptr 19008)
   have h2 : st3.data.regs.X2.toNat = 200 := regIs_toNat (hm3.regs .X2 _ rfl) (by decide)
   have hil := length_nodeIn (r := r) hT.hc hz
   have hst3 := keep_blk hpre hm3 hwf (n := 200) (List.length_replicate ..) (by decide) rfl hst
-  refine call_then hpc3 hc.1 (r.memcpy_pre hpre hB3.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc3 hc.1 (r.memcpy_pre hpre hB3.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st4 hpc4 hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   obtain ⟨hB4, hk4⟩ := hB3.of_call hpre hS (a := 8640) (n := 200) (N := 0) (by decide) (by decide)
@@ -162,16 +162,16 @@ theorem node_s5 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
       hout (by rw [hil]; decide) (by rw [hil]; decide) (keep_blk hpre hm3 hwf hil (by decide) rfl hbuf)
 
 /-- **The final block** (`b80`, `b81` and `memcpy`): from `N5`, `N6` at `b82`. -/
-theorem node_s6 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s6 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N5 r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b82Offset ∧ N6 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b80Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b82Offset ∧ N6 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b80Offset⟩ := by
   obtain ⟨hT, hz, h27, h19, h21, h25, hst, hbuf⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s80 m := match_frameS hpre hB ⟨h25, trivial⟩ trivial
-  refine exec_then (hb80 hp) run_b80 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb80 hp) run_b80 hwf hm fun st1 hm1 hpc1 ↦ ?_
   refine ev_at ((pc_false hpc1).trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b80_next)) ?_
-  refine exec_then (hb81 hp) (exec_after run_b80 run_b81) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb81 hp) (exec_after run_b80 run_b81) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
   obtain ⟨hB2, hk2⟩ := hB.of_match hpre hm2 hwf rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st2.data .X0 (r.off 16960) := (hm2.regs .X0 _ rfl).trans (eval_ptr 16960)
   have h1 : Run.RegIs st2.data .X1 (r.off 19208) := (hm2.regs .X1 _ rfl).trans (eval_ptr 19208)
@@ -180,7 +180,7 @@ theorem node_s6 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
   have hbuf2 := keep_blk hpre hm2 hwf hil (by decide) rfl hbuf
   have hz2 : BytesAt st2.data.dmem (r.off 17040) (List.replicate 56 0) :=
     write_zeros hm2 (by decide) (by decide +kernel)
-  refine call_then hpc2 hc.1 (r.memcpy_pre hpre hB2.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc2 hc.1 (r.memcpy_pre hpre hB2.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st3 hpc3 hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   obtain ⟨hB3, hk3⟩ := hB2.of_call hpre hS (a := 16960) (n := 80) (N := 0) (by decide) (by decide)

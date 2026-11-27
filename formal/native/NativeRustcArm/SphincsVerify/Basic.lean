@@ -115,6 +115,7 @@ structure Run where
   hpk : pkBytes.length = 32
   hmsg : msgBytes.length = 32
   hsig : sigBytes.length = 7740
+  sec : Nat
   k : Nat
 
 namespace Run
@@ -305,24 +306,25 @@ end Run
 /-! ## The callees and the regions -/
 
 section
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **The callees' contracts.** -/
 def Callees : Prop :=
-  Spec (label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost ∧
-    Spec (label NativeRustcArm.Common.Memset.entryLabel) MemsetPre MemsetPost ∧
-    Spec (label NativeRustcArm.Common.Update.entryLabel) UpdatePre UpdatePost ∧
-    Spec (label NativeRustcArm.Common.Finalize.entryLabel) FinalizePre FinalizePost ∧
-    Spec (label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost
+  ElfSpec (label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost ∧
+    ElfSpec (label NativeRustcArm.Common.Memset.entryLabel) MemsetPre MemsetPost ∧
+    ElfSpec (label NativeRustcArm.Common.Update.entryLabel) UpdatePre UpdatePost ∧
+    ElfSpec (label NativeRustcArm.Common.Finalize.entryLabel) FinalizePre FinalizePost ∧
+    ElfSpec (label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost
 
-/-- **A region**: placed at `r.k`, given the callees' contracts and the run's precondition, from
-directive `j` of the function in a state `P r` the machine inevitably reaches `Q r`. -/
+/-- **A region**: placed in section `r.sec` at `r.k`, given the callees' contracts and the run's
+precondition, from directive `j` of the function in a state `P r` the machine inevitably reaches
+`Q r`. -/
 def RegionSpec (P : Run → MachineData → Prop) (j : Nat) (Q : Run → MachineState → Prop) : Prop :=
-  ∀ r : Run, Placed Sphincs.SphincsVerify.code r.k → Callees → r.Pre → ∀ m, P r m →
-    Eventually (step1 NativeRustcArm.Host.exe) (Q r) ⟨m, NativeRustcArm.Host.addrOf (r.k + j)⟩
+  ∀ r : Run, PlacedIn Sphincs.SphincsVerify.code r.sec r.k → Callees → r.Pre → ∀ m, P r m →
+    Eventually (elfStep1 ElfHost.exe) (Q r) ⟨m, ElfHost.addrOf r.sec (r.k + j)⟩
 
 /-- The pc of the function's directive `j`. -/
-def Run.pc (r : Run) (j : Nat) : Int64 := NativeRustcArm.Host.addrOf (r.k + j)
+def Run.pc (r : Run) (j : Nat) : Int64 := ElfHost.addrOf r.sec (r.k + j)
 
 /-- Region 1a, the parse's head: from the entry to `b7`. -/
 def ParseHeadSpec : Prop :=

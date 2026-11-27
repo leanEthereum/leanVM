@@ -16,7 +16,7 @@ namespace NativeRustcX64.SphincsVerifyProof.Chains
 open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 open NativeRustcX64.SphincsVerifyProof.InlineTh LeanVM.Protocol.KeccakHash
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 @[expose] public section
 
@@ -27,7 +27,7 @@ def StepCont (r : Run) (l : Nat) (x E : List UInt8) (i pos : Nat) (T : List UInt
   ∀ m', Keep r l x E i m' → Regs r m' (pos + 1) →
     BytesAt m'.dmem (r.off 1592)
       ((Keccak.keccakF (Keccak.xorBlock (List.replicate 200 0) (Keccak.finalBlock T))).take 16) →
-    Eventually (step1 Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩
+    Eventually (elfStep1 ElfHost.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩
 
 end
 
@@ -35,7 +35,7 @@ public section
 
 /-- **`b140`**: the first 16 bytes of hasher A become the chain's value; on to the next step or,
 after position 2, to `b141`. -/
-theorem seg_b140 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b140 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat} (hpos : pos ≤ 2)
     {A : List UInt8} (hA16 : 16 ≤ A.length) {R : MachineState → Prop} {m : MachineData}
     (hK : Keep r l x E i m) (h12 : Run.RegIs m .r12 (r.off 4072))
@@ -43,8 +43,8 @@ theorem seg_b140 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
     (hcopy : Run.RegIs m .r15 (Labels.label "memcpy").toBitVec)
     (hset : Run.RegIs m .rbx (Labels.label "memset").toBitVec)
     (cont : ∀ m', Keep r l x E i m' → Regs r m' (pos + 1) → BytesAt m'.dmem (r.off 1592) (A.take 16) →
-      Eventually (step1 Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b140Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b141Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b110Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b140Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) 0
   have hm := match_frameS hpre hK.1 hK.2.1 (ret := 0) (k := []) trivial
   refine blk r hp b140_in_code (List.cons_ne_nil _ _) run_b140 hwf (fun _ h ↦ nomatch h) hm
@@ -67,7 +67,7 @@ theorem seg_b140 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
   all_goals rfl
 
 /-- **`b139`**: the padded block XORed into hasher A's zero state, `keccak_f`; then `b140`. -/
-theorem seg_b139 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b139 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E i m) (h12 : Run.RegIs m .r12 (r.off 4072))
@@ -77,7 +77,7 @@ theorem seg_b139 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hcopy : Run.RegIs m .r15 (Labels.label "memcpy").toBitVec)
     (hset : Run.RegIs m .r14 (Labels.label "memset").toBitVec)
     (cont : StepCont r l x E i pos T R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b139Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b139Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b140Offset).toBitVec
   have hm := match_frameS hpre hK.1 hK.2.1 (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b140Offset).toBitVec)
     (k := [(.rbx, .lit 64), (.r12, .ptr 0 4072), (.r14, .label "memset")])
@@ -98,7 +98,7 @@ theorem seg_b139 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h12' : Run.RegIs st.data .r12 (r.off 4072) := regIs_ptr hm' rfl
   have h56' := r.bytesAt_kept hpre hm' hwf (by simp [NativeRustc.length_wordBytes]) h56
     (by rw [NativeRustc.length_wordBytes]; decide +kernel)
-  refine call_then hpc hc.2.2.2.2 (r.keccakF_pre hpre hK1.1 h0 (by decide))
+  refine call_then_elf hpc hc.2.2.2.2 (r.keccakF_pre hpre hK1.1 h0 (by decide))
     fun st2 hpc2 hrsp2 hpost ↦ ?_
   obtain ⟨hk2, hout, hS⟩ := r.keccakF_out h0 hpost
   have hK2 := Keep.of_call hpre hx hE hK1 hS hrsp2 (a := 4072) (n := 200)

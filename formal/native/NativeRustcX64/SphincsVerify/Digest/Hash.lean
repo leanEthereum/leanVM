@@ -144,12 +144,12 @@ theorem Keep.root {r : Run} {m : MachineData} (hK : Keep r m) :
   have := bytesAt_drop_take hK.2.1.1 16 16 (by rw [r.hpk])
   rwa [Run.off_add, List.take_of_length_le (by rw [List.length_drop, r.hpk])] at this
 
-variable [Host]
+variable [ElfHost]
 
 /-- **`h_msg`'s hasher absorbs `R | PK.seed | PK.root | M`** (`b34 .. b38`). -/
-theorem absorb_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem absorb_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : r.AtHMsg m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b39Offset ∧ Absorbed r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b39Offset ∧ Absorbed r st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b34Offset⟩ := by
   obtain ⟨hF, hI, h13, hmsgp, h176, h12⟩ := hA
   have hK : Keep r m := ⟨hF, hI, h176⟩
@@ -206,9 +206,9 @@ theorem absorb_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc :
   · simpa [hInput, List.append_assoc] using hH₁₀
 
 /-- **`h_msg`'s first call** (`b39 .. b41`). -/
-theorem hash0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem hash0_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : Absorbed r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b42Offset ∧ Hashed0 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b42Offset ∧ Hashed0 r st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b39Offset⟩ := by
   obtain ⟨hK, h13, h14, hB, h12⟩ := hA
   obtain ⟨hb, hbB, hbh⟩ := hB
@@ -253,9 +253,9 @@ theorem hash0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : 
   · exact (gB.keepB hkb₅ (by decide) rfl).keepC hkc₆ (by decide) (by decide)
 
 /-- **`h_msg`'s second call** (`b42 .. b44`). -/
-theorem hash1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem hash1_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hH : Hashed0 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b45Offset ∧ Hashed1 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b45Offset ∧ Hashed1 r st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b42Offset⟩ := by
   obtain ⟨hK, h13, h14, hbp, hbx, h15, hB, hD, h12⟩ := hH
   obtain ⟨hb, hbB, hbh⟩ := hB

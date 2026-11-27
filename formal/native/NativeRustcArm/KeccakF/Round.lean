@@ -54,19 +54,19 @@ theorem rcAt_of_at {m0 m : MachineData} {i : Nat} (hpre : KeccakFPre m0) (hA : A
 
 end
 
-variable [Host]
+variable [ElfHost]
 
 /-- **One round of the loop.** -/
-theorem round_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem round_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) {i : Nat} (hi : i < 24) {m : MachineData} (hA : At m0 i m) :
-    Eventually (step1 Host.exe) (fun st => At m0 (i + 1) st.data ∧
-      st.pc = if i + 1 = 24 then Host.addrOf (k + NativeRustcArm.Common.KeccakF.b2Offset) else Host.addrOf (k + NativeRustcArm.Common.KeccakF.b1Offset))
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.KeccakF.b1Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st => At m0 (i + 1) st.data ∧
+      st.pc = if i + 1 = 24 then ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b2Offset) else ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b1Offset))
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b1Offset)⟩ := by
   have hstk := hpre.1
   have hrc := rcAt_of_at hpre hA
   have hnw := hpre.2.1.2.1
   have hap := hpre.2.1.2.2
-  have hk : Common.KeccakF.b1.IsInfixAt Host.prog (k + NativeRustcArm.Common.KeccakF.b1Offset) :=
+  have hk : Common.KeccakF.b1.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.KeccakF.b1Offset) :=
     Common.KeccakF.b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
   let env := Env.ofMachine m [(frame m0, 192), (rcAddr, 192)] fun _ => BitVec.ofNat 64 (8 * i)
   have hwf : env.WF := by
@@ -88,7 +88,7 @@ theorem round_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
       { type := .UXTX, amount := .E0 })).toNat) 8 = (keccakRC.getD i 0).toBitVec := by
     rw [show env.vars 0 = BitVec.ofNat 64 (8 * i) from rfl, rc_offset i hi]
     exact load_rc hrc hi
-  refine exec_then hk body hwf hm fun st hm' hpc => .done _ ⟨?_, ?_⟩
+  refine exec_then_elf hk body hwf hm fun st hm' hpc => .done _ ⟨?_, ?_⟩
   · obtain ⟨hregs, hslots, hpar⟩ := body_lanes body hm' hb0 hA.regs
       (allOf_imp (fun p _ h => load_of_wordAt (r := 0) h) hA.slots) hA.par hrcl
     have hl : ∀ p ∈ laneRegs, p.2 < 25 := by decide
@@ -120,7 +120,7 @@ theorem round_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
     · exact (Match.reg_eq hm hm' rfl rfl).trans hA.x29
     · exact fun p hp => (same_region hm' hwf hb0 (by decide) p hp).trans (hA.same p hp)
     · exact fun p h => hm'.kept hwf p (hA.kept p h)
-  · have hlab : Labels.label NativeRustcArm.Common.KeccakF.label_1 = Host.addrOf (k + NativeRustcArm.Common.KeccakF.b1Offset) := hp.label NativeRustcArm.Common.KeccakF.label_1_at
+  · have hlab : Labels.label NativeRustcArm.Common.KeccakF.label_1 = ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b1Offset) := hp.label NativeRustcArm.Common.KeccakF.label_1_at
     simp only [PcOk] at hpc
     rw [hpc, hlab]
     sym_simp

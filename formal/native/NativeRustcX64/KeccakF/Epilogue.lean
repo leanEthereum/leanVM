@@ -48,17 +48,18 @@ theorem load_ret {env : Env} {m0 m : MachineData} {i : Nat} (hstk : StackOk m0 k
   simp only [keccakFStack] at h1 ⊢
   omega
 
-variable [Host]
+variable [ElfHost]
 
 set_option linter.unusedSimpArgs false in
 /-- **The epilogue.** -/
-theorem epilogue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem epilogue_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) {m : MachineData} (hA : At m0 24 m) :
-    Eventually (step1 Host.exe) (fun st => st.pc = retOf m0 ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st => st.pc = retOf m0 ∧
       rspOf st.data = rspOf m0 + 8#64 ∧ KeccakFPost m0 st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.KeccakF.b2Offset)⟩ := by
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.KeccakF.b2Offset)⟩ := by
   obtain ⟨hstk, -, hmap, hnw, hap, -⟩ := hpre
-  have hk : Common.KeccakF.b2.IsInfixAt Host.prog (k + NativeRustcX64.Common.KeccakF.b2Offset) :=
+  have hk : Common.KeccakF.b2.IsInfixAt (ElfHost.sectionProg sec)
+      (k + NativeRustcX64.Common.KeccakF.b2Offset) :=
     Common.KeccakF.b2_in_code.trans hp.1 (List.cons_ne_nil _ _)
   let env := Env.ofMachine m [(frame m0, 296), (m0.regs.get64 .rdi, 200)]
   have hwf : env.WF :=
@@ -127,7 +128,7 @@ theorem epilogue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : Machin
   have t264 : env.load 0 264 8 = m0.regs.get64 .r14 := load_of_wordAt (r := 0) s264
   have t272 : env.load 0 272 8 = m0.regs.get64 .r15 := load_of_wordAt (r := 0) s272
   have t280 : env.load 0 280 8 = m0.regs.get64 .rbp := load_of_wordAt (r := 0) s280
-  refine exec_then hk epilogue hwf nofun hm fun st hm' hpc => .done _ ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine exec_then_elf hk epilogue hwf nofun hm fun st hm' hpc => .done _ ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [PcOk] at hpc
     rw [hpc]
     sym_simp

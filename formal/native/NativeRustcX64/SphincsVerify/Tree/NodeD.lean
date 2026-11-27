@@ -47,25 +47,25 @@ variable (r : Run) [Labels]
 
 end
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b174`, `b175` and `memset`**: the final block's place zeroed. -/
-theorem nodeF (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeF (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN6 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b176Offset ∧ AtN6b r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b176Offset ∧ AtN6b r l e z st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b174Offset⟩ := by
   obtain ⟨hB, hz, hN, h12, hbx, hZ, hT⟩ := h
   have hl := hB.1
   have hlI := length_nodeIn r (e := e) hl hz
-  have hwf := frame_wf' hpre hB (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset + b175.length)).toBitVec
-  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset + b175.length)).toBitVec)
+  have hwf := frame_wf' hpre hB (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset + b175.length)).toBitVec
+  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b175Offset + b175.length)).toBitVec)
     (known := kAB ++ [(.rbx, .lit 80)])
     (show AllOf _ [(Reg64.r12, Sym.ptr 0 4072), (.rbp, .ptr 0 560), (.rbx, .lit 80)] from
       ⟨h12.trans (eval_ptr 4072).symm, hB.2.2.2.1.trans (eval_ptr 560).symm, hbx, trivial⟩)
-  refine exec_then (hb183 hp) run_b174 hwf (fun _ h ↦ nomatch h) hm0 fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb183 hp) run_b174 hwf (fun _ h ↦ nomatch h) hm0 fun st1 hm1 hpc1 ↦ ?_
   have hpc1' := pc_cond (b := false) hpc1 rfl
   rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcX64.Sphincs.SphincsVerify.b174_next] at hpc1'
-  refine exec_at (hb184 hp) (exec_after run_b174 run_b175) hwf (fun _ _ ↦ rfl) hpc1' hm1
+  refine exec_at_elf (hb184 hp) (exec_after run_b174 run_b175) hwf (fun _ _ ↦ rfl) hpc1' hm1
     fun st2 hm2 hpc2 ↦ ?_
   have hc2 := hB.atCall hpre hm2 hwf rfl (by decide)
   have h0 : Run.RegIs st2.data .rdi (r.off 2024) := (hm2.regs .rdi _ rfl).trans (eval_ptr 2024)
@@ -80,7 +80,7 @@ theorem nodeF (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have hZ2 := k2 (by rw [List.length_replicate]; decide) hZ (by rw [List.length_replicate]; decide)
   have hT2 := k2 (bs := r.nodeIn l e z) (by omega) hT (by rw [hlI]; decide)
   have hN2 := hN.of_match hpre hm2 hwf (by decide)
-  refine call_then hpc2 hc.2.1 (r.memset_pre hpre hc2 h0 h2 (by decide))
+  refine call_then_elf hpc2 hc.2.1 (r.memset_pre hpre hc2 h0 h2 (by decide))
     fun st' hpc' hsp hpost ↦ ?_
   obtain ⟨hz0, hout, hS⟩ := r.memset_out h0 h2 hpost
   have kc := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
@@ -99,21 +99,21 @@ theorem nodeF (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   exact hz0
 
 /-- **`b176` and `memcpy`**: B's buffered input into the final block. -/
-theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeG (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN6b r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b177Offset ∧ AtN7 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b177Offset ∧ AtN7 r l e z st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b176Offset⟩ := by
   obtain ⟨hB, hz, hN, h12, hbx, h13, hZ, hT, hK, h15⟩ := h
   have hl := hB.1
   have hlI := length_nodeIn r (e := e) hl hz
-  have hwf := frame_wf' hpre hB (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset + b176.length)).toBitVec
-  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset + b176.length)).toBitVec)
+  have hwf := frame_wf' hpre hB (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset + b176.length)).toBitVec
+  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b176Offset + b176.length)).toBitVec)
     (known := kAB ++ [(.rbx, .lit 80), (.r13, .ptr 0 2024), (.r15, .label "memset")])
     (show AllOf _ [(Reg64.r12, Sym.ptr 0 4072), (.rbp, .ptr 0 560), (.rbx, .lit 80),
       (.r13, .ptr 0 2024), (.r15, .label "memset")] from
       ⟨h12.trans (eval_ptr 4072).symm, hB.2.2.2.1.trans (eval_ptr 560).symm, hbx,
         h13.trans (eval_ptr 2024).symm, h15, trivial⟩)
-  refine exec_then (hb185 hp) run_b176 hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb185 hp) run_b176 hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
   have hc1 := hB.atCall hpre hm hwf rfl (by decide)
   have h0 : Run.RegIs st.data .rdi (r.off 2024) := (hm.regs .rdi _ rfl).trans (eval_ptr 2024)
   have h1 : Run.RegIs st.data .rsi (r.off 760) := (hm.regs .rsi _ rfl).trans (eval_ptr 760)
@@ -128,7 +128,7 @@ theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have hK1 := k1 (by rw [List.length_replicate]; decide) hK (by rw [List.length_replicate]; decide)
   have hin := bytesOf_kept hpre hB.2.1.2.2.2 hm hwf (o := 760) (n := 80) (by decide) (by decide)
   have hN1 := hN.of_match hpre hm hwf (by decide)
-  refine call_then hpc hc.1 (r.memcpy_pre hpre hc1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc hc.1 (r.memcpy_pre hpre hc1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st' hpc' hsp hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have kc := fun {o : Nat} {bs : List UInt8} (ho : o + bs.length ≤ 21624)
@@ -149,21 +149,21 @@ theorem nodeG (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     regIs_of_saved rfl (hm.regs .r15 _ rfl) hS⟩
 
 /-- **`b177` and `keccak_f`**: the final absorb. -/
-theorem nodeH (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeH (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN7 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b178Offset ∧ AtN8 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b178Offset ∧ AtN8 r l e z st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b177Offset⟩ := by
   obtain ⟨hB, hz, hN, h12, hbx, h13, hZ, hK, h15⟩ := h
   have hl := hB.1
   have hlI := length_nodeIn r (e := e) hl hz
-  have hwf := frame_wf' hpre hB (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec
-  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec)
+  have hwf := frame_wf' hpre hB (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec
+  have hm0 := match_fs hpre hB.2.1 hB.2.2.2.2 (ret := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec)
     (known := kAB ++ [(.rbx, .lit 80), (.r13, .ptr 0 2024), (.r15, .label "memset")])
     (show AllOf _ [(Reg64.r12, Sym.ptr 0 4072), (.rbp, .ptr 0 560), (.rbx, .lit 80),
       (.r13, .ptr 0 2024), (.r15, .label "memset")] from
       ⟨h12.trans (eval_ptr 4072).symm, hB.2.2.2.1.trans (eval_ptr 560).symm, hbx,
         h13.trans (eval_ptr 2024).symm, h15, trivial⟩)
-  refine exec_then (hb186 hp) run_b177 hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb186 hp) run_b177 hwf (fun _ _ ↦ rfl) hm0 fun st hm hpc ↦ ?_
   have hc1 := hB.atCall hpre hm hwf rfl (by decide)
   have h0 : Run.RegIs st.data .rdi (r.off 4072) := (hm.regs .rdi _ rfl).trans (eval_ptr 4072)
   have h12' : Run.RegIs st.data .r12 (r.off 4072) := (hm.regs .r12 _ rfl).trans (eval_ptr 4072)
@@ -172,13 +172,13 @@ theorem nodeH (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
       (xorBlock (List.replicate 200 0) (finalBlock (r.nodeIn l e z))) := by
     have := InlineTh.xorFinal hm hwf (r := 0) (b := r.base) (sz := frameRegion) rfl (oA := 4072)
       (oK := 2024) (L := 80) (by decide) (by decide +kernel) hlI (by decide) hK
-    have hz200 : bytesOf (r.env m (fun _ ↦ 0) (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec).mem0
+    have hz200 : bytesOf (r.env m (fun _ ↦ 0) (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b177Offset + b177.length)).toBitVec).mem0
         (r.off 4072) 200 = List.replicate 200 0 := by
       have := bytesOf_of_bytesAt hZ
       rwa [List.length_replicate] at this
     rwa [show r.base + BitVec.ofNat 64 4072 = r.off 4072 from rfl, hz200] at this
   have hN1 := hN.of_match hpre hm hwf (by decide)
-  refine call_then hpc hc.2.2.2.2 (r.keccakF_pre hpre hc1 h0 (by decide))
+  refine call_then_elf hpc hc.2.2.2.2 (r.keccakF_pre hpre hc1 h0 (by decide))
     fun st' hpc' hsp hpost ↦ ?_
   obtain ⟨hk, hout, hS⟩ := r.keccakF_out h0 hpost
   have hlX : (xorBlock (List.replicate 200 0) (finalBlock (r.nodeIn l e z))).length = 200 :=

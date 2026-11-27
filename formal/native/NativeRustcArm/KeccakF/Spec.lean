@@ -24,33 +24,38 @@ open KeccakF NativeRustcArm
 
 public section
 
-variable [Host]
-
-/-- **`keccak_f` meets its contract.** -/
-theorem keccakF_spec {k : Nat} (hp : Placed Common.KeccakF.code k) :
-    Spec (label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost := by
+/-- **`keccak_f` meets its contract** under a multi-section `ElfHost`. -/
+theorem keccakF_spec_elf [ElfHost] {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) :
+    ElfSpec (label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost := by
   intro m0 hpre
   rw [hp.label NativeRustcArm.Common.KeccakF.entry_at, NativeRustcArm.Common.KeccakF.entryOffset, Nat.add_zero]
-  refine Eventually.bind (prologue_step hp hpre) fun st₁ ⟨hA₁, hpc₁⟩ => ?_
-  have hloop := Sym.loop (tr := step1 Host.exe)
-    (Q := fun st => At m0 24 st.data ∧ st.pc = Host.addrOf (k + NativeRustcArm.Common.KeccakF.b2Offset))
-    (fun n st => ∃ i, n = 24 - i ∧ i < 24 ∧ st.pc = Host.addrOf (k + NativeRustcArm.Common.KeccakF.b1Offset) ∧ At m0 i st.data)
+  refine Eventually.bind_elf (prologue_step hp hpre) fun st₁ ⟨hA₁, hpc₁⟩ => ?_
+  have hloop := Sym.loop (tr := elfStep1 ElfHost.exe)
+    (Q := fun st => At m0 24 st.data ∧ st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b2Offset))
+    (fun n st => ∃ i, n = 24 - i ∧ i < 24 ∧ st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b1Offset) ∧ At m0 i st.data)
     (fun n st ⟨i, hn, hi, hpc, hA⟩ => by
       obtain ⟨m, pc⟩ := st
       simp only at hpc
       subst hpc
-      refine Eventually.mono (round_step hp hpre hi hA) fun st' ⟨hA', hpc'⟩ => ?_
+      refine Eventually.mono_elf (round_step hp hpre hi hA) fun st' ⟨hA', hpc'⟩ => ?_
       by_cases h : i + 1 = 24
       · simp only [h, ↓reduceIte] at hpc'
         exact .inl ⟨h ▸ hA', hpc'⟩
       · simp only [h, ↓reduceIte] at hpc'
         exact .inr ⟨24 - (i + 1), by omega, i + 1, rfl, by omega, hpc', hA'⟩)
     (n := 24) ⟨0, rfl, by decide, hpc₁, hA₁⟩
-  refine Eventually.bind hloop fun st₂ ⟨hA₂, hpc₂⟩ => ?_
+  refine Eventually.bind_elf hloop fun st₂ ⟨hA₂, hpc₂⟩ => ?_
   obtain ⟨m, pc⟩ := st₂
   simp only at hpc₂
   subst hpc₂
   exact epilogue_step hp hpre hA₂
+
+/-- **`keccak_f` meets its contract.** -/
+theorem keccakF_spec [h : NativeRustcArm.Host] {k : Nat} (hp : Placed Common.KeccakF.code k) :
+    Spec (label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost :=
+  ElfSpec.toSpec (entry := fun [_] => label NativeRustcArm.Common.KeccakF.entryLabel)
+    (P := fun [_] => KeccakFPre) (Q := fun [_] => KeccakFPost)
+    (@keccakF_spec_elf (Host.toElfHost h) 0 k hp.toPlacedIn)
 
 end
 

@@ -308,7 +308,7 @@ end
 /-! ## Calls -/
 
 section
-variable (r : Run) [NativeRustcArm.Host]
+variable (r : Run) [ElfHost]
 
 /-- **`memcpy` between frame offsets**: from `b .. b + n` to `a .. a + n`, below the saved
 registers. -/
@@ -319,14 +319,14 @@ theorem memcpy_frame (hpre : r.Pre) (hc : Callees) {env : Env} {st : MachineStat
     (ha : a + n ≤ 21520) (hb : b + n ≤ 21616) (hab : a + n ≤ b ∨ b + n ≤ a)
     (cont : ∀ st', st'.pc = next → r.Frame st'.data → Saved st.data st'.data →
       BytesAt st'.data.dmem (r.off a) (bytesOf st.data.dmem (r.off b) n) →
-      SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (step1 NativeRustcArm.Host.exe) R st') :
-    Eventually (step1 NativeRustcArm.Host.exe) R st := by
+      SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st := by
   have h0' : st.data.regs.X0.toBitVec = r.off a := h0
   have h1' : st.data.regs.X1.toBitVec = r.off b := h1
   have h2' : st.data.regs.X2.toNat = n := h2
   obtain ⟨hma, hwa⟩ := r.frame_mapped hpre hF (a := a) (n := n) (by omega)
   obtain ⟨hmb, hwb⟩ := r.frame_mapped hpre hF (a := b) (n := n) hb
-  refine call_then hpc hc.1 ?_ fun st' hpc' ⟨_, hbytes, hout, hS⟩ => ?_
+  refine call_then_elf hpc hc.1 ?_ fun st' hpc' ⟨_, hbytes, hout, hS⟩ => ?_
   · simp only [MemcpyPre, h0', h1', h2']
     exact ⟨hma, hmb, hwa, hwb, r.apart_off hpre (by omega) hb hab⟩
   · simp only [h0', h1', h2'] at hbytes hout
@@ -338,12 +338,12 @@ theorem memset_frame (hpre : r.Pre) (hc : Callees) {env : Env} {st : MachineStat
     {a n : Nat} (h0 : (st.data.regs.getXReg .X0).toBitVec = r.off a)
     (h2 : (st.data.regs.getXReg .X2).toNat = n) (ha : a + n ≤ 21520)
     (cont : ∀ st', st'.pc = next → r.Frame st'.data → Saved st.data st'.data →
-      SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (step1 NativeRustcArm.Host.exe) R st') :
-    Eventually (step1 NativeRustcArm.Host.exe) R st := by
+      SameOutside st.data.dmem st'.data.dmem (InRange (r.off a) n) → Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R st := by
   have h0' : st.data.regs.X0.toBitVec = r.off a := h0
   have h2' : st.data.regs.X2.toNat = n := h2
   obtain ⟨hma, hwa⟩ := r.frame_mapped hpre hF (a := a) (n := n) (by omega)
-  refine call_then hpc hc.2.1 ?_ fun st' hpc' ⟨_, _, hout, hS⟩ => ?_
+  refine call_then_elf hpc hc.2.1 ?_ fun st' hpc' ⟨_, _, hout, hS⟩ => ?_
   · simp only [MemsetPre, h0', h2']
     exact ⟨hma, hwa⟩
   · simp only [h0', h2'] at hout

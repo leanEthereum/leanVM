@@ -58,11 +58,11 @@ theorem ult_ofNat {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) :
     (BitVec.ofNat 64 a).ult (BitVec.ofNat 64 b) = decide (a < b) := by
   rw [BitVec.ult, BitVec.toNat_ofNat, BitVec.toNat_ofNat, Nat.mod_eq_of_lt ha, Nat.mod_eq_of_lt hb]
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b108`**: chain `i`'s digit and value; then, through `b109`, its steps and `b141`, or
 straight on, `b107`. -/
-theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b108 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hl : l < 3) (hx : x.length = 64) {i : Nat} (hi : i < 64)
     (hEl : E.length = 16 * i) {R : MachineState → Prop} {m : MachineData} (hF : r.Frame m)
     (hK : KeepRest r l x E m) (h0 : Run.RegIs m .rax (BitVec.ofNat 64 i))
@@ -71,8 +71,8 @@ theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (cont : ∀ m', r.Frame m' → KeepRest r l x E m' → r.WordAt m' 80 i.toUInt64 →
       r.WordAt m' 176 (16 * i).toUInt64 → Run.RegIs m' .r12 (r.off 4072) →
       BytesAt m'.dmem (r.off 1592) (chainEnd r l x i) → Funcs m' →
-      Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b107Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b108Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b107Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b108Offset⟩ := by
   have hv := SigMemBytes.length_wots_getD r.sigB r.hsig hl hi
   have hval : BytesAt m.dmem (r.off (17436 + 1028 * l + 16 * i)) ((r.layerSig l).wots.getD i []) := by
     have := BytesAt.slice hK.1.2 (4656 + 1028 * l + 16 * i) 16
@@ -210,12 +210,12 @@ theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     exact hcell
 
 /-- **The chains from chain `i`**: the ends of chains `i .. 63` after those before. -/
-theorem chains_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem chains_loop (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x : List UInt8} (hl : l < 3) (hx : x.length = 64) :
     ∀ (n i : Nat) {m : MachineData}, i + n = 64 → 0 < n → r.Frame m →
       KeepRest r l x ((List.range i).map (chainEnd r l x)).flatten m →
       Run.RegIs m .rax (BitVec.ofNat 64 i) → Run.RegIs m .r12 (r.off 4072) → Funcs m →
-      Eventually (step1 Host.exe)
+      Eventually (elfStep1 ElfHost.exe)
         (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b142Offset ∧ r.AtWotsPk l (r.chainEnds l x) st.data) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b108Offset⟩
   | 0, _, _, _, hn, _, _, _, _, _ => absurd hn (by decide)
   | n + 1, i, m, hin, _, hF, hK, h0, h12, hf => by

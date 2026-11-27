@@ -41,10 +41,10 @@ theorem bytesAt_of_block (r : Run) [Labels] {m m' : MachineData} {regions : List
     exact ⟨by omega, noW0_mono hn le_rfl (by omega)⟩)
   exact this.1.2
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- **A block of the frame, then `memcpy(a, s, n)`**. -/
-theorem memcpy_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
+theorem memcpy_block (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
     {jd jn : Nat} (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn)
     {k : List (Reg64 × Sym)} {bd : List (Sym × Nat)} {S' : SState}
     (hx : exec ds (fS k bd) = some (S', .call NativeRustcX64.Common.Memcpy.entryLabel)) (hfw : Run.frameWrites S' = true)
@@ -57,15 +57,15 @@ theorem memcpy_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : 
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → BytesAt m₂.dmem (r.off a) (bytesOf m₁.dmem (r.off s) n) →
         SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n 0) → r.AtCall m₁ →
-        Eventually (step1 Host.exe) R ⟨m₂, r.pc jn⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc jd⟩ := by
+        Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc jn⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc jd⟩ := by
   have hwf := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) (r.pc jn).toBitVec
-  have hk' : ds.IsInfixAt Host.prog (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
+  refine exec_then_elf hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
     (r.match_frame hpre hF hk trivial hbd trivial) fun st hm₁ hpc ↦ ?_
   have hc₁ := Run.AtCall.of_match r hpre hF hm₁ hwf hrsp hfw
   obtain ⟨h0, h1, h2, hcont⟩ := h st.data hm₁
-  refine call_then hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by omega) hs hd)
+  refine call_then_elf hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by omega) hs hd)
     fun st₂ hpc₂ hsp₂ hQ ↦ ?_
   obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 hQ
   obtain ⟨m₂, pc⟩ := st₂
@@ -75,7 +75,7 @@ theorem memcpy_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : 
   exact hcont m₂ (r.frame_of_call hpre hc₁ hS hsp₂ ha (Nat.zero_le _) hout) hS hB hout hc₁
 
 /-- **A block reading `sigPtr` (`fSig`), then `memcpy(a, s, n)`**. -/
-theorem memcpy_block_sig (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
+theorem memcpy_block_sig (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
     {jd jn : Nat} (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn)
     {k : List (Reg64 × Sym)} {S' : SState}
     (hx : exec ds (fSig k) = some (S', .call NativeRustcX64.Common.Memcpy.entryLabel))
@@ -88,15 +88,15 @@ theorem memcpy_block_sig (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {d
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → BytesAt m₂.dmem (r.off a) (bytesOf m₁.dmem (r.off s) n) →
         SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n 0) → r.AtCall m₁ →
-        Eventually (step1 Host.exe) R ⟨m₂, r.pc jn⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc jd⟩ := by
+        Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc jn⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc jd⟩ := by
   have hwf := wfSig r hpre hF.2.2.2 hF.2.2.1 (fun _ ↦ 0) (r.pc jn).toBitVec
-  have hk' : ds.IsInfixAt Host.prog (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
+  refine exec_then_elf hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
     (match_sig r hpre hF hrbx hk) fun st hm₁ hpc ↦ ?_
   have hc₁ := atCall_of_block r hpre hF rfl rfl hm₁ hwf hrsp hfw
   obtain ⟨h0, h1, h2, hcont⟩ := h st.data hm₁
-  refine call_then hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by omega) hs hd)
+  refine call_then_elf hpc hc.1 (r.memcpy_pre hpre hc₁ h0 h1 h2 (by omega) hs hd)
     fun st₂ hpc₂ hsp₂ hQ ↦ ?_
   obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 hQ
   obtain ⟨m₂, pc⟩ := st₂
@@ -106,7 +106,7 @@ theorem memcpy_block_sig (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {d
   exact hcont m₂ (r.frame_of_call hpre hc₁ hS hsp₂ ha (Nat.zero_le _) hout) hS hB hout hc₁
 
 /-- **A block of the frame, then `memset(a, 0, n)`**. -/
-theorem memset_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
+theorem memset_block (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
     {jd jn : Nat} (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn)
     {k : List (Reg64 × Sym)} {S' : SState}
     (hx : exec ds (fS k) = some (S', .call NativeRustcX64.Common.Memset.entryLabel)) (hfw : Run.frameWrites S' = true)
@@ -116,15 +116,15 @@ theorem memset_block (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : 
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n 0) →
-        r.AtCall m₁ → Eventually (step1 Host.exe) R ⟨m₂, r.pc jn⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc jd⟩ := by
+        r.AtCall m₁ → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc jn⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc jd⟩ := by
   have hwf := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) (r.pc jn).toBitVec
-  have hk' : ds.IsInfixAt Host.prog (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
+  refine exec_then_elf hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
     (r.match_frame hpre hF hk trivial trivial trivial) fun st hm₁ hpc ↦ ?_
   have hc₁ := Run.AtCall.of_match r hpre hF hm₁ hwf hrsp hfw
   obtain ⟨h0, h2, hcont⟩ := h st.data hm₁
-  refine call_then hpc hc.2.1 (r.memset_pre hpre hc₁ h0 h2 (by omega)) fun st₂ hpc₂ hsp₂ hQ ↦ ?_
+  refine call_then_elf hpc hc.2.1 (r.memset_pre hpre hc₁ h0 h2 (by omega)) fun st₂ hpc₂ hsp₂ hQ ↦ ?_
   obtain ⟨-, hout, hS⟩ := r.memset_out h0 h2 hQ
   obtain ⟨m₂, pc⟩ := st₂
   simp only at hpc₂

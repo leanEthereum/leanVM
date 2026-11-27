@@ -57,7 +57,7 @@ theorem low4_saved {m₁ m₂ : MachineData} (hS : Saved m₁ m₂) {x : Reg64}
     (hx : calleeSaved x = true) {bs : List UInt8} (h : Low4 (reg m₁ x) bs) : Low4 (reg m₂ x) bs :=
   h.of_eq (hS.1 x hx)
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- Layer `l`'s counter bytes loaded from region 4 (`sigPtr`). -/
 theorem low4_sig_counter {m : MachineData} (hpre : r.Pre) (hS : SameOutside r.m0.dmem m.dmem r.StackArea)
@@ -67,9 +67,9 @@ theorem low4_sig_counter {m : MachineData} (hpre : r.Pre) (hS : SameOutside r.m0
   simpa [Env.base, regsSig, Run.frameRegs] using sig_slice r hpre hS hoff
 
 /-- **`b5 .. b8`**: paths scratch zeroed, counter 0 spilled at `24`, layer 0 chain values at `560`. -/
-theorem layer0_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer0_a (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : OS r 24 m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b9Offset ∧ r.Frame st.data ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b9Offset ∧ r.Frame st.data ∧
       Facts r st.data.dmem (L0c r) ∧
       BytesAt st.data.dmem (r.off 560) (slice r.sigB 4244 1024) ∧
       Run.RegIs st.data .rbx r.sigPtr ∧ Run.RegIs st.data .r14 (r.off 1720) ∧
@@ -89,10 +89,10 @@ theorem layer0_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
   have h14₂ := regIs_saved hS rfl (regIs_ptr0 r rfl hm₁ (y := .r14) rfl)
   have h15₂ := regIs_saved hS rfl ((hm₁.regs .r15 _ rfl).trans rfl : Run.RegIs m₁ .r15 0)
   -- `b6`: spill counter 0 from `4240(%rbx)` to `24(%rsp)`
-  have hk6 : b6.IsInfixAt Host.prog (r.k + b6Offset) := b6_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  have hk6 : b6.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b6Offset) := b6_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfSig r hpre hF₂.2.2.2 hF₂.2.2.1 (fun _ ↦ 0) 0
   have hm₀ := match_sig r hpre hF₂ hbx₂ (k := []) (vars := fun _ ↦ 0) (ret := 0) trivial
-  refine exec_then hk6 run_b6 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk6 run_b6 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r14, .r15]) hm₀ hm' (by decide)
   have hF₃ : r.Frame st.data := frame_of_block r hpre hF₂ rfl rfl hm' hwf rfl (by decide)
   have hc0 : BytesAt st.data.dmem (r.off 24) (slice r.sigB 4240 4) :=
@@ -108,7 +108,7 @@ theorem layer0_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
   subst hpc'
   simp only at hF₃ hL₃ hreg
   -- `b7`: copy 1024 chain bytes from `sigPtr + 4244` to `12780(%rsp)`
-  refine Eventually.bind (sig_loop r hp hpre b7_in_code (jn := b8Offset) rfl (hp.label label_3_at)
+  refine Eventually.bind_elf (sig_loop r hp hpre b7_in_code (jn := b8Offset) rfl (hp.label label_3_at)
     .r15 4244 (by decide) run_b7 rfl (by decide) (by decide)
     (rs := [.rsp, .rbx, .r14]) (by decide) (by simp) (by simp) (L := L0c r) (by facts_dec')
     (P := fun m ↦ Run.RegIs m .r14 (r.off 1720))
@@ -130,13 +130,13 @@ theorem layer0_a (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
         regIs_saved hS rfl (hm₅.regs .r15 _ rfl)⟩⟩
 
 /-- **`b9 .. b13`**: layer 0's path at `1592`, its chain values at `9320`. -/
-theorem layer0_b (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer0_b (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : r.Frame m ∧ Facts r m.dmem (L0c r) ∧
       BytesAt m.dmem (r.off 560) (slice r.sigB 4244 1024) ∧
       Run.RegIs m .rbx r.sigPtr ∧ Run.RegIs m .r14 (r.off 1720) ∧
       Run.RegIs m .r13 (r.off 560) ∧
       Run.RegIs m .r15 (Labels.label "memcpy").toBitVec) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b14Offset ∧ LS1 r st.data) ⟨m, r.pc b9Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b14Offset ∧ LS1 r st.data) ⟨m, r.pc b9Offset⟩ := by
   obtain ⟨hF, hL, hcv, hbx, h14, h13, h15⟩ := h
   have hl : (slice r.sigB 4244 1024).length = 1024 := length_slice (by rw [r.hsig]; decide)
   -- `b9`: path to `1592`, chain values to `2024`
@@ -206,10 +206,10 @@ theorem layer0_b (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : Machi
   exact ⟨hL₁₀, ⟨hl, hB₁₀⟩, trivial⟩
 
 /-- **The first layer**: from `OS 24` at `b5` to `LS1` at `b14`. -/
-theorem layer0_spec (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
+theorem layer0_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m : MachineData}
     (h : OS r 24 m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc b14Offset ∧ LS1 r st.data) ⟨m, r.pc b5Offset⟩ :=
-  Eventually.bind (layer0_a r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc b14Offset ∧ LS1 r st.data) ⟨m, r.pc b5Offset⟩ :=
+  Eventually.bind_elf (layer0_a r hp hpre hc h) fun ⟨m, pc⟩ ⟨hpc, h⟩ ↦ by
     simp only at hpc
     subst hpc
     exact layer0_b r hp hpre hc h

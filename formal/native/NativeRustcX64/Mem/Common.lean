@@ -152,6 +152,53 @@ theorem ret_then {ds : List Directive} {k : Nat} {S' : SState} (hk : ds.IsInfixA
 
 end
 
+section
+variable [ElfHost]
+
+/-- **The final `retq`** under `ElfHost`, from a state with RSP at the entry's and the return
+address's bytes as at entry. -/
+theorem ret_then_elf {sec : Nat} {ds : List Directive} {k : Nat} {S' : SState}
+    (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    (hx : exec ds sRet = some (S', .ret (.load 0 0 8))) (hrsp : S'.reg .rsp = some (.ptr 0 8))
+    (hrax : S'.reg .rax = some (.reg .rax)) (hmem : S'.mem = []) (hkeeps : keeps sRet S' = true)
+    {m : MachineData} {st : MachineState} (hpc : st.pc = ElfHost.addrOf sec k) (hstk : StackOk m 0)
+    (hsp : st.data.regs.get64 .rsp = rspOf m)
+    (hslot : ∀ i < 8, st.data.dmem.get? (rspOf m + BitVec.ofNat 64 i) =
+      m.dmem.get? (rspOf m + BitVec.ofNat 64 i)) :
+    Eventually (elfStep1 ElfHost.exe) (fun st' => st'.pc = retOf m ∧
+      rspOf st'.data = rspOf m + 8#64 ∧ st'.data.dmem = st.data.dmem ∧
+      reg st'.data .rax = reg st.data .rax ∧ Saved st.data st'.data) st := by
+  obtain ⟨-, hnw, hmap⟩ := hstk
+  rw [show rspOf m - BitVec.ofNat 64 0 = rspOf m from BitVec.sub_zero _] at hmap
+  let env := Env.ofMachine st.data [(rspOf m, 8)]
+  have hwf : env.WF := Env.wf_of
+    ⟨⟨fun i hi => by
+        show (st.data.dmem.get? (rspOf m + _)).isSome = true
+        rw [hslot i hi]
+        exact hmap i (by omega), by unfold NoWrap; exact hnw⟩,
+      trivial⟩ (List.pairwise_singleton _ _)
+  have hm : Match env sRet st.data := match_ofMachine ⟨rfl, trivial⟩
+    ⟨show st.data.regs.get64 .rsp = (Sym.ptr 0 0).eval env by
+      simp [Sym.eval, env, hsp], trivial⟩ trivial trivial trivial
+  have hread := hm.read hwf (r := 0) (o := 0) (n := 8) rfl (by decide) (by decide)
+  refine exec_at_elf hk hx hwf (fun _ h => nomatch h) hpc hm fun st' hm' hpc' =>
+    .done _ ⟨?_, ?_, ?_, ?_, ?_⟩
+  · simp only [PcOk] at hpc'
+    rw [hpc']
+    have hb : env.base 0 + BitVec.ofNat 64 0 = rspOf m := by simp [env]
+    rw [hb] at hread
+    rw [loadInt_congr hslot] at hread
+    exact (retOf_of_loadInt hread).symm
+  · have h := hm'.regs .rsp _ hrsp
+    simp only [Sym.eval, env, Env.base_ofMachine_eq, List.getElem?_cons_zero, Option.map_some,
+      Option.getD_some] at h
+    exact h
+  · exact (hm'.dmem_eq hwf hmem)
+  · exact Match.reg_eq hm hm' rfl hrax
+  · exact Match.saved hm hm' hwf rfl hkeeps
+
+end
+
 end
 
 end NativeRustcX64.Mem

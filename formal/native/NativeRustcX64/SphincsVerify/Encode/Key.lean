@@ -203,13 +203,13 @@ theorem eS_toNat {m : MachineData} {ret : BitVec 64} (h568 : r.WordAt m 552 r.id
 
 end Run
 
-variable [Host]
+variable [ElfHost]
 
 /-- **`b95` and `memset`**: from layer `l`'s state, the machine reaches `b96` with the
 invariant (the counter in EBX), the encoder's address at `2024` and hasher A new. -/
-theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem b104_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {l : Nat} {s : List UInt8} {m : MachineData} (h : r.AtLayer l s m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b96Offset ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b96Offset ∧
       r.EncBase l s (r.layerSig l).counter st.data ∧ r.EncAdrs l st.data ∧
       Keccak.HasherHolds (bytesOf st.data.dmem (r.off 4072) 344) []) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset⟩ := by
   obtain ⟨hl, hs, hF, hI, hcx, hsi, hdx, hbx, h12, hbp, h13, h15, hsm, h176, h568, h14⟩ := h
@@ -223,7 +223,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
   obtain ⟨rfl, hX0, hX1, hX2, hX19, hsp, hX12, hXbp, hX13, hX15, hfw, k112, k144, k176, k568,
     ksig, w96, w200, w208, w160, w216, w104, w88, w60, a0, a4, a8, a16, a20, a24, hX14⟩ := hok
   have hk := Sphincs.SphincsVerify.b95_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  let ret : BitVec 64 := (Host.addrOf (r.k + NativeRustcX64.Sphincs.SphincsVerify.b95Offset + Sphincs.SphincsVerify.b95.length)).toBitVec
+  let ret : BitVec 64 := (ElfHost.addrOf r.sec (r.k + NativeRustcX64.Sphincs.SphincsVerify.b95Offset + Sphincs.SphincsVerify.b95.length)).toBitVec
   have hwf := r.envL_wf hpre hF ret
   have hm := r.match_frameL hpre hF (ret := ret) (known := [(.rcx, .lit (4656 + 1028 * l)),
       (.rsi, .lit l), (.rdx, .label NativeRustcX64.layerHeightsLabel), (.rbx, .lit 0), (.r12, .ptr 0 4072),
@@ -233,7 +233,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
       hbp.trans (r.ptr_evalL m ret _).symm, h13.trans (r.ptr_evalL m ret _).symm,
       h15.trans (r.ptr_evalL m ret _).symm, trivial⟩
     ⟨(r.load_word rfl rfl h176).trans (r.ptr_evalL m ret _), trivial⟩
-  refine Sym.exec_then hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦ ?_
+  refine Sym.exec_then_elf hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦ ?_
   have hc1 := Run.AtCall.of_matchL r hpre hF hm' hwf hsp hfw
   have hH := r.load_height hpre ret hF hl
   have hE := r.eS_toNat (ret := ret) h568 hl
@@ -313,7 +313,7 @@ theorem b104_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : C
   have hR1 : UInt8.ofNat (reg st.data .rsi).toNat = 0 := by
     rw [show reg st.data .rsi = _ from hm'.regs .rsi _ hX1]
     rfl
-  refine Sym.call_then hpc hc.2.1 (r.memset_pre hpre hc1 hR0 hR2 (by decide))
+  refine Sym.call_then_elf hpc hc.2.1 (r.memset_pre hpre hc1 hR0 hR2 (by decide))
     fun st' hpc' hrsp hpost ↦ .done _ ?_
   obtain ⟨hB, hout, hS⟩ := r.memset_out hR0 hR2 hpost
   refine ⟨by simpa only [Run.pc, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b95_next] using hpc',

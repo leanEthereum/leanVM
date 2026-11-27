@@ -17,12 +17,12 @@ namespace NativeRustcX64.SphincsVerifyProof.Chains
 open NativeRustc NativeRustc.Sphincs NativeRustcX64.Sym NativeRustcX64.Sphincs.SphincsVerify
 open LeanVM.Protocol.KeccakHash
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 public section
 
 /-- **`b138`**: B's 64 buffered bytes copied to the zeroed block; then `b139`. -/
-theorem seg_b138 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b138 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E i m) (h12 : Run.RegIs m .r12 (r.off 4072))
@@ -33,7 +33,7 @@ theorem seg_b138 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hbp : Run.RegIs m .rbp (r.off 2024))
     (hset : Run.RegIs m .r14 (Labels.label "memset").toBitVec)
     (cont : StepCont r l x E i pos T R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b138Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b138Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b139Offset).toBitVec
   have hm := match_frameS hpre hK.1 hK.2.1
     (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b139Offset).toBitVec)
@@ -55,7 +55,7 @@ theorem seg_b138 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h2 := toNat_of_lit hm' (y := .rdx) (c := 64) rfl (by decide)
   have hbx' : Run.RegIs st.data .rbx (BitVec.ofNat 64 64) := regIs_lit hm' rfl
   have h12' := regIs_reg hm' rfl h12
-  refine call_then hpc hc.1 (r.memcpy_pre hpre hK1.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc hc.1 (r.memcpy_pre hpre hK1.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st2 hpc2 hrsp2 hpost ↦ ?_
   obtain ⟨hc2, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hK2 := Keep.of_call hpre hx hE hK1 hS hrsp2 (a := 2024) (n := 64)
@@ -77,7 +77,7 @@ theorem seg_b138 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
       (RegIs.of_saved hS rfl (regIs_reg hm' rfl hset)) cont)
 
 /-- **`b136`, `b137`**: the block at `2024` zeroed; then `b138`. -/
-theorem seg_b136 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b136 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E i m) (h12 : Run.RegIs m .r12 (r.off 4072))
@@ -86,7 +86,7 @@ theorem seg_b136 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hB : BytesAt m.dmem (r.off 760) T)
     (hcopy : Run.RegIs m .r15 (Labels.label "memcpy").toBitVec)
     (cont : StepCont r l x E i pos T R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b136Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b136Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b138Offset).toBitVec
   have hm := match_frameS hpre hK.1 hK.2.1 (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b138Offset).toBitVec) (k := [(.r14, .lit 64)])
     ⟨known_lit h14, trivial⟩
@@ -108,7 +108,7 @@ theorem seg_b136 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h2 := toNat_of_lit hm2 (y := .rdx) (c := 136) rfl (by decide)
   have hbx : Run.RegIs st2.data .rbx (BitVec.ofNat 64 64) := regIs_lit hm2 rfl
   have h12' := regIs_reg hm2 rfl h12
-  refine call_then hpc2 hc.2.1 (r.memset_pre hpre hK1.1 h0 h2 (by decide))
+  refine call_then_elf hpc2 hc.2.1 (r.memset_pre hpre hK1.1 h0 h2 (by decide))
     fun st3 hpc3 hrsp3 hpost ↦ ?_
   obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost
   rw [h1] at hz
@@ -126,7 +126,7 @@ theorem seg_b136 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
       (RegIs.of_saved hS rfl (regIs_label (y := .r14) hm2 rfl)) cont)
 
 /-- **`b131`, `b127`, `b135`**: B's `buf_len` 64, B's zero state copied into A; then `b136`. -/
-theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b131 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E i m) (h15 : Run.RegIs m .r15 (BitVec.ofNat 64 16))
@@ -138,7 +138,7 @@ theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hcopy : Run.RegIs m .r14 (Labels.label "memcpy").toBitVec)
     (hbp : Run.RegIs m .rbp (r.off 560))
     (cont : StepCont r l x E i pos T R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b131Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b131Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b136Offset).toBitVec
   have hm := match_withLit (match_frameS hpre hK.1 hK.2.1 (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b136Offset).toBitVec)
     (k := [(.r15, .lit 16), (.rbx, .ptr 0 8296), (.r12, .lit 16), (.r14, .label "memcpy"), (.rbp, .ptr 0 560)])
@@ -164,7 +164,7 @@ theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h2 := toNat_of_lit hm3 (y := .rdx) (c := 200) rfl (by decide)
   have h14 : Run.RegIs st3.data .r14 (BitVec.ofNat 64 64) := regIs_lit hm3 rfl
   have h12' : Run.RegIs st3.data .r12 (r.off 4072) := regIs_ptr hm3 rfl
-  refine call_then hpc3 hc.1 (r.memcpy_pre hpre hK3.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc3 hc.1 (r.memcpy_pre hpre hK3.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st4 hpc4 hrsp4 hpost ↦ ?_
   obtain ⟨hc4, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hK4 := Keep.of_call hpre hx hE hK3 hS hrsp4 (a := 4072) (n := 200)
@@ -180,7 +180,7 @@ theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
 
 /-- **`b125 .. b130`**: the chain's value copied into B's buffer after its 48 bytes; then
 `b131`. -/
-theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b125 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {SA v : List UInt8} (hSA : SA.length = 48) (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E i m)
@@ -191,7 +191,7 @@ theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hcopy : Run.RegIs m .r14 (Labels.label "memcpy").toBitVec)
     (hbp : Run.RegIs m .rbp (r.off 560))
     (cont : StepCont r l x E i pos (SA ++ v) R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b125Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b125Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b131Offset).toBitVec
   have hm := match_withLit (match_frameS hpre hK.1 hK.2.1
     (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b131Offset).toBitVec)
@@ -224,7 +224,7 @@ theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h15 : Run.RegIs st4.data .r15 (BitVec.ofNat 64 16) := regIs_lit hm4 rfl
   have hbx : Run.RegIs st4.data .rbx (r.off 8296) := regIs_ptr hm4 rfl
   have h12 : Run.RegIs st4.data .r12 (BitVec.ofNat 64 16) := regIs_lit hm4 rfl
-  refine call_then hpc4 hc.1 (r.memcpy_pre hpre hK4.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc4 hc.1 (r.memcpy_pre hpre hK4.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st5 hpc5 hrsp5 hpost ↦ ?_
   obtain ⟨hc5, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hK5 := Keep.of_call hpre hx hE hK4 hS hrsp5 (a := 808) (n := 16)
@@ -243,7 +243,7 @@ theorem seg_b125 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
       (RegIs.of_saved hS rfl (regIs_reg hm4 rfl hbp)) cont)
 
 /-- **`b120`, `b116`, `b124`**: A's `buf_len` 48, A cloned into B; then `b125`. -/
-theorem seg_b120 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b120 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i pos : Nat}
     (hpos : pos ≤ 2) {SA v : List UInt8} (hSA : SA.length = 48) (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E i m)
@@ -255,7 +255,7 @@ theorem seg_b120 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hcopy : Run.RegIs m .r14 (Labels.label "memcpy").toBitVec)
     (hbp : Run.RegIs m .rbp (r.off 560))
     (cont : StepCont r l x E i pos (SA ++ v) R) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b120Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b120Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc NativeRustcX64.Sphincs.SphincsVerify.b125Offset).toBitVec
   have hm := match_withLit (match_frameS hpre hK.1 hK.2.1 (ret := (r.pc NativeRustcX64.Sphincs.SphincsVerify.b125Offset).toBitVec)
     (k := [(.r15, .lit 32), (.rbx, .ptr 0 9320), (.r12, .lit 32), (.r14, .label "memcpy"), (.rbp, .ptr 0 560)])
@@ -282,7 +282,7 @@ theorem seg_b120 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h0 : Run.RegIs st3.data .rdi (r.off 560) := regIs_ptr hm3 rfl
   have h1 : Run.RegIs st3.data .rsi (r.off 4072) := regIs_ptr hm3 rfl
   have h2 := toNat_of_lit hm3 (y := .rdx) (c := 344) rfl (by decide)
-  refine call_then hpc3 hc.1 (r.memcpy_pre hpre hK3.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc3 hc.1 (r.memcpy_pre hpre hK3.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st4 hpc4 hrsp4 hpost ↦ ?_
   obtain ⟨hc4, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hK4 := Keep.of_call hpre hx hE hK3 hS hrsp4 (a := 560) (n := 344)

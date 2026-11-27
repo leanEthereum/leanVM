@@ -111,20 +111,20 @@ end Run
 
 /-! ## A turn -/
 
-theorem label_31 [Host] {k : Nat} (hp : Placed Sphincs.SphincsVerify.code k) :
-    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_31 = Host.addrOf (k + NativeRustcX64.Sphincs.SphincsVerify.b104Offset) :=
+theorem label_31 [ElfHost] {sec k : Nat} (hp : PlacedIn Sphincs.SphincsVerify.code sec k) :
+    Labels.label NativeRustcX64.Sphincs.SphincsVerify.label_31 = ElfHost.addrOf sec (k + NativeRustcX64.Sphincs.SphincsVerify.b104Offset) :=
   hp.label NativeRustcX64.Sphincs.SphincsVerify.label_31_at
 
 
-variable [Host]
+variable [ElfHost]
 
 /-- **A turn of the loop**: turn `j` writes the digits `2 j`, `2 j + 1` at `560 + 2 j`, and goes
 back to the loop's head, or on to `b105` after the last. -/
-theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {j : Nat}
+theorem loop_step (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {j : Nat}
     (hj : j < 32) (m : MachineData) (hF : r.Frame m)
     (h7 : Run.RegIs m .rdi (BitVec.ofNat 64 (4 * j)))
     (h6 : Run.RegIs m .rsi (r.off (561 + 2 * j))) :
-    Eventually (step1 Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       st.pc = (if j + 1 = 32 then r.pc NativeRustcX64.Sphincs.SphincsVerify.b105Offset else r.pc NativeRustcX64.Sphincs.SphincsVerify.b104Offset) ∧ r.Frame st.data ∧
       Run.RegIs st.data .rdi (BitVec.ofNat 64 (4 * (j + 1))) ∧
       Run.RegIs st.data .rsi (r.off (561 + 2 * (j + 1))) ∧ digest128 st.data = digest128 m ∧
@@ -147,7 +147,7 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
     (known := [(.rdi, .lit (4 * j)), (.rsi, .ptr 0 ((561 + 2 * j : Nat) : Int))]) (labels := [])
     (bounds := []) (aliases := []) ⟨h7, h6.trans (r.ptr_eval m _ _ _).symm, trivial⟩ trivial
     trivial trivial
-  refine Sym.exec_then hk hx hwf (fun _ h ↦ by cases h) hm fun st hm' hpc ↦
+  refine Sym.exec_then_elf hk hx hwf (fun _ h ↦ by cases h) hm fun st hm' hpc ↦
     .done _ ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [Sym.PcOk, SBool.eval] at hpc
     rw [hpc]
@@ -186,12 +186,12 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
 /-- **The loop**: from turn `j` with the digits below `2 j` stored, the machine reaches `b105`
 with the 64 digits of `V` at `560`, the frame's other bytes and the callee-saved registers
 kept. -/
-theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) (V : Nat) :
+theorem loop_run (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) (V : Nat) :
     ∀ n j, j + n + 1 = 32 → ∀ m : MachineData, r.Frame m →
       Run.RegIs m .rdi (BitVec.ofNat 64 (4 * j)) → Run.RegIs m .rsi (r.off (561 + 2 * j)) →
       digest128 m = V →
       (∀ t < 2 * j, m.dmem.get? (r.off (560 + t)) = some (digitByte V t)) →
-      Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b105Offset ∧ r.Frame st.data ∧
+      Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b105Offset ∧ r.Frame st.data ∧
         Saved m st.data ∧
         SameOutside m.dmem st.data.dmem (InRange (r.off (560 + 2 * j)) (64 - 2 * j)) ∧
         ∀ t < 64, st.data.dmem.get? (r.off (560 + t)) = some (digitByte V t))
@@ -200,7 +200,7 @@ theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
   induction n with
   | zero =>
     intro j hj m hF h7 h6 hV hd
-    refine Eventually.mono (loop_step r hp hpre (by omega) m hF h7 h6) fun st ⟨hpc, hF', _, _, hV',
+    refine Eventually.mono_elf (loop_step r hp hpre (by omega) m hF h7 h6) fun st ⟨hpc, hF', _, _, hV',
       hS, hout, hnew⟩ ↦ ⟨by rw [hpc, Sym.ite_pos (show j + 1 = 32 by omega)], hF', hS,
       SameOutside.mono hout fun p hp' ↦ by rwa [show 64 - 2 * j = 2 by omega], fun t ht ↦ ?_⟩
     by_cases htj : t < 2 * j
@@ -211,7 +211,7 @@ theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
         show 2 * j + (t - 2 * j) = t by omega] at this
   | succ n ih =>
     intro j hj m hF h7 h6 hV hd
-    refine Eventually.bind (loop_step r hp hpre (by omega) m hF h7 h6) fun st ⟨hpc, hF', h7', h6',
+    refine Eventually.bind_elf (loop_step r hp hpre (by omega) m hF h7 h6) fun st ⟨hpc, hF', h7', h6',
       hV', hS, hout, hnew⟩ ↦ ?_
     rw [Sym.ite_neg (show ¬(j + 1 = 32) by omega)] at hpc
     obtain ⟨m', pc⟩ := st
@@ -225,7 +225,7 @@ theorem loop_run (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
       · have := hnew (t - 2 * j) (by omega)
         rwa [show 560 + 2 * j + (t - 2 * j) = 560 + t by omega, hV,
           show 2 * j + (t - 2 * j) = t by omega] at this
-    refine Eventually.mono (ih (j + 1) (by omega) m' hF' h7' h6' (hV'.trans hV) hd')
+    refine Eventually.mono_elf (ih (j + 1) (by omega) m' hF' h7' h6' (hV'.trans hV) hd')
       fun st ⟨h1, h2, h3, h4, h5⟩ ↦ ⟨h1, h2, Saved.trans hS h3, ?_, h5⟩
     intro p hp'
     rw [h4 p fun h ↦ hp' ?_, hout p fun h ↦ hp' ?_]

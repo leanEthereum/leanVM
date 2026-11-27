@@ -19,16 +19,17 @@ open NativeRustcArm.Sym NativeRustc NativeRustc.Keccak LeanVM.Semantics NativeRu
 
 public section
 
-variable [Host]
+variable [ElfHost]
 
 set_option linter.unusedSimpArgs false in
 /-- **The prologue.** -/
-theorem prologue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem prologue_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) :
-    Eventually (step1 Host.exe) (fun st => At m0 0 st.data ∧ st.pc = Host.addrOf (k + NativeRustcArm.Common.KeccakF.b1Offset))
-      ⟨m0, Host.addrOf k⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => At m0 0 st.data ∧ st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.KeccakF.b1Offset))
+      ⟨m0, ElfHost.addrOf sec k⟩ := by
   obtain ⟨hstk, -, hmap, hnw, hap, -⟩ := hpre
-  have hk : Common.KeccakF.b0.IsInfixAt Host.prog (k + NativeRustcArm.Common.KeccakF.b0Offset) :=
+  have hk : Common.KeccakF.b0.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.KeccakF.b0Offset) :=
     Common.KeccakF.b0_in_code.trans hp.1 (List.cons_ne_nil _ _)
   let env := Env.ofMachine m0 [(frame m0, 192), (m0.regs.X0.toBitVec, 200)]
   have hwf : env.WF :=
@@ -94,7 +95,7 @@ theorem prologue_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : Machin
     hl 23 rfl (by decide)
   have hl24 : env.load 1 192 8 = (Keccak.lane (stAfter m0 0) 24).toBitVec :=
     hl 24 rfl (by decide)
-  refine exec_then hk prologue hwf hm fun st hm' hpc => .done _ ⟨?_, hpc⟩
+  refine exec_then_elf hk prologue hwf hm fun st hm' hpc => .done _ ⟨?_, hpc⟩
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, Match.reg_eq hm hm' rfl rfl, same_region hm' hwf hb0 (by decide),
     hm'.kept hwf⟩
   · rw [hm'.sp]

@@ -71,20 +71,20 @@ theorem copy16 [Labels] {m m' : MachineData} {vars : Nat → BitVec 64} {S : SSt
   exact pieces16 hl (write_load hm (by omega) le_rfl hw1 (by simp [hl]) h0)
     (write_load hm (by omega) le_rfl hw2 (by simp [hl]) h8)
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The final absorb and the next value** (`b82`, `keccak_f`, `b83`): from `N6`, the next
 node's head, or after the tenth, `b84`. -/
-theorem node_s7 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s7 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N6 r c z m) :
-    Eventually (step1 Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ (z + 1 < 10 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AtNode r c (z + 1) st.data) ∨
         (z + 1 = 10 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b84Offset ∧ TEnd r c st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b82Offset⟩ := by
   obtain ⟨hT, hz, h27, h19, h21, h25, hst, hblk⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s80 m := match_frameS hpre hB ⟨h25, trivial⟩ trivial
-  refine exec_then (hb82 hp) run_b82 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb82 hp) run_b82 hwf hm fun st1 hm1 hpc1 ↦ ?_
   obtain ⟨hB1, hk1⟩ := hB.of_match hpre hm1 hwf rfl rfl rfl rfl rfl rfl
   have hil := length_nodeIn (r := r) hT.hc hz
   have hx := xorFinal hm1 hwf (r := 0) (b := r.base) (sz := 21616) rfl (oA := 8640) (oK := 16960)
@@ -93,7 +93,7 @@ theorem node_s7 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     (finalBlock (r.nodeIn c z))) at hx
   rw [bytesOf_of_bytesAt' hst (List.length_replicate ..)] at hx
   have h0 : Run.RegIs st1.data .X0 (r.off 8640) := (hm1.regs .X0 _ rfl).trans (eval_ptr 8640)
-  refine call_then hpc1 hc.2.2.2.2 (keccakF_pre hpre hB1.frame h0 (by decide)) fun st2 hpc2 hpost ↦ ?_
+  refine call_then_elf hpc1 hc.2.2.2.2 (keccakF_pre hpre hB1.frame h0 (by decide)) fun st2 hpc2 hpost ↦ ?_
   obtain ⟨hK, hout, hS⟩ := keccakF_out h0 hpost
   obtain ⟨hB2, hk2⟩ := hB1.of_call hpre hS (a := 8640) (n := 200) (N := keccakFStack) (by decide)
     (by decide) hout (fun o h1 h2 ↦ by unfold Scr; omega)
@@ -105,7 +105,7 @@ theorem node_s7 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
   refine ev_at (hpc2.trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b82_next)) ?_
   have hwf2 := r.frame_wf hpre hB2.frame (fun _ ↦ 0)
   have hm2 : Match (r.env st2.data) s0 st2.data := match_frameS hpre hB2 trivial trivial
-  refine exec_then (hb83 hp) run_b83 hwf2 hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb83 hp) run_b83 hwf2 hm2 fun st3 hm3 hpc3 ↦ ?_
   obtain ⟨hB3, hk3⟩ := hB2.of_match hpre hm3 hwf2 rfl rfl rfl rfl rfl rfl
   have hT3 := TreeSt.of_keep hT hB3 (hk1.trans (hk2.trans hk3))
   have hcur : BytesAt st3.data.dmem (r.off 12864) (r.forsUpTo c (z + 1)) :=
@@ -145,29 +145,29 @@ theorem node_s7 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     rw [Run.RegIs, reg_of hm3 rfl]; exact e21
 
 /-- **A node** (`b58 .. b83`): from its head, the next node's head, or after the tenth, `b84`. -/
-theorem node_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
+theorem node_spec (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     {m : MachineData} (h : AtNode r c z m) :
-    Eventually (step1 Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ (z + 1 < 10 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset ∧ AtNode r c (z + 1) st.data) ∨
         (z + 1 = 10 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b84Offset ∧ TEnd r c st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
-  refine Eventually.bind (node_s1 hp hc hpre h) fun st ⟨hpc, h1⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (node_s2 hp hc hpre h1) fun st ⟨hpc, h2⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (node_s3 hp hc hpre h2) fun st ⟨hpc, h3⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (node_s4 hp hc hpre h3) fun st ⟨hpc, h4⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (node_s5 hp hc hpre h4) fun st ⟨hpc, h5⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (node_s6 hp hc hpre h5) fun st ⟨hpc, h6⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s1 hp hc hpre h) fun st ⟨hpc, h1⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s2 hp hc hpre h1) fun st ⟨hpc, h2⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s3 hp hc hpre h2) fun st ⟨hpc, h3⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s4 hp hc hpre h3) fun st ⟨hpc, h4⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s5 hp hc hpre h4) fun st ⟨hpc, h5⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (node_s6 hp hc hpre h5) fun st ⟨hpc, h6⟩ ↦ ev_at hpc ?_
   exact node_s7 hp hc hpre h6
 
 /-- **A tree's nodes**: from its node `z`'s head, `b84` with the root. -/
-theorem nodes_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} :
+theorem nodes_spec (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} :
     ∀ n z, z + n = 10 → ∀ m, AtNode r c z m →
-      Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b84Offset ∧ TEnd r c st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b84Offset ∧ TEnd r c st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
   intro n
   induction n with
   | zero => intro z hn m h; exact absurd h.hz (by omega)
   | succ n ih =>
     intro z hn m h
-    refine Eventually.bind (node_spec hp hc hpre h) fun st hst ↦ ?_
+    refine Eventually.bind_elf (node_spec hp hc hpre h) fun st hst ↦ ?_
     rcases hst with ⟨-, hpc, h'⟩ | ⟨-, hpc, h'⟩
     · exact ev_at hpc (ih (z + 1) (by omega) _ h')
     · exact .done _ ⟨hpc, h'⟩

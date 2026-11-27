@@ -62,12 +62,12 @@ end
 
 public section
 
-variable {r : Run} [Host]
+variable {r : Run} [ElfHost]
 
 /-- **A tree's end** (`b84`): from `TEnd c`, the next tree's head, or after the 24th, `b85`. -/
-theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineData}
+theorem tree_end (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {c : Nat} {m : MachineData}
     (h : TEnd r c m) :
-    Eventually (step1 Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ (c + 1 < 24 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset ∧ AtTree r (c + 1) st.data) ∨
         (c + 1 = 24 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b85Offset ∧ r.AtForsKey st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b84Offset⟩ := by
   obtain ⟨hT, h19, h25, h23, h20, h27, hcur⟩ := h
@@ -79,7 +79,7 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
   -- `b84a`: the root's address, the next tree's registers
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s0 m := match_frameS hpre hB trivial trivial
-  refine exec_then (hb84a hp) run_b84a hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb84a hp) run_b84a hwf hm fun st1 hm1 hpc1 ↦ ?_
   have hd1 : st1.data.dmem = m.dmem := hm1.dmem_eq hwf rfl
   obtain ⟨hB1, -⟩ := hB.of_match hpre hm1 hwf rfl rfl rfl rfl rfl rfl
   have h8 : Run.RegIs st1.data .X8 (r.off (20064 + 16 * c)) := by
@@ -101,7 +101,7 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
         show _ = r.off (20064 + 16 * c) + BitVec.ofInt 64 0
         rw [h8]
         simp, trivial⟩ trivial trivial trivial
-  refine exec_then (hb84b hp) run_b84b hwf2 hm2 fun st2 hm2' hpc2 ↦ ?_
+  refine exec_then_elf (hb84b hp) run_b84b hwf2 hm2 fun st2 hm2' hpc2 ↦ ?_
   have hout2 := same_of_one hm2' hwf2 rfl
   have hF2 : r.Frame st2.data :=
     Run.Frame.of_block hB1.frame (by rw [sp_of hm2' rfl]; exact hB1.frame.1)
@@ -153,7 +153,7 @@ theorem tree_end (hp : Placed code r.k) (hpre : r.Pre) {c : Nat} {m : MachineDat
   refine ev_at (hpc2.trans (pc_after (by rfl))) ?_
   have hwf3 := r.frame_wf hpre hB2.frame (fun _ ↦ 0)
   have hm3 : Match (r.env st2.data) s84c st2.data := match_frameS hpre hB2 trivial trivial
-  refine exec_then (hb84c hp) run_b84c hwf3 hm3 fun st3 hm3' hpc3 ↦ ?_
+  refine exec_then_elf (hb84c hp) run_b84c hwf3 hm3 fun st3 hm3' hpc3 ↦ ?_
   have hd3 : st3.data.dmem = st2.data.dmem := hm3'.dmem_eq hwf3 rfl
   obtain ⟨hB3, -⟩ := hB2.of_match hpre hm3' hwf3 rfl rfl rfl rfl rfl rfl
   simp only [PcOk, SBool.eval] at hpc3

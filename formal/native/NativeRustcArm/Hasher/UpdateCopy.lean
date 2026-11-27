@@ -53,16 +53,17 @@ theorem toNat_take {x0 x19 : BitVec 64} (h : x0.toNat < 136) :
 
 theorem inRange_zero {a p : BitVec 64} : ¬InRange a 0 p := Nat.not_lt_zero _
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 /-- **Copying into the buffer.** -/
-theorem copy_spec (hp : Placed code k) (hmemcpy : Spec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+theorem copy_spec (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcArm.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
     {m0 m1 m : MachineData} (hpre : UpdatePre m0)
     (h01 : SameOutside m0.dmem m1.dmem (InRange (spAt m0 - 64#64) 64)) {c : Nat}
     (hinv : Inv m0 m1 c m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b5Offset) ∧ Copied m0 m1 c (hasher m0 m) st.data)
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Update.b2Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b5Offset) ∧ Copied m0 m1 c (hasher m0 m) st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b2Offset)⟩ := by
   have g := geo_of hpre
   obtain ⟨a0, ha0⟩ := hpre.2.2.1
   have hHc := hinv.holds a0 ha0
@@ -93,14 +94,14 @@ theorem copy_spec (hp : Placed code k) (hmemcpy : Spec (Labels.label NativeRustc
       else 136#64 - (m.regs.getXReg .X0).toBitVec) = TV ∧ TV.toNat = min (136 - L) (nOf m0 - c) :=
     ⟨_, rfl, by rw [toNat_take (by rw [hx0]; exact hL), hx0, hx19n]⟩
   -- `b2`: the take, and `b.lo` to the panic not taken.
-  refine exec_then (hb2 hp) run_b2 hwf hm fun st2 hm2 hpc2 => ?_
+  refine exec_then_elf (hb2 hp) run_b2 hwf hm fun st2 hm2 hpc2 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, BinOp.apply, low_W64, ext_W64,
     Env.ofMachine_regs, hTV] at hpc2
   rw [ite_neg' (by
     simp only [BitVec.ult, BitVec.toNat_add, htv, hx0, decide_eq_true_eq, MemWidth.bits]
     omega)] at hpc2
   -- `b3`: `b.hs` to the panic not taken.
-  refine exec_at (hb3 hp) (exec_after run_b2 run_b3) hwf hpc2 hm2 fun st3 hm3 hpc3 => ?_
+  refine exec_at_elf (hb3 hp) (exec_after run_b2 run_b3) hwf hpc2 hm2 fun st3 hm3 hpc3 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, BinOp.apply, low_W64, ext_W64,
     Env.ofMachine_regs, hTV] at hpc3
   rw [ite_neg' (by
@@ -110,7 +111,7 @@ theorem copy_spec (hp : Placed code k) (hmemcpy : Spec (Labels.label NativeRustc
   -- `b4`: `memcpy`'s arguments.
   have hr4 := run_b4
   rw [after_eq run_b2] at hr4
-  refine exec_at (hb4 hp) (exec_after (exec_after run_b2 run_b3) hr4) hwf hpc3 hm3
+  refine exec_at_elf (hb4 hp) (exec_after (exec_after run_b2 run_b3) hr4) hwf hpc3 hm3
     fun st4 hm4 hpc4 => ?_
   have hmem4 : ∀ p, st4.data.dmem.get? p = m.dmem.get? p := fun p =>
     hm4.get?_mem0 hwf fun ⟨_, hw, _⟩ => by simp at hw
@@ -136,7 +137,7 @@ theorem copy_spec (hp : Placed code k) (hmemcpy : Spec (Labels.label NativeRustc
       Env.ofMachine_regs, hTV, htv]
   generalize htdef : min (136 - L) (nOf m0 - c) = t at hX2
   have ht : t ≤ 136 - L ∧ t ≤ nOf m0 - c := by omega
-  refine call_then hpc4 hmemcpy ?pre fun st' hpc' hpost => ?_
+  refine call_then_elf hpc4 hmemcpy ?pre fun st' hpc' hpost => ?_
   case pre =>
     refine ⟨fun i hi => ?_, fun i hi => ?_, ?_, ?_, ?_⟩
     · show (st4.data.dmem.get? ((st4.data.regs.getXReg .X0).toBitVec + _)).isSome

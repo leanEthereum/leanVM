@@ -35,12 +35,12 @@ theorem orr_one_eval [Labels] {r : Run} (hpre : r.Pre) (m : MachineData) :
     lor_eq_add (n := 1) (by decide) (by omega)]
   omega
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **`signed`, the layer loop's registers** (`b91`). -/
-theorem forsKey2_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem forsKey2_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {m : MachineData} (hA : FK1 r m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b92Offset ∧ r.AtLayer 0 r.forsPk st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b92Offset ∧ r.AtLayer 0 r.forsPk st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b91Offset⟩ := by
   obtain ⟨hK, h23, h19, h20, h27, h400, hD⟩ := hA
   obtain ⟨hF, ⟨hpk, hsig, h392⟩, h408⟩ := hK
@@ -92,7 +92,7 @@ open Digest
 public section
 
 /-- **Region 4, the FORS key.** -/
-theorem forsKey_spec [NativeRustcArm.Host] : ForsKeySpec := by
+theorem forsKey_spec [ElfHost] : ForsKeySpec := by
   intro r hp hc hpre m hA
   exact Run.stage r (forsKey0_spec r hp hc hpre hA) fun m₁ h₁ ↦
     Run.stage r (forsKey1_spec r hp hc hpre h₁) fun m₂ h₂ ↦ forsKey2_spec r hp hpre h₂

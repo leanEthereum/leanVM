@@ -83,12 +83,12 @@ theorem zeros_slice {o n N : Nat} (h : o + n ≤ N) :
 
 theorem wordBytes_zero : wordBytes (0 : Nat).toUInt64 = List.replicate 8 0 := rfl
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The prefix** (`b59 .. b66` and `memcpy`): from `N1`, `N2` at `b67`. -/
-theorem node_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s2 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N1 r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b67Offset ∧ N2 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b59Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b67Offset ∧ N2 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b59Offset⟩ := by
   obtain ⟨hT, hz, h19, h21, h25, hA, hch, had⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
@@ -99,22 +99,22 @@ theorem node_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     have := bytesAt_slice hA 336 8
     rwa [zeros_slice (by decide), ← wordBytes_zero] at this
   have hm : Match (r.env m) s59 m := match_frameS_lit (k := []) hpre hB trivial hlen0
-  refine exec_then (hb59 hp) run_b59 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb59 hp) run_b59 hwf hm fun st1 hm1 hpc1 ↦ ?_
   refine ev_at ((pc_true hpc1).trans (lbl_16 hp)) ?_
-  refine exec_then (hb62 hp) (exec_after run_b59 run_b62) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb62 hp) (exec_after run_b59 run_b62) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
   refine ev_at ((show st2.pc = _ from hpc2).trans (lbl_18 hp)) ?_
-  refine exec_then (hb64 hp) (exec_after run_b62 run_b64) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb64 hp) (exec_after run_b62 run_b64) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
   refine ev_at ((pc_false hpc3).trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b64_next)) ?_
-  refine exec_then (hb65 hp) (exec_after run_b64 run_b65) hwf hm3 fun st4 hm4 hpc4 ↦ ?_
+  refine exec_then_elf (hb65 hp) (exec_after run_b64 run_b65) hwf hm3 fun st4 hm4 hpc4 ↦ ?_
   refine ev_at ((pc_false hpc4).trans (pc_after NativeRustcArm.Sphincs.SphincsVerify.b65_next)) ?_
-  refine exec_then (hb66 hp) (exec_after run_b65 run_b66) hwf hm4 fun st5 hm5 hpc5 ↦ ?_
+  refine exec_then_elf (hb66 hp) (exec_after run_b65 run_b66) hwf hm4 fun st5 hm5 hpc5 ↦ ?_
   obtain ⟨hB5, hk5⟩ := hB.of_match hpre hm5 hwf rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st5.data .X0 (r.off 8856) := (hm5.regs .X0 _ rfl).trans (eval_ptr 8856)
   have h1 : Run.RegIs st5.data .X1 (r.off 15936) := (hm5.regs .X1 _ rfl).trans (eval_ptr 15936)
   have h2 : st5.data.regs.X2.toNat = 32 := regIs_toNat (hm5.regs .X2 _ rfl) (by decide)
   have had5 : BytesAt st5.data.dmem (r.off 15936) (r.nodeAdrsOf c z) :=
     keep_blk hpre hm5 hwf (length_nodeAdrsOf c z) (by decide) rfl had
-  refine call_then hpc5 hc.1 (r.memcpy_pre hpre hB5.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc5 hc.1 (r.memcpy_pre hpre hB5.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st6 hpc6 hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   obtain ⟨hB6, hk6⟩ := hB5.of_call hpre hS (a := 8856) (n := 32) (N := 0) (by decide) (by decide)
@@ -150,20 +150,20 @@ theorem node_s2 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
       (keep_blk hpre hm5 hwf (length_childrenOf hT.hc hz) (by decide) rfl hch)
 
 /-- **The clone** (`b67`, `b63`, `b70` and `memcpy`): from `N2`, `N3` at `b71`. -/
-theorem node_s3 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s3 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : N2 r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b71Offset ∧ N3 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b67Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b71Offset ∧ N3 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b67Offset⟩ := by
   obtain ⟨hT, hz, h19, h21, h25, h23, h24, h20, hst, hbuf, hlen, hch⟩ := h
   have hB := hT.base
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm : Match (r.env m) s67 m :=
     match_frameS_lit (k := [(.X23, .ptr 0 15936), (.X24, .lit 32), (.X20, .lit 32)]) hpre hB
       ⟨known_ptr h23, h24, h20, trivial⟩ hlen
-  refine exec_then (hb67 hp) run_b67 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb67 hp) run_b67 hwf hm fun st1 hm1 hpc1 ↦ ?_
   refine ev_at ((pc_true hpc1).trans (lbl_17 hp)) ?_
-  refine exec_then (hb63 hp) (exec_after run_b67 run_b63) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb63 hp) (exec_after run_b67 run_b63) hwf hm1 fun st2 hm2 hpc2 ↦ ?_
   refine ev_at ((pc_true hpc2).trans (lbl_22 hp)) ?_
-  refine exec_then (hb70 hp) (exec_after run_b63 run_b70) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb70 hp) (exec_after run_b63 run_b70) hwf hm2 fun st3 hm3 hpc3 ↦ ?_
   obtain ⟨hB3, hk3⟩ := hB.of_match hpre hm3 hwf rfl rfl rfl rfl rfl rfl
   have h0 : Run.RegIs st3.data .X0 (r.off 19008) := (hm3.regs .X0 _ rfl).trans (eval_ptr 19008)
   have h1 : Run.RegIs st3.data .X1 (r.off 8640) := (hm3.regs .X1 _ rfl).trans (eval_ptr 8640)
@@ -174,7 +174,7 @@ theorem node_s3 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
   have hbuf3 := keep_blk hpre hm3 hwf hbl (by decide) rfl hbuf
   have hlen3 : BytesAt st3.data.dmem (r.off 8976) (wordBytes (48 : Nat).toUInt64) :=
     write_val hm3 (o := 8976) (n := 8) rfl (by decide) (by decide) (lit_word 48)
-  refine call_then hpc3 hc.1 (r.memcpy_pre hpre hB3.frame h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc3 hc.1 (r.memcpy_pre hpre hB3.frame h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st4 hpc4 hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   obtain ⟨hB4, hk4⟩ := hB3.of_call hpre hS (a := 19008) (n := 344) (N := 0) (by decide) (by decide)

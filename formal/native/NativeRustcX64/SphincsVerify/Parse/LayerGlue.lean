@@ -34,10 +34,10 @@ macro "facts_dec" : tactic => `(tactic| (
     List.nil_append, List.singleton_append]
   decide))
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- **A pure block, then `memcpy(a, s, n)` of known bytes**. -/
-theorem memcpy_pure (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
+theorem memcpy_pure (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {ds : List Directive}
     {jd jn : Nat} (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn)
     {k : List (Reg64 × Sym)} {S' : SState}
     (hx : exec ds (fS k) = some (S', .call NativeRustcX64.Common.Memcpy.entryLabel)) (hfw : Run.frameWrites S' = true)
@@ -51,8 +51,8 @@ theorem memcpy_pure (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : L
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → Facts r m₂.dmem L → BytesAt m₂.dmem (r.off a) bs →
-        Eventually (step1 Host.exe) R ⟨m₂, r.pc jn⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc jd⟩ := by
+        Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc jn⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc jd⟩ := by
   refine memcpy_block r hp hpre hc hb hjn hx hfw hrsp hF hk trivial ha hs hd fun m₁ hm₁ ↦ ?_
   obtain ⟨h0, h1, h2, hcont⟩ := h m₁ hm₁
   refine ⟨h0, h1, h2, fun m₂ hF₂ hS hB hout hc₁ ↦ hcont m₂ hF₂ hS ?_ ?_⟩
@@ -62,7 +62,7 @@ theorem memcpy_pure (hp : Placed code r.k) (hpre : r.Pre) (hc : Callees) {ds : L
     rwa [← hl, bytesOf_of_bytesAt hs₁] at hB
 
 /-- **A turn of a layer's chain-value copy loop** from `sigPtr + src` to `12780(%rsp)`. -/
-theorem sig_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
+theorem sig_turn (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
     (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn) {lab : Label}
     (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : src + 1024 ≤ 7740)
     {S' : SState}
@@ -79,7 +79,7 @@ theorem sig_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd
     (h : r.Frame m ∧ Facts r m.dmem L ∧
       BytesAt m.dmem (r.off 12780) (slice r.sigB src (32 * j)) ∧
       Run.RegIs m .rbx r.sigPtr ∧ Run.RegIs m i (BitVec.ofNat 64 (32 * j)) ∧ P m) :
-    Eventually (step1 Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       (st.pc = r.pc jn ∧ r.Frame st.data ∧ Facts r st.data.dmem L ∧
         BytesAt st.data.dmem (r.off 12780) (slice r.sigB src 1024) ∧
         Run.RegIs st.data .rbx r.sigPtr ∧ P st.data) ∨
@@ -88,7 +88,7 @@ theorem sig_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd
         Run.RegIs st.data .rbx r.sigPtr ∧
         Run.RegIs st.data i (BitVec.ofNat 64 (32 * (j + 1))) ∧ P st.data)) ⟨m, r.pc jd⟩ := by
   obtain ⟨hF, hL, hdst, hbx, hii, hPm⟩ := h
-  have hk' : ds.IsInfixAt Host.prog (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
   have hwf := wfSigTurn r hpre hF.2.2.2 hF.2.2.1 (off := src + 32 * j) (d := 12780 + 32 * j)
     (by omega) (by omega) (fun _ ↦ 0) 0
   have hbx' : reg m .rbx = r.sigPtr := hbx
@@ -110,7 +110,7 @@ theorem sig_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd
         rw [show reg m .rsp = r.base from hF.1, hii']
         refine alias_neg 12780 ?_
         bv_lin, trivial⟩
-  refine exec_then hk' hx hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk' hx hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
   have hreg := keepsRegs_regs hm hm' hk
   obtain ⟨hF', hout⟩ := frame_of_hull r hpre hF (ri := 1) (d := 12780 + 32 * j) (lo := 0) (hi := 32)
     rfl le_rfl (Nat.zero_le _) (by omega) hm' hwf hw (by rw [rspOf, hreg .rsp hrsp]; exact hF.1)
@@ -148,7 +148,7 @@ theorem sig_turn (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd
     exact .done _ (Or.inl ⟨pc_next r (heq rfl) hjn, hF', hL', hdst', hbx'', hP'⟩)
 
 /-- **A layer's chain-value copy loop**: 32 × 32 bytes from `sigPtr + src` to `12780(%rsp)`. -/
-theorem sig_loop (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
+theorem sig_loop (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {ds : List Directive} {jd jn : Nat}
     (hb : ds.IsInfixAt code jd) (hjn : jd + ds.length = jn) {lab : Label}
     (hlab : Labels.label lab = r.pc jd) (i : Reg64) (src : Nat) (hsrc : src + 1024 ≤ 7740)
     {S' : SState}
@@ -162,7 +162,7 @@ theorem sig_loop (hp : Placed code r.k) (hpre : r.Pre) {ds : List Directive} {jd
     {P : MachineData → Prop}
     (hP : ∀ m m', (∀ x ∈ rs, m'.regs.get64 x = m.regs.get64 x) → P m → P m') {m : MachineData}
     (h : r.Frame m ∧ Facts r m.dmem L ∧ Run.RegIs m .rbx r.sigPtr ∧ Run.RegIs m i 0 ∧ P m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc jn ∧ r.Frame st.data ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc jn ∧ r.Frame st.data ∧
       Facts r st.data.dmem L ∧ BytesAt st.data.dmem (r.off 12780) (slice r.sigB src 1024) ∧
       Run.RegIs st.data .rbx r.sigPtr ∧ P st.data) ⟨m, r.pc jd⟩ :=
   count_loop (σ := MachineState) (P := fun j st ↦ st.pc = r.pc jd ∧ r.Frame st.data ∧

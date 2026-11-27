@@ -20,14 +20,14 @@ open NativeRustcX64.SphincsVerifyProof.Digest (HasherAt)
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
-omit [Host] in
+omit [ElfHost] in
 theorem eval_ptr0 [Labels] {m : MachineData} {vars : Nat → BitVec 64} {ret : BitVec 64} :
     (Sym.ptr 0 0).eval (r.env m vars ret) = r.base := by
   simp [Sym.eval]
 
-omit [Host] in
+omit [ElfHost] in
 /-- The opening's (and the secret's) address, as `b49` computes it. -/
 theorem eval_openAddr [Labels] {m : MachineData} {vars : Nat → BitVec 64} {ret : BitVec 64}
     (hpre : r.Pre) {c : Nat} (hc : c < 24) (h13 : m.regs.get64 .rsi = BitVec.ofNat 64 c)
@@ -45,13 +45,13 @@ theorem eval_openAddr [Labels] {m : MachineData} {vars : Nat → BitVec 64} {ret
   simp only [BitVec.toNat_add, BitVec.toNat_mul, BitVec.toNat_ofNat]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 theorem mul8 (c : Nat) (hc : c < 24) :
     (BinOp.apply .mul .W64 (BitVec.ofNat 64 c) (BitVec.ofNat 64 8)).toNat = 8 * c := by
   simp only [BinOp.apply, low_W64, ext_W64, BitVec.toNat_mul, BitVec.toNat_ofNat]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 /-- The bytes of a register's low 4 bytes stored. -/
 theorem bytesAt_trunc4' [Labels] {m m₁ : MachineData} {ret : BitVec 64} {S : SState}
     (hm : Match (r.env m (fun _ ↦ 0) ret) S m₁) {o : Nat} {y : Reg64} (ho : o + 4 ≤ 21632)
@@ -62,10 +62,10 @@ theorem bytesAt_trunc4' [Labels] {m m₁ : MachineData} {ret : BitVec 64} {S : S
   rwa [hy, List.take_left' hk] at this
 
 /-- **A tree's head and leaf**: from `AtTree r c` at `b49`, `AtNode r c 0` at `b56`. -/
-theorem tree_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem tree_head (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {c : Nat} {m : MachineData} (h : AtTree r c m) {R : MachineState → Prop}
-    (cont : ∀ m', AtNode r c 0 m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset⟩ := by
+    (cont : ∀ m', AtNode r c 0 m' → Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b49Offset⟩ := by
   obtain ⟨hK, h13, h12, h14, h15, hbp, hbx, hBptr⟩ := h
   have hc24 := hK.2.c_lt
   have hleaf := r.leafOf_lt hc24

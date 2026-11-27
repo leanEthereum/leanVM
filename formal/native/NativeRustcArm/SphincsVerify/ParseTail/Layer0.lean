@@ -35,7 +35,7 @@ public section
 
 variable (r : Run)
 
-variable [NativeRustcArm.Host] (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+variable [ElfHost] (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
 include hp hc hpre
 
 /-- `b7`: the paths' last 288 bytes zeroed. -/
@@ -76,7 +76,7 @@ theorem s10 : Seg r b10Offset (fun m ↦ Facts r m ((484, 1024, wotsRaw r 0) :: 
       ((.X9, r.sigPtr + BitVec.ofNat 64 4244) :: (.X10, r.off 484) :: (.X23, ctr r 0) ::
         (.X25, r.off 8224) :: K0 r)) b11Offset
     (fun m ↦ Facts r m ((19008, 1024, wotsRaw r 0) :: baseL r) (K16 r)) := fun _ h ↦
-  Eventually.mono (step_memcpy r hp hc hpre b10_in_code run_b10 rfl rfl rfl
+  Eventually.mono_elf (step_memcpy r hp hc hpre b10_in_code run_b10 rfl rfl rfl
     (a := 19008) (b := 484) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide)
     h.dropK.dropK trivial (by facts_side) (by facts_side) (Lnew := []) (fun _ _ ↦ trivial)
     (Knew := [(.X26, r.off 484)]) (fun _ hm' ↦ ⟨reg_ptr r hm' (a := 484) rfl, trivial⟩)
@@ -87,7 +87,7 @@ theorem s10 : Seg r b10Offset (fun m ↦ Facts r m ((484, 1024, wotsRaw r 0) :: 
 theorem s11 : Seg r b11Offset (fun m ↦ Facts r m ((19008, 1024, wotsRaw r 0) :: baseL r) (K16 r)) b12Offset
     (fun m ↦ Facts r m ((16960, 1024, wotsRaw r 0) :: (8224, 128, pathRaw r 0) :: baseL r)
       (K16 r)) := fun m h ↦
-  Eventually.mono (step_memcpy r hp hc hpre b11_in_code run_b11 rfl rfl rfl
+  Eventually.mono_elf (step_memcpy r hp hc hpre b11_in_code run_b11 rfl rfl rfl
     (a := 16960) (b := 19008) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide)
     h ⟨(h.reg (x := .X19) (v := r.sigPtr) (by simp [K16, K0])).trans (by show _ = r.sigPtr + BitVec.ofInt 64 0; simp), trivial⟩
     (by facts_side) (by simp only [K16]; facts_side)
@@ -111,7 +111,7 @@ theorem s_copy {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.Sphinc
     (hKc : savedK K = true) :
     Seg r j (fun m ↦ Facts r m ((b, 1024, W) :: L) K) (j + ds.length)
       (fun m ↦ Facts r m ((a, 1024, W) :: L) K) := fun _ h ↦
-  Eventually.mono (step_memcpy r hp hc hpre hk hx hw hsp h29 h0 h1 h2 ha hb hab h trivial hLb hKb
+  Eventually.mono_elf (step_memcpy r hp hc hpre hk hx hw hsp h29 h0 h1 h2 ha hb hab h trivial hLb hKb
     (Lnew := []) (fun _ _ ↦ trivial) (Knew := []) (fun _ _ ↦ trivial) hLc hKc (bs := W)
     List.mem_cons_self) fun _ ⟨hpc, h'⟩ ↦ ⟨hpc, h'.drop1⟩
 

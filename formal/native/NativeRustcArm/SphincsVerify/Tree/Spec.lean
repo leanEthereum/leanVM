@@ -57,12 +57,12 @@ theorem length_pkRoot (r : Run) : r.pk.root.length = 16 := by
 
 /-! ## The region's end -/
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **The layer loop's next turn, or the comparison**: from the fold's end. -/
-theorem fold_end (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
+theorem fold_end (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {l : Nat} {e : List (List UInt8)}
     {m : MachineData} (h : AtFold r l e m) :
-    Eventually (step1 Host.exe) (fun st ↦
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦
       if l = 2 then r.Done (r.layerRoot l e == r.pk.root) st
       else st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b92Offset ∧ r.AtLayer (l + 1) (r.layerRoot l e) st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b170Offset⟩ := by
   obtain ⟨hB, hV⟩ := h
@@ -76,9 +76,9 @@ theorem fold_end (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List
   have hld16 : (r.env m).load 0 16 8 = (l + 1).toUInt64.toBitVec := load_word h16
   have hld24 : (r.env m).load 0 24 8 = (4656 + 1028 * (l + 1)).toUInt64.toBitVec := load_word h24
   have hwf := r.frame_wf hpre hB.2.1 (fun _ ↦ 0)
-  refine exec_then (hb170 hp) run_b170 hwf (match_base hpre hB) fun st1 hm1 hpc1 ↦ ?_
-  have hpc1' : st1.pc = Host.addrOf (r.k + NativeRustcArm.Sphincs.SphincsVerify.b172Offset) := hpc1.trans (lbl_77 hp)
-  refine exec_at (hb172 hp) (exec_after run_b170 run_b172) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_then_elf (hb170 hp) run_b170 hwf (match_base hpre hB) fun st1 hm1 hpc1 ↦ ?_
+  have hpc1' : st1.pc = ElfHost.addrOf r.sec (r.k + NativeRustcArm.Sphincs.SphincsVerify.b172Offset) := hpc1.trans (lbl_77 hp)
+  refine exec_at_elf (hb172 hp) (exec_after run_b170 run_b172) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
   have hlo := load_lo (vars := fun _ ↦ 0) hV hlen
   have hhi := load_hi (vars := fun _ ↦ 0) hV hlen
   have hS20 : BytesAt st2.data.dmem (r.off 20032) (r.layerRoot l e) := by
@@ -92,7 +92,7 @@ theorem fold_end (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List
     have hpc2' := pc_cond (b := false) hpc2 (by sym_simp; rw [hld24]; decide)
     rw [Sym.ite_neg Bool.false_ne_true, pc_after NativeRustcArm.Sphincs.SphincsVerify.b172_next]
       at hpc2'
-    refine exec_at (hb173 hp) (exec_after run_b172 run_b173) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
+    refine exec_at_elf (hb173 hp) (exec_after run_b172 run_b173) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
     have hF3 := Run.Frame.of_match r hpre hB.2.1 hm3 hwf rfl rfl (by decide)
     have hpc3' : st3.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b179Offset := hpc3.trans (lbl_84 hp)
     have hroot := pkRoot_at hIn
@@ -158,7 +158,7 @@ theorem fold_end (hp : Placed code r.k) (hpre : r.Pre) {l : Nat} {e : List (List
 `b92` with the layer's root, or, after the last, returned the comparison with `PK.root`. -/
 theorem tree_spec : TreeSpec := by
   intro l e r hp hc hpre m h
-  exact Eventually.bind (toFold hp hc hpre h) (at_pc fun m h ↦ fold_end hp hpre h)
+  exact Eventually.bind_elf (toFold hp hc hpre h) (at_pc fun m h ↦ fold_end hp hpre h)
 
 end
 

@@ -128,17 +128,17 @@ theorem wf_got [Labels] {m0 m : MachineData} (hpre : FinalizePre m0)
     · exact hfh
     · exact hfg
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **The prologue and the copies to the frame.** -/
-theorem stage2_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hmemset : Spec (Labels.label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost) {m0 : MachineData}
-    (hpre : FinalizePre m0) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Finalize.b5Offset) ∧ ∃ m1, Pro m0 m1 ∧ Stage2 m0 m1 st.data)
-      ⟨m0, Host.addrOf (k + NativeRustcX64.Common.Finalize.b0Offset)⟩ := by
+theorem stage2_spec (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hmemset : ElfSpec (Labels.label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost)
+    {m0 : MachineData} (hpre : FinalizePre m0) :
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b5Offset) ∧ ∃ m1, Pro m0 m1 ∧ Stage2 m0 m1 st.data)
+      ⟨m0, ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b0Offset)⟩ := by
   have g := geo_of hpre
   have hs := g.s
   have hs8 := g.s8
@@ -153,7 +153,7 @@ theorem stage2_spec (hp : Placed code k)
     fun o ho => toNat_add_ofNat' (by have := g.h; omega)
   -- The prologue.
   let env0 := Env.ofMachine m0 (gotRegions m0 "memcpy") (fun _ => 0)
-    (Host.addrOf (k + NativeRustcX64.Common.Finalize.b0Offset + b0.length)).toBitVec
+    (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b0Offset + b0.length)).toBitVec
   have hwf0 : env0.WF := wf_got hpre (fun _ h => h) (by simp)
   have hbF0 : env0.base 0 = frAt m0 := rfl
   have hknown0 : ∀ w ∈ knownGot "memcpy", ∀ i < w.n,
@@ -166,7 +166,7 @@ theorem stage2_spec (hp : Placed code k)
       (got_of hpre).byte (l := "memcpy") (by simp) hi
   have hm0base := match_ofMachine (m := m0) (regions := gotRegions m0 "memcpy")
     (vars := fun _ => 0)
-    (ret := (Host.addrOf (k + NativeRustcX64.Common.Finalize.b0Offset + b0.length)).toBitVec)
+    (ret := (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b0Offset + b0.length)).toBitVec)
     (sregions := [392, 344, 8]) (known := [(.rsp, .ptr 0 384)])
     (labels := []) (bounds := []) (aliases := [(.gotSlot "memcpy", 2, 0)])
     ⟨rfl, rfl, rfl, trivial⟩
@@ -178,7 +178,7 @@ theorem stage2_spec (hp : Placed code k)
   have hm0 : Match env0 entryS m0 :=
     hm0base.withKnownBytes (r := 2) (off := 0) (n := 8) (v := .label "memcpy")
       (hknown0 ⟨2, 0, 8, .label "memcpy"⟩ (by simp [knownGot]))
-  refine exec_then (hb0 hp) run_b0 hwf0 (fun _ _ => rfl) hm0 fun st1 hm1 hpc1 => ?_
+  refine exec_then_elf (hb0 hp) run_b0 hwf0 (fun _ _ => rfl) hm0 fun st1 hm1 hpc1 => ?_
   have hl0 := b0_mem
   rw [after_eq run_b0] at hl0
   have hsl0 := b0_slots
@@ -216,7 +216,7 @@ theorem stage2_spec (hp : Placed code k)
     show reg st1.data .rsp = _
     rw [hX .rsp _ (by rw [after_eq run_b0]; rfl)]; simp only [Sym.eval, hbF0]; simp
   -- The first `memcpy`: the state.
-  refine call_then hpc1 hmemcpy ?pre1 fun st2 hpc2 hrsp2 hpost2 => ?_
+  refine call_then_elf hpc1 hmemcpy ?pre1 fun st2 hpc2 hrsp2 hpost2 => ?_
   case pre1 =>
     refine ⟨⟨Nat.zero_le _, by rw [rspOf, hrsp1]; omega, fun i hi => ?_⟩, fun i hi => ?_,
       fun i hi => ?_, ?_, ?_, ?_, ?_⟩
@@ -267,10 +267,11 @@ theorem stage2_spec (hp : Placed code k)
     exact hatom .r15 .rsi (by simp)
   -- `b1`, `b2`, `b3`.
   obtain ⟨d2, pc2⟩ := st2
-  have hpc2' : pc2 = Host.addrOf (k + NativeRustcX64.Common.Finalize.b1Offset) := by rw [show pc2 = _ from hpc2]; rfl
+  have hpc2' : pc2 = ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b1Offset) := by
+    rw [show pc2 = _ from hpc2]; rfl
   subst hpc2'
   let env2 := Env.ofMachine d2 (gotRegions m0 "memset") (fun _ => 0)
-    (Host.addrOf (k + NativeRustcX64.Common.Finalize.b3Offset + b3.length)).toBitVec
+    (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b3Offset + b3.length)).toBitVec
   have hwf2 : env2.WF := wf_got hpre hfr2.kept (by simp)
   have hbF : env2.base 0 = frAt m0 := rfl
   have hbH : env2.base 1 = hAt m0 := rfl
@@ -282,7 +283,8 @@ theorem stage2_spec (hp : Placed code k)
     rw [got_same hpre hfr2 h01 (l := "memset") (by simp) hi]
     exact (got_of hpre).byte (l := "memset") (by simp) hi
   have hm2base := match_ofMachine (m := d2) (regions := gotRegions m0 "memset")
-    (vars := fun _ => 0) (ret := (Host.addrOf (k + NativeRustcX64.Common.Finalize.b3Offset + b3.length)).toBitVec)
+    (vars := fun _ => 0)
+    (ret := (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b3Offset + b3.length)).toBitVec)
     (sregions := [392, 344, 8]) (known := [(.rsp, .ptr 0 8), (.r15, .ptr 1 0)]) (labels := [])
     (bounds := []) (aliases := [(.gotSlot "memset", 2, 0)]) ⟨rfl, rfl, rfl, trivial⟩
     ⟨by simp only [Sym.eval, hbF]; exact hfr2.rsp,
@@ -300,11 +302,11 @@ theorem stage2_spec (hp : Placed code k)
     exact bytesOf_congr hH2
   have hLv : (BitVec.ofInt 64 (Int.ofBytes ((hbytes m0).drop 336))).toNat = lenOf m0 :=
     bufLen_ofBytes (length_hbytes m0)
-  refine exec_then (hb1 hp) run_b1 hwf2 (fun _ h => nomatch h) hm2 fun st3 hm3 hpc3 => ?_
+  refine exec_then_elf (hb1 hp) run_b1 hwf2 (fun _ h => nomatch h) hm2 fun st3 hm3 hpc3 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, low_W64, hload] at hpc3
   simp only [Nat.add_assoc, NativeRustcX64.Common.Finalize.b1_next] at hpc3
   rw [ite_neg' (by simp [BitVec.ult, hLv]; omega)] at hpc3
-  refine exec_at (hb2 hp) (exec_after run_b1 run_b2) hwf2 (fun _ h => nomatch h) hpc3 hm3
+  refine exec_at_elf (hb2 hp) (exec_after run_b1 run_b2) hwf2 (fun _ h => nomatch h) hpc3 hm3
     fun st4 hm4 hpc4 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, low_W64, hload] at hpc4
   simp only [Nat.add_assoc, NativeRustcX64.Common.Finalize.b2_next] at hpc4
@@ -317,7 +319,7 @@ theorem stage2_spec (hp : Placed code k)
     omega)] at hpc4
   have hr3 := run_b3
   rw [after_eq run_b1, after_eq (exec_after run_b1 run_b2)] at hr3
-  refine exec_at (hb3 hp) (exec_after (exec_after run_b1 run_b2) run_b3) hwf2 (fun _ _ => rfl)
+  refine exec_at_elf (hb3 hp) (exec_after (exec_after run_b1 run_b2) run_b3) hwf2 (fun _ _ => rfl)
     hpc4 hm4 fun st5 hm5 hpc5 => ?_
   have hl3 := b3_mem
   rw [after_eq run_b1, after_eq (exec_after run_b1 run_b2),
@@ -335,7 +337,7 @@ theorem stage2_spec (hp : Placed code k)
   have hr15' : reg st5.data .r15 = hAt m0 + BitVec.ofNat 64 200 := by
     unfold reg; rw [hm5.regs .r15 _ rfl]; simp only [Sym.eval, hbH]; rfl
   -- `memset`: the block zeroed.
-  refine call_then hpc5 hmemset ?pre5 fun st6 hpc6 hrsp6 hpost6 => ?_
+  refine call_then_elf hpc5 hmemset ?pre5 fun st6 hpc6 hrsp6 hpost6 => ?_
   case pre5 =>
     refine ⟨⟨Nat.zero_le _, by rw [rspOf, hrsp5]; omega, fun i hi => ?_⟩, fun i hi => ?_, ?_, ?_⟩
     · rw [rspOf, hrsp5, BitVec.sub_zero]
@@ -370,10 +372,11 @@ theorem stage2_spec (hp : Placed code k)
     unfold reg; rw [hsaved6.1 .r14 rfl]; exact hr14
   -- `b4`, and the second `memcpy`: the buffered bytes.
   obtain ⟨d6, pc6⟩ := st6
-  have hpc6' : pc6 = Host.addrOf (k + NativeRustcX64.Common.Finalize.b4Offset) := by rw [show pc6 = _ from hpc6]; rfl
+  have hpc6' : pc6 = ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b4Offset) := by
+    rw [show pc6 = _ from hpc6]; rfl
   subst hpc6'
   let env6 := Env.ofMachine d6 (gotRegions m0 "memcpy") (fun _ => 0)
-    (Host.addrOf (k + NativeRustcX64.Common.Finalize.b4Offset + b4.length)).toBitVec
+    (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b4Offset + b4.length)).toBitVec
   have hwf6 : env6.WF := wf_got hpre hfr6.kept (by simp)
   have hbF6 : env6.base 0 = frAt m0 := rfl
   have hbH6 : env6.base 1 = hAt m0 := rfl
@@ -385,7 +388,8 @@ theorem stage2_spec (hp : Placed code k)
     rw [got_same hpre hfr6 h01 (l := "memcpy") (by simp) hi]
     exact (got_of hpre).byte (l := "memcpy") (by simp) hi
   have hm6base := match_ofMachine (m := d6) (regions := gotRegions m0 "memcpy")
-    (vars := fun _ => 0) (ret := (Host.addrOf (k + NativeRustcX64.Common.Finalize.b4Offset + b4.length)).toBitVec)
+    (vars := fun _ => 0)
+    (ret := (ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b4Offset + b4.length)).toBitVec)
     (sregions := [392, 344, 8]) (known := [(.rsp, .ptr 0 8), (.r12, .ptr 0 16), (.r15, .ptr 1 200)])
     (labels := []) (bounds := []) (aliases := [(.gotSlot "memcpy", 2, 0)]) ⟨rfl, rfl, rfl, trivial⟩
     ⟨by simp only [Sym.eval, hbF6]; exact hfr6.rsp,
@@ -393,7 +397,7 @@ theorem stage2_spec (hp : Placed code k)
       by simp only [Sym.eval, hbH6]; exact hr15'', trivial⟩ trivial trivial
     ⟨(BitVec.add_zero _).symm, trivial⟩
   have hm6 : Match env6 setS d6 := hm6base.withKnownBytes hknown6
-  refine exec_then (hb4 hp) run_b4 hwf6 (fun _ _ => rfl) hm6 fun st7 hm7 hpc7 => ?_
+  refine exec_then_elf (hb4 hp) run_b4 hwf6 (fun _ _ => rfl) hm6 fun st7 hm7 hpc7 => ?_
   have hl4 := b4_mem
   rw [after_eq run_b4] at hl4
   have hrdi7 : reg st7.data .rdi = frAt m0 + BitVec.ofNat 64 16 := by
@@ -409,7 +413,7 @@ theorem stage2_spec (hp : Placed code k)
     hm7.get?_mem0 hwf6 fun hw => hp (written_lim (r := 0) (h := frAt m0) (sz := 392) rfl
       (lim := 8) (fun w hw => by
         rw [hl4] at hw; simp only [List.mem_singleton] at hw; subst hw; decide) hw)
-  refine call_then hpc7 hmemcpy ?pre7 fun st8 hpc8 hrsp8 hpost8 => ?_
+  refine call_then_elf hpc7 hmemcpy ?pre7 fun st8 hpc8 hrsp8 hpost8 => ?_
   case pre7 =>
     refine ⟨⟨Nat.zero_le _, by rw [rspOf, hrsp7]; omega, fun i hi => ?_⟩, fun i hi => ?_,
       fun i hi => ?_, ?_, ?_, ?_, ?_⟩

@@ -47,13 +47,13 @@ theorem zeros_slice {d : DataMem} {o n a k : Nat} (h : BytesAt d (r.off o) (List
 theorem bytes_lit0 : (List.range 8).map (byteOf (BitVec.ofNat 64 0)) = List.replicate 8 0 := by
   decide
 
-variable [Host]
+variable [ElfHost]
 
 /-- **A node's middle**: from `N1 r c z` at `b57`, `N2 r c z` at `b82`. -/
-theorem node_mid (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem node_mid (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {c z : Nat} {m : MachineData} (h : N1 r c z m) {R : MachineState → Prop}
-    (cont : ∀ m', N2 r c z m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b82Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b57Offset⟩ := by
+    (cont : ∀ m', N2 r c z m' → Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b82Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b57Offset⟩ := by
   obtain ⟨hK, hz, w64, w104, h12, hblock, ha0, hch, had, h14⟩ := h
   have hc24 := hK.2.1.hc
   have hadl : (r.nodeAdrsOf c z).length = 32 := length_forsNodeAdrs _ _ _ _

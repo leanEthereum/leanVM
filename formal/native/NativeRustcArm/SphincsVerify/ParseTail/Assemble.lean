@@ -56,7 +56,7 @@ end
 
 public section
 
-variable (r : Run) [NativeRustcArm.Host] (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+variable (r : Run) [ElfHost] (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
   (hpre : r.Pre)
 include hp hc hpre
 

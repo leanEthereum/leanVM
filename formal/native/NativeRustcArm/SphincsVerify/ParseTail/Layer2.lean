@@ -40,7 +40,7 @@ end
 
 public section
 
-variable (r : Run) [NativeRustcArm.Host] (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+variable (r : Run) [ElfHost] (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
   (hpre : r.Pre)
 include hp hc hpre
 
@@ -75,7 +75,7 @@ theorem s26 : Seg r b26Offset (fun m ↦ Facts r m ((484, 1024, wotsRaw r 2) :: 
       ((.X9, r.sigPtr + BitVec.ofNat 64 6556) :: (.X28, r.off 484) :: K25 r)) b27Offset
     (fun m ↦ Facts r m ((19008, 1024, wotsRaw r 2) :: L24 r)
       ((.X25, r.off 484) :: K25 r)) := fun _ h ↦
-  Eventually.mono (step_memcpy r hp hc hpre b26_in_code run_b26 rfl rfl rfl
+  Eventually.mono_elf (step_memcpy r hp hc hpre b26_in_code run_b26 rfl rfl rfl
     (a := 19008) (b := 484) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide)
     h.dropK.dropK trivial (by simp only [L24, L16]; facts_side) (by simp only [K25]; facts_side)
     (Lnew := []) (fun _ _ ↦ trivial)
@@ -88,7 +88,7 @@ theorem s27 : Seg r b27Offset (fun m ↦ Facts r m ((19008, 1024, wotsRaw r 2) :
       ((.X25, r.off 484) :: K25 r)) b28Offset
     (fun m ↦ Facts r m ((16960, 1024, wotsRaw r 2) :: (8480, 160, pathRaw r 2) :: L24 r)
       (K28 r)) := fun m h ↦
-  Eventually.mono (step_memcpy r hp hc hpre b27_in_code run_b27 rfl rfl rfl
+  Eventually.mono_elf (step_memcpy r hp hc hpre b27_in_code run_b27 rfl rfl rfl
     (a := 16960) (b := 19008) (n := 1024) rfl rfl rfl (by decide) (by decide) (by decide)
     (h.weakenK (K' := (.X25, r.off 484) :: [(.X20, r.off 448), (.X21, r.msgPtr), (.X22, r.off 484)])
       (by simp [K25, K0]))

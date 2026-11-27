@@ -55,8 +55,8 @@ lean_lib NativeRustc where
 @[default_target]
 lean_lib NativeRustcArm where
   globs := #[
-    .one `NativeRustcArm, .one `NativeRustcArm.Basic, .one `NativeRustcArm.Data, .one `NativeRustcArm.Host,
-    .one `NativeRustcArm.Restrict,
+    .one `NativeRustcArm, .one `NativeRustcArm.Basic, .one `NativeRustcArm.Data, .one `NativeRustcArm.ElfHost,
+    .one `NativeRustcArm.Host, .one `NativeRustcArm.Restrict,
     .submodules `NativeRustcArm.Hasher, .submodules `NativeRustcArm.KeccakF,
     .one `NativeRustcArm.LayerRead.Glue, .submodules `NativeRustcArm.Mem,
     .one `NativeRustcArm.Rodata, .submodules `NativeRustcArm.Spec, .one `NativeRustcArm.Sphincs,
@@ -65,7 +65,7 @@ lean_lib NativeRustcArm where
 @[default_target]
 lean_lib NativeRustcX64 where
   globs := #[
-    .one `NativeRustcX64, .one `NativeRustcX64.Basic, .one `NativeRustcX64.Data,
+    .one `NativeRustcX64, .one `NativeRustcX64.Basic, .one `NativeRustcX64.Data, .one `NativeRustcX64.ElfHost,
     .one `NativeRustcX64.Got, .one `NativeRustcX64.Restrict, .submodules `NativeRustcX64.Hasher,
     .submodules `NativeRustcX64.KeccakF, .one `NativeRustcX64.LayerRead.Glue,
     .submodules `NativeRustcX64.Mem, .one `NativeRustcX64.Mem, .one `NativeRustcX64.Rodata,

@@ -122,14 +122,14 @@ theorem bytes_load_off {m : MachineData} {vars : Nat → BitVec 64} {a o n : Nat
 
 /-- **A child's `ldp`**: in the environment of its 16 bytes at `a`, the block loads its two
 words. -/
-theorem ldp_child [Host] (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {x : XReg}
+theorem ldp_child [ElfHost] {sec : Nat} (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {x : XReg}
     {a : Nat} (ha : a + 16 ≤ 21616) (hx : Run.RegIs m x (r.off a)) {ds : List Directive} {j : Nat}
-    (hk : ds.IsInfixAt Host.prog j) {S' : SState} {e : Exit} (hrun : exec ds (ldS x) = some (S', e)) (hmem : S'.mem = [])
+    (hk : ds.IsInfixAt (ElfHost.sectionProg sec) j) {S' : SState} {e : Exit} (hrun : exec ds (ldS x) = some (S', e)) (hmem : S'.mem = [])
     {R : MachineState → Prop}
     (cont : ∀ st, Match (Env.ofMachine m [(r.off a, 16)]) S' st.data →
-      PcOk (Env.ofMachine m [(r.off a, 16)]) e (Host.addrOf (j + ds.length)) st →
-      st.data.dmem = m.dmem → Eventually (step1 Host.exe) R st) :
-    Eventually (step1 Host.exe) R ⟨m, Host.addrOf j⟩ := by
+      PcOk (Env.ofMachine m [(r.off a, 16)]) e (ElfHost.addrOf sec (j + ds.length)) st →
+      st.data.dmem = m.dmem → Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, ElfHost.addrOf sec j⟩ := by
   have hwf : (Env.ofMachine m [(r.off a, 16)]).WF :=
     Env.wf_of ⟨r.frame_mapped hpre hF ha, trivial⟩ (List.pairwise_singleton _ _)
   have hm : Match (Env.ofMachine m [(r.off a, 16)]) (ldS x) m :=
@@ -138,7 +138,7 @@ theorem ldp_child [Host] (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {x : 
         show _ = r.off a + BitVec.ofInt 64 0
         rw [hx]
         simp, trivial⟩ trivial trivial trivial
-  exact exec_then hk hrun hwf hm fun st hm' hpc ↦ cont st hm' hpc (hm'.dmem_eq hwf hmem)
+  exact exec_then_elf hk hrun hwf hm fun st hm' hpc ↦ cont st hm' hpc (hm'.dmem_eq hwf hmem)
 
 /-- `Base` where memory, SP and the region's registers are as they were. -/
 theorem Base.of_eq {m m' : MachineData} (hB : Base r m) (hd : m'.dmem = m.dmem)
@@ -177,12 +177,12 @@ theorem pieces16 {d : DataMem} {o : Nat} {L : List UInt8} (h : L.length = 16)
   rw [split16 h]
   exact bytesAt_cat (by simp [h]) h1 h2
 
-variable [Host]
+variable [ElfHost]
 
 /-- **A node's inputs** (`b58` and `memset`): from a node's head, `N1` at `b59`. -/
-theorem node_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
+theorem node_s1 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat} {m : MachineData}
     (h : AtNode r c z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b59Offset ∧ N1 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b59Offset ∧ N1 r c z st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b58Offset⟩ := by
   obtain ⟨hT, hz, h19, h21, h20, h25, hcur⟩ := h
   have hB := hT.base
   have hc24 := hT.hc
@@ -203,7 +203,7 @@ theorem node_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
   -- piece a: the value's copy, the children's addresses
   have hwf0 := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have hm0 : Match (r.env m) s0 m := match_frameS hpre hB trivial trivial
-  refine exec_then (hb58a hp) run_b58a hwf0 hm0 fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb58a hp) run_b58a hwf0 hm0 fun st1 hm1 hpc1 ↦ ?_
   obtain ⟨hB1, hk1⟩ := hB.of_match hpre hm1 hwf0 rfl rfl rfl rfl rfl rfl
   have h21' : (m.regs.getXReg .X21).toBitVec = BitVec.ofNat 64 z := h21
   have hl440 : (r.env m).load 0 440 8 = BitVec.ofNat 64 (r.leafOf c) := load_word hT.w440
@@ -259,7 +259,7 @@ theorem node_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     rw [Run.RegIs, reg_of hm2 rfl]; exact (hm1.regs .X0 _ rfl).trans (eval_ptr 8192)
   have hm2' : Match (r.env st2.data) s58c st2.data :=
     match_frameS hpre hB2 ⟨known_ptr h11, known_ptr h0, trivial⟩ trivial
-  refine exec_then (hb58c hp) run_b58c hwf2 hm2' fun st3 hm3 hpc3 ↦ ?_
+  refine exec_then_elf (hb58c hp) run_b58c hwf2 hm2' fun st3 hm3 hpc3 ↦ ?_
   obtain ⟨hB3, hk3⟩ := hB2.of_match hpre hm3 hwf2 rfl rfl rfl rfl rfl rfl
   -- piece d: the right child's words
   have hx10' : Run.RegIs st3.data .X10 (r.off offR) := by
@@ -280,7 +280,7 @@ theorem node_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
     rw [Run.RegIs, reg_of hm4 rfl]; exact (hm3.regs .X11 _ rfl).trans (eval_ptr 14912)
   have hm4' : Match (r.env st4.data) s58e st4.data :=
     match_frameS hpre hB4 ⟨known_ptr h11', trivial⟩ trivial
-  refine exec_then (hb58e hp) run_b58e hwf4 hm4' fun st5 hm5 hpc5 ↦ ?_
+  refine exec_then_elf (hb58e hp) run_b58e hwf4 hm4' fun st5 hm5 hpc5 ↦ ?_
   obtain ⟨hB5, hk5⟩ := hB4.of_match hpre hm5 hwf4 rfl rfl rfl rfl rfl rfl
   -- registers through the pieces
   have e19 : st5.data.regs.getXReg .X19 = m.regs.getXReg .X19 := by
@@ -351,7 +351,7 @@ theorem node_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c z : Nat}
       simp only [Sym.eval, Env.ofMachine_regs, h21'', h19', e12]
       exact bytes_index hz hl
   -- `memset` of hasher A
-  refine call_then hpc5 hc.2.1 (r.memset_pre hpre hB5.frame h0' h2' (by decide)) fun st6 hpc6 hpost ↦ ?_
+  refine call_then_elf hpc5 hc.2.1 (r.memset_pre hpre hB5.frame h0' h2' (by decide)) fun st6 hpc6 hpost ↦ ?_
   obtain ⟨hz6, hout6, hS6⟩ := r.memset_out h0' h2' hpost
   obtain ⟨hB6, hk6⟩ := hB5.of_call hpre hS6 (a := 8640) (n := 344) (N := 0) (by decide) (by decide)
     hout6 (fun o h1 h2 ↦ by unfold Scr; omega)

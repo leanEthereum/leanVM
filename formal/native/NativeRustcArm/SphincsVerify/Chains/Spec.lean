@@ -53,17 +53,17 @@ theorem digit_cond (d : Nat) : (!decide (d < 2) && !decide (d = 2)) = decide (2 
       decide
     · simp [h1, h2, show 2 < d by omega]
 
-variable [NativeRustcArm.Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b105`**: chain `i`'s digit and value; then its steps, and `b104`. -/
-theorem seg_b105 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b105 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hl : l < 3) (hx : x.length = 64) {i : Nat} (hi : i < 64)
     (hEl : E.length = 16 * i) {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m)
     (h1 : Run.RegIs m .X1 (BitVec.ofNat 64 i))
     (cont : ∀ m', Keep r l x E m' → r.WordAt m' 416 i.toUInt64 →
       BytesAt m'.dmem (r.off 8224) (chainEnd r l x i) →
-      Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b105Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b105Offset⟩ := by
   have hF := hK.1
   have hv := r.length_wots_getD hl hi
   have hval : BytesAt m.dmem (r.off (5140 + 1028 * l + 16 * i)) ((r.layerSig l).wots.getD i []) := by
@@ -207,12 +207,12 @@ theorem seg_b105 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     exact hcell
 
 /-- **The chains from chain `i`**: the ends of chains `i .. 63` after those before. -/
-theorem chains_loop (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem chains_loop (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x : List UInt8} (hl : l < 3) (hx : x.length = 64) :
     ∀ (n i : Nat) {m : MachineData}, i + n = 64 → 0 < n →
       Keep r l x ((List.range i).map (chainEnd r l x)).flatten m →
       Run.RegIs m .X1 (BitVec.ofNat 64 i) →
-      Eventually (step1 NativeRustcArm.Host.exe)
+      Eventually (elfStep1 ElfHost.exe)
         (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b134Offset ∧ r.AtWotsPk l (r.chainEnds l x) st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b105Offset⟩
   | 0, _, _, _, hn, _, _ => absurd hn (by decide)
   | n + 1, i, m, hin, _, hK, h1 => by

@@ -308,32 +308,43 @@ theorem byteOf_ofNat_ofBytes (bs : List UInt8) (hn : bs.length ≤ 8) (t : Nat) 
 
 /-! ## Places -/
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
-theorem hb0 (hp : Placed code k) : b0.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b0Offset) :=
+theorem hb0 (hp : PlacedIn code sec k) :
+    b0.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b0Offset) :=
   b0_in_code.trans hp.1 (by simp [b0])
-theorem hb1 (hp : Placed code k) : b1.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b1Offset) :=
+theorem hb1 (hp : PlacedIn code sec k) :
+    b1.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b1Offset) :=
   b1_in_code.trans hp.1 (by simp [b1])
-theorem hb2 (hp : Placed code k) : b2.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b2Offset) :=
+theorem hb2 (hp : PlacedIn code sec k) :
+    b2.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b2Offset) :=
   b2_in_code.trans hp.1 (by simp [b2])
-theorem hb3 (hp : Placed code k) : b3.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b3Offset) :=
+theorem hb3 (hp : PlacedIn code sec k) :
+    b3.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b3Offset) :=
   b3_in_code.trans hp.1 (by simp [b3])
-theorem hb4 (hp : Placed code k) : b4.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b4Offset) :=
+theorem hb4 (hp : PlacedIn code sec k) :
+    b4.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b4Offset) :=
   b4_in_code.trans hp.1 (by simp [b4])
-theorem hb5 (hp : Placed code k) : b5.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b5Offset) :=
+theorem hb5 (hp : PlacedIn code sec k) :
+    b5.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b5Offset) :=
   b5_in_code.trans hp.1 (List.cons_ne_nil _ _)
-theorem hb5ab (hp : Placed code k) : (b5a ++ b5b).IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b5Offset) := by
+theorem hb5ab (hp : PlacedIn code sec k) :
+    (b5a ++ b5b).IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b5Offset) := by
   rw [b5a, b5b, List.take_append_drop]
   exact hb5 hp
-theorem hb5a (hp : Placed code k) : b5a.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b5Offset) :=
+theorem hb5a (hp : PlacedIn code sec k) :
+    b5a.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b5Offset) :=
   (List.IsInfixAt.append (hb5ab hp)).1
-theorem hb5b (hp : Placed code k) : b5b.IsInfixAt Host.prog (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length)) :=
+theorem hb5b (hp : PlacedIn code sec k) :
+    b5b.IsInfixAt (ElfHost.sectionProg sec) (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length)) :=
   (List.IsInfixAt.append (hb5ab hp)).2
-theorem hb6 (hp : Placed code k) : b6.IsInfixAt Host.prog (k + NativeRustcX64.Common.Finalize.b6Offset) :=
+theorem hb6 (hp : PlacedIn code sec k) :
+    b6.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcX64.Common.Finalize.b6Offset) :=
   b6_in_code.trans hp.1 (List.cons_ne_nil _ _)
 
-theorem lbl_entry (hp : Placed code k) :
-    Labels.label NativeRustcX64.Common.Finalize.entryLabel = Host.addrOf (k + NativeRustcX64.Common.Finalize.b0Offset) :=
+theorem lbl_entry (hp : PlacedIn code sec k) :
+    Labels.label NativeRustcX64.Common.Finalize.entryLabel =
+      ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b0Offset) :=
   hp.label NativeRustcX64.Common.Finalize.entry_at
 
 end

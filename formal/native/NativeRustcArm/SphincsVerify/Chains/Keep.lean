@@ -130,10 +130,10 @@ end
 
 /-! ## Labels -/
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **A label of the function** is the address of the block it starts. -/
-theorem labelAt (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) {b : List Directive}
+theorem labelAt (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) {b : List Directive}
     {j : Nat} (hb : b.IsInfixAt Sphincs.SphincsVerify.code j) {l : Label} {b' : List Directive}
     (h : b = .label l :: b') : Labels.label l = r.pc j := by
   subst h

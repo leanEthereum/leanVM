@@ -33,20 +33,20 @@ theorem ofNat_beq_zero {x : Nat} (hx : x < 2 ^ 64) : (BitVec.ofNat 64 x == 0#64)
     subst h
     rfl
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 /-- **The end of a turn**: back to the loop head with `c + t` bytes absorbed if input remains,
 else to the loop's exit with all of it. -/
-theorem b1_spec (hp : Placed code k) {m0 m1 m : MachineData} {c t : Nat}
+theorem b1_spec (hp : PlacedIn code sec k) {m0 m1 m : MachineData} {c t : Nat}
     (hmid : Mid m0 m1 c t m) :
-    Eventually (step1 Host.exe)
-      (fun st => (st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b2Offset) ∧ Inv m0 m1 (c + t) st.data ∧ 0 < t) ∨
-        (st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b8Offset) ∧ Inv m0 m1 (nOf m0) st.data))
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Update.b1Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b2Offset) ∧ Inv m0 m1 (c + t) st.data ∧ 0 < t) ∨
+        (st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b8Offset) ∧ Inv m0 m1 (nOf m0) st.data))
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b1Offset)⟩ := by
   have hwf : (Env.ofMachine m []).WF := Env.wf_of trivial List.Pairwise.nil
   have hm : Match (Env.ofMachine m []) regsS m :=
     match_ofMachine trivial rfl trivial trivial trivial trivial
-  refine exec_then (hb1 hp) run_b1 hwf hm fun st hm' hpc => ?_
+  refine exec_then_elf (hb1 hp) run_b1 hwf hm fun st hm' hpc => ?_
   have hmem : ∀ p, st.data.dmem.get? p = m.dmem.get? p := fun p =>
     hm'.get?_mem0 hwf fun ⟨_, hw, _⟩ => by simp at hw
   have hn : nOf m0 < 2 ^ 64 := UInt64.toNat_lt _

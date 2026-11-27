@@ -154,6 +154,63 @@ theorem exec_sound {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog 
 
 end
 
+section
+variable [ElfHost] {env : Env}
+
+/-- One directive of a block inside section `sec` of a multi-section AArch64 `ElfHost`. -/
+theorem stepD_ok_elf {sec : Nat} {d : Directive} {p : Program} {k : Nat}
+    (hdp : (d :: p).IsInfixAt (ElfHost.sectionProg sec) k)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    (h : stepD d S = some (S', x)) :
+    Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (ElfHost.addrOf sec k.succ) st) ⟨m, ElfHost.addrOf sec k⟩ := by
+  apply ElfHost.eventually_of_interp hdp
+  cases d with
+  | label l =>
+    cases h
+    exact done_fall (p := ⟨ElfHost.addrOf sec k, ElfHost.addrOf sec k.succ⟩) hm
+  | instr i =>
+    exact stepOp_ok i.operation S S' x m ⟨ElfHost.addrOf sec k, ElfHost.addrOf sec k.succ⟩ hwf hm h
+  | byteArray _ => cases h
+  | word _ _ => cases h
+
+/-- **The symbolic executor is sound under a multi-section AArch64 `ElfHost`.** -/
+theorem exec_sound_elf {sec : Nat} {ds : List Directive} {k : Nat}
+    (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF)
+    {m : MachineData} (hm : Match env S m) :
+    Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (ElfHost.addrOf sec (k + ds.length)) st) ⟨m, ElfHost.addrOf sec k⟩ := by
+  induction ds generalizing k S m with
+  | nil =>
+    cases hx
+    exact Eventually.done _ ⟨hm, rfl⟩
+  | cons d ds ih =>
+    have hd' := hk.cons
+    cases hd : stepD d S with
+    | none => simp [exec, hd] at hx
+    | some r =>
+      obtain ⟨S₁, x₁⟩ := r
+      cases x₁ with
+      | fall =>
+        simp only [exec, hd] at hx
+        refine eventually_trans _ _ _ _ (stepD_ok_elf hk hwf hm hd) fun st ⟨hm₁, hpc⟩ => ?_
+        obtain ⟨m₁, pc⟩ := st
+        simp only [PcOk] at hpc
+        subst hpc
+        have := ih hd'.2 hx hm₁
+        rwa [show k + 1 + ds.length = k + (d :: ds).length by simp [Nat.add_assoc, Nat.add_comm 1]]
+          at this
+      | _ =>
+        cases ds with
+        | cons _ _ => simp [exec, hd] at hx
+        | nil =>
+          simp only [exec, hd, Option.some.injEq, Prod.mk.injEq] at hx
+          obtain ⟨rfl, rfl⟩ := hx
+          exact stepD_ok_elf hk hwf hm hd
+
+end
+
 /-! ## The initial state -/
 
 theorem allXRegs_map_getElem? (f : XReg → Option Sym) (r : XReg) :

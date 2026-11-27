@@ -64,16 +64,16 @@ theorem holds_turn {m0 : MachineData} {c : Nat} {Hc : List UInt8} (hle : c ≤ n
   have := holds_updateStep_drop (D := input m0) (by rw [length_input]; exact hle) hh a ha
   rwa [length_input] at this
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Counting the copied bytes**: to `.LUpdate_1` after the turn, or to the absorption. -/
-theorem b5_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem b5_spec (hp : PlacedIn code sec k) {m0 m1 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
     {Hc : List UInt8} (hcp : Copied m0 m1 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => (st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b1Offset) ∧ Mid m0 m1 c (takeN m0 c Hc) st.data) ∨
-        (st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b6Offset) ∧ Full m0 m1 c Hc st.data))
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Update.b5Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b1Offset) ∧ Mid m0 m1 c (takeN m0 c Hc) st.data) ∨
+        (st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b6Offset) ∧ Full m0 m1 c Hc st.data))
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b5Offset)⟩ := by
   have g := geo_of hpre
   have hwf := wf_head hpre hcp.frame
   have hm := match_headS hcp.frame
@@ -117,7 +117,7 @@ theorem b5_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : UpdatePre m
     apply BitVec.eq_of_toNat_eq
     rw [BitVec.toNat_add, hV0, BitVec.toNat_ofNat, BitVec.toNat_ofNat]
     omega
-  refine exec_then (hb5 hp) run_b5 hwf hm fun st5 hm5 hpc5 => ?_
+  refine exec_then_elf (hb5 hp) run_b5 hwf hm fun st5 hm5 hpc5 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, BinOp.apply, low_W64, ext_W64,
     Env.ofMachine_regs, hload, hx22, hV, Nat.add_assoc, NativeRustcArm.Common.Update.b5_next] at hpc5
   -- Memory: the new `buf_len`.

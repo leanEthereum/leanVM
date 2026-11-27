@@ -18,7 +18,7 @@ open NativeRustcArm.Sphincs.SphincsVerify
 
 public section
 
-variable [Host] (r : Run)
+variable [ElfHost] (r : Run)
 
 /-- The node's hash input: `PK.seed | ADRS | children`. -/
 @[expose] def nodeIn (l : Nat) (e : List (List UInt8)) (z : Nat) : List UInt8 :=
@@ -32,16 +32,16 @@ turn's bytes taken and left. -/
 
 variable {r}
 
-omit [Host] in
+omit [ElfHost] in
 theorem length_nodeIn {l z : Nat} {e : List (List UInt8)} (hl : l < 3) (hz : z < heightOf l) :
     (nodeIn r l e z).length = 80 := by
   rw [nodeIn, List.length_append, List.length_append, length_seed, length_nodeAdrs,
     length_children hl hz (length_foldUpTo r l e z)]
 
 /-- **`b153`, `b149`, `b156` and `memcpy`**: the clone. -/
-theorem nodeC (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeC (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtN3 r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b157Offset ∧ AtN4 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b157Offset ∧ AtN4 r l e z st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b153Offset⟩ := by
   obtain ⟨hB, hz, hN, h22, h23, hZ, hSA, hZ88, hW, hC⟩ := h
   have hl := hB.1
@@ -49,13 +49,13 @@ theorem nodeC (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have hld : (r.env m).load 0 8976 8 = (16 : UInt64).toBitVec := load_word hW
   have hm0 : Match (r.env m) s3 m := r.match_frame hpre hB.2.1
     (allOf_append (allOf_keptRegs hB _) ⟨h22, h23, trivial⟩) trivial trivial trivial
-  refine exec_then (hb153 hp) run_b153 hwf hm0 fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb153 hp) run_b153 hwf hm0 fun st1 hm1 hpc1 ↦ ?_
   have hpc1' := pc_cond (b := true) hpc1 (by sym_simp; rw [hld]; decide)
   rw [Sym.ite_pos (rfl : true = true), lbl_62 hp] at hpc1'
-  refine exec_at (hb149 hp) (exec_after run_b153 run_b149) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
+  refine exec_at_elf (hb149 hp) (exec_after run_b153 run_b149) hwf hpc1' hm1 fun st2 hm2 hpc2 ↦ ?_
   have hpc2' := pc_cond (b := true) hpc2 rfl
   rw [Sym.ite_pos (rfl : true = true), lbl_67 hp] at hpc2'
-  refine exec_at (hb156 hp) (exec_after run_b149 run_b156) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
+  refine exec_at_elf (hb156 hp) (exec_after run_b149 run_b156) hwf hpc2' hm2 fun st3 hm3 hpc3 ↦ ?_
   have hB3 := Base.of_match hpre hB hm3 hwf rfl rfl (by decide) (by decide) (by decide) rfl rfl rfl rfl
   have hN3 := hN.of_match hpre hm3 hwf rfl rfl (by decide)
   have h0 : Run.RegIs st3.data .X0 (r.off 19008) := (hm3.regs .X0 _ rfl).trans (eval_ptr 19008)
@@ -78,7 +78,7 @@ theorem nodeC (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
         (v := .bin .add .W64 (.load 0 8976 8) (.lit 32)) (w := 48#64) (by decide) (by decide)
         (by sym_simp; rw [hld]; decide) (by decide)
   have hC3 := k3 (by omega) hC (by rw [hlc]; decide)
-  refine call_then hpc3 hc.1 (r.memcpy_pre hpre hB3.2.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc3 hc.1 (r.memcpy_pre hpre hB3.2.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st' hpc' hpost ↦ ?_
   obtain ⟨hcp, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hlen : (hbytes (r.seed ++ r.nodeAdrs l z) 48).length = 344 := by

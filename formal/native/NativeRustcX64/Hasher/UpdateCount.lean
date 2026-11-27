@@ -66,16 +66,16 @@ theorem holds_turn {m0 : MachineData} {c : Nat} {Hc : List UInt8} (hle : c ≤ n
   have := holds_updateStep_drop (D := input m0) (by rw [length_input]; exact hle) hh a ha
   rwa [length_input] at this
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Counting the copied bytes**: to `.LUpdate_5` after the turn, or to the absorption. -/
-theorem count_spec (hp : Placed code k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem count_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
     {Hc : List UInt8} (hcp : Copied m0 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data) ∨
-        (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b7Offset) ∧ Full m0 c Hc st.data))
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b6Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data) ∨
+        (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b7Offset) ∧ Full m0 c Hc st.data))
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b6Offset)⟩ := by
   have g := geo_of hpre
   let env := Env.ofMachine m [(hAt m0, 344), (frm m0, 120), (gotAddr "memcpy", 8)]
   have hwf : env.WF := wf_head hpre hcp.frame
@@ -120,7 +120,7 @@ theorem count_spec (hp : Placed code k) {m0 m : MachineData} (hpre : UpdatePre m
     apply BitVec.eq_of_toNat_eq
     rw [BitVec.toNat_add, hV0, BitVec.toNat_ofNat, BitVec.toNat_ofNat]
     omega
-  refine exec_then (hb6 hp) run_b6 hwf nofun hm fun st6 hm6 hpc6 => ?_
+  refine exec_then_elf (hb6 hp) run_b6 hwf nofun hm fun st6 hm6 hpc6 => ?_
   simp only [PcOk, SBool.eval, Sym.eval, CmpOp.apply, BinOp.apply, low_W64, ext_W64,
     henv, hload, hr12, hV, Nat.add_assoc, NativeRustcX64.Common.Update.b6_next] at hpc6
   -- Memory: the new `buf_len`.

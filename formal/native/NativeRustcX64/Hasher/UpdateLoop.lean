@@ -41,15 +41,15 @@ theorem ofNat_beq_zero {x : Nat} (hx : x < 2 ^ 64) :
     subst h
     rfl
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Emptying the buffer.** -/
-theorem empty_spec (hp : Placed code k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem empty_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
     {Hc : List UInt8} (hab : Absorbed m0 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b8Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b8Offset)⟩ := by
   have g := geo_of hpre
   let env := Env.ofMachine m [(hAt m0, 344), (frm m0, 120), (gotAddr "memcpy", 8)]
   have hwf : env.WF := wf_head hpre hab.frame
@@ -60,7 +60,7 @@ theorem empty_spec (hp : Placed code k) {m0 m : MachineData} (hpre : UpdatePre m
   have hstep : (updateStep Hc ((input m0).drop c)).1 = writeAt A 336 (wordBytes 0) := by
     rw [updateStep_eq, ite_pos' hab.full, hAdef]
   have hlenA : A.length = 344 := by rw [← hA]; exact length_bytesOf ..
-  refine exec_then (hb8 hp) run_b8 hwf nofun hm fun st8 hm8 hpc8 => ?_
+  refine exec_then_elf (hb8 hp) run_b8 hwf nofun hm fun st8 hm8 hpc8 => ?_
   simp only [PcOk, lbl_5 hp] at hpc8
   have hmem8 : ∀ j < 344, st8.data.dmem.get? (hAt m0 + BitVec.ofNat 64 j) =
       if 336 ≤ j then some 0 else m.dmem.get? (hAt m0 + BitVec.ofNat 64 j) := by
@@ -105,16 +105,17 @@ theorem empty_spec (hp : Placed code k) {m0 m : MachineData} (hpre : UpdatePre m
 
 /-- **The end of a turn**: back to the loop head with `c + t` bytes absorbed if input remains,
 else to the loop's exit with all of it. -/
-theorem next_spec (hp : Placed code k) {m0 m : MachineData} {c t : Nat} (hmid : Mid m0 c t m) :
-    Eventually (step1 Host.exe)
-      (fun st => (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset) ∧ Inv m0 (c + t) st.data ∧ 0 < t) ∨
-        (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data))
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b2Offset)⟩ := by
+theorem next_spec (hp : PlacedIn code sec k) {m0 m : MachineData} {c t : Nat}
+    (hmid : Mid m0 c t m) :
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset) ∧ Inv m0 (c + t) st.data ∧ 0 < t) ∨
+        (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data))
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset)⟩ := by
   let env := Env.ofMachine m []
   have hwf : env.WF := Env.wf_of trivial List.Pairwise.nil
   have hm : Match env regsS m := match_ofMachine trivial trivial trivial trivial trivial
   have henv : ∀ r, env.regs r = reg m r := fun _ => rfl
-  refine exec_then (hb2 hp) run_b2 hwf nofun hm fun st hm' hpc => ?_
+  refine exec_then_elf (hb2 hp) run_b2 hwf nofun hm fun st hm' hpc => ?_
   have hmem : ∀ p, st.data.dmem.get? p = m.dmem.get? p := fun p =>
     hm'.get?_mem0 hwf fun ⟨_, hw, _⟩ => by simp at hw
   have hn : nOf m0 < 2 ^ 64 := BitVec.isLt _
@@ -165,55 +166,56 @@ theorem next_spec (hp : Placed code k) {m0 m : MachineData} {c t : Nat} (hmid : 
     · omega
 
 /-- **A turn of the loop.** -/
-theorem turn_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem turn_spec (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} (hinv : Inv m0 c m) :
-    Eventually (step1 Host.exe)
-      (fun st => (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data) ∨
-        ∃ n' < nOf m0 - c, st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset) ∧
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data) ∨
+        ∃ n' < nOf m0 - c, st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset) ∧
           ∃ c', nOf m0 - c' = n' ∧ Inv m0 c' st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset)⟩ := by
-  have fin : ∀ (t : Nat) (st : MachineState), st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b2Offset) →
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset)⟩ := by
+  have fin : ∀ (t : Nat) (st : MachineState),
+      st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset) →
       Mid m0 c t st.data →
-      Eventually (step1 Host.exe)
-        (fun st => (st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data) ∨
-          ∃ n' < nOf m0 - c, st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset) ∧
+      Eventually (elfStep1 ElfHost.exe)
+        (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data) ∨
+          ∃ n' < nOf m0 - c, st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset) ∧
             ∃ c', nOf m0 - c' = n' ∧ Inv m0 c' st.data) st := by
     intro t st hpc hmid
     obtain ⟨d, pc⟩ := st
     simp only at hpc
     subst hpc
-    refine NativeRustcX64.Eventually.mono (next_spec hp hmid) fun st h => ?_
+    refine NativeRustcX64.Eventually.mono_elf (next_spec hp hmid) fun st h => ?_
     rcases h with ⟨hpc, hinv', ht⟩ | h
     · exact Or.inr ⟨nOf m0 - (c + t), by have := hinv'.le; omega, hpc, c + t, rfl, hinv'⟩
     · exact Or.inl h
-  refine NativeRustcX64.Eventually.bind (copy_spec hp hmemcpy hpre hinv) fun st ⟨hpc, hcp⟩ => ?_
+  refine NativeRustcX64.Eventually.bind_elf (copy_spec hp hmemcpy hpre hinv) fun st ⟨hpc, hcp⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine NativeRustcX64.Eventually.bind (count_spec hp hpre hcp) fun st h => ?_
+  refine NativeRustcX64.Eventually.bind_elf (count_spec hp hpre hcp) fun st h => ?_
   rcases h with ⟨hpc, hmid⟩ | ⟨hpc, hfu⟩
   · exact fin _ st hpc hmid
   · obtain ⟨d, pc⟩ := st
     simp only at hpc
     subst hpc
-    refine NativeRustcX64.Eventually.bind (absorb_spec hp hkf hpre hfu) fun st ⟨hpc, hab⟩ => ?_
+    refine NativeRustcX64.Eventually.bind_elf (absorb_spec hp hkf hpre hfu) fun st ⟨hpc, hab⟩ => ?_
     obtain ⟨d, pc⟩ := st
     simp only at hpc
     subst hpc
-    exact NativeRustcX64.Eventually.bind (empty_spec hp hpre hab)
+    exact NativeRustcX64.Eventually.bind_elf (empty_spec hp hpre hab)
       fun st ⟨hpc, hmid⟩ => fin _ st hpc hmid
 
 /-- **The loop**: out of it with the whole input absorbed. -/
-theorem loop_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem loop_spec (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} (hinv : Inv m0 c m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset)⟩ := by
-  refine Sym.loop (fun n st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Update.b3Offset) ∧
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset)⟩ := by
+  refine Sym.loop (fun n st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset) ∧
       ∃ c', nOf m0 - c' = n ∧ Inv m0 c' st.data) (fun n st ⟨hpc, c', hn, hi⟩ => ?_)
     ⟨rfl, c, rfl, hinv⟩
   obtain ⟨d, pc⟩ := st

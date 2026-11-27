@@ -159,13 +159,13 @@ theorem be32_layer {l : Nat} (hl : l < 3) :
     (List.range 4).map (byteOf (BitVec.ofNat 64 (revL l))) = be32 l.toUInt32 := by
   rw [revL, ofNat_toNat_self, bytes_rev32, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **`b92` and `memset`**: from layer `l`'s state, the machine reaches `b93` with the
 invariant (the counter in W20), the encoder's address at `16960` and hasher A new. -/
-theorem b92_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem b92_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {l : Nat} {s : List UInt8} {m : MachineData} (h : r.AtLayer l s m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b93Offset ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b93Offset ∧
       r.EncBase l s (r.layerSig l).counter st.data ∧ r.EncAdrs l st.data ∧
       Keccak.HasherHolds (bytesOf st.data.dmem (r.off 8640) 344) []) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b92Offset⟩ := by
   obtain ⟨hl, hs, hF, hI, h10, h8, h11, h12, h23, h13, h22, h19, h21, h24, h25, h27, hsm, h8s,
@@ -189,7 +189,7 @@ theorem b92_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Ca
     (o := 408) (v := .ptr 0 ((5140 + 1028 * l : Nat) : Int)) (by
       rw [r.ptr_eval m _, bytes_word]
       exact h408)
-  refine Sym.exec_then hk hx hwf hm fun st hm' hpc ↦ ?_
+  refine Sym.exec_then_elf hk hx hwf hm fun st hm' hpc ↦ ?_
   have hF1 := Run.Frame.of_matchL r hpre hF hm' hwf hsp h29 hfw
   have hidx : (r.envL m).load 0 400 8 = r.idx.toBitVec := r.load_word rfl rfl h400
   have hH := r.load_height hpre hF hl
@@ -267,7 +267,7 @@ theorem b92_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Ca
     have := hm'.regs .X2 _ hX2
     exact congrArg BitVec.toNat this
   have hR1 : st.data.regs.X1 = 0 := UInt64.toBitVec_inj.mp (hm'.regs .X1 _ hX1)
-  refine Sym.call_then hpc hc.2.1 (r.memset_pre hpre hF1 hR0 hR2 (by decide))
+  refine Sym.call_then_elf hpc hc.2.1 (r.memset_pre hpre hF1 hR0 hR2 (by decide))
     fun st' hpc' hpost ↦ .done _ ?_
   obtain ⟨hB, hout, hS⟩ := r.memset_out hR0 hR2 hpost
   refine ⟨by simpa only [Run.pc, Nat.add_assoc, NativeRustcArm.Sphincs.SphincsVerify.b92_next] using hpc',

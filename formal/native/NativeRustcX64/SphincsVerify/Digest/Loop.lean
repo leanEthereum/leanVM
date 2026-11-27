@@ -188,12 +188,12 @@ theorem wr_area (hpre : r.Pre) {c : Nat} (hc : c < 24) :
 
 end
 
-variable [Host]
+variable [ElfHost]
 
 /-- **A turn of the loop**: leaf `c` stored, then the next turn or `b47`. -/
-theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem loop_step (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {H : List UInt8} (hH : H.length = 64) {c : Nat} {m : MachineData} (hI : LoopInv r H c m) :
-    Eventually (step1 Host.exe) (fun st ↦ (st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset ∧ AfterLoop r H st.data) ∨
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset ∧ AfterLoop r H st.data) ∨
       (st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b46Offset ∧ LoopInv r H (c + 1) st.data)) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b46Offset⟩ := by
   obtain ⟨hc, hK, h13, hbp, hHb, hL⟩ := hI
   have hF := hK.1
@@ -229,7 +229,7 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
           show BitVec.ofInt 64 0 = 0#64 by decide]
         bv_omega
   have hk := Sphincs.SphincsVerify.b46_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  refine exec_then hk run_b46 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk run_b46 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
   obtain ⟨m', pc⟩ := st
   simp only [PcOk] at hpc
   rw [cond_eval _ hc hx13] at hpc
@@ -286,24 +286,24 @@ theorem loop_step (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre :
     rw [Run.pc, Nat.add_assoc, NativeRustcX64.Sphincs.SphincsVerify.b46_next]
 
 /-- **The loop**: from turn `c`, the machine reaches `b47` with the 24 leaves. -/
-theorem loop_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem loop_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {H : List UInt8} (hH : H.length = 64) {c : Nat} {m : MachineData} (hI : LoopInv r H c m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset ∧ AfterLoop r H st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b47Offset ∧ AfterLoop r H st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b46Offset⟩ := by
   refine Sym.loop (fun n st ↦ ∃ c, n = 24 - c ∧ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b46Offset ∧ LoopInv r H c st.data)
     (fun n st ⟨c, hn, hpc, hI⟩ ↦ ?_) ⟨c, rfl, rfl, hI⟩
   obtain ⟨m, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine Eventually.mono (loop_step r hp hpre hH hI) fun st h ↦ ?_
+  refine Eventually.mono_elf (loop_step r hp hpre hH hI) fun st h ↦ ?_
   rcases h with h | ⟨hpc, hI'⟩
   · exact .inl h
   · exact .inr ⟨24 - (c + 1), by have := hI.1; have := hI'.1; omega, c + 1, rfl, hpc, hI'⟩
 
 /-- **`h_msg` in place, the loop's first turn** (`b45`). -/
-theorem hMsg_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem hMsg_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {m : MachineData} (hH : Hashed1 r m) :
-    Eventually (step1 Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b46Offset ∧ LoopInv r (hMsgBytes r) 0 st.data) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b45Offset⟩ := by
   obtain ⟨hK, h13, hbp, hD0, hD1⟩ := hH
   refine Run.frameFall r hp hpre Sphincs.SphincsVerify.b45_in_code rfl (List.cons_ne_nil _ _)

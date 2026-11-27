@@ -30,15 +30,15 @@ theorem frame_top {s : BitVec 64} {i : Nat} :
   have := s.isLt
   omega
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
-/-- **`Hasher::finalize` meets its contract.** -/
-theorem finalize_spec (hp : Placed code k)
-    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
-    (hmemset : Spec (Labels.label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
-    Spec (Labels.label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre
+/-- **`Hasher::finalize` meets its contract** under `ElfHost`. -/
+theorem finalize_spec_elf (hp : PlacedIn code sec k)
+    (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hmemset : ElfSpec (Labels.label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    ElfSpec (Labels.label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre
       FinalizePost := by
   intro m0 hpre
   have g := geo_of hpre
@@ -47,16 +47,16 @@ theorem finalize_spec (hp : Placed code k)
   have hs8 := g.s8
   have hFnw : (frAt m0).toNat + 392 ≤ 2 ^ 64 := by rw [hf]; omega
   rw [lbl_entry hp]
-  refine NativeRustcX64.Eventually.bind (stage2_spec hp hmemcpy hmemset hpre)
+  refine NativeRustcX64.Eventually.bind_elf (stage2_spec hp hmemcpy hmemset hpre)
     fun st ⟨hpc, m1, hpro, hs2⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine NativeRustcX64.Eventually.bind (stage3_spec hp hpre hs2) fun st ⟨hpc, hs3⟩ => ?_
+  refine NativeRustcX64.Eventually.bind_elf (stage3_spec hp hpre hs2) fun st ⟨hpc, hs3⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
   subst hpc
-  refine NativeRustcX64.Eventually.bind (stage4_spec hp hkf hpre hpro hs3)
+  refine NativeRustcX64.Eventually.bind_elf (stage4_spec hp hkf hpre hpro hs3)
     fun st ⟨hpc, hs4⟩ => ?_
   obtain ⟨d, pc⟩ := st
   simp only at hpc
@@ -101,7 +101,7 @@ theorem finalize_spec (hp : Placed code k)
     simp only [List.length_map, List.length_range] at hi
     rw [hbF, add_ofNat_add, Env.ofMachine_mem0, hhi _ (by omega) (by omega), ← add_ofNat_add,
       hpro.slots p hpm i (by simp [hi])]
-  refine exec_then (hb6 hp) run_b6 hwf (fun _ h => nomatch h) hm fun st hm' hpc' => ?_
+  refine exec_then_elf (hb6 hp) run_b6 hwf (fun _ h => nomatch h) hm fun st hm' hpc' => ?_
   have hl := b6_mem
   rw [after_eq run_b6] at hl
   have hlo := b6_out
@@ -194,6 +194,38 @@ theorem finalize_spec (hp : Placed code k)
       · exact hm'.kept hwf p (hfr.kept p hp)
       · rw [hmem' p hpo]
         exact hfr.kept p hp
+
+end
+
+private theorem spec_to_elfSpec [h : Host]
+    {entry : [Labels] → Int64} {P : [Labels] → MachineData → Prop}
+    {Q : [Labels] → MachineData → MachineData → Prop}
+    (hs : Spec (@entry _) (@P _) (@Q _)) :
+    @ElfSpec (Host.toElfHost h) (@entry (@instLabelsElfHost (Host.toElfHost h)))
+      (@P (@instLabelsElfHost (Host.toElfHost h))) (@Q (@instLabelsElfHost (Host.toElfHost h))) := by
+  intro m hP
+  have hL : @instLabelsElfHost (Host.toElfHost h) = (inferInstance : Labels) := toElfHost_labels h
+  rw [elfStep1_toElfHost h]
+  rw [hL] at hP ⊢
+  exact hs m hP
+
+public section
+
+/-- **`Hasher::finalize` meets its contract.** -/
+theorem finalize_spec [Host] {k : Nat} (hp : Placed code k)
+    (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
+    (hmemset : Spec (Labels.label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost)
+    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
+    Spec (Labels.label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre FinalizePost :=
+  ElfSpec.toSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Finalize.entryLabel)
+    (P := fun [Labels] => FinalizePre) (Q := fun [Labels] => FinalizePost)
+    (@finalize_spec_elf (Host.toElfHost _) 0 k hp.toPlacedIn
+      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Memcpy.entryLabel)
+        (P := fun [Labels] => MemcpyPre) (Q := fun [Labels] => MemcpyPost) hmemcpy)
+      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Memset.entryLabel)
+        (P := fun [Labels] => MemsetPre) (Q := fun [Labels] => MemsetPost) hmemset)
+      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.KeccakF.entryLabel)
+        (P := fun [Labels] => KeccakFPre) (Q := fun [Labels] => KeccakFPost) hkf))
 
 end
 

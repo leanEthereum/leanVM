@@ -88,13 +88,13 @@ theorem infix_drop {α : Type} {l m : List α} {k n : Nat} (h : l.IsInfixAt m k)
   refine ⟨t, ?_⟩
   rw [← List.drop_drop, ← ht, List.drop_append_of_le_length hn]
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **`b0`**: the saved registers, X29 and SP at `21520`, X9 `1040`. -/
-theorem b0_spec (hp : Placed code r.k) (hpre : r.Pre) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b1Offset ∧ Probe r 0 st.data)
+theorem b0_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b1Offset ∧ Probe r 0 st.data)
       ⟨r.m0, r.pc NativeRustcArm.Sphincs.SphincsVerify.b0Offset⟩ := by
-  have hk : b0.IsInfixAt NativeRustcArm.Host.prog (r.k + NativeRustcArm.Sphincs.SphincsVerify.b0Offset) := b0_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  have hk : b0.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + NativeRustcArm.Sphincs.SphincsVerify.b0Offset) := b0_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hfm := frame_mapped0 r hpre (Kept.refl _) (a := 0) (n := 21616) (by decide)
   rw [Run.off_zero] at hfm
   have hwf : (Env.ofMachine r.m0 [(r.base, 21616)]).WF :=
@@ -106,7 +106,7 @@ theorem b0_spec (hp : Placed code r.k) (hpre : r.Pre) :
         rw [ofInt_ofNat]
         simp [Run.base, frameSize])
       trivial trivial trivial trivial
-  refine exec_then hk run_b0 hwf hm fun st hm' hpc ↦ .done _ ⟨hpc, by decide, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine exec_then_elf hk run_b0 hwf hm fun st hm' hpc ↦ .done _ ⟨hpc, by decide, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact hm'.sp.trans (base_add r 21520)
   · exact (hm'.regs .X9 _ rfl).trans (base_add r 1040)
   · exact (hm'.regs .X29 _ rfl).trans (base_add r 21520)
@@ -134,16 +134,16 @@ theorem b0_spec (hp : Placed code r.k) (hpre : r.Pre) :
   · exact hm'.kept hwf
 
 /-- **The probe loop**: from `t ≤ 4` turns, the next turn; after the fifth, `b2`. -/
-theorem b1_spec (hp : Placed code r.k) (hpre : r.Pre) {t : Nat} (ht : t ≤ 4) {m : MachineData}
+theorem b1_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {t : Nat} (ht : t ≤ 4) {m : MachineData}
     (h : Probe r t m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b2Offset ∧ Probe r 5 st.data) ∨
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ (st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b2Offset ∧ Probe r 5 st.data) ∨
       ∃ n' < 4 - t, ∃ t', t' ≤ 4 ∧ n' = 4 - t' ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b1Offset ∧ Probe r t' st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b1Offset⟩ := by
   obtain ⟨-, hsp, h9, h29, h0, h1, h2, hsv, hso, hkp⟩ := h
   obtain ⟨a, ha⟩ : ∃ a, 21520 - 4096 * (t + 1) = a := ⟨_, rfl⟩
   have ha' : a + 4096 = 21520 - 4096 * t := by omega
   have ha16 : a % 16 = 0 := by omega
-  have hk : b1.IsInfixAt NativeRustcArm.Host.prog (r.k + NativeRustcArm.Sphincs.SphincsVerify.b1Offset) := b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
+  have hk : b1.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + NativeRustcArm.Sphincs.SphincsVerify.b1Offset) := b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hfm := frame_mapped0 r hpre hkp (a := a) (n := 16) (by omega)
   have hwf : (Env.ofMachine m [(r.off a, 16)]).WF :=
     Env.wf_of ⟨hfm, trivial⟩ (List.pairwise_singleton _ _)
@@ -153,7 +153,7 @@ theorem b1_spec (hp : Placed code r.k) (hpre : r.Pre) {t : Nat} (ht : t ≤ 4) {
         show _ = r.off a + BitVec.ofInt 64 (4096 : Nat)
         rw [off_add_int, hsp, ha'])
       trivial trivial trivial trivial
-  refine exec_then hk run_b1 hwf hm fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk run_b1 hwf hm fun st hm' hpc ↦ ?_
   have hd : st.data.dmem = m.dmem := hm'.dmem_eq hwf rfl
   have hP : Probe r (t + 1) st.data := by
     rw [Probe, ha]
@@ -194,12 +194,12 @@ theorem b1_spec (hp : Placed code r.k) (hpre : r.Pre) {t : Nat} (ht : t ≤ 4) {
     exact .done _ (Or.inr ⟨4 - (t + 1), by omega, t + 1, by omega, rfl, hpc, hP⟩)
 
 /-- **`b2`**: allocates the last 1040 bytes, copies `pk` and `R`, sets up the openings' loop. -/
-theorem b2_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : Probe r 5 m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b3Offset ∧ AtOpen r 0 st.data)
+theorem b2_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {m : MachineData} (h : Probe r 5 m) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b3Offset ∧ AtOpen r 0 st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b2Offset⟩ := by
   obtain ⟨-, hsp, -, h29, h0, h1, h2, hsv, hso, hkp⟩ := h
   have hS : SameOutside r.m0.dmem m.dmem r.StackArea := hso.mono fun _ ↦ saved_area r hpre
-  have hka : b2a.IsInfixAt NativeRustcArm.Host.prog (r.k + b2Offset) :=
+  have hka : b2a.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b2Offset) :=
     (infix_take b2_in_code).trans hp.1 (by decide)
   have hwfa := wf_frame_pk r hpre hS hkp (a := 0) (n := 21616) (by decide) (fun _ ↦ 0)
   have hma : Match (Env.ofMachine m [(r.off 0, 21616), (r.pkPtr, 32)]) b2aS m :=
@@ -208,7 +208,7 @@ theorem b2_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : Pro
       (by show _ = r.off 0 + BitVec.ofInt 64 (1040 : Nat); rw [off_add_int, hsp])
       ⟨by show (m.regs.getXReg .X0).toBitVec = r.pkPtr + BitVec.ofInt 64 0; rw [h0]; simp [Run.pkPtr]; rfl,
         trivial⟩ trivial trivial trivial
-  refine exec_then hka run_b2a hwfa hma fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf hka run_b2a hwfa hma fun st1 hm1 hpc1 ↦ ?_
   have hb0a : (Env.ofMachine m [(r.off 0, 21616), (r.pkPtr, 32)]).regions[0]? = some (r.off 0, 21616) := rfl
   have hout1 := sameOutside_hull hm1 hwfa hb0a (lo := 448) (hi := 480) (by decide) (by decide)
   rw [off_add] at hout1
@@ -243,7 +243,7 @@ theorem b2_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : Pro
   have h27_1 : (st1.data.regs.getXReg .X27).toBitVec = r.off 19008 :=
     (hm1.regs .X27 _ rfl).trans (eval_ptr_off r (i := 0) rfl 19008)
   -- Now b2b:
-  have hkb : b2b.IsInfixAt NativeRustcArm.Host.prog (r.k + (b2Offset + 17)) := by
+  have hkb : b2b.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + (b2Offset + 17)) := by
     have := (infix_drop b2_in_code (n := 17) (by decide)).trans hp.1 (by decide)
     rwa [← Nat.add_assoc] at this
   have hwfb := wf_frame_sig r hpre hF1.2.2.2.1 hF1.2.2.2.2 (a := 0) (n := 21616) (s := 0) (k := 16)
@@ -254,9 +254,9 @@ theorem b2_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : Pro
       (by show _ = r.off 0 + BitVec.ofInt 64 0; simp [Run.off_zero, hF1.1])
       ⟨by show _ = r.sigPtr + BitVec.ofNat 64 0 + BitVec.ofInt 64 0; simp [h2_1], trivial⟩
       trivial trivial trivial
-  have hpc1' : st1.pc = NativeRustcArm.Host.addrOf (r.k + (b2Offset + 17)) := by
+  have hpc1' : st1.pc = ElfHost.addrOf r.sec (r.k + (b2Offset + 17)) := by
     rw [show st1.pc = _ from hpc1, Nat.add_assoc]; rfl
-  refine exec_at hkb run_b2b hwfb hpc1' hmb fun st2 hm2 hpc2 ↦ ?_
+  refine exec_at_elf hkb run_b2b hwfb hpc1' hmb fun st2 hm2 hpc2 ↦ ?_
   have hb0b : (Env.ofMachine st1.data [(r.off 0, 21616), (r.sigPtr + BitVec.ofNat 64 0, 16)]).regions[0]? =
       some (r.off 0, 21616) := rfl
   have hout2 := sameOutside_hull hm2 hwfb hb0b (lo := 20048) (hi := 20064) (by decide) (by decide)
@@ -286,11 +286,11 @@ theorem b2_spec (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : Pro
     (hm2.regs .X27 _ rfl).trans h27_1⟩
 
 /-- **The parse's first part**: from the entry, `AtOpen 0` at `b3`. -/
-theorem prologue_spec (hp : Placed code r.k) (hpre : r.Pre) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b3Offset ∧ AtOpen r 0 st.data)
+theorem prologue_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b3Offset ∧ AtOpen r 0 st.data)
       ⟨r.m0, r.pc NativeRustcArm.Sphincs.SphincsVerify.b0Offset⟩ := by
-  refine Eventually.bind (b0_spec r hp hpre) fun st ⟨hpc, h0⟩ ↦ ?_
-  have hloop := loop (tr := step1 NativeRustcArm.Host.exe)
+  refine Eventually.bind_elf (b0_spec r hp hpre) fun st ⟨hpc, h0⟩ ↦ ?_
+  have hloop := loop (tr := elfStep1 ElfHost.exe)
     (Q := fun st : MachineState ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b2Offset ∧ Probe r 5 st.data)
     (fun n st ↦ ∃ t, t ≤ 4 ∧ n = 4 - t ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b1Offset ∧ Probe r t st.data)
     (fun n st ⟨t, ht, hn, hpc, hP⟩ ↦ by
@@ -299,7 +299,7 @@ theorem prologue_spec (hp : Placed code r.k) (hpre : r.Pre) :
       subst hpc hn
       exact b1_spec r hp hpre ht hP)
     (n := 4) (s := st) ⟨0, by decide, rfl, hpc, h0⟩
-  refine Eventually.bind hloop fun st ⟨hpc, h5⟩ ↦ ?_
+  refine Eventually.bind_elf hloop fun st ⟨hpc, h5⟩ ↦ ?_
   obtain ⟨m, pc⟩ := st
   simp only at hpc
   subst hpc

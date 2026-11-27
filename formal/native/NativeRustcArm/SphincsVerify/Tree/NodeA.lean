@@ -107,7 +107,7 @@ end
 
 public section
 
-variable [Host] (r : Run)
+variable [ElfHost] (r : Run)
 
 /-- **The loop head**, `z` steps of the fold done: the node's registers (X24 `z`, spill `432` the
 layer's path, X28 the layer's word `l << 24`), the value at `12864`. -/
@@ -129,22 +129,22 @@ children at `14912`. -/
 
 variable {r}
 
-omit [Host] in
+omit [ElfHost] in
 theorem pathStart_cases {l : Nat} (hl : l < 3) :
     pathStart l = 0 ∨ pathStart l = 8 ∨ pathStart l = 16 := by
   interval_cases l <;> decide
 
-omit [Host] in
+omit [ElfHost] in
 theorem heightOf_le {l : Nat} (hl : l < 3) : heightOf l ≤ 10 := by
   interval_cases l <;> decide
 
-omit [Host] in
+omit [ElfHost] in
 theorem allOf_append {α : Type} {P : α → Prop} : ∀ {l₁ l₂ : List α}, AllOf P l₁ → AllOf P l₂ →
     AllOf P (l₁ ++ l₂)
   | [], _, _, h => h
   | _ :: _, _, ⟨h, h₁⟩, h₂ => ⟨h, allOf_append h₁ h₂⟩
 
-omit [Host] in
+omit [ElfHost] in
 /-- A 16-byte value's low 8 bytes, as loaded. -/
 theorem load_lo {m : MachineData} {vars : Nat → BitVec 64} {o : Nat} {v : List UInt8}
     (h : BytesAt m.dmem (r.off o) v) (hl : v.length = 16) :
@@ -152,7 +152,7 @@ theorem load_lo {m : MachineData} {vars : Nat → BitVec 64} {o : Nat} {v : List
   rw [← List.take_append_drop 8 v] at h
   exact bytes_load (bytesAt_append_left h) (by simp [hl]) (by decide)
 
-omit [Host] in
+omit [ElfHost] in
 /-- A 16-byte value's high 8 bytes, as loaded. -/
 theorem load_hi {m : MachineData} {vars : Nat → BitVec 64} {o : Nat} {v : List UInt8}
     (h : BytesAt m.dmem (r.off o) v) (hl : v.length = 16) :
@@ -162,7 +162,7 @@ theorem load_hi {m : MachineData} {vars : Nat → BitVec 64} {o : Nat} {v : List
   rw [List.length_take, Nat.min_eq_left (by omega), Run.off_add] at h2
   exact bytes_load h2 (by simp [hl]) (by decide)
 
-omit [Host] in
+omit [ElfHost] in
 /-- **A write of `n` bytes** whose value evaluates to `w`. -/
 theorem write_eval [Labels] {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
     (hm : Match (r.env m vars) S m') {o n : Nat} {v : Sym} {w : BitVec 64} (hle : o + n ≤ 21616)
@@ -170,7 +170,7 @@ theorem write_eval [Labels] {m m' : MachineData} {vars : Nat → BitVec 64} {S :
     {bs : List UInt8} (hbs : (List.range n).map (byteOf w) = bs) : BytesAt m'.dmem (r.off o) bs :=
   write_bytes hm hle hw (hv ▸ hbs)
 
-omit [Host] in
+omit [ElfHost] in
 /-- **Two 16-byte values** written as four 8-byte halves from `o`. -/
 theorem write_pair [Labels] {m m' : MachineData} {vars : Nat → BitVec 64} {S : SState}
     (hm : Match (r.env m vars) S m') {o : Nat} (ho : o + 32 ≤ 21616) {a b : List UInt8}
@@ -193,11 +193,11 @@ theorem write_pair [Labels] {m m' : MachineData} {vars : Nat → BitVec 64} {S :
   refine bytesAt_cat (l8 b hb) (write_bytes hm (by omega) h₂ e₂) ?_
   exact write_bytes hm (by omega) h₃ e₃
 
-omit [Host] in
+omit [ElfHost] in
 theorem eval_load [Labels] {m : MachineData} {vars : Nat → BitVec 64} (o n : Nat) :
     (Sym.load 0 o n).eval (r.env m vars) = (r.env m vars).load 0 o n := rfl
 
-omit [Host] in
+omit [ElfHost] in
 /-- The sibling's index: `z << 4`. -/
 theorem eval_idx [Labels] {m : MachineData} {vars : Nat → BitVec 64} {z : Nat}
     (h24 : Run.RegIs m .X24 (BitVec.ofNat 64 z)) (hz : z < 10) :
@@ -207,7 +207,7 @@ theorem eval_idx [Labels] {m : MachineData} {vars : Nat → BitVec 64} {z : Nat}
   rw [Nat.mod_eq_of_lt (by omega), Nat.shiftLeft_eq, Nat.mod_eq_of_lt (by omega)]
   omega
 
-omit [Host] in
+omit [ElfHost] in
 /-- Adding a known frame word to a fresh symbolic state. -/
 theorem match_with_word [Labels] {m : MachineData} {S : SState} (hm : Match (r.env m) S m)
     (hS : S.mem = []) {o : Nat} {v : Sym}
@@ -244,10 +244,10 @@ end
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b144` and `memset`**, from the symbolic run's facts. -/
-theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeA_gen (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtNode r l e z m) {p : Nat}
     (hpp : pathStart l = p) {S' : SState} (hrun : exec b144 (nodeS p) = some (S', .call NativeRustcArm.Common.Memset.entryLabel))
     (hsp : S'.sp = .ptr 0 0) (h29 : S'.reg .X29 = some (.ptr 0 21520))
@@ -276,7 +276,7 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
       (.loadx 0 (4708 + 16 * p) idxS 8) (.load 0 12864 8), i))
     (wC3 : ∀ i < 8, findWrite 0 (14912 + 24 + i) S'.mem = some (.ite (bitC)
       (.loadx 0 (4716 + 16 * p) idxS 8) (.load 0 12872 8), i)) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b145Offset ∧ AtN2 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b145Offset ∧ AtN2 r l e z st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b144Offset⟩ := by
   obtain ⟨hB, hz, h24, hw432, h28, hV⟩ := h
   have hl := hB.1
@@ -289,7 +289,7 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
           trivial⟩ trivial) rfl (by
       rw [eval_ptr, bytes_word]
       exact hpp ▸ hw432)
-  refine exec_then (hb144 hp) hrun hwf hm0 fun st hm hpc ↦ ?_
+  refine exec_then_elf (hb144 hp) hrun hwf hm0 fun st hm hpc ↦ ?_
   have hB1 := Base.of_match hpre hB hm hwf hsp h29 hfw hnw1 hnw2 h19 h21 h25 h27
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := (hm.regs .X0 _ hx0).trans (eval_ptr 8640)
   have h1 : st.data.regs.X1 = 0 := UInt64.toBitVec_inj.mp (hm.regs .X1 _ hx1)
@@ -383,7 +383,7 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   have r28 : Run.RegIs st.data .X28 (BitVec.ofNat 64 (l * 16777216)) :=
     (hm.regs .X28 _ hx28).trans h28
   -- the call
-  refine call_then hpc hc.2.1 (r.memset_pre hpre hB1.2.1 h0 h2 (by decide)) fun st' hpc' hpost ↦ ?_
+  refine call_then_elf hpc hc.2.1 (r.memset_pre hpre hB1.2.1 h0 h2 (by decide)) fun st' hpc' hpost ↦ ?_
   obtain ⟨hz0, hout, hS⟩ := r.memset_out h0 h2 hpost
   have keep : ∀ x : XReg, calleeSaved x = true → ∀ v, Run.RegIs st.data x v → Run.RegIs st'.data x v :=
     fun x hx v h ↦ by unfold Run.RegIs; rw [hS.1 x hx]; exact h
@@ -401,9 +401,9 @@ theorem nodeA_gen (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
   · exact r.bytesAt_of_call hpre hB1.2.1 (by decide) (by decide) hout (by omega) (by omega) hC
 
 /-- **`b144` and `memset`**: from the loop head to `b145`. -/
-theorem nodeA (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
+theorem nodeA (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {l : Nat}
     {e : List (List UInt8)} {z : Nat} {m : MachineData} (h : AtNode r l e z m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b145Offset ∧ AtN2 r l e z st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b145Offset ∧ AtN2 r l e z st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b144Offset⟩ := by
   rcases pathStart_cases h.1.1 with hpp | hpp | hpp
   · exact nodeA_gen hp hc hpre h hpp run_b144_0 rfl rfl (by decide) (by decide) (by decide)

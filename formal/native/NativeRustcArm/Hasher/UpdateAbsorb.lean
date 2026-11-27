@@ -40,17 +40,17 @@ theorem sp_sub_sub (s : BitVec 64) : s - 64#64 - BitVec.ofNat 64 192 = s - 256#6
   rw [BitVec.sub_sub]
   rfl
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 /-- **Absorbing a full buffer.** -/
-theorem b6_spec (hp : Placed code k)
-    (hkf : Spec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem b6_spec (hp : PlacedIn code sec k)
+    (hkf : ElfSpec (Labels.label NativeRustcArm.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m1 m : MachineData} (hpre : UpdatePre m0)
     (h01 : SameOutside m0.dmem m1.dmem (InRange (spAt m0 - 64#64) 64)) {c : Nat}
     {Hc : List UInt8} (hfu : Full m0 m1 c Hc m) :
-    Eventually (step1 Host.exe)
-      (fun st => st.pc = Host.addrOf (k + NativeRustcArm.Common.Update.b7Offset) ∧ Absorbed m0 m1 c Hc st.data)
-      ⟨m, Host.addrOf (k + NativeRustcArm.Common.Update.b6Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b7Offset) ∧ Absorbed m0 m1 c Hc st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b6Offset)⟩ := by
   have g := geo_of hpre
   have gr := geoRc_of hpre
   have hwf := wf_head hpre hfu.frame
@@ -59,7 +59,7 @@ theorem b6_spec (hp : Placed code k)
   have hH : hasher m0 m = counted m0 c Hc := hfu.bytes
   generalize hc2 : counted m0 c Hc = H2 at hH
   have hlen2 : H2.length = 344 := by rw [← hH]; exact length_bytesOf ..
-  refine exec_then (hb6 hp) run_b6 hwf hm fun st6 hm6 hpc6 => ?_
+  refine exec_then_elf (hb6 hp) run_b6 hwf hm fun st6 hm6 hpc6 => ?_
   have hl := b6_mem
   rw [after_eq run_b6] at hl
   have hmem6 : ∀ j < 344, (st6.data.dmem.get? (hAt m0 + BitVec.ofNat 64 j)).getD 0 =
@@ -110,7 +110,7 @@ theorem b6_spec (hp : Placed code k)
     hm6.get?_mem0 hwf fun hw => by
       have := written_hasher (by rw [hl]; decide) hw
       omega
-  refine call_then hpc6 hkf ?pre fun st' hpc' hpost => ?_
+  refine call_then_elf hpc6 hkf ?pre fun st' hpc' hpost => ?_
   case pre =>
     simp only [KeccakFPre, keccakFStack]
     refine ⟨⟨by rw [hspN]; have := g.al; omega, by rw [hspN]; omega, fun i hi => ?_⟩,

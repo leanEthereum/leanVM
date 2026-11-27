@@ -45,13 +45,13 @@ theorem factsApart_base3 (r : Run) (a n : Nat) :
     factsApart (base3 r) a n = factsApart [(8, 8, []), (112, 32, [])] a n := by
   simp only [factsApart, base3, List.all_cons, List.all_nil]
 
-variable (r : Run) [Host]
+variable (r : Run) [ElfHost]
 
 /-- **`b0`**: prologue, `msgPtr` at `8`, `pk` at `112`, openings loop registers -> `OS 0` at `b1`. -/
-theorem prologue_spec (hp : Placed code r.k) (hpre : r.Pre) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset ∧ OS r 0 st.data)
+theorem prologue_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b1Offset ∧ OS r 0 st.data)
       ⟨r.m0, r.pc NativeRustcX64.Sphincs.SphincsVerify.b0Offset⟩ := by
-  have hk : b0.IsInfixAt Host.prog (r.k + NativeRustcX64.Sphincs.SphincsVerify.b0Offset) :=
+  have hk : b0.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + NativeRustcX64.Sphincs.SphincsVerify.b0Offset) :=
     b0_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfPk r hpre (fun _ ↦ 0) 0
   have hS0 : SameOutside r.m0.dmem r.m0.dmem r.StackArea := fun _ _ ↦ rfl
@@ -79,7 +79,7 @@ theorem prologue_spec (hp : Placed code r.k) (hpre : r.Pre) :
     · intro i hi
       simpa [Sym.eval, Env.base, regsPk, Run.frameRegs] using
         r.got_byte hpre hS0 (by simp : "memset" ∈ _) hi
-  refine exec_then hk run_b0 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
+  refine exec_then_elf hk run_b0 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
   have h0 : (regsPk r)[0]? = some (r.base, 21632) := rfl
   have hF : r.Frame st.data := by
     refine ⟨?_, ?_, (hm'.sameOutside hwf).mono (written_stack r hpre h0 rfl (by decide)),

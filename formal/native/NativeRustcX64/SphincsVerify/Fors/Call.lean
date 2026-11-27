@@ -34,9 +34,9 @@ end
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
-omit [Host] in
+omit [ElfHost] in
 theorem kc_of [Labels] (hpre : r.Pre) {m₁ m₂ : MachineData} (hc : r.AtCall m₁) {a n N : Nat}
     (ha : Scratch a n) (hN : N ≤ finalizeStack)
     (hout : SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n N)) : KC r m₁ m₂ a n :=
@@ -48,9 +48,9 @@ theorem memset_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
     {a n : Nat} (h0 : Run.RegIs st.data .rdi (r.off a)) (h1 : (reg st.data .rsi).toNat = 0)
     (h2 : (reg st.data .rdx).toNat = n) (ha : Scratch a n) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a n →
-      BytesAt m₂.dmem (r.off a) (List.replicate n 0) → Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.2.1 (r.memset_pre hpre hK.1 h0 h2 (by unfold Scratch at ha; omega))
+      BytesAt m₂.dmem (r.off a) (List.replicate n 0) → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.2.1 (r.memset_pre hpre hK.1 h0 h2 (by unfold Scratch at ha; omega))
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost
       rw [h1] at hz
@@ -65,9 +65,9 @@ theorem memcpy_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
     (hd : a + n ≤ b ∨ b + n ≤ a) {bs : List UInt8} (hl : bs.length = n)
     (hbs : BytesAt st.data.dmem (r.off b) bs) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a n →
-      BytesAt m₂.dmem (r.off a) bs → Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.1 (r.memcpy_pre hpre hK.1 h0 h1 h2 (by unfold Scratch at ha; omega) hb hd)
+      BytesAt m₂.dmem (r.off a) bs → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.1 (r.memcpy_pre hpre hK.1 h0 h1 h2 (by unfold Scratch at ha; omega) hb hd)
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
       rw [← hl, bytesOf_of_bytesAt hbs] at hB
@@ -82,9 +82,9 @@ theorem memcpy_then' (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next :
     (hd : a + n ≤ b ∨ b + n ≤ a) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a n →
       BytesAt m₂.dmem (r.off a) (bytesOf st.data.dmem (r.off b) n) →
-      Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.1 (r.memcpy_pre hpre hK.1 h0 h1 h2 (by unfold Scratch at ha; omega) hb hd)
+      Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.1 (r.memcpy_pre hpre hK.1 h0 h1 h2 (by unfold Scratch at ha; omega) hb hd)
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hB, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
       exact Chains.pc_at hpc₂ (k _ (Keep.of_call hpre hK hS hrsp ha (by decide) hout) hS
@@ -100,9 +100,9 @@ theorem update_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next : 
     (hH : HasherAt r st.data a x) (hbs : BytesAt st.data.dmem (r.off b) bs)
     {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a 344 →
-      HasherAt r m₂ a (x ++ bs) → Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.2.2.1
+      HasherAt r m₂ a (x ++ bs) → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.2.2.1
     (r.update_pre hpre hK.1 h0 h1 h2 (by unfold Scratch at ha; omega) hb hd hH.holds_some)
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hA, hout, hS⟩ := r.update_out h0 h1 h2 hpost
@@ -121,9 +121,9 @@ theorem finalize_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next 
     (ho : Scratch o 32) (ha : a + 344 ≤ 21624) (hd : o + 32 ≤ a ∨ a + 344 ≤ o) {x : List UInt8}
     (hH : HasherAt r st.data a x) {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ o 32 →
-      BytesAt m₂.dmem (r.off o) (Keccak.hashBytes x) → Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.2.2.2.1
+      BytesAt m₂.dmem (r.off o) (Keccak.hashBytes x) → Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.2.2.2.1
     (r.finalize_pre hpre hK.1 h0 h1 (by unfold Scratch at ho; omega) ha hd hH.holds_some)
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hB, hout, hS⟩ := r.finalize_out h0 h1 hpost
@@ -138,9 +138,9 @@ theorem keccakF_then (hpre : r.Pre) (hc : Callees) {c : Nat} {env : Env} {next :
     {R : MachineState → Prop}
     (k : ∀ m₂, Keep r c m₂ → Saved st.data m₂ → KC r st.data m₂ a 200 →
       BytesAt m₂.dmem (r.off a) (Keccak.keccakF (bytesOf st.data.dmem (r.off a) 200)) →
-      Eventually (step1 Host.exe) R ⟨m₂, next⟩) :
-    Eventually (step1 Host.exe) R st :=
-  call_then hpc hc.2.2.2.2 (r.keccakF_pre hpre hK.1 h0 (by unfold Scratch at ha; omega))
+      Eventually (elfStep1 ElfHost.exe) R ⟨m₂, next⟩) :
+    Eventually (elfStep1 ElfHost.exe) R st :=
+  call_then_elf hpc hc.2.2.2.2 (r.keccakF_pre hpre hK.1 h0 (by unfold Scratch at ha; omega))
     fun st₂ hpc₂ hrsp hpost ↦ by
       obtain ⟨hB, hout, hS⟩ := r.keccakF_out h0 hpost
       exact Chains.pc_at hpc₂ (k _ (Keep.of_call hpre hK hS hrsp ha (by decide) hout) hS

@@ -36,9 +36,9 @@ end
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
-omit [Host] in
+omit [ElfHost] in
 /-- The value after one more step, `th` of a short input. -/
 theorem forsUpTo_succ_eq (r : Run) {c z : Nat} (hc : c < 24) (hz : z < 10) :
     r.forsUpTo c (z + 1) = (Keccak.keccakF (Keccak.xorBlock (List.replicate 200 0)
@@ -50,12 +50,12 @@ theorem forsUpTo_succ_eq (r : Run) {c z : Nat} (hc : c < 24) (hz : z < 10) :
   decide
 
 /-- **A node's end**: from `N2 r c z` at `b82`, the next node's head or the tree's end. -/
-theorem node_tail (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem node_tail (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {c z : Nat} {m : MachineData} (h : N2 r c z m) {R : MachineState → Prop}
     (next : z + 1 < 10 → ∀ m', AtNode r c (z + 1) m' →
-      Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩)
-    (done : z + 1 = 10 → ∀ m', AtRoot r c m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b87Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b82Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩)
+    (done : z + 1 = 10 → ∀ m', AtRoot r c m' → Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b87Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b82Offset⟩ := by
   obtain ⟨hK, hz, w64, w104, h13, h15, h12, ha0, hT, h14⟩ := h
   have hc24 := hK.2.1.hc
   have hTl : (r.seed ++ r.nodeAdrsOf c z ++ r.childrenOf c z).length = 80 := by

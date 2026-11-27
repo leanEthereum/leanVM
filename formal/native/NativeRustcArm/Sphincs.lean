@@ -113,18 +113,32 @@ private theorem ReadOnlyBuf.restrict {d : DataMem} {addr : BitVec 64} {bytes : L
     ReadOnlyBuf (restrictMemory d areas) addr bytes { initState with dmem := restrictMemory d areas } stackSpan :=
   ⟨h.1.restrict ha, h.2.1, h.2.2⟩
 
-/-- **The callees' contracts** in `sphincs_verify`'s program. -/
-theorem callees [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code) : Callees :=
-  have hmemcpy := Mem.Memcpy.memcpy_spec (placed_memcpy hHostProg)
-  have hkf := keccakF_spec (placed_keccakF hHostProg)
-  ⟨hmemcpy, Mem.Memset.memset_spec (placed_memset hHostProg),
-    Hasher.Update.update_spec (placed_update hHostProg) hmemcpy hkf,
-    Hasher.Finalize.finalize_spec (placed_finalize hHostProg) hmemcpy hkf, hkf⟩
+/-- **The callees' contracts** for `sphincs_verify` under a multi-section `ElfHost`. -/
+theorem callees [ElfHost]
+    {secMemcpy kMemcpy secMemset kMemset secKeccakF kKeccakF secUpdate kUpdate secFinalize kFinalize : Nat}
+    (hpMemcpy : PlacedIn Common.Memcpy.code secMemcpy kMemcpy)
+    (hpMemset : PlacedIn Common.Memset.code secMemset kMemset)
+    (hpKeccakF : PlacedIn Common.KeccakF.code secKeccakF kKeccakF)
+    (hpUpdate : PlacedIn Common.Update.code secUpdate kUpdate)
+    (hpFinalize : PlacedIn Common.Finalize.code secFinalize kFinalize) : Callees :=
+  have hmemcpy := Mem.Memcpy.memcpy_spec_elf hpMemcpy
+  have hkf := keccakF_spec_elf hpKeccakF
+  ⟨hmemcpy, Mem.Memset.memset_spec_elf hpMemset,
+    Hasher.Update.update_spec_elf hpUpdate hmemcpy hkf,
+    Hasher.Finalize.finalize_spec_elf hpFinalize hmemcpy hkf, hkf⟩
 
 /-- **The rustc-compiled leanSPHINCS verifier is correct** (AArch64). -/
 theorem verify_correct
-    -- 1. Loaded program: an abstract Kraken host whose instruction stream is `Sphincs.code`.
-    [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code)
+    -- 1. Loaded program: a multi-section AArch64 `ElfHost` containing `sphincs_verify` and its
+    --    five callees (`memcpy`, `memset`, `keccak_f`, `Hasher::update`, `Hasher::finalize`).
+    [ElfHost]
+    {secVerify kVerify secMemcpy kMemcpy secMemset kMemset secKeccakF kKeccakF secUpdate kUpdate secFinalize kFinalize : Nat}
+    (hpVerify : PlacedIn Sphincs.SphincsVerify.code secVerify kVerify)
+    (hpMemcpy : PlacedIn Common.Memcpy.code secMemcpy kMemcpy)
+    (hpMemset : PlacedIn Common.Memset.code secMemset kMemset)
+    (hpKeccakF : PlacedIn Common.KeccakF.code secKeccakF kKeccakF)
+    (hpUpdate : PlacedIn Common.Update.code secUpdate kUpdate)
+    (hpFinalize : PlacedIn Common.Finalize.code secFinalize kFinalize)
     -- 2. Canonical byte inputs (32 B pk, 32 B msg, 7740 B sig).
     (pkBytes : Vector UInt8 pkSize)
     (msgBytes : Vector UInt8 msgSize)
@@ -146,9 +160,9 @@ theorem verify_correct
     (hSigBuf : ReadOnlyBuf initState.dmem initState.regs.X2.toBitVec sigBytes.toList
       initState sphincsStackSize) :
     -- Statement: starting at `sphincs_verify`'s entry in `initState`, every execution under
-    -- `Host.exe` terminates in finitely many steps (`Eventually (step1 Host.exe)`) at a
+    -- `ElfHost.exe` terminates in finitely many steps (`Eventually (elfStep1 ElfHost.exe)`) at a
     -- `finalState` satisfying:
-    Eventually (step1 NativeRustcArm.Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun finalState ↦
         -- A. Control-flow return:
         --    PC reaches the caller's link register (X30) from entry.
@@ -175,8 +189,7 @@ theorem verify_correct
   have hSigLen : sigBytes.toList.length = sigSize := sigBytes.length_toList
   rw [← NativeRustc.Sphincs.verify_decode_bytes pkBytes.toList msgBytes.toList sigBytes.toList
     hPkLen hMsgLen hSigLen]
-  have hp := placed hHostProg
-  have hl := hp.label NativeRustcArm.Sphincs.SphincsVerify.entry_at
+  have hl := hpVerify.label NativeRustcArm.Sphincs.SphincsVerify.entry_at
   rw [hl, NativeRustcArm.Sphincs.SphincsVerify.entryOffset, Nat.add_zero]
   have hrc : RcAt initState sphincsStack := by
     obtain ⟨hb, hw, ha⟩ := hRoundConsts
@@ -191,8 +204,8 @@ theorem verify_correct
   rw [hSigLen] at hsigw hsiga
   exact run_correct
     ⟨initState, pkBytes.toList, msgBytes.toList, sigBytes.toList, hPkLen, hMsgLen, hSigLen,
-      NativeRustcArm.Sphincs.SphincsVerify.programOffset⟩
-    hp (callees hHostProg)
+      secVerify, kVerify⟩
+    hpVerify (callees hpMemcpy hpMemset hpKeccakF hpUpdate hpFinalize)
     ⟨hStackOk, hrc, hlhb, hlhw, hlha, hpkb, hpkw, hpka, hmsgb, hmsgw, hmsga, hsigb, hsigw, hsiga⟩
     (parseSpec_of Parse.parseHead_spec ParseTail.parseTail_spec) digest_spec fors_spec forsKey_spec
     encode_spec Chains.chainsSpec Tree.tree_spec
@@ -201,8 +214,16 @@ theorem verify_correct
 /-- Correctness with every byte outside the contract, ABI and loader regions unmapped.
 Kraken gives `nonmem_load` the proposition `False`. -/
 theorem verify_confined
-    -- 1. Loaded program: an abstract Kraken host whose instruction stream is `Sphincs.code`.
-    [NativeRustcArm.Host] (hHostProg : NativeRustcArm.Host.prog = Sphincs.code)
+    -- 1. Loaded program: a multi-section AArch64 `ElfHost` containing `sphincs_verify` and its
+    --    five callees (`memcpy`, `memset`, `keccak_f`, `Hasher::update`, `Hasher::finalize`).
+    [ElfHost]
+    {secVerify kVerify secMemcpy kMemcpy secMemset kMemset secKeccakF kKeccakF secUpdate kUpdate secFinalize kFinalize : Nat}
+    (hpVerify : PlacedIn Sphincs.SphincsVerify.code secVerify kVerify)
+    (hpMemcpy : PlacedIn Common.Memcpy.code secMemcpy kMemcpy)
+    (hpMemset : PlacedIn Common.Memset.code secMemset kMemset)
+    (hpKeccakF : PlacedIn Common.KeccakF.code secKeccakF kKeccakF)
+    (hpUpdate : PlacedIn Common.Update.code secUpdate kUpdate)
+    (hpFinalize : PlacedIn Common.Finalize.code secFinalize kFinalize)
     -- 2. Canonical byte inputs (32 B pk, 32 B msg, 7740 B sig).
     (pkBytes : Vector UInt8 pkSize)
     (msgBytes : Vector UInt8 msgSize)
@@ -241,7 +262,7 @@ theorem verify_confined
     (∀ addr, ¬ InRegions allowedRegions addr → confinedState.dmem.get? addr = none) ∧
     -- 2. Execution under the restricted memory still terminates in finitely many steps and
     --    satisfies the full correctness, framing, and ABI postcondition:
-    Eventually (step1 NativeRustcArm.Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun finalState ↦
         -- A. Control-flow return (PC reaches entry X30).
         finalState.pc = returnAddrOf confinedState ∧
@@ -267,7 +288,8 @@ theorem verify_confined
   have hs : StackOk confinedState sphincsStackSize :=
     ⟨hStackOk.1, hStackOk.2.1, hStackOk.2.2.restrict (by simp [allowedRegions, stackBelow])⟩
   refine ⟨fun addr hOut => restrictMemory_outside initState.dmem hOut, ?_⟩
-  exact verify_correct hHostProg pkBytes msgBytes sigBytes confinedState hs
+  exact verify_correct hpVerify hpMemcpy hpMemset hpKeccakF hpUpdate hpFinalize
+    pkBytes msgBytes sigBytes confinedState hs
     (hRoundConsts.restrict (by simp [allowedRegions]))
     (hLayerHeights.restrict (by simp [allowedRegions, layerHeightsBytes_length]))
     (hPkBuf.restrict (by simp [allowedRegions, pkBytes.length_toList]))

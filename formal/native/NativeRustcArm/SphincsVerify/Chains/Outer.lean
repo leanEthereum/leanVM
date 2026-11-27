@@ -58,16 +58,16 @@ theorem Keep.extend {r : Run} [Labels] {l : Nat} {x E e : List UInt8} {m : Machi
   ⟨hK.1, hK.2.1, hK.2.2.1, hK.2.2.2.1, hK.2.2.2.2.1, hK.2.2.2.2.2.1, hK.2.2.2.2.2.2.1,
     hK.2.2.2.2.2.2.2.1, h⟩
 
-variable [NativeRustcArm.Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b133`**: back to `b104`. -/
-theorem seg_b133 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b133 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i : Nat} {e : List UInt8}
     (he : e.length = 16) {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m)
     (hw416 : r.WordAt m 416 i.toUInt64) (hcell : BytesAt m.dmem (r.off 8224) e)
     (cont : ∀ m', Keep r l x E m' → r.WordAt m' 416 i.toUInt64 →
-      BytesAt m'.dmem (r.off 8224) e → Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset⟩ := by
+      BytesAt m'.dmem (r.off 8224) e → Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
   refine blk r hp b133_in_code (List.cons_ne_nil _ _) run_b133 hwf hm fun st hm1 hpc ↦ ?_
@@ -79,15 +79,15 @@ theorem seg_b133 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
 
 /-- **`b106` and the steps**: the chain's word `i << 24`, then `3 - d` steps from the digit `d`;
 then `b104`. -/
-theorem seg_b106 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b106 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {i d : Nat}
     (hi : i < 64) (hd : d ≤ 2) {v : List UInt8} (hv : v.length = 16) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E m) (h20 : Run.RegIs m .X20 (BitVec.ofNat 64 d))
     (hw416 : r.WordAt m 416 i.toUInt64) (hcell : BytesAt m.dmem (r.off 8224) v)
     (cont : ∀ m', Keep r l x E m' → r.WordAt m' 416 i.toUInt64 →
       BytesAt m'.dmem (r.off 8224) (chain r.seed (r.key l) i d (3 - d) v) →
-      Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b106Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b106Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
   refine blk r hp b106_in_code (List.cons_ne_nil _ _) run_b106 hwf hm fun st hm1 hpc ↦ ?_

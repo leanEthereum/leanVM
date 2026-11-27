@@ -92,10 +92,10 @@ theorem getElem?_of_infix {ds F : List Directive} {j : Nat} (h : ds.IsInfixAt F 
     exact hd
   simpa using h1
 
-variable (r : Run) [NativeRustcArm.Host]
+variable (r : Run) [ElfHost]
 
 /-- **A block, then `memset`**, on facts. -/
-theorem step_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem step_memset (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memset.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
@@ -108,7 +108,7 @@ theorem step_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     (hLb : noW S' L = true) (hKb : keptK (fs known) S' K = true)
     {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew)
     (hLc : disj L a n = true) (hKc : savedK (Knew ++ K) = true) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data L (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_memset r hp hc hpre hk hx hw hsp h29 h0 h2 (by omega) ha h.1 hkn
     fun m' st' hm' hpc hF hS hout ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
@@ -118,7 +118,7 @@ theorem step_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     exact RegsL.keep_call hS hKc ((hKn m' hm').append (RegsL.keep_block hm0 hm' hKb h.2.2))
 
 /-- **A block, then `memcpy`**, on facts. -/
-theorem step_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem step_memcpy (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memcpy.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
@@ -134,7 +134,7 @@ theorem step_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew)
     (hLc : disj (Lnew ++ L) a n = true) (hKc : savedK (Knew ++ K) = true)
     {bs : List UInt8} (hsrc : (b, n, bs) ∈ Lnew ++ L) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data ((a, n, bs) :: (Lnew ++ L)) (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_memcpy r hp hc hpre hk hx hw hsp h29 h0 h1 h2 (by omega) ha hb hab h.1 hkn
     fun m' st' hm' hpc hF hS hbytes hout ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
@@ -148,7 +148,7 @@ theorem step_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) 
     exact RegsL.keep_call hS hKc ((hKn m' hm').append (RegsL.keep_block hm0 hm' hKb h.2.2))
 
 /-- **A block falling through**, on facts. -/
-theorem step_fall (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem step_fall (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j) (hne : ds ≠ [])
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .fall))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0)
@@ -159,7 +159,7 @@ theorem step_fall (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     (hLb : noW S' L = true) (hKb : keptK (fs known) S' K = true)
     {Lnew : List (Nat × Nat × List UInt8)} (hLn : ∀ m', Match (envSig r m) S' m' → BytesL r m'.dmem Lnew)
     {Knew : List (XReg × BitVec 64)} (hKn : ∀ m', Match (envSig r m) S' m' → RegsL m' Knew) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc (j + ds.length) ∧
       Facts r st.data (Lnew ++ L) (Knew ++ K)) ⟨m, r.pc j⟩ := by
   refine block_fall r hp hpre hk hne hx hw hsp h29 h.1 hkn fun st hm' hpc hF ↦ .done _ ⟨hpc, hF, ?_, ?_⟩
   · have hwf := envSig_wf r hpre h.1 (fun _ ↦ 0)
@@ -170,14 +170,14 @@ end
 
 /-- **A segment of the tail**: from a state with `P` at the function's directive `j`, the machine
 inevitably reaches directive `j'` in a state with `Q`. -/
-@[expose] public def Seg [NativeRustcArm.Host] (r : Run) (j : Nat) (P : MachineData → Prop) (j' : Nat)
+@[expose] public def Seg [ElfHost] (r : Run) (j : Nat) (P : MachineData → Prop) (j' : Nat)
     (Q : MachineData → Prop) : Prop :=
-  ∀ m, P m → Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc j' ∧ Q st.data) ⟨m, r.pc j⟩
+  ∀ m, P m → Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc j' ∧ Q st.data) ⟨m, r.pc j⟩
 
 /-- Segments one after the other. -/
-public theorem Seg.trans [NativeRustcArm.Host] {r : Run} {j j' j'' : Nat} {P Q R : MachineData → Prop}
+public theorem Seg.trans [ElfHost] {r : Run} {j j' j'' : Nat} {P Q R : MachineData → Prop}
     (h1 : Seg r j P j' Q) (h2 : Seg r j' Q j'' R) : Seg r j P j'' R := fun m hm ↦
-  Eventually.bind (h1 m hm) fun st ⟨hpc, hq⟩ ↦ by
+  Eventually.bind_elf (h1 m hm) fun st ⟨hpc, hq⟩ ↦ by
     obtain ⟨m', pc⟩ := st
     simp only at hpc
     subst hpc

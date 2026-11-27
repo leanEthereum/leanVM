@@ -127,12 +127,12 @@ theorem bytesAt_lit8 {r : Run} {m m₁ : MachineData} {ret : BitVec 64} {S : SSt
 
 end
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The FORS key's hasher absorbs `PK.seed | ADRS`** (`b88 .. b90`). -/
-theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem forsKey0_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : r.AtForsKey m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b91Offset ∧ FK0 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b91Offset ∧ FK0 r st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b88Offset⟩ := by
   obtain ⟨hF, hI, h15, hbp, hR, h568, h176⟩ := hA
   have hK : Keep r m := ⟨hF, hI, h176⟩
@@ -188,9 +188,9 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
   · exact hkc₆ 552 _ (by omega) (by omega) (hkb₅ 552 _ (by omega) (by rw [hw]; rfl) g568)
 
 /-- **The roots absorbed, the FORS key's digest** (`b91 .. b93`). -/
-theorem forsKey1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem forsKey1_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : FK0 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b94Offset ∧ FK1 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b94Offset ∧ FK1 r st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b91Offset⟩ := by
   obtain ⟨hK, h12, hbx, h13, hR, h568, hH⟩ := hA
   obtain ⟨hb, hbB, hbh⟩ := hH
@@ -233,9 +233,9 @@ theorem forsKey1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
   · exact hkc₆ 552 _ (by omega) (by omega) (hkb₅ 552 _ (by omega) (by rw [hw]; rfl) g568)
 
 /-- **`signed`, the layer loop's registers** (`b94`). -/
-theorem forsKey2_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem forsKey2_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {m : MachineData} (hA : FK1 r m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset ∧ r.AtLayer 0 r.forsPk st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcX64.Sphincs.SphincsVerify.b95Offset ∧ r.AtLayer 0 r.forsPk st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b94Offset⟩ := by
   obtain ⟨hK, h12, hbx, h13, hbp, h568, hD⟩ := hA
   have hw := NativeRustc.length_wordBytes r.idx
@@ -266,7 +266,7 @@ open Digest
 public section
 
 /-- **Region 4, the FORS key** (x86-64). -/
-theorem forsKey_spec [Host] : ForsKeySpec := by
+theorem forsKey_spec [ElfHost] : ForsKeySpec := by
   intro r hp hc hpre m hA
   exact Run.stage r (forsKey0_spec r hp hc hpre hA) fun m₁ h₁ ↦
     Run.stage r (forsKey1_spec r hp hc hpre h₁) fun m₂ h₂ ↦ forsKey2_spec r hp hpre h₂

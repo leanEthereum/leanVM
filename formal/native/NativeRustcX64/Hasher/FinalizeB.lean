@@ -39,14 +39,15 @@ theorem findWrite_padW (j : Nat) : findWrite 0 j [padW] =
   · simp only [findWrite, padW, h, ↓reduceIte]
     rw [ite_neg' (by omega)]
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **`PAD_FIRST`.** -/
-theorem stage3_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : FinalizePre m0)
+theorem stage3_spec (hp : PlacedIn code sec k) {m0 m1 m : MachineData} (hpre : FinalizePre m0)
     (hs2 : Stage2 m0 m1 m) :
-    Eventually (step1 Host.exe) (fun st => st.pc = Host.addrOf (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length)) ∧ Stage3 m0 m1 st.data)
-      ⟨m, Host.addrOf (k + NativeRustcX64.Common.Finalize.b5Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length)) ∧ Stage3 m0 m1 st.data)
+      ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b5Offset)⟩ := by
   have g := geo_of hpre
   have hf := frAt_toNat g
   have hs := g.s
@@ -75,7 +76,7 @@ theorem stage3_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : Finaliz
       simp only [BitVec.toNat_add, BitVec.toNat_ofNat, h14,
         show (2 : Nat) ^ Width.W64.bits = 2 ^ 64 from rfl]
       omega, trivial⟩
-  refine exec_then (hb5a hp) run_b5a hwf (fun _ h => nomatch h) hma fun st hm' hpc => ?_
+  refine exec_then_elf (hb5a hp) run_b5a hwf (fun _ h => nomatch h) hma fun st hm' hpc => ?_
   have hl := b5a_mem
   rw [after_eq run_b5a] at hl
   have hmem : ∀ p, ¬p = frAt m0 + BitVec.ofNat 64 (16 + lenOf m0) →
@@ -128,7 +129,7 @@ theorem stage3_spec (hp : Placed code k) {m0 m1 m : MachineData} (hpre : Finaliz
     · rw [ite_neg' h1, ite_neg' h1]
 
 section
-omit [Host]
+omit [ElfHost]
 variable [Labels]
 
 /-- **A byte of the state after `b5b`**, from the frame's bytes before it. -/

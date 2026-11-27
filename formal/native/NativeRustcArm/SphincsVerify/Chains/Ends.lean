@@ -19,7 +19,7 @@ open LeanVM.Protocol.KeccakHash
 
 public section
 
-variable [NativeRustcArm.Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- The frame's bytes `a .. a + n` and `a' .. a' + n'`, apart, as regions. -/
 theorem apart_regions (hpre : r.Pre) {a n a' n' : Nat} (ha : a + n ≤ 21616)
@@ -29,15 +29,15 @@ theorem apart_regions (hpre : r.Pre) {a n a' n' : Nat} (ha : a + n ≤ 21616)
 
 /-- **`b104`**: chain `i`'s end stored after the ends so far; on to chain `i + 1`, or `b134`
 after chain 63. -/
-theorem seg_b104 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b104 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) {i : Nat} (hi : i < 64) (hEl : E.length = 16 * i)
     {e : List UInt8} (he : e.length = 16) {R : MachineState → Prop} {m : MachineData}
     (hK : Keep r l x E m) (hw416 : r.WordAt m 416 i.toUInt64)
     (hcell : BytesAt m.dmem (r.off 8224) e)
     (cont : ∀ m', Keep r l x (E ++ e) m' → Run.RegIs m' .X1 (BitVec.ofNat 64 (i + 1)) →
-      Eventually (step1 NativeRustcArm.Host.exe) R
+      Eventually (elfStep1 ElfHost.exe) R
         ⟨m', if i + 1 = 64 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b134Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b105Offset⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b104Offset⟩ := by
   have hF := hK.1
   obtain ⟨m0, w0⟩ := r.frame_mapped hpre hF (a := 0) (n := 448) (by decide)
   obtain ⟨m1, w1⟩ := r.frame_mapped hpre hF (a := 20464 + 16 * i) (n := 16) (by omega)

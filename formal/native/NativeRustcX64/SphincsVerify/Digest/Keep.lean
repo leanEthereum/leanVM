@@ -193,37 +193,37 @@ end
 
 /-! ## Steps -/
 
-variable [Host]
+variable [ElfHost]
 
 /-- From one block's start in a state `P` to another's, then on. -/
 theorem Run.stage (r : Run) {j : Nat} {P : MachineData → Prop} {s : MachineState}
     {R : MachineState → Prop}
-    (h : Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc j ∧ P st.data) s)
-    (k : ∀ m, P m → Eventually (step1 Host.exe) R ⟨m, r.pc j⟩) :
-    Eventually (step1 Host.exe) R s :=
-  Eventually.bind h fun ⟨m, pc⟩ ⟨hpc, hP⟩ ↦ by
+    (h : Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc j ∧ P st.data) s)
+    (k : ∀ m, P m → Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩) :
+    Eventually (elfStep1 ElfHost.exe) R s :=
+  Eventually.bind_elf h fun ⟨m, pc⟩ ⟨hpc, hP⟩ ↦ by
     simp only at hpc
     subst hpc
     exact k m hP
 
 /-- **A block of the frame, then its callee**: the callee entered at a call (`AtCall`), what the
 digest keeps there, its return at the block's end `j'` RSP 8 above. -/
-theorem Run.frameCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.frameCall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     (hj : j + ds.length = j') {k : List (Reg64 × Sym)} {S' : SState} {l : Label}
     (hx : exec ds (frameS k) = some (S', .call l)) (hok : keepOK S' = true)
     (hrsp : S'.reg .rsp = some (.ptr 0 (-8)))
     {m : MachineData} (hK : Keep r m) (hk : KnownOK r m (r.pc j').toBitVec k)
     {P : MachineData → Prop} {Q : MachineData → MachineData → Prop}
-    (hspec : Spec (Labels.label l) P Q) {R : MachineState → Prop}
+    (hspec : ElfSpec (Labels.label l) P Q) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) (r.pc j').toBitVec) S' m₁ → r.AtCall m₁ →
       r.Inputs m₁ → r.WordAt m₁ 184 (r.addr 17436) → KB r S' m m₁ → P m₁ ∧
       ∀ m₂, rspOf m₂ = rspOf m₁ + 8#64 → Q m₁ m₂ →
-        Eventually (step1 Host.exe) R ⟨m₂, r.pc j'⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by
+        Eventually (elfStep1 ElfHost.exe) R ⟨m₂, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) (r.pc j').toBitVec
   have hk' := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then hk' hx hwf (fun _ _ ↦ by show (r.pc j').toBitVec = _; rw [Run.pc, ← hj, Nat.add_assoc])
+  refine exec_then_elf hk' hx hwf (fun _ _ ↦ by show (r.pc j').toBitVec = _; rw [Run.pc, ← hj, Nat.add_assoc])
     (Run.frame_match r hpre hK.1 hk) fun st hm₁ hpc ↦ ?_
   have hok' := hok
   simp only [keepOK, Bool.and_eq_true] at hok'
@@ -231,7 +231,7 @@ theorem Run.frameCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hp
   obtain ⟨hI, h176⟩ := inputs_of_block hpre hm₁ hwf hok hK.2.1 hK.2.2
   obtain ⟨hP, hc'⟩ := h st.data hm₁ hc hI h176
     fun _ _ ho hn hb ↦ r.bytesAt_kept hpre hm₁ hwf ho hb hn
-  refine call_then hpc hspec hP fun st' hpc' hsp hq ↦ ?_
+  refine call_then_elf hpc hspec hP fun st' hpc' hsp hq ↦ ?_
   obtain ⟨m₂, pc⟩ := st'
   simp only at hpc'
   subst hpc'
@@ -239,18 +239,18 @@ theorem Run.frameCall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hp
   exact hc' m₂ hsp hq
 
 /-- **A block of the frame falling through** to directive `j'`. -/
-theorem Run.frameFall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem Run.frameFall (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j j' : Nat} (hb : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     (hj : j + ds.length = j') (hne : ds ≠ []) {k : List (Reg64 × Sym)} {S' : SState}
     (hx : exec ds (frameS k) = some (S', .fall)) (hok : keepOK S' = true)
     (hrsp : S'.reg .rsp = some (.ptr 0 0)) {m : MachineData} (hK : Keep r m)
     (hk : KnownOK r m 0 k) {R : MachineState → Prop}
     (h : ∀ m₁, Match (r.env m (fun _ ↦ 0) 0) S' m₁ → Keep r m₁ → KB r S' m m₁ →
-      Eventually (step1 Host.exe) R ⟨m₁, r.pc j'⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc j⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m₁, r.pc j'⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
   have hwf := r.frame_wf hpre hK.1.2.2.2 (fun _ ↦ 0) 0
   have hk' := hb.trans hp.1 hne
-  refine exec_then hk' hx hwf (fun _ h ↦ nomatch h) (Run.frame_match r hpre hK.1 hk)
+  refine exec_then_elf hk' hx hwf (fun _ h ↦ nomatch h) (Run.frame_match r hpre hK.1 hk)
     fun st hm₁ hpc ↦ ?_
   obtain ⟨m₁, pc⟩ := st
   simp only [PcOk] at hpc
@@ -258,12 +258,12 @@ theorem Run.frameFall (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hp
   have hok' := hok
   simp only [keepOK, Bool.and_eq_true] at hok'
   obtain ⟨hI, h176⟩ := inputs_of_block hpre hm₁ hwf hok hK.2.1 hK.2.2
-  rw [show Host.addrOf (r.k + j + ds.length) = r.pc j' by rw [Run.pc, Nat.add_assoc, hj]]
+  rw [show ElfHost.addrOf r.sec (r.k + j + ds.length) = r.pc j' by rw [Run.pc, Nat.add_assoc, hj]]
   exact h m₁ hm₁ ⟨Run.Frame.of_match r hpre hK.1 hm₁ hwf hrsp hok'.1.1.1, hI, h176⟩
     fun _ _ ho hn hb ↦ r.bytesAt_kept hpre hm₁ hwf ho hb hn
 
 /-- **A label of the function** is the address of the block it starts. -/
-theorem Run.label_of_block (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k)
+theorem Run.label_of_block (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k)
     {b : List Directive} {j : Nat} (hb : b.IsInfixAt Sphincs.SphincsVerify.code j) {l : Label}
     {b' : List Directive} (h : b = .label l :: b') : Labels.label l = r.pc j := by
   subst h

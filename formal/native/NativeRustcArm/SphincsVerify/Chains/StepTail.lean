@@ -50,7 +50,7 @@ theorem take_of_bytesAt {d : DataMem} {a : BitVec 64} {bs : List UInt8} (h : Byt
     (n : Nat) : BytesAt d a (bs.take n) :=
   BytesAt.left (cs := bs.drop n) (by rwa [List.take_append_drop])
 
-variable [NativeRustcArm.Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- What follows a step that leaves the chain's value `th` of the padded `T`: from the frame's
 state after `b132`, at `b107` for the next step or `b133` after position 2. -/
@@ -59,19 +59,19 @@ def StepCont (r : Run) (l : Nat) (x E : List UInt8) (pos i : Nat) (T : List UInt
   ∀ m', Keep r l x E m' → Regs r m' (pos + 1) i →
     BytesAt m'.dmem (r.off 8224)
       ((Keccak.keccakF (Keccak.xorBlock (List.replicate 200 0) (Keccak.finalBlock T))).take 16) →
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩
+    Eventually (elfStep1 ElfHost.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩
 
 /-- **`b132`**: the first 16 bytes of hasher A become the chain's value; on to the next step or,
 after position 2, to `b133`. -/
-theorem seg_b132 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l : Nat}
+theorem seg_b132 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre) {l : Nat}
     {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat} (hpos : pos ≤ 2)
     {A : List UInt8} (hA16 : 16 ≤ A.length) {R : MachineState → Prop} {m : MachineData}
     (hK : Keep r l x E m) (hR : Regs r m (pos + 1) i)
     (hA : BytesAt m.dmem (r.off 8640) A)
     (cont : ∀ m', Keep r l x E m' → Regs r m' (pos + 1) i →
       BytesAt m'.dmem (r.off 8224) (A.take 16) →
-      Eventually (step1 NativeRustcArm.Host.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b132Offset⟩ := by
+      Eventually (elfStep1 ElfHost.exe) R ⟨m', if pos + 1 = 3 then r.pc NativeRustcArm.Sphincs.SphincsVerify.b133Offset else r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b132Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
   refine blk r hp b132_in_code (List.cons_ne_nil _ _) run_b132 hwf hm fun st hm' hpc ↦ ?_
@@ -88,7 +88,7 @@ theorem seg_b132 (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre) {l 
   all_goals rfl
 
 /-- **`b131`**: the padded block XORed into hasher A's zero state, `keccak_f`; then `b132`. -/
-theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b131 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) {T : List UInt8} (hT : T.length = 64) {R : MachineState → Prop}
     {m : MachineData} (hK : Keep r l x E m) (hR : Regs r m (pos + 1) i)
@@ -96,7 +96,7 @@ theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     (hA0 : BytesAt m.dmem (r.off 8640) (List.replicate 200 0))
     (hblk : BytesAt m.dmem (r.off 16960) (T ++ List.replicate 72 0))
     (cont : StepCont r l x E pos i T R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b131Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b131Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := [(.X24, .lit 64)]) ⟨known_lit h24, trivial⟩
   refine blk r hp b131_in_code (List.cons_ne_nil _ _) run_b131 hwf hm fun st hm' hpc ↦ ?_
@@ -112,7 +112,7 @@ theorem seg_b131 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     exact hxor
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := regIs_ptr hm' rfl
   have hR1 := Regs.of_block hpre hm' hwf rfl rfl (by decide +kernel) hR
-  refine call_then hpc hc.2.2.2.2 (r.keccakF_pre hpre hK1.1 h0 (by decide)) fun st2 hpc2 hpost ↦ ?_
+  refine call_then_elf hpc hc.2.2.2.2 (r.keccakF_pre hpre hK1.1 h0 (by decide)) fun st2 hpc2 hpost ↦ ?_
   obtain ⟨hk2, hout, hS⟩ := r.keccakF_out h0 hpost
   have hK2 := Keep.of_call hpre hx hE hK1 hS (a := 8640) (n := 200) (by unfold Scratch; omega)
     (by decide) hout

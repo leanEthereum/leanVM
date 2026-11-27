@@ -83,23 +83,23 @@ theorem roundEnv_wf {m0 m : MachineData} {i : Nat} (hpre : KeccakFPre m0)
 
 end
 
-variable [Host]
+variable [ElfHost]
 
-theorem halves_placed {k : Nat} (hp : Placed Common.KeccakF.code k) :
-    (firstHalf ++ secondHalf).IsInfixAt Host.prog (k + Common.KeccakF.b1Offset) := by
+theorem halves_placed {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) :
+    (firstHalf ++ secondHalf).IsInfixAt (ElfHost.sectionProg sec) (k + Common.KeccakF.b1Offset) := by
   rw [firstHalf, secondHalf, List.take_append_drop]
   exact Common.KeccakF.b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
 
-omit [Host] in
+omit [ElfHost] in
 theorem second_next : Common.KeccakF.b1Offset + firstHalf.length + secondHalf.length =
     Common.KeccakF.b2Offset := by decide +kernel
 
 /-- The first unrolled round ends at the intermediate lane layout. -/
-theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem first_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) {i : Nat} (hi : i + 1 < 24) {m : MachineData} (hA : At m0 i m) :
-    Eventually (step1 Host.exe) (fun st => MidAt m0 (i + 1) st.data ∧
-      st.pc = Host.addrOf (k + (Common.KeccakF.b1Offset + firstHalf.length)))
-      ⟨m, Host.addrOf (k + Common.KeccakF.b1Offset)⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st => MidAt m0 (i + 1) st.data ∧
+      st.pc = ElfHost.addrOf sec (k + (Common.KeccakF.b1Offset + firstHalf.length)))
+      ⟨m, ElfHost.addrOf sec (k + Common.KeccakF.b1Offset)⟩ := by
   let env := roundEnv m0 m i
   have hwf : env.WF := roundEnv_wf hpre hi hA.kept hA.same
   have hb0 : env.regions[0]? = some (frame m0, 296) := rfl
@@ -115,7 +115,7 @@ theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
     rw [BitVec.ofNat_add, BitVec.add_comm _ rcAddr, BitVec.add_assoc]
   have hrcl : env.load 1 0 8 = (keccakRC.getD i 0).toBitVec :=
     load_rc_at (rcAt_of_same hpre hA.same) (BitVec.add_zero _) (by omega)
-  refine exec_then (List.IsInfixAt.append (halves_placed hp)).1 firstBody hwf nofun hm
+  refine exec_then_elf (List.IsInfixAt.append (halves_placed hp)).1 firstBody hwf nofun hm
     fun st hm' hpc => .done _ ⟨?_, ?_⟩
   · have hslots₀ : AllOf (fun p : Nat × Nat =>
         env.load 0 p.1 8 = (Keccak.lane (stAfter m0 i) p.2).toBitVec) laneSlots :=
@@ -153,13 +153,13 @@ theorem first_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineDa
   · simpa only [PcOk, Nat.add_assoc] using hpc
 
 /-- The second unrolled round returns to the loop-head layout. -/
-theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem second_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) {i : Nat} (hi : i + 1 < 24) {m : MachineData}
     (hA : MidAt m0 (i + 1) m) :
-    Eventually (step1 Host.exe) (fun st => At m0 (i + 2) st.data ∧
-      st.pc = if i + 2 = 24 then Host.addrOf (k + Common.KeccakF.b2Offset)
-        else Host.addrOf (k + Common.KeccakF.b1Offset))
-      ⟨m, Host.addrOf (k + (Common.KeccakF.b1Offset + firstHalf.length))⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st => At m0 (i + 2) st.data ∧
+      st.pc = if i + 2 = 24 then ElfHost.addrOf sec (k + Common.KeccakF.b2Offset)
+        else ElfHost.addrOf sec (k + Common.KeccakF.b1Offset))
+      ⟨m, ElfHost.addrOf sec (k + (Common.KeccakF.b1Offset + firstHalf.length))⟩ := by
   let env := roundEnv m0 m i
   have hwf : env.WF := roundEnv_wf hpre hi hA.kept hA.same
   have hb0 : env.regions[0]? = some (frame m0, 296) := rfl
@@ -179,10 +179,10 @@ theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineD
     apply load_rc_at (rcAt_of_same hpre hA.same) ?_ hi
     change (rcAddr + BitVec.ofNat 64 (8 * i)) + 8#64 = _
     rw [addr_add, Nat.mul_add]
-  have hpsec : secondHalf.IsInfixAt Host.prog
+  have hpsec : secondHalf.IsInfixAt (ElfHost.sectionProg sec)
       (k + (Common.KeccakF.b1Offset + firstHalf.length)) := by
     simpa only [Nat.add_assoc] using (List.IsInfixAt.append (halves_placed hp)).2
-  refine exec_then hpsec secondBody hwf nofun hm
+  refine exec_then_elf hpsec secondBody hwf nofun hm
     fun st hm' hpc => .done _ ⟨?_, ?_⟩
   · have hslots₀ : AllOf (fun p : Nat × Nat =>
         env.load 0 p.1 8 = (Keccak.lane (stAfter m0 (i + 1)) p.2).toBitVec) midLaneSlots :=
@@ -217,7 +217,8 @@ theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineD
     · exact allOf_imp (fun p hp h => by
         rw [show i + 2 = (i + 1) + 1 by omega, stAfter_succ m0 hi, par_round _ _ (hc p hp)]
         exact h) hpar
-  · have hlab : Labels.label Common.KeccakF.label_1 = Host.addrOf (k + Common.KeccakF.b1Offset) :=
+  · have hlab : Labels.label Common.KeccakF.label_1 =
+        ElfHost.addrOf sec (k + Common.KeccakF.b1Offset) :=
       hp.label Common.KeccakF.label_1_at
     simp only [PcOk] at hpc
     rw [hpc, hlab]
@@ -235,13 +236,13 @@ theorem second_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineD
       simp only [hb, h, Bool.not_false, ↓reduceIte]
 
 /-- **One pair of rounds of the loop.** -/
-theorem round_step {k : Nat} (hp : Placed Common.KeccakF.code k) {m0 : MachineData}
+theorem round_step {sec k : Nat} (hp : PlacedIn Common.KeccakF.code sec k) {m0 : MachineData}
     (hpre : KeccakFPre m0) {i : Nat} (hi : i + 1 < 24) {m : MachineData} (hA : At m0 i m) :
-    Eventually (step1 Host.exe) (fun st => At m0 (i + 2) st.data ∧
-      st.pc = if i + 2 = 24 then Host.addrOf (k + Common.KeccakF.b2Offset)
-        else Host.addrOf (k + Common.KeccakF.b1Offset))
-      ⟨m, Host.addrOf (k + Common.KeccakF.b1Offset)⟩ := by
-  refine Eventually.bind (first_step hp hpre hi hA) fun st ⟨hmid, hpc⟩ => ?_
+    Eventually (elfStep1 ElfHost.exe) (fun st => At m0 (i + 2) st.data ∧
+      st.pc = if i + 2 = 24 then ElfHost.addrOf sec (k + Common.KeccakF.b2Offset)
+        else ElfHost.addrOf sec (k + Common.KeccakF.b1Offset))
+      ⟨m, ElfHost.addrOf sec (k + Common.KeccakF.b1Offset)⟩ := by
+  refine Eventually.bind_elf (first_step hp hpre hi hA) fun st ⟨hmid, hpc⟩ => ?_
   obtain ⟨m', pc⟩ := st
   simp only at hpc
   subst hpc

@@ -122,12 +122,12 @@ theorem bytesAt_cat {r : Run} {d : DataMem} {o k o' : Nat} {xs ys : List UInt8}
     (hy : BytesAt d (r.off o') ys) : BytesAt d (r.off o) (xs ++ ys) :=
   bytesAt_append hx (by rw [Run.off_add, hl, ho]; exact hy)
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **The FORS key's hasher absorbs `PK.seed | ADRS`** (`b85 .. b87`). -/
-theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem forsKey0_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : r.AtForsKey m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b88Offset ∧ FK0 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b88Offset ∧ FK0 r st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b85Offset⟩ := by
   obtain ⟨hF, hI, h20, h25, h23, h27, hR, h400, h408⟩ := hA
   have hK : Keep r m := ⟨hF, hI, h408⟩
@@ -179,9 +179,9 @@ theorem forsKey0_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc
   · exact hkc₆ 400 _ (by omega) (by omega) (hkb₅ 400 _ (by omega) (by rw [hw]; rfl) g400)
 
 /-- **The roots absorbed, the FORS key's digest** (`b88 .. b90`). -/
-theorem forsKey1_spec (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
+theorem forsKey1_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees)
     (hpre : r.Pre) {m : MachineData} (hA : FK0 r m) :
-    Eventually (step1 NativeRustcArm.Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b91Offset ∧ FK1 r st.data)
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b91Offset ∧ FK1 r st.data)
       ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b88Offset⟩ := by
   obtain ⟨hK, h23, h27, hR, h400, hH⟩ := hA
   obtain ⟨hb, hbB, hbh⟩ := hH

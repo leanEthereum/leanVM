@@ -134,12 +134,12 @@ theorem roots_call [Labels] (hpre : r.Pre) {m m' : MachineData} (hF : r.Frame m)
   have hl := length_rootsMem (r := r) hc
   exact r.bytesAt_of_call hpre hF (by omega) hN hout (by rw [hl]; omega) (Or.inr ha) h
 
-variable [Host]
+variable [ElfHost]
 
 /-- **A tree's head** (`b51` and `memset`): from `AtTree`, `T1` at `b52`. -/
-theorem tree_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
+theorem tree_s1 (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
     (h : AtTree r c m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b52Offset ∧ T1 r c st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b52Offset ∧ T1 r c st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset⟩ := by
   obtain ⟨⟨hB, hc24, hroots⟩, h19, h24, h9, h8, h23, h10, h25, h20⟩ := h
   have hwf := r.frame_wf hpre hB.frame (fun _ ↦ 0)
   have h19' : (m.regs.getXReg .X19).toBitVec = BitVec.ofNat 64 c := h19
@@ -147,7 +147,7 @@ theorem tree_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
     match_frameS hpre hB ⟨known_ptr h24, known_ptr h9, h8, known_ptr h23, h10, trivial⟩
       ⟨by show (m.regs.getXReg .X19).toBitVec.toNat < 24; rw [h19', BitVec.toNat_ofNat]; omega,
         trivial⟩
-  refine exec_then (hb51 hp) run_b51 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb51 hp) run_b51 hwf hm fun st1 hm1 hpc1 ↦ ?_
   obtain ⟨hB1, hk1⟩ := hB.of_matchLow hpre hm1 hwf rfl rfl rfl rfl rfl rfl
   have hleaf := r.leafOf_lt hc24
   have hload : (r.env m).load 0 (17992 + (UnOp.apply (.memExtend ⟨.UXTX, .E3⟩) .W64
@@ -184,7 +184,7 @@ theorem tree_s1 (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {
       rw [hload, h19']
       exact bytes_leafIndex hc24 _ hlx
   have hroots1 := roots_blk hpre hm1 hwf hc24.le rfl hroots
-  refine call_then hpc1 hc.2.1 (r.memset_pre hpre hB1.frame h0 h2 (by decide)) fun st2 hpc2 hpost ↦ ?_
+  refine call_then_elf hpc1 hc.2.1 (r.memset_pre hpre hB1.frame h0 h2 (by decide)) fun st2 hpc2 hpost ↦ ?_
   obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost
   obtain ⟨hB2, -⟩ := hB1.of_call hpre hS (a := 8640) (n := 344) (N := 0) (by decide) (by decide)
     hout (fun o h1 h2 ↦ by unfold Scr; omega)

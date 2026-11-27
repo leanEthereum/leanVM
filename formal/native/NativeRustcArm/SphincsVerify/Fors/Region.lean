@@ -18,17 +18,17 @@ open NativeRustcArm.Sphincs.SphincsVerify
 
 public section
 
-variable {r : Run} [Host]
+variable {r : Run} [ElfHost]
 
 /-- **The loop's set-up** (`b50`): from `AtFors`, the first tree's head. -/
-theorem fors_entry (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : r.AtFors m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset ∧ AtTree r 0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b50Offset⟩ := by
+theorem fors_entry (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) {m : MachineData} (h : r.AtFors m) :
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset ∧ AtTree r 0 st.data) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b50Offset⟩ := by
   obtain ⟨hF, hIn, h21, h19, h24, h20, h23, hleaves, h408⟩ := h
   have hwf := r.frame_wf hpre hF (fun _ ↦ 0)
   have hm : Match (r.env m) s50 m :=
     r.match_frame hpre hF ⟨hF.2.1.trans (eval_ptr 21520).symm, known_ptr h24, known_ptr h20,
       known_ptr h23, trivial⟩ trivial trivial trivial
-  refine exec_then (hb50 hp) run_b50 hwf hm fun st1 hm1 hpc1 ↦ ?_
+  refine exec_then_elf (hb50 hp) run_b50 hwf hm fun st1 hm1 hpc1 ↦ ?_
   have hF1 : r.Frame st1.data := Run.Frame.of_match r hpre hF hm1 hwf rfl rfl rfl
   have hkeep : ∀ {o : Nat} {bs : List UInt8}, o + bs.length ≤ 21616 →
       Run.noWriteIn _ o bs.length = true → BytesAt m.dmem (r.off o) bs →
@@ -67,27 +67,27 @@ theorem fors_entry (hp : Placed code r.k) (hpre : r.Pre) {m : MachineData} (h : 
     exact wordBytes_treeW r
 
 /-- **A tree** (`b51 .. b84`): from its head, the next tree's head, or after the 24th, `b85`. -/
-theorem tree_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
+theorem tree_spec (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) {c : Nat} {m : MachineData}
     (h : AtTree r c m) :
-    Eventually (step1 Host.exe)
+    Eventually (elfStep1 ElfHost.exe)
       (fun st ↦ (c + 1 < 24 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset ∧ AtTree r (c + 1) st.data) ∨
         (c + 1 = 24 ∧ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b85Offset ∧ r.AtForsKey st.data)) ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset⟩ := by
-  refine Eventually.bind (tree_s1 hp hc hpre h) fun st ⟨hpc, h1⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (tree_s2 hp hc hpre h1) fun st ⟨hpc, h2⟩ ↦ ev_at hpc ?_
-  refine Eventually.bind (nodes_spec hp hc hpre 10 0 rfl _ h2) fun st ⟨hpc, h3⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (tree_s1 hp hc hpre h) fun st ⟨hpc, h1⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (tree_s2 hp hc hpre h1) fun st ⟨hpc, h2⟩ ↦ ev_at hpc ?_
+  refine Eventually.bind_elf (nodes_spec hp hc hpre 10 0 rfl _ h2) fun st ⟨hpc, h3⟩ ↦ ev_at hpc ?_
   exact tree_end hp hpre h3
 
 /-- **The trees** from tree `c`'s head. -/
-theorem trees_spec (hp : Placed code r.k) (hc : Callees) (hpre : r.Pre) :
+theorem trees_spec (hp : PlacedIn code r.sec r.k) (hc : Callees) (hpre : r.Pre) :
     ∀ n c, c + n = 24 → ∀ m, AtTree r c m →
-      Eventually (step1 Host.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b85Offset ∧ r.AtForsKey st.data)
+      Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = r.pc NativeRustcArm.Sphincs.SphincsVerify.b85Offset ∧ r.AtForsKey st.data)
         ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b51Offset⟩ := by
   intro n
   induction n with
   | zero => intro c hn m h; exact absurd h.rs.hc (by omega)
   | succ n ih =>
     intro c hn m h
-    refine Eventually.bind (tree_spec hp hc hpre h) fun st hst ↦ ?_
+    refine Eventually.bind_elf (tree_spec hp hc hpre h) fun st hst ↦ ?_
     rcases hst with ⟨-, hpc, h'⟩ | ⟨-, hpc, h'⟩
     · exact ev_at hpc (ih (c + 1) (by omega) _ h')
     · exact .done _ ⟨hpc, h'⟩
@@ -99,9 +99,9 @@ end NativeRustcArm.SphincsVerifyProof.Fors
 namespace NativeRustcArm.SphincsVerifyProof
 
 /-- **Region 3, the FORS trees**: from `AtFors` at `b50`, `AtForsKey` at `b85`. -/
-public theorem fors_spec [NativeRustcArm.Host] : ForsSpec := by
+public theorem fors_spec [ElfHost] : ForsSpec := by
   intro r hp hc hpre m h
-  refine Eventually.bind (Fors.fors_entry hp hpre h) fun st ⟨hpc, h0⟩ ↦ Fors.ev_at hpc ?_
+  refine Eventually.bind_elf (Fors.fors_entry hp hpre h) fun st ⟨hpc, h0⟩ ↦ Fors.ev_at hpc ?_
   exact Fors.trees_spec hp hc hpre 24 0 rfl _ h0
 
 end NativeRustcArm.SphincsVerifyProof

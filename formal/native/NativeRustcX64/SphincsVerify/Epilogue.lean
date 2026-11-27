@@ -87,14 +87,14 @@ sym_block b187_exec := Sym.exec Sphincs.SphincsVerify.b187
 sym_block b186_exec := Sym.exec Sphincs.SphincsVerify.b186
   (Sym.init [21632, 16, 8, 8] [(.rsp, .ptr 0 0)])
 
-variable [Host]
+variable [ElfHost]
 
 /-- **The epilogue**: from a state of the frame at `b187`, the machine returns to the caller, RSP
 8 above the entry's, with RAX as it was, no byte changed outside the stack area, and the entry's
 callee-saved registers and mapped bytes. -/
-theorem epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem epilogue (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) :
-    Eventually (step1 Host.exe) (fun st ↦ st.pc = retOf r.m0 ∧
+    Eventually (elfStep1 ElfHost.exe) (fun st ↦ st.pc = retOf r.m0 ∧
       rspOf st.data = rspOf r.m0 + 8#64 ∧ reg st.data .rax = reg m .rax ∧
       SameOutside r.m0.dmem st.data.dmem r.StackArea ∧ Saved r.m0 st.data)
       ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b187Offset⟩ := by
@@ -105,7 +105,7 @@ theorem epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
       ⟨by show rspOf m = r.base + BitVec.ofInt 64 0; simp only [BitVec.ofInt_ofNat,
         BitVec.add_zero]; exact hF.1, trivial⟩ trivial trivial trivial
   have hread := hm.read hwf (r := 0) (o := 21624) (n := 8) rfl (by decide) (by decide)
-  refine Sym.exec_then hk b187_exec hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
+  refine Sym.exec_then_elf hk b187_exec hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
   have ls := fun j o ho hj x hx ↦ r.load_saved hF (fun _ ↦ 0) 0 j o ho hj x hx
   have hreg : ∀ x : Reg64, calleeSaved x = true → st.data.regs.get64 x = r.m0.regs.get64 x := by
     intro x hx
@@ -130,23 +130,26 @@ theorem epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : 
     exact hF.2.2.1
 
 /-- **Returning `v`**: from a state of the frame at `b187` with RAX the boolean `v`, `Done v`. -/
-theorem done_of_epilogue (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem done_of_epilogue (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k)
+    (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) {v : Bool} (hx : reg m .rax = if v then 1 else 0) :
-    Eventually (step1 Host.exe) (r.Done v) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b187Offset⟩ :=
-  Eventually.mono (epilogue r hp hpre m hF) fun _ ⟨h1, h2, h3, h4, h5⟩ ↦
+    Eventually (elfStep1 ElfHost.exe) (r.Done v)
+      ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b187Offset⟩ :=
+  Eventually.mono_elf (epilogue r hp hpre m hF) fun _ ⟨h1, h2, h3, h4, h5⟩ ↦
     ⟨h1, h2, h3.trans hx, h4, h5⟩
 
 /-- **Returning `0`** from `b186`, where a layer has no codeword. -/
-theorem fail_return (r : Run) (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem fail_return (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     (m : MachineData) (hF : r.Frame m) :
-    Eventually (step1 Host.exe) (r.Done false) ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b186Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) (r.Done false)
+      ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b186Offset⟩ := by
   have hk := Sphincs.SphincsVerify.b186_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) 0
   have hm : Sym.Match (r.env m (fun _ ↦ 0) 0) (Sym.init [frameRegion, 16, 8, 8] [(.rsp, .ptr 0 0)]) m :=
     Sym.match_ofMachine ⟨rfl, rfl, rfl, rfl, trivial⟩
       ⟨by show rspOf m = r.base + BitVec.ofInt 64 0; simp only [BitVec.ofInt_ofNat,
         BitVec.add_zero]; exact hF.1, trivial⟩ trivial trivial trivial
-  refine Sym.exec_then hk b186_exec hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
+  refine Sym.exec_then_elf hk b186_exec hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ ?_
   obtain ⟨m', pc⟩ := st
   simp only [Sym.PcOk] at hpc
   subst hpc

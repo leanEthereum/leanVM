@@ -119,35 +119,35 @@ theorem Frame.congr {m0 m1 m m' : MachineData} (hf : Frame m0 m1 m)
 
 /-! ## Places -/
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
-theorem hb0 (hp : Placed code k) : b0.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b0Offset) :=
+theorem hb0 (hp : PlacedIn code sec k) : b0.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b0Offset) :=
   b0_in_code.trans hp.1 (by simp [b0])
-theorem hb1 (hp : Placed code k) : b1.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b1Offset) :=
+theorem hb1 (hp : PlacedIn code sec k) : b1.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b1Offset) :=
   b1_in_code.trans hp.1 (by simp [b1])
-theorem hb2 (hp : Placed code k) : b2.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b2Offset) :=
+theorem hb2 (hp : PlacedIn code sec k) : b2.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b2Offset) :=
   b2_in_code.trans hp.1 (by simp [b2])
-theorem hb3 (hp : Placed code k) : b3.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b3Offset) :=
+theorem hb3 (hp : PlacedIn code sec k) : b3.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b3Offset) :=
   b3_in_code.trans hp.1 (by simp [b3])
-theorem hb4 (hp : Placed code k) : b4.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b4Offset) :=
+theorem hb4 (hp : PlacedIn code sec k) : b4.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b4Offset) :=
   b4_in_code.trans hp.1 (by simp [b4])
-theorem hb5 (hp : Placed code k) : b5.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b5Offset) :=
+theorem hb5 (hp : PlacedIn code sec k) : b5.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b5Offset) :=
   b5_in_code.trans hp.1 (by simp [b5])
-theorem hb6 (hp : Placed code k) : b6.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b6Offset) :=
+theorem hb6 (hp : PlacedIn code sec k) : b6.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b6Offset) :=
   b6_in_code.trans hp.1 (by simp [b6])
-theorem hb7 (hp : Placed code k) : b7.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b7Offset) :=
+theorem hb7 (hp : PlacedIn code sec k) : b7.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b7Offset) :=
   b7_in_code.trans hp.1 (by simp [b7])
-theorem hb8 (hp : Placed code k) : b8.IsInfixAt Host.prog (k + NativeRustcArm.Common.Update.b8Offset) :=
+theorem hb8 (hp : PlacedIn code sec k) : b8.IsInfixAt (ElfHost.sectionProg sec) (k + NativeRustcArm.Common.Update.b8Offset) :=
   b8_in_code.trans hp.1 (by simp [b8])
 
-theorem lbl_entry (hp : Placed code k) :
-    Labels.label NativeRustcArm.Common.Update.entryLabel = Host.addrOf (k + NativeRustcArm.Common.Update.b0Offset) :=
+theorem lbl_entry (hp : PlacedIn code sec k) :
+    Labels.label NativeRustcArm.Common.Update.entryLabel = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b0Offset) :=
   hp.label NativeRustcArm.Common.Update.entry_at
-theorem lbl_1 (hp : Placed code k) : Labels.label NativeRustcArm.Common.Update.label_1 = Host.addrOf (k + NativeRustcArm.Common.Update.b1Offset) :=
+theorem lbl_1 (hp : PlacedIn code sec k) : Labels.label NativeRustcArm.Common.Update.label_1 = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b1Offset) :=
   hp.label NativeRustcArm.Common.Update.label_1_at
-theorem lbl_2 (hp : Placed code k) : Labels.label NativeRustcArm.Common.Update.label_2 = Host.addrOf (k + NativeRustcArm.Common.Update.b2Offset) :=
+theorem lbl_2 (hp : PlacedIn code sec k) : Labels.label NativeRustcArm.Common.Update.label_2 = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b2Offset) :=
   hp.label NativeRustcArm.Common.Update.label_2_at
-theorem lbl_6 (hp : Placed code k) : Labels.label NativeRustcArm.Common.Update.label_6 = Host.addrOf (k + NativeRustcArm.Common.Update.b8Offset) :=
+theorem lbl_6 (hp : PlacedIn code sec k) : Labels.label NativeRustcArm.Common.Update.label_6 = ElfHost.addrOf sec (k + NativeRustcArm.Common.Update.b8Offset) :=
   hp.label NativeRustcArm.Common.Update.label_6_at
 
 end

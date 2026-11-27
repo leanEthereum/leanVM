@@ -28,15 +28,16 @@ end
 
 public section
 
-variable [Host] {k : Nat}
+variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **The final block absorbed.** -/
-theorem stage4_spec (hp : Placed code k)
-    (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
+theorem stage4_spec (hp : PlacedIn code sec k)
+    (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
     {m0 m1 m : MachineData} (hpre : FinalizePre m0) (hpro : Pro m0 m1) (hs3 : Stage3 m0 m1 m) :
-    Eventually (step1 Host.exe) (fun st => st.pc = Host.addrOf (k + NativeRustcX64.Common.Finalize.b6Offset) ∧ Stage4 m0 m1 st.data)
-      ⟨m, Host.addrOf (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length))⟩ := by
+    Eventually (elfStep1 ElfHost.exe)
+      (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Finalize.b6Offset) ∧ Stage4 m0 m1 st.data)
+      ⟨m, ElfHost.addrOf sec (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length))⟩ := by
   have g := geo_of hpre
   have gr := geoRc_of hpre
   have hf := frAt_toNat g
@@ -49,16 +50,16 @@ theorem stage4_spec (hp : Placed code k)
     fun o ho => toNat_add_ofNat' (by omega)
   have hmapF : Mapped m.dmem (frAt m0) 392 := fun i hi => hfr.kept _ (mapped_frame hpre i hi)
   have hwf : (Env.ofMachine m [(frAt m0, 392)] (fun _ => 0)
-      (Host.addrOf (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec).WF :=
+      (ElfHost.addrOf sec (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec).WF :=
     Env.wf_of ⟨⟨hmapF, hFnw⟩, trivial⟩ (List.pairwise_singleton _ _)
   have hbF : (Env.ofMachine m [(frAt m0, 392)] (fun _ => 0)
-      (Host.addrOf (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec).base 0 = frAt m0 :=
+      (ElfHost.addrOf sec (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec).base 0 = frAt m0 :=
     Env.base_ofMachine m _ _ _ rfl
   have hmx := match_ofMachine (m := m) (regions := [(frAt m0, 392)]) (vars := fun _ => 0)
-    (ret := (Host.addrOf (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec) (sregions := [392])
+    (ret := (ElfHost.addrOf sec (k + (NativeRustcX64.Common.Finalize.b5Offset + b5a.length) + b5b.length)).toBitVec) (sregions := [392])
     (known := [(.rsp, .ptr 0 8)]) (labels := []) (bounds := []) (aliases := []) ⟨rfl, trivial⟩
     ⟨by simp only [Sym.eval, hbF]; exact hfr.rsp, trivial⟩ trivial trivial trivial
-  refine exec_then (hb5b hp) run_b5b hwf (fun _ _ => rfl) hmx fun st5 hm5 hpc5 => ?_
+  refine exec_then_elf (hb5b hp) run_b5b hwf (fun _ _ => rfl) hmx fun st5 hm5 hpc5 => ?_
   have hl := b5b_mem
   rw [after_eq run_b5b] at hl
   have hTl := length_tailOf hL
@@ -98,7 +99,7 @@ theorem stage4_spec (hp : Placed code k)
       rw [hfs, toNat_sub_ofNat' (by have := g.s; unfold spAt at this; omega), hS288]
       rfl] at this
   have hk5 : Kept m.dmem st5.data.dmem := hm5.kept hwf
-  refine call_then hpc5 hkf ?pre fun st6 hpc6 hrsp6 hpost6 => ?_
+  refine call_then_elf hpc5 hkf ?pre fun st6 hpc6 hrsp6 hpost6 => ?_
   case pre =>
     simp only [KeccakFPre, keccakFStack]
     refine ⟨⟨by rw [hspN]; omega, by rw [hspN]; omega, fun i hi => ?_⟩,

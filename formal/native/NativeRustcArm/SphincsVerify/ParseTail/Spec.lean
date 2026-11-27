@@ -113,11 +113,11 @@ theorem atHMsg_of {m : MachineData} (h : Facts r m (L36 r) (K32 r)) : r.AtHMsg m
     h.reg (x := .X21) (v := r.msgPtr) (by simp [K32]),
     h.get (o := 408) (n := 8) (bs := wordBytes (r.addr 5140)) (by simp [L36, L35])⟩
 
-variable [NativeRustcArm.Host]
+variable [ElfHost]
 
 /-- **Region 1b, the parse's tail**: from `AtParse7` at `b7` to `AtHMsg` at `b36`. -/
 theorem parseTail_spec : ParseTailSpec := fun r hp hc hpre m h ↦
-  Eventually.mono ((((layer0 r hp hc hpre).trans (layer1 r hp hc hpre)).trans
+  Eventually.mono_elf ((((layer0 r hp hc hpre).trans (layer1 r hp hc hpre)).trans
     (layer2 r hp hc hpre)).trans (assemble r hp hc hpre) m h)
     fun _ ⟨hpc, h'⟩ ↦ ⟨hpc, atHMsg_of r h'⟩
 

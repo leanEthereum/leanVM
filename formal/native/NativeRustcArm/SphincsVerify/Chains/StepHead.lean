@@ -40,17 +40,17 @@ theorem length_seed (r : Run) : r.seed.length = 16 := by
 /-- The bytes of `0` as a `u32`. -/
 theorem bytes_zero4 : (List.range 4).map (byteOf (BitVec.ofNat 64 0)) = be32 0 := by decide
 
-variable [NativeRustcArm.Host] {r : Run}
+variable [ElfHost] {r : Run}
 
 /-- **`b108 .. b115`**: `PK.seed` buffered in A, the address copied after it; then `b116`. -/
-theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b108 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) {adrs v : List UInt8} (hadrs : adrs.length = 32) (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs r m pos i)
     (hAz : BytesAt m.dmem (r.off 8640) (List.replicate 344 0))
     (hAd : BytesAt m.dmem (r.off 13888) adrs) (hval : BytesAt m.dmem (r.off 12864) v)
     (cont : StepCont r l x E pos i (r.seed ++ adrs ++ v) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b108Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b108Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have h0 : BytesAt m.dmem (r.off 8976) ((List.range 8).map (byteOf (BitVec.ofNat 64 0))) := by
     have := BytesAt.slice hAz 336 8
@@ -95,7 +95,7 @@ theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
     have h20 : (r.env m).regs .X20 = BitVec.ofNat 64 pos := hR.1
     sym_simp
     rw [h20, BitVec.ofNat_add]
-  refine call_then hpc5 hc.1 (r.memcpy_pre hpre hK5.1 h0 h1 h2 (by decide) (by decide)
+  refine call_then_elf hpc5 hc.1 (r.memcpy_pre hpre hK5.1 h0 h1 h2 (by decide) (by decide)
     (by decide)) fun st6 hpc6 hpost ↦ ?_
   obtain ⟨hc6, hout, hS⟩ := r.memcpy_out h0 h1 h2 hpost
   have hK6 := Keep.of_call hpre hx hE hK5 hS (a := 8856) (n := 32) (by unfold Scratch; omega)
@@ -116,13 +116,13 @@ theorem seg_b108 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
 
 /-- **`b107`**: the step's address at `13888`, the chain's value copied to `12864`, `memset` of
 hasher A; then `b108`. -/
-theorem seg_b107 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem seg_b107 (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {l : Nat} {x E : List UInt8} (hx : x.length = 64) (hE : E.length ≤ 1024) {pos i : Nat}
     (hpos : pos ≤ 2) (hi : i < 64) {v : List UInt8} (hv : v.length = 16)
     {R : MachineState → Prop} {m : MachineData} (hK : Keep r l x E m) (hR : Regs r m pos i)
     (hcell : BytesAt m.dmem (r.off 8224) v)
     (cont : StepCont r l x E pos i (r.seed ++ chainAdrs r l i pos ++ v) R) :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩ := by
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcArm.Sphincs.SphincsVerify.b107Offset⟩ := by
   have hwf := r.frame_wf hpre hK.1 (fun _ ↦ 0)
   have hm := match_frameS hpre hK (k := []) trivial
   refine blk r hp b107_in_code (List.cons_ne_nil _ _) run_b107 hwf hm fun st hm1 hpc ↦ ?_
@@ -155,7 +155,7 @@ theorem seg_b107 (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hp
   have h0 : Run.RegIs st.data .X0 (r.off 8640) := regIs_ptr hm1 rfl
   have h2 := x2_eq hm1 (c := 344) rfl (by decide)
   have hR1 := Regs.of_block hpre hm1 hwf rfl rfl (by decide +kernel) hR
-  refine call_then hpc hc.2.1 (r.memset_pre hpre hK1.1 h0 h2 (by decide)) fun st2 hpc2 hpost ↦ ?_
+  refine call_then_elf hpc hc.2.1 (r.memset_pre hpre hK1.1 h0 h2 (by decide)) fun st2 hpc2 hpost ↦ ?_
   obtain ⟨hz, hout, hS⟩ := r.memset_out h0 h2 hpost
   rw [x1_zero hm1 rfl] at hz
   have hK2 := Keep.of_call hpre hx hE hK1 hS (a := 8640) (n := 344) (by unfold Scratch; omega)

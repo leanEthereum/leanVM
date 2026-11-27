@@ -38,16 +38,16 @@ end
 
 public section
 
-variable [Host] {r : Run}
+variable [ElfHost] {r : Run}
 
-omit [Host] in
+omit [ElfHost] in
 /-- **A frame word loaded**, in the frame with a window. -/
 theorem load_wordW [Labels] {m : MachineData} {n0 o2 : Nat} {vars : Nat → BitVec 64}
     {ret : BitVec 64} {o : Nat} {w : UInt64} (h : BytesAt m.dmem (r.off o) (wordBytes w)) :
     (r.envW n0 o2 m vars ret).load 0 o 8 = w.toBitVec := by
   rw [Env.load_of_bytesAt (NativeRustc.length_wordBytes _) h, ofInt_ofBytes_wordBytes]
 
-omit [Host] in
+omit [ElfHost] in
 /-- **A word written** in the frame with a window. -/
 theorem wordW [Labels] {m m' : MachineData} {n0 o2 : Nat} {vars : Nat → BitVec 64}
     {ret : BitVec 64} {S : SState} (hm : Match (r.envW n0 o2 m vars ret) S m') {o : Nat}
@@ -56,17 +56,17 @@ theorem wordW [Labels] {m m' : MachineData} {n0 o2 : Nat} {vars : Nat → BitVec
   have := Chains.bytesAt_write_val hm (b := r.base) (sz := n0) rfl ho hw
   rwa [hv, ← Hasher.wordBytes_ofBitVec] at this
 
-omit [Host] in
+omit [ElfHost] in
 theorem ite_eval_true [Labels] {env : Env} {b : SBool} {x y : Sym} (h : b.eval env = true) :
     (Sym.ite b x y).eval env = x.eval env := by
   simp [Sym.eval, h]
 
-omit [Host] in
+omit [ElfHost] in
 theorem ite_eval_false [Labels] {env : Env} {b : SBool} {x y : Sym} (h : b.eval env = false) :
     (Sym.ite b x y).eval env = y.eval env := by
   simp [Sym.eval, h]
 
-omit [Host] in
+omit [ElfHost] in
 theorem shl4 (z : Nat) :
     BinOp.apply .shl .W64 (BitVec.ofNat 64 z) (BitVec.ofNat 64 4) = BitVec.ofNat 64 (16 * z) := by
   simp only [BinOp.apply, low_W64, ext_W64]
@@ -76,10 +76,10 @@ theorem shl4 (z : Nat) :
   omega
 
 /-- **A node's head**: from `AtNode r c z` at `b56`, `N1 r c z` at `b57`. -/
-theorem node_head (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem node_head (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {c z : Nat} {m : MachineData} (h : AtNode r c z m) {R : MachineState → Prop}
-    (cont : ∀ m', N1 r c z m' → Eventually (step1 Host.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b57Offset⟩) :
-    Eventually (step1 Host.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩ := by
+    (cont : ∀ m', N1 r c z m' → Eventually (elfStep1 ElfHost.exe) R ⟨m', r.pc NativeRustcX64.Sphincs.SphincsVerify.b57Offset⟩) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc NativeRustcX64.Sphincs.SphincsVerify.b56Offset⟩ := by
   obtain ⟨hK, hz, hcx, h13, h12, h15, hbp, w104, hcur, hbx, h14⟩ := h
   have hc24 := hK.2.1.hc
   have hleaf := r.leafOf_lt hc24

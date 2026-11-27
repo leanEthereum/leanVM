@@ -120,11 +120,11 @@ theorem match_fs (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) {known : List
 end
 
 section
-variable (r : Run) [NativeRustcArm.Host]
+variable (r : Run) [ElfHost]
 
 /-- **A straight block ending in `bl memcpy`** between frame offsets: the block's summary, then
 `memcpy`'s contract; `cont` from the return address. -/
-theorem block_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem block_memcpy (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memcpy.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0) (h29 : S'.reg .X29 = some (.ptr 0 21520))
@@ -137,12 +137,12 @@ theorem block_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
       st'.pc = r.pc (j + ds.length) → r.Frame st'.data → Saved m' st'.data →
       BytesAt st'.data.dmem (r.off a) (bytesOf m'.dmem (r.off b) n) →
       SameOutside m'.dmem st'.data.dmem (InRange (r.off a) n) →
-      Eventually (step1 NativeRustcArm.Host.exe) R st') :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
-  have hk' : ds.IsInfixAt NativeRustcArm.Host.prog (r.k + j) := hk.trans hp.1 (by
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + j) := hk.trans hp.1 (by
     rintro rfl; cases hx)
   have hwf := envSig_wf r hpre hF (fun _ ↦ 0)
-  refine exec_then hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
   have hF' := frame_of_match_sig r hpre hF hm' hwf hsp h29 hw
   have hx0 : (st.data.regs.getXReg .X0).toBitVec = r.off a := by
     rw [hm'.regs .X0 _ h0, ptr_eval]
@@ -157,7 +157,7 @@ theorem block_memcpy (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
   exact cont st.data st' hm' (by rw [hpc', Run.pc, Nat.add_assoc]) hF'' hS hb' hout
 
 /-- **A straight block ending in `bl memset`** of frame offsets. -/
-theorem block_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees) (hpre : r.Pre)
+theorem block_memset (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hc : Callees) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hx : exec ds (fs known) = some (S', .call NativeRustcArm.Common.Memset.entryLabel))
     (hw : Run.frameWrites S' = true) (hsp : S'.sp = .ptr 0 0) (h29 : S'.reg .X29 = some (.ptr 0 21520))
@@ -168,12 +168,12 @@ theorem block_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
     (cont : ∀ (m' : MachineData) (st' : MachineState), Match (envSig r m) S' m' →
       st'.pc = r.pc (j + ds.length) → r.Frame st'.data → Saved m' st'.data →
       SameOutside m'.dmem st'.data.dmem (InRange (r.off a) n) →
-      Eventually (step1 NativeRustcArm.Host.exe) R st') :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
-  have hk' : ds.IsInfixAt NativeRustcArm.Host.prog (r.k + j) := hk.trans hp.1 (by
+      Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + j) := hk.trans hp.1 (by
     rintro rfl; cases hx)
   have hwf := envSig_wf r hpre hF (fun _ ↦ 0)
-  refine exec_then hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
   have hF' := frame_of_match_sig r hpre hF hm' hwf hsp h29 hw
   have hx0 : (st.data.regs.getXReg .X0).toBitVec = r.off a := by
     rw [hm'.regs .X0 _ h0, ptr_eval]
@@ -186,7 +186,7 @@ theorem block_memset (hp : Placed Sphincs.SphincsVerify.code r.k) (hc : Callees)
   exact cont st.data st' hm' (by rw [hpc', Run.pc, Nat.add_assoc]) hF'' hS hout
 
 /-- **A straight block falling through.** -/
-theorem block_fall (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
+theorem block_fall (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k) (hpre : r.Pre)
     {ds : List Directive} {j : Nat} (hk : ds.IsInfixAt Sphincs.SphincsVerify.code j)
     {known : List (XReg × Sym)} {S' : SState} (hne : ds ≠ [])
     (hx : exec ds (fs known) = some (S', .fall))
@@ -195,11 +195,11 @@ theorem block_fall (hp : Placed Sphincs.SphincsVerify.code r.k) (hpre : r.Pre)
     (hkn : AllOf (fun p ↦ (m.regs.getXReg p.1).toBitVec = p.2.eval (envSig r m)) known)
     {R : MachineState → Prop}
     (cont : ∀ st' : MachineState, Match (envSig r m) S' st'.data → st'.pc = r.pc (j + ds.length) →
-      r.Frame st'.data → Eventually (step1 NativeRustcArm.Host.exe) R st') :
-    Eventually (step1 NativeRustcArm.Host.exe) R ⟨m, r.pc j⟩ := by
-  have hk' : ds.IsInfixAt NativeRustcArm.Host.prog (r.k + j) := hk.trans hp.1 hne
+      r.Frame st'.data → Eventually (elfStep1 ElfHost.exe) R st') :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc j⟩ := by
+  have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + j) := hk.trans hp.1 hne
   have hwf := envSig_wf r hpre hF (fun _ ↦ 0)
-  refine exec_then hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
+  refine exec_then_elf hk' hx hwf (match_fs r hpre hF hkn) fun st hm' hpc ↦ ?_
   exact cont st hm' (by rw [show st.pc = _ from hpc, Run.pc, Nat.add_assoc])
     (frame_of_match_sig r hpre hF hm' hwf hsp h29 hw)
 
