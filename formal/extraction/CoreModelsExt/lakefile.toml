@@ -1,0 +1,28 @@
+# Models of Rust standard library items the extractions use and the pinned hax Lean library
+# (CoreModels) lacks, shared by every extraction. Each is a candidate for upstreaming there.
+name = "CoreModelsExt"
+defaultTargets = ["CoreModelsExt"]
+packagesDir = "../.lake/packages"
+
+[[lean_lib]]
+name = "CoreModelsExt"
+
+# The pinned build's Lean library (hax.toml: aeneas build-41977a5) with the two fixes it needs to
+# build on Lean v4.36.0, the toolchain of formal/: the changes AeneasVerif/aeneas made for that move.
+[[require]]
+name = "aeneas"
+git = "https://github.com/dhsorens/aeneas"
+rev = "9a84788c8722241fa36a6bd64ded315e8b7ac832"
+subDir = "backends/lean"
+
+[[require]]
+name = "hax"
+git = "https://github.com/cryspen/hax-lean"
+rev = "v0.3.34"
+
+# Mathlib at the toolchain's version, stated last so that its lock decides its dependencies' versions:
+# the hax library's own lock names older ones.
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.36.0"

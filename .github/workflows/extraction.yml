@@ -1,0 +1,91 @@
+name: Extraction
+
+# The Lean extraction of the Rust crates (formal/extraction/README.md): that every crate with a
+# hax scenario still extracts and typechecks, and that the patches applied for extraction keep
+# the Rust's behaviour.
+#
+# It gates nothing a Rust change touches: it runs weekly, on demand, and on a pull request only
+# when that pull request changes the extraction itself. A weekly failure says the Rust moved
+# under the extraction, and `.claude/skills/update-extraction` is how to bring it back.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "formal/extraction/**"
+      - "crates/**/hax.toml"
+      - "crates/**/proofs/**"
+      - "hax.toml"
+      - ".github/workflows/extraction.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extraction-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Extracts every scenario, builds the result in Lean, and reports what each extraction takes
+  # on trust. Nothing generated is committed, so there is no stale copy to compare with.
+  extract:
+    name: Extract and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the cargo-hax pin
+        id: pin
+        run: echo "rev=$(sed -n 's/^HAX_REV=//p' formal/extraction/hax.sh)" >> "$GITHUB_OUTPUT"
+      - name: Restore cargo-hax
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-hax
+          key: cargo-hax-${{ runner.os }}-${{ steps.pin.outputs.rev }}
+      - name: Restore charon and aeneas
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hax/tools
+          key: hax-tools-${{ runner.os }}-${{ hashFiles('hax.toml') }}
+      # Mathlib's build comes from its own cache (`lake exe cache get`), so the entry holds only
+      # the other dependencies' builds.
+      - name: Restore the Lake dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            formal/extraction/.lake
+            !formal/extraction/.lake/packages/mathlib/.lake
+          key: lake-extraction-${{ runner.os }}-${{ hashFiles('formal/extraction/lean-toolchain', 'formal/extraction/CoreModelsExt/lake-manifest.json') }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: extraction
+      - name: Install elan
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install the pinned toolchain
+        run: formal/extraction/hax.sh setup
+      - name: Extract and typecheck
+        run: formal/extraction/hax.sh check
+      - name: Report the trusted surface
+        if: always()
+        run: formal/extraction/report.sh >> "$GITHUB_STEP_SUMMARY"
+
+  # The pre-extraction patches rewrite the Rust the extraction sees. Each patched crate's tests
+  # (and the suites its patches/pre/tests names) run on the patched source.
+  patches:
+    name: Patched source behaves the same
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: patched
+      - name: Clippy and the tests of every patched crate, on the patched source
+        run: formal/extraction/hax.sh test

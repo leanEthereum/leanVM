@@ -1,0 +1,3 @@
+import LeanSphincsProofs
+
+#print axioms LeanSphincsProofs.verify_eq_verifyWithKeccak

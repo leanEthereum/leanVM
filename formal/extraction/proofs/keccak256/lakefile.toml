@@ -1,0 +1,43 @@
+# The proofs about the extraction of `crates/keccak256`, and what the proofs about the scheme
+# crates' extractions share (`../lean_sphincs`, `../lean_xmss`): that `keccak256::Hasher`, as
+# extracted, computes the statement's Keccak-256 (formal/Statement/Keccak.lean), down to the
+# permutation. The extraction itself is generated (`formal/extraction/hax.sh extract`) before this
+# builds.
+name = "Keccak256Proofs"
+defaultTargets = ["Keccak256Proofs"]
+packagesDir = "../../.lake/packages"
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "Keccak256Proofs"
+
+# Stated first so that the extraction's own requirement of the pinned build resolves to it
+# (formal/extraction/CoreModelsExt/lakefile.toml).
+[[require]]
+name = "aeneas"
+git = "https://github.com/dhsorens/aeneas"
+rev = "9a84788c8722241fa36a6bd64ded315e8b7ac832"
+subDir = "backends/lean"
+
+[[require]]
+name = "Keccak256"
+path = "../../../../crates/keccak256/proofs/keccak256/lean"
+
+[[require]]
+name = "statement"
+path = "../../../Statement"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.36.0"
+
+# The Keccak the proofs pivot on: the Rust permutation and the statement's are each shown equal to
+# its Keccak-f[1600] on lanes, which it proves equal to FIPS 202's (Hash/Keccak/Equiv.lean).
+[[require]]
+name = "hash-specs"
+git = "https://github.com/Verified-zkEVM/hash-specs"
+rev = "v4.36.0"

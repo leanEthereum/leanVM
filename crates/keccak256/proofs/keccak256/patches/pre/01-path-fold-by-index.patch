@@ -1,0 +1,100 @@
+Gap: `path_fold`'s `path.iter().enumerate().fold(leaf, |current, (z, &sibling)| ..)` - Aeneas translates the closure, which captures the `FnMut` visitor, into `call_once` and `call_mut` instances Lean rejects (type mismatch: they return the closure's state where the trait has none)
+The fold over the path is a loop over its indices, `current` the accumulator. Level `z` takes
+`path[z]`, puts the running node left or right of it by bit `z` of `e`, shows the pair to `visit`
+and hashes it with `node(z + 1, e >> (z + 1), ..)`: the fold's calls, in the fold's order, so the
+root is the same and `visit` sees the same pairs.
+Tests: path_fold_by_index_matches_the_fold, against the fold copied from the source: the root and
+every pair shown, at heights 0 to 11, at indices with both values of every bit the path reads, under
+a `node` that tells apart the height, the index and the order of the children.
+mutation: children swapped (`== 0` -> `!= 0`) -> it fails; node index `e >> z` -> it fails; the
+`visit` call dropped -> it fails.
+
+diff --git a/crates/keccak256/src/lib.rs b/crates/keccak256/src/lib.rs
+index 6de43bf24..f5937ca4c 100644
+--- a/crates/keccak256/src/lib.rs
++++ b/crates/keccak256/src/lib.rs
+@@ -213,7 +213,9 @@ pub fn path_fold<const N: usize>(
+     mut visit: impl FnMut(&[[u8; N]; 2]),
+     node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
+ ) -> [u8; N] {
+-    path.iter().enumerate().fold(leaf, |current, (z, &sibling)| {
++    let mut current = leaf;
++    for z in 0..path.len() {
++        let sibling = path[z];
+         // Bit `z` of `e` says whether the node is the right child.
+         let children = if (e >> z) & 1 == 0 {
+             [current, sibling]
+@@ -221,8 +223,9 @@ pub fn path_fold<const N: usize>(
+             [sibling, current]
+         };
+         visit(&children);
+-        node(z + 1, e >> (z + 1), &children)
+-    })
++        current = node(z + 1, e >> (z + 1), &children);
++    }
++    current
+ }
+ 
+ /// Keccak-256 of `data`, Ethereum's `keccak256`: FIPS 202's sponge over Keccak-f\[1600\] with
+@@ -406,4 +409,61 @@ mod tests {
+             assert_eq!(first_nonce(&template, at, top, 2, 0xffff), None);
+         }
+     }
++
++    /// A node for the path tests, which tells apart the height, the index and the order of the two children.
++    fn mix(z: usize, j: usize, children: &[[u8; 8]; 2]) -> [u8; 8] {
++        let [left, right] = children.map(u64::from_le_bytes);
++        (left.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ right.rotate_left(17))
++            .wrapping_add((z as u64) << 48 | j as u64)
++            .wrapping_mul(0xBF58_476D_1CE4_E5B9)
++            .to_le_bytes()
++    }
++
++    /// A leaf and a path of `height` siblings.
++    fn leaf_and_path(height: usize) -> ([u8; 8], Vec<[u8; 8]>) {
++        let word = |i: u64| (i + 1).wrapping_mul(0xD6E8_FEB8_6659_FD93).to_le_bytes();
++        (word(1000), (0..height as u64).map(word).collect())
++    }
++
++    /// The leaf indices the path tests fold at: both values of every bit a path of `height` reads, and bits above it.
++    fn indices(height: usize) -> Vec<usize> {
++        let top = (1usize << height) - 1;
++        vec![0, 1, 2, 5, top, top ^ 1, top / 3, top + 1, 0x2aa, 0x555, usize::MAX]
++    }
++
++    /// `path_fold` as the source has it: a fold over the path.
++    fn path_fold_as_a_fold<const N: usize>(
++        leaf: [u8; N],
++        e: usize,
++        path: &[[u8; N]],
++        mut visit: impl FnMut(&[[u8; N]; 2]),
++        node: impl Fn(usize, usize, &[[u8; N]; 2]) -> [u8; N],
++    ) -> [u8; N] {
++        path.iter().enumerate().fold(leaf, |current, (z, &sibling)| {
++            let children = if (e >> z) & 1 == 0 {
++                [current, sibling]
++            } else {
++                [sibling, current]
++            };
++            visit(&children);
++            node(z + 1, e >> (z + 1), &children)
++        })
++    }
++
++    /// `path_fold` by index against the fold it replaces: the same root, and the same children shown in the same
++    /// order, at every height from none up and with a left and a right child at every level.
++    #[test]
++    fn path_fold_by_index_matches_the_fold() {
++        for height in [0, 1, 2, 3, 8, 11] {
++            let (leaf, path) = leaf_and_path(height);
++            for e in indices(height) {
++                let (mut got_seen, mut want_seen) = (vec![], vec![]);
++                let got = path_fold(leaf, e, &path, |pair| got_seen.push(*pair), mix);
++                let want = path_fold_as_a_fold(leaf, e, &path, |pair| want_seen.push(*pair), mix);
++                assert_eq!(got, want, "height {height}, index {e}");
++                assert_eq!(got_seen, want_seen, "height {height}, index {e}");
++                assert_eq!(got_seen.len(), height);
++            }
++        }
++    }
+ }

@@ -1,0 +1,8 @@
+# `cargo test --release` arguments, one run per line, on the patched source.
+-p keccak256
+# On an x86-64 host that run also compares the permutation with x86-64's own on the CPU's vector lanes (patch 04).
+# On Apple silicon, by hand, under Rosetta:
+#   hax.sh patched env RUSTFLAGS= cargo test --release -p keccak256 --target x86_64-apple-darwin
+# The schemes that fold their Merkle paths with it.
+-p lean_xmss
+-p lean_sphincs
