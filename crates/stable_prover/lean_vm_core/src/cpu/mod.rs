@@ -88,7 +88,7 @@ fn airs<'a>(
     xi: F128,
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
-    let pows = primitives::field::powers(xi, n_xi_powers());
+    let pows = primitives::field::powers(xi, base + verifier::N_BUS_TREES);
     let mut airs = Vec::with_capacity(tables::N_TABLES);
     let mut offset = 0;
     for (t, table) in tables::tables().into_iter().enumerate() {
@@ -125,6 +125,7 @@ fn add_scaled(out: &mut constraints::Form, f: &constraints::Form, w: F128) {
 /// Where the bus forms' `ξ`-powers start: after every table's identities, one power per tree, shared by every table.
 /// Shared, the batch's claim is `Σ_s ξ^{base + s}·rem_s`, which the verifier derives from the leaf claims; a power
 /// per table would not factor through the trees' totals, and nothing would pin the tables' share of the bus.
+#[inline(never)]
 pub fn xi_form_base() -> usize {
     tables::tables().iter().map(|t| t.n_constraints()).sum()
 }

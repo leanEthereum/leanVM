@@ -373,6 +373,7 @@ impl Mem {
 
     /// An instruction's read. An unwritten cell reads as zero, which is then written there: the row is filled from
     /// the final image, which has to agree.
+    #[inline(never)]
     fn read(&mut self, cell: u32) -> F128 {
         let c = self.at(cell);
         let word = c.word;
@@ -433,6 +434,7 @@ impl Mem {
     }
 
     /// Read the running access count and advance it: the column's `×g`, on the exponent.
+    #[inline(never)]
     fn bump_access_count(&mut self, cell: u32) -> u32 {
         let c = self.at(cell);
         let count = c.count;
