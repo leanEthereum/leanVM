@@ -43,9 +43,6 @@ theorem loopPre_pow {i e : ℕ} (hie : i < e) (he : e < 2 ^ 64 - 1) (rest : List
     LoopPre (gen ^ i :: gen ^ e :: rest) :=
   ⟨i, e, by simp [gen_pow_eq_ofK], by simp [gen_pow_eq_ofK], hie, he⟩
 
-theorem logG_gen {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
-  rw [gen_pow_eq_ofK]; exact logG_spec he
-
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`main_loop2` within its static bound**, from every counter below the count. -/
@@ -59,7 +56,7 @@ theorem rawX_completeAtB (hc : Sig.verify_lean_xmss_complete_Spec) {nrx X cv tb 
   completeAtDTB_of_relIn raw3_pure (by simp)
     (fun rd t rets' hn hv hb => by
       have := hT rd t _ rets' hn (loopPre_pow hi (by omega) _) hv hb
-      simpa [logG_gen (show nrx < 2 ^ 64 - 1 by omega)] using this)
+      simpa [logG_gen_pow (show nrx < 2 ^ 64 - 1 by omega)] using this)
     fun rd hl hL => rawX_relIn hc D hX hnrx hl hL i hi
 
 /-- **`main_loop3` within its static bound**, from every counter below the count. -/
@@ -74,7 +71,7 @@ theorem rawS_completeAtB (hc : Sig.SphincsCompleteSpecs)
   completeAtDTB_of_relIn raw4_pure (by simp)
     (fun rd t rets' hn hv hb => by
       have := hT rd t _ rets' hn (loopPre_pow hj (by omega) _) hv hb
-      simpa [logG_gen (show nrs < 2 ^ 64 - 1 by omega)] using this)
+      simpa [logG_gen_pow (show nrs < 2 ^ 64 - 1 by omega)] using this)
     fun rd hl hL => rawS_relIn hc D hY hnrs hl hL j hj
 
 end

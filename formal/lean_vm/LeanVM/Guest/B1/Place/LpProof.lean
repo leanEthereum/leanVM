@@ -175,14 +175,9 @@ theorem lpPreB_loads (d cd : ℕ) (loop : String) :
       ((List.range 5).map fun i ↦ ((.n 15 : V), 5 + i)) ++
         ((List.range 5).map fun i ↦ ((.n 22 : V), i)) := rfl
 
-theorem lp_limb0_mul_ofK (p : E) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
-  conv_lhs => rw [eq_ofLimbs p]
-  rw [ofLimbs_mul_ofK]
-  rfl
-
 theorem lp_addr (b e t : ℕ) : (ofK (addressOfIndex b) * gen ^ e).limb 0 * addressOfIndex t =
     addressOfIndex (b + e + t) := by
-  rw [gen_pow_eq_ofK, lp_limb0_mul_ofK, limb_ofK]
+  rw [gen_pow_eq_ofK, limb0_mul_ofK, limb_ofK]
   simp only [Fin.val_zero, ↓reduceIte, Parameters.addressOfIndex, ← pow_add]
 
 theorem lp_logG_gw {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gw e) = e := by

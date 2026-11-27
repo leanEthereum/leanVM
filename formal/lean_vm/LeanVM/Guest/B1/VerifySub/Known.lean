@@ -138,7 +138,7 @@ theorem vsPlaceT_known {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : Memor
   simp only [List.cons.injEq, and_true] at hr2
   obtain ⟨hlt34, hr2⟩ := hr2
   obtain ⟨e, he, h278⟩ := rc_pow hκ L (a := 10) (by norm_num)
-    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_pow2 (by norm_num)]) r278
+    (by rw [e279, show (1024 : ℕ) = 2 ^ 10 from rfl, word_two_pow (by norm_num)]) r278
   have hm30 : max 16 (log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)))
       = e + 20 := by
     have := congrArg (· * gen ^ 20) (m278.symm.trans h278)

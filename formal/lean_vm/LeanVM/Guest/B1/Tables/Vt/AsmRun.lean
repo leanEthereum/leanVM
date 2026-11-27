@@ -39,13 +39,9 @@ theorem vt_six {α : Type} (l : List α) (h : l.length = 6) (d : α) :
   match l, h with
   | [_, _, _, _, _, _], _ => rfl
 
-theorem vt_tableHeights_length {rows : List ℕ} (hr : rows.length = 6) :
-    (tableHeightsOf rows).length = 6 := by
-  simp [tableHeightsOf, hr, tableLogFloors]
-
 theorem vt_tableHeights_eq {rows : List ℕ} (hr : rows.length = 6) :
     tableHeightsOf rows = vtTauList (vtHt rows) := by
-  rw [vt_six _ (vt_tableHeights_length hr) 0]
+  rw [vt_six _ (vt_tableHeightsOf_length hr) 0]
   rfl
 
 theorem vt_foldl_max {rows : List ℕ} (hr : rows.length = 6) {n : ℕ}

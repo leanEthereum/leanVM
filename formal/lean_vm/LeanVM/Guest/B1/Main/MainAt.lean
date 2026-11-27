@@ -129,8 +129,6 @@ theorem reads_of_memL' {rd : Reader} {L : B1.Main.Layout} (h : B1.Main.MemL rd L
     {xs : List E} (hq : (b, xs) ∈ L) : ReadsAt rd (gen ^ b) xs := by
   rw [gen_pow_eq_ofK]; exact h _ hq
 
-theorem logG_g {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := logG_gen_pow he
-
 theorem one_add_ne_iff {a : ℕ} (ha : a < 2 ^ 64 - 1) : ((1 : E) + gen ^ a ≠ 0) ↔ a ≠ 0 := by
   rw [Ne, e_add_eq_zero_iff, eq_comm, gen_pow_eq_one_iff ha]
 
@@ -302,11 +300,11 @@ theorem main_relAtInT_core (fs : String → ℕ) (cert : String → V → ℕ) (
     simp only [List.map_cons, List.map_nil, Sum.elim_inr, Sum.elim_inl, id, List.append_nil,
       List.nil_append, List.cons_append, hv.v51, hv.v54, hv.v42, hv.v384, hv.v415, hv.v421,
       hv.v427, hv.v430,
-      logG_g (show 4 * (m.nlx + m.nxd) < 2 ^ 64 - 1 by omega),
-      logG_g (show 4 * (m.nls + m.nsd) < 2 ^ 64 - 1 by omega),
-      logG_g (show m.total < 2 ^ 64 - 1 by omega), logG_g (show 2 * (m.nc + 1) < 2 ^ 64 - 1 by omega),
-      logG_g (show 2 * m.nc < 2 ^ 64 - 1 by omega),
-      logG_g (show 24 * m.nc < 2 ^ 64 - 1 by omega), logG_g (show m.nc + 1 < 2 ^ 64 - 1 by omega)]
+      logG_gen_pow (show 4 * (m.nlx + m.nxd) < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show 4 * (m.nls + m.nsd) < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show m.total < 2 ^ 64 - 1 by omega), logG_gen_pow (show 2 * (m.nc + 1) < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show 2 * m.nc < 2 ^ 64 - 1 by omega),
+      logG_gen_pow (show 24 * m.nc < 2 ^ 64 - 1 by omega), logG_gen_pow (show m.nc + 1 < 2 ^ 64 - 1 by omega)]
     rfl
   -- the pointers
   have o53 : σ (.n (val% «main» "lx_table")) = gen ^ (Memory.bases b0 (mSizes d)).getD 0 0 := by rw [hO (by decide)]; rfl

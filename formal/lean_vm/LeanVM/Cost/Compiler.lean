@@ -162,7 +162,7 @@ def rewrites : List (Name × Name) := [
   (``HMul.hMul, ``Rewrite.eMul),
   (``OfNat.ofNat, ``Rewrite.eZero),
   (``OfNat.ofNat, ``Rewrite.eOne),
-  (``LeanVM.Parameters.ofK, ``Rewrite.eOfK),
+  (``LeanVM.Parameters.ofK, ``LeanVM.Parameters.ofK_eq_ofLimbs),
   (``Array.ofFn, ``Rewrite.arrOfFn),
   (``List.finRange, ``Rewrite.listFinRange),
   (``List.ofFn, ``Rewrite.listOfFn),

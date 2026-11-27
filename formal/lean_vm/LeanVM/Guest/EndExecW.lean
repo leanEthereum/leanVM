@@ -57,12 +57,6 @@ public section
 
 /-! ## The checks' soundness -/
 
-theorem isInK_mul {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a * b) := by
-  obtain ⟨x, rfl⟩ := (isInK_iff a).mp ha
-  obtain ⟨y, rfl⟩ := (isInK_iff b).mp hb
-  rw [← ofK_mul]
-  exact B2C.isInK_ofK _
-
 /-- **`kOf` puts its value in `K`**, given its listed values and the atoms pinning in `K`. -/
 theorem kOf_sound {kv : List V} {sp : List Atom} {σ : Val} {rd : Reader}
     (hkv : ∀ u ∈ kv, IsInK (σ u)) (hpin : ∀ a ∈ sp, ∀ v, pinK v a = true → IsInK (σ v))
@@ -84,7 +78,7 @@ theorem kOf_sound {kv : List V} {sp : List Atom} {σ : Val} {rd : Reader}
         have := hh _ ha
         simp only [Atom.Holds] at this
         rw [this]
-        exact isInK_mul (kOf_sound hkv hpin hh n x hx) (kOf_sound hkv hpin hh n y hy)
+        exact LeanVM.Guest.B1.isInK_mul (kOf_sound hkv hpin hh n x hx) (kOf_sound hkv hpin hh n y hy)
       | _ => simp at hm
 
 /-- **A top-level call is on every returning path.** -/

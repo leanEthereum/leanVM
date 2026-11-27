@@ -134,14 +134,10 @@ theorem noRet_mLeaf : Stmt.noRetList mLeaf = true := by decide +kernel
 set_option maxRecDepth 100000 in
 theorem noRet_mAgg : Stmt.noRetList mAgg = true := by decide +kernel
 
-theorem gen_pow_inj34 {a b : ℕ} (ha : a < 2 ^ 34) (hb : b < 2 ^ 34) (h : gen ^ a = gen ^ b) :
-    a = b :=
-  gen_pow_inj (by omega) (by omega) h
-
 theorem gen_add_one_ne : gen + (1 : E) ≠ 0 := by
   intro h
   have h1 : gen ^ 1 = gen ^ 0 := by rw [pow_one, pow_zero]; exact e_add_eq_zero_iff.mp h
-  exact absurd (gen_pow_inj34 (by norm_num) (by norm_num) h1) (by norm_num)
+  exact absurd (gen_pow_inj' (by norm_num) (by norm_num) h1) (by norm_num)
 
 set_option maxRecDepth 100000 in
 /-- **The facts of a run of `main`'s body**, on a memory image, given `exponent_tables`' statement
@@ -207,7 +203,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
   have h41 : σ (.n (val% «main» "lean_sphincs_slots_g")) = gen ^ (lg σ 3 + lg σ 4) := by rw [isMul_sound pm41 atP, c3, c4, pow_add]
   have h42' : σ (.n (val% «main» "n_total_g")) = gen ^ (lg σ 0 + lg σ 1 + (lg σ 3 + lg σ 4)) := by
     rw [isMul_sound pm42 atP, h40, h41, ← pow_add]
-  have hT := gen_pow_inj34 (by omega) (by omega) (h42.symm.trans h42')
+  have hT := gen_pow_inj' (by omega) (by omega) (h42.symm.trans h42')
   have h336 : σ (.n (val% «main» "own_da")) = σ (.n (val% «main» "da_digests")) * gen ^ (2 * lg σ 6) := by
     rw [isMul_sound pm336 atP, isMul_sound pm335 atP, l6, ← pow_add, two_mul]
   -- the pick
@@ -329,7 +325,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
       word_one, l7, h71, pow_one] at h398
     rcases mul_eq_zero.mp h398 with h0 | h0
     · rw [hp, l6] at h0
-      exact gen_pow_inj34 (by omega) (by omega) (e_add_eq_zero_iff.mp h0) |>.trans rfl |>.symm.trans
+      exact gen_pow_inj' (by omega) (by omega) (e_add_eq_zero_iff.mp h0) |>.trans rfl |>.symm.trans
         (by rw [rp]) |>.symm
     · exact absurd h0 gen_add_one_ne
   · rw [isMul_sound mm401 atM, isMul_sound mm400 atM, lp, ← pow_add, two_mul]
@@ -346,7 +342,7 @@ theorem main_facts {rd : Reader} {C : CallRel} (hC : Unfolds rd C)
       rw [add_sound ma404 atM, const_sound mc403 atM, word_one, l6]
       intro he
       have h2 : gen ^ 0 = gen ^ lg σ 6 := (pow_zero gen).trans (e_add_eq_zero_iff.mp he).symm
-      exact h60 (gen_pow_inj34 (by omega) (by omega) h2).symm
+      exact h60 (gen_pow_inj' (by omega) (by omega) h2).symm
     obtain ⟨haall, -⟩ := holdsList_flat mAgg (List.all_eq_true.mpr aflat) _ _ (hln h404)
     have atA := atoms_of_flat haall
     exact ⟨by rw [isMul_sound amtab atA, const_sound actab atA], call_of_flat haall acall⟩

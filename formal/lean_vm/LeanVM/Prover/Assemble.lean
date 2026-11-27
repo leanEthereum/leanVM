@@ -384,10 +384,6 @@ theorem lanes_point_length {s : Sizes} {q : Column (leanIsaμ prog s)}
   rw [lanesOf_honest prog s q hb hp z ht]
   simp [honestLanes, List.finRange_succ]
 
-/-- The tables' log-heights of the verifier's layout, the `KECCAK` table's among them. -/
-theorem tableLogHeights_verifierLayout (s : Sizes) :
-    (verifierLayout prog s).tableLogHeights = tableLogs s := rfl
-
 theorem getD_tableLogs_keccak (s : Sizes) : (tableLogs s).getD opKeccak 0 = s.τ 5 := by
   simp [tableLogs, opKeccak]
 
@@ -432,7 +428,7 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   have htab := hP.table bus hbg []
   rw [Claims.tablePhaseClaims_eq] at htab
   refine Corr.bind (fun rows cl hc ↦ ?_) _ _ (corr_alongside _ _ _ [] (noQuery_hTable prog s q bus)
-    (corr_tableFast W.cols hcols _ (tableLogHeights_verifierLayout s) bus hbg)
+    (corr_tableFast W.cols hcols _ (verifierLayout_tableLogHeights s) bus hbg)
     (follows_and_allRet _ _ _ (follows_of_bind_ret _ _ _ htab) (Claims.allRet_tablePhase hl hbok)))
   obtain ⟨_, ⟨-, rfl, htrue, tc, htc, -, z, hz⟩, hrows⟩ := hc
   obtain rfl := List.append_cancel_left htc
@@ -452,7 +448,7 @@ theorem corr_honestScript (hv : ValidExecution prog input t) (hcap : t.committed
   have hk := hP.keccak _ (trueClaims_append htrue hpub) z
     (lanesOf_honest prog s q hbcol hpcol z hz) []
   rw [Claims.keccakPhaseClaims_eq hbok.2 hpmem hrows] at hk
-  rw [tableLogHeights_verifierLayout, getD_tableLogs_keccak]
+  rw [verifierLayout_tableLogHeights, getD_tableLogs_keccak]
   refine Corr.bind (fun kr kr' hk' ↦ ?_) _ _ (corr_alongside _ _ _ []
     (noQuery_hKeccakPhase prog s q _)
     (KeccakGkr.corr_keccakPhase prog s q W.cols hcols _ rows hlanes hlen)

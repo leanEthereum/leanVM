@@ -154,8 +154,6 @@ theorem xs_length (h : D.Ok) : D.xs.length = D.lcur 12 + 97 := by
   simp only [List.length_append, List.length_singleton, flatMap_pairs_length, hmO, hmI, hmS, hsl,
     flatMap_range_length _ (fun k hk ↦ ltXs_length h hk), lcur]
 
-theorem c0_point_length (h : D.Ok) : D.c0.point.length = D.τ - 3 := c0_point h
-
 theorem c0_point_getD (h : D.Ok) {j : ℕ} (hj : j < D.τ - 4) :
     D.c0.point.getD j 0 = D.chis.getD (4 + j) 0 := by
   have hl := inst_length h
@@ -208,7 +206,7 @@ theorem oMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
     MeaningPlainRounds (plainCount 0) 0 rd (D.oArgs curE zvE tbE) (D.oRets curE) := by
   obtain ⟨-, -, hmO, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
   have hop := memL_entry hm (b := zvE) (ws := D.op) (by simp [lin])
-  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (L_ok h).2
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (L_ok h).2
   rw [oArgs, hc]
   simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
   refine ⟨D.mO, h.2.2.2.2.2.2.1, by rw [cL]; exact hmO, fun w _ ↦ ?_⟩
@@ -224,7 +222,7 @@ theorem iMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
     MeaningPlainRounds (plainCount 1) 1 rd (D.iArgs curE zvE tbE) (D.iRets curE) := by
   obtain ⟨-, -, -, -, hmI, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
   have hpt := memL_entry hm (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp [lin])
-  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (O_ok h).2
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (O_ok h).2
   rw [iArgs, hc]
   simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
   refine ⟨D.mI, h.2.2.2.2.2.2.2.1, ?_, fun w hw ↦ ?_⟩
@@ -242,7 +240,7 @@ theorem sMeaning (h : D.Ok) {rd : Reader} {curE chiE olE zvE slE tbE : ℕ}
     MeaningPlainRounds (plainCount 0) 0 rd (D.sArgs curE zvE tbE) (D.sRets curE) := by
   obtain ⟨-, -, -, -, -, hmS, -⟩ := xs_reads h (memL_entry hm (b := curE) (ws := D.xs) (by simp [lin]))
   have hpt := memL_entry hm (b := zvE + qkeccakVarsCap) (ws := D.point) (by simp [lin])
-  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length' (I_ok h).2
+  obtain ⟨a, b, c, d, e, hc⟩ := five_of_length (I_ok h).2
   rw [sArgs, hc]
   simp only [List.cons_append, List.nil_append, MeaningPlainRounds]
   refine ⟨D.mS, h.2.2.2.2.2.2.2.2.1, ?_, fun w _ ↦ ?_⟩

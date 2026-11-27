@@ -286,7 +286,7 @@ theorem vt_inv {cl : BytecodeClaim} {bc : List K} {lm : ℕ} {rows : List ℕ} (
     rw [← hL]
     exact (vt_forms3_shape bc lm hr weights beta point xm mf bf sh (values.getD 0 0)
       (values.getD 1 0) (values.getD 2 0)).1
-  have h6 : L.tableLogHeights.length = 6 := by rw [hhL]; exact vt_tableHeights_length hr
+  have h6 : L.tableLogHeights.length = 6 := by rw [hhL]; exact vt_tableHeightsOf_length hr
   obtain ⟨l153, -⟩ := runsG_total n1 cZ (k := 153) fun ys hy ↦ tableTerms_any _ _ _ _ _ _
     (by rw [h6]) (by rw [hf]) (by rw [LeanVM.Protocol.EndToEnd.Complete.length_tableWeights, h6])
     _ ys hy

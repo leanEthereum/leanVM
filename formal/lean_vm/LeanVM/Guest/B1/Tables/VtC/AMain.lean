@@ -121,7 +121,7 @@ theorem vt_rowsT_length {H : VtHonest} (hr : H.rows.length = 6) : H.rowsT.length
   have hf : H.busH.forms.length = 6 :=
     (vt_forms3_shape H.bc H.lm hr H.weights H.beta H.point (H.xs4.take 2) (H.xs4.getD 2 0)
       (H.xs4.getD 3 0) H.share (H.values.getD 0 0) (H.values.getD 1 0) (H.values.getD 2 0)).1
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeightsOf_length hr
   have ht : tables.length = 6 := rfl
   simp only [VtHonest.rowsT, vtRows, List.length_zip, hh, hf, ht,
     LeanVM.Protocol.EndToEnd.Complete.length_tableWeights]

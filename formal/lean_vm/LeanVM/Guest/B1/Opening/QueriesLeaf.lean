@@ -73,7 +73,7 @@ theorem leafShape_of (s : Oq) (hs : s.RowShape) : LeafShape s := by
       interval_cases k <;> omega, ?_, ?_, ?_, ?_, ?_⟩
     all_goals simp only [hn, rate, oqW80, oqW81, padRead, byteCell, hB', Oq.lc]
     all_goals norm_num
-  all_goals (rw [word, word, word, ofLimbs_add]; congr 1)
+  all_goals (rw [word, word, word, add_limbs]; congr 1)
 
 /-- The padded cells of the leaf: the row's cells, then the padding `0x01` and `0x80`, in one cell
 or two. -/

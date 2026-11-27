@@ -1287,8 +1287,6 @@ theorem eMul (x y : E) : x * y =
 theorem eZero : (0 : E) = E.ofLimbs 0 0 := by
   apply E.ext; intro i; fin_cases i <;> simp [limb_zero]
 
-theorem eOfK (a : K) : ofK a = E.ofLimbs a 0 := ofK_eq_ofLimbs a
-
 /-- `1` of `E`: the limbs `1, 0` (as `E`'s encoding reads it; the generic constructor path does
 not). -/
 theorem eOne : (1 : E) = E.ofLimbs 1 0 := by

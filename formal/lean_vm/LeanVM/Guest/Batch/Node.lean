@@ -59,7 +59,7 @@ theorem runD_roundsProg_bind {β : Type} (f : List E × E → VerifierProgram β
           (sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1) k).bind
             fun a ↦ f ((sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).1 :: a.1, a.2))
           ⟨(sq (obs (obs ⟨st, pe, none⟩ g1) gInf)).2, zs, os, roots⟩ = some r := by
-        rw [runD_read_cons _ rfl, runD_read_cons _ ((obs_ground _ _).trans rfl), runD_sample] at h
+        rw [runD_read_cons _ rfl, runD_read_cons _ ((obs_ground' _ _).trans rfl), runD_sample] at h
         exact h
       obtain ⟨hlen, x, sp', hx⟩ := runD_roundsProg_bind _ k _ _ zs os roots h'
       have e : (g1 :: gInf :: zs).drop (2 * (k + 1)) = zs.drop (2 * k) := by

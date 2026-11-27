@@ -42,9 +42,6 @@ cost_compile fixedOfCellsC := fixedOfCells
 
 /-! ## A signature claim's cells: bit vectors as their numbers -/
 
-theorem kToNat_lane (a : K) : LeanVM.Protocol.Verifier.kToNat a = (K.lane a).toNat := rfl
-cost_rewrite kToNat_lane
-
 theorem cellNat_lt (c : E) : Sig.cellNat c < 2 ^ 128 := by
   rw [← Sig.toNat_cellVal]; exact BitVec.isLt _
 

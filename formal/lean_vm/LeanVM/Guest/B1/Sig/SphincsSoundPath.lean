@@ -109,7 +109,7 @@ theorem a1Hi_xor {z P v : Nat} (hz : z < 2 ^ 24) (hP : P < 2 ^ 16) (hv : v < 2 ^
 
 /-- Two words add limb by limb. -/
 theorem word_add_word (a b c d : Nat) : word a b + word c d = word (a ^^^ c) (b ^^^ d) := by
-  simp only [word, ofLimbs_add, K.ofBits_xor]
+  simp only [word, add_limbs, K.ofBits_xor]
 
 /-- A literal past the low limb. -/
 theorem lit_hi {X : Nat} (h : X < 2 ^ 64) : lit (2 ^ 64 * X) = word 0 X := by
@@ -130,7 +130,7 @@ variable {rd : Reader} {σ : Val}
 theorem be16HiW_eq : be16HiW = eOfNat 256 * lit (2 ^ 120) + lit (2 ^ 112) := by
   rw [show lit (2 ^ 120) = word 0 (2 ^ 56) by norm_num [lit],
     show lit (2 ^ 112) = word 0 (2 ^ 48) by norm_num [lit], be16HiW, mul_comm, eOfNat, word,
-    word, word, ofLimbs_mul_ofK, ofLimbs_add, ofLimbs_inj]
+    word, word, ofLimbs_mul_ofK, add_limbs, ofLimbs_inj]
   decide +kernel
 
 /-- **An index's two bytes placed**: `v · 2^120 + (v >> 8) · (g^8 · 2^120 + 2^112)`, `v < 2^16`, is

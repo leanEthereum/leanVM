@@ -74,8 +74,6 @@ theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (addre
   · simpa using h0'
   · simpa using h1
 
-theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (addressOfIndex e)) = e := logG_spec he
-
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (addressOfIndex q.2) ∧ q.2 < 2 ^ 64 - 1
 
@@ -179,7 +177,7 @@ theorem bnd_sound {ρ : Env × BEnv} (hρ : Env2Ok σ args ρ) (hp : ps.map σ =
     · rename_i e he
       cases h
       obtain ⟨hv, heo⟩ := cls_pow hρ.1 he
-      rw [hv, logG_ofK heo, Aff.eval_mk_nil]
+      rw [hv, logG_spec heo, Aff.eval_mk_nil]
     · rename_i k hk
       cases h
       rw [cls_param hp hk]
@@ -276,7 +274,7 @@ theorem termB_sound (hρ : EnvOk σ ρ) (hp : ps.map σ = args) {q : ℕ × ℕ}
       cases h
       obtain ⟨h1, h2⟩ := cls_pow hρ he
       simp only [argExp, List.getD_eq_getElem?_getD, List.getElem?_map, hv, Option.map_some,
-        Option.getD_some, h1, logG_ofK h2, Aff.eval_mk_nil]
+        Option.getD_some, h1, logG_spec h2, Aff.eval_mk_nil]
       exact ⟨le_refl _, trivial⟩
     · rename_i k hk
       cases h
@@ -523,7 +521,7 @@ theorem siteB_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω 
                 have hRc : R.1.eval args = R.1.c := by simp [Aff.eval, hcs]
                 rw [hRc] at t1
                 have hev : (⟨0, [(k, R.1.c)]⟩ : Aff).eval args = R.1.c * eb := by
-                  simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
+                  simp only [Aff.eval, argExp, heb3, logG_spec heb2, List.map_cons, List.map_nil,
                     List.sum_cons, List.sum_nil]
                   omega
                 rw [Aff.eval_add, hev]
@@ -606,7 +604,7 @@ theorem siteBL_sound {P : Core.Program} {α : Bool} {cert : String → Cert} {ω
             have hRc : R.1.eval args = R.1.c := by simp [Aff.eval, hcs]
             rw [hRc] at t1
             have hev : (⟨0, [(k', R.1.c)]⟩ : Aff).eval args = R.1.c * eb := by
-              simp only [Aff.eval, argExp, heb3, logG_ofK heb2, List.map_cons, List.map_nil,
+              simp only [Aff.eval, argExp, heb3, logG_spec heb2, List.map_cons, List.map_nil,
                 List.sum_cons, List.sum_nil]
               omega
             rw [Aff.eval_add, hev]

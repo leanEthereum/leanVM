@@ -159,19 +159,6 @@ theorem foldlM_used {α : Type} {B : ℕ} (f : Mem → α → Except Fault Mem) 
     exact foldlM_used f P hf l m1 m' e (hf m x m1 (hl x List.mem_cons_self) e1 h)
       fun y hy ↦ hl y (List.mem_cons_of_mem _ hy)
 
-theorem logOr_mem {s s' : St} {x : K} {b k : ℕ} {f : Fault} (h : s.logOr x b f = .ok (k, s')) :
-    s'.mem = s.mem := by
-  unfold St.logOr at h
-  rw [St.log_eq] at h
-  split at h
-  · rename_i k' s1 hk
-    simp only [pure_ok, Prod.mk.injEq] at h
-    obtain ⟨-, rfl⟩ := h
-    simp only [Prod.mk.injEq] at hk
-    obtain ⟨-, rfl⟩ := hk
-    rfl
-  · simp at h
-
 /-- A cell the reference reads, below `2^62`, is a word of its image. -/
 theorem lt_of_read {κ : ℕ} (hκ : κ ≤ 28) {img : MemoryImage κ} {c : ℕ} {v : E} (hc : c < 2 ^ 62)
     (h : img.read (g ^ c) = some v) : c < 2 ^ κ := by
@@ -325,7 +312,7 @@ theorem runOp_used {C : Ctx} {s s' : St} {op : Op} {ins : LeanIsaInstruction} {�
     · simp only [bind_ok, pure_ok] at e
       obtain ⟨⟨pc', s2⟩, h2, ⟨fp', s3⟩, h3, rfl⟩ := e
       show s3.mem.used ≤ _
-      rw [logOr_mem h3, logOr_mem h2]
+      rw [LeanVM.Prover.Exec.St.logOr_mem h3, LeanVM.Prover.Exec.St.logOr_mem h2]
       exact hu1
   | keccak =>
     cases ins with

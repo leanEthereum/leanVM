@@ -44,11 +44,6 @@ def ZtOut (σ : Val) (S2 : Fs) : Prop :=
     σ (.n (val% «verify_tables» "s92#0[5]")) = σ (.n (val% «verify_tables» "cursor@5")) * gen ^ 153 ∧ σ (.n (val% «verify_tables» "s92#0[6]")) = σ (.n (val% «verify_tables» "g_zc_n")) ∧
     σ (.n (val% «verify_tables» "s92#0[7]")) = σ (.n (val% «verify_tables» "x@8")) ∧ σ (.n (val% «verify_tables» "s92#0[8]")) = S2.squeeze.1 ∧ σ (.n (val% «verify_tables» "s92#0[9]")) = σ (.n (val% «verify_tables» "cursor@5"))
 
-theorem vtW153C : word 10905190400 0 = gen ^ 153 := by
-  rw [word_eOfNat]
-  show ofK (K.ofBits 10905190400) = gen ^ 153
-  rw [gen_pow_eq_ofK, show K.ofBits 10905190400 = Parameters.addressOfIndex 153 by decide +kernel]
-
 set_option maxRecDepth 100000 in
 /-- **Statements `nxt[0]@42 ..< ret`, completely.** -/
 theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {S2 : Fs}
@@ -138,7 +133,7 @@ theorem vtZt_complete {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.l
   · rw [g5542, g5543, g5544, g5545, g5546, hPk 8 (by norm_num), hPk 9 (by norm_num),
       hPk 10 (by norm_num), hPk 11 (by norm_num), hPk 12 (by norm_num)]
     rfl
-  · rw [g5549, g5548, g5547, vtW153C]
+  · rw [g5549, g5548, g5547, vtW153]
 
 end
 end LeanVM.Guest.B1.Tables

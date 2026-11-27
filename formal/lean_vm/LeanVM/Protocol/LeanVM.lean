@@ -92,7 +92,7 @@ theorem completenessRom {prog : LeanIsaProgram} {input : PublicInput} {t : Execu
 /-- **The numbers**: at a fuel of `2^35` nonces per proof of work, the completeness error is
 below `2^-257`. -/
 theorem completenessError_le : completenessError (2 ^ 35) ≤ (2 : ℝ≥0∞)⁻¹ ^ 257 :=
-  Complete.statement_completenessError_le
+  LeanVM.Protocol.EndToEnd.Complete.completenessError_two_pow_35_le
 
 /-! ## The statement of `LeanVM/Protocol/Rom/Statement.lean` -/
 

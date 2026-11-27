@@ -55,7 +55,7 @@ theorem limbs_le_of_lt {x k : ℕ} (hk : 0 < k) (h : x < 2 ^ (64 * k)) : limbCou
     omega
 
 theorem kToNat_lt (a : K) : LeanVM.Protocol.Verifier.kToNat a < 2 ^ 64 := by
-  rw [Decoder.kToNat_lane]; exact UInt64.toNat_lt _
+  rw [LeanVM.Cost.FastLib.kToNatLane]; exact UInt64.toNat_lt _
 
 /-! ## Cells' digests and claims -/
 

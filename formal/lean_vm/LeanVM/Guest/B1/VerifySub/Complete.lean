@@ -52,9 +52,6 @@ theorem vs_kidsAt_getD (ks : List KidD) (outs : List (List E × Main.Layout)) (j
     kidAt ks [] outs j = ks.getD j noKid (outs.take j) := by
   simp [kidAt]
 
-theorem vs_regionL {L : Main.Layout} {q : ℕ × List E} (hq : q ∈ L) {i : ℕ} (h1 : q.1 ≤ i)
-    (h2 : i < q.1 + q.2.length) : Main.RegionL L i := ⟨q, hq, h1, h2⟩
-
 /-- **`verify_sub`'s lift obligations on an honest child.** -/
 theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (fs : String → ℕ) {sqE outE : ℕ}
@@ -125,7 +122,7 @@ theorem vs_obligations {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {see
     rcases hlin fp outs ho j hj16 hjo q hq with h | h | ⟨m, hm, hmt, hmq⟩
     · exact Or.inl (Or.inl (subOf_region h h1 h2))
     · exact Or.inl (Or.inr (subOf_region h h1 h2))
-    · exact Or.inr (Or.inr ⟨m, hm, hmt, vs_regionL hmq h1 h2⟩)
+    · exact Or.inr (Or.inr ⟨m, hm, hmt, LeanVM.Guest.B1.VerifySub.ChildSegs.regionL_of hmq h1 h2⟩)
   · -- the callees' words are in memory
     intro fp outs ho rd _ hB hL hLo
     refine memL_lins_kidsAt _ _ _ fun j hj hjo q hq ↦ ?_

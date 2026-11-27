@@ -220,7 +220,7 @@ theorem word_y_inv' : word 2 1 = y⁻¹ := by rw [y_inv]; rfl
 checked into `K` after `y⁻¹`. -/
 theorem high_low_bytes {x : E} {l N : Nat} (hl : l < 2 ^ 16)
     (hK : IsInK ((x + eOfNat l + eOfNat (2 ^ 16 * N)) * word 2 1)) : cellNat x % 2 ^ 16 = l := by
-  rw [word_y_inv', eq_ofLimbs x, eOfNat_eq_ofLimbs, eOfNat_eq_ofLimbs, ofLimbs_add, ofLimbs_add,
+  rw [word_y_inv', eq_ofLimbs x, eOfNat_eq_ofLimbs, eOfNat_eq_ofLimbs, add_limbs, add_limbs,
     ofLimbs_mul_y_inv, isInK_ofLimbs_iff] at hK
   have h0 : x.limb 0 = K.ofBits l + K.ofBits (2 ^ 16 * N) := by
     rw [add_assoc] at hK

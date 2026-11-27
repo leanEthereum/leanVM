@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Common.Atoms
 /-!
 # The Keccak GKR proofs' shared lemmas
 
-* `keccak_outs`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
+* `keccakA_perm`: a `KECCAK` atom in the even layouts writes the cells of the permutation of the
   cells it reads (`permOf`), output `k` its cell `k`;
 * `rateOf_nil` … `rateOf_four`: the rate cells of `k ≤ 4` waiting scalars (`Keccak.scalarCells`);
 * `squeeze_atom`: the atom on the rate cells of `s.pend` and the capacity `s.cap`, followed by
@@ -36,17 +36,6 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- **A `KECCAK` atom in the even layouts**: it reads thirteen cells and writes, as output `k`,
 cell `k` of their permutation. -/
-theorem keccak_outs {ins outs : List V} (h : (Atom.keccak ins outs false false).Holds rd σ)
-    (ho : outs.length = 13 := by first | rfl | simp) :
-    ins.length = 13 ∧ outs.length = 13 ∧
-      ∀ k (hk : k < 13), σ (outs.getD k default) = cellsOfState (permOf (ins.map σ)) false ⟨k, hk⟩ := by
-  obtain ⟨hi, -, hout⟩ := keccakA_perm h ho
-  refine ⟨hi, ho, fun k hk => ?_⟩
-  have := congrFun hout ⟨k, hk⟩
-  simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
-    List.getElem?_eq_getElem (show k < outs.length by omega), Option.map_some,
-    Option.getD_some] at this ⊢
-  exact this
 
 /-! ## Rate cells -/
 
@@ -134,7 +123,7 @@ theorem squeeze_atom {ins outs : List V} {b : ℕ} {s : Fs}
     (hch : ChallengeOk σ (outs.getD 0 default) b)
     (ho : outs.length = 13 := by first | rfl | simp) :
     σ (.n b) = s.squeeze.1 ∧ (outs.drop 8).map σ = s.squeeze.2.cap := by
-  obtain ⟨-, -, hout⟩ := keccak_outs hk ho
+  obtain ⟨-, -, hout⟩ := keccakA_perm hk ho
   rw [hin] at hout
   refine ⟨challengeT_value hch (hout 0 (by omega)), ?_⟩
   apply List.ext_getElem

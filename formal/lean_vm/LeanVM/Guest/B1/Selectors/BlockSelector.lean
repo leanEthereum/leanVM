@@ -145,10 +145,6 @@ theorem holds_bsBlk (k : ℕ) (h : Stmt.HoldsList C rd σ (bsBlk k) True kret) :
 
 end Sem
 
-theorem tb_prod_map_range_succ' {M : Type} [CommMonoid M] (f : ℕ → M) (m : ℕ) :
-    ((List.range (m + 1)).map f).prod = ((List.range m).map f).prod * f m := by
-  rw [List.range_succ, List.map_append, List.prod_append]; simp
-
 theorem tb_zip_map_range {α β : Type} (f : ℕ → α) (g : ℕ → β) (n : ℕ) :
     List.zip ((List.range n).map f) ((List.range n).map g) =
       (List.range n).map fun k ↦ (f k, g k) := by
@@ -190,7 +186,7 @@ theorem block_selector_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : 
       induction k with
       | zero => simp [heq 0 hk, hk]
       | succ k ih =>
-        rw [heq (k + 1) hk, tb_prod_map_range_succ' _ (k + 1)]
+        rw [heq (k + 1) hk, tb_prod_map_range_succ _ (k + 1)]
         simp only [Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
         rw [ih (by omega)]
         simp [hk]
@@ -200,7 +196,7 @@ theorem block_selector_sound {n : ℕ} (hn : n < 34) {rd : Reader} {args rets : 
       induction k with
       | zero => simp [hrb 0 hk, hk]
       | succ k ih =>
-        rw [hrb (k + 1) hk, tb_prod_map_range_succ' _ (k + 1)]
+        rw [hrb (k + 1) hk, tb_prod_map_range_succ _ (k + 1)]
         simp only [Nat.succ_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
         rw [ih (by omega)]
         simp [hk]

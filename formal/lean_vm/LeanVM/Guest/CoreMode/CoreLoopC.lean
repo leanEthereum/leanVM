@@ -1317,7 +1317,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
       fun o hso' ↦ ?_⟩), fun o ho ↦ hw o (hok.fsig ▸ ho), fun σ hσ ↦ ?_⟩
     · rw [hok.fsig] at hso'
       obtain ⟨hwo, hgo⟩ := hself o hso'
-      exact ⟨hwo, rd_of_get hκ hs0.agree hgo (Mode.ofK_gpow_ne_zero _)⟩
+      exact ⟨hwo, rdE_of_get hκ hs0.agree hgo (Mode.ofK_gpow_ne_zero _)⟩
     obtain ⟨es, vs, -, hwk, -⟩ := hσ.path
     refine ⟨Cf.fn.body, [], es, vs, img.read, rfl, pairAt_zero hok.pair, by simpa using hwk, hwk,
       by simpa using hσ.holds _ _ hwk, by simp,

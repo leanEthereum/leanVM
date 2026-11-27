@@ -118,20 +118,20 @@ namespace VtHonest
 variable {H : VtHonest}
 
 theorem evsT_lengths (h : H.Ok) (hr : H.rows.length = 6) : H.evsT.map List.length = vtW6 := by
-  have hl : H.evsT.length = 6 := by rw [h.hevl, vtH_rowsT_length hr]
+  have hl : H.evsT.length = 6 := by rw [h.hevl, vt_rowsT_length hr]
   apply List.ext_getElem (by simp [hl]; rfl)
   intro i h1 h2
   simp only [List.length_map] at h1
-  have hz : (H.rowsT[i]'(by rw [vtH_rowsT_length hr]; omega), H.evsT[i]) ∈
+  have hz : (H.rowsT[i]'(by rw [vt_rowsT_length hr]; omega), H.evsT[i]) ∈
       List.zip H.rowsT H.evsT := by
     rw [List.mem_iff_getElem]
-    exact ⟨i, by simp [vtH_rowsT_length hr, hl]; omega, by simp⟩
+    exact ⟨i, by simp [vt_rowsT_length hr, hl]; omega, by simp⟩
   have hw := h.hevw _ hz
   simp only at hw
-  have ht1 : (H.rowsT[i]'(by rw [vtH_rowsT_length hr]; omega)).1 = tables.getD i default := by
+  have ht1 : (H.rowsT[i]'(by rw [vt_rowsT_length hr]; omega)).1 = tables.getD i default := by
     have := congrArg (·[i]?) (rowsT_fst H hr)
     simp only [List.getElem?_map] at this
-    rw [List.getElem?_eq_getElem (by rw [vtH_rowsT_length hr]; omega),
+    rw [List.getElem?_eq_getElem (by rw [vt_rowsT_length hr]; omega),
       List.getElem?_eq_getElem (show i < tables.length by show i < 6; omega)] at this
     simp only [Option.map_some, Option.some.injEq] at this
     rw [this, List.getD_eq_getElem]
@@ -139,7 +139,7 @@ theorem evsT_lengths (h : H.Ok) (hr : H.rows.length = 6) : H.evsT.map List.lengt
 
 theorem rowsT_heights (hr : H.rows.length = 6) :
     H.rowsT.map (·.2.1) = tableHeightsOf H.rows := by
-  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeights_length hr
+  have hh : H.L.tableLogHeights.length = 6 := vt_tableHeightsOf_length hr
   simp only [VtHonest.rowsT, vtRows]
   rw [show (fun x : Table × ℕ × List Form × E ↦ x.2.1) =
       (fun x : ℕ × List Form × E ↦ x.1) ∘ (fun x ↦ x.2) from rfl, ← List.map_map,
@@ -194,7 +194,7 @@ theorem vtH_columns (h : H.Ok) (hr : H.rows.length = 6) : H.claims.map (·.colum
     (fun t _ ev hl ↦ by rw [hl]) tables H.rowsT H.evsT (rowsT_fst H hr)
     (by rw [evsT_lengths h hr, tables_widths_list])]
   rw [flatMap_zip_fst (fun t ↦ (List.range t.width).map (globalColumnBases.getD t.opcode 0 + ·))
-    tables _ (by simp [vtH_rowsT_length hr]; decide)]
+    tables _ (by simp [vt_rowsT_length hr]; decide)]
   have h2 := xs4_two h.hx4
   simp only [VtHonest.busH, vtBus, vtBusClaims, List.map_append, List.map_cons, List.map_nil]
   generalize H.xs4.take 2 = m at h2
@@ -216,7 +216,7 @@ theorem vtH_points (h : H.Ok) (hr : H.rows.length = 6) (hbc : H.bc.length = 2 ^ 
     (fun t _ ev hl ↦ by rw [hl]) tables H.rowsT H.evsT (rowsT_fst H hr)
     (by rw [evsT_lengths h hr, tables_widths_list])]
   rw [flatMap_zip_width (fun hh ↦ H.pts.reverse.take hh), tables_widths_list, rowsT_heights hr]
-  have hsl : (tableHeightsOf H.rows).length = 6 := vt_tableHeights_length hr
+  have hsl : (tableHeightsOf H.rows).length = 6 := vt_tableHeightsOf_length hr
   have h2 := xs4_two h.hx4
   have hchi : H.chiW = H.pts.reverse := rfl
   have hlm : H.L.logMemory = H.lm := rfl

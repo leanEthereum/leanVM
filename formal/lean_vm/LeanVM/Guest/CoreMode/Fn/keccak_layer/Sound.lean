@@ -41,7 +41,7 @@ theorem layCur_inst {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts cor
   obtain ⟨first, hfi, hname, rfl⟩ := hn
   have hf' : f = B1.VerifySub.layerName first := by rw [← find_name' hf, hname]
   subst hf'
-  obtain ⟨fL, hfL, hbL, -⟩ := layer_found hfi
+  obtain ⟨fL, hfL, hbL, -⟩ := LeanVM.Guest.B1.VerifySub.layer_fn hfi
   obtain rfl : fn = fL := Option.some.inj (hf.symm.trans hfL)
   obtain ⟨p, y, e7, hy, h9, h10, hroom⟩ := layQ_all hr I hI _ σ bufs kids ht first hfi rfl
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI ht

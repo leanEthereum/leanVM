@@ -43,13 +43,6 @@ def vtKap (lm : ℕ) (τ : ℕ → ℕ) (b : ℕ) : ℕ :=
 
 /-! ## The ranks -/
 
-/-- Choices below `n` as a function. -/
-theorem vt_choose_fun {α : Type} [Inhabited α] {n : ℕ} {P : ℕ → α → Prop}
-    (h : ∀ r < n, ∃ a, P r a) : ∃ f : ℕ → α, ∀ r < n, P r (f r) := by
-  classical
-  exact ⟨fun r => if hr : r < n then Classical.choose (h r hr) else default,
-    fun r hr => by simp only [hr, ↓reduceDIte]; exact Classical.choose_spec (h r hr)⟩
-
 theorem vt_word_small_inj {a b : ℕ} (ha : a < 3) (hb : b < 3) (h : word a 0 = word b 0) :
     a = b := by
   rw [word_eOfNat, word_eOfNat] at h
@@ -172,7 +165,7 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
   have hstn : ∀ j < m, base + st j < 153 := fun j hj => by
     have := (hgrp' j hj (st j) le_rfl (hrun j hj)).1; omega
   -- the ranks' groups
-  obtain ⟨e, he⟩ := vt_choose_fun (n := m) (fun r hr => (hfacts r hr).1)
+  obtain ⟨e, he⟩ := tb_exists_fun_of_forall (n := m) (fun r hr => (hfacts r hr).1)
   have hes : ∀ r < m, G0 ≤ e r ∧ e r < G0 + m := fun r hr => by
     have h3 := (hfacts r hr).2.1
     rw [(he r hr).2, loadHolds_mul_gen_pow, Nat.add_comm] at h3

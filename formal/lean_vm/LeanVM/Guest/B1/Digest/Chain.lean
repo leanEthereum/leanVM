@@ -255,7 +255,7 @@ def padNat (len i : ℕ) : ℕ × ℕ :=
   (a.1 ^^^ b.1, a.2 ^^^ b.2)
 
 theorem word_xor (a b c d : ℕ) : word (a ^^^ c) (b ^^^ d) = word a b + word c d := by
-  simp only [word, K.ofBits_xor, ofLimbs_add]
+  simp only [word, K.ofBits_xor, add_limbs]
 
 theorem word_byteNat (pos v i : ℕ) :
     word (byteNat pos v i).1 (byteNat pos v i).2 = if i = pos / 16 then byteCell pos v else 0 := by

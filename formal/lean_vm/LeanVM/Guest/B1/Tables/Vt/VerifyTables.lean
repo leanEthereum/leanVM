@@ -144,7 +144,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
         (σ (.n (val% «verify_tables» "x@4"))) (σ (.n (val% «verify_tables» "x@5"))) (σ (.n (val% «verify_tables» "s53.u0.s5#0"))) (σ (.n (val% «verify_tables» "s53.u1.s5#0"))) (σ (.n (val% «verify_tables» "s53.u2.s5#0")))).1.length = 6 :=
       (vt_forms3_shape bc lm hr weights _ point _ _ _ _ _ _ _).1
     rw [hforms, vtEvsT_length]
-    simp [vtRows, List.length_zip, vt_tableHeights_length hr, hF6,
+    simp [vtRows, List.length_zip, vt_tableHeightsOf_length hr, hF6,
       LeanVM.Protocol.EndToEnd.Complete.length_tableWeights, tables]
   have A_w : ∀ p ∈ List.zip (vtRows (tableHeightsOf rows) bus.forms point pts) evs,
       p.2.length = p.1.1.width :=

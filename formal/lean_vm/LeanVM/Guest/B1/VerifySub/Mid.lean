@@ -58,8 +58,6 @@ theorem gen_pow_eq_iff {a b : ℕ} (ha : a < 2 ^ 40) (hb : b < 2 ^ 40) (h : gen 
     a = b :=
   gen_pow_inj (by omega) (by omega) h
 
-theorem word_pow2 {a : ℕ} (h : a < 64) : word (2 ^ a) 0 = gen ^ a := word_two_pow h
-
 /-! ## The sizes -/
 
 /-- **The sizes**: the rate exponent and the memory's log-size, `dims`, `kb` in the
@@ -82,7 +80,7 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
   obtain ⟨n, hn64, h61, hr64⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c64)
   simp only [List.cons.injEq, and_true] at hr64
   obtain ⟨e, he, h66⟩ := rc_pow hκ L (a := 3) (by norm_num)
-    (by rw [e67, show (8 : ℕ) = 2 ^ 3 from rfl, word_pow2 (by norm_num)]) r66
+    (by rw [e67, show (8 : ℕ) = 2 ^ 3 from rfl, word_two_pow (by norm_num)]) r66
   have hne : n = e + 1 := by
     rw [hr64, h66, e65, word_gen, ← pow_succ] at m64
     exact gen_pow_eq_iff (by omega) (by omega) m64
@@ -90,12 +88,12 @@ theorem vsSizesT_holds {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ)
   obtain ⟨m, hm64, h27, hr72⟩ := (g_power_of_word_holds _ _ _).1 (hC _ _ _ c72)
   simp only [List.cons.injEq, and_true] at hr72
   obtain ⟨e1, he1, h72⟩ := rc_pow hκ L (a := 30) (by norm_num)
-    (by rw [e73, show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_pow2 (by norm_num)]) r72
+    (by rw [e73, show (1073741824 : ℕ) = 2 ^ 30 from rfl, word_two_pow (by norm_num)]) r72
   obtain ⟨e2, he2, h79⟩ := rc_pow hκ L (a := 32) (by norm_num)
-    (by rw [e77, show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_pow2 (by norm_num)]) r79
+    (by rw [e77, show (4294967296 : ℕ) = 2 ^ 32 from rfl, word_two_pow (by norm_num)]) r79
   have hm1 : m = e1 := by rw [hr72] at h72; exact gen_pow_eq_iff (by omega) (by omega) h72
   have hm2 : m = e2 + 1 := by
-    rw [hr72, h79, e78, show (2 : ℕ) = 2 ^ 1 from rfl, word_pow2 (by norm_num),
+    rw [hr72, h79, e78, show (2 : ℕ) = 2 ^ 1 from rfl, word_two_pow (by norm_num),
       ← pow_add] at m72
     exact gen_pow_eq_iff (by omega) (by omega) m72
   have h84 : σ (.n (val% «verify_sub» "kb[0]")) = 1 := by rw [e84, word_one]
