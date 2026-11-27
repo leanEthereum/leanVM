@@ -637,7 +637,6 @@ LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResM.lean@monoSite_of child_claim
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResM.lean@nzVal_ml0 child_claim_list_mono_last__L0
 LeanVM/Guest/CoreMode/Fn/child_claim_list_mono/ResMR.lean child_claim_list_mono_last__L
 LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@LayQ keccak_layer__L
-LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@layer_found keccak_layer__L
 LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStL.lean@stepCall verify_keccak
 LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStP.lean@stArgs keccak_layer__L
 LeanVM/Guest/CoreMode/Fn/keccak_layer/ResStP.lean@layIdx_facts keccak_layer__L

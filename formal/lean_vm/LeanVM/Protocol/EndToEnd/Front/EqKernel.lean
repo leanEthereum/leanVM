@@ -20,7 +20,6 @@ leanVM `40f877dc`) weighs the bus's tuple slots by `eq_kernel(alphas)` (`eqKerne
 coordinate at a time, the first coordinate the lowest bit; the oracle protocol weighs them by
 CompPoly's `lagrangeBasis` (`fingerprintWeights`).
 
-* `eqKernel_snoc`: one more coordinate doubles the kernel;
 * `eqKernel_getElem_prod`: the kernel's weight at `x` is `Π_j (r_j if bit j of x else 1 + r_j)`;
 * `lagrangeBasis_ofFn_getD`: the kernel of a list is `lagrangeBasis` of its coordinates, in
   characteristic two.

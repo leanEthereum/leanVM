@@ -524,7 +524,7 @@ def fake_sysroot(real: Path, into: Path) -> None:
 
 # The modules the kernel still checks under `--dev`. `ties` (the default): those that equate a guest function's body,
 # or the core data, with a template, which a guest change makes stale and elaboration alone does not check: a
-# `stmtsEqb` tie (`tbStmtsEqb` too) or a `kernel_rfl` one, a use of the `vc` tactic outside comments (whose proof only
+# `stmtsEqb` tie or a `kernel_rfl` one, a use of the `vc` tactic outside comments (whose proof only
 # the kernel checks), or a `decide +kernel` in a module that reads a body or the core program (`fn% «s»`, `core% «s» m`,
 # `coreOf`, `certOf`, …) or imports the core IR. `all`: every module the kernel decides something in (budgets, tables),
 # every `kernel_rfl` tie, and every `kernel_lit` and `win_lit` value, but the other certificates `guest-cert`,

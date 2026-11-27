@@ -12,7 +12,7 @@ public import Mathlib.Init
 # Lists, by the recursor
 
 The kernel reduces a function defined by structural recursion through its `brecOn` encoding and
-its `match`, several times slower per element than the same function written with `List.rec`:
+its `match`, slower per element than the same function written with `List.rec`:
 `List.all`, `List.any`, `List.map`, `List.foldl` and `List.zipIdx` cost the checkers that the
 kernel evaluates (`decide +kernel`) more than the work they do. `allR`, `anyR`, `mapR`, `foldlR`
 and `zipIdxR` are those functions by the recursor, equal to them (`allR_eq`, …). A checker uses
