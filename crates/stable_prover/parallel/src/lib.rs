@@ -6,7 +6,6 @@
 use std::any::Any;
 use std::cell::Cell;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex, Once, OnceLock};
 
@@ -45,17 +44,45 @@ thread_local! {
     static IN_TASK: Cell<bool> = const { Cell::new(false) };
 }
 
-/// A type-erased work unit: `f(start, end)` over ranges tiling `0..n_tasks`.
-///
-/// The closure's lifetime is erased to `'static`. The dispatcher waits for every worker to finish the job
-/// before it returns, so the borrow outlives every call.
+/// A closure `f(start, end)` erased to a pointer to it and the one function that calls it. Unlike a `dyn Fn`, it
+/// makes no vtable, which would hold a second copy of the closure's body, for a call by value.
+#[derive(Clone, Copy)]
+struct Task {
+    data: *const (),
+    call: unsafe fn(*const (), usize, usize),
+}
+
+impl Task {
+    fn new<F: Fn(usize, usize) + Sync>(f: &F) -> Self {
+        /// # Safety
+        /// `data` points to a live `F`.
+        unsafe fn call<F: Fn(usize, usize)>(data: *const (), start: usize, end: usize) {
+            // SAFETY: the caller's contract.
+            unsafe { (*data.cast::<F>())(start, end) }
+        }
+        Self {
+            data: (f as *const F).cast(),
+            call: call::<F>,
+        }
+    }
+
+    /// # Safety
+    /// The closure it was made from is still alive.
+    unsafe fn run(self, start: usize, end: usize) {
+        // SAFETY: the caller's contract.
+        unsafe { (self.call)(self.data, start, end) }
+    }
+}
+
+/// A work unit: its task over ranges tiling `0..n_tasks`. The dispatcher waits for every worker to finish the job
+/// before it returns, so the closure outlives every call.
 #[derive(Clone, Copy)]
 struct Job {
-    f: NonNull<dyn Fn(usize, usize) + Sync>,
+    task: Task,
     n_tasks: usize,
 }
 
-// SAFETY: the closure behind `f` is `Sync`, and it outlives every worker's use of it (see `Job`).
+// SAFETY: the closure behind the task is `Sync`, and it outlives every worker's use of it (see `Job`).
 unsafe impl Send for Job {}
 
 /// What the workers wait on: the current job, numbered by its generation, and how many workers sleep on `start`.
@@ -161,8 +188,6 @@ fn spin_while(busy: impl Fn() -> bool) {
 /// claims cut counter contention, and the proportional shrink keeps the tail
 /// balanced across cores of different speeds.
 fn drain(pool: &Pool, job: Job) {
-    // SAFETY: the dispatcher keeps the closure alive until every worker has finished the job.
-    let f = unsafe { job.f.as_ref() };
     let n = job.n_tasks;
     // Catch a task panic so it cannot unwind out of a worker, which would leave the dispatcher waiting.
     let result = catch_unwind(AssertUnwindSafe(|| {
@@ -176,7 +201,8 @@ fn drain(pool: &Pool, job: Job) {
             if start >= n {
                 break;
             }
-            f(start, (start + batch).min(n));
+            // SAFETY: the dispatcher keeps the closure alive until every worker has finished the job.
+            unsafe { job.task.run(start, (start + batch).min(n)) };
         }
     }));
     if let Err(payload) = result {
@@ -212,20 +238,21 @@ impl Drop for InTask {
 /// it panics rather than silently serializing. Fan out over the outermost
 /// independent unit and keep the levels below it sequential.
 pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
-    dispatch(n_tasks, &f);
+    dispatch(n_tasks, Task::new(&f));
 }
 
 /// [`for_each_chunk`] with the closure erased: every dispatch goes through this one function, out of line, so the
 /// pool's machinery stays apart from the tasks it runs.
 #[inline(never)]
-fn dispatch(n_tasks: usize, f: &(dyn Fn(usize, usize) + Sync)) {
+fn dispatch(n_tasks: usize, task: Task) {
     assert!(!IN_TASK.get(), "nested parallel dispatch from inside a pool task");
     // The caller runs tasks too, inline or as worker 0, so nesting panics on every path.
     let _task = InTask::enter();
 
     if num_threads() <= 1 || n_tasks <= 1 {
         if n_tasks > 0 {
-            f(0, n_tasks);
+            // SAFETY: the caller's closure lives until this returns.
+            unsafe { task.run(0, n_tasks) };
         }
         return;
     }
@@ -233,13 +260,7 @@ fn dispatch(n_tasks: usize, f: &(dyn Fn(usize, usize) + Sync)) {
     let pool = pool();
     let guard = pool.dispatch.lock().unwrap();
 
-    // SAFETY: erase the borrow to `'static` so it fits in `Job`; the dispatcher waits for every worker
-    // before returning, so `f` outlives every dereference. `transmute` rather than a `*const dyn` cast,
-    // which would force the closure to be `'static`.
-    let job = Job {
-        f: unsafe { std::mem::transmute::<NonNull<_>, NonNull<_>>(NonNull::from(f)) },
-        n_tasks,
-    };
+    let job = Job { task, n_tasks };
 
     pool.counter.store(0, Ordering::Relaxed);
     pool.running.store(num_threads() - 1, Ordering::Relaxed);
