@@ -30,7 +30,7 @@ pub(crate) fn prove_layer(
     let layer = Layer::new(witness, step);
 
     // 1. The product polynomial.
-    let (product, per_pack) = tracing::info_span!("Product").in_scope(|| product::polynomial(&layer, claim));
+    let (product, per_pack) = product::polynomial(&layer, claim);
     ps.add_scalars(&product);
 
     // 2. `s`: the product polynomial has degree PRODUCT_BITS - 1.
@@ -46,13 +46,11 @@ pub(crate) fn prove_layer(
     };
 
     // 3. The pack and the segment.
-    let sums = tracing::info_span!("Skip").in_scope(|| skip::sums(&layer, claim, s, &per_pack));
+    let sums = skip::sums(&layer, claim, s, &per_pack);
     skip::prove_rounds(ps, claim, sums, &mut sumcheck);
     let summand = Summand::new(claim, kappa);
-    let values =
-        tracing::info_span!("Tables").in_scope(|| table::fill(&layer, claim, &summand, &mu, &sumcheck.point, tables));
-    let folded = tracing::info_span!("Tail")
-        .in_scope(|| table::prove_rounds(ps, claim, &summand, values, tables, &mut sumcheck));
+    let values = table::fill(&layer, claim, &summand, &mu, &sumcheck.point, tables);
+    let folded = table::prove_rounds(ps, claim, &summand, values, tables, &mut sumcheck);
 
     // 4. The bit position.
     let (local, t) = prove_positions(ps, &claim.weights, folded, kappa);

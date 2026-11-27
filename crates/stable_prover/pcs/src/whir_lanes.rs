@@ -127,7 +127,7 @@ impl LaneRounds {
             panic!("a fold before the end")
         };
         coefs.truncate(len);
-        let w = tracing::info_span!("Lift").in_scope(|| self.terms.lift(&self.a));
+        let w = self.terms.lift(&self.a);
         (coefs, w)
     }
 }
@@ -135,7 +135,6 @@ impl LaneRounds {
 impl FoldRounds for LaneRounds {
     fn table(&mut self) -> FoldTable {
         let (nt, n_pairs) = (self.terms.n_terms(), self.lanes.count().div_ceil(2));
-        let span = tracing::info_span!("Project", pairs = n_pairs).entered();
         match &self.lanes {
             Lanes::Stack { words, len } => {
                 // Each pair's `F`, `G` and `X F`, in one pass over the pair.
@@ -170,7 +169,6 @@ impl FoldRounds for LaneRounds {
                     .collect();
             }
         }
-        drop(span);
 
         let mut table = [F128::ZERO; 4];
         for m in 0..n_pairs {
@@ -202,6 +200,6 @@ impl FoldRounds for LaneRounds {
                 at(2 * m + 1) + alpha * at(2 * m) + beta * self.pxf[i]
             })
             .collect();
-        self.lanes = tracing::info_span!("Lanes").in_scope(|| self.lanes.fold(ch));
+        self.lanes = self.lanes.fold(ch);
     }
 }

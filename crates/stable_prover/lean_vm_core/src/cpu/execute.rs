@@ -1,9 +1,8 @@
 //! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
 //! [`Trace`]. Its Lean transcription is `formal/Statement/Prover/Execute.lean`: a change here lands there too.
 
-use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
+use super::hints::{BitsDest, GPow, MAX_CELLS, QuickMap, RHint, bounded_dlog};
 use super::*;
-use isa::{pretty_f64, pretty_integer};
 use primitives::field::{F64, F128};
 
 /// A run of a program.
@@ -418,22 +417,6 @@ fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, len: u32, what: &'s
     }
 }
 
-/// `print`'s line for a cell: small integers and small g-powers overlap (`8 = x^3 = g^3`), so every reading that
-/// applies. Only a `K`-valued word can be a g-power.
-fn print(label: &str, m: &Mem, cell: u32) {
-    if !m.written(cell) {
-        return eprintln!("[print] {label} = <unwritten>");
-    }
-    let v = m.get(cell);
-    let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
-    match (k, v.as_base().is_some_and(|lo| lo.0 < 1 << 32)) {
-        (Some(k), true) => eprintln!("[print] {label} = {} (g^{})", pretty_integer(v.c0), pretty_integer(k)),
-        (Some(k), false) => eprintln!("[print] {label} = g^{}", pretty_integer(k)),
-        (None, true) => eprintln!("[print] {label} = {}", pretty_integer(v.c0)),
-        (None, false) => eprintln!("[print] {label} = {:#x}:{:#x}", v.c1, v.c0),
-    }
-}
-
 /// A hint's name, for the conflict it caused.
 #[cold]
 fn hint_name(h: &RHint) -> &'static str {
@@ -491,10 +474,6 @@ pub fn execute(
     for (&hpc, hs) in &program.hints {
         hints[hpc as usize] = hs;
     }
-    // `DBG_PROF=1`: per-pc step counts, for a per-function cycle profile after the run.
-    let mut prof: Option<Vec<u64>> = std::env::var("DBG_PROF")
-        .is_ok()
-        .then(|| vec![0u64; program.prog.len()]);
 
     let mut bytecode_count: Vec<u32> = vec![0; program.prog.len()];
     let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
@@ -515,9 +494,6 @@ pub fn execute(
         }
         let fail = move |fault| fail(pc, fault);
         let at = move |base, offset| cell_at(base, offset).map_err(fail);
-        if let Some(p) = prof.as_mut() {
-            p[pc as usize] += 1;
-        }
         for h in hints[pc as usize] {
             apply_hint(h, fp, &mut m, &mut g, &mut advice).map_err(|fault| match fault {
                 Fault::Conflict { cell, had, new, .. } => fail(Fault::Conflict {
@@ -689,9 +665,6 @@ pub fn execute(
         steps += 1;
     }
 
-    if let Some(p) = &prof {
-        report_profile(program, p, steps);
-    }
     let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
     let trace = Trace {
         xor,
@@ -762,7 +735,10 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
             let cells = cells.ok_or(Fault::OutOfMemory)?;
             alloc(m, g, &mut advice.next_free, cell_at(fp, ptr)?, cells)?;
         }
-        RHint::Print { ref label, cell } => print(label, m, cell_at(fp, cell)?),
+        // A debugging print, which the experimental prover writes out; here only its cell's range is checked.
+        RHint::Print { cell, .. } => {
+            cell_at(fp, cell)?;
+        }
         RHint::WitnessStack { ref name, base, len } => {
             let base = run_at(fp, base, len)?;
             for (k, &value) in advice.stream(name).pop(len)?.iter().enumerate() {
@@ -868,45 +844,4 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         }
     }
     Ok(())
-}
-/// The `DBG_PROF=1` report: the cycles of each compiled function, from the per-pc counts `p`, and with
-/// `DBG_PROF_DUMP=path` the raw per-pc counts plus the function table, so an offline pass can attribute the
-/// straight-line cycles of one big function to its source regions (the call sites of the lowered `for`
-/// helpers are the landmarks).
-fn report_profile(program: &Program, p: &[u64], steps: usize) {
-    let mut rows: Vec<(String, u64)> = program
-        .fn_ranges
-        .iter()
-        .map(|(name, entry, len)| {
-            let total: u64 = p[*entry as usize..(*entry + *len) as usize].iter().sum();
-            (name.clone(), total)
-        })
-        .collect();
-    rows.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
-    if let Ok(path) = std::env::var("DBG_PROF_DUMP") {
-        let mut out = format!("# steps {steps}\n");
-        for (name, entry, len) in &program.fn_ranges {
-            out += &format!("F {name} {entry} {len}\n");
-        }
-        for (pc, c) in p.iter().enumerate() {
-            if *c > 0 {
-                out += &format!("{pc} {c}\n");
-            }
-        }
-        let path = if std::path::Path::new(&path).exists() {
-            format!("{path}.{}", std::process::id())
-        } else {
-            path
-        };
-        std::fs::write(&path, out).expect("write DBG_PROF_DUMP");
-        eprintln!("== DBG_PROF: per-pc counts written to {path}");
-    }
-    eprintln!("== DBG_PROF: cycles by function ({} total) ==", pretty_integer(steps));
-    for (name, c) in rows.iter().filter(|(_, c)| *c > 0) {
-        eprintln!(
-            "  {:>13}  {:>7}%  {name}",
-            pretty_integer(c),
-            pretty_f64(100.0 * *c as f64 / steps as f64)
-        );
-    }
 }

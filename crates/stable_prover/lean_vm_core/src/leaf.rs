@@ -151,7 +151,7 @@ pub(crate) fn prove_balance(
     );
 
     let bits = verifier::bus_grinding_bits(mu);
-    tracing::info_span!("Bus grind", mu, bits).in_scope(|| ps.grind(bits));
+    ps.grind(bits);
     let alpha = ps.sample_vec(1 << BUS_BITS);
     let beta = ps.sample();
     // The count tree's leaf is the count itself: weight one in slot 0, `β = 0`. Its leaves are a prefix of the push
@@ -167,20 +167,18 @@ pub(crate) fn prove_balance(
         beta: fingerprints[s].1,
     });
 
-    let leaves = crate::stage!("Bus leaves", || trees
-        .each_ref()
-        .map(|tree| build_leaves(tree, cols, &public)));
+    let leaves = trees.each_ref().map(|tree| build_leaves(tree, cols, &public));
     let ones = trees.each_ref().map(padding_runs);
-    let (zeta, _) = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
+    let (zeta, _) = gkr::prove_products(leaves, ones, ps);
 
     let mut claims = Vec::new();
     let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
-    crate::stage!("Bus decompose", || {
+    {
         for (tree, forms) in trees.iter().zip(&mut forms) {
             decompose(tree, cols, &zeta, forms, &mut claims, ps);
         }
         prove_bytecode_share(blocks[0], &public, &zeta, &alpha, ps);
-    });
+    };
     BusProof {
         claims,
         point: zeta,

@@ -27,15 +27,6 @@ pub mod witness;
 
 pub use prover::StableProver;
 
-/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span, which is what the CLI's
-/// `--tracing` tree shows.
-macro_rules! stage {
-    ($name:literal, $f:expr) => {
-        tracing::info_span!($name).in_scope($f)
-    };
-}
-pub(crate) use stage;
-
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
 
 use primitives::field::{F64, F64x8, F128, F128x8};

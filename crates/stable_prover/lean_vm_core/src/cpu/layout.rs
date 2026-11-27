@@ -297,7 +297,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         windows[GLOBAL_COLUMN_BASES[verifier::layout::OP_KECCAK] + verifier::layout::spare_local(k)] = window;
     }
 
-    crate::stage!("Fill columns", || {
+    {
         for (t, table) in tables::tables().iter().enumerate() {
             let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
             let ctx = FillCtx::new(tr, &exec.mem, &gpow, &program.prog, 1 << l.taus[t], table.padding());
@@ -329,17 +329,17 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
             gpow[tr.bytecode_count[i] as usize]
         });
-    });
+    };
     // The committed Keccak states, step `j` the `j`-th KECCAK row, its input read back from the final memory
     // image, which is write-once.
-    let keccak_reduction = crate::stage!("Build q_keccak", || {
+    let keccak_reduction = {
         let inputs = parallel::map_collect(tr.keccak.len(), |i| {
             let row = &tr.keccak[i];
             let op = tables::KeccakOp::of(&program.prog[row.pc as usize]);
             crate::keccak::state_of_cells(op.in_odd, |c| exec.mem.word(op.cell(row.fp, c) as usize))
         });
         crate::keccak::place(&inputs, windows[QKECCAK])
-    });
+    };
     drop(windows);
     Witness {
         q,

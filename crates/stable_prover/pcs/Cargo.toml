@@ -11,13 +11,13 @@ workspace = true
 parallel = { package = "stable_parallel", path = "../parallel" }
 primitives = { package = "stable_primitives", path = "../primitives" }
 fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover" }
-tracing.workspace = true
 verifier.workspace = true
 
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }
 allocator.workspace = true
 bench_harness.workspace = true
+tracing.workspace = true
 isa.workspace = true
 
 [[bench]]

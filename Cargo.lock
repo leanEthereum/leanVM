@@ -692,6 +692,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d45db016d36b838f563236e9193d0ee6ce38f3f68b6c94e914b4929c96bbb890"
 
 [[package]]
+name = "fv_entry"
+version = "0.1.0"
+dependencies = [
+ "aggregation",
+ "lean_sphincs",
+ "lean_xmss",
+ "stable_lean_vm_core",
+ "tracing",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1045,7 +1056,6 @@ dependencies = [
  "stable_parallel",
  "stable_pcs",
  "stable_primitives",
- "tracing",
  "verifier",
  "zkdsl_compiler",
 ]

@@ -130,7 +130,6 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
 /// Prove the program on `public_input` and `witness` ([`execute`]) at the PCS rate `2^-log_inv_rate`: run it, commit
 /// its witness, and prove, in transcript order, the bus, the table sumcheck, the public input's binding, the Keccak
 /// reduction and the opening. Returns the proof and the run's [`Stats`], or why no proof was made.
-#[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(
     program: &Program,
     witness: &[(String, Vec<Vec<F128>>)],
@@ -140,8 +139,7 @@ pub fn prove(
     if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let exec =
-        crate::stage!("Execute program", || execute(program, witness, public_input)).map_err(ProveError::Execution)?;
+    let exec = execute(program, witness, public_input).map_err(ProveError::Execution)?;
     // A value read before anything wrote it is the prover's to choose: the proof would be of a weaker statement than
     // the program's.
     if !exec.unconstrained_reads.is_empty() {
@@ -165,7 +163,7 @@ pub fn prove(
         total_committed: layout.committed_size(),
         memory_used: exec.mem_used,
     };
-    let mut w = crate::stage!("Build witness", || build(program, &exec, layout));
+    let mut w = build(program, &exec, layout);
     drop(exec);
 
     // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
@@ -175,19 +173,17 @@ pub fn prove(
         verifier::Digest(public_input_bytes(&public_input)).words(),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
-    let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape.mu, log_inv_rate));
+    let committed = pcs::commit(&mut ps, &w.q, w.layout.shape.mu, log_inv_rate);
 
     let (bus, table_claims) = {
         let l = &w.layout;
         let cols = w.columns();
-        let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, program.stacked_bytecode(), &mut ps)
-        });
-        let table_claims = crate::stage!("Prove constraints", || {
+        let bus = leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, program.stacked_bytecode(), &mut ps);
+        let table_claims = {
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
             constraints::prove(&airs(&l.taus, &bus, &cols, xi), &bus.point, &mut ps)
-        });
+        };
         (bus, table_claims)
     };
     // The output lanes' last readers were the bus and the table sumcheck.
@@ -202,13 +198,13 @@ pub fn prove(
     // point claim.
     let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
     let output = keccak_output_claim(&table_claims);
-    let openings = crate::stage!("Keccak reduction", || {
+    let openings = {
         w.keccak_reduction
             .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
-    });
+    };
     let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
-    crate::stage!("PCS open", || pcs::open(&mut ps, committed, w.q, &slots, &ring));
+    pcs::open(&mut ps, committed, w.q, &slots, &ring);
     Ok((ps.into_proof(), stats))
 }
 
@@ -264,7 +260,6 @@ pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
 
 /// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only
 /// builds its inputs.
-#[tracing::instrument(name = "Verify", skip_all)]
 pub fn verify(
     program: &Program,
     public_input: &[F128; 2],

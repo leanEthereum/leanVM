@@ -15,7 +15,6 @@ fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover
 pcs = { package = "stable_pcs", path = "../pcs" }
 keccak_gkr = { package = "stable_keccak_gkr", path = "../keccak_gkr" }
 verifier.workspace = true
-tracing.workspace = true
 
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }

@@ -73,7 +73,7 @@ pub fn commit(ps: &mut ProverState, stack: &[F64], log_n: usize, log_inv_rate: u
     ps.add_root(&prover_data.root());
     ps.grind(OOD_GRINDING_BITS);
     let low_point = ps.sample_vec(log_n);
-    ps.add_scalar(tracing::info_span!("OOD").in_scope(|| mle_eval_par(stack, &low_point)));
+    ps.add_scalar(mle_eval_par(stack, &low_point));
     Committed {
         prover_data,
         log_n,
@@ -133,8 +133,7 @@ pub fn open(
         .collect();
 
     let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
-    let (terms, a) = tracing::info_span!("Basis")
-        .in_scope(|| basis::initial_basis(log_n, lane_vars, &point_claims, point_lambdas, ring.offset, &rings));
+    let (terms, a) = basis::initial_basis(log_n, lane_vars, &point_claims, point_lambdas, ring.offset, &rings);
     whir::open(ps, &config, LaneRounds::new(stack, terms, a), prover_data);
 }
 

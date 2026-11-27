@@ -12,14 +12,14 @@ parallel = { package = "stable_parallel", path = "../parallel" }
 primitives = { package = "stable_primitives", path = "../primitives" }
 fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover" }
 pcs = { package = "stable_pcs", path = "../pcs" }
-tracing.workspace = true
 bench_harness = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
 isa = { workspace = true, optional = true }
 verifier.workspace = true
 
 [features]
 # The standalone batch benchmark (`batch_bench`), for the `hash_batch` target.
-bench = ["dep:bench_harness", "dep:isa", "primitives/test-util"]
+bench = ["dep:bench_harness", "dep:isa", "dep:tracing", "primitives/test-util"]
 
 [dev-dependencies]
 allocator.workspace = true

@@ -157,7 +157,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
     }
 
     // Every column at its table's point, a table's in one pass: the columns themselves were never folded.
-    crate::stage!("Constraint evals", || {
+    {
         tables
             .iter()
             .map(|t| {
@@ -171,7 +171,7 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
                 }
             })
             .collect()
-    })
+    }
 }
 
 /// The round polynomial `h(Y) = eq(ζ, Y)·p(Y) + Y·u`, `eq(ζ, Y) = 1 + ζ + Y`, from `p`'s endpoint at `0` (at `1`

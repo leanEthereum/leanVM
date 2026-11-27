@@ -113,7 +113,7 @@ pub(crate) fn commit(message: &[F64], log_n: usize, log_inv_rate: usize) -> Prov
     let log_domain = log_rows + log_inv_rate;
     let hasher = LeafHasher::new(n_lanes, 1 << INITIAL_FOLDING_FACTOR);
     let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
-    let codeword = tracing::info_span!("NTT", kind = "base encode", log_domain, lanes = n_lanes).in_scope(|| {
+    let codeword = {
         AdditiveNttF64::standard(log_domain).encode_lane_major(
             message,
             n_lanes,
@@ -121,8 +121,8 @@ pub(crate) fn commit(message: &[F64], log_n: usize, log_inv_rate: usize) -> Prov
             &mut leaves,
             |rows, out| hasher.hash(rows, out),
         )
-    });
-    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
+    };
+    let tree = MerkleTree::from_leaves(leaves);
     ProverData {
         codeword,
         row_words: n_lanes,
@@ -137,18 +137,13 @@ fn commit_ext(message: &[F128], log_msg_cols: usize, log_lanes: usize, log_inv_r
     let (log_domain, row_words) = (log_msg_cols + log_inv_rate, 2 << log_lanes);
     let hasher = LeafHasher::new(row_words, row_words);
     let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
-    let codeword =
-        tracing::info_span!("NTT", kind = "extension encode", log_domain, lanes = 1 << log_lanes).in_scope(|| {
-            let words = primitives::cast_slice(message);
-            AdditiveNttF64::standard(log_domain).encode_rows(
-                words,
-                row_words,
-                log_inv_rate,
-                &mut leaves,
-                |rows, out| hasher.hash(rows, out),
-            )
-        });
-    let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
+    let codeword = {
+        let words = primitives::cast_slice(message);
+        AdditiveNttF64::standard(log_domain).encode_rows(words, row_words, log_inv_rate, &mut leaves, |rows, out| {
+            hasher.hash(rows, out)
+        })
+    };
+    let tree = MerkleTree::from_leaves(leaves);
     ProverData {
         codeword,
         row_words,
@@ -177,10 +172,9 @@ pub(crate) trait FoldRounds {
     fn fold(&mut self, ch: &FoldChallenges);
 }
 
-/// Level `level`'s `k` fold rounds: each round's table, then `(alpha, beta)` after a grind.
-fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, level: usize, k: usize) {
-    for round in 0..k {
-        let _span = tracing::info_span!("Fold round", level, round).entered();
+/// A level's `k` fold rounds: each round's table, then `(alpha, beta)` after a grind.
+fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, k: usize) {
+    for _ in 0..k {
         ps.add_scalars(&lanes.table());
         ps.grind(FOLD_GRINDING_BITS);
         let ch = FoldChallenges {
@@ -264,7 +258,7 @@ fn sample_queries(ps: &mut ProverState, block_len: usize, count: usize) -> Vec<u
 /// weight `W` as terms. The caller has bound the commitment and every claim the weight batches.
 pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRounds, committed: ProverData) {
     let levels = config.folds.len();
-    fold_rounds(ps, &mut level0, 0, config.folds[0]);
+    fold_rounds(ps, &mut level0, config.folds[0]);
     // `p`: the folded lane `P`, its `2^mu` low coefficients then the high ones; `w`: the weight over the low ones.
     let (mut p, mut w) = level0.finish();
     let mut oracle = committed;
@@ -275,28 +269,26 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
                 w,
                 stride: 1 << config.folds[level],
             };
-            fold_rounds(ps, &mut dense, level, config.folds[level]);
+            fold_rounds(ps, &mut dense, config.folds[level]);
             (p, w) = (dense.f, dense.w);
         }
         let mu = w.len().ilog2() as usize;
         let block_len = oracle.block_len();
 
         if level == levels - 1 {
-            let _span = tracing::info_span!("Final level").entered();
             ps.add_scalars(&p);
             ps.grind(QUERY_GRINDING_BITS);
             let queries = sample_queries(ps, block_len, config.queries[level]);
             ps.hint_merkle(oracle.open(&queries));
             p.truncate(1 << mu);
-            tracing::info_span!("Tail").in_scope(|| product_sumcheck(ps, p, w, 1, F128::ONE));
+            product_sumcheck(ps, p, w, 1, F128::ONE);
             return;
         }
 
         // (commit) The low part is the next level's message, and the high part is sent.
         let high = p.split_off(1 << mu);
         let k = config.folds[level + 1];
-        let next = tracing::info_span!("Commit", level = level + 1)
-            .in_scope(|| commit_ext(&p, mu - k, k, config.log_inv_rates[level + 1]));
+        let next = commit_ext(&p, mu - k, k, config.log_inv_rates[level + 1]);
         ps.add_root(&next.tree.root());
         ps.add_scalars(&high);
 
@@ -314,7 +306,7 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
 
         // (next level) `W += lambda eq(z, .) + sum_q lambda^(q+2) W_(x_q)`.
         let scalars = &powers(lambda, queries.len() + 2)[2..];
-        let induced = tracing::info_span!("Induce", level).in_scope(|| induce_basis(mu, &queries, scalars));
+        let induced = induce_basis(mu, &queries, scalars);
         parallel::chunks_mut(&mut w, CHUNK, |i, w| {
             let at = i * CHUNK;
             for (j, w) in w.iter_mut().enumerate() {

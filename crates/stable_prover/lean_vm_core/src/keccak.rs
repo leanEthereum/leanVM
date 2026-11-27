@@ -85,8 +85,7 @@ pub(crate) struct Reduction {
 impl Reduction {
     /// Rebuild the witness from `q_keccak`, the whole committed column, and run the reduction.
     pub(crate) fn prove(self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
-        let witness =
-            tracing::info_span!("Witness").in_scope(|| Witness::from_committed(self.shape, self.steps, q_keccak));
+        let witness = Witness::from_committed(self.shape, self.steps, q_keccak);
         witness.prove(ps, q_keccak, output)
     }
 }

@@ -77,8 +77,7 @@ impl Witness {
         let r_lane = ps.sample_vec(LANE_BITS);
         let first = first_claim(&output.instance, &segment, &r_lane);
         // The last segment's output is the caller's, and the prover sends the committed ones' part.
-        let (words, committed_value) =
-            tracing::info_span!("Outputs").in_scope(|| open::output_words(shape, committed, &output.instance, &first));
+        let (words, committed_value) = open::output_words(shape, committed, &output.instance, &first);
         if shape.segments() > 1 {
             ps.add_scalar(committed_value);
         }
@@ -86,12 +85,10 @@ impl Witness {
         let mut tables = table::Tables::new(shape);
         let mut claim = first.clone();
         for step in 0..shape.depth {
-            claim =
-                tracing::info_span!("Layer", step).in_scope(|| layer::prove_layer(ps, self, step, &claim, &mut tables));
+            claim = layer::prove_layer(ps, self, step, &claim, &mut tables);
         }
         drop(tables);
 
-        let _span = tracing::info_span!("Openings").entered();
         let outputs = (shape.segments() > 1).then(|| open::open_outputs(ps, shape, &output.instance, &first, words));
         let inputs = open::open_inputs(ps, shape, committed, &claim);
         Openings { outputs, inputs }
