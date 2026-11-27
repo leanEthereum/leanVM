@@ -810,7 +810,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
 
 end KeyGenerationAndSigning
 
-/-! ## Forgeries and transcripts -/
+/-! ## Forgeries -/
 
 /-- A claimed forgery: a message and a signature. -/
 structure Forgery where
@@ -819,9 +819,6 @@ structure Forgery where
   /-- Its claimed signature. -/
   signature : Signature
 deriving DecidableEq
-
-/-- The signing oracle answers a message with a signature, or `none` if the signer fails. -/
-abbrev SigningOracleSpec := Message →ₒ Option Signature
 
 /-! ## Security in the random-permutation model -/
 
