@@ -190,7 +190,7 @@ theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 3
     · exact a5249
     · exact a5250
     · exact a5251
-  obtain rfl := capAt_unique' hcN hcF
+  obtain rfl := capAt_eq hcN hcF
   rw [← e5926] at hcurN hclN
   refine ⟨xs, pts, claimN, hrun, by simpa using hxs, hxl, hpl,
     loadHolds_unique a5252 hcurN, loadHolds_unique a5253 hclN, fun i hi => ?_, ?_, ?_⟩

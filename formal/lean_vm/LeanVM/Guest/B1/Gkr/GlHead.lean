@@ -135,7 +135,7 @@ theorem gl_pre (h : Stmt.HoldsList C rd σ glPre True kret) {j sh : ℕ} (hx : �
 
 /-- **The head record's stores**: the state after the head rounds. -/
 theorem gl_headStore {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glHeadStore p) True kret) :
-    TbCapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 1 ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
+    CapAt rd (σ (.n (valf% «gkr_layer» "head"))) 0 1 ((glCapAfter 58 (2 * p) (glCap (valf% «gkr_layer» "nxt[8]@1"))).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 5 (σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) 6 (σ (glClaimAfter 58 (2 * p) (.n (valf% «gkr_layer» "claim@2")))) := by
   rcases Nat.eq_zero_or_pos p with rfl | hp
@@ -191,11 +191,11 @@ theorem gl_loopCall {p : ℕ} (hp : p < 4) {nm : String}
 theorem gl_tailSetup {p : ℕ} (hp4 : p < 4) (h : Stmt.HoldsList C rd σ (glTailSetup p) True kret) :
     σ (.n (71 + glD p)) = σ (.n (valf% «gkr_layer» "point_row")) * gen ^ (2 * p) * σ (.n (valf% «gkr_layer» "x_m")) ^ 8 ∧
       σ (.n (74 + glD p)) = σ (.n (71 + glD p)) * gen ^ 42 ∧
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      CapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
   have hloads : ∀ w, Stmt.HoldsList C rd σ (glTailLoads p w) True kret → σ (.n w) = σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7 →
-      TbCapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
+      CapAt rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 0 1 ((glCap (75 + glD p)).map σ) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 5 (σ (.n (80 + glD p))) ∧
       LoadHolds rd (σ (.n (valf% «gkr_layer» "head")) * σ (.n (valf% «gkr_layer» "x_m")) ^ 7) 6 (σ (.n (81 + glD p))) := by
     intro w hl hw

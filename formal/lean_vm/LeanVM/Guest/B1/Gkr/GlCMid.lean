@@ -42,11 +42,11 @@ variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} {S : Li
 claim. -/
 def GlRecK (rd : Reader) (rec cur : E) (Cf : ℕ → List E) (ef : ℕ → E) (claim : E) (s : Fs)
     (a : ℕ) : Prop :=
-  TbCapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
+  CapAt rd rec 0 1 (gkSt Cf ef claim s a).2.cap ∧
     LoadHolds rd rec 5 (cur * gen ^ (4 * a)) ∧
     LoadHolds rd rec 6 (gkSt Cf ef claim s a).1
 
-theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : TbCapAt rd rec 0 1 cap)
+theorem glc_cap_load {rd : Reader} {rec : E} {cap : List E} (h : CapAt rd rec 0 1 cap)
     {k : ℕ} (hk : k < 5) : LoadHolds rd rec k (cap.getD k 0) := by
   obtain ⟨hl, h⟩ := h
   have := h k (by omega)
@@ -58,7 +58,7 @@ theorem glc_hstore {p : ℕ} (hp : p < 4) (hG : ∀ s ∈ glHeadStore p, GoodS r
     {head cur : E} (e21 : σ (.n (valf% «gkr_layer» "s4#0")) = cur) (e54 : σ (.n (valf% «gkr_layer» "head")) = head) {cap : List E} {claim : E}
     (hcap : (glCap (if p = 0 then 35 else 39 + 78 * p)).map σ = cap)
     (hcl : σ (.n (if p = 0 then 57 else 57 + 78 * p)) = claim)
-    (hR1 : TbCapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
+    (hR1 : CapAt rd head 0 1 cap) (hR2 : LoadHolds rd head 5 (cur * gen ^ (8 * p)))
     (hR3 : LoadHolds rd head 6 claim) :
     Stmt.HoldsList C rd σ (glHeadStore p) True kret := by
   have hc : ∀ k < 5, LoadHolds rd (σ (.n (valf% «gkr_layer» "head"))) k

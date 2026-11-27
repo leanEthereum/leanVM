@@ -41,11 +41,6 @@ theorem l10_loop {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn0 : 0 < 
   intro j hj
   exact hall j (by omega) (by omega)
 
-theorem capAt_unique' {rd : Reader} {rec : E} {off stride : ℕ} {c1 c2 : List E}
-    (h1 : CapAt rd rec off stride c1) (h2 : CapAt rd rec off stride c2) : c1 = c2 :=
-  List.ext_getElem (h1.1.trans h2.1.symm) fun j hj1 hj2 =>
-    loadHolds_unique (h1.2 j hj1) (h2.2 j hj2)
-
 /-- **The rounds as a run.** -/
 theorem l10_chain {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn : n < 2 ^ 30)
     (hB : ∀ j < n, L10B rd rounds tabs rkb cprod (gen ^ j)) :
@@ -77,7 +72,7 @@ theorem l10_chain {rd : Reader} {rounds tabs rkb cprod : E} {n : ℕ} (hn : n < 
     have hm := hrel
     simp only [MeaningSumcheckRound4] at hm
     obtain ⟨cap', c0, c2, c3, hc', hrd, hcap1, hrets⟩ := hm
-    obtain rfl := capAt_unique' hc' hc
+    obtain rfl := capAt_eq hc' hc
     simp only [List.cons.injEq, and_true] at hrets
     obtain ⟨rfl, rfl, rfl⟩ := hrets
     -- the next record

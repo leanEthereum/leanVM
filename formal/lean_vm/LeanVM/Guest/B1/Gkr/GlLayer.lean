@@ -122,14 +122,14 @@ theorem gl_layer {p o : ℕ} (hp : p < 4) (ho : o < 2)
   have RL := gl_loop hp ho (head := σ (.n (valf% «gkr_layer» "head"))) (tabs := σ (.n (valf% «gkr_layer» "tabs"))) hxm (by omega) rfl
     (fun hne => hC _ _ _ (gl_loopCall hp hLC hne)) R0
   obtain ⟨cap1, cap2, cur1, cl1, cl2, hc1, hcur1, hcl1, RLr, hc2, hcur2, hcl2⟩ := glRun_of_out RL
-  obtain rfl := tbCapAt_unique hc1 hsc
+  obtain rfl := capAt_eq hc1 hsc
   obtain rfl := loadHolds_unique hcur1 hscur
   obtain rfl := loadHolds_unique hcl1 hscl
   -- the tail's setup and rounds
   obtain ⟨etp, entp, htc, htcur, htcl⟩ := gl_tailSetup hp hTS
-  rw [hxm, ← pow_mul, mul_comm m 7, tbCapAt_mul_gen_pow, Nat.add_zero] at htc
+  rw [hxm, ← pow_mul, mul_comm m 7, capAt_mul_gen_pow, Nat.add_zero] at htc
   rw [hxm, ← pow_mul, mul_comm m 7, loadHolds_mul_gen_pow] at htcur htcl
-  obtain rfl := tbCapAt_unique htc hc2
+  obtain rfl := capAt_eq htc hc2
   have ecur := loadHolds_unique htcur hcur2
   have ecl := loadHolds_unique htcl hcl2
   have hcu : σ (.n (80 + D)) = σ (.n (valf% «gkr_layer» "s4#0")) * gen ^ (4 * (2 * p + 8 * m)) := by rw [ecur]; ring
