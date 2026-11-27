@@ -338,8 +338,8 @@ end LeanVM.Node
 namespace LeanVM.Guest
 
 /-- The deployed guest's instructions from pc `0`, in order: the generated `Statement/Data/`'s
-blocks, joined. -/
-def guestCode : Array OffsetInstruction := Data.blocks.flatten.toArray
+blocks, joined. Irreducible, so that elaboration never unfolds the whole code. -/
+@[irreducible] def guestCode : Array OffsetInstruction := Data.blocks.flatten.toArray
 
 /-- **The deployed leanISA guest program**: `2^19` slots, the guest's instructions from pc `0`, then
 the padding `SET fp[0] = 0`. -/
