@@ -19,6 +19,7 @@ public import LeanVM.Guest.Bridge.JumpCellsSound
 public import LeanVM.Guest.Bridge.AlignJump
 public import LeanVM.Guest.Mode.HintsCtx
 public import LeanVM.Guest.CoreMode.StmtWalk
+public import LeanVM.Guest.CoreMode.HeapCSpec
 
 /-!
 # The core route's frame interface
@@ -1395,7 +1396,7 @@ noncomputable def faRetOk (Cf : CFun) (code : List OffsetInstruction) : Bool :=
     | _ => true
 
 /-- **The heap check of a function on the core route**: the check without calls (`heapOk`, `postOk`, straight
-line, its promised cells over parameters), or the check with calls (`heapOkC`, at its callees'
+line, its promised cells over parameters), or the check with calls (`HeapCSpec`, at its callees'
 signatures `Cf.sigOf`, no termination fact, no callee's returned word's monomial; its residuals hold at
 the honest valuations, `HonF.res`). -/
 inductive HeapK (Cf : CFun) : Prop
@@ -1403,7 +1404,7 @@ inductive HeapK (Cf : CFun) : Prop
       (stmtsAll (fun s ↦ !isCall s) Cf.fn.body && Cf.H.sig.postP.isEmpty && Cf.H.sig.postPR.isEmpty &&
         Cf.H.sig.postQ.isEmpty && Cf.H.sig.postN.isEmpty && Cf.H.sig.postRN.isEmpty) = true →
       Cf.H.sig.retM = [] → Cf.H.sig.postV = [] → Cf.H.sig.retEq = [] → HeapK Cf
-  | c : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true → Cf.H.sig.term = [] → callsB Cf = true →
+  | c : HeapCSpec Cf.pows Cf.sigOf Cf.fn Cf.H → Cf.H.sig.term = [] → callsB Cf = true →
       Cf.post = [] → Cf.H.ders = [] → HeapK Cf
 
 /-- **A heap contract's own signature**: no self frame pointer, termination fact, loop run or ghost slot. -/

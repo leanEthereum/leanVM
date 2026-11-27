@@ -387,6 +387,15 @@ LEN = '(by rw [List.length_flatten]; decide +kernel)'
 K = '⟨envC, funC, code.chunks.flatten⟩'
 
 
+# the heap check with calls and loops as the route takes it (`CoreMode/HeapCSpec.lean`)
+HSPEC = 'CoreMode.HeapCSpec cfun.pows cfun.sigOf core hcert'
+
+
+def spec_of(prf):
+    """`HeapCSpec` from a proof of `heapOkC … = true` (`CoreMode.heapOkC_spec`)."""
+    return f'CoreMode.heapOkC_spec ({prf})'
+
+
 def thm(k, name, stmt, prf=DK):
     """A theorem of function `k`'s, `Fn.«k».name`: its statement and proof see `k`'s namespace."""
     return f'theorem Fn.«{k}».{name} : {stmt} := {prf}\n'
@@ -475,7 +484,7 @@ def cfun_c(k, j, frame):
     """A body with calls: its core data, its heap check (`heapOkC` at its callees' heap signatures `csigs`, in windows
     past `heapwin.BUDGET`, `heap_proof`), the kernel's checks."""
     return (cfun_def(k, j, f'[], csigs, {dsp_arg(k)}, hcFlag, hcCallees, {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true', heap_proof(k)) +
+            thm(k, 'heap_okC', HSPEC, spec_of(heap_proof(k))) +
             thm(k, 'core_callsB', 'CoreMode.callsB cfun = true') +
             checks(k, j, frame, '.c heap_okC rfl core_callsB rfl rfl', True))
 
@@ -533,14 +542,12 @@ def cfun_lc(k, j, frame):
     callees' heap signatures `csigs`, its signature, code and shape)."""
     if k in LONG:
         # its core data apart (`Gen/<pack>/Cfun.lean`), its passes in windows
-        return ('', thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
-                        'heap_okW' if heap_winL(k) else DK) +
+        return ('', thm(k, 'heap_okC', HSPEC, spec_of('heap_okW' if heap_winL(k) else DK)) +
                 thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                     'cfun.gl = true') +
                 thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') + LONG[k][3] + loop_long(k, j, frame))
     return (cfun_def(k, j, f'[], csigs, [], false, [], {callc.gl_lean(k)}'),
-            thm(k, 'heap_okC', 'CoreMode.heapOkC cfun.pows cfun.sigOf core hcert = true',
-                'heap_okW' if heap_winL(k) else DK) +
+            thm(k, 'heap_okC', HSPEC, spec_of('heap_okW' if heap_winL(k) else DK)) +
             thm(k, 'loop_sig', 'CoreMode.sigOkLP funC.sig hcert.sig core.params.length (CoreMode.tailPass core.body) '
                 'cfun.gl = true') +
             thm(k, 'loop_code', 'CoreMode.loopCodeC cfun code.chunks.flatten = true') +

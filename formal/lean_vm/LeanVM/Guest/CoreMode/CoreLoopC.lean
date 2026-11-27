@@ -291,23 +291,13 @@ def rdFree : Stmt → Bool
   | .atom (.rangeCheck ..) | .atom (.touch ..) | .atom (.frameAddr ..) => false
   | _ => true
 
-/-- A loop helper's heap check (`heapOkC`'s loop branch) states no guarantee at a word (`postQ`). -/
+/-- A loop helper's heap check (`HeapCSpec.loop`) states no guarantee at a word (`postQ`). -/
 theorem postQ_of_loop {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (hok : heapOkC pows sigOf f H = true) {G : Mode.Sig} {np : ℕ}
+    (hok : HeapCSpec pows sigOf f H) {G : Mode.Sig} {np : ℕ}
     (ht : ∃ hi ei, G.term = [(.ex (.fr 2) 0, hi)] ∧ H.sig.term = [(.val 0, ei)] ∧ parCell G np 2 = true ∧
       idxT G np hi = some ei) : H.sig.postQ = [] := by
   obtain ⟨-, ei, -, ht, -⟩ := ht
-  rcases heapOkC_cases hok with ⟨-, hok⟩ | ⟨hok, -⟩
-  swap
-  · rw [(splitOk_spec hok).2.2.2.1] at ht; cases ht
-  unfold heapOkC1 at hok
-  simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at hok
-  obtain ⟨-, hc⟩ := hok
-  split at hc
-  · rw [ht] at hc
-    simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
-    exact hc.1.2
-  · cases hc
+  exact (hok.loop ei ht).2.2.2
 
 /-- A call whose callee guarantees no pointer cell, each of its pointer runs' runs among its runs. -/
 noncomputable def calleePtrOk (Cf : CFun) : Stmt → Bool
@@ -389,7 +379,7 @@ def tailG (Cf : CFun) : Bool :=
 certificate `K`, as `CoreOk`'s: its calls' callees' heap signatures (`callsBL`), the frame walk's callee
 signatures the environment's. -/
 structure LoopOkC (K : Mode.Cert) (Cf : CFun) : Prop where
-  heap : heapOkC Cf.pows Cf.sigOf Cf.fn Cf.H = true
+  heap : HeapCSpec Cf.pows Cf.sigOf Cf.fn Cf.H
   body : loopBB Cf.fn = true
   /-- The frame walk's tables the `match`es' arms. -/
   tgt : tgtOk Cf K.code = true
@@ -551,7 +541,7 @@ theorem loopC_heap {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {σ : Val} {
   have hs := sigLP_of hok.sig
   have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
   have hM : ∀ e ∈ es, EvM Cf.sigOf rd σ e := loopC_evM hok rd hw
-  obtain ⟨hr, hp, -⟩ := heapOkC_sound hok.pows hok.heap hself hw hh hM (termAt_entryFP hs hP hT)
+  obtain ⟨hr, hp, -⟩ := hok.heap.sound_all hok.pows hself hw hh hM (termAt_entryFP hs hP hT)
     hR (derOk_nil hok.ders rd σ) (gwOk_nil hok.gw rd σ)
   exact ⟨hr, postOkW_of (noFAW hok.nofa hw) hp⟩
 

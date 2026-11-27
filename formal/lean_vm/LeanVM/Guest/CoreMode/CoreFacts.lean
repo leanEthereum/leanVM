@@ -296,13 +296,7 @@ def WrF (Cf : CFun) (rd : Reader) (σ : Val) (es : List Ev) (x : K) : Prop :=
   WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es x ∨ (faNeed Cf = true ∧ FAW σ Cf.H.fas es x)
 
 theorem heapOkC_params {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (h : heapOkC pows sigOf f H = true) : f.params = (List.range f.params.length).map V.n := by
-  rw [List.range_eq_range']
-  rcases heapOkC_cases h with ⟨-, h⟩ | ⟨h, -⟩
-  · unfold heapOkC1 at h
-    simp only [Bool.and_eq_true] at h
-    exact paramsN_eq _ 0 h.1.1.1.1.1
-  · exact paramsN_eq _ 0 (splitOk_spec h).1
+    (h : HeapCSpec pows sigOf f H) : f.params = (List.range f.params.length).map V.n := h.params
 
 /-- **The heap facts of an honest path**, each call's callee's returned words given: its parameters `V.n k`;
 every event's needs written before it; the promised cells and the signature's runs written by the end, at the
@@ -368,7 +362,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
   | c hok hterm hcb hpost hders =>
     have hpar' := heapOkC_params hok
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
-    obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := heapOkC_sound hp hok hself hw hh hM
+    obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := hok.sound_all hp hself hw hh hM
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG
     have hW : SigOk (WrF Cf rd σ es) Cf.H.sig.post Cf.H.sig.postR (Cf.fn.params.map σ ++ vs.map σ) ∧
         PtrOk (WrF Cf rd σ es) rd Cf.H.sig.postP Cf.H.sig.postPR (Cf.fn.params.map σ ++ vs.map σ) ∧
@@ -388,7 +382,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
             refine ⟨⟨fun c hc ↦ by simp [h1] at hc, fun r hr ↦ by simp [h2] at hr⟩, fun x hx ↦ ?_,
               fun x ⟨p, hp', _⟩ ↦ by simp [h5] at hp', fun c hc ↦ by simp [h6] at hc, fun r hr ↦ by simp [h7] at hr⟩
             simp [PtrSigSet, h3, h4] at hx
-          · exact heapOkC_soundW hp hok hself hw hh hM (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR
+          · exact hok.soundW hp hself hw hh hM (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR
               (derOk_nil hders rd σ) hG (List.isEmpty_iff.mp h)
         exact ⟨hW.1.mono fun x hx ↦ Or.inl hx, fun x hx ↦ Or.inl (hW.2.1 x hx), fun x hx ↦ Or.inl (hW.2.2.1 x hx),
           hW.2.2.2.mono fun x hx ↦ Or.inl hx⟩
@@ -419,7 +413,7 @@ theorem heapK_reads {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
     exact fun es1 e es2 he _ ↦
       (heapK_sound (.m1 hok hpo hstr0 hrm hpv hre) hp hst hw hh hR hG hM).2.1 es1 e es2 he
   | c hok hterm hcb hpost hders =>
-    exact (heapOkC_soundP hp hok (by simp [CFun.sigOf]) hw hh
+    exact (hok.sound hp (by simp [CFun.sigOf]) hw hh
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG).1
 
 /-- A path through a call: the function's heap check is the one with calls. -/

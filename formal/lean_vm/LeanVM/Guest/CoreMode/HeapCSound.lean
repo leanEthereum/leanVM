@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.HeapCStmt
+public import LeanVM.Guest.CoreMode.HeapCSpec
 public import LeanVM.Guest.CoreMode.Fam.LoopTree
 public import LeanVM.Guest.CoreMode.WalkS
 public import LeanVM.Guest.Memory.Tree
@@ -1320,6 +1321,32 @@ theorem heapOkC_soundW {pows : PowTree} (hp : pows.Ok) {sigOf : String → HSig}
     (hM : ∀ e ∈ es, EvM sigOf rd σ e) (hE : EntryF H (f.params.map σ)) (hR : ResF H σ) (hD : DerOk H rd σ)
     (hG : GwOk H.sig rd σ) (hn : H.fas = []) : PostOkW sigOf H rd σ (f.params.map σ) es vs :=
   ((heapOkC_soundP hp hok hself hw hh hE hR hD hG).2 hM).1.2 hn
+
+/-- **`heapOkC` meets the route's interface** (`HeapCSpec`): its parameters (`paramsN`), a loop helper's empty
+returned words, words and equations at return and runs at words (`heapOkC1`'s loop branch; a split has no termination
+fact), and `heapOkC_soundP`. -/
+theorem heapOkC_spec {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
+    (hok : heapOkC pows sigOf f H = true) : HeapCSpec pows sigOf f H where
+  params := by
+    rw [List.range_eq_range']
+    rcases heapOkC_cases hok with ⟨-, h⟩ | ⟨h, -⟩
+    · unfold heapOkC1 at h
+      simp only [Bool.and_eq_true] at h
+      exact paramsN_eq _ 0 h.1.1.1.1.1
+    · exact paramsN_eq _ 0 (splitOk_spec h).1
+  loop := fun ei ht ↦ by
+    rcases heapOkC_cases hok with ⟨-, h⟩ | ⟨h, -⟩
+    swap
+    · rw [(splitOk_spec h).2.2.2.1] at ht; cases ht
+    unfold heapOkC1 at h
+    simp only [Bool.and_eq_true, Exec.Trie.seq_eq] at h
+    obtain ⟨-, hc⟩ := h
+    split at hc
+    · rw [ht] at hc
+      simp only [Bool.and_eq_true, List.isEmpty_iff] at hc
+      exact ⟨hc.1.1.1.1, hc.1.1.1.2, hc.1.1.2, hc.1.2⟩
+    · cases hc
+  sound := fun hp hself _ _ _ _ hw hh hE hR hD hG ↦ heapOkC_soundP hp hok hself hw hh hE hR hD hG
 
 end Main
 
