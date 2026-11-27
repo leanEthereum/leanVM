@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Bits.QueryWindowsT
 public import LeanVM.Guest.B1.Fs.Templates
 public import LeanVM.Guest.Value.KeccakSponge
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The templates of `opening_queries`
@@ -118,7 +119,7 @@ def oqPk (s : Oq) (b j : ℕ) : ℕ := if s.base = 1 then b + s.I + 3 * j + 2 el
 
 /-- The row and (level 0) its packs. -/
 def oqPrepT (s : Oq) (b : ℕ) : List Stmt :=
-  oqRowT b s.I ++ (if s.base = 1 then oqPacksT b s.I else [])
+  oqRowT b s.I ⧺ (if s.base = 1 then oqPacksT b s.I else [])
 
 /-- The first value after the row and its packs. -/
 def oqK1 (s : Oq) (b : ℕ) : ℕ := b + s.I + (if s.base = 1 then 3 * (s.I / 2) else 0)
@@ -175,7 +176,7 @@ def oqBlockT (s : Oq) (b pr kL k : ℕ) : List Stmt :=
       ((List.range (oqOutN s 0)).map fun c ↦ .n (oqOut s kL 0 c)) (Keccak.inLayout 0)
         (Keccak.outLayout s.B 0))]
   else
-    ((List.range 9).map (oqXorT s b pr kL k)).flatten ++
+    ((List.range 9).map (oqXorT s b pr kL k)).flatten ⧺
       [.atom (.keccak (((List.range 9).map fun c ↦ .n (oqIn s kL k c)) ++
           ((List.range 4).map fun c ↦ .n (oqOut s kL (k - 1) (9 + c))))
         ((List.range (oqOutN s k)).map fun c ↦ .n (oqOut s kL k c)) (Keccak.inLayout k)
@@ -230,7 +231,7 @@ def oqArmN (s : Oq) (kN ch i a r c : ℕ) : ℕ :=
 into the match's targets. -/
 def oqArmT (s : Oq) (pr kN ch i a : ℕ) : List Stmt :=
   ((List.range (oqWw s i)).map fun r ↦ oqStepT pr ch (6 * i + r) (oqArmK s ch i a + 3 * r)
-      (oqArmN s kN ch i a r 0) (oqArmN s kN ch i a r 1) (a.testBit r)).flatten ++
+      (oqArmN s kN ch i a r 0) (oqArmN s kN ch i a r 1) (a.testBit r)).flatten ⧺
     [.atom (.copy (.n (oqWT s ch i)) (.n (oqArmN s kN ch i a (oqWw s i) 0))),
       .atom (.copy (.n (oqWT s ch i + 1)) (.n (oqArmN s kN ch i a (oqWw s i) 1)))]
 
@@ -241,7 +242,7 @@ def oqWinT (s : Oq) (bp : V) (pr kN ch i : ℕ) : List Stmt :=
 
 /-- The path: the siblings hinted, the windows. -/
 def oqPathT (s : Oq) (bp : V) (pr kN ch : ℕ) : List Stmt :=
-  [.atom (.hint (.witness "merkle_children" (.stack ((List.range (2 * s.pd)).map fun j ↦ .n (ch + j)))))] ++
+  [.atom (.hint (.witness "merkle_children" (.stack ((List.range (2 * s.pd)).map fun j ↦ .n (ch + j)))))] ⧺
     ((List.range (oqNpw s)).map (oqWinT s bp pr kN ch)).flatten
 
 /-! ## The cap leaf -/
@@ -263,7 +264,7 @@ def oqCapT (bp cap flags : V) (k n : ℕ) (npw : ℕ) : List Stmt :=
 
 /-- The path and its cap leaf, from the leaf digest at `kN, kN + 1`, the siblings from `ch`. -/
 def oqWalkT (s : Oq) (bp cap flags : V) (pr kN ch : ℕ) : List Stmt :=
-  oqPathT s bp pr kN ch ++ oqCapT bp cap flags (oqCq s ch) (oqNd s kN ch (oqNpw s) 0) (oqNpw s)
+  oqPathT s bp pr kN ch ⧺ oqCapT bp cap flags (oqCq s ch) (oqNd s kN ch (oqNpw s) 0) (oqNpw s)
 
 /-! ## The fold -/
 
@@ -292,7 +293,7 @@ def oqRoundT (s : Oq) (coefs x : V) (b F j : ℕ) : List Stmt :=
   let K := oqRK s F j
   let O := oqRO s F j
   [.atom (.load (.n K) coefs (2 * j)), .atom (.load (.n (K + 1)) coefs (2 * j + 1)),
-    .atom (.mul (.n (K + 2)) (.n (K + 1)) x), .atom (.add (.n (K + 3)) (.n K) (.n (K + 2)))] ++
+    .atom (.mul (.n (K + 2)) (.n (K + 1)) x), .atom (.add (.n (K + 3)) (.n K) (.n (K + 2)))] ⧺
   ((List.range (2 ^ (s.folds - 1 - j))).map fun m ↦
     [.atom (.mul (.n (O + 2 * m)) (.n (K + 3)) (.n (oqLoHi s b F j m).1)),
       .atom (.add (.n (O + 2 * m + 1)) (.n (oqLoHi s b F j m).2) (.n (O + 2 * m)))]).flatten
@@ -311,7 +312,7 @@ def oqWs (v i : ℕ) : ℕ := if i = 0 then v + 1 else v + 3 * i + 1
 
 /-- The chain `W_0 = x`, `W_(i+1) = W_i·(W_i + vs_i)` after the value `v`. -/
 def oqWsT (s : Oq) (x : V) (v : ℕ) : List Stmt :=
-  [.atom (.copy (.n (v + 1)) x)] ++
+  [.atom (.copy (.n (v + 1)) x)] ⧺
     ((List.range s.mu).map fun i ↦
       [.atom (.const (.n (v + 2 + 3 * i)) (word (s.vs.getD i 0) 0)),
         .atom (.add (.n (v + 3 + 3 * i)) (.n (oqWs v i)) (.n (v + 2 + 3 * i))),
@@ -330,7 +331,7 @@ value copied; the statements, the outputs and the next free value. -/
 def nvLevelT (w : V) : List ℕ → ℕ → List Stmt × List ℕ × ℕ
   | lo :: hi :: rest, k =>
     let r := nvLevelT w rest (k + 2)
-    ([.atom (.mul (.n k) w (.n hi)), .atom (.add (.n (k + 1)) (.n lo) (.n k))] ++ r.1, (k + 1) :: r.2.1,
+    ([.atom (.mul (.n k) w (.n hi)), .atom (.add (.n (k + 1)) (.n lo) (.n k))] ⧺ r.1, (k + 1) :: r.2.1,
       r.2.2)
   | [lo], k => ([.atom (.copy (.n k) (.n lo))], [k], k + 1)
   | [], k => ([], [], k)
@@ -354,7 +355,7 @@ def oqNovel (s : Oq) (hs : V) (v : ℕ) : List Stmt × List ℕ × ℕ :=
 /-- The final level's check after the fold's value `v`: the chain, the novel sum, its equality with
 the value (the query's result, the constant `0`, takes no cell). -/
 def oqFinT (s : Oq) (x hs : V) (v : ℕ) : List Stmt :=
-  oqWsT s x v ++ (oqNovel s hs v).1 ++
+  oqWsT s x v ⧺ (oqNovel s hs v).1 ⧺
     [.atom (.assertEq (.n v) (.n ((oqNovel s hs v).2.1.headD 0)))]
 
 /-! ## One query -/
@@ -387,10 +388,10 @@ run (`emit`) or reusing the one at `pr`: the row, the leaf hash, the path from t
 the windows into the cap and the flags, the fold by the challenges at `coefs`, and at the final
 level the check against the coefficients at `hs`. -/
 def oqQueryT (s : Oq) (x bp cap flags coefs hs : V) (b : ℕ) (emit : Bool) (pr : ℕ) : List Stmt :=
-  oqPrepT s b ++ (if emit then oqPadT (oqK1 s b) else []) ++
-    oqLeafT s b (oqPr s b emit pr) (oqKL s b emit) ++
-    oqWalkT s bp cap flags (oqPr s b emit pr) (oqDig s b emit) (oqCh s b emit) ++
-    oqFoldT s coefs x b (oqFo s b emit) ++
+  oqPrepT s b ⧺ (if emit then oqPadT (oqK1 s b) else []) ⧺
+    oqLeafT s b (oqPr s b emit pr) (oqKL s b emit) ⧺
+    oqWalkT s bp cap flags (oqPr s b emit pr) (oqDig s b emit) (oqCh s b emit) ⧺
+    oqFoldT s coefs x b (oqFo s b emit) ⧺
     (if s.final = 1 then oqFinT s x hs (oqVal s (oqFo s b emit)) else [])
 
 /-! ## The loop and the function -/
@@ -435,23 +436,23 @@ def oqLoop1A (s : Oq) : List Stmt :=
   let c := oqC1 s
   [.atom (.mul (.n 10) (.n oqX) (.n oqX)), .atom (.mul (.n 11) (.n oqPos) (.n 10)),
     .atom (.mul (.n 12) (.n oqQp) (.n 10)), .atom (.load (.n 13) (.n 11) 0),
-    .atom (.load (.n 14) (.n 12) 0)] ++
-    oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0 ++
-    [.atom (.load (.n e1) (.n 11) 1), .atom (.load (.n (e1 + 1)) (.n 12) 1)] ++
+    .atom (.load (.n 14) (.n 12) 0)] ⧺
+    oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0 ⧺
+    [.atom (.load (.n e1) (.n 11) 1), .atom (.load (.n (e1 + 1)) (.n 12) 1)] ⧺
     oqQueryT s (.n e1) (.n (e1 + 1)) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) (e1 + 2) false
-      (oqK1 s 15) ++
+      (oqK1 s 15) ⧺
     (if s.final = 1 then [] else
       [.atom (.mul (.n c) (.n oqChainP) (.n oqX)), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 15 true))),
         .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n oqLamInv)),
         .atom (.add (.n (c + 4)) (.n (c + 3)) (.n (oqRes s (e1 + 2) false))),
         .atom (.mul (.n (c + 5)) (.n (c + 4)) (.n oqLamInv)), .atom (.mul (.n (c + 6)) (.n oqChainP) (.n oqX)),
-        .atom (.load (.n (c + 5)) (.n (c + 6)) 1)]) ++
+        .atom (.load (.n (c + 5)) (.n (c + 6)) 1)]) ⧺
     oqGuardA (oqG1 s)
 
 /-- The loop helper's body at level 0. -/
 def oqLoop1T (s : Oq) (name : String) : List Stmt :=
-  oqLoop1A s ++ oqNextT (oqG1 s) name
+  oqLoop1A s ⧺ oqNextT (oqG1 s) name
 
 /-- The first value of a deeper iteration's chain step. -/
 def oqC0 (s : Oq) : ℕ := oqEnd s 14 true
@@ -465,18 +466,18 @@ point `positions[x]` and window pointer `qptrs[x]`): the query, the chain step
 def oqLoop0A (s : Oq) : List Stmt :=
   let c := oqC0 s
   [.atom (.mul (.n 10) (.n oqPos) (.n oqX)), .atom (.load (.n 11) (.n 10) 0),
-    .atom (.mul (.n 12) (.n oqQp) (.n oqX)), .atom (.load (.n 13) (.n 12) 0)] ++
-    oqQueryT s (.n 11) (.n 13) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 14 true 0 ++
+    .atom (.mul (.n 12) (.n oqQp) (.n oqX)), .atom (.load (.n 13) (.n 12) 0)] ⧺
+    oqQueryT s (.n 11) (.n 13) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 14 true 0 ⧺
     (if s.final = 1 then [] else
       [.atom (.mul (.n c) (.n oqChainP) (.n oqX)), .atom (.load (.n (c + 1)) (.n c) 0),
         .atom (.add (.n (c + 2)) (.n (c + 1)) (.n (oqRes s 14 true))),
         .atom (.mul (.n (c + 3)) (.n (c + 2)) (.n oqLamInv)), .atom (.mul (.n (c + 4)) (.n oqChainP) (.n oqX)),
-        .atom (.load (.n (c + 3)) (.n (c + 4)) 1)]) ++
+        .atom (.load (.n (c + 3)) (.n (c + 4)) 1)]) ⧺
     oqGuardA (oqG0 s)
 
 /-- The loop helper's body deeper. -/
 def oqLoop0T (s : Oq) (name : String) : List Stmt :=
-  oqLoop0A s ++ oqNextT (oqG0 s) name
+  oqLoop0A s ⧺ oqNextT (oqG0 s) name
 
 /-- The function's parameters: `cap, flags, λ⁻¹, coefs, hs, positions, qptrs, N, odd_g`. -/
 abbrev oqMCap : ℕ := 0
@@ -492,8 +493,8 @@ abbrev oqMOdd : ℕ := 8
 /-- The odd first query's branch at level 0, from `15`: its point and windows, the query, its
 result times `λ⁻¹` stored at `chain[0]`. -/
 def oqOddT (s : Oq) : List Stmt :=
-  [.atom (.load (.n 15) (.n oqMPos) 0), .atom (.load (.n 16) (.n oqMQp) 0)] ++
-    oqQueryT s (.n 15) (.n 16) (.n oqMCap) (.n oqMFlags) (.n oqMCoefs) (.n oqMHs) 17 true 0 ++
+  [.atom (.load (.n 15) (.n oqMPos) 0), .atom (.load (.n 16) (.n oqMQp) 0)] ⧺
+    oqQueryT s (.n 15) (.n 16) (.n oqMCap) (.n oqMFlags) (.n oqMCoefs) (.n oqMHs) 17 true 0 ⧺
     [.atom (.mul (.n (oqEnd s 17 true)) (.n (oqRes s 17 true)) (.n oqMLamInv)),
       .atom (.load (.n (oqEnd s 17 true)) (.n 11) 0)]
 
@@ -507,12 +508,12 @@ start `1`. -/
 def oqMainA (s : Oq) : List Stmt :=
   let k := oqMK s
   [.atom (.const (.n 9) (word 2 0)), .atom (.mul (.n 10) (.n oqMN) (.n 9)),
-    .atom (.hint (.allocDyn (.n 11) (.n 10)))] ++
+    .atom (.hint (.allocDyn (.n 11) (.n 10)))] ⧺
   (if s.base = 1 then
       [.atom (.const (.n 12) (word 1 0)), .atom (.add (.n 13) (.n oqMOdd) (.n 12)),
         .ite (.n 13) [.atom (.const (.n 14) (word 0 0)), .atom (.load (.n 14) (.n 11) 0)] (oqOddT s),
         .atom (.mul (.n (k - 2)) (.n oqMPos) (.n oqMOdd)), .atom (.mul (.n (k - 1)) (.n oqMQp) (.n oqMOdd))]
-    else [.atom (.const (.n 12) (word 0 0)), .atom (.load (.n 12) (.n 11) 0)]) ++
+    else [.atom (.const (.n 12) (word 0 0)), .atom (.load (.n 12) (.n 11) 0)]) ⧺
   [.atom (.const (.n k) (word 1 0)), .atom (.add (.n (k + 1)) (.n k) (.n oqMN)),
     .atom (.const (.n (k + 2)) (word 1 0))]
 
@@ -521,9 +522,9 @@ def oqMainT (s : Oq) (loop : String) : List Stmt :=
   let k := oqMK s
   let pos := if s.base = 1 then k - 2 else oqMPos
   let qp := if s.base = 1 then k - 1 else oqMQp
-  oqMainA s ++
+  oqMainA s ⧺
   [.callIf (.n (k + 1)) loop [.n (k + 2), .n oqMN, .n pos, .n qp, .n oqMCap, .n oqMFlags, .n oqMCoefs,
-    .n oqMHs, .n 11, .n oqMLamInv]] ++
+    .n oqMHs, .n 11, .n oqMLamInv]] ⧺
   (if s.final = 1 then [.atom (.const (.n (k + 3)) (word 0 0)), .ret [.n (k + 3)]]
    else [.atom (.mul (.n (k + 3)) (.n 11) (.n oqMN)), .atom (.load (.n (k + 4)) (.n (k + 3)) 0),
      .atom (.copy (.n (k + 5)) (.n (k + 4))), .ret [.n (k + 5)]])

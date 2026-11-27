@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkCB
 public import LeanVM.Guest.B1.KeccakGkr.VkChain
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The steps' cores
@@ -48,8 +49,8 @@ def stepPn (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 7
 
 /-- Step `s` but its call. -/
 def stepCore (s b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ++
-  eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s (b + 6) ++
+  [.atom (.load (.n b) (.n (val% «verify_keccak» "claims")) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n (val% «verify_keccak» "pack_g")))] ⧺
+  eqfLevel0T (.n (b + 1)) 0 (b + 2) ⧺ flipsT s (b + 6) ⧺
   iotaSegT s (b + 6) (b + 6 + flipSz s * (iotaUsed s).length) (b + 4) (b + 5)
 
 /-- Where step `s`'s call starts. -/

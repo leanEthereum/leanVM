@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsDigestT
 public import LeanVM.Guest.B1.Sig.SphincsForsT
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs` as a template
@@ -126,11 +127,11 @@ def sLayerT : List Stmt × Nat × V := sLayerAt 2 (sA0Of 2) (sA1Of 2) sLayerM.2.
 /-- The statements after the digest block: FORS, the three layers, `root[0] == pk_root`
 . -/
 def sAfterDigest : List Stmt :=
-  sForsAddrs ++ sForsB.1 ++ sLayerB.1 ++ sMidAddrs ++ sLayerM.1 ++ sTopAddrs ++ sLayerT.1 ++
+  sForsAddrs ⧺ sForsB.1 ⧺ sLayerB.1 ⧺ sMidAddrs ⧺ sLayerM.1 ⧺ sTopAddrs ⧺ sLayerT.1 ⧺
     [.atom (.assertEq sLayerT.2.2 sRoot), .ret []]
 
 /-- The body of `verify_sig_lean_sphincs`. -/
-def sBody : List Stmt := sDigestBlock ++ sAfterDigest
+def sBody : List Stmt := sDigestBlock ⧺ sAfterDigest
 
 end
 end LeanVM.Guest.B1.Sig

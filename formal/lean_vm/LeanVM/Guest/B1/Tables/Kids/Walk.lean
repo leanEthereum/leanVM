@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Kids.Direct
 public import LeanVM.Guest.B1.Tables.FlatAt
 public import LeanVM.Guest.B1.Fwd.Canon
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `RelIn` along a derivation
@@ -54,7 +55,7 @@ theorem relIn_of_sem {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String}
 its dispatches name callees, its loads lie in `R` and its calls entered load from `R`. -/
 theorem relIn_of_flat {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String} {fn : Fn}
     {pre : List Stmt} {vs : List V} {args rets : List E} (hf : coreProgram.find? f = some fn)
-    (hb : fn.body = pre ++ [.ret vs]) (hfl : pre.all Stmt.flat = true)
+    (hb : fn.body = pre ⧺ [.ret vs]) (hfl : pre.all Stmt.flat = true)
     (hsem : fn.Sem C rd args rets)
     (H : ∀ σ, fn.params.map σ = args →
       Stmt.HoldsList C rd σ fn.body False (fun rs ↦ rs = rets) →
@@ -80,7 +81,7 @@ theorem relIn_of_flat {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String
 /-- `relIn_of_flat` from `Program.Rel`. -/
 theorem relIn_of_flatRel {rd : Reader} {R : ℕ → Prop} {f : String} {fn : Fn}
     {pre : List Stmt} {vs : List V} {args rets : List E} (hf : coreProgram.find? f = some fn)
-    (hb : fn.body = pre ++ [.ret vs]) (hfl : pre.all Stmt.flat = true)
+    (hb : fn.body = pre ⧺ [.ret vs]) (hfl : pre.all Stmt.flat = true)
     (h : coreProgram.Rel rd f args rets)
     (H : ∀ σ, fn.params.map σ = args →
       Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun rs ↦ rs = rets) →

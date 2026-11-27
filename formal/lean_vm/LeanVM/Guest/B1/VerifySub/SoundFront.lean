@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Gkr.Holds
 public import LeanVM.Guest.B1.Tables.Vt.VerifyTables
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sub»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The front of `verify_sub`, assembled
@@ -36,7 +37,7 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 @[expose] public section
 
 /-- The rest of the body after `verify_keccak`'s call. -/
-abbrev vsBackT : List Stmt := vsMapsT ++ (vsCtabT ++ (vsLamT ++ vsTailT))
+abbrev vsBackT : List Stmt := vsMapsT ⧺ (vsCtabT ++ (vsLamT ++ vsTailT))
 
 /-- **What `verify_sub`'s front establishes.** -/
 structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : Type where

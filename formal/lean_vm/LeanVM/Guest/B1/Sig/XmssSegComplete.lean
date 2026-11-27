@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.XmssSegPathC
 public import LeanVM.Guest.B1.Sig.XmssSegEnds
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main_loop2»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_lean_xmss` in `main_loop2`, complete
@@ -37,7 +38,7 @@ variable {C : CallRel} {rd : Reader}
 
 /-- A layer after its digest. -/
 def sCore (layer b : Nat) : List Stmt :=
-  xStepAddrs (sLxIdx layer b) (sA layer b) ++ ((sCw layer b).1 ++
+  xStepAddrs (sLxIdx layer b) (sA layer b) ⧺ ((sCw layer b).1 ++
     ([cst (sCw layer b).2.1 (word (tw 2) 0), addS (.n ((sCw layer b).2.1 + 1)) (sLxIdx layer b)
       (.n (sCw layer b).2.1)] ++ ((sLeafK layer b).1 ++ ((sWin0 layer b).1 ++ (sWin1 layer b).1))))
 

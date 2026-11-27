@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Opening.QueriesMain
 public import LeanVM.Guest.B1.Opening.WalkDefs
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The windows a walk dispatches on (`opening_queries`, `walk_path` inline)
@@ -239,8 +240,8 @@ theorem oqLoop0T_wins {s : Oq} {name : String} {n : ℕ} (hn : 4 ≤ n)
 def oqLoop1Pre (s : Oq) : List Stmt :=
   [.atom (.mul (.n 10) (.n oqX) (.n oqX)), .atom (.mul (.n 11) (.n oqPos) (.n 10)),
     .atom (.mul (.n 12) (.n oqQp) (.n 10)), .atom (.load (.n 13) (.n 11) 0),
-    .atom (.load (.n 14) (.n 12) 0)] ++
-    (oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0 ++
+    .atom (.load (.n 14) (.n 12) 0)] ⧺
+    (oqQueryT s (.n 13) (.n 14) (.n oqCap) (.n oqFlags) (.n oqCoefs) (.n oqHs) 15 true 0 ⧺
     [.atom (.load (.n (oqE1 s)) (.n 11) 1), .atom (.load (.n (oqE1 s + 1)) (.n 12) 1)])
 
 theorem oqLoop1T_prefix (s : Oq) (name : String) : oqLoop1Pre s <+: oqLoop1T s name := by

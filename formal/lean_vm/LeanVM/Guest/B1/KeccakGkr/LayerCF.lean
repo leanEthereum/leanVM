@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LayerCE
 public import LeanVM.Guest.B1.KeccakGkr.LayerCD
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«keccak_layer__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The tail, completely
@@ -67,24 +68,24 @@ def tailTop (o W : ℕ) : List Stmt :=
 
 /-- The return's copies. -/
 def tailP3 (o W : ℕ) : List Stmt :=
-  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ++
+  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ⧺
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
     .atom (.mul (.n (topV W + 311)) (.n (o + 807)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311)))]
 
 /-- The tail before its flips. -/
 def tailA1 (o W wv : ℕ) : List Stmt :=
-  tailP1 o W wv ++ tailP2 o W ++
-    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ++ [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ++
-    tailEqf o W ++ tailTop o W
+  tailP1 o W wv ⧺ tailP2 o W ⧺
+    lanesOutT (W + 8) (laneW o) (W + 25) (W + 26) ⧺ [.atom (.load (.n (W + 25)) (.n (valf% «keccak_layer» "out")) 3)] ⧺
+    tailEqf o W ⧺ tailTop o W
 
 /-- The tail after its flips, but its return. -/
 def tailA3 (o W : ℕ) : List Stmt := .atom (.load (.n (topV W + 3)) (.n (valf% «keccak_layer» "out")) 5) :: tailP3 o W
 
 /-- The tail but its return. -/
-def tailPre (o W wv : ℕ) : List Stmt := tailA1 o W wv ++ lflipsT W ++ tailA3 o W
+def tailPre (o W wv : ℕ) : List Stmt := tailA1 o W wv ⧺ lflipsT W ⧺ tailA3 o W
 
-theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ++
+theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ⧺
     [.ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
       .n (topV W + 309), .n (topV W + 312)]] := by
   simp [tailT, tailPre, tailA1, tailA3, tailP1, tailP2, tailP3, tailEqf, tailTop, keccakA,
@@ -105,7 +106,7 @@ def layerFlipT (W i : ℕ) : List Stmt :=
   lflipT (.n (W + 25)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (flipB W i)
 
 theorem lflipsT_eq (W : ℕ) : lflipsT W = ((List.range 7).map fun i ↦
-    layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
+    layerFlipT W i ⧺ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
 
 /-- The tail's first value. -/
 abbrev tW (first : ℕ) : ℕ := weightEnd first (layOff first)
@@ -276,7 +277,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
       rw [lflipBlk_noRet]; rfl)]
     refine ⟨fun i hi ↦ ?_, hnx⟩
     obtain ⟨hai, hri⟩ := hflk i hi
-    have mi : ∀ s ∈ layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
+    have mi : ∀ s ∈ layerFlipT W i ⧺ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)],
         GoodS rd S w σ s := fun s hs ↦ mF s (by
       rw [lflipsT_eq]
       exact List.mem_flatten.mpr ⟨_, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩, hs⟩)

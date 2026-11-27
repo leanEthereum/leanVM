@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.ColumnSelector
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«selector_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `selector_tables`
@@ -46,7 +47,7 @@ def stV (j w i : ℕ) : ℕ := stM j w + i
 /-- Level `w ≥ 1` of nibble `j`: the coordinate and its complement, then the products. -/
 def stLevel (j w : ℕ) : List Stmt :=
   [.atom (.load (.n (stM j w - 2)) (.n (val% «selector_tables» "point")) (4 * j + 3 - w)),
-    .atom (.load (.n (stM j w - 1)) (.n (val% «selector_tables» "point1")) (4 * j + 3 - w))] ++
+    .atom (.load (.n (stM j w - 1)) (.n (val% «selector_tables» "point1")) (4 * j + 3 - w))] ⧺
   ((List.range (2 ^ w)).map fun i ↦
     [.atom (.mul (.n (stM j w + 2 * i)) (.n (stV j (w - 1) i)) (.n (stM j w - 1))),
       .atom (.mul (.n (stM j w + 2 * i + 1)) (.n (stV j (w - 1) i)) (.n (stM j w - 2)))]).flatten
@@ -58,24 +59,24 @@ def stStores (j w : ℕ) : List Stmt :=
 
 /-- Nibble `j`. -/
 def stNib (j : ℕ) : List Stmt :=
-  [.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] ++
-    stLevel j 1 ++ stLevel j 2 ++ stLevel j 3 ++ ((List.range 4).map (stStores j)).flatten
+  [.atom (.load (.n (stB j)) (.n (val% «selector_tables» "point1")) (4 * j + 3)), .atom (.load (.n (stB j + 1)) (.n (val% «selector_tables» "point")) (4 * j + 3))] ⧺
+    stLevel j 1 ⧺ stLevel j 2 ⧺ stLevel j 3 ⧺ ((List.range 4).map (stStores j)).flatten
 
 /-- `selector_tables`'s statements before its `ret`. -/
 def stPre : List Stmt :=
-  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256))] ++ ((List.range 8).map stNib).flatten ++
+  [.atom (.hint (.alloc (.n (val% «selector_tables» "sel_eq")) 256))] ⧺ ((List.range 8).map stNib).flatten ⧺
     [.atom (.copy (.n (val% «selector_tables» "s2#0")) (.n (val% «selector_tables» "sel_eq")))]
 
 /-- The function found by name is the template. -/
 noncomputable def stCheck : Bool :=
   match coreProgram.find? "selector_tables" with
-  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]])
+  | some fn => decide (fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")]) && tbStmtsEqb fn.body (stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]])
   | none => false
 
 theorem stCheck_eq : stCheck = true := by decide +kernel
 
 theorem stFound : ∃ fn : Fn, coreProgram.find? "selector_tables" = some fn ∧
-    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ++ [.ret [.n (val% «selector_tables» "s2#0")]] := by
+    fn.params = [.n (val% «selector_tables» "point"), .n (val% «selector_tables» "point1")] ∧ fn.body = stPre ⧺ [.ret [.n (val% «selector_tables» "s2#0")]] := by
   have h := stCheck_eq
   unfold stCheck at h
   split at h

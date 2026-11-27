@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening.QueriesPlaced3
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Where a query reads; a body with one branch
@@ -73,7 +74,7 @@ theorem walk_ite_flatM (σ : Val) (c : V) (z n post : List Stmt) (vs : List V)
     (hbm : ∀ s ∈ (if σ c = 0 then z else n), MatchOk σ s)
     (hp : post.all Stmt.flatM = true) (hpm : ∀ s ∈ post, MatchOk σ s) :
     ∀ pre : List Stmt, pre.all Stmt.flatM = true → (∀ s ∈ pre, MatchOk σ s) →
-    walk σ (pre ++ .ite c z n :: (post ++ [.ret vs])) =
+    walk σ (pre ++ .ite c z n :: (post ⧺ [.ret vs])) =
       .ret (pre.flatMap (fmEvs σ) ++ .inK c :: ((if σ c = 0 then z else n).flatMap (fmEvs σ) ++
         post.flatMap (fmEvs σ))) vs
   | [], _, _ => by

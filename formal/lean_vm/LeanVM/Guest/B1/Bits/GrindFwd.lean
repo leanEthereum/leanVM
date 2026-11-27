@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Bits.Grind
 public import LeanVM.Guest.B1.Fwd.Eval
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `grind_check` inlined, evaluated
@@ -80,7 +81,7 @@ def gcIterAtO (W i off : ℕ) : List Stmt :=
 
 /-- `gcPre b`, its table reads at `off`. -/
 def gcPreO (b off : ℕ) : List Stmt :=
-  gcHeadO b off ++ ((List.range (gcW b)).map fun i => gcIterAtO (gcW b) (i + 1) off).flatten ++
+  gcHeadO b off ⧺ ((List.range (gcW b)).map fun i => gcIterAtO (gcW b) (i + 1) off).flatten ⧺
     gcTailPre b
 
 /-- **`grind_check(w, t·g^off, b)` inlined**, its own values from `.n o`, its table reads at `off`. -/

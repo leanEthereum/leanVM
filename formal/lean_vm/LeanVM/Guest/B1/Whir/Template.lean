@@ -20,6 +20,7 @@ public import LeanVM.Guest.B1.Bits.GrindT
 import LeanVM.Guest.Data.Consts
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«level_positions__L_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The template of `open_stacked` (TRIAGE G #42)
@@ -350,8 +351,8 @@ def osHead (c : OsCfg) : List Stmt × OsSt :=
   let t := 30 + ligNRates
   (osHeap (c.yrLen + lastFolds) 11 ++ osHeap (2 * n) 13 ++ [osLd 7 osRoots 0, osLd 8 osRoots 1] ++
     osHeap c.nFolds 15 ++ osHeap (2 * c.nFolds) 17 ++ osHeap n 19 ++ osHeap n 21 ++
-    osHeap (n * hsStride) 23 ++ osHeap (n * ligColsCap) 25 ++ osHeap n 27 ++
-    [.atom (.hint (.alloc (.n osPosTab) ligNRates))] ++
+    osHeap (n * hsStride) 23 ++ osHeap (n * ligColsCap) 25 ++ osHeap n 27 ⧺
+    [.atom (.hint (.alloc (.n osPosTab) ligNRates))] ⧺
     ((List.range ligNRates).map fun r ↦
       [osCst (30 + r) (gw (c.posTotal.getD r 0)), osLd (30 + r) osPosTab r]).flatten ++
     [osMul t osPosTab osRate, osLd (t + 1) t 0, .atom (.hint (.allocDyn (.n osQpos) (.n (t + 1)))),
@@ -374,11 +375,11 @@ def osRoundCore (b p cb co claim i : ℕ) (cap : List ℕ) : List Stmt :=
   let D := C + 13
   ((List.range 4).map fun t ↦
       [osLd (b + 5 + 3 * t) cb (co + t), osCp (b + 6 + 3 * t) (b + 5 + 3 * t),
-        osCst (b + 7 + 3 * t) (word 0 1)]).flatten ++
+        osCst (b + 7 + 3 * t) (word 0 1)]).flatten ⧺
     [osKeccak ([b + 6, b + 7, b + 9, b + 10, b + 12, b + 13, b + 15, b + 16] ++ cap) A,
       osLd (b + 30) cb (co + 4), osCp (b + 31) (b + 30), osCst (b + 32) (word 0 4),
-      osKeccak [b + 31, b + 32, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, A + 8, A + 9, A + 10, A + 11, A + 12] B] ++
-    gcInlineT foldGrind (b + 46) (.n (B + 1)) (.n osTabs) ++
+      osKeccak [b + 31, b + 32, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, A + 8, A + 9, A + 10, A + 11, A + 12] B] ⧺
+    gcInlineT foldGrind (b + 46) (.n (B + 1)) (.n osTabs) ⧺
     [osKeccak [p + 1, p + 1, p + 1, p + 1, p + 1, p + 2, p + 3, p + 4, B + 8, B + 9, B + 10, B + 11, B + 12] C,
       osLd B osFch i, osLd B osCoefs (2 * i), osLd C osCoefs (2 * i + 1),
       osMul D C (b + 11), osAdd (D + 1) (b + 5) D, osAdd (D + 2) (b + 5) claim, osMul (D + 3) B (b + 8),
@@ -419,7 +420,7 @@ into `final_msg`. -/
 def osFinalMsg (c : OsCfg) (lv : OsLv) (s : OsSt) : List Stmt × OsSt :=
   let cu := osCurS s
   let r := cu.2.2.k
-  (cu.1 ++ [.call ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1")
+  (cu.1 ⧺ [.call ("opening_message__L" ++ natStr (c.yrLen + lv.folds) ++ "_L1")
       ((s.fs ++ [cu.2.1, osFmsg]).map V.n) (osRun r 8)],
    { cu.2.2 with k := r + 8, fs := [r + 2, r + 3, r + 4, r + 5, r + 6], cb := r + 7, co := 0,
                  word0 := r, pow0 := r + 1 })
@@ -445,15 +446,15 @@ def osCommit (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt 
   let pd := osPad o0.2.2.pad (b + 6)
   let p := pd.2.1
   let j := pd.2.2
-  (osHeap (2 + lv.folds) k ++ cu.1 ++
+  (osHeap (2 + lv.folds) k ++ cu.1 ⧺
     [.call ("opening_message__L" ++ natStr (2 + lv.folds) ++ "_L1") ((s.fs ++ [cu.2.1, sent]).map V.n)
       (osRun r 8),
-] ++
+] ⧺
     gcInlineT levelOodGrind (r + 8) (.n (r + 1)) (.n osTabs) ++
     [osLd g sent 0, osLd g osRoots (2 * lvl + 2), osLd (g + 1) sent 1, osLd (g + 1) osRoots (2 * lvl + 3)] ++
-    o0.1 ++
+    o0.1 ⧺
     [.call ("squeeze_point_from__L" ++ natStr lv.logCols)
-      ([r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n) (osRun q 5)] ++
+      ([r + 2, r + 3, r + 4, r + 5, r + 6, r, o0.2.1].map V.n) (osRun q 5)] ⧺
     ((List.range 5).map fun i ↦ osCp (q + 5 + i) (q + i)) ++
     [osLd b cb 0, osCp (b + 1) b, osCst (b + 2) (word 0 1),
       osLd (b + 3) cb 1, osCp (b + 4) (b + 3), osCst (b + 5) (word 0 4)] ++ pd.1 ++
@@ -569,7 +570,7 @@ def osQueries (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : List Stmt × OsSt
   let hp : List Stmt × ℕ × OsSt :=
     if fin then ([], s.hs, cf.2.2) else osMatS c.plan osHs (lvl * hsStride) cf.2.2
   let r := hp.2.2.k
-  (li.1 ++ cf.1 ++ hp.1 ++
+  (li.1 ++ cf.1 ++ hp.1 ⧺
     [.dispatch (.n osRate) ((c.lvAt lvl).map (osQueriesName c lvl))
         ([li.2.1, li.2.2.1, cf.2.1, hp.2.1, s.lp, s.lw].map V.n) (osRun r 4),
       osLd r osRoots (2 * lvl), osLd (r + 1) osRoots (2 * lvl + 1)],
@@ -615,7 +616,7 @@ def osLevels (c : OsCfg) : ℕ → List OsLv → OsSt → List Stmt × OsSt
 def osTailRound (tch j : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let cu := osCurS s
   let r := cu.2.2.k
-  (cu.1 ++ [.call "opening_tail_round" ((s.fs ++ [cu.2.1, s.claim, osTabs]).map V.n) (osRun r 8),
+  (cu.1 ⧺ [.call "opening_tail_round" ((s.fs ++ [cu.2.1, s.claim, osTabs]).map V.n) (osRun r 8),
       osLd (r + 7) tch j],
    { cu.2.2 with k := r + 8, fs := [r, r + 1, r + 2, r + 3, r + 4], cb := r + 5, co := 0,
                  claim := r + 6 })
@@ -714,8 +715,8 @@ def osBasisLv (c : OsCfg) (tch bd ls la lvl : ℕ) (lv : OsLv) (k : ℕ) : List 
   let a := af.2.1.getD 0
   let z := af.2.2
   let r := osBasisRow bd cs k z (z + 2) (z + 3)
-  (osLd k osBetas lvl :: af.1 ++
-      [.call "is_zero" [.n a] [.n z], osCst (z + 1) (word 1 0), osAdd (z + 2) (z + 1) z] ++
+  (osLd k osBetas lvl :: af.1 ⧺
+      [.call "is_zero" [.n a] [.n z], osCst (z + 1) (word 1 0), osAdd (z + 2) (z + 1) z] ⧺
       r.1 ++ [osLd r.2.1 ls lvl, osLd a la lvl],
     r.2.2)
 
@@ -844,10 +845,10 @@ def osFinish (c : OsCfg) (st : OsSt) (tch : ℕ) : List Stmt :=
   let od := osOodWeights c tch ((c.levels.headD default).logCols) 1 c.levels.tail none rs.2
   let k := od.2.2
   [.call ("fold_final_msg__L" ++ natStr c.yrLog) [.n osFmsg, .n tch] [.n yat],
-    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ++
-    pts.1 ++ osHeap (n * ligColsCap) pts.2 ++ osHeap n (pts.2 + 2) ++ osHeap n (pts.2 + 4) ++ bs.1 ++
-    osHeap (2 * n) bs.2 ++ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ++
-    rs.1 ++ od.1 ++
+    .atom (.hint (.alloc (.n pt) pointCap)), .atom (.hint (.alloc (.n (pt + 1)) pointCap))] ⧺
+    pts.1 ⧺ osHeap (n * ligColsCap) pts.2 ⧺ osHeap n (pts.2 + 2) ⧺ osHeap n (pts.2 + 4) ⧺ bs.1 ⧺
+    osHeap (2 * n) bs.2 ⧺ [osCst (bs.2 + 2) (word 0 0), osLd (bs.2 + 2) ich 0, osLd st.claim ich 1] ⧺
+    rs.1 ⧺ od.1 ⧺
     [osLd k ich (2 * c.yrLevel + 1), osCp (k + 1) pt, osCp (k + 2) (pt + 1), osLd (k + 3) ich (2 * c.yrLevel),
       osAdd (k + 4) (k + 3) (od.2.1.getD 0), osCp (k + 5) yat,
       .ret [.n k, .n (k + 1), .n (k + 2), .n (k + 4), .n (k + 5)]]
@@ -857,7 +858,7 @@ def osBody (c : OsCfg) : List Stmt :=
   let h := osHead c
   let lv := osLevels c 0 c.levels h.2
   let tl := osTail c lv.2
-  h.1 ++ lv.1 ++ tl.1 ++ osFinish c tl.2.1 tl.2.2
+  h.1 ⧺ lv.1 ⧺ tl.1 ⧺ osFinish c tl.2.1 tl.2.2
 
 /-! ## The loop helpers' templates at a level's row
 
@@ -874,14 +875,14 @@ def sqLoopBody (lv : OsLv) (name : String) : List Stmt :=
   let p1 := osMat 3 lv.posOff (33 + osPowLen (128 / lv.depth))
   let p2 := osMat 4 lv.posOff (p1.2.2 + 1)
   let e := p2.2.2 + 1
-  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ++
-    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ++
+  [osMul 6 0 0, osMul 7 6 6, osMul 8 7 0, osMul 9 2 8] ⧺
+    ((List.range 5).map fun i ↦ osLd (10 + i) 9 i) ⧺
     [osCst 15 (word 1 0), osCst 16 (word 0 0), osCst 17 (word 0 0), osCst 18 (word 0 0),
-      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ++
-    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ++
-    pw.1 ++ p1.1 ++ [osMul p1.2.2 p1.2.1 pw.2] ++ p2.1 ++ [osMul p2.2.2 p2.2.1 pw.2] ++
+      osCst 19 (word 0 0), osKeccak [16, 16, 16, 16, 16, 17, 18, 19, 10, 11, 12, 13, 14] 20] ⧺
+    ((List.range 5).map fun i ↦ osLd (28 + i) 9 (5 + i)) ⧺
+    pw.1 ⧺ p1.1 ⧺ [osMul p1.2.2 p1.2.1 pw.2] ⧺ p2.1 ⧺ [osMul p2.2.2 p2.2.1 pw.2] ⧺
     [.call ("decode_query_windows__L" ++ natStr lv.depth ++ "_L" ++ natStr lv.capDepth)
-      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ++
+      [.n (valf% «level_positions» «_loop0» "nxt[0]"), .n p1.2.2, .n p2.2.2, .n (valf% «level_positions» «_loop0» "tabs")] []] ⧺
     osLoopTail name 6 e
 
 end

@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Guest.B1.Terminal.KidsDepBT
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Dependent callees within their bounds, by name, with predicates
@@ -177,7 +178,7 @@ theorem kidsFromInT_of_depBPR (κ : ℕ) : ∀ (ks : List KidD) (names : List St
 words satisfying `Ps[j]` on the memory, its valuation satisfying `Qn` there. -/
 theorem completeAt_flatDepRBPR {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
-    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
+    {pre : List Stmt} {vs : List V} (hb : fn.body = pre ⧺ [.ret vs])
     (hst : pre.all Stmt.flat = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (hni : pre.all notIteB = true)
     (sizes : List ℕ) (own : ℕ → List (List E))

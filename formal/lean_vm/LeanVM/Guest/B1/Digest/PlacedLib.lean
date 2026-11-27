@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Da.AtBase
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.B1.Digest.CompleteSmall
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Placed completeness of the claim lists, the shared part
@@ -34,7 +35,7 @@ theorem walk_ite (σ : Val) (post : List Stmt) (hpost : post.all Main.Stmt.strai
     (c : V) (z n : List Stmt) (vs : List V) (esb : List Ev)
     (hb : (if σ c = 0 then walk σ z else walk σ n) = .fall esb) : ∀ pre : List Stmt,
     pre.all Main.Stmt.straight = true →
-    walk σ (pre ++ .ite c z n :: (post ++ [.ret vs])) =
+    walk σ (pre ++ .ite c z n :: (post ⧺ [.ret vs])) =
       .ret (pre.flatMap (Main.slEvs σ) ++ .inK c :: (esb ++ post.flatMap (Main.slEvs σ))) vs
   | [], _ => by
     rw [List.nil_append, walk, walk1, hb, Main.walk_straight σ vs post hpost]

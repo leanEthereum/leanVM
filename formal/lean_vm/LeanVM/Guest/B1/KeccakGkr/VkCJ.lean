@@ -14,11 +14,12 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_keccak»
 import LeanVM.Guest.KernelLit
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The body, flat
 
-`vkT = vkPre ++ [.ret vkVs]` (`vkT_pre`). `vkPre_kernel`: its statements are flat, it takes no
+`vkT = vkPre ⧺ [.ret vkVs]` (`vkT_pre`). `vkPre_kernel`: its statements are flat, it takes no
 frame addresses, its seven buffers (`vkAllocs`); it dispatches nothing, so its calls are `vkCalls`
 (`vkPre_callSF`).
 -/
@@ -38,12 +39,12 @@ def vkFinPre : List Stmt := vkFinT.dropLast
 def vkVs : List V := [.n (val% «verify_keccak» "s82#0"), .n (val% «verify_keccak» "s82#0[1]"), .n (val% «verify_keccak» "s82#0[2]"), .n (val% «verify_keccak» "s82#0[3]"), .n (val% «verify_keccak» "s82#0[4]"), .n (val% «verify_keccak» "s82#0[5]"), .n (val% «verify_keccak» "s82#0[6]")]
 
 /-- The body but its return. -/
-def vkPre : List Stmt := vkHeadT ++ vkFirstT ++ vkStepsT ++ vkOutT ++ vkInT ++ vkFinPre
+def vkPre : List Stmt := vkHeadT ⧺ vkFirstT ⧺ vkStepsT ⧺ vkOutT ⧺ vkInT ⧺ vkFinPre
 
 open LeanVM.Guest.KernelLit in
-kernel_rfl vkFinT_pre : vkFinT = vkFinPre ++ [.ret vkVs]
+kernel_rfl vkFinT_pre : vkFinT = vkFinPre ⧺ [.ret vkVs]
 
-theorem vkT_pre : vkT = vkPre ++ [.ret vkVs] := by
+theorem vkT_pre : vkT = vkPre ⧺ [.ret vkVs] := by
   rw [vkT, vkPre, vkFinT_pre]; simp only [List.append_assoc]
 
 /-- The buffers. -/

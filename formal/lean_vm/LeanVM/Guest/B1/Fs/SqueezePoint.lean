@@ -36,6 +36,7 @@ import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L7»
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L8»
 import LeanVM.Guest.Data.ValNames.«squeeze_point_from__L9»
 meta import LeanVM.Guest.KernelRfl
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `squeeze_point_from`
@@ -241,8 +242,8 @@ theorem sp_copies {b m : ℕ} {S : KeccakState}
 /-- The expansion of `squeeze_point_from__L{n + 1}`, `n ≥ 1` squeezes after the given first. -/
 def spfBody (n : ℕ) : List Stmt :=
   [.atom (.load (.n (valf% «squeeze_point_from» "first")) (.n (valf% «squeeze_point_from» "point")) 0), .atom (.copy (.n (valf% «squeeze_point_from» "sp[0]")) (.n (valf% «squeeze_point_from» "fs0"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[1]")) (.n (valf% «squeeze_point_from» "fs1"))),
-    .atom (.copy (.n (valf% «squeeze_point_from» "sp[2]")) (.n (valf% «squeeze_point_from» "fs2"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[3]")) (.n (valf% «squeeze_point_from» "fs3"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[4]")) (.n (valf% «squeeze_point_from» "fs4")))] ++
-  padRunT 12 ++ ((List.range n).map (sqBlk 13 17 7 (.n (valf% «squeeze_point_from» "point")) 1)).flatten ++
+    .atom (.copy (.n (valf% «squeeze_point_from» "sp[2]")) (.n (valf% «squeeze_point_from» "fs2"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[3]")) (.n (valf% «squeeze_point_from» "fs3"))), .atom (.copy (.n (valf% «squeeze_point_from» "sp[4]")) (.n (valf% «squeeze_point_from» "fs4")))] ⧺
+  padRunT 12 ⧺ ((List.range n).map (sqBlk 13 17 7 (.n (valf% «squeeze_point_from» "point")) 1)).flatten ⧺
   [.atom (.copy (.n (17 + 13 * n)) (.n (17 + 13 * (n - 1) + 8))),
     .atom (.copy (.n (18 + 13 * n)) (.n (17 + 13 * (n - 1) + 9))),
     .atom (.copy (.n (19 + 13 * n)) (.n (17 + 13 * (n - 1) + 10))),

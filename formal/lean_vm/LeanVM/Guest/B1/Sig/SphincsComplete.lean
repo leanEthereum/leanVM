@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Sig.SphincsData
 public import LeanVM.Guest.B1.Sig.SphincsLoads
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_sig_lean_sphincs»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `verify_sig_lean_sphincs`, complete
@@ -43,10 +44,10 @@ variable {C : CallRel} {rd : Reader}
 
 /-- The statements before the root's check. -/
 def sPre : List Stmt :=
-  (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) ++
+  (sDigestBlock ++ (sForsAddrs ++ sForsB.1)) ⧺
     (sLayerB.1 ++ (sMidAddrs ++ (sLayerM.1 ++ (sTopAddrs ++ sLayerT.1))))
 
-theorem sBody_splitC : sBody = sPre ++ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
+theorem sBody_splitC : sBody = sPre ⧺ [.atom (.assertEq sLayerT.2.2 sRoot), .ret []] := by
   simp only [sBody, sAfterDigest, sPre, List.append_assoc]
 
 theorem sMidAddrs_seq : SeqOK 5398 sMidAddrs 5407 := seqB_ok (by decide +kernel)

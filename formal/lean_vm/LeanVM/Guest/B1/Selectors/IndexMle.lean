@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Selectors.InterfaceP
 public import LeanVM.Guest.B1.Tables.Squares
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«index_mle__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `index_mle`
@@ -88,7 +89,7 @@ def imBlk (t : ℕ) : List Stmt :=
 /-- `index_mle__L{n}`'s statements before its `ret`. -/
 def imPre (n : ℕ) : List Stmt :=
   if n = 0 then [.atom (.const (.n 1) (word 1 0))]
-  else ((List.range n).map imBlk).flatten ++ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
+  else ((List.range n).map imBlk).flatten ⧺ [.atom (.copy (.n (6 * n)) (.n (6 * n - 1)))]
 
 /-- The value `index_mle__L{n}` returns. -/
 def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
@@ -96,12 +97,12 @@ def imRet (n : ℕ) : ℕ := if n = 0 then 1 else 6 * n
 /-- The function `P` finds by name is the template. -/
 noncomputable def imCheckP (P : Program) (n : ℕ) : Bool :=
   match P.find? (lName "index_mle" n) with
-  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ++ [.ret [.n (imRet n)]])
+  | some fn => decide (fn.params = [.n (valf% «index_mle» "zeta")]) && tbStmtsEqb fn.body (imPre n ⧺ [.ret [.n (imRet n)]])
   | none => false
 
 theorem imFound {P : Program} (hall : (List.range 34).all (imCheckP P) = true) {n : ℕ} (hn : n < 34) :
     ∃ fn : Fn, P.find? (lName "index_mle" n) = some fn ∧
-    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ++ [.ret [.n (imRet n)]] := by
+    fn.params = [.n (valf% «index_mle» "zeta")] ∧ fn.body = imPre n ⧺ [.ret [.n (imRet n)]] := by
   have h := List.all_eq_true.mp hall n (List.mem_range.mpr hn)
   unfold imCheckP at h
   split at h

@@ -17,6 +17,7 @@ import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop3»
 import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop4»
 import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop5»
 import LeanVM.Guest.Data.ValNames.«da_column_offsets_loop6»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `da_column_offsets`
@@ -92,7 +93,7 @@ def offStepA (b j : ℕ) : List Atom :=
 
 /-- Bit `b`'s statements: its run `steps`, its loop's guard and call. -/
 def offBlockS (b : ℕ) : List Stmt :=
-  (.atom (.hint (.alloc (.n (offB b)) 7)) :: ((List.range 7).flatMap (offStepA b)).map .atom) ++
+  (.atom (.hint (.alloc (.n (offB b)) 7)) :: ((List.range 7).flatMap (offStepA b)).map .atom) ⧺
     [.atom (.const (.n (offB b + 22)) (word 1 0)), .atom (.const (.n (offB b + 23)) (word (offN b) 0)),
       .atom (.add (.n (offB b + 24)) (.n (offB b + 22)) (.n (offB b + 23))),
       .atom (.const (.n (offB b + 25)) (word 1 0)), .atom (.const (.n (offB b + 26)) (word (offN b) 0)),
@@ -100,12 +101,12 @@ def offBlockS (b : ℕ) : List Stmt :=
 
 /-- **`da_column_offsets`' block** (its body but the final `ret`). -/
 def offP : List Stmt :=
-  (.atom (.hint (.alloc (.n (val% «da_column_offsets» "offsets")) 896)) :: ((List.range 7).flatMap offZeroA).map .atom) ++
-    (List.range 7).flatMap offBlockS ++ [.atom (.copy (.n (val% «da_column_offsets» "s3#0")) (.n (val% «da_column_offsets» "offsets")))]
+  (.atom (.hint (.alloc (.n (val% «da_column_offsets» "offsets")) 896)) :: ((List.range 7).flatMap offZeroA).map .atom) ⧺
+    (List.range 7).flatMap offBlockS ⧺ [.atom (.copy (.n (val% «da_column_offsets» "s3#0")) (.n (val% «da_column_offsets» "offsets")))]
 
 /-- **`da_column_offsets`' body, checked.** -/
 def offOk (fn : Fn) : Bool :=
-  decide (fn.params = [.n (val% «da_column_offsets» "zs")]) && stmtsEqb fn.body (offP ++ [.ret [.n (val% «da_column_offsets» "s3#0")]]) && offP.all Stmt.flat &&
+  decide (fn.params = [.n (val% «da_column_offsets» "zs")]) && stmtsEqb fn.body (offP ⧺ [.ret [.n (val% «da_column_offsets» "s3#0")]]) && offP.all Stmt.flat &&
     (List.range 7).all fun b ↦ decide (K.ofBits (offN b) = addressOfIndex (2 ^ b))
 
 /-- Bit `b`'s loop block: `offsets·x^7`, then `dst[j] = src[j] + steps[j]` at `7·2^b` further. -/

@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Selectors.SelectorTables
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«sel_partial_nibble__L»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `sel_partial_nibble`
@@ -43,7 +44,7 @@ def spLv (t i : ℕ) : ℕ :=
 
 /-- Level `t ≥ 1`: the coordinate and its complement, then the products. -/
 def spLevel (t : ℕ) : List Stmt :=
-  [.atom (.load (.n (spM t - 2)) (.n (valf% «sel_partial_nibble» "z")) t), .atom (.load (.n (spM t - 1)) (.n (valf% «sel_partial_nibble» "z1")) t)] ++
+  [.atom (.load (.n (spM t - 2)) (.n (valf% «sel_partial_nibble» "z")) t), .atom (.load (.n (spM t - 1)) (.n (valf% «sel_partial_nibble» "z1")) t)] ⧺
   ((List.range (2 ^ t)).map fun i ↦
     [.atom (.mul (.n (spM t + 2 * i)) (.n (spLv (t - 1) i)) (.n (spM t - 1))),
       .atom (.mul (.n (spM t + 2 * i + 1)) (.n (spLv (t - 1) i)) (.n (spM t - 2)))]).flatten
@@ -79,20 +80,20 @@ def spGStep (w t : ℕ) : List Stmt :=
 
 /-- `sel_partial_nibble__L{w}`'s statements before its `ret`, `w ≥ 1`. -/
 def spPre (w : ℕ) : List Stmt :=
-  [.atom (.load (.n 5) (.n (valf% «sel_partial_nibble» "z1")) 0), .atom (.load (.n 6) (.n (valf% «sel_partial_nibble» "z")) 0)] ++
-    ((List.range (w - 1)).map fun t ↦ spLevel (t + 1)).flatten ++
-    (List.range (2 ^ (w + 1) - 2)).map (fun e ↦ .atom (.load (.n (spEq e)) (.n (valf% «sel_partial_nibble» "eq_out")) e)) ++
-    spPad (spP w) (.n (valf% «sel_partial_nibble» "eq_out")) (2 ^ (w + 1) - 2) (8 * w - (2 ^ (w + 1) - 2)) ++
-    [.atom (.const (.n (spC w)) (word 1 0)), .atom (.load (.n (spC w + 1)) (.n (valf% «sel_partial_nibble» "gs")) 0)] ++
-    ((List.range (w - 1)).map fun t ↦ spGStep w (t + 1)).flatten ++
-    (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (spG w u)) (.n (valf% «sel_partial_nibble» "g_out")) u)) ++
-    spPad (spC w + 2 ^ w + w - 1) (.n (valf% «sel_partial_nibble» "g_out")) (2 ^ w) (4 * w - 2 ^ w) ++
+  [.atom (.load (.n 5) (.n (valf% «sel_partial_nibble» "z1")) 0), .atom (.load (.n 6) (.n (valf% «sel_partial_nibble» "z")) 0)] ⧺
+    ((List.range (w - 1)).map fun t ↦ spLevel (t + 1)).flatten ⧺
+    (List.range (2 ^ (w + 1) - 2)).map (fun e ↦ .atom (.load (.n (spEq e)) (.n (valf% «sel_partial_nibble» "eq_out")) e)) ⧺
+    spPad (spP w) (.n (valf% «sel_partial_nibble» "eq_out")) (2 ^ (w + 1) - 2) (8 * w - (2 ^ (w + 1) - 2)) ⧺
+    [.atom (.const (.n (spC w)) (word 1 0)), .atom (.load (.n (spC w + 1)) (.n (valf% «sel_partial_nibble» "gs")) 0)] ⧺
+    ((List.range (w - 1)).map fun t ↦ spGStep w (t + 1)).flatten ⧺
+    (List.range (2 ^ w)).map (fun u ↦ .atom (.load (.n (spG w u)) (.n (valf% «sel_partial_nibble» "g_out")) u)) ⧺
+    spPad (spC w + 2 ^ w + w - 1) (.n (valf% «sel_partial_nibble» "g_out")) (2 ^ w) (4 * w - 2 ^ w) ⧺
     [.atom (.const (.n (spR w)) (word 0 0))]
 
 /-- The body of `sel_partial_nibble__L{w}`. -/
 def spBody (w : ℕ) : List Stmt :=
   if w = 0 then [.atom (.const (.n 5) (word 0 0)), .ret [.n 5]]
-  else spPre w ++ [.ret [.n (spR w)]]
+  else spPre w ⧺ [.ret [.n (spR w)]]
 
 /-- The function found by name is the template. -/
 noncomputable def spCheck (w : ℕ) : Bool :=

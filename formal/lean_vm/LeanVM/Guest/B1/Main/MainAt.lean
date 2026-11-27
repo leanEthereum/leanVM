@@ -16,6 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
 import LeanVM.Guest.LitRef
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main`, placed
@@ -58,9 +59,9 @@ noncomputable def mEvs (σ : Val) : List Ev :=
 
 theorem walk_main (σ : Val) : walk σ (Fn.body fn% «main») = .ret (mEvs σ) [] := by
   obtain ⟨s1, s2, s2', s3, s4, s5, s6⟩ := mBlocks_straight
-  rw [main_shape, show mPre ++ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ++ mMid ++ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ++
-      mPost ++ [.ret []] = mPre ++ (.ite (.n (val% «main» "s50#1")) mDa mDaZ :: (mMid ++ (.ite (.n (val% «main» "s63#1")) mLeaf mAgg ::
-        (mPost ++ [.ret []])))) by simp,
+  rw [main_shape, show mPre ⧺ [.ite (.n (val% «main» "s50#1")) mDa mDaZ] ⧺ mMid ⧺ [.ite (.n (val% «main» "s63#1")) mLeaf mAgg] ⧺
+      mPost ⧺ [.ret []] = mPre ++ (.ite (.n (val% «main» "s50#1")) mDa mDaZ :: (mMid ++ (.ite (.n (val% «main» "s63#1")) mLeaf mAgg ::
+        (mPost ⧺ [.ret []])))) by simp,
     B1.walk_pre_straight σ _ mPre s1, walk_ite_straight σ _ _ _ _ s2 s2',
     B1.walk_pre_straight σ _ mMid s3, walk_ite_straight σ _ _ _ _ s4 s5,
     Main.walk_straight σ [] mPost s6]

@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.B1.Fwd.Canon
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«main»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `main`'s body, evaluated
@@ -29,7 +30,7 @@ open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 @[expose] public section
 
 /-- `main`'s body, both branches of each conditional block inlined. -/
-noncomputable def mFlat : List Stmt := mPre ++ mDa ++ mDaZ ++ mMid ++ mLeaf ++ mAgg ++ mPost
+noncomputable def mFlat : List Stmt := mPre ⧺ mDa ⧺ mDaZ ⧺ mMid ⧺ mLeaf ⧺ mAgg ⧺ mPost
 
 /-- The evaluated block: `mFlat` itself (`main` hints no inverse). -/
 noncomputable def mFlatE : List Stmt := mFlat

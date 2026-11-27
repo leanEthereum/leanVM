@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.Shapes
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # FORS, the paths and a layer as templates
@@ -243,7 +244,7 @@ def sHtLayer (pad : Nat) (pp a0 : V) (ac : Option E) (key signed ctr : V) (bit v
     .cell ctr] 68 false none (b + 2 + a0W ac)
   let p := sPath pad pp a0 ac bit val off height 0 (.n (k.2.1 + a0W ac)) (k.2.1 + a0W ac + 1)
   ([cst b (lit (7 * 2 ^ 24)), addS (.n (b + 1)) key (.n b)] ++ a0Pre ac (b + 2) ++ k.1 ++
-    a0Pre ac k.2.1 ++ [.call "sp_wots" [pp, a0Cell a0 ac k.2.1, key, .n k.2.2] [.n (k.2.1 + a0W ac)]] ++
+    a0Pre ac k.2.1 ⧺ [.call "sp_wots" [pp, a0Cell a0 ac k.2.1, key, .n k.2.2] [.n (k.2.1 + a0W ac)]] ⧺
     p.1, p.2.1, p.2.2)
 
 end

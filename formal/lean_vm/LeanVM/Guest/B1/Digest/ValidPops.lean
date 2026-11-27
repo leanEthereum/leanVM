@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Digest.Steps
 public import LeanVM.Guest.Memory.PopsNil
 public import LeanVM.Guest.B1.Common.MutePops
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Pops of valid trees
@@ -93,7 +94,7 @@ def atomsRet : List Stmt → Option (List Atom × List V)
     | _, _ => none
 
 theorem atomsRet_eq : ∀ {body : List Stmt} {as : List Atom} {vs : List V},
-    atomsRet body = some (as, vs) → body = as.map Stmt.atom ++ [.ret vs]
+    atomsRet body = some (as, vs) → body = as.map Stmt.atom ⧺ [.ret vs]
   | [], _, _, h => by simp [atomsRet] at h
   | s :: rest, as, vs, h => by
     unfold atomsRet at h

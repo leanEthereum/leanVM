@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Eq.EqPrefixRevIn
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«verify_tables»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # The calls, placed
@@ -133,10 +134,10 @@ def otrCall (k : ℕ) : Stmt :=
 
 /-- `verify_tables`' calls, in order. -/
 def vtCalls : List Stmt :=
-  (List.range 6).map pwCall ++ [porCall] ++ (List.range 6).map shCall ++
-    [fwCall 0, fwCall 1, imCall (val% «verify_tables» "kb[1]") (val% «verify_tables» "coord_val@1"), fwCall 2, imCall (val% «verify_tables» "kappa_g@2") (val% «verify_tables» "coord_val@2")] ++
-    (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ++
-    (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ++
+  (List.range 6).map pwCall ⧺ [porCall] ⧺ (List.range 6).map shCall ⧺
+    [fwCall 0, fwCall 1, imCall (val% «verify_tables» "kb[1]") (val% «verify_tables» "coord_val@1"), fwCall 2, imCall (val% «verify_tables» "kappa_g@2") (val% «verify_tables» "coord_val@2")] ⧺
+    (List.range 51).map (fun i ↦ selCall (vtPushSel.getD i default)) ⧺
+    (List.range 45).map (fun i ↦ selCall (vtCountSel.getD i default)) ⧺
     [otrCall 0, otrCall 1, otrCall 2, loopCall, epcCall]
 
 set_option maxRecDepth 100000 in

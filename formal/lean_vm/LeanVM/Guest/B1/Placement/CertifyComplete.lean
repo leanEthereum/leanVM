@@ -16,6 +16,7 @@ public import LeanVM.Guest.B1.Selectors.LayoutBasic
 public import LeanVM.Guest.CoreData
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«certify_placement»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `certify_placement`, completely
@@ -836,7 +837,7 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
     (hm : MemLay rd (cpOwn lm hs e10 e11 e136 e137 e293 ++ cpLin lm hs ekb esq))
     (hlow : LowDefB 14 rd) :
     Stmt.HoldsList (coreProgram.Rel rd) rd (cpσ lm hs ekb esq e10 e11 e136 e137 e293 rd)
-      (cpPre ++ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]]) False
+      (cpPre ⧺ [.ret [.n (val% «certify_placement» "s13#0"), .n (val% «certify_placement» "s13#0[1]")]]) False
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs),
         ofK (addressOfIndex e293)]) := by
   have R := cp_reads hl hm

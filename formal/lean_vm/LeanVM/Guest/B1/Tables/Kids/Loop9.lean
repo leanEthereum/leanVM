@@ -13,6 +13,7 @@ public import LeanVM.Guest.B1.Selectors.SharedTables
 public import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«shared_selector_tables_loop0»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `shared_selector_tables_loop0` and `shared_selector_tables`, loading from a region
@@ -56,10 +57,10 @@ theorem filterMap_callSF {σ : Val} {pre : List Stmt} (h : pre.all noDispB = tru
   List.filterMap_congr fun s hs ↦ callSF_of_noDisp (List.all_eq_true.mp h s hs)
 
 /-- `shared_selector_tables_loop0`'s statements before its `ret`. -/
-def lpPreC : List Stmt := lpPre ++ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"),
+def lpPreC : List Stmt := lpPre ⧺ [.callIf (.n (val% «shared_selector_tables_loop0» "s5#2")) name% «shared_selector_tables_loop0» [.n (val% «shared_selector_tables_loop0» "s5#4"),
     .n (val% «shared_selector_tables_loop0» "bound"), .n (val% «shared_selector_tables_loop0» "eq_tab"), .n (val% «shared_selector_tables_loop0» "zeta_hi"), .n (val% «shared_selector_tables_loop0» "zeta1_hi"), .n (val% «shared_selector_tables_loop0» "g_tab"), .n (val% «shared_selector_tables_loop0» "gsq_hi")]]
 
-theorem lpBody_eq : lpBody = lpPreC ++ [.ret []] := by simp [lpBody, lpPreC]
+theorem lpBody_eq : lpBody = lpPreC ⧺ [.ret []] := by simp [lpBody, lpPreC]
 
 theorem lp_flat : lpPreC.all Stmt.flat = true := by decide +kernel
 

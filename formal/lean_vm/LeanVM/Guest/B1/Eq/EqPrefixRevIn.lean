@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Tables.Kids.Families
 public import LeanVM.Guest.B1.Eq.EqPrefixRev
 import LeanVM.Guest.ValRef
 import LeanVM.Guest.Data.ValNames.«eq_prefix_chain_rev»
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `eq_prefix_chain_rev`, loading from a region
@@ -54,7 +55,7 @@ def epcrPre : List Stmt :=
     .atom (.rangeCheck (.n (val% «eq_prefix_chain_rev» "count_g")) (.n (val% «eq_prefix_chain_rev» "s0#1")) (.n (val% «eq_prefix_chain_rev» "s0#2")) (.n (val% «eq_prefix_chain_rev» "s0#3")) (.n (val% «eq_prefix_chain_rev» "s0#0"))),
     .dispatch (.n (val% «eq_prefix_chain_rev» "count_g")) eqPrefixRunRevNames [.n (val% «eq_prefix_chain_rev» "chain"), .n (val% «eq_prefix_chain_rev» "out"), .n (val% «eq_prefix_chain_rev» "src"), .n (val% «eq_prefix_chain_rev» "b1")] [.n (val% «eq_prefix_chain_rev» "done")]]
 
-theorem epcr_body : Fn.body fn% «eq_prefix_chain_rev» = epcrPre ++ [.ret []] := by
+theorem epcr_body : Fn.body fn% «eq_prefix_chain_rev» = epcrPre ⧺ [.ret []] := by
   rw [B1.eq_prefix_chain_rev_body]; rfl
 
 theorem epcr_flat : epcrPre.all Stmt.flat = true := by decide +kernel

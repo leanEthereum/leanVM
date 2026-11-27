@@ -14,6 +14,7 @@ public import LeanVM.Guest.B1.Merkle.CapLinksAll
 public import LeanVM.Guest.B1.Opening.QueriesPlacedDPAll
 public import LeanVM.Guest.B1.Place.LqBound
 public import LeanVM.Guest.B1.Opening.CapPlacedE
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # `level_queries`, placed with its pops
@@ -92,12 +93,12 @@ theorem lq_splice {rd : Reader} {σ : Val} {q base folds leaf d cd mu nhs hbits 
     (hb : fn.body = lqBody q base folds leaf d cd mu nhs hbits fin) {es : List Ev} {vs : List V}
     (hw : walk σ fn.body = .ret es vs) (kc ko : List Pop) :
     splice rd σ es [kc, ko] = capPops rd σ cd ++ kc ++ ko := by
-  have h : SplicePops rd σ (((((((osHeap (4 * 2 ^ cd) 6 ++
+  have h : SplicePops rd σ (((((((osHeap (4 * 2 ^ cd) 6 ⧺
       [.atom (.hint (.witness "merkle_caps" (.heap (.n 7) 0 (4 * 2 ^ cd))))]) ++
-      osHeap (2 ^ cd) 8) ++ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ++
+      osHeap (2 ^ cd) 8) ⧺ [.atom (.hint (.witness "merkle_cap_active" (.heap (.n 9) 0 (2 ^ cd))))]) ⧺
       [.call ("verify_merkle_cap__L" ++ natStr cd) [.n 7, .n 9] [.n 10, .n 11]]) ++
       [osCst 12 (gw (2 ^ (cd + 1))), osMul 13 7 12, osCst 14 (gw (2 ^ (cd - 1))), osMul 15 9 14,
-        osCst 16 (gw (lqIters q base)), osCst 17 (gw (Whir.lqOdd q base))]) ++
+        osCst 16 (gw (lqIters q base)), osCst 17 (gw (Whir.lqOdd q base))]) ⧺
       [.call (oqName base folds leaf (d - cd) mu nhs hbits fin)
         [.n 13, .n 15, .n 1, .n 2, .n 3, .n 4, .n 5, .n 16, .n 17] [.n 18]]) ++
       ([osCp 19 10, osCp 20 11, osCp 21 18] ++ (osPowSteps 0 (osPowDigits q) 0 22).1 ++

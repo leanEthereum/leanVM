@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Pops
 public import LeanVM.Guest.B1.Sig.Frame
+import LeanVM.Guest.StmtsAppend
 
 /-!
 # Pops, generically
@@ -286,7 +287,7 @@ theorem walk_append_fall' {σ : Val} : ∀ {xs : List Stmt} {es : List Ev} (ys :
 /-- **A block returning after a block popping `ps`** pops `ps` and sets up no call. -/
 theorem retPops_of_fallPops {σ : Val} {xs : List Stmt} {vs : List V} {ps : List Pop}
     (h : FallPops rd σ xs ps) :
-    ∃ es, walk σ (xs ++ [.ret vs]) = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = ps := by
+    ∃ es, walk σ (xs ⧺ [.ret vs]) = .ret es vs ∧ calls es = [] ∧ evPops rd σ es = ps := by
   obtain ⟨es, hw, hc, rfl⟩ := h
   exact ⟨es, by rw [walk_append_fall' _ hw]; simp [walk, walk1, Out.seq, Out.pre], hc, rfl⟩
 
