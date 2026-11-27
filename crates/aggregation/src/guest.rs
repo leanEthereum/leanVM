@@ -1,38 +1,63 @@
 //! Compiling the guest to a fixed point on its own size, and what every prover and verifier derives from it once.
 
+#[cfg(feature = "compile-guest")]
 use super::placeholders::placeholder_map;
 use fiat_shamir_prover::merkle::hash_to_scalars;
-use isa::{CompiledProgram, Program};
+#[cfg(feature = "compile-guest")]
+use isa::CompiledProgram;
+use isa::Program;
 use primitives::field::F128;
 use std::sync::OnceLock;
+#[cfg(feature = "compile-guest")]
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 /// The aggregation guest's zkDSL source.
+#[cfg(feature = "compile-guest")]
 pub(super) const GUEST_SOURCE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"));
 
+static GUEST: OnceLock<Program> = OnceLock::new();
+
 /// The aggregation bytecode, compiled to a fixed point on its own size: the one fixed program every node proves, and
-/// whose stacked bytecode every node's bytecode claims are about.
+/// whose stacked bytecode every node's bytecode claims are about. Without the `compile-guest` feature, the one
+/// [`set_unified_guest`] installed.
 ///
 /// The recursion placeholders are a function of the inner bytecode's log size,
 /// and here the inner bytecode is this one, so the size has to agree with
 /// itself. The guess converges in one or two rounds because the map's only
 /// size-dependent part is a handful of unrolled sumcheck rounds.
+///
+/// # Panics
+/// Without `compile-guest`, if no guest is installed.
 pub fn unified_guest() -> &'static Program {
-    static GUEST: OnceLock<Program> = OnceLock::new();
-    GUEST.get_or_init(|| {
-        // A guess at the guest's own size: right, it compiles once; wrong, one more round.
-        let mut guess = 19;
-        for _ in 0..8 {
-            let guest = compile_guest(guess);
-            let actual = guest.prog.len().trailing_zeros() as usize;
-            if actual == guess {
-                return Program::from(guest);
-            }
-            guess = actual;
+    #[cfg(feature = "compile-guest")]
+    let guest = GUEST.get_or_init(compile_unified_guest);
+    #[cfg(not(feature = "compile-guest"))]
+    let guest = GUEST
+        .get()
+        .expect("no aggregation guest: `set_unified_guest` installs one");
+    guest
+}
+
+/// Install [`unified_guest`], compiled elsewhere and read back with `Program::from_bytes`, for a build without the
+/// compiler: `false`, and nothing installed, if a guest is already in place.
+pub fn set_unified_guest(program: Program) -> bool {
+    GUEST.set(program).is_ok()
+}
+
+#[cfg(feature = "compile-guest")]
+fn compile_unified_guest() -> Program {
+    // A guess at the guest's own size: right, it compiles once; wrong, one more round.
+    let mut guess = 19;
+    for _ in 0..8 {
+        let guest = compile_guest(guess);
+        let actual = guest.prog.len().trailing_zeros() as usize;
+        if actual == guess {
+            return Program::from(guest);
         }
-        panic!("the aggregation bytecode's self-referential compile did not converge");
-    })
+        guess = actual;
+    }
+    panic!("the aggregation bytecode's self-referential compile did not converge");
 }
 
 /// The guest's Fiat-Shamir IV as the two words a statement carries it in.
@@ -40,6 +65,7 @@ pub(super) fn fs_seed() -> [F128; 2] {
     hash_to_scalars(&unified_guest().bytecode().fiat_shamir_iv())
 }
 
+#[cfg(feature = "compile-guest")]
 pub(super) fn compile_guest(kbc: usize) -> CompiledProgram {
     let replacements = placeholder_map(kbc);
     // `DBG_PLACEHOLDERS=path`: dump the baked guest constants, to read alongside

@@ -1,7 +1,9 @@
 //! The stable prover's aggregation as one function from bytes to bytes, [`leanvm_fv_prove`]: the function the proofs
 //! about the x86 binary are about, everything it calls included.
 //!
-//! The input, every length and count a little-endian `u32`:
+//! The guest is an input of its own, the compiled aggregation program (`Program::to_bytes` of
+//! `aggregation::unified_guest`), so the binary holds no compiler. The other input, every length and count a
+//! little-endian `u32`:
 //! - `log_inv_rate`, one byte;
 //! - the children: a count, then each child's claims and proof (`AggregateClaims::to_bytes`,
 //!   `AggregateProof::to_bytes`), each a length and its bytes;
@@ -12,6 +14,7 @@
 //! (`OutputClaims::All`) and takes no blobs.
 
 use aggregation::{AggregateClaims, AggregateProof, OutputClaims};
+use isa::Program;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 
@@ -25,6 +28,8 @@ pub type SphincsSigner = (LeanSphincsPublicKey, lean_sphincs::Message, LeanSphin
 /// Why [`prove`] wrote no proof.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    /// The guest is not one program's encoding.
+    Guest,
     /// The input is not one encoding.
     Decode,
     /// The aggregation failed.
@@ -33,34 +38,46 @@ pub enum Error {
     OutputTooSmall,
 }
 
-/// [`prove`] for a caller outside Rust: the bytes written, or `-1`, `-2`, `-3` for [`Error::Decode`],
-/// [`Error::Prove`], [`Error::OutputTooSmall`].
+/// [`prove`] for a caller outside Rust: the bytes written, or `-1`, `-2`, `-3`, `-4` for [`Error::Decode`],
+/// [`Error::Prove`], [`Error::OutputTooSmall`], [`Error::Guest`].
 ///
 /// # Safety
-/// `input` is readable for `input_len` bytes, `out` writable for `out_cap` bytes, and the two do not overlap.
+/// `guest` and `input` are readable for `guest_len` and `input_len` bytes, `out` writable for `out_cap` bytes, and
+/// `out` overlaps neither.
 #[unsafe(no_mangle)]
 #[inline(never)]
-pub unsafe extern "C" fn leanvm_fv_prove(input: *const u8, input_len: usize, out: *mut u8, out_cap: usize) -> isize {
+pub unsafe extern "C" fn leanvm_fv_prove(
+    guest: *const u8,
+    guest_len: usize,
+    input: *const u8,
+    input_len: usize,
+    out: *mut u8,
+    out_cap: usize,
+) -> isize {
     // SAFETY: the caller's contract.
-    let (input, out) = unsafe {
+    let (guest, input, out) = unsafe {
         (
+            std::slice::from_raw_parts(guest, guest_len),
             std::slice::from_raw_parts(input, input_len),
             std::slice::from_raw_parts_mut(out, out_cap),
         )
     };
-    match prove(input, out) {
+    match prove(guest, input, out) {
         Ok(written) => written as isize,
         Err(Error::Decode) => -1,
         Err(Error::Prove) => -2,
         Err(Error::OutputTooSmall) => -3,
+        Err(Error::Guest) => -4,
     }
 }
 
-/// Aggregate what `input` encodes into `out`; the bytes written.
+/// Aggregate what `input` encodes into `out`, on the guest `guest` encodes; the bytes written. The first call's guest
+/// stays for the process.
 ///
 /// # Errors
 /// [`Error`] says why there is no proof.
-pub fn prove(input: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+pub fn prove(guest: &[u8], input: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+    aggregation::set_unified_guest(Program::from_bytes(guest).ok_or(Error::Guest)?);
     let (log_inv_rate, children, xmss, sphincs) = decode(input).ok_or(Error::Decode)?;
     let (claims, proof, _) =
         aggregation::aggregate::<P>(&children, xmss, sphincs, None, OutputClaims::All, log_inv_rate)

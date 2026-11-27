@@ -181,7 +181,6 @@ dependencies = [
  "stable_parallel",
  "stable_pcs",
  "stable_primitives",
- "tracing",
  "verifier",
 ]
 
@@ -195,7 +194,6 @@ dependencies = [
  "stable_parallel",
  "stable_pcs",
  "stable_primitives",
- "tracing",
  "verifier",
 ]
 
@@ -210,7 +208,6 @@ dependencies = [
  "fiat_shamir_prover",
  "stable_parallel",
  "stable_primitives",
- "tracing",
  "verifier",
 ]
 

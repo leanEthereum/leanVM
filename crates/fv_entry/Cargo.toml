@@ -6,7 +6,9 @@ publish = false
 description = "The stable prover's aggregation as one function from bytes to bytes, for the proofs about its x86 binary"
 
 [dependencies]
-aggregation.workspace = true
+# Without the compiler: the guest is an input.
+aggregation = { path = "../aggregation", default-features = false }
+isa.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }

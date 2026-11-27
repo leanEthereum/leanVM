@@ -33,6 +33,7 @@ pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::W
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
 pub(super) const QUERY_WINDOW_BITS: usize = 6;
 /// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
+#[cfg(feature = "compile-guest")]
 pub(super) const QUERY_WINDOWS_CAP: usize = 36;
 
 /// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of

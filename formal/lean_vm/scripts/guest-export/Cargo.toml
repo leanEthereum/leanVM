@@ -49,9 +49,10 @@ rand = "0.9"
 tracing = "0.1.26"
 
 [features]
-default = ["signers-cache"]
-# aggregation's feature: the cached benchmark signers, for the guest-diff cases.
+default = ["signers-cache", "compile-guest"]
+# aggregation's features: the cached benchmark signers, for the guest-diff cases, and the guest compiled from source.
 signers-cache = []
+compile-guest = []
 
 [profile.release]
 lto = "thin"

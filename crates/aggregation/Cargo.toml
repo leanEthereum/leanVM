@@ -12,7 +12,7 @@ isa.workspace = true
 verifier.workspace = true
 keccak256.workspace = true
 fiat_shamir_prover.workspace = true
-zkdsl_compiler.workspace = true
+zkdsl_compiler = { workspace = true, optional = true }
 claims.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
@@ -25,6 +25,9 @@ rand = { workspace = true, optional = true }
 tracing.workspace = true
 
 [features]
+default = ["compile-guest"]
+# The guest compiled from its source; without it, `set_unified_guest` installs it.
+compile-guest = ["dep:zkdsl_compiler"]
 # `signers_cache`: cached benchmark signers, for tests and the CLI.
 signers-cache = ["dep:rand"]
 

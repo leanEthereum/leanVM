@@ -39,6 +39,7 @@
 
 mod cells;
 mod child;
+#[cfg(feature = "compile-guest")]
 mod claim_pool;
 mod coverage;
 mod deferred;
@@ -46,17 +47,18 @@ mod error;
 mod guest;
 mod hints;
 mod node;
+#[cfg(feature = "compile-guest")]
 mod placeholders;
 mod proof;
 #[cfg(any(test, feature = "signers-cache"))]
 pub mod signers_cache;
 mod statement;
-#[cfg(test)]
+#[cfg(all(test, feature = "compile-guest"))]
 mod tests;
 
 pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims};
 pub use error::AggregateError;
-pub use guest::unified_guest;
+pub use guest::{set_unified_guest, unified_guest};
 pub use node::aggregate;
 pub use proof::AggregateProof;
 
