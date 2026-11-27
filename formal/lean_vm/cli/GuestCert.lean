@@ -1523,11 +1523,11 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     | none => listText (a.map toString)
   let armsDefs := if !manyArms then "" else
     String.join (tabs.toList.zipIdx.map fun (a, k) =>
-      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := " ++
-        "(" ++ " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
+      s!"/-- `{f.name}`: a table's arms. -/\ndef cert{j}_t{k} : List ℕ := data% (" ++
+        " :: ".intercalate (a.map toString) ++ " :: [])\n\n") ++
     -- by offset: the executor looks up a table jump's arms in the trie, not along the list
     s!"/-- `{f.name}`: the table jumps' arms, by offset. -/\n" ++
-    s!"def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
+    s!"def cert{j}_armsT : Exec.Trie (List ℕ) :=\n  data% {trieLit (armsL.map fun (i, a) => (i, armsRef a))}\n\n" ++ winMark
   let armsT := if manyArms then "[], armsT := " ++ s!"cert{j}_armsT"
     else listText (armsL.map fun (i, a) => s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
@@ -1572,7 +1572,7 @@ def certOf (coarse : Bool) (T : Tables) (fns : Array CompiledFunction) (index : 
     locDefs := locDefs ++ String.join ((chunks.zipIdx.reverse).map fun (l, c) =>
       let tl := if c + 1 < nc then s!"cert{j}_w{w}_{c + 1}" else "[]"
       s!"/-- `{f.name}`: window {w}'s cells, of values {los[w]! + c * locChunk} on. -/\n" ++
-      s!"def cert{j}_w{w}_{c} : List ℕ := " ++
+      s!"def cert{j}_w{w}_{c} : List ℕ := data% " ++
         (if nc == 1 then litOf l else "(" ++ " :: ".intercalate (l.map toString) ++ s!" :: {tl})") ++
         "\n\n") ++ winMark
     cellT := cellT.push (if chunks.isEmpty then "[]" else s!"cert{j}_w{w}_0")
@@ -3044,12 +3044,14 @@ def viewList (I : Array FnInfo) (j : ℕ) : String :=
 relations (`Check.Glob.ofSigs`). -/
 def viewText (I : Array FnInfo) (j : ℕ) : String := s!"(Glob.ofSigs {viewList I j} Data.jtTrie globSem)"
 
-/-- A copy of function `f`'s code, chunk by chunk as the statement's (`Data.functions`). -/
+/-- A copy of function `f`'s code, chunk by chunk as the statement's (`Data.functions`), built by
+`data%` (`Guest/DataLit.lean`); only the kernel reads it, so it is not compiled. -/
 def codeText (f : CompiledFunction) : String :=
   String.join (f.chunks.zipIdx.map fun (ch, k) =>
-    s!"/-- `{f.name}`: chunk {k}. -/\ndef c{k} : List OffsetInstruction := [\n  " ++
+    s!"/-- `{f.name}`: chunk {k}. -/\nnoncomputable def c{k} : List OffsetInstruction := data% [\n  " ++
       ",\n  ".intercalate (ch.map instrText) ++ "]\n\n") ++
-  s!"/-- `{f.name}`: pc {f.entryPc} to {f.entryPc + f.instructionCount - 1}. -/\ndef code : CompiledFunction :=\n" ++
+  s!"/-- `{f.name}`: pc {f.entryPc} to {f.entryPc + f.instructionCount - 1}. -/\n" ++
+  "noncomputable def code : CompiledFunction :=\n" ++
   s!"  ⟨\"{f.name}\", {f.entryPc}, {f.instructionCount}, {listText ((List.range f.chunks.length).map (s!"c{·}"))}⟩\n\n"
 
 /-! ## The checks -/
@@ -3302,7 +3304,7 @@ def checkedFiles (I : Array FnInfo) (packs : List (String × List ℕ)) (obl : L
   let packFiles := packs.flatMap fun (dir, js) =>
     let bundle := packHeader dir "Bundle"
         s!"The code, certificates and completeness and sharing data of compiled functions {names js}." ++
-      "public import LeanVM.Guest.Check\npublic import LeanVM.Guest.B2C.Types\n" ++
+      "public import LeanVM.Guest.Check\npublic import LeanVM.Guest.B2C.Types\nmeta import LeanVM.Guest.DataLit\n" ++
       String.join (js.flatMap fun j => I[j]!.cellMods.map fun m => s!"public import {m}\n") ++ "\n" ++
       String.join (js.map fun j =>
         let k := I[j]!.key
@@ -4336,12 +4338,12 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
     let sts := snapsOf.getD j []
     pt ++ s!"\n/-- `{fns[j]!.name}`: its frame size (`B2C.fsN`). -/\ndef fs : ℕ := {fsz}\n\n" ++
       s!"/-- `{fns[j]!.name}`: its completeness walk's parts (`Data.cplParts`). -/\n" ++
-      s!"def parts : List (List (List ℕ)) := {parts}\n\n" ++
+      s!"noncomputable def parts : List (List (List ℕ)) := data% {parts}\n\n" ++
       (if armed j then "" else
         s!"/-- `{fns[j]!.name}`: no `match` with its arms counted apart (`Data.cplArms`). -/\n" ++
         "def arms : List (ℕ × List (List ℕ)) := []\n\n") ++
       String.join (sts.zipIdx.map fun (t, k) =>
-        s!"/-- `{fns[j]!.name}`'s window {k + 1} starts from this. -/\nnoncomputable def snap_{k + 1} : B2C.Snap :=\n  {t}\n\n") ++
+        s!"/-- `{fns[j]!.name}`'s window {k + 1} starts from this. -/\nnoncomputable def snap_{k + 1} : B2C.Snap :=\n  data% {t}\n\n") ++
       s!"/-- `{fns[j]!.name}`'s windows after the first start from these (`B2C.snapsOf`). -/\n" ++
       s!"noncomputable def snaps : List B2C.Snap := {listText ((List.range sts.length).map fun k => s!"snap_{k + 1}")}\n"
   for (c, i) in certs.zipIdx do
@@ -4367,7 +4369,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
       for (g, k) in groups.zipIdx do
         fnFiles := fnFiles.push (packPath key s!"Cells{k}", packHeader key s!"Cells{k}"
           s!"The cells of the certificate of compiled function `{fns[j]!.name}`." ++
-          "public import LeanVM.Guest.Check\n" ++ fnPreamble key ++ ren g ++ fnTail key)
+          "public import LeanVM.Guest.Check\nmeta import LeanVM.Guest.DataLit\n" ++ fnPreamble key ++ ren g ++ fnTail key)
       cellMods := (List.range groups.size).map fun k => packMod key s!"Cells{k}"
       own := ""
     infos := infos.push ⟨key, coreAt key, callees, codeText fns[j]!, ren own ++ ren defn, cellMods,
@@ -4390,7 +4392,7 @@ def files (P : Core.Program) (keys : Array String) (coreAt : String → String) 
     "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
     "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n" ++ preamble ++
     "/-- The parts of each window, by function (`Fn.«name».parts`) and window. -/\n" ++
-    "def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
+    "noncomputable def cplParts : List (List (List (List ℕ))) :=\n  [] ::\n" ++
     refRows ((List.range n).map fun i => s!"Fn.«{infos[i + 1]!.key}».parts") 4 ++ " []\n" ++ tail
   let snapsIndex := header "Snaps" "The sharing check's snapshots, by compiled function index." ++
     bundles ++ "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++

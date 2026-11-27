@@ -336,7 +336,8 @@ def defs(text):
         end = ms[i + 1].start() if i + 1 < len(ms) else len(text)
         body = text[m.end():end]
         body = re.split(r'\n/--|\nend\b|\nnamespace |\n@\[|\nopen ', body)[0]
-        out[m.group(1)] = body
+        # `data% t` (`Guest/DataLit.lean`) is the literal `t`
+        out[m.group(1)] = re.sub(r'^\s*data% ', ' ', body)
     return out
 
 
@@ -348,7 +349,7 @@ _TEXTS = {}
 def read_text(p):
     if p not in _TEXTS:
         with open(p, encoding='utf-8') as fh:
-            _TEXTS[p] = fh.read()
+            _TEXTS[p] = fh.read().replace('data% ', '')  # the data literals' `data%` (`Guest/DataLit.lean`)
     return _TEXTS[p]
 
 
