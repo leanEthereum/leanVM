@@ -161,19 +161,19 @@ variable (r : Run) [Labels]
 
 /-- **Facts kept by a block** of an environment whose region 0 is the frame, which does not
 write them. -/
-theorem Facts.of_block {m m' : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 21632))
-    {S' : SState} (hm' : Match (Env.ofMachine m regions vars ret) S' m') :
+theorem Facts.of_block {m m' : MachineData} {env : Env}
+    (hb : env.regions[0]? = some (r.base, 21632))
+    {S' : SState} (hm' : Match env S' m') :
     ∀ {L : List (Nat × Nat × List UInt8)}, Facts r m.dmem L → factsOK S' L = true →
-      Facts r m'.dmem L
-  | [], _, _ => trivial
-  | (o, n, bs) :: L, ⟨⟨hl, hb'⟩, h⟩, hok => by
+      (hmem : env.mem0 = m.dmem := by rfl) → Facts r m'.dmem L
+  | [], _, _, _ => trivial
+  | (o, n, bs) :: L, ⟨⟨hl, hb'⟩, h⟩, hok, hmem => by
     simp only [factsOK, List.all_cons, Bool.and_eq_true, decide_eq_true_eq] at hok
-    refine ⟨⟨hl, fun i hi ↦ ?_⟩, Facts.of_block hb hm' h hok.2⟩
+    refine ⟨⟨hl, fun i hi ↦ ?_⟩, Facts.of_block hb hm' h hok.2 hmem⟩
     obtain ⟨⟨ho, hn⟩, -⟩ := hok
     rw [off_add, Run.off, hm'.mem 0 r.base 21632 hb (o + i) (by omega)]
     unfold memByte
-    rw [findWrite_none hn (by omega)]
+    rw [findWrite_none hn (by omega), hmem]
     have := hb' i hi
     rwa [off_add, Run.off] at this
 
@@ -335,17 +335,15 @@ theorem bytesAt_words {d : DataMem} :
     exact this
 
 /-- A region pointer's value. -/
-theorem eval_ptr [Labels] {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} {i : Nat} {b : BitVec 64} {n : Nat}
-    (h : regions[i]? = some (b, n)) (o : Int) :
-    Sym.eval (Env.ofMachine m regions vars ret) (.ptr i o) = b + BitVec.ofInt 64 o := by
-  show Env.base _ i + _ = _
-  rw [Env.base_ofMachine m regions vars ret h]
+theorem eval_ptr [Labels] {env : Env} {i : Nat} {b : BitVec 64} {n : Nat}
+    (h : env.regions[i]? = some (b, n)) (o : Int) :
+    Sym.eval env (.ptr i o) = b + BitVec.ofInt 64 o := by
+  show Env.base env i + _ = _
+  rw [Env.base_eq h]
 
 /-- A pointer into the frame, region 0 its base. -/
-theorem eval_base [Labels] (r : Run) {m : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} {i n : Nat} (h : regions[i]? = some (r.base, n))
-    (o : Nat) : Sym.eval (Env.ofMachine m regions vars ret) (.ptr i (o : Int)) = r.off o := by
+theorem eval_base [Labels] (r : Run) {env : Env} {i n : Nat} (h : env.regions[i]? = some (r.base, n))
+    (o : Nat) : Sym.eval env (.ptr i (o : Int)) = r.off o := by
   rw [eval_ptr h, BitVec.ofInt_natCast]
   rfl
 

@@ -30,15 +30,16 @@ theorem noW0_mono {S : SState} {o n o' n' : Nat} (h : noW0 S o n = true) (h1 : o
 
 /-- **Frame bytes kept by a block** of an environment whose region 0 is the frame, which does not
 write them. -/
-theorem bytesAt_of_block (r : Run) [Labels] {m m' : MachineData} {regions : List (BitVec 64 × Nat)}
-    {vars : Nat → BitVec 64} {ret : BitVec 64} (hb : regions[0]? = some (r.base, 21632))
-    {S' : SState} (hm' : Match (Env.ofMachine m regions vars ret) S' m') {o N : Nat}
+theorem bytesAt_of_block (r : Run) [Labels] {m m' : MachineData} {env : Env}
+    (hb : env.regions[0]? = some (r.base, 21632))
+    {S' : SState} (hm' : Match env S' m') {o N : Nat}
     {bs : List UInt8} (h : BytesAt m.dmem (r.off o) bs) (hn : noW0 S' o N = true)
-    (hl : bs.length ≤ N) (ho : o + N ≤ 21624) : BytesAt m'.dmem (r.off o) bs := by
+    (hl : bs.length ≤ N) (ho : o + N ≤ 21624) (hmem : env.mem0 = m.dmem := by rfl) :
+    BytesAt m'.dmem (r.off o) bs := by
   have := Facts.of_block r (L := [(o, bs.length, bs)]) hb hm' ⟨⟨rfl, h⟩, trivial⟩ (by
     simp only [factsOK, List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true,
       decide_eq_true_eq]
-    exact ⟨by omega, noW0_mono hn le_rfl (by omega)⟩)
+    exact ⟨by omega, noW0_mono hn le_rfl (by omega)⟩) hmem
   exact this.1.2
 
 variable (r : Run) [ElfHost]
@@ -81,10 +82,10 @@ theorem memcpy_block_sig (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Cal
     (hx : exec ds (fSig k) = some (S', .call NativeRustcX64.Common.Memcpy.entryLabel))
     (hfw : Run.frameWrites S' = true) (hrsp : S'.reg .rsp = some (.ptr 0 (-8)))
     {m : MachineData} (hF : r.Frame m) (hrbx : Run.RegIs m .rbx r.sigPtr)
-    (hk : AllOf (fun p ↦ m.regs.get64 p.1 = p.2.eval (Env.ofMachine m (regsSig r) (fun _ ↦ 0) (r.pc jn).toBitVec)) k)
+    (hk : AllOf (fun p ↦ m.regs.get64 p.1 = p.2.eval (envExt m (regsSig r) (fun _ ↦ 0) (r.pc jn).toBitVec)) k)
     {a s n : Nat} (ha : a + n ≤ 21576) (hs : s + n ≤ 21624) (hd : a + n ≤ s ∨ s + n ≤ a)
     {R : MachineState → Prop}
-    (h : ∀ m₁, Match (Env.ofMachine m (regsSig r) (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
+    (h : ∀ m₁, Match (envExt m (regsSig r) (fun _ ↦ 0) (r.pc jn).toBitVec) S' m₁ →
       Run.RegIs m₁ .rdi (r.off a) ∧ Run.RegIs m₁ .rsi (r.off s) ∧ (reg m₁ .rdx).toNat = n ∧
       ∀ m₂, r.Frame m₂ → Saved m₁ m₂ → BytesAt m₂.dmem (r.off a) (bytesOf m₁.dmem (r.off s) n) →
         SameOutside m₁.dmem m₂.dmem (r.CallOut m₁ a n 0) → r.AtCall m₁ →
@@ -92,7 +93,7 @@ theorem memcpy_block_sig (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Cal
     Eventually (elfStep1 ElfHost.exe) R ⟨m, r.pc jd⟩ := by
   have hwf := wfSig r hpre hF.2.2.2 hF.2.2.1 (fun _ ↦ 0) (r.pc jn).toBitVec
   have hk' : ds.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + jd) := hb.trans hp.1 (by rintro rfl; cases hx)
-  refine exec_then_elf hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
+  refine exec_then_elf_ro hk' hx hwf (fun _ _ ↦ by rw [← hjn, Nat.add_assoc]; rfl)
     (match_sig r hpre hF hrbx hk) fun st hm₁ hpc ↦ ?_
   have hc₁ := atCall_of_block r hpre hF rfl rfl hm₁ hwf hrsp hfw
   obtain ⟨h0, h1, h2, hcont⟩ := h st.data hm₁
@@ -133,9 +134,9 @@ theorem memset_block (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees
   exact hcont m₂ (r.frame_of_call hpre hc₁ hS hsp₂ ha (Nat.zero_le _) hout) hS hout hc₁
 
 /-- A frame pointer the block sets (for any environment whose region 0 is `r.base`). -/
-theorem regIs_ptr0 {m m' : MachineData} {regions : List (BitVec 64 × Nat)} {vars : Nat → BitVec 64}
-    {ret : BitVec 64} {S : SState} {n : Nat} (hb : regions[0]? = some (r.base, n))
-    (hm : Match (Env.ofMachine m regions vars ret) S m') {y : Reg64} {o : Nat}
+theorem regIs_ptr0 {env : Env} {m' : MachineData}
+    {S : SState} {n : Nat} (hb : env.regions[0]? = some (r.base, n))
+    (hm : Match env S m') {y : Reg64} {o : Nat}
     (h : S.reg y = some (.ptr 0 o)) : Run.RegIs m' y (r.off o) :=
   (hm.regs y _ h).trans (eval_base r hb o)
 

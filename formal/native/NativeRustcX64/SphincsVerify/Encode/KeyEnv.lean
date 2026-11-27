@@ -60,18 +60,20 @@ namespace Run
 
 variable (r : Run) [Labels]
 
-/-- The environment of a state of the frame, region 2 `LAYER_HEIGHTS`. -/
+/-- The environment of a state of the frame, region 2 `LAYER_HEIGHTS` and regions 3, 4 GOT slots
+(all read-only). -/
 abbrev envL (m : MachineData) (ret : BitVec 64 := 0) : Sym.Env :=
-  Sym.Env.ofMachine m [(r.base, frameRegion), (r.base - 16#64, 16),
-    ((label NativeRustcX64.layerHeightsLabel).toBitVec, 24),
-    (gotAddr "memcpy", 8), (gotAddr "memset", 8)] (fun _ ↦ 0) ret
+  { Sym.Env.ofMachine m [(r.base, frameRegion), (r.base - 16#64, 16),
+      ((label NativeRustcX64.layerHeightsLabel).toBitVec, 24),
+      (gotAddr "memcpy", 8), (gotAddr "memset", 8)] (fun _ ↦ 0) ret with
+    roRegions := [2, 3, 4] }
 
 omit [Labels] in
 theorem length_lhBytes : lhBytes.length = 24 := by decide
 
 /-- **The environment is well formed.** -/
 theorem envL_wf (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) (ret : BitVec 64) :
-    (r.envL m ret).WF := by
+    (r.envL m ret).WFRo := by
   have hb := r.base_toNat hpre
   have w0 := r.frame_wf hpre hF.2.2.2 (fun _ ↦ 0) ret
   have hlo : (r.base - 16#64).toNat = r.base.toNat - 16 := toNat_sub_ofNat (by omega)
@@ -80,7 +82,7 @@ theorem envL_wf (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) (ret : BitVec 
   have hA := hpre.2.2.2.2.1
   have hbw := r.below_toNat hpre
   simp only [sphincsStack_eq] at hA hbw
-  refine Sym.Env.wf_of ⟨⟨w0.mapped 0 _ _ rfl, w0.noWrap 0 _ _ rfl⟩,
+  refine Sym.Env.wf_of_ro ⟨⟨w0.mapped 0 _ _ rfl, w0.noWrap 0 _ _ rfl⟩,
     ⟨w0.mapped 1 _ _ rfl, w0.noWrap 1 _ _ rfl⟩, ⟨fun i hi ↦ ?_, hw⟩,
     ⟨w0.mapped 2 _ _ rfl, w0.noWrap 2 _ _ rfl⟩,
     ⟨w0.mapped 3 _ _ rfl, w0.noWrap 3 _ _ rfl⟩, trivial⟩ ?_
@@ -96,32 +98,33 @@ theorem envL_wf (hpre : r.Pre) {m : MachineData} (hF : r.Frame m) (ret : BitVec 
       unfold Apart at *
       rw [hlo]
       omega
-    refine List.Pairwise.cons ?_ (List.Pairwise.cons ?_ (List.Pairwise.cons ?_ ?_))
-    · intro e he
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at he
-      rcases he with rfl | rfl | rfl | rfl
-      · exact h01
-      · exact h02
-      · exact (r.got_apart_frame hpre (by simp)).symm
-      · exact (r.got_apart_frame hpre (by simp)).symm
-    · intro e he
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at he
-      rcases he with rfl | rfl | rfl
-      · exact h12
-      · exact (r.got_apart_below hpre (by simp)).symm
-      · exact (r.got_apart_below hpre (by simp)).symm
-    · intro e he
-      simp only [List.mem_cons, List.not_mem_nil, or_false] at he
-      rcases he with rfl | rfl
-      · exact (r.got_apart_lh hpre (by simp)).symm
-      · exact (r.got_apart_lh hpre (by simp)).symm
-    · simpa using (r.got hpre).2
+    intro i j b b' n n' hro hne hi hj
+    have hi5 : i < 5 := by
+      have := (List.getElem?_eq_some_iff.mp hi).1
+      simpa [envL] using this
+    have hj5 : j < 5 := by
+      have := (List.getElem?_eq_some_iff.mp hj).1
+      simpa [envL] using this
+    have hi2 : i < 2 := by
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hro
+      omega
+    interval_cases i <;> interval_cases j
+    · exact absurd rfl hne
+    · cases hi; cases hj; exact h01
+    · cases hi; cases hj; exact h02
+    · cases hi; cases hj; exact (r.got_apart_frame hpre (by simp)).symm
+    · cases hi; cases hj; exact (r.got_apart_frame hpre (by simp)).symm
+    · cases hi; cases hj; exact h01.symm
+    · exact absurd rfl hne
+    · cases hi; cases hj; exact h12
+    · cases hi; cases hj; exact (r.got_apart_below hpre (by simp)).symm
+    · cases hi; cases hj; exact (r.got_apart_below hpre (by simp)).symm
 
 omit [Labels] in
-/-- Keep the height table at region 2; loader slots occupy regions 3 and 4. -/
+/-- Keep the height table at region 2; loader slots occupy regions 3 and 4 (all read-only). -/
 def frameStateL (known : List (Reg64 × Sym))
     (aliases : List (Sym × Nat × Int) := []) : Sym.SState :=
-  ((Sym.init [frameRegion, 16, 24, 8, 8] ((.rsp, .ptr 0 0) :: known)
+  ((Sym.initRo [2, 3, 4] [frameRegion, 16, 24, 8, 8] ((.rsp, .ptr 0 0) :: known)
     [(NativeRustcX64.layerHeightsLabel, 2)] []
     (frameAliases ++ [(.gotSlot "memcpy", 3, 0), (.gotSlot "memset", 4, 0)] ++ aliases)).withKnownBytes
       3 0 8 (.label "memcpy")).withKnownBytes 4 0 8 (.label "memset")
@@ -136,7 +139,7 @@ theorem match_frameL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} (hF : r.
     Sym.Match (r.envL m ret) (frameStateL known aliases) m := by
   apply Sym.Match.withKnownBytes
   · apply Sym.Match.withKnownBytes
-    · apply Sym.match_ofMachine
+    · apply Sym.match_ofMachine_ro
       · exact ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
       · exact ⟨by
           show rspOf m = r.base + BitVec.ofInt 64 0
@@ -151,10 +154,10 @@ theorem match_frameL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} (hF : r.
         · simp [Sym.eval, Sym.Env.base, gotAddr]
         · simp [Sym.eval, Sym.Env.base, gotAddr]
     · intro i hi
-      simpa [Sym.eval, Sym.Env.base, envL] using
+      simpa [Sym.eval, Sym.Env.base] using
         r.got_byte hpre hF.2.2.1 (by simp : "memcpy" ∈ _) hi
   · intro i hi
-    simpa [Sym.eval, Sym.Env.base, envL] using
+    simpa [Sym.eval, Sym.Env.base] using
       r.got_byte hpre hF.2.2.1 (by simp : "memset" ∈ _) hi
 
 /-- The places a block's writes (`frameWrites`) cover are in the stack area off the saved
@@ -183,10 +186,10 @@ theorem written_areaL (hpre : r.Pre) {m : MachineData} {ret : BitVec 64} {S : Sy
 /-- **At a call after a block** run in this environment: RSP 8 below the base. -/
 theorem AtCall.of_matchL (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} (hF : r.Frame m)
     {S : Sym.SState}
-    (hm : Sym.Match (r.envL m ret) S m') (hwf : (r.envL m ret).WF)
+    (hm : Sym.Match (r.envL m ret) S m') (hwf : (r.envL m ret).WFRo)
     (hsp : S.reg .rsp = some (.ptr 0 (-8))) (hw : frameWrites S = true) : r.AtCall m' := by
   have hF' := Frame.of_change hF.2.1 hF.2.2.1 hF.2.2.2 (m' := { m' with regs := m.regs }) hF.1
-    (hm.sameOutside hwf) (r.written_areaL hpre hw) (hm.kept hwf)
+    (hm.sameOutside_ro hwf) (r.written_areaL hpre hw) (hm.kept_ro hwf)
   refine ⟨?_, hF'.2.1, hF'.2.2.1, hF'.2.2.2⟩
   rw [rspOf, hm.regs .rsp _ hsp]
   show r.base + BitVec.ofInt 64 (-8) + 8#64 = r.base
@@ -195,12 +198,12 @@ theorem AtCall.of_matchL (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} (
 
 /-- **Bytes a block does not write are kept**, in this environment. -/
 theorem bytesAt_keptL (hpre : r.Pre) {m m' : MachineData} {ret : BitVec 64} {S : Sym.SState}
-    (hm : Sym.Match (r.envL m ret) S m') (hwf : (r.envL m ret).WF) {o : Nat} {bs : List UInt8}
+    (hm : Sym.Match (r.envL m ret) S m') (hwf : (r.envL m ret).WFRo) {o : Nat} {bs : List UInt8}
     (ho : o + bs.length ≤ 21624) (h : BytesAt m.dmem (r.off o) bs)
     (hn : noWriteIn S o bs.length = true) : BytesAt m'.dmem (r.off o) bs := by
   have hb := r.base_toNat hpre
   have hoff := r.off_toNat hpre (a := o) (by omega)
-  refine bytesAt_of_sameOutside h (hm.sameOutside hwf) fun i hi ⟨w, hwm, b, sz, hr, h1, h2⟩ ↦ ?_
+  refine bytesAt_of_sameOutside h (hm.sameOutside_ro hwf) fun i hi ⟨w, hwm, b, sz, hr, h1, h2⟩ ↦ ?_
   simp only [noWriteIn, List.all_eq_true, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq,
     decide_eq_true_eq] at hn
   rw [Sym.toNat_add_ofNat _ _ (by omega), hoff] at h1 h2

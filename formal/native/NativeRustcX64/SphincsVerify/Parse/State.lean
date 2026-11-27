@@ -25,22 +25,24 @@ below the frame aliased, and the memcpy and memset GOT slots seeded in regions 2
 def fS (k : List (Reg64 × Sym)) (b : List (Sym × Nat) := []) : SState :=
   Run.frameState k [] b
 
-/-- At `b0` (entry): frame + below + GOT slots + 32-byte public key at region 4 (`RDI`). -/
+/-- At `b0` (entry): frame + below + GOT slots + 32-byte public key at region 4 (`RDI`).
+Regions 2, 3, 4 (GOT slots and `pk`) are read-only. -/
 def entryS : SState :=
-  ((init [21632, 16, 8, 8, 32] [(.rsp, .ptr 0 21624), (.rdi, .ptr 4 0)] [] []
+  ((initRo [2, 3, 4] [21632, 16, 8, 8, 32] [(.rsp, .ptr 0 21624), (.rdi, .ptr 4 0)] [] []
     (Run.frameAliases ++ [(.gotSlot "memcpy", 2, 0), (.gotSlot "memset", 3, 0)])).withKnownBytes
       2 0 8 (.label "memcpy")).withKnownBytes 3 0 8 (.label "memset")
 
-/-- The frame state plus region 4 the 7740-byte raw signature (`RBX` its base). -/
+/-- The frame state plus region 4 the 7740-byte raw signature (`RBX` its base).
+Regions 2, 3, 4 (GOT slots and `sig`) are read-only. -/
 def fSig (k : List (Reg64 × Sym)) : SState :=
-  ((init [21632, 16, 8, 8, 7740] ((.rsp, .ptr 0 0) :: (.rbx, .ptr 4 0) :: k) [] []
+  ((initRo [2, 3, 4] [21632, 16, 8, 8, 7740] ((.rsp, .ptr 0 0) :: (.rbx, .ptr 4 0) :: k) [] []
     (Run.frameAliases ++ [(.gotSlot "memcpy", 2, 0), (.gotSlot "memset", 3, 0)])).withKnownBytes
       2 0 8 (.label "memcpy")).withKnownBytes 3 0 8 (.label "memset")
 
 /-- At `b1` (FORS opening turn): frame + below + GOT + 176-byte opening at region 4,
-`RBX + R12` aliased to offset `160` in region 4. -/
+`RBX + R12` aliased to offset `160` in region 4. Regions 2, 3, 4 are read-only. -/
 def openS : SState :=
-  ((init [21632, 16, 8, 8, 176]
+  ((initRo [2, 3, 4] [21632, 16, 8, 8, 176]
     [(.rsp, .ptr 0 0), (.r15, .ptr 0 576), (.r14, .ptr 0 12780), (.r13, .ptr 0 560),
       (.rbp, .label "memcpy")] [] []
     (Run.frameAliases ++ [(.gotSlot "memcpy", 2, 0), (.gotSlot "memset", 3, 0),

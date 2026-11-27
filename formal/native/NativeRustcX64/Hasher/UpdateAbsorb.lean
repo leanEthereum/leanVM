@@ -57,7 +57,7 @@ set_option linter.unusedSimpArgs false in
 /-- **Absorbing a full buffer.** -/
 theorem absorb_spec (hp : PlacedIn code sec k)
     (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
-    {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} {Hc : List UInt8}
+    {m0 m : MachineData} (hpre : UpdatePreElf m0) {c : Nat} {Hc : List UInt8}
     (hfu : Full m0 c Hc m) :
     Eventually (elfStep1 ElfHost.exe)
       (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b8Offset) ∧ Absorbed m0 c Hc st.data)

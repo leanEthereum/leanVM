@@ -162,7 +162,7 @@ theorem addr_add (b : BitVec 64) (o i : Nat) :
     b + BitVec.ofNat 64 o + BitVec.ofNat 64 i = b + BitVec.ofNat 64 (o + i) := by
   rw [BitVec.add_assoc, BitVec.ofNat_add]
 
-theorem Match.get?_some (hm : Match env S m) (hwf : env.WF) {r : Nat} {b : BitVec 64} {sz i : Nat}
+theorem Match.get?_some_ro (hm : Match env S m) (hwf : env.WFRo) {r : Nat} {b : BitVec 64} {sz i : Nat}
     (hr : env.regions[r]? = some (b, sz)) (hi : i < sz) :
     (m.dmem.get? (b + BitVec.ofNat 64 i)).isSome := by
   rw [hm.mem r b sz hr i hi]
@@ -170,6 +170,11 @@ theorem Match.get?_some (hm : Match env S m) (hwf : env.WF) {r : Nat} {b : BitVe
   split
   · rfl
   · exact hwf.mapped r b sz hr i hi
+
+theorem Match.get?_some (hm : Match env S m) (hwf : env.WF) {r : Nat} {b : BitVec 64} {sz i : Nat}
+    (hr : env.regions[r]? = some (b, sz)) (hi : i < sz) :
+    (m.dmem.get? (b + BitVec.ofNat 64 i)).isSome :=
+  hm.get?_some_ro hwf.toWFRo hr hi
 
 /-! ## Loads -/
 
@@ -188,7 +193,7 @@ def memByteD (env : Env) (ws : List Write) (r : Nat) (b : BitVec 64) (j : Nat) :
   | some (v, t) => byteOf (v.eval env) t
   | none => (env.mem0.get? (b + BitVec.ofNat 64 j)).getD 0
 
-theorem memByte_eq (hwf : env.WF) {ws : List Write} {r : Nat} {b : BitVec 64} {sz j : Nat}
+theorem memByte_eq_ro (hwf : env.WFRo) {ws : List Write} {r : Nat} {b : BitVec 64} {sz j : Nat}
     (hb : env.regions[r]? = some (b, sz)) (hj : j < sz) :
     memByte env ws r b j = some (memByteD env ws r b j) := by
   unfold memByte memByteD
@@ -198,6 +203,11 @@ theorem memByte_eq (hwf : env.WF) {ws : List Write} {r : Nat} {b : BitVec 64} {s
     have := hwf.mapped r b sz hb j hj
     revert this
     cases env.mem0.get? (b + BitVec.ofNat 64 j) <;> simp
+
+theorem memByte_eq (hwf : env.WF) {ws : List Write} {r : Nat} {b : BitVec 64} {sz j : Nat}
+    (hb : env.regions[r]? = some (b, sz)) (hj : j < sz) :
+    memByte env ws r b j = some (memByteD env ws r b j) :=
+  memByte_eq_ro hwf.toWFRo hb hj
 
 omit [Labels] in
 theorem natOfBytes_lt (bs : List UInt8) : Nat.ofBytes bs < 2 ^ (8 * bs.length) := by
@@ -249,7 +259,7 @@ theorem eval_assemble {ws : List Write} {r : Nat} {b : BitVec 64} (hb : env.base
     omega
 
 /-- A load of bytes no write covers is `env.mem0`'s. -/
-theorem Match.load_mem0 (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64}
+theorem Match.load_mem0_ro (hm : Match env S m) (hwf : env.WFRo) {r o n : Nat} {b : BitVec 64}
     {sz : Nat} (hb : env.regions[r]? = some (b, sz)) (hle : o + n ≤ sz) (hn : n ≤ 8)
     (hno : ∀ j, o ≤ j → j < o + n → findWrite r j S.mem = none) :
     Mem.loadInt m.dmem (b + BitVec.ofNat 64 o) n = some ((env.load r o n).toNat : Int) ∧
@@ -279,9 +289,16 @@ theorem Match.load_mem0 (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : B
     have h3 : ((2 ^ (8 * n) : Nat) : Int) = 2 ^ (8 * n) := by rw [Int.natCast_pow]; rfl
     omega
 
+theorem Match.load_mem0 (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64}
+    {sz : Nat} (hb : env.regions[r]? = some (b, sz)) (hle : o + n ≤ sz) (hn : n ≤ 8)
+    (hno : ∀ j, o ≤ j → j < o + n → findWrite r j S.mem = none) :
+    Mem.loadInt m.dmem (b + BitVec.ofNat 64 o) n = some ((env.load r o n).toNat : Int) ∧
+      (env.load r o n).toNat < 2 ^ (8 * n) :=
+  hm.load_mem0_ro hwf.toWFRo hb hle hn hno
+
 /-- The value of the symbolic load of `n` bytes at `o` in region `r` is the integer Kraken loads
 there. -/
-theorem Match.loadSym (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64} {sz : Nat}
+theorem Match.loadSym_ro (hm : Match env S m) (hwf : env.WFRo) {r o n : Nat} {b : BitVec 64} {sz : Nat}
     (hb : env.regions[r]? = some (b, sz)) (hle : o + n ≤ sz) (hn : n ≤ 8) :
     Mem.loadInt m.dmem (b + BitVec.ofNat 64 o) n =
         some (((loadSym S.mem r o n).eval env).toNat : Int) ∧
@@ -290,14 +307,14 @@ theorem Match.loadSym (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : Bit
   have hgen : Mem.loadInt m.dmem (b + BitVec.ofNat 64 o) n = some ((Nat.ofBytes
       ((List.range n).map fun i => memByteD env S.mem r b (o + i)) : Nat) : Int) := by
     rw [loadInt_of_get? _ _ n (fun i => memByteD env S.mem r b (o + i)) (fun i hi => by
-      rw [addr_add, hm.mem r b sz hb (o + i) (by omega), memByte_eq hwf hb (by omega)]),
+      rw [addr_add, hm.mem r b sz hb (o + i) (by omega), memByte_eq_ro hwf hb (by omega)]),
       ofBytes_natCast]
   have hlt := natOfBytes_lt ((List.range n).map fun i => memByteD env S.mem r b (o + i))
   rw [List.length_map, List.length_range] at hlt
   cases hf : firstOverlap r o n S.mem with
   | none =>
     simp only [NativeRustcX64.Sym.loadSym, hf]
-    exact hm.load_mem0 hwf hb hle hn fun j hj hj' => findWrite_none hf hj hj'
+    exact hm.load_mem0_ro hwf hb hle hn fun j hj hj' => findWrite_none hf hj hj'
   | some w =>
     by_cases hc : w.off ≤ o ∧ o + n ≤ w.off + w.n
     · simp only [NativeRustcX64.Sym.loadSym, hf, hc, and_self, ite_true]
@@ -321,6 +338,13 @@ theorem Match.loadSym (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : Bit
     · simp only [NativeRustcX64.Sym.loadSym, hf, hc, ite_false]
       rw [eval_assemble (Env.base_eq hb), BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
       exact ⟨hgen, hlt⟩
+
+theorem Match.loadSym (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64} {sz : Nat}
+    (hb : env.regions[r]? = some (b, sz)) (hle : o + n ≤ sz) (hn : n ≤ 8) :
+    Mem.loadInt m.dmem (b + BitVec.ofNat 64 o) n =
+        some (((loadSym S.mem r o n).eval env).toNat : Int) ∧
+      ((loadSym S.mem r o n).eval env).toNat < 2 ^ (8 * n) :=
+  hm.loadSym_ro hwf.toWFRo hb hle hn
 
 /-! ## Indexed loads -/
 

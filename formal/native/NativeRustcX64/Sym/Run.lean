@@ -91,6 +91,17 @@ theorem exec_then_elf {sec : Nat} {ds : List Directive} {k : Nat} {S S' : SState
     Eventually (elfStep1 ElfHost.exe) R ⟨m, ElfHost.addrOf sec k⟩ :=
   eventually_trans _ _ _ _ (exec_sound_elf hk hx hwf hret hm) fun st h => cont st h.1 h.2
 
+/-- `exec_then_elf` under `Env.WFRo`. -/
+theorem exec_then_elf_ro {sec : Nat} {ds : List Directive} {k : Nat} {S S' : SState} {x : Exit}
+    {m : MachineData} {R : MachineState → Prop} (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    (hx : exec ds S = some (S', x)) (hwf : env.WFRo)
+    (hret : ∀ l, x = .call l → env.ret = (ElfHost.addrOf sec (k + ds.length)).toBitVec)
+    (hm : Match env S m)
+    (cont : ∀ st, Match env S' st.data → PcOk env x (ElfHost.addrOf sec (k + ds.length)) st →
+      Eventually (elfStep1 ElfHost.exe) R st) :
+    Eventually (elfStep1 ElfHost.exe) R ⟨m, ElfHost.addrOf sec k⟩ :=
+  eventually_trans _ _ _ _ (exec_sound_elf_ro hk hx hwf hret hm) fun st h => cont st h.1 h.2
+
 /-- `exec_then_elf` from a machine state at the block's address in section `sec`. -/
 theorem exec_at_elf {sec : Nat} {ds : List Directive} {k : Nat} {S S' : SState} {x : Exit}
     {st : MachineState} {R : MachineState → Prop} (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
@@ -311,8 +322,8 @@ theorem mem_of_findWrite {r j : Nat} {ws : List Write} {v : Sym} {t : Nat}
     b.toNat + w.off ≤ a.toNat ∧
     a.toNat < b.toNat + w.off + w.n
 
-/-- **The bytes no write covers** are `env.mem0`'s. -/
-theorem Match.get?_mem0 (hm : Match env S m) (hwf : env.WF) {a : BitVec 64}
+/-- **The bytes no write covers** are `env.mem0`'s, under `Env.WFRo`. -/
+theorem Match.get?_mem0_ro (hm : Match env S m) (hwf : env.WFRo) {a : BitVec 64}
     (ha : ¬Written env S a) : m.dmem.get? a = env.mem0.get? a := by
   by_cases hin : ∃ (r : Nat) (b : BitVec 64) (sz : Nat), env.regions[r]? = some (b, sz) ∧
       b.toNat ≤ a.toNat ∧ a.toNat < b.toNat + sz
@@ -331,11 +342,25 @@ theorem Match.get?_mem0 (hm : Match env S m) (hwf : env.WF) {a : BitVec 64}
       exact absurd ⟨w, hw, b, sz, hwr ▸ hb, by omega, by omega⟩ ha
   · exact hm.outside a fun r b sz hb hc => hin ⟨r, b, sz, hb, hc⟩
 
-/-- Memory after a block without writes is `env.mem0`. -/
-theorem Match.dmem_eq (hm : Match env S m) (hwf : env.WF) (h : S.mem = []) : m.dmem = env.mem0 :=
+/-- **The bytes no write covers** are `env.mem0`'s. -/
+theorem Match.get?_mem0 (hm : Match env S m) (hwf : env.WF) {a : BitVec 64}
+    (ha : ¬Written env S a) : m.dmem.get? a = env.mem0.get? a :=
+  hm.get?_mem0_ro hwf.toWFRo ha
+
+/-- Memory after a block without writes is `env.mem0`, under `Env.WFRo`. -/
+theorem Match.dmem_eq_ro (hm : Match env S m) (hwf : env.WFRo) (h : S.mem = []) : m.dmem = env.mem0 :=
   Std.ExtHashMap.ext_getElem? fun a => by
     rw [← Std.ExtHashMap.get?_eq_getElem?, ← Std.ExtHashMap.get?_eq_getElem?]
-    exact hm.get?_mem0 hwf fun ⟨w, hw, _⟩ => by rw [h] at hw; cases hw
+    exact hm.get?_mem0_ro hwf fun ⟨w, hw, _⟩ => by rw [h] at hw; cases hw
+
+/-- Memory after a block without writes is `env.mem0`. -/
+theorem Match.dmem_eq (hm : Match env S m) (hwf : env.WF) (h : S.mem = []) : m.dmem = env.mem0 :=
+  hm.dmem_eq_ro hwf.toWFRo h
+
+/-- Memory after a block is `env.mem0` but where a write of the block covers it, under `Env.WFRo`. -/
+theorem Match.sameOutside_ro (hm : Match env S m) (hwf : env.WFRo) :
+    SameOutside env.mem0 m.dmem (Written env S) :=
+  fun _ ha => hm.get?_mem0_ro hwf ha
 
 /-- Memory after a block is `env.mem0` but where a write of the block covers it. -/
 theorem Match.sameOutside (hm : Match env S m) (hwf : env.WF) :
@@ -343,7 +368,7 @@ theorem Match.sameOutside (hm : Match env S m) (hwf : env.WF) :
   fun _ ha => hm.get?_mem0 hwf ha
 
 omit [Labels] in
-theorem Env.addr_in {env : Env} (hwf : env.WF) {r : Nat} {b : BitVec 64} {sz : Nat}
+theorem Env.addr_in_ro {env : Env} (hwf : env.WFRo) {r : Nat} {b : BitVec 64} {sz : Nat}
     (hb : env.regions[r]? = some (b, sz)) {a : BitVec 64} (h1 : b.toNat ≤ a.toNat) :
     a = b + BitVec.ofNat 64 (a.toNat - b.toNat) := by
   have hnw := hwf.noWrap r b sz hb
@@ -351,13 +376,19 @@ theorem Env.addr_in {env : Env} (hwf : env.WF) {r : Nat} {b : BitVec 64} {sz : N
   rw [toNat_add_ofNat _ _ (by omega)]
   omega
 
-/-- **Mapped bytes stay mapped**: every byte of `env.mem0` is a byte of memory after a block. -/
-theorem Match.kept (hm : Match env S m) (hwf : env.WF) : Kept env.mem0 m.dmem := by
+omit [Labels] in
+theorem Env.addr_in {env : Env} (hwf : env.WF) {r : Nat} {b : BitVec 64} {sz : Nat}
+    (hb : env.regions[r]? = some (b, sz)) {a : BitVec 64} (h1 : b.toNat ≤ a.toNat) :
+    a = b + BitVec.ofNat 64 (a.toNat - b.toNat) :=
+  Env.addr_in_ro hwf.toWFRo hb h1
+
+/-- **Mapped bytes stay mapped** under `Env.WFRo`. -/
+theorem Match.kept_ro (hm : Match env S m) (hwf : env.WFRo) : Kept env.mem0 m.dmem := by
   intro a ha
   by_cases hin : ∃ (r : Nat) (b : BitVec 64) (sz : Nat), env.regions[r]? = some (b, sz) ∧
       b.toNat ≤ a.toNat ∧ a.toNat < b.toNat + sz
   · obtain ⟨r, b, sz, hb, h1, h2⟩ := hin
-    have hab := Env.addr_in hwf hb h1
+    have hab := Env.addr_in_ro hwf hb h1
     rw [hab, hm.mem r b sz hb _ (by omega)]
     unfold memByte
     cases findWrite r (a.toNat - b.toNat) S.mem with
@@ -365,6 +396,10 @@ theorem Match.kept (hm : Match env S m) (hwf : env.WF) : Kept env.mem0 m.dmem :=
     | none => rw [← hab]; exact ha
   · rw [hm.outside a fun r b sz hb hc => hin ⟨r, b, sz, hb, hc⟩]
     exact ha
+
+/-- **Mapped bytes stay mapped**: every byte of `env.mem0` is a byte of memory after a block. -/
+theorem Match.kept (hm : Match env S m) (hwf : env.WF) : Kept env.mem0 m.dmem :=
+  hm.kept_ro hwf.toWFRo
 
 /-- The `n` bytes at `o` in region `r` after a block, as `bytesOf` reads them. -/
 theorem Match.bytesOf (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64} {sz : Nat}
@@ -414,6 +449,69 @@ theorem Env.wf_of {env : Env}
       exact this.symm
 
 omit [Labels] in
+/-- An environment with read-only regions is well formed when each region is mapped and does not
+wrap, and every writable region (`r ∉ env.roRegions`) is apart from every other region. -/
+theorem Env.wf_of_ro {env : Env}
+    (h : AllOf (fun e : BitVec 64 × Nat => Mapped env.mem0 e.1 e.2 ∧ NoWrap e.1 e.2) env.regions)
+    (hd : ∀ (r r' : Nat) (b b' : BitVec 64) (n n' : Nat), r ∉ env.roRegions → r ≠ r' →
+      env.regions[r]? = some (b, n) → env.regions[r']? = some (b', n') → Apart b n b' n') :
+    env.WFRo where
+  noWrap _ _ _ hb := (mem_of_allOf h (List.mem_of_getElem? hb)).2
+  mapped _ _ _ hb := (mem_of_allOf h (List.mem_of_getElem? hb)).1
+  disjointOf := hd
+
+/-- `match_ofMachine` for an environment and symbolic state with read-only regions `ro`. -/
+theorem match_ofMachine_ro {m : MachineData} {regions : List (BitVec 64 × Nat)}
+    {vars : Nat → BitVec 64} {ret : BitVec 64} {ro : List Nat} {sregions : List Nat}
+    {known : List (Reg64 × Sym)} {labels : List (Label × Nat)} {bounds : List (Sym × Nat)}
+    {aliases : List (Sym × Nat × Int)}
+    (hregions : RegionsOk sregions regions)
+    (hknown : AllOf (fun p =>
+      m.regs.get64 p.1 = p.2.eval { Env.ofMachine m regions vars ret with roRegions := ro }) known)
+    (hlabels : AllOf (fun p =>
+      ({ Env.ofMachine m regions vars ret with roRegions := ro }).base p.2 =
+        (Labels.label p.1).toBitVec) labels)
+    (hbounds : AllOf (fun p =>
+      (p.1.eval { Env.ofMachine m regions vars ret with roRegions := ro }).toNat < p.2) bounds)
+    (haliases : AllOf (fun p =>
+      p.1.eval { Env.ofMachine m regions vars ret with roRegions := ro } =
+        ({ Env.ofMachine m regions vars ret with roRegions := ro }).base p.2.1 +
+          BitVec.ofInt 64 p.2.2) aliases) :
+    Match { Env.ofMachine m regions vars ret with roRegions := ro }
+      { init sregions known labels bounds aliases with roRegions := ro } m where
+  regs r v h := by
+    change (init sregions known labels bounds aliases).reg r = some v at h
+    unfold SState.reg init at h
+    rw [allRegs_map_getElem?] at h
+    cases hl : known.lookup r with
+    | none =>
+      rw [hl] at h
+      cases h
+      rfl
+    | some u =>
+      rw [hl] at h
+      cases h
+      exact lookup_of_allOf (P := fun r v =>
+        m.regs.get64 r = v.eval { Env.ofMachine m regions vars ret with roRegions := ro })
+        (fun _ _ => Reg64.eq_of_beq) hknown hl
+  flags := by
+    refine ⟨fun b h => ?_, fun b h => ?_, fun b h => ?_, fun b h => ?_⟩ <;> cases h <;> rfl
+  regions r n h := regionsOk_getElem? hregions h
+  mem _ _ _ _ _ _ := rfl
+  labels l r h := lookup_of_allOf (P := fun l r =>
+    ({ Env.ofMachine m regions vars ret with roRegions := ro }).base r =
+      (Labels.label l).toBitVec) (fun _ _ h => by simpa using h) hlabels h
+  bounds x n h := mem_of_allOf (P := fun p : Sym × Nat =>
+    (p.1.eval { Env.ofMachine m regions vars ret with roRegions := ro }).toNat < p.2) hbounds h
+  aliases x r o h := lookup_of_allOf (P := fun x (ro' : Nat × Int) =>
+    x.eval { Env.ofMachine m regions vars ret with roRegions := ro } =
+      ({ Env.ofMachine m regions vars ret with roRegions := ro }).base ro'.1 +
+        BitVec.ofInt 64 ro'.2) (fun _ _ h => by simpa using h) haliases h
+  outside _ _ := rfl
+  known := by intro w h; cases h
+  roRegions := rfl
+
+omit [Labels] in
 /-- `InRange` of bytes that do not wrap is an interval of addresses. -/
 theorem inRange_iff {x a : BitVec 64} {n : Nat} (hx : x.toNat + n ≤ 2 ^ 64) :
     InRange x n a ↔ x.toNat ≤ a.toNat ∧ a.toNat < x.toNat + n := by
@@ -459,6 +557,7 @@ theorem Match.withReg (hm : Match env S m) {r : Reg64} {v : Sym}
   aliases := hm.aliases
   outside := hm.outside
   known := hm.known
+  roRegions := hm.roRegions
 
 /-- **An alias the machine state satisfies** may be added. -/
 theorem Match.withAlias (hm : Match env S m) {x : Sym} {r : Nat} {o : Int}

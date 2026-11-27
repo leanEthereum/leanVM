@@ -124,8 +124,8 @@ theorem memcpy_pre (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {a b n : N
 theorem update_pre (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {a b n : Nat}
     (h0 : RegIs m .rdi (r.off a)) (h1 : RegIs m .rsi (r.off b)) (h2 : (reg m .rdx).toNat = n)
     (ha : a + 344 ≤ 21624) (hb : b + n ≤ 21624) (hd : a + 344 ≤ b ∨ b + n ≤ a)
-    (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePre m := by
-  simp only [UpdatePre]
+    (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePreElf m := by
+  simp only [UpdatePreElf]
   rw [h2, show reg m .rdi = r.off a from h0, show reg m .rsi = r.off b from h1]
   have hN : updateStack ≤ finalizeStack := by decide
   obtain ⟨m1, w1⟩ := r.frame_mapped hpre hc.2.2.2 ha
@@ -137,17 +137,16 @@ theorem update_pre (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {a b n : N
   have hl' : l ∈ ["memcpy", "memset"] := by
     simp only [List.mem_singleton] at hl
     simp [hl]
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl
-  · exact r.got_apart_off hpre hl' ha
-  · exact r.got_apart_off hpre hl' hb
+  simp only [List.mem_singleton] at hp
+  subst hp
+  exact r.got_apart_off hpre hl' ha
 
 /-- **`Hasher::update(a, msgPtr, 32)`**'s precondition, the hasher at `a`, input the caller's message. -/
 theorem update_pre_msg (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {a : Nat}
     (h0 : RegIs m .rdi (r.off a)) (h1 : RegIs m .rsi r.msgPtr) (h2 : (reg m .rdx).toNat = 32)
     (ha : a + 344 ≤ 21624)
-    (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePre m := by
-  simp only [UpdatePre]
+    (hh : ∃ x, Keccak.HasherHolds (bytesOf m.dmem (r.off a) 344) x) : UpdatePreElf m := by
+  simp only [UpdatePreElf]
   rw [h2, show reg m .rdi = r.off a from h0, show reg m .rsi = r.msgPtr from h1]
   have hN : updateStack ≤ finalizeStack := by decide
   obtain ⟨m1, w1⟩ := r.frame_mapped hpre hc.2.2.2 ha
@@ -163,10 +162,9 @@ theorem update_pre_msg (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {a : N
   have hl' : l ∈ ["memcpy", "memset"] := by
     simp only [List.mem_singleton] at hl
     simp [hl]
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hp
-  rcases hp with rfl | rfl
-  · exact r.got_apart_off hpre hl' ha
-  · exact r.got_apart_msg hpre hl'
+  simp only [List.mem_singleton] at hp
+  subst hp
+  exact r.got_apart_off hpre hl' ha
 
 /-- **`Hasher::finalize(o, a)`**'s precondition, the hasher at `a`, the output at `o`. -/
 theorem finalize_pre (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {o a : Nat}

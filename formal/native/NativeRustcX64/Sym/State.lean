@@ -52,6 +52,8 @@ structure SState where
   aliases : List (Sym × Nat × Int) := []
   /-- Symbolic descriptions of initial memory, independent of the actual writes in `mem`. -/
   known : List Write := []
+  /-- Regions that symbolic stores cannot target (read-only memory such as inputs, `.rodata`, GOT). -/
+  roRegions : List Nat := []
   deriving DecidableEq, Repr, Lean.ToExpr
 
 /-- How a block ends. -/

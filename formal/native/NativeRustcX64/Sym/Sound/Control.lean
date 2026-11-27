@@ -44,12 +44,16 @@ theorem SState.storeAt_reg {S S' : SState} {a u : Sym} {n : Nat} (h : S.storeAt 
     | none => rw [hs] at h; cases h
     | some q =>
       rw [hs] at h
-      cases h
-      rfl
+      by_cases hro : q.1 ∈ S.roRegions
+      · simp [hro] at h
+      · simp only [hro, ↓reduceIte, Option.some.injEq] at h
+        subst h; rfl
   | some ro =>
     rw [hacc] at h
-    cases h
-    rfl
+    by_cases hro : ro.1 ∈ S.roRegions
+    · simp [hro] at h
+    · simp only [hro, ↓reduceIte, Option.some.injEq] at h
+      subst h; rfl
 
 /-- A stack address below a value is not an indexed access. -/
 theorem slots_mkSub64 (S : SState) (a : Sym) (c n : Nat) :
@@ -77,7 +81,7 @@ theorem asLabel_eq {v : Sym} {l : Label} (h : asLabel v = some l) : v = .label l
   rfl
 
 /-- An indirect target is accepted only with a proof that the operand is the label's address. -/
-theorem Match.target {S : SState} {m : MachineData} (hm : Match env S m) (hwf : env.WF)
+theorem Match.target {S : SState} {m : MachineData} (hm : Match env S m) (hwf : env.WFRo)
     {t : RelRegOrMem} {l : Label} (h : S.target t = some l) (p : Std.Rco Int64)
     {ret : BitVec 64 → MachineData → Effects} {post : MachineState → Prop}
     (hret : (ret (Labels.label l).toBitVec m).All post) :

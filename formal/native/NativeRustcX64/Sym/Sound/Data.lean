@@ -33,7 +33,7 @@ theorem ok_mov (dst : Dst w) (src : Operand w) : OpOk env (.mov dst src) := by
 
 theorem movx_ok (op : UnOp) {w' : Width} (f : w'.type → w.type)
     (hf : ∀ y, op.apply w y = ext w (f (low w' y))) {dst : Dst w} {src : RegOrMem w'}
-    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WFRo) (hm : Match env S m)
     (h : Step.movx op dst src S = some (S', x)) (p : Std.Rco Int64) :
     (src.interp m p (fun val s => s.set dst (f val) p (fun m' => .done ⟨m', p.upper⟩))).All
       (fun st => Match env S' st.data ∧ PcOk env x p.upper st) := by
@@ -105,7 +105,7 @@ theorem ok_sub (dst : Dst w) (src : Operand w) : OpOk env (.sub dst src) := by
 
 theorem logic_ok (op : BinOp) (f : w.type → w.type → w.type)
     (hf : ∀ y z, op.apply w y z = ext w (f (low w y) (low w z))) {dst : Dst w} {src : Operand w}
-    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WFRo) (hm : Match env S m)
     (h : Step.logic op dst src S = some (S', x)) (p : Std.Rco Int64) :
     (dst.interp m p (fun a s => src.interp s p (fun b s =>
       undefined (fun af =>

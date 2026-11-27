@@ -80,6 +80,21 @@ def UpdatePre (m : MachineData) : Prop :=
     Apart d n (stackBelow m updateStack) (updateStack + 8) ∧ Apart h 344 rcAddr 192 ∧
     GotAt m updateStack [(h, 344), (d, n)] ["memcpy"]
 
+/-- `Hasher::update`'s precondition under `ElfHost`: the read-only `memcpy` GOT slot only needs to
+be disjoint from the writable stack and hasher state `h`, not from the read-only input buffer `d`. -/
+def UpdatePreElf (m : MachineData) : Prop :=
+  let h := reg m .rdi; let d := reg m .rsi; let n := (reg m .rdx).toNat
+  StackOk m updateStack ∧ RcAt m updateStack ∧ (∃ a, Keccak.HasherHolds (bytesOf m.dmem h 344) a) ∧
+    Mapped m.dmem h 344 ∧ NoWrap h 344 ∧ Mapped m.dmem d n ∧ NoWrap d n ∧ Apart h 344 d n ∧
+    Apart h 344 (stackBelow m updateStack) (updateStack + 8) ∧
+    Apart d n (stackBelow m updateStack) (updateStack + 8) ∧ Apart h 344 rcAddr 192 ∧
+    GotAt m updateStack [(h, 344)] ["memcpy"]
+
+theorem UpdatePre.toUpdatePreElf {m : MachineData} (h : UpdatePre m) : UpdatePreElf m :=
+  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.1,
+    h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.2.1,
+    h.2.2.2.2.2.2.2.2.2.2.2.areas (by simp)⟩
+
 /-- `Hasher::update`'s postcondition. -/
 def UpdatePost (m m' : MachineData) : Prop :=
   let h := reg m .rdi; let d := reg m .rsi; let n := (reg m .rdx).toNat

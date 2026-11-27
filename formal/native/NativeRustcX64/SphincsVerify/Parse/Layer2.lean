@@ -64,8 +64,8 @@ theorem layer2_a (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m
   have hk : b22.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b22Offset) := b22_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfSig r hpre hF.2.2.2 hF.2.2.1 (fun _ ↦ 0) 0
   have hm₀ := match_sig r hpre hF hbx (k := []) (vars := fun _ ↦ 0) (ret := 0) trivial
-  refine exec_then_elf hk run_b22 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
-  have hd : st.data.dmem = m.dmem := hm'.dmem_eq hwf rfl
+  refine exec_then_elf_ro hk run_b22 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
+  have hd : st.data.dmem = m.dmem := hm'.dmem_eq_ro hwf rfl
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r12]) hm₀ hm' (by decide)
   have hF₁ : r.Frame st.data := frame_of_block r hpre hF rfl rfl hm' hwf rfl (by decide)
   have h15 : Low4 (reg st.data .r15) (slice r.sigB 6552 4) :=
@@ -126,7 +126,7 @@ theorem layer2_b (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m
       h12.bswap.trunc
   have hc0_mem : BytesAt m.dmem (r.off 24) (slice r.sigB 4240 4) :=
     hL.get (o := 24) (n := 4) (by simp [L2, L1, L0c])
-  have hc0_load : Low4 ((Env.ofMachine m (regsSig r) (fun _ ↦ 0) (r.pc b26Offset).toBitVec).load 0 24 4)
+  have hc0_load : Low4 ((envExt m (regsSig r) (fun _ ↦ 0) (r.pc b26Offset).toBitVec).load 0 24 4)
       (slice r.sigB 4240 4) :=
     Low4.load (length_slice (by rw [r.hsig]; decide)) (by simpa [Run.off, Env.base, regsSig, Run.frameRegs] using hc0_mem)
   have hL₁ := Facts.of_block r rfl hm₁ hL (by facts_dec3)

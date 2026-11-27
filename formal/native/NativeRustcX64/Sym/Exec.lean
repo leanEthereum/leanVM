@@ -564,13 +564,13 @@ def loadAt (S : SState) (a : Sym) (n : Nat) : Option Sym :=
   | none => S.loadOne a n
 
 /-- A store of the low `n` bytes of `v` at `a`: at a constant offset in a region, else to the
-slots of an index with a bound (`storeSlots`). -/
+slots of an index with a bound (`storeSlots`). Refuses writes to `roRegions`. -/
 def storeAt (S : SState) (a : Sym) (n : Nat) (v : Sym) : Option SState :=
   match S.access a n with
-  | some (r, o) => some (S.store r o n v)
+  | some (r, o) => if r ∈ S.roRegions then none else some (S.store r o n v)
   | none =>
     match S.slots a n with
-    | some (r, o, x, s, B) => some (S.storeSlots r o s n x v B)
+    | some (r, o, x, s, B) => if r ∈ S.roRegions then none else some (S.storeSlots r o s n x v B)
     | none => none
 
 /-- A register or memory operand of width `w` (`RegOrMem.interp`); its low `w` bits are the

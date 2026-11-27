@@ -305,9 +305,7 @@ theorem real_elf_verify_correct
     (hPkBuf : ReadOnlyBuf initState.dmem (reg initState .rdi) pkBytes.toList initState (sphincsStackSize + retAddrSize))
     (hMsgBuf : ReadOnlyBuf initState.dmem (reg initState .rsi) msgBytes.toList initState (sphincsStackSize + retAddrSize))
     (hSigBuf : ReadOnlyBuf initState.dmem (reg initState .rdx) sigBytes.toList initState (sphincsStackSize + retAddrSize))
-    (hGotSlots : GotSlotsOk initState sphincsStackSize
-      [(reg initState .rdi, pkSize), (reg initState .rsi, msgSize), (reg initState .rdx, sigSize),
-        (layerHeightsAddr, layerHeightsSize)] ["memcpy", "memset"]) :
+    (hGotSlots : GotSlotsOk initState sphincsStackSize ["memcpy", "memset"]) :
     Eventually (elfStep1 ElfHost.exe)
       (fun finalState ↦
         finalState.pc = retAddr ∧
@@ -337,9 +335,7 @@ theorem real_elf_verify_confined
     (hPkBuf : ReadOnlyBuf initState.dmem (reg initState .rdi) pkBytes.toList initState (sphincsStackSize + retAddrSize))
     (hMsgBuf : ReadOnlyBuf initState.dmem (reg initState .rsi) msgBytes.toList initState (sphincsStackSize + retAddrSize))
     (hSigBuf : ReadOnlyBuf initState.dmem (reg initState .rdx) sigBytes.toList initState (sphincsStackSize + retAddrSize))
-    (hGotSlots : GotSlotsOk initState sphincsStackSize
-      [(reg initState .rdi, pkSize), (reg initState .rsi, msgSize), (reg initState .rdx, sigSize),
-        (layerHeightsAddr, layerHeightsSize)] ["memcpy", "memset"]) :
+    (hGotSlots : GotSlotsOk initState sphincsStackSize ["memcpy", "memset"]) :
     let allowedRegions := [
       (stackBottomAddr initState sphincsStackSize, sphincsStackSize + retAddrSize),
       (reg initState .rdi, pkSize), (reg initState .rsi, msgSize), (reg initState .rdx, sigSize),
@@ -524,9 +520,7 @@ private theorem witness_premises :
     ReadOnlyBuf witnessState.dmem (reg witnessState .rdi) (Vector.replicate pkSize 0).toList witnessState (sphincsStackSize + retAddrSize) ∧
     ReadOnlyBuf witnessState.dmem (reg witnessState .rsi) (Vector.replicate msgSize 0).toList witnessState (sphincsStackSize + retAddrSize) ∧
     ReadOnlyBuf witnessState.dmem (reg witnessState .rdx) (Vector.replicate sigSize 0).toList witnessState (sphincsStackSize + retAddrSize) ∧
-    GotSlotsOk witnessState sphincsStackSize
-      [(reg witnessState .rdi, pkSize), (reg witnessState .rsi, msgSize), (reg witnessState .rdx, sigSize),
-        (layerHeightsAddr, layerHeightsSize)] ["memcpy", "memset"] := by
+    GotSlotsOk witnessState sphincsStackSize ["memcpy", "memset"] := by
   have hrcLen : roundConstsBytes.length = 192 := roundConstsSize_eq
   have hlhLen : layerHeightsBytes.length = 24 := layerHeightsBytes_length
   have hgot1Len : (Int.toBytes 8 (Labels.label "memcpy").toBitVec.toInt).length = 8 := Int.toBytes_length _ _
@@ -643,26 +637,14 @@ private theorem witness_premises :
   · refine ⟨fun l hl => ?_, ?_⟩
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hl
       rcases hl with rfl | rfl
-      · refine ⟨by rw [hdmem]; exact hgot1B, by change NoWrap ({got_memcpy:#x} : BitVec 64) 8; unfold NoWrap; omega,
+      · exact ⟨by rw [hdmem]; exact hgot1B, by change NoWrap ({got_memcpy:#x} : BitVec 64) 8; unfold NoWrap; omega,
           by change Apart ({got_memcpy:#x} : BitVec 64) 8 (rspOf witnessState - BitVec.ofNat 64 sphincsStackSize) (sphincsStackSize + 8)
              rw [hrsp]; unfold Apart; omega,
-          fun a ha => ?_⟩
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
-        rcases ha with rfl | rfl | rfl | rfl
-        · change Apart ({got_memcpy:#x} : BitVec 64) 8 wPkAddr.toBitVec pkSize; unfold Apart; omega
-        · change Apart ({got_memcpy:#x} : BitVec 64) 8 wMsgAddr.toBitVec msgSize; unfold Apart; omega
-        · change Apart ({got_memcpy:#x} : BitVec 64) 8 wSigAddr.toBitVec sigSize; unfold Apart; omega
-        · rw [real_lhAddr]; change Apart ({got_memcpy:#x} : BitVec 64) 8 ({lh_vaddr:#x} : BitVec 64) 24; unfold Apart; omega
-      · refine ⟨by rw [hdmem]; exact hgot2B, by change NoWrap ({got_memset:#x} : BitVec 64) 8; unfold NoWrap; omega,
+          fun _ ha => nomatch ha⟩
+      · exact ⟨by rw [hdmem]; exact hgot2B, by change NoWrap ({got_memset:#x} : BitVec 64) 8; unfold NoWrap; omega,
           by change Apart ({got_memset:#x} : BitVec 64) 8 (rspOf witnessState - BitVec.ofNat 64 sphincsStackSize) (sphincsStackSize + 8)
              rw [hrsp]; unfold Apart; omega,
-          fun a ha => ?_⟩
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
-        rcases ha with rfl | rfl | rfl | rfl
-        · change Apart ({got_memset:#x} : BitVec 64) 8 wPkAddr.toBitVec pkSize; unfold Apart; omega
-        · change Apart ({got_memset:#x} : BitVec 64) 8 wMsgAddr.toBitVec msgSize; unfold Apart; omega
-        · change Apart ({got_memset:#x} : BitVec 64) 8 wSigAddr.toBitVec sigSize; unfold Apart; omega
-        · rw [real_lhAddr]; change Apart ({got_memset:#x} : BitVec 64) 8 ({lh_vaddr:#x} : BitVec 64) 24; unfold Apart; omega
+          fun _ ha => nomatch ha⟩
     · simp only [List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
         List.Pairwise.nil, and_true, forall_eq]
       refine ⟨?_, fun _ h => h.elim⟩

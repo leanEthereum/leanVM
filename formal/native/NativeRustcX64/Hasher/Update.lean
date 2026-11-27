@@ -71,7 +71,7 @@ set_option linter.unusedSimpArgs false in
 theorem update_spec_elf (hp : PlacedIn code sec k)
     (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
     (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
-    ElfSpec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePre
+    ElfSpec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePreElf
       UpdatePost := by
   intro m0 hpre
   have g := geo_of hpre
@@ -255,13 +255,15 @@ theorem update_spec [Host] {k : Nat} (hp : Placed code k)
     (hmemcpy : Spec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
     (hkf : Spec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost) :
     Spec (Labels.label NativeRustcX64.Common.Update.entryLabel) UpdatePre UpdatePost :=
-  ElfSpec.toSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Update.entryLabel)
-    (P := fun [Labels] => UpdatePre) (Q := fun [Labels] => UpdatePost)
-    (@update_spec_elf (Host.toElfHost _) 0 k hp.toPlacedIn
-      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Memcpy.entryLabel)
-        (P := fun [Labels] => MemcpyPre) (Q := fun [Labels] => MemcpyPost) hmemcpy)
-      (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.KeccakF.entryLabel)
-        (P := fun [Labels] => KeccakFPre) (Q := fun [Labels] => KeccakFPost) hkf))
+  fun m hpre =>
+    ElfSpec.toSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Update.entryLabel)
+      (P := fun [Labels] => UpdatePreElf) (Q := fun [Labels] => UpdatePost)
+      (@update_spec_elf (Host.toElfHost _) 0 k hp.toPlacedIn
+        (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.Memcpy.entryLabel)
+          (P := fun [Labels] => MemcpyPre) (Q := fun [Labels] => MemcpyPost) hmemcpy)
+        (spec_to_elfSpec (entry := fun [Labels] => Labels.label NativeRustcX64.Common.KeccakF.entryLabel)
+          (P := fun [Labels] => KeccakFPre) (Q := fun [Labels] => KeccakFPost) hkf))
+      m hpre.toUpdatePreElf
 
 end
 

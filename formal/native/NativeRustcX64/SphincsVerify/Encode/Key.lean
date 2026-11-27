@@ -233,7 +233,7 @@ theorem b104_spec (r : Run) (hp : PlacedIn Sphincs.SphincsVerify.code r.sec r.k)
       hbp.trans (r.ptr_evalL m ret _).symm, h13.trans (r.ptr_evalL m ret _).symm,
       h15.trans (r.ptr_evalL m ret _).symm, trivial⟩
     ⟨(r.load_word rfl rfl h176).trans (r.ptr_evalL m ret _), trivial⟩
-  refine Sym.exec_then_elf hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦ ?_
+  refine Sym.exec_then_elf_ro hk hx hwf (fun _ _ ↦ rfl) hm fun st hm' hpc ↦ ?_
   have hc1 := Run.AtCall.of_matchL r hpre hF hm' hwf hsp hfw
   have hH := r.load_height hpre ret hF hl
   have hE := r.eS_toNat (ret := ret) h568 hl

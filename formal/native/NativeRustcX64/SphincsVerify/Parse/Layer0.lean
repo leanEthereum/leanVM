@@ -62,7 +62,7 @@ variable (r : Run) [ElfHost]
 /-- Layer `l`'s counter bytes loaded from region 4 (`sigPtr`). -/
 theorem low4_sig_counter {m : MachineData} (hpre : r.Pre) (hS : SameOutside r.m0.dmem m.dmem r.StackArea)
     {off : Nat} (hoff : off + 4 ≤ 7740) {vars : Nat → BitVec 64} {ret : BitVec 64} :
-    Low4 ((Env.ofMachine m (regsSig r) vars ret).load 4 off 4) (slice r.sigB off 4) := by
+    Low4 ((envExt m (regsSig r) vars ret).load 4 off 4) (slice r.sigB off 4) := by
   refine Low4.load (length_slice (by rw [r.hsig]; omega)) ?_
   simpa [Env.base, regsSig, Run.frameRegs] using sig_slice r hpre hS hoff
 
@@ -92,7 +92,7 @@ theorem layer0_a (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m
   have hk6 : b6.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b6Offset) := b6_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfSig r hpre hF₂.2.2.2 hF₂.2.2.1 (fun _ ↦ 0) 0
   have hm₀ := match_sig r hpre hF₂ hbx₂ (k := []) (vars := fun _ ↦ 0) (ret := 0) trivial
-  refine exec_then_elf hk6 run_b6 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
+  refine exec_then_elf_ro hk6 run_b6 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r14, .r15]) hm₀ hm' (by decide)
   have hF₃ : r.Frame st.data := frame_of_block r hpre hF₂ rfl rfl hm' hwf rfl (by decide)
   have hc0 : BytesAt st.data.dmem (r.off 24) (slice r.sigB 4240 4) :=

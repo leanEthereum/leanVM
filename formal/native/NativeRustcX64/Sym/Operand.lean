@@ -21,7 +21,7 @@ public section
 addresses) ends in a state the symbolic step's `S'` describes, at the pc its exit says; a call
 pushes `env.ret`, which must be the address after it. -/
 @[expose] def OpOk [Labels] (env : Env) {w : Width} (op : Operation w) : Prop :=
-  ∀ (S S' : SState) (x : Exit) (m : MachineData) (p : Std.Rco Int64), env.WF → Match env S m →
+  ∀ (S S' : SState) (x : Exit) (m : MachineData) (p : Std.Rco Int64), env.WFRo → Match env S m →
     stepOp op S = some (S', x) → (∀ l, x = .call l → env.ret = p.upper.toBitVec) →
     (op.interp p m (fun m' => .done ⟨m', p.upper⟩)
       (fun a m' => .done ⟨m', a⟩)).All
@@ -94,7 +94,7 @@ theorem Match.setR (hm : Match env S m) {w : Width} {r : Reg w} {u : Sym} {S' : 
 /-! ## Memory -/
 
 /-- A load Kraken performs where the symbolic executor loads `v`. -/
-theorem load_All (hm : Match env S m) (hwf : env.WF) {w : Width} {A : BitVec 64} {a v : Sym}
+theorem load_All (hm : Match env S m) (hwf : env.WFRo) {w : Width} {A : BitVec 64} {a v : Sym}
     (hA : a.eval env = A) (hv : S.loadAt a w.bytes = some v)
     {ret : w.type → MachineData → Effects} {post : MachineState → Prop}
     (hret : (v.eval env).toNat < 2 ^ (8 * w.bytes) → (ret (low w (v.eval env)) m).All post) :
@@ -108,7 +108,7 @@ theorem load_All (hm : Match env S m) (hwf : env.WF) {w : Width} {A : BitVec 64}
   exact hret hlt
 
 /-- A store Kraken performs where the symbolic executor stores `u`. -/
-theorem store_All (hm : Match env S m) (hwf : env.WF) {w : Width} {A : BitVec 64} {a u : Sym}
+theorem store_All (hm : Match env S m) (hwf : env.WFRo) {w : Width} {A : BitVec 64} {a u : Sym}
     {S' : SState} (hA : a.eval env = A) (hs : S.storeAt a w.bytes u = some S') {x : w.type}
     (hx : low w (u.eval env) = x) {ret : MachineData → Effects} {post : MachineState → Prop}
     (hret : ∀ m', Match env S' m' → (ret m').All post) :
@@ -132,20 +132,23 @@ theorem SState.storeAt_loadOne {S S' : SState} {a u : Sym} {n : Nat}
   | some ro =>
     obtain ⟨r, o⟩ := ro
     rw [hacc] at h
-    cases h
-    have : (S.store r o n u).access a n = some (r, o) := hacc
-    unfold SState.loadOne
-    rw [this]
-    show some (loadSym (⟨r, o, n, u⟩ :: _) r o n) = _
-    unfold loadSym
-    rw [firstOverlap_cons, ite_pos ⟨rfl, by dsimp only; omega, by dsimp only; omega⟩]
-    simp
+    by_cases hro : r ∈ S.roRegions
+    · simp [hro] at h
+    · simp only [hro, ↓reduceIte, Option.some.injEq] at h
+      subst h
+      have : (S.store r o n u).access a n = some (r, o) := hacc
+      unfold SState.loadOne
+      rw [this]
+      show some (loadSym (⟨r, o, n, u⟩ :: _) r o n) = _
+      unfold loadSym
+      rw [firstOverlap_cons, ite_pos ⟨rfl, by dsimp only; omega, by dsimp only; omega⟩]
+      simp
 
 /-! ## Operands -/
 
 /-- **A register or memory operand is Kraken's**: its value is the low `w` bits of the symbolic
 value read. -/
-theorem Match.readRM (hm : Match env S m) (hwf : env.WF) {w : Width} {o : RegOrMem w} {v : Sym}
+theorem Match.readRM (hm : Match env S m) (hwf : env.WFRo) {w : Width} {o : RegOrMem w} {v : Sym}
     (h : S.readRM o = some v) (p : Std.Rco Int64) {ret : w.type → MachineData → Effects}
     {post : MachineState → Prop} (hret : (ret (low w (v.eval env)) m).All post) :
     (o.interp m p ret).All post := by
@@ -160,7 +163,7 @@ theorem Match.readRM (hm : Match env S m) (hwf : env.WF) {w : Width} {o : RegOrM
     exact load_All hm hwf (hm.addr hxa p).symm hv fun _ => hret
 
 /-- **An operand is Kraken's**: its value is the low `w` bits of the symbolic value read. -/
-theorem Match.readOp (hm : Match env S m) (hwf : env.WF) {w : Width} {o : Operand w} {v : Sym}
+theorem Match.readOp (hm : Match env S m) (hwf : env.WFRo) {w : Width} {o : Operand w} {v : Sym}
     (h : S.readOp o = some v) (p : Std.Rco Int64) {ret : w.type → MachineData → Effects}
     {post : MachineState → Prop} (hret : (ret (low w (v.eval env)) m).All post) :
     (o.interp m p ret).All post := by
@@ -173,7 +176,7 @@ theorem Match.readOp (hm : Match env S m) (hwf : env.WF) {w : Width} {o : Operan
     exact hret
 
 /-- **A write to a destination is Kraken's**, of a value already zero-extended. -/
-theorem Match.writeDst (hm : Match env S m) (hwf : env.WF) {w : Width} {d : Dst w} {u : Sym}
+theorem Match.writeDst (hm : Match env S m) (hwf : env.WFRo) {w : Width} {d : Dst w} {u : Sym}
     {S' : SState} (h : S.writeDst d u = some S') {x : w.type} (hu : u.eval env = ext w x)
     (p : Std.Rco Int64) {next : MachineData → Effects} {post : MachineState → Prop}
     (hnext : ∀ m', Match env S' m' → (next m').All post) :

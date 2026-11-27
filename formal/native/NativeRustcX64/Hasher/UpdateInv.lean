@@ -121,7 +121,7 @@ theorem stackBelow_toNat {m : MachineData} {n : Nat} (h : n ≤ (rspOf m).toNat)
     (stackBelow m n).toNat = (rspOf m).toNat - n :=
   toNat_sub_ofNat h
 
-theorem geo_of {m0 : MachineData} [Labels] (hpre : UpdatePre m0) : Geo m0 := by
+theorem geo_of {m0 : MachineData} [Labels] (hpre : UpdatePreElf m0) : Geo m0 := by
   obtain ⟨⟨hs, hs8, -⟩, -, -, -, hh, -, hd, hhd, hhs, hds, -⟩ := hpre
   have hu : updateStack = 400 := rfl
   have hb : (stackBelow m0 updateStack).toNat = (rspOf m0).toNat - 400 := stackBelow_toNat hs
@@ -131,7 +131,7 @@ theorem geo_of {m0 : MachineData} [Labels] (hpre : UpdatePre m0) : Geo m0 := by
   · exact hhs.imp id fun h => by unfold hAt spAt; omega
   · exact hds.imp id fun h => by unfold dAt spAt; omega
 
-theorem geoRc_of {m0 : MachineData} [Labels] (hpre : UpdatePre m0) : GeoRc m0 := by
+theorem geoRc_of {m0 : MachineData} [Labels] (hpre : UpdatePreElf m0) : GeoRc m0 := by
   obtain ⟨⟨hs, -, -⟩, ⟨-, hnw, hrs⟩, -, -, -, -, -, -, -, -, hhr, -⟩ := hpre
   have hu : updateStack = 400 := rfl
   have hb : (stackBelow m0 updateStack).toNat = (rspOf m0).toNat - 400 := stackBelow_toNat hs
@@ -140,8 +140,8 @@ theorem geoRc_of {m0 : MachineData} [Labels] (hpre : UpdatePre m0) : GeoRc m0 :=
   exact ⟨hnw, hrs.imp id fun h => by unfold spAt; omega, hhr⟩
 
 /-- The loader assumptions at the update entry. -/
-theorem got_of {m0 : MachineData} [Labels] (hpre : UpdatePre m0) :
-    GotAt m0 updateStack [(hAt m0, 344), (dAt m0, nOf m0)] ["memcpy"] :=
+theorem got_of {m0 : MachineData} [Labels] (hpre : UpdatePreElf m0) :
+    GotAt m0 updateStack [(hAt m0, 344)] ["memcpy"] :=
   hpre.2.2.2.2.2.2.2.2.2.2.2
 
 theorem frm_toNat {m0 : MachineData} (g : Geo m0) : (frm m0).toNat = (spAt m0).toNat - 112 :=
@@ -177,7 +177,7 @@ theorem stack_frm {m0 : MachineData} (g : Geo m0) {i : Nat} (hi : i < 120) :
   exact BitVec.eq_of_toNat_eq (e1.trans e2.symm)
 
 /-- The frame's mapped bytes: the stack's at the entry. -/
-theorem frm_mapped {m0 : MachineData} [Labels] (hpre : UpdatePre m0) :
+theorem frm_mapped {m0 : MachineData} [Labels] (hpre : UpdatePreElf m0) :
     Mapped m0.dmem (frm m0) 120 := fun i hi => by
   have := hpre.1.2.2 (288 + i) (by show 288 + i < 400 + 8; omega)
   rwa [stack_frm (geo_of hpre) hi] at this
@@ -255,7 +255,7 @@ theorem rc_same {m0 m : MachineData} [Labels] (g : Geo m0) (gr : GeoRc m0) (hfr 
   rw [hfr.same _ (by rw [chg_iff g, ht]; have := gr.hr; have := gr.rs; omega)]
 
 /-- The loop's frame cannot change the loader's `memcpy` slot. -/
-theorem got_same {m0 m : MachineData} [Labels] (hpre : UpdatePre m0) (hfr : Frame m0 m)
+theorem got_same {m0 m : MachineData} [Labels] (hpre : UpdatePreElf m0) (hfr : Frame m0 m)
     {i : Nat} (hi : i < 8) :
     m.dmem.get? (gotAddr "memcpy" + BitVec.ofNat 64 i) =
       m0.dmem.get? (gotAddr "memcpy" + BitVec.ofNat 64 i) := by
@@ -278,7 +278,7 @@ theorem got_same {m0 m : MachineData} [Labels] (hpre : UpdatePre m0) (hfr : Fram
   omega
 
 /-- The GOT slot is apart from both symbolic data regions. -/
-theorem got_apart {m0 : MachineData} [Labels] (hpre : UpdatePre m0) :
+theorem got_apart {m0 : MachineData} [Labels] (hpre : UpdatePreElf m0) :
     Apart (hAt m0) 344 (gotAddr "memcpy") 8 ∧
       Apart (frm m0) 120 (gotAddr "memcpy") 8 := by
   have g := geo_of hpre
@@ -295,7 +295,7 @@ theorem got_apart {m0 : MachineData} [Labels] (hpre : UpdatePre m0) :
   omega
 
 /-- The loop environment contains the hasher, frame, and read-only loader slot. -/
-theorem wf_head {m0 m : MachineData} [Labels] (hpre : UpdatePre m0) (hfr : Frame m0 m)
+theorem wf_head {m0 m : MachineData} [Labels] (hpre : UpdatePreElf m0) (hfr : Frame m0 m)
     {vs : Nat → BitVec 64} {ret : BitVec 64} :
     (Env.ofMachine m [(hAt m0, 344), (frm m0, 120), (gotAddr "memcpy", 8)] vs ret).WF := by
   have g := geo_of hpre
@@ -324,7 +324,7 @@ theorem wf_head {m0 m : MachineData} [Labels] (hpre : UpdatePre m0) (hfr : Frame
     · exact hhg
 
 /-- `headS` describes a loop state, including the actual loader bytes and RBP target. -/
-theorem match_headS {m0 m : MachineData} [Labels] (hpre : UpdatePre m0)
+theorem match_headS {m0 m : MachineData} [Labels] (hpre : UpdatePreElf m0)
     (hfr : Frame m0 m) {vs : Nat → BitVec 64} {ret : BitVec 64} :
     Match (Env.ofMachine m [(hAt m0, 344), (frm m0, 120), (gotAddr "memcpy", 8)] vs ret)
       headS m := by

@@ -70,7 +70,7 @@ variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Counting the copied bytes**: to `.LUpdate_5` after the turn, or to the absorption. -/
-theorem count_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem count_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePreElf m0) {c : Nat}
     {Hc : List UInt8} (hcp : Copied m0 c Hc m) :
     Eventually (elfStep1 ElfHost.exe)
       (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data) ∨

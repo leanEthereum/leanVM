@@ -306,28 +306,8 @@ theorem rcAt (hpre : r.Pre) {m : MachineData} (hc : r.AtCall m) {n : Nat}
 
 /-- The loader's two reachable function pointers. -/
 theorem got (hpre : r.Pre) :
-    GotAt r.m0 sphincsStack
-      [(r.pkPtr, 32), (r.msgPtr, 32), (r.sigPtr, 7740),
-        ((label NativeRustcX64.layerHeightsLabel).toBitVec, 24)]
-      ["memcpy", "memset"] :=
+    GotAt r.m0 sphincsStack [] ["memcpy", "memset"] :=
   hpre.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-
-theorem got_apart_lh (hpre : r.Pre) {l : Label} (hl : l ∈ ["memcpy", "memset"]) :
-    Apart (gotAddr l) 8 (label NativeRustcX64.layerHeightsLabel).toBitVec 24 :=
-  ((r.got hpre).1 l hl).2.2.2
-    ((label NativeRustcX64.layerHeightsLabel).toBitVec, 24) (by simp)
-
-theorem got_apart_pk (hpre : r.Pre) {l : Label} (hl : l ∈ ["memcpy", "memset"]) :
-    Apart (gotAddr l) 8 r.pkPtr 32 :=
-  ((r.got hpre).1 l hl).2.2.2 (r.pkPtr, 32) (by simp)
-
-theorem got_apart_msg (hpre : r.Pre) {l : Label} (hl : l ∈ ["memcpy", "memset"]) :
-    Apart (gotAddr l) 8 r.msgPtr 32 :=
-  ((r.got hpre).1 l hl).2.2.2 (r.msgPtr, 32) (by simp)
-
-theorem got_apart_sig (hpre : r.Pre) {l : Label} (hl : l ∈ ["memcpy", "memset"]) :
-    Apart (gotAddr l) 8 r.sigPtr 7740 :=
-  ((r.got hpre).1 l hl).2.2.2 (r.sigPtr, 7740) (by simp)
 
 theorem got_apart_off (hpre : r.Pre) {l : Label} (hl : l ∈ ["memcpy", "memset"])
     {a n : Nat} (ha : a + n ≤ 21624) : Apart (gotAddr l) 8 (r.off a) n := by

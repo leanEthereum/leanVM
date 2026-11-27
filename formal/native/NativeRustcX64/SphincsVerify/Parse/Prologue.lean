@@ -55,10 +55,10 @@ theorem prologue_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) :
     b0_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfPk r hpre (fun _ ↦ 0) 0
   have hS0 : SameOutside r.m0.dmem r.m0.dmem r.StackArea := fun _ _ ↦ rfl
-  have hm : Match (Env.ofMachine r.m0 (regsPk r) (fun _ ↦ 0) 0) entryS r.m0 := by
+  have hm : Match (envExt r.m0 (regsPk r) (fun _ ↦ 0) 0) entryS r.m0 := by
     apply Match.withKnownBytes
     · apply Match.withKnownBytes
-      · exact match_ofMachine ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
+      · exact match_ofMachine_ro ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
           ⟨by
             show rspOf r.m0 = r.base + BitVec.ofInt 64 ((21624 : Nat) : Int)
             rw [BitVec.ofInt_natCast]
@@ -79,13 +79,13 @@ theorem prologue_spec (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) :
     · intro i hi
       simpa [Sym.eval, Env.base, regsPk, Run.frameRegs] using
         r.got_byte hpre hS0 (by simp : "memset" ∈ _) hi
-  refine exec_then_elf hk run_b0 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
-  have h0 : (regsPk r)[0]? = some (r.base, 21632) := rfl
+  refine exec_then_elf_ro hk run_b0 hwf (fun _ h ↦ nomatch h) hm fun st hm' hpc ↦ .done _ ?_
+  have h0 : (envExt r.m0 (regsPk r) (fun _ ↦ 0) 0).regions[0]? = some (r.base, 21632) := rfl
   have hF : r.Frame st.data := by
-    refine ⟨?_, ?_, (hm'.sameOutside hwf).mono (written_stack r hpre h0 rfl (by decide)),
-      hm'.kept hwf⟩
-    · rw [rspOf, hm'.regs .rsp _ rfl, eval_ptr h0]
-      simp
+    refine ⟨?_, ?_, (hm'.sameOutside_ro hwf).mono (written_stack r hpre h0 rfl (by decide)),
+      hm'.kept_ro hwf⟩
+    · rw [rspOf, hm'.regs .rsp _ rfl]
+      simp [Sym.eval, Env.base]
     · refine bytesAt_words _ fun i hi ↦ ?_
       simp only [List.length_map, List.length_cons, List.length_nil] at hi
       rw [off_add, Run.off]

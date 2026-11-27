@@ -28,7 +28,7 @@ theorem low_carryBit (w : Width) (c : SBool) :
     rfl
 
 theorem mulW_ok (hw : (w == .W8) = false) {src : RegOrMem w} {S S' : SState} {x : Exit}
-    {m : MachineData} (p : Std.Rco Int64) (hwf : env.WF) (hm : Match env S m)
+    {m : MachineData} (p : Std.Rco Int64) (hwf : env.WFRo) (hm : Match env S m)
     (h : Step.mulW src S = some (S', x)) :
     ((Operation.mul src).interp p m (fun m' => .done ⟨m', p.upper⟩)
       (fun a m' => .done ⟨m', a⟩)).All

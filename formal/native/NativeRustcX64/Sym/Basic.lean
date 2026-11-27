@@ -34,6 +34,9 @@ structure Env where
   vars : Nat → BitVec 64 := fun _ => 0
   /-- The return address `call` pushes (`Sym.retAddr`). -/
   ret : BitVec 64 := 0
+  /-- Read-only regions that symbolic stores never write to; pairwise disjointness between two
+  read-only regions is not needed for soundness. -/
+  roRegions : List Nat := []
 
 /-- The low `w.bits` bits of a 64-bit value, as Kraken reads a register of width `w`. -/
 def low (w : Width) (x : BitVec 64) : w.type := x.setWidth w.bits
@@ -222,7 +225,7 @@ def Env.Outside (env : Env) (a : BitVec 64) : Prop :=
   ∀ (r : Nat) (b : BitVec 64) (n : Nat), env.regions[r]? = some (b, n) →
     ¬(b.toNat ≤ a.toNat ∧ a.toNat < b.toNat + n)
 
-/-- The regions do not wrap around, are mapped in `mem0` and are pairwise disjoint. -/
+/-- The regions do not wrap around, are mapped in `mem0`, and are pairwise disjoint. -/
 structure Env.WF (env : Env) : Prop where
   noWrap : ∀ (r : Nat) (b : BitVec 64) (n : Nat), env.regions[r]? = some (b, n) →
     b.toNat + n ≤ 2 ^ 64
@@ -231,6 +234,25 @@ structure Env.WF (env : Env) : Prop where
   disjoint : ∀ (r r' : Nat) (b b' : BitVec 64) (n n' : Nat), r ≠ r' →
     env.regions[r]? = some (b, n) → env.regions[r']? = some (b', n') →
     b.toNat + n ≤ b'.toNat ∨ b'.toNat + n' ≤ b.toNat
+
+/-- Relaxed well-formedness for environments with read-only regions: every region is mapped and
+does not wrap, and every writable region (`r ∉ env.roRegions`) is disjoint from every other
+region. Pairwise disjointness between two read-only regions is not needed. -/
+structure Env.WFRo (env : Env) : Prop where
+  noWrap : ∀ (r : Nat) (b : BitVec 64) (n : Nat), env.regions[r]? = some (b, n) →
+    b.toNat + n ≤ 2 ^ 64
+  mapped : ∀ (r : Nat) (b : BitVec 64) (n : Nat), env.regions[r]? = some (b, n) → ∀ i < n,
+    (env.mem0.get? (b + BitVec.ofNat 64 i)).isSome
+  disjointOf : ∀ (r r' : Nat) (b b' : BitVec 64) (n n' : Nat), r ∉ env.roRegions → r ≠ r' →
+    env.regions[r]? = some (b, n) → env.regions[r']? = some (b', n') →
+    b.toNat + n ≤ b'.toNat ∨ b'.toNat + n' ≤ b.toNat
+
+omit [Labels] in
+/-- Any pairwise-disjoint `Env.WF` satisfies `Env.WFRo`. -/
+theorem Env.WF.toWFRo {env : Env} (hwf : env.WF) : env.WFRo where
+  noWrap := hwf.noWrap
+  mapped := hwf.mapped
+  disjointOf r r' b b' n n' _ hne h1 h2 := hwf.disjoint r r' b b' n n' hne h1 h2
 
 /-- **The machine state `m` is what `S` describes in `env`.** Known registers and known flags are
 their symbolic values; the regions are `env`'s, with the sizes `S` records; each byte of a region
@@ -254,6 +276,11 @@ structure Match (env : Env) (S : SState) (m : MachineData) : Prop where
         | intro w hw; cases hw
         | intro w hw i hi
           solve_by_elim [Match.known]
+  roRegions : S.roRegions = env.roRegions := by
+    dsimp only
+    first
+    | rfl
+    | solve_by_elim [Match.roRegions]
 
 /-- Where a block's exit leaves the machine, `next` the address after the block. A call leaves the
 return address at RSP (`retOf`); a return goes to the address it popped. -/
@@ -288,6 +315,12 @@ def init (regions : List Nat) (known : List (Reg64 × Sym) := [])
   labels := labels
   bounds := bounds
   aliases := aliases
+
+/-- `init` with read-only region indices `ro`. -/
+def initRo (ro : List Nat) (regions : List Nat) (known : List (Reg64 × Sym) := [])
+    (labels : List (Label × Nat) := []) (bounds : List (Sym × Nat) := [])
+    (aliases : List (Sym × Nat × Int) := []) : SState :=
+  { init regions known labels bounds aliases with roRegions := ro }
 
 end Sym
 

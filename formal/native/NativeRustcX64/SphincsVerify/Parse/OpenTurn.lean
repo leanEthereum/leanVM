@@ -53,10 +53,10 @@ theorem open_b1 (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {c 
   obtain ⟨hF, hfa, hop, hbx, h15, h14, h13, h12, hbp⟩ := h
   have hwf := wfOpen r hpre hF.2.2.2 hF.2.2.1 hc24 (fun _ ↦ 0) (r.pc b2Offset).toBitVec
   have hk' : b1.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b1Offset) := b1_in_code.trans hp.1 (List.cons_ne_nil _ _)
-  have hm : Match (Env.ofMachine m (regsOpen r c) (fun _ ↦ 0) (r.pc b2Offset).toBitVec) openS m := by
+  have hm : Match (envExt m (regsOpen r c) (fun _ ↦ 0) (r.pc b2Offset).toBitVec) openS m := by
     apply Match.withKnownBytes
     · apply Match.withKnownBytes
-      · apply match_ofMachine
+      · apply match_ofMachine_ro
         · exact ⟨rfl, rfl, rfl, rfl, rfl, trivial⟩
         · exact ⟨by show rspOf m = r.base + BitVec.ofInt 64 0; simpa only [BitVec.ofInt_ofNat, BitVec.add_zero] using hF.1,
             h15.trans (eval_base r rfl 576).symm, h14.trans (eval_base r rfl 12780).symm,
@@ -81,7 +81,7 @@ theorem open_b1 (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {c 
     · intro i hi
       simpa [Sym.eval, Env.base, regsOpen, Run.frameRegs] using
         r.got_byte hpre hF.2.2.1 (by simp : "memset" ∈ _) hi
-  refine exec_then_elf hk' run_b1 hwf (fun _ _ ↦ by rw [← b1_next, Nat.add_assoc]; rfl) hm fun st hm₁ hpc ↦ ?_
+  refine exec_then_elf_ro hk' run_b1 hwf (fun _ _ ↦ by rw [← b1_next, Nat.add_assoc]; rfl) hm fun st hm₁ hpc ↦ ?_
   have hc₁ := atCall_of_block r hpre hF rfl rfl hm₁ hwf rfl (by decide)
   have h0 : Run.RegIs st.data .rdi (r.off 12780) := regIs_ptr0 r rfl hm₁ rfl
   have h1 : Run.RegIs st.data .rsi (r.off 560) := regIs_ptr0 r rfl hm₁ rfl

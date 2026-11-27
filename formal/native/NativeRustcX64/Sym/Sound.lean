@@ -69,8 +69,8 @@ section
 variable [Host] {env : Env}
 
 /-- One directive of a block: a label falls through, an instruction is sound. -/
-theorem stepD_ok {d : Directive} {p : Program} {k : Nat} (hdp : (d :: p).IsInfixAt Host.prog k)
-    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+theorem stepD_ok_ro {d : Directive} {p : Program} {k : Nat} (hdp : (d :: p).IsInfixAt Host.prog k)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WFRo) (hm : Match env S m)
     (h : stepD d S = some (S', x))
     (hret : ∀ l, x = .call l → env.ret = (Host.addrOf k.succ).toBitVec) :
     Eventually (step1 Host.exe) (fun st => Match env S' st.data ∧
@@ -90,12 +90,17 @@ theorem stepD_ok {d : Directive} {p : Program} {k : Nat} (hdp : (d :: p).IsInfix
   | byteArray _ => cases h
   | word _ _ => cases h
 
-/-- **The symbolic executor is sound.** Where it runs the block `ds`, placed at directive `k`
-of the program, from `S` to `S'` with exit `x`, the machine inevitably goes from any state `S`
-describes at the block's address to a state `S'` describes, at the pc `x` says; a block ending in
-a call needs `env.ret` to be the address after it. -/
-theorem exec_sound {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog k)
-    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF)
+theorem stepD_ok {d : Directive} {p : Program} {k : Nat} (hdp : (d :: p).IsInfixAt Host.prog k)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    (h : stepD d S = some (S', x))
+    (hret : ∀ l, x = .call l → env.ret = (Host.addrOf k.succ).toBitVec) :
+    Eventually (step1 Host.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (Host.addrOf k.succ) st) ⟨m, Host.addrOf k⟩ :=
+  stepD_ok_ro hdp hwf.toWFRo hm h hret
+
+/-- **The symbolic executor is sound** under `Env.WFRo`. -/
+theorem exec_sound_ro {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog k)
+    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WFRo)
     (hret : ∀ l, x = .call l → env.ret = (Host.addrOf (k + ds.length)).toBitVec)
     {m : MachineData} (hm : Match env S m) :
     Eventually (step1 Host.exe) (fun st => Match env S' st.data ∧
@@ -115,7 +120,7 @@ theorem exec_sound {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog 
         simp only [exec, hd] at hx
         have hlen : k + 1 + ds.length = k + (d :: ds).length := by
           simp [Nat.add_assoc, Nat.add_comm 1]
-        refine eventually_trans _ _ _ _ (stepD_ok hk hwf hm hd nofun) fun st ⟨hm₁, hpc⟩ => ?_
+        refine eventually_trans _ _ _ _ (stepD_ok_ro hk hwf hm hd nofun) fun st ⟨hm₁, hpc⟩ => ?_
         obtain ⟨m₁, pc⟩ := st
         simp only [PcOk] at hpc
         subst hpc
@@ -127,7 +132,19 @@ theorem exec_sound {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog 
         | nil =>
           simp only [exec, hd, Option.some.injEq, Prod.mk.injEq] at hx
           obtain ⟨rfl, rfl⟩ := hx
-          exact stepD_ok hk hwf hm hd hret
+          exact stepD_ok_ro hk hwf hm hd hret
+
+/-- **The symbolic executor is sound.** Where it runs the block `ds`, placed at directive `k`
+of the program, from `S` to `S'` with exit `x`, the machine inevitably goes from any state `S`
+describes at the block's address to a state `S'` describes, at the pc `x` says; a block ending in
+a call needs `env.ret` to be the address after it. -/
+theorem exec_sound {ds : List Directive} {k : Nat} (hk : ds.IsInfixAt Host.prog k)
+    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF)
+    (hret : ∀ l, x = .call l → env.ret = (Host.addrOf (k + ds.length)).toBitVec)
+    {m : MachineData} (hm : Match env S m) :
+    Eventually (step1 Host.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (Host.addrOf (k + ds.length)) st) ⟨m, Host.addrOf k⟩ :=
+  exec_sound_ro hk hx hwf.toWFRo hret hm
 
 end
 
@@ -135,9 +152,9 @@ section
 variable [ElfHost] {env : Env}
 
 /-- One directive of a block inside section `sec` of a multi-section `ElfHost`. -/
-theorem stepD_ok_elf {sec : Nat} {d : Directive} {p : Program} {k : Nat}
+theorem stepD_ok_elf_ro {sec : Nat} {d : Directive} {p : Program} {k : Nat}
     (hdp : (d :: p).IsInfixAt (ElfHost.sectionProg sec) k)
-    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WFRo) (hm : Match env S m)
     (h : stepD d S = some (S', x))
     (hret : ∀ l, x = .call l → env.ret = (ElfHost.addrOf sec k.succ).toBitVec) :
     Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
@@ -157,10 +174,19 @@ theorem stepD_ok_elf {sec : Nat} {d : Directive} {p : Program} {k : Nat}
   | byteArray _ => cases h
   | word _ _ => cases h
 
-/-- **The symbolic executor is sound under a multi-section `ElfHost`.** -/
-theorem exec_sound_elf {sec : Nat} {ds : List Directive} {k : Nat}
+theorem stepD_ok_elf {sec : Nat} {d : Directive} {p : Program} {k : Nat}
+    (hdp : (d :: p).IsInfixAt (ElfHost.sectionProg sec) k)
+    {S S' : SState} {x : Exit} {m : MachineData} (hwf : env.WF) (hm : Match env S m)
+    (h : stepD d S = some (S', x))
+    (hret : ∀ l, x = .call l → env.ret = (ElfHost.addrOf sec k.succ).toBitVec) :
+    Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (ElfHost.addrOf sec k.succ) st) ⟨m, ElfHost.addrOf sec k⟩ :=
+  stepD_ok_elf_ro hdp hwf.toWFRo hm h hret
+
+/-- **The symbolic executor is sound under a multi-section `ElfHost` and `Env.WFRo`.** -/
+theorem exec_sound_elf_ro {sec : Nat} {ds : List Directive} {k : Nat}
     (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
-    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF)
+    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WFRo)
     (hret : ∀ l, x = .call l → env.ret = (ElfHost.addrOf sec (k + ds.length)).toBitVec)
     {m : MachineData} (hm : Match env S m) :
     Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
@@ -180,7 +206,7 @@ theorem exec_sound_elf {sec : Nat} {ds : List Directive} {k : Nat}
         simp only [exec, hd] at hx
         have hlen : k + 1 + ds.length = k + (d :: ds).length := by
           simp [Nat.add_assoc, Nat.add_comm 1]
-        refine eventually_trans _ _ _ _ (stepD_ok_elf hk hwf hm hd nofun) fun st ⟨hm₁, hpc⟩ => ?_
+        refine eventually_trans _ _ _ _ (stepD_ok_elf_ro hk hwf hm hd nofun) fun st ⟨hm₁, hpc⟩ => ?_
         obtain ⟨m₁, pc⟩ := st
         simp only [PcOk] at hpc
         subst hpc
@@ -192,7 +218,17 @@ theorem exec_sound_elf {sec : Nat} {ds : List Directive} {k : Nat}
         | nil =>
           simp only [exec, hd, Option.some.injEq, Prod.mk.injEq] at hx
           obtain ⟨rfl, rfl⟩ := hx
-          exact stepD_ok_elf hk hwf hm hd hret
+          exact stepD_ok_elf_ro hk hwf hm hd hret
+
+/-- **The symbolic executor is sound under a multi-section `ElfHost`.** -/
+theorem exec_sound_elf {sec : Nat} {ds : List Directive} {k : Nat}
+    (hk : ds.IsInfixAt (ElfHost.sectionProg sec) k)
+    {S S' : SState} {x : Exit} (hx : exec ds S = some (S', x)) (hwf : env.WF)
+    (hret : ∀ l, x = .call l → env.ret = (ElfHost.addrOf sec (k + ds.length)).toBitVec)
+    {m : MachineData} (hm : Match env S m) :
+    Eventually (elfStep1 ElfHost.exe) (fun st => Match env S' st.data ∧
+      PcOk env x (ElfHost.addrOf sec (k + ds.length)) st) ⟨m, ElfHost.addrOf sec k⟩ :=
+  exec_sound_elf_ro hk hx hwf.toWFRo hret hm
 
 end
 
@@ -219,7 +255,8 @@ theorem match_init [Labels] {env : Env} {regions : List Nat} {known : List (Reg6
     (hbounds : ∀ x n, (x, n) ∈ bounds → (x.eval env).toNat < n)
     (haliases : ∀ x r o, aliases.lookup x = some (r, o) →
       x.eval env = env.base r + BitVec.ofInt 64 o)
-    (hmem : m.dmem = env.mem0) :
+    (hmem : m.dmem = env.mem0)
+    (hro : env.roRegions = [] := by rfl) :
     Match env (init regions known labels bounds aliases) m where
   regs r v h := by
     unfold SState.reg init at h
@@ -245,6 +282,7 @@ theorem match_init [Labels] {env : Env} {regions : List Nat} {known : List (Reg6
   aliases := haliases
   outside a _ := by rw [hmem]
   known := by intro w h; cases h
+  roRegions := hro.symm
 
 end
 

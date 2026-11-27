@@ -123,7 +123,7 @@ theorem Match.set64 (hm : Match env S m) (r : Reg64) {v : Option Sym} {x : BitVe
     (hv : ∀ u, v = some u → u.eval env = x) :
     Match env (S.setReg r v) { m with regs := m.regs.set64 r x } := by
   refine ⟨fun r' u h => ?_, hm.flags, hm.regions, hm.mem, hm.labels, hm.bounds, hm.aliases,
-    hm.outside, hm.known⟩
+    hm.outside, hm.known, hm.roRegions⟩
   rcases S.reg_setReg r r' v h with ⟨rfl, hu⟩ | ⟨hne, hu⟩
   · show (m.regs.set64 r x).get64 r = _
     rw [get64_set64_self, hv u hu]
@@ -133,7 +133,8 @@ theorem Match.set64 (hm : Match env S m) (r : Reg64) {v : Option Sym} {x : BitVe
 
 theorem Match.setFlags (hm : Match env S m) (f : SFlags) {st : StatusFlags}
     (hf : FlagsOk env f st) : Match env (S.setFlags f) { m with status := st } :=
-  ⟨hm.regs, hf, hm.regions, hm.mem, hm.labels, hm.bounds, hm.aliases, hm.outside, hm.known⟩
+  ⟨hm.regs, hf, hm.regions, hm.mem, hm.labels, hm.bounds, hm.aliases, hm.outside, hm.known,
+    hm.roRegions⟩
 
 theorem flagsOk_unknown (st : StatusFlags) : FlagsOk env unknownFlags st :=
   ⟨nofun, nofun, nofun, nofun⟩

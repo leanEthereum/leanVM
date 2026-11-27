@@ -25,9 +25,9 @@ model (`Run.idx`, `Run.forsRoot`, `Run.chainEnds`, ...), with x86-64's registers
 ## The frame
 
 The prologue pushes RBP, R15, R14, R13, R12, RBX (48 bytes below the return address at `RSP₀`),
-probes and allocates `7 · 4096 + 680` more bytes: RSP stays `base = RSP₀ - 29400`
-(`frameSize`), the saved registers are at `base + 29352` (`savedBytes`: RBX, R12, R13, R14, R15,
-RBP), the return address at `base + 29400`. A call pushes its return address at `base - 8`; the
+probes and allocates `5 · 4096 + 1096` more bytes: RSP stays `base = RSP₀ - 21624`
+(`frameSize`), the saved registers are at `base + 21576` (`savedBytes`: RBX, R12, R13, R14, R15,
+RBP), the return address at `base + 21624`. A call pushes its return address at `base - 8`; the
 callees use `finalizeStack` bytes below it at most; the bit loop pushes 16 bytes below `base`
 (`sphincsStack`). The executor's frame: region 0 the frame with the return address (`frameRegion`
 bytes from `base`, RSP `ptr 0 0`), region 1 the 16 bytes below it (the pushes' slots, aliased as
@@ -209,9 +209,7 @@ def Pre [Labels] : Prop :=
     Apart r.msgPtr 32 (stackBelow r.m0 sphincsStack) (sphincsStack + 8) ∧
     BytesAt r.m0.dmem r.sigPtr r.sigB ∧ NoWrap r.sigPtr 7740 ∧
     Apart r.sigPtr 7740 (stackBelow r.m0 sphincsStack) (sphincsStack + 8) ∧
-    GotAt r.m0 sphincsStack
-      [(r.pkPtr, 32), (r.msgPtr, 32), (r.sigPtr, 7740), ((label NativeRustcX64.layerHeightsLabel).toBitVec, 24)]
-      ["memcpy", "memset"]
+    GotAt r.m0 sphincsStack [] ["memcpy", "memset"]
 
 /-- **The frame's invariant**: RSP the base, the pushed registers in place, no byte changed
 outside the stack area (the return address kept), every mapped byte still mapped. -/
@@ -314,7 +312,7 @@ variable [ElfHost]
 def Callees : Prop :=
   ElfSpec (label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost ∧
     ElfSpec (label NativeRustcX64.Common.Memset.entryLabel) MemsetPre MemsetPost ∧
-    ElfSpec (label NativeRustcX64.Common.Update.entryLabel) UpdatePre UpdatePost ∧
+    ElfSpec (label NativeRustcX64.Common.Update.entryLabel) UpdatePreElf UpdatePost ∧
     ElfSpec (label NativeRustcX64.Common.Finalize.entryLabel) FinalizePre FinalizePost ∧
     ElfSpec (label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost
 

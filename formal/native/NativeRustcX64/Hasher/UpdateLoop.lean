@@ -45,7 +45,7 @@ variable [ElfHost] {sec k : Nat}
 
 set_option linter.unusedSimpArgs false in
 /-- **Emptying the buffer.** -/
-theorem empty_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat}
+theorem empty_spec (hp : PlacedIn code sec k) {m0 m : MachineData} (hpre : UpdatePreElf m0) {c : Nat}
     {Hc : List UInt8} (hab : Absorbed m0 c Hc m) :
     Eventually (elfStep1 ElfHost.exe)
       (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b2Offset) ∧ Mid m0 c (takeN m0 c Hc) st.data)
@@ -169,7 +169,7 @@ theorem next_spec (hp : PlacedIn code sec k) {m0 m : MachineData} {c t : Nat}
 theorem turn_spec (hp : PlacedIn code sec k)
     (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
     (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
-    {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} (hinv : Inv m0 c m) :
+    {m0 m : MachineData} (hpre : UpdatePreElf m0) {c : Nat} (hinv : Inv m0 c m) :
     Eventually (elfStep1 ElfHost.exe)
       (fun st => (st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data) ∨
         ∃ n' < nOf m0 - c, st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset) ∧
@@ -211,7 +211,7 @@ theorem turn_spec (hp : PlacedIn code sec k)
 theorem loop_spec (hp : PlacedIn code sec k)
     (hmemcpy : ElfSpec (Labels.label NativeRustcX64.Common.Memcpy.entryLabel) MemcpyPre MemcpyPost)
     (hkf : ElfSpec (Labels.label NativeRustcX64.Common.KeccakF.entryLabel) KeccakFPre KeccakFPost)
-    {m0 m : MachineData} (hpre : UpdatePre m0) {c : Nat} (hinv : Inv m0 c m) :
+    {m0 m : MachineData} (hpre : UpdatePreElf m0) {c : Nat} (hinv : Inv m0 c m) :
     Eventually (elfStep1 ElfHost.exe)
       (fun st => st.pc = ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b9Offset) ∧ Inv m0 (nOf m0) st.data)
       ⟨m, ElfHost.addrOf sec (k + NativeRustcX64.Common.Update.b3Offset)⟩ := by

@@ -81,10 +81,11 @@ abbrev layerHeightsAddr [Labels] : BitVec 64 := (label NativeRustcX64.layerHeigh
 /-- Lowest address of the `stackSize`-byte stack frame below entry RSP. -/
 abbrev stackBottomAddr (m : MachineData) (stackSize : Nat) : BitVec 64 := stackBelow m stackSize
 
-/-- GOT slots for `symbols` hold their target addresses, do not wrap, and are disjoint from the stack and `areas`. -/
+/-- GOT slots for `symbols` hold their target addresses, do not wrap, are pairwise disjoint,
+and are disjoint from the entry stack span (no disjointness from read-only inputs or `.rodata` needed). -/
 abbrev GotSlotsOk [Labels] (m : MachineData) (stackSize : Nat)
-    (areas : List (BitVec 64 × Nat)) (symbols : List Label) : Prop :=
-  GotAt m stackSize areas symbols
+    (symbols : List Label) : Prop :=
+  GotAt m stackSize [] symbols
 
 /-- System V callee-saved registers (`rbx`, `rbp`, `r12`..`r15`) are unchanged and mapped memory is preserved. -/
 abbrev CalleeSavedAndMemKept (m m' : MachineData) : Prop := Saved m m'
@@ -189,11 +190,8 @@ theorem verify_correct
       initState (sphincsStackSize + retAddrSize))
     (hSigBuf : ReadOnlyBuf initState.dmem (reg initState .rdx) sigBytes.toList
       initState (sphincsStackSize + retAddrSize))
-    -- 5. Loader-populated GOT slots for memcpy and memset, pairwise disjoint and apart from
-    --    the stack, input buffers, and LAYER_HEIGHTS.
-    (hGotSlots : GotSlotsOk initState sphincsStackSize
-      [(reg initState .rdi, pkSize), (reg initState .rsi, msgSize), (reg initState .rdx, sigSize),
-        (layerHeightsAddr, layerHeightsSize)] ["memcpy", "memset"]) :
+    -- 5. Loader-populated GOT slots for memcpy and memset, pairwise disjoint and apart from the stack.
+    (hGotSlots : GotSlotsOk initState sphincsStackSize ["memcpy", "memset"]) :
     -- Statement: starting at `sphincs_verify`'s entry in `initState`, every execution under
     -- `ElfHost.exe` terminates in finitely many steps (`Eventually (elfStep1 ElfHost.exe)`) at a
     -- `finalState` satisfying:
@@ -281,11 +279,8 @@ theorem verify_confined
       initState (sphincsStackSize + retAddrSize))
     (hSigBuf : ReadOnlyBuf initState.dmem (reg initState .rdx) sigBytes.toList
       initState (sphincsStackSize + retAddrSize))
-    -- 5. Loader-populated GOT slots for memcpy and memset, pairwise disjoint and apart from
-    --    the stack, input buffers, and LAYER_HEIGHTS.
-    (hGotSlots : GotSlotsOk initState sphincsStackSize
-      [(reg initState .rdi, pkSize), (reg initState .rsi, msgSize), (reg initState .rdx, sigSize),
-        (layerHeightsAddr, layerHeightsSize)] ["memcpy", "memset"]) :
+    -- 5. Loader-populated GOT slots for memcpy and memset, pairwise disjoint and apart from the stack.
+    (hGotSlots : GotSlotsOk initState sphincsStackSize ["memcpy", "memset"]) :
     -- Allowed data-memory footprint of `sphincs_verify` (everything else will be unmapped):
     let allowedRegions := [
       -- Stack frame plus 8-byte return address at entry RSP.

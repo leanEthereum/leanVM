@@ -159,7 +159,7 @@ theorem idxScale_spec {i x : Sym} {s B : Nat} (h : idxScale i = (x, s))
     obtain ⟨rfl, rfl⟩ := h
     rw [Nat.one_mul]
 
-theorem Match.slotsAt (hm : Match env S m) (hwf : env.WF) {p i x : Sym} {d : Int}
+theorem Match.slotsAt (hm : Match env S m) (hwf : env.WFRo) {p i x : Sym} {d : Int}
     {n r o s B : Nat} (h : S.slotsAt p i d n = some (r, o, x, s, B)) :
     ∃ b sz, env.regions[r]? = some (b, sz) ∧ n ≤ s ∧ 0 < n ∧ o + s * (B - 1) + n ≤ sz ∧
       (x.eval env).toNat < B ∧
@@ -200,7 +200,7 @@ theorem Match.slotsAt (hm : Match env S m) (hwf : env.WF) {p i x : Sym} {d : Int
           omega
         · cases h
 
-theorem Match.slots2 (hm : Match env S m) (hwf : env.WF) {p q x : Sym} {d : Int}
+theorem Match.slots2 (hm : Match env S m) (hwf : env.WFRo) {p q x : Sym} {d : Int}
     {n r o s B : Nat} (h : S.slots2 p q d n = some (r, o, x, s, B)) :
     ∃ b sz, env.regions[r]? = some (b, sz) ∧ n ≤ s ∧ 0 < n ∧ o + s * (B - 1) + n ≤ sz ∧
       (x.eval env).toNat < B ∧
@@ -220,7 +220,7 @@ theorem Match.slots2 (hm : Match env S m) (hwf : env.WF) {p q x : Sym} {d : Int}
 
 /-- An indexed access the executor places as slots: its region, and its address for the bounded
 value's value. -/
-theorem Match.slots (hm : Match env S m) (hwf : env.WF) {a x : Sym} {n r o s B : Nat}
+theorem Match.slots (hm : Match env S m) (hwf : env.WFRo) {a x : Sym} {n r o s B : Nat}
     (h : S.slots a n = some (r, o, x, s, B)) :
     ∃ b sz, env.regions[r]? = some (b, sz) ∧ n ≤ s ∧ 0 < n ∧ o + s * (B - 1) + n ≤ sz ∧
       (x.eval env).toNat < B ∧ a.eval env = b + BitVec.ofNat 64 (o + s * (x.eval env).toNat) := by
@@ -240,12 +240,12 @@ theorem Match.slots (hm : Match env S m) (hwf : env.WF) {a x : Sym} {n r o s B :
   · cases h
 
 /-- Byte `t` of a symbolic load is the byte of memory there. -/
-theorem Match.byteOf_loadSym (hm : Match env S m) (hwf : env.WF) {r o n : Nat} {b : BitVec 64}
+theorem Match.byteOf_loadSym (hm : Match env S m) (hwf : env.WFRo) {r o n : Nat} {b : BitVec 64}
     {sz : Nat} (hb : env.regions[r]? = some (b, sz)) (hle : o + n ≤ sz) (hn : n ≤ 8) {t : Nat}
     (ht : t < n) : byteOf ((NativeRustcX64.Sym.loadSym S.mem r o n).eval env) t = memByteD env S.mem r b (o + t) := by
-  obtain ⟨hl, -⟩ := hm.loadSym hwf hb hle hn
+  obtain ⟨hl, -⟩ := hm.loadSym_ro hwf hb hle hn
   rw [loadInt_of_get? _ _ n (fun i => memByteD env S.mem r b (o + i)) (fun i hi => by
-    rw [addr_add, hm.mem r b sz hb (o + i) (by omega), memByte_eq hwf hb (by omega)]),
+    rw [addr_add, hm.mem r b sz hb (o + i) (by omega), memByte_eq_ro hwf hb (by omega)]),
     ofBytes_natCast, Option.some.injEq, Int.natCast_inj] at hl
   rw [byteOf_mod, ← hl, natOfBytes_div _ t (by simp; omega)]
   simp
@@ -294,7 +294,7 @@ theorem eval_slotLoad {ws : List Write} {r o s n : Nat} {x : Sym} {X : Nat}
       exact eval_slotLoad hx hX c (k + 1) (by omega) (by omega)
 
 /-- **A load over slots is Kraken's.** -/
-theorem Match.loadSlots (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
+theorem Match.loadSlots (hm : Match env S m) (hwf : env.WFRo) {a v : Sym} {n : Nat}
     (h : S.loadSlots a n = some v) (hn : n ≤ 8) :
     Mem.loadInt m.dmem (a.eval env) n = some ((v.eval env).toNat : Int) ∧
       (v.eval env).toNat < 2 ^ (8 * n) := by
@@ -310,12 +310,12 @@ theorem Match.loadSlots (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat
     have hxe : x.eval env = BitVec.ofNat 64 (x.eval env).toNat := by
       rw [BitVec.ofNat_toNat, BitVec.setWidth_eq]
     rw [ha, eval_slotLoad hxe (BitVec.isLt _) (B - 1) 0 (Nat.zero_le _) (by omega)]
-    exact hm.loadSym hwf hb (by omega) hn
+    exact hm.loadSym_ro hwf hb (by omega) hn
 
 /-- **A store over slots is Kraken's**: the bytes it stores are mapped, and the state after it
 matches the machine after Kraken's store at the bounded value's slot. -/
-theorem Match.storeSlots (hm : Match env S m) (hwf : env.WF) {a u x : Sym} {n r o s B : Nat}
-    (h : S.slots a n = some (r, o, x, s, B)) (hn : n ≤ 8) (val : Int)
+theorem Match.storeSlots (hm : Match env S m) (hwf : env.WFRo) {a u x : Sym} {n r o s B : Nat}
+    (h : S.slots a n = some (r, o, x, s, B)) (hro : r ∉ S.roRegions) (hn : n ≤ 8) (val : Int)
     (hval : ∀ t < n, (Int.toBytes n val)[t]? = some (byteOf (u.eval env) t)) :
     (Mem.loadInt m.dmem (a.eval env) n).isSome ∧
       Match env (S.storeSlots r o s n x u B)
@@ -338,7 +338,7 @@ theorem Match.storeSlots (hm : Match env S m) (hwf : env.WF) {a u x : Sym} {n r 
     exact ofNat_beq hXlt (by omega)
   refine ⟨loadInt_isSome_of_get? _ _ _ fun i hi => ?_, ?_⟩
   · rw [addr_add]
-    exact hm.get?_some hwf hb (by omega)
+    exact hm.get?_some_ro hwf hb (by omega)
   -- the bytes outside the store are unchanged
   have hout : ∀ k : BitVec 64,
       (k.toNat < b.toNat + (o + s * X) ∨ b.toNat + (o + s * X) + n ≤ k.toNat) →
@@ -348,7 +348,7 @@ theorem Match.storeSlots (hm : Match env S m) (hwf : env.WF) {a u x : Sym} {n r 
     have := le_toNat_sub k (b + BitVec.ofNat 64 (o + s * X)) n (by omega) (by omega)
     omega
   refine ⟨hm.regs, hm.flags, hm.regions, fun r' b' sz' hb' i hi => ?_, hm.labels,
-    hm.bounds, hm.aliases, fun k hk => ?_, hm.known⟩
+    hm.bounds, hm.aliases, fun k hk => ?_, hm.known, hm.roRegions⟩
   · have hK : (b' + BitVec.ofNat 64 i).toNat = b'.toNat + i :=
       toNat_add_ofNat b' i (by have := hwf.noWrap r' b' sz' hb'; omega)
     show _ = memByte env ((List.range B).map (slotWrite S.mem r o s n x u) ++ S.mem) r' b' i
@@ -372,7 +372,7 @@ theorem Match.storeSlots (hm : Match env S m) (hwf : env.WF) {a u x : Sym} {n r 
           hkX (slot_unique hns hc ⟨hk1, hk2⟩)
         have hsk : s * k ≤ s * (B - 1) := Nat.mul_le_mul_left _ (by omega)
         rw [memByte_append_some (findWrite_slots_some hns ⟨hk1, hk2⟩ hk),
-          hout _ (by rw [hK]; omega), hm.mem r b sz hb i hi, memByte_eq hwf hb hi]
+          hout _ (by rw [hK]; omega), hm.mem r b sz hb i hi, memByte_eq_ro hwf hb hi]
         simp only [slotWrite, eval_mkIte, hcond k hk, hkX, decide_false, Bool.false_eq_true,
           ite_false]
         rw [hm.byteOf_loadSym hwf hb (by omega) hn (by omega : i - (o + s * k) < n),
@@ -387,7 +387,7 @@ theorem Match.storeSlots (hm : Match env S m) (hwf : env.WF) {a u x : Sym} {n r 
             cases hb'
             have : ¬(o + s * X ≤ i ∧ i < o + s * X + n) := fun hc => hin ⟨rfl, hc⟩
             omega
-          · rcases hwf.disjoint r r' b b' sz sz' hr hb hb' with h1 | h1 <;> omega),
+          · rcases hwf.disjointOf r r' b b' sz sz' (hm.roRegions ▸ hro) hr hb hb' with h1 | h1 <;> omega),
           hm.mem r' b' sz' hb' i hi]
   · show (Mem.storeInt m.dmem (b + BitVec.ofNat 64 (o + s * X)) n val).get? k = _
     rw [hout k (by
@@ -411,7 +411,7 @@ theorem Match.withKnownMemory (hm : Match env S m) :
   | some vt => rfl
 
 /-- A symbolic load at an unconditional address is Kraken's. -/
-theorem Match.loadOne (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
+theorem Match.loadOne (hm : Match env S m) (hwf : env.WFRo) {a v : Sym} {n : Nat}
     (h : S.loadOne a n = some v) (hn : n ≤ 8) :
     Mem.loadInt m.dmem (a.eval env) n = some ((v.eval env).toNat : Int) ∧
       (v.eval env).toNat < 2 ^ (8 * n) := by
@@ -423,7 +423,7 @@ theorem Match.loadOne (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
     cases h
     obtain ⟨b, sz, hb, hle, ha⟩ := hm.access hacc
     rw [ha]
-    exact hm.withKnownMemory.loadSym hwf hb hle hn
+    exact hm.withKnownMemory.loadSym_ro hwf hb hle hn
   | none =>
     rw [hacc] at h
     cases hidx : S.accessIdx a n with
@@ -440,12 +440,12 @@ theorem Match.loadOne (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
         cases h
         obtain ⟨b, sz, hb, hM, hle, ha⟩ := hm.accessIdx hidx
         rw [ha]
-        exact hm.load_mem0 hwf hb hle hn fun j hj1 hj2 =>
+        exact hm.load_mem0_ro hwf hb hle hn fun j hj1 hj2 =>
           findWrite_none_of_apart hall (by omega) (by omega)
       · exact hm.loadSlots hwf h hn
 
 /-- **A symbolic load is Kraken's.** -/
-theorem Match.loadAt (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
+theorem Match.loadAt (hm : Match env S m) (hwf : env.WFRo) {a v : Sym} {n : Nat}
     (h : S.loadAt a n = some v) (hn : n ≤ 8) :
     Mem.loadInt m.dmem (a.eval env) n = some ((v.eval env).toNat : Int) ∧
       (v.eval env).toNat < 2 ^ (8 * n) := by
@@ -469,7 +469,7 @@ theorem Match.loadAt (hm : Match env S m) (hwf : env.WF) {a v : Sym} {n : Nat}
 
 /-- **A symbolic store is Kraken's**: the bytes it stores are mapped, and the state after it
 matches the machine after Kraken's store of bytes that are those of the stored value. -/
-theorem Match.storeAt (hm : Match env S m) (hwf : env.WF) {a u : Sym} {n : Nat} {S' : SState}
+theorem Match.storeAt (hm : Match env S m) (hwf : env.WFRo) {a u : Sym} {n : Nat} {S' : SState}
     (h : S.storeAt a n u = some S') (hn0 : 0 < n) (hn : n ≤ 8) (val : Int)
     (hval : ∀ t < n, (Int.toBytes n val)[t]? = some (byteOf (u.eval env) t)) :
     (Mem.loadInt m.dmem (a.eval env) n).isSome ∧
@@ -483,65 +483,71 @@ theorem Match.storeAt (hm : Match env S m) (hwf : env.WF) {a u : Sym} {n : Nat} 
     | some q =>
       obtain ⟨r, o, x, s, B⟩ := q
       rw [hs] at h
-      cases h
-      exact hm.storeSlots hwf hs hn val hval
+      by_cases hro : r ∈ S.roRegions
+      · simp [hro] at h
+      · simp only [hro, ↓reduceIte, Option.some.injEq] at h
+        subst h
+        exact hm.storeSlots hwf hs hro hn val hval
   | some ro =>
     obtain ⟨r, o⟩ := ro
     rw [hacc] at h
-    cases h
-    obtain ⟨b, sz, hb, hle, ha⟩ := hm.access hacc
-    rw [ha]
-    have hbsz := hwf.noWrap r b sz hb
-    have hA : (b + BitVec.ofNat 64 o).toNat = b.toNat + o := toNat_add_ofNat b o (by omega)
-    refine ⟨loadInt_isSome_of_get? _ _ _ fun i hi => ?_, ?_⟩
-    · rw [addr_add]
-      exact hm.get?_some hwf hb (by omega)
-    have hout : ∀ k : BitVec 64, (k.toNat < b.toNat + o ∨ b.toNat + o + n ≤ k.toNat) →
-        (Mem.storeInt m.dmem (b + BitVec.ofNat 64 o) n val).get? k = m.dmem.get? k := by
-      intro k hk
-      rw [get?_storeInt _ _ _ _ _ hn, ite_neg]
-      have := le_toNat_sub k (b + BitVec.ofNat 64 o) n (by omega) (by omega)
-      omega
-    refine ⟨hm.regs, hm.flags, hm.regions, fun r' b' sz' hb' i hi => ?_, hm.labels,
-      hm.bounds, hm.aliases, fun k hk => ?_, hm.known⟩
-    · have hK : (b' + BitVec.ofNat 64 i).toNat = b'.toNat + i :=
-        toNat_add_ofNat b' i (by have := hwf.noWrap r' b' sz' hb'; omega)
-      by_cases hin : r' = r ∧ o ≤ i ∧ i < o + n
-      · obtain ⟨rfl, hi1, hi2⟩ := hin
-        rw [hb] at hb'
-        cases hb'
-        show _ = memByte env (⟨r', o, n, u⟩ :: _) r' b i
-        rw [get?_storeInt _ _ _ _ _ hn, ite_pos (by
-          rw [toNat_sub_of_le _ _ (by omega)]
-          omega), toNat_sub_of_le _ _ (by omega), hK, hA,
-          show b.toNat + i - (b.toNat + o) = i - o by omega, hval (i - o) (by omega)]
-        unfold memByte
-        rw [findWrite_cons, ite_pos ⟨rfl, hi1, hi2⟩]
-      · rw [hout _ (by
-          by_cases hr : r' = r
-          · subst hr
-            rw [hb] at hb'
-            cases hb'
-            omega
-          · rcases hwf.disjoint r r' b b' sz sz' (Ne.symm hr) hb hb' with h1 | h1 <;> omega),
-          hm.mem r' b' sz' hb' i hi]
-        show _ = memByte env (⟨r, o, n, u⟩ :: _) r' b' i
-        unfold memByte
-        have hf : findWrite r' i (⟨r, o, n, u⟩ :: S.mem.filter fun w =>
-            !decide (w.r = r ∧ o ≤ w.off ∧ w.off + w.n ≤ o + n)) = findWrite r' i S.mem := by
-          rw [findWrite_cons, ite_neg (by
-            intro hc
-            exact hin ⟨hc.1.symm, hc.2⟩)]
-          apply findWrite_filter
-          intro w _ hpw hc
-          simp only [Bool.not_eq_false', decide_eq_true_eq] at hpw
-          exact hin ⟨hc.1.symm.trans hpw.1, by omega⟩
-        rw [hf]
-    · show (Mem.storeInt m.dmem (b + BitVec.ofNat 64 o) n val).get? k = _
-      rw [hout k (by
-        have := hk r b sz hb
-        omega)]
-      exact hm.outside k hk
+    by_cases hro : r ∈ S.roRegions
+    · simp [hro] at h
+    · simp only [hro, ↓reduceIte, Option.some.injEq] at h
+      subst h
+      obtain ⟨b, sz, hb, hle, ha⟩ := hm.access hacc
+      rw [ha]
+      have hbsz := hwf.noWrap r b sz hb
+      have hA : (b + BitVec.ofNat 64 o).toNat = b.toNat + o := toNat_add_ofNat b o (by omega)
+      refine ⟨loadInt_isSome_of_get? _ _ _ fun i hi => ?_, ?_⟩
+      · rw [addr_add]
+        exact hm.get?_some_ro hwf hb (by omega)
+      have hout : ∀ k : BitVec 64, (k.toNat < b.toNat + o ∨ b.toNat + o + n ≤ k.toNat) →
+          (Mem.storeInt m.dmem (b + BitVec.ofNat 64 o) n val).get? k = m.dmem.get? k := by
+        intro k hk
+        rw [get?_storeInt _ _ _ _ _ hn, ite_neg]
+        have := le_toNat_sub k (b + BitVec.ofNat 64 o) n (by omega) (by omega)
+        omega
+      refine ⟨hm.regs, hm.flags, hm.regions, fun r' b' sz' hb' i hi => ?_, hm.labels,
+        hm.bounds, hm.aliases, fun k hk => ?_, hm.known, hm.roRegions⟩
+      · have hK : (b' + BitVec.ofNat 64 i).toNat = b'.toNat + i :=
+          toNat_add_ofNat b' i (by have := hwf.noWrap r' b' sz' hb'; omega)
+        by_cases hin : r' = r ∧ o ≤ i ∧ i < o + n
+        · obtain ⟨rfl, hi1, hi2⟩ := hin
+          rw [hb] at hb'
+          cases hb'
+          show _ = memByte env (⟨r', o, n, u⟩ :: _) r' b i
+          rw [get?_storeInt _ _ _ _ _ hn, ite_pos (by
+            rw [toNat_sub_of_le _ _ (by omega)]
+            omega), toNat_sub_of_le _ _ (by omega), hK, hA,
+            show b.toNat + i - (b.toNat + o) = i - o by omega, hval (i - o) (by omega)]
+          unfold memByte
+          rw [findWrite_cons, ite_pos ⟨rfl, hi1, hi2⟩]
+        · rw [hout _ (by
+            by_cases hr : r' = r
+            · subst hr
+              rw [hb] at hb'
+              cases hb'
+              omega
+            · rcases hwf.disjointOf r r' b b' sz sz' (hm.roRegions ▸ hro) (Ne.symm hr) hb hb' with h1 | h1 <;> omega),
+            hm.mem r' b' sz' hb' i hi]
+          show _ = memByte env (⟨r, o, n, u⟩ :: _) r' b' i
+          unfold memByte
+          have hf : findWrite r' i (⟨r, o, n, u⟩ :: S.mem.filter fun w =>
+              !decide (w.r = r ∧ o ≤ w.off ∧ w.off + w.n ≤ o + n)) = findWrite r' i S.mem := by
+            rw [findWrite_cons, ite_neg (by
+              intro hc
+              exact hin ⟨hc.1.symm, hc.2⟩)]
+            apply findWrite_filter
+            intro w _ hpw hc
+            simp only [Bool.not_eq_false', decide_eq_true_eq] at hpw
+            exact hin ⟨hc.1.symm.trans hpw.1, by omega⟩
+          rw [hf]
+      · show (Mem.storeInt m.dmem (b + BitVec.ofNat 64 o) n val).get? k = _
+        rw [hout k (by
+          have := hk r b sz hb
+          omega)]
+        exact hm.outside k hk
 
 end
 

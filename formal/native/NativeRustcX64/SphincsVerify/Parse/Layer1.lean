@@ -57,8 +57,8 @@ theorem layer1_a (hp : PlacedIn code r.sec r.k) (hpre : r.Pre) (hc : Callees) {m
   have hk : b14.IsInfixAt (ElfHost.sectionProg r.sec) (r.k + b14Offset) := b14_in_code.trans hp.1 (List.cons_ne_nil _ _)
   have hwf := wfSig r hpre hF.2.2.2 hF.2.2.1 (fun _ ↦ 0) 0
   have hm₀ := match_sig r hpre hF hbx (k := []) (vars := fun _ ↦ 0) (ret := 0) trivial
-  refine exec_then_elf hk run_b14 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
-  have hd : st.data.dmem = m.dmem := hm'.dmem_eq hwf rfl
+  refine exec_then_elf_ro hk run_b14 hwf (fun _ h ↦ nomatch h) hm₀ fun st hm' hpc ↦ ?_
+  have hd : st.data.dmem = m.dmem := hm'.dmem_eq_ro hwf rfl
   have hreg := keepsRegs_regs (rs := [.rsp, .rbx, .r14]) hm₀ hm' (by decide)
   have hF₁ : r.Frame st.data := frame_of_block r hpre hF rfl rfl hm' hwf rfl (by decide)
   have h12 : Low4 (reg st.data .r12) (slice r.sigB 5396 4) :=
