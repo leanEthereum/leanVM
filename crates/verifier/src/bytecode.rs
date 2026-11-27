@@ -24,6 +24,17 @@ pub struct Bytecode {
 const BLOCK_LOG: usize = 14;
 const _: () = assert!(BLOCK_LOG <= u16::BITS as usize, "a position within a block is a u16");
 
+/// The Fiat-Shamir IV of the stacked bytecode `stacked_bytecode`, as [`Bytecode::fiat_shamir_iv`] gives it: what a
+/// prover needs of the bytecode, which never evaluates it.
+pub fn fiat_shamir_iv(stacked_bytecode: &[u64]) -> [u8; 32] {
+    let iv_preimage: Vec<u8> = TAG
+        .iter()
+        .copied()
+        .chain(stacked_bytecode.iter().flat_map(|word| word.to_le_bytes()))
+        .collect();
+    keccak_hash(&iv_preimage).0
+}
+
 impl Bytecode {
     /// The Fiat-Shamir IV every transcript of this program starts from.
     pub fn fiat_shamir_iv(&self) -> [u8; 32] {
@@ -37,14 +48,7 @@ impl Bytecode {
             is_valid_encoding_of_a_leanisa_program(stacked_bytecode),
             VerifierError::BytecodeShape,
         )?;
-        let fiat_shamir_iv = {
-            let iv_preimage: Vec<u8> = TAG
-                .iter()
-                .copied()
-                .chain(stacked_bytecode.iter().flat_map(|word| word.to_le_bytes()))
-                .collect();
-            keccak_hash(&iv_preimage)
-        };
+        let fiat_shamir_iv = Digest(fiat_shamir_iv(stacked_bytecode));
         let blocks = stacked_bytecode
             .chunks(1 << BLOCK_LOG)
             .map(|block| {

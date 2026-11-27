@@ -48,7 +48,12 @@ fn the_replay_agrees_with_the_unchecked_walk() {
     let bytes = lean_vm_core::cpu::public_input_bytes(&pi);
     let both = |proof: &Proof| {
         (
-            verifier::replay_unchecked(program.bytecode(), &bytes, proof),
+            verifier::replay_unchecked(
+                program.stacked_bytecode().len(),
+                program.fiat_shamir_iv(),
+                &bytes,
+                proof,
+            ),
             verifier::__walk_unchecked(program.bytecode(), &bytes, proof),
         )
     };

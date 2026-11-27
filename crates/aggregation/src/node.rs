@@ -108,7 +108,13 @@ pub fn aggregate<P: Prover>(
     // One single-threaded replay per worker: nothing inside dispatches.
     let summaries = P::map_collect(children.len(), |i| {
         let pi = public_input_bytes(&public_inputs[i]);
-        verifier::replay_unchecked(unified_guest().bytecode(), &pi, &children[i].1.proof)
+        let guest = unified_guest();
+        verifier::replay_unchecked(
+            guest.stacked_bytecode().len(),
+            guest.fiat_shamir_iv(),
+            &pi,
+            &children[i].1.proof,
+        )
     });
     let summaries: Vec<verifier::Summary> = summaries
         .into_iter()

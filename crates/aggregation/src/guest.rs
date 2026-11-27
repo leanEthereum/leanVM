@@ -62,7 +62,7 @@ fn compile_unified_guest() -> Program {
 
 /// The guest's Fiat-Shamir IV as the two words a statement carries it in.
 pub(super) fn fs_seed() -> [F128; 2] {
-    hash_to_scalars(&unified_guest().bytecode().fiat_shamir_iv())
+    hash_to_scalars(&unified_guest().fiat_shamir_iv())
 }
 
 #[cfg(feature = "compile-guest")]

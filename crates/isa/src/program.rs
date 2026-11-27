@@ -19,8 +19,10 @@ pub struct Program {
     compiled: CompiledProgram,
     /// Bus coordinate `s` of every instruction at `s * prog.len()`, for `s < 2^BUS_BITS`.
     stacked_bytecode: Vec<u64>,
-    /// `stacked_bytecode` prepared for the verifier.
-    bytecode: verifier::Bytecode,
+    /// Its Fiat-Shamir IV, all a prover reads of the prepared bytecode.
+    fiat_shamir_iv: [u8; 32],
+    /// `stacked_bytecode` prepared for the verifier, on first use.
+    bytecode: OnceLock<verifier::Bytecode>,
 }
 
 /// # Panics
@@ -38,7 +40,8 @@ impl From<CompiledProgram> for Program {
         }
         Self {
             compiled,
-            bytecode: verifier::Bytecode::new(&stacked).expect("encode gives the encoding of a program"),
+            fiat_shamir_iv: verifier::fiat_shamir_iv(&stacked),
+            bytecode: OnceLock::new(),
             stacked_bytecode: stacked,
         }
     }
@@ -58,9 +61,16 @@ impl Program {
         &self.stacked_bytecode
     }
 
-    /// [`Self::stacked_bytecode`] prepared for the verifier, with its Fiat-Shamir IV.
+    /// The Fiat-Shamir IV every transcript of this program starts from.
+    pub fn fiat_shamir_iv(&self) -> [u8; 32] {
+        self.fiat_shamir_iv
+    }
+
+    /// [`Self::stacked_bytecode`] prepared for the verifier, built on first use.
     pub fn bytecode(&self) -> &verifier::Bytecode {
-        &self.bytecode
+        self.bytecode.get_or_init(|| {
+            verifier::Bytecode::new(&self.stacked_bytecode).expect("encode gives the encoding of a program")
+        })
     }
 }
 

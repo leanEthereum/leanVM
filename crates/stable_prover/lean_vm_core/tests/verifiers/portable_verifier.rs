@@ -12,7 +12,13 @@ use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 fn replay_reads_the_summary_unchecked() {
     let fixture = fixture();
     assert_eq!(
-        replay_unchecked(fixture.program.bytecode(), &fixture.public_input_bytes, &fixture.proof).as_ref(),
+        replay_unchecked(
+            fixture.program.stacked_bytecode().len(),
+            fixture.program.fiat_shamir_iv(),
+            &fixture.public_input_bytes,
+            &fixture.proof
+        )
+        .as_ref(),
         Ok(&fixture.summary)
     );
 }

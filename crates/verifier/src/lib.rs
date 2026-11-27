@@ -22,7 +22,7 @@ mod transcript;
 mod whir;
 mod wire;
 
-pub use bytecode::Bytecode;
+pub use bytecode::{Bytecode, fiat_shamir_iv};
 pub use field::{E, K};
 pub use layout::{
     MAX_LOG_BYTECODE, MAX_LOG_MEMORY, MAX_STACKED_LOG, MAX_TABLE_LOG, MIN_LOG_MEMORY, MIN_STACKED_LOG, TAG,
@@ -199,8 +199,15 @@ pub fn verify_execution(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 /// NOT a verification: the [`Summary`] of `proof`, read out without checking it. An invalid proof is accepted.
 ///
 /// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, Keccak and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape, a Merkle path at a position the protocol did not open.
-pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
-    replay(bytecode, public_input, proof)
+///
+/// It reads only the bytecode's length and Fiat-Shamir IV ([`fiat_shamir_iv`]).
+pub fn replay_unchecked(
+    bytecode_len: usize,
+    fiat_shamir_iv: [u8; 32],
+    public_input: &[u8; 32],
+    proof: &Proof,
+) -> Result<Summary, VerifierError> {
+    replay(bytecode_len, Digest(fiat_shamir_iv), public_input, proof)
 }
 
 /// [`verify_execution`]'s walk with its checks left out: what [`replay_unchecked`] must agree with, for its tests.
@@ -267,8 +274,13 @@ pub fn verify_keccak_batch(
 /// [`walk`]'s transcript alone, in its order: what it reads, grinds and samples, and its checks on the proof's shape
 /// (the announced sizes, the stream's and the openings' lengths, the paths' positions), but no value: the challenges
 /// depend on the stream alone.
-fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
-    let mut transcript = Transcript::new(proof, bytecode.fiat_shamir_iv, Digest(*public_input), false);
+fn replay(
+    bytecode_len: usize,
+    fiat_shamir_iv: Digest,
+    public_input: &[u8; 32],
+    proof: &Proof,
+) -> Result<Summary, VerifierError> {
+    let mut transcript = Transcript::new(proof, fiat_shamir_iv, Digest(*public_input), false);
     let announced = transcript.next_scalars(2 + N_TABLES)?;
     require(
         announced.iter().all(|value| value.c1 == 0),
@@ -281,7 +293,7 @@ fn replay(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result
         (MIN_LOG_INV_RATE as u64..=MAX_LOG_INV_RATE as u64).contains(&log_inverse_rate),
         VerifierError::PcsInverseRate,
     )?;
-    let layout = layout::sizes(bytecode.len(), log_memory, &table_rows)?;
+    let layout = layout::sizes(bytecode_len, log_memory, &table_rows)?;
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
         VerifierError::CommittedSize,

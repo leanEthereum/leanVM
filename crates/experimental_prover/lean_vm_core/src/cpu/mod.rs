@@ -228,7 +228,7 @@ pub fn prove(
     // The public statement (program digest + input) seeds the transcript, so
     // every challenge depends on the exact program and public input.
     let mut ps = ProverState::new(
-        verifier::Digest(program.bytecode().fiat_shamir_iv()).words(),
+        verifier::Digest(program.fiat_shamir_iv()).words(),
         verifier::Digest(public_input_bytes(&public_input)).words(),
     );
 

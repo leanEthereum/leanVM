@@ -169,7 +169,7 @@ pub fn prove(
     // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
     // before any challenge.
     let mut ps = ProverState::new(
-        verifier::Digest(program.bytecode().fiat_shamir_iv()).words(),
+        verifier::Digest(program.fiat_shamir_iv()).words(),
         verifier::Digest(public_input_bytes(&public_input)).words(),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
