@@ -697,6 +697,7 @@ version = "0.1.0"
 dependencies = [
  "aggregation",
  "isa",
+ "keccak256",
  "lean_sphincs",
  "lean_xmss",
  "stable_lean_vm_core",
