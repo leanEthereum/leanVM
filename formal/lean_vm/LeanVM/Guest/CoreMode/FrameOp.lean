@@ -43,7 +43,7 @@ theorem nzOf_sound {fp : ℕ} {A : FSt} (hv : FVal img fp A) {o : ℕ} (h : A.nz
     ∃ v, Rd img fp o = some v ∧ v ≠ 0 := by
   unfold FSt.nzOf at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · exact hv.nz o (has_iff.mp h)
+  · exact hv.nz o h
   · obtain ⟨v, hv', hne⟩ := symNz_val h _ (gpow_ne_zero' fp)
     exact ⟨_, hv.st.1 o v hv', hne⟩
 
@@ -134,7 +134,7 @@ def HeapRd (s : Prover.Exec.St) : OffsetInstruction → Prop
 
 /-! ## Value facts after an instruction -/
 
-theorem stepF_deref {O S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
+theorem stepF_deref {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
     (h : stepF O S i A (.deref a o c mode) = some A') :
     A.hasW a = true ∧ (has S i = true → A.hasW c = true) ∧ A' = derefF O i A a o c mode := by
   replace h : (if (A.hasW a && (!has S i || A.hasW c)) = true then some (derefF O i A a o c mode)
@@ -247,7 +247,7 @@ theorem fval_addOuts {fp : ℕ} {A : FSt} (hv : FVal img fp A) (out : ℕ) :
 
 /-- **The value facts after a non-`JUMP`** the frame rule accepts, the instruction holding of the
 reference. -/
-theorem stepF_val {O S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
+theorem stepF_val {O : ℕ} {S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
     (hv : FVal img fp A) (hh : Guest.Holds img pc (g ^ fp) ins) (h : stepF O S i A ins = some A') :
     FVal img fp A' := by
   cases ins with
@@ -363,9 +363,9 @@ theorem fwr_addOuts {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out : ℕ} :
   | n + 1, hn => (fwr_addOuts hw n fun j hj ↦ hn j (by omega)).addW (hn n (by omega))
 
 /-- **The written cells after a non-`JUMP`** the frame rule accepts. -/
-theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
+theorem stepF_wr {C : Prover.Exec.Ctx} {O : ℕ} {S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size)
-    (hw : FWr s A) (hO : has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
+    (hw : FWr s A) (hO : Bits.has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
     (hfpg : ∀ a o c mode e p, ins = .deref a o c mode → A.st.env.get a = some (.fpg e) →
       s.mem.get (s.fp + a) = some p → p.limb 0 = g ^ (s.fp + e))
     (e : runOp C s (opOfOff ins) = .ok s') :
@@ -424,7 +424,7 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
       have hB : FWr s' (cellF O i A a o c) ∧ ((cellF O i A a o c).hasW c = true → s'.mem.written x = true) := by
         unfold cellF
         split_ifs with hc hq ho
-        · obtain ⟨v, hv⟩ := Mem.get_of_written (hw.w c (has_iff.mp hc))
+        · obtain ⟨v, hv⟩ := Mem.get_of_written (hw.w c hc)
           exact ⟨(hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hst v hv)⟩,
             fun _ ↦ written_of_get (hst v hv)⟩
         · unfold FSt.hasQ at hq
@@ -453,12 +453,12 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : 
       exact hB'.2 hc
 
 /-- **What a non-`JUMP` the frame rule accepts reads is written**, a back-solve's divisor nonzero. -/
-theorem stepF_reads (hκ : κ ≤ 28) {O S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
+theorem stepF_reads (hκ : κ ≤ 28) {O : ℕ} {S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : Fine (refMem img) s) (hA : FHolds img s A)
     (hh : Guest.Holds img pc (g ^ s.fp) ins)
     (hsm : ∀ a b c, ins = .mul a b c → a < 2 ^ 28 ∧ b < 2 ^ 28 ∧ c < 2 ^ 28)
     (h : stepF O S i A ins = some A') : Reads s (opOfOff ins) := by
-  have hW : ∀ o, A.hasW o = true → s.mem.written (s.fp + o) = true := fun o ho ↦ hA.2.w o (has_iff.mp ho)
+  have hW : ∀ o, A.hasW o = true → s.mem.written (s.fp + o) = true := fun o ho ↦ hA.2.w o ho
   cases ins with
   | jump => simp [stepF] at h
   | set => trivial
