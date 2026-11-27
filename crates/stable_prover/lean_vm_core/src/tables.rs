@@ -859,12 +859,14 @@ fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usi
     if a == b {
         return a.map_or(Const(F64::ZERO), Col);
     }
-    Coord::Sum(
-        [a.map(Col), a.map(|a| Prod(flag, a, 0)), b.map(|b| Prod(flag, b, 0))]
-            .into_iter()
-            .flatten()
-            .collect(),
-    )
+    let mut sum = Vec::with_capacity(3);
+    if let Some(a) = a {
+        sum.extend([Col(a), Prod(flag, a, 0)]);
+    }
+    if let Some(b) = b {
+        sum.push(Prod(flag, b, 0));
+    }
+    Coord::Sum(sum)
 }
 
 impl KeccakTable {

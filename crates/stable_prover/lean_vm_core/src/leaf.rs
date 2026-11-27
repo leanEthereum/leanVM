@@ -228,24 +228,24 @@ impl Formula {
     /// Add coordinate `c` at weight `w`. A [`Coord::Sum`]'s terms share its weight, and the products of one pair in
     /// a sum (a gated count's) one term.
     fn add(c: &Coord, w: F128, public: usize, terms: &mut Vec<(Term, F128)>, constant: &mut F128) {
-        match c {
-            Coord::Const(v) => *constant += w.mul_base(*v),
-            Coord::Col(i) => terms.push((Term::Col(*i), w)),
-            Coord::GCol(i, k) => terms.push((Term::Col(*i), w.mul_base(g_pow(*k as usize)))),
-            Coord::Prod(i, j, k) => {
-                let v = w.mul_base(g_pow(*k as usize));
-                match terms.last_mut() {
-                    Some((Term::Prod(a, b), u)) if (*a, *b) == (*i, *j) => *u += v,
-                    _ => terms.push((Term::Prod(*i, *j), v)),
-                }
-            }
-            Coord::Index => terms.push((Term::Index, w)),
-            Coord::Public(s) => terms.push((Term::Col(public + s), w)),
-            Coord::Sum(cs) => {
+        let (term, k) = match *c {
+            Coord::Const(v) => return *constant += w.mul_base(v),
+            Coord::Col(i) => (Term::Col(i), 0),
+            Coord::GCol(i, k) => (Term::Col(i), k),
+            Coord::Prod(i, j, k) => (Term::Prod(i, j), k),
+            Coord::Index => (Term::Index, 0),
+            Coord::Public(s) => (Term::Col(public + s), 0),
+            Coord::Sum(ref cs) => {
                 for c in cs {
                     Self::add(c, w, public, terms, constant);
                 }
+                return;
             }
+        };
+        let v = w.mul_base(g_pow(k as usize));
+        match (terms.last_mut(), &term) {
+            (Some((Term::Prod(a, b), u)), Term::Prod(i, j)) if (*a, *b) == (*i, *j) => *u += v,
+            _ => terms.push((term, v)),
         }
     }
 

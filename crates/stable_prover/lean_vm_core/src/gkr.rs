@@ -39,7 +39,8 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
 
 /// Prove the bus's grand products as one batched radix-four GKR: push, pull, then count. Push and pull have one
 /// product by construction, so one root is sent for both, then the count's. Each tree comes as its leaves and its
-/// runs of leaves known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's value there.
+/// runs of leaves known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's
+/// value there.
 ///
 /// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`, or
 /// `u_0` in a binary layer.
