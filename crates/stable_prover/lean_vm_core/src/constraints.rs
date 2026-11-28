@@ -16,9 +16,9 @@
 //! A table joins in its first active round: its summand's few linear parts are written out from its `K` columns as `E`
 //! columns (`Grouped`), which every round then reads and folds, rather than its columns folded one by one.
 
-use crate::{load_e, load_k};
+use crate::{load_e, load_k, mul};
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
-use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
+use primitives::multilinear::{eq_table, shrink_eq_high};
 use primitives::transcript::ProverState;
 
 /// A degree-two form over one table's columns: `constant + Σ_c coeffs[c]·col_c + Σ q·col_a·col_b` over `prods`.
@@ -83,7 +83,8 @@ impl Form {
     }
 }
 
-/// One table's columns' evaluations at the sumcheck's point `χ_{<τ_j}`.
+/// The sumcheck's point `χ`, and every table's columns' evaluations at its prefix `χ_{<τ_j}`, one table's after
+/// another in input order.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Claims {
     pub chi: Vec<F128>,
@@ -111,20 +112,20 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 }
 
 /// Prove what every table's summand sums to against `eq(ζ_{<τ}, ·)`, as one sumcheck over `τ_max` variables, the `eq`
-/// point `zeta` (the bus GKR's `ζ`). Returns each table's column claims, in input order.
-pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claims> {
+/// point `zeta` (the bus GKR's `ζ`). Returns the tables' column claims.
+pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Claims {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
-    let mut tables: Vec<Table> = airs
-        .iter()
-        .map(|air| Table {
+    let mut tables = Vec::with_capacity(airs.len());
+    for air in airs {
+        tables.push(Table {
             tau: air.tau,
             weight: F128::ONE,
             form: Grouped::new(&air.form),
             cols: air.cols,
             state: None,
-        })
-        .collect();
+        });
+    }
     // One eq table over the variables still free serves every joined table.
     let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
     let mut chi = vec![F128::ZERO; n];
@@ -141,40 +142,32 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
                 t.join(m);
             }
             let [end, quadratic] = t.message(&eqr, m, zeta[m], first, &mut u);
-            p = [p[0] + t.weight * end, p[1] + t.weight * quadratic];
+            p = [p[0] + mul(t.weight, end), p[1] + mul(t.weight, quadratic)];
         }
         shrink_eq_high(&mut eqr);
         let h = round_polynomial(p, zeta[m], claim, u);
         ps.add_round_poly(&h, false);
         let r = ps.sample();
-        claim = poly_eval(&h, r);
-        u *= r;
+        claim = h.iter().rev().fold(F128::ZERO, |acc, &c| mul(acc, r) + c);
+        u = mul(u, r);
         chi[m] = r;
         for t in &mut tables {
-            if t.tau > m {
-                t.weight *= F128::ONE + zeta[m] + r;
+            let joined = t.tau > m;
+            if joined {
                 t.bind(r, m);
-            } else {
-                t.weight *= r;
             }
+            t.weight = mul(t.weight, if joined { F128::ONE + zeta[m] + r } else { r });
         }
     }
 
     // Every column at its table's point, a table's in one pass: the columns themselves were never folded.
-    {
-        tables
-            .iter()
-            .map(|t| {
-                let chi = &chi[..t.tau];
-                let evals = crate::eq::eq_sums(chi, t.cols);
-                ps.add_scalars(&evals);
-                Claims {
-                    chi: chi.to_vec(),
-                    evals,
-                }
-            })
-            .collect()
+    let mut evals = Vec::new();
+    for t in &tables {
+        let table = crate::eq::eq_sums(&chi[..t.tau], t.cols);
+        ps.add_scalars(&table);
+        evals.extend_from_slice(&table);
     }
+    Claims { chi, evals }
 }
 
 /// The round polynomial `h(Y) = eq(ζ, Y)·p(Y) + Y·u`, `eq(ζ, Y) = 1 + ζ + Y`, from `p`'s endpoint at `0` (at `1`
@@ -184,11 +177,11 @@ fn round_polynomial([end, quadratic]: [F128; 2], zeta: F128, claim: F128, u: F12
     let (p0, p1) = if zeta.is_zero() {
         (claim + u, end)
     } else {
-        (end, (claim + u + eq0 * end) * zeta.inv())
+        (end, mul(claim + u + mul(eq0, end), zeta.inv()))
     };
     // `p(Y) = p0 + (p0 + p1 + quadratic)·Y + quadratic·Y²`, and `h1 = claim + h2 + h3`.
-    let h2 = eq0 * quadratic + p0 + p1 + quadratic;
-    [eq0 * p0, claim + h2 + quadratic, h2, quadratic]
+    let h2 = mul(eq0, quadratic) + p0 + p1 + quadratic;
+    [mul(eq0, p0), claim + h2 + quadratic, h2, quadratic]
 }
 
 /// One table of the batch, and what the rounds have made of it.
@@ -224,7 +217,8 @@ impl Table<'_> {
         let [p0, p1, quadratic] = message_joined(&self.form, state, eqr, 1 << m, [first || !at_one, first || at_one]);
         let (p0, p1) = (p0 + c, p1 + c);
         if first {
-            *u += self.weight * ((F128::ONE + zeta) * p0 + zeta * p1);
+            // `(1 + ζ)·p0 + ζ·p1`
+            *u += mul(self.weight, p0 + mul(zeta, p0 + p1));
         }
         [if at_one { p1 } else { p0 }, quadratic]
     }
@@ -256,13 +250,12 @@ struct Grouped {
 
 impl Grouped {
     fn new(form: &Form) -> Self {
-        let lin: Lin = form
-            .coeffs
-            .iter()
-            .copied()
-            .enumerate()
-            .filter(|(_, c)| !c.is_zero())
-            .collect();
+        let mut lin = Lin::new();
+        for (c, &w) in form.coeffs.iter().enumerate() {
+            if !w.is_zero() {
+                lin.push((c, w));
+            }
+        }
         let mut groups: Vec<(usize, Lin)> = Vec::new();
         for &(a, b, q) in &form.prods {
             let (a, b) = (a.min(b), a.max(b));

@@ -50,6 +50,12 @@ pub(crate) fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
     }
 }
 
+/// One `E` product, out of line: for the scalar arithmetic between passes, which needs no copy of its own.
+#[inline(never)]
+pub(crate) fn mul(a: F128, b: F128) -> F128 {
+    a * b
+}
+
 /// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
 #[inline]
 pub(crate) fn load_k(values: &[F64], i: usize, n: usize) -> F64x8 {

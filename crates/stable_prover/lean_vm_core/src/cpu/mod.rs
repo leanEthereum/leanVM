@@ -93,13 +93,11 @@ fn airs<'a>(
     let mut offset = 0;
     for (t, table) in tables::tables().into_iter().enumerate() {
         let n = table.n_constraints();
-        let identities = table.constraint(&pows[offset..][..n]);
+        let mut form = table.constraint(&pows[offset..][..n]);
         offset += n;
-        let mut form = constraints::Form::new(identities.coeffs.len());
         for s in 0..verifier::N_BUS_TREES {
             add_scaled(&mut form, &bus.forms[s][t], pows[base + s]);
         }
-        add_scaled(&mut form, &identities, F128::ONE);
         airs.push(constraints::Air {
             tau: taus[t],
             cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
@@ -114,11 +112,11 @@ fn airs<'a>(
 fn add_scaled(out: &mut constraints::Form, f: &constraints::Form, w: F128) {
     assert_eq!(out.coeffs.len(), f.coeffs.len(), "forms over the same columns");
     for (slot, &c) in out.coeffs.iter_mut().zip(&f.coeffs) {
-        *slot += c * w;
+        *slot += crate::mul(c, w);
     }
-    out.constant += f.constant * w;
+    out.constant += crate::mul(f.constant, w);
     for &(a, b, q) in &f.prods {
-        out.prods.push((a, b, q * w));
+        out.prods.push((a, b, crate::mul(q, w)));
     }
 }
 
@@ -137,11 +135,13 @@ pub fn n_xi_powers() -> usize {
 
 /// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on the permutation's
 /// output: the table sumcheck claims every column of the table at one point.
-fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
-    let claims = &table_claims[verifier::layout::OP_KECCAK];
+fn keccak_output_claim(claims: &constraints::Claims, taus: &[usize; tables::N_TABLES]) -> keccak_gkr::OutputClaim {
+    use verifier::layout::OP_KECCAK;
+    // The tables' columns are numbered one table after another, as the sumcheck lists their evaluations.
+    let out = GLOBAL_COLUMN_BASES[OP_KECCAK] - GLOBAL_COLUMN_BASES[0] + tables::keccakt::V_OUT;
     keccak_gkr::OutputClaim {
-        instance: claims.chi.clone(),
-        lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),
+        instance: claims.chi[..taus[OP_KECCAK]].to_vec(),
+        lanes: std::array::from_fn(|l| claims.evals[out + l]),
     }
 }
 
@@ -215,7 +215,7 @@ pub fn prove(
     // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
     // point claim.
     let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
-    let output = keccak_output_claim(&table_claims);
+    let output = keccak_output_claim(&table_claims, &w.layout.taus);
     let openings = {
         w.keccak_reduction
             .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
@@ -235,7 +235,7 @@ pub fn prove(
 fn finish_claims(
     l: &Layout,
     bus_claims: &[ColumnClaim],
-    table_claims: &[constraints::Claims],
+    table_claims: &constraints::Claims,
     r_pi: F128,
 ) -> Vec<pcs::StackClaim> {
     let mut claims = Vec::new();
@@ -246,7 +246,7 @@ fn finish_claims(
         for col in GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t] {
             // the Keccak reduction's claim on the output (`keccak_output_claim`)
             if !matches!(keccak_value(col), Some(KeccakLane::Output(_))) {
-                push_claim(&mut claims, l, col, &table_claims[t].chi);
+                push_claim(&mut claims, l, col, &table_claims.chi[..l.taus[t]]);
             }
         }
     }
