@@ -279,6 +279,9 @@ fn run_at(base: u32, offset: u32, len: u32) -> Res<u32> {
     }
 }
 
+/// The end of a chain of linked cells.
+const NO_EDGE: u32 = u32::MAX;
+
 /// The memory while the program runs: whole pages up to the highest cell reached.
 #[derive(Default)]
 struct Mem {
@@ -287,9 +290,11 @@ struct Mem {
     used: usize,
     /// The highest access count any cell reached.
     counts: u32,
-    /// The cells a `DEREF` linked each cell to: its list in `link_lists`.
+    /// The cells a `DEREF` linked each cell to, in link order: its chain in `chains`, the `(first, last)` of a run
+    /// through `edges`, each edge a linked cell and the next edge (`NO_EDGE` at either end).
     links: WordMap,
-    link_lists: Vec<Vec<u32>>,
+    chains: Vec<(u32, u32)>,
+    edges: Vec<(u32, u32)>,
     /// Cells an instruction read before anything wrote them.
     unwritten_reads: Vec<u32>,
 }
@@ -353,11 +358,15 @@ impl Mem {
         if self.store(cell, v)? {
             let mut todo = vec![cell];
             while let Some(c) = todo.pop() {
-                let linked = (self.links.get(c.into())).map(|i| std::mem::take(&mut self.link_lists[i as usize]));
-                for p in linked.unwrap_or_default() {
+                let Some(i) = self.links.get(c.into()) else { continue };
+                // The chain is emptied: a link made later starts a new one.
+                let mut e = std::mem::replace(&mut self.chains[i as usize], (NO_EDGE, NO_EDGE)).0;
+                while e != NO_EDGE {
+                    let (p, next) = self.edges[e as usize];
                     if self.store(p, v)? {
                         todo.push(p);
                     }
+                    e = next;
                 }
             }
         }
@@ -387,12 +396,19 @@ impl Mem {
             if c.state == State::Unwritten {
                 c.state = State::Linked;
             }
-            let n = self.link_lists.len() as u32;
+            let n = self.chains.len() as u32;
             let i = self.links.get_or_insert(x.into(), n);
             if i == n {
-                self.link_lists.push(Vec::new());
+                self.chains.push((NO_EDGE, NO_EDGE));
             }
-            self.link_lists[i as usize].push(y);
+            let e = self.edges.len() as u32;
+            self.edges.push((y, NO_EDGE));
+            let chain = &mut self.chains[i as usize];
+            match chain.1 {
+                NO_EDGE => chain.0 = e,
+                last => self.edges[last as usize].1 = e,
+            }
+            chain.1 = e;
         }
     }
 
@@ -462,12 +478,6 @@ fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -
 fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Res<u32> {
     let p = in_k(what, m.get(cell))?;
     g.log(p).ok_or_else(|| fault(Fault::NotAGPower { what, value: p }))
-}
-
-/// `v^{-1}`, `v` nonzero: one copy for the back-solve and the hint.
-#[inline(never)]
-fn inverse(v: F128) -> F128 {
-    v.inv()
 }
 
 /// The word in cell `fp + offset`, as a hint reads it.
@@ -626,7 +636,7 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                     if known.is_zero() {
                         return Err(fault(Fault::BackSolveThroughZero));
                     }
-                    m.put(if ha { ab } else { aa }, crate::mul(m.get(ac), inverse(known)))?;
+                    m.put(if ha { ab } else { aa }, crate::mul(m.get(ac), known.inv()))?;
                 }
             }
             let (va, vb) = (m.read(aa), m.read(ab));
@@ -639,18 +649,19 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                 rc: m.bump_access_count(ac),
                 bytecode_read,
             };
-            if is_xor { &mut tr.xor } else { &mut tr.mul }.push(row);
+            // A row is appended as a slice: that grows through the one `reserve`, `push` through a copy per row type.
+            if is_xor { &mut tr.xor } else { &mut tr.mul }.extend_from_slice(&[row]);
         }
         Op::Set { o, k } => {
             let a = cell_at(fp, o)?;
             m.put(a, super::from_scalar(k))?;
             let r = m.bump_access_count(a);
-            tr.set.push(Srow {
+            tr.set.extend_from_slice(&[Srow {
                 pc,
                 fp,
                 r,
                 bytecode_read,
-            });
+            }]);
         }
         Op::Deref { o1, o2, o3, mode } => {
             let a1 = cell_at(fp, o1)?;
@@ -687,14 +698,14 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
                     m.put(a2, F128::from(g.pow(fp as usize)))?;
                 }
             }
-            tr.deref.push(Drow {
+            tr.deref.extend_from_slice(&[Drow {
                 pc,
                 fp,
                 r1: m.bump_access_count(a1),
                 r2: m.bump_access_count(a2),
                 r3: m.bump_access_count(a3),
                 bytecode_read,
-            });
+            }]);
         }
         Op::Jump { oc, od, of } => {
             let (ac, ad, af) = (cell_at(fp, oc)?, cell_at(fp, od)?, cell_at(fp, of)?);
@@ -704,14 +715,14 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             let c = in_k("JUMP condition", m.read(ac))?;
             let d = in_k("JUMP target", m.read(ad))?;
             let f = in_k("JUMP fp", m.read(af))?;
-            tr.jump.push(Jrow {
+            tr.jump.extend_from_slice(&[Jrow {
                 pc,
                 fp,
                 rc: m.bump_access_count(ac),
                 rd: m.bump_access_count(ad),
                 rf: m.bump_access_count(af),
                 bytecode_read,
-            });
+            }]);
             if !c.is_zero() {
                 let not_a_g_power = |what, value| fault(Fault::NotAGPower { what, value });
                 let pc = (g.log_below(d, program.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
@@ -743,12 +754,12 @@ fn step(program: &Program, pc: u32, fp: u32, m: &mut Mem, g: &mut GPow, tr: &mut
             for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
                 *count = m.bump_access_count(cell);
             }
-            tr.keccak.push(Krow {
+            tr.keccak.extend_from_slice(&[Krow {
                 pc,
                 fp,
                 r,
                 bytecode_read,
-            });
+            }]);
         }
     }
     Ok((pc + 1, fp))
@@ -927,7 +938,7 @@ fn apply_hint<'a>(h: &'a RHint, fp: u32, m: &mut Mem, g: &mut GPow, advice: &mut
         }
         RHint::Inverse { value, dst } => {
             let v = word_at(m, fp, value)?;
-            m.put(cell_at(fp, dst)?, if v.is_zero() { F128::ZERO } else { inverse(v) })?;
+            m.put(cell_at(fp, dst)?, if v.is_zero() { F128::ZERO } else { v.inv() })?;
         }
     }
     Ok(())
