@@ -77,17 +77,30 @@ pub fn parse_with_constants(
             continue;
         }
         let t = no_comment.trim();
-        if let Some(rest) = t.strip_prefix("import ").or_else(|| t.strip_prefix("from ")) {
-            let module = rest.split_whitespace().next().unwrap_or("");
-            if module != "snark_lib" {
+        let indent = no_comment.len() - no_comment.trim_start().len();
+        let mut words = t.split_whitespace();
+        if let Some(kw @ ("import" | "from")) = words.next() {
+            if words.next() != Some("snark_lib") {
                 return Err(locate(
                     src_line + 1,
                     format!("file imports are not supported (only the `snark_lib` stub): `{t}`"),
                 ));
             }
+            // The whole line is skipped, so anything else on it would vanish unread.
+            let documented = match kw {
+                "import" => words.next().is_none(),
+                _ => words.eq(["import", "*"]),
+            };
+            if indent != 0 || !documented {
+                return Err(locate(
+                    src_line + 1,
+                    format!(
+                        "the `snark_lib` import must be `import snark_lib` or `from snark_lib import *`, unindented and alone on its line: `{t}`"
+                    ),
+                ));
+            }
             continue; // the stub is for Python tooling; the compiler skips it
         }
-        let indent = no_comment.len() - no_comment.trim_start().len();
         lines.push(Line {
             src: src_line + 1,
             indent,
