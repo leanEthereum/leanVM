@@ -76,37 +76,25 @@ pub(super) fn gen_verify(
 ) -> Result<Hints, AggregateError> {
     let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
     let layout = layout_of(kbc, summary.log_memory, rows);
-    let taus = layout.taus;
     let blocks = [&layout.push[..], &layout.pull, &layout.count];
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let mut fits = proof.stream.len() <= STREAM_CAP;
-    let mut block_offsets = [Vec::new(), Vec::new(), Vec::new()];
-    for (side, offsets) in blocks.iter().zip(&mut block_offsets) {
-        let side = leaf::layout(side);
-        fits &= side.mu <= MU_CAP;
-        *offsets = side.offsets;
-    }
-    if !fits {
+    let sides = blocks.map(leaf::layout);
+    if proof.stream.len() > STREAM_CAP || sides.iter().any(|side| side.mu > MU_CAP) {
         return Err(AggregateError::InvalidChild);
     }
-    let mu = layout.shape.mu;
-    let stream = (0..STREAM_CAP)
-        .map(|i| proof.stream.get(i).map_or(F128::ZERO, |&x| from_scalar(x)))
-        .collect();
-
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
-    let rounds = *taus.iter().max().unwrap();
+    let stream = (0..STREAM_CAP).map(|i| proof.stream.get(i).map_or(F128::ZERO, |&x| from_scalar(x)));
     let mut hints = Hints::default();
-    hints.push("stream", stream);
+    hints.push("stream", stream.collect());
     // The table sumcheck's round count, which the guest certifies is the largest of the taus.
-    hints.push_count("zc_tau_max", rounds);
+    hints.push_count("zc_tau_max", *layout.taus.iter().max().unwrap());
     // Every table's log height, which the guest certifies against its row count.
-    hints.push("table_logs", taus.iter().map(|&t| count(t)).collect());
+    hints.push("table_logs", layout.taus.iter().map(|&t| count(t)).collect());
     hints.push("col_group_order", col_group_order(kbc, &layout.placements));
-    hints.push("block_group_order", block_group_order(blocks, &block_offsets));
-    let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
+    hints.push("block_group_order", block_group_order(blocks, &sides));
+    let (config, _, depth) = whir_levels(layout.shape.mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
     merkle_hints(&mut hints, config.queries, &depth, proof);
     Ok(hints)
 }
@@ -125,14 +113,14 @@ fn col_group_order(kbc: usize, placements: &[Placement]) -> Vec<F128> {
     group_order(&members)
 }
 
-/// Per bus side, its blocks in their stacking order (their `offsets` in the side's layout), each run of a block group
+/// Per bus side, its blocks in their stacking order (their offsets in the side's `layouts`), each run of a block group
 /// (a maximal run of a side's blocks of one kappa source, `block_kappa_sources`: each boundary block its own, a table's
 /// blocks their table's) named once. The guest certifies the native verifier's order (descending kappa, then index)
 /// before it derives offsets from it.
-fn block_group_order(sides: [&[Block]; 3], offsets: &[Vec<usize>; 3]) -> Vec<F128> {
+fn block_group_order(sides: [&[Block]; 3], layouts: &[leaf::Layout; 3]) -> Vec<F128> {
     let mut members = Vec::new();
-    for (side, (blocks, offsets)) in sides.iter().zip(offsets).enumerate() {
-        for (b, (block, &offset)) in blocks.iter().zip(offsets).enumerate() {
+    for (side, (blocks, layout)) in sides.iter().zip(layouts).enumerate() {
+        for (b, (block, &offset)) in blocks.iter().zip(&layout.offsets).enumerate() {
             let starts = b == 0 || block.owner.is_none() || block.owner != blocks[b - 1].owner;
             members.push(((side, offset), starts));
         }
