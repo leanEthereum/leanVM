@@ -26,14 +26,8 @@ use verifier::layout::TABLE_WIDTHS;
 //
 // Every identity is `K`-valued, like the columns it reads and like the bus
 // coordinates (§sec:air). A relation between machine words is therefore written out
-// lane by lane, with the tower multiplication unrolled by hand ([`TOWER_LANES`]),
+// lane by lane, with the tower multiplication unrolled by hand (`MUL`'s result),
 // rather than assembled into one `E` equation.
-
-/// The tower product `x·y` in `E = K[y]/(y²+x·y+1)` as two lane sums: lane `i` is
-/// `Σ g^e·x_j·y_k` over `(j, k, e)` in `TOWER_LANES[i]`, so `c0 = x0y0 + x1y1` and
-/// `c1 = x0y1 + x1y0 + g·x1y1`; written once here for `MUL`'s result coordinate
-/// ([`arith_result`]) and the test that pins it against the field.
-const TOWER_LANES: [&[(usize, usize, u32)]; 2] = [&[(0, 0, 0), (1, 1, 0)], &[(0, 1, 0), (1, 0, 0), (1, 1, 1)]];
 
 // ---- shared bus vocabulary ---------------------------------------------------
 
@@ -90,29 +84,6 @@ impl FlushBuilder {
         self.pair(push, pull);
     }
 
-    /// Fall-through state step: the next pc is `g·pc`, fp unchanged.
-    #[inline(never)]
-    pub(crate) fn state_step(&mut self, pc: usize, fp: usize) {
-        self.pair_but(vec![Const(SEP_STATE), GCol(pc, 1), Col(fp)], 1, Col(pc));
-    }
-
-    /// Explicit state transition (JUMP): push the next state, which the row
-    /// derives from its columns rather than committing, and pull `(pc, fp)`.
-    pub(crate) fn state_derived(&mut self, pc: usize, fp: usize, npc: Coord, nfp: Coord) {
-        self.pair(
-            vec![Const(SEP_STATE), npc, nfp],
-            vec![Const(SEP_STATE), Col(pc), Col(fp)],
-        );
-    }
-
-    /// Bytecode read at `pc`: the program tuple (opcode + twelve operand slots),
-    /// with the per-pc execution count advanced by ×g on the push side.
-    pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
-        let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
-        push.extend_from_slice(operands);
-        self.pair_but(push, 2, Col(count));
-    }
-
     /// The shape every memory interaction shares: the word at `addr` carried as
     /// two value coordinates, with the cell's access count advanced by ×g on the
     /// push side. A value the row derives rather than commits (an `XOR`/`MUL`
@@ -136,18 +107,94 @@ impl FlushBuilder {
         self.pair_but(vec![Const(SEP_MEM), addr, counter, lo, hi], 2, Col(count));
     }
 
-    /// Memory access: read the two-limb word at `addr`.
-    pub(crate) fn memory(&mut self, addr: Coord, count: usize, val0: usize, val1: usize) {
-        self.memory_coords(addr, count, [Col(val0), Col(val1)]);
-    }
-
-    /// Memory read of a K-valued word: the high limb is literal zero. Used where
-    /// the word is carried by a single K column (e.g. the DEREF pointer). Sound
-    /// because the bus balances only if the stored value's high lane is likewise 0.
-    pub(crate) fn memory_k(&mut self, addr: Coord, count: usize, val: usize) {
-        self.memory_coords(addr, count, [Col(val), Const(F64::ZERO)]);
+    /// Declare `flushes`, in a table's local columns.
+    fn declare(&mut self, flushes: &[Flush]) {
+        for flush in flushes {
+            let push: Vec<Coord> = flush.push[..flush.len].iter().map(|c| c.coord()).collect();
+            let mut pull = push.clone();
+            for &(at, c) in &flush.pull {
+                pull[at] = c.coord();
+            }
+            self.pair(push, pull);
+        }
     }
 }
+
+/// A [`Coord`] of a table's in a static declaration.
+#[derive(Clone, Copy)]
+enum C {
+    K(F64),
+    Col(usize),
+    G(usize, u32),
+    P(usize, usize, u32),
+    S(&'static [C]),
+}
+
+impl C {
+    fn coord(self) -> Coord {
+        match self {
+            C::K(v) => Const(v),
+            C::Col(i) => Col(i),
+            C::G(i, k) => GCol(i, k),
+            C::P(i, j, k) => Prod(i, j, k),
+            C::S(cs) => Coord::Sum(cs.iter().map(|c| c.coord()).collect()),
+        }
+    }
+}
+
+/// A table's bus interaction, declared in its local columns, `pc` and `fp` columns 0 and 1: the push's tuple, its
+/// first `len` slots, and the pull's, which is the push's but in the two slots `pull` sets.
+#[derive(Clone, Copy)]
+struct Flush {
+    push: [C; 1 << verifier::layout::BUS_BITS],
+    len: usize,
+    pull: [(usize, C); 2],
+}
+
+const fn flush(tuple: &[C], pull: [(usize, C); 2]) -> Flush {
+    let mut push = [ZERO; 1 << verifier::layout::BUS_BITS];
+    let mut i = 0;
+    while i < tuple.len() {
+        push[i] = tuple[i];
+        i += 1;
+    }
+    Flush {
+        push,
+        len: tuple.len(),
+        pull,
+    }
+}
+
+/// Fall-through state step: the next pc is `g·pc`, fp unchanged.
+const STEP: Flush = flush(&[C::K(SEP_STATE), C::G(0, 1), C::Col(1)], [(1, C::Col(0)); 2]);
+
+/// Explicit state transition (JUMP): push the next state, which the row derives from its columns rather than
+/// committing, and pull `(pc, fp)`.
+const fn derived(npc: C, nfp: C) -> Flush {
+    flush(&[C::K(SEP_STATE), npc, nfp], [(1, C::Col(0)), (2, C::Col(1))])
+}
+
+/// Bytecode read at `pc`: the program tuple (opcode and operand slots), with the per-pc execution count, column
+/// `count`, advanced by ×g on the push side.
+const fn code(count: usize, opcode: F64, operands: &[C]) -> Flush {
+    let mut tuple = [ZERO; 1 << verifier::layout::BUS_BITS];
+    (tuple[0], tuple[1], tuple[2], tuple[3]) = (C::K(SEP_BYTECODE), C::Col(0), C::G(count, 1), C::K(opcode));
+    let mut i = 0;
+    while i < operands.len() {
+        tuple[OPERAND_SLOT + i] = operands[i];
+        i += 1;
+    }
+    flush(tuple.split_at(OPERAND_SLOT + operands.len()).0, [(2, C::Col(count)); 2])
+}
+
+/// [`FlushBuilder::memory_coords`].
+const fn mem(addr: C, count: usize, [lo, hi]: [C; 2]) -> Flush {
+    flush(&[C::K(SEP_MEM), addr, C::G(count, 1), lo, hi], [(2, C::Col(count)); 2])
+}
+
+/// A literal zero: an unused bytecode slot, or the high limb of a `K`-valued word, which the bus then forces the
+/// stored word's to be.
+const ZERO: C = C::K(F64::ZERO);
 
 // ---- fill context ------------------------------------------------------------
 
@@ -296,7 +343,7 @@ impl<'a> FillCtx<'a> {
     }
 }
 
-/// Where a bytecode tuple's operands start: after its tag, pc, read count and opcode ([`FlushBuilder::bytecode`]).
+/// Where a bytecode tuple's operands start: after its tag, pc, read count and opcode ([`code`]).
 const OPERAND_SLOT: usize = 4;
 
 // ---- the tables --------------------------------------------------------------
@@ -386,11 +433,8 @@ impl Table {
     /// Declare the table's bus interactions.
     pub(crate) fn flushes(self, f: &mut FlushBuilder) {
         match self {
-            Table::Xor | Table::Mul => Arith::of(self).flushes(f),
-            Table::Set => SetTable.flushes(f),
-            Table::Deref => DerefTable.flushes(f),
-            Table::Jump => JumpTable.flushes(f),
             Table::Keccak => KeccakTable.flushes(f),
+            _ => f.declare([XOR, MUL, SET, DEREF, JUMP][self as usize]),
         }
     }
 
@@ -493,18 +537,8 @@ const fn free_limb(odd: bool) -> (usize, bool) {
 
 // ---- XOR / MUL ---------------------------------------------------------------
 
-/// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
-/// differ only in the opcode tag and in how the destination cell's value rides
-/// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
-/// Neither commits that value and neither has an identity: the destination's
-/// memory flush carries the result as a degree-≤2 coordinate over the operand
-/// lanes, so bus balance is the assertion (§sec:m3).
-struct Arith {
-    is_xor: bool,
-}
-
 mod arith {
-    pub const PC: usize = 0;
+    // Column 0 is `pc`.
     pub const FP: usize = 1;
     pub const OA: usize = 2;
     pub const OB: usize = 3;
@@ -523,49 +557,46 @@ mod arith {
     pub const N: usize = 13;
 }
 
-/// The result word's two K-lanes as forms over the operand lanes. For `XOR`
-/// that is the lane-wise sum; for `MUL` it is the tower product, unrolled through
-/// [`TOWER_LANES`].
-fn arith_result(is_xor: bool) -> [Coord; 2] {
+/// `XOR` and `MUL_NATIVE` share their column layout, flushes, and fill; they
+/// differ only in the opcode tag and in how the destination cell's value rides
+/// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
+/// Neither commits that value and neither has an identity: the destination's
+/// memory flush carries the result as a degree-≤2 coordinate over the operand
+/// lanes, so bus balance is the assertion (§sec:m3).
+const fn arith(opcode: F64, result: [C; 2]) -> [Flush; 5] {
     use arith::*;
-    if is_xor {
-        return [
-            Coord::Sum(vec![Col(VA_LO), Col(VB_LO)]),
-            Coord::Sum(vec![Col(VA_HI), Col(VB_HI)]),
-        ];
-    }
-    let (a, b) = ([VA_LO, VA_HI], [VB_LO, VB_HI]);
-    let lane = |i: usize| Coord::Sum(TOWER_LANES[i].iter().map(|&(j, k, e)| Prod(a[j], b[k], e)).collect());
-    [lane(0), lane(1)]
+    [
+        STEP,
+        code(RBC, opcode, &[C::Col(OA), C::Col(OB), C::Col(OC), ZERO, ZERO]),
+        mem(C::P(FP, OA, 0), RA, [C::Col(VA_LO), C::Col(VA_HI)]),
+        mem(C::P(FP, OB, 0), RB, [C::Col(VB_LO), C::Col(VB_HI)]),
+        mem(C::P(FP, OC, 0), RC, result),
+    ]
 }
 
-impl Arith {
-    fn of(table: Table) -> Self {
-        Self {
-            is_xor: table == Table::Xor,
-        }
-    }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use arith::*;
-        f.state_step(PC, FP);
-        f.bytecode(
-            PC,
-            RBC,
-            if self.is_xor { OP_XOR } else { OP_MUL },
-            &[Col(OA), Col(OB), Col(OC), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        f.memory(Prod(FP, OA, 0), RA, VA_LO, VA_HI);
-        f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI);
-        f.memory_coords(Prod(FP, OC, 0), RC, arith_result(self.is_xor));
-    }
-}
+/// `XOR`'s result is the lane-wise sum.
+const XOR: &[Flush] = &arith(
+    OP_XOR,
+    [
+        C::S(&[C::Col(arith::VA_LO), C::Col(arith::VB_LO)]),
+        C::S(&[C::Col(arith::VA_HI), C::Col(arith::VB_HI)]),
+    ],
+);
+
+/// `MUL`'s result is the tower product: `c0 = x0y0 + x1y1` and `c1 = x0y1 + x1y0 + g·x1y1`.
+const MUL: &[Flush] = &arith(OP_MUL, MUL_RESULT);
+const MUL_RESULT: [C; 2] = {
+    use arith::*;
+    [
+        C::S(&[C::P(VA_LO, VB_LO, 0), C::P(VA_HI, VB_HI, 0)]),
+        C::S(&[C::P(VA_LO, VB_HI, 0), C::P(VA_HI, VB_LO, 0), C::P(VA_HI, VB_HI, 1)]),
+    ]
+};
 
 // ---- SET ---------------------------------------------------------------------
 
-struct SetTable;
-
 mod set {
-    pub const PC: usize = 0;
+    // Column 0 is `pc`.
     pub const FP: usize = 1;
     pub const O: usize = 2;
     // The stored immediate's two K-limbs ride the bytecode's spare slots.
@@ -576,26 +607,18 @@ mod set {
     pub const N: usize = 7;
 }
 
-impl SetTable {
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use set::*;
-        f.state_step(PC, FP);
-        // The immediate's two limbs occupy bytecode operand slots o2, o3 (as `isa::Program`'s encoding lays out a
-        // SET).
-        f.bytecode(
-            PC,
-            RBC,
-            OP_SET,
-            &[Col(O), Col(K_LO), Col(K_HI), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        // The stored constant K is the cell's value.
-        f.memory(Prod(FP, O, 0), R, K_LO, K_HI);
-    }
-}
+/// The immediate's two limbs occupy bytecode operand slots o2, o3 (as `isa::Program`'s encoding lays out a SET),
+/// and are the stored word.
+const SET: &[Flush] = {
+    use set::*;
+    &[
+        STEP,
+        code(RBC, OP_SET, &[C::Col(O), C::Col(K_LO), C::Col(K_HI), ZERO, ZERO]),
+        mem(C::P(FP, O, 0), R, [C::Col(K_LO), C::Col(K_HI)]),
+    ]
+};
 
 // ---- DEREF -------------------------------------------------------------------
-
-struct DerefTable;
 
 mod deref {
     pub const PC: usize = 0;
@@ -621,33 +644,38 @@ mod deref {
     pub const N: usize = 14;
 }
 
-/// The stored word's two K-lanes as forms:
-/// `v_2 = (1+f_pc+f_fp)·v_3 + f_pc·(g²·pc) + f_fp·fp`, the flag-selected source
-/// of §sec:tab-deref. The `pc` source is the virtual return target `g²·pc`, a
-/// free `×g²` on the product coordinate. Only the low lane takes the two K-valued
-/// sources; the high one is the gated local lane alone.
-fn deref_store() -> [Coord; 2] {
+/// The pointer cell and the local cell are frame-relative; the store target is pointer-relative, so its address is
+/// `p·o2`, and its value is the flag-selected source rather than a column: its two K-lanes as forms,
+/// `v_2 = (1+f_pc+f_fp)·v_3 + f_pc·(g²·pc) + f_fp·fp` (§sec:tab-deref). The `pc` source is the virtual return target
+/// `g²·pc`, a free `×g²` on the product coordinate. Only the low lane takes the two K-valued sources; the high one is
+/// the gated local lane alone.
+const DEREF: &[Flush] = {
     use deref::*;
-    let gated = |v: usize| vec![Col(v), Prod(FPC, v, 0), Prod(FFP, v, 0)];
-    let mut lo = gated(V3_LO);
-    lo.push(Prod(FPC, PC, 2));
-    lo.push(Prod(FFP, FP, 0));
-    [Coord::Sum(lo), Coord::Sum(gated(V3_HI))]
-}
-
-impl DerefTable {
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use deref::*;
-        f.state_step(PC, FP);
-        f.bytecode(PC, RBC, OP_DEREF, &[Col(O1), Col(O2), Col(O3), Col(FPC), Col(FFP)]);
-        // The pointer cell and the local cell are frame-relative; the store target
-        // is pointer-relative, so its address is `p·o2`, and its value is the
-        // flag-selected source rather than a column.
-        f.memory_k(Prod(FP, O1, 0), R1, P);
-        f.memory_coords(Prod(P, O2, 0), R2, deref_store());
-        f.memory(Prod(FP, O3, 0), R3, V3_LO, V3_HI);
-    }
-}
+    &[
+        STEP,
+        code(
+            RBC,
+            OP_DEREF,
+            &[C::Col(O1), C::Col(O2), C::Col(O3), C::Col(FPC), C::Col(FFP)],
+        ),
+        mem(C::P(FP, O1, 0), R1, [C::Col(P), ZERO]),
+        mem(
+            C::P(P, O2, 0),
+            R2,
+            [
+                C::S(&[
+                    C::Col(V3_LO),
+                    C::P(FPC, V3_LO, 0),
+                    C::P(FFP, V3_LO, 0),
+                    C::P(FPC, PC, 2),
+                    C::P(FFP, FP, 0),
+                ]),
+                C::S(&[C::Col(V3_HI), C::P(FPC, V3_HI, 0), C::P(FFP, V3_HI, 0)]),
+            ],
+        ),
+        mem(C::P(FP, O3, 0), R3, [C::Col(V3_LO), C::Col(V3_HI)]),
+    ]
+};
 
 // ---- JUMP --------------------------------------------------------------------
 
@@ -660,7 +688,7 @@ mod jump {
     pub const OD: usize = 3;
     pub const OF: usize = 4;
     // The condition, destination and frame words are all K-valued, so each is a
-    // single lane read through `memory_k`: bus balance forces the stored words
+    // single lane read with a zero high limb: bus balance forces the stored words
     // into K, exactly as for the DEREF pointer. A guest branches on g-powers,
     // never on an arbitrary word: `assert a != b` takes an inverse hint instead
     // of a branch (§sec:prog-div-ne).
@@ -688,7 +716,7 @@ impl JumpTable {
     /// own degree-2 coordinate (§sec:m3).
     ///
     /// The condition is `K`-valued, so both identities are single-lane. Its memory
-    /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
+    /// flush carries literal zeros above the low limb, so a word outside
     /// `K` cannot balance the bus; the interpreter rejects one outright.
     fn constraint(&self, pows: &[F128]) -> Form {
         use jump::*;
@@ -698,28 +726,23 @@ impl JumpTable {
         form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
         form
     }
-    fn flushes(&self, f: &mut FlushBuilder) {
-        use jump::*;
-        // The successor state is derived: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`,
-        // each degree 2 in K columns, so neither successor is committed. Written
-        // out in characteristic 2 as `b·d + b·(g·pc) + g·pc`.
-        f.state_derived(
-            PC,
-            FP,
-            Coord::Sum(vec![Prod(B, V_PC, 0), Prod(B, PC, 1), GCol(PC, 1)]),
-            Coord::Sum(vec![Prod(B, V_FP, 0), Prod(B, FP, 0), Col(FP)]),
-        );
-        f.bytecode(
-            PC,
-            RBC,
-            OP_JUMP,
-            &[Col(OC), Col(OD), Col(OF), Const(F64::ZERO), Const(F64::ZERO)],
-        );
-        f.memory_k(Prod(FP, OC, 0), RC, V_COND);
-        f.memory_k(Prod(FP, OD, 0), RD, V_PC);
-        f.memory_k(Prod(FP, OF, 0), RF, V_FP);
-    }
 }
+
+/// The successor state is derived: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`, each degree 2 in K columns, so neither
+/// successor is committed. Written out in characteristic 2 as `b·d + b·(g·pc) + g·pc`.
+const JUMP: &[Flush] = {
+    use jump::*;
+    &[
+        derived(
+            C::S(&[C::P(B, V_PC, 0), C::P(B, PC, 1), C::G(PC, 1)]),
+            C::S(&[C::P(B, V_FP, 0), C::P(B, FP, 0), C::Col(FP)]),
+        ),
+        code(RBC, OP_JUMP, &[C::Col(OC), C::Col(OD), C::Col(OF), ZERO, ZERO]),
+        mem(C::P(FP, OC, 0), RC, [C::Col(V_COND), ZERO]),
+        mem(C::P(FP, OD, 0), RD, [C::Col(V_PC), ZERO]),
+        mem(C::P(FP, OF, 0), RF, [C::Col(V_FP), ZERO]),
+    ]
+};
 
 // ---- KECCAK ---------------------------------------------------------------------
 
@@ -775,7 +798,7 @@ pub(crate) mod keccakt {
     use crate::keccak::ROW_CELLS;
     use primitives::hash::STATE_LANES;
 
-    pub const PC: usize = 0;
+    // Column 0 is `pc`.
     pub const FP: usize = 1;
     pub const O_M0: usize = 2; // the g-powers of the eight offset operands, as `KeccakOp` orders them
     pub const IN_ODD: usize = O_M0 + 8; // the layout read …
@@ -789,6 +812,26 @@ pub(crate) mod keccakt {
     pub const RBC: usize = R0 + ROW_CELLS;
     pub const N: usize = RBC + 1;
 }
+
+/// `KECCAK`'s operand columns, as [`KeccakOp`] orders them.
+const KECCAK_OPERANDS: [C; keccakt::OUT_ALL + 1 - keccakt::O_M0] = {
+    let mut ops = [ZERO; keccakt::OUT_ALL + 1 - keccakt::O_M0];
+    let mut i = 0;
+    while i < ops.len() {
+        ops[i] = C::Col(keccakt::O_M0 + i);
+        i += 1;
+    }
+    ops
+};
+
+/// `KECCAK`'s state step and bytecode read.
+const KECCAK_HEAD: [Flush; 2] = [STEP, code(keccakt::RBC, OP_KECCAK, &KECCAK_OPERANDS)];
+
+/// The lanes each state cell holds, in the even layout and the odd one.
+const CELL_LANES: [[(Option<usize>, Option<usize>); crate::keccak::STATE_CELLS]; 2] = [
+    verifier::layout::keccak_cell_lanes(false),
+    verifier::layout::keccak_cell_lanes(true),
+];
 
 /// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
 /// selects: `a + flag·(a + b)`, a missing lane being `missing`.
@@ -830,13 +873,10 @@ impl KeccakTable {
     fn flushes(&self, f: &mut FlushBuilder) {
         use crate::keccak::STATE_CELLS;
         use keccakt::*;
-        use verifier::layout::keccak_cell_lanes;
-        f.state_step(PC, FP);
-        let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
-        f.bytecode(PC, RBC, OP_KECCAK, &operands);
+        f.declare(&KECCAK_HEAD);
         // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
         // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
-        let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
+        let [even, odd] = &CELL_LANES;
         for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
             let (s, values, flag, free) = if c < STATE_CELLS {
                 (c, V_IN, IN_ODD, Some(FREE))
@@ -878,24 +918,17 @@ mod tests {
     use super::*;
     use primitives::field::powers;
 
-    const C: F128 = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
-
-    /// One lane of the tower product, in the columns' own field.
-    fn tower_lane(lane: usize, x: [F64; 2], y: [F64; 2]) -> F64 {
-        TOWER_LANES[lane]
-            .iter()
-            .map(|&(j, k, e)| g_pow(e as usize) * x[j] * y[k])
-            .sum()
-    }
-
     /// The hand-unrolled tower product is `E`'s multiplication, lane by lane. `MUL`'s
-    /// result coordinate is written out from [`TOWER_LANES`] and rides the bus, where
-    /// nothing checks it against the field at run time, so pin the unrolling here.
+    /// result coordinate rides the bus, where nothing checks it against the field at
+    /// run time, so pin the unrolling here.
     #[test]
     fn unrolled_tower_product_matches_field_product() {
-        let lanes = |v: F128| v.to_limbs().map(F64);
-        let (x, y) = (C, C * C + F128::ONE);
-        let got = [0, 1].map(|i| tower_lane(i, lanes(x), lanes(y)).0);
+        let x = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
+        let y = x * x + F128::ONE;
+        let mut row = vec![F64::ZERO; arith::N];
+        (row[arith::VA_LO], row[arith::VA_HI]) = (F64(x.c0), F64(x.c1));
+        (row[arith::VB_LO], row[arith::VB_HI]) = (F64(y.c0), F64(y.c1));
+        let got = MUL_RESULT.map(|lane| crate::leaf::coord_at(&lane.coord(), &row).0);
         assert_eq!(F128::from_limbs(got), x * y);
     }
 
@@ -910,7 +943,7 @@ mod tests {
     #[test]
     fn jump_identities_vanish_on_an_honest_row() {
         let pows = powers(F128::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0), 2);
-        // The condition is K-valued (`memory_k` on its read, §sec:tab-jump), so the
+        // The condition is K-valued (a zero high limb on its read, §sec:tab-jump), so the
         // pair is single-lane: `w = c⁻¹` in K too.
         for cond in [F64::ZERO, F64(0x9e37_79b9_7f4a_7c15)] {
             let mut row = vec![F64::ZERO; jump::N];
