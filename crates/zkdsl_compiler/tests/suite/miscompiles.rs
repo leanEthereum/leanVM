@@ -207,3 +207,19 @@ fn zero_power_evaluates_its_base() {
     run(1).unwrap();
     assert!(run(2).is_err());
 }
+
+/// A fused `match` evaluated the shared arguments before its selector, so the selector's `HeapBuf` was allocated after
+/// the arguments' one. Arm `i` returns its argument times `g^(10 i)`, so the relation also pins the arm that ran. The
+/// second `match` has distinct arms and does not fuse: both lowerings must agree.
+#[test]
+fn fused_match_evaluates_its_selector_first() {
+    let head = "@inline\ndef sel(saved):\n    first = HeapBuf(1)\n    saved[1] = first\n    return GEN\n\n@inline\ndef arg():\n    second = HeapBuf(1)\n    return second\n\ndef f(p, i: Const):\n    return p * GEN ** (10 * i)\n\ndef main():\n    saved = HeapBuf(1)\n";
+    for arms in [
+        "range(0, 2), lambda i: f(arg(), i)",
+        "range(0, 1), lambda i: f(arg(), i), range(1, 2), lambda i: f(arg() * 1, i)",
+    ] {
+        let src =
+            format!("{head}    r = match(log(sel(saved)), {arms})\n    assert r == saved[1] * GEN ** 11\n    return\n");
+        execute(&compile(&parse(&src).unwrap()), &[], [F128::ZERO; 2]).unwrap_or_else(|e| panic!("{e:?}, for:\n{src}"));
+    }
+}
