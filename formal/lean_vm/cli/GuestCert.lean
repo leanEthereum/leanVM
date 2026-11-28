@@ -661,6 +661,10 @@ def bindStores (facts : Array Exec.Atom) (q o : ℕ) (args : List Core.V) : WM U
           if ← bind [(vi a, o3)] then break
       | _ => pure ()
 
+/-- `x`, its error mapped by `f`. Unlike `try … catch`, which keeps the state for its handler, this passes the state
+on, so that `x` updates it in place rather than a copy. -/
+def mapErr {α : Type} (x : WM α) (f : String → String) : WM α := fun ctx st => (x ctx st).mapError f
+
 mutual
 /-- Walk a block; where it ends (`none` after a return). -/
 partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top : Bool := false) :
@@ -685,11 +689,10 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
     | _ => loads := none
     match s with
     | .atom a =>
-      let (p', f') ← try atom a p facts
-        catch e =>
-          let st ← get
-          let known := (Core.Atom.vals a).map fun v => (v.idx, st.loc.get? v.idx, st.pend.get? v.idx)
-          throw s!"{e}, the atom `{Interp.showAtom a}` (statement {idx}; cells {known})"
+      let st ← get
+      let known := (Core.Atom.vals a).map fun v => (v.idx, st.loc.get? v.idx, st.pend.get? v.idx)
+      let (p', f') ← mapErr (atom a p facts) fun e =>
+        s!"{e}, the atom `{Interp.showAtom a}` (statement {idx}; cells {known})"
       if p' != p then loads := none
       p := p'
       facts := f'
