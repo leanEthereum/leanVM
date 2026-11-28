@@ -1,9 +1,9 @@
 use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
-use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
+use super::guest::unified_guest;
 use super::hints::{FORGE, Forgery, Hints};
-use super::placeholders::placeholder_map;
+use super::placeholders::{GUEST_SOURCE, compile_guest, placeholder_map};
 use super::proof::{AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, Claim, claim_list_digest, claim_lists, list_split};
 use super::*;

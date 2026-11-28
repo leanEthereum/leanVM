@@ -26,9 +26,6 @@ pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::W
 
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
 pub(super) const QUERY_WINDOW_BITS: usize = 6;
-/// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
-#[cfg(feature = "compile-guest")]
-pub(super) const QUERY_WINDOWS_CAP: usize = 36;
 
 /// The depth of the cap a level's paths are walked into, which leaves the walked part whole windows of
 /// [`QUERY_WINDOW_BITS`] bits: at least two levels deep, and from `log2(queries) - 5` to five levels below that.
@@ -38,25 +35,6 @@ pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
         .max(2)
         .min(depth);
     depth - (depth - near) / QUERY_WINDOW_BITS * QUERY_WINDOW_BITS
-}
-
-/// The first column of each column group: a maximal run of committed columns, in compact order, sharing one kappa
-/// source. The stacked order (descending kappa, then index) keeps a group's columns consecutive, since any other
-/// column of equal kappa lies outside it.
-#[cfg(feature = "compile-guest")]
-pub(super) fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
-    (0..sources.len())
-        .filter(|&c| c == 0 || sources[c] != sources[c - 1])
-        .collect()
-}
-
-/// The first block of each block group: as [`col_groups`], over the bus blocks, a group never crossing the start of a
-/// side (`side_starts`), since a side's blocks tile its own cube.
-#[cfg(feature = "compile-guest")]
-pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) -> Vec<usize> {
-    (0..sources.len())
-        .filter(|&b| side_starts.contains(&b) || sources[b] != sources[b - 1])
-        .collect()
 }
 
 /// `count(g)` for each run of one group `g` in the stacking order, `members` holding each member's place in that order

@@ -1,10 +1,8 @@
-//! The constants baked into the guest.
+//! The constants baked into the guest, and the guest compiled with them.
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
-};
+use super::child::{MU_CAP, QUERY_WINDOW_BITS, STREAM_CAP, merkle_cap_depth, whir_levels};
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
@@ -12,6 +10,7 @@ use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, grinding_bits};
+use isa::{CompiledProgram, Program};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use lean_vm_core::constraints::xi_offsets;
 use lean_vm_core::cpu::{
@@ -28,6 +27,7 @@ use verifier::bus_grinding_bits;
 use verifier::layout::BUS_BITS;
 use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};
 use verifier::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
+use zkdsl_compiler::{compile, parse_with_replacements};
 
 /// A value as the guest's literal for it: an integer in decimal, a field element as the integer its limbs spell, a
 /// list as `[a, b, ...]`.
@@ -187,6 +187,52 @@ fn poly_factors(mut p: u64) -> Vec<u64> {
     factors
 }
 
+/// The aggregation guest's zkDSL source.
+pub(super) const GUEST_SOURCE: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"));
+
+pub(super) fn compile_unified_guest() -> Program {
+    // A guess at the guest's own size: right, it compiles once; wrong, one more round.
+    let mut guess = 19;
+    for _ in 0..8 {
+        let guest = compile_guest(guess);
+        let actual = guest.prog.len().trailing_zeros() as usize;
+        if actual == guess {
+            return Program::from(guest);
+        }
+        guess = actual;
+    }
+    panic!("the aggregation bytecode's self-referential compile did not converge");
+}
+
+pub(super) fn compile_guest(kbc: usize) -> CompiledProgram {
+    let replacements = placeholder_map(kbc);
+    // `DBG_PLACEHOLDERS=path`: dump the baked guest constants, to read alongside
+    // a `DBG_PROF_DUMP` profile (the guest's shape is entirely in these).
+    if let Ok(path) = std::env::var("DBG_PLACEHOLDERS") {
+        let dump: String = replacements.iter().map(|(k, v)| format!("{k} = {v}\n")).collect();
+        std::fs::write(&path, dump).expect("write DBG_PLACEHOLDERS");
+    }
+    let guest = compile(
+        &parse_with_replacements(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse"),
+    );
+    // `DBG_DISASM=path`: dump the guest's disassembly, to read alongside a
+    // `DBG_PROF_DUMP` per-pc profile. Function boundaries lead the dump, so the
+    // pc a failed guest check reports can be resolved to a source function
+    // without re-deriving the layout by hand.
+    if let Ok(path) = std::env::var("DBG_DISASM") {
+        let mut ranges: Vec<_> = guest.fn_ranges.iter().collect();
+        ranges.sort_by_key(|(_, entry, _)| *entry);
+        let mut dump = String::new();
+        for (name, entry, len) in ranges {
+            dump += &format!("# fn {entry:>7}..{:<7} {name}\n", entry + len);
+        }
+        dump += &zkdsl_compiler::disassemble(&guest.prog);
+        std::fs::write(&path, dump).expect("write DBG_DISASM");
+    }
+    guest
+}
+
 /// The recursion program's placeholder map depends on table structure and bytecode
 /// size, so one compiled guest serves every proof layout.
 pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
@@ -213,6 +259,9 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     signature_placeholders(&mut ph);
     ph.0
 }
+
+/// The cells `decode_query_windows` holds a squeezed word's windows in, the guest's `QUERY_WINDOWS_CAP`.
+const QUERY_WINDOWS_CAP: usize = 36;
 
 /// The placeholders that do not depend on the bytecode: copies of the protocol's, the schemes' and this crate's
 /// constants, and the grinds, each `grinding_bits` of its challenge's numerator as the prover takes it (zero bits is
@@ -662,6 +711,23 @@ impl OpeningShape {
     fn positions_before(&self, lv: usize) -> usize {
         (0..lv).map(|l| self.squeezes(l) * self.positions(l)).sum()
     }
+}
+
+/// The first column of each column group: a maximal run of committed columns, in compact order, sharing one kappa
+/// source. The stacked order (descending kappa, then index) keeps a group's columns consecutive, since any other
+/// column of equal kappa lies outside it.
+fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
+    (0..sources.len())
+        .filter(|&c| c == 0 || sources[c] != sources[c - 1])
+        .collect()
+}
+
+/// The first block of each block group: as [`col_groups`], over the bus blocks, a group never crossing the start of a
+/// side (`side_starts`), since a side's blocks tile its own cube.
+fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) -> Vec<usize> {
+    (0..sources.len())
+        .filter(|&b| side_starts.contains(&b) || sources[b] != sources[b - 1])
+        .collect()
 }
 
 /// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
