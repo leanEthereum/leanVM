@@ -771,7 +771,7 @@ theorem parAt_app {G : Mode.Sig} {np : ℕ} {s : St} {ws gs : List E} (h : ParAt
 
 theorem loopC_params {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) :
     Cf.fn.params = (List.range Cf.fn.params.length).map V.n :=
-  heapOkC_params hok.heap
+  hok.heap.params
 
 /-- **The caller's linked cells at the next iteration**: its header names the same caller's frame, each linked slot
 the same word. -/
@@ -945,7 +945,7 @@ theorem call_stepC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {C : Ctx} (h
   obtain ⟨pre0, c0, args0, hbody, hargs0, hpre0⟩ := loopBB_spec hok.body
   have hst : ∀ s ∈ stmtsOf Cf.fn.body, loopStmtC s = true := by rw [hbody]; exact loopStmtB_of hpre0
   obtain ⟨henv, harm, hacc⟩ := hok.frame
-  have hpar := heapOkC_params hok.heap
+  have hpar := hok.heap.params
   set np := Cf.fn.params.length with hnp
   have hws0 : ∀ {fp : ℕ} {σ : Val}, HonF img Cf fp σ →
       ∀ b < np, Rd img fp (2 + b) = some (slotW (Cf.fn.params.map σ) b) := by
@@ -1288,7 +1288,7 @@ theorem frameSpec_loopC {K : Mode.Cert} {Cf : CFun} (hok : LoopOkC K Cf) {adv : 
   have hent' : ∀ x ∈ K.F.sig.entry, x + 1 < 2 ^ Exec.envDepth := hok.fsig ▸ hsh.ent
   have hso : ∀ o, K.F.sig.self = some o → o + 1 < 2 ^ Exec.envDepth ∧ o < 2 ^ 28 := fun o ho ↦
     hsh.self o (hok.fsig ▸ ho)
-  have hpar := heapOkC_params hok.heap
+  have hpar := hok.heap.params
   set np := Cf.fn.params.length with hnp
   have hws0 : ∀ {fp : ℕ} {σ : Val}, HonF img Cf fp σ →
       ∀ b < np, Rd img fp (2 + b) = some (slotW (Cf.fn.params.map σ) b) := by

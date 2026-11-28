@@ -295,9 +295,6 @@ theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List
 def WrF (Cf : CFun) (rd : Reader) (σ : Val) (es : List Ev) (x : K) : Prop :=
   WrittenC Cf.sigOf Cf.H rd σ (Cf.fn.params.map σ) es x ∨ (faNeed Cf = true ∧ FAW σ Cf.H.fas es x)
 
-theorem heapOkC_params {pows : Exec.PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert}
-    (h : HeapCSpec pows sigOf f H) : f.params = (List.range f.params.length).map V.n := h.params
-
 /-- **The heap facts of an honest path**, each call's callee's returned words given: its parameters `V.n k`;
 every event's needs written before it; the promised cells and the signature's runs written by the end, at the
 parameters' and returned words; the returned words' monomials, words and equations. -/
@@ -360,7 +357,7 @@ theorem heapK_sound {Cf : CFun} (hk : HeapK Cf) (hp : Cf.pows.Ok) (hst : bodyCor
       rw [hv, ha]
       exact h1
   | c hok hterm hcb hpost hders =>
-    have hpar' := heapOkC_params hok
+    have hpar' := hok.params
     have hself : Cf.sigOf Cf.fn.name = Cf.H.sig := by simp [CFun.sigOf]
     obtain ⟨hreads, hpo, hretm, hrv, hre⟩ := hok.sound_all hp hself hw hh hM
       (fun p hp ↦ (by rw [hterm] at hp; cases hp)) hR (derOk_nil hders rd σ) hG

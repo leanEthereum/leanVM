@@ -93,7 +93,7 @@ theorem heapK_params {Cf : CFun} (hk : HeapK Cf) : Cf.fn.params = (List.range Cf
   | m1 hok _ _ _ _ _ =>
     unfold heapOk at hok; simp only [Bool.and_eq_true] at hok
     rw [List.range_eq_range']; exact paramsN_eq _ 0 hok.1.1.1
-  | c hok _ _ _ _ => exact heapOkC_params hok
+  | c hok _ _ _ _ => exact hok.params
 
 theorem fwdOff_spec {X : AlignCtx} {i t o : ℕ} (h : X.fwdOff i t = some o) : X.entry + i < t ∧ o = t - X.entry := by
   unfold AlignCtx.fwdOff at h
