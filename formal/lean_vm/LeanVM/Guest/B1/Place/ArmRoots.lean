@@ -70,8 +70,7 @@ theorem calleeIdx_root {j k : ℕ} {g : String} (hj : j ∈ armIdxs) (h : callee
     rw [List.getElem?_eq_none (Nat.le_of_not_lt hc)] at hs
     exact absurd hs (by simp)
   unfold calleeIdx calleeIdxE at h
-  have hname := RangeOk.all Data.nameT_ok hn
-  simp only [decide_eq_true_eq] at hname
+  have hname := Data.nameT_find hn
   rw [List.getElem?_eq_getElem hn, Option.map_some, Option.some.injEq] at hs
   exact ⟨mem_armRoots hj (List.mem_of_find?_eq_some h) hn, hname.trans (congrArg some hs)⟩
 

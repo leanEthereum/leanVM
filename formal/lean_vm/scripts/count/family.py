@@ -118,15 +118,14 @@ def write_callees(LD, fns):
     write(os.path.join(LD, 'GuestCallees.lean'), body)
     R = 400
     rs = [(a, min(R, N - a)) for a in range(0, N, R)]
-    chk = '(fun j fn => decide (Data.nameT.find j = some fn.name))'
     ok = header('LeanVM.Guest.Memory.GuestCalleesOk',
                 'The names of `Memory/GuestCallees` and their encodings are the functions\', and its callees\' indices in range.',
-                'public import LeanVM.Guest.Memory.Family\n')
+                'public import LeanVM.Guest.Memory.Family\nimport LeanVM.Guest.KernelRfl\n')
     ok += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\npublic section\n'
-    for a, n in rs:
-        ok += '\ntheorem nameT_ok_%d : RangeOk %s %d %d := by\n  unfold RangeOk; decide +kernel\n' % (a, chk, a, n)
-    ok += ('\n/-- **The names are the functions\'.** -/\ntheorem nameT_ok : RangeOk %s 0 coreProgram.length := by\n'
-           '  rw [coreProgram_length]\n  have h := %s\n  exact h\n' % (chk, chain(rs, lambda a: 'nameT_ok_%d' % a)))
+    ok += ('\n/-- **The names are the functions\'**, the kernel comparing their literals as terms, never their '
+           'characters. -/\n'
+           'theorem nameT_eq : coreProgram.map (fun fn => some fn.name) = (List.range %d).map nameT.find := by\n'
+           '  kernel_rfl\n' % N)
     echk = '(fun j fn => decide (Data.encT.find j = some (encS fn.name)))'
     for a, n in rs:
         ok += '\ntheorem encT_ok_%d : RangeOk %s %d %d := by\n  unfold RangeOk; decide +kernel\n' % (a, echk, a, n)
@@ -135,13 +134,16 @@ def write_callees(LD, fns):
     ok += ('\n/-- **The callees\' indices are in range.** -/\n'
            'theorem calleeT_lt : calleeT.all (fun l => l.all fun k => Nat.blt k %d) = true := by\n'
            '  decide +kernel\n' % N)
+    ok += ('\n/-- **`nameT` at a function\'s index is its name.** -/\n'
+           'theorem nameT_find {k : ℕ} (hk : k < coreProgram.length) : nameT.find k = some coreProgram[k].name := by\n'
+           '  have hk\' : k < %d := by simpa [coreProgram_length] using hk\n'
+           '  have e := congrArg (·[k]?) nameT_eq\n'
+           '  simp only [List.getElem?_map, List.getElem?_range hk\', List.getElem?_eq_getElem hk, Option.map_some] at e\n'
+           '  exact (Option.some.inj e).symm\n' % N)
     ok += ('\n/-- **`nameT` names the functions.** -/\n'
            'theorem nameT_spec {k : ℕ} {g : String} (hk : k < coreProgram.length) (h : nameT.find k = some g) :\n'
            '    (coreProgram[k]?).map Core.Fn.name = some g := by\n'
-           '  have hname := RangeOk.all nameT_ok hk\n'
-           '  simp only [decide_eq_true_eq] at hname\n'
-           '  rw [hname, Option.some.injEq] at h\n'
-           '  rw [List.getElem?_eq_getElem hk, Option.map_some, h]\n')
+           '  rw [List.getElem?_eq_getElem hk, Option.map_some, ← h, nameT_find hk]\n')
     ok += ('\n/-- **`encT` encodes the functions\' names.** -/\n'
            'theorem encT_spec {k e : ℕ} (hk : k < coreProgram.length) (h : encT.find k = some e) :\n'
            '    encS coreProgram[k].name = e := by\n'
