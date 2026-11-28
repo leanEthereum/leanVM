@@ -3,7 +3,7 @@
 //! of committed columns' multilinear extensions. A table is indexed little-endian: variable `k` is bit `k` of the index.
 //! Committed data is `K`-valued ([`F64`]) and randomness `E`-valued ([`F128`]).
 
-use crate::field::{Acc8, F64, F64x8, F128, F128x8};
+use crate::field::{F64, F64x8, F128, F128Unreduced, F128x8};
 
 /// Multilinear interpolation in one variable: `lo + t·(lo+hi)`, the characteristic-2 form of `(1−t)·lo + t·hi`.
 #[inline]
@@ -121,7 +121,7 @@ impl SplitEq {
 const EQ_SUMS_SERIAL: usize = 1 << 13;
 
 /// `Σ_z eq(point, z)·c(z)` for every column `c`, the multilinear extensions of `K`-valued columns at an `E` point, in
-/// one pass over the rows. A column shorter than `2^point.len()` is zero past its end.
+/// one pass over the rows. A column shorter than `2^point.len()` is zero past its end, and its rows there are skipped.
 ///
 /// A task is a run of rows of the high table, one row unless the sum is small: each row's sums are taken against the
 /// low table, reduced once, and scaled once.
@@ -136,16 +136,10 @@ pub fn eq_sums(point: &[F128], columns: &[&[F64]]) -> Vec<F128> {
     let task = |sums: &mut Vec<F128>, task: usize| {
         for h in task * rows..hi.len().min((task + 1) * rows) {
             let z0 = h << lo_bits;
-            for (sum, column) in sums.iter_mut().zip(columns) {
-                let row = (0..lo.len().div_ceil(8)).fold(Acc8::ZERO, |acc, v| {
-                    let (i, z) = (8 * v, z0 + 8 * v);
-                    acc + load_e(&lo, i, lo.len() - i).mul_base_unreduced(load_k(
-                        column,
-                        z,
-                        column.len().saturating_sub(z),
-                    ))
-                });
-                *sum += hi[h] * row.sum();
+            for (sum, column) in sums.iter_mut().zip(columns).filter(|(_, c)| c.len() > z0) {
+                let row = (lo.iter().zip(&column[z0..]))
+                    .fold(F128Unreduced::ZERO, |acc, (w, &k)| acc ^ w.mul_base_unreduced(k));
+                *sum += hi[h] * row.reduce();
             }
         }
     };
