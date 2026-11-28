@@ -103,18 +103,18 @@ theorem occsOk_homes {st : Stmt} {q : ℕ} {cx : Ctx} : ∀ (vs : List V) (i n n
 /-- The anchors a position checks. -/
 theorem anchorsOk_spec {st : Stmt} {q : ℕ} {cx : Ctx} : ∀ (f k k' : ℕ),
     anchorsOk K st q cx f k = some k' → k ≤ k' ∧ ∀ m, k ≤ m → m < k' →
-      m < K.T.nat ∧ aP (tget wA 4 5 K.T.an m) = q ∧ anchorOk K st cx (tget wA 4 5 K.T.an m) = true
+      m < K.T.nat ∧ aP (K.T.aLane m) = q ∧ anchorOk K st cx (K.T.aLane m) = true
   | 0, k, k', h => by cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
   | f + 1, k, k', h => by
       change (bif Nat.blt k K.T.nat then
-          (bif Nat.beq (aP (tget wA 4 5 K.T.an k)) q then
-            (bif anchorOk K st cx (tget wA 4 5 K.T.an k) then anchorsOk K st q cx f (k + 1) else none)
+          (bif Nat.beq (aP (K.T.aLane k)) q then
+            (bif anchorOk K st cx (K.T.aLane k) then anchorsOk K st q cx f (k + 1) else none)
           else some k) else some k) = some k' at h
       cases h1 : Nat.blt k K.T.nat <;> rw [h1] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
       · cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
-      cases h2 : Nat.beq (aP (tget wA 4 5 K.T.an k)) q <;> rw [h2] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
+      cases h2 : Nat.beq (aP (K.T.aLane k)) q <;> rw [h2] at h <;> simp only [Bool.cond_true, Bool.cond_false] at h
       · cases h; exact ⟨le_rfl, fun m h1 h2 ↦ by omega⟩
-      cases h3 : anchorOk K st cx (tget wA 4 5 K.T.an k) <;> rw [h3] at h <;>
+      cases h3 : anchorOk K st cx (K.T.aLane k) <;> rw [h3] at h <;>
         simp only [Bool.cond_true, Bool.cond_false, reduceCtorEq] at h
       obtain ⟨hle, hr⟩ := anchorsOk_spec f (k + 1) k' h
       refine ⟨by omega, fun m hm1 hm2 ↦ ?_⟩
@@ -171,7 +171,7 @@ structure CheckL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) 
   tmps : tmpsOk T P.tmps = true
   locs : locsOk T C.locs = true
   nv : T.nv = C.locs.length
-  params : ∀ v ∈ cf.params, fld (tget wV 8 5 T.vl v.idx) 0 16 < fs
+  params : ∀ v ∈ cf.params, vCell (T.vLane v.idx) < fs
   e : T.e = 1 + sizeL cf.body
   run : ∃ (n0 : ℕ) (f : ℕ → ℕ × ℕ), paramsOk (fnK cf C P fs main mc T) cf.params = some n0 ∧ f 1 = (n0, 0) ∧
     f T.e = (C.locs.length, T.nat) ∧
@@ -284,8 +284,8 @@ theorem home_exists (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.
 
 /-- **Every anchor is checked at its position.** -/
 theorem anchor_exists (H : CheckL cf C P fs main mc T) {m : ℕ} (hm : m < T.nat) :
-    ∃ st cx, AtL (c0 T) 1 cf.body (aP (tget wA 4 5 T.an m)) st cx ∧
-      anchorOk (fnK cf C P fs main mc T) st cx (tget wA 4 5 T.an m) = true := by
+    ∃ st cx, AtL (c0 T) 1 cf.body (aP (T.aLane m)) st cx ∧
+      anchorOk (fnK cf C P fs main mc T) st cx (T.aLane m) = true := by
   obtain ⟨n0, f, hp, hf1, hfe, hst⟩ := H.run
   have he1 : 1 + (T.e - 1) = T.e := by rw [H.e]; omega
   obtain ⟨q, hq1, hq2, hq3, hq4⟩ := crossing (fun q ↦ (f q).2) 1 (T.e - 1) m
@@ -296,7 +296,7 @@ theorem anchor_exists (H : CheckL cf C P fs main mc T) {m : ℕ} (hm : m < T.nat
   obtain ⟨-, -, ha⟩ := step_spec _ (hst q s c' hat)
   obtain ⟨-, hk⟩ := anchorsOk_spec _ _ _ _ ha
   obtain ⟨-, hpq, hok⟩ := hk m hq3 hq4
-  have hpq' : aP (tget wA 4 5 T.an m) = q := hpq
+  have hpq' : aP (T.aLane m) = q := hpq
   exact ⟨s, c', by rw [hpq']; exact hat, hok⟩
 
 end Facts

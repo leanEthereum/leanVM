@@ -96,11 +96,11 @@ theorem keyAt_mem {a : Core.Atom} {i op : ℕ} {ins : List V} (h : keyAt a i = s
 
 theorem locsOk_spec {T : Tabs} : ∀ (locs : List ℕ) (v0 : ℕ),
     List.rec (motive := fun _ ↦ ℕ → Bool) (fun _ ↦ true)
-      (fun c _ r v ↦ Nat.beq (fld (tget wV 8 5 T.vl v) 0 16) c && Local.seqN (v + 1) r) locs v0 = true →
-    ∀ k (hk : k < locs.length), fld (tget wV 8 5 T.vl (v0 + k)) 0 16 = locs[k]
+      (fun c _ r v ↦ Nat.beq (vCell (T.vLane v)) c && Local.seqN (v + 1) r) locs v0 = true →
+    ∀ k (hk : k < locs.length), vCell (T.vLane (v0 + k)) = locs[k]
   | [], _, _, k, hk => absurd hk (by simp)
   | c :: cs, v0, h, k, hk => by
-      change (Nat.beq (fld (tget wV 8 5 T.vl v0) 0 16) c && Local.seqN (v0 + 1) _) = true at h
+      change (Nat.beq (vCell (T.vLane v0)) c && Local.seqN (v0 + 1) _) = true at h
       simp only [band, nbeq_iff, seqN_eq] at h
       cases k with
       | zero => simpa using h.1
@@ -112,22 +112,22 @@ theorem locsOk_spec {T : Tabs} : ∀ (locs : List ℕ) (v0 : ℕ),
 noncomputable def statGo (T : Tabs) (stat : List (ℕ × PC)) : ℕ → Bool :=
   List.rec (motive := fun _ ↦ ℕ → Bool) (fun n ↦ Nat.beq n T.nst)
     (fun q _ r n ↦ match q.2 with
-      | .k a b => natSeq (tget wT 6 5 T.st n) fun t ↦
+      | .k a b => natSeq (T.tLane n) fun t ↦
           Nat.beq (tO t) q.1 && Nat.beq (tK0 t) a && Nat.beq (tK1 t) b &&
-            Nat.beq (Nat.mod (tget wO 8 5 T.ot q.1) 4) 3 && Local.seqN (n + 1) r
+            Nat.beq (Nat.mod (T.oLane q.1) 4) 3 && Local.seqN (n + 1) r
       | .fpg _ => r n) stat
 
 theorem statGo_k (T : Tabs) (o a b : ℕ) (qs : List (ℕ × PC)) (n : ℕ) :
-    statGo T ((o, .k a b) :: qs) n = (Nat.beq (tO (tget wT 6 5 T.st n)) o && Nat.beq (tK0 (tget wT 6 5 T.st n)) a &&
-      Nat.beq (tK1 (tget wT 6 5 T.st n)) b && Nat.beq (Nat.mod (tget wO 8 5 T.ot o) 4) 3 && statGo T qs (n + 1)) := by
+    statGo T ((o, .k a b) :: qs) n = (Nat.beq (tO (T.tLane n)) o && Nat.beq (tK0 (T.tLane n)) a &&
+      Nat.beq (tK1 (T.tLane n)) b && Nat.beq (Nat.mod (T.oLane o) 4) 3 && statGo T qs (n + 1)) := by
   simp only [statGo, natSeq_eq, seqN_eq]
 
 theorem statGo_fpg (T : Tabs) (o e : ℕ) (qs : List (ℕ × PC)) (n : ℕ) :
     statGo T ((o, .fpg e) :: qs) n = statGo T qs n := rfl
 
 theorem statOk_spec {T : Tabs} : ∀ (stat : List (ℕ × PC)) (n0 : ℕ), statGo T stat n0 = true →
-    (∀ q ∈ stat, ∀ a b, q.2 = .k a b → tget wO 8 5 T.ot q.1 % 4 = 3) ∧
-    ∀ n, n0 ≤ n → n < T.nst → (tO (tget wT 6 5 T.st n), PC.k (tK0 (tget wT 6 5 T.st n)) (tK1 (tget wT 6 5 T.st n))) ∈ stat
+    (∀ q ∈ stat, ∀ a b, q.2 = .k a b → T.oLane q.1 % 4 = 3) ∧
+    ∀ n, n0 ≤ n → n < T.nst → (tO (T.tLane n), PC.k (tK0 (T.tLane n)) (tK1 (T.tLane n))) ∈ stat
   | [], n0, h => by
       change Nat.beq n0 T.nst = true at h
       rw [nbeq_iff] at h
@@ -166,7 +166,7 @@ variable {cf : Core.Fn} {C : Cert} {P : Plumb} {fs : ℕ} {main : Bool} {mc : �
 local notation "Kf" => fnK cf C P fs main mc T
 
 /-- A shared value's lane in the shared table. -/
-noncomputable def SLv (K : FnK) (u : ℕ) : ℕ := tget wS 6 5 K.T.sl (vSh (vlane K u) - 1)
+noncomputable def SLv (K : FnK) (u : ℕ) : ℕ := K.T.sLane (vSh (vlane K u) - 1)
 
 /-- A home's place: position, then operand. -/
 def keyOf (s : ℕ) : ℕ := sHp s * 256 + sHj s
@@ -188,7 +188,7 @@ theorem home_at (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.leng
 theorem shared_home (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.length)
     (hs : vSh (vlane Kf u) ≠ 0) : ∃ q i st cx, Opd cf T q i (V.n u) st cx ∧ 2 ≤ cellOf Kf u ∧
       vHp (vlane Kf u) = q ∧ vHj (vlane Kf u) = i ∧ vSe (vlane Kf u) = cx.e ∧
-      sharedOk Kf st q i cx u (cellOf Kf u) (vSh (vlane Kf u)) (tget wO 8 5 T.ot (cellOf Kf u)) = true := by
+      sharedOk Kf st q i cx u (cellOf Kf u) (vSh (vlane Kf u)) (T.oLane (cellOf Kf u)) = true := by
   obtain ⟨q, i, st, cx, ho, hh⟩ := home_at H hu
   obtain ⟨-, -, -, h4, -, h6⟩ := homeOk_spec _ hh
   have hc : 2 ≤ cellOf Kf u := by
@@ -198,7 +198,7 @@ theorem shared_home (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.
 
 /-- An unshared value owns its cell. -/
 theorem unshared_owner (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.length)
-    (hs : vSh (vlane Kf u) = 0) (hc : 2 ≤ cellOf Kf u) : tget wO 8 5 T.ot (cellOf Kf u) = 4 * u + 1 := by
+    (hs : vSh (vlane Kf u) = 0) (hc : 2 ≤ cellOf Kf u) : T.oLane (cellOf Kf u) = 4 * u + 1 := by
   obtain ⟨q, i, st, cx, ho, hh⟩ := home_at H hu
   exact (homeOk_spec _ hh).2.2.2.2.1 hc hs
 
@@ -217,7 +217,7 @@ theorem hp_le (H : CheckL cf C P fs main mc T) {q i : ℕ} {v : V} {st : Stmt} {
   obtain ⟨n, n', -, hoc⟩ := opd_occ H ho
   rcases (occOk_spec _ hoc).2 with ⟨-, -, hh⟩ | ⟨-, -, hc | ⟨hc, -⟩⟩
   · obtain ⟨-, -, -, h4, -, h6⟩ := homeOk_spec _ hh
-    have hc : 2 ≤ fld (vlane Kf v.idx) 0 16 := by
+    have hc : 2 ≤ vCell (vlane Kf v.idx) := by
       by_contra hc; exact hs (h4 (by omega))
     obtain ⟨h1, h2, -⟩ := h6 hc hs
     exact .inr ⟨h1, h2.le⟩
@@ -250,7 +250,7 @@ theorem cover (H : CheckL cf C P fs main mc T) {q i : ℕ} {v : V} {st : Stmt} {
   obtain ⟨n, n', -, hoc⟩ := opd_occ H ho
   rcases (occOk_spec _ hoc).2 with ⟨-, -, hh⟩ | ⟨-, -, hc | ⟨hc1, hc2⟩⟩
   · obtain ⟨-, -, -, h4, -, h6⟩ := homeOk_spec _ hh
-    have hc : 2 ≤ fld (vlane Kf v.idx) 0 16 := by
+    have hc : 2 ≤ vCell (vlane Kf v.idx) := by
       by_contra hc; exact hs (h4 (by omega))
     rw [(h6 hc hs).1]; exact hq
   · exact absurd hc hs
@@ -277,7 +277,7 @@ def InCell (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : 
   u < C.locs.length ∧ vSh (vlane (fnK cf C P fs main mc T) u) ≠ 0 ∧ cellOf (fnK cf C P fs main mc T) u = c
 
 theorem cell_head (H : CheckL cf C P fs main mc T) {c u : ℕ} (hu : InCell cf C P fs main mc T c u)
-    (hp : sPrev (SLv Kf u) = 0) : u = (tget wO 8 5 T.ot c >>> 2) - 1 := by
+    (hp : sPrev (SLv Kf u) = 0) : u = (T.oLane c >>> 2) - 1 := by
   obtain ⟨hlt, hs, rfl⟩ := hu
   obtain ⟨q, i, st, cx, -, -, -, -, -, hsh⟩ := shared_home H hlt hs
   obtain ⟨-, -, -, -, h5, -⟩ := sharedOk_spec _ hsh
@@ -299,9 +299,9 @@ theorem cell_prev (H : CheckL cf C P fs main mc T) {c u : ℕ} (hu : InCell cf C
   obtain ⟨w1, w2, w3, w4, w5, w6, w7⟩ := h6 hp
   replace w1 : _ < C.locs.length := lt_of_lt_of_eq w1 H.nv
   have hcw := hcw0 _ w1 w2
-  have hj1 := sHj_lt (tget wS 6 5 (fnK cf C P fs main mc T).T.sl (vSh (vlane (fnK cf C P fs main mc T)
-    (sPrev (tget wS 6 5 (fnK cf C P fs main mc T).T.sl (vSh (vlane (fnK cf C P fs main mc T) u) - 1)) - 1)) - 1))
-  have hj2 := sHj_lt (tget wS 6 5 (fnK cf C P fs main mc T).T.sl (vSh (vlane (fnK cf C P fs main mc T) u) - 1))
+  have hj1 := sHj_lt ((fnK cf C P fs main mc T).T.sLane (vSh (vlane (fnK cf C P fs main mc T)
+    (sPrev ((fnK cf C P fs main mc T).T.sLane (vSh (vlane (fnK cf C P fs main mc T) u) - 1)) - 1)) - 1))
+  have hj2 := sHj_lt ((fnK cf C P fs main mc T).T.sLane (vSh (vlane (fnK cf C P fs main mc T) u) - 1))
   refine ⟨⟨w1, w2, ?_⟩, ?_, ?_, w5, fun hk ↦ ⟨q, i, st, cx, ho, g2, w7 hk⟩⟩
   · rw [← hcw]; exact w3
   · rw [g2, g3]
@@ -359,7 +359,7 @@ value, or a shared cell's first value whose home runs. -/
 noncomputable def psi (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) (σ : Val)
     (c : ℕ) : E :=
   if hs : ∃ a b, (c, PC.k a b) ∈ P.stat then tw (hs.choose, hs.choose_spec.choose)
-  else if tget wO 8 5 T.ot c % 4 = 1 then σ (V.n (tget wO 8 5 T.ot c >>> 2 ))
+  else if T.oLane c % 4 = 1 then σ (V.n (T.oLane c >>> 2 ))
   else if hm : ∃ m u, RanIn cf C P fs main mc T σ c u ∧ keyOf (SLv (fnK cf C P fs main mc T) u) = m then
     σ (V.n (Nat.find (p := fun u ↦ RanIn cf C P fs main mc T σ c u ∧
       keyOf (SLv (fnK cf C P fs main mc T) u) = Nat.find hm) (Nat.find_spec hm)))
@@ -372,7 +372,7 @@ theorem apartL_nodup (H : CheckL cf C P fs main mc T) : (P.stat.map Prod.fst).No
   exact (bitsNodup_spec _ _ h.1.1.1.1.2).1
 
 theorem stat_ot (H : CheckL cf C P fs main mc T) {o a b : ℕ} (h : (o, PC.k a b) ∈ P.stat) :
-    tget wO 8 5 T.ot o % 4 = 3 :=
+    T.oLane o % 4 = 3 :=
   (statOk_spec P.stat 0 (by rw [← statOk_eq]; exact H.stat)).1 _ h a b rfl
 
 theorem psi_stat (H : CheckL cf C P fs main mc T) {o a b : ℕ} (h : (o, PC.k a b) ∈ P.stat) :
@@ -385,13 +385,13 @@ theorem psi_stat (H : CheckL cf C P fs main mc T) {o a b : ℕ} (h : (o, PC.k a 
   simp only [Prod.mk.injEq, PC.k.injEq, true_and] at this
   exact congrArg tw (Prod.ext this.1 this.2)
 
-theorem not_stat (H : CheckL cf C P fs main mc T) {c : ℕ} (hc : tget wO 8 5 T.ot c % 4 ≠ 3) :
+theorem not_stat (H : CheckL cf C P fs main mc T) {c : ℕ} (hc : T.oLane c % 4 ≠ 3) :
     ¬ ∃ a b, (c, PC.k a b) ∈ P.stat := fun ⟨_, _, h⟩ ↦ hc (stat_ot H h)
 
 theorem psi_owner (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.length)
     (hs : vSh (vlane Kf u) = 0) (hc : 2 ≤ cellOf Kf u) : psi cf C P fs main mc T σ (cellOf Kf u) = σ (V.n u) := by
   have ho := unshared_owner H hu hs hc
-  have ho' : tget wO 8 5 T.ot (cellOf Kf u) = 4 * u + 1 := ho
+  have ho' : T.oLane (cellOf Kf u) = 4 * u + 1 := ho
   unfold psi
   rw [dite_eq_right_of_eq_false (eq_false (not_stat H (by rw [ho']; omega))), ite_eq_left_of_eq_true _ _ (eq_true (by rw [ho']; omega))]
   congr 2; rw [ho']; omega
@@ -489,7 +489,7 @@ theorem rank_known {K : FnK} {q i w : ℕ} (hs : vSh (vlane K w) ≠ 0) (hk : kn
       rw [hk']
       rcases hk'' with hk'' | hk''
       · simp only [hk'', ↓reduceIte]; omega
-      · by_cases h : sKind (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) = kRoot <;> simp only [h, ↓reduceIte] <;> omega
+      · by_cases h : sKind (K.T.sLane (vSh (vlane K w) - 1)) = kRoot <;> simp only [h, ↓reduceIte] <;> omega
 
 /-- An operand of an atom is an operand of its position. -/
 theorem opd_atom {cf : Core.Fn} {T : Tabs} {q i : ℕ} {v : V} {a : Core.Atom} {cx : Ctx}
@@ -556,14 +556,14 @@ theorem shared_eq (H : CheckL cf C P fs main mc T) (hw : walk σ cf.body = .ret 
       rw [← (sl_fields H hxlt hxs).2.1] at hcov
       exact ih _ (hrk hxs) x.idx rfl ⟨⟨hxlt, hxs, rfl⟩, hcov⟩
   -- an anchor's position runs, its atom holds
-  have hanchor : ∀ m, m < T.nat → aP (tget wA 4 5 (fnK cf C P fs main mc T).T.an m) < q →
-      q < aE (tget wA 4 5 (fnK cf C P fs main mc T).T.an m) →
-      ∃ a' cx', AtL (c0 T) 1 cf.body (aP (tget wA 4 5 (fnK cf C P fs main mc T).T.an m)) (.atom a') cx' ∧
-        RunsL σ 1 cf.body (aP (tget wA 4 5 (fnK cf C P fs main mc T).T.an m)) ∧ a'.Holds rd σ ∧
-        anchorOk Kf (.atom a') cx' (tget wA 4 5 (fnK cf C P fs main mc T).T.an m) = true := by
+  have hanchor : ∀ m, m < T.nat → aP ((fnK cf C P fs main mc T).T.aLane m) < q →
+      q < aE ((fnK cf C P fs main mc T).T.aLane m) →
+      ∃ a' cx', AtL (c0 T) 1 cf.body (aP ((fnK cf C P fs main mc T).T.aLane m)) (.atom a') cx' ∧
+        RunsL σ 1 cf.body (aP ((fnK cf C P fs main mc T).T.aLane m)) ∧ a'.Holds rd σ ∧
+        anchorOk Kf (.atom a') cx' ((fnK cf C P fs main mc T).T.aLane m) = true := by
     intro m hm hp hq
-    change aP (tget wA 4 5 T.an m) < q at hp
-    change q < aE (tget wA 4 5 T.an m) at hq
+    change aP (T.aLane m) < q at hp
+    change q < aE (T.aLane m) at hq
     obtain ⟨st', cx', hat', hok⟩ := anchor_exists H hm
     obtain ⟨a', rfl, hae, -⟩ := anchorOk_spec _ hok
     have hr' := runs_dom (c := c0 T) H.e hat' hp.le (by rw [hae] at hq; exact hq) hrq

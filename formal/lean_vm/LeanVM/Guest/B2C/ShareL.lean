@@ -36,6 +36,18 @@ index, each shared value its home, block end, justification, and its neighbours 
 home order (a list whose head the cell's owner lane names); each cell its owner; the fixed
 constants; the anchors, by position. The walk (`Local.foldL`) visits positions in pre-order with
 a state of two numbers: the next value number, the next anchor.
+## The modules
+
+* `ShareDefs`: the definitions the check shares with its consumers (bit sets, the certificate's
+  lists, keys' input cells); `ShareFacts`: their facts.
+* `ShareL` (here): the check, `shareCheckL`, its once-per-function part `staticL` and its walk;
+  `ShareLSeg`: the walk in pieces, each its own kernel evaluation, joined.
+* `ShareChecked`: the check holds on a compiled function's data, what the generated glue proves.
+* `ShareLSpec`, `ShareLHome`: the check unpacked into propositions, position by position and home
+  by home; `ShareLAtom`: what an atom's operand says of its word.
+* `ShareLSound`: on every returning path, one word per cell (`path_of_check`); `ShareLStatic`:
+  the values' cells and the lists (`staticD_of_check`).
+* `ShareLink`: from both, `ShareOk`, the structure the proofs read (`ShareOk.lean`).
 -/
 
 namespace LeanVM.Guest.B2C.ShareL
@@ -69,23 +81,37 @@ def wO : ℕ := 24
 def wT : ℕ := 160
 def wA : ℕ := 432
 
-/-- A function's sharing certificate. -/
+/-- A function's sharing certificate: five tables of lanes (`tget`), each lane a record of fields
+at fixed bits, read by the accessors below (`Packed.fld`), which the generator's encoder
+(`GuestCert`'s `ShareX.tabs`) mirrors.
+
+* `vl`, by value (`vLane`, 80 bits): its cell `[0, 16)` (`vCell`); its shared index + 1
+  `[16, 34)` (`vSh`, `0` if not shared); a shared value's home position `[34, 52)` (`vHp`), operand
+  `[52, 60)` (`vHj`) and home block end `[60, 78)` (`vSe`).
+* `sl`, by shared index (`sLane`, 144 bits): the cell `[0, 16)` (`sCell`), home position
+  `[16, 34)` (`sHp`) and operand `[34, 42)` (`sHj`); bits `[42, 60)` unused; the justification's
+  kind `[60, 63)` (`sKind`); the values before and after it at its cell in home order, value + 1
+  or `0` for none, `[63, 81)` and `[81, 99)` (`sPrev`, `sNext`); the cell's first home position
+  `[99, 117)` (`sHead`); the justification's fixed constant or anchor `[117, 137)` (`sAux`).
+* `ot`, by cell (`oLane`, 24 bits): its kind `[0, 2)`, `0` a free cell (no value), `1` one value,
+  `2` shared, `3` a fixed constant; above it, `[2, 24)`, the value (one value) or the first shared
+  value + 1 (`0` if none).
+* `st`, the fixed constants, `Plumb.stat`'s `PC.k` entries in order (`tLane`, 160 bits): the cell
+  `[0, 16)` (`tO`) and the limbs `[16, 80)`, `[80, 144)` (`tK0`, `tK1`).
+* `an`, the anchors the justifications cite, by position (`aLane`, 432 bits): position `[0, 18)`
+  (`aP`), block end `[18, 36)` (`aE`), cell `[36, 52)` (`aCell`), operand `[52, 60)` (`aJ`),
+  operation `[60, 76)` (`aOp`), constant or not `[76, 77)` (`aConst`), and the input cells
+  (`packCells`, `[80, 304)`, `aIns`) or the constant's limbs (`[304, 368)`, `[368, 432)`, `aK0`,
+  `aK1`). -/
 structure Tabs where
-  /-- By value: cell (16 bits), shared index + 1 (18, `0` if not shared), and a shared value's
-  home position (18), operand (8) and home block end (18). -/
   vl : List (List ℕ)
-  /-- By shared index: cell, home position and operand, kind, the values before and after it at
-  its cell in home order (value + 1, `0` if none), the cell's first home position, `aux`. -/
   sl : List (List ℕ)
-  /-- By cell: kind (2 bits: `1` one value, `2` shared, `3` fixed constant), and the value (one
-  value) or the first shared value + 1 (`0` if none). -/
   ot : List (List ℕ)
-  /-- The fixed constants `(cell, limb 0, limb 1)`, `Plumb.stat`'s `PC.k` entries in order. -/
   st : List (List ℕ)
-  /-- The anchors by position: position, block end, cell, operand, operation, constant or not,
-  input cells (`packCells`), constant limbs. -/
   an : List (List ℕ)
+  /-- The number of fixed constants. -/
   nst : ℕ
+  /-- The number of anchors. -/
   nat : ℕ
   /-- The number of values (`Cert.locs`'s length, checked once). -/
   nv : ℕ
@@ -94,6 +120,25 @@ structure Tabs where
   e : ℕ
   /-- The arms' ends, in the order the arms start. -/
   ends : List ℕ
+
+namespace Tabs
+
+/-- Value `v`'s lane. -/
+noncomputable def vLane (T : Tabs) (v : ℕ) : ℕ := tget wV 8 5 T.vl v
+
+/-- Shared value `i`'s lane, `i` its shared index. -/
+noncomputable def sLane (T : Tabs) (i : ℕ) : ℕ := tget wS 6 5 T.sl i
+
+/-- Cell `c`'s owner lane. -/
+noncomputable def oLane (T : Tabs) (c : ℕ) : ℕ := tget wO 8 5 T.ot c
+
+/-- Fixed constant `n`'s lane. -/
+noncomputable def tLane (T : Tabs) (n : ℕ) : ℕ := tget wT 6 5 T.st n
+
+/-- Anchor `k`'s lane. -/
+noncomputable def aLane (T : Tabs) (k : ℕ) : ℕ := tget wA 4 5 T.an k
+
+end Tabs
 
 /-! ### Fields -/
 
@@ -120,7 +165,8 @@ def tO (x : ℕ) : ℕ := fld x 0 16
 def tK0 (x : ℕ) : ℕ := fld x 16 64
 def tK1 (x : ℕ) : ℕ := fld x 80 64
 
-/-- A value's shared index + 1, home position, operand and home block end, from its lane. -/
+/-- A value's cell, shared index + 1, home position, operand and home block end, from its lane. -/
+def vCell (x : ℕ) : ℕ := fld x 0 16
 def vSh (x : ℕ) : ℕ := fld x 16 18
 def vHp (x : ℕ) : ℕ := fld x 34 18
 def vHj (x : ℕ) : ℕ := fld x 52 8
@@ -200,31 +246,38 @@ structure FnK where
   fs : ℕ
   /-- The next frame's cells a tail call's arguments may sit in. -/
   nx : List ℕ
-  /-- The fixed frame pointer cells, the temporaries' cells (bit sets). -/
+  /-- The fixed frame pointer cells (a bit set). -/
   fc : ℕ
-  /-- The temporaries by cell, and the frame runs. -/
+  /-- The temporaries by cell. -/
   tt : Trie ℕ
+  /-- The frame runs' values and cells. -/
   runs : List (ℕ × ℕ)
-  /-- A bound on every value's cell (`mainCells` in `main`). -/
+  /-- A bound on every value's cell: `mainCells` in `main`, else `cellLimit`. -/
   mb : ℕ
+
+/-- The cells a lane holds: 16 bits. -/
+def cellLimit : ℕ := 65536
+
+/-- The most anchors at one position (`anchorsOk`'s fuel; `ShareX.tabs` fails past it). -/
+def anchorFuel : ℕ := 32
 
 section Walk
 
 variable (K : FnK)
 
 /-- Value `v`'s lane. -/
-noncomputable def vlane (v : ℕ) : ℕ := tget wV 8 5 K.T.vl v
+noncomputable def vlane (v : ℕ) : ℕ := K.T.vLane v
 
 /-- Value `v`'s cell. -/
-noncomputable def cellOf (v : ℕ) : ℕ := fld (vlane K v) 0 16
+noncomputable def cellOf (v : ℕ) : ℕ := vCell (vlane K v)
 
 /-- Value `w`, an input of a home at operand `i` of position `q`, holds its cell's word by then:
 in a cell of its own, or justified before (an earlier home, or a root earlier at `q`). -/
 noncomputable def known (q i w : ℕ) : Bool :=
   let x := vlane K w
-  bif Nat.beq (vSh x) 0 then Nat.ble 2 (fld x 0 16)
+  bif Nat.beq (vSh x) 0 then Nat.ble 2 (vCell x)
   else
-    let s := tget wS 6 5 K.T.sl (vSh x - 1)
+    let s := K.T.sLane (vSh x - 1)
     Nat.ble 2 (sCell s) && (Nat.blt (sHp s) q || (Nat.beq (sHp s) q &&
       (Nat.beq (sKind s) kRoot || Nat.blt (sHj s) i)))
 
@@ -242,22 +295,22 @@ noncomputable def justOk (st : Stmt) (q i c s o : ℕ) : Bool :=
     bif Nat.beq k kEq then
       (match eqAt a i with
         | some u => let x := vlane K u.idx;
-            !Nat.beq (vSh x) 0 && Nat.beq (fld x 0 16) c && known K q i u.idx
+            !Nat.beq (vSh x) 0 && Nat.beq (vCell x) c && known K q i u.idx
         | none => false)
     else bif Nat.beq k kConstK then
       (match constAt a i with
-        | some y => let t := tget wT 6 5 K.T.st (sAux s);
+        | some y => let t := K.T.tLane (sAux s);
             Nat.blt (sAux s) K.T.nst && Nat.beq (tO t) c && Nat.beq (tK0 t) y.1 && Nat.beq (tK1 t) y.2
         | none => false)
     else bif Nat.beq k kConstA then
       (match constAt a i with
-        | some y => let an := tget wA 4 5 K.T.an (sAux s);
+        | some y => let an := K.T.aLane (sAux s);
             Nat.blt (sAux s) K.T.nat && Nat.beq (aConst an) 1 && Nat.beq (aCell an) c &&
               Nat.beq (aK0 an) y.1 && Nat.beq (aK1 an) y.2 && Nat.blt (aP an) q && Nat.blt q (aE an)
         | none => false)
     else bif Nat.beq k kKey then
       (match keyAt a i with
-        | some (op, ins) => let an := tget wA 4 5 K.T.an (sAux s);
+        | some (op, ins) => let an := K.T.aLane (sAux s);
             Nat.blt (sAux s) K.T.nat && Nat.beq (aConst an) 0 && Nat.beq (aCell an) c &&
               Nat.beq (aOp an) op && Nat.beq (aIns an) (keyPack K op ins) &&
               Nat.blt (aP an) q && Nat.blt q (aE an) && allR (fun w ↦ known K q i w.idx) ins
@@ -268,13 +321,13 @@ noncomputable def justOk (st : Stmt) (q i c s o : ℕ) : Bool :=
 /-- A shared home, of shared index `si` (+ 1) in cell `c` (owner lane `o`): its lane's home, its
 place in its cell's list, its justification. -/
 noncomputable def sharedOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v c si o : ℕ) : Bool :=
-  let s := tget wS 6 5 K.T.sl (si - 1)
+  let s := K.T.sLane (si - 1)
   Nat.beq (sCell s) c && Nat.beq (sHp s) q && Nat.beq (sHj s) i && Nat.ble 2 (Nat.mod o 4) &&
   (bif Nat.beq (sPrev s) 0 then Nat.beq (Nat.shiftRight o 2) (v + 1) && Nat.beq (sHead s) q
    else
      let w := sPrev s - 1
      let xw := vlane K w
-     let p := tget wS 6 5 K.T.sl (vSh xw - 1)
+     let p := K.T.sLane (vSh xw - 1)
      Nat.blt w K.T.nv && !Nat.beq (vSh xw) 0 && Nat.beq (sCell p) c && Nat.beq (sNext p) (v + 1) && Nat.beq (sHead p) (sHead s) &&
      (Nat.blt (sHp p) q || (Nat.beq (sHp p) q && Nat.blt (sHj p) i)) &&
      (bif Nat.beq (sKind s) kRoot then Nat.ble (cx.t + 1) (sHead s) && Nat.blt (sHp p) cx.a else true)) &&
@@ -284,11 +337,11 @@ noncomputable def sharedOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v c si o : ℕ) :
 cell is in the frame or a tail call's next frame, below the bound, no fixed frame pointer's; a
 cell of its own is owned by it, a shared one is justified. -/
 noncomputable def homeOk (st : Stmt) (q i : ℕ) (cx : Ctx) (v x : ℕ) : Bool :=
-  let c := fld x 0 16
+  let c := vCell x
   (Nat.blt c K.fs || anyR (Nat.beq c) K.nx) && !bitN K.fc c && Nat.blt c K.mb &&
   (bif Nat.blt c 2 then Nat.beq (vSh x) 0
    else
-     let o := tget wO 8 5 K.T.ot c
+     let o := K.T.oLane c
      bif Nat.beq (vSh x) 0 then Nat.beq o (4 * v + 1)
      else Nat.beq (vHp x) q && Nat.beq (vHj x) i && Nat.beq (vSe x) cx.e &&
        sharedOk K st q i cx v c (vSh x) o)
@@ -343,12 +396,12 @@ them). -/
 noncomputable def anchorsOk (st : Stmt) (q : ℕ) (cx : Ctx) : ℕ → ℕ → Option ℕ :=
   fun f ↦ Nat.rec (motive := fun _ ↦ ℕ → Option ℕ) (fun k ↦ some k)
     (fun _ r k ↦ bif Nat.blt k K.T.nat then
-        let an := tget wA 4 5 K.T.an k;
+        let an := K.T.aLane k;
           bif Nat.beq (aP an) q then (bif anchorOk K st cx an then r (k + 1) else none) else some k
       else some k) f
 
-/-- Temporaries and frame runs are listed with their cells (`atomListed`, cells from the
-table). -/
+/-- Temporaries and frame runs are listed with their cells (`listedT`, `listed`), the cells
+from the table. -/
 noncomputable def listedOk : Stmt → Bool
   | .atom (.rangeCheck _ _ t1 t2 _) => listedT K.tt t1 (cellOf K t1.idx) && listedT K.tt t2 (cellOf K t2.idx)
   | .atom (.touch t _) => listedT K.tt t (cellOf K t.idx)
@@ -364,7 +417,7 @@ where
 /-- **The step at a position**: its anchors, its listed temporaries and runs, its values'
 occurrences. The state is the next value number and the next anchor. -/
 noncomputable def step (st : ℕ × ℕ) (q : ℕ) (s : Stmt) (cx : Ctx) : Option (ℕ × ℕ) :=
-  Local.bindO (anchorsOk K s q cx 32 st.2) fun k ↦
+  Local.bindO (anchorsOk K s q cx anchorFuel st.2) fun k ↦
   bif listedOk K s then
     Local.bindO (occsOk K s q cx (ownVals s) 0 st.1) fun n ↦ Local.seqN n fun n ↦ Local.seqN k fun k ↦ some (n, k)
   else none
@@ -377,26 +430,27 @@ end Walk
 noncomputable def statOk (T : Tabs) (stat : List (ℕ × PC)) : Bool :=
   List.rec (motive := fun _ ↦ ℕ → Bool) (fun n ↦ Nat.beq n T.nst)
     (fun q _ r n ↦ match q.2 with
-      | .k a b => natSeq (tget wT 6 5 T.st n) fun t ↦
+      | .k a b => natSeq (T.tLane n) fun t ↦
           Nat.beq (tO t) q.1 && Nat.beq (tK0 t) a && Nat.beq (tK1 t) b &&
-            Nat.beq (Nat.mod (tget wO 8 5 T.ot q.1) 4) 3 && Local.seqN (n + 1) r
+            Nat.beq (Nat.mod (T.oLane q.1) 4) 3 && Local.seqN (n + 1) r
       | .fpg _ => r n) stat 0
 
 /-- The temporaries own their cells. -/
 noncomputable def tmpsOk (T : Tabs) (tmps : List (ℕ × ℕ)) : Bool :=
-  allR (fun p ↦ Nat.beq (tget wO 8 5 T.ot p.2) (4 * p.1 + 1)) tmps
+  allR (fun p ↦ Nat.beq (T.oLane p.2) (4 * p.1 + 1)) tmps
 
 /-- The table's cells are the certificate's (`Cert.locs`), value by value. -/
 noncomputable def locsOk (T : Tabs) (locs : List ℕ) : Bool :=
   List.rec (motive := fun _ ↦ ℕ → Bool) (fun _ ↦ true)
-    (fun c _ r v ↦ Nat.beq (fld (tget wV 8 5 T.vl v) 0 16) c && Local.seqN (v + 1) r) locs 0
+    (fun c _ r v ↦ Nat.beq (vCell (T.vLane v)) c && Local.seqN (v + 1) r) locs 0
 
 /-- No value in the cells `cs` (their owner lanes empty). -/
 noncomputable def freeOk (T : Tabs) (cs : List ℕ) : Bool :=
-  allR (fun c ↦ Nat.ble 2 c && Nat.beq (tget wO 8 5 T.ot c) 0) cs
+  allR (fun c ↦ Nat.ble 2 c && Nat.beq (T.oLane c) 0) cs
 
-/-- The cells apart, as `apartOkD` without the values' cells, which `freeOk` keeps the call
-sites' and table targets' cells apart from. -/
+/-- The cells apart: the fixed cells, the temporaries' and runs', the call sites' and the table
+targets', each once; the values' cells are kept apart from the call sites' and the table targets'
+by `freeOk`. -/
 noncomputable def apartOkL (C : Cert) (P : Plumb) (main : Bool) (mc : ℕ) : Bool :=
   natSeq (Nat.lor (tmpCells P) (bitsOf (P.runs.map Prod.snd))) fun tr ↦
   natSeq (bitsOf (P.stat.map Prod.fst)) fun st ↦
@@ -413,7 +467,7 @@ noncomputable def apartOkL (C : Cert) (P : Plumb) (main : Bool) (mc : ℕ) : Boo
 noncomputable def fnK (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) :
     FnK :=
   ⟨T, fs, nextCells C.locs fs (tailArgs cf), fpgCells P, byCell P.tmps, P.runs,
-    bif main then mc else 65536⟩
+    bif main then mc else cellLimit⟩
 
 /-- The parameters' occurrences, at position `0`. -/
 noncomputable def paramsOk (K : FnK) (params : List V) : Option ℕ :=
@@ -464,7 +518,7 @@ noncomputable def segArity (ss : List Stmt) (m n : ℕ) : Bool :=
 noncomputable def staticL (cf : Core.Fn) (C : Cert) (P : Plumb) (fs : ℕ) (main : Bool) (mc : ℕ) (T : Tabs) : Bool :=
   listsOk P fs && apartOkL C P main mc && freeOk T (siteCells P) && freeOk T (P.arms.map fun a ↦ a.2.1) &&
   statOk T P.stat && tmpsOk T P.tmps && locsOk T C.locs && Nat.beq T.nv C.locs.length &&
-  allR (fun v ↦ Nat.blt (fld (tget wV 8 5 T.vl v.idx) 0 16) fs) cf.params
+  allR (fun v ↦ Nat.blt (vCell (T.vLane v.idx)) fs) cf.params
 
 /-- The walk of the parameters and the body. -/
 noncomputable def walkL (K : FnK) (cf : Core.Fn) : Bool :=

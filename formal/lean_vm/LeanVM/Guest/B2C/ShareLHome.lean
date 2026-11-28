@@ -41,17 +41,17 @@ theorem beq_false {a b : ℕ} (h : a ≠ b) : Nat.beq a b = false := by
 
 /-- **A home**, unfolded. -/
 theorem homeOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v x : ℕ} (h : homeOk K st q i cx v x = true) :
-    (fld x 0 16 < K.fs ∨ fld x 0 16 ∈ K.nx) ∧ bitN K.fc (fld x 0 16) = false ∧ fld x 0 16 < K.mb ∧
-    (fld x 0 16 < 2 → vSh x = 0) ∧
-    (2 ≤ fld x 0 16 → vSh x = 0 → tget wO 8 5 K.T.ot (fld x 0 16) = 4 * v + 1) ∧
-    (2 ≤ fld x 0 16 → vSh x ≠ 0 → vHp x = q ∧ vHj x = i ∧ vSe x = cx.e ∧
-      sharedOk K st q i cx v (fld x 0 16) (vSh x) (tget wO 8 5 K.T.ot (fld x 0 16)) = true) := by
+    (vCell x < K.fs ∨ vCell x ∈ K.nx) ∧ bitN K.fc (vCell x) = false ∧ vCell x < K.mb ∧
+    (vCell x < 2 → vSh x = 0) ∧
+    (2 ≤ vCell x → vSh x = 0 → K.T.oLane (vCell x) = 4 * v + 1) ∧
+    (2 ≤ vCell x → vSh x ≠ 0 → vHp x = q ∧ vHj x = i ∧ vSe x = cx.e ∧
+      sharedOk K st q i cx v (vCell x) (vSh x) (K.T.oLane (vCell x)) = true) := by
   unfold homeOk at h
   dsimp only at h
   simp only [band, Bool.or_eq_true, Nat.blt_eq, Bool.not_eq_true', anyR_eq, List.any_eq_true, nbeq_iff] at h
   obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := h
   refine ⟨h1.imp id fun ⟨c, hc, he⟩ ↦ he ▸ hc, h2, h3, fun hc ↦ ?_, fun hc hs ↦ ?_, fun hc hs ↦ ?_⟩
-  · rw [show Nat.blt (fld x 0 16) 2 = true from Nat.blt_eq.mpr hc] at h4
+  · rw [show Nat.blt (vCell x) 2 = true from Nat.blt_eq.mpr hc] at h4
     simpa using h4
   · rw [blt_false hc] at h4
     simp only [Bool.cond_false, show Nat.beq (vSh x) 0 = true from nbeq_iff.mpr hs, Bool.cond_true,
@@ -64,44 +64,44 @@ theorem homeOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v x : ℕ} (h : homeOk K
 
 /-- **A shared home's place in its cell's list**, unfolded. -/
 theorem sharedOk_spec {st : Stmt} {q i : ℕ} {cx : Ctx} {v c si o : ℕ} (h : sharedOk K st q i cx v c si o = true) :
-    sCell (tget wS 6 5 K.T.sl (si - 1)) = c ∧ sHp (tget wS 6 5 K.T.sl (si - 1)) = q ∧
-    sHj (tget wS 6 5 K.T.sl (si - 1)) = i ∧ 2 ≤ o % 4 ∧
-    (sPrev (tget wS 6 5 K.T.sl (si - 1)) = 0 → o >>> 2 = v + 1 ∧ sHead (tget wS 6 5 K.T.sl (si - 1)) = q) ∧
-    (sPrev (tget wS 6 5 K.T.sl (si - 1)) ≠ 0 →
-      sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1 < K.T.nv ∧
-      vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) ≠ 0 ∧
-      sCell (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) = c ∧
-      sNext (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) = v + 1 ∧
-      sHead (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) =
-        sHead (tget wS 6 5 K.T.sl (si - 1)) ∧
-      (sHp (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) < q ∨
-        sHp (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) = q ∧
-        sHj (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) < i) ∧
-      (sKind (tget wS 6 5 K.T.sl (si - 1)) = kRoot → cx.t + 1 ≤ sHead (tget wS 6 5 K.T.sl (si - 1)) ∧
-        sHp (tget wS 6 5 K.T.sl (vSh (vlane K (sPrev (tget wS 6 5 K.T.sl (si - 1)) - 1)) - 1)) < cx.a)) ∧
-    justOk K st q i c (tget wS 6 5 K.T.sl (si - 1)) o = true := by
+    sCell (K.T.sLane (si - 1)) = c ∧ sHp (K.T.sLane (si - 1)) = q ∧
+    sHj (K.T.sLane (si - 1)) = i ∧ 2 ≤ o % 4 ∧
+    (sPrev (K.T.sLane (si - 1)) = 0 → o >>> 2 = v + 1 ∧ sHead (K.T.sLane (si - 1)) = q) ∧
+    (sPrev (K.T.sLane (si - 1)) ≠ 0 →
+      sPrev (K.T.sLane (si - 1)) - 1 < K.T.nv ∧
+      vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) ≠ 0 ∧
+      sCell (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) = c ∧
+      sNext (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) = v + 1 ∧
+      sHead (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) =
+        sHead (K.T.sLane (si - 1)) ∧
+      (sHp (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) < q ∨
+        sHp (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) = q ∧
+        sHj (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) < i) ∧
+      (sKind (K.T.sLane (si - 1)) = kRoot → cx.t + 1 ≤ sHead (K.T.sLane (si - 1)) ∧
+        sHp (K.T.sLane (vSh (vlane K (sPrev (K.T.sLane (si - 1)) - 1)) - 1)) < cx.a)) ∧
+    justOk K st q i c (K.T.sLane (si - 1)) o = true := by
   unfold sharedOk at h
   simp only [band, nbeq_iff, Nat.ble_eq] at h
   obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h5⟩, h6⟩, h7⟩ := h
   refine ⟨h1, h2, h3, h5, fun hp ↦ ?_, fun hp ↦ ?_, h7⟩
-  · rw [show Nat.beq (sPrev (tget wS 6 5 K.T.sl (si - 1))) 0 = true from nbeq_iff.mpr hp] at h6
+  · rw [show Nat.beq (sPrev (K.T.sLane (si - 1))) 0 = true from nbeq_iff.mpr hp] at h6
     simpa [band] using h6
   · rw [beq_false hp] at h6
     simp only [Bool.cond_false, band, Nat.blt_eq, Bool.not_eq_true', nbeq_iff, Bool.or_eq_true] at h6
     obtain ⟨⟨⟨⟨⟨⟨h61, h62⟩, h63⟩, h64⟩, h65⟩, h66⟩, h67⟩ := h6
     refine ⟨h61, ?_, h63, h64, h65, h66, fun hk ↦ ?_⟩
     · intro h0; rw [h0] at h62; cases h62
-    rw [show Nat.beq (sKind (tget wS 6 5 K.T.sl (si - 1))) kRoot = true from nbeq_iff.mpr hk] at h67
+    rw [show Nat.beq (sKind (K.T.sLane (si - 1))) kRoot = true from nbeq_iff.mpr hk] at h67
     simpa [band, Nat.ble_eq, Nat.blt_eq] using h67
 
 /-- **An input known**, unfolded. -/
 theorem known_spec {q i w : ℕ} (h : known K q i w = true) :
     (vSh (vlane K w) = 0 ∧ 2 ≤ cellOf K w) ∨
-    (vSh (vlane K w) ≠ 0 ∧ 2 ≤ sCell (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) ∧
-      (sHp (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) < q ∨
-        (sHp (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) = q ∧
-          (sKind (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) = kRoot ∨
-            sHj (tget wS 6 5 K.T.sl (vSh (vlane K w) - 1)) < i)))) := by
+    (vSh (vlane K w) ≠ 0 ∧ 2 ≤ sCell (K.T.sLane (vSh (vlane K w) - 1)) ∧
+      (sHp (K.T.sLane (vSh (vlane K w) - 1)) < q ∨
+        (sHp (K.T.sLane (vSh (vlane K w) - 1)) = q ∧
+          (sKind (K.T.sLane (vSh (vlane K w) - 1)) = kRoot ∨
+            sHj (K.T.sLane (vSh (vlane K w) - 1)) < i)))) := by
   unfold known at h
   dsimp only at h
   by_cases hs : vSh (vlane K w) = 0
@@ -119,16 +119,16 @@ theorem justOk_spec {st : Stmt} {q i c s o : ℕ} (h : justOk K st q i c s o = t
       ((sKind s = kEq ∧ ∃ u, eqAt a i = some u ∧ vSh (vlane K u.idx) ≠ 0 ∧ cellOf K u.idx = c ∧
           known K q i u.idx = true) ∨
        (sKind s = kConstK ∧ ∃ y, constAt a i = some y ∧ sAux s < K.T.nst ∧
-          tO (tget wT 6 5 K.T.st (sAux s)) = c ∧ tK0 (tget wT 6 5 K.T.st (sAux s)) = y.1 ∧
-          tK1 (tget wT 6 5 K.T.st (sAux s)) = y.2) ∨
+          tO (K.T.tLane (sAux s)) = c ∧ tK0 (K.T.tLane (sAux s)) = y.1 ∧
+          tK1 (K.T.tLane (sAux s)) = y.2) ∨
        (sKind s = kConstA ∧ ∃ y, constAt a i = some y ∧ sAux s < K.T.nat ∧
-          aConst (tget wA 4 5 K.T.an (sAux s)) = 1 ∧ aCell (tget wA 4 5 K.T.an (sAux s)) = c ∧
-          aK0 (tget wA 4 5 K.T.an (sAux s)) = y.1 ∧ aK1 (tget wA 4 5 K.T.an (sAux s)) = y.2 ∧
-          aP (tget wA 4 5 K.T.an (sAux s)) < q ∧ q < aE (tget wA 4 5 K.T.an (sAux s))) ∨
+          aConst (K.T.aLane (sAux s)) = 1 ∧ aCell (K.T.aLane (sAux s)) = c ∧
+          aK0 (K.T.aLane (sAux s)) = y.1 ∧ aK1 (K.T.aLane (sAux s)) = y.2 ∧
+          aP (K.T.aLane (sAux s)) < q ∧ q < aE (K.T.aLane (sAux s))) ∨
        (sKind s = kKey ∧ ∃ op ins, keyAt a i = some (op, ins) ∧ sAux s < K.T.nat ∧
-          aConst (tget wA 4 5 K.T.an (sAux s)) = 0 ∧ aCell (tget wA 4 5 K.T.an (sAux s)) = c ∧
-          aOp (tget wA 4 5 K.T.an (sAux s)) = op ∧ aIns (tget wA 4 5 K.T.an (sAux s)) = keyPack K op ins ∧
-          aP (tget wA 4 5 K.T.an (sAux s)) < q ∧ q < aE (tget wA 4 5 K.T.an (sAux s)) ∧
+          aConst (K.T.aLane (sAux s)) = 0 ∧ aCell (K.T.aLane (sAux s)) = c ∧
+          aOp (K.T.aLane (sAux s)) = op ∧ aIns (K.T.aLane (sAux s)) = keyPack K op ins ∧
+          aP (K.T.aLane (sAux s)) < q ∧ q < aE (K.T.aLane (sAux s)) ∧
           ∀ w ∈ ins, known K q i w.idx = true))) := by
   unfold justOk at h
   dsimp only at h

@@ -105,7 +105,7 @@ theorem cell_getD (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.le
 
 /-- A value's cell is owned, unless shared, when at least `2`. -/
 theorem ot_ne_zero (H : CheckL cf C P fs main mc T) {u : ℕ} (hu : u < C.locs.length)
-    (hc : 2 ≤ cellOf Kf u) : tget wO 8 5 T.ot (cellOf Kf u) ≠ 0 := by
+    (hc : 2 ≤ cellOf Kf u) : T.oLane (cellOf Kf u) ≠ 0 := by
   by_cases hs : vSh (vlane Kf u) = 0
   · rw [unshared_owner H hu hs hc]; omega
   · obtain ⟨q, i, st, cx, -, -, -, -, -, hsh⟩ := shared_home H hu hs
@@ -155,7 +155,7 @@ theorem staticD_of_check (H : CheckL cf C P fs main mc T) : StaticD cf C P fs ma
           have hl := H.lists
           simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true] at hl
           exact ((pairsOk_spec hl.1.1.1.1.2).1 _ ht).1
-        have hot : tget wO 8 5 (fnK cf C P fs main mc T).T.ot (C.locs.getD v.idx 0) = 4 * t + 1 := by
+        have hot : (fnK cf C P fs main mc T).T.oLane (C.locs.getD v.idx 0) = 4 * t + 1 := by
           have := H.tmps
           simp only [tmpsOk, allR_eq, List.all_eq_true, nbeq_iff] at this
           exact this _ ht

@@ -10,6 +10,7 @@ import LeanVM.Guest.WalkTags
 import LeanVM.Guest.Data.NameStrings
 import LeanVM.Guest.PackHash
 import LeanVM.Guest.Local.Layout
+import LeanVM.Guest.B2C.ShareL
 
 /-!
 # `guest-cert`: the certificates of the guest's compiled functions
@@ -2924,6 +2925,9 @@ structure Out where
 /-- The most a piece of a walk costs (`cost`). -/
 def pieceCost : ℕ := 24000
 
+/-- The once-per-function part's cost beyond its values and fixed cells, in `cost`'s units. -/
+def staticBase : ℕ := 50
+
 /-- **A function's sharing certificate**: core IR `cf`, its values' cells `locs`, its fixed cells
 `stat`. -/
 def tabs (name : String) (cf : Core.Fn) (locs : Array ℕ) (stat : List (ℕ × Cpl.PC)) : Except String Out := do
@@ -3055,10 +3059,13 @@ def tabs (name : String) (cf : Core.Fn) (locs : Array ℕ) (stat : List (ℕ × 
   over "operand" (homes.foldl (fun m h => max m h.i) 0) 8
   over "aux" (max statList.length usedA.size) 20
   for A in usedA do
+    unless (usedA.filter (·.p == A.p)).size ≤ B2C.ShareL.anchorFuel do
+      throw s!"{name}: more than {B2C.ShareL.anchorFuel} anchors at position {A.p}"
     over "anchor operand" A.j 8
     over "anchor operation" A.op 16
     over "anchor inputs" (packCells A.ins) 224
-  -- the tables
+  -- the tables, each lane's fields at the bits `B2C.ShareL.Tabs` documents and its accessors read
+  -- (`vCell`, `vSh`, `vHp`, `vHj`, `vSe`; `sCell` … `sAux`; `aP` … `aK1`; `tO`, `tK0`, `tK1`)
   let vl := (Array.range locs.size).map fun v => match sidx.get? v with
     | none => cell v
     | some si => let h := homes[v]!
@@ -3147,7 +3154,7 @@ def tabs (name : String) (cf : Core.Fn) (locs : Array ℕ) (stat : List (ℕ × 
         b := b + 1
       pieces := pieces.push ⟨0, 0, 0, m, b, stAt pos[m]! eix[m]!, stAt pos[b]! eix[b]!, c⟩
       m := b
-  return ⟨text, total, locs.size / 4 + stat.length + 50, (homeQ.filter (· < 1)).size,
+  return ⟨text, total, locs.size / 4 + stat.length + staticBase, (homeQ.filter (· < 1)).size,
     (body.size, E, locs.size, usedA.size, ends.size), pieces.toList⟩
 
 /-- A piece's theorem, `shareS{k}`. -/
